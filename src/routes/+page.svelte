@@ -1,56 +1,35 @@
-<script>
+<script lang="ts">
+	import Counter from './Counter.svelte';
 	import welcome from '$lib/images/svelte-welcome.webp';
 	import welcome_fallback from '$lib/images/svelte-welcome.png';
+	import { onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
+	import * as Card from '$lib/components/ui/card';
+let projects = [{name:"test"},{name:"test2"}]
 </script>
 
 <svelte:head>
 	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
+	<meta name="description" content="Gaspard Michel Etienne Personal Website" />
 </svelte:head>
 
 <section>
-	<h1>
-		<span class="welcome">
-			<picture>
-				<source srcset={welcome} type="image/webp" />
-				<img src={welcome_fallback} alt="Welcome" />
-			</picture>
-		</span>
-
-		to your new<br />SvelteKit app
-	</h1>
-
-	<h2>
-		try editing <strong>src/routes/+page.svelte</strong>
-	</h2>
+<h2>Projects</h2>
+{#each projects as project}
+	<Card.Root>
+<Card.Header>
+    <Card.Title>{project.name}</Card.Title>
+    <Card.Description>Card Description</Card.Description>
+  </Card.Header>
+  		<Card.Content class="p-4 flex flex-col items-center">
+			<h1 class="text-5xl font-bold" in:fade={{ delay: 250, duration: 1000 }}>
+				Gaspard Michel Etienne
+			</h1>
+			<h2 class="text-2xl">Software Engineer</h2>
+		</Card.Content>
+	</Card.Root>
+{/each}
 </section>
 
 <style>
-	section {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		flex: 0.6;
-	}
-
-	h1 {
-		width: 100%;
-	}
-
-	.welcome {
-		display: block;
-		position: relative;
-		width: 100%;
-		height: 0;
-		padding: 0 0 calc(100% * 495 / 2048) 0;
-	}
-
-	.welcome img {
-		position: absolute;
-		width: 100%;
-		height: 100%;
-		top: 0;
-		display: block;
-	}
 </style>
