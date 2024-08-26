@@ -1,0 +1,27 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "dev",
+			"label": "npm: dev",
+			"detail": "vite dev",
+			"problemMatcher": "$tsc"
+		},
+		{
+			"type": "npm",
+			"script": "check",
+			"label": "npm: check",
+			"detail": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+			"problemMatcher": "$tsc"
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"group": "build",
+			"label": "npm: build",
+			"detail": "vite build",
+			"problemMatcher": "$tsc"
+		}
+	]
+}
