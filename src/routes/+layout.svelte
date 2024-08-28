@@ -1,14 +1,14 @@
-<script>
+<script lang="ts">
 	import Header from './Header.svelte';
 	import '../app.css';
-	import LandingSection from './LandingSection.svelte';
+	import { ModeWatcher } from 'mode-watcher';
 </script>
 
-<div class="app">
-	<LandingSection></LandingSection>
-	<Header></Header>
+<div class="app bg-primary">
+	<ModeWatcher />
+	<Header />
 
-	<main class="flex min-h-screen flex-1">
+	<main>
 		<slot></slot>
 	</main>
 
