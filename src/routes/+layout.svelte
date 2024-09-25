@@ -1,44 +1,34 @@
 <script lang="ts">
-	import Header from './Header.svelte';
+	import Header from '../lib/components/Header.svelte';
 	import '../app.css';
 	import { ModeWatcher } from 'mode-watcher';
+	import SplashScreen from '../lib/components/SplashScreen.svelte';
+	import type { Snippet } from 'svelte';
+	import Footer from '$lib/components/Footer.svelte';
+	let commands = $state('');
+	let {
+		children
+	}: {
+		children: Snippet;
+	} = $props();
 </script>
 
-<div class="app bg-primary">
+<svelte:document
+	onkeypress={({ key, ctrlKey }) => {
+		if (key === 'esc') {
+			commands = '';
+		} else if (ctrlKey) {
+			commands.concat(key);
+		}
+	}}
+/>
+
+<div class="app flex min-h-screen flex-col">
+	<SplashScreen />
 	<ModeWatcher />
 	<Header />
-
-	<main>
-		<slot></slot>
+	<main class="grow">
+		{@render children()}
 	</main>
-
-	<footer>
-		<p>visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to learn SvelteKit</p>
-	</footer>
+	<Footer />
 </div>
-
-<style>
-	.app {
-		display: flex;
-		flex-direction: column;
-		min-height: 100vh;
-	}
-
-	footer {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		padding: 12px;
-	}
-
-	footer a {
-		font-weight: bold;
-	}
-
-	@media (min-width: 480px) {
-		footer {
-			padding: 12px 0;
-		}
-	}
-</style>
