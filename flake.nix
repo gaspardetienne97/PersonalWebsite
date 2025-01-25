@@ -19,9 +19,6 @@
       # A helper that helps us define the attributes below for
       # all systems we care about.
       eachSystem = nixpkgs.lib.genAttrs [
-        "aarch64-darwin"
-        "aarch64-linux"
-        "x86_64-darwin"
         "x86_64-linux"
       ];
     in
@@ -44,7 +41,6 @@
                   dream2nix.modules.dream2nix.nodejs-package-lock-v3
                   dream2nix.modules.dream2nix.nodejs-granular-v3
                   dream2nix.modules.dream2nix.nodejs-devshell-v3
-
                 ];
 
                 mkDerivation = {
@@ -59,7 +55,6 @@
                       stdenv
                       mkShell
                       rsync
-
                       ;
                   };
 
