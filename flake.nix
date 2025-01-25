@@ -11,8 +11,7 @@
   };
 
   outputs =
-    { self
-    , dream2nix
+    { dream2nix
     , nixpkgs
     , ...
     }:
@@ -35,53 +34,53 @@
           packageSets.nixpkgs = nixpkgs.legacyPackages.${system};
           modules = [
             # Import our actual package definiton as a dream2nix module from ./default.nix
-            { lib
-            , config
-            , dream2nix
-            , ...
-            }: {
-              imports = [
-                dream2nix.modules.dream2nix.nodejs-package-lock-v3
-                dream2nix.modules.dream2nix.nodejs-granular-v3
-                dream2nix.modules.dream2nix.nodejs-devshell-v3
-
-              ];
-
-              mkDerivation = {
-                src = ./.;
-              };
-
-              deps = { nixpkgs, ... }: {
-                inherit
-                  (nixpkgs)
-                  fetchFromGitHub
-                  stdenv
-                  mkShell
-                  rsync
-                  stdenv
-                  ;
-              };
-
-              nodejs-package-lock-v3 = {
-                packageLockFile = "${config.mkDerivation.src}/package-lock.json";
-              };
-
-              name = "personal-website";
-              version = "0.1.0";
-            }
-
+            (
+              { config
+              , dream2nix
+              , ...
+              }:
               {
-                # Aid dream2nix to find the project root. This setup should also works for mono
-                # repos. If you only have a single project, the defaults should be good enough.
-                paths.projectRoot = ./.;
-                # can be changed to ".git" or "flake.nix" to get rid of .project-root
-                paths.projectRootFile = "flake.nix";
-                paths.package = ./.;
+                imports = [
+                  dream2nix.modules.dream2nix.nodejs-package-lock-v3
+                  dream2nix.modules.dream2nix.nodejs-granular-v3
+                  dream2nix.modules.dream2nix.nodejs-devshell-v3
+
+                ];
+
+                mkDerivation = {
+                  src = ./.;
+                };
+
+                deps =
+                  { nixpkgs, ... }:
+                  {
+                    inherit (nixpkgs)
+                      fetchFromGitHub
+                      stdenv
+                      mkShell
+                      rsync
+
+                      ;
+                  };
+
+                nodejs-package-lock-v3 = {
+                  packageLockFile = "${config.mkDerivation.src}/package-lock.json";
+                };
+
+                name = "personal-website";
+                version = "0.1.0";
               }
+            )
+            {
+              # Aid dream2nix to find the project root. This setup should also works for mono
+              # repos. If you only have a single project, the defaults should be good enough.
+              paths.projectRoot = ./.;
+              # can be changed to ".git" or "flake.nix" to get rid of .project-root
+              paths.projectRootFile = "flake.nix";
+              paths.package = ./.;
+            }
           ];
         };
       });
-
-
     };
 }
