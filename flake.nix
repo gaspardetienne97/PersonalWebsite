@@ -1,70 +1,87 @@
 {
   description = "A Flake for my Personal Website";
 
+  # We import the latest commit of dream2nix main branch and instruct nix to
+  # re-use the nixpkgs revision referenced by dream2nix.
+  # This is what we test in CI with, but you can generally refer to any
+  # recent nixpkgs commit here.
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-unstable";
     dream2nix.url = "github:nix-community/dream2nix";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.follows = "dream2nix/nixpkgs";
   };
 
-  outputs = { self, nixpkgs, dream2nix, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
+  outputs =
+    { self
+    , dream2nix
+    , nixpkgs
+    , ...
+    }:
+    let
+      # A helper that helps us define the attributes below for
+      # all systems we care about.
+      eachSystem = nixpkgs.lib.genAttrs [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
+    in
+    {
+      packages = eachSystem (system: {
+        # For each system, we define our default package
+        # by passing in our desired nixpkgs revision plus
+        # any dream2nix modules needed by it.
+        default = dream2nix.lib.evalModules {
+          packageSets.nixpkgs = nixpkgs.legacyPackages.${system};
+          modules = [
+            # Import our actual package definiton as a dream2nix module from ./default.nix
+            { lib
+            , config
+            , dream2nix
+            , ...
+            }: {
+              imports = [
+                dream2nix.modules.dream2nix.nodejs-package-lock-v3
+                dream2nix.modules.dream2nix.nodejs-granular-v3
+                dream2nix.modules.dream2nix.nodejs-devshell-v3
 
-        d2n = dream2nix.lib.init {
-          systems = [ system ];
-          config.projectRoot = ./.;
-        };
-
-        website = d2n.makeOutputs {
-          source = ./.;
-          packageOverrides = {
-            website = {
-              buildInputs = with pkgs; [
-                nodejs
-                nodePackages.npm
               ];
-              buildPhase = ''
-                npm install
-                npm run build
-              '';
-              installPhase = ''
-                mkdir -p $out/bin
-                cp -r build $out/
-                cp -r node_modules $out/
-                cp package.json $out/
-                
-                # Create start script
-                cat > $out/bin/start-website <<EOF
-                #!${pkgs.bash}/bin/bash
-                exec ${pkgs.nodejs}/bin/node --env-file=.env $out/build/index.js
-                EOF
-                chmod +x $out/bin/start-website
-              '';
-            };
-          };
-        };
-      in
-      {
-        packages.default = website.packages.${system}.website;
-        devShells.default = pkgs.mkShell
-          {
-            buildInputs = with pkgs; [
-              nodejs
-              nodePackages.npm
-              nodePackages.typescript
-              nodePackages.typescript-language-server
-            ];
 
-            shellHook = ''
-              echo "🚀 Welcome to the SvelteKit development environment!"
-              echo "Running npm install..."
-              npm install
-              echo "Starting development server..."
-              npm run dev -- --open
-            '';
-          };
-      }
-    );
+              mkDerivation = {
+                src = ./.;
+              };
+
+              deps = { nixpkgs, ... }: {
+                inherit
+                  (nixpkgs)
+                  fetchFromGitHub
+                  stdenv
+                  mkShell
+                  rsync
+                  stdenv
+                  ;
+              };
+
+              nodejs-package-lock-v3 = {
+                packageLockFile = "${config.mkDerivation.src}/package-lock.json";
+              };
+
+              name = "personal-website";
+              version = "0.1.0";
+            }
+
+              {
+                # Aid dream2nix to find the project root. This setup should also works for mono
+                # repos. If you only have a single project, the defaults should be good enough.
+                paths.projectRoot = ./.;
+                # can be changed to ".git" or "flake.nix" to get rid of .project-root
+                paths.projectRootFile = "flake.nix";
+                paths.package = ./.;
+              }
+          ];
+        };
+      });
+
+
+    };
 }
