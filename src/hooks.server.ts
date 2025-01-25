@@ -1,29 +1,21 @@
 import { sequence } from '@sveltejs/kit/hooks';
-import { dev } from '$app/environment';
-import * as auth from '$lib/server/auth.js';
-import type { Handle } from '@sveltejs/kit';
 import { i18n } from '$lib/i18n';
-const handleParaglide: Handle = i18n.handle();
+import type { Handle } from '@sveltejs/kit';
+import * as auth from '$lib/server/auth.js';
 
 const handleAuth: Handle = async ({ event, resolve }) => {
-	const sessionId = event.cookies.get(auth.sessionCookieName);
-	if (!sessionId) {
+	const sessionToken = event.cookies.get(auth.sessionCookieName);
+	if (!sessionToken) {
 		event.locals.user = null;
 		event.locals.session = null;
 		return resolve(event);
 	}
 
-	const { session, user } = await auth.validateSession(sessionId);
+	const { session, user } = await auth.validateSessionToken(sessionToken);
 	if (session) {
-		event.cookies.set(auth.sessionCookieName, session.id, {
-			path: '/',
-			sameSite: 'lax',
-			httpOnly: true,
-			expires: session.expiresAt,
-			secure: !dev
-		});
+		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 	} else {
-		event.cookies.delete(auth.sessionCookieName, { path: '/' });
+		auth.deleteSessionTokenCookie(event);
 	}
 
 	event.locals.user = user;
@@ -32,4 +24,5 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle: Handle = sequence(handleParaglide, handleAuth);
+const handleParaglide: Handle = i18n.handle();
+export const handle: Handle = sequence(handleAuth, handleParaglide);

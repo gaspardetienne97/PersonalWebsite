@@ -43,8 +43,10 @@
 					</Carousel.Item>
 				{/each}
 			</Carousel.Content>
-			<Carousel.Previous class="-left-0" />
-			<Carousel.Next class="-right-0" />
+			<!-- class="-left-0" -->
+			<Carousel.Previous />
+			<!-- class="-right-0" -->
+			<Carousel.Next />
 		</Carousel.Root>
 		<Button href="/blog" variant="link" class="self-end">More</Button>
 	</section>
@@ -93,6 +95,3 @@
 		<!-- <Button href="/projects variant="link" class="self-end">More</Button> -->
 	</section>
 </div>
-
-<style>
-</style>

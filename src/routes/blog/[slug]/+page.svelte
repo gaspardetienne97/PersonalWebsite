@@ -37,6 +37,3 @@
 		<Content />
 	</div>
 </article>
-
-<style>
-</style>

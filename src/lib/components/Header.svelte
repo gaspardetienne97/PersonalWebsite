@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/ui/button';
 </script>
 
-<header class="border-blue sticky top-0 flex items-center bg-background justify-between border-b">
+<header class="border-blue sticky top-0 flex items-center justify-between border-b bg-background">
 	<div class="h-12 w-12 p-2">
 		<a href="/">
 			<img src={logo} alt="SvelteKit" width="100%" />
@@ -32,7 +32,7 @@
 		</nav>
 
 		<div class="flex">
-			<Button on:click={toggleMode} variant="ghost" size="icon">
+			<Button onclick={toggleMode} variant="ghost" size="icon">
 				<Sun
 					class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
 				/>

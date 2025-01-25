@@ -15,7 +15,7 @@ export const actions: Actions = {
 			return fail(401);
 		}
 		await auth.invalidateSession(event.locals.session.id);
-		event.cookies.delete(auth.sessionCookieName, { path: '/' });
+		auth.deleteSessionTokenCookie(event);
 
 		return redirect(302, '/demo/lucia/login');
 	}

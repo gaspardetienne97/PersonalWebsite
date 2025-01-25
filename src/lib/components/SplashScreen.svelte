@@ -7,7 +7,7 @@
 	import { browser } from '$app/environment';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import type { FlyParams, TransitionConfig } from 'svelte/transition';
-	import SpaceColonizationCircuit from './SpaceColonizationCircuit.svelte';
+	import SpaceColonizationCircuit from '../components/SpaceColonizationCircuit.svelte';
 
 	interface Props {}
 

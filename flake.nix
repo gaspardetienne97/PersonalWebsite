@@ -10,17 +10,15 @@
     nixpkgs.follows = "dream2nix/nixpkgs";
   };
 
-  outputs =
-    { dream2nix
-    , nixpkgs
-    , ...
-    }:
+  outputs = { dream2nix, nixpkgs, ... }:
     let
       # A helper that helps us define the attributes below for
       # all systems we care about.
       eachSystem = nixpkgs.lib.genAttrs [
         "x86_64-linux"
+        "aarch64-darwin"
       ];
+      name = "personal-website";
     in
     {
       packages = eachSystem (system: {
@@ -54,25 +52,39 @@
                       fetchFromGitHub
                       stdenv
                       mkShell
+                      nodejs_22
                       rsync
+                      npm
+                      deno
                       ;
                   };
-
-                nodejs-package-lock-v3 = {
-                  packageLockFile = "${config.mkDerivation.src}/package-lock.json";
+                nodejs-devshell-v3.nodeModules.nodejs-granular-v3.overrides.${name}.mkDerivation = {
+                  shellHook = ''
+                    Welcome to the SvelteKit development environment!"
+                        echo "     echo "🚀Running npm install..."
+                        npm install
+                        echo "Starting development server..."
+                        npm run dev -- --open
+                  '';
                 };
 
-                name = "personal-website";
+
+                nodejs-package-lock-v3 =
+                  {
+                    packageLockFile = "${config.mkDerivation.src}/package-lock.json";
+                  };
+
+                inherit name;
                 version = "0.1.0";
               }
             )
             {
               # Aid dream2nix to find the project root. This setup should also works for mono
               # repos. If you only have a single project, the defaults should be good enough.
-              paths.projectRoot = ./.;
+              paths. projectRoot = ./.;
               # can be changed to ".git" or "flake.nix" to get rid of .project-root
-              paths.projectRootFile = "flake.nix";
-              paths.package = ./.;
+              paths. projectRootFile = "flake.nix";
+              paths. package = ./.;
             }
           ];
         };

@@ -12,7 +12,7 @@
 	let currentIteration = $state(0);
 	let tree = $state<Node[]>([]);
 	let nodes = $state<Node[]>([]);
-	let animationInterval: number | null = $state(null);
+	let animationInterval: NodeJS.Timeout | null = $state(null);
 	let isAnimating = $state(false);
 	class Node {
 		x: number;

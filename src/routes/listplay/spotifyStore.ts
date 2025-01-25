@@ -8,12 +8,13 @@ export class Spotify {
 	private redirectURL;
 	constructor(redirectURL?: string) {
 		this.redirectURL = redirectURL;
-		this.sdk = redirectURL
-			? SpotifyApi.withUserAuthorization(env.PUBLIC_SPOTIFY_CLIENT_ID, redirectURL, [
-					...Scopes.playlist,
-					...Scopes.userDetails
-				])
-			: undefined;
+		this.sdk =
+			redirectURL && env.PUBLIC_SPOTIFY_CLIENT_ID
+				? SpotifyApi.withUserAuthorization(env.PUBLIC_SPOTIFY_CLIENT_ID, redirectURL, [
+						...Scopes.playlist,
+						...Scopes.userDetails
+					])
+				: undefined;
 	}
 
 	isAuthenticated = async () => {
@@ -23,13 +24,14 @@ export class Spotify {
 
 	login() {
 		if (!this.sdk) {
-			this.sdk = this.redirectURL
-				? SpotifyApi.withUserAuthorization(
-						env.PUBLIC_SPOTIFY_CLIENT_ID,
-						this.redirectURL,
-						Scopes.all
-					)
-				: undefined;
+			this.sdk =
+				this.redirectURL && env.PUBLIC_SPOTIFY_CLIENT_ID
+					? SpotifyApi.withUserAuthorization(
+							env.PUBLIC_SPOTIFY_CLIENT_ID,
+							this.redirectURL,
+							Scopes.all
+						)
+					: undefined;
 		}
 	}
 
