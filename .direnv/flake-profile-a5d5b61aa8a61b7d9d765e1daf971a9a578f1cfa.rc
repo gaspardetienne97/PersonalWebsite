@@ -37,7 +37,7 @@ NIX_CC='/nix/store/vh9fsdhgxcnab2qk7vdp2palkkn6j3cp-gcc-wrapper-13.3.0'
 export NIX_CC
 NIX_CC_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu='1'
 export NIX_CC_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu
-NIX_CFLAGS_COMPILE=' -frandom-seed=mkigfas29s -isystem /nix/store/3bg50gaw9hy1igq3sv4gndnvfmhwjgff-jq-1.7.1-dev/include -isystem /nix/store/dcdc33kdjdhjnzg6rkmd0cx4kpwl8cac-nodejs-20.17.0/include -isystem /nix/store/wfbjq35kxs6x83c3ncpfxdyl5gbhdx4h-python3-3.12.6/include -isystem /nix/store/3bg50gaw9hy1igq3sv4gndnvfmhwjgff-jq-1.7.1-dev/include -isystem /nix/store/dcdc33kdjdhjnzg6rkmd0cx4kpwl8cac-nodejs-20.17.0/include -isystem /nix/store/wfbjq35kxs6x83c3ncpfxdyl5gbhdx4h-python3-3.12.6/include'
+NIX_CFLAGS_COMPILE=' -frandom-seed=4jdrvjwncp -isystem /nix/store/3bg50gaw9hy1igq3sv4gndnvfmhwjgff-jq-1.7.1-dev/include -isystem /nix/store/dcdc33kdjdhjnzg6rkmd0cx4kpwl8cac-nodejs-20.17.0/include -isystem /nix/store/wfbjq35kxs6x83c3ncpfxdyl5gbhdx4h-python3-3.12.6/include -isystem /nix/store/3bg50gaw9hy1igq3sv4gndnvfmhwjgff-jq-1.7.1-dev/include -isystem /nix/store/dcdc33kdjdhjnzg6rkmd0cx4kpwl8cac-nodejs-20.17.0/include -isystem /nix/store/wfbjq35kxs6x83c3ncpfxdyl5gbhdx4h-python3-3.12.6/include'
 export NIX_CFLAGS_COMPILE
 NIX_ENFORCE_NO_NATIVE='1'
 export NIX_ENFORCE_NO_NATIVE
@@ -73,6 +73,8 @@ RANLIB='ranlib'
 export RANLIB
 READELF='readelf'
 export READELF
+SHELL='/nix/store/717iy55ncqs0wmhdkwc5fg2vci5wbmq8-bash-5.2p32/bin/bash'
+export SHELL
 SIZE='size'
 export SIZE
 SOURCE_DATE_EPOCH='315532800'
@@ -131,7 +133,7 @@ configurePhase='runHook preConfigure
 python $installDeps
 
 echo "Symlinking transitive executables to $nodeModules/.bin"
-for dep in /nix/store/hg2n56iwmgbbhg2a6qxhs7hfbf9gkdsy-__at__chromatic-com__slash__storybook-3.2.4 /nix/store/pn3rniy6nbppmk27nm9wxsxqvjnav5mh-__at__eslint__slash__compat-1.2.5 /nix/store/yp5xwlacc3h2xni52vddx81y7qfgdf69-__at__eslint__slash__js-9.19.0 /nix/store/l6gf9fmfqsxcnrbpbzrl0f73h1hswd8k-__at__inlang__slash__paraglide-sveltekit-0.15.5 /nix/store/gdfkrgxpx3ivzzgfyij2cpv1kcnb66qj-__at__node-rs__slash__argon2-2.0.2 /nix/store/70d649ncsnz0p53ficg6wxsm36mb3lbb-__at__oslojs__slash__crypto-1.0.1 /nix/store/a1rivirydvxvfr0p5fm8b8b01114im16-__at__oslojs__slash__encoding-1.1.0 /nix/store/sd6j85b7gcjqp2px9vhv7w26vc0n2f1p-__at__playwright__slash__test-1.50.0 /nix/store/brxmrff6r6cfibvgfdq7qfgxh0q8jzvr-__at__storybook__slash__addon-essentials-8.5.1 /nix/store/rmjh5hl4wkpyr2mwnmj4pd5qifsiybbl-__at__storybook__slash__addon-interactions-8.5.1 /nix/store/61rhyrq8svbb1wbbsd0igwikxndcj4hc-__at__storybook__slash__addon-svelte-csf-5.0.0-next.23 /nix/store/jbka1gqi2yy61y41k0v54v49yc6a019h-__at__storybook__slash__blocks-8.5.1 /nix/store/biq91h1dicjikzi73hi3x15ywmlisspi-__at__storybook__slash__svelte-8.5.1 /nix/store/hzn8zpcmri22h3x1w7kxs86in7mcnasw-__at__storybook__slash__sveltekit-8.5.1 /nix/store/fmgdiylkczkl7ldpgmn1xs94dazfgkqp-__at__storybook__slash__test-8.5.1 /nix/store/0vhy2r786hn51g2c31zprzrsva2cha2f-__at__sveltejs__slash__adapter-node-5.2.12 /nix/store/s0pvxhfa14n6xihhrici2jm96bjvib2b-__at__sveltejs__slash__kit-2.16.1 /nix/store/l06nngpspijc4acnwk1d702jj21h8frs-__at__sveltejs__slash__vite-plugin-svelte-5.0.3 /nix/store/d2j191lki38a7wb5rvx8jqfbwy27s18d-__at__tailwindcss__slash__container-queries-0.1.1 /nix/store/lg1pk9bbb2y8qab5rxq6ayx7g6hq734y-__at__tailwindcss__slash__forms-0.5.10 /nix/store/pwiz9m93v3b0mypkm1f85xd6ahgs05xz-__at__tailwindcss__slash__typography-0.5.16 /nix/store/npn128wsgvicg33mghm2jg0zq04wx203-autoprefixer-10.4.20 /nix/store/my5l0180xv3xlwn7j9zinrf3z9fhkf58-drizzle-kit-0.30.2 /nix/store/8riggcfpgcj9krg08p6nbrmd2jl7858k-drizzle-orm-0.38.4 /nix/store/ahiznqjsf2c529lj4pb0mzyh61lc1vn6-eslint-9.19.0 /nix/store/ph3hwan6mllz92a5zaghmy901cdba49g-eslint-config-prettier-10.0.1 /nix/store/0iv8apjh97km5bvgb83p8dz8mxbjdzkl-eslint-plugin-svelte-2.46.1 /nix/store/1lr29ny6paar505wv4x6djricx3p1dxp-globals-15.14.0 /nix/store/8j7rj4h1dp4zzy8402mr9h156lirx3j3-mdsvex-0.12.3 /nix/store/rn6rhi8hpklsz9j04si9x0b9lavbq7ka-mode-watcher-0.5.1 /nix/store/d0ck9fx0b1w7f8saww022ymq8qi42a6s-postgres-3.4.5 /nix/store/dw5jm0icx10s69ky7li8qbx1xwcwxg9k-prettier-3.4.2 /nix/store/2sqr7g2z6vv6mmn4z8i63kva6z222vzj-prettier-plugin-svelte-3.3.3 /nix/store/dyb1jk14jxfa0wjn11vpz94mjc05d335-prettier-plugin-tailwindcss-0.6.11 /nix/store/glxfhh8swqj6hgf8rzscxsg3x9wby5hb-storybook-8.5.1 /nix/store/5311n3d3grypj7zqna19fh6jjqxzbmc1-svelte-5.19.3 /nix/store/dyvkl62zp1npl0v28m1ajff8a5nilsxp-svelte-check-4.1.4 /nix/store/s0crznp71h0r2j4pxayjlmbwy7qyk0xy-tailwindcss-3.4.17 /nix/store/gbxc8kk7hkk6rf0zfq55jyvs58aqpzzs-typescript-5.7.3 /nix/store/w1137l61i2735s4r0sga3gmv9s9dz486-typescript-eslint-8.21.0 /nix/store/nllmmdh7lxzkzwiwdrr8ckrr3yvkp7gj-vite-6.0.11 /nix/store/qrwk0kqh7sl9b50w3im14g1ify36a3y1-vitest-3.0.4; do
+for dep in /nix/store/hg2n56iwmgbbhg2a6qxhs7hfbf9gkdsy-__at__chromatic-com__slash__storybook-3.2.4 /nix/store/pn3rniy6nbppmk27nm9wxsxqvjnav5mh-__at__eslint__slash__compat-1.2.5 /nix/store/yp5xwlacc3h2xni52vddx81y7qfgdf69-__at__eslint__slash__js-9.19.0 /nix/store/l6gf9fmfqsxcnrbpbzrl0f73h1hswd8k-__at__inlang__slash__paraglide-sveltekit-0.15.5 /nix/store/gdfkrgxpx3ivzzgfyij2cpv1kcnb66qj-__at__node-rs__slash__argon2-2.0.2 /nix/store/70d649ncsnz0p53ficg6wxsm36mb3lbb-__at__oslojs__slash__crypto-1.0.1 /nix/store/a1rivirydvxvfr0p5fm8b8b01114im16-__at__oslojs__slash__encoding-1.1.0 /nix/store/sd6j85b7gcjqp2px9vhv7w26vc0n2f1p-__at__playwright__slash__test-1.50.0 /nix/store/59c8zn2vi2ic72yb7nmk9b721bcpf8dd-__at__spotify__slash__web-api-ts-sdk-1.2.0 /nix/store/brxmrff6r6cfibvgfdq7qfgxh0q8jzvr-__at__storybook__slash__addon-essentials-8.5.1 /nix/store/rmjh5hl4wkpyr2mwnmj4pd5qifsiybbl-__at__storybook__slash__addon-interactions-8.5.1 /nix/store/61rhyrq8svbb1wbbsd0igwikxndcj4hc-__at__storybook__slash__addon-svelte-csf-5.0.0-next.23 /nix/store/jbka1gqi2yy61y41k0v54v49yc6a019h-__at__storybook__slash__blocks-8.5.1 /nix/store/biq91h1dicjikzi73hi3x15ywmlisspi-__at__storybook__slash__svelte-8.5.1 /nix/store/hzn8zpcmri22h3x1w7kxs86in7mcnasw-__at__storybook__slash__sveltekit-8.5.1 /nix/store/fmgdiylkczkl7ldpgmn1xs94dazfgkqp-__at__storybook__slash__test-8.5.1 /nix/store/0vhy2r786hn51g2c31zprzrsva2cha2f-__at__sveltejs__slash__adapter-node-5.2.12 /nix/store/s0pvxhfa14n6xihhrici2jm96bjvib2b-__at__sveltejs__slash__kit-2.16.1 /nix/store/l06nngpspijc4acnwk1d702jj21h8frs-__at__sveltejs__slash__vite-plugin-svelte-5.0.3 /nix/store/d2j191lki38a7wb5rvx8jqfbwy27s18d-__at__tailwindcss__slash__container-queries-0.1.1 /nix/store/lg1pk9bbb2y8qab5rxq6ayx7g6hq734y-__at__tailwindcss__slash__forms-0.5.10 /nix/store/pwiz9m93v3b0mypkm1f85xd6ahgs05xz-__at__tailwindcss__slash__typography-0.5.16 /nix/store/npn128wsgvicg33mghm2jg0zq04wx203-autoprefixer-10.4.20 /nix/store/hk9rm9cdr712dfqdmbaslhx8w2hk6jhb-bits-ui-1.0.0-next.78 /nix/store/das4h6xgs2324d1llif2szyrvliw7dws-clsx-2.1.1 /nix/store/my5l0180xv3xlwn7j9zinrf3z9fhkf58-drizzle-kit-0.30.2 /nix/store/8riggcfpgcj9krg08p6nbrmd2jl7858k-drizzle-orm-0.38.4 /nix/store/dhqp4ykzg674p80amlqryz9ymxcqmv6b-embla-carousel-svelte-8.5.2 /nix/store/ahiznqjsf2c529lj4pb0mzyh61lc1vn6-eslint-9.19.0 /nix/store/ph3hwan6mllz92a5zaghmy901cdba49g-eslint-config-prettier-10.0.1 /nix/store/0iv8apjh97km5bvgb83p8dz8mxbjdzkl-eslint-plugin-svelte-2.46.1 /nix/store/1lr29ny6paar505wv4x6djricx3p1dxp-globals-15.14.0 /nix/store/niamkibd0p1mlmd76ahanrrwyx2zkay8-lucide-svelte-0.474.0 /nix/store/8j7rj4h1dp4zzy8402mr9h156lirx3j3-mdsvex-0.12.3 /nix/store/rn6rhi8hpklsz9j04si9x0b9lavbq7ka-mode-watcher-0.5.1 /nix/store/d0ck9fx0b1w7f8saww022ymq8qi42a6s-postgres-3.4.5 /nix/store/dw5jm0icx10s69ky7li8qbx1xwcwxg9k-prettier-3.4.2 /nix/store/2sqr7g2z6vv6mmn4z8i63kva6z222vzj-prettier-plugin-svelte-3.3.3 /nix/store/dyb1jk14jxfa0wjn11vpz94mjc05d335-prettier-plugin-tailwindcss-0.6.11 /nix/store/glxfhh8swqj6hgf8rzscxsg3x9wby5hb-storybook-8.5.1 /nix/store/5311n3d3grypj7zqna19fh6jjqxzbmc1-svelte-5.19.3 /nix/store/dyvkl62zp1npl0v28m1ajff8a5nilsxp-svelte-check-4.1.4 /nix/store/4j1qy02xwc9klpl68ryvz3x4fa0wrr5r-tailwind-merge-2.6.0 /nix/store/m2ypakqawnh4yw7q5hi9cbp2v456hxrl-tailwind-variants-0.3.1 /nix/store/s0crznp71h0r2j4pxayjlmbwy7qyk0xy-tailwindcss-3.4.17 /nix/store/kwir6hm402rig4hhzg8b6j34jf4va1y3-tailwindcss-animate-1.0.7 /nix/store/gbxc8kk7hkk6rf0zfq55jyvs58aqpzzs-typescript-5.7.3 /nix/store/w1137l61i2735s4r0sga3gmv9s9dz486-typescript-eslint-8.21.0 /nix/store/nllmmdh7lxzkzwiwdrr8ckrr3yvkp7gj-vite-6.0.11 /nix/store/qrwk0kqh7sl9b50w3im14g1ify36a3y1-vitest-3.0.4; do
   binDir=$dep/lib/node_modules/.bin
   if [ -e $binDir ]; then
     for bin in $(ls $binDir/); do\
@@ -314,19 +316,19 @@ runBuild='1'
 export runBuild
 shell='/nix/store/717iy55ncqs0wmhdkwc5fg2vci5wbmq8-bash-5.2p32/bin/bash'
 export shell
-shellHook='ID=/nix/store/rm1ryx9gj4afk3kiav5kxynqwz14rh3v-personal-website-0.1.0/lib/node_modules/personal-website/node_modules
+shellHook='ID=/nix/store/cyqb5x74dv1sp63ysbafd9vrv9pnm6pj-personal-website-0.1.0/lib/node_modules/personal-website/node_modules
 currID=$(cat .dream2nix/.node_modules_id 2> /dev/null)
 
 mkdir -p .dream2nix
 if [[ "$ID" != "$currID" || ! -d "node_modules"  ]];
 then
-  /nix/store/v2rsppryxbv9z63fgg6kcim4mbr7ihrd-rsync-3.3.0/bin/rsync -a --chmod=ug+w  --delete /nix/store/rm1ryx9gj4afk3kiav5kxynqwz14rh3v-personal-website-0.1.0/lib/node_modules/personal-website/node_modules/ ./node_modules/
+  /nix/store/v2rsppryxbv9z63fgg6kcim4mbr7ihrd-rsync-3.3.0/bin/rsync -a --chmod=ug+w  --delete /nix/store/cyqb5x74dv1sp63ysbafd9vrv9pnm6pj-personal-website-0.1.0/lib/node_modules/personal-website/node_modules/ ./node_modules/
   echo -n $ID > .dream2nix/.node_modules_id
   echo "Ok: node_modules updated"
 fi
 '
 export shellHook
-src='/nix/store/gfqcsr03a5ajdnqaffdd3y2cb05fq4zp-sqg3kai5vc2718gvfs6k34242f1idr52-source'
+src='/nix/store/1wydz415fhd9h2j8qlrxbqlxakfjvxk9-vib06lrs8dmj4s6239g00pr3y06gch6x-source'
 export src
 stdenv='/nix/store/ncv68hjnidcd2bm5abkhklrijhn0cgn6-stdenv-linux'
 export stdenv
@@ -2444,4 +2446,4 @@ export TMP="$NIX_BUILD_TOP"
 export TMPDIR="$NIX_BUILD_TOP"
 export TEMP="$NIX_BUILD_TOP"
 export TEMPDIR="$NIX_BUILD_TOP"
-eval "$shellHook"
+eval "${shellHook:-}"
