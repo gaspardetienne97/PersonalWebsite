@@ -6,14 +6,10 @@ declare global {
 			user: import('$lib/server/auth').SessionValidationResult['user'];
 			session: import('$lib/server/auth').SessionValidationResult['session'];
 		}
-	}
-}
+	} // interface Error {}
+	// interface Locals {}
+} // interface PageData {}
+// interface PageState {}
+
+// interface Platform {}
 export {};
-
-declare module '*.md' {
-	import type { SvelteComponent } from 'svelte';
-
-	export default class Comp extends SvelteComponent {}
-
-	export const metadata: Record<string, unknown>;
-}

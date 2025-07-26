@@ -11,6 +11,3 @@ published: true
 ## Markdown
 
 Hey everyone! 👋 this is a second test post for me to structure and style the blog section of my website.
-
-
-
