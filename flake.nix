@@ -1,98 +1,136 @@
 {
-  description = "A Flake for my Personal Website with Deno 2 and SvelteKit";
+  description = "A SvelteKit app with Node.js and dream2nix";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    dream2nix.url = "github:nix-community/dream2nix";
   };
 
-  outputs =
+  outputs = { self, nixpkgs, dream2nix }:
+    let
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+    in
     {
-      self,
-      nixpkgs,
-      flake-utils,
-      ...
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        name = "personal-website";
-      in
-      {
-        packages.default = pkgs.stdenv.mkDerivation {
-          pname = name;
-          version = "0.1.0";
-          src = ./.;
+      packages.${system}.default = dream2nix.lib.evalModules {
+        packageSets.nixpkgs = pkgs;
+        modules = [
+          {
+            imports = [
+              dream2nix.modules.dream2nix.nodejs-package-lock-v3
+              dream2nix.modules.dream2nix.nodejs-granular-v3
+            ];
 
-          buildInputs = [
-            pkgs.deno
-            pkgs.nodejs_22
-          ];
+            mkDerivation = {
+              src = pkgs.lib.cleanSourceWith {
+                src = ./.;
+                filter = path: type:
+                  let
+                    baseName = baseNameOf path;
+                  in
+                  # Exclude development and build artifacts
+                  ! (baseName == ".direnv" ||
+                     baseName == ".git" ||
+                     baseName == "node_modules" ||
+                     baseName == "build" ||
+                     baseName == ".svelte-kit" ||
+                     baseName == "dist");
+              };
+              installPhase = ''
+                runHook preInstall
 
-          buildPhase = ''
-            runHook preBuild
+                mkdir -p $out/bin $out/lib
 
-            echo "🔧 Setting up Deno environment..."
-            export DENO_DIR=$(mktemp -d)
-            export DISABLE_PARAGLIDE_PLUGIN=true
-            export DATABASE_URL="sqlite://dummy.db"  # Dummy DB URL for build
-            export BUILDING=true  # Skip some runtime dependencies during build
+                # Copy the entire build output including package.json
+                if [ -d "build" ]; then
+                  cp -r build $out/lib/
+                else
+                  echo "Error: build directory not found!"
+                  exit 1
+                fi
 
-            # Generate paraglide messages if needed
-            if [ -f ./project.inlang/settings.json ]; then
-              echo "🌐 Generating paraglide messages..."
-              mkdir -p src/lib/paraglide/messages
-              echo "export const hello_world = () => 'Hello World';" > src/lib/paraglide/messages.js
-              echo "export const sourceLanguageTag = 'en'; export const availableLanguageTags = ['en']; export const languageTag = () => 'en'; export const setLanguageTag = () => {}; export const isAvailableLanguageTag = () => true;" > src/lib/paraglide/runtime.js
-            fi
+                # Copy package.json for runtime dependencies info
+                cp package.json $out/lib/
+                
+                # Copy node_modules if present (production dependencies)
+                if [ -d "node_modules" ]; then
+                  cp -r node_modules $out/lib/
+                fi
 
-            echo "🏗️ Building SvelteKit app with Deno..."
-            deno run --allow-all npm:vite build --mode production
+                # Create wrapper script that properly runs the SvelteKit app
+                cat > $out/bin/personal-website << 'EOF'
+#!/usr/bin/env bash
+set -e
 
-            runHook postBuild
-          '';
+# Change to the lib directory where our app is located
+cd "$(dirname "$0")/../lib"
 
-          installPhase = ''
-            runHook preInstall
+# Run the SvelteKit Node.js server
+exec ${pkgs.nodejs}/bin/node build/index.js "$@"
+EOF
+                chmod +x $out/bin/personal-website
 
-            echo "📦 Installing built application..."
-            mkdir -p $out
+                runHook postInstall
+              '';
 
-            # Copy built application
-            if [ -d build ]; then
-              cp -r build $out/
-            fi
+              buildPhase = ''
+                runHook preBuild
 
-            # Copy static assets if they exist
-            if [ -d static ]; then
-              cp -r static $out/
-            fi
+                echo "🔧 Setting up build environment..."
+                export NODE_ENV="production"
+                # DATABASE_URL will be provided at runtime by the systemd service
+                
+                echo "🏗️ Building SvelteKit app with adapter-node..."
+                npm run build
+                
+                echo "📋 Verifying build output..."
+                if [ ! -d "build" ]; then
+                  echo "❌ Build failed: build directory not found"
+                  exit 1
+                fi
+                
+                if [ ! -f "build/index.js" ]; then
+                  echo "❌ Build failed: index.js not found in build directory"
+                  exit 1
+                fi
+                
+                echo "✅ Build completed successfully"
+                
+                runHook postBuild
+              '';
 
-            # Copy package.json for runtime info
-            cp package.json $out/ || true
-            cp deno.json $out/ || true
 
-            runHook postInstall
-          '';
-        };
+            };
 
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            deno
-            nodejs # Keep Node.js for any npm packages that might be needed
-          ];
+            deps = { nixpkgs, ... }: {
+              inherit (nixpkgs) stdenv;
+            };
 
-          shellHook = ''
-            echo "🚀 Welcome to the Deno 2 SvelteKit development environment!"
-            echo "Deno version: $(deno --version)"
-            echo ""
-            echo "Available commands:"
-            echo "  deno task dev    - Start development server"
-            echo "  deno task build  - Build for production"
-            echo "  deno task preview - Preview production build"
-          '';
-        };
-      }
-    );
+            nodejs-package-lock-v3 = {
+              packageLockFile = "${./.}/package-lock.json";
+            };
+
+            name = "personal-website";
+            version = "0.1.0";
+          }
+        ];
+      };
+
+      devShells.${system}.default = pkgs.mkShell {
+        buildInputs = with pkgs; [
+          nodejs
+        ];
+
+        shellHook = ''
+          echo "🚀 Welcome to the Node.js SvelteKit development environment!"
+          echo "Node.js version: $(node --version)"
+          echo "npm version: $(npm --version)"
+          echo ""
+          echo "Available commands:"
+          echo "  npm run dev    - Start development server"
+          echo "  npm run build  - Build for production"
+          echo "  npm run preview - Preview production build"
+        '';
+      };
+    };
 }
