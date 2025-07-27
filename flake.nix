@@ -34,7 +34,8 @@
                      baseName == "node_modules" ||
                      baseName == "build" ||
                      baseName == ".svelte-kit" ||
-                     baseName == "dist");
+                     baseName == "dist" ||
+                     baseName == "result");
               };
               installPhase = ''
                 runHook preInstall
