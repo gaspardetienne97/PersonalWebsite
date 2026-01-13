@@ -3233,3 +3233,168 @@ pnpm lint
 # Add shadcn component
 pnpm dlx shadcn-svelte@next add [component-name]
 ```
+---
+
+# Finger Drumming Practice Application
+
+A web-based finger drumming practice application built with SvelteKit, inspired by Melodics and Quest for Groove.
+
+## Features
+
+- **MIDI Controller Support**: Connect any MIDI drum controller (tested with Akai MPC One)
+- **Real-time Feedback**: Visual note highway with color-coded hit detection (Perfect, Good, Early, Late, Miss)
+- **MIDI File Import**: Load your own MIDI files or use the built-in demo lesson
+- **Scoring System**: Comprehensive scoring with accuracy, streaks, and grades
+- **Audio Engine**: Metronome support using Tone.js
+- **Validation Engine**: Precise timing validation with configurable windows
+
+## Tech Stack
+
+- **Framework**: SvelteKit 2 with Svelte 5 (runes)
+- **Audio**: Tone.js for audio scheduling and metronome
+- **MIDI**: @tonejs/midi for MIDI file parsing
+- **MIDI Input**: Web MIDI API for real-time controller input
+- **Canvas**: Canvas 2D for performant note highway rendering
+- **State**: Svelte stores for reactive state management
+
+## File Structure
+
+```
+src/lib/
+├── types/              # TypeScript type definitions
+│   ├── midi.ts         # MIDI device and note types
+│   ├── lesson.ts       # Lesson and note data structures
+│   ├── score.ts        # Scoring and validation types
+│   ├── theme.ts        # Theme configuration types
+│   └── settings.ts     # App settings types
+├── stores/             # Svelte stores
+│   ├── settingsStore.ts   # User preferences
+│   ├── midiStore.ts       # MIDI device state
+│   └── sessionStore.ts    # Practice session state
+├── midi/               # MIDI handling
+│   ├── MidiService.ts     # Web MIDI API wrapper
+│   └── MidiParser.ts      # MIDI file parsing
+├── validation/         # Scoring logic
+│   └── ValidationEngine.ts # Note validation and scoring
+├── audio/              # Audio engine
+│   └── AudioEngine.ts     # Tone.js wrapper
+└── components/         # Svelte components
+    └── NoteHighway.svelte # Canvas-based note display
+
+src/routes/drums/       # Main practice route
+└── +page.svelte        # Practice page
+```
+
+## Browser Compatibility
+
+**Supported Browsers**:
+- ✅ Chrome/Chromium (recommended)
+- ✅ Edge
+- ⚠️ Firefox (requires Web MIDI to be enabled in about:config)
+- ❌ Safari (does not support Web MIDI API)
+
+## Usage
+
+1. **Connect MIDI Controller**:
+   - Connect your MIDI drum controller via USB
+   - For Akai MPC One: Put device in Controller Mode
+   - Select your device from the MIDI Controller dropdown
+
+2. **Load a Lesson**:
+   - Click "Load Demo Lesson" for a basic rock beat
+   - Or upload your own MIDI file (.mid/.midi)
+
+3. **Practice**:
+   - Hit Play to start the lesson
+   - Play along with your MIDI controller
+   - Watch the note highway and real-time feedback
+   - Track your score and accuracy
+
+## Scoring System
+
+- **Perfect** (100 pts): Within ±25ms
+- **Good** (80 pts): Within ±50ms
+- **Early/Late** (50 pts): Within ±100ms but outside good window
+- **Miss** (0 pts): Outside 100ms window or wrong note
+
+**Grades**:
+- S: ≥95% accuracy
+- A: ≥85% accuracy
+- B: ≥75% accuracy
+- C: ≥65% accuracy
+- D: ≥50% accuracy
+- F: <50% accuracy
+
+## Features Implemented
+
+✅ Phase 1 (MVP Foundation):
+- MIDI device connection and recognition
+- Real-time MIDI input processing
+- MIDI file loading and parsing
+- Performance validation engine
+- Visual note display (Guitar Hero style)
+- Audio playback system (metronome)
+- Scoring and statistics
+
+## Future Enhancements
+
+The following features from the original product plan could be added:
+
+- **Practice Modes**: Tempo adjustment (50%-150%), A-B loop, count-in, no-fail mode
+- **Audio**: Backing track support, drum sample playback
+- **Visual Enhancements**: Velocity-based note sizing, advanced animations
+- **Progress Tracking**: Historical data, achievements, streaks
+- **Content**: Lesson library, difficulty categories, genre filtering
+- **Customization**: Custom pad mappings, theme system
+- **Advanced**: Audio-to-MIDI conversion, multiplayer features
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Type check
+npm run check
+
+# Build for production
+npm run build
+```
+
+## Architecture Notes
+
+### MIDI Processing
+- Uses Web MIDI API for low-latency controller input
+- Sub-10ms processing target
+- High-resolution timestamps via performance.now()
+
+### Validation Engine
+- Configurable timing windows (perfect, good, miss)
+- Optional velocity scoring
+- Real-time accuracy calculation
+- Streak tracking
+
+### Note Highway
+- Canvas-based for 60fps performance
+- 4-column layout (kicks, snares, hi-hats, other)
+- Color-coded feedback
+- Smooth scrolling animation
+
+### State Management
+- Svelte stores for reactive state
+- LocalStorage persistence for settings
+- Derived stores for computed values
+
+## Credits
+
+Based on the implementation plans:
+- finger-drumming-claude-code-implementation-plan.md
+- finger-drumming-claude-code-implementation-plan-part2.md
+- Product Plan.md
+
+Inspired by:
+- [Melodics](https://melodics.com/)
+- [Quest for Groove](https://questforgroove.com/)
