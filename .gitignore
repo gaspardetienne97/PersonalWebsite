@@ -21,7 +21,7 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.test
-.direnv
+/.direnv/
 
 
 # Vite
