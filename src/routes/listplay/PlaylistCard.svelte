@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Card from '$lib/components/ui/card';
+	import * as Card from '@repo/ui/card';
 	const { name, imageUrl, trackCount, id } = $props<{
 		name: string;
 		imageUrl: string;

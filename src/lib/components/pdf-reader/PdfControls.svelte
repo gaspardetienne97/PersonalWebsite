@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { pdfStore } from '$lib/stores/pdf-reader/pdf.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
+	import { Button } from '@repo/ui/button';
+	import { Input } from '@repo/ui/input';
 	import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw } from 'lucide-svelte';
 
 	let pageInput = $state('');

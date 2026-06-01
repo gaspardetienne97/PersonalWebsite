@@ -26,17 +26,11 @@ export class MidiParser {
   /**
    * Parse MIDI file from ArrayBuffer
    */
-  static async parse(
-    buffer: ArrayBuffer,
-    options: ParseOptions = {}
-  ): Promise<ParsedMidi> {
+  static async parse(buffer: ArrayBuffer, options: ParseOptions = {}): Promise<ParsedMidi> {
     const midi = new Midi(buffer);
 
     // Get tempo
-    const tempo =
-      midi.header.tempos.length > 0
-        ? Math.round(midi.header.tempos[0].bpm)
-        : 120;
+    const tempo = midi.header.tempos.length > 0 ? Math.round(midi.header.tempos[0].bpm) : 120;
 
     // Get time signature
     const timeSignature: [number, number] =
@@ -61,9 +55,7 @@ export class MidiParser {
     if (options.trackIndex !== undefined) {
       targetTracks = [midi.tracks[options.trackIndex]];
     } else if (options.channel !== undefined) {
-      targetTracks = midi.tracks.filter(
-        (t: any) => t.channel === options.channel! - 1
-      );
+      targetTracks = midi.tracks.filter((t: any) => t.channel === options.channel! - 1);
     } else {
       // Auto-detect: prefer channel 10 (drums), otherwise use all
       const drumTracks = midi.tracks.filter((t: any) => t.channel === 9);
@@ -98,9 +90,7 @@ export class MidiParser {
 
     // Calculate duration
     const duration =
-      notes.length > 0
-        ? notes[notes.length - 1].time + notes[notes.length - 1].duration
-        : 0;
+      notes.length > 0 ? notes[notes.length - 1].time + notes[notes.length - 1].duration : 0;
 
     return {
       name: midi.name || "Untitled",
@@ -115,10 +105,7 @@ export class MidiParser {
   /**
    * Load and parse MIDI file from URL
    */
-  static async loadFromUrl(
-    url: string,
-    options?: ParseOptions
-  ): Promise<ParsedMidi> {
+  static async loadFromUrl(url: string, options?: ParseOptions): Promise<ParsedMidi> {
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to load MIDI file: ${response.status}`);
@@ -130,19 +117,13 @@ export class MidiParser {
   /**
    * Load and parse MIDI file from File input
    */
-  static async loadFromFile(
-    file: File,
-    options?: ParseOptions
-  ): Promise<ParsedMidi> {
+  static async loadFromFile(file: File, options?: ParseOptions): Promise<ParsedMidi> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
       reader.onload = async () => {
         try {
-          const result = await this.parse(
-            reader.result as ArrayBuffer,
-            options
-          );
+          const result = await this.parse(reader.result as ArrayBuffer, options);
           resolve(result);
         } catch (err) {
           reject(err);

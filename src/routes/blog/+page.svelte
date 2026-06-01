@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatDate } from '$lib/utils';
 	import * as config from '$lib/config';
-	import * as Card from '$lib/components/ui/card';
+	import * as Card from '@repo/ui/card';
 
 	export let data;
 </script>

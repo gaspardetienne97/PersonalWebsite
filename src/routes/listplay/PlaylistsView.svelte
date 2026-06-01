@@ -1,9 +1,9 @@
 <script lang="ts">
-	import * as Carousel from '$lib/components/ui/carousel/index.js';
+	import * as Carousel from '@repo/ui/carousel';
 	import PlaylistCard from './PlaylistCard.svelte';
 	import { readSpotifyStore } from './spotifyStore';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Separator from '$lib/components/ui/separator/separator.svelte';
+	import { Button } from '@repo/ui/button';
+	import { Separator } from '@repo/ui/separator';
 	import TrendUpIcon from 'lucide-svelte/icons/trending-up';
 	import LoaderCircle from 'lucide-svelte/icons/loader';
 

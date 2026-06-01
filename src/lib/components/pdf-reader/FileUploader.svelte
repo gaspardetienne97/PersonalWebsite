@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { pdfStore } from '$lib/stores/pdf-reader/pdf.svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '@repo/ui/button';
 
 	let fileInput: HTMLInputElement;
 

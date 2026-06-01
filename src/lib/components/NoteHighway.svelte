@@ -17,8 +17,8 @@
 	};
 
 	// Canvas
-	let canvas: HTMLCanvasElement;
-	let ctx: CanvasRenderingContext2D;
+	let canvas = undefined as unknown as HTMLCanvasElement;
+	let ctx = undefined as unknown as CanvasRenderingContext2D;
 	let animationFrame: number;
 	let width = 800;
 	let height = 500;

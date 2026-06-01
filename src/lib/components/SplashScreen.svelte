@@ -2,16 +2,12 @@
 	export const ssr = false;
 
 	import logo from '$lib/images/logo.svg';
-	import * as Card from '$lib/components/ui/card';
+	import * as Card from '@repo/ui/card';
 	import { fade, fly } from 'svelte/transition';
-	import { browser } from '$app/environment';
-	import Button from '$lib/components/ui/button/button.svelte';
+	import { Button } from '@repo/ui/button';
 	import type { FlyParams, TransitionConfig } from 'svelte/transition';
 	import SpaceColonizationCircuit from '../components/SpaceColonizationCircuit.svelte';
 
-	interface Props {}
-
-	let {}: Props = $props();
 	let visited = $state(false);
 	let visible = $state(false);
 	let splashCompleted = $state(false);

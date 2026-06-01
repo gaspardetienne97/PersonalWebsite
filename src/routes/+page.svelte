@@ -1,9 +1,9 @@
 <script lang="ts">
-	import * as Carousel from '$lib/components/ui/carousel/index.js';
+	import * as Carousel from '@repo/ui/carousel';
 
-	import * as Card from '$lib/components/ui/card';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Button } from '$lib/components/ui/button';
+	import * as Card from '@repo/ui/card';
+	import * as Dialog from '@repo/ui/dialog';
+	import { Button } from '@repo/ui/button';
 	const { data } = $props();
 	const { posts, projects } = data;
 </script>

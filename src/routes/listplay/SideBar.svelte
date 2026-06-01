@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Avatar from '$lib/components/ui/avatar';
+	import { Button } from '@repo/ui/button';
+	import * as Avatar from '@repo/ui/avatar';
 	import { fly } from 'svelte/transition';
 	import PlayListIcon from 'lucide-svelte/icons/list-music';
 	import { readSpotifyStore } from './spotifyStore';
-	import Separator from '$lib/components/ui/separator/separator.svelte';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { Separator } from '@repo/ui/separator';
+	import { ScrollArea } from '@repo/ui/scroll-area';
 	const snapPoints = ['148px', '355px', 1];
 	let open = $state(true);
 	let activeSnapPoint = $state(snapPoints[0]);

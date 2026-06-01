@@ -8,6 +8,9 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+/apps/*/.svelte-kit
+/apps/*/build
+/result
 
 # OS
 .DS_Store
@@ -28,3 +31,4 @@ vite.config.ts.timestamp-*
 *storybook.log
 
 storybook-static
+.vite-hooks

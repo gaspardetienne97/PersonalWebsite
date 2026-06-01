@@ -4,7 +4,7 @@
 	import Sun from 'lucide-svelte/icons/sun';
 	import Moon from 'lucide-svelte/icons/moon';
 	import { toggleMode } from 'mode-watcher';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '@repo/ui/button';
 </script>
 
 <header class="border-blue sticky top-0 flex items-center justify-between border-b bg-background">

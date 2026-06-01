@@ -2,11 +2,11 @@
 	import { onMount } from 'svelte';
 	import { pdfStore } from '$lib/stores/pdf-reader/pdf.svelte';
 	import { audioStore } from '$lib/stores/pdf-reader/audio.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Slider } from '$lib/components/ui/slider';
-	import { Label } from '$lib/components/ui/label';
-	import { Progress } from '$lib/components/ui/progress';
-	import * as Select from '$lib/components/ui/select';
+	import { Button } from '@repo/ui/button';
+	import { Slider } from '@repo/ui/slider';
+	import { Label } from '@repo/ui/label';
+	import { Progress } from '@repo/ui/progress';
+	import * as Select from '@repo/ui/select';
 	import { Play, Pause, Square, SkipBack, SkipForward } from 'lucide-svelte';
 
 	onMount(async () => {
