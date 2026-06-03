@@ -4,7 +4,11 @@
   import { AnalyticsEngine } from '@repo/music-core/engines/analytics';
   import { runExerciseThroughPipeline } from '@repo/music-core/engines/exercise';
   import { InputRouter } from '@repo/music-core/engines/input-router';
-  import { midiCapabilities } from '@repo/music-core/engines/midi';
+  import {
+    MidiEngine,
+    midiCapabilities,
+    type MidiDeviceSummary
+  } from '@repo/music-core/engines/midi';
   import { ProgressEngine } from '@repo/music-core/engines/progress';
   import { seedCoreSkills, SkillGraphStore } from '@repo/music-core/engines/skills';
   import { SoundEngine } from '@repo/music-core/engines/sound';
@@ -26,6 +30,7 @@
   const analytics = new AnalyticsEngine();
   const progress = new ProgressEngine();
   const sound = new SoundEngine();
+  const midiEngine = new MidiEngine();
   let transport: TransportEngine | undefined;
   let unsubscribeTransport: (() => void) | undefined;
   void skills.seed(seedCoreSkills());
@@ -35,6 +40,10 @@
   let metronomeRunning = $state(false);
   let activeBeat = $state(-1);
   let lastEvent = $state<NoteEvent | undefined>();
+  let midiEnabled = $state(false);
+  let midiStatus = $state('MIDI permission has not been requested.');
+  let midiDevices = $state<MidiDeviceSummary[]>([]);
+  let midiEvents = $state<NoteEvent[]>([]);
   let bpmValue = $state([96]);
   let xp = $state(progress.state.xp);
   let streak = $state(progress.state.streakDays);
@@ -54,6 +63,17 @@
 
   router.subscribe((event) => {
     lastEvent = event;
+  });
+  const unsubscribeMidi = midiEngine.subscribe((event) => {
+    router.push(event);
+    midiEvents = [event, ...midiEvents].slice(0, 8);
+  });
+  const unsubscribeMidiState = midiEngine.subscribeState((state) => {
+    midiEnabled = state.enabled;
+    midiDevices = [...state.inputs, ...state.outputs];
+    midiStatus = state.enabled
+      ? `${state.inputs.length} input${state.inputs.length === 1 ? '' : 's'} connected.`
+      : (state.error ?? 'MIDI permission has not been requested.');
   });
 
   $effect(() => {
@@ -95,6 +115,10 @@
     transport.setBpm(bpm);
     transport.start();
     metronomeRunning = true;
+  }
+
+  async function enableMidi() {
+    await midiEngine.enable();
   }
 
   function playOnScreen(note: string) {
@@ -139,6 +163,9 @@
 
   onDestroy(() => {
     unsubscribeTransport?.();
+    unsubscribeMidi();
+    unsubscribeMidiState();
+    void midiEngine.disable();
     if (transport?.state.running) transport.stop();
     sound.dispose();
   });
@@ -163,7 +190,7 @@
       </div>
       <div class="grid gap-2 text-sm text-muted-foreground md:justify-items-end">
         <span class="rounded-full border px-3 py-1 text-foreground">
-          {midi.supported ? 'Web MIDI ready' : 'Web MIDI unavailable'}
+          {midiEnabled ? 'Web MIDI enabled' : midi.supported ? 'Web MIDI ready' : 'Web MIDI unavailable'}
         </span>
         <span>
           Active input: {router.activeSource} · confidence {Math.round(router.confidence * 100)}%
@@ -228,9 +255,14 @@
             <Card.Description>Instrument Hub</Card.Description>
             <Card.Title>Input router</Card.Title>
           </div>
-          <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
-            {lastEvent?.type ?? 'idle'}
-          </span>
+          <div class="flex flex-wrap justify-end gap-2">
+            <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
+              {lastEvent?.type ?? 'idle'}
+            </span>
+            <Button type="button" variant="outline" disabled={!midi.supported} onclick={enableMidi}>
+              {midiEnabled ? 'MIDI enabled' : 'Enable MIDI'}
+            </Button>
+          </div>
         </Card.Header>
         <Card.Content class="space-y-4">
           <div class="flex flex-wrap gap-2" aria-label="On-screen keyboard">
@@ -248,6 +280,38 @@
               waiting for input
             {/if}
           </p>
+          <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-2">
+              <h3 class="text-sm font-medium">MIDI devices</h3>
+              {#if midiDevices.length > 0}
+                <ul class="grid gap-1 text-sm text-muted-foreground">
+                  {#each midiDevices as device}
+                    <li class="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                      <span class="truncate">{device.name}</span>
+                      <span>{device.type}{device.instrument ? ` · ${device.instrument}` : ''}</span>
+                    </li>
+                  {/each}
+                </ul>
+              {:else}
+                <p class="text-sm text-muted-foreground">No MIDI devices detected.</p>
+              {/if}
+            </div>
+            <div class="space-y-2">
+              <h3 class="text-sm font-medium">Live MIDI events</h3>
+              {#if midiEvents.length > 0}
+                <ol class="grid gap-1 font-mono text-xs text-muted-foreground" aria-live="polite">
+                  {#each midiEvents as event}
+                    <li class="rounded-md border px-3 py-2">
+                      {event.type} · ch {event.channel ?? '—'} · {Math.round(event.timestamp)}ms
+                    </li>
+                  {/each}
+                </ol>
+              {:else}
+                <p class="text-sm text-muted-foreground">Waiting for a MIDI message.</p>
+              {/if}
+            </div>
+          </div>
         </Card.Content>
       </Card.Root>
     </section>

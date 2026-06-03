@@ -9,7 +9,12 @@ import { pwaOptions } from "./pwa.config";
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit(), SvelteKitPWA(pwaOptions)],
   optimizeDeps: {
-    include: ["lucide-svelte/icons/moon", "lucide-svelte/icons/sun", "tone"],
+    include: [
+      "lucide-svelte/icons/moon",
+      "lucide-svelte/icons/sun",
+      "tone",
+      "@repo/music-core > webmidi",
+    ],
   },
   test: {
     include: ["src/**/*.{test,spec}.{ts,js}", "packages/**/*.{test,spec}.{ts,js}"],

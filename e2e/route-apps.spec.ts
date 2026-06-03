@@ -12,6 +12,8 @@ test("music route app renders", async ({ page }) => {
   await page.goto("/music");
 
   await expect(page.getByRole("heading", { name: "Musicianship OS" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "MIDI devices" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Live MIDI events" })).toBeVisible();
   await page.getByRole("button", { name: "Answer m6" }).click();
   await expect(page.getByText(/Correct\..*m6 mastery/i)).toBeVisible();
 

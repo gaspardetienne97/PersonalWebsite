@@ -7,5 +7,7 @@ describe("/music/+page.svelte", () => {
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("Musicianship OS");
+    expect(document.body.textContent).toContain("MIDI devices");
+    expect(document.body.textContent).toContain("Live MIDI events");
   });
 });
