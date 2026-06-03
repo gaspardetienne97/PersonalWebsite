@@ -15,7 +15,6 @@ export interface SettingsRecord {
   value: unknown;
 }
 
-export type SkillMasteryRow = SkillMastery & { id: string };
 export type SkillRelationshipRow = SkillRelationship & { id: string };
 
 export interface ChordLibraryRow {
@@ -42,7 +41,7 @@ interface IterableFileSystemDirectoryHandle extends FileSystemDirectoryHandle {
 export class PracticeDatabase extends Dexie {
   sessions!: Table<PracticeSession, string>;
   scoringEvents!: Table<ScoringEvent, string>;
-  skillMastery!: Table<SkillMasteryRow, string>;
+  skillMastery!: Table<SkillMastery, string>;
   skills!: Table<Skill, string>;
   skillRelationships!: Table<SkillRelationshipRow, string>;
   chordLibrary!: Table<ChordLibraryRow, string>;
@@ -54,7 +53,7 @@ export class PracticeDatabase extends Dexie {
     this.version(1).stores({
       sessions: "id, startTime, endTime, instrument, source",
       scoringEvents: "id, sessionId, exerciseId, at",
-      skillMastery: "id, skillId, lastPracticed",
+      skillMastery: "skillId, lastPracticed",
       skills: "id, capability",
       skillRelationships: "id, from, to, kind",
       chordLibrary: "id, symbol",
@@ -64,7 +63,7 @@ export class PracticeDatabase extends Dexie {
   }
 }
 
-export class DexieRepository<T extends { id: string }> {
+export class DexieRepository<T> {
   constructor(private readonly table: Table<T, string>) {}
 
   async put(row: T): Promise<void> {
@@ -90,7 +89,7 @@ export class PracticeStore {
   readonly sessions: DexieRepository<PracticeSession>;
   readonly scoringEvents: DexieRepository<ScoringEvent>;
   readonly skills: DexieRepository<Skill>;
-  readonly skillMastery: DexieRepository<SkillMasteryRow>;
+  readonly skillMastery: DexieRepository<SkillMastery>;
   readonly skillRelationships: DexieRepository<SkillRelationshipRow>;
   readonly chordLibrary: DexieRepository<ChordLibraryRow>;
   readonly songs: DexieRepository<SongRow>;
@@ -106,10 +105,6 @@ export class PracticeStore {
     this.songs = new DexieRepository(database.songs);
     this.settings = new DexieRepository(database.settings);
   }
-}
-
-export function skillMasteryRow(mastery: SkillMastery): SkillMasteryRow {
-  return { id: mastery.skillId, ...mastery };
 }
 
 export function skillRelationshipRow(relationship: SkillRelationship): SkillRelationshipRow {
@@ -141,7 +136,7 @@ export async function getBinary(key: string): Promise<Blob | undefined> {
   }
 }
 
-export async function listBinary(prefix = ""): Promise<string[]> {
+export async function list(prefix = ""): Promise<string[]> {
   const root = await getOpfsRoot();
   if (!root) return [];
   const keys: string[] = [];

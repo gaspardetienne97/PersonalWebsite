@@ -2,14 +2,7 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import { initialMastery, unixMs, type PracticeSession } from "@repo/music-core/domain";
 
-import {
-  PracticeDatabase,
-  PracticeStore,
-  getBinary,
-  listBinary,
-  putBinary,
-  skillMasteryRow,
-} from "./index";
+import { PracticeDatabase, PracticeStore, getBinary, list, putBinary } from "./index";
 
 const databases: PracticeDatabase[] = [];
 
@@ -46,13 +39,10 @@ describe("music-core/store", () => {
     };
 
     await store.sessions.put(session);
-    await store.skillMastery.put(skillMasteryRow(mastery));
+    await store.skillMastery.put(mastery);
 
     await expect(store.sessions.get(session.id)).resolves.toEqual(session);
-    await expect(store.skillMastery.get(mastery.skillId)).resolves.toEqual({
-      id: mastery.skillId,
-      ...mastery,
-    });
+    await expect(store.skillMastery.get(mastery.skillId)).resolves.toEqual(mastery);
   });
 
   test("stores and lists OPFS binaries when the browser supports OPFS", async () => {
@@ -62,6 +52,6 @@ describe("music-core/store", () => {
     await putBinary(key, new Blob(["hello"], { type: "text/plain" }));
 
     await expect(getBinary(key).then((blob) => blob?.text())).resolves.toBe("hello");
-    await expect(listBinary("store-test-")).resolves.toContain(key);
+    await expect(list("store-test-")).resolves.toContain(key);
   });
 });
