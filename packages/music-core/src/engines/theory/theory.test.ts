@@ -6,6 +6,7 @@ import {
   intervalBetween,
   midiToNote,
   noteToMidi,
+  romanNumeral,
   scaleNotes,
   transpose,
 } from "./index";
@@ -26,17 +27,35 @@ describe("music-core/theory", () => {
     expect(frequency(60)).toBeCloseTo(261.625565, 5);
   });
 
-  test("spells common chords and scales", () => {
-    expect(chordNotes("Cmaj7")).toEqual(["C", "E", "G", "B"]);
-    expect(chordNotes("Dm7")).toEqual(["D", "F", "A", "C"]);
-    expect(chordNotes("G7")).toEqual(["G", "B", "D", "F"]);
-    expect(scaleNotes("C major")).toEqual(["C", "D", "E", "F", "G", "A", "B"]);
-    expect(scaleNotes("A minor")).toEqual(["A", "B", "C", "D", "E", "F", "G"]);
+  test.each([
+    ["Cmaj7", ["C", "E", "G", "B"]],
+    ["Dm7", ["D", "F", "A", "C"]],
+    ["G7", ["G", "B", "D", "F"]],
+    ["Cdim", ["C", "Eb", "Gb"]],
+  ])("spells the %s chord", (symbol, notes) => {
+    expect(chordNotes(symbol)).toEqual(notes);
+  });
+
+  test.each([
+    ["C major", ["C", "D", "E", "F", "G", "A", "B"]],
+    ["A minor", ["A", "B", "C", "D", "E", "F", "G"]],
+    ["D dorian", ["D", "E", "F", "G", "A", "B", "C"]],
+    ["G mixolydian", ["G", "A", "B", "C", "D", "E", "F"]],
+  ])("spells the %s scale", (name, notes) => {
+    expect(scaleNotes(name)).toEqual(notes);
   });
 
   test("calculates interval labels and transposition", () => {
     expect(intervalBetween("C4", "Ab4")).toBe("m6");
     expect(intervalBetween("C4", "G4")).toBe("P5");
     expect(transpose("Bb3", 2)).toBe("C4");
+  });
+
+  test.each([
+    ["Dm7", "C", "IIm7"],
+    ["G7", "C", "V7"],
+    ["F", "A", "bVI"],
+  ])("expresses %s in %s as %s", (chord, key, expected) => {
+    expect(romanNumeral(chord, key)).toBe(expected);
   });
 });
