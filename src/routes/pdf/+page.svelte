@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import PdfViewer from '$lib/components/pdf-reader/PdfViewer.svelte';
-	import PdfControls from '$lib/components/pdf-reader/PdfControls.svelte';
-	import AudioControls from '$lib/components/pdf-reader/AudioControls.svelte';
-	import FileUploader from '$lib/components/pdf-reader/FileUploader.svelte';
-	import { pdfStore } from '$lib/stores/pdf-reader/pdf.svelte';
+	import PdfViewer from '@repo/pdf-core/components/PdfViewer.svelte';
+	import PdfControls from '@repo/pdf-core/components/PdfControls.svelte';
+	import AudioControls from '@repo/pdf-core/components/AudioControls.svelte';
+	import FileUploader from '@repo/pdf-core/components/FileUploader.svelte';
+	import { pdfStore } from '@repo/pdf-core/stores/pdf';
 	import { Card } from '@repo/ui/card';
 
 	let mounted = $state(false);

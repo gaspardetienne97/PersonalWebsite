@@ -5,8 +5,11 @@ import { playwright } from "vite-plus/test/browser-playwright";
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
+  optimizeDeps: {
+    include: ["lucide-svelte/icons/moon", "lucide-svelte/icons/sun"],
+  },
   test: {
-    include: ["src/**/*.{test,spec}.{ts,js}"],
+    include: ["src/**/*.{test,spec}.{ts,js}", "packages/**/*.{test,spec}.{ts,js}"],
     browser: {
       enabled: true,
       provider: playwright(),
@@ -19,9 +22,13 @@ export default defineConfig({
   fmt: {
     ignorePatterns: [
       ".direnv/**",
+      ".claude/**",
+      ".codex/**",
       ".svelte-kit/**",
       "apps/*/.svelte-kit/**",
+      "packages/*/.svelte-kit/**",
       "build/**",
+      "domain/**",
       "apps/*/build/**",
       "node_modules/**",
       "project.inlang/**",
@@ -34,8 +41,12 @@ export default defineConfig({
   lint: {
     ignorePatterns: [
       "**/node_modules/**",
+      "**/.claude/**",
+      "**/.codex/**",
       "**/.svelte-kit/**",
+      "domain/**",
       "apps/*/.svelte-kit/**",
+      "packages/*/.svelte-kit/**",
       "**/src/lib/paraglide/**",
       "**/dist/**",
       "**/build/**",

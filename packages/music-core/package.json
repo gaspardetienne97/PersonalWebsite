@@ -1,0 +1,41 @@
+{
+  "name": "@repo/music-core",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./domain": "./src/domain/index.ts",
+    "./engines/analytics": "./src/engines/analytics/index.ts",
+    "./engines/exercise": "./src/engines/exercise/index.ts",
+    "./engines/input-router": "./src/engines/input-router/index.ts",
+    "./engines/midi": "./src/engines/midi/index.ts",
+    "./engines/progress": "./src/engines/progress/index.ts",
+    "./engines/sessions": "./src/engines/sessions/index.ts",
+    "./engines/skills": "./src/engines/skills/index.ts",
+    "./engines/sound": "./src/engines/sound/index.ts",
+    "./engines/store": "./src/engines/store/index.ts",
+    "./engines/theory": "./src/engines/theory/index.ts",
+    "./engines/transport": "./src/engines/transport/index.ts",
+    "./exercises/interval-recognition": "./src/exercises/interval-recognition.ts",
+    "./exercises/note-reading": "./src/exercises/note-reading.ts",
+    "./exercises/rhythm-pulse": "./src/exercises/rhythm-pulse.ts",
+    "./exercises/scale-pattern": "./src/exercises/scale-pattern.ts"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "vp test",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dexie": "catalog:",
+    "tonal": "catalog:",
+    "tone": "^15.3.11",
+    "vexflow": "catalog:",
+    "webmidi": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

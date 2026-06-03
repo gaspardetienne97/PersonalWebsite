@@ -2,82 +2,89 @@ packages:
   - apps/*
   - packages/*
 
-catalogMode: prefer
-
 catalog:
   # Core
-  "@types/node": ^24
-  typescript: ^5
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
-  vite-plus: latest
-
-  # SvelteKit
-  "@sveltejs/kit": ^2.22.0
-  "@sveltejs/adapter-node": ^5.5.2
-  "@sveltejs/vite-plugin-svelte": ^6.2.4
-  svelte: ^5.54.0
-  svelte-check: ^4.4.2
-  mdsvex: ^0.12.6
-
-  # Auth
-  better-auth: ~1.4.21
   "@better-auth/cli": ~1.4.21
+  "@chromatic-com/storybook": ^5.1.1
 
-  # DB
-  drizzle-orm: ^0.45.1
-  drizzle-kit: ^0.31.8
-  postgres: ^3.4.8
+  # Misc
+  "@fontsource/fira-mono": ^5.2.6
 
   # i18n
   "@inlang/paraglide-js": ^2.10.0
-
-  # UI
-  bits-ui: ^2.15.1
-  tailwindcss: ^4.1.18
-  "@tailwindcss/vite": ^4.1.18
-  "@tailwindcss/typography": ^0.5.19
-  "@tailwindcss/forms": ^0.5.11
-  "@tailwindcss/container-queries": ^0.1.1
-  clsx: ^2.1.1
-  tailwind-merge: ^3.3.1
-  tailwind-variants: ^3.2.2
-  embla-carousel-svelte: ^8.5.2
   "@internationalized/date": ^3.10.1
-  lucide-svelte: ^0.561.0
-  mode-watcher: 1.1.0
 
   # Testing
   "@playwright/test": ^1.58.2
-  playwright: ^1.58.2
+  "@storybook/addon-a11y": ^10.3.4
+  "@storybook/addon-docs": ^10.3.4
+  "@storybook/addon-svelte-csf": ^5.1.2
+  "@storybook/addon-vitest": ^10.3.4
+  "@storybook/sveltekit": ^10.3.4
+  "@sveltejs/adapter-node": ^5.5.2
+
+  # SvelteKit
+  "@sveltejs/kit": ^2.22.0
+  "@sveltejs/vite-plugin-svelte": ^6.2.4
+  "@tailwindcss/container-queries": ^0.1.1
+  "@tailwindcss/forms": ^0.5.11
+  "@tailwindcss/typography": ^0.5.19
+  "@tailwindcss/vite": ^4.1.18
+  "@types/node": ^24
+  "@vite-pwa/sveltekit": ^1.1.0
   "@vitest/browser": ^4.1.0
   "@vitest/browser-playwright": ^4.1.0
   "@vitest/coverage-v8": ^4.1.0
-  vitest-browser-svelte: ^2.0.2
 
-  # Storybook
-  storybook: ^10.3.4
-  "@storybook/sveltekit": ^10.3.4
-  "@storybook/addon-docs": ^10.3.4
-  "@storybook/addon-a11y": ^10.3.4
-  "@storybook/addon-vitest": ^10.3.4
-  "@storybook/addon-svelte-csf": ^5.1.2
-  "@chromatic-com/storybook": ^5.1.1
-  eslint-plugin-storybook: ^10.3.4
+  # Auth
+  better-auth: ~1.4.21
+
+  # UI
+  bits-ui: ^2.15.1
+  clsx: ^2.1.1
+  dexie: ^4.4.3
+  drizzle-kit: ^0.31.8
+
+  # DB
+  drizzle-orm: ^0.45.1
+  embla-carousel-svelte: ^8.5.2
 
   # Linting
   eslint: ^10.0.3
   eslint-config-prettier: ^10.1.8
+  eslint-plugin-storybook: ^10.3.4
   eslint-plugin-svelte: ^3.15.2
   globals: ^17.4.0
+  lucide-svelte: ^0.561.0
+  mdsvex: ^0.12.6
+  mode-watcher: 1.1.0
+  playwright: ^1.58.2
+  postgres: ^3.4.8
   prettier: ^3.8.1
   prettier-plugin-svelte: ^3.4.1
   prettier-plugin-tailwindcss: ^0.7.2
-  typescript-eslint: ^8.57.0
 
-  # Misc
-  "@fontsource/fira-mono": ^5.2.6
+  # Storybook
+  storybook: ^10.3.4
+  svelte: ^5.54.0
+  svelte-check: ^4.4.2
+  svguitar: ^2.5.1
+  tailwind-merge: ^3.3.1
+  tailwind-variants: ^3.2.2
+  tailwindcss: ^4.1.18
+  tonal: ^6.4.3
+  tsx: ^4.22.4
+  typescript: ^5
+  typescript-eslint: ^8.57.0
+  vexflow: ^5.0.0
+  vite: npm:@voidzero-dev/vite-plus-core@latest
   vite-plugin-devtools-json: ^1.0.0
+  vite-plus: latest
+  vitest: npm:@voidzero-dev/vite-plus-test@latest
+  vitest-browser-svelte: ^2.0.2
+  webmidi: ^3.1.16
+
+catalogMode: prefer
 
 overrides:
   vite: "catalog:"

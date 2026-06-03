@@ -1,13 +1,11 @@
-import { page } from "vite-plus/test/browser/context";
 import { describe, expect, it } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 import Page from "./+page.svelte";
 
 describe("/+page.svelte", () => {
-  it("should render h1", async () => {
+  it("keeps the personal website at the root route", async () => {
     render(Page, { data: { posts: [], projects: [] } });
 
-    const heading = page.getByRole("heading", { level: 1 });
-    await expect.element(heading).toBeInTheDocument();
+    expect(document.querySelector("h1")?.textContent).toContain("welcome!");
   });
 });

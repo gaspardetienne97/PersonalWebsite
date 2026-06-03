@@ -1,38 +1,31 @@
-# sv
+# PersonalWebsite
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit personal website and route-app monorepo powered by VitePlus.
 
-## Creating a project
+## Structure
 
-If you're seeing this, you've probably already done this step. Congrats!
+- `src/routes/` is the single deployed SvelteKit site.
+- `/` remains the personal website.
+- `/music` serves the musicianship practice app.
+- `/pdf` serves the PDF reader app.
+- `packages/ui` contains shared ShadCN Svelte/Bits UI components and theme utilities.
+- `packages/music-core` contains reusable music domain, engines, and exercises.
+- `packages/pdf-core` contains reusable PDF reader components, services, and stores.
 
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Commands
 
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm dev
+pnpm check
+pnpm test
+pnpm build
+pnpm build-storybook
+pnpm test:e2e
 ```
 
-## Building
-
-To create a production version of your app:
+Use VitePlus recursive workspace tasks when checking packages together:
 
 ```bash
-npm run build
+vp run -r check
+vp run -r test
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.

@@ -1,9 +1,10 @@
 <script lang="ts">
-	import * as Avatar from '@repo/ui/avatar';
-	import { formatDate } from '$lib/utils';
+	import * as Avatar from "@repo/ui/avatar";
+	import { formatDate } from "$lib/utils";
 
-	const { data } = $props();
-	const { meta, Content } = data;
+	let { data } = $props();
+	const meta = $derived(data.meta);
+	const Content = $derived(data.Content);
 </script>
 
 <!-- SEO -->
