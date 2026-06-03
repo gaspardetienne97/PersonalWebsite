@@ -76,8 +76,10 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite-plugin-devtools-json": "catalog:",
+    "vite-plugin-pwa": "catalog:",
     "vite-plus": "catalog:",
-    "vitest-browser-svelte": "catalog:"
+    "vitest-browser-svelte": "catalog:",
+    "workbox-window": "catalog:"
   },
   "engines": {
     "node": ">=22.12.0"

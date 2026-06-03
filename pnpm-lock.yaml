@@ -126,6 +126,9 @@ catalogs:
     vite-plugin-devtools-json:
       specifier: ^1.0.0
       version: 1.0.0
+    vite-plugin-pwa:
+      specifier: ^1.3.0
+      version: 1.3.0
     vite-plus:
       specifier: latest
       version: 0.1.24
@@ -135,6 +138,9 @@ catalogs:
     webmidi:
       specifier: ^3.1.16
       version: 3.1.16
+    workbox-window:
+      specifier: ^7.4.1
+      version: 7.4.1
 
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@latest
@@ -292,12 +298,18 @@ importers:
       vite-plugin-devtools-json:
         specifier: 'catalog:'
         version: 1.0.0(vite@8.0.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4))
+      vite-plugin-pwa:
+        specifier: 'catalog:'
+        version: 1.3.0(vite@8.0.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4))(workbox-build@7.4.1)(workbox-window@7.4.1)
       vite-plus:
         specifier: 'catalog:'
         version: 0.1.23(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(svelte@5.56.0)(terser@5.48.0)(tsx@4.22.4)(typescript@5.9.3)(vite@8.0.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4))
       vitest-browser-svelte:
         specifier: 'catalog:'
         version: 2.1.1(svelte@5.56.0)(vitest@4.1.7(@types/node@24.12.4)(vite@8.0.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4)))
+      workbox-window:
+        specifier: 'catalog:'
+        version: 7.4.1
 
   packages/music-core:
     dependencies:

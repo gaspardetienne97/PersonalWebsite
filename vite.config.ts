@@ -1,10 +1,13 @@
 import tailwindcss from "@tailwindcss/vite";
 import { sveltekit } from "@sveltejs/kit/vite";
+import { SvelteKitPWA } from "@vite-pwa/sveltekit";
 import { defineConfig } from "vite-plus";
 import { playwright } from "vite-plus/test/browser-playwright";
 
+import { pwaOptions } from "./pwa.config";
+
 export default defineConfig({
-  plugins: [tailwindcss(), sveltekit()],
+  plugins: [tailwindcss(), sveltekit(), SvelteKitPWA(pwaOptions)],
   optimizeDeps: {
     include: ["lucide-svelte/icons/moon", "lucide-svelte/icons/sun"],
   },

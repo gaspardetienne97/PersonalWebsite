@@ -205,7 +205,7 @@
               <span>BPM</span>
               <span class="font-medium">{bpm}</span>
             </div>
-            <Slider min={60} max={180} step={1} bind:value={bpmValue} />
+            <Slider type="multiple" min={60} max={180} step={1} bind:value={bpmValue} />
           </div>
           <div class="flex flex-wrap gap-2">
             {#each ticks as tick}

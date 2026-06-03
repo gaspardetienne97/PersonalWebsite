@@ -16,6 +16,23 @@ test("music route app renders", async ({ page }) => {
   await expect(page.getByText(/Correct\..*m6 mastery/i)).toBeVisible();
 });
 
+test("music route app registers its installable PWA", async ({ page }) => {
+  await page.goto("/music");
+
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+    "href",
+    "/manifest.webmanifest",
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.getRegistration("/music");
+        return registration?.scope;
+      }),
+    )
+    .toBe("http://localhost:4173/music");
+});
+
 test("pdf route app renders", async ({ page }) => {
   await page.goto("/pdf");
 
