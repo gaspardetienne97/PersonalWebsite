@@ -7,21 +7,33 @@
   import { midiCapabilities } from '@repo/music-core/engines/midi';
   import { ProgressEngine } from '@repo/music-core/engines/progress';
   import { seedCoreSkills, SkillGraphStore } from '@repo/music-core/engines/skills';
-  import { scheduleMetronomeTicks } from '@repo/music-core/engines/transport';
+  import { SoundEngine } from '@repo/music-core/engines/sound';
+  import {
+    createToneTransportEngine,
+    scheduleMetronomeTicks,
+    type TransportEngine
+  } from '@repo/music-core/engines/transport';
   import { chordNotes, noteToMidi } from '@repo/music-core/engines/theory';
   import { intervalRecognitionExercise } from '@repo/music-core/exercises/interval-recognition';
   import { Button } from '@repo/ui/button';
   import * as Card from '@repo/ui/card';
   import { Progress } from '@repo/ui/progress';
   import { Slider } from '@repo/ui/slider';
+  import { onDestroy } from 'svelte';
 
   const router = new InputRouter();
   const skills = new SkillGraphStore();
   const analytics = new AnalyticsEngine();
   const progress = new ProgressEngine();
+  const sound = new SoundEngine();
+  let transport: TransportEngine | undefined;
+  let unsubscribeTransport: (() => void) | undefined;
   void skills.seed(seedCoreSkills());
 
   let audioEnabled = $state(false);
+  let audioMessage = $state('Audio is waiting for a user gesture.');
+  let metronomeRunning = $state(false);
+  let activeBeat = $state(-1);
   let lastEvent = $state<NoteEvent | undefined>();
   let bpmValue = $state([96]);
   let xp = $state(progress.state.xp);
@@ -32,7 +44,7 @@
   const midi = $derived(midiCapabilities(browser ? navigator : {}));
   const bpm = $derived(bpmValue[0] ?? 96);
   const cmaj7 = $derived(chordNotes('Cmaj7'));
-  const ticks = $derived(scheduleMetronomeTicks({ bpm, numerator: 4 }, 0, 8));
+  const ticks = $derived(scheduleMetronomeTicks({ bpm, numerator: 4 }, 0, 4));
   const skillRows = $derived(
     skills.skills.slice(0, 8).map((skill) => ({
       ...skill,
@@ -44,8 +56,45 @@
     lastEvent = event;
   });
 
+  $effect(() => {
+    transport?.setBpm(bpm);
+  });
+
   async function enableAudio() {
-    audioEnabled = true;
+    try {
+      const state = await sound.enable();
+      audioEnabled = state.enabled;
+      audioMessage = state.message;
+
+      if (!transport) {
+        transport = await createToneTransportEngine({
+          bpm,
+          onMetronomeClick: (atSeconds, accented) => sound.playMetronomeClick(atSeconds, accented)
+        });
+        unsubscribeTransport = transport.subscribe((event) => {
+          if (event.kind === 'beat') activeBeat = event.beat;
+        });
+      }
+    } catch (error) {
+      audioEnabled = false;
+      audioMessage = error instanceof Error ? error.message : 'Audio could not be enabled.';
+    }
+  }
+
+  async function toggleMetronome() {
+    if (!audioEnabled) await enableAudio();
+    if (!transport) return;
+
+    if (transport.state.running) {
+      transport.stop();
+      metronomeRunning = false;
+      activeBeat = -1;
+      return;
+    }
+
+    transport.setBpm(bpm);
+    transport.start();
+    metronomeRunning = true;
   }
 
   function playOnScreen(note: string) {
@@ -58,6 +107,7 @@
       clock: 'performance',
       instrument: 'piano'
     });
+    sound.playNote(noteToMidi(note));
   }
 
   async function answerInterval(correct: boolean) {
@@ -86,6 +136,12 @@
       ? `Correct. +${outcome.xp} XP; m6 mastery is now ${Math.round(mastery * 100)}%.`
       : `Logged confusion: m6 -> P5 (${confusions.P5 ?? 0}x).`;
   }
+
+  onDestroy(() => {
+    unsubscribeTransport?.();
+    if (transport?.state.running) transport.stop();
+    sound.dispose();
+  });
 </script>
 
 <svelte:head>
@@ -153,7 +209,10 @@
               <small class="text-muted-foreground">m6 mastery</small>
             </div>
           </div>
-          <p class="text-sm text-muted-foreground">{feedback}</p>
+          <div class="space-y-1 text-sm text-muted-foreground">
+            <p aria-live="polite">{audioMessage}</p>
+            <p>{feedback}</p>
+          </div>
           <div class="flex flex-wrap gap-2" id="learn">
             <Button type="button" variant="secondary" onclick={() => answerInterval(false)}>
               Answer P5
@@ -211,12 +270,20 @@
             {#each ticks as tick}
               <span
                 class="grid size-10 place-items-center rounded-md border text-sm font-medium"
-                class:bg-primary={tick.accented}
-                class:text-primary-foreground={tick.accented}
+                class:bg-primary={activeBeat === tick.beat}
+                class:text-primary-foreground={activeBeat === tick.beat}
               >
                 {tick.beat + 1}
               </span>
             {/each}
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-sm text-muted-foreground" aria-live="polite">
+              {metronomeRunning ? `Playing beat ${activeBeat + 1}` : 'Metronome stopped'}
+            </span>
+            <Button type="button" variant="secondary" onclick={toggleMetronome}>
+              {metronomeRunning ? 'Stop metronome' : 'Start metronome'}
+            </Button>
           </div>
         </Card.Content>
       </Card.Root>
