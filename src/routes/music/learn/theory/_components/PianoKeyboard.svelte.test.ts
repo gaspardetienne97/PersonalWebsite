@@ -3,7 +3,7 @@ import { render } from "vitest-browser-svelte";
 
 import PianoKeyboard from "./PianoKeyboard.svelte";
 
-describe("PianoKeyboard", () => {
+describe("theory PianoKeyboard", () => {
   test("marks the selected pitch classes across one octave", () => {
     render(PianoKeyboard, { notes: ["C", "E", "G", "B"] });
 

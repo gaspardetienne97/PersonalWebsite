@@ -1,12 +1,14 @@
 import { getContext, setContext } from "svelte";
 
 import { InputRouter } from "@repo/music-core/engines/input-router";
+import { MidiEngine } from "@repo/music-core/engines/midi";
 import { SoundEngine } from "@repo/music-core/engines/sound";
 
 const MUSIC_RUNTIME = Symbol("music-runtime");
 
 export class MusicRuntime {
   readonly router = new InputRouter();
+  readonly midi = new MidiEngine();
   readonly sound = new SoundEngine();
 
   audioEnabled = $state(false);
@@ -14,6 +16,9 @@ export class MusicRuntime {
   audioMessage = $state("Audio is waiting for a user gesture.");
 
   #enablePromise?: Promise<boolean>;
+  #unsubscribeMidi = this.midi.subscribe((event) => {
+    this.router.push(event);
+  });
 
   enableAudio(): Promise<boolean> {
     this.#enablePromise ??= this.#enableAudio().finally(() => {
@@ -23,6 +28,8 @@ export class MusicRuntime {
   }
 
   dispose(): void {
+    this.#unsubscribeMidi();
+    void this.midi.disable();
     this.sound.dispose();
   }
 

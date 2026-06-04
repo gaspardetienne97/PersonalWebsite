@@ -99,6 +99,9 @@ describe("music-core/skills", () => {
       expect.arrayContaining([
         "pitch.interval.m2",
         "pitch.interval.P8",
+        "pitch.scale-degrees",
+        "pitch.scale-degree.b6",
+        "pitch.scale-degree.7",
         "harmony.triad.augmented",
         "harmony.seventh.major",
         "harmony.ii-v-i",

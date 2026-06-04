@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   Capability,
@@ -20,6 +20,7 @@ import {
   runExerciseThroughPipeline,
 } from "./index";
 import { intervalRecognitionExercise } from "@repo/music-core/exercises/interval-recognition";
+import { choiceAnswerEvent } from "@repo/music-core/exercises/ear-training";
 import { createRhythmPulseExercise } from "@repo/music-core/exercises/rhythm-pulse";
 
 function scoringEvent(
@@ -62,6 +63,13 @@ function exercise(id: string, skillId: string, capability: Capability): Exercise
   };
 }
 
+function multiSkillExercise(id: string, skillIds: string[]): ExerciseDefinition {
+  return {
+    ...exercise(id, skillIds[0]!, Capability.Pitch),
+    skillIds,
+  };
+}
+
 describe("music-core/exercise", () => {
   test("runs an exercise through scoring, skill mastery, analytics, and XP", async () => {
     const registry = new ExerciseRegistry();
@@ -75,19 +83,17 @@ describe("music-core/exercise", () => {
     const outcome = await runExerciseThroughPipeline({
       exercise: registry.get("ear.interval-recognition"),
       input: [
-        {
-          type: "noteOn",
-          midiNote: 0,
-          velocity: 1,
-          source: "click",
-          timestamp: monotonicMs(0),
-          clock: "performance",
-          raw: { midiData1: 8 },
-        },
+        choiceAnswerEvent(
+          "m6",
+          intervalRecognitionExercise
+            .generate({ targetSkillIds: ["pitch.interval.m6"], difficulty: 0.6 })
+            .payload.choices.map(({ token }) => token),
+        ),
       ],
       services: { skills, analytics, progress },
       sessionId: "session-1",
       runId: "run-1",
+      context: { targetSkillIds: ["pitch.interval.m6"], difficulty: 0.6 },
       now: () => 1_700_000_000_000,
     });
 
@@ -149,6 +155,23 @@ describe("music-core/exercise", () => {
     expect(queue[0]?.exerciseId).toBe("exercise.overdue");
   });
 
+  test("schedules each unlocked target of a multi-skill exercise independently", async () => {
+    const registry = new ExerciseRegistry();
+    registry.register(
+      multiSkillExercise("exercise.intervals", ["pitch.interval.m6", "pitch.interval.P5"]),
+    );
+    const skills = new SkillGraphStore();
+    await skills.seed(seedCoreSkills());
+
+    const queue = new ExerciseScheduler(registry, skills, new AnalyticsEngine()).buildQueue({
+      length: 2,
+    });
+
+    expect(new Set(queue.map((item) => item.targetSkillIds[0]))).toEqual(
+      new Set(["pitch.interval.m6", "pitch.interval.P5"]),
+    );
+  });
+
   test("streams routed input into live state and finishes through the learning pipeline", async () => {
     const router = new InputRouter({ now: () => 0 });
     const skills = new SkillGraphStore();
@@ -198,6 +221,68 @@ describe("music-core/exercise", () => {
     expect(skills.getMastery("rhythm.quarter-pulse").mastery).toBeGreaterThan(0);
     expect(analytics.getStats("rhythm.quarter-pulse")?.attempts).toBe(1);
     expect(outcome.xp).toBeGreaterThan(0);
+    host.dispose();
+  });
+
+  test("honors active-run input overrides and returns the graded result", async () => {
+    const router = new InputRouter({ now: () => 0 });
+    const skills = new SkillGraphStore();
+    await skills.seed(seedCoreSkills());
+    const host = new ExerciseRunHost(router, {
+      skills,
+      analytics: new AnalyticsEngine(),
+      progress: new ProgressEngine(),
+    });
+    const prompt = host.start({
+      exercise: intervalRecognitionExercise,
+      sessionId: "session-1",
+      runId: "run-1",
+      inputs: ["click"],
+      context: { targetSkillIds: ["pitch.interval.m6"], difficulty: 0.4 },
+    });
+
+    router.noteOn(68, "onscreen");
+    expect(host.liveState?.progress).toBe(0);
+    router.push(
+      choiceAnswerEvent(
+        "m6",
+        (prompt.payload as { choices: { token: string }[] }).choices.map(({ token }) => token),
+      ),
+    );
+
+    const outcome = await host.finish();
+    expect(outcome.result.correct).toBe(true);
+    host.dispose();
+  });
+
+  test("keeps an active run retryable when pipeline persistence fails", async () => {
+    const router = new InputRouter({ now: () => 0 });
+    const skills = new SkillGraphStore();
+    await skills.seed(seedCoreSkills());
+    const analytics = new AnalyticsEngine();
+    vi.spyOn(analytics, "ingest").mockRejectedValueOnce(new Error("Persistence unavailable"));
+    const host = new ExerciseRunHost(router, {
+      skills,
+      analytics,
+      progress: new ProgressEngine(),
+    });
+    const prompt = host.start({
+      exercise: intervalRecognitionExercise,
+      sessionId: "session-1",
+      runId: "run-1",
+      inputs: ["click"],
+      context: { targetSkillIds: ["pitch.interval.m6"], difficulty: 0.4 },
+    });
+    router.push(
+      choiceAnswerEvent(
+        "m6",
+        (prompt.payload as { choices: { token: string }[] }).choices.map(({ token }) => token),
+      ),
+    );
+
+    await expect(host.finish()).rejects.toThrow("Persistence unavailable");
+    expect(host.prompt).toBe(prompt);
+    await expect(host.finish()).resolves.toMatchObject({ result: { correct: true } });
     host.dispose();
   });
 });

@@ -49,6 +49,7 @@ function createToneMock() {
   const tone = {
     start,
     loaded,
+    now: () => 10,
     gainToDb: (gain: number) => gain,
     PolySynth,
     Synth,
@@ -94,5 +95,23 @@ describe("music-core/sound", () => {
 
     expect(mock.loaded).toHaveBeenCalledTimes(2);
     expect(mock.playerStart).toHaveBeenCalledWith(3);
+  });
+
+  test("schedules a multi-step prompt pattern after audio is enabled", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    const pattern = [
+      { midiNotes: [60, 64, 67], offsetSeconds: 0, durationSeconds: 0.6 },
+      { midiNotes: [71], offsetSeconds: 0.8, durationSeconds: 0.5 },
+    ];
+
+    sound.playPattern(pattern);
+    expect(mock.synthTrigger).not.toHaveBeenCalled();
+
+    await sound.enable();
+    sound.playPattern(pattern);
+
+    expect(mock.synthTrigger).toHaveBeenNthCalledWith(1, ["C4", "E4", "G4"], 0.6, 10, 0.8);
+    expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["B4"], 0.5, 10.8, 0.8);
   });
 });

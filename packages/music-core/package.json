@@ -6,6 +6,7 @@
     ".": "./src/index.ts",
     "./domain": "./src/domain/index.ts",
     "./engines/analytics": "./src/engines/analytics/index.ts",
+    "./engines/ear-training": "./src/engines/ear-training/index.ts",
     "./engines/exercise": "./src/engines/exercise/index.ts",
     "./engines/input-router": "./src/engines/input-router/index.ts",
     "./engines/library": "./src/engines/library/index.ts",
@@ -17,9 +18,12 @@
     "./engines/store": "./src/engines/store/index.ts",
     "./engines/theory": "./src/engines/theory/index.ts",
     "./engines/transport": "./src/engines/transport/index.ts",
+    "./exercises/chord-quality-recognition": "./src/exercises/chord-quality-recognition.ts",
+    "./exercises/ear-training": "./src/exercises/ear-training.ts",
     "./exercises/interval-recognition": "./src/exercises/interval-recognition.ts",
     "./exercises/note-reading": "./src/exercises/note-reading.ts",
     "./exercises/rhythm-pulse": "./src/exercises/rhythm-pulse.ts",
+    "./exercises/scale-degree-recognition": "./src/exercises/scale-degree-recognition.ts",
     "./exercises/scale-pattern": "./src/exercises/scale-pattern.ts"
   },
   "scripts": {

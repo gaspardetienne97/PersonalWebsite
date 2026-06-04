@@ -144,6 +144,27 @@ export function seedCoreSkills(): SkillSeed {
     ]),
     skill("pitch.interval.M7", "Major 7th", Capability.Pitch, "intermediate", ["interval", "ear"]),
     skill("pitch.interval.P8", "Perfect Octave", Capability.Pitch, "beginner", ["interval", "ear"]),
+    skill("pitch.scale-degrees", "Functional Scale Degrees", Capability.Pitch, "beginner", [
+      "scale-degree",
+      "ear",
+    ]),
+    ...[
+      ["1", "Tonic"],
+      ["2", "Supertonic"],
+      ["b3", "Flat 3rd"],
+      ["3", "Mediant"],
+      ["4", "Subdominant"],
+      ["5", "Dominant"],
+      ["b6", "Flat 6th"],
+      ["6", "Submediant"],
+      ["b7", "Flat 7th"],
+      ["7", "Leading Tone"],
+    ].map(([degree, name]) =>
+      skill(`pitch.scale-degree.${degree}`, `${degree} - ${name}`, Capability.Pitch, "beginner", [
+        "scale-degree",
+        "ear",
+      ]),
+    ),
     skill("harmony.triads", "Triad Qualities", Capability.Harmony, "beginner", ["chord"]),
     skill("harmony.triad.major", "Major Triads", Capability.Harmony, "beginner", ["chord"]),
     skill("harmony.triad.minor", "Minor Triads", Capability.Harmony, "beginner", ["chord"]),
@@ -242,6 +263,9 @@ export function seedCoreSkills(): SkillSeed {
   const components: Record<string, string[]> = {
     "pitch.intervals": skills
       .filter((item) => item.id.startsWith("pitch.interval."))
+      .map((item) => item.id),
+    "pitch.scale-degrees": skills
+      .filter((item) => item.id.startsWith("pitch.scale-degree."))
       .map((item) => item.id),
     "harmony.triads": skills
       .filter((item) => item.id.startsWith("harmony.triad."))

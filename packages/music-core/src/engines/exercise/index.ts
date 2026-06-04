@@ -7,7 +7,9 @@ import {
   type ExerciseFinishContext,
   type ExerciseLiveState,
   type ExercisePrompt,
+  type ExerciseResult,
   type ExerciseRun,
+  type InputSource,
   type NoteEvent,
   type ScoringEvent,
   type UnixMs,
@@ -54,7 +56,7 @@ export interface RunExerciseArgs {
 
 export async function runExerciseThroughPipeline(
   args: RunExerciseArgs,
-): Promise<{ event: ScoringEvent; xp: number }> {
+): Promise<{ event: ScoringEvent; xp: number; result: ExerciseResult }> {
   const context = exerciseContext(args.exercise, args.context);
   const prompt = args.exercise.generate(context);
   const run = args.exercise.createRun(prompt, context);
@@ -112,7 +114,11 @@ export class ExerciseScheduler {
     const candidates = this.registry
       .list()
       .filter((definition) => definition.skillIds.some((skillId) => unlocked.has(skillId)))
-      .map((definition) => this.#candidate(definition, unlocked, weakRanks, now))
+      .flatMap((definition) =>
+        definition.skillIds
+          .filter((skillId) => unlocked.has(skillId))
+          .map((skillId) => this.#candidate(definition, skillId, weakRanks, now)),
+      )
       .sort(
         (a, b) =>
           b.priority - a.priority ||
@@ -134,24 +140,24 @@ export class ExerciseScheduler {
 
   #candidate(
     definition: ExerciseDefinition,
-    unlocked: ReadonlySet<string>,
+    skillId: string,
     weakRanks: ReadonlyMap<string, number>,
     now: UnixMs,
   ): ScheduleCandidate {
-    const targetSkillIds = definition.skillIds.filter((skillId) => unlocked.has(skillId));
-    const ranked = targetSkillIds
-      .map((skillId) =>
-        scheduleSkill(skillId, this.skills, this.analytics, weakRanks.get(skillId) ?? 0, now),
-      )
-      .sort((a, b) => b.priority - a.priority || a.skillId.localeCompare(b.skillId));
-    const primary = ranked[0]!;
+    const scheduled = scheduleSkill(
+      skillId,
+      this.skills,
+      this.analytics,
+      weakRanks.get(skillId) ?? 0,
+      now,
+    );
 
     return {
       exerciseId: definition.id,
-      targetSkillIds: [primary.skillId],
-      difficulty: primary.difficulty,
-      reason: primary.reason,
-      priority: primary.priority,
+      targetSkillIds: [scheduled.skillId],
+      difficulty: scheduled.difficulty,
+      reason: scheduled.reason,
+      priority: scheduled.priority,
     };
   }
 }
@@ -218,6 +224,7 @@ export interface StartExerciseRunArgs {
   exercise: ExerciseDefinition;
   sessionId: string;
   runId: string;
+  inputs?: InputSource[];
   context?: Partial<ExerciseContext>;
 }
 
@@ -231,6 +238,7 @@ interface ActiveExerciseRun {
   prompt: ExercisePrompt;
   run: ExerciseRun;
   context: ExerciseContext;
+  inputs: InputSource[];
   sessionId: string;
   runId: string;
 }
@@ -245,7 +253,7 @@ export class ExerciseRunHost {
     private readonly options: ExerciseRunHostOptions = {},
   ) {
     this.#unsubscribe = router.subscribe((event) => {
-      if (this.#active?.exercise.inputs.includes(event.source)) {
+      if (this.#active?.inputs.includes(event.source)) {
         this.#active.run.accept(event);
       }
     });
@@ -263,12 +271,19 @@ export class ExerciseRunHost {
     if (this.#active) throw new Error("An exercise run is already active");
 
     const context = exerciseContext(args.exercise, args.context);
+    const inputs = args.inputs ?? args.exercise.inputs;
+    if (inputs.some((input) => !args.exercise.inputs.includes(input))) {
+      throw new Error(
+        `Exercise input override includes unsupported sources for ${args.exercise.id}`,
+      );
+    }
     const prompt = args.exercise.generate(context);
     this.#active = {
       exercise: args.exercise,
       prompt,
       run: args.exercise.createRun(prompt, context),
       context,
+      inputs: [...inputs],
       sessionId: args.sessionId,
       runId: args.runId,
     };
@@ -278,15 +293,16 @@ export class ExerciseRunHost {
   async finish(finishContext: ExerciseFinishContext = { reason: "completed" }) {
     const active = this.#active;
     if (!active) throw new Error("No exercise run is active");
-    this.#active = undefined;
 
-    return finishExerciseRun({
+    const outcome = await finishExerciseRun({
       ...active,
       services: this.services,
       finishContext,
       now: this.options.now,
       makeId: this.options.makeId,
     });
+    this.#active = undefined;
+    return outcome;
   }
 
   dispose(): void {
@@ -295,7 +311,7 @@ export class ExerciseRunHost {
   }
 }
 
-interface FinishExerciseRunArgs extends ActiveExerciseRun {
+interface FinishExerciseRunArgs extends Omit<ActiveExerciseRun, "inputs"> {
   services: PipelineServices;
   finishContext: ExerciseFinishContext;
   now?: () => number;
@@ -304,7 +320,7 @@ interface FinishExerciseRunArgs extends ActiveExerciseRun {
 
 async function finishExerciseRun(
   args: FinishExerciseRunArgs,
-): Promise<{ event: ScoringEvent; xp: number }> {
+): Promise<{ event: ScoringEvent; xp: number; result: ExerciseResult }> {
   const result = args.run.finish(args.finishContext);
   const event = resultToScoringEvent({
     result,
@@ -321,7 +337,7 @@ async function finishExerciseRun(
   await args.services.skills.ingest(event);
   await args.services.analytics.ingest(event);
   const xp = await args.services.progress.ingest(event, args.services.skills);
-  return { event, xp };
+  return { event, xp, result };
 }
 
 function exerciseContext(

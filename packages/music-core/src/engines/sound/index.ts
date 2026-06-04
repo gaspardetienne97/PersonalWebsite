@@ -29,6 +29,7 @@ type ToneConstructor<T> = new (...args: unknown[]) => T;
 export interface ToneSoundModule {
   start(): Promise<void>;
   loaded(): Promise<void>;
+  now(): number;
   gainToDb(gain: number): number;
   Synth: ToneConstructor<ToneInstrument>;
   PolySynth: ToneConstructor<ToneInstrument>;
@@ -44,6 +45,12 @@ export interface AudioGateState {
 export interface DrumSample {
   name: string;
   url: string;
+}
+
+export interface SoundPatternStep {
+  midiNotes: number[];
+  offsetSeconds: number;
+  durationSeconds: number;
 }
 
 type ToneLoader = () => Promise<ToneSoundModule>;
@@ -96,6 +103,19 @@ export class SoundEngine {
       time,
       clampVelocity(velocity),
     );
+  }
+
+  playPattern(steps: SoundPatternStep[], velocity = 0.8): void {
+    if (!this.enabled || !this.#tone) return;
+    const startAt = this.#tone.now();
+    for (const step of steps) {
+      this.#instrument?.triggerAttackRelease(
+        step.midiNotes.map((note) => midiToNote(note)),
+        step.durationSeconds,
+        startAt + step.offsetSeconds,
+        clampVelocity(velocity),
+      );
+    }
   }
 
   async loadSampler(samples: Record<string, string>): Promise<void> {

@@ -1,10 +1,9 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { Capability, monotonicMs, type NoteEvent } from '@repo/music-core/domain';
+  import { Capability, type NoteEvent } from '@repo/music-core/domain';
   import { AnalyticsEngine } from '@repo/music-core/engines/analytics';
   import { runExerciseThroughPipeline } from '@repo/music-core/engines/exercise';
   import {
-    MidiEngine,
     midiCapabilities,
     type MidiDeviceSummary
   } from '@repo/music-core/engines/midi';
@@ -18,6 +17,7 @@
   } from '@repo/music-core/engines/transport';
   import { chordNotes } from '@repo/music-core/engines/theory';
   import { intervalRecognitionExercise } from '@repo/music-core/exercises/interval-recognition';
+  import { choiceAnswerEvent } from '@repo/music-core/exercises/ear-training';
   import { Button } from '@repo/ui/button';
   import * as Card from '@repo/ui/card';
   import { Progress } from '@repo/ui/progress';
@@ -34,7 +34,8 @@
   const skills = new SkillGraphStore(practiceStore);
   const analytics = new AnalyticsEngine(practiceStore);
   const progress = new ProgressEngine(practiceStore);
-  const midiEngine = new MidiEngine();
+  const coreSkillSeed = seedCoreSkills();
+  const midiEngine = runtime.midi;
   let transport: TransportEngine | undefined;
   let unsubscribeTransport: (() => void) | undefined;
 
@@ -54,7 +55,7 @@
   let feedback = $state('Answer an interval prompt to move real mastery.');
   let skillRows = $state<ReturnType<typeof projectSkillRows>>([]);
 
-  void Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]).then(() => {
+  void Promise.all([skills.seed(coreSkillSeed), analytics.load(), progress.load()]).then(() => {
     xp = progress.state.xp;
     streak = progress.state.streakDays;
     mastery = skills.getMastery('pitch.interval.m6').mastery;
@@ -66,7 +67,7 @@
   const cmaj7 = $derived(chordNotes('Cmaj7'));
   const ticks = $derived(scheduleMetronomeTicks({ bpm, numerator: 4 }, 0, 4));
   function projectSkillRows() {
-    return skills.skills.slice(0, 8).map((skill) => ({
+    return coreSkillSeed.skills.slice(0, 8).map((skill) => ({
       ...skill,
       mastery: Math.round(skills.getMastery(skill.id).mastery * 100)
     }));
@@ -80,7 +81,6 @@
     inputConfidence = state.confidence;
   });
   const unsubscribeMidi = midiEngine.subscribe((event) => {
-    router.push(event);
     midiEvents = [event, ...midiEvents].slice(0, 8);
   });
   const unsubscribeMidiState = midiEngine.subscribeState((state) => {
@@ -133,22 +133,28 @@
   }
 
   async function answerInterval(correct: boolean) {
-    const input: NoteEvent = {
-      type: 'noteOn',
-      midiNote: 0,
-      velocity: 1,
-      source: 'click',
-      timestamp: monotonicMs(performance.now()),
-      clock: 'performance',
-      raw: { midiData1: correct ? 8 : 7 }
-    };
+    const input = choiceAnswerEvent(correct ? 'm6' : 'P5', [
+      'm2',
+      'M2',
+      'm3',
+      'M3',
+      'P4',
+      'TT',
+      'P5',
+      'm6',
+      'M6',
+      'm7',
+      'M7',
+      'P8'
+    ]);
     router.push(input);
     const outcome = await runExerciseThroughPipeline({
       exercise: intervalRecognitionExercise,
       input: [input],
       services: { skills, analytics, progress },
       sessionId: 'demo-session',
-      runId: crypto.randomUUID()
+      runId: crypto.randomUUID(),
+      context: { targetSkillIds: ['pitch.interval.m6'], difficulty: 0.6 }
     });
     xp = progress.state.xp;
     streak = progress.state.streakDays;
@@ -166,7 +172,6 @@
     unsubscribeRouterState();
     unsubscribeMidi();
     unsubscribeMidiState();
-    void midiEngine.disable();
     if (transport?.state.running) transport.stop();
   });
 </script>

@@ -53,5 +53,6 @@
 <div
   bind:this={container}
   class="mx-auto w-full max-w-56 text-foreground [&_svg]:h-auto [&_svg]:w-full"
+  data-instrument={voicing.instrument}
   aria-label={`${voicing.instrument} chord diagram`}
 ></div>

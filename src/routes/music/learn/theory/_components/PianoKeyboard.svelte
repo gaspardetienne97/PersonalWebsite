@@ -1,7 +1,20 @@
 <script lang="ts">
   import { cn } from "@repo/ui/utils";
 
-  const PITCHES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const PITCHES = [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
+  ];
   const BLACK_KEYS = new Set(["C#", "D#", "F#", "G#", "A#"]);
 
   let { notes }: { notes: string[] } = $props();
