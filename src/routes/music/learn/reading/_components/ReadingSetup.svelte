@@ -22,6 +22,11 @@
     difficulty: number;
     promptKind: ReadingPromptKind;
     answerMode: ReadingAnswerMode;
+    mode: "wait" | "performance";
+    bpm: number;
+    strictness: "relaxed" | "normal" | "strict";
+    meter: "simple" | "compound";
+    measures: number;
   }
 
   let {
@@ -96,8 +101,85 @@
     </Card.Header>
     <Card.Content class="grid gap-6">
       {#if value.activity === "sight-reading"}
-        <div class="rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
-          Sight-reading phrases and score following arrive in the next checkpoint.
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          <div class="grid gap-2">
+            <p class="text-sm font-medium">Mode</p>
+            <div class="grid grid-cols-2 rounded-md border p-1" aria-label="Sight-reading mode">
+              {#each ["wait", "performance"] as mode}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={value.mode === mode ? "secondary" : "ghost"}
+                  aria-pressed={value.mode === mode}
+                  onclick={() => patch({ mode: mode as ReadingSetupValue["mode"] })}
+                >
+                  {mode === "wait" ? "Wait" : "Performance"}
+                </Button>
+              {/each}
+            </div>
+          </div>
+
+          <div class="grid gap-2">
+            <Label for="reading-tempo">Tempo</Label>
+            <Input
+              id="reading-tempo"
+              aria-label="Tempo"
+              type="number"
+              min="40"
+              max="200"
+              step="1"
+              value={value.bpm}
+              onchange={(event) => patch({ bpm: Number(event.currentTarget.value) })}
+            />
+          </div>
+
+          <div class="grid gap-2">
+            <p class="text-sm font-medium">Timing</p>
+            <div class="grid grid-cols-3 rounded-md border p-1" aria-label="Timing strictness">
+              {#each ["relaxed", "normal", "strict"] as strictness}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={value.strictness === strictness ? "secondary" : "ghost"}
+                  aria-pressed={value.strictness === strictness}
+                  onclick={() =>
+                    patch({ strictness: strictness as ReadingSetupValue["strictness"] })}
+                >
+                  {strictness[0]!.toUpperCase() + strictness.slice(1)}
+                </Button>
+              {/each}
+            </div>
+          </div>
+
+          <div class="grid gap-2">
+            <p class="text-sm font-medium">Meter</p>
+            <div class="grid grid-cols-2 rounded-md border p-1" aria-label="Meter">
+              {#each ["simple", "compound"] as meter}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={value.meter === meter ? "secondary" : "ghost"}
+                  aria-pressed={value.meter === meter}
+                  onclick={() => patch({ meter: meter as ReadingSetupValue["meter"] })}
+                >
+                  {meter === "simple" ? "Simple" : "Compound"}
+                </Button>
+              {/each}
+            </div>
+          </div>
+
+          <div class="grid gap-2">
+            <Label for="reading-measures">Measures</Label>
+            <Input
+              id="reading-measures"
+              type="number"
+              min="1"
+              max="8"
+              step="1"
+              value={value.measures}
+              onchange={(event) => patch({ measures: Number(event.currentTarget.value) })}
+            />
+          </div>
         </div>
       {/if}
 
@@ -216,10 +298,14 @@
     <Card.Footer class="flex-wrap gap-3">
       <Button
         type="button"
-        disabled={!ready || pending || value.activity !== "flashcards"}
+        disabled={!ready || pending}
         onclick={onStart}
       >
-        {pending ? "Starting Flashcards" : "Start Flashcards"}
+        {pending
+          ? "Starting..."
+          : value.activity === "flashcards"
+            ? "Start Flashcards"
+            : "Start Sight-Reading"}
       </Button>
       <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
     </Card.Footer>

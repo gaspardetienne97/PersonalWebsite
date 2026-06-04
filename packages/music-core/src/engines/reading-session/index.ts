@@ -314,6 +314,11 @@ export class ReadingSession {
   }
 
   #handleInput(): void {
+    if (this.#status === "sight-reading") {
+      this.#notify();
+      return;
+    }
+
     if (
       this.#status !== "flashcard" ||
       this.#finishing ||

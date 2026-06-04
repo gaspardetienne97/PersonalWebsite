@@ -20,6 +20,7 @@
     type ReadingSetupValue,
   } from "./_components/ReadingSetup.svelte";
   import ReadingSummary from "./_components/ReadingSummary.svelte";
+  import SightReadingSession from "./_components/SightReadingSession.svelte";
 
   const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
@@ -40,9 +41,14 @@
     difficulty: 0.4,
     promptKind: "single-note",
     answerMode: "choice",
+    mode: "wait",
+    bpm: 90,
+    strictness: "normal",
+    meter: "simple",
+    measures: 2,
   });
   let customTunings = $state<TuningProfile[]>([]);
-  let session: ReadingSession | undefined;
+  let session = $state<ReadingSession | undefined>();
   let sessionState = $state<ReadingSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
   let sessionXp = $state(0);
@@ -85,7 +91,7 @@
   }
 
   async function start(): Promise<void> {
-    if (!ready || pending || setup.activity !== "flashcards") return;
+    if (!ready || pending) return;
     pending = true;
     status = "";
 
@@ -98,16 +104,34 @@
       });
       unsubscribeSession = session.subscribe(handleSessionState);
       runtime.router.setActiveInstrument(setup.instrument);
-      await session.startFlashcards({
-        instrument: setup.instrument,
-        ...(activeTuning === undefined ? {} : { tuning: activeTuning }),
-        clefs: setup.clefs,
-        keys: [setup.keySignature],
-        range: setup.range,
-        promptKind: setup.promptKind,
-        answerMode: setup.answerMode,
-        length: 10,
-      });
+      if (setup.activity === "flashcards") {
+        await session.startFlashcards({
+          instrument: setup.instrument,
+          ...(activeTuning === undefined ? {} : { tuning: activeTuning }),
+          clefs: setup.clefs,
+          keys: [setup.keySignature],
+          range: setup.range,
+          promptKind: setup.promptKind,
+          answerMode: setup.answerMode,
+          length: 10,
+        });
+      } else {
+        await session.prepareSightReading({
+          instrument: setup.instrument,
+          ...(activeTuning === undefined ? {} : { tuning: activeTuning }),
+          keySignature: setup.keySignature,
+          clefs: setup.clefs,
+          measures: setup.measures,
+          bpm: setup.bpm,
+          timeSignature:
+            setup.meter === "compound"
+              ? { numerator: 6, denominator: 8 }
+              : { numerator: 4, denominator: 4 },
+          mode: setup.mode,
+          strictness: setup.strictness,
+          difficulty: setup.difficulty,
+        });
+      }
     } catch (error) {
       status = message(error, "The reading session could not be started.");
     } finally {
@@ -132,6 +156,28 @@
   function playAccepted(event: NoteEvent): void {
     if (event.type === "noteOn" && runtime.audioEnabled) {
       runtime.sound.playNote(event.midiNote, 0.18, undefined, event.velocity);
+    }
+  }
+
+  async function startSightReading(): Promise<number> {
+    const delayMs =
+      runtime.audioEnabled && setup.mode === "performance"
+        ? runtime.sound.playCountIn({
+            bpm: setup.bpm,
+            beats: setup.meter === "compound" ? 6 : 4,
+            beatsPerMeasure: setup.meter === "compound" ? 3 : 4,
+          }).delayMs
+        : 0;
+    const startTimestampMs = performance.now() + delayMs;
+    await session?.startSightReading(startTimestampMs);
+    return startTimestampMs;
+  }
+
+  async function finishSightReading(): Promise<void> {
+    try {
+      await session?.finishSightReading();
+    } catch (error) {
+      status = message(error, "The sight-reading result could not be saved.");
     }
   }
 
@@ -215,6 +261,17 @@
     />
   {:else if sessionState.status === "summary" && sessionState.summary}
     <ReadingSummary summary={sessionState.summary} onRepeat={repeat} />
+  {:else if sessionState.status === "sight-reading" && session}
+    <SightReadingSession
+      sessionState={sessionState}
+      router={runtime.router}
+      tuning={activeTuning}
+      {sessionXp}
+      onAccepted={playAccepted}
+      onStart={startSightReading}
+      onFinish={finishSightReading}
+      onAbandon={abandon}
+    />
   {:else}
     <FlashcardSession
       state={sessionState}

@@ -4,7 +4,7 @@
   import { notationView } from "@repo/music-core/engines/notation";
   import type { ReadingSessionState } from "@repo/music-core/engines/reading-session";
   import type { TuningProfile } from "@repo/music-core/engines/tunings";
-  import type { ReadingAnswerMode } from "@repo/music-core/exercises/note-reading";
+  import type { NoteReadingPrompt, ReadingAnswerMode } from "@repo/music-core/exercises/note-reading";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
@@ -33,7 +33,7 @@
     onAbandon: () => void;
   } = $props();
 
-  const prompt = $derived(state.currentPrompt);
+  const prompt = $derived(state.currentPrompt as NoteReadingPrompt | undefined);
   const view = $derived(prompt ? notationView(prompt.score) : undefined);
   const pianoNotes = $derived(
     prompt

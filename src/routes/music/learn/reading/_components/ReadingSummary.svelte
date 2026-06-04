@@ -1,10 +1,19 @@
 <script lang="ts">
   import type { ReadingSummary as Summary } from "@repo/music-core/engines/reading-session";
   import { writtenPitchName } from "@repo/music-core/engines/notation";
+  import type { NoteReadingPrompt } from "@repo/music-core/exercises/note-reading";
+  import type { SightReadingPrompt } from "@repo/music-core/exercises/sight-reading";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
   let { summary, onRepeat }: { summary: Summary; onRepeat: () => void } = $props();
+
+  function label(prompt: NoteReadingPrompt | SightReadingPrompt): string {
+    if ("writtenPitches" in prompt) {
+      return prompt.writtenPitches.map((pitch) => writtenPitchName(pitch, true)).join(" ");
+    }
+    return `${prompt.options.instrument} sight reading · ${prompt.groups.length} groups`;
+  }
 </script>
 
 <section class="grid gap-6">
@@ -25,7 +34,7 @@
       <ol class="grid gap-2 text-sm">
         {#each summary.results.slice(-5).reverse() as item}
           <li class="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-            <span>{item.prompt.writtenPitches.map((pitch) => writtenPitchName(pitch, true)).join(" ")}</span>
+            <span>{label(item.prompt)}</span>
             <span class={item.result.correct ? "text-foreground" : "text-muted-foreground"}>
               {item.result.correct ? "Correct" : "Review"}
             </span>

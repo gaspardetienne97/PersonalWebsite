@@ -1,7 +1,11 @@
-import { describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+
+afterEach(() => {
+  document.body.replaceChildren();
+});
 
 describe("/music/learn/reading/+page.svelte", () => {
   test("shows flashcard and sight-reading setup", async () => {
@@ -64,6 +68,52 @@ describe("/music/learn/reading/+page.svelte", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="delete-tuning"]')?.click();
     await vi.waitFor(() => expect(button("Edit Route Test Tuning")).toBeUndefined());
   });
+
+  test("completes wait-mode piano sight reading from on-screen expected notes", async () => {
+    render(Page);
+    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    button("Sight-Reading")?.click();
+    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
+    button("Wait")?.click();
+    button("Start Sight-Reading")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
+    button("Start count-in")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Expected notes"));
+
+    for (let index = 0; index < 32 && button("Finish phrase")?.disabled; index += 1) {
+      const targets = [
+        ...document.querySelectorAll<HTMLButtonElement>('[data-testid="expected-note"]'),
+      ];
+      for (const target of targets) target.click();
+      await vi.waitFor(() => expect(document.body.textContent).toContain("Expected notes"));
+    }
+
+    button("Finish phrase")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("100% accuracy"));
+  });
+
+  test("starts guitar performance sight reading with timing controls", async () => {
+    render(Page);
+    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    button("Sight-Reading")?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector<HTMLInputElement>("#reading-tempo")).not.toBeNull(),
+    );
+    button("Guitar")?.click();
+    button("Performance")?.click();
+    setInput(document.querySelector<HTMLInputElement>("#reading-tempo")!, "120");
+    button("Strict")?.click();
+    button("Compound")?.click();
+    button("Start Sight-Reading")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
+    expect(document.body.textContent).toContain("Standard");
+    expect(document.body.textContent).toContain("120 BPM");
+    expect(document.body.textContent).toContain("Strict timing");
+    button("Start count-in")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Timing feedback"));
+  });
 });
 
 function button(label: string): HTMLButtonElement | undefined {
@@ -79,4 +129,5 @@ function input(label: string): HTMLInputElement | null {
 function setInput(element: HTMLInputElement, value: string): void {
   element.value = value;
   element.dispatchEvent(new Event("input", { bubbles: true }));
+  element.dispatchEvent(new Event("change", { bubbles: true }));
 }
