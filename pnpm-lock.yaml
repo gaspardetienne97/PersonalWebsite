@@ -228,6 +228,9 @@ importers:
       tone:
         specifier: ^15.3.11
         version: 15.5.12
+      vexflow:
+        specifier: 'catalog:'
+        version: 5.0.0
     devDependencies:
       '@chromatic-com/storybook':
         specifier: 'catalog:'
