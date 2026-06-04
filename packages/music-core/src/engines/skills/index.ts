@@ -215,9 +215,22 @@ export function seedCoreSkills(): SkillSeed {
     skill("reading.treble.landmarks", "Treble Landmark Notes", Capability.Reading, "beginner", [
       "staff",
     ]),
+    skill("reading.treble.stepwise", "Treble Stepwise Reading", Capability.Reading, "beginner", [
+      "staff",
+    ]),
     skill("reading.bass", "Bass Clef Reading", Capability.Reading, "beginner", ["staff"]),
     skill("reading.bass.landmarks", "Bass Landmark Notes", Capability.Reading, "beginner", [
       "staff",
+    ]),
+    skill("reading.bass.stepwise", "Bass Stepwise Reading", Capability.Reading, "beginner", [
+      "staff",
+    ]),
+    skill("reading.polyphonic", "Polyphonic Reading", Capability.Reading, "intermediate", [
+      "staff",
+      "chord",
+    ]),
+    skill("reading.rhythm.compound", "Compound-Meter Reading", Capability.Reading, "intermediate", [
+      "rhythm",
     ]),
     skill("technique.scales", "Scale Fluency", Capability.Technique, "beginner", ["scale"]),
     skill("technique.scale.major", "Major Scale Fluency", Capability.Technique, "beginner", [
@@ -279,8 +292,8 @@ export function seedCoreSkills(): SkillSeed {
       "rhythm.triplets",
       "rhythm.sixteenths",
     ],
-    "reading.treble": ["reading.treble.landmarks"],
-    "reading.bass": ["reading.bass.landmarks"],
+    "reading.treble": ["reading.treble.landmarks", "reading.treble.stepwise"],
+    "reading.bass": ["reading.bass.landmarks", "reading.bass.stepwise"],
     "technique.scales": skills
       .filter((item) => item.id.startsWith("technique.scale."))
       .map((item) => item.id),
@@ -313,6 +326,24 @@ export function seedCoreSkills(): SkillSeed {
       {
         from: "rhythm.eighths",
         to: "rhythm.sixteenths",
+        kind: SkillRelationKind.Prerequisite,
+        threshold: 0.5,
+      },
+      {
+        from: "reading.treble.stepwise",
+        to: "reading.polyphonic",
+        kind: SkillRelationKind.Prerequisite,
+        threshold: 0.5,
+      },
+      {
+        from: "reading.bass.stepwise",
+        to: "reading.polyphonic",
+        kind: SkillRelationKind.Prerequisite,
+        threshold: 0.5,
+      },
+      {
+        from: "rhythm.eighths",
+        to: "reading.rhythm.compound",
         kind: SkillRelationKind.Prerequisite,
         threshold: 0.5,
       },

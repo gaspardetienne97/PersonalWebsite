@@ -10,9 +10,16 @@ import {
   unixMs,
   type ConfusionMatrix,
   type SkillMastery,
+  type WrittenPitch,
 } from "./index";
 
 describe("domain learning pipeline", () => {
+  test("represents a written pitch independently from sounding MIDI", () => {
+    const written: WrittenPitch = { step: "F", accidental: "#", octave: 4 };
+
+    expect(written).toEqual({ step: "F", accidental: "#", octave: 4 });
+  });
+
   test("moves mastery and records m6/P5 confusion on the canonical path", () => {
     let mastery = new Map<string, SkillMastery>([
       ["pitch.interval.m6", initialMastery("pitch.interval.m6")],

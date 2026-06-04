@@ -32,6 +32,27 @@ export interface ScoreVoice {
   role: VoiceRole;
 }
 
+export type WrittenStep = "A" | "B" | "C" | "D" | "E" | "F" | "G";
+export type WrittenAccidental = "bb" | "b" | "natural" | "#" | "##";
+
+export interface WrittenPitch {
+  step: WrittenStep;
+  accidental?: WrittenAccidental;
+  octave: number;
+}
+
+export interface TupletMark {
+  id: string;
+  actual: number;
+  normal: number;
+}
+
+export interface TieMark {
+  id: string;
+  start?: boolean;
+  stop?: boolean;
+}
+
 export type DrumArticulation =
   | "kick"
   | "snare"
@@ -46,6 +67,8 @@ export type DrumArticulation =
 
 export interface ScoreNote {
   midiNote: number;
+  /** Written spelling, kept separate from sounding pitch for notation. */
+  writtenPitch?: WrittenPitch;
   /** Onset in beats from score start (tempo-independent). */
   startBeat: number;
   /** Length in beats. */
@@ -58,6 +81,15 @@ export interface ScoreNote {
   drumArticulation?: DrumArticulation;
   /** Tie/slur/staccato/accent hints for rendering + articulation drills. */
   articulations?: string[];
+  tie?: TieMark;
+  tuplet?: TupletMark;
+}
+
+export interface ScoreRest {
+  startBeat: number;
+  durationBeats: number;
+  voiceId: string;
+  tuplet?: TupletMark;
 }
 
 /** Chord symbol at a position - its own lane, not a per-note field. */
@@ -102,6 +134,7 @@ export interface Score {
   timeSignatures: TimeSignatureMarker[];
   voices: ScoreVoice[];
   notes: ScoreNote[];
+  rests?: ScoreRest[];
   chords: ChordEvent[];
   sections: ScoreSection[];
   markers: ScoreMarker[];
