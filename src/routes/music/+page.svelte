@@ -30,8 +30,9 @@
   const runtime = useMusicRuntime();
   const router = runtime.router;
   const sound = runtime.sound;
-  const skills = new SkillGraphStore(browser ? new PracticeStore() : undefined);
-  const analytics = new AnalyticsEngine();
+  const practiceStore = browser ? new PracticeStore() : undefined;
+  const skills = new SkillGraphStore(practiceStore);
+  const analytics = new AnalyticsEngine(practiceStore);
   const progress = new ProgressEngine();
   const midiEngine = new MidiEngine();
   let transport: TransportEngine | undefined;
@@ -53,7 +54,7 @@
   let feedback = $state('Answer an interval prompt to move real mastery.');
   let skillRows = $state<ReturnType<typeof projectSkillRows>>([]);
 
-  void skills.seed(seedCoreSkills()).then(() => {
+  void Promise.all([skills.seed(seedCoreSkills()), analytics.load()]).then(() => {
     mastery = skills.getMastery('pitch.interval.m6').mastery;
     skillRows = projectSkillRows();
   });
@@ -151,7 +152,7 @@
     streak = progress.state.streakDays;
     mastery = skills.getMastery('pitch.interval.m6').mastery;
     skillRows = projectSkillRows();
-    const confusions = analytics.confusions('m6');
+    const confusions = analytics.confusions('pitch.interval.m6');
     feedback = outcome.event.correct
       ? `Correct. +${outcome.xp} XP; m6 mastery is now ${Math.round(mastery * 100)}%.`
       : `Logged confusion: m6 -> P5 (${confusions.P5 ?? 0}x).`;

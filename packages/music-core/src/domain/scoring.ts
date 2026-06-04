@@ -79,6 +79,8 @@ export interface ScoringEvent {
   partialCredit: number;
   /** Difficulty the item was presented at, 0-1 (weights derived evidence). */
   difficulty: number;
+  /** Time from prompt presentation to completed response, when measured. */
+  latencyMs?: number;
 
   /** Per-dimension structured measurements. */
   metrics: ScoringMetric[];

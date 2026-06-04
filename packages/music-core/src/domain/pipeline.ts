@@ -58,6 +58,7 @@ export function resultToScoringEvent(args: ResultToEventArgs): ScoringEvent {
     partialCredit: clamp01(result.score),
     difficulty: clamp01(args.difficulty),
     metrics: result.metrics,
+    ...(result.latencyMs !== undefined ? { latencyMs: result.latencyMs } : {}),
     ...(args.modality !== undefined ? { modality: args.modality } : {}),
     ...(result.target !== undefined ? { target: result.target } : {}),
     ...(result.response !== undefined ? { response: result.response } : {}),

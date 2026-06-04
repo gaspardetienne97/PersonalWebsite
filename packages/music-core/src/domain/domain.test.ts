@@ -23,6 +23,7 @@ describe("domain learning pipeline", () => {
       result: {
         correct: false,
         score: 0,
+        latencyMs: 900,
         metrics: [{ kind: "choice", expected: "m6", actual: "P5" }],
         feedback: [],
         input: [],
@@ -42,6 +43,7 @@ describe("domain learning pipeline", () => {
     });
 
     expect(scoringEventToEvidence(event)).toHaveLength(1);
+    expect(event).toMatchObject({ latencyMs: 900 });
     mastery = applyScoringEventToSkillState(mastery, event, initialMastery);
     updateConfusion(confusion, event);
 

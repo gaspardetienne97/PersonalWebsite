@@ -64,7 +64,7 @@ export async function runExerciseThroughPipeline(
   });
 
   await args.services.skills.ingest(event);
-  args.services.analytics.ingest(event);
+  await args.services.analytics.ingest(event);
   const xp = args.services.progress.ingest(event);
   return { event, xp };
 }
