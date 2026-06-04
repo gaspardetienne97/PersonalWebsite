@@ -30,7 +30,8 @@
     "./exercises/note-reading": "./src/exercises/note-reading.ts",
     "./exercises/rhythm-pulse": "./src/exercises/rhythm-pulse.ts",
     "./exercises/scale-degree-recognition": "./src/exercises/scale-degree-recognition.ts",
-    "./exercises/scale-pattern": "./src/exercises/scale-pattern.ts"
+    "./exercises/scale-pattern": "./src/exercises/scale-pattern.ts",
+    "./exercises/sight-reading": "./src/exercises/sight-reading.ts"
   },
   "scripts": {
     "check": "tsc --noEmit",
