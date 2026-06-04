@@ -44,6 +44,8 @@
   let midiStatus = $state('MIDI permission has not been requested.');
   let midiDevices = $state<MidiDeviceSummary[]>([]);
   let midiEvents = $state<NoteEvent[]>([]);
+  let activeSource = $state(router.activeSource);
+  let inputConfidence = $state(router.confidence);
   let bpmValue = $state([96]);
   let xp = $state(progress.state.xp);
   let streak = $state(progress.state.streakDays);
@@ -61,8 +63,12 @@
     }))
   );
 
-  router.subscribe((event) => {
+  const unsubscribeRouter = router.subscribe((event) => {
     lastEvent = event;
+  });
+  const unsubscribeRouterState = router.subscribeState((state) => {
+    activeSource = state.activeSource;
+    inputConfidence = state.confidence;
   });
   const unsubscribeMidi = midiEngine.subscribe((event) => {
     router.push(event);
@@ -122,16 +128,17 @@
   }
 
   function playOnScreen(note: string) {
-    router.push({
+    const midiNote = noteToMidi(note);
+    const accepted = router.push({
       type: 'noteOn',
-      midiNote: noteToMidi(note),
+      midiNote,
       velocity: 1,
       source: 'onscreen',
       timestamp: monotonicMs(performance.now()),
       clock: 'performance',
       instrument: 'piano'
     });
-    sound.playNote(noteToMidi(note));
+    if (accepted) sound.playNote(midiNote);
   }
 
   async function answerInterval(correct: boolean) {
@@ -163,6 +170,8 @@
 
   onDestroy(() => {
     unsubscribeTransport?.();
+    unsubscribeRouter();
+    unsubscribeRouterState();
     unsubscribeMidi();
     unsubscribeMidiState();
     void midiEngine.disable();
@@ -193,7 +202,7 @@
           {midiEnabled ? 'Web MIDI enabled' : midi.supported ? 'Web MIDI ready' : 'Web MIDI unavailable'}
         </span>
         <span>
-          Active input: {router.activeSource} · confidence {Math.round(router.confidence * 100)}%
+          Active input: {activeSource} · confidence {Math.round(inputConfidence * 100)}%
         </span>
       </div>
     </header>
