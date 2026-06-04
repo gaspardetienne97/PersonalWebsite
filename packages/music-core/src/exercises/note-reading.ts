@@ -48,14 +48,6 @@ export interface CreateNoteReadingExerciseOptions {
   options: NoteReadingOptions;
 }
 
-const READING_SKILLS = [
-  "reading.treble.landmarks",
-  "reading.treble.stepwise",
-  "reading.bass.landmarks",
-  "reading.bass.stepwise",
-  "reading.polyphonic",
-];
-
 const CHROMATIC_CHOICES = [
   "C",
   "C#",
@@ -86,7 +78,7 @@ export function createNoteReadingExercise({
     id: "reading.flashcard.note-id",
     name: "Note Reading Flashcard",
     capabilities: [Capability.Reading],
-    skillIds: READING_SKILLS,
+    skillIds: readingSkills(options),
     inputs: ["midi", "onscreen", "click"],
     streaming: false,
     generate: () => {
@@ -388,4 +380,14 @@ function validateOptions(options: NoteReadingOptions): void {
   if (options.instrument !== "piano" && options.tuning?.instrument !== options.instrument) {
     throw new Error(`A ${options.instrument} tuning is required`);
   }
+}
+
+function readingSkills(options: NoteReadingOptions): string[] {
+  const skills = options.clefs.flatMap((clef) =>
+    clef === "bass"
+      ? ["reading.bass.landmarks", "reading.bass.stepwise"]
+      : ["reading.treble.landmarks", "reading.treble.stepwise"],
+  );
+  if (options.promptKind === "chord") skills.push("reading.polyphonic");
+  return [...new Set(skills)];
 }

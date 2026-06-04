@@ -76,6 +76,21 @@ describe("music-core/skills", () => {
     expect(reloaded.getMastery("pitch.interval.m6").mastery).toBeGreaterThan(0);
   });
 
+  test("ingests the same scoring event only once across reloads", async () => {
+    const store = createStore();
+    const graph = new SkillGraphStore(store);
+    await graph.seed(seedCoreSkills());
+    const event = correctIntervalEvent();
+
+    await graph.ingest(event);
+    await graph.ingest(event);
+    expect(graph.getMastery("pitch.interval.m6").observations).toBe(1);
+
+    const reloaded = new SkillGraphStore(store);
+    await reloaded.ingest(event);
+    expect(reloaded.getMastery("pitch.interval.m6").observations).toBe(1);
+  });
+
   test("serializes first-load seed and ingest operations", async () => {
     const store = createStore();
     const graph = new SkillGraphStore(store);

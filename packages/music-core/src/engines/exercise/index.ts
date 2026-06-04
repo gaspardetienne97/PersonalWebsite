@@ -61,18 +61,18 @@ export async function runExerciseThroughPipeline(
   const prompt = args.exercise.generate(context);
   const run = args.exercise.createRun(prompt, context);
   for (const event of args.input) run.accept(event);
-  return finishExerciseRun({
+  const prepared = prepareExerciseRun({
     exercise: args.exercise,
     prompt,
     run,
     context,
-    services: args.services,
     sessionId: args.sessionId,
     runId: args.runId,
     finishContext: { reason: "completed" },
     now: args.now,
     makeId: args.makeId,
   });
+  return persistPreparedOutcome(prepared, args.services);
 }
 
 export interface ScheduledExercise {
@@ -241,6 +241,7 @@ interface ActiveExerciseRun {
   inputs: InputSource[];
   sessionId: string;
   runId: string;
+  prepared?: PreparedExerciseOutcome;
 }
 
 export class ExerciseRunHost {
@@ -294,13 +295,13 @@ export class ExerciseRunHost {
     const active = this.#active;
     if (!active) throw new Error("No exercise run is active");
 
-    const outcome = await finishExerciseRun({
+    active.prepared ??= prepareExerciseRun({
       ...active,
-      services: this.services,
       finishContext,
       now: this.options.now,
       makeId: this.options.makeId,
     });
+    const outcome = await persistPreparedOutcome(active.prepared, this.services);
     this.#active = undefined;
     return outcome;
   }
@@ -311,16 +312,18 @@ export class ExerciseRunHost {
   }
 }
 
-interface FinishExerciseRunArgs extends Omit<ActiveExerciseRun, "inputs"> {
-  services: PipelineServices;
+interface PrepareExerciseRunArgs extends Omit<ActiveExerciseRun, "inputs" | "prepared"> {
   finishContext: ExerciseFinishContext;
   now?: () => number;
   makeId?: () => string;
 }
 
-async function finishExerciseRun(
-  args: FinishExerciseRunArgs,
-): Promise<{ event: ScoringEvent; xp: number; result: ExerciseResult }> {
+interface PreparedExerciseOutcome {
+  event: ScoringEvent;
+  result: ExerciseResult;
+}
+
+function prepareExerciseRun(args: PrepareExerciseRunArgs): PreparedExerciseOutcome {
   const result = args.run.finish(args.finishContext);
   const event = resultToScoringEvent({
     result,
@@ -333,11 +336,17 @@ async function finishExerciseRun(
     modality: inferModality(args.exercise.capabilities),
     makeId: args.makeId ?? (() => crypto.randomUUID()),
   });
+  return { event, result };
+}
 
-  await args.services.skills.ingest(event);
-  await args.services.analytics.ingest(event);
-  const xp = await args.services.progress.ingest(event, args.services.skills);
-  return { event, xp, result };
+async function persistPreparedOutcome(
+  prepared: PreparedExerciseOutcome,
+  services: PipelineServices,
+): Promise<{ event: ScoringEvent; xp: number; result: ExerciseResult }> {
+  await services.skills.ingest(prepared.event);
+  await services.analytics.ingest(prepared.event);
+  const xp = await services.progress.ingest(prepared.event, services.skills);
+  return { ...prepared, xp };
 }
 
 function exerciseContext(

@@ -15,10 +15,13 @@ export interface SkillSeed {
   relationships: SkillRelationship[];
 }
 
+const PROCESSED_EVENT_IDS = "skills.processed-events.v1";
+
 export class SkillGraphStore {
   #skills = new Map<string, Skill>();
   #relationships: SkillRelationship[] = [];
   #mastery = new Map<string, SkillMastery>();
+  #processedEventIds = new Set<string>();
   #loaded = false;
   #operationQueue: Promise<void> = Promise.resolve();
 
@@ -79,15 +82,24 @@ export class SkillGraphStore {
   ingest(event: ScoringEvent): Promise<void> {
     return this.#enqueue(async () => {
       await this.#load();
-      this.#mastery = applyScoringEventToSkillState(this.#mastery, event, initialMastery);
+      if (this.#processedEventIds.has(event.id)) return;
+
+      const nextMastery = applyScoringEventToSkillState(this.#mastery, event, initialMastery);
+      const nextEventIds = [...this.#processedEventIds, event.id];
 
       if (this.store) {
         await Promise.all(
-          [...new Set(event.skillIds)].map((skillId) =>
-            this.store!.skillMastery.put(this.getMastery(skillId)),
-          ),
+          [
+            [...new Set(event.skillIds)].map((skillId) =>
+              this.store!.skillMastery.put(nextMastery.get(skillId) ?? initialMastery(skillId)),
+            ),
+            this.store.settings.put({ id: PROCESSED_EVENT_IDS, value: nextEventIds }),
+          ].flat(),
         );
       }
+
+      this.#mastery = nextMastery;
+      this.#processedEventIds.add(event.id);
     });
   }
 
@@ -99,14 +111,16 @@ export class SkillGraphStore {
       return;
     }
 
-    const [skills, relationships, mastery] = await Promise.all([
+    const [skills, relationships, mastery, processed] = await Promise.all([
       this.store.skills.all(),
       this.store.skillRelationships.all(),
       this.store.skillMastery.all(),
+      this.store.settings.get(PROCESSED_EVENT_IDS),
     ]);
     this.#skills = new Map(skills.map((skill) => [skill.id, skill]));
     this.#relationships = relationships.map(({ id: _id, ...relationship }) => relationship);
     this.#mastery = new Map(mastery.map((state) => [state.skillId, state]));
+    this.#processedEventIds = new Set(stringArray(processed?.value));
     this.#loaded = true;
   }
 
@@ -115,6 +129,12 @@ export class SkillGraphStore {
     this.#operationQueue = result.catch(() => undefined);
     return result;
   }
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 export function seedCoreSkills(): SkillSeed {

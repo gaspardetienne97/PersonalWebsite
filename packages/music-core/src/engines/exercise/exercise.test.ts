@@ -261,11 +261,16 @@ describe("music-core/exercise", () => {
     await skills.seed(seedCoreSkills());
     const analytics = new AnalyticsEngine();
     vi.spyOn(analytics, "ingest").mockRejectedValueOnce(new Error("Persistence unavailable"));
-    const host = new ExerciseRunHost(router, {
-      skills,
-      analytics,
-      progress: new ProgressEngine(),
-    });
+    const makeId = vi.fn(() => "stable-event");
+    const host = new ExerciseRunHost(
+      router,
+      {
+        skills,
+        analytics,
+        progress: new ProgressEngine(),
+      },
+      { makeId },
+    );
     const prompt = host.start({
       exercise: intervalRecognitionExercise,
       sessionId: "session-1",
@@ -282,7 +287,12 @@ describe("music-core/exercise", () => {
 
     await expect(host.finish()).rejects.toThrow("Persistence unavailable");
     expect(host.prompt).toBe(prompt);
-    await expect(host.finish()).resolves.toMatchObject({ result: { correct: true } });
+    await expect(host.finish()).resolves.toMatchObject({
+      event: { id: "stable-event" },
+      result: { correct: true },
+    });
+    expect(makeId).toHaveBeenCalledOnce();
+    expect(skills.getMastery("pitch.interval.m6").observations).toBe(1);
     host.dispose();
   });
 });
