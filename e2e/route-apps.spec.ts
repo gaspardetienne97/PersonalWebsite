@@ -49,7 +49,7 @@ test("music app shell persists across section routes", async ({ page }) => {
   await navigation.getByRole("link", { name: "Learn" }).click();
 
   await expect(page).toHaveURL("/music/learn");
-  await expect(page.getByRole("heading", { name: "Learn" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Theory library" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Enable audio" })).toBeVisible();
 });
 

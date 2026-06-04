@@ -12,6 +12,11 @@ export default defineConfig({
     include: [
       "lucide-svelte/icons/moon",
       "lucide-svelte/icons/sun",
+      "lucide-svelte/icons/bookmark",
+      "lucide-svelte/icons/bookmark-check",
+      "lucide-svelte/icons/play",
+      "lucide-svelte/icons/search",
+      "svguitar",
       "tone",
       "@repo/music-core > webmidi",
     ],

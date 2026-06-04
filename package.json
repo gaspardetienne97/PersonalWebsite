@@ -45,6 +45,7 @@
     "mode-watcher": "catalog:",
     "postgres": "catalog:",
     "svelte": "catalog:",
+    "svguitar": "catalog:",
     "tailwind-merge": "catalog:",
     "tailwind-variants": "catalog:",
     "tailwindcss-animate": "^1.0.7",
