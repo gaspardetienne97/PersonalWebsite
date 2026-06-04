@@ -208,7 +208,7 @@ function clefFor(voiceId: string, voiceClefs: ReadonlyMap<string, Clef>): Clef {
   return voiceClefs.get(voiceId) ?? "treble";
 }
 
-function scalePitchClasses(keySignature: string): string[] {
+function scalePitchClasses(keySignature: string): readonly string[] {
   const match = /^(.+)\s+(major|minor)$/i.exec(keySignature.trim());
   if (!match) throw new Error(`Unsupported key signature: ${keySignature}`);
   const [, tonic, mode] = match;
@@ -220,7 +220,7 @@ function scalePitchClasses(keySignature: string): string[] {
   return scale;
 }
 
-function prefersFlats(scale: string[]): boolean {
+function prefersFlats(scale: readonly string[]): boolean {
   const flatCount = scale.join("").match(/b/g)?.length ?? 0;
   const sharpCount = scale.join("").match(/#/g)?.length ?? 0;
   return flatCount > sharpCount;

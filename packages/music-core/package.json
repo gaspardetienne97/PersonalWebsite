@@ -13,6 +13,7 @@
     "./engines/midi": "./src/engines/midi/index.ts",
     "./engines/notation": "./src/engines/notation/index.ts",
     "./engines/progress": "./src/engines/progress/index.ts",
+    "./engines/projection": "./src/engines/projection/index.ts",
     "./engines/sessions": "./src/engines/sessions/index.ts",
     "./engines/skills": "./src/engines/skills/index.ts",
     "./engines/sound": "./src/engines/sound/index.ts",
