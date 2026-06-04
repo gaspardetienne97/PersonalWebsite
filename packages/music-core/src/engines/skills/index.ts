@@ -8,6 +8,7 @@ import {
   type SkillMastery,
   type SkillRelationship,
 } from "@repo/music-core/domain";
+import { PracticeStore, skillRelationshipRow } from "@repo/music-core/engines/store";
 
 export interface SkillSeed {
   skills: Skill[];
@@ -18,6 +19,10 @@ export class SkillGraphStore {
   #skills = new Map<string, Skill>();
   #relationships: SkillRelationship[] = [];
   #mastery = new Map<string, SkillMastery>();
+  #loaded = false;
+  #operationQueue: Promise<void> = Promise.resolve();
+
+  constructor(private readonly store?: PracticeStore) {}
 
   get skills(): Skill[] {
     return [...this.#skills.values()];
@@ -27,17 +32,34 @@ export class SkillGraphStore {
     return [...this.#relationships];
   }
 
-  async seed(seed: SkillSeed): Promise<void> {
-    for (const skill of seed.skills) {
-      this.#skills.set(skill.id, skill);
-      if (!this.#mastery.has(skill.id)) this.#mastery.set(skill.id, initialMastery(skill.id));
-    }
-    const keys = new Set<string>();
-    this.#relationships = [...this.#relationships, ...seed.relationships].filter((rel) => {
-      const key = `${rel.from}:${rel.kind}:${rel.to}`;
-      if (keys.has(key)) return false;
-      keys.add(key);
-      return true;
+  load(): Promise<void> {
+    return this.#enqueue(() => this.#load());
+  }
+
+  seed(seed: SkillSeed): Promise<void> {
+    return this.#enqueue(async () => {
+      await this.#load();
+
+      const newMastery: SkillMastery[] = [];
+      for (const skill of seed.skills) {
+        this.#skills.set(skill.id, skill);
+        if (!this.#mastery.has(skill.id)) {
+          const mastery = initialMastery(skill.id);
+          this.#mastery.set(skill.id, mastery);
+          newMastery.push(mastery);
+        }
+      }
+      this.#relationships = dedupeRelationships([...this.#relationships, ...seed.relationships]);
+
+      if (this.store) {
+        await Promise.all([
+          ...seed.skills.map((skill) => this.store!.skills.put(skill)),
+          ...this.#relationships.map((relationship) =>
+            this.store!.skillRelationships.put(skillRelationshipRow(relationship)),
+          ),
+          ...newMastery.map((mastery) => this.store!.skillMastery.put(mastery)),
+        ]);
+      }
     });
   }
 
@@ -54,41 +76,198 @@ export class SkillGraphStore {
     });
   }
 
-  async ingest(event: ScoringEvent): Promise<void> {
-    this.#mastery = applyScoringEventToSkillState(this.#mastery, event, initialMastery);
+  ingest(event: ScoringEvent): Promise<void> {
+    return this.#enqueue(async () => {
+      await this.#load();
+      this.#mastery = applyScoringEventToSkillState(this.#mastery, event, initialMastery);
+
+      if (this.store) {
+        await Promise.all(
+          [...new Set(event.skillIds)].map((skillId) =>
+            this.store!.skillMastery.put(this.getMastery(skillId)),
+          ),
+        );
+      }
+    });
+  }
+
+  async #load(): Promise<void> {
+    if (this.#loaded) return;
+
+    if (!this.store) {
+      this.#loaded = true;
+      return;
+    }
+
+    const [skills, relationships, mastery] = await Promise.all([
+      this.store.skills.all(),
+      this.store.skillRelationships.all(),
+      this.store.skillMastery.all(),
+    ]);
+    this.#skills = new Map(skills.map((skill) => [skill.id, skill]));
+    this.#relationships = relationships.map(({ id: _id, ...relationship }) => relationship);
+    this.#mastery = new Map(mastery.map((state) => [state.skillId, state]));
+    this.#loaded = true;
+  }
+
+  #enqueue(operation: () => Promise<void>): Promise<void> {
+    const result = this.#operationQueue.then(operation, operation);
+    this.#operationQueue = result.catch(() => undefined);
+    return result;
   }
 }
 
 export function seedCoreSkills(): SkillSeed {
   const skills: Skill[] = [
+    skill("pitch.intervals", "Intervals", Capability.Pitch, "beginner", ["interval", "ear"]),
     skill("pitch.interval.m2", "Minor 2nd", Capability.Pitch, "beginner", ["interval", "ear"]),
     skill("pitch.interval.M2", "Major 2nd", Capability.Pitch, "beginner", ["interval", "ear"]),
+    skill("pitch.interval.m3", "Minor 3rd", Capability.Pitch, "beginner", ["interval", "ear"]),
+    skill("pitch.interval.M3", "Major 3rd", Capability.Pitch, "beginner", ["interval", "ear"]),
+    skill("pitch.interval.P4", "Perfect 4th", Capability.Pitch, "beginner", ["interval", "ear"]),
+    skill("pitch.interval.TT", "Tritone", Capability.Pitch, "early-intermediate", [
+      "interval",
+      "ear",
+    ]),
     skill("pitch.interval.P5", "Perfect 5th", Capability.Pitch, "beginner", ["interval", "ear"]),
     skill("pitch.interval.m6", "Minor 6th", Capability.Pitch, "early-intermediate", [
       "interval",
       "ear",
     ]),
+    skill("pitch.interval.M6", "Major 6th", Capability.Pitch, "early-intermediate", [
+      "interval",
+      "ear",
+    ]),
+    skill("pitch.interval.m7", "Minor 7th", Capability.Pitch, "early-intermediate", [
+      "interval",
+      "ear",
+    ]),
+    skill("pitch.interval.M7", "Major 7th", Capability.Pitch, "intermediate", ["interval", "ear"]),
+    skill("pitch.interval.P8", "Perfect Octave", Capability.Pitch, "beginner", ["interval", "ear"]),
+    skill("harmony.triads", "Triad Qualities", Capability.Harmony, "beginner", ["chord"]),
     skill("harmony.triad.major", "Major Triads", Capability.Harmony, "beginner", ["chord"]),
     skill("harmony.triad.minor", "Minor Triads", Capability.Harmony, "beginner", ["chord"]),
+    skill(
+      "harmony.triad.diminished",
+      "Diminished Triads",
+      Capability.Harmony,
+      "early-intermediate",
+      ["chord"],
+    ),
+    skill("harmony.triad.augmented", "Augmented Triads", Capability.Harmony, "early-intermediate", [
+      "chord",
+    ]),
+    skill("harmony.sevenths", "Seventh Chords", Capability.Harmony, "early-intermediate", [
+      "chord",
+    ]),
+    skill("harmony.seventh.major", "Major 7th", Capability.Harmony, "early-intermediate", [
+      "chord",
+    ]),
     skill("harmony.seventh.dominant", "Dominant 7th", Capability.Harmony, "early-intermediate", [
       "chord",
     ]),
+    skill("harmony.seventh.minor", "Minor 7th", Capability.Harmony, "early-intermediate", [
+      "chord",
+    ]),
+    skill(
+      "harmony.seventh.half-diminished",
+      "Half-Diminished 7th",
+      Capability.Harmony,
+      "intermediate",
+      ["chord"],
+    ),
+    skill("harmony.seventh.diminished", "Diminished 7th", Capability.Harmony, "intermediate", [
+      "chord",
+    ]),
     skill("harmony.ii-v-i", "ii-V-I", Capability.Harmony, "intermediate", ["jazz", "progression"]),
+    skill("rhythm.subdivisions", "Rhythm Subdivisions", Capability.Rhythm, "beginner", [
+      "timing",
+      "subdivision",
+    ]),
     skill("rhythm.quarter-pulse", "Quarter-Note Pulse", Capability.Rhythm, "beginner", ["timing"]),
     skill("rhythm.eighths", "Eighth Notes", Capability.Rhythm, "beginner", ["subdivision"]),
+    skill("rhythm.triplets", "Triplets", Capability.Rhythm, "early-intermediate", ["subdivision"]),
+    skill("rhythm.sixteenths", "Sixteenth Notes", Capability.Rhythm, "early-intermediate", [
+      "subdivision",
+    ]),
+    skill("reading.treble", "Treble Clef Reading", Capability.Reading, "beginner", ["staff"]),
     skill("reading.treble.landmarks", "Treble Landmark Notes", Capability.Reading, "beginner", [
       "staff",
     ]),
+    skill("reading.bass", "Bass Clef Reading", Capability.Reading, "beginner", ["staff"]),
     skill("reading.bass.landmarks", "Bass Landmark Notes", Capability.Reading, "beginner", [
       "staff",
     ]),
+    skill("technique.scales", "Scale Fluency", Capability.Technique, "beginner", ["scale"]),
     skill("technique.scale.major", "Major Scale Fluency", Capability.Technique, "beginner", [
       "scale",
     ]),
+    skill(
+      "technique.scale.natural-minor",
+      "Natural Minor Scale Fluency",
+      Capability.Technique,
+      "beginner",
+      ["scale"],
+    ),
+    skill(
+      "technique.scale.harmonic-minor",
+      "Harmonic Minor Scale Fluency",
+      Capability.Technique,
+      "early-intermediate",
+      ["scale"],
+    ),
+    skill(
+      "technique.scale.melodic-minor",
+      "Melodic Minor Scale Fluency",
+      Capability.Technique,
+      "intermediate",
+      ["scale"],
+    ),
+    skill(
+      "technique.scale.major-pentatonic",
+      "Major Pentatonic Fluency",
+      Capability.Technique,
+      "beginner",
+      ["scale"],
+    ),
+    skill(
+      "technique.scale.minor-pentatonic",
+      "Minor Pentatonic Fluency",
+      Capability.Technique,
+      "beginner",
+      ["scale"],
+    ),
   ];
+
+  const components: Record<string, string[]> = {
+    "pitch.intervals": skills
+      .filter((item) => item.id.startsWith("pitch.interval."))
+      .map((item) => item.id),
+    "harmony.triads": skills
+      .filter((item) => item.id.startsWith("harmony.triad."))
+      .map((item) => item.id),
+    "harmony.sevenths": skills
+      .filter((item) => item.id.startsWith("harmony.seventh."))
+      .map((item) => item.id),
+    "rhythm.subdivisions": [
+      "rhythm.quarter-pulse",
+      "rhythm.eighths",
+      "rhythm.triplets",
+      "rhythm.sixteenths",
+    ],
+    "reading.treble": ["reading.treble.landmarks"],
+    "reading.bass": ["reading.bass.landmarks"],
+    "technique.scales": skills
+      .filter((item) => item.id.startsWith("technique.scale."))
+      .map((item) => item.id),
+  };
+
   return {
     skills,
     relationships: [
+      ...Object.entries(components).flatMap(([from, children]) =>
+        children.map((to) => ({ from, to, kind: SkillRelationKind.Component })),
+      ),
       {
         from: "harmony.triad.major",
         to: "harmony.seventh.dominant",
@@ -107,8 +286,32 @@ export function seedCoreSkills(): SkillSeed {
         kind: SkillRelationKind.Prerequisite,
         threshold: 0.5,
       },
+      {
+        from: "rhythm.eighths",
+        to: "rhythm.sixteenths",
+        kind: SkillRelationKind.Prerequisite,
+        threshold: 0.5,
+      },
+      {
+        from: "technique.scale.major",
+        to: "technique.scale.natural-minor",
+        kind: SkillRelationKind.Prerequisite,
+        threshold: 0.5,
+      },
     ],
   };
+}
+
+function dedupeRelationships(relationships: SkillRelationship[]): SkillRelationship[] {
+  const unique = new Map<string, SkillRelationship>();
+  for (const relationship of relationships) {
+    unique.set(relationshipKey(relationship), relationship);
+  }
+  return [...unique.values()];
+}
+
+function relationshipKey(relationship: SkillRelationship): string {
+  return `${relationship.from}:${relationship.kind}:${relationship.to}`;
 }
 
 function skill(

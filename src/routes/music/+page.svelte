@@ -10,6 +10,7 @@
   } from '@repo/music-core/engines/midi';
   import { ProgressEngine } from '@repo/music-core/engines/progress';
   import { seedCoreSkills, SkillGraphStore } from '@repo/music-core/engines/skills';
+  import { PracticeStore } from '@repo/music-core/engines/store';
   import {
     createToneTransportEngine,
     scheduleMetronomeTicks,
@@ -29,13 +30,12 @@
   const runtime = useMusicRuntime();
   const router = runtime.router;
   const sound = runtime.sound;
-  const skills = new SkillGraphStore();
+  const skills = new SkillGraphStore(browser ? new PracticeStore() : undefined);
   const analytics = new AnalyticsEngine();
   const progress = new ProgressEngine();
   const midiEngine = new MidiEngine();
   let transport: TransportEngine | undefined;
   let unsubscribeTransport: (() => void) | undefined;
-  void skills.seed(seedCoreSkills());
 
   let metronomeRunning = $state(false);
   let activeBeat = $state(-1);
@@ -51,17 +51,23 @@
   let streak = $state(progress.state.streakDays);
   let mastery = $state(skills.getMastery('pitch.interval.m6').mastery);
   let feedback = $state('Answer an interval prompt to move real mastery.');
+  let skillRows = $state<ReturnType<typeof projectSkillRows>>([]);
+
+  void skills.seed(seedCoreSkills()).then(() => {
+    mastery = skills.getMastery('pitch.interval.m6').mastery;
+    skillRows = projectSkillRows();
+  });
 
   const midi = $derived(midiCapabilities(browser ? navigator : {}));
   const bpm = $derived(bpmValue[0] ?? 96);
   const cmaj7 = $derived(chordNotes('Cmaj7'));
   const ticks = $derived(scheduleMetronomeTicks({ bpm, numerator: 4 }, 0, 4));
-  const skillRows = $derived(
-    skills.skills.slice(0, 8).map((skill) => ({
+  function projectSkillRows() {
+    return skills.skills.slice(0, 8).map((skill) => ({
       ...skill,
       mastery: Math.round(skills.getMastery(skill.id).mastery * 100)
-    }))
-  );
+    }));
+  }
 
   const unsubscribeRouter = router.subscribe((event) => {
     lastEvent = event;
@@ -144,6 +150,7 @@
     xp = progress.state.xp;
     streak = progress.state.streakDays;
     mastery = skills.getMastery('pitch.interval.m6').mastery;
+    skillRows = projectSkillRows();
     const confusions = analytics.confusions('m6');
     feedback = outcome.event.correct
       ? `Correct. +${outcome.xp} XP; m6 mastery is now ${Math.round(mastery * 100)}%.`

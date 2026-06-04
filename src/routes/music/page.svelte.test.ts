@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 import Page from "./+page.svelte";
 
@@ -20,5 +20,9 @@ describe("/music/+page.svelte", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(document.body.textContent).toContain("MIDI 60 from onscreen");
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Minor 2nd");
+    });
   });
 });
