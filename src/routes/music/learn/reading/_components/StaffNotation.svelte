@@ -70,6 +70,13 @@
         }
       }
 
+      const svg = target.querySelector("svg");
+      svg?.setAttribute("fill", "currentColor");
+      svg?.setAttribute("stroke", "currentColor");
+      svg?.querySelectorAll('[stroke="#444"]').forEach((element) => {
+        element.setAttribute("stroke", "currentColor");
+      });
+
       const noteGroups = target.querySelectorAll<SVGGElement>(".vf-stavenote");
       noteGroups.forEach((group, index) => {
         const id = renderedIds[index];

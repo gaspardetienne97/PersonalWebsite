@@ -7,7 +7,7 @@
     type TuningProfile,
     type TuningValidation,
   } from "@repo/music-core/engines/tunings";
-  import { Button } from "@repo/ui/button";
+  import { Button, buttonVariants } from "@repo/ui/button";
   import * as Dialog from "@repo/ui/dialog";
   import { Input } from "@repo/ui/input";
   import { Label } from "@repo/ui/label";
@@ -78,10 +78,8 @@
 </script>
 
 <Dialog.Root>
-  <Dialog.Trigger>
-    <Button type="button" variant="outline">
-      {profile ? `Edit ${profile.name}` : "New custom tuning"}
-    </Button>
+  <Dialog.Trigger class={buttonVariants({ variant: "outline" })}>
+    {profile ? `Edit ${profile.name}` : "New custom tuning"}
   </Dialog.Trigger>
   <Dialog.Content class="max-h-[90vh] overflow-y-auto">
     <Dialog.Header>

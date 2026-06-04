@@ -10,6 +10,7 @@ describe("TuningEditor", () => {
     const onSave = vi.fn<(profile: TuningProfile) => void>();
     render(TuningEditor, { instrument: "ukulele", onSave });
 
+    expect(document.querySelector("button button")).toBeNull();
     document.querySelector<HTMLButtonElement>("button")?.click();
     await vi.waitFor(() =>
       expect(document.querySelector('[aria-label="Tuning name"]')).not.toBeNull(),

@@ -18,6 +18,10 @@ describe("StaffNotation", () => {
       expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
     );
     expect(document.querySelector('[data-event-id="note:right-hand:0:1"]')).not.toBeNull();
+    const host = document.querySelector<HTMLElement>('[aria-label="Staff notation"]')!;
+    host.style.color = "rgb(255, 255, 255)";
+    expect(getComputedStyle(host.querySelector("path")!).stroke).toBe("rgb(255, 255, 255)");
+    expect(getComputedStyle(host.querySelector("text")!).fill).toBe("rgb(255, 255, 255)");
     expect(onError).not.toHaveBeenCalled();
   });
 });
