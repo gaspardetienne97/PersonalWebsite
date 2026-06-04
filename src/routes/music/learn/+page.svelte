@@ -2,6 +2,7 @@
   import ArrowRight from "lucide-svelte/icons/arrow-right";
   import BookOpen from "lucide-svelte/icons/book-open";
   import Ear from "lucide-svelte/icons/ear";
+  import Music from "lucide-svelte/icons/music";
 
   import * as Card from "@repo/ui/card";
 </script>
@@ -23,7 +24,7 @@
     </p>
   </header>
 
-  <section class="grid gap-4 md:grid-cols-2" aria-label="Learning tools">
+  <section class="grid gap-4 md:grid-cols-3" aria-label="Learning tools">
     <Card.Root class="overflow-hidden">
       <a
         href="/music/learn/ear"
@@ -43,6 +44,29 @@
           <Card.Description>
             Practice intervals, chord qualities, and functional scale degrees in focused or mixed
             sessions.
+          </Card.Description>
+        </div>
+      </a>
+    </Card.Root>
+
+    <Card.Root class="overflow-hidden">
+      <a
+        href="/music/learn/reading"
+        class="group grid h-full gap-6 p-6 transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <span class="rounded-md border bg-muted p-3 text-foreground">
+            <Music class="size-6" aria-hidden="true" />
+          </span>
+          <ArrowRight
+            class="size-5 text-muted-foreground transition-transform group-hover:translate-x-1"
+            aria-hidden="true"
+          />
+        </div>
+        <div class="space-y-2">
+          <Card.Title>Note Reading</Card.Title>
+          <Card.Description>
+            Read staff notation and connect it to piano keys, strings, and frets.
           </Card.Description>
         </div>
       </a>
