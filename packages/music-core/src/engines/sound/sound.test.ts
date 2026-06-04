@@ -4,6 +4,7 @@ import { SoundEngine, type ToneSoundModule } from "./index";
 
 function createToneMock() {
   const synthTrigger = vi.fn();
+  const metronomeTrigger = vi.fn();
   const samplerTrigger = vi.fn();
   const playerStart = vi.fn();
   const start = vi.fn(async () => undefined);
@@ -25,7 +26,7 @@ function createToneMock() {
   }
 
   class Synth extends DestinationNode {
-    triggerAttackRelease = vi.fn();
+    triggerAttackRelease = metronomeTrigger;
   }
 
   class Sampler extends DestinationNode {
@@ -57,7 +58,7 @@ function createToneMock() {
     Players,
   } as unknown as ToneSoundModule;
 
-  return { tone, start, loaded, synthTrigger, samplerTrigger, playerStart };
+  return { tone, start, loaded, synthTrigger, metronomeTrigger, samplerTrigger, playerStart };
 }
 
 describe("music-core/sound", () => {
@@ -113,5 +114,19 @@ describe("music-core/sound", () => {
 
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(1, ["C4", "E4", "G4"], 0.6, 10, 0.8);
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["B4"], 0.5, 10.8, 0.8);
+  });
+
+  test("schedules an accented count-in and returns the phrase delay", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    const schedule = sound.playCountIn({ bpm: 120, beats: 4, beatsPerMeasure: 4 });
+
+    expect(schedule).toEqual({ startAudioSeconds: 10, delayMs: 2_000 });
+    expect(mock.metronomeTrigger).toHaveBeenNthCalledWith(1, 1200, "32n", 10, 0.7);
+    expect(mock.metronomeTrigger).toHaveBeenNthCalledWith(2, 800, "32n", 10.5, 0.45);
+    expect(mock.metronomeTrigger).toHaveBeenNthCalledWith(3, 800, "32n", 11, 0.45);
+    expect(mock.metronomeTrigger).toHaveBeenNthCalledWith(4, 800, "32n", 11.5, 0.45);
   });
 });

@@ -4,6 +4,7 @@ import {
   Capability,
   type ExerciseDefinition,
   type ExerciseRun,
+  type MonotonicMs,
   type Score,
   type ScoreNote,
   type ScoreRest,
@@ -37,6 +38,7 @@ export interface SightReadingOptions {
   mode: ScoreFollowerMode;
   strictness: TimingStrictness;
   difficulty: number;
+  startTimestampMs?: MonotonicMs;
 }
 
 export interface SightReadingPrompt {
@@ -84,6 +86,9 @@ export function createSightReadingExercise({
         mode: prompt.payload.options.mode,
         bpm: prompt.payload.options.bpm,
         strictness: prompt.payload.options.strictness,
+        ...(prompt.payload.options.startTimestampMs === undefined
+          ? {}
+          : { startTimestampMs: prompt.payload.options.startTimestampMs }),
       });
     },
   };

@@ -53,6 +53,11 @@ export interface SoundPatternStep {
   durationSeconds: number;
 }
 
+export interface CountInSchedule {
+  startAudioSeconds: number;
+  delayMs: number;
+}
+
 type ToneLoader = () => Promise<ToneSoundModule>;
 
 const loadTone: ToneLoader = async () => (await import("tone")) as unknown as ToneSoundModule;
@@ -149,6 +154,24 @@ export class SoundEngine {
       atSeconds,
       accented ? 0.7 : 0.45,
     );
+  }
+
+  playCountIn(input: { bpm: number; beats: number; beatsPerMeasure: number }): CountInSchedule {
+    const tone = this.#requireTone();
+    const beatSeconds = 60 / input.bpm;
+    const startAudioSeconds = tone.now();
+
+    for (let beat = 0; beat < input.beats; beat += 1) {
+      this.playMetronomeClick(
+        startAudioSeconds + beat * beatSeconds,
+        beat % input.beatsPerMeasure === 0,
+      );
+    }
+
+    return {
+      startAudioSeconds,
+      delayMs: Math.round(input.beats * beatSeconds * 1_000),
+    };
   }
 
   dispose(): void {
