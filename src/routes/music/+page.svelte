@@ -3,7 +3,6 @@
   import { Capability, monotonicMs, type NoteEvent } from '@repo/music-core/domain';
   import { AnalyticsEngine } from '@repo/music-core/engines/analytics';
   import { runExerciseThroughPipeline } from '@repo/music-core/engines/exercise';
-  import { InputRouter } from '@repo/music-core/engines/input-router';
   import {
     MidiEngine,
     midiCapabilities,
@@ -11,13 +10,12 @@
   } from '@repo/music-core/engines/midi';
   import { ProgressEngine } from '@repo/music-core/engines/progress';
   import { seedCoreSkills, SkillGraphStore } from '@repo/music-core/engines/skills';
-  import { SoundEngine } from '@repo/music-core/engines/sound';
   import {
     createToneTransportEngine,
     scheduleMetronomeTicks,
     type TransportEngine
   } from '@repo/music-core/engines/transport';
-  import { chordNotes, noteToMidi } from '@repo/music-core/engines/theory';
+  import { chordNotes } from '@repo/music-core/engines/theory';
   import { intervalRecognitionExercise } from '@repo/music-core/exercises/interval-recognition';
   import { Button } from '@repo/ui/button';
   import * as Card from '@repo/ui/card';
@@ -25,18 +23,20 @@
   import { Slider } from '@repo/ui/slider';
   import { onDestroy } from 'svelte';
 
-  const router = new InputRouter();
+  import OnScreenKeyboard from './_components/OnScreenKeyboard.svelte';
+  import { useMusicRuntime } from './_runtime.svelte';
+
+  const runtime = useMusicRuntime();
+  const router = runtime.router;
+  const sound = runtime.sound;
   const skills = new SkillGraphStore();
   const analytics = new AnalyticsEngine();
   const progress = new ProgressEngine();
-  const sound = new SoundEngine();
   const midiEngine = new MidiEngine();
   let transport: TransportEngine | undefined;
   let unsubscribeTransport: (() => void) | undefined;
   void skills.seed(seedCoreSkills());
 
-  let audioEnabled = $state(false);
-  let audioMessage = $state('Audio is waiting for a user gesture.');
   let metronomeRunning = $state(false);
   let activeBeat = $state(-1);
   let lastEvent = $state<NoteEvent | undefined>();
@@ -86,29 +86,21 @@
     transport?.setBpm(bpm);
   });
 
-  async function enableAudio() {
-    try {
-      const state = await sound.enable();
-      audioEnabled = state.enabled;
-      audioMessage = state.message;
+  async function ensureTransport() {
+    const audioEnabled = await runtime.enableAudio();
+    if (!audioEnabled || transport) return;
 
-      if (!transport) {
-        transport = await createToneTransportEngine({
-          bpm,
-          onMetronomeClick: (atSeconds, accented) => sound.playMetronomeClick(atSeconds, accented)
-        });
-        unsubscribeTransport = transport.subscribe((event) => {
-          if (event.kind === 'beat') activeBeat = event.beat;
-        });
-      }
-    } catch (error) {
-      audioEnabled = false;
-      audioMessage = error instanceof Error ? error.message : 'Audio could not be enabled.';
-    }
+    transport = await createToneTransportEngine({
+      bpm,
+      onMetronomeClick: (atSeconds, accented) => sound.playMetronomeClick(atSeconds, accented)
+    });
+    unsubscribeTransport = transport.subscribe((event) => {
+      if (event.kind === 'beat') activeBeat = event.beat;
+    });
   }
 
   async function toggleMetronome() {
-    if (!audioEnabled) await enableAudio();
+    await ensureTransport();
     if (!transport) return;
 
     if (transport.state.running) {
@@ -127,18 +119,8 @@
     await midiEngine.enable();
   }
 
-  function playOnScreen(note: string) {
-    const midiNote = noteToMidi(note);
-    const accepted = router.push({
-      type: 'noteOn',
-      midiNote,
-      velocity: 1,
-      source: 'onscreen',
-      timestamp: monotonicMs(performance.now()),
-      clock: 'performance',
-      instrument: 'piano'
-    });
-    if (accepted) sound.playNote(midiNote);
+  function playOnScreen(event: NoteEvent) {
+    if (event.type === 'noteOn') sound.playNote(event.midiNote, 0.18, undefined, event.velocity);
   }
 
   async function answerInterval(correct: boolean) {
@@ -176,7 +158,6 @@
     unsubscribeMidiState();
     void midiEngine.disable();
     if (transport?.state.running) transport.stop();
-    sound.dispose();
   });
 </script>
 
@@ -221,14 +202,11 @@
 
     <section class="grid gap-6 lg:grid-cols-2">
       <Card.Root>
-        <Card.Header class="flex flex-row items-start justify-between gap-4">
+        <Card.Header>
           <div>
             <Card.Description>Today</Card.Description>
             <Card.Title>Daily mixed session</Card.Title>
           </div>
-          <Button type="button" onclick={enableAudio}>
-            {audioEnabled ? 'Audio enabled' : 'Enable audio'}
-          </Button>
         </Card.Header>
         <Card.Content class="space-y-6">
           <div class="grid gap-3 sm:grid-cols-3">
@@ -245,10 +223,7 @@
               <small class="text-muted-foreground">m6 mastery</small>
             </div>
           </div>
-          <div class="space-y-1 text-sm text-muted-foreground">
-            <p aria-live="polite">{audioMessage}</p>
-            <p>{feedback}</p>
-          </div>
+          <p class="text-sm text-muted-foreground">{feedback}</p>
           <div class="flex flex-wrap gap-2" id="learn">
             <Button type="button" variant="secondary" onclick={() => answerInterval(false)}>
               Answer P5
@@ -274,13 +249,7 @@
           </div>
         </Card.Header>
         <Card.Content class="space-y-4">
-          <div class="flex flex-wrap gap-2" aria-label="On-screen keyboard">
-            {#each ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'] as note}
-              <Button type="button" variant="outline" onclick={() => playOnScreen(note)}>
-                {note}
-              </Button>
-            {/each}
-          </div>
+          <OnScreenKeyboard {router} onAccepted={playOnScreen} />
           <p class="text-sm text-muted-foreground">
             Last event:
             {#if lastEvent?.type === 'noteOn'}

@@ -41,6 +41,26 @@ test("music route app registers its installable PWA", async ({ page }) => {
     .toBe("http://localhost:4173/music");
 });
 
+test("music app shell persists across section routes", async ({ page }) => {
+  await page.goto("/music");
+
+  const navigation = page.getByRole("navigation", { name: "Music sections" });
+  await expect(navigation).toBeVisible();
+  await navigation.getByRole("link", { name: "Learn" }).click();
+
+  await expect(page).toHaveURL("/music/learn");
+  await expect(page.getByRole("heading", { name: "Learn" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Enable audio" })).toBeVisible();
+});
+
+test("music app shell uses bottom navigation on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/music");
+
+  await expect(page.getByRole("navigation", { name: "Music sections", exact: true })).toBeHidden();
+  await expect(page.getByRole("navigation", { name: "Music sections mobile" })).toBeVisible();
+});
+
 test("pdf route app renders", async ({ page }) => {
   await page.goto("/pdf");
 
