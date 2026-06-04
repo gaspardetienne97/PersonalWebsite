@@ -33,7 +33,7 @@
   const practiceStore = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(practiceStore);
   const analytics = new AnalyticsEngine(practiceStore);
-  const progress = new ProgressEngine();
+  const progress = new ProgressEngine(practiceStore);
   const midiEngine = new MidiEngine();
   let transport: TransportEngine | undefined;
   let unsubscribeTransport: (() => void) | undefined;
@@ -54,7 +54,9 @@
   let feedback = $state('Answer an interval prompt to move real mastery.');
   let skillRows = $state<ReturnType<typeof projectSkillRows>>([]);
 
-  void Promise.all([skills.seed(seedCoreSkills()), analytics.load()]).then(() => {
+  void Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]).then(() => {
+    xp = progress.state.xp;
+    streak = progress.state.streakDays;
     mastery = skills.getMastery('pitch.interval.m6').mastery;
     skillRows = projectSkillRows();
   });

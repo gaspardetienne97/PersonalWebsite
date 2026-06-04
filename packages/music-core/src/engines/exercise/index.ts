@@ -320,7 +320,7 @@ async function finishExerciseRun(
 
   await args.services.skills.ingest(event);
   await args.services.analytics.ingest(event);
-  const xp = args.services.progress.ingest(event);
+  const xp = await args.services.progress.ingest(event, args.services.skills);
   return { event, xp };
 }
 
