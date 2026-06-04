@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { monotonicMs, type NoteEvent, type Score } from "@repo/music-core/domain";
 
-import { createScoreFollower, expectedGroups } from "./index";
+import { beatToMs, createScoreFollower, expectedGroups, timingWindowMs } from "./index";
 
 describe("music-core/score-follower", () => {
   test("groups simultaneous score notes into expected note groups", () => {
@@ -77,6 +77,97 @@ describe("music-core/score-follower", () => {
       currentGroupIndex: 0,
       heldMidiNotes: [],
       wrongMidiNotes: [],
+    });
+  });
+
+  test("adapts timing windows to tempo, note value, and strictness", () => {
+    expect(beatToMs(2, 120)).toBe(1_000);
+    expect(timingWindowMs({ bpm: 60, durationBeats: 1, strictness: "normal" })).toBeGreaterThan(
+      timingWindowMs({ bpm: 120, durationBeats: 1, strictness: "normal" }),
+    );
+    expect(timingWindowMs({ bpm: 120, durationBeats: 2, strictness: "normal" })).toBeGreaterThan(
+      timingWindowMs({ bpm: 120, durationBeats: 1, strictness: "normal" }),
+    );
+    expect(timingWindowMs({ bpm: 120, durationBeats: 1, strictness: "relaxed" })).toBeGreaterThan(
+      timingWindowMs({ bpm: 120, durationBeats: 1, strictness: "strict" }),
+    );
+  });
+
+  test("performance mode gives exact full credit to a perfectly timed phrase", () => {
+    const groups = expectedGroups(polyphonicScore());
+    const run = createScoreFollower(groups, {
+      mode: "performance",
+      bpm: 60,
+      strictness: "normal",
+      startTimestampMs: monotonicMs(10_000),
+    });
+
+    run.accept(noteOn(48, 10_000));
+    run.accept(noteOn(60, 10_000));
+    run.accept(noteOn(64, 10_000));
+    run.accept(noteOn(62, 11_000));
+    run.accept(noteOn(64, 12_000));
+
+    const result = run.finish();
+    expect(result.correct).toBe(true);
+    expect(result.score).toBe(1);
+    expect(result.metrics).toEqual([
+      { kind: "pitch", expectedMidi: 48, actualMidi: 48 },
+      { kind: "timing", expectedMs: 10_000, actualMs: 10_000, errorMs: 0 },
+      { kind: "pitch", expectedMidi: 60, actualMidi: 60 },
+      { kind: "timing", expectedMs: 10_000, actualMs: 10_000, errorMs: 0 },
+      { kind: "pitch", expectedMidi: 64, actualMidi: 64 },
+      { kind: "timing", expectedMs: 10_000, actualMs: 10_000, errorMs: 0 },
+      { kind: "pitch", expectedMidi: 62, actualMidi: 62 },
+      { kind: "timing", expectedMs: 11_000, actualMs: 11_000, errorMs: 0 },
+      { kind: "pitch", expectedMidi: 64, actualMidi: 64 },
+      { kind: "timing", expectedMs: 12_000, actualMs: 12_000, errorMs: 0 },
+    ]);
+  });
+
+  test("performance mode scores wrong, missed, extra, early, and late notes below perfect", () => {
+    const groups = expectedGroups(polyphonicScore());
+    const run = createScoreFollower(groups, {
+      mode: "performance",
+      bpm: 60,
+      strictness: "normal",
+      startTimestampMs: monotonicMs(10_000),
+    });
+
+    run.accept(noteOn(48, 9_930));
+    run.accept(noteOn(60, 10_080));
+    run.accept(noteOn(67, 10_000));
+    run.accept(noteOn(62, 11_500));
+    run.accept(noteOn(70, 12_000));
+
+    const result = run.finish();
+    expect(result.correct).toBe(false);
+    expect(result.score).toBeGreaterThan(0);
+    expect(result.score).toBeLessThan(1);
+    expect(result.answer).toMatchObject({
+      completedGroups: 1,
+      wrongMidiNotes: [67, 70],
+    });
+    expect(result.metrics).toContainEqual({
+      kind: "timing",
+      expectedMs: 10_000,
+      actualMs: 9_930,
+      errorMs: -70,
+    });
+    expect(result.metrics).toContainEqual({
+      kind: "timing",
+      expectedMs: 10_000,
+      actualMs: 10_080,
+      errorMs: 80,
+    });
+    expect(result.metrics).toContainEqual({ kind: "pitch", expectedMidi: 62 });
+    expect(result.feedback).toContainEqual({
+      severity: "error",
+      message: "Missed notes: 62, 64.",
+    });
+    expect(result.feedback).toContainEqual({
+      severity: "warn",
+      message: "Extra notes: 67, 70.",
     });
   });
 });
