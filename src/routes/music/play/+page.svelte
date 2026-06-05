@@ -1,5 +1,7 @@
 <script lang="ts">
-  import * as Card from "@repo/ui/card";
+  import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
+
+  import MusicToolCard from "../_components/MusicToolCard.svelte";
 </script>
 
 <svelte:head>
@@ -20,22 +22,14 @@
   </header>
 
   <section class="grid gap-4 md:grid-cols-2" aria-label="Play tools">
-    <Card.Root class="overflow-hidden">
-      <a
-        href="/music/play/scales"
-        class="group grid h-full gap-6 p-6 transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <div class="space-y-2">
-          <Card.Title>Scales & Technique</Card.Title>
-          <Card.Description>
-            Play scale patterns with MIDI or on-screen input and unlock the next tempo when the
-            run is clean.
-          </Card.Description>
-        </div>
-        <p class="text-sm font-medium text-muted-foreground group-hover:text-foreground">
-          Start scale practice
-        </p>
-      </a>
-    </Card.Root>
+    <MusicToolCard
+      href="/music/play/scales"
+      title="Scales & Technique"
+      description="Play scale patterns with MIDI or on-screen input and unlock the next tempo when the run is clean."
+      eyebrow="Play"
+      meta="Technique"
+      action="Start scale practice"
+      icon={SlidersHorizontal}
+    />
   </section>
 </main>
