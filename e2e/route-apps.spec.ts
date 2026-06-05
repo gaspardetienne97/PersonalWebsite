@@ -14,7 +14,8 @@ test("music route app renders", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Musicianship OS" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "MIDI devices" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Live MIDI events" })).toBeVisible();
-  await expect(page.getByText("Active input: onscreen · confidence 80%")).toBeVisible();
+  // Input state now lives in the shared topbar readout.
+  await expect(page.getByText("On-screen confidence 80%")).toBeVisible();
   await page.getByRole("button", { name: "Answer m6" }).click();
   await expect(page.getByText(/Correct\..*m6 mastery/i)).toBeVisible();
 
@@ -46,11 +47,11 @@ test("music app shell persists across section routes", async ({ page }) => {
 
   const navigation = page.getByRole("navigation", { name: "Music sections" });
   await expect(navigation).toBeVisible();
-  await navigation.getByRole("link", { name: "Learn" }).click();
+  // The Practice OS sidebar groups Learn into focused entries; navigate via one.
+  await navigation.getByRole("link", { name: "Ear Training" }).click();
 
-  await expect(page).toHaveURL("/music/learn");
-  await expect(page.getByRole("heading", { name: "Learn" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Ear Training/ })).toBeVisible();
+  await expect(page).toHaveURL("/music/learn/ear");
+  await expect(page.getByRole("heading", { name: "Ear Training" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Enable audio" })).toBeVisible();
 });
 

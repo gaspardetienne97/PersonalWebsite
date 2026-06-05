@@ -17,6 +17,7 @@ test.describe("music rhythm workflows", () => {
     }
 
     await expect(page.getByText("Pulse complete")).toBeVisible();
-    await expect(page.getByText(/Average timing error:/)).toBeVisible();
+    // The summary now surfaces timing via the meter + readout tiles.
+    await expect(page.getByText("Signed offset")).toBeVisible();
   });
 });
