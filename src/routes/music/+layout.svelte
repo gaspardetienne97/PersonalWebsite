@@ -3,8 +3,8 @@
   import { onDestroy, onMount } from "svelte";
   import { pwaInfo } from "virtual:pwa-info";
 
-  import AudioGate from "./_components/AudioGate.svelte";
   import MusicNavigation from "./_components/MusicNavigation.svelte";
+  import MusicTopbar from "./_components/MusicTopbar.svelte";
   import { createMusicRuntime } from "./_runtime.svelte";
 
   let { children } = $props();
@@ -33,7 +33,7 @@
 <div class="flex min-h-screen bg-background text-foreground">
   <MusicNavigation {currentPath} />
   <div class="min-w-0 flex-1 pb-16 md:pb-0">
-    <AudioGate {runtime} />
+    <MusicTopbar {currentPath} {runtime} />
     {@render children()}
   </div>
 </div>
