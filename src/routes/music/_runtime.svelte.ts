@@ -1,5 +1,6 @@
 import { getContext, setContext } from "svelte";
 
+import type { InputSource, InstrumentId } from "@repo/music-core/domain";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { MidiEngine } from "@repo/music-core/engines/midi";
 import { SoundEngine } from "@repo/music-core/engines/sound";
@@ -15,9 +16,18 @@ export class MusicRuntime {
   audioPending = $state(false);
   audioMessage = $state("Audio is waiting for a user gesture.");
 
+  /** Shared UI state so chrome and routes read one source via useMusicRuntime(). */
+  activeInstrument = $state<InstrumentId>("piano");
+  activeSource = $state<InputSource>(this.router.activeSource);
+  inputConfidence = $state<number>(this.router.confidence);
+
   #enablePromise?: Promise<boolean>;
   #unsubscribeMidi = this.midi.subscribe((event) => {
     this.router.push(event);
+  });
+  #unsubscribeRouterState = this.router.subscribeState((state) => {
+    this.activeSource = state.activeSource;
+    this.inputConfidence = state.confidence;
   });
 
   enableAudio(): Promise<boolean> {
@@ -27,8 +37,13 @@ export class MusicRuntime {
     return this.#enablePromise;
   }
 
+  setActiveInstrument(instrument: InstrumentId): void {
+    this.activeInstrument = instrument;
+  }
+
   dispose(): void {
     this.#unsubscribeMidi();
+    this.#unsubscribeRouterState();
     void this.midi.disable();
     this.sound.dispose();
   }
