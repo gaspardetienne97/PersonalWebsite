@@ -37,7 +37,7 @@
 </script>
 
 <div
-  class="flex min-w-0 gap-1 overflow-x-auto rounded-md border bg-muted p-2"
+  class="flex w-full max-w-full min-w-0 gap-1 overflow-x-auto rounded-md border bg-muted p-2"
   role="group"
   aria-label="Piano input"
 >

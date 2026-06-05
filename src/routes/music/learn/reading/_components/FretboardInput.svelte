@@ -42,7 +42,7 @@
   }
 </script>
 
-<div class="min-w-0 overflow-x-auto rounded-md border bg-muted p-2">
+<div class="w-full max-w-full min-w-0 overflow-x-auto rounded-md border bg-muted p-2">
   <div
     class="grid min-w-max gap-1"
     style={`grid-template-columns: 3rem repeat(${fretCount + 1}, minmax(2.5rem, 1fr));`}

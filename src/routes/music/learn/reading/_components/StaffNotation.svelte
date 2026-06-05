@@ -33,7 +33,7 @@
   ): void {
     try {
       target.replaceChildren();
-      const width = Math.max(420, target.clientWidth || 720);
+      const width = Math.max(320, target.clientWidth || 720);
       const rows = notationView.measures.length * Math.max(1, notationView.staves.length);
       const height = Math.max(150, rows * 130);
       const renderer = new Renderer(target, Renderer.Backends.SVG);
@@ -125,7 +125,7 @@
 
 <div
   bind:this={host}
-  class="min-h-40 w-full overflow-x-auto rounded-md border bg-background p-2 text-foreground [&_svg]:min-w-[420px]"
+  class="min-h-40 w-full overflow-x-auto rounded-md border bg-background p-2 text-foreground [&_svg]:min-w-[320px]"
   role="img"
   aria-label="Staff notation"
 ></div>

@@ -9,15 +9,15 @@
 	const currentPath = $derived($page.url?.pathname ?? '/');
 </script>
 
-<header class="border-blue sticky top-0 flex items-center justify-between border-b bg-background">
-	<div class="h-12 w-12 p-2">
+<header class="border-blue sticky top-0 flex min-w-0 items-center justify-between border-b bg-background">
+	<div class="h-12 w-12 shrink-0 p-2">
 		<a href="/">
 			<img src={logo} alt="SvelteKit" width="100%" />
 		</a>
 	</div>
-	<div class="flex items-center justify-between gap-4">
-		<nav>
-			<ul class="flex flex-row items-center justify-center gap-4">
+	<div class="flex min-w-0 flex-1 items-center justify-end gap-2">
+		<nav class="min-w-0 overflow-x-auto">
+			<ul class="flex flex-row items-center justify-center gap-3 whitespace-nowrap px-1 text-sm">
 				<li aria-current={currentPath === '/' ? 'page' : undefined}>
 					<a href="/">Home</a>
 				</li>
@@ -39,7 +39,7 @@
 			</ul>
 		</nav>
 
-		<div class="flex">
+		<div class="flex shrink-0">
 			<Button onclick={toggleMode} variant="ghost" size="icon">
 				<Sun
 					class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
