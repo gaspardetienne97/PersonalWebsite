@@ -6,6 +6,8 @@
   import * as Card from "@repo/ui/card";
 
   import OnScreenKeyboard from "../../../_components/OnScreenKeyboard.svelte";
+  import SegmentProgress from "../../../_components/SegmentProgress.svelte";
+  import SessionFeedback from "../../../_components/SessionFeedback.svelte";
 
   const CHROMATIC_NOTES = [
     "C4",
@@ -47,6 +49,9 @@
         ? "Scale Degree"
         : "Interval",
   );
+  const total = $derived(state.queue.length);
+  const answered = $derived(state.results.length);
+  const feedbackKind = $derived(state.feedback[0]?.severity === "good" ? "correct" : "wrong");
 </script>
 
 <Card.Root>
@@ -66,6 +71,9 @@
     </div>
   </Card.Header>
   <Card.Content class="grid min-h-72 content-center gap-6">
+    {#if total > 0}
+      <SegmentProgress {total} current={answered} label="Session" />
+    {/if}
     {#if prompt && state.options.answerMode === "choice"}
       <div class="grid gap-3 sm:grid-cols-2" aria-label="Answer choices">
         {#each prompt.choices as choice}
@@ -79,12 +87,8 @@
     {/if}
 
     {#if state.options.feedbackMode === "practice" && state.feedback[0]}
-      <div
-        data-testid="feedback"
-        class="rounded-md border bg-muted px-4 py-3 text-sm"
-        aria-live="polite"
-      >
-        {state.feedback[0].message}
+      <div data-testid="feedback">
+        <SessionFeedback kind={feedbackKind} message={state.feedback[0].message} />
       </div>
     {/if}
   </Card.Content>
