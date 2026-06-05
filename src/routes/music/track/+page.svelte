@@ -3,6 +3,10 @@
 
   import { unixMs, type InstrumentId, type PracticeSession } from "@repo/music-core/domain";
   import {
+    buildJournalHeatmap,
+    type HeatmapCell,
+  } from "@repo/music-core/engines/projection";
+  import {
     PracticeSessionStore,
     type WeekComparison,
   } from "@repo/music-core/engines/sessions";
@@ -20,6 +24,7 @@
   let status = $state("Loading practice journal.");
   let sessions = $state<PracticeSession[]>([]);
   let comparison = $state<WeekComparison>(journal.compareWeeks(unixMs(Date.now())));
+  let heatmap = $state<HeatmapCell[][]>([]);
   let note = $state("");
   let tagText = $state("journal");
   let filterSkill = $state("");
@@ -79,7 +84,16 @@
   function refresh(): void {
     sessions = journal.all().sort((a, b) => b.startTime - a.startTime);
     comparison = journal.compareWeeks(unixMs(Date.now()));
+    heatmap = buildJournalHeatmap(journal.all(), new Date());
   }
+
+  const HEATMAP_INTENSITY = [
+    "bg-muted",
+    "bg-primary/25",
+    "bg-primary/50",
+    "bg-primary/75",
+    "bg-primary",
+  ] as const;
 
   function tags(): string[] {
     return tagText
@@ -170,6 +184,35 @@
       </Card.Content>
     </Card.Root>
   </section>
+
+  <Card.Root aria-label="Practice heatmap">
+    <Card.Header>
+      <Card.Description>Last 12 weeks</Card.Description>
+      <Card.Title>Practice heatmap</Card.Title>
+    </Card.Header>
+    <Card.Content>
+      <div class="flex gap-1 overflow-x-auto pb-1">
+        {#each heatmap as week, weekIndex}
+          <div class="flex flex-col gap-1" data-week={weekIndex}>
+            {#each week as cell}
+              <div
+                class="size-3.5 rounded-sm {HEATMAP_INTENSITY[cell.intensity]}"
+                data-intensity={cell.intensity}
+                title="{cell.date}: {cell.minutes} min"
+              ></div>
+            {/each}
+          </div>
+        {/each}
+      </div>
+      <div class="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <span>Less</span>
+        {#each HEATMAP_INTENSITY as cls}
+          <span class="size-3 rounded-sm {cls}"></span>
+        {/each}
+        <span>More</span>
+      </div>
+    </Card.Content>
+  </Card.Root>
 
   <section class="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr]">
     <Card.Root>
