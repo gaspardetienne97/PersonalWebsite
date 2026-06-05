@@ -5,6 +5,7 @@
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
+  import { tempoLadderProjection } from "@repo/music-core/engines/projection";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
@@ -40,6 +41,10 @@
   const activePrompt = $derived(sessionState?.currentPrompt);
   const summary = $derived(sessionState?.summary);
   const currentTempo = $derived(sessionState?.nextTargetBpm ?? tempo);
+  const ladderState = $derived(sessionState ?? session?.state);
+  const tempoLadder = $derived(
+    ladderState ? tempoLadderProjection(ladderState, { startBpm: 100, stepBpm: 10, rungs: 6 }) : [],
+  );
 
   void initialize();
 
@@ -218,9 +223,26 @@
       <aside class="grid content-start gap-4">
         <Card.Root>
           <Card.Header>
-            <Card.Description>Tempo target</Card.Description>
-            <Card.Title>{currentTempo} BPM</Card.Title>
+            <Card.Description>Tempo ladder</Card.Description>
+            <Card.Title>{currentTempo} BPM target</Card.Title>
           </Card.Header>
+          <Card.Content class="grid gap-2">
+            {#each tempoLadder as rung}
+              <div
+                class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm
+                  {rung.status === 'target'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : rung.status === 'unlocked'
+                    ? 'border-primary/30 bg-primary/10 text-primary'
+                    : 'text-muted-foreground'}"
+              >
+                <span class="font-semibold tabular-nums">{rung.bpm} BPM</span>
+                <span class="text-xs uppercase tracking-wide">
+                  {rung.status === "target" ? "Next" : rung.status === "unlocked" ? "Unlocked" : "Locked"}
+                </span>
+              </div>
+            {/each}
+          </Card.Content>
         </Card.Root>
         <Card.Root>
           <Card.Header>
