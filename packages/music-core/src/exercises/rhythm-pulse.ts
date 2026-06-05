@@ -1,7 +1,9 @@
 import {
   Capability,
+  monotonicMs,
   type ExerciseDefinition,
   type ExerciseRun,
+  type MonotonicMs,
   type NoteEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
@@ -10,11 +12,13 @@ import { beatDurationMs } from "@repo/music-core/engines/transport";
 export interface RhythmPulseOptions {
   bpm: number;
   beats: number;
+  startTimestampMs?: MonotonicMs | number;
 }
 
 export interface RhythmPulsePrompt {
   bpm: number;
   expectedMs: number[];
+  startTimestampMs: MonotonicMs;
 }
 
 export function createRhythmPulseExercise(
@@ -31,9 +35,10 @@ export function createRhythmPulseExercise(
       id: `rhythm-${options.bpm}-${options.beats}`,
       payload: {
         bpm: options.bpm,
+        startTimestampMs: monotonicMs(options.startTimestampMs ?? 0),
         expectedMs: Array.from(
           { length: options.beats },
-          (_, index) => index * beatDurationMs(options.bpm),
+          (_, index) => (options.startTimestampMs ?? 0) + index * beatDurationMs(options.bpm),
         ),
       },
     }),

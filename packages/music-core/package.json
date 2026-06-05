@@ -15,6 +15,7 @@
     "./engines/progress": "./src/engines/progress/index.ts",
     "./engines/projection": "./src/engines/projection/index.ts",
     "./engines/reading-session": "./src/engines/reading-session/index.ts",
+    "./engines/rhythm-session": "./src/engines/rhythm-session/index.ts",
     "./engines/score-follower": "./src/engines/score-follower/index.ts",
     "./engines/sessions": "./src/engines/sessions/index.ts",
     "./engines/skills": "./src/engines/skills/index.ts",

@@ -39,4 +39,11 @@ describe("createRhythmPulseExercise", () => {
     expect(result.correct).toBe(false);
     expect(result.feedback[0]?.message).toContain("ahead");
   });
+
+  test("anchors expected pulse times to an absolute session start", () => {
+    const exercise = createRhythmPulseExercise({ bpm: 120, beats: 3, startTimestampMs: 10_000 });
+    const prompt = exercise.generate({ targetSkillIds: exercise.skillIds, difficulty: 0.4 });
+
+    expect(prompt.payload.expectedMs).toEqual([10_000, 10_500, 11_000]);
+  });
 });

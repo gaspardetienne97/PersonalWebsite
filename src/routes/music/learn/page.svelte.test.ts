@@ -4,7 +4,7 @@ import { render } from "vitest-browser-svelte";
 import Page from "./+page.svelte";
 
 describe("/music/learn/+page.svelte", () => {
-  test("links to ear training, note reading, and the theory library", () => {
+  test("links to ear training, note reading, rhythm, and the theory library", () => {
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("Learn");
@@ -16,6 +16,9 @@ describe("/music/learn/+page.svelte", () => {
     );
     expect(document.querySelector('a[href="/music/learn/reading"]')?.textContent).toContain(
       "Note Reading",
+    );
+    expect(document.querySelector('a[href="/music/learn/rhythm"]')?.textContent).toContain(
+      "Rhythm Trainer",
     );
   });
 });
