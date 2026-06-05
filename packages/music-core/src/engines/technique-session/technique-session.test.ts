@@ -1,0 +1,110 @@
+import { describe, expect, test, vi } from "vitest";
+
+import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
+import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+import type { PipelineServices } from "@repo/music-core/engines/exercise";
+import { InputRouter } from "@repo/music-core/engines/input-router";
+import { ProgressEngine } from "@repo/music-core/engines/progress";
+import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills";
+
+import { TechniqueSession, type TechniqueSessionState } from "./index";
+
+describe("TechniqueSession", () => {
+  test("completes a clean C major scale and unlocks the next tempo", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+    let latest: TechniqueSessionState = session.state;
+    const unsubscribe = session.subscribe((state) => {
+      latest = state;
+    });
+
+    await session.startScale({ tonic: "C4", scale: "major", bpm: 100 });
+    [60, 62, 64, 65, 67, 69, 71, 72].forEach((midiNote, index) => {
+      dependencies.router.push(note(midiNote, index * 600));
+    });
+
+    await vi.waitFor(() => expect(latest.status).toBe("summary"));
+    expect(latest.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      noteAccuracy: 1,
+      highestUnlockedBpm: 110,
+      nextTargetBpm: 110,
+    });
+    expect(latest.summary?.meanEvennessErrorMs).toBe(0);
+    expect(latest.results[0]?.event.skillIds).toContain("technique.scale.major");
+    expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
+
+    unsubscribe();
+    session.dispose();
+  });
+
+  test("keeps the current tempo locked after an inaccurate scale", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    await session.startScale({ tonic: "C4", scale: "major", bpm: 100 });
+    [60, 62, 64, 66, 67, 69, 71, 72].forEach((midiNote, index) => {
+      dependencies.router.push(note(midiNote, index * 600));
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      correct: 0,
+      highestUnlockedBpm: 100,
+      nextTargetBpm: 100,
+    });
+    expect(session.state.results[0]?.result.feedback[0]?.message).toContain("notes 7/8");
+    session.dispose();
+  });
+
+  test("keeps the active run available when persistence fails", async () => {
+    const dependencies = await setup();
+    vi.spyOn(dependencies.services.analytics, "ingest").mockRejectedValueOnce(
+      new Error("Persistence unavailable"),
+    );
+    const session = new TechniqueSession(dependencies);
+
+    await session.startScale({ tonic: "C4", scale: "major", bpm: 100 });
+    [60, 62, 64, 65, 67, 69, 71, 72].forEach((midiNote, index) => {
+      dependencies.router.push(note(midiNote, index * 600));
+    });
+
+    await vi.waitFor(() => expect(session.state.error).toBe("Persistence unavailable"));
+    expect(session.state.status).toBe("active");
+    expect(session.state.currentPrompt?.label).toBe("C major");
+
+    await session.retrySave();
+    expect(session.state.status).toBe("summary");
+    session.dispose();
+  });
+});
+
+async function setup() {
+  const router = new InputRouter({ now: () => 0 });
+  const skills = new SkillGraphStore();
+  await skills.seed(seedCoreSkills());
+  const services: PipelineServices = {
+    skills,
+    analytics: new AnalyticsEngine(),
+    progress: new ProgressEngine(),
+  };
+  let id = 0;
+  return {
+    router,
+    services,
+    now: () => 1_700_000_000_000,
+    makeId: () => `technique-event-${++id}`,
+  };
+}
+
+function note(midiNote: number, atMs: number): NoteEvent {
+  return {
+    type: "noteOn",
+    midiNote,
+    velocity: 1,
+    source: "midi",
+    timestamp: monotonicMs(atMs),
+    clock: "midi",
+  };
+}

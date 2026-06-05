@@ -5,33 +5,57 @@ import {
   type NoteEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
-import { noteToMidi } from "@repo/music-core/engines/theory";
+import { midiToNote, noteToMidi } from "@repo/music-core/engines/theory";
 
 export interface ScalePatternPrompt {
   label: string;
   midiNotes: number[];
+  noteLabels: string[];
+  bpm: number;
   targetSpacingMs: number;
 }
 
-export const majorScaleExercise: ExerciseDefinition<ScalePatternPrompt, number[]> = {
-  id: "technique.scale.c-major",
-  name: "C Major Scale",
-  capabilities: [Capability.Technique, Capability.Pitch],
-  skillIds: ["technique.scale.major"],
-  inputs: ["midi", "onscreen"],
-  streaming: true,
-  generate: () => ({
-    id: "scale-c-major",
-    payload: {
-      label: "C major",
-      midiNotes: ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"].map(noteToMidi),
-      targetSpacingMs: 500,
+export type ScalePatternKind = "major";
+
+export interface ScalePatternOptions {
+  tonic?: string;
+  scale?: ScalePatternKind;
+  bpm?: number;
+}
+
+export function createScalePatternExercise(
+  options: ScalePatternOptions = {},
+): ExerciseDefinition<ScalePatternPrompt, number[]> {
+  const tonic = options.tonic ?? "C4";
+  const scale = options.scale ?? "major";
+  const bpm = options.bpm ?? 120;
+  const midiNotes = scaleMidiNotes(tonic, scale);
+  const label = `${pitchClassLabel(tonic)} ${scale}`;
+
+  return {
+    id: `technique.scale.${pitchClassLabel(tonic).toLowerCase()}-${scale}`,
+    name: `${label} Scale`,
+    capabilities: [Capability.Technique, Capability.Pitch],
+    skillIds: [`technique.scale.${scale}`],
+    inputs: ["midi", "onscreen"],
+    streaming: true,
+    generate: () => ({
+      id: `scale-${pitchClassLabel(tonic).toLowerCase()}-${scale}-${bpm}`,
+      payload: {
+        label,
+        midiNotes,
+        noteLabels: midiNotes.map((midi) => midiToNote(midi)),
+        bpm,
+        targetSpacingMs: 60_000 / bpm,
+      },
+    }),
+    createRun(prompt) {
+      return scaleRun(prompt.payload);
     },
-  }),
-  createRun(prompt) {
-    return scaleRun(prompt.payload);
-  },
-};
+  };
+}
+
+export const majorScaleExercise = createScalePatternExercise({ tonic: "C4", scale: "major" });
 
 function scaleRun(prompt: ScalePatternPrompt): ExerciseRun<number[]> {
   const input: NoteEvent[] = [];
@@ -56,6 +80,18 @@ function scaleRun(prompt: ScalePatternPrompt): ExerciseRun<number[]> {
         metrics.push({ kind: "pitch", expectedMidi, actualMidi: actual });
         if (actual === expectedMidi) correctNotes += 1;
       });
+
+      const firstTimestamp = played[0]?.timestamp;
+      if (firstTimestamp !== undefined) {
+        prompt.midiNotes.forEach((_expectedMidi, index) => {
+          const actual = played[index];
+          if (actual?.type === "noteOn") {
+            const expectedMs = Number(firstTimestamp) + index * prompt.targetSpacingMs;
+            const actualMs = Number(actual.timestamp);
+            metrics.push({ kind: "timing", expectedMs, actualMs, errorMs: actualMs - expectedMs });
+          }
+        });
+      }
 
       const spacings = played
         .slice(1)
@@ -86,4 +122,14 @@ function scaleRun(prompt: ScalePatternPrompt): ExerciseRun<number[]> {
       };
     },
   };
+}
+
+function scaleMidiNotes(tonic: string, scale: ScalePatternKind): number[] {
+  const root = noteToMidi(tonic);
+  const intervals = scale === "major" ? [0, 2, 4, 5, 7, 9, 11, 12] : [];
+  return intervals.map((semitones) => root + semitones);
+}
+
+function pitchClassLabel(note: string): string {
+  return note.trim().replace(/-?\d+$/, "");
 }
