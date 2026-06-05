@@ -51,6 +51,8 @@
   let session = $state<ReadingSession | undefined>();
   let sessionState = $state<ReadingSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
+  let midiEnabled = $state(runtime.midi.state.enabled);
+  let midiStatus = $state(midiMessage());
   let sessionXp = $state(0);
 
   const availableTunings = $derived(
@@ -66,6 +68,11 @@
   );
 
   void initialize();
+
+  const unsubscribeMidiState = runtime.midi.subscribeState(() => {
+    midiEnabled = runtime.midi.state.enabled;
+    midiStatus = midiMessage();
+  });
 
   async function initialize(): Promise<void> {
     try {
@@ -137,6 +144,17 @@
     } finally {
       pending = false;
     }
+  }
+
+  function midiMessage(): string {
+    if (runtime.midi.state.enabled) {
+      return `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`;
+    }
+    return runtime.midi.state.error ?? "MIDI permission has not been requested.";
+  }
+
+  async function enableMidi(): Promise<void> {
+    await runtime.midi.enable();
   }
 
   function handleSessionState(next: ReadingSessionState): void {
@@ -225,6 +243,7 @@
 
   onDestroy(() => {
     unsubscribeSession?.();
+    unsubscribeMidiState();
     session?.dispose();
     runtime.router.setActiveInstrument();
   });
@@ -254,8 +273,11 @@
       {ready}
       {pending}
       {status}
+      {midiEnabled}
+      {midiStatus}
       onChange={updateSetup}
       onStart={start}
+      onEnableMidi={enableMidi}
       onSaveTuning={saveTuning}
       onDeleteTuning={deleteTuning}
     />

@@ -48,6 +48,19 @@ describe("ReadingSession", () => {
     session.dispose();
   });
 
+  test("advances a choice flashcard from routed MIDI input", async () => {
+    const dependencies = await setup();
+    const session = new ReadingSession(dependencies);
+
+    await session.startFlashcards({ ...pianoOptions(), answerMode: "choice", length: 1 });
+    const prompt = session.state.currentPrompt as NoteReadingPrompt;
+    dependencies.router.push(noteOn(prompt.midiNotes[0]!, 1_000));
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.results[0]?.result).toMatchObject({ correct: true, score: 1 });
+    session.dispose();
+  });
+
   test("uses the scheduler to prioritize a weak reading skill", async () => {
     const dependencies = await setup();
     for (let index = 0; index < 4; index += 1) {

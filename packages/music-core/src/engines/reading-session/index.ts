@@ -303,7 +303,7 @@ export class ReadingSession {
       exercise: this.#exercise,
       sessionId: this.#sessionId,
       runId: `${this.#sessionId}-${this.#currentIndex + 1}`,
-      inputs: this.#answerMode === "choice" ? ["click"] : ["midi", "onscreen"],
+      inputs: this.#answerMode === "choice" ? ["click", "midi", "onscreen"] : ["midi", "onscreen"],
       context: {
         targetSkillIds: [item.targetSkillId],
         difficulty: item.difficulty,

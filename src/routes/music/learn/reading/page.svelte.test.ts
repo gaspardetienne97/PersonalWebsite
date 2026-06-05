@@ -14,6 +14,7 @@ describe("/music/learn/reading/+page.svelte", () => {
     expect(document.querySelector("h1")?.textContent).toContain("Note Reading");
     expect(document.body.textContent).toContain("Flashcards");
     expect(document.body.textContent).toContain("Sight-Reading");
+    expect(button("Enable MIDI")).not.toBeUndefined();
     await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
   });
 

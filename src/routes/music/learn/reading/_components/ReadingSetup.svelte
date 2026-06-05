@@ -35,8 +35,11 @@
     ready,
     pending,
     status,
+    midiEnabled,
+    midiStatus,
     onChange,
     onStart,
+    onEnableMidi,
     onSaveTuning,
     onDeleteTuning,
   }: {
@@ -45,8 +48,11 @@
     ready: boolean;
     pending: boolean;
     status: string;
+    midiEnabled: boolean;
+    midiStatus: string;
     onChange: (value: ReadingSetupValue) => void;
     onStart: () => void;
+    onEnableMidi: () => void;
     onSaveTuning: (profile: TuningProfile) => void;
     onDeleteTuning: (id: string) => void;
   } = $props();
@@ -100,6 +106,13 @@
       </div>
     </Card.Header>
     <Card.Content class="grid gap-6">
+      <div class="flex flex-col gap-3 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
+        <Button type="button" variant="outline" disabled={midiEnabled} onclick={onEnableMidi}>
+          {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+        </Button>
+      </div>
+
       {#if value.activity === "sight-reading"}
         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           <div class="grid gap-2">
