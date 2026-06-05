@@ -2,12 +2,15 @@
   import { browser } from "$app/environment";
   import { onDestroy } from "svelte";
 
+  import Drum from "lucide-svelte/icons/drum";
+
   import {
     RhythmSession,
     type RhythmSessionState,
   } from "@repo/music-core/engines/rhythm-session";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
+  import { rhythmHudProjection } from "@repo/music-core/engines/projection";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
@@ -16,6 +19,8 @@
   import { Label } from "@repo/ui/label";
   import { Progress } from "@repo/ui/progress";
 
+  import SourceReadout from "../../_components/SourceReadout.svelte";
+  import TimingMeter from "../../_components/TimingMeter.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -38,6 +43,15 @@
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
   const summary = $derived(sessionState?.summary);
+  const hud = $derived(sessionState ? rhythmHudProjection(sessionState) : undefined);
+  const activeBeatIndex = $derived(Math.floor((sessionState?.live?.progress ?? 0) * beats));
+  const sourceLabel = $derived(
+    runtime.activeSource === "midi"
+      ? "MIDI"
+      : runtime.activeSource === "audio"
+        ? "Audio"
+        : "On-screen",
+  );
 
   void initialize();
 
@@ -163,12 +177,26 @@
         <Card.Description>Pulse complete</Card.Description>
         <Card.Title>{Math.round(summary.accuracy * 100)}% accuracy · {summary.xp} XP</Card.Title>
       </Card.Header>
-      <Card.Content class="grid gap-2 text-sm text-muted-foreground">
-        <p>
-          Average timing error:
-          {Math.round(summary.meanSignedErrorMs)}ms signed,
-          {Math.round(summary.meanAbsoluteErrorMs)}ms absolute.
-        </p>
+      <Card.Content class="grid gap-4 text-sm text-muted-foreground">
+        <TimingMeter offsetMs={hud?.offsetMs ?? 0} />
+        <div class="grid grid-cols-3 gap-2">
+          <div class="rounded-lg border p-3 text-center">
+            <span class="block text-xl font-bold tabular-nums text-foreground">{hud?.accuracyPct ?? 0}%</span>
+            <small>Accuracy</small>
+          </div>
+          <div class="rounded-lg border p-3 text-center">
+            <span class="block text-xl font-bold tabular-nums text-foreground"
+              >{hud?.offsetMs ?? 0}<small>ms</small></span
+            >
+            <small>Signed offset</small>
+          </div>
+          <div class="rounded-lg border p-3 text-center">
+            <span class="block text-xl font-bold tabular-nums text-foreground"
+              >±{hud?.avgAbsOffsetMs ?? 0}<small>ms</small></span
+            >
+            <small>Avg offset</small>
+          </div>
+        </div>
         <p>{summary.results[0]?.result.feedback[0]?.message}</p>
       </Card.Content>
       <Card.Footer>
@@ -183,9 +211,14 @@
             <Card.Description>Pulse practice</Card.Description>
             <Card.Title>Quarter-note timing</Card.Title>
           </div>
-          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-          </Button>
+          <div class="flex flex-wrap items-center gap-2">
+            <SourceReadout label="Input" device={sourceLabel} live={runtime.activeSource === "midi"}>
+              {#snippet icon()}<Drum class="size-4" aria-hidden="true" />{/snippet}
+            </SourceReadout>
+            <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+            </Button>
+          </div>
         </Card.Header>
         <Card.Content class="grid gap-6">
           <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
@@ -226,7 +259,30 @@
                 <p class="text-sm font-medium">Progress</p>
                 <p class="text-sm text-muted-foreground">{liveProgress}%</p>
               </div>
+              <!-- beat visualizer -->
+              <div class="flex justify-center gap-3" aria-hidden="true">
+                {#each Array.from({ length: beats }, (_, i) => i) as beatIndex}
+                  <div
+                    class="grid size-11 place-items-center rounded-full border text-sm font-bold tabular-nums transition-colors {beatIndex ===
+                    activeBeatIndex
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'text-muted-foreground'}"
+                  >
+                    {beatIndex + 1}
+                  </div>
+                {/each}
+              </div>
               <Progress value={liveProgress} max={100} />
+              <div class="grid grid-cols-2 gap-2 text-center">
+                <div class="rounded-lg border p-2">
+                  <span class="block text-lg font-bold tabular-nums">{hud?.runningScorePct ?? 0}%</span>
+                  <small class="text-muted-foreground">Running score</small>
+                </div>
+                <div class="rounded-lg border p-2">
+                  <span class="block text-lg font-bold tabular-nums">{liveProgress}%</span>
+                  <small class="text-muted-foreground">Through pattern</small>
+                </div>
+              </div>
               <Button type="button" size="lg" data-testid="tap-beat" onclick={tapBeat}>
                 Tap beat
               </Button>
