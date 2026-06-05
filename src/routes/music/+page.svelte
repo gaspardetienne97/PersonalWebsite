@@ -24,7 +24,17 @@
   import { Slider } from '@repo/ui/slider';
   import { onDestroy } from 'svelte';
 
+  import Drum from 'lucide-svelte/icons/drum';
+  import Ear from 'lucide-svelte/icons/ear';
+  import Music from 'lucide-svelte/icons/music';
+  import SlidersHorizontal from 'lucide-svelte/icons/sliders-horizontal';
+
+  import InstrumentBadge from './_components/InstrumentBadge.svelte';
   import OnScreenKeyboard from './_components/OnScreenKeyboard.svelte';
+  import PracticeActionCard from './_components/PracticeActionCard.svelte';
+  import ProgressRing from './_components/ProgressRing.svelte';
+  import SegmentProgress from './_components/SegmentProgress.svelte';
+  import WeekDots from './_components/WeekDots.svelte';
   import { useMusicRuntime } from './_runtime.svelte';
 
   const runtime = useMusicRuntime();
@@ -61,6 +71,18 @@
     mastery = skills.getMastery('pitch.interval.m6').mastery;
     skillRows = projectSkillRows();
   });
+
+  const dailyXpGoal = 1000;
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'morning';
+    if (hour < 18) return 'afternoon';
+    return 'evening';
+  })();
+  const todayDotIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  const weekCompletedDays = $derived(
+    Array.from({ length: todayDotIndex }, (_, index) => index)
+  );
 
   const midi = $derived(midiCapabilities(browser ? navigator : {}));
   const bpm = $derived(bpmValue[0] ?? 96);
@@ -185,22 +207,23 @@
 </svelte:head>
 
 <main class="min-h-screen bg-background text-foreground">
-  <section class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 md:px-8">
-    <header class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-      <div class="space-y-2">
-        <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Phase 0 + Phase 1 core
+  <section class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-8">
+    <header class="flex flex-wrap items-start gap-4">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-3xl font-bold tracking-tight">
+          Good {greeting} — welcome to Musicianship OS
+        </h1>
+        <p class="mt-1 text-muted-foreground">
+          Keep the streak alive — one focused rep at a time.
         </p>
-        <h1 class="text-4xl font-bold tracking-tight md:text-5xl">Musicianship OS</h1>
       </div>
-      <div class="grid gap-2 text-sm text-muted-foreground md:justify-items-end">
-        <span class="rounded-full border px-3 py-1 text-foreground">
-          {midiEnabled ? 'Web MIDI enabled' : midi.supported ? 'Web MIDI ready' : 'Web MIDI unavailable'}
-        </span>
-        <span>
-          Active input: {activeSource} · confidence {Math.round(inputConfidence * 100)}%
-        </span>
-      </div>
+      <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
+        {midiEnabled
+          ? 'Web MIDI enabled'
+          : midi.supported
+            ? 'Web MIDI ready'
+            : 'Web MIDI unavailable'}
+      </span>
     </header>
 
     {#if !midi.supported}
@@ -215,118 +238,201 @@
       </Card.Root>
     {/if}
 
-    <section class="grid gap-6 lg:grid-cols-2">
-      <Card.Root>
-        <Card.Header>
-          <div>
-            <Card.Description>Today</Card.Description>
-            <Card.Title>Daily mixed session</Card.Title>
-          </div>
-        </Card.Header>
-        <Card.Content class="space-y-6">
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="rounded-md border p-4">
-              <span class="block text-3xl font-bold">{xp}</span>
-              <small class="text-muted-foreground">XP</small>
-            </div>
-            <div class="rounded-md border p-4">
-              <span class="block text-3xl font-bold">{streak}</span>
-              <small class="text-muted-foreground">day streak</small>
-            </div>
-            <div class="rounded-md border p-4">
-              <span class="block text-3xl font-bold">{Math.round(mastery * 100)}%</span>
-              <small class="text-muted-foreground">m6 mastery</small>
-            </div>
-          </div>
-          <p class="text-sm text-muted-foreground">{feedback}</p>
-          <div class="flex flex-wrap gap-2" id="learn">
-            <Button type="button" variant="secondary" onclick={() => answerInterval(false)}>
-              Answer P5
-            </Button>
-            <Button type="button" onclick={() => answerInterval(true)}>Answer m6</Button>
-          </div>
-        </Card.Content>
-      </Card.Root>
+    <!-- Hero stats -->
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <!-- XP ring -->
+      <div class="flex flex-col items-center gap-3 rounded-2xl border bg-card p-5">
+        <span
+          class="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Today's XP</span
+        >
+        <ProgressRing value={xp} total={dailyXpGoal} label="Today's XP" size={140} />
+        <span class="text-xs text-muted-foreground">Daily goal · resets at midnight</span>
+      </div>
 
-      <Card.Root>
-        <Card.Header class="flex flex-row items-start justify-between gap-4">
-          <div>
-            <Card.Description>Instrument Hub</Card.Description>
-            <Card.Title>Input router</Card.Title>
+      <!-- Streak -->
+      <div class="flex flex-col items-center gap-3 rounded-2xl border bg-card p-5">
+        <span
+          class="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Streak</span
+        >
+        <div class="text-4xl" aria-hidden="true">🔥</div>
+        <span class="text-4xl font-bold leading-none tabular-nums">{streak}</span>
+        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Day streak</span
+        >
+        <WeekDots completedDays={weekCompletedDays} todayIndex={todayDotIndex} />
+      </div>
+
+      <!-- Continue practice (interval demo, real engine) -->
+      <div class="flex flex-col gap-3 rounded-2xl border bg-card p-5 sm:col-span-2" id="learn">
+        <div class="flex items-center gap-2">
+          <span
+            class="flex-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+            >Continue practice</span
+          >
+          <InstrumentBadge instrument="Piano" dot />
+        </div>
+        <h2 class="text-lg font-bold tracking-tight">Daily mixed session</h2>
+        <p class="text-sm text-muted-foreground">Interval recognition · moves real mastery</p>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="rounded-lg border p-3 text-center">
+            <span class="block text-2xl font-bold tabular-nums">{xp}</span>
+            <small class="text-muted-foreground">XP</small>
           </div>
-          <div class="flex flex-wrap justify-end gap-2">
-            <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
-              {lastEvent?.type ?? 'idle'}
-            </span>
-            <Button type="button" variant="outline" disabled={!midi.supported} onclick={enableMidi}>
-              {midiEnabled ? 'MIDI enabled' : 'Enable MIDI'}
-            </Button>
+          <div class="rounded-lg border p-3 text-center">
+            <span class="block text-2xl font-bold tabular-nums">{streak}</span>
+            <small class="text-muted-foreground">streak</small>
           </div>
-        </Card.Header>
-        <Card.Content class="space-y-4">
-          <OnScreenKeyboard {router} onAccepted={playOnScreen} />
-          <p class="text-sm text-muted-foreground">
-            Last event:
-            {#if lastEvent?.type === 'noteOn'}
-              MIDI {lastEvent.midiNote} from {lastEvent.source}
-            {:else}
-              waiting for input
-            {/if}
-          </p>
-          <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-2">
-              <h3 class="text-sm font-medium">MIDI devices</h3>
-              {#if midiDevices.length > 0}
-                <ul class="grid gap-1 text-sm text-muted-foreground">
-                  {#each midiDevices as device}
-                    <li class="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-                      <span class="truncate">{device.name}</span>
-                      <span>{device.type}{device.instrument ? ` · ${device.instrument}` : ''}</span>
-                    </li>
-                  {/each}
-                </ul>
-              {:else}
-                <p class="text-sm text-muted-foreground">No MIDI devices detected.</p>
-              {/if}
-            </div>
-            <div class="space-y-2">
-              <h3 class="text-sm font-medium">Live MIDI events</h3>
-              {#if midiEvents.length > 0}
-                <ol class="grid gap-1 font-mono text-xs text-muted-foreground" aria-live="polite">
-                  {#each midiEvents as event}
-                    <li class="rounded-md border px-3 py-2">
-                      {event.type} · ch {event.channel ?? '—'} · {Math.round(event.timestamp)}ms
-                    </li>
-                  {/each}
-                </ol>
-              {:else}
-                <p class="text-sm text-muted-foreground">Waiting for a MIDI message.</p>
-              {/if}
-            </div>
+          <div class="rounded-lg border p-3 text-center">
+            <span class="block text-2xl font-bold tabular-nums">{Math.round(mastery * 100)}%</span>
+            <small class="text-muted-foreground">m6 mastery</small>
           </div>
-        </Card.Content>
-      </Card.Root>
+        </div>
+        <p class="text-sm text-muted-foreground" aria-live="polite">{feedback}</p>
+        <div class="mt-auto flex flex-wrap gap-2">
+          <Button type="button" variant="secondary" onclick={() => answerInterval(false)}>
+            Answer P5
+          </Button>
+          <Button type="button" onclick={() => answerInterval(true)}>Answer m6</Button>
+          <a
+            href="/music/learn/ear"
+            class="ml-auto inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            Full ear training →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Practice Lab -->
+    <section>
+      <div class="mb-4 flex items-center justify-between">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Today's routine · Practice Lab</span
+        >
+        <a href="/music/learn" class="text-sm text-muted-foreground hover:text-foreground"
+          >View all →</a
+        >
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <PracticeActionCard
+          title="Ear Training"
+          description="Interval ID · listening & recognition."
+          xp={150}
+          href="/music/learn/ear"
+        >
+          {#snippet icon()}<Ear class="size-5" aria-hidden="true" />{/snippet}
+        </PracticeActionCard>
+        <PracticeActionCard
+          title="Rhythm"
+          description="16th-note groove · lock your timing."
+          xp={120}
+          href="/music/learn/rhythm"
+        >
+          {#snippet icon()}<Drum class="size-5" aria-hidden="true" />{/snippet}
+        </PracticeActionCard>
+        <PracticeActionCard
+          title="Harmony"
+          description="Shell voicings · chords & progressions."
+          xp={200}
+          href="/music/learn/theory"
+        >
+          {#snippet icon()}<Music class="size-5" aria-hidden="true" />{/snippet}
+        </PracticeActionCard>
+        <PracticeActionCard
+          title="Technique"
+          description="Major scales · speed & control."
+          xp={120}
+          href="/music/play/scales"
+        >
+          {#snippet icon()}<SlidersHorizontal class="size-5" aria-hidden="true" />{/snippet}
+        </PracticeActionCard>
+      </div>
     </section>
 
-    <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-      <Card.Root id="play">
-        <Card.Header>
-          <Card.Description>Transport</Card.Description>
-          <Card.Title>Metronome scheduler</Card.Title>
-        </Card.Header>
-        <Card.Content class="space-y-4">
+    <!-- Instrument hub: on-screen keyboard, MIDI devices, live events -->
+    <Card.Root>
+      <Card.Header class="flex flex-row items-start justify-between gap-4">
+        <div>
+          <Card.Description>Instrument Hub</Card.Description>
+          <Card.Title>Input router</Card.Title>
+        </div>
+        <div class="flex flex-wrap justify-end gap-2">
+          <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
+            {lastEvent?.type ?? 'idle'}
+          </span>
+          <Button type="button" variant="outline" disabled={!midi.supported} onclick={enableMidi}>
+            {midiEnabled ? 'MIDI enabled' : 'Enable MIDI'}
+          </Button>
+        </div>
+      </Card.Header>
+      <Card.Content class="space-y-4">
+        <OnScreenKeyboard {router} onAccepted={playOnScreen} />
+        <p class="text-sm text-muted-foreground">
+          Last event:
+          {#if lastEvent?.type === 'noteOn'}
+            MIDI {lastEvent.midiNote} from {lastEvent.source}
+          {:else}
+            waiting for input
+          {/if}
+        </p>
+        <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
+        <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-2">
-            <div class="flex items-center justify-between text-sm">
-              <span>BPM</span>
-              <span class="font-medium">{bpm}</span>
+            <h3 class="text-sm font-medium">MIDI devices</h3>
+            {#if midiDevices.length > 0}
+              <ul class="grid gap-1 text-sm text-muted-foreground">
+                {#each midiDevices as device}
+                  <li class="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                    <span class="truncate">{device.name}</span>
+                    <span>{device.type}{device.instrument ? ` · ${device.instrument}` : ''}</span>
+                  </li>
+                {/each}
+              </ul>
+            {:else}
+              <p class="text-sm text-muted-foreground">No MIDI devices detected.</p>
+            {/if}
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-sm font-medium">Live MIDI events</h3>
+            {#if midiEvents.length > 0}
+              <ol class="grid gap-1 font-mono text-xs text-muted-foreground" aria-live="polite">
+                {#each midiEvents as event}
+                  <li class="rounded-md border px-3 py-2">
+                    {event.type} · ch {event.channel ?? '—'} · {Math.round(event.timestamp)}ms
+                  </li>
+                {/each}
+              </ol>
+            {:else}
+              <p class="text-sm text-muted-foreground">Waiting for a MIDI message.</p>
+            {/if}
+          </div>
+        </div>
+      </Card.Content>
+    </Card.Root>
+
+    <!-- Metronome / transport -->
+    <Card.Root id="play">
+      <Card.Header>
+        <Card.Description>Transport</Card.Description>
+        <Card.Title>Metronome scheduler</Card.Title>
+      </Card.Header>
+      <Card.Content class="space-y-4">
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="flex flex-1 items-center gap-3">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+              >Tempo</span
+            >
+            <span class="text-lg font-bold tabular-nums">{bpm} bpm</span>
+            <div class="w-36">
+              <Slider type="multiple" min={60} max={180} step={1} bind:value={bpmValue} />
             </div>
-            <Slider type="multiple" min={60} max={180} step={1} bind:value={bpmValue} />
           </div>
           <div class="flex flex-wrap gap-2">
             {#each ticks as tick}
               <span
-                class="grid size-10 place-items-center rounded-md border text-sm font-medium"
+                class="grid size-10 place-items-center rounded-md border text-sm font-medium transition-colors"
                 class:bg-primary={activeBeat === tick.beat}
                 class:text-primary-foreground={activeBeat === tick.beat}
               >
@@ -334,7 +440,7 @@
               </span>
             {/each}
           </div>
-          <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
             <span class="text-sm text-muted-foreground" aria-live="polite">
               {metronomeRunning ? `Playing beat ${activeBeat + 1}` : 'Metronome stopped'}
             </span>
@@ -342,6 +448,39 @@
               {metronomeRunning ? 'Stop metronome' : 'Start metronome'}
             </Button>
           </div>
+        </div>
+      </Card.Content>
+    </Card.Root>
+
+    <!-- Skill snapshot (real mastery) + theory projection -->
+    <div class="grid gap-6 lg:grid-cols-3">
+      <Card.Root id="progress" class="lg:col-span-2">
+        <Card.Header class="flex flex-row items-start justify-between gap-4">
+          <div>
+            <Card.Description>Skill tree snapshot</Card.Description>
+            <Card.Title>Canonical mastery state</Card.Title>
+          </div>
+          <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
+            {Capability.Pitch} · {Capability.Rhythm} · {Capability.Harmony}
+          </span>
+        </Card.Header>
+        <Card.Content>
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {#each skillRows as skill}
+              <div class="grid gap-2 rounded-xl border p-3">
+                <div class="flex items-center justify-between gap-3 text-sm">
+                  <span class="font-medium">{skill.name}</span>
+                  <span class="text-muted-foreground">{skill.mastery}%</span>
+                </div>
+                <Progress value={skill.mastery} max={100} />
+              </div>
+            {/each}
+          </div>
+          <a
+            href="/music/progress"
+            class="mt-4 inline-flex text-sm text-muted-foreground hover:text-foreground"
+            >Full skill tree →</a
+          >
         </Card.Content>
       </Card.Root>
 
@@ -363,64 +502,6 @@
           </p>
         </Card.Content>
       </Card.Root>
-
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Reading</Card.Description>
-          <Card.Title>Note flashcards</Card.Title>
-        </Card.Header>
-        <Card.Content class="space-y-4">
-          <div class="relative grid gap-2 py-4" aria-label="Staff preview">
-            <span class="h-px bg-border"></span>
-            <span class="h-px bg-border"></span>
-            <span class="h-px bg-border"></span>
-            <span class="h-px bg-border"></span>
-            <span class="h-px bg-border"></span>
-            <b class="absolute left-1/2 top-3 text-3xl text-primary">♩</b>
-          </div>
-          <p class="text-sm text-muted-foreground">
-            VexFlow can replace this scaffold once the dependency is available in package metadata.
-          </p>
-        </Card.Content>
-      </Card.Root>
-
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Rhythm</Card.Description>
-          <Card.Title>Ahead / behind</Card.Title>
-        </Card.Header>
-        <Card.Content class="space-y-4">
-          <Progress value={54} max={100} />
-          <p class="text-sm text-muted-foreground">
-            Streaming runs compare normalized note timestamps to the transport grid.
-          </p>
-        </Card.Content>
-      </Card.Root>
-    </section>
-
-    <Card.Root id="progress">
-      <Card.Header class="flex flex-row items-start justify-between gap-4">
-        <div>
-          <Card.Description>Skill Graph</Card.Description>
-          <Card.Title>Canonical mastery state</Card.Title>
-        </div>
-        <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
-          {Capability.Pitch} · {Capability.Rhythm} · {Capability.Harmony}
-        </span>
-      </Card.Header>
-      <Card.Content>
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {#each skillRows as skill}
-            <div class="grid gap-2 rounded-md border p-3">
-              <div class="flex items-center justify-between gap-3 text-sm">
-                <span>{skill.name}</span>
-                <span class="text-muted-foreground">{skill.mastery}%</span>
-              </div>
-              <Progress value={skill.mastery} max={100} />
-            </div>
-          {/each}
-        </div>
-      </Card.Content>
-    </Card.Root>
+    </div>
   </section>
 </main>
