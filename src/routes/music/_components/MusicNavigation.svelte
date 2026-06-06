@@ -121,8 +121,13 @@
 
   <div class="mt-auto flex flex-col gap-2 border-t p-3">
     <a
-      href="/music"
-      class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      href="/music/settings"
+      aria-current={currentPath.startsWith("/music/settings") ? "page" : undefined}
+      class={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        currentPath.startsWith("/music/settings") &&
+          "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+      )}
     >
       <Settings class="size-4 shrink-0" aria-hidden="true" />
       <span>Settings</span>
