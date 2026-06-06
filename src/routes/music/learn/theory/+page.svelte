@@ -133,6 +133,11 @@
         </Button>
       </div>
 
+      <div class="flex items-center justify-between px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <span>{results.length} {kind}{results.length === 1 ? "" : "s"}</span>
+        <span>{savedIds.size} saved</span>
+      </div>
+
       <div class="grid max-h-[32rem] gap-2 overflow-y-auto pr-1">
         {#each results as item (item.id)}
           <button
@@ -228,13 +233,22 @@
             {#each ["guitar", "ukulele"] as instrument}
               {@const voicings = selected.voicings[instrument as "guitar" | "ukulele"]}
               <Card.Root>
-                <Card.Header>
-                  <Card.Description>String voicing</Card.Description>
-                  <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"}</Card.Title>
+                <Card.Header class="flex-row items-center justify-between gap-2">
+                  <div>
+                    <Card.Description>String voicing</Card.Description>
+                    <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"}</Card.Title>
+                  </div>
+                  {#if voicings.length > 0}
+                    <Badge variant="outline">{voicings.length} voicing{voicings.length === 1 ? "" : "s"}</Badge>
+                  {/if}
                 </Card.Header>
                 <Card.Content>
-                  {#if voicings[0]}
-                    <ChordDiagram voicing={voicings[0]} />
+                  {#if voicings.length > 0}
+                    <div class="flex flex-wrap gap-4">
+                      {#each voicings as voicing}
+                        <ChordDiagram {voicing} />
+                      {/each}
+                    </div>
                   {:else}
                     <p class="text-sm text-muted-foreground">
                       No curated {instrument} voicing is available yet.
