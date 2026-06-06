@@ -7,8 +7,9 @@
   import type { NoteReadingPrompt, ReadingAnswerMode } from "@repo/music-core/exercises/note-reading";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
-  import { Progress } from "@repo/ui/progress";
 
+  import SegmentProgress from "../../../_components/SegmentProgress.svelte";
+  import SourceReadout from "../../../_components/SourceReadout.svelte";
   import FretboardInput from "./FretboardInput.svelte";
   import PianoInput from "./PianoInput.svelte";
   import StaffNotation from "./StaffNotation.svelte";
@@ -106,10 +107,13 @@
     <Card.Root>
       <Card.Header>
         <Card.Description>Progress</Card.Description>
-        <Card.Title>{state.currentIndex + 1} / {state.total}</Card.Title>
       </Card.Header>
-      <Card.Content>
-        <Progress value={state.currentIndex} max={state.total} />
+      <Card.Content class="grid gap-4">
+        <SegmentProgress current={state.currentIndex + 1} total={state.total} label="Set" />
+        <SourceReadout
+          label="Answer by"
+          device={`${answerMode === "choice" ? "Naming" : "Playing"} · ${prompt?.instrument ?? "piano"}`}
+        />
       </Card.Content>
     </Card.Root>
     <Card.Root>
