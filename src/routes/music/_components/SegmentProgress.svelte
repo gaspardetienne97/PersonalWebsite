@@ -40,7 +40,5 @@
       ></i>
     {/each}
   </div>
-  <span class="text-sm font-bold tabular-nums"
-    >{current}<span class="font-normal text-muted-foreground"> / {total}</span></span
-  >
+  <span class="text-sm font-bold tabular-nums">{current} / {total}</span>
 </div>

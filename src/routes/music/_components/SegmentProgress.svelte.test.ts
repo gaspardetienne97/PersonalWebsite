@@ -13,4 +13,9 @@ describe("SegmentProgress", () => {
     render(SegmentProgress, { total: 5, current: 3 });
     expect(document.querySelectorAll('[data-segment="done"]').length).toBe(3);
   });
+
+  test("renders the count with spaces around the slash", () => {
+    render(SegmentProgress, { total: 10, current: 1 });
+    expect(document.body.textContent).toContain("1 / 10");
+  });
 });
