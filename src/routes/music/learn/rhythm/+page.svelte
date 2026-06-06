@@ -19,6 +19,8 @@
   import { Label } from "@repo/ui/label";
   import { Progress } from "@repo/ui/progress";
 
+  import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import TimingMeter from "../../_components/TimingMeter.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
@@ -161,15 +163,17 @@
   />
 </svelte:head>
 
-<main class="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 md:px-8">
-  <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Learn</p>
-    <h1 class="text-4xl font-bold tracking-tight">Rhythm Trainer</h1>
-    <p class="max-w-2xl text-muted-foreground">
-      Tap quarter-note pulse against a metronome anchor and review whether you played ahead,
-      behind, or centered.
-    </p>
-  </header>
+<PracticeScreen>
+  <PracticeScreenHeader
+    title="Rhythm Trainer"
+    subtitle="Lock your timing against the grid — feedback in milliseconds, ahead or behind."
+  >
+    {#snippet controls()}
+      <SourceReadout label="Input" device={sourceLabel} live={runtime.activeSource === "midi"}>
+        {#snippet icon()}<Drum class="size-4" aria-hidden="true" />{/snippet}
+      </SourceReadout>
+    {/snippet}
+  </PracticeScreenHeader>
 
   {#if summary}
     <Card.Root>
@@ -211,14 +215,9 @@
             <Card.Description>Pulse practice</Card.Description>
             <Card.Title>Quarter-note timing</Card.Title>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <SourceReadout label="Input" device={sourceLabel} live={runtime.activeSource === "midi"}>
-              {#snippet icon()}<Drum class="size-4" aria-hidden="true" />{/snippet}
-            </SourceReadout>
-            <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-            </Button>
-          </div>
+          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+          </Button>
         </Card.Header>
         <Card.Content class="grid gap-6">
           <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
@@ -320,4 +319,4 @@
       </aside>
     </section>
   {/if}
-</main>
+</PracticeScreen>
