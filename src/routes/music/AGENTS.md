@@ -60,18 +60,27 @@ This file provides guidance for agents working on the Music app under
 ### Route App
 
 - `src/routes/music/+layout.svelte` creates the shared `MusicRuntime`, registers
-  the PWA, renders `MusicNavigation`, and renders `MusicTopbar`.
+  the PWA, renders `MusicNavigation`, and docks the persistent
+  `MusicTransportBar` at the bottom of every screen.
 - `src/routes/music/_runtime.svelte.ts` owns the shared runtime:
   - `InputRouter`
   - `MidiEngine`
   - `SoundEngine`
   - audio enable state and cleanup
+  - active instrument + reactive input source/confidence
+  - the shared metronome (`transportBpm`, `metronomeRunning`, `toggleMetronome`)
+    that drives the transport bar
 - `src/routes/music/_components/MusicNavigation.svelte` is the persistent Music
-  app navigation. Desktop uses a left rail; mobile uses a bottom tab bar.
-- `src/routes/music/_components/MusicTopbar.svelte` is the shared app status
-  surface: route context, XP, streak, level, audio enable, and input source.
-  Route pages still own their own `h1`; the topbar must not introduce a second
-  page heading.
+  app navigation (Practice OS sidebar with grouped IA + user-card footer on
+  desktop; bottom tab bar on mobile).
+- The Practice OS shell uses **per-page headers**, not a global status bar.
+  `PracticeScreen` + `PracticeScreenHeader` wrap each route: a big `h1`,
+  subtitle, and right-aligned controls (a `SegmentedControl` and/or a
+  `SourceReadout` input pill). There is no `MusicTopbar`; XP/streak/level live on
+  the `/music` dashboard, and input/source lives in each page header.
+- `src/routes/music/_components/MusicTransportBar.svelte` is the persistent
+  transport: tempo + slider, count-in, play/skip/repeat, volume, and the audio
+  enable gate. It reads/writes the shared metronome on `MusicRuntime`.
 - `src/routes/music/_components/OnScreenKeyboard.svelte` is the fallback input
   surface and should push normalized `NoteEvent`s through the shared router.
 
@@ -226,8 +235,9 @@ before commit or completion.
   `buildDashboardView` and `buildSkillTreeView`.
 - The skill tree renders the full seeded graph so rhythm and other later-sorted
   skills are visible.
-- The shared topbar shows XP/streak/level from persisted progress and active
-  input from the shared router.
+- XP/streak/level render on the `/music` dashboard from persisted progress; the
+  active input source shows in each page header's `SourceReadout`. The persistent
+  `MusicTransportBar` drives the shared metronome.
 - MIDI was previously fixed so hardware note events advance reading exercises.
   Preserve that path when refactoring reading or input code.
 - The practice journal stores sessions and notes locally. It is intentionally
