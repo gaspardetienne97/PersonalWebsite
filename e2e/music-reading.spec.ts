@@ -15,7 +15,8 @@ test.describe("music reading workflows", () => {
 
   test("plays a guitar flashcard on the fretboard", async ({ page }) => {
     await page.getByRole("button", { name: "Guitar" }).click();
-    await page.getByRole("button", { name: "Play" }).click();
+    // Exact match: the persistent transport bar also exposes a "Play metronome" button.
+    await page.getByRole("button", { name: "Play", exact: true }).click();
     await page.getByRole("button", { name: "Start Flashcards" }).click();
     const targets = page.locator('[aria-label*=", target"]');
     await expect(targets.first()).toBeVisible();
