@@ -17,6 +17,8 @@
   import { Input } from "@repo/ui/input";
   import { cn } from "@repo/ui/utils";
 
+  import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import ChordDiagram from "./_components/ChordDiagram.svelte";
   import PianoKeyboard from "./_components/PianoKeyboard.svelte";
@@ -87,14 +89,11 @@
   />
 </svelte:head>
 
-<main class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 md:px-8">
-  <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Learn</p>
-    <h1 class="text-4xl font-bold tracking-tight">Theory library</h1>
-    <p class="max-w-2xl text-muted-foreground">
-      Connect chord and scale names to their notes, intervals, sound, and instrument shapes.
-    </p>
-  </header>
+<PracticeScreen>
+  <PracticeScreenHeader
+    title="Chord & Theory Library"
+    subtitle="Every chord and scale, voiced for every instrument."
+  />
 
   <section class="grid min-w-0 gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
     <aside class="min-w-0 space-y-4" aria-label="Theory catalog">
@@ -262,4 +261,4 @@
       </article>
     {/if}
   </section>
-</main>
+</PracticeScreen>

@@ -19,7 +19,7 @@ describe("/music/learn/theory/+page.svelte", () => {
 
     render(Page);
 
-    expect(document.querySelector("h1")?.textContent).toContain("Theory library");
+    expect(document.querySelector("h1")?.textContent).toContain("Chord & Theory Library");
     expect(document.body.textContent).toContain("C major seventh");
     expect(document.body.textContent).toContain("Guitar");
     expect(document.body.textContent).toContain("Ukulele");

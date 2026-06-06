@@ -16,6 +16,8 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import PracticeScreen from "../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import ProgressRing from "../_components/ProgressRing.svelte";
   import SkillRing from "../_components/SkillRing.svelte";
   import WeekDots from "../_components/WeekDots.svelte";
@@ -76,15 +78,12 @@
   />
 </svelte:head>
 
-<main class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 md:px-8">
-  <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Progress</p>
-    <h1 class="text-4xl font-bold tracking-tight">Dashboard & Skill Tree</h1>
-    <p class="max-w-2xl text-muted-foreground">
-      Live progress from the persisted practice store: daily XP, streaks, skill mastery, analytics
-      weak spots, and practice-next picks.
-    </p>
-  </header>
+<PracticeScreen>
+  <PracticeScreenHeader
+    title="Dashboard & Skill Tree"
+    subtitle="Daily XP, streaks, skill mastery, weak spots, and practice-next picks from your real practice history."
+  />
+
 
   {#if !dashboard || !skillTree}
     <Card.Root>
@@ -267,4 +266,4 @@
       </aside>
     </section>
   {/if}
-</main>
+</PracticeScreen>

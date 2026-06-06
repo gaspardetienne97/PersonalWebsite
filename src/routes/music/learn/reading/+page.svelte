@@ -14,6 +14,9 @@
   import { curatedTunings, type TuningProfile } from "@repo/music-core/engines/tunings";
   import { CustomTuningStore } from "@repo/music-core/engines/tunings/store";
 
+  import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import FlashcardSession from "./_components/FlashcardSession.svelte";
   import ReadingSetup, {
@@ -257,14 +260,20 @@
   />
 </svelte:head>
 
-<main class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 md:px-8">
-  <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Learn</p>
-    <h1 class="text-4xl font-bold tracking-tight">Note Reading</h1>
-    <p class="max-w-2xl text-muted-foreground">
-      Connect written notes to names, piano keys, strings, and frets.
-    </p>
-  </header>
+<PracticeScreen>
+  <PracticeScreenHeader
+    title="Note Reading"
+    subtitle="Read it, locate it, play it — closing the loop from page to instrument."
+  >
+    {#snippet controls()}
+      <SourceReadout
+        label="Answer by"
+        device={`Playing · ${setup.instrument}`}
+        live={runtime.activeSource === "midi"}
+      />
+    {/snippet}
+  </PracticeScreenHeader>
+
 
   {#if !sessionState}
     <ReadingSetup
@@ -306,4 +315,4 @@
       onAbandon={abandon}
     />
   {/if}
-</main>
+</PracticeScreen>

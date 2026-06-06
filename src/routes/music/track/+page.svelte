@@ -16,6 +16,9 @@
   import { Input } from "@repo/ui/input";
   import { Label } from "@repo/ui/label";
 
+  import PracticeScreen from "../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
+
   const store = browser ? new PracticeStore() : undefined;
   const journal = new PracticeSessionStore(store);
 
@@ -145,15 +148,11 @@
   />
 </svelte:head>
 
-<main class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 md:px-8">
-  <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Track</p>
-    <h1 class="text-4xl font-bold tracking-tight">Practice Journal</h1>
-    <p class="max-w-2xl text-muted-foreground">
-      Review saved sessions, compare this week against last week, and keep free-text practice
-      notes with tags.
-    </p>
-  </header>
+<PracticeScreen>
+  <PracticeScreenHeader
+    title="Practice Journal"
+    subtitle="What you practiced, what you're learning, and tomorrow's routine — in one place."
+  />
 
   <section class="grid gap-4 md:grid-cols-3" aria-label="Practice rollups">
     <Card.Root>
@@ -312,4 +311,4 @@
       </section>
     </div>
   </section>
-</main>
+</PracticeScreen>
