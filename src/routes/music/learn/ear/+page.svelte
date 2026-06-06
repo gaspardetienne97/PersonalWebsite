@@ -21,6 +21,9 @@
   import { intervalRecognitionExercise } from "@repo/music-core/exercises/interval-recognition";
   import { scaleDegreeRecognitionExercise } from "@repo/music-core/exercises/scale-degree-recognition";
 
+  import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import EarTrainingLanding from "./_components/EarTrainingLanding.svelte";
   import EarTrainingSessionRail from "./_components/EarTrainingSessionRail.svelte";
@@ -176,14 +179,19 @@
   />
 </svelte:head>
 
-<main class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 md:px-8">
-  <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Learn</p>
-    <h1 class="text-4xl font-bold tracking-tight">Ear Training</h1>
-    <p class="max-w-2xl text-muted-foreground">
-      Build reliable recognition through short focused sessions and mixed review.
-    </p>
-  </header>
+<PracticeScreen>
+  <PracticeScreenHeader
+    title="Ear Training"
+    subtitle="Focus mode — build reliable recognition through short sessions and mixed review."
+  >
+    {#snippet controls()}
+      <SourceReadout
+        label="Active input"
+        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        live={runtime.activeSource === "midi"}
+      />
+    {/snippet}
+  </PracticeScreenHeader>
 
   {#if status}
     <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
@@ -221,4 +229,4 @@
       <EarTrainingSessionRail state={sessionState} streak={progress.state.streakDays} />
     </section>
   {/if}
-</main>
+</PracticeScreen>
