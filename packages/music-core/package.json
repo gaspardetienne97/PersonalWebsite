@@ -19,6 +19,7 @@
     "./engines/rhythm-session": "./src/engines/rhythm-session/index.ts",
     "./engines/score-follower": "./src/engines/score-follower/index.ts",
     "./engines/sessions": "./src/engines/sessions/index.ts",
+    "./engines/settings": "./src/engines/settings/index.ts",
     "./engines/skills": "./src/engines/skills/index.ts",
     "./engines/sound": "./src/engines/sound/index.ts",
     "./engines/technique-session": "./src/engines/technique-session/index.ts",
