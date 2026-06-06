@@ -19,6 +19,9 @@
   import { Progress } from "@repo/ui/progress";
 
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -131,15 +134,19 @@
   />
 </svelte:head>
 
-<main class="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 md:px-8">
-  <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Play</p>
-    <h1 class="text-4xl font-bold tracking-tight">Scales & Technique</h1>
-    <p class="max-w-2xl text-muted-foreground">
-      Play a clean C major scale with accurate notes and even spacing. A successful run unlocks the
-      next tempo target.
-    </p>
-  </header>
+<PracticeScreen>
+  <PracticeScreenHeader
+    title="Scales & Technique"
+    subtitle="Clean at tempo unlocks the next. Note accuracy and evenness, scored per rep."
+  >
+    {#snippet controls()}
+      <SourceReadout
+        label="Input"
+        device={runtime.activeSource === "midi" ? "MIDI · Guitar" : "On-screen"}
+        live={runtime.activeSource === "midi"}
+      />
+    {/snippet}
+  </PracticeScreenHeader>
 
   {#if summary}
     <Card.Root>
@@ -253,4 +260,4 @@
       </aside>
     </section>
   {/if}
-</main>
+</PracticeScreen>
