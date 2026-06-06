@@ -16,6 +16,10 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import ProgressRing from "../_components/ProgressRing.svelte";
+  import SkillRing from "../_components/SkillRing.svelte";
+  import WeekDots from "../_components/WeekDots.svelte";
+
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -26,6 +30,14 @@
   let status = $state("Loading progress.");
   let dashboard = $state<DashboardView | undefined>();
   let skillTree = $state<SkillTreeView | undefined>();
+
+  const weekDots = $derived.by(() => {
+    const last7 = (dashboard?.streakCalendar ?? []).slice(-7);
+    return {
+      completedDays: last7.flatMap((day, index) => (day.practiced ? [index] : [])),
+      todayIndex: last7.length - 1,
+    };
+  });
 
   void initialize();
 
@@ -80,37 +92,35 @@
     </Card.Root>
   {:else}
     <section class="grid gap-4 md:grid-cols-4" aria-label="Dashboard">
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Today's XP</Card.Description>
-          <Card.Title>{dashboard.todayXp} / {dashboard.todayGoalXp}</Card.Title>
-        </Card.Header>
-        <Card.Content>
-          <Progress value={Math.round(dashboard.todayGoalProgress * 100)} max={100} />
-        </Card.Content>
+      <Card.Root class="flex flex-col items-center gap-3 p-5">
+        <span class="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Today's XP</span
+        >
+        <ProgressRing value={dashboard.todayXp} total={dashboard.todayGoalXp} label="Today's XP" size={132} />
+        <span class="text-xs text-muted-foreground">Daily goal</span>
       </Card.Root>
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Streak</Card.Description>
-          <Card.Title>{dashboard.streakDays} days</Card.Title>
-        </Card.Header>
+      <Card.Root class="flex flex-col items-center gap-2 p-5">
+        <span class="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Streak</span
+        >
+        <div class="text-3xl" aria-hidden="true">🔥</div>
+        <span class="text-3xl font-bold leading-none tabular-nums">{dashboard.streakDays}</span>
+        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">days</span>
+        <WeekDots completedDays={weekDots.completedDays} todayIndex={weekDots.todayIndex} />
       </Card.Root>
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Level</Card.Description>
-          <Card.Title>{dashboard.level}</Card.Title>
-        </Card.Header>
+      <Card.Root class="flex flex-col justify-center gap-1 p-5">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Level</span>
+        <span class="text-4xl font-bold tabular-nums">{dashboard.level}</span>
+        <span class="text-xs text-muted-foreground">Across all instruments</span>
       </Card.Root>
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Practice next</Card.Description>
-          <Card.Title>{dashboard.dailyChallenge.skillName}</Card.Title>
-        </Card.Header>
-        <Card.Footer>
-          <Button href={dashboard.continuePractice.href} variant="outline">
-            {dashboard.continuePractice.label}
-          </Button>
-        </Card.Footer>
+      <Card.Root class="flex flex-col gap-2 p-5">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Practice next</span
+        >
+        <span class="text-lg font-bold leading-tight">{dashboard.dailyChallenge.skillName}</span>
+        <Button class="mt-auto" href={dashboard.continuePractice.href} variant="outline">
+          {dashboard.continuePractice.label}
+        </Button>
       </Card.Root>
     </section>
 
@@ -198,15 +208,9 @@
             <Card.Description>Capability summary</Card.Description>
             <Card.Title>Coverage</Card.Title>
           </Card.Header>
-          <Card.Content class="grid gap-3">
+          <Card.Content class="flex flex-wrap justify-center gap-4">
             {#each Object.entries(skillTree.capabilitySummary) as [capability, summary]}
-              <div class="grid gap-1">
-                <div class="flex items-center justify-between gap-3 text-sm">
-                  <span>{capability}</span>
-                  <span class="text-muted-foreground">{summary.averageMastery}%</span>
-                </div>
-                <Progress value={summary.averageMastery} max={100} />
-              </div>
+              <SkillRing percent={summary.averageMastery} label={capability} />
             {/each}
           </Card.Content>
         </Card.Root>
