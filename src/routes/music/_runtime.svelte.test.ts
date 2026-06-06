@@ -23,4 +23,13 @@ describe("MusicRuntime shared UI state", () => {
     expect(rt.activeSource).toBe("midi");
     rt.dispose();
   });
+
+  it("updates shared transport bpm", () => {
+    const rt = new MusicRuntime();
+    expect(rt.transportBpm).toBe(96);
+    rt.setTransportBpm(132);
+    expect(rt.transportBpm).toBe(132);
+    expect(rt.metronomeRunning).toBe(false);
+    rt.dispose();
+  });
 });

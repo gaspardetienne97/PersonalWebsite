@@ -14,8 +14,9 @@ test("music route app renders", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Musicianship OS" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "MIDI devices" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Live MIDI events" })).toBeVisible();
-  // Input state now lives in the shared topbar readout.
-  await expect(page.getByText("On-screen confidence 80%")).toBeVisible();
+  // Instrument hub + persistent transport bar replace the old status topbar.
+  await expect(page.getByText("Input router")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Play metronome" })).toBeVisible();
   await page.getByRole("button", { name: "Answer m6" }).click();
   await expect(page.getByText(/Correct\..*m6 mastery/i)).toBeVisible();
 

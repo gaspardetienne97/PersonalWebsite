@@ -2,6 +2,8 @@
   import type { Icon as IconType } from "lucide-svelte";
   import BookOpen from "lucide-svelte/icons/book-open";
   import ChartNoAxesColumnIncreasing from "lucide-svelte/icons/chart-no-axes-column-increasing";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import CircleUser from "lucide-svelte/icons/circle-user";
   import Drum from "lucide-svelte/icons/drum";
   import Ear from "lucide-svelte/icons/ear";
   import FlaskConical from "lucide-svelte/icons/flask-conical";
@@ -12,6 +14,7 @@
   import NotebookPen from "lucide-svelte/icons/notebook-pen";
   import Play from "lucide-svelte/icons/play";
   import Plug from "lucide-svelte/icons/plug";
+  import Settings from "lucide-svelte/icons/settings";
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
 
   import { cn } from "@repo/ui/utils";
@@ -115,6 +118,26 @@
       </div>
     {/each}
   </nav>
+
+  <div class="mt-auto flex flex-col gap-2 border-t p-3">
+    <a
+      href="/music"
+      class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    >
+      <Settings class="size-4 shrink-0" aria-hidden="true" />
+      <span>Settings</span>
+    </a>
+    <div class="flex items-center gap-3 rounded-xl border bg-card p-2.5">
+      <span class="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+        <CircleUser class="size-5" aria-hidden="true" />
+      </span>
+      <div class="min-w-0 flex-1">
+        <div class="truncate text-sm font-semibold">Your practice</div>
+        <div class="truncate text-[11px] text-muted-foreground">Local profile</div>
+      </div>
+      <ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    </div>
+  </div>
 </aside>
 
 <!-- Mobile bottom tab bar -->

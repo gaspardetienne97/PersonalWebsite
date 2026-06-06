@@ -4,7 +4,7 @@
   import { pwaInfo } from "virtual:pwa-info";
 
   import MusicNavigation from "./_components/MusicNavigation.svelte";
-  import MusicTopbar from "./_components/MusicTopbar.svelte";
+  import MusicTransportBar from "./_components/MusicTransportBar.svelte";
   import { createMusicRuntime } from "./_runtime.svelte";
 
   let { children } = $props();
@@ -32,8 +32,18 @@
 
 <div class="flex min-h-screen bg-background text-foreground">
   <MusicNavigation {currentPath} />
-  <div class="min-w-0 flex-1 pb-16 md:pb-0">
-    <MusicTopbar {currentPath} {runtime} />
-    {@render children()}
+  <div class="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+    <div class="flex-1">
+      {@render children()}
+    </div>
+    <MusicTransportBar
+      bpm={runtime.transportBpm}
+      onBpm={(value) => runtime.setTransportBpm(value)}
+      running={runtime.metronomeRunning}
+      onToggle={() => runtime.toggleMetronome()}
+      audioEnabled={runtime.audioEnabled}
+      audioPending={runtime.audioPending}
+      onEnableAudio={() => runtime.enableAudio()}
+    />
   </div>
 </div>

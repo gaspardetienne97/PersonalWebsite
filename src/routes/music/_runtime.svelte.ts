@@ -4,6 +4,10 @@ import type { InputSource, InstrumentId } from "@repo/music-core/domain";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { MidiEngine } from "@repo/music-core/engines/midi";
 import { SoundEngine } from "@repo/music-core/engines/sound";
+import {
+  createToneTransportEngine,
+  type TransportEngine,
+} from "@repo/music-core/engines/transport";
 
 const MUSIC_RUNTIME = Symbol("music-runtime");
 
@@ -21,6 +25,13 @@ export class MusicRuntime {
   activeSource = $state<InputSource>(this.router.activeSource);
   inputConfidence = $state<number>(this.router.confidence);
 
+  /** Shared metronome state driving the persistent transport bar. */
+  transportBpm = $state(96);
+  metronomeRunning = $state(false);
+  activeBeat = $state(-1);
+
+  #transport?: TransportEngine;
+  #unsubscribeTransport?: () => void;
   #enablePromise?: Promise<boolean>;
   #unsubscribeMidi = this.midi.subscribe((event) => {
     this.router.push(event);
@@ -41,9 +52,43 @@ export class MusicRuntime {
     this.activeInstrument = instrument;
   }
 
+  setTransportBpm(value: number): void {
+    this.transportBpm = value;
+    this.#transport?.setBpm(value);
+  }
+
+  async toggleMetronome(): Promise<void> {
+    const enabled = await this.enableAudio();
+    if (!enabled) return;
+
+    if (!this.#transport) {
+      this.#transport = await createToneTransportEngine({
+        bpm: this.transportBpm,
+        onMetronomeClick: (atSeconds, accented) =>
+          this.sound.playMetronomeClick(atSeconds, accented),
+      });
+      this.#unsubscribeTransport = this.#transport.subscribe((event) => {
+        if (event.kind === "beat") this.activeBeat = event.beat;
+      });
+    }
+
+    if (this.#transport.state.running) {
+      this.#transport.stop();
+      this.metronomeRunning = false;
+      this.activeBeat = -1;
+      return;
+    }
+
+    this.#transport.setBpm(this.transportBpm);
+    this.#transport.start();
+    this.metronomeRunning = true;
+  }
+
   dispose(): void {
     this.#unsubscribeMidi();
     this.#unsubscribeRouterState();
+    this.#unsubscribeTransport?.();
+    if (this.#transport?.state.running) this.#transport.stop();
     void this.midi.disable();
     this.sound.dispose();
   }

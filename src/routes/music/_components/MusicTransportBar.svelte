@@ -67,7 +67,7 @@
     <button
       type="button"
       onclick={onToggle}
-      aria-label={running ? "Stop metronome" : "Start metronome"}
+      aria-label={running ? "Pause metronome" : "Play metronome"}
       class="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-105 active:scale-95"
     >
       {#if running}
