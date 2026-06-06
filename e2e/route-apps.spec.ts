@@ -20,10 +20,11 @@ test("music route app renders", async ({ page }) => {
   await page.getByRole("button", { name: "Answer m6" }).click();
   await expect(page.getByText(/Correct\..*m6 mastery/i)).toBeVisible();
 
-  await page.getByRole("button", { name: "Start metronome" }).click();
-  await expect(page.getByText(/Playing beat [1-4]/)).toBeVisible();
-  await page.getByRole("button", { name: "Stop metronome" }).click();
-  await expect(page.getByText("Metronome stopped")).toBeVisible();
+  // The persistent transport bar owns the shared metronome.
+  await page.getByRole("button", { name: "Play metronome" }).click();
+  await expect(page.getByRole("button", { name: "Pause metronome" })).toBeVisible();
+  await page.getByRole("button", { name: "Pause metronome" }).click();
+  await expect(page.getByRole("button", { name: "Play metronome" })).toBeVisible();
 });
 
 test("music route app registers its installable PWA", async ({ page }) => {

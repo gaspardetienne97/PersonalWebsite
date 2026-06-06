@@ -10,30 +10,29 @@
   import { ProgressEngine } from '@repo/music-core/engines/progress';
   import { seedCoreSkills, SkillGraphStore } from '@repo/music-core/engines/skills';
   import { PracticeStore } from '@repo/music-core/engines/store';
-  import {
-    createToneTransportEngine,
-    scheduleMetronomeTicks,
-    type TransportEngine
-  } from '@repo/music-core/engines/transport';
   import { chordNotes } from '@repo/music-core/engines/theory';
   import { intervalRecognitionExercise } from '@repo/music-core/exercises/interval-recognition';
   import { choiceAnswerEvent } from '@repo/music-core/exercises/ear-training';
   import { Button } from '@repo/ui/button';
   import * as Card from '@repo/ui/card';
   import { Progress } from '@repo/ui/progress';
-  import { Slider } from '@repo/ui/slider';
   import { onDestroy } from 'svelte';
 
   import Drum from 'lucide-svelte/icons/drum';
   import Ear from 'lucide-svelte/icons/ear';
+  import Guitar from 'lucide-svelte/icons/guitar';
+  import Mic from 'lucide-svelte/icons/mic';
   import Music from 'lucide-svelte/icons/music';
+  import Piano from 'lucide-svelte/icons/piano';
   import SlidersHorizontal from 'lucide-svelte/icons/sliders-horizontal';
 
   import InstrumentBadge from './_components/InstrumentBadge.svelte';
   import OnScreenKeyboard from './_components/OnScreenKeyboard.svelte';
   import PracticeActionCard from './_components/PracticeActionCard.svelte';
+  import PracticeScreen from './_components/PracticeScreen.svelte';
+  import PracticeScreenHeader from './_components/PracticeScreenHeader.svelte';
   import ProgressRing from './_components/ProgressRing.svelte';
-  import SegmentProgress from './_components/SegmentProgress.svelte';
+  import SourceReadout from './_components/SourceReadout.svelte';
   import WeekDots from './_components/WeekDots.svelte';
   import { useMusicRuntime } from './_runtime.svelte';
 
@@ -46,11 +45,7 @@
   const progress = new ProgressEngine(practiceStore);
   const coreSkillSeed = seedCoreSkills();
   const midiEngine = runtime.midi;
-  let transport: TransportEngine | undefined;
-  let unsubscribeTransport: (() => void) | undefined;
 
-  let metronomeRunning = $state(false);
-  let activeBeat = $state(-1);
   let lastEvent = $state<NoteEvent | undefined>();
   let midiEnabled = $state(false);
   let midiStatus = $state('MIDI permission has not been requested.');
@@ -58,7 +53,6 @@
   let midiEvents = $state<NoteEvent[]>([]);
   let activeSource = $state(router.activeSource);
   let inputConfidence = $state(router.confidence);
-  let bpmValue = $state([96]);
   let xp = $state(progress.state.xp);
   let streak = $state(progress.state.streakDays);
   let mastery = $state(skills.getMastery('pitch.interval.m6').mastery);
@@ -85,9 +79,20 @@
   );
 
   const midi = $derived(midiCapabilities(browser ? navigator : {}));
-  const bpm = $derived(bpmValue[0] ?? 96);
   const cmaj7 = $derived(chordNotes('Cmaj7'));
-  const ticks = $derived(scheduleMetronomeTicks({ bpm, numerator: 4 }, 0, 4));
+  const sourceLabel = $derived(
+    activeSource === 'midi' ? 'MIDI' : activeSource === 'audio' ? 'Audio' : 'On-screen'
+  );
+
+  const instruments = [
+    { id: 'piano', name: 'Piano', icon: Piano },
+    { id: 'guitar', name: 'Guitar', icon: Guitar },
+    { id: 'ukulele', name: 'Ukulele', icon: Guitar },
+    { id: 'aerophone', name: 'Aerophone', icon: Music },
+    { id: 'mpc', name: 'MPC Pads', icon: Drum },
+    { id: 'voice', name: 'Voice', icon: Mic }
+  ] as const;
+
   function projectSkillRows() {
     return coreSkillSeed.skills.slice(0, 8).map((skill) => ({
       ...skill,
@@ -112,39 +117,6 @@
       ? `${state.inputs.length} input${state.inputs.length === 1 ? '' : 's'} connected.`
       : (state.error ?? 'MIDI permission has not been requested.');
   });
-
-  $effect(() => {
-    transport?.setBpm(bpm);
-  });
-
-  async function ensureTransport() {
-    const audioEnabled = await runtime.enableAudio();
-    if (!audioEnabled || transport) return;
-
-    transport = await createToneTransportEngine({
-      bpm,
-      onMetronomeClick: (atSeconds, accented) => sound.playMetronomeClick(atSeconds, accented)
-    });
-    unsubscribeTransport = transport.subscribe((event) => {
-      if (event.kind === 'beat') activeBeat = event.beat;
-    });
-  }
-
-  async function toggleMetronome() {
-    await ensureTransport();
-    if (!transport) return;
-
-    if (transport.state.running) {
-      transport.stop();
-      metronomeRunning = false;
-      activeBeat = -1;
-      return;
-    }
-
-    transport.setBpm(bpm);
-    transport.start();
-    metronomeRunning = true;
-  }
 
   async function enableMidi() {
     await midiEngine.enable();
@@ -189,12 +161,10 @@
   }
 
   onDestroy(() => {
-    unsubscribeTransport?.();
     unsubscribeRouter();
     unsubscribeRouterState();
     unsubscribeMidi();
     unsubscribeMidiState();
-    if (transport?.state.running) transport.stop();
   });
 </script>
 
@@ -206,25 +176,22 @@
   />
 </svelte:head>
 
-<main class="min-h-screen bg-background text-foreground">
-  <section class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-8">
-    <header class="flex flex-wrap items-start gap-4">
-      <div class="min-w-0 flex-1">
-        <h1 class="text-3xl font-bold tracking-tight">
-          Good {greeting} — welcome to Musicianship OS
-        </h1>
-        <p class="mt-1 text-muted-foreground">
-          Keep the streak alive — one focused rep at a time.
-        </p>
-      </div>
-      <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
-        {midiEnabled
-          ? 'Web MIDI enabled'
-          : midi.supported
-            ? 'Web MIDI ready'
-            : 'Web MIDI unavailable'}
-      </span>
-    </header>
+<PracticeScreen>
+    <PracticeScreenHeader
+      title="Good {greeting} — welcome to Musicianship OS"
+      subtitle="Keep the streak alive — one focused rep at a time."
+    >
+      {#snippet controls()}
+        <SourceReadout label="Active input" device={sourceLabel} live={activeSource === 'midi'} />
+        <span class="rounded-full border px-3 py-1 text-sm text-muted-foreground">
+          {midiEnabled
+            ? 'Web MIDI enabled'
+            : midi.supported
+              ? 'Web MIDI ready'
+              : 'Web MIDI unavailable'}
+        </span>
+      {/snippet}
+    </PracticeScreenHeader>
 
     {#if !midi.supported}
       <Card.Root aria-live="polite">
@@ -302,6 +269,39 @@
             Full ear training →
           </a>
         </div>
+      </div>
+    </div>
+
+    <!-- Instrument strip -->
+    <div class="rounded-2xl border bg-card p-5">
+      <div class="mb-4 flex items-center justify-between">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Your instruments</span
+        >
+        <span class="text-xs text-muted-foreground">Tap to set the active instrument</span>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        {#each instruments as instrument}
+          {@const Icon = instrument.icon}
+          {@const active = runtime.activeInstrument === instrument.id}
+          <button
+            type="button"
+            onclick={() => runtime.setActiveInstrument(instrument.id)}
+            aria-pressed={active}
+            class="flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors {active
+              ? 'border-primary bg-primary/10'
+              : 'hover:bg-muted'}"
+          >
+            <span
+              class="grid size-9 place-items-center rounded-lg {active
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground'}"
+            >
+              <Icon class="size-4" aria-hidden="true" />
+            </span>
+            <span class="text-sm font-semibold">{instrument.name}</span>
+          </button>
+        {/each}
       </div>
     </div>
 
@@ -412,46 +412,6 @@
       </Card.Content>
     </Card.Root>
 
-    <!-- Metronome / transport -->
-    <Card.Root id="play">
-      <Card.Header>
-        <Card.Description>Transport</Card.Description>
-        <Card.Title>Metronome scheduler</Card.Title>
-      </Card.Header>
-      <Card.Content class="space-y-4">
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="flex flex-1 items-center gap-3">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
-              >Tempo</span
-            >
-            <span class="text-lg font-bold tabular-nums">{bpm} bpm</span>
-            <div class="w-36">
-              <Slider type="multiple" min={60} max={180} step={1} bind:value={bpmValue} />
-            </div>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            {#each ticks as tick}
-              <span
-                class="grid size-10 place-items-center rounded-md border text-sm font-medium transition-colors"
-                class:bg-primary={activeBeat === tick.beat}
-                class:text-primary-foreground={activeBeat === tick.beat}
-              >
-                {tick.beat + 1}
-              </span>
-            {/each}
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-sm text-muted-foreground" aria-live="polite">
-              {metronomeRunning ? `Playing beat ${activeBeat + 1}` : 'Metronome stopped'}
-            </span>
-            <Button type="button" variant="secondary" onclick={toggleMetronome}>
-              {metronomeRunning ? 'Stop metronome' : 'Start metronome'}
-            </Button>
-          </div>
-        </div>
-      </Card.Content>
-    </Card.Root>
-
     <!-- Skill snapshot (real mastery) + theory projection -->
     <div class="grid gap-6 lg:grid-cols-3">
       <Card.Root id="progress" class="lg:col-span-2">
@@ -503,5 +463,4 @@
         </Card.Content>
       </Card.Root>
     </div>
-  </section>
-</main>
+</PracticeScreen>
