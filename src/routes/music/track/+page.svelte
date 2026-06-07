@@ -387,7 +387,7 @@
     <Card.Root>
       <Card.Header>
         <Card.Description>Goals</Card.Description>
-        <Card.Title>This week</Card.Title>
+        <Card.Title>Weekly targets</Card.Title>
       </Card.Header>
       <Card.Content class="grid gap-4">
         <div class="grid gap-1">
