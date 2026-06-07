@@ -225,7 +225,7 @@
           class="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
           >Today's XP</span
         >
-        <ProgressRing value={xp} total={dailyXpGoal} label="Today's XP" size={140} />
+        <ProgressRing value={xp} total={dailyXpGoal} label="Today's XP" size={140} gradient />
         <span class="text-xs text-muted-foreground">Daily goal · resets at midnight</span>
       </div>
 
@@ -244,14 +244,21 @@
       </div>
 
       <!-- Continue practice (interval demo, real engine) -->
-      <div class="flex flex-col gap-3 rounded-2xl border bg-card p-5 sm:col-span-2" id="learn">
-        <div class="flex items-center gap-2">
-          <span
-            class="flex-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
-            >Continue practice</span
-          >
-          <InstrumentBadge instrument="Piano" dot />
+      <div
+        class="flex flex-col gap-3 overflow-hidden rounded-2xl border bg-card sm:col-span-2"
+        id="learn"
+      >
+        <!-- cover media -->
+        <div
+          class="relative flex h-20 items-end bg-gradient-to-br from-primary/30 via-primary/15 to-transparent p-4"
+        >
+          <span class="text-sm font-semibold text-primary/90">Jazz II–V–I · ear training</span>
+          <span class="absolute right-4 top-4"><InstrumentBadge instrument="Piano" dot /></span>
         </div>
+        <div class="flex flex-col gap-3 px-5 pb-5">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+          >Continue practice</span
+        >
         <h2 class="text-lg font-bold tracking-tight">Daily mixed session</h2>
         <p class="text-sm text-muted-foreground">Interval recognition · moves real mastery</p>
         <div class="grid grid-cols-3 gap-2">
@@ -280,6 +287,7 @@
           >
             Full ear training →
           </a>
+        </div>
         </div>
       </div>
     </div>

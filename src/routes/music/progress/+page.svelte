@@ -112,7 +112,7 @@
         <span class="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
           >Today's XP</span
         >
-        <ProgressRing value={dashboard.todayXp} total={dashboard.todayGoalXp} label="Today's XP" size={132} />
+        <ProgressRing value={dashboard.todayXp} total={dashboard.todayGoalXp} label="Today's XP" size={132} gradient />
         <span class="text-xs text-muted-foreground">Daily goal</span>
       </Card.Root>
       <Card.Root class="flex flex-col items-center gap-2 p-5">
