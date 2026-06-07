@@ -4,6 +4,8 @@
   import { unixMs, type InstrumentId, type PracticeSession } from "@repo/music-core/domain";
   import {
     buildJournalHeatmap,
+    summarizeFocusAreas,
+    type FocusArea,
     type HeatmapCell,
   } from "@repo/music-core/engines/projection";
   import {
@@ -28,7 +30,16 @@
   let sessions = $state<PracticeSession[]>([]);
   let comparison = $state<WeekComparison>(journal.compareWeeks(unixMs(Date.now())));
   let heatmap = $state<HeatmapCell[][]>([]);
+  let focusAreas = $state<FocusArea[]>([]);
   let note = $state("");
+
+  const routineSteps = [
+    { label: "Warm-up · long tones", meta: "Technique", href: "/music/play/scales" },
+    { label: "Ear training", meta: "Listening", href: "/music/learn/ear" },
+    { label: "Rhythm lock", meta: "Timing", href: "/music/learn/rhythm" },
+    { label: "Jazz voicings", meta: "Harmony", href: "/music/learn/theory" },
+  ];
+  const weeklySessionGoal = 5;
   let tagText = $state("journal");
   let filterSkill = $state("");
   let filterInstrument = $state("");
@@ -88,6 +99,7 @@
     sessions = journal.all().sort((a, b) => b.startTime - a.startTime);
     comparison = journal.compareWeeks(unixMs(Date.now()));
     heatmap = buildJournalHeatmap(journal.all(), new Date());
+    focusAreas = summarizeFocusAreas(journal.all());
   }
 
   const HEATMAP_INTENSITY = [
@@ -310,5 +322,98 @@
         {/if}
       </section>
     </div>
+  </section>
+
+  <section class="grid gap-6 lg:grid-cols-3" aria-label="Routine, focus, and goals">
+    <!-- Today's routine -->
+    <Card.Root>
+      <Card.Header class="flex-row items-center justify-between gap-2">
+        <Card.Description>Today's routine</Card.Description>
+        <span class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+          {routineSteps.length} steps
+        </span>
+      </Card.Header>
+      <Card.Content class="grid gap-2">
+        {#each routineSteps as step, index}
+          <a
+            href={step.href}
+            class="flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted"
+          >
+            <span class="grid size-7 shrink-0 place-items-center rounded-full bg-muted text-xs font-bold tabular-nums">
+              {index + 1}
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-semibold">{step.label}</span>
+              <span class="text-xs text-muted-foreground">{step.meta}</span>
+            </span>
+          </a>
+        {/each}
+      </Card.Content>
+    </Card.Root>
+
+    <!-- Focus areas (real, from session tags) -->
+    <Card.Root>
+      <Card.Header>
+        <Card.Description>Focus areas</Card.Description>
+        <Card.Title>What you're working on</Card.Title>
+      </Card.Header>
+      <Card.Content class="grid gap-3">
+        {#if focusAreas.length === 0}
+          <p class="text-sm text-muted-foreground">
+            Tag your sessions to build up focus areas here.
+          </p>
+        {:else}
+          {#each focusAreas as area}
+            <div class="grid gap-1">
+              <div class="flex items-center justify-between gap-3 text-sm">
+                <span class="truncate font-medium">{area.tag}</span>
+                <span class="text-xs text-muted-foreground">
+                  {area.sessionCount} session{area.sessionCount === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  class="h-full rounded-full bg-primary"
+                  style="width:{Math.min(100, area.sessionCount * 20)}%"
+                ></div>
+              </div>
+            </div>
+          {/each}
+        {/if}
+      </Card.Content>
+    </Card.Root>
+
+    <!-- Goals (real, from week comparison + streak) -->
+    <Card.Root>
+      <Card.Header>
+        <Card.Description>Goals</Card.Description>
+        <Card.Title>This week</Card.Title>
+      </Card.Header>
+      <Card.Content class="grid gap-4">
+        <div class="grid gap-1">
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <span class="font-medium">Practice {weeklySessionGoal}× / week</span>
+            <span class="font-semibold tabular-nums text-primary">
+              {Math.min(comparison.thisWeek.sessionCount, weeklySessionGoal)}/{weeklySessionGoal}
+            </span>
+          </div>
+          <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              class="h-full rounded-full bg-primary"
+              style="width:{Math.min(100, (comparison.thisWeek.sessionCount / weeklySessionGoal) * 100)}%"
+            ></div>
+          </div>
+        </div>
+        <div class="grid gap-1">
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <span class="font-medium">XP this week</span>
+            <span class="font-semibold tabular-nums">{comparison.thisWeek.xp}</span>
+          </div>
+          <p class="text-xs text-muted-foreground">
+            {comparison.delta.xp >= 0 ? "+" : ""}{comparison.delta.xp} vs last week
+          </p>
+        </div>
+      </Card.Content>
+    </Card.Root>
   </section>
 </PracticeScreen>
