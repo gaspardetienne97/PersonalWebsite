@@ -15,7 +15,6 @@
   import { choiceAnswerEvent } from '@repo/music-core/exercises/ear-training';
   import { Button } from '@repo/ui/button';
   import * as Card from '@repo/ui/card';
-  import { Progress } from '@repo/ui/progress';
   import { onDestroy } from 'svelte';
 
   import Drum from 'lucide-svelte/icons/drum';
@@ -32,6 +31,7 @@
   import PracticeScreen from './_components/PracticeScreen.svelte';
   import PracticeScreenHeader from './_components/PracticeScreenHeader.svelte';
   import ProgressRing from './_components/ProgressRing.svelte';
+  import SkillTreeGraph from './_components/SkillTreeGraph.svelte';
   import SourceReadout from './_components/SourceReadout.svelte';
   import WeekDots from './_components/WeekDots.svelte';
   import { useMusicRuntime } from './_runtime.svelte';
@@ -83,6 +83,18 @@
   const sourceLabel = $derived(
     activeSource === 'midi' ? 'MIDI' : activeSource === 'audio' ? 'Audio' : 'On-screen'
   );
+  const snapshotNodes = $derived(
+    skillRows.slice(0, 5).map((skill) => ({ label: skill.name, percent: skill.mastery }))
+  );
+  const snapshotRoot = $derived({
+    label: 'Musicality',
+    percent:
+      snapshotNodes.length > 0
+        ? Math.round(
+            snapshotNodes.reduce((total, node) => total + node.percent, 0) / snapshotNodes.length
+          )
+        : 0
+  });
 
   const instruments = [
     { id: 'piano', name: 'Piano', icon: Piano },
@@ -425,20 +437,12 @@
           </span>
         </Card.Header>
         <Card.Content>
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {#each skillRows as skill}
-              <div class="grid gap-2 rounded-xl border p-3">
-                <div class="flex items-center justify-between gap-3 text-sm">
-                  <span class="font-medium">{skill.name}</span>
-                  <span class="text-muted-foreground">{skill.mastery}%</span>
-                </div>
-                <Progress value={skill.mastery} max={100} />
-              </div>
-            {/each}
-          </div>
+          {#if snapshotNodes.length > 0}
+            <SkillTreeGraph root={snapshotRoot} nodes={snapshotNodes} />
+          {/if}
           <a
             href="/music/progress"
-            class="mt-4 inline-flex text-sm text-muted-foreground hover:text-foreground"
+            class="mt-2 inline-flex text-sm text-muted-foreground hover:text-foreground"
             >Full skill tree →</a
           >
         </Card.Content>
