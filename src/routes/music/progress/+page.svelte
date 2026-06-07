@@ -20,6 +20,7 @@
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import ProgressRing from "../_components/ProgressRing.svelte";
   import SkillRing from "../_components/SkillRing.svelte";
+  import SkillTreeGraph from "../_components/SkillTreeGraph.svelte";
   import WeekDots from "../_components/WeekDots.svelte";
 
   const store = browser ? new PracticeStore() : undefined;
@@ -39,6 +40,22 @@
       completedDays: last7.flatMap((day, index) => (day.practiced ? [index] : [])),
       todayIndex: last7.length - 1,
     };
+  });
+  const capabilityNodes = $derived(
+    Object.entries(skillTree?.capabilitySummary ?? {}).map(([capability, summary]) => ({
+      label: capability,
+      percent: summary.averageMastery,
+    })),
+  );
+  const capabilityRoot = $derived({
+    label: "Musicality",
+    percent:
+      capabilityNodes.length > 0
+        ? Math.round(
+            capabilityNodes.reduce((total, node) => total + node.percent, 0) /
+              capabilityNodes.length,
+          )
+        : 0,
   });
 
   void initialize();
@@ -122,6 +139,18 @@
         </Button>
       </Card.Root>
     </section>
+
+    {#if capabilityNodes.length > 0}
+      <Card.Root>
+        <Card.Header>
+          <Card.Description>Skill tree</Card.Description>
+          <Card.Title>Capability overview</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <SkillTreeGraph root={capabilityRoot} nodes={capabilityNodes} height={240} />
+        </Card.Content>
+      </Card.Root>
+    {/if}
 
     <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div class="grid gap-6">
