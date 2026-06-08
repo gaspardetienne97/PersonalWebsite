@@ -10,6 +10,7 @@
     "./engines/device-profiles": "./src/engines/device-profiles/index.ts",
     "./engines/ear-training": "./src/engines/ear-training/index.ts",
     "./engines/exercise": "./src/engines/exercise/index.ts",
+    "./engines/import": "./src/engines/import/index.ts",
     "./engines/input-router": "./src/engines/input-router/index.ts",
     "./engines/jam": "./src/engines/jam/index.ts",
     "./engines/library": "./src/engines/library/index.ts",
@@ -45,6 +46,7 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
+    "@tonejs/midi": "^2.0.28",
     "dexie": "catalog:",
     "tonal": "catalog:",
     "tone": "^15.3.11",
