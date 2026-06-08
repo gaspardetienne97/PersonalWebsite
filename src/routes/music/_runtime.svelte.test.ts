@@ -32,4 +32,14 @@ describe("MusicRuntime shared UI state", () => {
     expect(rt.metronomeRunning).toBe(false);
     rt.dispose();
   });
+
+  it("tracks a configurable count-in", () => {
+    const rt = new MusicRuntime();
+    expect(rt.countInBars).toBe(1);
+    rt.setCountIn(2);
+    expect(rt.countInBars).toBe(2);
+    rt.setCountIn(0);
+    expect(rt.countInBars).toBe(0);
+    rt.dispose();
+  });
 });

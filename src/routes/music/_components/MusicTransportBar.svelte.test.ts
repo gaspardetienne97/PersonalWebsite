@@ -24,4 +24,20 @@ describe("MusicTransportBar", () => {
     render(MusicTransportBar, { bpm: 96, audioEnabled: false });
     expect(document.body.textContent).toContain("Enable audio");
   });
+
+  test("selects a count-in length", () => {
+    let bars = -1;
+    render(MusicTransportBar, {
+      bpm: 96,
+      countInBars: 1,
+      onCountIn: (value: number) => (bars = value),
+    });
+    const group = document.querySelector('[role="group"][aria-label="Count in"]');
+    expect(group).not.toBeNull();
+    const off = [...(group?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find(
+      (button) => button.textContent?.trim() === "Off",
+    );
+    off?.click();
+    expect(bars).toBe(0);
+  });
 });

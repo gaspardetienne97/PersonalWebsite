@@ -29,6 +29,7 @@ export class MusicRuntime {
   transportBpm = $state(96);
   metronomeRunning = $state(false);
   activeBeat = $state(-1);
+  countInBars = $state(1);
 
   #transport?: TransportEngine;
   #unsubscribeTransport?: () => void;
@@ -54,7 +55,13 @@ export class MusicRuntime {
 
   setTransportBpm(value: number): void {
     this.transportBpm = value;
-    this.#transport?.setBpm(value);
+    // Forward to the live clock so tempo changes apply while the metronome runs.
+    if (this.#transport && Number.isFinite(value) && value > 0) this.#transport.setBpm(value);
+  }
+
+  setCountIn(bars: number): void {
+    this.countInBars = Math.max(0, Math.round(bars));
+    this.#transport?.setCountInBars(this.countInBars);
   }
 
   async toggleMetronome(): Promise<void> {

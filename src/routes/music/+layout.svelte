@@ -44,6 +44,8 @@
       audioEnabled={runtime.audioEnabled}
       audioPending={runtime.audioPending}
       onEnableAudio={() => runtime.enableAudio()}
+      countInBars={runtime.countInBars}
+      onCountIn={(bars) => runtime.setCountIn(bars)}
     />
   </div>
 </div>
