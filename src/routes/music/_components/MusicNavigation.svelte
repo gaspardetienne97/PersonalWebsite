@@ -19,12 +19,18 @@
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
   import Upload from "lucide-svelte/icons/upload";
   import WandSparkles from "lucide-svelte/icons/wand-sparkles";
+  import Grid3x3 from "lucide-svelte/icons/grid-3x3";
 
   import { cn } from "@repo/ui/utils";
 
   let { currentPath }: { currentPath: string } = $props();
 
-  type NavItem = { label: string; href: string; icon: typeof IconType; badge?: string };
+  type NavItem = {
+    label: string;
+    href: string;
+    icon: typeof IconType;
+    badge?: string;
+  };
   type NavGroup = { label?: string; items: NavItem[] };
 
   const navGroups: NavGroup[] = [
@@ -41,7 +47,11 @@
         { label: "Ear Training", href: "/music/learn/ear", icon: Ear },
         { label: "Note Reading", href: "/music/learn/reading", icon: BookOpen },
         { label: "Rhythm", href: "/music/learn/rhythm", icon: Drum },
-        { label: "Scales & Drills", href: "/music/play/scales", icon: SlidersHorizontal },
+        {
+          label: "Scales & Drills",
+          href: "/music/play/scales",
+          icon: SlidersHorizontal,
+        },
       ],
     },
     {
@@ -50,6 +60,7 @@
         { label: "Practice Lab", href: "/music/play", icon: FlaskConical },
         { label: "Import & Play", href: "/music/import", icon: Upload },
         { label: "Jam / Improv", href: "/music/jam", icon: WandSparkles },
+        { label: "Studio", href: "/music/studio", icon: Grid3x3 },
         { label: "Recording", href: "/music/recording", icon: Disc },
       ],
     },
@@ -59,7 +70,13 @@
     },
     {
       label: "Progress",
-      items: [{ label: "Skill Tree", href: "/music/progress", icon: ChartNoAxesColumnIncreasing }],
+      items: [
+        {
+          label: "Skill Tree",
+          href: "/music/progress",
+          icon: ChartNoAxesColumnIncreasing,
+        },
+      ],
     },
   ];
 
@@ -68,37 +85,56 @@
     { label: "Learn", href: "/music/learn", icon: BookOpen },
     { label: "Play", href: "/music/play", icon: Play },
     { label: "Track", href: "/music/track", icon: ListMusic },
-    { label: "Progress", href: "/music/progress", icon: ChartNoAxesColumnIncreasing },
+    {
+      label: "Progress",
+      href: "/music/progress",
+      icon: ChartNoAxesColumnIncreasing,
+    },
   ];
 
   // Most specific match wins so a sub-route doesn't also light up a broader entry.
-  const allHrefs = $derived(navGroups.flatMap((group) => group.items.map((item) => item.href)));
+  const allHrefs = $derived(
+    navGroups.flatMap((group) => group.items.map((item) => item.href)),
+  );
 
   function isActive(href: string): boolean {
     if (href === "/music") return currentPath === href;
     if (!currentPath.startsWith(href)) return false;
     // Only active if no longer href also matches (more specific entry).
-    return !allHrefs.some((other) => other !== href && other.startsWith(href) && currentPath.startsWith(other));
+    return !allHrefs.some(
+      (other) =>
+        other !== href &&
+        other.startsWith(href) &&
+        currentPath.startsWith(other),
+    );
   }
 
   function isMobileActive(href: string): boolean {
-    return href === "/music" ? currentPath === href : currentPath.startsWith(href);
+    return href === "/music"
+      ? currentPath === href
+      : currentPath.startsWith(href);
   }
 </script>
 
 <!-- Desktop sidebar -->
-<aside class="hidden w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
+<aside
+  class="hidden w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground md:flex"
+>
   <div class="flex flex-col gap-0.5 border-b p-4">
     <span class="flex items-center gap-2 text-base font-bold tracking-tight">
       <Music class="size-4 text-primary" aria-hidden="true" />
       Practice OS
     </span>
-    <span class="text-[10px] uppercase tracking-widest text-muted-foreground">cross-instrument</span>
+    <span class="text-[10px] uppercase tracking-widest text-muted-foreground"
+      >cross-instrument</span
+    >
   </div>
   <nav aria-label="Music sections" class="flex-1 overflow-y-auto py-3">
     {#each navGroups as group}
       {#if group.label}
-        <div class="px-4 pb-1 pt-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <div
+          class="px-4 pb-1 pt-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+        >
           {group.label}
         </div>
       {/if}
@@ -111,13 +147,16 @@
             class={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70",
               "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              isActive(item.href) && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+              isActive(item.href) &&
+                "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
             )}
           >
             <Icon class="size-4 shrink-0" aria-hidden="true" />
             <span class="truncate">{item.label}</span>
             {#if item.badge}
-              <span class="ml-auto text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span
+                class="ml-auto text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 {item.badge}
               </span>
             {/if}
@@ -130,7 +169,9 @@
   <div class="mt-auto flex flex-col gap-2 border-t p-3">
     <a
       href="/music/settings"
-      aria-current={currentPath.startsWith("/music/settings") ? "page" : undefined}
+      aria-current={currentPath.startsWith("/music/settings")
+        ? "page"
+        : undefined}
       class={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         currentPath.startsWith("/music/settings") &&
@@ -141,14 +182,21 @@
       <span>Settings</span>
     </a>
     <div class="flex items-center gap-3 rounded-xl border bg-card p-2.5">
-      <span class="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+      <span
+        class="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground"
+      >
         <CircleUser class="size-5" aria-hidden="true" />
       </span>
       <div class="min-w-0 flex-1">
         <div class="truncate text-sm font-semibold">Your practice</div>
-        <div class="truncate text-[11px] text-muted-foreground">Local profile</div>
+        <div class="truncate text-[11px] text-muted-foreground">
+          Local profile
+        </div>
       </div>
-      <ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <ChevronDown
+        class="size-4 shrink-0 text-muted-foreground"
+        aria-hidden="true"
+      />
     </div>
   </div>
 </aside>
