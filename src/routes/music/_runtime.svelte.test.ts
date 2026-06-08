@@ -42,4 +42,18 @@ describe("MusicRuntime shared UI state", () => {
     expect(rt.countInBars).toBe(0);
     rt.dispose();
   });
+
+  it("toggles master mute and clamps the metronome blend", () => {
+    const rt = new MusicRuntime();
+    expect(rt.masterMuted).toBe(false);
+    rt.toggleMute();
+    expect(rt.masterMuted).toBe(true);
+    expect(rt.sound.muted).toBe(true);
+
+    rt.setMetronomeLevel(1.4);
+    expect(rt.metronomeLevel).toBe(1);
+    rt.setMetronomeLevel(-1);
+    expect(rt.metronomeLevel).toBe(0);
+    rt.dispose();
+  });
 });

@@ -10,6 +10,14 @@ interface ToneInstrument {
     velocity?: number,
   ): unknown;
   toDestination(): ToneInstrument;
+  connect(destination: unknown): ToneInstrument;
+  dispose(): unknown;
+}
+
+interface ToneGain {
+  gain: { value: number };
+  toDestination(): ToneGain;
+  connect(destination: unknown): ToneGain;
   dispose(): unknown;
 }
 
@@ -21,6 +29,7 @@ interface TonePlayer {
 interface TonePlayers {
   player(name: string): TonePlayer;
   toDestination(): TonePlayers;
+  connect(destination: unknown): TonePlayers;
   dispose(): unknown;
 }
 
@@ -35,6 +44,7 @@ export interface ToneSoundModule {
   PolySynth: ToneConstructor<ToneInstrument>;
   Sampler: ToneConstructor<ToneInstrument>;
   Players: ToneConstructor<TonePlayers>;
+  Gain: ToneConstructor<ToneGain>;
 }
 
 export interface AudioGateState {
@@ -68,8 +78,13 @@ export class SoundEngine {
   #sampler: ToneInstrument | undefined;
   #players: TonePlayers | undefined;
   #metronome: ToneInstrument | undefined;
+  #master: ToneGain | undefined;
+  #metronomeGain: ToneGain | undefined;
+  #masterLevel = 1;
+  #metronomeLevel = 0.7;
   #loadTone: ToneLoader;
   enabled = false;
+  muted = false;
 
   constructor(loader: ToneLoader = loadTone) {
     this.#loadTone = loader;
@@ -80,14 +95,38 @@ export class SoundEngine {
 
     this.#tone = await this.#loadTone();
     await this.#tone.start();
-    this.#synth = new this.#tone.PolySynth(this.#tone.Synth).toDestination();
+    // master -> destination; metronome -> metronomeGain -> master; instruments -> master.
+    this.#master = new this.#tone.Gain(this.muted ? 0 : this.#masterLevel).toDestination();
+    this.#metronomeGain = new this.#tone.Gain(this.#metronomeLevel).connect(this.#master);
+    this.#synth = new this.#tone.PolySynth(this.#tone.Synth).connect(this.#master);
     this.#metronome = new this.#tone.Synth({
       oscillator: { type: "triangle" },
       envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.02 },
-    }).toDestination();
+    }).connect(this.#metronomeGain);
     this.enabled = true;
 
     return { enabled: true, message: "Audio enabled." };
+  }
+
+  /** Master mute — toggles all audio output. */
+  setMasterMuted(muted: boolean): void {
+    this.muted = muted;
+    if (this.#master) this.#master.gain.value = muted ? 0 : this.#masterLevel;
+  }
+
+  setMasterVolume(volume: number): void {
+    this.#masterLevel = clampVelocity(volume);
+    if (this.#master && !this.muted) this.#master.gain.value = this.#masterLevel;
+  }
+
+  /** Metronome blend — its own level, independent of playback. */
+  setMetronomeLevel(level: number): void {
+    this.#metronomeLevel = clampVelocity(level);
+    if (this.#metronomeGain) this.#metronomeGain.gain.value = this.#metronomeLevel;
+  }
+
+  get metronomeLevel(): number {
+    return this.#metronomeLevel;
   }
 
   playNote(midiNote: number, duration: ToneTime = 0.18, time?: ToneTime, velocity = 0.8): void {
@@ -126,16 +165,18 @@ export class SoundEngine {
   async loadSampler(samples: Record<string, string>): Promise<void> {
     const tone = this.#requireTone();
     this.#sampler?.dispose();
-    this.#sampler = new tone.Sampler({ urls: samples }).toDestination();
+    const sampler = new tone.Sampler({ urls: samples });
+    this.#sampler = this.#master ? sampler.connect(this.#master) : sampler.toDestination();
     await tone.loaded();
   }
 
   async loadDrumKit(samples: DrumSample[]): Promise<void> {
     const tone = this.#requireTone();
     this.#players?.dispose();
-    this.#players = new tone.Players(
+    const players = new tone.Players(
       Object.fromEntries(samples.map(({ name, url }) => [name, url])),
-    ).toDestination();
+    );
+    this.#players = this.#master ? players.connect(this.#master) : players.toDestination();
     await tone.loaded();
   }
 
@@ -179,10 +220,14 @@ export class SoundEngine {
     this.#sampler?.dispose();
     this.#players?.dispose();
     this.#metronome?.dispose();
+    this.#metronomeGain?.dispose();
+    this.#master?.dispose();
     this.#synth = undefined;
     this.#sampler = undefined;
     this.#players = undefined;
     this.#metronome = undefined;
+    this.#metronomeGain = undefined;
+    this.#master = undefined;
     this.enabled = false;
   }
 

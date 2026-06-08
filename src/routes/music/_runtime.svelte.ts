@@ -30,6 +30,8 @@ export class MusicRuntime {
   metronomeRunning = $state(false);
   activeBeat = $state(-1);
   countInBars = $state(1);
+  masterMuted = $state(false);
+  metronomeLevel = $state(0.7);
 
   #transport?: TransportEngine;
   #unsubscribeTransport?: () => void;
@@ -62,6 +64,16 @@ export class MusicRuntime {
   setCountIn(bars: number): void {
     this.countInBars = Math.max(0, Math.round(bars));
     this.#transport?.setCountInBars(this.countInBars);
+  }
+
+  toggleMute(): void {
+    this.masterMuted = !this.masterMuted;
+    this.sound.setMasterMuted(this.masterMuted);
+  }
+
+  setMetronomeLevel(level: number): void {
+    this.metronomeLevel = Math.min(1, Math.max(0, level));
+    this.sound.setMetronomeLevel(this.metronomeLevel);
   }
 
   async toggleMetronome(): Promise<void> {

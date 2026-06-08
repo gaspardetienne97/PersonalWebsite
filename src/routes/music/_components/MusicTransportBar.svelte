@@ -5,6 +5,7 @@
   import SkipBack from "lucide-svelte/icons/skip-back";
   import SkipForward from "lucide-svelte/icons/skip-forward";
   import Volume2 from "lucide-svelte/icons/volume-2";
+  import VolumeX from "lucide-svelte/icons/volume-x";
   import Waveform from "lucide-svelte/icons/audio-waveform";
 
   import * as Popover from "@repo/ui/popover";
@@ -21,6 +22,10 @@
     onEnableAudio,
     countInBars = 1,
     onCountIn,
+    muted = false,
+    onToggleMute,
+    metronomeLevel = 0.7,
+    onMetronomeLevel,
     onTap,
   }: {
     bpm: number;
@@ -32,6 +37,10 @@
     onEnableAudio?: () => void;
     countInBars?: number;
     onCountIn?: (bars: number) => void;
+    muted?: boolean;
+    onToggleMute?: () => void;
+    metronomeLevel?: number;
+    onMetronomeLevel?: (level: number) => void;
     onTap?: () => void;
   } = $props();
 
@@ -145,9 +154,38 @@
     </button>
   </div>
 
-  <!-- right: volume + tap + audio -->
+  <!-- right: mute + metronome blend + tap + audio -->
   <div class="flex items-center gap-3">
-    <Volume2 class="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
+    <button
+      type="button"
+      onclick={onToggleMute}
+      aria-label={muted ? "Unmute audio" : "Mute audio"}
+      aria-pressed={muted}
+      class="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted {muted
+        ? 'text-destructive'
+        : ''}"
+    >
+      {#if muted}
+        <VolumeX class="size-4" aria-hidden="true" />
+      {:else}
+        <Volume2 class="size-4" aria-hidden="true" />
+      {/if}
+    </button>
+    <div class="hidden flex-col sm:flex">
+      <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <MetronomeIcon class="size-3" /> Blend
+      </span>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={metronomeLevel}
+        aria-label="Metronome blend"
+        class="h-1 w-20 cursor-pointer accent-primary"
+        oninput={(event) => onMetronomeLevel?.(Number(event.currentTarget.value))}
+      />
+    </div>
     {#if onTap}
       <button
         type="button"

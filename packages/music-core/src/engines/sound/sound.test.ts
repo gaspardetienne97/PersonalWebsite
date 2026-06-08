@@ -16,8 +16,30 @@ function createToneMock() {
       return this;
     }
 
+    connect() {
+      return this;
+    }
+
     dispose() {
       dispose();
+    }
+  }
+
+  const gains: GainNode[] = [];
+
+  class GainNode extends DestinationNode {
+    gain: { value: number };
+    isMaster = false;
+
+    constructor(value = 1) {
+      super();
+      this.gain = { value };
+      gains.push(this);
+    }
+
+    toDestination() {
+      this.isMaster = true;
+      return this;
     }
   }
 
@@ -56,9 +78,20 @@ function createToneMock() {
     Synth,
     Sampler,
     Players,
+    Gain: GainNode,
   } as unknown as ToneSoundModule;
 
-  return { tone, start, loaded, synthTrigger, metronomeTrigger, samplerTrigger, playerStart };
+  return {
+    tone,
+    start,
+    loaded,
+    synthTrigger,
+    metronomeTrigger,
+    samplerTrigger,
+    playerStart,
+    masterGain: () => gains.find((gain) => gain.isMaster),
+    metronomeGain: () => gains.find((gain) => !gain.isMaster),
+  };
 }
 
 describe("music-core/sound", () => {
@@ -114,6 +147,23 @@ describe("music-core/sound", () => {
 
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(1, ["C4", "E4", "G4"], 0.6, 10, 0.8);
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["B4"], 0.5, 10.8, 0.8);
+  });
+
+  test("master mute toggles output and metronome blend sets its own gain", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    expect(mock.masterGain()?.gain.value).toBe(1);
+    sound.setMasterMuted(true);
+    expect(sound.muted).toBe(true);
+    expect(mock.masterGain()?.gain.value).toBe(0);
+    sound.setMasterMuted(false);
+    expect(mock.masterGain()?.gain.value).toBe(1);
+
+    sound.setMetronomeLevel(0.3);
+    expect(sound.metronomeLevel).toBe(0.3);
+    expect(mock.metronomeGain()?.gain.value).toBe(0.3);
   });
 
   test("schedules an accented count-in and returns the phrase delay", async () => {

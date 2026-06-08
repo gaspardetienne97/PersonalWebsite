@@ -40,4 +40,13 @@ describe("MusicTransportBar", () => {
     off?.click();
     expect(bars).toBe(0);
   });
+
+  test("toggles master mute", () => {
+    let muteCalls = 0;
+    render(MusicTransportBar, { bpm: 96, muted: false, onToggleMute: () => (muteCalls += 1) });
+    const mute = document.querySelector<HTMLButtonElement>('[aria-label="Mute audio"]');
+    expect(mute).not.toBeNull();
+    mute?.click();
+    expect(muteCalls).toBe(1);
+  });
 });

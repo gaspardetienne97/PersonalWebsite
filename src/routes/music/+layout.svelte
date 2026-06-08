@@ -46,6 +46,10 @@
       onEnableAudio={() => runtime.enableAudio()}
       countInBars={runtime.countInBars}
       onCountIn={(bars) => runtime.setCountIn(bars)}
+      muted={runtime.masterMuted}
+      onToggleMute={() => runtime.toggleMute()}
+      metronomeLevel={runtime.metronomeLevel}
+      onMetronomeLevel={(level) => runtime.setMetronomeLevel(level)}
     />
   </div>
 </div>
