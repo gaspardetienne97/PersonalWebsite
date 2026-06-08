@@ -4,6 +4,7 @@
   import ChartNoAxesColumnIncreasing from "lucide-svelte/icons/chart-no-axes-column-increasing";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import CircleUser from "lucide-svelte/icons/circle-user";
+  import Disc from "lucide-svelte/icons/disc";
   import Drum from "lucide-svelte/icons/drum";
   import Ear from "lucide-svelte/icons/ear";
   import FlaskConical from "lucide-svelte/icons/flask-conical";
@@ -49,6 +50,7 @@
         { label: "Practice Lab", href: "/music/play", icon: FlaskConical },
         { label: "Import & Play", href: "/music/import", icon: Upload },
         { label: "Jam / Improv", href: "/music/jam", icon: WandSparkles },
+        { label: "Recording", href: "/music/recording", icon: Disc },
       ],
     },
     {
