@@ -22,6 +22,7 @@
     "./engines/reading-session": "./src/engines/reading-session/index.ts",
     "./engines/rhythm-session": "./src/engines/rhythm-session/index.ts",
     "./engines/score-follower": "./src/engines/score-follower/index.ts",
+    "./engines/sequencer": "./src/engines/sequencer/index.ts",
     "./engines/sessions": "./src/engines/sessions/index.ts",
     "./engines/settings": "./src/engines/settings/index.ts",
     "./engines/skills": "./src/engines/skills/index.ts",
