@@ -17,6 +17,7 @@
     "./engines/midi": "./src/engines/midi/index.ts",
     "./engines/notation": "./src/engines/notation/index.ts",
     "./engines/progress": "./src/engines/progress/index.ts",
+    "./engines/recording": "./src/engines/recording/index.ts",
     "./engines/projection": "./src/engines/projection/index.ts",
     "./engines/reading-session": "./src/engines/reading-session/index.ts",
     "./engines/rhythm-session": "./src/engines/rhythm-session/index.ts",
