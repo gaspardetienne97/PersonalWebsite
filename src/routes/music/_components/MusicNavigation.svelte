@@ -16,6 +16,7 @@
   import Plug from "lucide-svelte/icons/plug";
   import Settings from "lucide-svelte/icons/settings";
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
+  import Upload from "lucide-svelte/icons/upload";
   import WandSparkles from "lucide-svelte/icons/wand-sparkles";
 
   import { cn } from "@repo/ui/utils";
@@ -46,6 +47,7 @@
       label: "Play",
       items: [
         { label: "Practice Lab", href: "/music/play", icon: FlaskConical },
+        { label: "Import & Play", href: "/music/import", icon: Upload },
         { label: "Jam / Improv", href: "/music/jam", icon: WandSparkles },
       ],
     },
