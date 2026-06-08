@@ -10,6 +10,13 @@ export function midiToNote(midi: number, preferFlats = false): string {
   return preferFlats ? Note.fromMidi(midi) : Note.fromMidiSharps(midi);
 }
 
+/** Pitch class (0-11) for a note name, with or without an octave. */
+export function pitchClass(note: string): number {
+  const chroma = Note.chroma(note.trim());
+  if (chroma === undefined) throw new Error(`Invalid note: ${note}`);
+  return chroma;
+}
+
 export function frequency(midi: number): number {
   return Midi.midiToFreq(midi);
 }

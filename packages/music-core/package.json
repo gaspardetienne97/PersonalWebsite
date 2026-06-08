@@ -11,6 +11,7 @@
     "./engines/ear-training": "./src/engines/ear-training/index.ts",
     "./engines/exercise": "./src/engines/exercise/index.ts",
     "./engines/input-router": "./src/engines/input-router/index.ts",
+    "./engines/jam": "./src/engines/jam/index.ts",
     "./engines/library": "./src/engines/library/index.ts",
     "./engines/midi": "./src/engines/midi/index.ts",
     "./engines/notation": "./src/engines/notation/index.ts",
