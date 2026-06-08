@@ -50,6 +50,9 @@
       onToggleMute={() => runtime.toggleMute()}
       metronomeLevel={runtime.metronomeLevel}
       onMetronomeLevel={(level) => runtime.setMetronomeLevel(level)}
+      instrument={runtime.instrument}
+      instruments={runtime.instruments}
+      onInstrument={(name) => runtime.setInstrument(name)}
     />
   </div>
 </div>

@@ -166,6 +166,21 @@ describe("music-core/sound", () => {
     expect(mock.metronomeGain()?.gain.value).toBe(0.3);
   });
 
+  test("selects a synth preset and keeps playing through it", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    expect(sound.instrument).toBe("Synth");
+    sound.setInstrument("Saw");
+    expect(sound.instrument).toBe("Saw");
+    sound.setInstrument("does-not-exist");
+    expect(sound.instrument).toBe("Saw");
+
+    sound.playNote(60);
+    expect(mock.synthTrigger).toHaveBeenCalled();
+  });
+
   test("schedules an accented count-in and returns the phrase delay", async () => {
     const mock = createToneMock();
     const sound = new SoundEngine(async () => mock.tone);

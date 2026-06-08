@@ -26,6 +26,9 @@
     onToggleMute,
     metronomeLevel = 0.7,
     onMetronomeLevel,
+    instrument = "Synth",
+    instruments = [],
+    onInstrument,
     onTap,
   }: {
     bpm: number;
@@ -41,6 +44,9 @@
     onToggleMute?: () => void;
     metronomeLevel?: number;
     onMetronomeLevel?: (level: number) => void;
+    instrument?: string;
+    instruments?: string[];
+    onInstrument?: (name: string) => void;
     onTap?: () => void;
   } = $props();
 
@@ -186,6 +192,34 @@
         oninput={(event) => onMetronomeLevel?.(Number(event.currentTarget.value))}
       />
     </div>
+    {#if instruments.length > 0}
+      <Popover.Root>
+        <Popover.Trigger
+          class="hidden items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted sm:inline-flex"
+          aria-label="Playback sound"
+        >
+          <Waveform class="size-4" aria-hidden="true" />
+          {instrument}
+        </Popover.Trigger>
+        <Popover.Content class="w-40 p-1.5" side="top" align="end">
+          <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Playback sound
+          </p>
+          {#each instruments as name}
+            <button
+              type="button"
+              onclick={() => onInstrument?.(name)}
+              class="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted {instrument ===
+              name
+                ? 'font-semibold text-primary'
+                : ''}"
+            >
+              {name}
+            </button>
+          {/each}
+        </Popover.Content>
+      </Popover.Root>
+    {/if}
     {#if onTap}
       <button
         type="button"

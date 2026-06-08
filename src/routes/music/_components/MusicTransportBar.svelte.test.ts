@@ -49,4 +49,9 @@ describe("MusicTransportBar", () => {
     mute?.click();
     expect(muteCalls).toBe(1);
   });
+
+  test("shows the playback-sound trigger when instruments are provided", () => {
+    render(MusicTransportBar, { bpm: 96, instrument: "Saw", instruments: ["Synth", "Saw"] });
+    expect(document.querySelector('[aria-label="Playback sound"]')).not.toBeNull();
+  });
 });

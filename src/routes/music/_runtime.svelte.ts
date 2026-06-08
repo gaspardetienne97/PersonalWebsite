@@ -3,7 +3,7 @@ import { getContext, setContext } from "svelte";
 import type { InputSource, InstrumentId } from "@repo/music-core/domain";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { MidiEngine } from "@repo/music-core/engines/midi";
-import { SoundEngine } from "@repo/music-core/engines/sound";
+import { SOUND_PRESET_NAMES, SoundEngine } from "@repo/music-core/engines/sound";
 import {
   createToneTransportEngine,
   type TransportEngine,
@@ -32,6 +32,8 @@ export class MusicRuntime {
   countInBars = $state(1);
   masterMuted = $state(false);
   metronomeLevel = $state(0.7);
+  instrument = $state(SOUND_PRESET_NAMES[0]!);
+  readonly instruments = SOUND_PRESET_NAMES;
 
   #transport?: TransportEngine;
   #unsubscribeTransport?: () => void;
@@ -74,6 +76,11 @@ export class MusicRuntime {
   setMetronomeLevel(level: number): void {
     this.metronomeLevel = Math.min(1, Math.max(0, level));
     this.sound.setMetronomeLevel(this.metronomeLevel);
+  }
+
+  setInstrument(name: string): void {
+    this.instrument = name;
+    this.sound.setInstrument(name);
   }
 
   async toggleMetronome(): Promise<void> {

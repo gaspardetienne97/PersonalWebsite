@@ -72,6 +72,28 @@ type ToneLoader = () => Promise<ToneSoundModule>;
 
 const loadTone: ToneLoader = async () => (await import("tone")) as unknown as ToneSoundModule;
 
+/** Selectable playback timbres — built from oscillator + envelope (no samples). */
+export const SOUND_PRESETS: Record<string, Record<string, unknown>> = {
+  Synth: {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 0.8 },
+  },
+  "E-Piano": {
+    oscillator: { type: "sine" },
+    envelope: { attack: 0.002, decay: 0.3, sustain: 0.12, release: 1.3 },
+  },
+  Square: {
+    oscillator: { type: "square" },
+    envelope: { attack: 0.005, decay: 0.1, sustain: 0.25, release: 0.5 },
+  },
+  Saw: {
+    oscillator: { type: "sawtooth" },
+    envelope: { attack: 0.01, decay: 0.15, sustain: 0.3, release: 0.6 },
+  },
+};
+
+export const SOUND_PRESET_NAMES: string[] = Object.keys(SOUND_PRESETS);
+
 export class SoundEngine {
   #tone: ToneSoundModule | undefined;
   #synth: ToneInstrument | undefined;
@@ -82,6 +104,7 @@ export class SoundEngine {
   #metronomeGain: ToneGain | undefined;
   #masterLevel = 1;
   #metronomeLevel = 0.7;
+  #instrumentName = SOUND_PRESET_NAMES[0]!;
   #loadTone: ToneLoader;
   enabled = false;
   muted = false;
@@ -98,7 +121,10 @@ export class SoundEngine {
     // master -> destination; metronome -> metronomeGain -> master; instruments -> master.
     this.#master = new this.#tone.Gain(this.muted ? 0 : this.#masterLevel).toDestination();
     this.#metronomeGain = new this.#tone.Gain(this.#metronomeLevel).connect(this.#master);
-    this.#synth = new this.#tone.PolySynth(this.#tone.Synth).connect(this.#master);
+    this.#synth = new this.#tone.PolySynth(
+      this.#tone.Synth,
+      SOUND_PRESETS[this.#instrumentName],
+    ).connect(this.#master);
     this.#metronome = new this.#tone.Synth({
       oscillator: { type: "triangle" },
       envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.02 },
@@ -127,6 +153,22 @@ export class SoundEngine {
 
   get metronomeLevel(): number {
     return this.#metronomeLevel;
+  }
+
+  get instrument(): string {
+    return this.#instrumentName;
+  }
+
+  /** Choose the timbre the synth plays MIDI as. Rebuilds the voice live. */
+  setInstrument(name: string): void {
+    if (!(name in SOUND_PRESETS)) return;
+    this.#instrumentName = name;
+    if (this.#tone && this.#master) {
+      this.#synth?.dispose();
+      this.#synth = new this.#tone.PolySynth(this.#tone.Synth, SOUND_PRESETS[name]).connect(
+        this.#master,
+      );
+    }
   }
 
   playNote(midiNote: number, duration: ToneTime = 0.18, time?: ToneTime, velocity = 0.8): void {
