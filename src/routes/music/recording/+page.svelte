@@ -6,6 +6,8 @@
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
+  import { onDestroy } from "svelte";
+
   import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
@@ -32,6 +34,30 @@
     if (!recording) return;
     recorder.capture(event);
     if (event.type === "noteOn") liveCount = recorder.recording ? liveCount + 1 : liveCount;
+  });
+
+  // Transport Play plays the selected take (Take A).
+  $effect(() => {
+    const take = takes.find((candidate) => candidate.id === compareA) ?? takes[0];
+    if (!take) {
+      runtime.setPlaybackSource(undefined);
+      return;
+    }
+    const steps = take.notes.map((note) => ({
+      midiNotes: [note.midi],
+      offsetSeconds: note.atMs / 1000,
+      durationSeconds: 0.3,
+    }));
+    runtime.setPlaybackSource({
+      label: take.name,
+      durationSec: take.durationMs / 1000,
+      play: () => runtime.sound.playPattern(steps),
+    });
+  });
+
+  onDestroy(() => {
+    unsubscribe();
+    runtime.setPlaybackSource(undefined);
   });
 
   function toggleRecording(): void {

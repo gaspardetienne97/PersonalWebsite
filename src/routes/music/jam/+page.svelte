@@ -70,6 +70,21 @@
     recordedCount = session.recorded().length;
   });
 
+  // The transport Play button plays the whole progression.
+  $effect(() => {
+    const chords = progression.chords;
+    const steps = chords.map((chord, index) => ({
+      midiNotes: chordNotes(chord.symbol).map((name) => 48 + pitchClass(name)),
+      offsetSeconds: index * 1.2,
+      durationSeconds: 1.1,
+    }));
+    runtime.setPlaybackSource({
+      label: `${progression.name} progression`,
+      durationSec: chords.length * 1.2,
+      play: () => runtime.sound.playPattern(steps),
+    });
+  });
+
   function selectStyle(id: string): void {
     progression = JAM_PROGRESSIONS.find((entry) => entry.id === id) ?? JAM_PROGRESSIONS[0]!;
     session = new JamSession(progression);
@@ -108,7 +123,10 @@
     }
   }
 
-  onDestroy(() => unsubscribe());
+  onDestroy(() => {
+    unsubscribe();
+    runtime.setPlaybackSource(undefined);
+  });
 </script>
 
 <svelte:head>

@@ -9,10 +9,14 @@
   } from "@repo/music-core/engines/import";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import { onDestroy } from "svelte";
 
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
+  import { useMusicRuntime } from "../_runtime.svelte";
+
+  const runtime = useMusicRuntime();
 
   const PROJECTIONS = [
     { value: "piano", label: "Piano" },
@@ -28,6 +32,26 @@
 
   const roll = $derived(song ? pianoRoll(song, 600) : []);
   const rollBounds = $derived(computeBounds(roll));
+
+  // The transport Play button plays the imported file (first bars).
+  $effect(() => {
+    if (!song) {
+      runtime.setPlaybackSource(undefined);
+      return;
+    }
+    const steps = pianoRoll(song, 200).map((note) => ({
+      midiNotes: [note.midi],
+      offsetSeconds: note.time,
+      durationSeconds: Math.min(note.duration, 1),
+    }));
+    runtime.setPlaybackSource({
+      label: song.name,
+      durationSec: Math.min(song.durationSec, 20),
+      play: () => runtime.sound.playPattern(steps),
+    });
+  });
+
+  onDestroy(() => runtime.setPlaybackSource(undefined));
 
   function computeBounds(notes: ImportedNote[]) {
     if (notes.length === 0) return { minMidi: 48, maxMidi: 84, duration: 1 };

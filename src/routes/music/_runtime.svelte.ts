@@ -11,6 +11,18 @@ import {
 
 const MUSIC_RUNTIME = Symbol("music-runtime");
 
+/**
+ * A screen's "now playing" content. Routes register one so the transport bar's
+ * Play button plays whatever is on screen (a take, a melody, a MIDI file, a
+ * progression). `play` is a one-shot preview; `durationSec` resets the button.
+ */
+export interface PlaybackSource {
+  label: string;
+  durationSec: number;
+  play: () => void | Promise<void>;
+  stop?: () => void;
+}
+
 export class MusicRuntime {
   readonly router = new InputRouter();
   readonly midi = new MidiEngine();
@@ -34,6 +46,11 @@ export class MusicRuntime {
   metronomeLevel = $state(0.7);
   instrument = $state(SOUND_PRESET_NAMES[0]!);
   readonly instruments = SOUND_PRESET_NAMES;
+
+  /** The current screen's playback source (drives the transport Play button). */
+  playbackSource = $state<PlaybackSource | undefined>();
+  playbackPlaying = $state(false);
+  #playbackResetTimer: ReturnType<typeof setTimeout> | undefined;
 
   #transport?: TransportEngine;
   #unsubscribeTransport?: () => void;
@@ -83,6 +100,47 @@ export class MusicRuntime {
     this.sound.setInstrument(name);
   }
 
+  /** Routes register their on-screen content; call with undefined to clear. */
+  setPlaybackSource(source?: PlaybackSource): void {
+    this.#clearPlaybackTimer();
+    if (this.playbackPlaying) {
+      this.playbackSource?.stop?.();
+      this.playbackPlaying = false;
+    }
+    this.playbackSource = source;
+  }
+
+  /** Transport Play: play the screen's content, or fall back to the metronome. */
+  async togglePlayback(): Promise<void> {
+    const source = this.playbackSource;
+    if (!source) {
+      await this.toggleMetronome();
+      return;
+    }
+    if (this.playbackPlaying) {
+      source.stop?.();
+      this.playbackPlaying = false;
+      this.#clearPlaybackTimer();
+      return;
+    }
+    if (!(await this.enableAudio())) return;
+    await source.play();
+    this.playbackPlaying = true;
+    this.#playbackResetTimer = setTimeout(
+      () => {
+        this.playbackPlaying = false;
+      },
+      Math.max(300, Math.round(source.durationSec * 1000)),
+    );
+  }
+
+  #clearPlaybackTimer(): void {
+    if (this.#playbackResetTimer !== undefined) {
+      clearTimeout(this.#playbackResetTimer);
+      this.#playbackResetTimer = undefined;
+    }
+  }
+
   async toggleMetronome(): Promise<void> {
     const enabled = await this.enableAudio();
     if (!enabled) return;
@@ -111,6 +169,7 @@ export class MusicRuntime {
   }
 
   dispose(): void {
+    this.#clearPlaybackTimer();
     this.#unsubscribeMidi();
     this.#unsubscribeRouterState();
     this.#unsubscribeTransport?.();

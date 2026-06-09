@@ -39,8 +39,11 @@
     <MusicTransportBar
       bpm={runtime.transportBpm}
       onBpm={(value) => runtime.setTransportBpm(value)}
-      running={runtime.metronomeRunning}
-      onToggle={() => runtime.toggleMetronome()}
+      running={runtime.playbackSource ? runtime.playbackPlaying : runtime.metronomeRunning}
+      onToggle={() => runtime.togglePlayback()}
+      playContext={runtime.playbackSource?.label}
+      metronomeRunning={runtime.metronomeRunning}
+      onToggleMetronome={() => runtime.toggleMetronome()}
       audioEnabled={runtime.audioEnabled}
       audioPending={runtime.audioPending}
       onEnableAudio={() => runtime.enableAudio()}

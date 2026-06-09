@@ -17,6 +17,9 @@
     onBpm,
     running = false,
     onToggle,
+    playContext,
+    metronomeRunning = false,
+    onToggleMetronome,
     audioEnabled = false,
     audioPending = false,
     onEnableAudio,
@@ -35,6 +38,10 @@
     onBpm?: (value: number) => void;
     running?: boolean;
     onToggle?: () => void;
+    /** Label of the on-screen content; when set, Play means "play this". */
+    playContext?: string;
+    metronomeRunning?: boolean;
+    onToggleMetronome?: () => void;
     audioEnabled?: boolean;
     audioPending?: boolean;
     onEnableAudio?: () => void;
@@ -72,9 +79,17 @@
 >
   <!-- left: tempo + count-in -->
   <div class="flex items-center gap-3">
-    <span class="grid size-9 place-items-center rounded-lg bg-muted text-muted-foreground">
+    <button
+      type="button"
+      onclick={onToggleMetronome}
+      aria-label={metronomeRunning ? "Stop metronome" : "Start metronome"}
+      aria-pressed={metronomeRunning}
+      class="grid size-9 place-items-center rounded-lg {metronomeRunning
+        ? 'bg-primary/15 text-primary'
+        : 'bg-muted text-muted-foreground hover:bg-muted/70'}"
+    >
       <MetronomeIcon class="size-4" />
-    </span>
+    </button>
 
     <Popover.Root>
       <Popover.Trigger
@@ -143,7 +158,13 @@
     <button
       type="button"
       onclick={onToggle}
-      aria-label={running ? "Pause metronome" : "Play metronome"}
+      aria-label={playContext
+        ? running
+          ? `Pause ${playContext}`
+          : `Play ${playContext}`
+        : running
+          ? "Pause metronome"
+          : "Play metronome"}
       class="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-105 active:scale-95"
     >
       {#if running}

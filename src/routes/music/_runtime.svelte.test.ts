@@ -43,6 +43,19 @@ describe("MusicRuntime shared UI state", () => {
     rt.dispose();
   });
 
+  it("plays a registered playback source instead of the metronome", async () => {
+    const rt = new MusicRuntime();
+    // Pretend audio is already enabled so togglePlayback proceeds to play().
+    rt.audioEnabled = true;
+    let played = 0;
+    rt.setPlaybackSource({ label: "Take 1", durationSec: 0.4, play: () => (played += 1) });
+    await rt.togglePlayback();
+    expect(played).toBe(1);
+    expect(rt.playbackPlaying).toBe(true);
+    expect(rt.metronomeRunning).toBe(false); // metronome untouched
+    rt.dispose();
+  });
+
   it("toggles master mute and clamps the metronome blend", () => {
     const rt = new MusicRuntime();
     expect(rt.masterMuted).toBe(false);
