@@ -148,6 +148,12 @@ This project uses Svelte 5 with runes. When working with components:
 - Prefer runes for reactivity in `.svelte` files
 - Use `.svelte.ts` for shared reactive logic outside components
 
+### Git & Commit Workflow
+- Do **not** commit directly to `main`/`master` (a `PreToolUse` hook blocks it). Work on a feature branch, then merge to `main` locally with `git merge --ff-only <branch>`.
+- A pre-commit hook auto-formats staged files (`vp fmt`); expect reformatting on commit.
+- Do **not** push unless the user explicitly asks — `main` is intentionally kept ahead of `origin` and local-only.
+- One logical commit per unit of work; stage only the files for that change. The working tree may carry unrelated local-only deletions/edits (see "Local Planning And Prototype Files") — never sweep them into a commit.
+
 ### Development Discipline
 - Prefer the existing package and route boundaries over adding new abstractions.
 - Write or update focused tests before changing behavior.

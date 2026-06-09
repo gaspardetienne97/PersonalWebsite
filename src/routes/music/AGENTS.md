@@ -15,9 +15,14 @@ This file provides guidance for agents working on the Music app under
   `/pdf`. Do not split Music into a separate deployment unless the user makes a
   new explicit decision.
 - The implementation follows `IMPLEMENTATION_PLAN.md` and
-  `music-practice-app-plan.md`. The current implementation has completed the
-  Phase 0 foundations and most Phase 1 route features through the first T1.12
-  UI/UX polish slice.
+  `music-practice-app-plan.md` (both untracked local plans at the repo root).
+  Phase 0 and Phase 1 are complete (including the Practice OS shell + transport
+  audio work and the connect/jam/import/recording/studio screens). The active
+  backlog is **§5A "Phase 1.5"** in `IMPLEMENTATION_PLAN.md` (input surfaces,
+  fingering visualizer, editable journal, semantic component colors,
+  research-driven libraries, docs, dependency audit); larger items live in the
+  Phase 2–4 bullets of §6. Do not reopen completed Phase 0/1 tickets — continue
+  from Phase 1.5.
 
 ## Core Decisions Already Made
 
@@ -62,14 +67,21 @@ This file provides guidance for agents working on the Music app under
 - `src/routes/music/+layout.svelte` creates the shared `MusicRuntime`, registers
   the PWA, renders `MusicNavigation`, and docks the persistent
   `MusicTransportBar` at the bottom of every screen.
-- `src/routes/music/_runtime.svelte.ts` owns the shared runtime:
-  - `InputRouter`
-  - `MidiEngine`
-  - `SoundEngine`
+- `src/routes/music/_runtime.svelte.ts` owns the shared runtime (`MusicRuntime`):
+  - `InputRouter`, `MidiEngine`, `SoundEngine`
   - audio enable state and cleanup
   - active instrument + reactive input source/confidence
-  - the shared metronome (`transportBpm`, `metronomeRunning`, `toggleMetronome`)
-    that drives the transport bar
+  - the shared metronome (`transportBpm`, `metronomeRunning`, `toggleMetronome`,
+    `setCountIn`) that drives the transport bar
+  - master audio: `masterMuted`/`toggleMute`, `metronomeLevel`/`setMetronomeLevel`
+    (blend), synth presets (`instrument`/`instruments`/`setInstrument`)
+  - a **PlaybackController**: routes register a `PlaybackSource`
+    (`setPlaybackSource`) so the transport Play button plays whatever is on
+    screen (jam progression, imported MIDI, selected take, sight-reading melody),
+    falling back to the metronome when none is registered (`togglePlayback`)
+  - MIDI instrument/channel selection from Connect: `attachStorage`,
+    `reloadMidiInstruments`, `midiInstruments`, `activeChannel`,
+    `setActiveMidiInstrument` (pins both instrument and channel)
 - `src/routes/music/_components/MusicNavigation.svelte` is the persistent Music
   app navigation (Practice OS sidebar with grouped IA + user-card footer on
   desktop; bottom tab bar on mobile).
@@ -79,23 +91,43 @@ This file provides guidance for agents working on the Music app under
   `SourceReadout` input pill). There is no `MusicTopbar`; XP/streak/level live on
   the `/music` dashboard, and input/source lives in each page header.
 - `src/routes/music/_components/MusicTransportBar.svelte` is the persistent
-  transport: tempo + slider, count-in, play/skip/repeat, volume, and the audio
-  enable gate. It reads/writes the shared metronome on `MusicRuntime`.
+  transport. It is presentational (all state/handlers are passed from
+  `+layout.svelte` off `MusicRuntime`): a metronome toggle (custom
+  `MetronomeIcon` — lucide has no metronome glyph), tempo presets popover + BPM
+  slider (BPM applies live while running), configurable count-in,
+  context-aware Play (plays the registered `PlaybackSource` or falls back to the
+  metronome), master mute, metronome blend slider, selectable synth presets, a
+  live input readout, a MIDI instrument/channel "Listen to" picker sourced from
+  Connect preferences, and the audio enable gate.
+- **Locked shell:** the layout pins the chrome and scrolls only content. The
+  desktop sidebar is `sticky` under the 48px site header
+  (`top-12 h-[calc(100dvh-3rem)] self-start`) and the transport bar is
+  `sticky bottom-0`. Preserve this when touching layout.
 - `src/routes/music/_components/OnScreenKeyboard.svelte` is the fallback input
   surface and should push normalized `NoteEvent`s through the shared router.
+  (Phase 1.5 T1.5a will add selectable fretboard/MPC-grid surfaces alongside it.)
 
 ### Current Routes
 
 - `/music`: instrument hub, MIDI status, metronome, on-screen input, and a daily
   mixed session demo.
+- `/music/connect`: device profiles — name MIDI devices, assign instruments, and
+  pick the preferred input source per instrument (`DeviceProfileStore`). The
+  transport bar's MIDI instrument/channel picker reads these preferences.
 - `/music/learn`: entry point for learning tools.
 - `/music/learn/ear`: interval/chord/scale-degree ear training.
-- `/music/learn/reading`: note flashcards and generated sight-reading.
+- `/music/learn/reading`: note flashcards and generated sight-reading. Registers
+  a transport `PlaybackSource` so Play previews the on-screen melody.
 - `/music/learn/rhythm`: pulse timing trainer.
 - `/music/learn/theory`: chord and theory library.
 - `/music/play`: play/practice entry point.
 - `/music/play/scales`: scales and technique trainer.
+- `/music/import`: parse a MIDI file into a `Score` and play it back.
+- `/music/jam`: chord-progression jam/improv with target tones + recording.
+- `/music/studio`: step sequencer with a pad bank and Tone playback.
+- `/music/recording`: take list, waveform, compare, and self-review.
 - `/music/track`: practice journal and routine/session tracking.
+- `/music/settings`: app settings over `PracticeStore.settings`.
 - `/music/progress`: dashboard, skill tree, weak spots, achievements, streaks,
   and practice-next picks.
 
@@ -108,12 +140,16 @@ reach through private file paths when an export exists.
 Important areas:
 
 - `src/domain/`: canonical types such as `NoteEvent`, `ScoringEvent`, `Skill`,
-  `PracticeSession`, `InstrumentId`, and pipeline types.
+  `PracticeSession`, `InstrumentId`, `Score`, and pipeline types.
 - `src/exercises/`: exercise definitions and scoring input adapters.
-- `src/engines/input-router/`: source arbitration and normalized input stream.
+- `src/engines/input-router/`: source arbitration, normalized input stream, and
+  the active instrument + **active MIDI channel** filter.
 - `src/engines/midi/`: Web MIDI support and device/event normalization.
-- `src/engines/sound/`: Tone-backed playback and metronome sounds.
-- `src/engines/transport/`: metronome/transport scheduling.
+- `src/engines/sound/`: Tone-backed playback + metronome sounds. Owns the gain
+  graph (master → destination; metronome → metronome gain → master), selectable
+  synth presets (`SOUND_PRESETS`/`SOUND_PRESET_NAMES`, `setInstrument`), master
+  mute / metronome blend, and the pure `scoreToPattern(score, {bpm?})` helper.
+- `src/engines/transport/`: metronome/transport scheduling (count-in, BPM).
 - `src/engines/notation/`: VexFlow-based notation rendering data.
 - `src/engines/skills/`: seeded skill graph and mastery.
 - `src/engines/analytics/`: confusion matrix, weak skills, and practice-next
@@ -121,7 +157,21 @@ Important areas:
 - `src/engines/progress/`: XP, level, streak, achievements.
 - `src/engines/sessions/`: practice journal/session records.
 - `src/engines/dashboard/`: dashboard and skill tree view projections.
-- `src/engines/store/`: IndexedDB-backed local persistence.
+- `src/engines/projection/`: derived view helpers (journal focus, rhythm HUD,
+  technique ladder, journal projections).
+- `src/engines/device-profiles/`: MIDI device profiles + per-instrument
+  preferred source (drives `/music/connect` and the transport MIDI picker).
+- `src/engines/reading-session/`, `rhythm-session/`, `technique-session/`:
+  per-capability session orchestrators over the exercise framework.
+- `src/engines/score-follower/`: streaming pitch+timing grading over a `Score`.
+- `src/engines/library/`, `tunings/`: chord/scale data and tuning profiles.
+- `src/engines/import/`: parse MIDI files into a domain `Score` (uses
+  `@tonejs/midi`).
+- `src/engines/jam/`: chord-progression jam sessions + target tones.
+- `src/engines/recording/`: take capture, compare, self-review.
+- `src/engines/sequencer/`: step sequencer (grid, pads, patterns).
+- `src/engines/settings/`: typed app settings over `PracticeStore.settings`.
+- `src/engines/store/`: IndexedDB-backed local persistence (`PracticeStore`).
 
 If you add a new engine or public exercise, update
 `packages/music-core/package.json` exports and add focused tests.

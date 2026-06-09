@@ -2,11 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Companion files:** [AGENTS.md](AGENTS.md) is the authoritative root guide (monorepo, packages, workflow); this file mirrors it for Claude Code. For Music-app work also read [src/routes/music/AGENTS.md](src/routes/music/AGENTS.md) and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) (untracked local plan; §5A "Phase 1.5" is the active backlog). If guidance conflicts, the more specific nested file wins for files in its scope.
+
 ## Tech Stack
 
+- **Monorepo**: **VitePlus** workspace (NOT Turborepo). One SvelteKit deployment serves `/`, `/music`, and `/pdf`. Shared code lives in `packages/*` (`@repo/ui`, `@repo/music-core`, `@repo/pdf-core`).
 - **Framework**: SvelteKit 2 with Svelte 5 (using runes)
-- **Styling**: Tailwind CSS 4 with custom UI components (bits-ui based)
-- **Database**: PostgreSQL with Drizzle ORM
+- **Styling**: Tailwind CSS 4 with custom UI components (bits-ui based), surfaced via `@repo/ui`
+- **Database**: PostgreSQL with Drizzle ORM (site/auth only — the Music app is client-only, no DB)
 - **Authentication**: Custom session-based auth (Oslo crypto)
 - **i18n**: Paraglide-JS with locales: en, es, fr, ht
 - **Testing**: Vitest (unit), Playwright (E2E)
@@ -14,6 +17,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Deployment**: Node.js (adapter-node)
 
 ## Development Commands
+
+### Monorepo workspace (VitePlus)
+```bash
+vp run -r check          # Type-check every workspace package (use this, not just npm run check)
+vp test --run            # Run the full vitest suite once across packages
+vp run -r build          # Build all workspace packages
+vp run @repo/<pkg>#<task> # Run a task for a single package
+```
+Use `vp run -r <task>` for recursive workspace tasks. Do NOT add Turborepo or duplicate the workspace orchestration.
 
 ### Core Development
 ```bash
@@ -81,11 +93,21 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 1. `handleParaglide` - Sets locale and injects lang attribute
 2. `handleAuth` - Validates session and attaches user to `event.locals`
 
+### Monorepo Structure
+- **`packages/ui/`** (`@repo/ui`): shared bits-ui-based primitives (Avatar, Badge, Button, Card, Carousel, Dialog, Dropdown Menu, Input, Label, Popover, Progress, ScrollArea, Select, Separator, Sheet, Sidebar, Skeleton, Slider, Toggle, Toggle Group, Tooltip). Consume these instead of copying shadcn/bits-ui code into route folders.
+- **`packages/music-core/`** (`@repo/music-core`): the Music app's framework-agnostic domain, engines, exercises, and persistence. No Svelte imports in engines/domain.
+- **`packages/pdf-core/`** (`@repo/pdf-core`): PDF reader services, stores, and components.
+- **`src/lib/components/site/`**: site-only shell components (e.g. `Header`, `Footer`). The global `Header` is `sticky top-0` and `Footer` renders below all routes including `/music`.
+- App routes live in `src/routes/` (`/`, `/music`, `/pdf`).
+
 ### UI Components
-- Located in [src/lib/components/ui/](src/lib/components/ui/)
-- Built on **bits-ui** (headless component library)
-- Components: Avatar, Button, Card, Carousel, Dialog, Input, ScrollArea, Separator, Sheet, Sidebar, Skeleton, Tooltip
-- Use Tailwind for styling with utility classes
+- Shared primitives live in **`packages/ui/src/`** and are imported as `@repo/ui/<component>` (NOT `src/lib/components/ui/`, which no longer exists).
+- Built on **bits-ui** (headless component library); styled with Tailwind utility classes + theme tokens.
+- Do not hardcode colors; drive everything from theme tokens (`bg-background`, `text-foreground`, `bg-primary`, etc.).
+
+### Local Planning & Prototype Files
+- The repo contains local-only, often git-excluded files/folders: `IMPLEMENTATION_PLAN.md`, `music-practice-app-plan.md`, `docs/`, `old prompts/`, `.codex/`, `.superpowers/`, `.claude/`.
+- Read them for context, but do NOT stage, commit, delete, or "clean up" these unless the user explicitly asks for that exact action. They may be excluded via `.git/info/exclude` rather than `.gitignore`.
 
 ### Content & Routing
 - Blog posts in [src/lib/blog-posts/](src/lib/blog-posts/) (markdown with frontmatter)
@@ -101,6 +123,13 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 - Server-side code in `src/lib/server/` is excluded from browser tests
 
 ## Key Patterns
+
+### Git & Commit Workflow
+- **Never commit directly to `main`/`master`** — a `PreToolUse` hook blocks it. Work on a feature branch, then merge to `main` locally (`git checkout main && git merge --ff-only <branch>`).
+- A **pre-commit hook auto-formats staged files** (`vp fmt`); expect staged files to be reformatted on commit.
+- **Do not push unless the user explicitly asks.** `main` is intentionally far ahead of `origin` and kept local.
+- One logical commit per unit of work; stage only the relevant files (the working tree may contain unrelated local-only deletions/edits — do not sweep them in).
+- Run the verification gates (`vp run -r check`, `vp test --run`, `vp run -r build`) before claiming work complete.
 
 ### Server-Only Code
 - All code in `src/lib/server/` is **server-only** (never sent to client)
