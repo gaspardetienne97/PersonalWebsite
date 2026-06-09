@@ -22,6 +22,7 @@ export class InputRouter {
   #activeSource: InputSource = "onscreen";
   #confidence = confidenceFor("onscreen");
   #activeInstrument?: InstrumentId;
+  #activeChannel?: number;
   #lastMidiActivity = new Map<MidiActivityKey, number>();
   #midiActivityWindowMs: number;
   #now: () => number;
@@ -49,6 +50,15 @@ export class InputRouter {
       confidence: this.#confidence,
       ...(this.#activeInstrument !== undefined ? { activeInstrument: this.#activeInstrument } : {}),
     };
+  }
+
+  /** Restrict accepted MIDI to a single channel (1-16); undefined accepts all. */
+  setActiveChannel(channel?: number): void {
+    this.#activeChannel = channel;
+  }
+
+  get activeChannel(): number | undefined {
+    return this.#activeChannel;
   }
 
   setActiveInstrument(instrument?: InstrumentId): void {
@@ -112,6 +122,15 @@ export class InputRouter {
         this.#activeInstrument !== undefined &&
         event.instrument !== undefined &&
         event.instrument !== this.#activeInstrument
+      ) {
+        return false;
+      }
+
+      const channel = "channel" in event ? event.channel : undefined;
+      if (
+        this.#activeChannel !== undefined &&
+        channel !== undefined &&
+        channel !== this.#activeChannel
       ) {
         return false;
       }

@@ -43,6 +43,41 @@ describe("MusicRuntime shared UI state", () => {
     rt.dispose();
   });
 
+  it("forwards channel + midi-instrument selection to the router", () => {
+    const rt = new MusicRuntime();
+    rt.setActiveChannel(10);
+    expect(rt.activeChannel).toBe(10);
+    expect(rt.router.activeChannel).toBe(10);
+
+    rt.setActiveMidiInstrument("mpc", 9);
+    expect(rt.activeInstrument).toBe("mpc");
+    expect(rt.router.activeChannel).toBe(9);
+    rt.dispose();
+  });
+
+  it("loads MIDI-preferred instruments from device profiles", async () => {
+    const map = new Map<string, { id: string; value: unknown }>();
+    const repo = {
+      get: async (id: string) => map.get(id),
+      put: async (record: { id: string; value: unknown }) => {
+        map.set(record.id, record);
+      },
+    };
+    await repo.put({
+      id: "music.device-profiles",
+      value: {
+        profiles: [{ id: "d1", instrument: "piano", channel: 1 }],
+        preferences: { piano: "midi", guitar: "audio" },
+      },
+    });
+
+    const rt = new MusicRuntime();
+    await rt.attachStorage(repo);
+    expect(rt.midiInstruments.map((option) => option.instrument)).toEqual(["piano"]);
+    expect(rt.midiInstruments[0]?.channel).toBe(1);
+    rt.dispose();
+  });
+
   it("plays a registered playback source instead of the metronome", async () => {
     const rt = new MusicRuntime();
     // Pretend audio is already enabled so togglePlayback proceeds to play().

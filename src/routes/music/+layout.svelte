@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import { page } from "$app/stores";
   import { onDestroy, onMount } from "svelte";
   import { pwaInfo } from "virtual:pwa-info";
+
+  import { PracticeStore } from "@repo/music-core/engines/store";
 
   import MusicNavigation from "./_components/MusicNavigation.svelte";
   import MusicTransportBar from "./_components/MusicTransportBar.svelte";
@@ -12,7 +15,17 @@
   const currentPath = $derived($page.url?.pathname ?? "/music");
   const runtime = createMusicRuntime();
 
+  const inputSourceLabel = $derived(
+    runtime.activeSource === "midi"
+      ? "MIDI"
+      : runtime.activeSource === "audio"
+        ? "Audio"
+        : "On-screen",
+  );
+
   onMount(async () => {
+    if (browser) void runtime.attachStorage(new PracticeStore().settings);
+
     if (!pwaInfo) return;
 
     const { registerSW } = await import("virtual:pwa-register");
@@ -56,6 +69,12 @@
       instrument={runtime.instrument}
       instruments={runtime.instruments}
       onInstrument={(name) => runtime.setInstrument(name)}
+      inputSource={inputSourceLabel}
+      midiActive={runtime.activeSource === "midi"}
+      midiInstruments={runtime.midiInstruments}
+      activeInstrument={runtime.activeInstrument}
+      onSelectMidiInstrument={(instrument, channel) =>
+        runtime.setActiveMidiInstrument(instrument, channel)}
     />
   </div>
 </div>

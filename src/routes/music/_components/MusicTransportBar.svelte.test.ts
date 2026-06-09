@@ -54,4 +54,22 @@ describe("MusicTransportBar", () => {
     render(MusicTransportBar, { bpm: 96, instrument: "Saw", instruments: ["Synth", "Saw"] });
     expect(document.querySelector('[aria-label="Playback sound"]')).not.toBeNull();
   });
+
+  test("shows the active input source when no MIDI is live", () => {
+    render(MusicTransportBar, { bpm: 96, inputSource: "On-screen", midiActive: false });
+    expect(document.querySelector('[aria-label="Active input"]')).not.toBeNull();
+    expect(document.body.textContent).toContain("On-screen");
+  });
+
+  test("offers the MIDI instrument picker when MIDI is live with preferred instruments", () => {
+    render(MusicTransportBar, {
+      bpm: 96,
+      midiActive: true,
+      activeInstrument: "piano",
+      midiInstruments: [{ instrument: "piano", channel: 1, label: "Piano" }],
+    });
+    const trigger = document.querySelector('[aria-label="Active MIDI instrument"]');
+    expect(trigger).not.toBeNull();
+    expect(trigger?.textContent).toContain("Piano");
+  });
 });

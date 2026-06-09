@@ -19,6 +19,20 @@ const note = (
 });
 
 describe("music-core/input-router", () => {
+  test("filters MIDI to the active channel", () => {
+    const router = new InputRouter();
+    router.setActiveChannel(10);
+    expect(router.activeChannel).toBe(10);
+
+    expect(router.push({ ...note("midi", 36), channel: 10 } as NoteEvent)).toBe(true);
+    expect(router.push({ ...note("midi", 38), channel: 1 } as NoteEvent)).toBe(false);
+    // Events without a channel are still accepted.
+    expect(router.push(note("midi", 40))).toBe(true);
+
+    router.setActiveChannel(undefined);
+    expect(router.push({ ...note("midi", 38), channel: 1 } as NoteEvent)).toBe(true);
+  });
+
   test("prefers recent MIDI and suppresses competing on-screen input", () => {
     let now = 0;
     const router = new InputRouter({ now: () => now, midiActivityWindowMs: 1_000 });

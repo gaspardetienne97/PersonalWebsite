@@ -1,6 +1,10 @@
 import { getContext, setContext } from "svelte";
 
-import type { InputSource, InstrumentId } from "@repo/music-core/domain";
+import { INSTRUMENT_LABELS, type InputSource, type InstrumentId } from "@repo/music-core/domain";
+import {
+  DeviceProfileStore,
+  type DeviceProfileRepository,
+} from "@repo/music-core/engines/device-profiles";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { MidiEngine } from "@repo/music-core/engines/midi";
 import { SOUND_PRESET_NAMES, SoundEngine } from "@repo/music-core/engines/sound";
@@ -21,6 +25,13 @@ export interface PlaybackSource {
   durationSec: number;
   play: () => void | Promise<void>;
   stop?: () => void;
+}
+
+/** A MIDI-preferred instrument (from Connect) the transport bar can listen to. */
+export interface MidiInstrumentOption {
+  instrument: InstrumentId;
+  channel?: number;
+  label: string;
 }
 
 export class MusicRuntime {
@@ -52,6 +63,11 @@ export class MusicRuntime {
   playbackPlaying = $state(false);
   #playbackResetTimer: ReturnType<typeof setTimeout> | undefined;
 
+  /** MIDI-preferred instruments from Connect + the active channel filter. */
+  midiInstruments = $state<MidiInstrumentOption[]>([]);
+  activeChannel = $state<number | undefined>();
+  #deviceProfiles: DeviceProfileStore | undefined;
+
   #transport?: TransportEngine;
   #unsubscribeTransport?: () => void;
   #enablePromise?: Promise<boolean>;
@@ -72,6 +88,37 @@ export class MusicRuntime {
 
   setActiveInstrument(instrument: InstrumentId): void {
     this.activeInstrument = instrument;
+    this.router.setActiveInstrument(instrument);
+  }
+
+  setActiveChannel(channel?: number): void {
+    this.activeChannel = channel;
+    this.router.setActiveChannel(channel);
+  }
+
+  /** Listen to a specific MIDI instrument + its channel (from a Connect profile). */
+  setActiveMidiInstrument(instrument: InstrumentId, channel?: number): void {
+    this.setActiveInstrument(instrument);
+    this.setActiveChannel(channel);
+  }
+
+  /** Connect persists device profiles; the bar reads MIDI-preferred instruments. */
+  async attachStorage(settings: DeviceProfileRepository): Promise<void> {
+    this.#deviceProfiles = new DeviceProfileStore(settings);
+    await this.reloadMidiInstruments();
+  }
+
+  async reloadMidiInstruments(): Promise<void> {
+    if (!this.#deviceProfiles) return;
+    const state = await this.#deviceProfiles.load();
+    const options: MidiInstrumentOption[] = [];
+    for (const [instrument, source] of Object.entries(state.preferences)) {
+      if (source !== "midi") continue;
+      const id = instrument as InstrumentId;
+      const profile = state.profiles.find((entry) => entry.instrument === id);
+      options.push({ instrument: id, channel: profile?.channel, label: INSTRUMENT_LABELS[id] });
+    }
+    this.midiInstruments = options;
   }
 
   setTransportBpm(value: number): void {
@@ -123,7 +170,7 @@ export class MusicRuntime {
       this.#clearPlaybackTimer();
       return;
     }
-    if (!(await this.enableAudio())) return;
+    if (!this.audioEnabled && !(await this.enableAudio())) return;
     await source.play();
     this.playbackPlaying = true;
     this.#playbackResetTimer = setTimeout(

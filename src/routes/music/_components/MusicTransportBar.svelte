@@ -8,9 +8,12 @@
   import VolumeX from "lucide-svelte/icons/volume-x";
   import Waveform from "lucide-svelte/icons/audio-waveform";
 
+  import type { InstrumentId } from "@repo/music-core/domain";
   import * as Popover from "@repo/ui/popover";
 
   import MetronomeIcon from "./MetronomeIcon.svelte";
+
+  type MidiInstrument = { instrument: InstrumentId; channel?: number; label: string };
 
   let {
     bpm,
@@ -32,6 +35,11 @@
     instrument = "Synth",
     instruments = [],
     onInstrument,
+    inputSource = "On-screen",
+    midiActive = false,
+    midiInstruments = [],
+    activeInstrument,
+    onSelectMidiInstrument,
     onTap,
   }: {
     bpm: number;
@@ -54,6 +62,11 @@
     instrument?: string;
     instruments?: string[];
     onInstrument?: (name: string) => void;
+    inputSource?: string;
+    midiActive?: boolean;
+    midiInstruments?: MidiInstrument[];
+    activeInstrument?: InstrumentId;
+    onSelectMidiInstrument?: (instrument: InstrumentId, channel?: number) => void;
     onTap?: () => void;
   } = $props();
 
@@ -181,8 +194,46 @@
     </button>
   </div>
 
-  <!-- right: mute + metronome blend + tap + audio -->
+  <!-- right: input + mute + metronome blend + tap + audio -->
   <div class="flex items-center gap-3">
+    {#if midiActive && midiInstruments.length > 0}
+      <Popover.Root>
+        <Popover.Trigger
+          class="hidden items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-muted md:inline-flex"
+          aria-label="Active MIDI instrument"
+        >
+          <span class="size-1.5 rounded-full bg-green-500"></span>
+          MIDI · {midiInstruments.find((option) => option.instrument === activeInstrument)?.label ??
+            "All"}
+        </Popover.Trigger>
+        <Popover.Content class="w-48 p-1.5" side="top" align="end">
+          <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Listen to
+          </p>
+          {#each midiInstruments as option}
+            <button
+              type="button"
+              onclick={() => onSelectMidiInstrument?.(option.instrument, option.channel)}
+              class="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted {activeInstrument ===
+              option.instrument
+                ? 'font-semibold text-primary'
+                : ''}"
+            >
+              <span>{option.label}</span>
+              {#if option.channel}<span class="text-xs text-muted-foreground">Ch {option.channel}</span>{/if}
+            </button>
+          {/each}
+        </Popover.Content>
+      </Popover.Root>
+    {:else}
+      <span
+        class="hidden items-center gap-1.5 text-xs font-medium text-muted-foreground md:inline-flex"
+        aria-label="Active input"
+      >
+        <span class="size-1.5 rounded-full {midiActive ? 'bg-green-500' : 'bg-muted-foreground/50'}"></span>
+        {inputSource}
+      </span>
+    {/if}
     <button
       type="button"
       onclick={onToggleMute}

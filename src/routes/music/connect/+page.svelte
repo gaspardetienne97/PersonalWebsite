@@ -82,6 +82,7 @@
     const current = profileFor(id) ?? { id };
     const next = await profiles.saveProfile({ ...current, ...patch });
     savedProfiles = next.profiles;
+    await runtime.reloadMidiInstruments();
     status = "Saved.";
   }
 
@@ -89,6 +90,7 @@
     if (!ready) return;
     const next = await profiles.setPreference(instrument, source as InputSource);
     preferences = next.preferences;
+    await runtime.reloadMidiInstruments();
     status = "Preference saved.";
   }
 
