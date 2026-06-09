@@ -1,6 +1,13 @@
-import { Midi } from "@tonejs/midi";
+// @tonejs/midi is CJS: under Node/SSR ESM a named `import { Midi }` is not
+// statically resolvable and 500s the SSR of /music/import. Resolve the class via
+// namespace + default interop so it works in SSR, the browser, and tests.
+import * as TonejsMidi from "@tonejs/midi";
 
 import { midiToNote } from "@repo/music-core/engines/theory";
+
+const Midi: typeof TonejsMidi.Midi =
+  (TonejsMidi as { Midi?: typeof TonejsMidi.Midi }).Midi ??
+  (TonejsMidi as unknown as { default: { Midi: typeof TonejsMidi.Midi } }).default.Midi;
 
 export interface ImportedNote {
   midi: number;
