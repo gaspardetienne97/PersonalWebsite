@@ -116,9 +116,9 @@
   }
 </script>
 
-<!-- Desktop sidebar -->
+<!-- Desktop sidebar: sticky under the site header so the shell stays put while content scrolls -->
 <aside
-  class="hidden w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground md:flex"
+  class="sticky top-12 hidden h-[calc(100dvh-3rem)] w-60 shrink-0 flex-col self-start border-r bg-sidebar text-sidebar-foreground md:flex"
 >
   <div class="flex flex-col gap-0.5 border-b p-4">
     <span class="flex items-center gap-2 text-base font-bold tracking-tight">
