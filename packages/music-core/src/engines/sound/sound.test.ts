@@ -1,6 +1,47 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { SoundEngine, type ToneSoundModule } from "./index";
+import type { Score } from "@repo/music-core/domain";
+
+import { SoundEngine, scoreToPattern, type ToneSoundModule } from "./index";
+
+function makeScore(overrides: Partial<Score> = {}): Score {
+  return {
+    id: "s1",
+    origin: "generated",
+    tempoMap: [{ atBeat: 0, bpm: 120 }],
+    timeSignatures: [],
+    voices: [],
+    notes: [
+      { midiNote: 60, startBeat: 0, durationBeats: 1, velocity: 0.8, voiceId: "v1" },
+      { midiNote: 64, startBeat: 1, durationBeats: 2, velocity: 0.8, voiceId: "v1" },
+    ],
+    chords: [],
+    sections: [],
+    markers: [],
+    ...overrides,
+  };
+}
+
+describe("scoreToPattern", () => {
+  test("converts score beats to seconds using the score tempo", () => {
+    const { steps, durationSec } = scoreToPattern(makeScore());
+    // 120 bpm -> 0.5s/beat
+    expect(steps).toEqual([
+      { midiNotes: [60], offsetSeconds: 0, durationSeconds: 0.5 },
+      { midiNotes: [64], offsetSeconds: 0.5, durationSeconds: 1 },
+    ]);
+    // last note ends at beat 3 -> 1.5s
+    expect(durationSec).toBe(1.5);
+  });
+
+  test("honours a bpm override and an empty score", () => {
+    const { steps, durationSec } = scoreToPattern(makeScore(), { bpm: 60 });
+    expect(steps[1]).toEqual({ midiNotes: [64], offsetSeconds: 1, durationSeconds: 2 });
+    const empty = scoreToPattern(makeScore({ notes: [] }));
+    expect(empty.steps).toEqual([]);
+    expect(empty.durationSec).toBe(0);
+  });
+});
 
 function createToneMock() {
   const synthTrigger = vi.fn();

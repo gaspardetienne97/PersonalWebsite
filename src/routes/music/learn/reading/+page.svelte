@@ -9,6 +9,7 @@
     type ReadingSessionState,
   } from "@repo/music-core/engines/reading-session";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
+  import { scoreToPattern } from "@repo/music-core/engines/sound";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import { curatedTunings, type TuningProfile } from "@repo/music-core/engines/tunings";
@@ -69,6 +70,22 @@
   const activeTuning = $derived(
     availableTunings.find(({ id }) => id === setup.tuningId) ?? availableTunings[0],
   );
+
+  // The transport Play button previews the on-screen sight-reading melody.
+  $effect(() => {
+    const prompt = sessionState?.currentPrompt;
+    const score = prompt && "score" in prompt ? prompt.score : undefined;
+    if (!score) {
+      runtime.setPlaybackSource(undefined);
+      return;
+    }
+    const { steps, durationSec } = scoreToPattern(score, { bpm: setup.bpm });
+    runtime.setPlaybackSource({
+      label: "sight-reading melody",
+      durationSec,
+      play: () => runtime.sound.playPattern(steps),
+    });
+  });
 
   void initialize();
 
@@ -249,6 +266,7 @@
     unsubscribeMidiState();
     session?.dispose();
     runtime.router.setActiveInstrument();
+    runtime.setPlaybackSource(undefined);
   });
 </script>
 

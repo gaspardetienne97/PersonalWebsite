@@ -1,3 +1,4 @@
+import type { Score } from "@repo/music-core/domain";
 import { midiToNote } from "@repo/music-core/engines/theory";
 
 type ToneTime = number | string;
@@ -93,6 +94,31 @@ export const SOUND_PRESETS: Record<string, Record<string, unknown>> = {
 };
 
 export const SOUND_PRESET_NAMES: string[] = Object.keys(SOUND_PRESETS);
+
+export interface ScorePattern {
+  steps: SoundPatternStep[];
+  durationSec: number;
+}
+
+/**
+ * Project a Score's tempo-independent beats onto wall-clock seconds so the
+ * transport's Play button can preview a melody via {@link SoundEngine.playPattern}.
+ * One step per note (overlaps are fine); tempo comes from the score unless overridden.
+ */
+export function scoreToPattern(score: Score, options: { bpm?: number } = {}): ScorePattern {
+  const bpm = options.bpm ?? score.tempoMap[0]?.bpm ?? 120;
+  const secondsPerBeat = 60 / bpm;
+  const steps: SoundPatternStep[] = score.notes.map((note) => ({
+    midiNotes: [note.midiNote],
+    offsetSeconds: note.startBeat * secondsPerBeat,
+    durationSeconds: note.durationBeats * secondsPerBeat,
+  }));
+  const endBeat = score.notes.reduce(
+    (latest, note) => Math.max(latest, note.startBeat + note.durationBeats),
+    0,
+  );
+  return { steps, durationSec: endBeat * secondsPerBeat };
+}
 
 export class SoundEngine {
   #tone: ToneSoundModule | undefined;
