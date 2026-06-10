@@ -1,6 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
+import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 
 import { MusicRuntime } from "./_runtime.svelte";
+
+const databases: PracticeDatabase[] = [];
+
+afterEach(async () => {
+  await Promise.all(databases.map((database) => database.delete()));
+  databases.length = 0;
+});
+
+function createStore(): PracticeStore {
+  const database = new PracticeDatabase(`runtime-journal-${crypto.randomUUID()}`);
+  databases.push(database);
+  return new PracticeStore(database);
+}
 
 describe("MusicRuntime shared UI state", () => {
   it("defaults active instrument to piano", () => {
@@ -88,6 +104,39 @@ describe("MusicRuntime shared UI state", () => {
     expect(played).toBe(1);
     expect(rt.playbackPlaying).toBe(true);
     expect(rt.metronomeRunning).toBe(false); // metronome untouched
+    rt.dispose();
+  });
+
+  it("captures a completed practice activity into the journal", async () => {
+    const store = createStore();
+    const rt = new MusicRuntime();
+    rt.attachJournal(store);
+
+    await rt.recordPractice({
+      source: "drill",
+      instrument: "piano",
+      tags: ["reading"],
+      xpEarned: 30,
+      note: "Note reading · 8/10 correct (80%)",
+    });
+
+    const journal = new PracticeSessionStore(store);
+    await journal.load();
+    const sessions = journal.all();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({
+      source: "drill",
+      instrument: "piano",
+      xpEarned: 30,
+      tags: ["reading"],
+    });
+    expect(sessions[0]?.notes).toContain("Note reading");
+    rt.dispose();
+  });
+
+  it("recordPractice is a no-op without an attached journal", async () => {
+    const rt = new MusicRuntime();
+    await expect(rt.recordPractice({ source: "drill", xpEarned: 10 })).resolves.toBeUndefined();
     rt.dispose();
   });
 

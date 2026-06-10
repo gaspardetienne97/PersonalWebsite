@@ -1,13 +1,23 @@
 import { getContext, setContext } from "svelte";
 
-import { INSTRUMENT_LABELS, type InputSource, type InstrumentId } from "@repo/music-core/domain";
+import {
+  INSTRUMENT_LABELS,
+  unixMs,
+  type ExerciseRunRecord,
+  type InputSource,
+  type InstrumentId,
+  type ScoringEvent,
+  type SessionSource,
+} from "@repo/music-core/domain";
 import {
   DeviceProfileStore,
   type DeviceProfileRepository,
 } from "@repo/music-core/engines/device-profiles";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { MidiEngine } from "@repo/music-core/engines/midi";
+import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
 import { SOUND_PRESET_NAMES, SoundEngine } from "@repo/music-core/engines/sound";
+import type { PracticeStore } from "@repo/music-core/engines/store";
 import {
   createToneTransportEngine,
   type TransportEngine,
@@ -32,6 +42,21 @@ export interface MidiInstrumentOption {
   instrument: InstrumentId;
   channel?: number;
   label: string;
+}
+
+/**
+ * A completed practice activity to drop into the journal. Routes call
+ * `recordPractice` when an exercise/session finishes so it shows up under
+ * `/music/track` automatically (and is editable there).
+ */
+export interface PracticeCaptureEntry {
+  source: SessionSource;
+  instrument?: InstrumentId;
+  tags?: string[];
+  scoringEvents?: ScoringEvent[];
+  runs?: ExerciseRunRecord[];
+  xpEarned: number;
+  note?: string;
 }
 
 export class MusicRuntime {
@@ -67,6 +92,10 @@ export class MusicRuntime {
   midiInstruments = $state<MidiInstrumentOption[]>([]);
   activeChannel = $state<number | undefined>();
   #deviceProfiles: DeviceProfileStore | undefined;
+
+  /** Journal sink: completed activities are appended via recordPractice. */
+  #journal: PracticeSessionStore | undefined;
+  #captureSeq = 0;
 
   #transport?: TransportEngine;
   #unsubscribeTransport?: () => void;
@@ -106,6 +135,29 @@ export class MusicRuntime {
   async attachStorage(settings: DeviceProfileRepository): Promise<void> {
     this.#deviceProfiles = new DeviceProfileStore(settings);
     await this.reloadMidiInstruments();
+  }
+
+  /** Point the journal sink at the local PracticeStore so activities persist. */
+  attachJournal(store: PracticeStore): void {
+    this.#journal = new PracticeSessionStore(store);
+  }
+
+  /** Append a completed practice activity to the journal (no-op without storage). */
+  async recordPractice(entry: PracticeCaptureEntry): Promise<void> {
+    if (!this.#journal) return;
+    const startedAt = unixMs(Date.now());
+    const id = `${entry.source}-${startedAt}-${this.#captureSeq++}`;
+    this.#journal.start({
+      id,
+      source: entry.source,
+      startedAt,
+      ...(entry.instrument !== undefined ? { instrument: entry.instrument } : {}),
+      ...(entry.tags !== undefined ? { tags: entry.tags } : {}),
+    });
+    for (const run of entry.runs ?? []) this.#journal.recordRun(id, run);
+    for (const event of entry.scoringEvents ?? []) this.#journal.recordScoringEvent(id, event);
+    this.#journal.finish(id, unixMs(Date.now()), entry.xpEarned, entry.note);
+    await this.#journal.flush();
   }
 
   async reloadMidiInstruments(): Promise<void> {

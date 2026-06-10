@@ -58,6 +58,7 @@
   let midiEnabled = $state(runtime.midi.state.enabled);
   let midiStatus = $state(midiMessage());
   let sessionXp = $state(0);
+  let captured = false;
 
   const availableTunings = $derived(
     setup.instrument === "piano"
@@ -125,6 +126,7 @@
     try {
       session?.dispose();
       unsubscribeSession?.();
+      captured = false;
       session = new ReadingSession({
         router: runtime.router,
         services: { skills, analytics, progress },
@@ -181,6 +183,21 @@
     sessionState = next;
     sessionXp = next.results.reduce((total, result) => total + result.xp, 0);
     status = next.error ?? "";
+
+    // Auto-capture the finished session into the practice journal (once).
+    if (next.status === "summary" && next.summary && !captured) {
+      captured = true;
+      void runtime.recordPractice({
+        source: "drill",
+        instrument: setup.instrument,
+        tags: ["reading", setup.activity],
+        scoringEvents: next.summary.results.map((result) => result.event),
+        xpEarned: next.summary.xp,
+        note: `Note reading · ${next.summary.correct}/${next.summary.total} correct (${Math.round(
+          next.summary.accuracy * 100,
+        )}%)`,
+      });
+    }
   }
 
   async function answerChoice(choice: string): Promise<void> {
