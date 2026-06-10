@@ -113,7 +113,7 @@
         {#if recording}
           <Square class="size-4 fill-current" aria-hidden="true" />Stop · {liveCount}
         {:else}
-          <Circle class="size-4 fill-current text-red-500" aria-hidden="true" />New recording
+          <Circle class="size-4 fill-current text-destructive" aria-hidden="true" />New recording
         {/if}
       </Button>
     {/snippet}

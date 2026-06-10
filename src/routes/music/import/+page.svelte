@@ -127,7 +127,7 @@
     <Card.Root>
       <Card.Header class="flex-row items-center justify-between gap-2">
         <Card.Title class="truncate">{song.name}</Card.Title>
-        <span class="rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-semibold text-green-600 dark:text-green-400">
+        <span class="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
           Analysis complete
         </span>
       </Card.Header>

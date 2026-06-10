@@ -141,7 +141,7 @@
     {#snippet controls()}
       <SourceReadout label="Soloing on" device={sourceLabel} live={runtime.activeSource === "midi"} />
       <Button type="button" variant={recording ? "default" : "outline"} onclick={toggleRecording}>
-        <Circle class="size-4 {recording ? 'fill-current text-red-500' : ''}" aria-hidden="true" />
+        <Circle class="size-4 {recording ? 'fill-current text-destructive' : ''}" aria-hidden="true" />
         {recording ? `Recording · ${recordedCount}` : "Record solo"}
       </Button>
     {/snippet}

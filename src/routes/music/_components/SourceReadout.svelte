@@ -29,7 +29,7 @@
     <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
     <span class="flex items-center gap-1.5 truncate text-sm font-semibold">
       {#if live}
-        <span class="inline-block size-1.5 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
+        <span class="inline-block size-1.5 shrink-0 rounded-full bg-success" aria-hidden="true"></span>
       {/if}
       {device}
     </span>

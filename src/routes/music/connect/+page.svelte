@@ -138,8 +138,8 @@
   </PracticeScreenHeader>
 
   {#if !capabilities.supported}
-    <div class="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
-      <span class="font-semibold text-amber-700 dark:text-amber-400">Web MIDI unavailable.</span>
+    <div class="flex items-start gap-3 rounded-xl border border-warn/30 bg-warn/10 p-4 text-sm">
+      <span class="font-semibold text-warn">Web MIDI unavailable.</span>
       <span class="text-muted-foreground">
         {capabilities.reason} Guitar &amp; uke can fall back to audio (Phase 2); everything else uses the
         on-screen keyboard below.
@@ -174,7 +174,7 @@
                   {device.manufacturer ?? "USB-MIDI"}
                 </Card.Description>
               </div>
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-semibold text-green-600 dark:text-green-400">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
                 <span class="size-1.5 rounded-full bg-current"></span>Live
               </span>
             </Card.Header>

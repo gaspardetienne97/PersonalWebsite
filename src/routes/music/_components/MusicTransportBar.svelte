@@ -118,7 +118,7 @@
         <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           Common tempos
         </p>
-        {#each TEMPO_PRESETS as preset}
+        {#each TEMPO_PRESETS as preset (preset)}
           <button
             type="button"
             onclick={() => onBpm?.(preset.bpm)}
@@ -147,7 +147,7 @@
     <div class="hidden flex-col sm:flex">
       <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Count in</span>
       <div role="group" aria-label="Count in" class="mt-0.5 flex items-center gap-0.5">
-        {#each COUNT_IN_OPTIONS as option}
+        {#each COUNT_IN_OPTIONS as option (option)}
           <button
             type="button"
             aria-pressed={countInBars === option.bars}
@@ -202,7 +202,7 @@
           class="hidden items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-muted md:inline-flex"
           aria-label="Active MIDI instrument"
         >
-          <span class="size-1.5 rounded-full bg-green-500"></span>
+          <span class="size-1.5 rounded-full bg-success"></span>
           MIDI · {midiInstruments.find((option) => option.instrument === activeInstrument)?.label ??
             "All"}
         </Popover.Trigger>
@@ -210,7 +210,7 @@
           <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Listen to
           </p>
-          {#each midiInstruments as option}
+          {#each midiInstruments as option (option.instrument)}
             <button
               type="button"
               onclick={() => onSelectMidiInstrument?.(option.instrument, option.channel)}
@@ -230,7 +230,7 @@
         class="hidden items-center gap-1.5 text-xs font-medium text-muted-foreground md:inline-flex"
         aria-label="Active input"
       >
-        <span class="size-1.5 rounded-full {midiActive ? 'bg-green-500' : 'bg-muted-foreground/50'}"></span>
+        <span class="size-1.5 rounded-full {midiActive ? 'bg-success' : 'bg-muted-foreground/50'}"></span>
         {inputSource}
       </span>
     {/if}
@@ -277,7 +277,7 @@
           <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Playback sound
           </p>
-          {#each instruments as name}
+          {#each instruments as name (name)}
             <button
               type="button"
               onclick={() => onInstrument?.(name)}

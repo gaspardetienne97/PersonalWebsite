@@ -21,13 +21,13 @@
   aria-live="polite"
   class="flex items-center gap-4 rounded-xl border p-4
     {kind === 'correct'
-    ? 'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-400'
+    ? 'border-success/25 bg-success/10 text-success'
     : 'border-destructive/20 bg-destructive/10 text-destructive'}
     {cls}"
 >
   <div
     class="grid size-10 shrink-0 place-items-center rounded-full text-xl {kind === 'correct'
-      ? 'bg-green-500/20'
+      ? 'bg-success/20'
       : 'bg-destructive/20'}"
   >
     {kind === "correct" ? "✓" : "✗"}

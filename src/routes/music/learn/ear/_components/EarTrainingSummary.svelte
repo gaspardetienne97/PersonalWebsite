@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { EarTrainingSummary as Summary } from "@repo/music-core/engines/ear-training";
+  import { intensityStep } from "@repo/music-core/engines/semantic-color";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
@@ -8,6 +9,12 @@
     onRepeat,
     onRetry,
   }: { summary: Summary; onRepeat: () => void; onRetry: () => void } = $props();
+
+  // Confusion intensity → a sequential heatmap over the error token.
+  const maxConfusion = $derived(
+    summary.confusions.reduce((max, c) => Math.max(max, c.count), 0),
+  );
+  const HEAT_BG = ["", "bg-destructive/10", "bg-destructive/20", "bg-destructive/35", "bg-destructive/50"];
 </script>
 
 <section class="grid gap-6">
@@ -22,7 +29,7 @@
   </header>
 
   <section class="grid gap-4 sm:grid-cols-3" aria-label="Accuracy by drill">
-    {#each Object.entries(summary.byDrill) as [drill, result]}
+    {#each Object.entries(summary.byDrill) as [drill, result] (drill)}
       <Card.Root>
         <Card.Header>
           <Card.Description class="capitalize">{drill.replace("-", " ")}</Card.Description>
@@ -39,7 +46,7 @@
     </Card.Header>
     <Card.Content>
       <ol class="grid gap-2 text-sm">
-        {#each summary.recentResults.slice(-5).reverse() as item}
+        {#each summary.recentResults.slice(-5).reverse() as item, i (i)}
           <li class="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
             <span class="truncate">{item.prompt.answerLabel}</span>
             <span class={item.result.correct ? "text-foreground" : "text-muted-foreground"}>
@@ -59,9 +66,11 @@
       </Card.Header>
       <Card.Content>
         <ul class="grid gap-2 text-sm">
-          {#each summary.confusions as confusion}
-            <li class="rounded-md border px-3 py-2">
-              {confusion.expected} → {confusion.actual} · {confusion.count}x
+          {#each summary.confusions as confusion (confusion.expected + confusion.actual)}
+            {@const heat = HEAT_BG[intensityStep(confusion.count, maxConfusion, 4)]}
+            <li class="flex items-center justify-between rounded-md border px-3 py-2 {heat}">
+              <span>{confusion.expected} → {confusion.actual}</span>
+              <span class="font-semibold tabular-nums">{confusion.count}×</span>
             </li>
           {/each}
         </ul>
