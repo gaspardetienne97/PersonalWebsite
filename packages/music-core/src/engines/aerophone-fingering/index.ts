@@ -8,6 +8,10 @@
  * main keys + octave behaviour are reliable, while a few side/pinky keys on the
  * register break (C5/C#5) are best-effort — verify against the manual and edit
  * {@link AEROPHONE_FINGERINGS} to correct. The chart covers A#/Bb3..F#/Gb5.
+ *
+ * Verified against manual charts / live use: C4, D4, E4, F4, G4, A4, B4, C#5,
+ * D5, Eb5. Still to confirm: the low pinkies (Bb3/B3/C#4), Eb4, the long F#
+ * (F#4/F#5), G#4, the bis Bb4, and the C5 side-C.
  */
 
 /** A key on the Aerophone that the fingering chart can fill in. */
