@@ -1,6 +1,8 @@
 <script lang="ts">
   import { masteryTone } from "@repo/music-core/engines/semantic-color";
 
+  import { toneTextClass } from "./semantic-color";
+
   let {
     percent,
     label,
@@ -23,12 +25,7 @@
   const dashoffset = $derived(circumference * (1 - clamped / 100));
   const center = $derived(size / 2);
   // Mastery encodes meaning: low → error, mid → warn, high → success.
-  const TONE_CLASS = {
-    error: "text-destructive",
-    warn: "text-warn",
-    success: "text-success",
-  } as const;
-  const toneClass = $derived(TONE_CLASS[masteryTone(clamped)]);
+  const toneClass = $derived(toneTextClass[masteryTone(clamped)]);
 </script>
 
 <div class="inline-flex flex-col items-center gap-1.5 {cls}">

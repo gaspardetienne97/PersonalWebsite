@@ -9,6 +9,8 @@
   import type { EarTrainingSessionState } from "@repo/music-core/engines/ear-training";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
   import { masteryTone } from "@repo/music-core/engines/semantic-color";
+
+  import { toneTextClass } from "../../../_components/semantic-color";
   import { Button } from "@repo/ui/button";
 
   import InputSurface from "../../../_components/InputSurface.svelte";
@@ -63,13 +65,8 @@
   const answered = $derived(state.results.length);
   const correctCount = $derived(state.results.filter((result) => result.event.correct).length);
   const accuracyPct = $derived(answered > 0 ? Math.round((correctCount / answered) * 100) : 0);
-  const ACCURACY_TONE = {
-    error: "text-destructive",
-    warn: "text-warn",
-    success: "text-success",
-  } as const;
   const accuracyToneClass = $derived(
-    answered === 0 ? "text-muted-foreground" : ACCURACY_TONE[masteryTone(accuracyPct)],
+    answered === 0 ? "text-muted-foreground" : toneTextClass[masteryTone(accuracyPct)],
   );
   const combo = $derived.by(() => {
     let streak = 0;
