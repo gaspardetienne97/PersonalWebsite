@@ -5,6 +5,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./domain": "./src/domain/index.ts",
+    "./engines/aerophone-fingering": "./src/engines/aerophone-fingering/index.ts",
     "./engines/analytics": "./src/engines/analytics/index.ts",
     "./engines/dashboard": "./src/engines/dashboard/index.ts",
     "./engines/device-profiles": "./src/engines/device-profiles/index.ts",

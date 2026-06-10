@@ -19,6 +19,7 @@
   import Settings from "lucide-svelte/icons/settings";
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
   import Upload from "lucide-svelte/icons/upload";
+  import Wind from "lucide-svelte/icons/wind";
   import WandSparkles from "lucide-svelte/icons/wand-sparkles";
   import Grid3x3 from "lucide-svelte/icons/grid-3x3";
 
@@ -53,6 +54,7 @@
           href: "/music/play/scales",
           icon: SlidersHorizontal,
         },
+        { label: "Aerophone", href: "/music/learn/aerophone", icon: Wind },
       ],
     },
     {
