@@ -42,6 +42,7 @@
   let unsubscribeSession: (() => void) | undefined;
   let midiEnabled = $state(runtime.midi.state.enabled);
   let midiStatus = $state(midiMessage());
+  let captured = false;
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
   const summary = $derived(sessionState?.summary);
@@ -91,6 +92,7 @@
     try {
       session?.dispose();
       unsubscribeSession?.();
+      captured = false;
       session = new RhythmSession({
         router: runtime.router,
         services: { skills, analytics, progress },
@@ -98,6 +100,17 @@
       unsubscribeSession = session.subscribe((state) => {
         sessionState = state;
         status = state.error ?? "";
+        // Auto-capture the finished pulse session into the journal (once).
+        if (state.summary && !captured) {
+          captured = true;
+          void runtime.recordPractice({
+            source: "drill",
+            tags: ["rhythm"],
+            scoringEvents: state.summary.results.map((result) => result.event),
+            xpEarned: state.summary.xp,
+            note: `Rhythm pulse · ${Math.round(state.summary.accuracy * 100)}% accuracy`,
+          });
+        }
       });
 
       const delayMs = runtime.audioEnabled

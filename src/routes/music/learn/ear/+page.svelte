@@ -52,6 +52,7 @@
   let sessionState = $state<EarTrainingSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
   let lastPlayedIndex = -1;
+  let captured = false;
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
@@ -100,6 +101,7 @@
       session?.dispose();
       unsubscribeSession?.();
       lastPlayedIndex = -1;
+      captured = false;
       session = new EarTrainingSession(
         {
           router: runtime.router,
@@ -124,6 +126,19 @@
     if (next.status === "active" && next.currentIndex !== lastPlayedIndex) {
       lastPlayedIndex = next.currentIndex;
       queueMicrotask(replayCurrent);
+    }
+    // Auto-capture the finished drill into the practice journal (once).
+    if (next.status === "summary" && next.summary && !captured) {
+      captured = true;
+      void runtime.recordPractice({
+        source: "drill",
+        tags: ["ear", next.options.drill],
+        scoringEvents: next.summary.results.map((result) => result.event),
+        xpEarned: next.summary.xp,
+        note: `Ear training · ${next.summary.correct}/${next.summary.total} correct (${Math.round(
+          next.summary.accuracy * 100,
+        )}%)`,
+      });
     }
   }
 

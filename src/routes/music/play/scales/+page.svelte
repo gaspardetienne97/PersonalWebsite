@@ -39,6 +39,7 @@
   let unsubscribeSession: (() => void) | undefined;
   let midiEnabled = $state(runtime.midi.state.enabled);
   let midiStatus = $state(midiMessage());
+  let captured = false;
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
   const activePrompt = $derived(sessionState?.currentPrompt);
@@ -67,6 +68,18 @@
         sessionState = state;
         status = state.error ?? "";
         tempo = state.nextTargetBpm;
+        // Auto-capture the finished scale run into the journal (once).
+        if (state.summary && !captured) {
+          captured = true;
+          void runtime.recordPractice({
+            source: "drill",
+            instrument: runtime.activeInstrument,
+            tags: ["scales"],
+            scoringEvents: state.summary.results.map((result) => result.event),
+            xpEarned: state.summary.xp,
+            note: `Scales · ${Math.round(state.summary.noteAccuracy * 100)}% notes clean`,
+          });
+        }
       });
       ready = true;
       status = "Ready for scale practice.";
@@ -92,6 +105,7 @@
     status = "";
 
     try {
+      captured = false;
       await session.startScale({
         tonic: "C4",
         scale: "major",
