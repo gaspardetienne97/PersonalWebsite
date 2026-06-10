@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import type { InstrumentId, NoteEvent } from "@repo/music-core/domain";
+  import type { InputSurfaceId } from "@repo/music-core/engines/device-profiles";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
   import { curatedTunings } from "@repo/music-core/engines/tunings";
 
@@ -8,15 +9,17 @@
   import OnScreenKeyboard from "./OnScreenKeyboard.svelte";
   import SegmentedControl from "./SegmentedControl.svelte";
 
-  type Surface = "keyboard" | "guitar" | "ukulele" | "mpc";
-
   let {
     router,
     surface = $bindable("keyboard"),
+    instrument = "piano",
+    notes,
     onAccepted,
   }: {
     router: InputRouter;
-    surface?: Surface;
+    surface?: InputSurfaceId;
+    instrument?: InstrumentId;
+    notes?: string[];
     onAccepted?: (event: NoteEvent) => void;
   } = $props();
 
@@ -36,11 +39,11 @@
     size="sm"
     options={SURFACES}
     value={surface}
-    onChange={(value) => (surface = value as Surface)}
+    onChange={(value) => (surface = value as InputSurfaceId)}
   />
 
   {#if surface === "keyboard"}
-    <OnScreenKeyboard {router} instrument="piano" {onAccepted} />
+    <OnScreenKeyboard {router} {instrument} {notes} {onAccepted} />
   {:else if surface === "guitar" && guitarTuning}
     <FretboardInput {router} tuning={guitarTuning} {onAccepted} />
   {:else if surface === "ukulele" && ukuleleTuning}

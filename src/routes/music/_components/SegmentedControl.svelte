@@ -7,12 +7,14 @@
     onChange,
     size = "md",
     class: cls = "",
+    ariaLabel,
   }: {
     options: Option[];
     value: string;
     onChange?: (value: string) => void;
     size?: "sm" | "md";
     class?: string;
+    ariaLabel?: string;
   } = $props();
 
   function select(next: string): void {
@@ -23,9 +25,10 @@
 
 <div
   role="group"
+  aria-label={ariaLabel}
   class="inline-flex items-center gap-0.5 rounded-lg border bg-muted/60 p-1 {cls}"
 >
-  {#each options as option}
+  {#each options as option (option.value)}
     <button
       type="button"
       aria-pressed={value === option.value}

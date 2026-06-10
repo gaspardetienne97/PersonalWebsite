@@ -11,7 +11,10 @@ import {
 } from "@repo/music-core/domain";
 import {
   DeviceProfileStore,
+  defaultSurfaceForInstrument,
   type DeviceProfileRepository,
+  type InputSurfaceId,
+  type InstrumentSurfacePreferences,
 } from "@repo/music-core/engines/device-profiles";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { MidiEngine } from "@repo/music-core/engines/midi";
@@ -91,6 +94,8 @@ export class MusicRuntime {
   /** MIDI-preferred instruments from Connect + the active channel filter. */
   midiInstruments = $state<MidiInstrumentOption[]>([]);
   activeChannel = $state<number | undefined>();
+  /** Per-instrument on-screen surface chosen in Connect (in-session fallback). */
+  inputSurfaces = $state<InstrumentSurfacePreferences>({});
   #deviceProfiles: DeviceProfileStore | undefined;
 
   /** Journal sink: completed activities are appended via recordPractice. */
@@ -171,6 +176,19 @@ export class MusicRuntime {
       options.push({ instrument: id, channel: profile?.channel, label: INSTRUMENT_LABELS[id] });
     }
     this.midiInstruments = options;
+    this.inputSurfaces = state.surfaces;
+  }
+
+  /** The on-screen surface to show for an instrument (chosen in Connect, or default). */
+  surfaceFor(instrument: InstrumentId): InputSurfaceId {
+    return this.inputSurfaces[instrument] ?? defaultSurfaceForInstrument(instrument);
+  }
+
+  /** Persist the on-screen surface for an instrument and refresh reactive state. */
+  async setInputSurface(instrument: InstrumentId, surface: InputSurfaceId): Promise<void> {
+    if (!this.#deviceProfiles) return;
+    const state = await this.#deviceProfiles.setSurface(instrument, surface);
+    this.inputSurfaces = state.surfaces;
   }
 
   setTransportBpm(value: number): void {

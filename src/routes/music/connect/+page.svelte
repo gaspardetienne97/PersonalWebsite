@@ -5,7 +5,10 @@
   import type { InputSource, InstrumentId } from "@repo/music-core/domain";
   import {
     DeviceProfileStore,
+    defaultSurfaceForInstrument,
     type DeviceProfile,
+    type InputSurfaceId,
+    type InstrumentSurfacePreferences,
   } from "@repo/music-core/engines/device-profiles";
   import { midiCapabilities, type MidiDeviceSummary } from "@repo/music-core/engines/midi";
   import { PracticeStore } from "@repo/music-core/engines/store";
@@ -33,6 +36,12 @@
     { value: "audio", label: "Audio" },
     { value: "onscreen", label: "On-screen" },
   ];
+  const SURFACE_OPTIONS = [
+    { value: "keyboard", label: "Keys" },
+    { value: "guitar", label: "Guitar" },
+    { value: "ukulele", label: "Uke" },
+    { value: "mpc", label: "MPC" },
+  ];
 
   const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
@@ -42,6 +51,7 @@
   let status = $state("Loading device profiles.");
   let savedProfiles = $state<DeviceProfile[]>([]);
   let preferences = $state<Partial<Record<InstrumentId, InputSource>>>({});
+  let surfaces = $state<InstrumentSurfacePreferences>({});
   let midiEnabled = $state(runtime.midi.state.enabled);
   let midiDevices = $state<MidiDeviceSummary[]>(runtime.midi.state.inputs ?? []);
   let midiError = $state(runtime.midi.state.error);
@@ -61,6 +71,7 @@
       const state = await profiles.load();
       savedProfiles = state.profiles;
       preferences = state.preferences;
+      surfaces = state.surfaces;
       ready = true;
       status = midiEnabled ? "Devices connected." : "Enable MIDI to detect devices.";
     } catch (error) {
@@ -92,6 +103,18 @@
     preferences = next.preferences;
     await runtime.reloadMidiInstruments();
     status = "Preference saved.";
+  }
+
+  function surfaceFor(instrument: InstrumentId): InputSurfaceId {
+    return surfaces[instrument] ?? defaultSurfaceForInstrument(instrument);
+  }
+
+  async function chooseSurface(instrument: InstrumentId, surface: string): Promise<void> {
+    if (!ready) return;
+    const next = await profiles.setSurface(instrument, surface as InputSurfaceId);
+    surfaces = next.surfaces;
+    await runtime.reloadMidiInstruments();
+    status = "On-screen surface saved.";
   }
 
   onDestroy(() => unsubscribeMidi());
@@ -177,7 +200,7 @@
                     })}
                 >
                   <option value="">Unassigned</option>
-                  {#each INSTRUMENTS as instrument}
+                  {#each INSTRUMENTS as instrument (instrument.id)}
                     <option value={instrument.id}>{instrument.label}</option>
                   {/each}
                 </select>
@@ -189,22 +212,34 @@
     {/if}
   </section>
 
-  <!-- Per-instrument preferred source -->
+  <!-- Per-instrument preferred source + on-screen surface -->
   <section aria-label="Input routing">
     <h2 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
       Preferred source per instrument
     </h2>
     <Card.Root>
-      <Card.Content class="grid gap-3 py-5 sm:grid-cols-2">
-        {#each INSTRUMENTS as instrument}
-          <div class="flex items-center justify-between gap-3">
-            <span class="text-sm font-medium">{instrument.label}</span>
-            <SegmentedControl
-              size="sm"
-              options={SOURCE_OPTIONS}
-              value={preferences[instrument.id] ?? "midi"}
-              onChange={(source) => choosePreference(instrument.id, source)}
-            />
+      <Card.Content class="grid gap-4 py-5 sm:grid-cols-2">
+        {#each INSTRUMENTS as instrument (instrument.id)}
+          <div class="grid gap-2">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-medium">{instrument.label}</span>
+              <SegmentedControl
+                size="sm"
+                options={SOURCE_OPTIONS}
+                value={preferences[instrument.id] ?? "midi"}
+                onChange={(source) => choosePreference(instrument.id, source)}
+              />
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-xs text-muted-foreground">On-screen surface</span>
+              <SegmentedControl
+                size="sm"
+                ariaLabel={`On-screen surface for ${instrument.label}`}
+                options={SURFACE_OPTIONS}
+                value={surfaceFor(instrument.id)}
+                onChange={(surface) => chooseSurface(instrument.id, surface)}
+              />
+            </div>
           </div>
         {/each}
       </Card.Content>

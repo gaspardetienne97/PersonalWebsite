@@ -11,6 +11,25 @@ const INSTRUMENTS: readonly InstrumentId[] = [
 ];
 const SOURCES: readonly InputSource[] = ["midi", "audio", "onscreen", "click"];
 
+/** On-screen input surfaces the player can fall back to per instrument. */
+export type InputSurfaceId = "keyboard" | "guitar" | "ukulele" | "mpc";
+
+const SURFACES: readonly InputSurfaceId[] = ["keyboard", "guitar", "ukulele", "mpc"];
+
+/** The surface that best matches an instrument when the user has not chosen one. */
+export function defaultSurfaceForInstrument(instrument: InstrumentId): InputSurfaceId {
+  switch (instrument) {
+    case "guitar":
+      return "guitar";
+    case "ukulele":
+      return "ukulele";
+    case "mpc":
+      return "mpc";
+    default:
+      return "keyboard";
+  }
+}
+
 /** A persisted, user-editable profile for a connected (or known) input device. */
 export interface DeviceProfile {
   /** Stable device id (Web MIDI port id) or a synthetic id. */
@@ -24,10 +43,13 @@ export interface DeviceProfile {
 }
 
 export type InstrumentSourcePreferences = Partial<Record<InstrumentId, InputSource>>;
+export type InstrumentSurfacePreferences = Partial<Record<InstrumentId, InputSurfaceId>>;
 
 export interface DeviceProfilesState {
   profiles: DeviceProfile[];
   preferences: InstrumentSourcePreferences;
+  /** Preferred on-screen input surface per instrument (overrides the default). */
+  surfaces: InstrumentSurfacePreferences;
 }
 
 const STORE_ID = "music.device-profiles";
@@ -38,7 +60,7 @@ export interface DeviceProfileRepository {
 }
 
 export class DeviceProfileStore {
-  #state: DeviceProfilesState = { profiles: [], preferences: {} };
+  #state: DeviceProfilesState = { profiles: [], preferences: {}, surfaces: {} };
 
   constructor(private readonly repository?: DeviceProfileRepository) {}
 
@@ -46,6 +68,7 @@ export class DeviceProfileStore {
     return {
       profiles: this.#state.profiles.map((p) => ({ ...p })),
       preferences: { ...this.#state.preferences },
+      surfaces: { ...this.#state.surfaces },
     };
   }
 
@@ -56,6 +79,11 @@ export class DeviceProfileStore {
 
   preference(instrument: InstrumentId): InputSource | undefined {
     return this.#state.preferences[instrument];
+  }
+
+  /** The chosen on-screen surface, or the instrument's sensible default. */
+  surface(instrument: InstrumentId): InputSurfaceId {
+    return this.#state.surfaces[instrument] ?? defaultSurfaceForInstrument(instrument);
   }
 
   async load(): Promise<DeviceProfilesState> {
@@ -92,13 +120,26 @@ export class DeviceProfileStore {
     return this.get();
   }
 
+  async setSurface(
+    instrument: InstrumentId,
+    surface: InputSurfaceId,
+  ): Promise<DeviceProfilesState> {
+    this.#state = {
+      ...this.#state,
+      surfaces: { ...this.#state.surfaces, [instrument]: surface },
+    };
+    await this.#persist();
+    return this.get();
+  }
+
   async #persist(): Promise<void> {
     await this.repository?.put({ id: STORE_ID, value: this.#state });
   }
 }
 
 function parseState(value: unknown): DeviceProfilesState {
-  if (typeof value !== "object" || value === null) return { profiles: [], preferences: {} };
+  if (typeof value !== "object" || value === null)
+    return { profiles: [], preferences: {}, surfaces: {} };
   const source = value as Partial<DeviceProfilesState>;
   const profiles = Array.isArray(source.profiles)
     ? source.profiles
@@ -114,7 +155,16 @@ function parseState(value: unknown): DeviceProfilesState {
       }
     }
   }
-  return { profiles, preferences };
+  const surfaces: InstrumentSurfacePreferences = {};
+  if (typeof source.surfaces === "object" && source.surfaces !== null) {
+    for (const instrument of INSTRUMENTS) {
+      const surface = (source.surfaces as Record<string, unknown>)[instrument];
+      if (typeof surface === "string" && SURFACES.includes(surface as InputSurfaceId)) {
+        surfaces[instrument] = surface as InputSurfaceId;
+      }
+    }
+  }
+  return { profiles, preferences, surfaces };
 }
 
 function sanitizeProfile(value: unknown): DeviceProfile | undefined {

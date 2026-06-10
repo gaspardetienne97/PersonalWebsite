@@ -4,12 +4,13 @@
   import Target from "lucide-svelte/icons/target";
   import Zap from "lucide-svelte/icons/zap";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import type { InstrumentId, NoteEvent } from "@repo/music-core/domain";
+  import type { InputSurfaceId } from "@repo/music-core/engines/device-profiles";
   import type { EarTrainingSessionState } from "@repo/music-core/engines/ear-training";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
   import { Button } from "@repo/ui/button";
 
-  import OnScreenKeyboard from "../../../_components/OnScreenKeyboard.svelte";
+  import InputSurface from "../../../_components/InputSurface.svelte";
   import SegmentProgress from "../../../_components/SegmentProgress.svelte";
   import SessionFeedback from "../../../_components/SessionFeedback.svelte";
 
@@ -32,6 +33,8 @@
   let {
     state,
     router,
+    instrument = "piano",
+    surface = "keyboard",
     onReplay,
     onAnswer,
     onAccepted,
@@ -39,6 +42,8 @@
   }: {
     state: EarTrainingSessionState;
     router: InputRouter;
+    instrument?: InstrumentId;
+    surface?: InputSurfaceId;
     onReplay: () => void;
     onAnswer: (token: string) => void;
     onAccepted: (event: NoteEvent) => void;
@@ -124,7 +129,7 @@
   <!-- answers -->
   {#if prompt && state.options.answerMode === "choice"}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-label="Answer choices">
-      {#each prompt.choices as choice}
+      {#each prompt.choices as choice (choice.token)}
         <button
           type="button"
           onclick={() => onAnswer(choice.token)}
@@ -136,7 +141,7 @@
     </div>
   {:else if prompt}
     <div class="rounded-2xl border bg-card p-5">
-      <OnScreenKeyboard {router} notes={CHROMATIC_NOTES} onAccepted={onAccepted} />
+      <InputSurface {router} {surface} {instrument} notes={CHROMATIC_NOTES} {onAccepted} />
     </div>
   {/if}
 

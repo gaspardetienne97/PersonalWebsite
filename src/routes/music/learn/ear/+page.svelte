@@ -236,6 +236,8 @@
       <EarTrainingSessionView
         state={sessionState}
         router={runtime.router}
+        instrument={runtime.activeInstrument}
+        surface={runtime.surfaceFor(runtime.activeInstrument)}
         onReplay={replayCurrent}
         onAnswer={answerChoice}
         onAccepted={playAccepted}

@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import type { SettingsRecord } from "@repo/music-core/engines/store";
 
-import { DeviceProfileStore } from "./index";
+import { DeviceProfileStore, defaultSurfaceForInstrument } from "./index";
 
 function fakeRepo() {
   const map = new Map<string, SettingsRecord>();
@@ -59,6 +59,44 @@ describe("DeviceProfileStore", () => {
     await reloaded.load();
     expect(reloaded.preference("guitar")).toBe("audio");
     expect(reloaded.preference("piano")).toBeUndefined();
+  });
+
+  test("persists per-instrument on-screen surface", async () => {
+    const repo = fakeRepo();
+    const store = new DeviceProfileStore(repo);
+    await store.load();
+    await store.setSurface("guitar", "mpc");
+
+    const reloaded = new DeviceProfileStore(repo);
+    await reloaded.load();
+    expect(reloaded.surface("guitar")).toBe("mpc");
+  });
+
+  test("surface falls back to the instrument default when unset", async () => {
+    const store = new DeviceProfileStore(fakeRepo());
+    await store.load();
+    expect(store.surface("guitar")).toBe("guitar");
+    expect(store.surface("ukulele")).toBe("ukulele");
+    expect(store.surface("mpc")).toBe("mpc");
+    expect(store.surface("piano")).toBe("keyboard");
+    expect(store.surface("voice")).toBe("keyboard");
+    expect(store.surface("aerophone")).toBe("keyboard");
+  });
+
+  test("defaultSurfaceForInstrument maps each instrument to a surface", () => {
+    expect(defaultSurfaceForInstrument("guitar")).toBe("guitar");
+    expect(defaultSurfaceForInstrument("piano")).toBe("keyboard");
+  });
+
+  test("ignores an unknown persisted surface and uses the default", async () => {
+    const repo = fakeRepo();
+    await repo.put({
+      id: "music.device-profiles",
+      value: { profiles: [], preferences: {}, surfaces: { guitar: "theremin" } },
+    });
+    const store = new DeviceProfileStore(repo);
+    await store.load();
+    expect(store.surface("guitar")).toBe("guitar");
   });
 
   test("falls back to empty state on garbage", async () => {

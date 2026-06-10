@@ -34,7 +34,7 @@
 </script>
 
 <div class="flex flex-wrap gap-2" role="group" aria-label="On-screen keyboard">
-  {#each notes as note}
+  {#each notes as note (note)}
     <Button type="button" variant="outline" onclick={() => play(note)}>
       {note}
     </Button>
