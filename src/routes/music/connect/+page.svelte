@@ -14,7 +14,7 @@
   import { Input } from "@repo/ui/input";
   import { onDestroy } from "svelte";
 
-  import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
+  import InputSurface from "../_components/InputSurface.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
@@ -223,7 +223,7 @@
     </div>
     <Card.Root>
       <Card.Content class="py-5">
-        <OnScreenKeyboard router={runtime.router} />
+        <InputSurface router={runtime.router} />
       </Card.Content>
     </Card.Root>
   </section>
