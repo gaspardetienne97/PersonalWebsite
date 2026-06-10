@@ -33,6 +33,11 @@
   let focusAreas = $state<FocusArea[]>([]);
   let note = $state("");
 
+  // Inline editing of an existing journal entry.
+  let editingId = $state<string | null>(null);
+  let editNote = $state("");
+  let editTags = $state("");
+
   const routineSteps = [
     { label: "Warm-up · long tones", meta: "Technique", href: "/music/play/scales" },
     { label: "Ear training", meta: "Listening", href: "/music/learn/ear" },
@@ -90,6 +95,52 @@
       status = "Journal entry saved.";
     } catch (error) {
       status = message(error, "Journal entry could not be saved.");
+    } finally {
+      pending = false;
+    }
+  }
+
+  function beginEdit(session: PracticeSession): void {
+    editingId = session.id;
+    editNote = session.notes ?? "";
+    editTags = session.tags.join(", ");
+  }
+
+  function cancelEdit(): void {
+    editingId = null;
+  }
+
+  async function saveEdit(id: string): Promise<void> {
+    if (pending) return;
+    pending = true;
+    try {
+      const nextTags = editTags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+      journal.updateJournal(id, editNote.trim(), nextTags);
+      await journal.flush();
+      editingId = null;
+      refresh();
+      status = "Journal entry updated.";
+    } catch (error) {
+      status = message(error, "Journal entry could not be updated.");
+    } finally {
+      pending = false;
+    }
+  }
+
+  async function removeSession(id: string): Promise<void> {
+    if (pending) return;
+    pending = true;
+    try {
+      journal.remove(id);
+      await journal.flush();
+      if (editingId === id) editingId = null;
+      refresh();
+      status = "Journal entry removed.";
+    } catch (error) {
+      status = message(error, "Journal entry could not be removed.");
     } finally {
       pending = false;
     }
@@ -300,21 +351,68 @@
         {:else}
           {#each filteredSessions as session (session.id)}
             <Card.Root>
-              <Card.Header>
-                <Card.Description>
-                  {formatDate(session.startTime)} · {session.source}
-                </Card.Description>
-                <Card.Title>{session.xpEarned} XP · {session.scoringEvents.length} attempts</Card.Title>
+              <Card.Header class="flex-row items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <Card.Description>
+                    {formatDate(session.startTime)} · {session.source}
+                  </Card.Description>
+                  <Card.Title>{session.xpEarned} XP · {session.scoringEvents.length} attempts</Card.Title>
+                </div>
+                {#if editingId !== session.id}
+                  <div class="flex shrink-0 gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Edit entry {session.id}"
+                      onclick={() => beginEdit(session)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Delete entry {session.id}"
+                      disabled={pending}
+                      onclick={() => removeSession(session.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                {/if}
               </Card.Header>
               <Card.Content class="grid gap-2 text-sm text-muted-foreground">
-                {#if session.notes}
-                  <p>{session.notes}</p>
-                {/if}
-                {#if session.tags.length > 0}
-                  <p>Tags: {session.tags.join(", ")}</p>
-                {/if}
-                {#if session.instrument}
-                  <p>Instrument: {session.instrument}</p>
+                {#if editingId === session.id}
+                  <div class="grid gap-2">
+                    <Label for="edit-note-{session.id}">Edit note</Label>
+                    <textarea
+                      id="edit-note-{session.id}"
+                      aria-label="Edit note"
+                      class="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      bind:value={editNote}
+                    ></textarea>
+                  </div>
+                  <div class="grid gap-2">
+                    <Label for="edit-tags-{session.id}">Edit tags</Label>
+                    <Input id="edit-tags-{session.id}" aria-label="Edit tags" bind:value={editTags} />
+                  </div>
+                  <div class="flex gap-2">
+                    <Button type="button" size="sm" disabled={pending} onclick={() => saveEdit(session.id)}>
+                      Save changes
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onclick={cancelEdit}>Cancel</Button>
+                  </div>
+                {:else}
+                  {#if session.notes}
+                    <p>{session.notes}</p>
+                  {/if}
+                  {#if session.tags.length > 0}
+                    <p>Tags: {session.tags.join(", ")}</p>
+                  {/if}
+                  {#if session.instrument}
+                    <p>Instrument: {session.instrument}</p>
+                  {/if}
                 {/if}
               </Card.Content>
             </Card.Root>

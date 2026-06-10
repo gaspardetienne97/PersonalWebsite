@@ -98,6 +98,16 @@ export class PracticeSessionStore {
     return clone(session);
   }
 
+  /** Delete a session (e.g. a journal entry). No-op if it does not exist. */
+  remove(sessionId: string): void {
+    if (!this.#sessions.delete(sessionId)) return;
+    if (this.store) {
+      this.#operationQueue = this.#operationQueue.then(() =>
+        this.store!.sessions.delete(sessionId),
+      );
+    }
+  }
+
   query(options: SessionQuery = {}): PracticeSession[] {
     return this.all().filter((session) => {
       if (options.skillId && !touchesSkill(session, options.skillId)) return false;

@@ -109,6 +109,41 @@ describe("PracticeSessionStore", () => {
     });
   });
 
+  test("edits a journal note and removes a session, persisting both", async () => {
+    const store = createStore();
+    const sessions = new PracticeSessionStore(store);
+    sessions.start({
+      id: "keep",
+      source: "free-practice",
+      startedAt: unixMs(Date.UTC(2026, 0, 6)),
+    });
+    sessions.start({
+      id: "drop",
+      source: "free-practice",
+      startedAt: unixMs(Date.UTC(2026, 0, 7)),
+    });
+
+    sessions.updateJournal("keep", "Edited note.", ["harmony", "edited"]);
+    sessions.remove("drop");
+    await sessions.flush();
+
+    expect(sessions.all().map((session) => session.id)).toEqual(["keep"]);
+
+    const reloaded = new PracticeSessionStore(store);
+    await reloaded.load();
+    expect(reloaded.all()).toHaveLength(1);
+    const kept = reloaded.all()[0];
+    expect(kept?.id).toBe("keep");
+    expect(kept?.notes).toBe("Edited note.");
+    expect(kept?.tags).toEqual(["harmony", "edited"]);
+  });
+
+  test("removing an unknown session is a no-op", () => {
+    const sessions = new PracticeSessionStore();
+    expect(() => sessions.remove("missing")).not.toThrow();
+    expect(sessions.all()).toHaveLength(0);
+  });
+
   test("compares this week against last week", () => {
     const sessions = new PracticeSessionStore();
     const lastWeek = sessions.start({

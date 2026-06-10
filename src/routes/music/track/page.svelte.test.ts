@@ -29,7 +29,40 @@ describe("/music/track/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain(note));
     expect(document.body.textContent).toContain("free-practice");
   });
+
+  test("edits an existing journal entry", async () => {
+    render(Page);
+    const note = await saveEntry();
+
+    button("Edit")?.click();
+    await vi.waitFor(() => expect(textarea("Edit note")).not.toBeNull());
+    const edited = `Edited ${crypto.randomUUID()}`;
+    setTextarea(textarea("Edit note")!, edited);
+    button("Save changes")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain(edited));
+    expect(document.body.textContent).not.toContain(note);
+  });
+
+  test("removes a journal entry", async () => {
+    render(Page);
+    const note = await saveEntry();
+
+    button("Delete")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).not.toContain(note));
+  });
 });
+
+async function saveEntry(): Promise<string> {
+  await vi.waitFor(() => expect(button("Save journal entry")).not.toBeUndefined());
+  const note = `Entry ${crypto.randomUUID()}`;
+  setTextarea(textarea("Journal note")!, note);
+  await vi.waitFor(() => expect(button("Save journal entry")?.disabled).toBe(false));
+  button("Save journal entry")?.click();
+  await vi.waitFor(() => expect(document.body.textContent).toContain(note));
+  return note;
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
