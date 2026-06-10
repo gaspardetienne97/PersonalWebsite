@@ -8,6 +8,7 @@
   import Drum from "lucide-svelte/icons/drum";
   import Ear from "lucide-svelte/icons/ear";
   import FlaskConical from "lucide-svelte/icons/flask-conical";
+  import CircleHelp from "lucide-svelte/icons/circle-help";
   import House from "lucide-svelte/icons/house";
   import Library from "lucide-svelte/icons/library";
   import ListMusic from "lucide-svelte/icons/list-music";
@@ -130,7 +131,7 @@
     >
   </div>
   <nav aria-label="Music sections" class="flex-1 overflow-y-auto py-3">
-    {#each navGroups as group}
+    {#each navGroups as group (group.label ?? "primary")}
       {#if group.label}
         <div
           class="px-4 pb-1 pt-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
@@ -139,7 +140,7 @@
         </div>
       {/if}
       <div class="grid gap-px px-2">
-        {#each group.items as item}
+        {#each group.items as item (item.href)}
           {@const Icon = item.icon}
           <a
             href={item.href}
@@ -167,6 +168,18 @@
   </nav>
 
   <div class="mt-auto flex flex-col gap-2 border-t p-3">
+    <a
+      href="/music/guide"
+      aria-current={currentPath.startsWith("/music/guide") ? "page" : undefined}
+      class={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        currentPath.startsWith("/music/guide") &&
+          "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+      )}
+    >
+      <CircleHelp class="size-4 shrink-0" aria-hidden="true" />
+      <span>Guide</span>
+    </a>
     <a
       href="/music/settings"
       aria-current={currentPath.startsWith("/music/settings")
@@ -206,7 +219,7 @@
   aria-label="Music sections mobile"
   class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-background md:hidden"
 >
-  {#each mobileItems as item}
+  {#each mobileItems as item (item.href)}
     {@const Icon = item.icon}
     <a
       href={item.href}
