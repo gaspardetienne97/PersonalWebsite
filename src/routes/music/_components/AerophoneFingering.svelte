@@ -2,7 +2,12 @@
   import { fingeringForMidi } from "@repo/music-core/engines/aerophone-fingering";
   import { midiToNote } from "@repo/music-core/engines/theory";
 
-  import { AEROPHONE_BODY_PATHS, AEROPHONE_KEY_CENTERS } from "./aerophone-art";
+  import {
+    AEROPHONE_BODY_PATHS,
+    AEROPHONE_KEY_CENTERS,
+    AEROPHONE_TRANSFORM,
+    AEROPHONE_VIEWBOX,
+  } from "./aerophone-art";
 
   let {
     midi,
@@ -19,7 +24,7 @@
 
   const fingering = $derived(fingeringForMidi(midi));
   const noteLabel = $derived(label ?? midiToNote(midi));
-  const height = $derived((size * 1300) / 600);
+  const height = $derived((size * AEROPHONE_VIEWBOX.height) / AEROPHONE_VIEWBOX.width);
   // The pressed keys, resolved to their highlight-blob geometry.
   const blobs = $derived(
     fingering.keys.map((id) => AEROPHONE_KEY_CENTERS[id]).filter(Boolean),
@@ -30,7 +35,7 @@
   <svg
     width={size}
     {height}
-    viewBox="0 0 600 1300"
+    viewBox="0 0 {AEROPHONE_VIEWBOX.width} {AEROPHONE_VIEWBOX.height}"
     role="img"
     aria-label={fingering.inRange
       ? `${noteLabel} Aerophone fingering`
@@ -43,7 +48,7 @@
 
     <!-- Authentic instrument traced from the Roland AE app (recoloured to theme) -->
     <g
-      transform="translate(0,1300) scale(0.1,-0.1)"
+      transform={AEROPHONE_TRANSFORM}
       class="text-muted-foreground"
       fill="currentColor"
       stroke="none"
