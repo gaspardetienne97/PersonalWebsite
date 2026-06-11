@@ -34,7 +34,21 @@ export type AerophoneKeyId =
   | "sideC"
   | "sideBb"
   | "eb"
-  | "lowC";
+  | "lowC"
+  // Left palm keys (the four crescents) + the front key above the index.
+  | "palm1"
+  | "palm2"
+  | "palm3"
+  | "palm4"
+  | "front"
+  // The three black keys on each side (not yet used by fingerings — reserved
+  // so future charts can reference them; highlighted individually).
+  | "blackL1"
+  | "blackL2"
+  | "blackL3"
+  | "blackR1"
+  | "blackR2"
+  | "blackR3";
 
 /** The canonical key registry (id + human label). Drawing geometry lives in the
  *  AerophoneFingering component, which traces the Roland AE app illustration. */
@@ -60,6 +74,17 @@ export const AEROPHONE_KEYS: readonly AerophoneKey[] = [
   { id: "sideBb", label: "Side Bb" },
   { id: "eb", label: "Eb" },
   { id: "lowC", label: "Low C" },
+  { id: "palm1", label: "Palm 1" },
+  { id: "palm2", label: "Palm 2" },
+  { id: "palm3", label: "Palm 3" },
+  { id: "palm4", label: "Palm 4" },
+  { id: "front", label: "Front" },
+  { id: "blackL1", label: "Left black 1" },
+  { id: "blackL2", label: "Left black 2" },
+  { id: "blackL3", label: "Left black 3" },
+  { id: "blackR1", label: "Right black 1" },
+  { id: "blackR2", label: "Right black 2" },
+  { id: "blackR3", label: "Right black 3" },
 ];
 
 /** Lowest and highest notes the sax chart covers (A#/Bb3 .. F#/Gb5). */
