@@ -36,38 +36,30 @@ export type AerophoneKeyId =
   | "eb"
   | "lowC";
 
-/** Where a key sits when drawing the instrument (SVG units; portrait body). */
-export interface AerophoneKeyLayout {
+/** The canonical key registry (id + human label). Drawing geometry lives in the
+ *  AerophoneFingering component, which traces the Roland AE app illustration. */
+export interface AerophoneKey {
   id: AerophoneKeyId;
   label: string;
-  x: number;
-  y: number;
-  /** Radius for round tone keys, or half-size for the small square side keys. */
-  size: number;
-  shape: "circle" | "pill";
 }
 
-/** viewBox the layout coordinates are authored against. */
-export const AEROPHONE_VIEWBOX = { width: 150, height: 330 } as const;
-
-/** Key positions, roughly matching the manual's "Pressing the Performance Keys". */
-export const AEROPHONE_KEYS: readonly AerophoneKeyLayout[] = [
-  { id: "k1", label: "1", x: 78, y: 95, size: 10, shape: "circle" },
-  { id: "k2", label: "2", x: 78, y: 128, size: 10, shape: "circle" },
-  { id: "k3", label: "3", x: 78, y: 161, size: 10, shape: "circle" },
-  { id: "k4", label: "4", x: 78, y: 206, size: 10, shape: "circle" },
-  { id: "k5", label: "5", x: 78, y: 239, size: 10, shape: "circle" },
-  { id: "k6", label: "6", x: 78, y: 272, size: 10, shape: "circle" },
-  { id: "bisBb", label: "Bb", x: 57, y: 112, size: 5, shape: "pill" },
-  { id: "gsharp", label: "G#", x: 50, y: 158, size: 5, shape: "pill" },
-  { id: "lowCsharp", label: "C#", x: 40, y: 172, size: 5, shape: "pill" },
-  { id: "lowB", label: "B", x: 54, y: 180, size: 5, shape: "pill" },
-  { id: "lowBb", label: "Bb", x: 42, y: 188, size: 5, shape: "pill" },
-  { id: "sideE", label: "E", x: 104, y: 196, size: 5, shape: "pill" },
-  { id: "sideC", label: "C", x: 104, y: 210, size: 5, shape: "pill" },
-  { id: "sideBb", label: "Bb", x: 104, y: 224, size: 5, shape: "pill" },
-  { id: "eb", label: "Eb", x: 64, y: 296, size: 5, shape: "pill" },
-  { id: "lowC", label: "C", x: 90, y: 296, size: 5, shape: "pill" },
+export const AEROPHONE_KEYS: readonly AerophoneKey[] = [
+  { id: "k1", label: "LH index" },
+  { id: "k2", label: "LH middle" },
+  { id: "k3", label: "LH ring" },
+  { id: "k4", label: "RH index" },
+  { id: "k5", label: "RH middle" },
+  { id: "k6", label: "RH ring" },
+  { id: "bisBb", label: "Bis Bb" },
+  { id: "gsharp", label: "G#" },
+  { id: "lowCsharp", label: "Low C#" },
+  { id: "lowB", label: "Low B" },
+  { id: "lowBb", label: "Low Bb" },
+  { id: "sideE", label: "Side E" },
+  { id: "sideC", label: "Side C" },
+  { id: "sideBb", label: "Side Bb" },
+  { id: "eb", label: "Eb" },
+  { id: "lowC", label: "Low C" },
 ];
 
 /** Lowest and highest notes the sax chart covers (A#/Bb3 .. F#/Gb5). */
