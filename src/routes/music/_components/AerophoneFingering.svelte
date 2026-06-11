@@ -2,12 +2,7 @@
   import { fingeringForMidi } from "@repo/music-core/engines/aerophone-fingering";
   import { midiToNote } from "@repo/music-core/engines/theory";
 
-  import {
-    AEROPHONE_BODY_PATHS,
-    AEROPHONE_KEY_CENTERS,
-    AEROPHONE_TRANSFORM,
-    AEROPHONE_VIEWBOX,
-  } from "./aerophone-art";
+  import { AEROPHONE_PARTS, AEROPHONE_VIEWBOX } from "./aerophone-art";
 
   let {
     midi,
@@ -23,40 +18,32 @@
   } = $props();
 
   const fingering = $derived(fingeringForMidi(midi));
+  const pressed = $derived(new Set(fingering.keys));
   const noteLabel = $derived(label ?? midiToNote(midi));
   const height = $derived((size * AEROPHONE_VIEWBOX.height) / AEROPHONE_VIEWBOX.width);
-  // The pressed keys, resolved to their highlight-blob geometry.
-  const blobs = $derived(
-    fingering.keys.map((id) => AEROPHONE_KEY_CENTERS[id]).filter(Boolean),
-  );
+
+  // Flat theme fills: body in muted, dark outlines in muted-foreground, key faces
+  // in card (off) or primary (pressed) so each key highlights on its own.
+  function fillClass(part: (typeof AEROPHONE_PARTS)[number]): string {
+    if (part.r === "body") return "fill-muted";
+    if (part.r === "outline") return "fill-muted-foreground";
+    return part.k && pressed.has(part.k) ? "fill-primary" : "fill-card";
+  }
 </script>
 
 <figure class="inline-flex flex-col items-center gap-1.5 {cls}">
   <svg
     width={size}
     {height}
-    viewBox="0 0 {AEROPHONE_VIEWBOX.width} {AEROPHONE_VIEWBOX.height}"
+    viewBox="{AEROPHONE_VIEWBOX.x} {AEROPHONE_VIEWBOX.y} {AEROPHONE_VIEWBOX.width} {AEROPHONE_VIEWBOX.height}"
     role="img"
     aria-label={fingering.inRange
       ? `${noteLabel} Aerophone fingering`
       : `${noteLabel} is outside the charted range`}
   >
-    <!-- Pressed-key highlights, behind the traced outlines so the rim stays crisp -->
-    {#each blobs as b, i (i)}
-      <circle cx={b.cx} cy={b.cy} r={b.r} class="fill-primary" />
+    {#each AEROPHONE_PARTS as part, i (i)}
+      <path d={part.d} class={fillClass(part)} />
     {/each}
-
-    <!-- Authentic instrument traced from the Roland AE app (recoloured to theme) -->
-    <g
-      transform={AEROPHONE_TRANSFORM}
-      class="text-muted-foreground"
-      fill="currentColor"
-      stroke="none"
-    >
-      {#each AEROPHONE_BODY_PATHS as d, i (i)}
-        <path {d} />
-      {/each}
-    </g>
   </svg>
 
   <figcaption class="text-sm font-bold tabular-nums">
