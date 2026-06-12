@@ -5,6 +5,36 @@ capabilities that automated tests cannot reproduce faithfully.
 
 ## Pending Hardware Checks
 
+### MPC One+ Single-Stroke Trainer
+
+- Status: Pending
+- Added: 2026-06-12
+- Route: `/music/play/mpc`
+- Hardware: Akai MPC One+ over Web MIDI
+
+Steps:
+
+1. Connect the MPC One+ and enable MIDI.
+2. Confirm Bank A pads emit the expected MIDI notes from 36 through 51.
+3. Choose two different pads in the trainer and start an 8-hit run at 80 BPM.
+4. Alternate the configured pads and confirm order, timing, velocity, and progress update live.
+5. Repeat with deliberately uneven velocity and confirm the velocity consistency score falls.
+6. Confirm the completed run appears in the practice journal.
+7. Start another attempt, cancel it, and confirm a new attempt can start.
+
+Expected:
+
+- Hardware events advance the same exercise session as the on-screen pad grid.
+- Unrelated MIDI notes are ignored and configured pads are scored in sequence.
+- Even eighth-note strokes receive stronger timing and velocity scores.
+- Cancellation does not leave the technique session locked.
+
+Automated coverage already passing:
+
+- Pad filtering, alternating order, timing, velocity, and completion scoring.
+- Technique session completion, mastery, XP, persistence pipeline, cancellation, and restart.
+- Route rendering, on-screen pad input, journal capture, and desktop/mobile overflow.
+
 ### Aerophone Long Tone Trainer
 
 - Status: Pending
