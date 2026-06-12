@@ -1,24 +1,76 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import { onDestroy, onMount } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AEROPHONE_RANGE, aerophoneChart } from "@repo/music-core/engines/aerophone-fingering";
+  import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+  import { ProgressEngine } from "@repo/music-core/engines/progress";
+  import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
+  import { PracticeStore } from "@repo/music-core/engines/store";
+  import {
+    TechniqueSession,
+    type TechniqueSessionState,
+  } from "@repo/music-core/engines/technique-session";
   import { midiToNote } from "@repo/music-core/engines/theory";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import { Progress } from "@repo/ui/progress";
 
   import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
+  import HudTile from "../../_components/HudTile.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SegmentedControl from "../../_components/SegmentedControl.svelte";
+  import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
   const chart = aerophoneChart();
+  const store = browser ? new PracticeStore() : undefined;
+  const skills = new SkillGraphStore(store);
+  const analytics = new AnalyticsEngine(store);
+  const progress = new ProgressEngine(store);
+  const holdOptions = [
+    { value: "3000", label: "3 sec" },
+    { value: "5000", label: "5 sec" },
+    { value: "8000", label: "8 sec" },
+  ];
 
   let selected = $state(67); // G4
   let live = $state(false);
+  let holdMs = $state("5000");
+  let ready = $state(false);
+  let pending = $state(false);
+  let status = $state("Preparing your Aerophone practice history.");
+  let breathLevel = $state(0);
+  let midiEnabled = $state(runtime.midi.state.enabled);
+  let midiStatus = $state(midiMessage());
+  let session = $state<TechniqueSession | undefined>();
+  let sessionState = $state<TechniqueSessionState | undefined>();
+  let unsubscribeRouter: (() => void) | undefined;
+  let unsubscribeSession: (() => void) | undefined;
+  let captured = false;
+
+  const summary = $derived(sessionState?.summary);
+  const longTonePrompt = $derived(
+    sessionState?.currentPrompt && "holdMs" in sessionState.currentPrompt
+      ? sessionState.currentPrompt
+      : undefined,
+  );
+  const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
+  const liveSteadiness = $derived(Math.round((sessionState?.live?.runningScore ?? 0) * 100));
+  const targetMidi = $derived(longTonePrompt?.targetMidi ?? selected);
+  const targetLabel = $derived(midiToNote(targetMidi));
+
+  void initialize();
+
+  const unsubscribeMidiState = runtime.midi.subscribeState(() => {
+    midiEnabled = runtime.midi.state.enabled;
+    midiStatus = midiMessage();
+  });
 
   function select(midi: number, fromInput = false): void {
     selected = midi;
@@ -33,30 +85,114 @@
     }
   }
 
-  let unsubscribe: (() => void) | undefined;
+  async function initialize(): Promise<void> {
+    try {
+      await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
+      session = new TechniqueSession({
+        router: runtime.router,
+        services: { skills, analytics, progress },
+      });
+      unsubscribeSession = session.subscribe((state) => {
+        sessionState = state;
+        status = state.error ?? "";
+        if (state.summary && !captured) {
+          captured = true;
+          void runtime.recordPractice({
+            source: "drill",
+            instrument: "aerophone",
+            tags: ["aerophone", "long-tone", "breath"],
+            scoringEvents: state.summary.results.map((result) => result.event),
+            xpEarned: state.summary.xp,
+            note: `Aerophone long tone · ${Math.round(state.summary.breathSteadiness * 100)}% steadiness`,
+          });
+        }
+      });
+      ready = true;
+      status = "Ready for a long tone.";
+    } catch (error) {
+      status = message(error, "Aerophone practice history could not be loaded.");
+    }
+  }
+
+  function midiMessage(): string {
+    if (runtime.midi.state.enabled) {
+      return `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`;
+    }
+    return runtime.midi.state.error ?? "MIDI permission has not been requested.";
+  }
+
+  async function enableMidi(): Promise<void> {
+    await runtime.midi.enable();
+  }
+
+  async function startLongTone(): Promise<void> {
+    if (!ready || pending || !session) return;
+    pending = true;
+    captured = false;
+    breathLevel = 0;
+    status = "";
+
+    try {
+      await session.startLongTone({
+        targetMidi: selected,
+        holdMs: Number(holdMs),
+        breathController: 2,
+      });
+      status = `Hold ${midiToNote(selected)} with steady breath until the timer completes.`;
+    } catch (error) {
+      status = message(error, "The long-tone session could not be started.");
+    } finally {
+      pending = false;
+    }
+  }
+
+  function cancelLongTone(): void {
+    session?.abandon();
+    breathLevel = 0;
+    status = "Long tone cancelled. Choose a target and start again.";
+  }
+
+  function message(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback;
+  }
 
   onMount(() => {
     runtime.setActiveInstrument("aerophone");
-    unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
+    unsubscribeRouter = runtime.router.subscribe((event: NoteEvent) => {
       if (event.type === "noteOn") select(event.midiNote, true);
+      if (event.type === "cc" && event.controller === 2) {
+        breathLevel = Math.round(event.value * 100);
+      }
     });
   });
 
-  onDestroy(() => unsubscribe?.());
+  onDestroy(() => {
+    unsubscribeRouter?.();
+    unsubscribeSession?.();
+    unsubscribeMidiState();
+    session?.dispose();
+  });
 </script>
 
 <svelte:head>
-  <title>Aerophone Fingering | Practice OS</title>
+  <title>Aerophone Technique | Practice OS</title>
 </svelte:head>
 
 <PracticeScreen>
   <PracticeScreenHeader
-    title="Aerophone Fingering"
-    subtitle="Sax-mode fingerings for the Roland Aerophone. Play a note (MIDI or on-screen) or pick one below to see which keys to press."
-  />
+    title="Aerophone Technique"
+    subtitle="Build steady breath support with MIDI CC2 feedback, then review sax-mode fingerings across the instrument."
+  >
+    {#snippet controls()}
+      <SourceReadout
+        label="Input"
+        device={runtime.activeSource === "midi" ? "MIDI · Aerophone" : "Waiting for Aerophone"}
+        live={runtime.activeSource === "midi"}
+      />
+    {/snippet}
+  </PracticeScreenHeader>
 
   <section class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-    <!-- Selected note, large -->
     <Card.Root>
       <Card.Content class="flex flex-col items-center gap-4 py-6">
         <div class="flex items-center gap-4">
@@ -93,11 +229,88 @@
       </Card.Content>
     </Card.Root>
 
-    <!-- Full chart -->
+    <Card.Root>
+      <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="space-y-1">
+          <Card.Description>Breath CC2 · MIDI</Card.Description>
+          <Card.Title>Long Tone Trainer</Card.Title>
+        </div>
+        <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+          {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+        </Button>
+      </Card.Header>
+      <Card.Content class="grid gap-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-medium">Target {targetLabel}</p>
+            <p class="text-xs text-muted-foreground" aria-live="polite">{midiStatus}</p>
+          </div>
+          <SegmentedControl
+            ariaLabel="Long tone duration"
+            options={holdOptions}
+            bind:value={holdMs}
+            size="sm"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <HudTile label="Target" value={targetLabel} tone="accent" />
+          <HudTile label="Breath" value={breathLevel} unit="%" />
+          <HudTile label="Steadiness" value={liveSteadiness} unit="%" tone="good" />
+          <HudTile label="Hold" value={liveProgress} unit="%" />
+        </div>
+
+        {#if sessionState?.status === "active" && longTonePrompt}
+          <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+            <div class="flex items-center justify-between gap-3 text-sm">
+              <span class="font-medium">{longTonePrompt.label}</span>
+              <span class="tabular-nums text-muted-foreground">{liveProgress}%</span>
+            </div>
+            <Progress value={liveProgress} max={100} />
+            <div class="grid gap-2">
+              <div class="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Live breath pressure</span>
+                <span class="tabular-nums">{breathLevel}%</span>
+              </div>
+              <Progress value={breathLevel} max={100} />
+            </div>
+          </div>
+        {/if}
+
+        {#if summary}
+          <div class="grid gap-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <p class="text-sm font-semibold">Long tone complete · {summary.xp} XP</p>
+            <p class="text-sm text-muted-foreground">
+              {Math.round(summary.breathSteadiness * 100)}% breath steadiness ·
+              {Math.round(summary.noteAccuracy * 100)}% pitch accuracy
+            </p>
+            <p class="text-sm text-muted-foreground">
+              {summary.results[0]?.result.feedback[0]?.message}
+            </p>
+          </div>
+        {/if}
+      </Card.Content>
+      <Card.Footer class="flex-wrap gap-3">
+        {#if sessionState?.status === "active"}
+          <Button type="button" variant="outline" onclick={cancelLongTone}>Cancel long tone</Button>
+        {:else}
+          <Button type="button" disabled={!ready || pending} onclick={startLongTone}>
+            {pending ? "Starting..." : summary ? "Repeat long tone" : "Start long tone"}
+          </Button>
+        {/if}
+        <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+      </Card.Footer>
+    </Card.Root>
+  </section>
+
+  <section>
     <Card.Root>
       <Card.Header>
         <Card.Title>Fingering chart</Card.Title>
-        <Card.Description>{midiToNote(AEROPHONE_RANGE.lowestMidi)} – {midiToNote(AEROPHONE_RANGE.highestMidi)}. Tap a note to focus it.</Card.Description>
+        <Card.Description>
+          {midiToNote(AEROPHONE_RANGE.lowestMidi)} – {midiToNote(AEROPHONE_RANGE.highestMidi)}.
+          Tap a note to focus it or set the next long-tone target.
+        </Card.Description>
       </Card.Header>
       <Card.Content>
         <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-7">

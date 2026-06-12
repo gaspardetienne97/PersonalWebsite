@@ -306,6 +306,10 @@ export class ExerciseRunHost {
     return outcome;
   }
 
+  cancel(): void {
+    this.#active = undefined;
+  }
+
   dispose(): void {
     this.#active = undefined;
     this.#unsubscribe();

@@ -6,6 +6,10 @@ import {
 import { ExerciseRunHost, type PipelineServices } from "@repo/music-core/engines/exercise";
 import type { InputRouter } from "@repo/music-core/engines/input-router";
 import {
+  createAerophoneLongToneExercise,
+  type AerophoneLongTonePrompt,
+} from "@repo/music-core/exercises/aerophone-long-tone";
+import {
   createScalePatternExercise,
   type ScalePatternKind,
   type ScalePatternPrompt,
@@ -16,6 +20,14 @@ export interface TechniqueScaleOptions {
   scale: ScalePatternKind;
   bpm: number;
 }
+
+export interface TechniqueLongToneOptions {
+  targetMidi: number;
+  holdMs: number;
+  breathController?: number;
+}
+
+export type TechniquePrompt = ScalePatternPrompt | AerophoneLongTonePrompt;
 
 export interface TechniqueSessionDependencies {
   router: InputRouter;
@@ -29,7 +41,7 @@ export interface TechniqueSessionDependencies {
 }
 
 export interface TechniqueResultView {
-  prompt: ScalePatternPrompt;
+  prompt: TechniquePrompt;
   result: ExerciseResult;
   event: ScoringEvent;
   xp: number;
@@ -42,6 +54,7 @@ export interface TechniqueSummary {
   xp: number;
   noteAccuracy: number;
   meanEvennessErrorMs: number;
+  breathSteadiness: number;
   highestUnlockedBpm: number;
   nextTargetBpm: number;
   results: TechniqueResultView[];
@@ -49,7 +62,7 @@ export interface TechniqueSummary {
 
 export interface TechniqueSessionState {
   status: "ready" | "active" | "summary" | "abandoned";
-  currentPrompt?: ScalePatternPrompt;
+  currentPrompt?: TechniquePrompt;
   live?: ExerciseLiveState;
   highestUnlockedBpm: number;
   nextTargetBpm: number;
@@ -65,7 +78,7 @@ export class TechniqueSession {
   #unsubscribeRouter: () => void;
   #listeners = new Set<StateListener>();
   #status: TechniqueSessionState["status"] = "ready";
-  #currentPrompt?: ScalePatternPrompt;
+  #currentPrompt?: TechniquePrompt;
   #results: TechniqueResultView[] = [];
   #summary?: TechniqueSummary;
   #error?: string;
@@ -138,6 +151,32 @@ export class TechniqueSession {
     return this.#currentPrompt;
   }
 
+  async startLongTone(options: TechniqueLongToneOptions): Promise<AerophoneLongTonePrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createAerophoneLongToneExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-long-tone-${options.targetMidi}`,
+      inputs: ["midi"],
+      context: {
+        targetSkillIds: ["technique.aerophone.breath-steadiness"],
+        difficulty: difficultyForHold(options.holdMs),
+        instrument: "aerophone",
+      },
+    });
+
+    this.#status = "active";
+    this.#currentPrompt = prompt.payload as AerophoneLongTonePrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return this.#currentPrompt;
+  }
+
   async retrySave(): Promise<void> {
     this.#assertUsable();
     if (!this.#currentPrompt || this.#error === undefined) {
@@ -149,6 +188,7 @@ export class TechniqueSession {
 
   abandon(): void {
     if (this.#disposed || this.#status === "summary") return;
+    this.#host.cancel();
     this.#status = "abandoned";
     this.#currentPrompt = undefined;
     this.#notify();
@@ -187,7 +227,7 @@ export class TechniqueSession {
         xp: outcome.xp,
       };
       this.#results.push(resultView);
-      if (outcome.result.correct && prompt.bpm >= this.#highestUnlockedBpm) {
+      if ("bpm" in prompt && outcome.result.correct && prompt.bpm >= this.#highestUnlockedBpm) {
         this.#highestUnlockedBpm = Math.min(
           this.dependencies.maxBpm ?? 180,
           this.#highestUnlockedBpm + (this.dependencies.tempoStepBpm ?? 10),
@@ -228,6 +268,9 @@ function summarize(results: TechniqueResultView[], highestUnlockedBpm: number): 
   const timingErrors = results.flatMap(({ result }) =>
     result.metrics.filter((metric) => metric.kind === "timing").map((metric) => metric.errorMs),
   );
+  const breathMetrics = results.flatMap(({ result }) =>
+    result.metrics.filter((metric) => metric.kind === "breath"),
+  );
 
   return {
     total: results.length,
@@ -242,6 +285,10 @@ function summarize(results: TechniqueResultView[], highestUnlockedBpm: number): 
       timingErrors.length === 0
         ? 0
         : timingErrors.reduce((sum, error) => sum + Math.abs(error), 0) / timingErrors.length,
+    breathSteadiness:
+      breathMetrics.length === 0
+        ? 0
+        : breathMetrics.reduce((sum, metric) => sum + metric.steadiness, 0) / breathMetrics.length,
     highestUnlockedBpm,
     nextTargetBpm: highestUnlockedBpm,
     results: [...results],
@@ -250,4 +297,8 @@ function summarize(results: TechniqueResultView[], highestUnlockedBpm: number): 
 
 function difficultyForBpm(bpm: number): number {
   return Math.max(0.2, Math.min(0.9, (bpm - 60) / 160));
+}
+
+function difficultyForHold(holdMs: number): number {
+  return Math.max(0.2, Math.min(0.9, holdMs / 10_000));
 }

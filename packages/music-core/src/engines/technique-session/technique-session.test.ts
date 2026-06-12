@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
+import { monotonicMs, type ControlChangeEvent, type NoteOnEvent } from "@repo/music-core/domain";
 import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import type { PipelineServices } from "@repo/music-core/engines/exercise";
 import { InputRouter } from "@repo/music-core/engines/input-router";
@@ -10,6 +10,47 @@ import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills
 import { TechniqueSession, type TechniqueSessionState } from "./index";
 
 describe("TechniqueSession", () => {
+  test("completes an Aerophone long tone through the shared pipeline", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    await session.startLongTone({ targetMidi: 67, holdMs: 3_000 });
+    dependencies.router.push(aerophoneNote(67, 0));
+    dependencies.router.push(breath(0.7, 0));
+    dependencies.router.push(breath(0.72, 1_000));
+    dependencies.router.push(breath(0.69, 2_000));
+    dependencies.router.push(breath(0.71, 3_000));
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      breathSteadiness: expect.any(Number),
+    });
+    expect(session.state.summary?.breathSteadiness).toBeGreaterThan(0.9);
+    expect(session.state.results[0]?.event.skillIds).toContain(
+      "technique.aerophone.breath-steadiness",
+    );
+    expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
+    session.dispose();
+  });
+
+  test("abandons an Aerophone long tone and allows a clean restart", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    await session.startLongTone({ targetMidi: 67, holdMs: 3_000 });
+    session.abandon();
+
+    expect(session.state.status).toBe("abandoned");
+    await expect(session.startLongTone({ targetMidi: 69, holdMs: 5_000 })).resolves.toMatchObject({
+      targetMidi: 69,
+      holdMs: 5_000,
+    });
+    expect(session.state.status).toBe("active");
+    session.dispose();
+  });
+
   test("completes a clean C major scale and unlocks the next tempo", async () => {
     const dependencies = await setup();
     const session = new TechniqueSession(dependencies);
@@ -98,11 +139,32 @@ async function setup() {
   };
 }
 
-function note(midiNote: number, atMs: number): NoteEvent {
+function note(midiNote: number, atMs: number): NoteOnEvent {
   return {
     type: "noteOn",
     midiNote,
     velocity: 1,
+    source: "midi",
+    timestamp: monotonicMs(atMs),
+    clock: "midi",
+  };
+}
+
+function aerophoneNote(midiNote: number, atMs: number): NoteOnEvent {
+  return {
+    ...note(midiNote, atMs),
+    instrument: "aerophone",
+    channel: 1,
+  };
+}
+
+function breath(value: number, atMs: number): ControlChangeEvent {
+  return {
+    type: "cc",
+    controller: 2,
+    value,
+    instrument: "aerophone",
+    channel: 1,
     source: "midi",
     timestamp: monotonicMs(atMs),
     clock: "midi",
