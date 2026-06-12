@@ -26,6 +26,7 @@ describe("TechniqueSession", () => {
       total: 1,
       correct: 1,
       breathSteadiness: expect.any(Number),
+      velocityConsistency: 0,
     });
     expect(session.state.summary?.breathSteadiness).toBeGreaterThan(0.9);
     expect(session.state.results[0]?.event.skillIds).toContain(
@@ -105,6 +106,77 @@ describe("TechniqueSession", () => {
     session.dispose();
   });
 
+  test("completes an eight-hit MPC rudiment without changing the scale tempo", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    const prompt = await session.startMpcRudiment({
+      leftPadMidi: 36,
+      rightPadMidi: 38,
+      hitCount: 8,
+      bpm: 80,
+    });
+    prompt.targetSequence.forEach((midiNote, index) => {
+      dependencies.router.push(mpcNote(midiNote, index * prompt.targetSpacingMs, 0.8));
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      noteAccuracy: 1,
+      meanEvennessErrorMs: 0,
+      velocityConsistency: 1,
+      highestUnlockedBpm: 100,
+      nextTargetBpm: 100,
+    });
+    expect(session.state.results[0]?.event).toMatchObject({
+      runId: "technique-test-mpc-single-strokes-36-38-8-80",
+      skillIds: expect.arrayContaining(["technique.mpc.single-strokes"]),
+    });
+    expect(
+      dependencies.services.skills.getMastery("technique.mpc.single-strokes").observations,
+    ).toBeGreaterThan(0);
+    expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
+    session.dispose();
+  });
+
+  test("abandons an MPC rudiment and restarts with a different pad configuration", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    await session.startMpcRudiment({
+      leftPadMidi: 36,
+      rightPadMidi: 38,
+      hitCount: 8,
+      bpm: 80,
+    });
+    session.abandon();
+
+    expect(session.state.status).toBe("abandoned");
+    await expect(
+      session.startMpcRudiment({
+        leftPadMidi: 40,
+        rightPadMidi: 41,
+        hitCount: 16,
+        bpm: 100,
+      }),
+    ).resolves.toMatchObject({
+      leftPadMidi: 40,
+      rightPadMidi: 41,
+      hitCount: 16,
+      bpm: 100,
+      targetSequence: Array.from({ length: 16 }, (_, index) => (index % 2 === 0 ? 40 : 41)),
+    });
+    expect(session.state).toMatchObject({
+      status: "active",
+      highestUnlockedBpm: 100,
+      nextTargetBpm: 100,
+      results: [],
+    });
+    session.dispose();
+  });
+
   test("keeps the current tempo locked after an inaccurate scale", async () => {
     const dependencies = await setup();
     const session = new TechniqueSession(dependencies);
@@ -159,6 +231,7 @@ async function setup() {
   return {
     router,
     services,
+    sessionId: "technique-test",
     now: () => 1_700_000_000_000,
     makeId: () => `technique-event-${++id}`,
   };
@@ -180,6 +253,15 @@ function aerophoneNote(midiNote: number, atMs: number): NoteOnEvent {
     ...note(midiNote, atMs),
     instrument: "aerophone",
     channel: 1,
+  };
+}
+
+function mpcNote(midiNote: number, atMs: number, velocity: number): NoteOnEvent {
+  return {
+    ...note(midiNote, atMs),
+    velocity,
+    instrument: "mpc",
+    channel: 10,
   };
 }
 

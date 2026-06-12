@@ -309,6 +309,18 @@ export function seedCoreSkills(): SkillSeed {
       "beginner",
       ["aerophone", "breath", "swell", "dynamics"],
     ),
+    skill("technique.mpc", "MPC Technique", Capability.Technique, "beginner", [
+      "mpc",
+      "pads",
+      "finger-drumming",
+    ]),
+    skill(
+      "technique.mpc.single-strokes",
+      "MPC Alternating Single Strokes",
+      Capability.Technique,
+      "beginner",
+      ["mpc", "pads", "rudiment", "single-strokes"],
+    ),
   ];
 
   const components: Record<string, string[]> = {
@@ -339,6 +351,7 @@ export function seedCoreSkills(): SkillSeed {
       "technique.aerophone.breath-steadiness",
       "technique.aerophone.dynamic-control",
     ],
+    "technique.mpc": ["technique.mpc.single-strokes"],
   };
 
   return {

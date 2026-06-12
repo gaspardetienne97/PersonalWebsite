@@ -14,6 +14,11 @@ import {
   type AerophoneSwellPrompt,
 } from "@repo/music-core/exercises/aerophone-swell";
 import {
+  createMpcSingleStrokeExercise,
+  type MpcHitCount,
+  type MpcSingleStrokePrompt,
+} from "@repo/music-core/exercises/mpc-single-stroke";
+import {
   createScalePatternExercise,
   type ScalePatternKind,
   type ScalePatternPrompt,
@@ -37,7 +42,18 @@ export interface TechniqueSwellOptions {
   breathController?: number;
 }
 
-export type TechniquePrompt = ScalePatternPrompt | AerophoneLongTonePrompt | AerophoneSwellPrompt;
+export interface TechniqueMpcRudimentOptions {
+  leftPadMidi: number;
+  rightPadMidi: number;
+  hitCount: MpcHitCount;
+  bpm: number;
+}
+
+export type TechniquePrompt =
+  | ScalePatternPrompt
+  | AerophoneLongTonePrompt
+  | AerophoneSwellPrompt
+  | MpcSingleStrokePrompt;
 
 export interface TechniqueSessionDependencies {
   router: InputRouter;
@@ -64,6 +80,7 @@ export interface TechniqueSummary {
   xp: number;
   noteAccuracy: number;
   meanEvennessErrorMs: number;
+  velocityConsistency: number;
   breathSteadiness: number;
   highestUnlockedBpm: number;
   nextTargetBpm: number;
@@ -213,6 +230,32 @@ export class TechniqueSession {
     return this.#currentPrompt;
   }
 
+  async startMpcRudiment(options: TechniqueMpcRudimentOptions): Promise<MpcSingleStrokePrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createMpcSingleStrokeExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-mpc-single-strokes-${options.leftPadMidi}-${options.rightPadMidi}-${options.hitCount}-${options.bpm}`,
+      inputs: ["midi", "onscreen"],
+      context: {
+        targetSkillIds: ["technique.mpc.single-strokes"],
+        difficulty: difficultyForBpm(options.bpm),
+        instrument: "mpc",
+      },
+    });
+
+    this.#status = "active";
+    this.#currentPrompt = prompt.payload as MpcSingleStrokePrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return this.#currentPrompt;
+  }
+
   async retrySave(): Promise<void> {
     this.#assertUsable();
     if (!this.#currentPrompt || this.#error === undefined) {
@@ -263,7 +306,11 @@ export class TechniqueSession {
         xp: outcome.xp,
       };
       this.#results.push(resultView);
-      if ("bpm" in prompt && outcome.result.correct && prompt.bpm >= this.#highestUnlockedBpm) {
+      if (
+        isScalePatternPrompt(prompt) &&
+        outcome.result.correct &&
+        prompt.bpm >= this.#highestUnlockedBpm
+      ) {
         this.#highestUnlockedBpm = Math.min(
           this.dependencies.maxBpm ?? 180,
           this.#highestUnlockedBpm + (this.dependencies.tempoStepBpm ?? 10),
@@ -307,6 +354,9 @@ function summarize(results: TechniqueResultView[], highestUnlockedBpm: number): 
   const breathMetrics = results.flatMap(({ result }) =>
     result.metrics.filter((metric) => metric.kind === "breath"),
   );
+  const velocities = results.flatMap(({ result }) =>
+    result.metrics.filter((metric) => metric.kind === "velocity").map((metric) => metric.actual),
+  );
 
   return {
     total: results.length,
@@ -321,6 +371,7 @@ function summarize(results: TechniqueResultView[], highestUnlockedBpm: number): 
       timingErrors.length === 0
         ? 0
         : timingErrors.reduce((sum, error) => sum + Math.abs(error), 0) / timingErrors.length,
+    velocityConsistency: consistency(velocities),
     breathSteadiness:
       breathMetrics.length === 0
         ? 0
@@ -329,6 +380,18 @@ function summarize(results: TechniqueResultView[], highestUnlockedBpm: number): 
     nextTargetBpm: highestUnlockedBpm,
     results: [...results],
   };
+}
+
+function isScalePatternPrompt(prompt: TechniquePrompt): prompt is ScalePatternPrompt {
+  return "noteLabels" in prompt;
+}
+
+function consistency(values: number[]): number {
+  if (values.length === 0) return 0;
+  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance = values.reduce((sum, value) => sum + (value - average) ** 2, 0) / values.length;
+  if (variance <= Number.EPSILON) return 1;
+  return Math.max(0, Math.min(1, 1 - Math.sqrt(variance) / Math.max(average, 0.01)));
 }
 
 function difficultyForBpm(bpm: number): number {

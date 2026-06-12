@@ -132,8 +132,33 @@ describe("music-core/skills", () => {
         "technique.scale.natural-minor",
         "technique.aerophone.breath-steadiness",
         "technique.aerophone.dynamic-control",
+        "technique.mpc",
+        "technique.mpc.single-strokes",
       ]),
     );
+    expect(seed.skills).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "technique.mpc",
+          name: "MPC Technique",
+          capability: Capability.Technique,
+          level: "beginner",
+          tags: ["mpc", "pads", "finger-drumming"],
+        }),
+        expect.objectContaining({
+          id: "technique.mpc.single-strokes",
+          name: "MPC Alternating Single Strokes",
+          capability: Capability.Technique,
+          level: "beginner",
+          tags: ["mpc", "pads", "rudiment", "single-strokes"],
+        }),
+      ]),
+    );
+    expect(seed.relationships).toContainEqual({
+      from: "technique.mpc",
+      to: "technique.mpc.single-strokes",
+      kind: SkillRelationKind.Component,
+    });
     expect(
       seed.relationships.some((relation) => relation.kind === SkillRelationKind.Component),
     ).toBe(true);
