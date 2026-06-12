@@ -10,10 +10,12 @@ import { beatDurationMs } from "@repo/music-core/engines/transport";
 
 const EXERCISE_ID = "technique.mpc.single-strokes";
 
+export type MpcHitCount = 8 | 16;
+
 export interface MpcSingleStrokeOptions {
   leftPadMidi?: number;
   rightPadMidi?: number;
-  hitCount?: 8 | 16;
+  hitCount?: MpcHitCount;
   bpm?: number;
 }
 
@@ -21,7 +23,7 @@ export interface MpcSingleStrokePrompt {
   label: string;
   leftPadMidi: number;
   rightPadMidi: number;
-  hitCount: 8 | 16;
+  hitCount: MpcHitCount;
   bpm: number;
   targetSpacingMs: number;
   targetSequence: number[];
@@ -47,12 +49,22 @@ export function createMpcSingleStrokeExercise(
 ): ExerciseDefinition<MpcSingleStrokePrompt, MpcSingleStrokeAnswer> {
   const leftPadMidi = options.leftPadMidi ?? 36;
   const rightPadMidi = options.rightPadMidi ?? 38;
+  validatePadMidi("leftPadMidi", leftPadMidi);
+  validatePadMidi("rightPadMidi", rightPadMidi);
   if (leftPadMidi === rightPadMidi) {
     throw new Error("Choose two different MPC pads");
   }
 
   const hitCount = options.hitCount ?? 8;
-  const bpm = clamp(options.bpm ?? 80, 30, 240);
+  if (hitCount !== 8 && hitCount !== 16) {
+    throw new Error("hitCount must be 8 or 16");
+  }
+
+  const requestedBpm = options.bpm ?? 80;
+  if (!Number.isFinite(requestedBpm)) {
+    throw new Error("BPM must be a finite number");
+  }
+  const bpm = clamp(requestedBpm, 30, 240);
   const targetSequence = Array.from({ length: hitCount }, (_, index) =>
     index % 2 === 0 ? leftPadMidi : rightPadMidi,
   );
@@ -147,9 +159,10 @@ function analyze(hits: NoteOnEvent[], prompt: MpcSingleStrokePrompt): RunAnalysi
   const timingErrors = relativeTimestampsMs.map(
     (actualMs, index) => actualMs - index * prompt.targetSpacingMs,
   );
-  const meanTimingErrorMs = mean(timingErrors.map(Math.abs));
+  const meanTimingErrorMs =
+    hits.length === 0 ? 180 : mean(timingErrors.map((error) => Math.abs(error)));
   const padAccuracy = correctPadHits / prompt.hitCount;
-  const timingAccuracy = clamp(1 - meanTimingErrorMs / 180);
+  const timingAccuracy = hits.length === 0 ? 0 : clamp(1 - meanTimingErrorMs / 180);
   const velocityConsistency = consistency(velocities);
   const completion = hits.length / prompt.hitCount;
   const score =
@@ -258,4 +271,10 @@ function mean(values: number[]): number {
 
 function clamp(value: number, minimum = 0, maximum = 1): number {
   return Math.max(minimum, Math.min(maximum, value));
+}
+
+function validatePadMidi(name: "leftPadMidi" | "rightPadMidi", value: number): void {
+  if (!Number.isInteger(value) || value < 0 || value > 127) {
+    throw new Error(`${name} must be an integer between 0 and 127`);
+  }
 }

@@ -6,7 +6,10 @@ import {
   type ExerciseContext,
   type NoteOnEvent,
 } from "@repo/music-core/domain";
-import { createMpcSingleStrokeExercise } from "@repo/music-core/exercises/mpc-single-stroke";
+import {
+  createMpcSingleStrokeExercise,
+  type MpcHitCount,
+} from "@repo/music-core/exercises/mpc-single-stroke";
 
 const context: ExerciseContext = {
   targetSkillIds: ["technique.mpc.single-strokes"],
@@ -87,35 +90,90 @@ describe("createMpcSingleStrokeExercise", () => {
     expect(result.input).not.toContainEqual(expect.objectContaining({ midiNote: 42 }));
   });
 
-  test("fails correct-order hits that are late and uneven", () => {
+  test("gives an empty run no timing credit", () => {
     const exercise = createMpcSingleStrokeExercise();
     const prompt = exercise.generate(context);
     const run = exercise.createRun(prompt, context);
-    const timestamps = [0, 500, 800, 1_400, 1_600, 2_400, 2_500, 3_300];
-    const velocities = [0.2, 1, 0.2, 1, 0.2, 1, 0.2, 1];
+
+    expect(run.getLiveState().runningScore).toBe(0);
+
+    const result = run.finish({ reason: "abandoned" });
+    expect(result.correct).toBe(false);
+    expect(result.score).toBe(0);
+    expect(result.answer?.meanTimingErrorMs).toBeGreaterThan(0);
+  });
+
+  test("fails correct-order hits with late timing at constant velocity", () => {
+    const exercise = createMpcSingleStrokeExercise();
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
 
     prompt.payload.targetSequence.forEach((midiNote, index) => {
-      run.accept(note(midiNote, timestamps[index]!, velocities[index]!));
+      run.accept(note(midiNote, index * 500, 0.8));
     });
 
     const result = run.finish({ reason: "completed" });
     expect(result.correct).toBe(false);
-    expect(result.score).toBeLessThan(0.85);
-    expect(
-      result.feedback
-        .map((item) => item.message)
-        .join(" ")
-        .toLowerCase(),
-    ).toMatch(/timing|velocity/);
+    expect(result.answer?.meanTimingErrorMs).toBeGreaterThan(90);
+    expect(result.answer?.velocityConsistency).toBe(1);
+    expect(result.feedback[0]?.message.toLowerCase()).toContain("timing");
   });
 
-  test("rejects identical pads and clamps tempo options", () => {
-    expect(() => createMpcSingleStrokeExercise({ leftPadMidi: 36, rightPadMidi: 36 })).toThrowError(
-      "Choose two different MPC pads",
+  test("fails on-grid hits with uneven velocity", () => {
+    const exercise = createMpcSingleStrokeExercise();
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    prompt.payload.targetSequence.forEach((midiNote, index) => {
+      run.accept(note(midiNote, index * 375, index % 2 === 0 ? 0.1 : 1));
+    });
+
+    const result = run.finish({ reason: "completed" });
+    expect(result.correct).toBe(false);
+    expect(result.answer?.meanTimingErrorMs).toBe(0);
+    expect(result.answer?.velocityConsistency).toBeLessThan(0.65);
+    expect(result.feedback[0]?.message.toLowerCase()).toContain("velocity consistency");
+  });
+
+  test("rejects non-finite BPM and clamps finite tempo options", () => {
+    expect(() => createMpcSingleStrokeExercise({ bpm: Number.NaN })).toThrowError(
+      "BPM must be a finite number",
+    );
+    expect(() => createMpcSingleStrokeExercise({ bpm: Number.POSITIVE_INFINITY })).toThrowError(
+      "BPM must be a finite number",
     );
 
     expect(createMpcSingleStrokeExercise({ bpm: 10 }).generate(context).payload.bpm).toBe(30);
     expect(createMpcSingleStrokeExercise({ bpm: 300 }).generate(context).payload.bpm).toBe(240);
+  });
+
+  test("rejects invalid MPC pad numbers", () => {
+    expect(() => createMpcSingleStrokeExercise({ leftPadMidi: Number.NaN })).toThrowError(
+      "leftPadMidi must be an integer between 0 and 127",
+    );
+    expect(() => createMpcSingleStrokeExercise({ leftPadMidi: 36.5 })).toThrowError(
+      "leftPadMidi must be an integer between 0 and 127",
+    );
+    expect(() => createMpcSingleStrokeExercise({ rightPadMidi: -1 })).toThrowError(
+      "rightPadMidi must be an integer between 0 and 127",
+    );
+    expect(() => createMpcSingleStrokeExercise({ rightPadMidi: 128 })).toThrowError(
+      "rightPadMidi must be an integer between 0 and 127",
+    );
+  });
+
+  test("rejects malformed runtime hit counts", () => {
+    const malformedHitCount = 12 as MpcHitCount;
+
+    expect(() => createMpcSingleStrokeExercise({ hitCount: malformedHitCount })).toThrowError(
+      "hitCount must be 8 or 16",
+    );
+  });
+
+  test("keeps the identical-pad validation error stable", () => {
+    expect(() => createMpcSingleStrokeExercise({ leftPadMidi: 36, rightPadMidi: 36 })).toThrowError(
+      "Choose two different MPC pads",
+    );
   });
 });
 
