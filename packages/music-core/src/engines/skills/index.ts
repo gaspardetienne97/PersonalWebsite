@@ -302,6 +302,13 @@ export function seedCoreSkills(): SkillSeed {
       "beginner",
       ["aerophone", "breath", "long-tone"],
     ),
+    skill(
+      "technique.aerophone.dynamic-control",
+      "Aerophone Dynamic Control",
+      Capability.Technique,
+      "beginner",
+      ["aerophone", "breath", "swell", "dynamics"],
+    ),
   ];
 
   const components: Record<string, string[]> = {
@@ -328,7 +335,10 @@ export function seedCoreSkills(): SkillSeed {
     "technique.scales": skills
       .filter((item) => item.id.startsWith("technique.scale."))
       .map((item) => item.id),
-    "technique.aerophone": ["technique.aerophone.breath-steadiness"],
+    "technique.aerophone": [
+      "technique.aerophone.breath-steadiness",
+      "technique.aerophone.dynamic-control",
+    ],
   };
 
   return {

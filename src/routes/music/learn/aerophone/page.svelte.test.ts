@@ -16,12 +16,19 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     expect(document.body.textContent).toContain("Long Tone Trainer");
     expect(document.body.textContent).toContain("G4");
     expect(document.body.textContent).toContain("Breath CC2");
+    expect(button("Dynamic swell")).not.toBeUndefined();
     await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
 
     button("Start long tone")?.click();
     await vi.waitFor(() => expect(button("Cancel long tone")?.disabled).toBe(false));
     button("Cancel long tone")?.click();
     await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+
+    button("Dynamic swell")?.click();
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Dynamic Swell Trainer");
+      expect(button("Start dynamic swell")).not.toBeUndefined();
+    });
   });
 });
 

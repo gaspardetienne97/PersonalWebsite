@@ -10,6 +10,10 @@ import {
   type AerophoneLongTonePrompt,
 } from "@repo/music-core/exercises/aerophone-long-tone";
 import {
+  createAerophoneSwellExercise,
+  type AerophoneSwellPrompt,
+} from "@repo/music-core/exercises/aerophone-swell";
+import {
   createScalePatternExercise,
   type ScalePatternKind,
   type ScalePatternPrompt,
@@ -27,7 +31,13 @@ export interface TechniqueLongToneOptions {
   breathController?: number;
 }
 
-export type TechniquePrompt = ScalePatternPrompt | AerophoneLongTonePrompt;
+export interface TechniqueSwellOptions {
+  targetMidi: number;
+  durationMs: number;
+  breathController?: number;
+}
+
+export type TechniquePrompt = ScalePatternPrompt | AerophoneLongTonePrompt | AerophoneSwellPrompt;
 
 export interface TechniqueSessionDependencies {
   router: InputRouter;
@@ -170,6 +180,32 @@ export class TechniqueSession {
 
     this.#status = "active";
     this.#currentPrompt = prompt.payload as AerophoneLongTonePrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return this.#currentPrompt;
+  }
+
+  async startSwell(options: TechniqueSwellOptions): Promise<AerophoneSwellPrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createAerophoneSwellExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-swell-${options.targetMidi}`,
+      inputs: ["midi"],
+      context: {
+        targetSkillIds: ["technique.aerophone.dynamic-control"],
+        difficulty: difficultyForHold(options.durationMs),
+        instrument: "aerophone",
+      },
+    });
+
+    this.#status = "active";
+    this.#currentPrompt = prompt.payload as AerophoneSwellPrompt;
     this.#results = [];
     this.#summary = undefined;
     this.#error = undefined;

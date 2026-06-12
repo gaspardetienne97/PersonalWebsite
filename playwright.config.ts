@@ -4,6 +4,7 @@ export default defineConfig({
   webServer: {
     command: "vp build && vp preview",
     port: 4173,
+    timeout: 120_000,
   },
   testDir: "e2e",
 });

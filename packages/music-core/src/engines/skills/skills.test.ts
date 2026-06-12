@@ -131,6 +131,7 @@ describe("music-core/skills", () => {
         "technique.scale.major",
         "technique.scale.natural-minor",
         "technique.aerophone.breath-steadiness",
+        "technique.aerophone.dynamic-control",
       ]),
     );
     expect(

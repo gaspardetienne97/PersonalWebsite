@@ -51,6 +51,31 @@ describe("TechniqueSession", () => {
     session.dispose();
   });
 
+  test("completes an Aerophone dynamic swell through the shared pipeline", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    await session.startSwell({ targetMidi: 67, durationMs: 4_000 });
+    dependencies.router.push(aerophoneNote(67, 0));
+    dependencies.router.push(breath(0.2, 0));
+    dependencies.router.push(breath(0.55, 1_000));
+    dependencies.router.push(breath(0.9, 2_000));
+    dependencies.router.push(breath(0.55, 3_000));
+    dependencies.router.push(breath(0.2, 4_000));
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      noteAccuracy: 1,
+    });
+    expect(session.state.results[0]?.result.score).toBeGreaterThan(0.9);
+    expect(session.state.results[0]?.event.skillIds).toContain(
+      "technique.aerophone.dynamic-control",
+    );
+    session.dispose();
+  });
+
   test("completes a clean C major scale and unlocks the next tempo", async () => {
     const dependencies = await setup();
     const session = new TechniqueSession(dependencies);

@@ -37,6 +37,7 @@
     "./engines/transport": "./src/engines/transport/index.ts",
     "./engines/tunings": "./src/engines/tunings/index.ts",
     "./engines/tunings/store": "./src/engines/tunings/tuning-store.ts",
+    "./exercises/aerophone-swell": "./src/exercises/aerophone-swell.ts",
     "./exercises/chord-quality-recognition": "./src/exercises/chord-quality-recognition.ts",
     "./exercises/aerophone-long-tone": "./src/exercises/aerophone-long-tone.ts",
     "./exercises/ear-training": "./src/exercises/ear-training.ts",
