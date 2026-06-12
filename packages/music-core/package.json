@@ -14,6 +14,7 @@
     "./engines/exercise": "./src/engines/exercise/index.ts",
     "./engines/import": "./src/engines/import/index.ts",
     "./engines/input-router": "./src/engines/input-router/index.ts",
+    "./engines/intonation-session": "./src/engines/intonation-session/index.ts",
     "./engines/jam": "./src/engines/jam/index.ts",
     "./engines/library": "./src/engines/library/index.ts",
     "./engines/midi": "./src/engines/midi/index.ts",

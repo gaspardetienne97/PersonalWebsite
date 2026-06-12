@@ -1,6 +1,7 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
+  AudioPitchSource,
   centsBetween,
   detectPitch,
   frequencyToMidi,
@@ -10,6 +11,10 @@ import {
 } from "./index";
 
 const SAMPLE_RATE = 44100;
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /** A mono buffer of a pure sine at `freq` Hz (optionally summed with harmonics). */
 function sine(freq: number, length = 4096, harmonics: number[] = []): Float32Array {
@@ -132,5 +137,51 @@ describe("intonationZone", () => {
     expect(intonationZone(20)).toBe("sharp");
     expect(intonationZone(4)).toBe("in-tune");
     expect(intonationZone(6)).toBe("sharp");
+  });
+});
+
+describe("AudioPitchSource", () => {
+  test("loads the pitch worklet from a Blob URL", async () => {
+    let moduleUrl = "";
+    const stream = {
+      getTracks: () => [{ stop: vi.fn() }],
+    };
+    class FakeAudioContext {
+      audioWorklet = {
+        addModule: vi.fn(async (url: URL | string) => {
+          moduleUrl = String(url);
+        }),
+      };
+      sampleRate = SAMPLE_RATE;
+      state = "running";
+
+      createMediaStreamSource() {
+        return {
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        };
+      }
+
+      async close() {}
+    }
+
+    class FakeAudioWorkletNode {
+      port = { close: vi.fn(), onmessage: null };
+      disconnect = vi.fn();
+    }
+
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        getUserMedia: vi.fn(async () => stream),
+      },
+    });
+    vi.stubGlobal("AudioContext", FakeAudioContext);
+    vi.stubGlobal("AudioWorkletNode", FakeAudioWorkletNode);
+
+    const source = new AudioPitchSource();
+    await source.start();
+
+    expect(moduleUrl).toMatch(/^blob:/);
+    await source.stop();
   });
 });

@@ -47,6 +47,8 @@ function createToneMock() {
   const synthTrigger = vi.fn();
   const metronomeTrigger = vi.fn();
   const samplerTrigger = vi.fn();
+  const droneAttack = vi.fn();
+  const droneRelease = vi.fn();
   const playerStart = vi.fn();
   const start = vi.fn(async () => undefined);
   const loaded = vi.fn(async () => undefined);
@@ -86,6 +88,8 @@ function createToneMock() {
 
   class PolySynth extends DestinationNode {
     triggerAttackRelease = synthTrigger;
+    triggerAttack = droneAttack;
+    triggerRelease = droneRelease;
   }
 
   class Synth extends DestinationNode {
@@ -129,9 +133,12 @@ function createToneMock() {
     synthTrigger,
     metronomeTrigger,
     samplerTrigger,
+    droneAttack,
+    droneRelease,
     playerStart,
     masterGain: () => gains.find((gain) => gain.isMaster),
     metronomeGain: () => gains.find((gain) => !gain.isMaster),
+    droneGain: () => gains.filter((gain) => !gain.isMaster).at(-1),
   };
 }
 
@@ -220,6 +227,49 @@ describe("music-core/sound", () => {
 
     sound.playNote(60);
     expect(mock.synthTrigger).toHaveBeenCalled();
+  });
+
+  test("plays, restacks, retunes and stops a sustained drone", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+
+    sound.startDrone(57); // ignored before audio is enabled
+    expect(mock.droneAttack).not.toHaveBeenCalled();
+
+    await sound.enable();
+    expect(sound.droneActive).toBe(false);
+
+    sound.startDrone(57); // A3, default Sine timbre → tonic only
+    expect(sound.droneActive).toBe(true);
+    expect(mock.droneAttack).toHaveBeenLastCalledWith(["A3"]);
+
+    sound.setDroneTimbre("Shruti"); // tonic + fifth + octave
+    expect(mock.droneRelease).toHaveBeenLastCalledWith(["A3"]);
+    expect(mock.droneAttack).toHaveBeenLastCalledWith(["A3", "E4", "A4"]);
+
+    sound.setDroneNote(60); // C4
+    expect(mock.droneRelease).toHaveBeenLastCalledWith(["A3", "E4", "A4"]);
+    expect(mock.droneAttack).toHaveBeenLastCalledWith(["C4", "G4", "C5"]);
+
+    sound.setDroneLevel(0.25);
+    expect(mock.droneGain()?.gain.value).toBe(0.25);
+
+    sound.stopDrone();
+    expect(sound.droneActive).toBe(false);
+    expect(mock.droneRelease).toHaveBeenLastCalledWith(["C4", "G4", "C5"]);
+  });
+
+  test("ignores an unknown drone timbre and retune while stopped", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    sound.setDroneNote(60); // not active → no-op
+    expect(mock.droneAttack).not.toHaveBeenCalled();
+
+    sound.startDrone(60);
+    sound.setDroneTimbre("nope");
+    expect(sound.droneTimbre).toBe("Sine");
   });
 
   test("schedules an accented count-in and returns the phrase delay", async () => {

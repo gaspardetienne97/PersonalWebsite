@@ -6,8 +6,10 @@
   import CircleUser from "lucide-svelte/icons/circle-user";
   import Disc from "lucide-svelte/icons/disc";
   import Drum from "lucide-svelte/icons/drum";
+  import AudioWaveform from "lucide-svelte/icons/audio-waveform";
   import Ear from "lucide-svelte/icons/ear";
   import FlaskConical from "lucide-svelte/icons/flask-conical";
+  import Gauge from "lucide-svelte/icons/gauge";
   import CircleHelp from "lucide-svelte/icons/circle-help";
   import House from "lucide-svelte/icons/house";
   import Library from "lucide-svelte/icons/library";
@@ -61,6 +63,8 @@
       label: "Play",
       items: [
         { label: "Practice Lab", href: "/music/play", icon: FlaskConical },
+        { label: "Tuner", href: "/music/tuner", icon: Gauge },
+        { label: "Intonation", href: "/music/intonation", icon: AudioWaveform },
         { label: "Import & Play", href: "/music/import", icon: Upload },
         { label: "Jam / Improv", href: "/music/jam", icon: WandSparkles },
         { label: "Studio", href: "/music/studio", icon: Grid3x3 },

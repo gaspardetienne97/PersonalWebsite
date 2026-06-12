@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AudioWaveform from "lucide-svelte/icons/audio-waveform";
   import Gauge from "lucide-svelte/icons/gauge";
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
 
@@ -39,6 +40,15 @@
       meta="Intonation"
       action="Open tuner"
       icon={Gauge}
+    />
+    <MusicToolCard
+      href="/music/intonation"
+      title="Intonation & Drone"
+      description="Hold pitch against a tonic drone with live cents feedback, in-tune %, and a pitch trace."
+      eyebrow="Play"
+      meta="Intonation"
+      action="Open intonation"
+      icon={AudioWaveform}
     />
   </section>
 </PracticeScreen>
