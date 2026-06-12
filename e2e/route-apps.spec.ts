@@ -5,7 +5,7 @@ test("personal site links to route apps", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: /welcome/i })).toBeVisible();
   await expect(page.getByRole("link", { name: "Music" })).toHaveAttribute("href", "/music");
-  await expect(page.getByRole("link", { name: "PDF" })).toHaveAttribute("href", "/pdf");
+  await expect(page.getByRole("link", { name: "Narrator" })).toHaveAttribute("href", "/pdf");
 });
 
 test("music route app renders", async ({ page }) => {
@@ -65,9 +65,10 @@ test("music app shell uses bottom navigation on mobile", async ({ page }) => {
   await expect(page.getByRole("navigation", { name: "Music sections mobile" })).toBeVisible();
 });
 
-test("pdf route app renders", async ({ page }) => {
+test("narrator route app renders", async ({ page }) => {
   await page.goto("/pdf");
 
-  await expect(page.getByRole("heading", { name: "PDF Reader & Narrator" })).toBeVisible();
-  await expect(page.getByText(/Upload PDF/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "narrator" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Add document/ }).first()).toBeVisible();
 });

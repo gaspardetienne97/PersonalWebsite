@@ -4,16 +4,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./components/AudioControls.svelte": "./src/components/AudioControls.svelte",
-    "./components/FileUploader.svelte": "./src/components/FileUploader.svelte",
-    "./components/PdfControls.svelte": "./src/components/PdfControls.svelte",
-    "./components/PdfViewer.svelte": "./src/components/PdfViewer.svelte",
-    "./services/loader": "./src/services/loader.ts",
-    "./services/renderer": "./src/services/renderer.ts",
-    "./services/textExtractor": "./src/services/textExtractor.ts",
-    "./services/types": "./src/services/types.ts",
-    "./stores/audio": "./src/stores/audio.svelte.ts",
-    "./stores/pdf": "./src/stores/pdf.svelte.ts"
+    "./domain": "./src/domain/index.ts",
+    "./stores/narration": "./src/stores/narration.svelte.ts",
+    "./stores/library": "./src/stores/library.svelte.ts",
+    "./stores/settings": "./src/stores/settings.svelte.ts"
   },
   "scripts": {
     "check": "svelte-check --tsconfig ./tsconfig.json",
@@ -21,8 +15,6 @@
     "build": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
-    "pdfjs-dist": "^5.4.530",
     "svelte": "catalog:"
   },
   "devDependencies": {

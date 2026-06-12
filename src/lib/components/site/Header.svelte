@@ -34,7 +34,7 @@
 					<a href="/music">Music</a>
 				</li>
 				<li aria-current={currentPath.startsWith('/pdf') ? 'page' : undefined}>
-					<a href="/pdf">PDF</a>
+					<a href="/pdf">Narrator</a>
 				</li>
 			</ul>
 		</nav>

@@ -1,3 +1,3 @@
-// Disable SSR for the PDF reader page
-// PDF.js requires browser APIs (Canvas, DOMMatrix, etc.)
+// Disable SSR for the narrator page — playback position, library, and reader
+// settings hydrate from localStorage at component init.
 export const ssr = false;

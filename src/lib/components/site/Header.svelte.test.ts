@@ -10,7 +10,7 @@ describe("Header", () => {
       "Music",
     );
     expect(document.querySelector<HTMLAnchorElement>('a[href="/pdf"]')?.textContent).toContain(
-      "PDF",
+      "Narrator",
     );
   });
 });

@@ -1,92 +1,50 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import PdfViewer from '@repo/pdf-core/components/PdfViewer.svelte';
-	import PdfControls from '@repo/pdf-core/components/PdfControls.svelte';
-	import AudioControls from '@repo/pdf-core/components/AudioControls.svelte';
-	import FileUploader from '@repo/pdf-core/components/FileUploader.svelte';
-	import { pdfStore } from '@repo/pdf-core/stores/pdf';
-	import { Card } from '@repo/ui/card';
+  import type { NarratorDoc } from "@repo/pdf-core/domain";
+  import { NarratorLibrary } from "@repo/pdf-core/stores/library";
+  import { ReaderSettings } from "@repo/pdf-core/stores/settings";
 
-	let mounted = $state(false);
+  import AddDocumentModal from "./_components/AddDocumentModal.svelte";
+  import LibraryView from "./_components/LibraryView.svelte";
+  import ReaderView from "./_components/ReaderView.svelte";
+  import "./narrator.css";
 
-	onMount(() => {
-		mounted = true;
-	});
+  const library = new NarratorLibrary();
+  const settings = new ReaderSettings();
+
+  let docId = $state<string | null>(null);
+  let adding = $state(false);
+
+  const doc = $derived(docId ? library.find(docId) : undefined);
+
+  function openDoc(id: string) {
+    docId = id;
+  }
+
+  function createDoc(d: NarratorDoc) {
+    library.add(d);
+    adding = false;
+    openDoc(d.id);
+  }
 </script>
 
 <svelte:head>
-	<title>PDF Reader & Narrator</title>
-	<meta name="description" content="Read PDFs with text-to-speech narration" />
+  <title>narrator — reads aloud</title>
+  <meta
+    name="description"
+    content="Upload a PDF, EPUB, or text file — or paste anything — and have it read aloud with synced highlighting."
+  />
 </svelte:head>
 
-<div class="min-h-screen bg-slate-50 dark:bg-slate-950">
-	<header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-		<div class="max-w-7xl mx-auto px-4 py-6">
-			<h1 class="text-3xl font-bold">PDF Reader & Narrator</h1>
-			<p class="text-slate-600 dark:text-slate-400 mt-2">
-				Upload a PDF and listen to it with text-to-speech
-			</p>
-		</div>
-	</header>
+<div class="narrator min-h-screen">
+  {#if doc}
+    {#key doc.id}
+      <ReaderView {doc} {settings} onclose={() => (docId = null)} />
+    {/key}
+  {:else}
+    <LibraryView {library} onopen={openDoc} onadd={() => (adding = true)} />
+  {/if}
 
-	<main class="max-w-7xl mx-auto px-4 py-8">
-		{#if mounted}
-			{#if !pdfStore.document}
-				<Card class="max-w-2xl mx-auto">
-					<FileUploader />
-				</Card>
-			{:else}
-				<div class="space-y-4">
-					<!-- PDF Controls -->
-					<Card>
-						<PdfControls />
-					</Card>
-
-					<!-- PDF Viewer -->
-					<Card>
-						<PdfViewer />
-					</Card>
-
-					<!-- Audio Controls -->
-					<Card>
-						<AudioControls />
-					</Card>
-
-					<!-- Info Panel -->
-					{#if pdfStore.document.metadata.title || pdfStore.document.metadata.author}
-						<Card class="p-4">
-							<h3 class="font-semibold mb-2">Document Information</h3>
-							<dl class="space-y-1 text-sm">
-								{#if pdfStore.document.metadata.title}
-									<div class="grid grid-cols-3">
-										<dt class="text-slate-600 dark:text-slate-400">Title:</dt>
-										<dd class="col-span-2">{pdfStore.document.metadata.title}</dd>
-									</div>
-								{/if}
-								{#if pdfStore.document.metadata.author}
-									<div class="grid grid-cols-3">
-										<dt class="text-slate-600 dark:text-slate-400">Author:</dt>
-										<dd class="col-span-2">{pdfStore.document.metadata.author}</dd>
-									</div>
-								{/if}
-								<div class="grid grid-cols-3">
-									<dt class="text-slate-600 dark:text-slate-400">Pages:</dt>
-									<dd class="col-span-2">{pdfStore.document.numPages}</dd>
-								</div>
-							</dl>
-						</Card>
-					{/if}
-
-					<!-- Text Extraction Progress -->
-					{#if pdfStore.isTextExtracting}
-						<Card class="p-4">
-							<p class="text-sm text-slate-600 dark:text-slate-400">
-								Extracting text for narration... {pdfStore.textExtractionProgress}%
-							</p>
-						</Card>
-					{/if}
-				</div>
-			{/if}
-		{/if}
-	</main>
+  {#if adding}
+    <AddDocumentModal onclose={() => (adding = false)} oncreate={createDoc} />
+  {/if}
 </div>

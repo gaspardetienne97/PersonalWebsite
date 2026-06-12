@@ -1,0 +1,506 @@
+<script lang="ts">
+  import ArrowLeft from "lucide-svelte/icons/arrow-left";
+  import BookOpen from "lucide-svelte/icons/book-open";
+  import Check from "lucide-svelte/icons/check";
+  import FileText from "lucide-svelte/icons/file-text";
+  import Mic from "lucide-svelte/icons/mic";
+  import Quote from "lucide-svelte/icons/quote";
+  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Type from "lucide-svelte/icons/type";
+  import X from "lucide-svelte/icons/x";
+
+  import { docFromPaste, UPLOAD_BANK, VOICES, type DocKind, type NarratorDoc } from "@repo/pdf-core/domain";
+
+  import Btn from "./Btn.svelte";
+  import Equalizer from "./Equalizer.svelte";
+
+  let { onclose, oncreate }: { onclose: () => void; oncreate: (doc: NarratorDoc) => void } = $props();
+
+  const TABS = [
+    { id: "pdf", label: "PDF", icon: FileText, hint: "Scanned or digital. We OCR images automatically." },
+    { id: "epub", label: "EPUB", icon: BookOpen, hint: "Chapters and metadata are detected for you." },
+    { id: "txt", label: "Text file", icon: Type, hint: ".txt and .md — paragraphs preserved." },
+    { id: "paste", label: "Paste", icon: Quote, hint: "Drop in any text and start listening." },
+  ] as const;
+
+  let tab = $state<DocKind>("pdf");
+  let voice = $state(VOICES[0]);
+  let text = $state("");
+  let drag = $state(false);
+  let pending = $state<NarratorDoc | null>(null);
+  let activeStep = $state(0);
+
+  const activeTab = $derived(TABS.find((t) => t.id === tab) ?? TABS[0]);
+
+  const steps = $derived.by(() => {
+    if (!pending) return [];
+    return [
+      { k: "read", label: "Reading file", sub: "decoding bytes" },
+      pending.kind === "pdf"
+        ? { k: "ocr", label: "OCR pass", sub: "recognizing scanned pages" }
+        : { k: "extract", label: "Extracting text", sub: "stripping markup" },
+      { k: "clean", label: "Cleaning & normalizing", sub: "joining hyphenation, fixing line breaks" },
+      { k: "chapters", label: "Detecting chapters", sub: "building the outline" },
+      { k: "narration", label: "Preparing narration", sub: voice.split(" — ")[0] },
+    ];
+  });
+
+  // Simulated OCR/parse pipeline — steps advance on a timer, then the doc is created.
+  $effect(() => {
+    if (!pending) return;
+    if (activeStep >= steps.length) {
+      const done = setTimeout(() => oncreate(pending!), 420);
+      return () => clearTimeout(done);
+    }
+    const t = setTimeout(() => (activeStep += 1), 620 + Math.random() * 360);
+    return () => clearTimeout(t);
+  });
+
+  function startUpload() {
+    if (tab === "paste") return;
+    const base = UPLOAD_BANK[tab];
+    activeStep = 0;
+    pending = { ...base, id: base.id + "-" + Date.now(), voice };
+  }
+
+  function startPaste() {
+    const doc = docFromPaste(text, voice, Date.now());
+    if (!doc) return;
+    activeStep = 0;
+    pending = doc;
+  }
+</script>
+
+<div class="overlay" role="dialog" aria-modal="true" aria-label="Add a document">
+  <div class="sheet">
+    <div class="glow"></div>
+    <div class="content">
+      <div class="head">
+        <button class="icon-btn" onclick={onclose} aria-label="Back"><ArrowLeft size={18} strokeWidth={1.5} /></button>
+        <div>
+          <h2 class="n-gradient-text">Add a document</h2>
+          <p>I'll read it out loud for you.</p>
+        </div>
+        <button class="icon-btn close" onclick={onclose} aria-label="Close"><X size={18} strokeWidth={1.5} /></button>
+      </div>
+
+      {#if pending}
+        <div class="pipe">
+          <div class="pipe-spinner">
+            <Equalizer color="var(--n-brand-blue)" size={40} />
+            <div class="ring"></div>
+          </div>
+          <h3>Building your narration</h3>
+          <p class="pipe-sub">This usually takes a moment.</p>
+          <div class="steps">
+            {#each steps as step, i (step.k)}
+              {@const state = i < activeStep ? "done" : i === activeStep ? "active" : "pending"}
+              <div class="step {state}">
+                <div class="dot {state}">
+                  {#if state === "done"}
+                    <Check size={13} strokeWidth={2.5} style="color: #04240f" />
+                  {:else if state === "active"}
+                    <div class="pulse"></div>
+                  {/if}
+                </div>
+                <div class="step-body">
+                  <div class="step-label">{step.label}</div>
+                  {#if state === "active"}
+                    <div class="step-sub">{step.sub}…</div>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {:else}
+        <div class="body">
+          <div class="tabs" role="tablist">
+            {#each TABS as t (t.id)}
+              <button
+                class="tab"
+                class:active={tab === t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                onclick={() => (tab = t.id)}
+              >
+                <t.icon size={16} strokeWidth={1.5} />
+                {t.label}
+              </button>
+            {/each}
+          </div>
+
+          {#if tab === "paste"}
+            <textarea
+              bind:value={text}
+              placeholder="Paste or type anything — an article, an email, your notes…"
+              aria-label="Text to narrate"
+            ></textarea>
+          {:else}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="drop"
+              class:drag
+              role="button"
+              tabindex="0"
+              onclick={startUpload}
+              onkeydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  startUpload();
+                }
+              }}
+              ondragover={(e) => {
+                e.preventDefault();
+                drag = true;
+              }}
+              ondragleave={() => (drag = false)}
+              ondrop={(e) => {
+                e.preventDefault();
+                drag = false;
+                startUpload();
+              }}
+            >
+              <div class="drop-icon"><activeTab.icon size={28} strokeWidth={1.5} /></div>
+              <div class="drop-title">Drop your {activeTab.label} here</div>
+              <div class="drop-sub">or <span>browse files</span></div>
+              <div class="drop-hint">{activeTab.hint}</div>
+            </div>
+          {/if}
+
+          <div class="voice-row">
+            <div class="voice-label">
+              <Mic size={16} strokeWidth={1.5} style="color: var(--n-brand-blue)" /> Narrator voice
+            </div>
+            <div class="voice-chips">
+              {#each VOICES as v (v)}
+                <button class="voice-chip" class:active={voice === v} onclick={() => (voice = v)}>{v}</button>
+              {/each}
+            </div>
+          </div>
+
+          {#if tab === "paste"}
+            <Btn
+              variant="primary"
+              class="narrate-btn"
+              disabled={!text.trim()}
+              onclick={startPaste}
+            >
+              <Sparkles size={16} strokeWidth={1.5} /> Narrate this text
+            </Btn>
+          {/if}
+        </div>
+      {/if}
+    </div>
+  </div>
+</div>
+
+<style>
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(2, 6, 24, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .sheet {
+    width: min(560px, 100%);
+    max-height: 92vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    background: var(--n-bg-1);
+    border: 1px solid var(--n-glass-border);
+    border-radius: 20px;
+    box-shadow: var(--n-shadow-lg);
+  }
+  .glow {
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 230px;
+    height: 180px;
+    border-radius: 999px;
+    background: var(--n-brand-gradient-soft);
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .content {
+    position: relative;
+    z-index: 1;
+  }
+  .head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 28px;
+  }
+  .head h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .head p {
+    margin: 2px 0 0;
+    color: var(--n-fg-2);
+    font-size: 14px;
+  }
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: var(--n-bg-2);
+    border: 1px solid var(--n-border-1);
+    color: var(--n-fg-1);
+    cursor: pointer;
+  }
+  .icon-btn.close {
+    margin-left: auto;
+  }
+  .body {
+    padding: 0 28px 28px;
+  }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    background: var(--n-bg-0);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid var(--n-border-1);
+  }
+  .tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 8px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--n-fg-2);
+    font-family: var(--n-font-sans);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 200ms var(--n-ease-out);
+  }
+  .tab.active {
+    background: rgba(18, 145, 250, 0.12);
+    color: var(--n-fg-0);
+    box-shadow: inset 0 0 0 1px rgba(18, 145, 250, 0.28);
+  }
+  .drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 44px 24px;
+    border: 1.5px dashed var(--n-border-2);
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 200ms var(--n-ease-out);
+    background: var(--n-bg-1);
+  }
+  .drop.drag {
+    border-color: var(--n-brand-blue);
+    background: rgba(18, 145, 250, 0.08);
+  }
+  .drop-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: var(--n-brand-gradient);
+    color: #fff;
+    margin-bottom: 4px;
+    box-shadow:
+      var(--n-brand-glow),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+  .drop-title {
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .drop-sub {
+    color: var(--n-fg-2);
+    font-size: 14px;
+  }
+  .drop-sub span {
+    color: var(--n-link);
+  }
+  .drop-hint {
+    font-family: var(--n-font-mono);
+    font-size: 12px;
+    color: var(--n-fg-3);
+    margin-top: 6px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 168px;
+    resize: vertical;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--n-bg-0);
+    border: 1px solid var(--n-border-2);
+    color: var(--n-fg-0);
+    font-family: var(--n-font-serif);
+    font-size: 16px;
+    line-height: 1.6;
+    outline: none;
+  }
+  textarea::placeholder {
+    color: var(--n-fg-3);
+  }
+  .voice-row {
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .voice-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--n-fg-1);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .voice-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .voice-chip {
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--n-border-2);
+    background: var(--n-bg-1);
+    color: var(--n-fg-1);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--n-font-sans);
+    transition: all 200ms var(--n-ease-out);
+  }
+  .voice-chip.active {
+    border-color: var(--n-brand-blue);
+    background: rgba(18, 145, 250, 0.1);
+    color: var(--n-fg-0);
+  }
+  .body :global(.narrate-btn) {
+    margin-top: 20px;
+    width: 100%;
+    padding: 13px;
+  }
+  .body :global(.narrate-btn:disabled) {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .pipe {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 12px 28px 40px;
+  }
+  .pipe h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .pipe-sub {
+    color: var(--n-fg-2);
+    margin: 2px 0 8px;
+    font-size: 14px;
+  }
+  .pipe-spinner {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 8px;
+    display: grid;
+    place-items: center;
+  }
+  .ring {
+    position: absolute;
+    inset: -10px;
+    border-radius: 999px;
+    border: 1.5px solid var(--n-border-1);
+    border-top-color: var(--n-brand-blue);
+    animation: n-spin 1s linear infinite;
+  }
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    max-width: 380px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    transition: all 200ms var(--n-ease-out);
+    text-align: left;
+  }
+  .step.active {
+    background: var(--n-bg-2);
+  }
+  .step.pending {
+    opacity: 0.4;
+  }
+  .dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border: 1.5px solid var(--n-border-2);
+  }
+  .dot.done {
+    background: var(--n-success);
+    border: none;
+  }
+  .pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--n-brand-blue);
+    animation: n-pulse 1s ease-in-out infinite;
+  }
+  .step-body {
+    flex: 1;
+  }
+  .step-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--n-fg-0);
+  }
+  .step.active .step-label {
+    font-weight: 600;
+  }
+  .step.pending .step-label {
+    color: var(--n-fg-3);
+  }
+  .step-sub {
+    font-family: var(--n-font-mono);
+    font-size: 11px;
+    color: var(--n-fg-3);
+    margin-top: 2px;
+  }
+</style>
