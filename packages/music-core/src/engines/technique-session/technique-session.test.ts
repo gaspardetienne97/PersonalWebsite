@@ -114,7 +114,12 @@ describe("TechniqueSession", () => {
       leftPadMidi: 36,
       rightPadMidi: 38,
       hitCount: 8,
-      bpm: 80,
+      bpm: 100,
+    });
+    expect(prompt.targetSpacingMs).toBe(300);
+    Object.assign(prompt, {
+      noteLabels: ["C4"],
+      midiNotes: [60],
     });
     prompt.targetSequence.forEach((midiNote, index) => {
       dependencies.router.push(mpcNote(midiNote, index * prompt.targetSpacingMs, 0.8));
@@ -131,12 +136,15 @@ describe("TechniqueSession", () => {
       nextTargetBpm: 100,
     });
     expect(session.state.results[0]?.event).toMatchObject({
-      runId: "technique-test-mpc-single-strokes-36-38-8-80",
-      skillIds: expect.arrayContaining(["technique.mpc.single-strokes"]),
+      runId: "technique-test-mpc-single-strokes-36-38-8-100",
+      skillIds: expect.arrayContaining(["technique.mpc", "technique.mpc.single-strokes"]),
     });
     expect(
       dependencies.services.skills.getMastery("technique.mpc.single-strokes").observations,
     ).toBeGreaterThan(0);
+    expect(dependencies.services.skills.getMastery("technique.mpc").observations).toBeGreaterThan(
+      0,
+    );
     expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
     session.dispose();
   });

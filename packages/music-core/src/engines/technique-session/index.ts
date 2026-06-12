@@ -241,7 +241,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-mpc-single-strokes-${options.leftPadMidi}-${options.rightPadMidi}-${options.hitCount}-${options.bpm}`,
       inputs: ["midi", "onscreen"],
       context: {
-        targetSkillIds: ["technique.mpc.single-strokes"],
+        targetSkillIds: ["technique.mpc", "technique.mpc.single-strokes"],
         difficulty: difficultyForBpm(options.bpm),
         instrument: "mpc",
       },
@@ -383,7 +383,15 @@ function summarize(results: TechniqueResultView[], highestUnlockedBpm: number): 
 }
 
 function isScalePatternPrompt(prompt: TechniquePrompt): prompt is ScalePatternPrompt {
-  return "noteLabels" in prompt;
+  return (
+    "noteLabels" in prompt &&
+    Array.isArray(prompt.noteLabels) &&
+    "midiNotes" in prompt &&
+    Array.isArray(prompt.midiNotes) &&
+    "targetSpacingMs" in prompt &&
+    typeof prompt.targetSpacingMs === "number" &&
+    !("targetSequence" in prompt)
+  );
 }
 
 function consistency(values: number[]): number {

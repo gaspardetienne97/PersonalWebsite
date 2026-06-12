@@ -12,7 +12,7 @@ import {
 } from "@repo/music-core/exercises/mpc-single-stroke";
 
 const context: ExerciseContext = {
-  targetSkillIds: ["technique.mpc.single-strokes"],
+  targetSkillIds: ["technique.mpc", "technique.mpc.single-strokes"],
   difficulty: 0.5,
   instrument: "mpc",
 };
@@ -27,7 +27,7 @@ describe("createMpcSingleStrokeExercise", () => {
     expect(exercise).toMatchObject({
       id: "technique.mpc.single-strokes",
       capabilities: [Capability.Technique, Capability.Rhythm],
-      skillIds: ["technique.mpc.single-strokes"],
+      skillIds: ["technique.mpc", "technique.mpc.single-strokes"],
       inputs: ["midi", "onscreen"],
       streaming: true,
     });

@@ -9,6 +9,7 @@ import {
 import { beatDurationMs } from "@repo/music-core/engines/transport";
 
 const EXERCISE_ID = "technique.mpc.single-strokes";
+const SKILL_IDS = ["technique.mpc", EXERCISE_ID];
 
 export type MpcHitCount = 8 | 16;
 
@@ -74,7 +75,7 @@ export function createMpcSingleStrokeExercise(
     id: EXERCISE_ID,
     name: "MPC Single Strokes",
     capabilities: [Capability.Technique, Capability.Rhythm],
-    skillIds: [EXERCISE_ID],
+    skillIds: [...SKILL_IDS],
     inputs: ["midi", "onscreen"],
     streaming: true,
     generate: () => ({
