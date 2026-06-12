@@ -12,4 +12,12 @@ describe("/music/play/+page.svelte", () => {
       "Scales & Technique",
     );
   });
+
+  test("links to MPC rudiment practice", () => {
+    render(Page);
+
+    expect(document.querySelector('a[href="/music/play/mpc"]')?.textContent).toContain(
+      "MPC Rudiments",
+    );
+  });
 });

@@ -25,4 +25,12 @@ describe("MusicNavigation", () => {
     expect(current).toContain("/music/learn/ear");
     expect(current).not.toContain("/music");
   });
+
+  test("links to MPC rudiments and marks the route active", () => {
+    render(MusicNavigation, { currentPath: "/music/play/mpc" });
+
+    const link = document.querySelector<HTMLAnchorElement>('a[href="/music/play/mpc"]');
+    expect(link?.textContent).toContain("MPC Rudiments");
+    expect(link?.getAttribute("aria-current")).toBe("page");
+  });
 });

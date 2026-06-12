@@ -1,5 +1,6 @@
 <script lang="ts">
   import AudioWaveform from "lucide-svelte/icons/audio-waveform";
+  import Drum from "lucide-svelte/icons/drum";
   import Gauge from "lucide-svelte/icons/gauge";
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
 
@@ -31,6 +32,15 @@
       meta="Technique"
       action="Start scale practice"
       icon={SlidersHorizontal}
+    />
+    <MusicToolCard
+      href="/music/play/mpc"
+      title="MPC Rudiments"
+      description="Build alternating pad control with order, timing, and velocity feedback from MIDI or the on-screen grid."
+      eyebrow="Play"
+      meta="Pads"
+      action="Start pad practice"
+      icon={Drum}
     />
     <MusicToolCard
       href="/music/tuner"
