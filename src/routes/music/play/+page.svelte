@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Gauge from "lucide-svelte/icons/gauge";
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
 
   import MusicToolCard from "../_components/MusicToolCard.svelte";
@@ -29,6 +30,15 @@
       meta="Technique"
       action="Start scale practice"
       icon={SlidersHorizontal}
+    />
+    <MusicToolCard
+      href="/music/tuner"
+      title="Tuner"
+      description="Tune by ear with a live mic: nearest note, cents deviation, and a flat / in-tune / sharp meter."
+      eyebrow="Play"
+      meta="Intonation"
+      action="Open tuner"
+      icon={Gauge}
     />
   </section>
 </PracticeScreen>
