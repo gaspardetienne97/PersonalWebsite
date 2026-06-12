@@ -10,6 +10,7 @@
 import type { MonotonicMs, NoteOnEvent } from "@repo/music-core/domain";
 
 import { detectPitch, type PitchDetectOptions } from "./pitch-detect";
+import pitchWorkletSource from "./pitch-worklet.js?raw";
 import { tunerReading, type TunerOptions, type TunerReading } from "./tuner";
 
 export type AudioPitchStatus = "idle" | "requesting" | "running" | "denied" | "error";
@@ -29,17 +30,9 @@ type ReadingListener = (reading: TunerReading) => void;
 type EventListener = (event: NoteOnEvent) => void;
 type StateListener = (state: AudioPitchState) => void;
 
-// Resolved at module load relative to this file so the bundler emits the worklet.
-const WORKLET_URL = new URL("./pitch-worklet.js", import.meta.url);
-
 async function loadPitchWorklet(context: AudioContext): Promise<void> {
-  const response = await fetch(WORKLET_URL);
-  if (!response.ok) {
-    throw new Error(`Could not load the pitch worklet (${response.status}).`);
-  }
-
   const moduleUrl = URL.createObjectURL(
-    new Blob([await response.text()], { type: "text/javascript" }),
+    new Blob([pitchWorkletSource], { type: "text/javascript" }),
   );
   try {
     await context.audioWorklet.addModule(moduleUrl);

@@ -143,6 +143,9 @@ describe("intonationZone", () => {
 describe("AudioPitchSource", () => {
   test("loads the pitch worklet from a Blob URL", async () => {
     let moduleUrl = "";
+    const fetchWorklet = vi.fn(async () => {
+      throw new Error("The worklet source must not require a network request.");
+    });
     const stream = {
       getTracks: () => [{ stop: vi.fn() }],
     };
@@ -175,6 +178,7 @@ describe("AudioPitchSource", () => {
         getUserMedia: vi.fn(async () => stream),
       },
     });
+    vi.stubGlobal("fetch", fetchWorklet);
     vi.stubGlobal("AudioContext", FakeAudioContext);
     vi.stubGlobal("AudioWorkletNode", FakeAudioWorkletNode);
 
@@ -182,6 +186,7 @@ describe("AudioPitchSource", () => {
     await source.start();
 
     expect(moduleUrl).toMatch(/^blob:/);
+    expect(fetchWorklet).not.toHaveBeenCalled();
     await source.stop();
   });
 });
