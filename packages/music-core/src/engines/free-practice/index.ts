@@ -55,8 +55,11 @@ export class FreePracticeSession {
   #highestMidiNote: number | undefined;
   #recentNoteCount = 0;
   #recentNoteStart = 0;
+  #result: FreePracticeResult | undefined;
 
   constructor(options: FreePracticeSessionOptions) {
+    this.#assertFiniteTimestamp(options.startedAt, "startedAt");
+    this.#assertFiniteTimestamp(options.startedAtMonotonic, "startedAtMonotonic");
     this.#id = options.id;
     this.#instrument = options.instrument;
     this.#startedAt = options.startedAt;
@@ -65,6 +68,10 @@ export class FreePracticeSession {
 
   get state(): FreePracticeState {
     return this.#snapshot(this.#status);
+  }
+
+  get result(): FreePracticeResult | undefined {
+    return this.#result ? this.#copyResult(this.#result) : undefined;
   }
 
   accept(event: NoteEvent): void {
@@ -96,13 +103,16 @@ export class FreePracticeSession {
 
   stop(endedAt: UnixMs): FreePracticeResult {
     this.#assertRecording();
-    this.#status = "stopped";
-    return {
+    this.#assertFiniteTimestamp(endedAt, "endedAt");
+    const result: FreePracticeResult = {
       ...this.#snapshot("stopped"),
       status: "stopped",
       endedAt,
       durationMs: Math.max(0, Number(endedAt) - Number(this.#startedAt)),
     };
+    this.#result = result;
+    this.#status = "stopped";
+    return this.#copyResult(result);
   }
 
   #appendRecentNote(note: FreePracticeNote): void {
@@ -141,5 +151,19 @@ export class FreePracticeSession {
     if (this.#status === "stopped") {
       throw new Error("FreePracticeSession is already stopped");
     }
+  }
+
+  #assertFiniteTimestamp(value: number, field: string): void {
+    if (!Number.isFinite(value)) {
+      throw new Error(`${field} must be finite`);
+    }
+  }
+
+  #copyResult(result: FreePracticeResult): FreePracticeResult {
+    return {
+      ...result,
+      recentNotes: result.recentNotes.map((note) => ({ ...note })),
+      sourceCounts: { ...result.sourceCounts },
+    };
   }
 }

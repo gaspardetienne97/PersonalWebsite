@@ -23,6 +23,25 @@ const note = (
 });
 
 describe("FreePracticeSession", () => {
+  test.each([
+    ["startedAt", Number.NaN, 100],
+    ["startedAt", Number.POSITIVE_INFINITY, 100],
+    ["startedAt", Number.NEGATIVE_INFINITY, 100],
+    ["startedAtMonotonic", 1_000, Number.NaN],
+    ["startedAtMonotonic", 1_000, Number.POSITIVE_INFINITY],
+    ["startedAtMonotonic", 1_000, Number.NEGATIVE_INFINITY],
+  ])("rejects non-finite constructor timestamp %s", (field, startedAt, startedAtMonotonic) => {
+    expect(
+      () =>
+        new FreePracticeSession({
+          id: "practice-invalid-start",
+          instrument: "piano",
+          startedAt: unixMs(startedAt),
+          startedAtMonotonic: monotonicMs(startedAtMonotonic),
+        }),
+    ).toThrow(field);
+  });
+
   test("aggregates notes and exposes only immutable copies of the latest eight", () => {
     const session = new FreePracticeSession({
       id: "practice-1",
@@ -136,11 +155,18 @@ describe("FreePracticeSession", () => {
       noteCount: 1,
     });
     expect(session.state.status).toBe("stopped");
+    expect(session.result).toEqual(result);
 
     result.recentNotes.length = 0;
     result.sourceCounts.onscreen = 99;
     expect(session.state.recentNotes).toHaveLength(1);
     expect(session.state.sourceCounts.onscreen).toBe(1);
+
+    const retainedResult = session.result!;
+    retainedResult.recentNotes[0]!.midiNote = 0;
+    retainedResult.sourceCounts.onscreen = 99;
+    expect(session.result!.recentNotes[0]!.midiNote).toBe(64);
+    expect(session.result!.sourceCounts.onscreen).toBe(1);
     expect(() => session.stop(unixMs(5_000))).toThrow("already stopped");
     expect(() => session.accept(note(65, "midi", 160))).toThrow("already stopped");
 
@@ -152,4 +178,28 @@ describe("FreePracticeSession", () => {
     });
     expect(clampedSession.stop(unixMs(4_000)).durationMs).toBe(0);
   });
+
+  test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "rejects non-finite endedAt %s without stopping the session",
+    (endedAt) => {
+      const session = new FreePracticeSession({
+        id: "practice-invalid-end",
+        instrument: "piano",
+        startedAt: unixMs(1_000),
+        startedAtMonotonic: monotonicMs(100),
+      });
+
+      expect(session.result).toBeUndefined();
+      expect(() => session.stop(unixMs(endedAt))).toThrow("endedAt");
+      expect(session.state.status).toBe("recording");
+      expect(session.result).toBeUndefined();
+
+      session.accept(note(60, "midi", 120));
+      expect(session.stop(unixMs(2_000))).toMatchObject({
+        status: "stopped",
+        durationMs: 1_000,
+        noteCount: 1,
+      });
+    },
+  );
 });
