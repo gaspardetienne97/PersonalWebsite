@@ -1,18 +1,8 @@
 import { describe, expect, test } from "vitest";
-import {
-  monotonicMs,
-  unixMs,
-  type InputSource,
-  type NoteEvent,
-} from "@repo/music-core/domain";
+import { monotonicMs, unixMs, type InputSource, type NoteEvent } from "@repo/music-core/domain";
 import { FreePracticeSession } from "./index";
 
-const note = (
-  midiNote: number,
-  source: InputSource,
-  at: number,
-  velocity = 0.75,
-): NoteEvent => ({
+const note = (midiNote: number, source: InputSource, at: number, velocity = 0.75): NoteEvent => ({
   type: "noteOn",
   midiNote,
   velocity,
@@ -51,9 +41,7 @@ describe("FreePracticeSession", () => {
     });
 
     for (let index = 0; index < 10; index += 1) {
-      session.accept(
-        note(60 + (index % 4), index % 2 === 0 ? "onscreen" : "midi", 110 + index),
-      );
+      session.accept(note(60 + (index % 4), index % 2 === 0 ? "onscreen" : "midi", 110 + index));
     }
 
     const state = session.state;
