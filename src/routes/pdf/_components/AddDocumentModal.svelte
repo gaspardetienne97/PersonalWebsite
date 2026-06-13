@@ -9,7 +9,15 @@
   import Type from "lucide-svelte/icons/type";
   import X from "lucide-svelte/icons/x";
 
-  import { docFromPaste, UPLOAD_BANK, VOICES, type DocKind, type NarratorDoc } from "@repo/pdf-core/domain";
+  import type { DocKind, NarratorDoc } from "@repo/pdf-core/domain";
+  import {
+    ACCEPT_BY_KIND,
+    extractFile,
+    extractPaste,
+    kindForFile,
+    type ExtractStage,
+  } from "@repo/pdf-core/services/extract";
+  import { voiceCatalog } from "@repo/pdf-core/stores/voices";
 
   import Btn from "./Btn.svelte";
   import Equalizer from "./Equalizer.svelte";
@@ -17,57 +25,59 @@
   let { onclose, oncreate }: { onclose: () => void; oncreate: (doc: NarratorDoc) => void } = $props();
 
   const TABS = [
-    { id: "pdf", label: "PDF", icon: FileText, hint: "Scanned or digital. We OCR images automatically." },
+    { id: "pdf", label: "PDF", icon: FileText, hint: "Digital PDFs with a text layer. Outline becomes chapters." },
     { id: "epub", label: "EPUB", icon: BookOpen, hint: "Chapters and metadata are detected for you." },
-    { id: "txt", label: "Text file", icon: Type, hint: ".txt and .md — paragraphs preserved." },
+    { id: "txt", label: "Text file", icon: Type, hint: ".txt and .md — headings become chapters." },
     { id: "paste", label: "Paste", icon: Quote, hint: "Drop in any text and start listening." },
   ] as const;
 
+  const STAGES: { k: ExtractStage; label: string; sub: string }[] = [
+    { k: "read", label: "Reading file", sub: "decoding bytes" },
+    { k: "extract", label: "Extracting text", sub: "pulling out the words" },
+    { k: "clean", label: "Cleaning & normalizing", sub: "joining hyphenation, fixing line breaks" },
+    { k: "chapters", label: "Detecting chapters", sub: "building the outline" },
+    { k: "narration", label: "Preparing narration", sub: "tokenizing for the reader" },
+  ];
+
   let tab = $state<DocKind>("pdf");
-  let voice = $state(VOICES[0]);
+  let voice = $state<string | undefined>(undefined);
   let text = $state("");
   let drag = $state(false);
-  let pending = $state<NarratorDoc | null>(null);
-  let activeStep = $state(0);
+  let busy = $state(false);
+  let stageIndex = $state(0);
+  let fileName = $state("");
+  let error = $state<string | null>(null);
+  let fileInput = $state<HTMLInputElement | null>(null);
 
   const activeTab = $derived(TABS.find((t) => t.id === tab) ?? TABS[0]);
+  const voiceChoices = $derived(voiceCatalog.shortList(5));
+  const selectedVoice = $derived(voice ?? voiceCatalog.defaultName);
 
-  const steps = $derived.by(() => {
-    if (!pending) return [];
-    return [
-      { k: "read", label: "Reading file", sub: "decoding bytes" },
-      pending.kind === "pdf"
-        ? { k: "ocr", label: "OCR pass", sub: "recognizing scanned pages" }
-        : { k: "extract", label: "Extracting text", sub: "stripping markup" },
-      { k: "clean", label: "Cleaning & normalizing", sub: "joining hyphenation, fixing line breaks" },
-      { k: "chapters", label: "Detecting chapters", sub: "building the outline" },
-      { k: "narration", label: "Preparing narration", sub: voice.split(" — ")[0] },
-    ];
-  });
-
-  // Simulated OCR/parse pipeline — steps advance on a timer, then the doc is created.
-  $effect(() => {
-    if (!pending) return;
-    if (activeStep >= steps.length) {
-      const done = setTimeout(() => oncreate(pending!), 420);
-      return () => clearTimeout(done);
+  async function handleFile(file: File) {
+    if (busy) return;
+    if (!kindForFile(file)) {
+      error = `“${file.name}” isn't a supported format. Use PDF, EPUB, .txt, or .md.`;
+      return;
     }
-    const t = setTimeout(() => (activeStep += 1), 620 + Math.random() * 360);
-    return () => clearTimeout(t);
-  });
-
-  function startUpload() {
-    if (tab === "paste") return;
-    const base = UPLOAD_BANK[tab];
-    activeStep = 0;
-    pending = { ...base, id: base.id + "-" + Date.now(), voice };
+    error = null;
+    busy = true;
+    fileName = file.name;
+    stageIndex = 0;
+    try {
+      const doc = await extractFile(file, selectedVoice ?? "", (stage) => {
+        stageIndex = STAGES.findIndex((s) => s.k === stage);
+      });
+      stageIndex = STAGES.length; // every step done
+      setTimeout(() => oncreate(doc), 350);
+    } catch (e) {
+      busy = false;
+      error = e instanceof Error ? e.message : "Couldn't read that file.";
+    }
   }
 
   function startPaste() {
-    const doc = docFromPaste(text, voice, Date.now());
-    if (!doc) return;
-    activeStep = 0;
-    pending = doc;
+    const doc = extractPaste(text, selectedVoice ?? "");
+    if (doc) oncreate(doc);
   }
 </script>
 
@@ -84,17 +94,17 @@
         <button class="icon-btn close" onclick={onclose} aria-label="Close"><X size={18} strokeWidth={1.5} /></button>
       </div>
 
-      {#if pending}
+      {#if busy}
         <div class="pipe">
           <div class="pipe-spinner">
             <Equalizer color="var(--n-brand-blue)" size={40} />
             <div class="ring"></div>
           </div>
           <h3>Building your narration</h3>
-          <p class="pipe-sub">This usually takes a moment.</p>
+          <p class="pipe-sub">{fileName}</p>
           <div class="steps">
-            {#each steps as step, i (step.k)}
-              {@const state = i < activeStep ? "done" : i === activeStep ? "active" : "pending"}
+            {#each STAGES as step, i (step.k)}
+              {@const state = i < stageIndex ? "done" : i === stageIndex ? "active" : "pending"}
               <div class="step {state}">
                 <div class="dot {state}">
                   {#if state === "done"}
@@ -137,17 +147,29 @@
               aria-label="Text to narrate"
             ></textarea>
           {:else}
+            <input
+              bind:this={fileInput}
+              type="file"
+              accept={ACCEPT_BY_KIND[tab]}
+              class="file-input"
+              aria-label="Choose a {activeTab.label} file"
+              onchange={(e) => {
+                const file = e.currentTarget.files?.[0];
+                if (file) void handleFile(file);
+                e.currentTarget.value = "";
+              }}
+            />
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="drop"
               class:drag
               role="button"
               tabindex="0"
-              onclick={startUpload}
+              onclick={() => fileInput?.click()}
               onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  startUpload();
+                  fileInput?.click();
                 }
               }}
               ondragover={(e) => {
@@ -158,7 +180,8 @@
               ondrop={(e) => {
                 e.preventDefault();
                 drag = false;
-                startUpload();
+                const file = e.dataTransfer?.files?.[0];
+                if (file) void handleFile(file);
               }}
             >
               <div class="drop-icon"><activeTab.icon size={28} strokeWidth={1.5} /></div>
@@ -168,24 +191,33 @@
             </div>
           {/if}
 
+          {#if error}
+            <div class="error" role="alert">{error}</div>
+          {/if}
+
           <div class="voice-row">
             <div class="voice-label">
               <Mic size={16} strokeWidth={1.5} style="color: var(--n-brand-blue)" /> Narrator voice
             </div>
             <div class="voice-chips">
-              {#each VOICES as v (v)}
-                <button class="voice-chip" class:active={voice === v} onclick={() => (voice = v)}>{v}</button>
-              {/each}
+              {#if voiceChoices.length === 0}
+                <span class="voice-chip active">System default</span>
+              {:else}
+                {#each voiceChoices as v (v.voiceURI)}
+                  <button
+                    class="voice-chip"
+                    class:active={selectedVoice === v.name}
+                    onclick={() => (voice = v.name)}
+                  >
+                    {v.name}
+                  </button>
+                {/each}
+              {/if}
             </div>
           </div>
 
           {#if tab === "paste"}
-            <Btn
-              variant="primary"
-              class="narrate-btn"
-              disabled={!text.trim()}
-              onclick={startPaste}
-            >
+            <Btn variant="primary" class="narrate-btn" disabled={!text.trim()} onclick={startPaste}>
               <Sparkles size={16} strokeWidth={1.5} /> Narrate this text
             </Btn>
           {/if}
@@ -300,6 +332,9 @@
     color: var(--n-fg-0);
     box-shadow: inset 0 0 0 1px rgba(18, 145, 250, 0.28);
   }
+  .file-input {
+    display: none;
+  }
   .drop {
     display: flex;
     flex-direction: column;
@@ -346,6 +381,15 @@
     font-size: 12px;
     color: var(--n-fg-3);
     margin-top: 6px;
+  }
+  .error {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    font-size: 13px;
   }
   textarea {
     width: 100%;
@@ -424,6 +468,7 @@
     color: var(--n-fg-2);
     margin: 2px 0 8px;
     font-size: 14px;
+    font-family: var(--n-font-mono);
   }
   .pipe-spinner {
     position: relative;

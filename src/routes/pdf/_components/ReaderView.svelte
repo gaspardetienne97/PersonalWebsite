@@ -33,8 +33,6 @@
   const player = new NarrationPlayer(doc);
   onDestroy(() => player.dispose());
 
-  // svelte-ignore state_referenced_locally
-  let voice = $state(doc.voice);
   // 'flow' (teleprompter) | 'doc' (scrolling document text)
   let readStyle = $state<"flow" | "doc">("flow");
   let settingsOpen = $state(false);
@@ -153,7 +151,7 @@
     {/if}
     <div class="float-dock">
       <div class="float-inner">
-        <PlayerBar {player} {doc} {accent} bind:voice variant="float" />
+        <PlayerBar {player} {doc} {accent} variant="float" />
       </div>
     </div>
   {:else if layout === "audiobook"}
@@ -165,11 +163,11 @@
           <div class="audio-meta">
             <div class="audio-title">{doc.title}</div>
             <div class="audio-author">{doc.author}</div>
-            <Pill accent={doc.accent} class="audio-voice"><Mic size={12} strokeWidth={1.5} /> {voice}</Pill>
+            <Pill accent={doc.accent} class="audio-voice"><Mic size={12} strokeWidth={1.5} /> {player.voice ?? "System voice"}</Pill>
           </div>
         </div>
         <div class="audio-player">
-          <PlayerBar {player} {doc} {accent} bind:voice variant="panel" />
+          <PlayerBar {player} {doc} {accent} variant="panel" />
         </div>
       </aside>
       <section class={isDoc ? "audio-doc-wrap" : "tele-wrap"}>
@@ -186,7 +184,7 @@
     {@render topBar(false)}
     <div class="doc-bar">
       <div class="doc-bar-inner">
-        <PlayerBar {player} {doc} {accent} bind:voice variant="bar" />
+        <PlayerBar {player} {doc} {accent} variant="bar" />
       </div>
     </div>
     <div class="doc-scroll" bind:this={scrollEl}>

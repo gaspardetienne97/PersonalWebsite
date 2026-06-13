@@ -9,8 +9,9 @@
   import SkipBack from "lucide-svelte/icons/skip-back";
   import SkipForward from "lucide-svelte/icons/skip-forward";
 
-  import { fmt, VOICES, type NarratorDoc } from "@repo/pdf-core/domain";
+  import { fmt, type NarratorDoc } from "@repo/pdf-core/domain";
   import type { NarrationPlayer } from "@repo/pdf-core/stores/narration";
+  import { voiceCatalog } from "@repo/pdf-core/stores/voices";
 
   import ChapterList from "./ChapterList.svelte";
 
@@ -18,13 +19,11 @@
     player,
     doc,
     accent,
-    voice = $bindable(),
     variant,
   }: {
     player: NarrationPlayer;
     doc: NarratorDoc;
     accent: string;
-    voice: string;
     /** 'float' (immersive glass dock) | 'panel' (audiobook side panel) | 'bar' (document top bar) */
     variant: "float" | "panel" | "bar";
   } = $props();
@@ -36,6 +35,8 @@
 
   const openUp = $derived(variant !== "bar");
   const speedLabel = $derived(player.speed % 1 === 0 ? player.speed + ".0" : String(player.speed));
+  const voiceLabel = $derived(player.voice ?? "Voice");
+  const voiceList = $derived(voiceCatalog.preferred);
 
   function scrub(e: MouseEvent) {
     if (!trackEl) return;
@@ -106,7 +107,7 @@
               style:color={s === player.speed ? accent : "var(--n-fg-1)"}
               style:font-weight={s === player.speed ? 700 : 500}
               onclick={() => {
-                player.speed = s;
+                player.setSpeed(s);
                 open = null;
               }}
             >
@@ -145,30 +146,37 @@
     </div>
 
     <div class="pop-anchor">
-      <button class="chip" class:open={open === "voice"} onclick={() => togglePop("voice")}>
+      <button class="chip voice-chip" class:open={open === "voice"} onclick={() => togglePop("voice")}>
         <Mic size={15} strokeWidth={1.5} />
-        {voice.split(" — ")[0]}
+        <span class="voice-chip-label">{voiceLabel}</span>
         <ChevronDown size={12} strokeWidth={1.5} style="opacity: 0.55; margin-left: 1px" />
       </button>
       {#if open === "voice"}
-        <div class="pop right" class:up={openUp} style="width: 234px">
+        <div class="pop right voices-pop" class:up={openUp}>
           <div class="pop-label">Narrator voice</div>
-          {#each VOICES as v (v)}
-            <button
-              class="pop-item voice-item"
-              class:active={v === voice}
-              onclick={() => {
-                voice = v;
-                open = null;
-              }}
-            >
-              <Mic size={14} strokeWidth={1.5} style="color: {v === voice ? accent : 'var(--n-fg-3)'}" />
-              <span class="voice-name">{v}</span>
-              {#if v === voice}
-                <Check size={14} strokeWidth={1.5} style="color: {accent}" />
-              {/if}
-            </button>
-          {/each}
+          <div class="pop-scroll">
+            {#if voiceList.length === 0}
+              <div class="pop-empty">Using the system default voice</div>
+            {:else}
+              {#each voiceList as v (v.voiceURI)}
+                <button
+                  class="pop-item voice-item"
+                  class:active={v.name === player.voice}
+                  onclick={() => {
+                    player.setVoice(v.name);
+                    open = null;
+                  }}
+                >
+                  <Mic size={14} strokeWidth={1.5} style="color: {v.name === player.voice ? accent : 'var(--n-fg-3)'}" />
+                  <span class="voice-name">{v.name}</span>
+                  <span class="voice-lang">{v.lang}</span>
+                  {#if v.name === player.voice}
+                    <Check size={14} strokeWidth={1.5} style="color: {accent}" />
+                  {/if}
+                </button>
+              {/each}
+            {/if}
+          </div>
         </div>
       {/if}
     </div>
@@ -401,6 +409,18 @@
     color: var(--n-fg-3);
     font-size: 11px;
   }
+  .voice-chip-label {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .voices-pop {
+    width: 264px;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
   .voice-item {
     font-family: var(--n-font-sans);
     color: var(--n-fg-1);
@@ -411,6 +431,19 @@
   }
   .voice-name {
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .voice-lang {
+    font-family: var(--n-font-mono);
+    font-size: 10px;
+    color: var(--n-fg-3);
+  }
+  .pop-empty {
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--n-fg-3);
   }
   @media (max-width: 560px) {
     .player-extras {

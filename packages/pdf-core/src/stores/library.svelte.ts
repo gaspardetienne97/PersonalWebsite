@@ -76,6 +76,10 @@ export class NarratorLibrary {
 
   #persist(): void {
     if (!hasStorage()) return;
-    localStorage.setItem(LIBRARY_KEY, JSON.stringify(this.docs));
+    try {
+      localStorage.setItem(LIBRARY_KEY, JSON.stringify(this.docs));
+    } catch {
+      // Quota exceeded (very large books) — the library still works in memory.
+    }
   }
 }

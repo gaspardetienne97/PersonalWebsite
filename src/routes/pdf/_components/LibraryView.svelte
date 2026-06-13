@@ -80,7 +80,9 @@
             </div>
             <div class="hero-actions">
               <Btn variant="primary" onclick={() => onopen(doc.id)}><Play size={18} strokeWidth={1.5} /> Resume</Btn>
-              <Pill accent={doc.accent}><Mic size={13} strokeWidth={1.5} /> {doc.voice}</Pill>
+              {#if doc.voice}
+                <Pill accent={doc.accent}><Mic size={13} strokeWidth={1.5} /> {doc.voice}</Pill>
+              {/if}
             </div>
           </div>
         </div>

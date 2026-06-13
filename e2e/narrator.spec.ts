@@ -40,7 +40,7 @@ test.describe("Narrator", () => {
     await expect(page.getByText("Drop your PDF here")).toBeVisible();
   });
 
-  test("pasting text runs the pipeline and lands in the reader", async ({ page }) => {
+  test("pasting text lands in the reader with the real words", async ({ page }) => {
     await page
       .getByRole("button", { name: /Add document/ })
       .first()
@@ -51,12 +51,34 @@ test.describe("Narrator", () => {
       .fill("Hello world. This is a pasted narration test. It has three sentences.");
     await page.getByRole("button", { name: /Narrate this text/ }).click();
 
+    await expect(page.getByRole("button", { name: "Back to library" })).toBeVisible();
+    // The reader renders the pasted prose, tokenized into clickable words
+    // (the first sentence is the active teleprompter line at the start).
+    await expect(page.locator(".word", { hasText: "Hello" }).first()).toBeVisible();
+  });
+
+  test("uploading a real text file extracts and narrates it", async ({ page }) => {
+    await page
+      .getByRole("button", { name: /Add document/ })
+      .first()
+      .click();
+    await page.getByRole("tab", { name: "Text file" }).click();
+
+    // Real upload: the file is parsed in-browser (no mock content).
+    await page.setInputFiles('input[type="file"]', {
+      name: "uploaded-notes.md",
+      mimeType: "text/markdown",
+      buffer: Buffer.from(
+        "# Uploaded Notes\n\nThe first real paragraph from a file.\n\n## Section Two\n\nAnd a second paragraph here.",
+      ),
+    });
+
     await expect(page.getByText("Building your narration")).toBeVisible();
-    // The simulated pipeline finishes and the reader opens on the new doc.
     await expect(page.getByRole("button", { name: "Back to library" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("Hello world").first()).toBeVisible();
+    await expect(page.getByText("Uploaded Notes").first()).toBeVisible();
+    await expect(page.locator(".word", { hasText: "paragraph" }).first()).toBeVisible();
   });
 
   test("opens a document in the reader with transport controls", async ({ page }) => {

@@ -1,0 +1,90 @@
+/** File → NarratorDoc extraction entry point. */
+
+import type { DocKind, NarratorDoc } from "../../domain/types";
+import { extractEpub } from "./epub";
+import { paragraphsFromText, wordCount } from "./normalize";
+import { extractPdf } from "./pdf";
+import { extractTxt } from "./txt";
+import type { ExtractedContent, ExtractProgress, ExtractStage } from "./types";
+
+export type { ExtractedContent, ExtractProgress, ExtractStage };
+export {
+  chaptersFromText,
+  cleanText,
+  paragraphsFromText,
+  titleFromFilename,
+  wordCount,
+} from "./normalize";
+
+const ACCENTS = ["#1291FA", "#A21FB8", "#FF0C0D", "#22C55E", "#F59E0B"];
+
+export function kindForFile(file: File): DocKind | null {
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".pdf") || file.type === "application/pdf") return "pdf";
+  if (name.endsWith(".epub") || file.type === "application/epub+zip") return "epub";
+  if (name.endsWith(".txt") || name.endsWith(".md") || name.endsWith(".markdown")) return "txt";
+  if (file.type.startsWith("text/")) return "txt";
+  return null;
+}
+
+export const ACCEPT_BY_KIND: Record<Exclude<DocKind, "paste">, string> = {
+  pdf: ".pdf,application/pdf",
+  epub: ".epub,application/epub+zip",
+  txt: ".txt,.md,.markdown,text/plain,text/markdown",
+};
+
+/** Parse an uploaded file into a ready-to-narrate document. */
+export async function extractFile(
+  file: File,
+  voice: string,
+  progress: ExtractProgress,
+): Promise<NarratorDoc> {
+  const kind = kindForFile(file);
+  if (!kind) {
+    throw new Error(`Unsupported file type: ${file.name}. Use PDF, EPUB, .txt, or .md.`);
+  }
+
+  const extractor = kind === "pdf" ? extractPdf : kind === "epub" ? extractEpub : extractTxt;
+  const content = await extractor(file, progress);
+
+  progress("narration");
+  return toDoc(content, kind, voice);
+}
+
+/** Build a document from pasted text. */
+export function extractPaste(text: string, voice: string): NarratorDoc | null {
+  const paragraphs = paragraphsFromText(text);
+  if (paragraphs.length === 0) return null;
+  const title = paragraphs[0].split(/[.!?]/)[0].slice(0, 48).trim() || "Pasted text";
+  const chapters = [{ id: "ch-1", title: "Pasted text", paragraphs }];
+  return toDoc(
+    {
+      title,
+      author: "Pasted text",
+      meta: `Pasted · ${wordCount(chapters).toLocaleString()} words`,
+      chapters,
+    },
+    "paste",
+    voice,
+  );
+}
+
+function toDoc(content: ExtractedContent, kind: DocKind, voice: string): NarratorDoc {
+  return {
+    id: `${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    title: content.title,
+    author: content.author,
+    kind,
+    accent: accentFor(content.title),
+    meta: content.meta,
+    voice,
+    progress: 0,
+    chapters: content.chapters,
+  };
+}
+
+function accentFor(title: string): string {
+  let hash = 0;
+  for (const ch of title) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return ACCENTS[hash % ACCENTS.length];
+}
