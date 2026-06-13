@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { unixMs } from "@repo/music-core/domain";
+import {
+  Capability,
+  unixMs,
+  type ExerciseRunRecord,
+  type ScoringEvent,
+} from "@repo/music-core/domain";
 import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 
@@ -139,15 +144,42 @@ describe("MusicRuntime shared UI state", () => {
     const store = createStore();
     const rt = new MusicRuntime();
     rt.attachJournal(store);
+    const run: ExerciseRunRecord = {
+      id: "run-fixed",
+      exerciseId: "reading.fixed",
+      startedAt: unixMs(1_250),
+      endedAt: unixMs(4_000),
+      promptIds: ["prompt-1"],
+      targetSkillIds: ["reading.treble.landmarks"],
+      instrument: "piano",
+      difficulty: 0.6,
+      params: { tempo: 84 },
+    };
+    const scoringEvent: ScoringEvent = {
+      id: "event-fixed",
+      sessionId: "practice-fixed",
+      exerciseId: run.exerciseId,
+      runId: run.id,
+      skillIds: run.targetSkillIds,
+      capabilities: [Capability.Reading],
+      at: unixMs(3_000),
+      correct: true,
+      partialCredit: 1,
+      difficulty: run.difficulty,
+      metrics: [{ kind: "pitch", expectedMidi: 60, actualMidi: 60, cents: 0 }],
+    };
 
     await rt.recordPractice({
       id: "practice-fixed",
-      source: "free-practice",
+      source: "drill",
       instrument: "piano",
       startedAt: unixMs(1_000),
       endedAt: unixMs(4_500),
       tags: ["practice-lab", "piano"],
-      xpEarned: 0,
+      runs: [run],
+      scoringEvents: [scoringEvent],
+      xpEarned: 24,
+      note: "Timed reading capture",
     });
 
     const journal = new PracticeSessionStore(store);
@@ -156,6 +188,13 @@ describe("MusicRuntime shared UI state", () => {
       id: "practice-fixed",
       startTime: 1_000,
       endTime: 4_500,
+      source: "drill",
+      instrument: "piano",
+      tags: ["practice-lab", "piano"],
+      runs: [run],
+      scoringEvents: [scoringEvent],
+      xpEarned: 24,
+      notes: "Timed reading capture",
     });
     rt.dispose();
   });
