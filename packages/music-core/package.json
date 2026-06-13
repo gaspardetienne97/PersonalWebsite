@@ -12,6 +12,7 @@
     "./engines/device-profiles": "./src/engines/device-profiles/index.ts",
     "./engines/ear-training": "./src/engines/ear-training/index.ts",
     "./engines/exercise": "./src/engines/exercise/index.ts",
+    "./engines/free-practice": "./src/engines/free-practice/index.ts",
     "./engines/import": "./src/engines/import/index.ts",
     "./engines/input-router": "./src/engines/input-router/index.ts",
     "./engines/intonation-session": "./src/engines/intonation-session/index.ts",
