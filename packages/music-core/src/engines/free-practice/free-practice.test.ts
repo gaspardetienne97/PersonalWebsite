@@ -101,6 +101,23 @@ describe("FreePracticeSession", () => {
     expect(session.state.highestMidiNote).toBeUndefined();
   });
 
+  test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "ignores note-on events with non-finite timestamp %s",
+    (timestamp) => {
+      const session = new FreePracticeSession({
+        id: "practice-invalid-timestamp",
+        instrument: "piano",
+        startedAt: unixMs(1_000),
+        startedAtMonotonic: monotonicMs(100),
+      });
+
+      session.accept(note(60, "midi", timestamp));
+
+      expect(session.state.noteCount).toBe(0);
+      expect(session.state.recentNotes).toEqual([]);
+    },
+  );
+
   test("stops once with a stable wall-clock result and rejects later activity", () => {
     const session = new FreePracticeSession({
       id: "practice-3",

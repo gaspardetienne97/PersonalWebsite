@@ -75,6 +75,7 @@ export class FreePracticeSession {
       event.midiNote < 0 ||
       event.midiNote > 127 ||
       !Number.isFinite(event.velocity) ||
+      !Number.isFinite(event.timestamp) ||
       event.timestamp < this.#startedAtMonotonic
     ) {
       return;
