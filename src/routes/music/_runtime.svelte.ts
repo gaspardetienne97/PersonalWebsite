@@ -8,6 +8,7 @@ import {
   type InstrumentId,
   type ScoringEvent,
   type SessionSource,
+  type UnixMs,
 } from "@repo/music-core/domain";
 import {
   DeviceProfileStore,
@@ -53,6 +54,9 @@ export interface MidiInstrumentOption {
  * `/music/track` automatically (and is editable there).
  */
 export interface PracticeCaptureEntry {
+  id?: string;
+  startedAt?: UnixMs;
+  endedAt?: UnixMs;
   source: SessionSource;
   instrument?: InstrumentId;
   tags?: string[];
@@ -150,8 +154,12 @@ export class MusicRuntime {
   /** Append a completed practice activity to the journal (no-op without storage). */
   async recordPractice(entry: PracticeCaptureEntry): Promise<void> {
     if (!this.#journal) return;
-    const startedAt = unixMs(Date.now());
-    const id = `${entry.source}-${startedAt}-${this.#captureSeq++}`;
+    const startedAt = entry.startedAt ?? unixMs(Date.now());
+    const endedAt = entry.endedAt ?? unixMs(Date.now());
+    if (endedAt < startedAt) {
+      throw new Error("Practice capture endedAt must not be before startedAt");
+    }
+    const id = entry.id ?? `${entry.source}-${startedAt}-${this.#captureSeq++}`;
     this.#journal.start({
       id,
       source: entry.source,
@@ -161,7 +169,7 @@ export class MusicRuntime {
     });
     for (const run of entry.runs ?? []) this.#journal.recordRun(id, run);
     for (const event of entry.scoringEvents ?? []) this.#journal.recordScoringEvent(id, event);
-    this.#journal.finish(id, unixMs(Date.now()), entry.xpEarned, entry.note);
+    this.#journal.finish(id, endedAt, entry.xpEarned, entry.note);
     await this.#journal.flush();
   }
 

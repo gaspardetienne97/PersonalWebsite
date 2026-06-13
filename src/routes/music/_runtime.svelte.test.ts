@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
+import { unixMs } from "@repo/music-core/domain";
 import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 
@@ -131,6 +132,73 @@ describe("MusicRuntime shared UI state", () => {
       tags: ["reading"],
     });
     expect(sessions[0]?.notes).toContain("Note reading");
+    rt.dispose();
+  });
+
+  it("preserves explicit capture id and timestamps", async () => {
+    const store = createStore();
+    const rt = new MusicRuntime();
+    rt.attachJournal(store);
+
+    await rt.recordPractice({
+      id: "practice-fixed",
+      source: "free-practice",
+      instrument: "piano",
+      startedAt: unixMs(1_000),
+      endedAt: unixMs(4_500),
+      tags: ["practice-lab", "piano"],
+      xpEarned: 0,
+    });
+
+    const journal = new PracticeSessionStore(store);
+    await journal.load();
+    expect(journal.all()[0]).toMatchObject({
+      id: "practice-fixed",
+      startTime: 1_000,
+      endTime: 4_500,
+    });
+    rt.dispose();
+  });
+
+  it("retries a stable id without duplicating the journal row", async () => {
+    const store = createStore();
+    const rt = new MusicRuntime();
+    rt.attachJournal(store);
+    const entry = {
+      id: "practice-retry",
+      source: "free-practice" as const,
+      startedAt: unixMs(2_000),
+      endedAt: unixMs(3_000),
+      xpEarned: 0,
+    };
+
+    await rt.recordPractice(entry);
+    await rt.recordPractice(entry);
+
+    const journal = new PracticeSessionStore(store);
+    await journal.load();
+    expect(journal.all().filter(({ id }) => id === entry.id)).toHaveLength(1);
+    rt.dispose();
+  });
+
+  it("rejects a practice capture ending before it starts", async () => {
+    const store = createStore();
+    const rt = new MusicRuntime();
+    rt.attachJournal(store);
+
+    await expect(
+      rt.recordPractice({
+        id: "practice-invalid-duration",
+        source: "free-practice",
+        startedAt: unixMs(4_500),
+        endedAt: unixMs(1_000),
+        xpEarned: 0,
+      }),
+    ).rejects.toThrow("Practice capture endedAt must not be before startedAt");
+
+    const journal = new PracticeSessionStore(store);
+    await journal.load();
+    expect(journal.all()).toHaveLength(0);
     rt.dispose();
   });
 
