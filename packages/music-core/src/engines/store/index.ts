@@ -97,8 +97,8 @@ export class PracticeDatabase extends Dexie {
     this.version(1).stores(VERSION_1_STORES);
     this.version(2).stores({
       ...VERSION_1_STORES,
-      backingTracks: "id, createdAt",
-      audioTakes: "id, createdAt, instrument, backingTrackId, backingKind",
+      backingTracks: "id, name, createdAt",
+      audioTakes: "id, createdAt, instrument, backingTrackId",
     });
   }
 }
@@ -199,8 +199,8 @@ export async function list(prefix = ""): Promise<string[]> {
 }
 
 export async function storageEstimate(): Promise<StorageEstimate> {
-  if (typeof navigator === "undefined" || !navigator.storage?.estimate) return {};
-  return navigator.storage.estimate();
+  if (typeof navigator === "undefined") return {};
+  return (await navigator.storage?.estimate?.()) ?? {};
 }
 
 async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | undefined> {

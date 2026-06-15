@@ -117,6 +117,25 @@ describe("music-core/store", () => {
     await expect(store.audioTakes.get(audioTake.id)).resolves.toEqual(audioTake);
   });
 
+  test("uses the exact media metadata indexes", async () => {
+    const store = createStore();
+    await store.database.open();
+
+    try {
+      expect(store.database.backingTracks.schema.indexes.map((index) => index.name)).toEqual([
+        "name",
+        "createdAt",
+      ]);
+      expect(store.database.audioTakes.schema.indexes.map((index) => index.name)).toEqual([
+        "createdAt",
+        "instrument",
+        "backingTrackId",
+      ]);
+    } finally {
+      store.database.close();
+    }
+  });
+
   test("stores and lists OPFS binaries when the browser supports OPFS", async () => {
     if (!("storage" in navigator) || !navigator.storage.getDirectory) return;
 
@@ -163,6 +182,15 @@ describe("music-core/store", () => {
 
     await withStorage({ estimate: estimateMock } as unknown as StorageManager, async () => {
       await expect(storageEstimate()).resolves.toEqual(estimate);
+      expect(estimateMock).toHaveBeenCalledOnce();
+    });
+  });
+
+  test("returns an empty estimate when the browser resolves a nullish result", async () => {
+    const estimateMock = vi.fn().mockResolvedValue(undefined);
+
+    await withStorage({ estimate: estimateMock } as unknown as StorageManager, async () => {
+      await expect(storageEstimate()).resolves.toEqual({});
       expect(estimateMock).toHaveBeenCalledOnce();
     });
   });
