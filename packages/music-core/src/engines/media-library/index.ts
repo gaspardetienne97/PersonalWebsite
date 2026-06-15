@@ -170,7 +170,11 @@ export class MediaLibrary {
     previousRow: T | undefined,
     previousBlob: Blob | undefined,
   ): Promise<void> {
-    await this.#putBinary(key, blob);
+    try {
+      await this.#putBinary(key, blob);
+    } catch (error) {
+      throw withRollbackErrors(error, await this.#restoreBinary(key, previousBlob));
+    }
     try {
       await repository.put(row);
     } catch (error) {
@@ -227,6 +231,14 @@ export class MediaLibrary {
     return settleOperations(operations);
   }
 
+  #restoreBinary(key: string, previousBlob: Blob | undefined): Promise<unknown[]> {
+    return settleOperations([
+      previousBlob === undefined
+        ? () => this.#deleteBinary(key)
+        : () => this.#putBinary(key, previousBlob),
+    ]);
+  }
+
   async #assertBudget(newSize: number, replacedSize: number): Promise<void> {
     const current = await this.usage();
     const postWriteBytes = current.totalBytes - replacedSize + newSize;
@@ -269,6 +281,7 @@ export class MediaLibrary {
     if (!mimeType) {
       throw new Error("Take MIME type must be nonempty.");
     }
+    extensionForMimeType(mimeType);
     if (blob.type && normalizeMimeType(blob.type) !== mimeType) {
       throw new Error("Take MIME type must equal the blob MIME type.");
     }

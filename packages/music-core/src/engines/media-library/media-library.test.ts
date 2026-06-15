@@ -98,6 +98,7 @@ function createHarness(
     events.push(`take:${event}`),
   );
   const binaries = new Map<string, Blob>();
+  let failNextBinaryPutAfterWrite = false;
   let failNextBinaryDelete = false;
   const library = new MediaLibrary({
     backingRepository,
@@ -105,6 +106,10 @@ function createHarness(
     putBinary: async (key, blob) => {
       events.push(`binary:put:${key}`);
       binaries.set(key, blob);
+      if (failNextBinaryPutAfterWrite) {
+        failNextBinaryPutAfterWrite = false;
+        throw new Error("binary put failed");
+      }
     },
     getBinary: async (key) => binaries.get(key),
     deleteBinary: async (key) => {
@@ -125,6 +130,9 @@ function createHarness(
     takeRepository,
     binaries,
     events,
+    failNextBinaryPutAfterWrite() {
+      failNextBinaryPutAfterWrite = true;
+    },
     failNextBinaryDelete() {
       failNextBinaryDelete = true;
     },
@@ -207,6 +215,7 @@ describe("music-core/media-library", () => {
     const cases: Array<[string, AudioTakeRow, Blob]> = [
       ["MIME", take({ mimeType: "" }), makeBlob(4, "")],
       ["MIME", take(), makeBlob(4, "audio/ogg")],
+      ["MIME", take({ mimeType: "audio/flac", durationMs: 100 }), makeBlob(4, "audio/flac")],
       ["size", take({ size: 3 }), makeBlob(4, "audio/webm")],
       ["duration", take({ durationMs: Number.NaN }), makeBlob(4, "audio/webm")],
       ["duration", take({ durationMs: -1 }), makeBlob(4, "audio/webm")],
@@ -220,6 +229,58 @@ describe("music-core/media-library", () => {
     const untypedBlobTake = take({ id: "untyped", durationMs: 100 });
     await library.saveTake(untypedBlobTake, makeBlob(untypedBlobTake.size, ""));
     expect(binaries.has("music-take-untyped")).toBe(true);
+  });
+
+  test("accepts take MIME families supported by downloads", async () => {
+    const { library } = createHarness();
+    const mimeTypes = [
+      "audio/webm;codecs=opus",
+      "audio/ogg",
+      "audio/mp4",
+      "audio/wav",
+      "audio/x-wav",
+      "audio/mpeg",
+      "audio/mp3",
+    ];
+
+    for (const [index, mimeType] of mimeTypes.entries()) {
+      const row = take({ id: `take-${index}`, mimeType });
+      await library.saveTake(row, makeBlob(row.size, mimeType));
+    }
+
+    await expect(library.listTakes()).resolves.toHaveLength(mimeTypes.length);
+  });
+
+  test("removes a partial new blob when binary persistence mutates then fails", async () => {
+    const { library, backingRepository, binaries, failNextBinaryPutAfterWrite } = createHarness();
+    const row = backing();
+    failNextBinaryPutAfterWrite();
+
+    await expect(library.saveBacking(row, makeBlob(row.size, row.mimeType))).rejects.toThrow(
+      "binary put failed",
+    );
+
+    expect(backingRepository.rows.size).toBe(0);
+    expect(binaries.has(`music-backing-${row.id}`)).toBe(false);
+  });
+
+  test("restores the previous blob when replacement binary persistence mutates then fails", async () => {
+    const { library, backingRepository, failNextBinaryPutAfterWrite } = createHarness();
+    const original = backing({ name: "Original.wav" });
+    const originalBlob = new Blob(["old!!"], { type: original.mimeType });
+    await library.saveBacking(original, originalBlob);
+    const replacement = backing({ name: "Replacement.wav", size: 4 });
+    failNextBinaryPutAfterWrite();
+
+    await expect(
+      library.saveBacking(replacement, new Blob(["new!"], { type: replacement.mimeType })),
+    ).rejects.toThrow("binary put failed");
+
+    await expect(library.listBackings()).resolves.toEqual([original]);
+    await expect(library.backingBlob(original.id).then((blob) => blob?.text())).resolves.toBe(
+      "old!!",
+    );
+    expect(backingRepository.rows.get(original.id)).toEqual(original);
   });
 
   test("enforces imported, generated, and no-backing invariants", async () => {
