@@ -90,6 +90,7 @@ describe("music-core/store", () => {
     await store.backingTracks.put(backingTrack);
 
     await expect(store.backingTracks.get(backingTrack.id)).resolves.toEqual(backingTrack);
+    await expect(store.backingTracks.all()).resolves.toEqual([backingTrack]);
   });
 
   test("round-trips audio take metadata", async () => {
@@ -115,6 +116,7 @@ describe("music-core/store", () => {
     await store.audioTakes.put(audioTake);
 
     await expect(store.audioTakes.get(audioTake.id)).resolves.toEqual(audioTake);
+    await expect(store.audioTakes.all()).resolves.toEqual([audioTake]);
   });
 
   test("uses the exact media metadata indexes", async () => {
