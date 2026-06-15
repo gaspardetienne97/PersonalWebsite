@@ -1,3 +1,4 @@
+import Dexie from "dexie";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { initialMastery, unixMs, type PracticeSession } from "@repo/music-core/domain";
@@ -16,6 +17,16 @@ import {
 
 const databases: PracticeDatabase[] = [];
 const unavailableMessage = "Local binary storage is unavailable.";
+const version1Stores = {
+  sessions: "id, startTime, endTime, instrument, source",
+  scoringEvents: "id, sessionId, exerciseId, at",
+  skillMastery: "skillId, lastPracticed",
+  skills: "id, capability",
+  skillRelationships: "id, from, to, kind",
+  chordLibrary: "id, symbol",
+  songs: "id, title, createdAt, updatedAt",
+  settings: "id",
+};
 
 afterEach(async () => {
   await Promise.all(databases.map((database) => database.delete()));
@@ -104,18 +115,72 @@ describe("music-core/store", () => {
       createdAt: unixMs(Date.UTC(2026, 5, 15, 0, 1)),
       instrument: "guitar",
       backingTrackId: "backing-track-1",
-      backingKind: "generated",
+      backingKind: "imported",
       backingOffsetMs: 250,
-      generatedBacking: {
-        progressionId: "ii-v-i",
-        bpm: 120,
-        loop: true,
-      },
     };
 
     await store.audioTakes.put(audioTake);
 
     await expect(store.audioTakes.get(audioTake.id)).resolves.toEqual(audioTake);
+    await expect(store.audioTakes.all()).resolves.toEqual([audioTake]);
+  });
+
+  test("upgrades v1 data and enables v2 media repositories", async () => {
+    const databaseName = `practice-store-migration-${crypto.randomUUID()}`;
+    const database = new PracticeDatabase(databaseName);
+    databases.push(database);
+    const legacyDatabase = new Dexie(databaseName);
+    legacyDatabase.version(1).stores(version1Stores);
+    const session: PracticeSession = {
+      id: "legacy-session",
+      startTime: unixMs(Date.UTC(2026, 0, 2)),
+      endTime: unixMs(Date.UTC(2026, 0, 2, 0, 5)),
+      source: "free-practice",
+      instrument: "piano",
+      runs: [],
+      scoringEvents: [],
+      xpEarned: 12,
+      tags: ["legacy"],
+    };
+    const settings = { id: "legacy-setting", value: { monitor: true } };
+
+    try {
+      await legacyDatabase.open();
+      await legacyDatabase.table<PracticeSession, string>("sessions").put(session);
+      await legacyDatabase.table<typeof settings, string>("settings").put(settings);
+    } finally {
+      legacyDatabase.close();
+    }
+
+    const store = new PracticeStore(database);
+    const backingTrack: ImportedBackingTrackRow = {
+      id: "migrated-backing-track",
+      name: "Migration Test.wav",
+      mimeType: "audio/wav",
+      size: 4_096,
+      durationMs: 60_000,
+      createdAt: unixMs(Date.UTC(2026, 5, 15)),
+    };
+    const audioTake: AudioTakeRow = {
+      id: "migrated-audio-take",
+      name: "Migration Take.webm",
+      mimeType: "audio/webm",
+      size: 2_048,
+      durationMs: 30_000,
+      createdAt: unixMs(Date.UTC(2026, 5, 15, 0, 1)),
+      instrument: "piano",
+      backingTrackId: backingTrack.id,
+      backingKind: "imported",
+      backingOffsetMs: 0,
+    };
+
+    await expect(store.sessions.get(session.id)).resolves.toEqual(session);
+    await expect(store.settings.get(settings.id)).resolves.toEqual(settings);
+
+    await store.backingTracks.put(backingTrack);
+    await store.audioTakes.put(audioTake);
+
+    await expect(store.backingTracks.all()).resolves.toEqual([backingTrack]);
     await expect(store.audioTakes.all()).resolves.toEqual([audioTake]);
   });
 
