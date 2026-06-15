@@ -153,12 +153,12 @@ export class MusicRuntime {
 
   /** Append a completed practice activity to the journal (no-op without storage). */
   async recordPractice(entry: PracticeCaptureEntry): Promise<void> {
-    if (!this.#journal) return;
     const startedAt = entry.startedAt ?? unixMs(Date.now());
     const endedAt = entry.endedAt ?? unixMs(Date.now());
     if (endedAt < startedAt) {
       throw new Error("Practice capture endedAt must not be before startedAt");
     }
+    if (!this.#journal) return;
     const id = entry.id ?? `${entry.source}-${startedAt}-${this.#captureSeq++}`;
     this.#journal.start({
       id,

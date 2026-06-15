@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   Capability,
@@ -9,7 +9,7 @@ import {
 import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 
-import { MusicRuntime } from "./_runtime.svelte";
+import { MusicRuntime, type PracticeCaptureEntry } from "./_runtime.svelte";
 
 const databases: PracticeDatabase[] = [];
 
@@ -203,20 +203,60 @@ describe("MusicRuntime shared UI state", () => {
     const store = createStore();
     const rt = new MusicRuntime();
     rt.attachJournal(store);
-    const entry = {
-      id: "practice-retry",
-      source: "free-practice" as const,
-      startedAt: unixMs(2_000),
-      endedAt: unixMs(3_000),
-      xpEarned: 0,
-    };
+    const { entry, run, scoringEvent } = createStableCapture("practice-retry");
 
     await rt.recordPractice(entry);
     await rt.recordPractice(entry);
 
     const journal = new PracticeSessionStore(store);
     await journal.load();
-    expect(journal.all().filter(({ id }) => id === entry.id)).toHaveLength(1);
+    const matches = journal.all().filter(({ id }) => id === entry.id);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({
+      id: entry.id,
+      startTime: entry.startedAt,
+      endTime: entry.endedAt,
+      source: entry.source,
+      instrument: entry.instrument,
+      tags: entry.tags,
+      runs: [run],
+      scoringEvents: [scoringEvent],
+      xpEarned: entry.xpEarned,
+      notes: entry.note,
+    });
+    expect(matches[0]?.runs).toHaveLength(1);
+    expect(matches[0]?.scoringEvents).toHaveLength(1);
+    rt.dispose();
+  });
+
+  it("retries a stable capture after a failed journal write", async () => {
+    const store = createStore();
+    vi.spyOn(store.sessions, "put").mockRejectedValueOnce(new Error("Persistence unavailable"));
+    const rt = new MusicRuntime();
+    rt.attachJournal(store);
+    const { entry, run, scoringEvent } = createStableCapture("practice-fail-once");
+
+    await expect(rt.recordPractice(entry)).rejects.toThrow("Persistence unavailable");
+    await expect(rt.recordPractice(entry)).resolves.toBeUndefined();
+
+    const journal = new PracticeSessionStore(store);
+    await journal.load();
+    const matches = journal.all().filter(({ id }) => id === entry.id);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({
+      id: entry.id,
+      startTime: entry.startedAt,
+      endTime: entry.endedAt,
+      source: entry.source,
+      instrument: entry.instrument,
+      tags: entry.tags,
+      runs: [run],
+      scoringEvents: [scoringEvent],
+      xpEarned: entry.xpEarned,
+      notes: entry.note,
+    });
+    expect(matches[0]?.runs).toHaveLength(1);
+    expect(matches[0]?.scoringEvents).toHaveLength(1);
     rt.dispose();
   });
 
@@ -241,6 +281,21 @@ describe("MusicRuntime shared UI state", () => {
     rt.dispose();
   });
 
+  it("rejects an invalid practice range without an attached journal", async () => {
+    const rt = new MusicRuntime();
+
+    await expect(
+      rt.recordPractice({
+        source: "free-practice",
+        startedAt: unixMs(4_500),
+        endedAt: unixMs(1_000),
+        xpEarned: 0,
+      }),
+    ).rejects.toThrow("Practice capture endedAt must not be before startedAt");
+
+    rt.dispose();
+  });
+
   it("recordPractice is a no-op without an attached journal", async () => {
     const rt = new MusicRuntime();
     await expect(rt.recordPractice({ source: "drill", xpEarned: 10 })).resolves.toBeUndefined();
@@ -261,3 +316,48 @@ describe("MusicRuntime shared UI state", () => {
     rt.dispose();
   });
 });
+
+function createStableCapture(id: string): {
+  entry: PracticeCaptureEntry;
+  run: ExerciseRunRecord;
+  scoringEvent: ScoringEvent;
+} {
+  const run: ExerciseRunRecord = {
+    id: `${id}-run`,
+    exerciseId: "reading.stable",
+    startedAt: unixMs(2_100),
+    endedAt: unixMs(2_800),
+    promptIds: ["prompt-1", "prompt-2"],
+    targetSkillIds: ["reading.treble.landmarks"],
+    instrument: "piano",
+    difficulty: 0.7,
+    params: { tempo: 88 },
+  };
+  const scoringEvent: ScoringEvent = {
+    id: `${id}-event`,
+    sessionId: id,
+    exerciseId: run.exerciseId,
+    runId: run.id,
+    skillIds: run.targetSkillIds,
+    capabilities: [Capability.Reading],
+    at: unixMs(2_600),
+    correct: true,
+    partialCredit: 1,
+    difficulty: run.difficulty,
+    metrics: [{ kind: "pitch", expectedMidi: 64, actualMidi: 64, cents: 0 }],
+  };
+  const entry: PracticeCaptureEntry = {
+    id,
+    source: "drill",
+    instrument: "piano",
+    startedAt: unixMs(2_000),
+    endedAt: unixMs(3_000),
+    tags: ["practice-lab", "retry"],
+    runs: [run],
+    scoringEvents: [scoringEvent],
+    xpEarned: 28,
+    note: "Stable capture payload",
+  };
+
+  return { entry, run, scoringEvent };
+}

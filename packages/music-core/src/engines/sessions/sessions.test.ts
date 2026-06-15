@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { Capability, unixMs, type ScoringEvent } from "@repo/music-core/domain";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
@@ -107,6 +107,41 @@ describe("PracticeSessionStore", () => {
       attempts: 1,
       meanScore: 1,
     });
+  });
+
+  test("recovers the persistence queue after a failed write", async () => {
+    const store = createStore();
+    const put = vi.spyOn(store.sessions, "put");
+    put.mockRejectedValueOnce(new Error("Persistence unavailable"));
+    const sessions = new PracticeSessionStore(store);
+    const session = sessions.start({
+      id: "session-retry",
+      source: "free-practice",
+      startedAt: unixMs(1_000),
+    });
+
+    await expect(sessions.flush()).rejects.toThrow("Persistence unavailable");
+
+    sessions.updateJournal(session.id, "Recovered note");
+    sessions.finish(session.id, unixMs(2_000), 12, "Completed after recovery");
+    await expect(sessions.flush()).resolves.toBeUndefined();
+
+    expect(put.mock.calls.map(([row]) => row.notes)).toEqual([
+      undefined,
+      "Recovered note",
+      "Completed after recovery",
+    ]);
+
+    const reloaded = new PracticeSessionStore(store);
+    await reloaded.load();
+    expect(reloaded.all()).toEqual([
+      expect.objectContaining({
+        id: session.id,
+        endTime: 2_000,
+        xpEarned: 12,
+        notes: "Completed after recovery",
+      }),
+    ]);
   });
 
   test("edits a journal note and removes a session, persisting both", async () => {

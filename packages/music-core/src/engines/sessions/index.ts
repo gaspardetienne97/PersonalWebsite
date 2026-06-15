@@ -44,6 +44,7 @@ export interface WeekComparison {
 export class PracticeSessionStore {
   #sessions = new Map<string, PracticeSession>();
   #operationQueue: Promise<void> = Promise.resolve();
+  #flushQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly store?: PracticeStore) {}
 
@@ -102,9 +103,7 @@ export class PracticeSessionStore {
   remove(sessionId: string): void {
     if (!this.#sessions.delete(sessionId)) return;
     if (this.store) {
-      this.#operationQueue = this.#operationQueue.then(() =>
-        this.store!.sessions.delete(sessionId),
-      );
+      this.#enqueue(() => this.store!.sessions.delete(sessionId));
     }
   }
 
@@ -161,7 +160,9 @@ export class PracticeSessionStore {
   }
 
   flush(): Promise<void> {
-    return this.#operationQueue;
+    const result = this.#flushQueue;
+    this.#flushQueue = this.#operationQueue;
+    return result;
   }
 
   private requireSession(sessionId: string): PracticeSession {
@@ -173,7 +174,13 @@ export class PracticeSessionStore {
   #persist(session: PracticeSession): void {
     if (!this.store) return;
     const row = clone(session);
-    this.#operationQueue = this.#operationQueue.then(() => this.store!.sessions.put(row));
+    this.#enqueue(() => this.store!.sessions.put(row));
+  }
+
+  #enqueue(operation: () => Promise<void>): void {
+    const result = this.#operationQueue.then(operation, operation);
+    this.#operationQueue = result.catch(() => undefined);
+    this.#flushQueue = Promise.all([this.#flushQueue, result]).then(() => undefined);
   }
 }
 
