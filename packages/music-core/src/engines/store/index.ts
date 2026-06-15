@@ -183,8 +183,9 @@ export async function getBinary(key: string): Promise<Blob | undefined> {
   if (!root) return undefined;
   try {
     return await (await root.getFileHandle(key)).getFile();
-  } catch {
-    return undefined;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "NotFoundError") return undefined;
+    throw error;
   }
 }
 

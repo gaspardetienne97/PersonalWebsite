@@ -86,6 +86,18 @@ function makeBlob(size: number, type: string): Blob {
   return new Blob(["x".repeat(size)], { type });
 }
 
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+async function flushAsync(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 function createHarness(
   overrides: Partial<MediaLibraryOptions> = {},
   estimate: StorageEstimate = {},
@@ -98,7 +110,14 @@ function createHarness(
     events.push(`take:${event}`),
   );
   const binaries = new Map<string, Blob>();
+  let nextBinaryPutPause:
+    | {
+        started: ReturnType<typeof deferred>;
+        release: ReturnType<typeof deferred>;
+      }
+    | undefined;
   let failNextBinaryPutAfterWrite = false;
+  let failNextBinaryRead = false;
   let failNextBinaryDelete = false;
   const library = new MediaLibrary({
     backingRepository,
@@ -106,12 +125,24 @@ function createHarness(
     putBinary: async (key, blob) => {
       events.push(`binary:put:${key}`);
       binaries.set(key, blob);
+      const pause = nextBinaryPutPause;
+      nextBinaryPutPause = undefined;
+      if (pause) {
+        pause.started.resolve();
+        await pause.release.promise;
+      }
       if (failNextBinaryPutAfterWrite) {
         failNextBinaryPutAfterWrite = false;
         throw new Error("binary put failed");
       }
     },
-    getBinary: async (key) => binaries.get(key),
+    getBinary: async (key) => {
+      if (failNextBinaryRead) {
+        failNextBinaryRead = false;
+        throw new Error("binary read failed");
+      }
+      return binaries.get(key);
+    },
     deleteBinary: async (key) => {
       events.push(`binary:delete:${key}`);
       if (failNextBinaryDelete) {
@@ -130,8 +161,19 @@ function createHarness(
     takeRepository,
     binaries,
     events,
+    pauseNextBinaryPutAfterWrite() {
+      const pause = { started: deferred(), release: deferred() };
+      nextBinaryPutPause = pause;
+      return {
+        started: pause.started.promise,
+        release: pause.release.resolve,
+      };
+    },
     failNextBinaryPutAfterWrite() {
       failNextBinaryPutAfterWrite = true;
+    },
+    failNextBinaryRead() {
+      failNextBinaryRead = true;
     },
     failNextBinaryDelete() {
       failNextBinaryDelete = true;
@@ -147,6 +189,20 @@ describe("music-core/media-library", () => {
       maxApplicationBytes: 1024 * 1024 * 1024,
       quotaFraction: 0.8,
     });
+  });
+
+  test("rejects invalid media limits at construction", () => {
+    const invalidLimits: Array<Partial<MediaLibraryOptions["limits"]>> = [
+      { maxTakeDurationMs: Number.NaN },
+      { maxImportedTrackBytes: -1 },
+      { maxApplicationBytes: Number.POSITIVE_INFINITY },
+      { quotaFraction: -0.1 },
+      { quotaFraction: 1.1 },
+    ];
+
+    for (const limits of invalidLimits) {
+      expect(() => createHarness({ limits })).toThrow(/limit|quota/i);
+    }
   });
 
   test("saves, lists, loads, and references media with exact binary keys", async () => {
@@ -177,6 +233,67 @@ describe("music-core/media-library", () => {
     ]);
   });
 
+  test("serializes concurrent same-id saves into one matching metadata/blob pair", async () => {
+    const { library, pauseNextBinaryPutAfterWrite } = createHarness();
+    const first = backing({ name: "First.wav" });
+    const second = backing({ name: "Second.wav", size: 6 });
+    const pause = pauseNextBinaryPutAfterWrite();
+    const firstSave = library.saveBacking(first, new Blob(["first"], { type: first.mimeType }));
+    await pause.started;
+    const secondSave = library.saveBacking(second, new Blob(["second"], { type: second.mimeType }));
+    await flushAsync();
+    pause.release();
+
+    await expect(Promise.all([firstSave, secondSave])).resolves.toEqual([undefined, undefined]);
+    await expect(library.listBackings()).resolves.toEqual([second]);
+    await expect(library.backingBlob(second.id).then((blob) => blob?.text())).resolves.toBe(
+      "second",
+    );
+  });
+
+  test("serializes concurrent saves before applying the global media budget", async () => {
+    const { library, pauseNextBinaryPutAfterWrite } = createHarness({
+      limits: { maxApplicationBytes: 6 },
+    });
+    const first = backing({ id: "first", name: "First.wav", size: 4 });
+    const second = backing({ id: "second", name: "Second.wav", size: 4 });
+    const pause = pauseNextBinaryPutAfterWrite();
+    const firstSave = library.saveBacking(first, makeBlob(first.size, first.mimeType));
+    await pause.started;
+    const secondSave = library.saveBacking(second, makeBlob(second.size, second.mimeType));
+    await flushAsync();
+    pause.release();
+
+    await expect(firstSave).resolves.toBeUndefined();
+    await expect(secondSave).rejects.toThrow(/budget/i);
+    await expect(library.listBackings()).resolves.toEqual([first]);
+    await expect(library.usage()).resolves.toMatchObject({ totalBytes: 4 });
+  });
+
+  test("serializes backing deletion behind a take save that creates a reference", async () => {
+    const { library, pauseNextBinaryPutAfterWrite } = createHarness();
+    const backingRow = backing();
+    await library.saveBacking(backingRow, makeBlob(backingRow.size, backingRow.mimeType));
+    const referencedTake = take({
+      backingKind: "imported",
+      backingTrackId: backingRow.id,
+    });
+    const pause = pauseNextBinaryPutAfterWrite();
+    const takeSave = library.saveTake(
+      referencedTake,
+      makeBlob(referencedTake.size, referencedTake.mimeType),
+    );
+    await pause.started;
+    const backingDelete = library.deleteBacking(backingRow.id);
+    await flushAsync();
+    pause.release();
+
+    await expect(takeSave).resolves.toBeUndefined();
+    await expect(backingDelete).rejects.toThrow(/referenced/i);
+    await expect(library.listBackings()).resolves.toEqual([backingRow]);
+    await expect(library.references(backingRow.id)).resolves.toEqual([referencedTake.id]);
+  });
+
   test("accepts MP3 and WAV backing MIME types", async () => {
     const { library } = createHarness();
     const mimeTypes = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"];
@@ -204,6 +321,24 @@ describe("music-core/media-library", () => {
 
     for (const [message, row, blob] of cases) {
       await expect(library.saveBacking(row, blob)).rejects.toThrow(new RegExp(message, "i"));
+    }
+    expect(binaries.size).toBe(0);
+  });
+
+  test("validates backing identity, name, and timestamp before writing", async () => {
+    const { library, binaries } = createHarness();
+    const invalidRows = [
+      backing({ id: "" }),
+      backing({ id: " " }),
+      backing({ id: "bad/id" }),
+      backing({ id: "bad\\id" }),
+      backing({ id: "bad\0id" }),
+      backing({ name: " " }),
+      backing({ createdAt: unixMs(Number.NaN) }),
+    ];
+
+    for (const row of invalidRows) {
+      await expect(library.saveBacking(row, makeBlob(row.size, row.mimeType))).rejects.toThrow();
     }
     expect(binaries.size).toBe(0);
   });
@@ -249,6 +384,40 @@ describe("music-core/media-library", () => {
     }
 
     await expect(library.listTakes()).resolves.toHaveLength(mimeTypes.length);
+  });
+
+  test("validates take identity, timestamps, offsets, and generated backing fields", async () => {
+    const { library, binaries } = createHarness();
+    const generated = { progressionId: "ii-v-i", bpm: 120, loop: true };
+    const invalidRows = [
+      take({ id: "" }),
+      take({ id: "bad/id" }),
+      take({ name: " " }),
+      take({ createdAt: unixMs(Number.POSITIVE_INFINITY) }),
+      take({ backingOffsetMs: Number.NaN }),
+      take({ backingOffsetMs: -1 }),
+      take({
+        backingKind: "generated",
+        generatedBacking: { ...generated, progressionId: " " },
+      }),
+      take({
+        backingKind: "generated",
+        generatedBacking: { ...generated, bpm: 0 },
+      }),
+      take({
+        backingKind: "generated",
+        generatedBacking: { ...generated, bpm: Number.NaN },
+      }),
+      take({
+        backingKind: "generated",
+        generatedBacking: { ...generated, loop: "yes" as unknown as boolean },
+      }),
+    ];
+
+    for (const row of invalidRows) {
+      await expect(library.saveTake(row, makeBlob(row.size, row.mimeType))).rejects.toThrow();
+    }
+    expect(binaries.size).toBe(0);
   });
 
   test("removes a partial new blob when binary persistence mutates then fails", async () => {
@@ -398,6 +567,39 @@ describe("music-core/media-library", () => {
     await expect(library.listBackings()).resolves.toEqual([smallerReplacement]);
   });
 
+  test("uses previous metadata size for replacement budget accounting", async () => {
+    const { library, binaries } = createHarness({
+      limits: { maxApplicationBytes: 8 },
+    });
+    const backingRow = backing();
+    const takeRow = take({ size: 3 });
+    await library.saveBacking(backingRow, makeBlob(backingRow.size, backingRow.mimeType));
+    await library.saveTake(takeRow, makeBlob(takeRow.size, takeRow.mimeType));
+    binaries.set(`music-backing-${backingRow.id}`, makeBlob(1, backingRow.mimeType));
+
+    const replacement = backing({ name: "Replacement.wav" });
+    await expect(
+      library.saveBacking(replacement, makeBlob(replacement.size, replacement.mimeType)),
+    ).resolves.toBeUndefined();
+    await expect(library.usage()).resolves.toMatchObject({ totalBytes: 8 });
+  });
+
+  test("aborts replacement when the previous blob cannot be read", async () => {
+    const { library, backingRepository, binaries, failNextBinaryRead } = createHarness();
+    const original = backing({ name: "Original.wav" });
+    const originalBlob = makeBlob(original.size, original.mimeType);
+    await library.saveBacking(original, originalBlob);
+    failNextBinaryRead();
+    const replacement = backing({ name: "Replacement.wav", size: 4 });
+
+    await expect(
+      library.saveBacking(replacement, makeBlob(replacement.size, replacement.mimeType)),
+    ).rejects.toThrow("binary read failed");
+
+    expect(backingRepository.rows.get(original.id)).toEqual(original);
+    expect(binaries.get(`music-backing-${original.id}`)).toBe(originalBlob);
+  });
+
   test("removes a new blob and metadata when metadata persistence fails", async () => {
     const { library, backingRepository, binaries } = createHarness();
     backingRepository.failNextPutAfterWrite = true;
@@ -429,14 +631,16 @@ describe("music-core/media-library", () => {
     );
   });
 
-  test("deletes take metadata and blob and rolls both back on metadata failure", async () => {
-    const { library, takeRepository } = createHarness();
+  test("deletes take metadata before its blob and restores metadata on failure", async () => {
+    const { library, takeRepository, events } = createHarness();
     const row = take();
     const blob = makeBlob(row.size, row.mimeType);
     await library.saveTake(row, blob);
+    events.length = 0;
 
     takeRepository.failNextDeleteAfterDelete = true;
     await expect(library.deleteTake(row.id)).rejects.toThrow("metadata delete failed");
+    expect(events).toEqual(["take:metadata:delete", "take:metadata:put"]);
     await expect(library.listTakes()).resolves.toEqual([row]);
     await expect(library.takeBlob(row.id).then((stored) => stored?.size)).resolves.toBe(blob.size);
 
@@ -446,12 +650,18 @@ describe("music-core/media-library", () => {
   });
 
   test("leaves take metadata and blob intact when binary deletion fails", async () => {
-    const { library, failNextBinaryDelete } = createHarness();
+    const { library, events, failNextBinaryDelete } = createHarness();
     const row = take();
     await library.saveTake(row, makeBlob(row.size, row.mimeType));
+    events.length = 0;
     failNextBinaryDelete();
 
     await expect(library.deleteTake(row.id)).rejects.toThrow("binary delete failed");
+    expect(events.slice(0, 3)).toEqual([
+      "take:metadata:delete",
+      `binary:delete:music-take-${row.id}`,
+      `binary:put:music-take-${row.id}`,
+    ]);
     await expect(library.listTakes()).resolves.toEqual([row]);
     await expect(library.takeBlob(row.id)).resolves.toBeDefined();
   });
@@ -503,6 +713,44 @@ describe("music-core/media-library", () => {
     await expect(library.listBackings()).resolves.toEqual([backingRow]);
     await expect(library.backingBlob(backingRow.id)).resolves.toBeDefined();
     await expect(library.listTakes()).resolves.toEqual([importedTake]);
+  });
+
+  test("restores backing and take metadata when backing blob deletion fails", async () => {
+    const { library, failNextBinaryDelete } = createHarness();
+    const backingRow = backing();
+    const importedTake = take({
+      backingKind: "imported",
+      backingTrackId: backingRow.id,
+    });
+    await library.saveBacking(backingRow, makeBlob(backingRow.size, backingRow.mimeType));
+    await library.saveTake(importedTake, makeBlob(importedTake.size, importedTake.mimeType));
+    failNextBinaryDelete();
+
+    await expect(library.deleteBacking(backingRow.id, { orphanTakes: true })).rejects.toThrow(
+      "binary delete failed",
+    );
+
+    await expect(library.listBackings()).resolves.toEqual([backingRow]);
+    await expect(library.listTakes()).resolves.toEqual([importedTake]);
+    await expect(library.backingBlob(backingRow.id)).resolves.toBeDefined();
+  });
+
+  test("reports rollback failures and continues processing later queued mutations", async () => {
+    const { library, takeRepository, failNextBinaryDelete } = createHarness();
+    const first = take();
+    await library.saveTake(first, makeBlob(first.size, first.mimeType));
+    failNextBinaryDelete();
+    takeRepository.failNextPutAfterWrite = true;
+
+    const error = await library.deleteTake(first.id).catch((reason: unknown) => reason);
+    expect(error).toBeInstanceOf(AggregateError);
+    expect((error as AggregateError).errors).toHaveLength(2);
+
+    const second = take({ id: "take-2", name: "Take 2.webm" });
+    await expect(
+      library.saveTake(second, makeBlob(second.size, second.mimeType)),
+    ).resolves.toBeUndefined();
+    await expect(library.listTakes()).resolves.toContainEqual(second);
   });
 
   test("creates a library from PracticeStore repositories", async () => {

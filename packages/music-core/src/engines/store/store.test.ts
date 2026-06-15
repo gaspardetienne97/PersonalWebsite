@@ -276,4 +276,34 @@ describe("music-core/store", () => {
       await expect(deleteBinary("denied")).rejects.toMatchObject({ name: "SecurityError" });
     });
   });
+
+  test("getBinary returns undefined only for missing OPFS entries", async () => {
+    const getFileHandle = vi
+      .fn()
+      .mockRejectedValueOnce(new DOMException("Missing", "NotFoundError"))
+      .mockRejectedValueOnce(new DOMException("Denied", "SecurityError"));
+    const storage = {
+      getDirectory: vi.fn().mockResolvedValue({ getFileHandle }),
+    } as unknown as StorageManager;
+
+    await withStorage(storage, async () => {
+      await expect(getBinary("missing")).resolves.toBeUndefined();
+      await expect(getBinary("denied")).rejects.toMatchObject({ name: "SecurityError" });
+    });
+  });
+
+  test("getBinary propagates file read failures after finding an OPFS entry", async () => {
+    const getFile = vi.fn().mockRejectedValue(new DOMException("Failed", "NotReadableError"));
+    const storage = {
+      getDirectory: vi.fn().mockResolvedValue({
+        getFileHandle: vi.fn().mockResolvedValue({ getFile }),
+      }),
+    } as unknown as StorageManager;
+
+    await withStorage(storage, async () => {
+      await expect(getBinary("unreadable")).rejects.toMatchObject({
+        name: "NotReadableError",
+      });
+    });
+  });
 });

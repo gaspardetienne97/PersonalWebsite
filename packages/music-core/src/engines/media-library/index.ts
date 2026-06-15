@@ -57,6 +57,7 @@ export class MediaLibrary {
   readonly #deleteBinary: MediaLibraryOptions["deleteBinary"];
   readonly #storageEstimate: MediaLibraryOptions["storageEstimate"];
   readonly #limits: MediaLimits;
+  #mutationQueue: Promise<void> = Promise.resolve();
 
   constructor(options: MediaLibraryOptions) {
     this.#backingRepository = options.backingRepository;
@@ -66,6 +67,7 @@ export class MediaLibrary {
     this.#deleteBinary = options.deleteBinary;
     this.#storageEstimate = options.storageEstimate;
     this.#limits = { ...DEFAULT_MEDIA_LIMITS, ...options.limits };
+    validateLimits(this.#limits);
   }
 
   async usage(): Promise<MediaUsage> {
@@ -88,7 +90,30 @@ export class MediaLibrary {
     };
   }
 
-  async saveBacking(row: ImportedBackingTrackRow, blob: Blob): Promise<void> {
+  saveBacking(row: ImportedBackingTrackRow, blob: Blob): Promise<void> {
+    const snapshot = structuredClone(row);
+    return this.#enqueueMutation(() => this.#saveBacking(snapshot, blob));
+  }
+
+  saveTake(row: AudioTakeRow, blob: Blob): Promise<void> {
+    const snapshot = structuredClone(row);
+    return this.#enqueueMutation(() => this.#saveTake(snapshot, blob));
+  }
+
+  deleteTake(id: string): Promise<void> {
+    return this.#enqueueMutation(async () => {
+      validateId(id, "Take id");
+      await this.#deleteRecord(this.#takeRepository, takeKey(id), id);
+    });
+  }
+
+  deleteBacking(id: string, options: { orphanTakes?: boolean } = {}): Promise<void> {
+    return this.#enqueueMutation(() =>
+      this.#deleteBacking(id, { orphanTakes: options.orphanTakes === true }),
+    );
+  }
+
+  async #saveBacking(row: ImportedBackingTrackRow, blob: Blob): Promise<void> {
     this.#validateBacking(row, blob);
     const key = backingKey(row.id);
     const [previousRow, previousBlob] = await Promise.all([
@@ -96,11 +121,11 @@ export class MediaLibrary {
       this.#getBinary(key),
     ]);
 
-    await this.#assertBudget(row.size, previousBlob?.size ?? previousRow?.size ?? 0);
+    await this.#assertBudget(row.size, previousRow?.size ?? 0);
     await this.#saveRecord(this.#backingRepository, key, row, blob, previousRow, previousBlob);
   }
 
-  async saveTake(row: AudioTakeRow, blob: Blob): Promise<void> {
+  async #saveTake(row: AudioTakeRow, blob: Blob): Promise<void> {
     await this.#validateTake(row, blob);
     const key = takeKey(row.id);
     const [previousRow, previousBlob] = await Promise.all([
@@ -108,7 +133,7 @@ export class MediaLibrary {
       this.#getBinary(key),
     ]);
 
-    await this.#assertBudget(row.size, previousBlob?.size ?? previousRow?.size ?? 0);
+    await this.#assertBudget(row.size, previousRow?.size ?? 0);
     await this.#saveRecord(this.#takeRepository, key, row, blob, previousRow, previousBlob);
   }
 
@@ -121,25 +146,25 @@ export class MediaLibrary {
   }
 
   backingBlob(id: string): Promise<Blob | undefined> {
+    validateId(id, "Backing id");
     return this.#getBinary(backingKey(id));
   }
 
   takeBlob(id: string): Promise<Blob | undefined> {
+    validateId(id, "Take id");
     return this.#getBinary(takeKey(id));
   }
 
   async references(backingId: string): Promise<string[]> {
+    validateId(backingId, "Backing id");
     const takes = await this.#takeRepository.all();
     return takes
       .filter((take) => take.backingKind === "imported" && take.backingTrackId === backingId)
       .map((take) => take.id);
   }
 
-  async deleteTake(id: string): Promise<void> {
-    await this.#deleteRecord(this.#takeRepository, takeKey(id), id);
-  }
-
-  async deleteBacking(id: string, options: { orphanTakes?: boolean } = {}): Promise<void> {
+  async #deleteBacking(id: string, options: { orphanTakes: boolean }): Promise<void> {
+    validateId(id, "Backing id");
     const referencedTakes = (await this.#takeRepository.all()).filter(
       (take) => take.backingKind === "imported" && take.backingTrackId === id,
     );
@@ -160,6 +185,15 @@ export class MediaLibrary {
     } catch (error) {
       throw withRollbackErrors(error, await restoreRows(this.#takeRepository, referencedTakes));
     }
+  }
+
+  #enqueueMutation<T>(mutation: () => Promise<T>): Promise<T> {
+    const result = this.#mutationQueue.then(mutation);
+    this.#mutationQueue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
   }
 
   async #saveRecord<T extends { id: string }>(
@@ -196,17 +230,13 @@ export class MediaLibrary {
     ]);
 
     try {
-      await this.#deleteBinary(key);
+      await repository.delete(id);
     } catch (error) {
-      const rollbackErrors =
-        previousBlob === undefined
-          ? []
-          : await settleOperations([() => this.#putBinary(key, previousBlob)]);
-      throw withRollbackErrors(error, rollbackErrors);
+      throw withRollbackErrors(error, await this.#restoreMetadata(repository, id, previousRow));
     }
 
     try {
-      await repository.delete(id);
+      await this.#deleteBinary(key);
     } catch (error) {
       throw withRollbackErrors(
         error,
@@ -229,6 +259,16 @@ export class MediaLibrary {
       previousRow === undefined ? () => repository.delete(id) : () => repository.put(previousRow),
     ];
     return settleOperations(operations);
+  }
+
+  #restoreMetadata<T extends { id: string }>(
+    repository: MediaRepository<T>,
+    id: string,
+    previousRow: T | undefined,
+  ): Promise<unknown[]> {
+    return settleOperations([
+      previousRow === undefined ? () => repository.delete(id) : () => repository.put(previousRow),
+    ]);
   }
 
   #restoreBinary(key: string, previousBlob: Blob | undefined): Promise<unknown[]> {
@@ -258,6 +298,9 @@ export class MediaLibrary {
   }
 
   #validateBacking(row: ImportedBackingTrackRow, blob: Blob): void {
+    validateId(row.id, "Backing id");
+    validateName(row.name, "Backing name");
+    validateFinite(row.createdAt, "Backing createdAt");
     const mimeType = normalizeMimeType(row.mimeType);
     if (!BACKING_MIME_TYPES.has(mimeType)) {
       throw new Error(`Unsupported backing MIME type: ${row.mimeType}`);
@@ -277,6 +320,10 @@ export class MediaLibrary {
   }
 
   async #validateTake(row: AudioTakeRow, blob: Blob): Promise<void> {
+    validateId(row.id, "Take id");
+    validateName(row.name, "Take name");
+    validateFinite(row.createdAt, "Take createdAt");
+    validateNonnegative(row.backingOffsetMs, "Take backingOffsetMs");
     const mimeType = normalizeMimeType(row.mimeType);
     if (!mimeType) {
       throw new Error("Take MIME type must be nonempty.");
@@ -300,6 +347,7 @@ export class MediaLibrary {
           "Imported backing takes require a backing track id and no generated backing.",
         );
       }
+      validateId(row.backingTrackId, "Backing track id");
       if (!(await this.#backingRepository.get(row.backingTrackId))) {
         throw new Error(`Imported backing track does not exist: ${row.backingTrackId}`);
       }
@@ -311,6 +359,13 @@ export class MediaLibrary {
         throw new Error(
           "Generated backing takes require generated backing data and no backing track id.",
         );
+      }
+      validateName(row.generatedBacking.progressionId, "Generated progression id");
+      if (!Number.isFinite(row.generatedBacking.bpm) || row.generatedBacking.bpm <= 0) {
+        throw new Error("Generated backing bpm must be finite and greater than zero.");
+      }
+      if (typeof row.generatedBacking.loop !== "boolean") {
+        throw new Error("Generated backing loop must be boolean.");
       }
       return;
     }
@@ -373,6 +428,43 @@ function normalizeMimeType(mimeType: string): string {
 
 function isValidDuration(durationMs: number): boolean {
   return Number.isFinite(durationMs) && durationMs >= 0;
+}
+
+function validateLimits(limits: MediaLimits): void {
+  validateNonnegative(limits.maxTakeDurationMs, "maxTakeDurationMs limit");
+  validateNonnegative(limits.maxImportedTrackBytes, "maxImportedTrackBytes limit");
+  validateNonnegative(limits.maxApplicationBytes, "maxApplicationBytes limit");
+  if (
+    !Number.isFinite(limits.quotaFraction) ||
+    limits.quotaFraction < 0 ||
+    limits.quotaFraction > 1
+  ) {
+    throw new Error("quotaFraction must be finite and between zero and one.");
+  }
+}
+
+function validateId(id: string, label: string): void {
+  if (!id.trim() || id.includes("/") || id.includes("\\") || id.includes("\0")) {
+    throw new Error(`${label} must be nonempty and cannot contain path separators or NUL.`);
+  }
+}
+
+function validateName(name: string, label: string): void {
+  if (!name.trim()) {
+    throw new Error(`${label} must be nonempty.`);
+  }
+}
+
+function validateFinite(value: number, label: string): void {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${label} must be finite.`);
+  }
+}
+
+function validateNonnegative(value: number, label: string): void {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be finite and nonnegative.`);
+  }
 }
 
 function sumSizes(rows: Array<{ size: number }>): number {
