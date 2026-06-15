@@ -17,6 +17,11 @@ test.describe("Narrator", () => {
     await expect(page.getByRole("button", { name: /Resume/ })).toBeVisible();
   });
 
+  test("library app bar opens the voice settings page", async ({ page }) => {
+    await page.getByRole("link", { name: "Voice settings" }).click();
+    await expect(page.getByRole("heading", { name: "Voice settings" })).toBeVisible();
+  });
+
   test("search filters the library", async ({ page }) => {
     await page.getByLabel("Search your library").fill("meditations");
 

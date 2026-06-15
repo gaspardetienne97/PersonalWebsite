@@ -7,6 +7,7 @@
   import Plus from "lucide-svelte/icons/plus";
   import Quote from "lucide-svelte/icons/quote";
   import Search from "lucide-svelte/icons/search";
+  import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
   import Type from "lucide-svelte/icons/type";
   import Upload from "lucide-svelte/icons/upload";
 
@@ -58,6 +59,9 @@
       <Search size={16} strokeWidth={1.5} style="color: var(--n-fg-3)" />
       <input bind:value={query} placeholder="Search your library" aria-label="Search your library" />
     </div>
+    <a class="icon-btn" href="/pdf/settings" title="Voice settings" aria-label="Voice settings">
+      <SlidersHorizontal size={18} strokeWidth={1.5} />
+    </a>
     <Btn variant="primary" onclick={onadd}><Plus size={18} strokeWidth={1.5} /> Add document</Btn>
   </header>
 
@@ -216,6 +220,23 @@
   }
   .search-wrap input::placeholder {
     color: var(--n-fg-3);
+  }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--n-bg-1);
+    border: 1px solid var(--n-border-1);
+    color: var(--n-fg-1);
+    transition: all 160ms var(--n-ease-out);
+  }
+  .icon-btn:hover {
+    color: var(--n-fg-0);
+    border-color: var(--n-border-2);
+    background: var(--n-bg-2);
   }
   .main {
     width: 100%;
