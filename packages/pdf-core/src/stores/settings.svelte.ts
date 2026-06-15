@@ -1,8 +1,11 @@
-/** Reader settings — the production form of the design's "tweaks" panel.
+/** Reader settings — persisted so the reader opens the way the user left it.
  *
- * Layout, highlight style, reading font, type metrics, and accent behavior,
- * persisted so the reader opens the way the user left it.
+ * Reading layout/highlight/font are fixed app defaults (no in-reader control);
+ * the in-reader panel only exposes type metrics and accent, and voice
+ * engine/voice/quality live on the narrator settings page.
  */
+
+import { DEFAULT_KOKORO_QUALITY, type KokoroQuality } from "../services/tts";
 
 export type ReaderLayout = "immersive" | "audiobook" | "document";
 export type HighlightStyle = "underline" | "fill" | "glow";
@@ -20,25 +23,31 @@ export interface ReaderSettingsState {
   /** When true, the accent follows each document's own color. */
   accentAuto: boolean;
   engine: VoiceEngine;
+  /** Preferred system (Web Speech) voice name; "" = browser default. */
+  systemVoice: string;
   /** Kokoro voice id used when engine is "natural". */
   naturalVoice: string;
+  /** Kokoro model quality preset. */
+  modelQuality: KokoroQuality;
 }
 
 export const ACCENT_OPTIONS = ["#1291FA", "#A21FB8", "#FF0C0D", "#22C55E"];
 
 const DEFAULTS: ReaderSettingsState = {
   layout: "immersive",
-  highlight: "underline",
-  font: "serif",
+  highlight: "glow",
+  font: "sans", // the site's default family
   fontSize: 21,
   lineHeight: 1.8,
   accent: "#1291FA",
   accentAuto: true,
   engine: "system",
+  systemVoice: "",
   naturalVoice: "af_heart",
+  modelQuality: DEFAULT_KOKORO_QUALITY,
 };
 
-const SETTINGS_KEY = "narrator.settings.v1";
+const SETTINGS_KEY = "narrator.settings.v2";
 
 const hasStorage = () => typeof localStorage !== "undefined";
 
@@ -62,7 +71,9 @@ export class ReaderSettings {
   accent = $state(DEFAULTS.accent);
   accentAuto = $state(DEFAULTS.accentAuto);
   engine = $state<VoiceEngine>(DEFAULTS.engine);
+  systemVoice = $state(DEFAULTS.systemVoice);
   naturalVoice = $state(DEFAULTS.naturalVoice);
+  modelQuality = $state<KokoroQuality>(DEFAULTS.modelQuality);
 
   constructor() {
     Object.assign(this, load());
@@ -89,7 +100,9 @@ export class ReaderSettings {
       accent: this.accent,
       accentAuto: this.accentAuto,
       engine: this.engine,
+      systemVoice: this.systemVoice,
       naturalVoice: this.naturalVoice,
+      modelQuality: this.modelQuality,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state));
   }

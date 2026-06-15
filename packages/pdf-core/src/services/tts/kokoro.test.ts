@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_KOKORO_VOICE, KOKORO_VOICES, mapAudioToPos } from "./kokoro";
+import {
+  DEFAULT_KOKORO_QUALITY,
+  DEFAULT_KOKORO_VOICE,
+  KOKORO_QUALITIES,
+  KOKORO_VOICES,
+  mapAudioToPos,
+} from "./kokoro";
 
 describe("KOKORO_VOICES", () => {
   it("exposes a non-empty curated list with unique ids", () => {
@@ -15,6 +21,17 @@ describe("KOKORO_VOICES", () => {
 
   it("tags each voice with a BCP-47 language", () => {
     for (const v of KOKORO_VOICES) expect(v.lang).toMatch(/^[a-z]{2}-[A-Z]{2}$/);
+  });
+});
+
+describe("KOKORO_QUALITIES", () => {
+  it("exposes presets with a valid default", () => {
+    expect(KOKORO_QUALITIES.length).toBeGreaterThan(0);
+    expect(KOKORO_QUALITIES.some((q) => q.id === DEFAULT_KOKORO_QUALITY)).toBe(true);
+  });
+
+  it("offers a CPU-only compact option", () => {
+    expect(KOKORO_QUALITIES.some((q) => q.id === "compact")).toBe(true);
   });
 });
 

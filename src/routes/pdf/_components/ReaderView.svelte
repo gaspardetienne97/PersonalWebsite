@@ -34,9 +34,13 @@
   const player = new NarrationPlayer(doc);
   onDestroy(() => player.dispose());
 
-  // Keep the player's engine + natural voice in sync with persisted settings.
+  // Keep the player's engine + voices + model quality in sync with persisted settings.
   $effect(() => player.setEngine(settings.engine));
   $effect(() => player.setNaturalVoice(settings.naturalVoice));
+  $effect(() => player.setModelQuality(settings.modelQuality));
+  $effect(() => {
+    if (settings.systemVoice) player.setVoice(settings.systemVoice);
+  });
 
   // 'flow' (teleprompter) | 'doc' (scrolling document text)
   let readStyle = $state<"flow" | "doc">("flow");

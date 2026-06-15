@@ -1,15 +1,10 @@
 <script lang="ts">
   import Check from "lucide-svelte/icons/check";
 
+  import ArrowRight from "lucide-svelte/icons/arrow-right";
+
   import { kokoroSupported } from "@repo/pdf-core";
-  import {
-    ACCENT_OPTIONS,
-    type HighlightStyle,
-    type ReaderLayout,
-    type ReaderSettings,
-    type ReadingFont,
-    type VoiceEngine,
-  } from "@repo/pdf-core/stores/settings";
+  import { ACCENT_OPTIONS, type ReaderSettings, type VoiceEngine } from "@repo/pdf-core/stores/settings";
 
   let { settings }: { settings: ReaderSettings } = $props();
 
@@ -18,21 +13,6 @@
     { value: "natural", label: "Natural" },
   ];
   const naturalAvailable = kokoroSupported();
-
-  const LAYOUTS: { value: ReaderLayout; label: string }[] = [
-    { value: "immersive", label: "Immersive" },
-    { value: "audiobook", label: "Audiobook" },
-    { value: "document", label: "Document" },
-  ];
-  const HIGHLIGHTS: { value: HighlightStyle; label: string }[] = [
-    { value: "underline", label: "Underline" },
-    { value: "fill", label: "Fill" },
-    { value: "glow", label: "Glow" },
-  ];
-  const FONTS: { value: ReadingFont; label: string }[] = [
-    { value: "sans", label: "Sans" },
-    { value: "serif", label: "Serif" },
-  ];
 </script>
 
 <div class="panel" role="group" aria-label="Reader settings panel">
@@ -54,46 +34,14 @@
   </div>
   <p class="hint">
     {#if settings.engine === "natural"}
-      Natural uses an in-browser neural voice (Kokoro) — a one-time ~90 MB download, then offline.
+      Natural uses an in-browser neural voice (Kokoro), downloaded once then offline.
     {:else}
       System uses your device's built-in voices — instant, no download.
     {/if}
   </p>
-
-  <div class="section">Reading</div>
-
-  <div class="row">
-    <span class="label">Player layout</span>
-    <div class="seg">
-      {#each LAYOUTS as o (o.value)}
-        <button class:on={settings.layout === o.value} onclick={() => settings.update("layout", o.value)}>
-          {o.label}
-        </button>
-      {/each}
-    </div>
-  </div>
-
-  <div class="row">
-    <span class="label">Highlight</span>
-    <div class="seg">
-      {#each HIGHLIGHTS as o (o.value)}
-        <button class:on={settings.highlight === o.value} onclick={() => settings.update("highlight", o.value)}>
-          {o.label}
-        </button>
-      {/each}
-    </div>
-  </div>
-
-  <div class="row">
-    <span class="label">Reading font</span>
-    <div class="seg">
-      {#each FONTS as o (o.value)}
-        <button class:on={settings.font === o.value} onclick={() => settings.update("font", o.value)}>
-          {o.label}
-        </button>
-      {/each}
-    </div>
-  </div>
+  <a class="settings-link" href="/pdf/settings">
+    Voice settings &amp; downloads <ArrowRight size={13} strokeWidth={1.5} />
+  </a>
 
   <div class="section">Type</div>
 
@@ -219,6 +167,20 @@
     font-size: 11px;
     line-height: 1.45;
     color: var(--n-fg-3);
+  }
+  .settings-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 2px;
+    padding: 6px 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--n-brand-blue);
+    text-decoration: none;
+  }
+  .settings-link:hover {
+    text-decoration: underline;
   }
   .slider-row {
     flex-direction: column;

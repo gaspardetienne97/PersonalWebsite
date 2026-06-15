@@ -3,11 +3,18 @@
 export {
   KOKORO_VOICES,
   DEFAULT_KOKORO_VOICE,
+  KOKORO_QUALITIES,
+  DEFAULT_KOKORO_QUALITY,
   kokoroSupported,
+  webgpuAvailable,
   loadKokoro,
+  kokoroLoaded,
+  clearKokoro,
   synthesize,
   mapAudioToPos,
   type KokoroVoice,
+  type KokoroQuality,
+  type KokoroQualityOption,
   type KokoroLoadProgress,
   type SynthResult,
 } from "./kokoro";

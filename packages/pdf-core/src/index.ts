@@ -11,9 +11,18 @@ export {
   speechAvailable,
   resolveVoice,
   kokoroSupported,
+  webgpuAvailable,
+  kokoroLoaded,
+  clearKokoro,
+  loadKokoro,
+  synthesize,
   KOKORO_VOICES,
   DEFAULT_KOKORO_VOICE,
+  KOKORO_QUALITIES,
+  DEFAULT_KOKORO_QUALITY,
   type KokoroVoice,
+  type KokoroQuality,
+  type KokoroQualityOption,
 } from "./services/tts";
 export {
   NarrationPlayer,

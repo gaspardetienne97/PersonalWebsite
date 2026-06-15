@@ -108,16 +108,17 @@ test.describe("Narrator", () => {
     await expect(page.getByRole("button", { name: /The Machine/ })).not.toBeVisible();
   });
 
-  test("reader settings switch layout", async ({ page }) => {
+  test("reader settings link opens the voice settings page", async ({ page }) => {
     await page.getByText("The Time Machine").first().click();
     await page.getByRole("button", { name: "Reader settings" }).click();
     await page
       .getByRole("group", { name: "Reader settings panel" })
-      .getByRole("button", { name: "Document", exact: true })
+      .getByRole("link", { name: /Voice settings/ })
       .click();
 
-    // Document layout shows the scrolling text with the chapter eyebrow.
-    await expect(page.getByText("The Inventor").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Voice settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Reading voice" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "System voices" })).toBeVisible();
   });
 
   test("reader settings expose the system/natural voice engine toggle", async ({ page }) => {

@@ -199,6 +199,7 @@
                   class="pop-item voice-item"
                   class:active={v.name === player.voice}
                   onclick={() => {
+                    settings.update("systemVoice", v.name);
                     player.setVoice(v.name);
                     open = null;
                   }}

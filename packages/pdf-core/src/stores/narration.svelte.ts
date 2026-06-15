@@ -19,12 +19,14 @@ import { buildModel, wordIndexAt } from "../domain/model";
 import type { NarrationModel, NarratorDoc, SentenceSpan } from "../domain/types";
 import {
   DEFAULT_KOKORO_VOICE,
+  DEFAULT_KOKORO_QUALITY,
   getSynth,
   kokoroSupported,
   resolveVoice,
   speechAvailable,
   synthesize,
   mapAudioToPos,
+  type KokoroQuality,
   type SynthResult,
 } from "../services/tts";
 
@@ -64,6 +66,8 @@ export class NarrationPlayer {
   voice = $state<string | undefined>(undefined);
   /** Kokoro voice id used by the natural engine. */
   naturalVoice = $state(DEFAULT_KOKORO_VOICE);
+  /** Kokoro model quality preset. */
+  modelQuality = $state<KokoroQuality>(DEFAULT_KOKORO_QUALITY);
   engineMode = $state<EngineMode>("system");
   /** True while real audio is coming out of the speakers. */
   speaking = $state(false);
@@ -147,6 +151,13 @@ export class NarrationPlayer {
   setNaturalVoice(id: string): void {
     if (id === this.naturalVoice) return;
     this.naturalVoice = id;
+    this.#dropPrefetch();
+    if (this.playing && this.engineMode === "natural") this.#startNatural();
+  }
+
+  setModelQuality(quality: KokoroQuality): void {
+    if (quality === this.modelQuality) return;
+    this.modelQuality = quality;
     this.#dropPrefetch();
     if (this.playing && this.engineMode === "natural") this.#startNatural();
   }
@@ -305,6 +316,7 @@ export class NarrationPlayer {
         result = await synthesize(
           text,
           this.naturalVoice,
+          this.modelQuality,
           (p) => (this.modelProgress = p.fraction),
         );
       }
@@ -367,7 +379,7 @@ export class NarrationPlayer {
     const text = this.#spokenText(next, next.wordStart);
     if (!text.trim()) return;
     const voice = this.naturalVoice;
-    synthesize(text, voice)
+    synthesize(text, voice, this.modelQuality)
       .then((result) => {
         if (this.naturalVoice === voice && this.engineMode === "natural") {
           this.#prefetch = { si: next.si, fromWord: next.wordStart, result };
