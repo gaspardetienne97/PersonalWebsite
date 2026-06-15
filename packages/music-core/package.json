@@ -18,6 +18,7 @@
     "./engines/intonation-session": "./src/engines/intonation-session/index.ts",
     "./engines/jam": "./src/engines/jam/index.ts",
     "./engines/library": "./src/engines/library/index.ts",
+    "./engines/media-library": "./src/engines/media-library/index.ts",
     "./engines/midi": "./src/engines/midi/index.ts",
     "./engines/notation": "./src/engines/notation/index.ts",
     "./engines/progress": "./src/engines/progress/index.ts",
