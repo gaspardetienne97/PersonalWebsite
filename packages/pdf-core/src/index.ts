@@ -7,8 +7,20 @@ export {
   type ExtractProgress,
   type ExtractStage,
 } from "./services/extract";
-export { speechAvailable, resolveVoice } from "./services/tts";
-export { NarrationPlayer, savedPosition, clearSavedPosition } from "./stores/narration.svelte";
+export {
+  speechAvailable,
+  resolveVoice,
+  kokoroSupported,
+  KOKORO_VOICES,
+  DEFAULT_KOKORO_VOICE,
+  type KokoroVoice,
+} from "./services/tts";
+export {
+  NarrationPlayer,
+  savedPosition,
+  clearSavedPosition,
+  type EngineMode,
+} from "./stores/narration.svelte";
 export { NarratorLibrary } from "./stores/library.svelte";
 export { VoiceCatalog } from "./stores/voices.svelte";
 export {
@@ -17,5 +29,6 @@ export {
   type ReaderLayout,
   type HighlightStyle,
   type ReadingFont,
+  type VoiceEngine,
   type ReaderSettingsState,
 } from "./stores/settings.svelte";

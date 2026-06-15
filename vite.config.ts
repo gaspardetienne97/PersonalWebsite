@@ -8,6 +8,25 @@ import { pwaOptions } from "./pwa.config";
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit(), SvelteKitPWA(pwaOptions)],
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep the in-browser neural-TTS runtime (Kokoro + transformers.js +
+        // onnxruntime) in one named, lazily-loaded chunk so it stays out of the
+        // music PWA precache and only downloads when a reader opts into it.
+        // Rolldown (vite-plus) groups chunks via `advancedChunks`, not rollup's
+        // `manualChunks`.
+        advancedChunks: {
+          groups: [
+            {
+              name: "kokoro-tts",
+              test: /[\\/]node_modules[\\/](@huggingface[\\/]transformers|kokoro-js|onnxruntime[^\\/]*|phonemizer)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
+  },
   optimizeDeps: {
     include: [
       "lucide-svelte/icons/moon",

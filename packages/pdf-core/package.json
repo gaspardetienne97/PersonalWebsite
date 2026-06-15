@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "jszip": "^3.10.1",
+    "kokoro-js": "^1.2.1",
     "pdfjs-dist": "^5.4.530",
     "svelte": "catalog:"
   },

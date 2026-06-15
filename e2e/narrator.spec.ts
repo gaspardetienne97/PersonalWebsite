@@ -120,6 +120,18 @@ test.describe("Narrator", () => {
     await expect(page.getByText("The Inventor").first()).toBeVisible();
   });
 
+  test("reader settings expose the system/natural voice engine toggle", async ({ page }) => {
+    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "Reader settings" }).click();
+
+    const panel = page.getByRole("group", { name: "Reader settings panel" });
+    await expect(panel.getByRole("button", { name: "System", exact: true })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Natural", exact: true })).toBeVisible();
+    // Switching to Natural surfaces the in-browser neural-voice explainer.
+    await panel.getByRole("button", { name: "Natural", exact: true }).click();
+    await expect(panel.getByText(/in-browser neural voice/i)).toBeVisible();
+  });
+
   test("a document can be removed from the library", async ({ page }) => {
     const title = "Designing Data-Intensive Apps — Ch. 1";
     await page.getByRole("button", { name: title, exact: true }).hover();

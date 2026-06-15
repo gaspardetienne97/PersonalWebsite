@@ -9,8 +9,10 @@
   import SkipBack from "lucide-svelte/icons/skip-back";
   import SkipForward from "lucide-svelte/icons/skip-forward";
 
+  import { KOKORO_VOICES } from "@repo/pdf-core";
   import { fmt, type NarratorDoc } from "@repo/pdf-core/domain";
   import type { NarrationPlayer } from "@repo/pdf-core/stores/narration";
+  import type { ReaderSettings } from "@repo/pdf-core/stores/settings";
   import { voiceCatalog } from "@repo/pdf-core/stores/voices";
 
   import ChapterList from "./ChapterList.svelte";
@@ -18,11 +20,13 @@
   let {
     player,
     doc,
+    settings,
     accent,
     variant,
   }: {
     player: NarrationPlayer;
     doc: NarratorDoc;
+    settings: ReaderSettings;
     accent: string;
     /** 'float' (immersive glass dock) | 'panel' (audiobook side panel) | 'bar' (document top bar) */
     variant: "float" | "panel" | "bar";
@@ -35,8 +39,13 @@
 
   const openUp = $derived(variant !== "bar");
   const speedLabel = $derived(player.speed % 1 === 0 ? player.speed + ".0" : String(player.speed));
-  const voiceLabel = $derived(player.voice ?? "Voice");
-  const voiceList = $derived(voiceCatalog.preferred);
+  const isNatural = $derived(player.engineMode === "natural");
+  const systemVoices = $derived(voiceCatalog.preferred);
+  const voiceLabel = $derived(
+    isNatural
+      ? (KOKORO_VOICES.find((v) => v.id === player.naturalVoice)?.label.split(" — ")[0] ?? "Natural")
+      : (player.voice ?? "Voice"),
+  );
 
   function scrub(e: MouseEvent) {
     if (!trackEl) return;
@@ -62,7 +71,9 @@
       aria-label={player.playing ? "Pause" : "Play"}
       onclick={() => player.toggle()}
     >
-      {#if player.playing}
+      {#if player.playing && player.modelLoading}
+        <span class="play-spinner" title="Loading neural voice"></span>
+      {:else if player.playing}
         <Pause size={24} strokeWidth={2} style="color: #fff" />
       {:else}
         <Play size={24} strokeWidth={2} style="color: #fff; margin-left: 2px" />
@@ -153,12 +164,37 @@
       </button>
       {#if open === "voice"}
         <div class="pop right voices-pop" class:up={openUp}>
-          <div class="pop-label">Narrator voice</div>
+          <div class="pop-label">{isNatural ? "Natural voice (Kokoro)" : "Narrator voice"}</div>
+          {#if player.usingFallback}
+            <div class="pop-note-row">Natural voice unavailable here — using the system voice.</div>
+          {/if}
+          {#if isNatural && player.modelLoading}
+            <div class="pop-note-row loading">
+              Loading neural voice… {Math.round(player.modelProgress * 100)}%
+            </div>
+          {/if}
           <div class="pop-scroll">
-            {#if voiceList.length === 0}
+            {#if isNatural}
+              {#each KOKORO_VOICES as v (v.id)}
+                <button
+                  class="pop-item voice-item"
+                  class:active={v.id === player.naturalVoice}
+                  onclick={() => {
+                    settings.update("naturalVoice", v.id);
+                    open = null;
+                  }}
+                >
+                  <Mic size={14} strokeWidth={1.5} style="color: {v.id === player.naturalVoice ? accent : 'var(--n-fg-3)'}" />
+                  <span class="voice-name">{v.label}</span>
+                  {#if v.id === player.naturalVoice}
+                    <Check size={14} strokeWidth={1.5} style="color: {accent}" />
+                  {/if}
+                </button>
+              {/each}
+            {:else if systemVoices.length === 0}
               <div class="pop-empty">Using the system default voice</div>
             {:else}
-              {#each voiceList as v (v.voiceURI)}
+              {#each systemVoices as v (v.voiceURI)}
                 <button
                   class="pop-item voice-item"
                   class:active={v.name === player.voice}
@@ -198,6 +234,14 @@
 {/if}
 
 <style>
+  .play-spinner {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 2.5px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    animation: n-spin 0.8s linear infinite;
+  }
   .layout-panel {
     display: flex;
     flex-direction: column;
@@ -386,6 +430,19 @@
     text-transform: uppercase;
     color: var(--n-fg-3);
     padding: 4px 10px 8px;
+  }
+  .pop-note-row {
+    margin: 0 6px 6px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    background: var(--n-bg-2);
+    font-family: var(--n-font-sans);
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: var(--n-fg-2);
+  }
+  .pop-note-row.loading {
+    color: var(--n-fg-1);
   }
   .pop-item {
     display: flex;

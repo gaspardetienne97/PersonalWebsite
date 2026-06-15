@@ -6,6 +6,7 @@
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
   import { onDestroy } from "svelte";
 
+  import { KOKORO_VOICES } from "@repo/pdf-core";
   import type { NarratorDoc } from "@repo/pdf-core/domain";
   import { NarrationPlayer } from "@repo/pdf-core/stores/narration";
   import type { ReaderSettings } from "@repo/pdf-core/stores/settings";
@@ -33,6 +34,10 @@
   const player = new NarrationPlayer(doc);
   onDestroy(() => player.dispose());
 
+  // Keep the player's engine + natural voice in sync with persisted settings.
+  $effect(() => player.setEngine(settings.engine));
+  $effect(() => player.setNaturalVoice(settings.naturalVoice));
+
   // 'flow' (teleprompter) | 'doc' (scrolling document text)
   let readStyle = $state<"flow" | "doc">("flow");
   let settingsOpen = $state(false);
@@ -42,6 +47,11 @@
   const layout = $derived(settings.layout);
   const isDoc = $derived(readStyle === "doc");
   const chapterTitle = $derived(player.model.chapters[player.chapterIndex]?.title ?? "");
+  const voiceLabel = $derived(
+    player.engineMode === "natural"
+      ? (KOKORO_VOICES.find((v) => v.id === player.naturalVoice)?.label ?? "Natural voice")
+      : (player.voice ?? "System voice"),
+  );
 </script>
 
 {#snippet styleToggle()}
@@ -151,7 +161,7 @@
     {/if}
     <div class="float-dock">
       <div class="float-inner">
-        <PlayerBar {player} {doc} {accent} variant="float" />
+        <PlayerBar {player} {doc} {settings} {accent} variant="float" />
       </div>
     </div>
   {:else if layout === "audiobook"}
@@ -163,11 +173,11 @@
           <div class="audio-meta">
             <div class="audio-title">{doc.title}</div>
             <div class="audio-author">{doc.author}</div>
-            <Pill accent={doc.accent} class="audio-voice"><Mic size={12} strokeWidth={1.5} /> {player.voice ?? "System voice"}</Pill>
+            <Pill accent={doc.accent} class="audio-voice"><Mic size={12} strokeWidth={1.5} /> {voiceLabel}</Pill>
           </div>
         </div>
         <div class="audio-player">
-          <PlayerBar {player} {doc} {accent} variant="panel" />
+          <PlayerBar {player} {doc} {settings} {accent} variant="panel" />
         </div>
       </aside>
       <section class={isDoc ? "audio-doc-wrap" : "tele-wrap"}>
@@ -184,7 +194,7 @@
     {@render topBar(false)}
     <div class="doc-bar">
       <div class="doc-bar-inner">
-        <PlayerBar {player} {doc} {accent} variant="bar" />
+        <PlayerBar {player} {doc} {settings} {accent} variant="bar" />
       </div>
     </div>
     <div class="doc-scroll" bind:this={scrollEl}>

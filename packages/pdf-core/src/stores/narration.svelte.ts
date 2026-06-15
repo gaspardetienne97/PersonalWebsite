@@ -1,18 +1,34 @@
-/** NarrationPlayer — real text-to-speech with a synced karaoke playhead.
+/** NarrationPlayer — read-aloud playback with a synced karaoke playhead.
  *
- * The document is laid out on a virtual 1x timeline (ms) used by the scrubber
- * and highlight. Playback speaks sentence-by-sentence through the Web Speech
- * API; word-boundary events snap the playhead to the word actually being
- * spoken, while a rAF loop keeps the highlight moving smoothly between events
- * (clamped to the sentence being spoken so it never runs ahead).
+ * Two engines share one virtual timeline (ms, from buildModel):
  *
- * If speech synthesis is unavailable or silently broken (no events), playback
- * degrades to the rAF-simulated timeline so the UI always works.
+ *  - "system"  — the OS Web Speech API. Speaks sentence-by-sentence; word
+ *                boundary events snap the playhead, an rAF loop glides between.
+ *  - "natural" — Kokoro neural TTS in the browser (kokoro-js). Each sentence is
+ *                synthesized to audio and played through an <audio> element; the
+ *                rAF loop maps audio playback time onto the sentence's word span,
+ *                so the highlight tracks the actual voice.
+ *
+ * Both degrade gracefully: if neither engine can speak, the rAF loop advances
+ * the playhead on its own so the reader still scrolls. A natural-engine failure
+ * (no WebGPU/WASM, model download blocked, synthesis error) falls back to the
+ * system engine automatically.
  */
 
 import { buildModel, wordIndexAt } from "../domain/model";
 import type { NarrationModel, NarratorDoc, SentenceSpan } from "../domain/types";
-import { getSynth, resolveVoice, speechAvailable } from "../services/tts";
+import {
+  DEFAULT_KOKORO_VOICE,
+  getSynth,
+  kokoroSupported,
+  resolveVoice,
+  speechAvailable,
+  synthesize,
+  mapAudioToPos,
+  type SynthResult,
+} from "../services/tts";
+
+export type EngineMode = "system" | "natural";
 
 const POS_KEY_PREFIX = "narrate.pos.";
 
@@ -31,6 +47,12 @@ export function clearSavedPosition(docId: string): void {
   localStorage.removeItem(POS_KEY_PREFIX + docId);
 }
 
+interface Prefetch {
+  si: number;
+  fromWord: number;
+  result: SynthResult;
+}
+
 export class NarrationPlayer {
   readonly doc: NarratorDoc;
   readonly model: NarrationModel;
@@ -38,9 +60,18 @@ export class NarrationPlayer {
   pos = $state(0);
   playing = $state(false);
   speed = $state(1);
+  /** System (Web Speech) voice name, or undefined for the browser default. */
   voice = $state<string | undefined>(undefined);
+  /** Kokoro voice id used by the natural engine. */
+  naturalVoice = $state(DEFAULT_KOKORO_VOICE);
+  engineMode = $state<EngineMode>("system");
   /** True while real audio is coming out of the speakers. */
   speaking = $state(false);
+  /** Natural-engine model download state, for UI. */
+  modelLoading = $state(false);
+  modelProgress = $state(0);
+  /** Set when the natural engine failed and we reverted to the system voice. */
+  usingFallback = $state(false);
 
   wordIndex = $derived.by(() => wordIndexAt(this.model, this.pos));
   sentenceIndex = $derived.by(() => this.model.tokens[this.wordIndex]?.si ?? 0);
@@ -52,13 +83,22 @@ export class NarrationPlayer {
   #last = 0;
   #lastPersist = 0;
 
-  // --- speech state ---
+  // --- system (Web Speech) engine ---
   #utterance: SpeechSynthesisUtterance | null = null;
   #spokenSentence: SentenceSpan | null = null;
   #watchdog: ReturnType<typeof setTimeout> | null = null;
   #sawEvent = false;
-  /** Set when the synth exists but never delivers events — fall back to rAF. */
   #speechBroken = false;
+
+  // --- natural (Kokoro) engine ---
+  #audio: HTMLAudioElement | null = null;
+  #audioDriven = false;
+  #spanStart = 0;
+  #spanEnd = 0;
+  #spanDuration = 0;
+  #synthSeq = 0;
+  #prefetch: Prefetch | null = null;
+  #urls = new Set<string>();
 
   constructor(doc: NarratorDoc) {
     this.doc = doc;
@@ -69,11 +109,8 @@ export class NarrationPlayer {
   }
 
   toggle(): void {
-    if (this.playing) {
-      this.pause();
-    } else {
-      this.play();
-    }
+    if (this.playing) this.pause();
+    else this.play();
   }
 
   play(): void {
@@ -82,33 +119,54 @@ export class NarrationPlayer {
     this.playing = true;
     this.#last = performance.now();
     this.#raf = requestAnimationFrame(this.#tick);
-    this.#startSpeech();
+    this.#startEngine();
   }
 
   pause(): void {
     if (!this.playing) return;
     this.playing = false;
     cancelAnimationFrame(this.#raf);
-    this.#stopSpeech();
+    this.#stopPlayback();
     this.#persist();
   }
 
   setSpeed(speed: number): void {
     if (speed === this.speed) return;
     this.speed = speed;
-    if (this.playing) this.#startSpeech(); // restart the sentence at the new rate
+    if (this.#audio) this.#audio.playbackRate = speed; // instant, pitch-preserved
+    if (this.playing && this.engineMode === "system") this.#startSpeech();
   }
 
+  /** Set the system (Web Speech) voice. */
   setVoice(name: string): void {
     if (name === this.voice) return;
     this.voice = name;
-    if (this.playing) this.#startSpeech();
+    if (this.playing && this.engineMode === "system") this.#startSpeech();
+  }
+
+  setNaturalVoice(id: string): void {
+    if (id === this.naturalVoice) return;
+    this.naturalVoice = id;
+    this.#dropPrefetch();
+    if (this.playing && this.engineMode === "natural") this.#startNatural();
+  }
+
+  setEngine(mode: EngineMode): void {
+    if (mode === this.engineMode) return;
+    this.engineMode = mode;
+    this.usingFallback = false;
+    this.#dropPrefetch();
+    if (this.playing) {
+      this.#stopPlayback();
+      this.#startEngine();
+    }
   }
 
   seekTo(pos: number): void {
     this.pos = Math.max(0, Math.min(this.model.total, pos));
     this.#persist();
-    if (this.playing) this.#startSpeech();
+    this.#dropPrefetch();
+    if (this.playing) this.#startEngine();
   }
 
   seekWord(index: number): void {
@@ -141,62 +199,240 @@ export class NarrationPlayer {
   dispose(): void {
     if (this.playing) cancelAnimationFrame(this.#raf);
     this.playing = false;
-    this.#stopSpeech();
+    this.#stopPlayback();
+    this.#dropPrefetch();
+    for (const url of this.#urls) URL.revokeObjectURL(url);
+    this.#urls.clear();
     this.#persist();
   }
 
-  // ----- virtual playhead -----
+  // ----- shared playhead loop -----
 
   #tick = (now: number) => {
+    if (!this.playing) return;
     const dt = now - this.#last;
     this.#last = now;
-    let next = this.pos + dt * this.speed;
 
-    // While a sentence is genuinely being spoken, never run past its end —
-    // the utterance's end event advances us, keeping highlight and audio tied.
-    const spoken = this.#spokenSentence;
-    if (spoken && this.speaking && !this.#speechBroken) {
-      next = Math.min(next, spoken.end - 1);
-    } else if (next >= this.model.total) {
-      this.pos = this.model.total;
-      this.playing = false;
-      this.#stopSpeech();
-      this.#persist();
-      return;
+    if (this.engineMode === "natural") {
+      // Audio (when playing) is authoritative; otherwise hold while synthesizing.
+      if (this.#audioDriven && this.#audio) {
+        const duration = Number.isFinite(this.#audio.duration)
+          ? this.#audio.duration
+          : this.#spanDuration;
+        this.pos = mapAudioToPos(this.#spanStart, this.#spanEnd, this.#audio.currentTime, duration);
+      }
+    } else {
+      let next = this.pos + dt * this.speed;
+      const spoken = this.#spokenSentence;
+      if (spoken && this.speaking && !this.#speechBroken) {
+        next = Math.min(next, spoken.end - 1); // the end event advances us
+      } else if (next >= this.model.total) {
+        this.pos = this.model.total;
+        this.playing = false;
+        this.#stopPlayback();
+        this.#persist();
+        return;
+      }
+      this.pos = next;
     }
 
-    this.pos = next;
     if (now - this.#lastPersist > 1000) this.#persist(now);
     this.#raf = requestAnimationFrame(this.#tick);
   };
 
-  // ----- speech engine -----
+  #startEngine(): void {
+    if (this.engineMode === "natural" && kokoroSupported()) {
+      this.#startNatural();
+    } else {
+      if (this.engineMode === "natural") this.#failToSystem(); // unsupported environment
+      this.#startSpeech();
+    }
+  }
+
+  #stopPlayback(): void {
+    this.#stopSpeech();
+    this.#stopAudio();
+  }
+
+  #sentenceAt(pos: number): { sentence: SentenceSpan; fromWord: number } | null {
+    const sentence =
+      this.model.sentences.find((s) => pos < s.end) ??
+      this.model.sentences[this.model.sentences.length - 1];
+    if (!sentence) return null;
+    const fromWord = Math.max(sentence.wordStart, wordIndexAt(this.model, pos));
+    return { sentence, fromWord };
+  }
+
+  #spokenText(sentence: SentenceSpan, fromWord: number): string {
+    const words: string[] = [];
+    for (let i = fromWord; i <= sentence.wordEnd; i++) words.push(this.model.tokens[i].word);
+    return words.join(" ");
+  }
+
+  // ----- natural (Kokoro) engine -----
+
+  #startNatural(): void {
+    this.#stopAudio();
+    const at = this.#sentenceAt(this.pos);
+    if (!at) return;
+    void this.#playNatural(at.sentence, at.fromWord);
+  }
+
+  async #playNatural(sentence: SentenceSpan, fromWord: number): Promise<void> {
+    const text = this.#spokenText(sentence, fromWord);
+    if (!text.trim()) {
+      this.#advanceNatural(sentence);
+      return;
+    }
+    const first = this.model.tokens[fromWord];
+    const last = this.model.tokens[sentence.wordEnd];
+    this.#spanStart = first.start;
+    this.#spanEnd = last.start + last.dur;
+
+    const seq = ++this.#synthSeq;
+    let result: SynthResult;
+    try {
+      const cached =
+        this.#prefetch && this.#prefetch.si === sentence.si && this.#prefetch.fromWord === fromWord
+          ? this.#prefetch.result
+          : null;
+      if (cached) {
+        this.#prefetch = null;
+        result = cached;
+      } else {
+        this.#dropPrefetch();
+        this.modelLoading = true;
+        result = await synthesize(
+          text,
+          this.naturalVoice,
+          (p) => (this.modelProgress = p.fraction),
+        );
+      }
+    } catch {
+      if (seq === this.#synthSeq) this.#failToSystem();
+      return;
+    } finally {
+      if (seq === this.#synthSeq) this.modelLoading = false;
+    }
+    if (seq !== this.#synthSeq || !this.playing) {
+      URL.revokeObjectURL(result.url);
+      return;
+    }
+
+    this.#urls.add(result.url);
+    this.#spanDuration = result.durationSec;
+    const audio = new Audio(result.url);
+    audio.playbackRate = this.speed;
+    audio.preservesPitch = true;
+    audio.onplaying = () => {
+      if (this.#audio === audio) {
+        this.#audioDriven = true;
+        this.speaking = true;
+      }
+    };
+    audio.onended = () => {
+      if (this.#audio === audio) this.#advanceNatural(sentence);
+    };
+    audio.onerror = () => {
+      if (this.#audio === audio) this.#failToSystem();
+    };
+    this.#audio = audio;
+    void audio.play().catch(() => {
+      if (this.#audio === audio) this.#failToSystem();
+    });
+
+    this.#prefetchNext(sentence);
+  }
+
+  #advanceNatural(sentence: SentenceSpan): void {
+    this.#audioDriven = false;
+    this.speaking = false;
+    const next = this.model.sentences.find((s) => s.start >= sentence.end - 1);
+    if (next && this.playing) {
+      this.pos = next.start;
+      void this.#playNatural(next, next.wordStart);
+    } else {
+      this.pos = this.model.total;
+      this.playing = false;
+      cancelAnimationFrame(this.#raf);
+      this.#persist();
+    }
+  }
+
+  /** Synthesize the next sentence in the background for gapless-ish playback. */
+  #prefetchNext(sentence: SentenceSpan): void {
+    const next = this.model.sentences.find((s) => s.start >= sentence.end - 1);
+    if (!next) return;
+    if (this.#prefetch && this.#prefetch.si === next.si) return;
+    const text = this.#spokenText(next, next.wordStart);
+    if (!text.trim()) return;
+    const voice = this.naturalVoice;
+    synthesize(text, voice)
+      .then((result) => {
+        if (this.naturalVoice === voice && this.engineMode === "natural") {
+          this.#prefetch = { si: next.si, fromWord: next.wordStart, result };
+          this.#urls.add(result.url);
+        } else {
+          URL.revokeObjectURL(result.url);
+        }
+      })
+      .catch(() => {});
+  }
+
+  #dropPrefetch(): void {
+    if (this.#prefetch) {
+      URL.revokeObjectURL(this.#prefetch.result.url);
+      this.#urls.delete(this.#prefetch.result.url);
+      this.#prefetch = null;
+    }
+  }
+
+  #stopAudio(): void {
+    this.#synthSeq++; // invalidate any in-flight synthesis
+    this.#audioDriven = false;
+    if (this.#audio) {
+      const audio = this.#audio;
+      this.#audio = null;
+      audio.onended = audio.onerror = audio.onplaying = null;
+      audio.pause();
+      if (audio.src) {
+        URL.revokeObjectURL(audio.src);
+        this.#urls.delete(audio.src);
+      }
+    }
+    this.speaking = false;
+    this.modelLoading = false;
+  }
+
+  /** Natural engine unavailable/failed — revert to the OS voice and keep going. */
+  #failToSystem(): void {
+    this.#stopAudio();
+    this.engineMode = "system";
+    this.usingFallback = true;
+    this.modelLoading = false;
+    if (this.playing) this.#startSpeech();
+  }
+
+  // ----- system (Web Speech) engine -----
 
   #startSpeech(): void {
     this.#stopSpeech();
     if (!speechAvailable() || this.#speechBroken) return;
-    const sentence =
-      this.model.sentences.find((s) => this.pos < s.end) ??
-      this.model.sentences[this.model.sentences.length - 1];
-    if (!sentence) return;
-    const fromWord = Math.max(sentence.wordStart, wordIndexAt(this.model, this.pos));
-    this.#speakSentence(sentence, fromWord);
+    const at = this.#sentenceAt(this.pos);
+    if (at) this.#speakSentence(at.sentence, at.fromWord);
   }
 
   #speakSentence(sentence: SentenceSpan, fromWord: number): void {
     const synth = getSynth();
     if (!synth) return;
 
-    const words: string[] = [];
-    const charStarts: number[] = []; // char offset of each word in the spoken text
+    const charStarts: number[] = [];
     let chars = 0;
     for (let i = fromWord; i <= sentence.wordEnd; i++) {
-      const w = this.model.tokens[i].word;
       charStarts.push(chars);
-      words.push(w);
-      chars += w.length + 1;
+      chars += this.model.tokens[i].word.length + 1;
     }
-    const text = words.join(" ");
+    const text = this.#spokenText(sentence, fromWord);
     if (!text.trim()) {
       this.#advancePast(sentence);
       return;
@@ -219,43 +455,33 @@ export class NarrationPlayer {
       this.#sawEvent = true;
       this.speaking = true;
     };
-
     utterance.onboundary = (e) => {
       if (this.#utterance !== utterance || !this.playing) return;
       this.#sawEvent = true;
-      // Map the character index back to the word being spoken.
       let k = charStarts.length - 1;
       while (k > 0 && charStarts[k] > e.charIndex) k--;
       const token = this.model.tokens[fromWord + k];
       if (token) this.pos = token.start;
     };
-
     const finish = () => {
-      if (this.#utterance !== utterance) return; // cancelled or superseded
+      if (this.#utterance !== utterance) return;
       this.#clearWatchdog();
       this.#utterance = null;
       this.#spokenSentence = null;
       this.speaking = false;
-      if (!this.playing) return;
-      this.#advancePast(sentence);
+      if (this.playing) this.#advancePast(sentence);
     };
     utterance.onend = finish;
     utterance.onerror = (e) => {
-      // "interrupted"/"canceled" arrive from our own cancel() calls.
       if (e.error === "interrupted" || e.error === "canceled") return;
       finish();
     };
 
-    // Some environments expose the API but never speak (headless browsers,
-    // missing voices). If no event arrives in generous time, fall back to the
-    // simulated playhead so the reader keeps moving.
     const expectedMs = (sentence.end - this.model.tokens[fromWord].start) / this.speed;
     this.#setWatchdog(expectedMs * 3 + 3000, utterance);
-
     synth.speak(utterance);
   }
 
-  /** Continue from the end of a spoken sentence. */
   #advancePast(sentence: SentenceSpan): void {
     const next = this.model.sentences.find((s) => s.start >= sentence.end - 1);
     if (next) {
@@ -264,6 +490,7 @@ export class NarrationPlayer {
     } else {
       this.pos = this.model.total;
       this.playing = false;
+      cancelAnimationFrame(this.#raf);
       this.#persist();
     }
   }
@@ -272,7 +499,6 @@ export class NarrationPlayer {
     this.#clearWatchdog();
     this.#watchdog = setTimeout(() => {
       if (this.#utterance !== utterance || this.#sawEvent) return;
-      // Speech is silently broken — keep the simulated playhead going instead.
       this.#speechBroken = true;
       this.#utterance = null;
       this.#spokenSentence = null;

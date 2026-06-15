@@ -1,15 +1,23 @@
 <script lang="ts">
   import Check from "lucide-svelte/icons/check";
 
+  import { kokoroSupported } from "@repo/pdf-core";
   import {
     ACCENT_OPTIONS,
     type HighlightStyle,
     type ReaderLayout,
     type ReaderSettings,
     type ReadingFont,
+    type VoiceEngine,
   } from "@repo/pdf-core/stores/settings";
 
   let { settings }: { settings: ReaderSettings } = $props();
+
+  const ENGINES: { value: VoiceEngine; label: string }[] = [
+    { value: "system", label: "System" },
+    { value: "natural", label: "Natural" },
+  ];
+  const naturalAvailable = kokoroSupported();
 
   const LAYOUTS: { value: ReaderLayout; label: string }[] = [
     { value: "immersive", label: "Immersive" },
@@ -28,6 +36,30 @@
 </script>
 
 <div class="panel" role="group" aria-label="Reader settings panel">
+  <div class="section">Voice</div>
+
+  <div class="row">
+    <span class="label">Engine</span>
+    <div class="seg">
+      {#each ENGINES as o (o.value)}
+        <button
+          class:on={settings.engine === o.value}
+          disabled={o.value === "natural" && !naturalAvailable}
+          onclick={() => settings.update("engine", o.value)}
+        >
+          {o.label}
+        </button>
+      {/each}
+    </div>
+  </div>
+  <p class="hint">
+    {#if settings.engine === "natural"}
+      Natural uses an in-browser neural voice (Kokoro) — a one-time ~90 MB download, then offline.
+    {:else}
+      System uses your device's built-in voices — instant, no download.
+    {/if}
+  </p>
+
   <div class="section">Reading</div>
 
   <div class="row">
@@ -177,6 +209,16 @@
     background: var(--n-bg-2);
     color: var(--n-fg-0);
     box-shadow: var(--n-shadow-xs);
+  }
+  .seg button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .hint {
+    margin: -2px 2px 2px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--n-fg-3);
   }
   .slider-row {
     flex-direction: column;

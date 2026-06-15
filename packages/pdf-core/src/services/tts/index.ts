@@ -1,5 +1,17 @@
 /** Thin wrappers around the Web Speech synthesis API. */
 
+export {
+  KOKORO_VOICES,
+  DEFAULT_KOKORO_VOICE,
+  kokoroSupported,
+  loadKokoro,
+  synthesize,
+  mapAudioToPos,
+  type KokoroVoice,
+  type KokoroLoadProgress,
+  type SynthResult,
+} from "./kokoro";
+
 export function getSynth(): SpeechSynthesis | null {
   if (typeof window === "undefined") return null;
   return window.speechSynthesis ?? null;

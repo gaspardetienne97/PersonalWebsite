@@ -36,5 +36,9 @@ export const pwaOptions = {
     navigateFallbackAllowlist: [/^\/music(?:\/.*)?$/],
     cleanupOutdatedCaches: true,
     globIgnores: ["client/_app/immutable/assets/web back*.svg"],
+    // The narrator's neural-TTS runtime (Kokoro/transformers, /pdf, opt-in) is a
+    // single lazy ~2.2 MB chunk. It's consolidated via `advancedChunks` in
+    // vite.config; raise the precache ceiling so the SW build doesn't fail on it.
+    maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
   },
 } satisfies Partial<SvelteKitPWAOptions>;
