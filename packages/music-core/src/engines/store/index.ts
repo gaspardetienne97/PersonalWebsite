@@ -2,12 +2,14 @@ import Dexie, { type Table } from "dexie";
 
 import type {
   ChordEvent,
+  InstrumentId,
   PracticeSession,
   Score,
   ScoringEvent,
   Skill,
   SkillMastery,
   SkillRelationship,
+  UnixMs,
 } from "@repo/music-core/domain";
 
 export interface SettingsRecord {
@@ -34,9 +36,49 @@ export interface SongRow {
   updatedAt?: number;
 }
 
+export interface ImportedBackingTrackRow {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  durationMs: number;
+  createdAt: UnixMs;
+}
+
+export interface AudioTakeRow {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  durationMs: number;
+  createdAt: UnixMs;
+  instrument: InstrumentId;
+  backingTrackId?: string;
+  backingKind?: "generated" | "imported";
+  backingOffsetMs: number;
+  generatedBacking?: {
+    progressionId: string;
+    bpm: number;
+    loop: boolean;
+  };
+}
+
 interface IterableFileSystemDirectoryHandle extends FileSystemDirectoryHandle {
   entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
 }
+
+const LOCAL_BINARY_STORAGE_UNAVAILABLE = "Local binary storage is unavailable.";
+
+const VERSION_1_STORES = {
+  sessions: "id, startTime, endTime, instrument, source",
+  scoringEvents: "id, sessionId, exerciseId, at",
+  skillMastery: "skillId, lastPracticed",
+  skills: "id, capability",
+  skillRelationships: "id, from, to, kind",
+  chordLibrary: "id, symbol",
+  songs: "id, title, createdAt, updatedAt",
+  settings: "id",
+};
 
 export class PracticeDatabase extends Dexie {
   sessions!: Table<PracticeSession, string>;
@@ -47,18 +89,16 @@ export class PracticeDatabase extends Dexie {
   chordLibrary!: Table<ChordLibraryRow, string>;
   songs!: Table<SongRow, string>;
   settings!: Table<SettingsRecord, string>;
+  backingTracks!: Table<ImportedBackingTrackRow, string>;
+  audioTakes!: Table<AudioTakeRow, string>;
 
   constructor(name = "musicianship-os") {
     super(name);
-    this.version(1).stores({
-      sessions: "id, startTime, endTime, instrument, source",
-      scoringEvents: "id, sessionId, exerciseId, at",
-      skillMastery: "skillId, lastPracticed",
-      skills: "id, capability",
-      skillRelationships: "id, from, to, kind",
-      chordLibrary: "id, symbol",
-      songs: "id, title, createdAt, updatedAt",
-      settings: "id",
+    this.version(1).stores(VERSION_1_STORES);
+    this.version(2).stores({
+      ...VERSION_1_STORES,
+      backingTracks: "id, createdAt",
+      audioTakes: "id, createdAt, instrument, backingTrackId, backingKind",
     });
   }
 }
@@ -94,6 +134,8 @@ export class PracticeStore {
   readonly chordLibrary: DexieRepository<ChordLibraryRow>;
   readonly songs: DexieRepository<SongRow>;
   readonly settings: DexieRepository<SettingsRecord>;
+  readonly backingTracks: DexieRepository<ImportedBackingTrackRow>;
+  readonly audioTakes: DexieRepository<AudioTakeRow>;
 
   constructor(readonly database = new PracticeDatabase()) {
     this.sessions = new DexieRepository(database.sessions);
@@ -104,6 +146,8 @@ export class PracticeStore {
     this.chordLibrary = new DexieRepository(database.chordLibrary);
     this.songs = new DexieRepository(database.songs);
     this.settings = new DexieRepository(database.settings);
+    this.backingTracks = new DexieRepository(database.backingTracks);
+    this.audioTakes = new DexieRepository(database.audioTakes);
   }
 }
 
@@ -116,14 +160,22 @@ export function skillRelationshipRow(relationship: SkillRelationship): SkillRela
 
 export async function putBinary(key: string, blob: Blob): Promise<void> {
   const root = await getOpfsRoot();
-  if (!root) {
-    console.warn("OPFS unavailable; binary write skipped", key);
-    return;
-  }
+  if (!root) throw new Error(LOCAL_BINARY_STORAGE_UNAVAILABLE);
   const handle = await root.getFileHandle(key, { create: true });
   const writable = await handle.createWritable();
   await writable.write(blob);
   await writable.close();
+}
+
+export async function deleteBinary(key: string): Promise<void> {
+  const root = await getOpfsRoot();
+  if (!root) throw new Error(LOCAL_BINARY_STORAGE_UNAVAILABLE);
+  try {
+    await root.removeEntry(key);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "NotFoundError") return;
+    throw error;
+  }
 }
 
 export async function getBinary(key: string): Promise<Blob | undefined> {
@@ -146,7 +198,16 @@ export async function list(prefix = ""): Promise<string[]> {
   return keys.sort();
 }
 
+export async function storageEstimate(): Promise<StorageEstimate> {
+  if (typeof navigator === "undefined" || !navigator.storage?.estimate) return {};
+  return navigator.storage.estimate();
+}
+
 async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | undefined> {
-  if (!("storage" in navigator) || !navigator.storage.getDirectory) return undefined;
-  return navigator.storage.getDirectory();
+  if (typeof navigator === "undefined" || !navigator.storage?.getDirectory) return undefined;
+  try {
+    return await navigator.storage.getDirectory();
+  } catch {
+    return undefined;
+  }
 }
