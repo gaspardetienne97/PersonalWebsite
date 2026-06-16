@@ -8,6 +8,7 @@
     "./engines/aerophone-fingering": "./src/engines/aerophone-fingering/index.ts",
     "./engines/analytics": "./src/engines/analytics/index.ts",
     "./engines/audio-in": "./src/engines/audio-in/index.ts",
+    "./engines/audio-recording": "./src/engines/audio-recording/index.ts",
     "./engines/backing-track": "./src/engines/backing-track/index.ts",
     "./engines/backing-track/browser-player": "./src/engines/backing-track/browser-player.ts",
     "./engines/dashboard": "./src/engines/dashboard/index.ts",
