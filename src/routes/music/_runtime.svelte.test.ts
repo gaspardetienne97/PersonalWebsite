@@ -8,6 +8,7 @@ import {
 } from "@repo/music-core/domain";
 import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
+import type { TransportEngine, TransportEvent } from "@repo/music-core/engines/transport";
 
 import { MusicRuntime, type PracticeCaptureEntry } from "./_runtime.svelte";
 
@@ -22,6 +23,33 @@ function createStore(): PracticeStore {
   const database = new PracticeDatabase(`runtime-journal-${crypto.randomUUID()}`);
   databases.push(database);
   return new PracticeStore(database);
+}
+
+function createFakeTransport() {
+  const listeners = new Set<(event: TransportEvent) => void>();
+  const state = { running: false };
+  return {
+    state,
+    setBpm: vi.fn(),
+    setCountInBars: vi.fn(),
+    start: vi.fn(() => {
+      state.running = true;
+    }),
+    stop: vi.fn(() => {
+      state.running = false;
+    }),
+    subscribe(listener: (event: TransportEvent) => void) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    emit(event: TransportEvent) {
+      listeners.forEach((listener) => listener(event));
+    },
+  } as unknown as TransportEngine & { emit(event: TransportEvent): void };
+}
+
+async function flushAsync(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe("MusicRuntime shared UI state", () => {
@@ -62,6 +90,51 @@ describe("MusicRuntime shared UI state", () => {
     expect(rt.countInBars).toBe(2);
     rt.setCountIn(0);
     expect(rt.countInBars).toBe(0);
+    rt.dispose();
+  });
+
+  it("attaches a shared media library", async () => {
+    const store = createStore();
+    const rt = new MusicRuntime();
+
+    rt.attachMedia(store);
+
+    expect(rt.media).toBeDefined();
+    await expect(rt.media?.listTakes()).resolves.toEqual([]);
+    rt.dispose();
+  });
+
+  it("runs a count-in through an injected transport", async () => {
+    const transport = createFakeTransport();
+    const rt = new MusicRuntime({ createTransport: async () => transport });
+    vi.spyOn(rt, "enableAudio").mockResolvedValue(true);
+
+    rt.setCountIn(1);
+    const ready = rt.runCountIn();
+    await flushAsync();
+    expect(transport.start).toHaveBeenCalledOnce();
+    transport.emit({
+      kind: "beat",
+      atSeconds: 0,
+      beat: 3,
+      subdivision: 0,
+      accented: false,
+      countingIn: true,
+    });
+    transport.emit({
+      kind: "beat",
+      atSeconds: 0.5,
+      beat: 0,
+      subdivision: 0,
+      accented: true,
+      countingIn: false,
+    });
+
+    await expect(ready).resolves.toBeUndefined();
+    expect(transport.setBpm).toHaveBeenCalledWith(rt.transportBpm);
+    expect(transport.setCountInBars).toHaveBeenCalledWith(1);
+    expect(transport.start).toHaveBeenCalledOnce();
+    expect(rt.activeBeat).toBe(0);
     rt.dispose();
   });
 

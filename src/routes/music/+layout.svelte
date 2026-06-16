@@ -26,8 +26,9 @@
   onMount(async () => {
     if (browser) {
       const store = new PracticeStore();
-      void runtime.attachStorage(store.settings);
+      await runtime.attachStorage(store.settings);
       runtime.attachJournal(store);
+      runtime.attachMedia(store);
     }
 
     if (!pwaInfo) return;

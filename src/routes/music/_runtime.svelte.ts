@@ -18,6 +18,7 @@ import {
   type InstrumentSurfacePreferences,
 } from "@repo/music-core/engines/device-profiles";
 import { InputRouter } from "@repo/music-core/engines/input-router";
+import { createMediaLibrary, type MediaLibrary } from "@repo/music-core/engines/media-library";
 import { MidiEngine } from "@repo/music-core/engines/midi";
 import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
 import { SOUND_PRESET_NAMES, SoundEngine } from "@repo/music-core/engines/sound";
@@ -25,6 +26,7 @@ import type { PracticeStore } from "@repo/music-core/engines/store";
 import {
   createToneTransportEngine,
   type TransportEngine,
+  type TransportEngineOptions,
 } from "@repo/music-core/engines/transport";
 
 const MUSIC_RUNTIME = Symbol("music-runtime");
@@ -46,6 +48,10 @@ export interface MidiInstrumentOption {
   instrument: InstrumentId;
   channel?: number;
   label: string;
+}
+
+export interface MusicRuntimeOptions {
+  createTransport?: (options: TransportEngineOptions) => Promise<TransportEngine>;
 }
 
 /**
@@ -70,6 +76,7 @@ export class MusicRuntime {
   readonly router = new InputRouter();
   readonly midi = new MidiEngine();
   readonly sound = new SoundEngine();
+  readonly #createTransport: (options: TransportEngineOptions) => Promise<TransportEngine>;
 
   audioEnabled = $state(false);
   audioPending = $state(false);
@@ -103,6 +110,7 @@ export class MusicRuntime {
   #deviceProfiles: DeviceProfileStore | undefined;
 
   /** Journal sink: completed activities are appended via recordPractice. */
+  media = $state<MediaLibrary | undefined>();
   #journal: PracticeSessionStore | undefined;
   #captureSeq = 0;
 
@@ -116,6 +124,10 @@ export class MusicRuntime {
     this.activeSource = state.activeSource;
     this.inputConfidence = state.confidence;
   });
+
+  constructor(options: MusicRuntimeOptions = {}) {
+    this.#createTransport = options.createTransport ?? createToneTransportEngine;
+  }
 
   enableAudio(): Promise<boolean> {
     this.#enablePromise ??= this.#enableAudio().finally(() => {
@@ -149,6 +161,11 @@ export class MusicRuntime {
   /** Point the journal sink at the local PracticeStore so activities persist. */
   attachJournal(store: PracticeStore): void {
     this.#journal = new PracticeSessionStore(store);
+  }
+
+  /** Point imported tracks and recorded takes at the shared local PracticeStore. */
+  attachMedia(store: PracticeStore): void {
+    this.media = createMediaLibrary(store);
   }
 
   /** Append a completed practice activity to the journal (no-op without storage). */
@@ -269,28 +286,51 @@ export class MusicRuntime {
   async toggleMetronome(): Promise<void> {
     const enabled = await this.enableAudio();
     if (!enabled) return;
+    const transport = await this.#ensureTransport();
 
-    if (!this.#transport) {
-      this.#transport = await createToneTransportEngine({
-        bpm: this.transportBpm,
-        onMetronomeClick: (atSeconds, accented) =>
-          this.sound.playMetronomeClick(atSeconds, accented),
-      });
-      this.#unsubscribeTransport = this.#transport.subscribe((event) => {
-        if (event.kind === "beat") this.activeBeat = event.beat;
-      });
-    }
-
-    if (this.#transport.state.running) {
-      this.#transport.stop();
+    if (transport.state.running) {
+      transport.stop();
       this.metronomeRunning = false;
       this.activeBeat = -1;
       return;
     }
 
-    this.#transport.setBpm(this.transportBpm);
-    this.#transport.start();
+    transport.setBpm(this.transportBpm);
+    transport.setCountInBars(this.countInBars);
+    transport.start();
     this.metronomeRunning = true;
+  }
+
+  async runCountIn(): Promise<void> {
+    if (this.countInBars === 0) return;
+    if (!(await this.enableAudio())) throw new Error(this.audioMessage);
+    const transport = await this.#ensureTransport();
+    transport.setBpm(this.transportBpm);
+    transport.setCountInBars(this.countInBars);
+
+    await new Promise<void>((resolve) => {
+      const unsubscribe = transport.subscribe((event) => {
+        if (event.kind === "beat" && !event.countingIn) {
+          unsubscribe();
+          resolve();
+        }
+      });
+      transport.start();
+      this.metronomeRunning = true;
+    });
+  }
+
+  async #ensureTransport(): Promise<TransportEngine> {
+    if (this.#transport) return this.#transport;
+    this.#transport = await this.#createTransport({
+      bpm: this.transportBpm,
+      countInBars: this.countInBars,
+      onMetronomeClick: (atSeconds, accented) => this.sound.playMetronomeClick(atSeconds, accented),
+    });
+    this.#unsubscribeTransport = this.#transport.subscribe((event) => {
+      if (event.kind === "beat") this.activeBeat = event.beat;
+    });
+    return this.#transport;
   }
 
   dispose(): void {
