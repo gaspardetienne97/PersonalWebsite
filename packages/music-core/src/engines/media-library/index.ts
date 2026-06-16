@@ -1,12 +1,14 @@
 import {
   deleteBinary,
   getBinary,
+  list as listBinary,
   putBinary,
   storageEstimate,
   type AudioTakeRow,
   type ImportedBackingTrackRow,
   type PracticeStore,
 } from "@repo/music-core/engines/store";
+import { INSTRUMENT_LABELS } from "@repo/music-core/domain";
 
 export const DEFAULT_MEDIA_LIMITS = {
   maxTakeDurationMs: 3_600_000,
@@ -34,8 +36,10 @@ export interface MediaLibraryOptions {
   takeRepository: MediaRepository<AudioTakeRow>;
   putBinary(key: string, blob: Blob): Promise<void>;
   getBinary(key: string): Promise<Blob | undefined>;
+  listBinary?(prefix?: string): Promise<string[]>;
   deleteBinary(key: string): Promise<void>;
   storageEstimate(): Promise<StorageEstimate>;
+  withMutationLock?<T>(operation: () => Promise<T>): Promise<T>;
   limits?: Partial<MediaLimits>;
 }
 
@@ -48,14 +52,18 @@ export interface MediaUsage {
 }
 
 const BACKING_MIME_TYPES = new Set(["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"]);
+const MEDIA_LIBRARY_LOCK_NAME = "music-media-library";
+const INSTRUMENT_IDS = new Set(Object.keys(INSTRUMENT_LABELS));
 
 export class MediaLibrary {
   readonly #backingRepository: MediaRepository<ImportedBackingTrackRow>;
   readonly #takeRepository: MediaRepository<AudioTakeRow>;
   readonly #putBinary: MediaLibraryOptions["putBinary"];
   readonly #getBinary: MediaLibraryOptions["getBinary"];
+  readonly #listBinary: NonNullable<MediaLibraryOptions["listBinary"]>;
   readonly #deleteBinary: MediaLibraryOptions["deleteBinary"];
   readonly #storageEstimate: MediaLibraryOptions["storageEstimate"];
+  readonly #withMutationLock: NonNullable<MediaLibraryOptions["withMutationLock"]>;
   readonly #limits: MediaLimits;
   #mutationQueue: Promise<void> = Promise.resolve();
 
@@ -64,13 +72,22 @@ export class MediaLibrary {
     this.#takeRepository = options.takeRepository;
     this.#putBinary = options.putBinary;
     this.#getBinary = options.getBinary;
+    this.#listBinary = options.listBinary ?? (async () => []);
     this.#deleteBinary = options.deleteBinary;
     this.#storageEstimate = options.storageEstimate;
+    this.#withMutationLock = options.withMutationLock ?? fallbackMutationLock;
     this.#limits = { ...DEFAULT_MEDIA_LIMITS, ...options.limits };
     validateLimits(this.#limits);
   }
 
   async usage(): Promise<MediaUsage> {
+    return this.#withMutationLock(async () => {
+      await this.#reconcileOrphanBinaries();
+      return this.#usageFromMetadata();
+    });
+  }
+
+  async #usageFromMetadata(): Promise<MediaUsage> {
     const [backings, takes, estimate] = await Promise.all([
       this.#backingRepository.all(),
       this.#takeRepository.all(),
@@ -115,6 +132,7 @@ export class MediaLibrary {
 
   async #saveBacking(row: ImportedBackingTrackRow, blob: Blob): Promise<void> {
     this.#validateBacking(row, blob);
+    await this.#reconcileOrphanBinaries();
     const key = backingKey(row.id);
     const [previousRow, previousBlob] = await Promise.all([
       this.#backingRepository.get(row.id),
@@ -127,6 +145,7 @@ export class MediaLibrary {
 
   async #saveTake(row: AudioTakeRow, blob: Blob): Promise<void> {
     await this.#validateTake(row, blob);
+    await this.#reconcileOrphanBinaries();
     const key = takeKey(row.id);
     const [previousRow, previousBlob] = await Promise.all([
       this.#takeRepository.get(row.id),
@@ -165,6 +184,7 @@ export class MediaLibrary {
 
   async #deleteBacking(id: string, options: { orphanTakes: boolean }): Promise<void> {
     validateId(id, "Backing id");
+    await this.#reconcileOrphanBinaries();
     const referencedTakes = (await this.#takeRepository.all()).filter(
       (take) => take.backingKind === "imported" && take.backingTrackId === id,
     );
@@ -188,7 +208,8 @@ export class MediaLibrary {
   }
 
   #enqueueMutation<T>(mutation: () => Promise<T>): Promise<T> {
-    const result = this.#mutationQueue.then(mutation);
+    const run = () => this.#withMutationLock(mutation);
+    const result = this.#mutationQueue.then(run, run);
     this.#mutationQueue = result.then(
       () => undefined,
       () => undefined,
@@ -280,7 +301,7 @@ export class MediaLibrary {
   }
 
   async #assertBudget(newSize: number, replacedSize: number): Promise<void> {
-    const current = await this.usage();
+    const current = await this.#usageFromMetadata();
     const postWriteBytes = current.totalBytes - replacedSize + newSize;
     if (postWriteBytes > current.effectiveBudgetBytes) {
       throw new Error(
@@ -323,6 +344,7 @@ export class MediaLibrary {
     validateId(row.id, "Take id");
     validateName(row.name, "Take name");
     validateFinite(row.createdAt, "Take createdAt");
+    validateInstrument(row.instrument);
     validateNonnegative(row.backingOffsetMs, "Take backingOffsetMs");
     const mimeType = normalizeMimeType(row.mimeType);
     if (!mimeType) {
@@ -374,6 +396,25 @@ export class MediaLibrary {
       throw new Error("No-backing takes cannot include backing fields.");
     }
   }
+
+  async #reconcileOrphanBinaries(): Promise<void> {
+    const [backingKeys, takeKeys, backings, takes] = await Promise.all([
+      this.#listBinary("music-backing-"),
+      this.#listBinary("music-take-"),
+      this.#backingRepository.all(),
+      this.#takeRepository.all(),
+    ]);
+    const expectedBackingKeys = new Set(backings.map((row) => backingKey(row.id)));
+    const expectedTakeKeys = new Set(takes.map((row) => takeKey(row.id)));
+    const orphanKeys = [
+      ...backingKeys.filter((key) => !expectedBackingKeys.has(key)),
+      ...takeKeys.filter((key) => !expectedTakeKeys.has(key)),
+    ];
+
+    for (const key of orphanKeys) {
+      await this.#deleteBinary(key);
+    }
+  }
 }
 
 export function createMediaLibrary(store: PracticeStore): MediaLibrary {
@@ -382,8 +423,10 @@ export function createMediaLibrary(store: PracticeStore): MediaLibrary {
     takeRepository: store.audioTakes,
     putBinary,
     getBinary,
+    listBinary,
     deleteBinary,
     storageEstimate,
+    withMutationLock: browserMutationLock,
   });
 }
 
@@ -467,6 +510,12 @@ function validateNonnegative(value: number, label: string): void {
   }
 }
 
+function validateInstrument(instrument: string): void {
+  if (!INSTRUMENT_IDS.has(instrument)) {
+    throw new Error(`Unsupported take instrument: ${instrument}`);
+  }
+}
+
 function sumSizes(rows: Array<{ size: number }>): number {
   return rows.reduce((total, row) => total + row.size, 0);
 }
@@ -501,4 +550,29 @@ function withRollbackErrors(error: unknown, rollbackErrors: unknown[]): unknown 
     [error, ...rollbackErrors],
     error instanceof Error ? error.message : "Media operation and rollback failed.",
   );
+}
+
+let fallbackSharedQueue: Promise<void> = Promise.resolve();
+
+function fallbackMutationLock<T>(operation: () => Promise<T>): Promise<T> {
+  const result = fallbackSharedQueue.then(operation, operation);
+  fallbackSharedQueue = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
+
+type LockCapableNavigator = Navigator & {
+  locks?: {
+    request<T>(name: string, callback: () => Promise<T>): Promise<T>;
+  };
+};
+
+function browserMutationLock<T>(operation: () => Promise<T>): Promise<T> {
+  if (typeof navigator !== "undefined") {
+    const locks = (navigator as LockCapableNavigator).locks;
+    if (locks) return locks.request<T>(MEDIA_LIBRARY_LOCK_NAME, operation);
+  }
+  return fallbackMutationLock(operation);
 }

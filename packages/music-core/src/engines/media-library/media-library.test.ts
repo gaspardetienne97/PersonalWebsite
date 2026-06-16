@@ -143,6 +143,8 @@ function createHarness(
       }
       return binaries.get(key);
     },
+    listBinary: async (prefix = "") =>
+      [...binaries.keys()].filter((key) => key.startsWith(prefix)).sort(),
     deleteBinary: async (key) => {
       events.push(`binary:delete:${key}`);
       if (failNextBinaryDelete) {
@@ -178,6 +180,60 @@ function createHarness(
     failNextBinaryDelete() {
       failNextBinaryDelete = true;
     },
+  };
+}
+
+function createSharedLock(): NonNullable<MediaLibraryOptions["withMutationLock"]> {
+  let queue: Promise<void> = Promise.resolve();
+  return (operation) => {
+    const result = queue.then(operation, operation);
+    queue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  };
+}
+
+function createSharedHarness(
+  overrides: Partial<MediaLibraryOptions> = {},
+  estimate: StorageEstimate = {},
+) {
+  const events: string[] = [];
+  const backingRepository = new MemoryRepository<ImportedBackingTrackRow>([], (event) =>
+    events.push(`backing:${event}`),
+  );
+  const takeRepository = new MemoryRepository<AudioTakeRow>([], (event) =>
+    events.push(`take:${event}`),
+  );
+  const binaries = new Map<string, Blob>();
+  const withMutationLock = createSharedLock();
+  const baseOptions = {
+    backingRepository,
+    takeRepository,
+    putBinary: async (key: string, blob: Blob) => {
+      events.push(`binary:put:${key}`);
+      binaries.set(key, blob);
+    },
+    getBinary: async (key: string) => binaries.get(key),
+    listBinary: async (prefix = "") =>
+      [...binaries.keys()].filter((key) => key.startsWith(prefix)).sort(),
+    deleteBinary: async (key: string) => {
+      events.push(`binary:delete:${key}`);
+      binaries.delete(key);
+    },
+    storageEstimate: async () => estimate,
+    withMutationLock,
+    ...overrides,
+  } satisfies MediaLibraryOptions;
+
+  return {
+    first: new MediaLibrary(baseOptions),
+    second: new MediaLibrary(baseOptions),
+    backingRepository,
+    takeRepository,
+    binaries,
+    events,
   };
 }
 
@@ -294,6 +350,67 @@ describe("music-core/media-library", () => {
     await expect(library.references(backingRow.id)).resolves.toEqual([referencedTake.id]);
   });
 
+  test("coordinates concurrent same-id saves across library instances", async () => {
+    const { first, second } = createSharedHarness();
+    const firstRow = backing({ name: "First.wav" });
+    const secondRow = backing({ name: "Second.wav", size: 6 });
+
+    await expect(
+      Promise.all([
+        first.saveBacking(firstRow, new Blob(["first"], { type: firstRow.mimeType })),
+        second.saveBacking(secondRow, new Blob(["second"], { type: secondRow.mimeType })),
+      ]),
+    ).resolves.toEqual([undefined, undefined]);
+
+    const [storedRow] = await first.listBackings();
+    const storedBlobText = await first.backingBlob(firstRow.id).then((blob) => blob?.text());
+    expect(storedRow).toBeDefined();
+    expect(storedBlobText).toBe(storedRow?.name === firstRow.name ? "first" : "second");
+  });
+
+  test("coordinates concurrent cross-instance saves before applying the global budget", async () => {
+    const { first, second } = createSharedHarness({
+      limits: { maxApplicationBytes: 6 },
+    });
+    const firstRow = backing({ id: "first", name: "First.wav", size: 4 });
+    const secondRow = backing({ id: "second", name: "Second.wav", size: 4 });
+
+    const results = await Promise.allSettled([
+      first.saveBacking(firstRow, makeBlob(firstRow.size, firstRow.mimeType)),
+      second.saveBacking(secondRow, makeBlob(secondRow.size, secondRow.mimeType)),
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    await expect(first.usage()).resolves.toMatchObject({ totalBytes: 4 });
+  });
+
+  test("coordinates concurrent backing deletion and imported take save across instances", async () => {
+    const { first, second } = createSharedHarness();
+    const backingRow = backing();
+    const importedTake = take({
+      backingKind: "imported",
+      backingTrackId: backingRow.id,
+    });
+    await first.saveBacking(backingRow, makeBlob(backingRow.size, backingRow.mimeType));
+
+    await Promise.allSettled([
+      first.deleteBacking(backingRow.id, { orphanTakes: true }),
+      second.saveTake(importedTake, makeBlob(importedTake.size, importedTake.mimeType)),
+    ]);
+
+    const backings = await first.listBackings();
+    const takes = await first.listTakes();
+    expect(
+      takes.some(
+        (row) =>
+          row.backingKind === "imported" &&
+          row.backingTrackId === backingRow.id &&
+          !backings.some((backingRow) => backingRow.id === row.backingTrackId),
+      ),
+    ).toBe(false);
+  });
+
   test("accepts MP3 and WAV backing MIME types", async () => {
     const { library } = createHarness();
     const mimeTypes = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"];
@@ -394,6 +511,7 @@ describe("music-core/media-library", () => {
       take({ id: "bad/id" }),
       take({ name: " " }),
       take({ createdAt: unixMs(Number.POSITIVE_INFINITY) }),
+      take({ instrument: "banjo" as AudioTakeRow["instrument"] }),
       take({ backingOffsetMs: Number.NaN }),
       take({ backingOffsetMs: -1 }),
       take({
@@ -582,6 +700,17 @@ describe("music-core/media-library", () => {
       library.saveBacking(replacement, makeBlob(replacement.size, replacement.mimeType)),
     ).resolves.toBeUndefined();
     await expect(library.usage()).resolves.toMatchObject({ totalBytes: 8 });
+  });
+
+  test("reconciles orphan binary blobs before reporting usage", async () => {
+    const { library, binaries, events } = createHarness();
+    const row = take();
+    binaries.set("music-take-orphan", makeBlob(7, row.mimeType));
+    await library.saveTake(row, makeBlob(row.size, row.mimeType));
+
+    await expect(library.usage()).resolves.toMatchObject({ totalBytes: row.size });
+    expect(binaries.has("music-take-orphan")).toBe(false);
+    expect(events).toContain("binary:delete:music-take-orphan");
   });
 
   test("aborts replacement when the previous blob cannot be read", async () => {

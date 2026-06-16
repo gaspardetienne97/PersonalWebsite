@@ -230,16 +230,24 @@ describe("music-core/store", () => {
     });
   });
 
-  test("treats an inaccessible OPFS root as unavailable", async () => {
+  test("propagates inaccessible OPFS root failures", async () => {
     const storage = {
       getDirectory: vi.fn().mockRejectedValue(new DOMException("Denied", "SecurityError")),
     } as unknown as StorageManager;
 
     await withStorage(storage, async () => {
-      await expect(putBinary("inaccessible", new Blob())).rejects.toThrow(unavailableMessage);
-      await expect(deleteBinary("inaccessible")).rejects.toThrow(unavailableMessage);
-      await expect(getBinary("inaccessible")).resolves.toBeUndefined();
-      await expect(list("inaccessible")).resolves.toEqual([]);
+      await expect(putBinary("inaccessible", new Blob())).rejects.toMatchObject({
+        name: "SecurityError",
+      });
+      await expect(deleteBinary("inaccessible")).rejects.toMatchObject({
+        name: "SecurityError",
+      });
+      await expect(getBinary("inaccessible")).rejects.toMatchObject({
+        name: "SecurityError",
+      });
+      await expect(list("inaccessible")).rejects.toMatchObject({
+        name: "SecurityError",
+      });
     });
   });
 

@@ -206,9 +206,5 @@ export async function storageEstimate(): Promise<StorageEstimate> {
 
 async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | undefined> {
   if (typeof navigator === "undefined" || !navigator.storage?.getDirectory) return undefined;
-  try {
-    return await navigator.storage.getDirectory();
-  } catch {
-    return undefined;
-  }
+  return navigator.storage.getDirectory();
 }
