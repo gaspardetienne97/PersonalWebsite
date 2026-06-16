@@ -35,7 +35,7 @@ describe("scoreToPattern", () => {
   });
 
   test("honours a bpm override and an empty score", () => {
-    const { steps, durationSec } = scoreToPattern(makeScore(), { bpm: 60 });
+    const { steps } = scoreToPattern(makeScore(), { bpm: 60 });
     expect(steps[1]).toEqual({ midiNotes: [64], offsetSeconds: 1, durationSeconds: 2 });
     const empty = scoreToPattern(makeScore({ notes: [] }));
     expect(empty.steps).toEqual([]);
@@ -195,6 +195,62 @@ describe("music-core/sound", () => {
 
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(1, ["C4", "E4", "G4"], 0.6, 10, 0.8);
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["B4"], 0.5, 10.8, 0.8);
+  });
+
+  test("starts and stops a generated pattern loop", async () => {
+    vi.useFakeTimers();
+    try {
+      const mock = createToneMock();
+      const sound = new SoundEngine(async () => mock.tone);
+      await sound.enable();
+
+      sound.startPatternLoop(
+        [{ midiNotes: [60, 64, 67], offsetSeconds: 0, durationSeconds: 0.4 }],
+        1,
+      );
+
+      expect(mock.synthTrigger).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(1_000);
+      expect(mock.synthTrigger).toHaveBeenCalledTimes(2);
+
+      sound.stopPatternLoop();
+      vi.advanceTimersByTime(1_000);
+      expect(mock.synthTrigger).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("replaces the previous generated pattern loop and stops it on dispose", async () => {
+    vi.useFakeTimers();
+    try {
+      const mock = createToneMock();
+      const sound = new SoundEngine(async () => mock.tone);
+      await sound.enable();
+
+      sound.startPatternLoop([{ midiNotes: [60], offsetSeconds: 0, durationSeconds: 0.2 }], 1);
+      sound.startPatternLoop([{ midiNotes: [67], offsetSeconds: 0, durationSeconds: 0.2 }], 2);
+      vi.advanceTimersByTime(1_000);
+      expect(mock.synthTrigger).toHaveBeenCalledTimes(2);
+
+      vi.advanceTimersByTime(1_000);
+      expect(mock.synthTrigger).toHaveBeenCalledTimes(3);
+
+      sound.dispose();
+      vi.advanceTimersByTime(2_000);
+      expect(mock.synthTrigger).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("rejects invalid generated pattern loop durations", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    expect(() => sound.startPatternLoop([], 0)).toThrow(/duration/i);
+    expect(() => sound.startPatternLoop([], Number.POSITIVE_INFINITY)).toThrow(/duration/i);
   });
 
   test("master mute toggles output and metronome blend sets its own gain", async () => {

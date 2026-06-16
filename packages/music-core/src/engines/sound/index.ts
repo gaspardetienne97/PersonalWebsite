@@ -175,6 +175,7 @@ export class SoundEngine {
   #droneTimbre = DRONE_TIMBRE_NAMES[0]!;
   #droneNote: number | undefined;
   #instrumentName = SOUND_PRESET_NAMES[0]!;
+  #patternLoopTimer: ReturnType<typeof setTimeout> | undefined;
   #loadTone: ToneLoader;
   enabled = false;
   muted = false;
@@ -271,6 +272,28 @@ export class SoundEngine {
         startAt + step.offsetSeconds,
         clampVelocity(velocity),
       );
+    }
+  }
+
+  startPatternLoop(steps: SoundPatternStep[], durationSec: number, velocity = 0.8): void {
+    if (!Number.isFinite(durationSec) || durationSec <= 0) {
+      throw new Error("Pattern loop duration must be finite and greater than zero.");
+    }
+
+    this.stopPatternLoop();
+    if (!this.enabled || !this.#tone) return;
+
+    const playAndScheduleNext = () => {
+      this.playPattern(steps, velocity);
+      this.#patternLoopTimer = setTimeout(playAndScheduleNext, durationSec * 1_000);
+    };
+    playAndScheduleNext();
+  }
+
+  stopPatternLoop(): void {
+    if (this.#patternLoopTimer !== undefined) {
+      clearTimeout(this.#patternLoopTimer);
+      this.#patternLoopTimer = undefined;
     }
   }
 
@@ -406,6 +429,7 @@ export class SoundEngine {
   }
 
   dispose(): void {
+    this.stopPatternLoop();
     this.#synth?.dispose();
     this.#sampler?.dispose();
     this.#players?.dispose();
