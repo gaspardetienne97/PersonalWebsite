@@ -5,7 +5,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./domain": "./src/domain/index.ts",
+    "./services/extract": "./src/services/extract/index.ts",
+    "./services/tts": "./src/services/tts/index.ts",
     "./stores/narration": "./src/stores/narration.svelte.ts",
+    "./stores/voices": "./src/stores/voices.svelte.ts",
     "./stores/library": "./src/stores/library.svelte.ts",
     "./stores/settings": "./src/stores/settings.svelte.ts"
   },
@@ -15,6 +18,9 @@
     "build": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
+    "kokoro-js": "^1.2.1",
+    "pdfjs-dist": "^5.4.530",
     "svelte": "catalog:"
   },
   "devDependencies": {

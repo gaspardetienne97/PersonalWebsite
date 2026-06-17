@@ -102,6 +102,7 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 - Root-level guidance applies across the repo.
 - Music-specific work under [src/routes/music/](src/routes/music/) should also follow [src/routes/music/AGENTS.md](src/routes/music/AGENTS.md).
 - Package work in [packages/music-core/](packages/music-core/) is part of the Music app architecture and should follow the Music guidance when changes affect Music domain, engines, exercises, persistence, input, analytics, progress, or practice workflows.
+- Narrator-specific work under [src/routes/pdf/](src/routes/pdf/) (the `/pdf` read-aloud app) should also follow [src/routes/pdf/AGENTS.md](src/routes/pdf/AGENTS.md). Package work in [packages/pdf-core/](packages/pdf-core/) is part of the Narrator architecture and should follow that guidance when changes affect extraction, the narration timeline, TTS engines, the library, or reader settings.
 - If nested guidance conflicts with this file, follow the more specific nested guidance for files in that scope.
 
 ### App Boundaries

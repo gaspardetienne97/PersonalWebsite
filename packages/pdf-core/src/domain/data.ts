@@ -1,17 +1,7 @@
-/** Sample library + public-domain narration content.
- *
- * The narration pipeline is a realistic mock (per the design handoff):
- * uploads load curated public-domain text so the reader narrates real prose.
- */
+/** Sample library — public-domain texts seeded on first load so the reader
+ * has something to narrate before any uploads. */
 
-import type { DocKind, NarratorDoc } from "./types";
-
-export const VOICES = [
-  "Aria — calm British",
-  "Felix — neutral US",
-  "Marcus — warm baritone",
-  "Nova — bright US",
-];
+import type { NarratorDoc } from "./types";
 
 export const SAMPLE_DOCS: NarratorDoc[] = [
   {
@@ -21,7 +11,7 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     kind: "epub",
     accent: "#1291FA",
     meta: "Novel · 1895",
-    voice: "Aria — calm British",
+    voice: "",
     progress: 0.18,
     chapters: [
       {
@@ -60,7 +50,7 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     kind: "paste",
     accent: "#A21FB8",
     meta: "Article · pasted",
-    voice: "Felix — neutral US",
+    voice: "",
     progress: 0,
     chapters: [
       {
@@ -90,7 +80,7 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     kind: "txt",
     accent: "#FF0C0D",
     meta: "Philosophy · 170 AD",
-    voice: "Marcus — warm baritone",
+    voice: "",
     progress: 0.62,
     chapters: [
       {
@@ -120,7 +110,7 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     kind: "pdf",
     accent: "#22C55E",
     meta: "Technical · PDF, OCR",
-    voice: "Felix — neutral US",
+    voice: "",
     progress: 0.04,
     chapters: [
       {
@@ -135,91 +125,3 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     ],
   },
 ];
-
-/** Documents fabricated by a simulated "upload" (public-domain text so narration reads real). */
-export const UPLOAD_BANK: Record<Exclude<DocKind, "paste">, NarratorDoc> = {
-  pdf: {
-    id: "origin",
-    title: "On the Origin of Species",
-    author: "Charles Darwin",
-    kind: "pdf",
-    accent: "#22C55E",
-    meta: "Scanned PDF · OCR",
-    voice: VOICES[0],
-    progress: 0,
-    chapters: [
-      {
-        id: "o1",
-        title: "Introduction",
-        paragraphs: [
-          "When on board H.M.S. Beagle, as naturalist, I was much struck with certain facts in the distribution of the organic beings inhabiting South America.",
-          "These facts seemed to throw some light on the origin of species, that mystery of mysteries, as it has been called by one of our greatest philosophers.",
-          "On my return home it occurred to me that something might perhaps be made out on this question by patiently accumulating and reflecting on all sorts of facts.",
-        ],
-      },
-    ],
-  },
-  epub: {
-    id: "frankenstein",
-    title: "Frankenstein",
-    author: "Mary Shelley",
-    kind: "epub",
-    accent: "#A21FB8",
-    meta: "EPUB · 1818",
-    voice: VOICES[0],
-    progress: 0,
-    chapters: [
-      {
-        id: "f1",
-        title: "Letter I",
-        paragraphs: [
-          "You will rejoice to hear that no disaster has accompanied the commencement of an enterprise which you have regarded with such evil forebodings.",
-          "I arrived here yesterday, and my first task is to assure my dear sister of my welfare and increasing confidence in the success of my undertaking.",
-          "I am already far north of London, and as I walk in the streets of Petersburgh, I feel a cold northern breeze play upon my cheeks, which braces my nerves and fills me with delight.",
-        ],
-      },
-    ],
-  },
-  txt: {
-    id: "art-of-war",
-    title: "The Art of War",
-    author: "Sun Tzu",
-    kind: "txt",
-    accent: "#F59E0B",
-    meta: "Plain text",
-    voice: VOICES[0],
-    progress: 0,
-    chapters: [
-      {
-        id: "a1",
-        title: "Laying Plans",
-        paragraphs: [
-          "The art of war is of vital importance to the State. It is a matter of life and death, a road either to safety or to ruin.",
-          "Hence it is a subject of inquiry which can on no account be neglected. The art of war is governed by five constant factors.",
-          "These are: the Moral Law, Heaven, Earth, the Commander, and Method and discipline. All five should be familiar to every general.",
-        ],
-      },
-    ],
-  },
-};
-
-/** Build a document from pasted text: first sentence fragment becomes the title. */
-export function docFromPaste(text: string, voice: string, now: number): NarratorDoc | null {
-  const paras = text
-    .split(/\n\s*\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (!paras.length) return null;
-  const title = paras[0].split(/[.!?]/)[0].slice(0, 48) || "Pasted text";
-  return {
-    id: "paste-" + now,
-    title,
-    author: "Pasted text",
-    kind: "paste",
-    accent: "#1291FA",
-    meta: "Pasted · " + text.trim().split(/\s+/).length + " words",
-    voice,
-    progress: 0,
-    chapters: [{ id: "p1", title: "Pasted text", paragraphs: paras }],
-  };
-}

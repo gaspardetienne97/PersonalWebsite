@@ -8,6 +8,25 @@ import { pwaOptions } from "./pwa.config";
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit(), SvelteKitPWA(pwaOptions)],
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep the in-browser neural-TTS runtime (Kokoro + transformers.js +
+        // onnxruntime) in one named, lazily-loaded chunk so it stays out of the
+        // music PWA precache and only downloads when a reader opts into it.
+        // Rolldown (vite-plus) groups chunks via `advancedChunks`, not rollup's
+        // `manualChunks`.
+        advancedChunks: {
+          groups: [
+            {
+              name: "kokoro-tts",
+              test: /[\\/]node_modules[\\/](@huggingface[\\/]transformers|kokoro-js|onnxruntime[^\\/]*|phonemizer)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
+  },
   optimizeDeps: {
     include: [
       "lucide-svelte/icons/moon",
@@ -20,11 +39,14 @@ export default defineConfig({
       // Narrator (/pdf) icons
       "lucide-svelte/icons/align-left",
       "lucide-svelte/icons/arrow-left",
+      "lucide-svelte/icons/arrow-right",
       "lucide-svelte/icons/audio-waveform",
       "lucide-svelte/icons/book-open",
       "lucide-svelte/icons/check",
       "lucide-svelte/icons/chevron-down",
       "lucide-svelte/icons/clock",
+      "lucide-svelte/icons/cpu",
+      "lucide-svelte/icons/download",
       "lucide-svelte/icons/file-text",
       "lucide-svelte/icons/gauge",
       "lucide-svelte/icons/headphones",
@@ -41,6 +63,7 @@ export default defineConfig({
       "lucide-svelte/icons/type",
       "lucide-svelte/icons/upload",
       "lucide-svelte/icons/x",
+      "lucide-svelte/icons/zap",
       "svguitar",
       "tone",
       "@repo/music-core > webmidi",

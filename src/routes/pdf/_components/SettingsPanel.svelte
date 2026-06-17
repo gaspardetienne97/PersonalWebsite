@@ -1,67 +1,47 @@
 <script lang="ts">
   import Check from "lucide-svelte/icons/check";
 
-  import {
-    ACCENT_OPTIONS,
-    type HighlightStyle,
-    type ReaderLayout,
-    type ReaderSettings,
-    type ReadingFont,
-  } from "@repo/pdf-core/stores/settings";
+  import ArrowRight from "lucide-svelte/icons/arrow-right";
+
+  import { kokoroSupported } from "@repo/pdf-core";
+  import { ACCENT_OPTIONS, type ReaderSettings, type VoiceEngine } from "@repo/pdf-core/stores/settings";
 
   let { settings }: { settings: ReaderSettings } = $props();
 
-  const LAYOUTS: { value: ReaderLayout; label: string }[] = [
-    { value: "immersive", label: "Immersive" },
-    { value: "audiobook", label: "Audiobook" },
-    { value: "document", label: "Document" },
+  const ENGINES: { value: VoiceEngine; label: string }[] = [
+    { value: "system", label: "System" },
+    { value: "natural", label: "Natural" },
   ];
-  const HIGHLIGHTS: { value: HighlightStyle; label: string }[] = [
-    { value: "underline", label: "Underline" },
-    { value: "fill", label: "Fill" },
-    { value: "glow", label: "Glow" },
-  ];
-  const FONTS: { value: ReadingFont; label: string }[] = [
-    { value: "sans", label: "Sans" },
-    { value: "serif", label: "Serif" },
-  ];
+  const naturalAvailable = kokoroSupported();
 </script>
 
 <div class="panel" role="group" aria-label="Reader settings panel">
-  <div class="section">Reading</div>
+  <div class="section">Voice</div>
 
   <div class="row">
-    <span class="label">Player layout</span>
+    <span class="label">Engine</span>
     <div class="seg">
-      {#each LAYOUTS as o (o.value)}
-        <button class:on={settings.layout === o.value} onclick={() => settings.update("layout", o.value)}>
+      {#each ENGINES as o (o.value)}
+        <button
+          class:on={settings.engine === o.value}
+          disabled={o.value === "natural" && !naturalAvailable}
+          onclick={() => settings.update("engine", o.value)}
+        >
           {o.label}
         </button>
       {/each}
     </div>
   </div>
-
-  <div class="row">
-    <span class="label">Highlight</span>
-    <div class="seg">
-      {#each HIGHLIGHTS as o (o.value)}
-        <button class:on={settings.highlight === o.value} onclick={() => settings.update("highlight", o.value)}>
-          {o.label}
-        </button>
-      {/each}
-    </div>
-  </div>
-
-  <div class="row">
-    <span class="label">Reading font</span>
-    <div class="seg">
-      {#each FONTS as o (o.value)}
-        <button class:on={settings.font === o.value} onclick={() => settings.update("font", o.value)}>
-          {o.label}
-        </button>
-      {/each}
-    </div>
-  </div>
+  <p class="hint">
+    {#if settings.engine === "natural"}
+      Natural uses an in-browser neural voice (Kokoro), downloaded once then offline.
+    {:else}
+      System uses your device's built-in voices — instant, no download.
+    {/if}
+  </p>
+  <a class="settings-link" href="/pdf/settings">
+    Voice settings &amp; downloads <ArrowRight size={13} strokeWidth={1.5} />
+  </a>
 
   <div class="section">Type</div>
 
@@ -177,6 +157,30 @@
     background: var(--n-bg-2);
     color: var(--n-fg-0);
     box-shadow: var(--n-shadow-xs);
+  }
+  .seg button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .hint {
+    margin: -2px 2px 2px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--n-fg-3);
+  }
+  .settings-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 2px;
+    padding: 6px 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--n-brand-blue);
+    text-decoration: none;
+  }
+  .settings-link:hover {
+    text-decoration: underline;
   }
   .slider-row {
     flex-direction: column;

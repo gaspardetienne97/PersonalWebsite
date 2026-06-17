@@ -17,6 +17,11 @@ test.describe("Narrator", () => {
     await expect(page.getByRole("button", { name: /Resume/ })).toBeVisible();
   });
 
+  test("library app bar opens the voice settings page", async ({ page }) => {
+    await page.getByRole("link", { name: "Voice settings" }).click();
+    await expect(page.getByRole("heading", { name: "Voice settings" })).toBeVisible();
+  });
+
   test("search filters the library", async ({ page }) => {
     await page.getByLabel("Search your library").fill("meditations");
 
@@ -40,7 +45,7 @@ test.describe("Narrator", () => {
     await expect(page.getByText("Drop your PDF here")).toBeVisible();
   });
 
-  test("pasting text runs the pipeline and lands in the reader", async ({ page }) => {
+  test("pasting text lands in the reader with the real words", async ({ page }) => {
     await page
       .getByRole("button", { name: /Add document/ })
       .first()
@@ -51,12 +56,34 @@ test.describe("Narrator", () => {
       .fill("Hello world. This is a pasted narration test. It has three sentences.");
     await page.getByRole("button", { name: /Narrate this text/ }).click();
 
+    await expect(page.getByRole("button", { name: "Back to library" })).toBeVisible();
+    // The reader renders the pasted prose, tokenized into clickable words
+    // (the first sentence is the active teleprompter line at the start).
+    await expect(page.locator(".word", { hasText: "Hello" }).first()).toBeVisible();
+  });
+
+  test("uploading a real text file extracts and narrates it", async ({ page }) => {
+    await page
+      .getByRole("button", { name: /Add document/ })
+      .first()
+      .click();
+    await page.getByRole("tab", { name: "Text file" }).click();
+
+    // Real upload: the file is parsed in-browser (no mock content).
+    await page.setInputFiles('input[type="file"]', {
+      name: "uploaded-notes.md",
+      mimeType: "text/markdown",
+      buffer: Buffer.from(
+        "# Uploaded Notes\n\nThe first real paragraph from a file.\n\n## Section Two\n\nAnd a second paragraph here.",
+      ),
+    });
+
     await expect(page.getByText("Building your narration")).toBeVisible();
-    // The simulated pipeline finishes and the reader opens on the new doc.
     await expect(page.getByRole("button", { name: "Back to library" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("Hello world").first()).toBeVisible();
+    await expect(page.getByText("Uploaded Notes").first()).toBeVisible();
+    await expect(page.locator(".word", { hasText: "paragraph" }).first()).toBeVisible();
   });
 
   test("opens a document in the reader with transport controls", async ({ page }) => {
@@ -86,16 +113,29 @@ test.describe("Narrator", () => {
     await expect(page.getByRole("button", { name: /The Machine/ })).not.toBeVisible();
   });
 
-  test("reader settings switch layout", async ({ page }) => {
+  test("reader settings link opens the voice settings page", async ({ page }) => {
     await page.getByText("The Time Machine").first().click();
     await page.getByRole("button", { name: "Reader settings" }).click();
     await page
       .getByRole("group", { name: "Reader settings panel" })
-      .getByRole("button", { name: "Document", exact: true })
+      .getByRole("link", { name: /Voice settings/ })
       .click();
 
-    // Document layout shows the scrolling text with the chapter eyebrow.
-    await expect(page.getByText("The Inventor").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Voice settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Reading voice" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "System voices" })).toBeVisible();
+  });
+
+  test("reader settings expose the system/natural voice engine toggle", async ({ page }) => {
+    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "Reader settings" }).click();
+
+    const panel = page.getByRole("group", { name: "Reader settings panel" });
+    await expect(panel.getByRole("button", { name: "System", exact: true })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Natural", exact: true })).toBeVisible();
+    // Switching to Natural surfaces the in-browser neural-voice explainer.
+    await panel.getByRole("button", { name: "Natural", exact: true }).click();
+    await expect(panel.getByText(/in-browser neural voice/i)).toBeVisible();
   });
 
   test("a document can be removed from the library", async ({ page }) => {
