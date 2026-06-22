@@ -5,6 +5,14 @@ export interface PadRow {
   midi: number;
 }
 
+export interface StepSequencerPattern {
+  steps: number;
+  rows: Array<{
+    id: string;
+    steps: number[];
+  }>;
+}
+
 export const BOOM_BAP_KIT: PadRow[] = [
   { id: "kick", name: "Kick", midi: 36 },
   { id: "snare", name: "Snare", midi: 38 },
@@ -28,7 +36,7 @@ export class StepSequencer {
   constructor(rows: PadRow[], steps = 16) {
     this.rows = rows;
     this.steps = steps;
-    this.#grid = rows.map(() => new Array<boolean>(steps).fill(false));
+    this.#grid = rows.map(() => Array.from({ length: steps }, () => false));
   }
 
   isOn(rowIndex: number, step: number): boolean {
@@ -45,11 +53,34 @@ export class StepSequencer {
     return [...(this.#grid[rowIndex] ?? [])];
   }
 
+  toPattern(): StepSequencerPattern {
+    return {
+      steps: this.steps,
+      rows: this.rows.map((row, rowIndex) => ({
+        id: row.id,
+        steps: this.rowPattern(rowIndex).flatMap((enabled, step) => (enabled ? [step] : [])),
+      })),
+    };
+  }
+
+  applyPattern(pattern: StepSequencerPattern): void {
+    this.clear();
+    const rowIndexById = new Map(this.rows.map((row, index) => [row.id, index]));
+    for (const row of pattern.rows) {
+      const rowIndex = rowIndexById.get(row.id);
+      if (rowIndex === undefined) continue;
+      for (const step of row.steps) {
+        if (!Number.isInteger(step) || step < 0 || step >= this.steps) continue;
+        this.toggle(rowIndex, step);
+      }
+    }
+  }
+
   padsAt(step: number): PadRow[] {
     return this.rows.filter((_, rowIndex) => this.isOn(rowIndex, step));
   }
 
   clear(): void {
-    this.#grid = this.rows.map(() => new Array<boolean>(this.steps).fill(false));
+    this.#grid = this.rows.map(() => Array.from({ length: this.steps }, () => false));
   }
 }

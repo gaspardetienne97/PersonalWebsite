@@ -9,6 +9,9 @@ describe("/music/+page.svelte", () => {
     expect(document.querySelector("h1")?.textContent).toContain("Musicianship OS");
     expect(document.body.textContent).toContain("MIDI devices");
     expect(document.body.textContent).toContain("Live MIDI events");
+    expect(document.querySelector('a[href="/music/routine"]')?.textContent).toContain(
+      "Start daily routine",
+    );
     expect(
       document.querySelector('[role="group"][aria-label="On-screen keyboard"]'),
     ).not.toBeNull();

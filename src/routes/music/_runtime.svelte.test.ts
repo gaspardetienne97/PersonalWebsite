@@ -6,6 +6,7 @@ import {
   type ExerciseRunRecord,
   type ScoringEvent,
 } from "@repo/music-core/domain";
+import { buildDailyRoutinePlan } from "@repo/music-core/engines/daily-routine";
 import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 import type { TransportEngine, TransportEvent } from "@repo/music-core/engines/transport";
@@ -210,6 +211,73 @@ describe("MusicRuntime shared UI state", () => {
       tags: ["reading"],
     });
     expect(sessions[0]?.notes).toContain("Note reading");
+    rt.dispose();
+  });
+
+  it("aggregates active routine drills into one daily-routine journal entry", async () => {
+    const store = createStore();
+    const rt = new MusicRuntime();
+    rt.attachJournal(store);
+    rt.startDailyRoutine(buildDailyRoutinePlan([]).slice(0, 2), unixMs(1_000));
+
+    await rt.recordPractice({
+      source: "drill",
+      tags: ["ear"],
+      scoringEvents: [routineEvent("routine-ear", 0.75)],
+      xpEarned: 12,
+      note: "Ear training complete",
+      startedAt: unixMs(1_200),
+      endedAt: unixMs(2_000),
+    });
+
+    let journal = new PracticeSessionStore(store);
+    await journal.load();
+    expect(journal.all()).toHaveLength(0);
+    expect(rt.dailyRoutine?.currentStep?.id).toBe("reading");
+
+    await rt.recordPractice({
+      source: "drill",
+      tags: ["reading"],
+      scoringEvents: [routineEvent("routine-reading", 1)],
+      xpEarned: 18,
+      note: "Reading complete",
+      startedAt: unixMs(2_500),
+      endedAt: unixMs(4_000),
+    });
+
+    journal = new PracticeSessionStore(store);
+    await journal.load();
+    expect(journal.all()).toHaveLength(1);
+    expect(journal.all()[0]).toMatchObject({
+      source: "daily-routine",
+      xpEarned: 30,
+      tags: ["daily-routine", "ear", "reading"],
+    });
+    expect(journal.all()[0]?.scoringEvents).toHaveLength(2);
+    expect(rt.dailyRoutine?.status).toBe("summary");
+    rt.dispose();
+  });
+
+  it("does not advance a routine when a different drill is completed", async () => {
+    const store = createStore();
+    const rt = new MusicRuntime();
+    rt.attachJournal(store);
+    rt.startDailyRoutine(buildDailyRoutinePlan([]).slice(0, 2), unixMs(1_000));
+
+    await rt.recordPractice({
+      source: "drill",
+      tags: ["reading"],
+      scoringEvents: [routineEvent("outside-routine-reading", 1)],
+      xpEarned: 10,
+      startedAt: unixMs(1_200),
+      endedAt: unixMs(2_000),
+    });
+
+    const journal = new PracticeSessionStore(store);
+    await journal.load();
+    expect(journal.all()).toHaveLength(1);
+    expect(journal.all()[0]?.source).toBe("drill");
+    expect(rt.dailyRoutine?.currentStep?.id).toBe("ear");
     rt.dispose();
   });
 
@@ -433,4 +501,19 @@ function createStableCapture(id: string): {
   };
 
   return { entry, run, scoringEvent };
+}
+
+function routineEvent(id: string, partialCredit: number): ScoringEvent {
+  return {
+    id,
+    sessionId: "routine-drill",
+    exerciseId: "routine.exercise",
+    skillIds: ["pitch.interval.m6"],
+    capabilities: [Capability.EarTraining],
+    at: unixMs(1_500),
+    correct: partialCredit === 1,
+    partialCredit,
+    difficulty: 0.5,
+    metrics: [],
+  };
 }

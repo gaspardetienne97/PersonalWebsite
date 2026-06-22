@@ -1,9 +1,16 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import Circle from "lucide-svelte/icons/circle";
   import Play from "lucide-svelte/icons/play";
   import SkipForward from "lucide-svelte/icons/skip-forward";
 
   import type { NoteEvent } from "@repo/music-core/domain";
+  import {
+    BackingTrackEngine,
+    type BackingTrackPlaybackAdapter,
+    type BackingTrackState,
+  } from "@repo/music-core/engines/backing-track";
+  import { BrowserBackingPlayer } from "@repo/music-core/engines/backing-track/browser-player";
   import {
     JAM_PROGRESSIONS,
     JamSession,
@@ -20,7 +27,7 @@
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
-  import { useMusicRuntime } from "../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
 
   // One octave starting at C; white/black layout for the target-tone keyboard.
   const WHITE = [
@@ -40,17 +47,24 @@
     { pc: 10, left: 80 },
   ];
 
-  const runtime = useMusicRuntime();
+  const DEFAULT_PROGRESSION = JAM_PROGRESSIONS[0]!;
+  const initialSession = new JamSession(DEFAULT_PROGRESSION);
 
-  let progression = $state<JamProgression>(JAM_PROGRESSIONS[0]!);
-  let session = $state(new JamSession(progression));
-  let tones = $state<TargetTone[]>(session.targetTones());
+  const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+
+  let progression = $state<JamProgression>(DEFAULT_PROGRESSION);
+  let session = $state(initialSession);
+  let tones = $state<TargetTone[]>(initialSession.targetTones());
   let currentIndex = $state(0);
   let recording = $state(false);
   let recordedCount = $state(0);
+  const backingEngine = new BackingTrackEngine(createBackingAdapter());
+  let backingState = $state<BackingTrackState>(backingEngine.state);
 
-  const current = $derived(session.current);
-  const next = $derived(session.next);
+  const current = $derived(progression.chords[currentIndex] ?? progression.chords[0]!);
+  const next = $derived(
+    progression.chords[(currentIndex + 1) % progression.chords.length] ?? progression.chords[0]!,
+  );
   const sourceLabel = $derived(
     runtime.activeSource === "midi" ? "MIDI" : runtime.activeSource === "audio" ? "Audio" : "On-screen",
   );
@@ -64,24 +78,33 @@
     return black ? "" : "";
   }
 
-  const unsubscribe = runtime.router.subscribe((event) => {
-    if (!recording || event.type !== "noteOn") return;
-    session.record(event);
-    recordedCount = session.recorded().length;
+  const unsubscribeBacking = backingEngine.subscribe((state) => {
+    backingState = state;
   });
 
-  // The transport Play button plays the whole progression.
   $effect(() => {
-    const chords = progression.chords;
-    const steps = chords.map((chord, index) => ({
-      midiNotes: chordNotes(chord.symbol).map((name) => 48 + pitchClass(name)),
-      offsetSeconds: index * 1.2,
-      durationSeconds: 1.1,
-    }));
+    const unsubscribe = runtime.router.subscribe((event) => {
+      if (!recording || event.type !== "noteOn") return;
+      session.record(event);
+      recordedCount = session.recorded().length;
+    });
+    return () => unsubscribe();
+  });
+
+  // The transport Play button uses the shared backing engine/player path.
+  $effect(() => {
+    backingEngine.selectGenerated({
+      kind: "generated",
+      progressionId: progression.id,
+      bpm: runtime.transportBpm,
+      loop: true,
+    });
+    const durationSec = backingEngine.state.durationMs / 1_000;
     runtime.setPlaybackSource({
       label: `${progression.name} progression`,
-      durationSec: chords.length * 1.2,
-      play: () => runtime.sound.playPattern(steps),
+      durationSec,
+      play: () => backingEngine.play(),
+      stop: () => backingEngine.stop(),
     });
   });
 
@@ -109,6 +132,11 @@
     runtime.sound.playChord(midi, 1.2);
   }
 
+  async function playBacking(): Promise<void> {
+    if (!(await runtime.enableAudio())) return;
+    await backingEngine.play();
+  }
+
   function playSolo(event: NoteEvent): void {
     if (event.type === "noteOn" && runtime.audioEnabled) {
       runtime.sound.playNote(event.midiNote, 0.18, undefined, event.velocity);
@@ -124,9 +152,33 @@
   }
 
   onDestroy(() => {
-    unsubscribe();
+    unsubscribeBacking();
+    backingEngine.dispose();
     runtime.setPlaybackSource(undefined);
   });
+
+  function createBackingAdapter(): BackingTrackPlaybackAdapter {
+    if (browser) {
+      return new BrowserBackingPlayer({
+        sound: runtime.sound,
+        loadBlob: () => Promise.resolve(undefined),
+        onImportedPositionChange: (positionMs) => backingEngine.updateImportedPosition(positionMs),
+        onImportedEnded: () => backingEngine.markEnded(),
+      });
+    }
+    return {
+      playGenerated: async () => {},
+      stopGenerated: () => {},
+      loadImported: async (track) => track.durationMs,
+      playImported: async () => {},
+      pauseImported: () => {},
+      stopImported: () => {},
+      seekImported: () => {},
+      setImportedLoop: () => {},
+      setImportedVolume: () => {},
+      dispose: () => {},
+    };
+  }
 </script>
 
 <svelte:head>
@@ -256,7 +308,16 @@
           <div class="grid gap-1 text-sm">
             <div class="flex justify-between"><span class="text-muted-foreground">Key</span><span class="font-medium">{progression.key}</span></div>
             <div class="flex justify-between"><span class="text-muted-foreground">Next</span><span class="font-medium">{next.symbol}</span></div>
+            <div class="flex justify-between"><span class="text-muted-foreground">Backing</span><span class="font-medium capitalize">{backingState.status}</span></div>
             <div class="flex justify-between"><span class="text-muted-foreground">Recorded</span><span class="font-medium tabular-nums">{recordedCount} notes</span></div>
+          </div>
+          <div class="flex gap-2">
+            <Button type="button" class="flex-1" onclick={() => void playBacking()}>
+              <Play class="size-4" aria-hidden="true" />Play backing
+            </Button>
+            <Button type="button" variant="outline" class="flex-1" onclick={() => backingEngine.stop()}>
+              Stop
+            </Button>
           </div>
         </Card.Content>
       </Card.Root>

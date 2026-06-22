@@ -21,6 +21,7 @@
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
@@ -175,8 +176,9 @@
         <p>Next target: {summary.nextTargetBpm} BPM</p>
         <p>{summary.results[0]?.result.feedback[0]?.message}</p>
       </Card.Content>
-      <Card.Footer>
+      <Card.Footer class="flex-wrap gap-3">
         <Button type="button" onclick={repeat}>Practice next tempo</Button>
+        <RoutineContinueAction routine={runtime.dailyRoutine} />
       </Card.Footer>
     </Card.Root>
   {:else}

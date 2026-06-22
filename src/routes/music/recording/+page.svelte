@@ -1,27 +1,50 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
+  import { onDestroy, onMount } from "svelte";
+
   import Circle from "lucide-svelte/icons/circle";
   import Square from "lucide-svelte/icons/square";
 
-  import { RecordingSession, type Take } from "@repo/music-core/engines/recording";
+  import { unixMs } from "@repo/music-core/domain";
+  import {
+    AudioTakeRecorder,
+    type AudioTakeRecording,
+  } from "@repo/music-core/engines/audio-recording";
+  import type { MediaUsage } from "@repo/music-core/engines/media-library";
+  import { RecordingSession, type Take as MidiTake } from "@repo/music-core/engines/recording";
+  import type { AudioTakeRow } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
-  import { onDestroy } from "svelte";
-
+  import AudioTakePanel from "../_components/AudioTakePanel.svelte";
   import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
-  import { useMusicRuntime } from "../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
 
-  const runtime = useMusicRuntime();
+  let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const recorder = new RecordingSession();
+  const audioRecorder = new AudioTakeRecorder();
 
   let recording = $state(false);
   let liveCount = $state(0);
-  let takes = $state<Take[]>([]);
+  let midiTakes = $state<MidiTake[]>([]);
   let compareA = $state<string>("");
   let compareB = $state<string>("");
+  let audioTakes = $state<AudioTakeRow[]>([]);
+  let selectedAudioTake = $state<AudioTakeRow | undefined>();
+  let mediaUsage = $state<MediaUsage | undefined>();
+  let recorderState = $state(audioRecorder.state);
+  let audioDevices = $state<MediaDeviceInfo[]>([]);
+  let micArmed = $state(false);
+  let unsavedTake = $state<AudioTakeRecording | undefined>();
+  let audioMessage = $state("");
+  let performanceVolume = $state(1);
+  let backingReviewVolume = $state(0.75);
+  let playingAudioTakeId = $state<string | undefined>();
+  let reviewAudio = $state<HTMLAudioElement | undefined>();
+  let reviewUrl = $state<string | undefined>();
 
   const sourceLabel = $derived(
     runtime.activeSource === "midi" ? "MIDI" : runtime.activeSource === "audio" ? "Audio" : "On-screen",
@@ -30,15 +53,32 @@
     compareA && compareB && compareA !== compareB ? recorder.compare(compareA, compareB) : undefined,
   );
 
-  const unsubscribe = runtime.router.subscribe((event) => {
-    if (!recording) return;
-    recorder.capture(event);
-    if (event.type === "noteOn") liveCount = recorder.recording ? liveCount + 1 : liveCount;
+  const unsubscribeRecorder = audioRecorder.subscribe((state) => {
+    recorderState = state;
+  });
+
+  $effect(() => {
+    return runtime.router.subscribe((event) => {
+      if (!recording) return;
+      recorder.capture(event);
+      if (event.type === "noteOn") liveCount = recorder.recording ? liveCount + 1 : liveCount;
+    });
   });
 
   // Transport Play plays the selected take (Take A).
   $effect(() => {
-    const take = takes.find((candidate) => candidate.id === compareA) ?? takes[0];
+    const audioTake = selectedAudioTake ?? audioTakes[0];
+    if (audioTake) {
+      runtime.setPlaybackSource({
+        label: audioTake.name,
+        durationSec: audioTake.durationMs / 1000,
+        play: () => playAudioTake(audioTake),
+        stop: () => stopAudioTake(),
+      });
+      return;
+    }
+
+    const take = midiTakes.find((candidate) => candidate.id === compareA) ?? midiTakes[0];
     if (!take) {
       runtime.setPlaybackSource(undefined);
       return;
@@ -55,20 +95,44 @@
     });
   });
 
+  onMount(async () => {
+    await Promise.all([loadAudioTakes(), loadAudioDevices()]);
+  });
+
   onDestroy(() => {
-    unsubscribe();
+    unsubscribeRecorder();
+    void audioRecorder.dispose();
+    revokeReviewUrl();
     runtime.setPlaybackSource(undefined);
   });
 
-  function toggleRecording(): void {
+  async function toggleRecording(): Promise<void> {
     if (recording) {
-      recorder.stop(performance.now());
+      const endedAt = performance.now();
+      let audioTake: AudioTakeRecording | undefined;
+      if (recorderState.status === "recording") {
+        try {
+          audioTake = await audioRecorder.stop(endedAt);
+        } catch (error) {
+          audioMessage = error instanceof Error ? error.message : "Audio recording could not be stopped.";
+        }
+      }
+      recorder.stop(endedAt);
       recording = false;
-      takes = recorder.takes();
-      if (takes[0]) compareA = takes[0].id;
-      if (takes[1]) compareB = takes[1].id;
+      midiTakes = recorder.takes();
+      if (midiTakes[0]) compareA = midiTakes[0].id;
+      if (midiTakes[1]) compareB = midiTakes[1].id;
+      if (audioTake) await saveAudioTake(audioTake);
     } else {
-      recorder.start(performance.now());
+      const startedAt = performance.now();
+      recorder.start(startedAt);
+      if (micArmed) {
+        try {
+          audioRecorder.start({ id: `recording-${Date.now()}`, startedAtMonotonic: startedAt });
+        } catch (error) {
+          audioMessage = error instanceof Error ? error.message : "Audio recorder could not start.";
+        }
+      }
       recording = true;
       liveCount = 0;
     }
@@ -76,7 +140,7 @@
 
   function removeTake(id: string): void {
     recorder.remove(id);
-    takes = recorder.takes();
+    midiTakes = recorder.takes();
   }
 
   function playTake(event: { type: string; midiNote: number; velocity: number }): void {
@@ -85,16 +149,128 @@
     }
   }
 
-  function barHeights(take: Take): number[] {
+  function barHeights(take: MidiTake): number[] {
     const slots = 48;
-    if (take.notes.length === 0) return new Array(slots).fill(0.08);
+    if (take.notes.length === 0) return Array.from({ length: slots }, () => 0.08);
     const span = Math.max(take.durationMs, 1);
-    const bins = new Array<number>(slots).fill(0);
+    const bins = Array.from({ length: slots }, () => 0);
     for (const note of take.notes) {
       const slot = Math.min(slots - 1, Math.floor((note.atMs / span) * slots));
       bins[slot] = Math.max(bins[slot]!, 0.2 + note.velocity * 0.8);
     }
     return bins;
+  }
+
+  async function loadAudioTakes(): Promise<void> {
+    if (!runtime.media) return;
+    audioTakes = await runtime.media.listTakes();
+    selectedAudioTake = selectedAudioTake
+      ? (audioTakes.find((take) => take.id === selectedAudioTake?.id) ?? audioTakes[0])
+      : audioTakes[0];
+    mediaUsage = await runtime.media.usage();
+  }
+
+  async function loadAudioDevices(): Promise<void> {
+    try {
+      audioDevices = await audioRecorder.devices();
+    } catch {
+      audioDevices = [];
+    }
+  }
+
+  async function armMicrophone(deviceId?: string): Promise<void> {
+    try {
+      await audioRecorder.prepare(deviceId);
+      micArmed = true;
+      audioMessage = "";
+      await loadAudioDevices();
+    } catch (error) {
+      audioMessage = error instanceof Error ? error.message : "Microphone could not be armed.";
+    }
+  }
+
+  async function disarmMicrophone(): Promise<void> {
+    micArmed = false;
+    if (recorderState.status === "recording") return;
+    await audioRecorder.cancel();
+  }
+
+  async function saveAudioTake(recording: AudioTakeRecording): Promise<void> {
+    if (!runtime.media) {
+      unsavedTake = recording;
+      return;
+    }
+    const row: AudioTakeRow = {
+      id: recording.id,
+      name: `Self-review ${new Date().toLocaleString()}`,
+      mimeType: recording.mimeType,
+      size: recording.size,
+      durationMs: recording.durationMs,
+      createdAt: unixMs(Date.now()),
+      instrument: runtime.activeInstrument,
+      backingOffsetMs: 0,
+    };
+    try {
+      await runtime.media.saveTake(row, recording.blob);
+      unsavedTake = undefined;
+      await loadAudioTakes();
+      selectedAudioTake = row;
+    } catch (error) {
+      unsavedTake = recording;
+      audioMessage = error instanceof Error ? error.message : "Audio take could not be saved.";
+    }
+  }
+
+  async function retryAudioTakeSave(recording: AudioTakeRecording): Promise<void> {
+    await saveAudioTake(recording);
+  }
+
+  async function playAudioTake(take: AudioTakeRow): Promise<void> {
+    if (!runtime.media || !browser) return;
+    if (!runtime.audioEnabled && !(await runtime.enableAudio())) return;
+    const blob = await runtime.media.takeBlob(take.id);
+    if (!blob) return;
+    stopAudioTake();
+    reviewUrl = URL.createObjectURL(blob);
+    const audio = new Audio(reviewUrl);
+    reviewAudio = audio;
+    playingAudioTakeId = take.id;
+    audio.volume = performanceVolume;
+    audio.onended = () => {
+      playingAudioTakeId = undefined;
+      revokeReviewUrl();
+    };
+    await audio.play();
+  }
+
+  function stopAudioTake(): void {
+    reviewAudio?.pause();
+    reviewAudio = undefined;
+    playingAudioTakeId = undefined;
+    revokeReviewUrl();
+  }
+
+  function downloadAudioTake(take: AudioTakeRow): void {
+    void runtime.media?.takeBlob(take.id).then((blob) => {
+      if (!blob || !browser) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = take.name;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  async function deleteAudioTake(take: AudioTakeRow): Promise<void> {
+    await runtime.media?.deleteTake(take.id);
+    if (selectedAudioTake?.id === take.id) selectedAudioTake = undefined;
+    await loadAudioTakes();
+  }
+
+  function revokeReviewUrl(): void {
+    if (reviewUrl && browser) URL.revokeObjectURL(reviewUrl);
+    reviewUrl = undefined;
   }
 </script>
 
@@ -109,7 +285,7 @@
   >
     {#snippet controls()}
       <SourceReadout label="Input" device={sourceLabel} live={runtime.activeSource === "midi"} />
-      <Button type="button" variant={recording ? "destructive" : "default"} onclick={toggleRecording}>
+      <Button type="button" variant={recording ? "destructive" : "default"} onclick={() => void toggleRecording()}>
         {#if recording}
           <Square class="size-4 fill-current" aria-hidden="true" />Stop · {liveCount}
         {:else}
@@ -125,12 +301,12 @@
       <Card.Root>
         <Card.Header><Card.Description>Takes</Card.Description></Card.Header>
         <Card.Content class="grid gap-3">
-          {#if takes.length === 0}
+          {#if midiTakes.length === 0}
             <p class="py-6 text-center text-sm text-muted-foreground">
               No takes yet — hit <strong class="text-foreground">New recording</strong> and play.
             </p>
           {:else}
-            {#each takes as take (take.id)}
+            {#each midiTakes as take (take.id)}
               <div class="flex items-center gap-3 rounded-xl border p-3">
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
@@ -170,19 +346,19 @@
           <Card.Title>Self-review</Card.Title>
         </Card.Header>
         <Card.Content class="grid gap-3">
-          {#if takes.length < 2}
+          {#if midiTakes.length < 2}
             <p class="text-sm text-muted-foreground">Record at least two takes to compare them.</p>
           {:else}
             <label class="grid gap-1 text-sm">
               <span class="text-xs text-muted-foreground">Take A</span>
               <select class="h-9 rounded-md border border-input bg-background px-3 text-sm" bind:value={compareA} aria-label="Take A">
-                {#each takes as take}<option value={take.id}>{take.name}</option>{/each}
+                {#each midiTakes as take}<option value={take.id}>{take.name}</option>{/each}
               </select>
             </label>
             <label class="grid gap-1 text-sm">
               <span class="text-xs text-muted-foreground">Take B</span>
               <select class="h-9 rounded-md border border-input bg-background px-3 text-sm" bind:value={compareB} aria-label="Take B">
-                {#each takes as take}<option value={take.id}>{take.name}</option>{/each}
+                {#each midiTakes as take}<option value={take.id}>{take.name}</option>{/each}
               </select>
             </label>
             {#if comparison}
@@ -198,6 +374,39 @@
           {/if}
         </Card.Content>
       </Card.Root>
+
+      <AudioTakePanel
+        {recorderState}
+        devices={audioDevices}
+        armed={micArmed}
+        takes={audioTakes}
+        selectedTake={selectedAudioTake}
+        usage={mediaUsage}
+        {performanceVolume}
+        backingVolume={backingReviewVolume}
+        {unsavedTake}
+        playingTakeId={playingAudioTakeId}
+        onArm={armMicrophone}
+        onDisarm={disarmMicrophone}
+        onDevice={(deviceId) => void armMicrophone(deviceId)}
+        onSelectTake={(take) => (selectedAudioTake = take)}
+        onPlayTake={playAudioTake}
+        onPauseTake={() => stopAudioTake()}
+        onPerformanceVolume={(volume) => {
+          performanceVolume = volume;
+          if (reviewAudio) reviewAudio.volume = volume;
+        }}
+        onBackingVolume={(volume) => (backingReviewVolume = volume)}
+        onDownloadTake={downloadAudioTake}
+        onDeleteTake={deleteAudioTake}
+        onRetrySave={retryAudioTakeSave}
+      />
+
+      {#if audioMessage}
+        <p class="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+          {audioMessage}
+        </p>
+      {/if}
     </aside>
   </section>
 </PracticeScreen>

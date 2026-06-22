@@ -17,6 +17,7 @@
 
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import FlashcardSession from "./_components/FlashcardSession.svelte";
@@ -327,6 +328,7 @@
     />
   {:else if sessionState.status === "summary" && sessionState.summary}
     <ReadingSummary summary={sessionState.summary} onRepeat={repeat} />
+    <RoutineContinueAction routine={runtime.dailyRoutine} />
   {:else if sessionState.status === "sight-reading" && session}
     <SightReadingSession
       sessionState={sessionState}

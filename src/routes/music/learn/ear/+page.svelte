@@ -23,6 +23,7 @@
 
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import EarTrainingLanding from "./_components/EarTrainingLanding.svelte";
@@ -231,6 +232,7 @@
       onRepeat={repeatSession}
       onRetry={repeatSession}
     />
+    <RoutineContinueAction routine={runtime.dailyRoutine} />
   {:else}
     <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <EarTrainingSessionView

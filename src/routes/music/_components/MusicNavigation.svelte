@@ -14,6 +14,7 @@
   import House from "lucide-svelte/icons/house";
   import Library from "lucide-svelte/icons/library";
   import ListMusic from "lucide-svelte/icons/list-music";
+  import ListChecks from "lucide-svelte/icons/list-checks";
   import Music from "lucide-svelte/icons/music";
   import NotebookPen from "lucide-svelte/icons/notebook-pen";
   import Play from "lucide-svelte/icons/play";
@@ -41,6 +42,7 @@
     {
       items: [
         { label: "Home", href: "/music", icon: House },
+        { label: "Daily Routine", href: "/music/routine", icon: ListChecks },
         { label: "Connect", href: "/music/connect", icon: Plug, badge: "soon" },
       ],
     },

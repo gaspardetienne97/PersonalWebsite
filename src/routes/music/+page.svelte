@@ -243,7 +243,7 @@
         <WeekDots completedDays={weekCompletedDays} todayIndex={todayDotIndex} />
       </div>
 
-      <!-- Continue practice (interval demo, real engine) -->
+      <!-- Continue practice -->
       <div
         class="flex flex-col gap-3 overflow-hidden rounded-2xl border bg-card sm:col-span-2"
         id="learn"
@@ -252,7 +252,7 @@
         <div
           class="relative flex h-20 items-end bg-gradient-to-br from-primary/30 via-primary/15 to-transparent p-4"
         >
-          <span class="text-sm font-semibold text-primary/90">Jazz II–V–I · ear training</span>
+          <span class="text-sm font-semibold text-primary/90">Today's guided practice</span>
           <span class="absolute right-4 top-4"><InstrumentBadge instrument="Piano" dot /></span>
         </div>
         <div class="flex flex-col gap-3 px-5 pb-5">
@@ -260,7 +260,9 @@
           >Continue practice</span
         >
         <h2 class="text-lg font-bold tracking-tight">Daily mixed session</h2>
-        <p class="text-sm text-muted-foreground">Interval recognition · moves real mastery</p>
+        <p class="text-sm text-muted-foreground">
+          Ear training, note reading, rhythm, and technique in one logged session.
+        </p>
         <div class="grid grid-cols-3 gap-2">
           <div class="rounded-lg border p-3 text-center">
             <span class="block text-2xl font-bold tabular-nums">{xp}</span>
@@ -282,10 +284,10 @@
           </Button>
           <Button type="button" onclick={() => answerInterval(true)}>Answer m6</Button>
           <a
-            href="/music/learn/ear"
+            href="/music/routine"
             class="ml-auto inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
-            Full ear training →
+            {runtime.dailyRoutine?.status === "active" ? "Continue routine" : "Start daily routine"} →
           </a>
         </div>
         </div>

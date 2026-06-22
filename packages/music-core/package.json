@@ -12,6 +12,7 @@
     "./engines/backing-track": "./src/engines/backing-track/index.ts",
     "./engines/backing-track/browser-player": "./src/engines/backing-track/browser-player.ts",
     "./engines/dashboard": "./src/engines/dashboard/index.ts",
+    "./engines/daily-routine": "./src/engines/daily-routine/index.ts",
     "./engines/device-profiles": "./src/engines/device-profiles/index.ts",
     "./engines/ear-training": "./src/engines/ear-training/index.ts",
     "./engines/exercise": "./src/engines/exercise/index.ts",

@@ -1,6 +1,10 @@
+import { unixMs } from "@repo/music-core/domain";
+import type { MediaUsage } from "@repo/music-core/engines/media-library";
+import type { AudioTakeRow } from "@repo/music-core/engines/store";
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
+import { MusicRuntime } from "../_runtime.svelte";
 import Page from "./+page.svelte";
 
 function button(match: string): HTMLButtonElement | undefined {
@@ -34,5 +38,44 @@ describe("/music/recording/+page.svelte", () => {
     button("Stop")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Take 1"));
     expect(document.body.textContent).toContain("1 notes");
+  });
+
+  test("loads saved audio takes from the media library", async () => {
+    const runtime = new MusicRuntime();
+    const take: AudioTakeRow = {
+      id: "audio-take-1",
+      name: "Practice Lab take.webm",
+      mimeType: "audio/webm",
+      size: 16_384,
+      durationMs: 32_000,
+      createdAt: unixMs(2_000),
+      instrument: "piano",
+      backingKind: "generated",
+      backingOffsetMs: 0,
+      generatedBacking: {
+        progressionId: "ii-v-i",
+        bpm: 96,
+        loop: true,
+      },
+    };
+    const usage: MediaUsage = {
+      backingBytes: 0,
+      takeBytes: take.size,
+      totalBytes: take.size,
+      effectiveBudgetBytes: 256_000,
+      remainingBytes: 256_000 - take.size,
+    };
+    runtime.media = {
+      listTakes: vi.fn().mockResolvedValue([take]),
+      usage: vi.fn().mockResolvedValue(usage),
+      takeBlob: vi.fn().mockResolvedValue(new Blob(["audio"], { type: "audio/webm" })),
+      deleteTake: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MusicRuntime["media"];
+
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Practice Lab take.webm"));
+    expect(document.body.textContent).toContain("Audio takes");
+    expect(document.querySelector('[aria-label="Play synchronized take"]')).not.toBeNull();
   });
 });

@@ -17,6 +17,11 @@ import {
   type InputSurfaceId,
   type InstrumentSurfacePreferences,
 } from "@repo/music-core/engines/device-profiles";
+import {
+  DailyRoutineSession,
+  type DailyRoutineState,
+  type DailyRoutineStep,
+} from "@repo/music-core/engines/daily-routine";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { createMediaLibrary, type MediaLibrary } from "@repo/music-core/engines/media-library";
 import { MidiEngine } from "@repo/music-core/engines/midi";
@@ -111,7 +116,10 @@ export class MusicRuntime {
 
   /** Journal sink: completed activities are appended via recordPractice. */
   media = $state<MediaLibrary | undefined>();
+  dailyRoutine = $state<DailyRoutineState | undefined>();
+  #settings: DeviceProfileRepository | undefined;
   #journal: PracticeSessionStore | undefined;
+  #dailyRoutineSession: DailyRoutineSession | undefined;
   #captureSeq = 0;
 
   #transport?: TransportEngine;
@@ -154,8 +162,19 @@ export class MusicRuntime {
 
   /** Connect persists device profiles; the bar reads MIDI-preferred instruments. */
   async attachStorage(settings: DeviceProfileRepository): Promise<void> {
+    this.#settings = settings;
     this.#deviceProfiles = new DeviceProfileStore(settings);
     await this.reloadMidiInstruments();
+  }
+
+  /** Small route-owned local state, persisted through PracticeStore.settings. */
+  async readLocalState<T>(id: string): Promise<T | undefined> {
+    const record = await this.#settings?.get(id);
+    return record?.value as T | undefined;
+  }
+
+  async writeLocalState<T>(id: string, value: T): Promise<void> {
+    await this.#settings?.put({ id, value });
   }
 
   /** Point the journal sink at the local PracticeStore so activities persist. */
@@ -175,7 +194,65 @@ export class MusicRuntime {
     if (endedAt < startedAt) {
       throw new Error("Practice capture endedAt must not be before startedAt");
     }
+    const routineState = this.#dailyRoutineSession?.state;
+    const isCurrentRoutineDrill =
+      routineState?.status === "active" &&
+      routineState.currentStep !== undefined &&
+      (entry.tags ?? []).includes(routineState.currentStep.id);
+    if (entry.source === "drill" && isCurrentRoutineDrill && this.#dailyRoutineSession) {
+      this.#dailyRoutineSession.completeCurrent(
+        {
+          scoringEvents: entry.scoringEvents ?? [],
+          runs: entry.runs ?? [],
+          tags: entry.tags ?? [],
+          xpEarned: entry.xpEarned,
+          note: entry.note,
+        },
+        endedAt,
+      );
+      const nextState = this.#dailyRoutineSession.state;
+      this.dailyRoutine = nextState;
+      const summary = nextState.summary;
+      if (!summary || !nextState.id || nextState.startedAt === undefined) return;
+      await this.#persistPractice({
+        id: nextState.id,
+        source: "daily-routine",
+        startedAt: nextState.startedAt,
+        endedAt,
+        tags: ["daily-routine", ...summary.tags],
+        scoringEvents: summary.scoringEvents,
+        runs: summary.runs,
+        xpEarned: summary.totalXp,
+        note: `Daily routine · ${summary.completedSteps}/${summary.totalSteps} drills · ${Math.round(
+          summary.accuracy * 100,
+        )}% accuracy`,
+      });
+      return;
+    }
+
+    await this.#persistPractice({ ...entry, startedAt, endedAt });
+  }
+
+  startDailyRoutine(
+    steps: DailyRoutineStep[],
+    startedAt: UnixMs = unixMs(Date.now()),
+  ): DailyRoutineState {
+    const session = new DailyRoutineSession(steps);
+    session.start(`daily-routine-${startedAt}-${this.#captureSeq++}`, startedAt);
+    this.#dailyRoutineSession = session;
+    this.dailyRoutine = session.state;
+    return this.dailyRoutine;
+  }
+
+  resetDailyRoutine(): void {
+    this.#dailyRoutineSession = undefined;
+    this.dailyRoutine = undefined;
+  }
+
+  async #persistPractice(entry: PracticeCaptureEntry): Promise<void> {
     if (!this.#journal) return;
+    const startedAt = entry.startedAt ?? unixMs(Date.now());
+    const endedAt = entry.endedAt ?? unixMs(Date.now());
     const id = entry.id ?? `${entry.source}-${startedAt}-${this.#captureSeq++}`;
     this.#journal.start({
       id,
