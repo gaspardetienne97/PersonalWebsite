@@ -17,6 +17,7 @@
   import ListChecks from "lucide-svelte/icons/list-checks";
   import Music from "lucide-svelte/icons/music";
   import NotebookPen from "lucide-svelte/icons/notebook-pen";
+  import Piano from "lucide-svelte/icons/piano";
   import Play from "lucide-svelte/icons/play";
   import Plug from "lucide-svelte/icons/plug";
   import Settings from "lucide-svelte/icons/settings";
@@ -49,7 +50,9 @@
     {
       label: "Learn",
       items: [
+        { label: "Jazz Path", href: "/music/learn/path", icon: ListChecks },
         { label: "Chord Library", href: "/music/learn/theory", icon: Library },
+        { label: "Jazz Piano", href: "/music/learn/jazz", icon: Piano },
         { label: "Ear Training", href: "/music/learn/ear", icon: Ear },
         { label: "Note Reading", href: "/music/learn/reading", icon: BookOpen },
         { label: "Rhythm", href: "/music/learn/rhythm", icon: Drum },
@@ -69,7 +72,9 @@
         { label: "Tuner", href: "/music/tuner", icon: Gauge },
         { label: "Intonation", href: "/music/intonation", icon: AudioWaveform },
         { label: "Import & Play", href: "/music/import", icon: Upload },
+        { label: "Songs", href: "/music/songs", icon: ListMusic },
         { label: "Jam / Improv", href: "/music/jam", icon: WandSparkles },
+        { label: "ii-V-I Drill", href: "/music/play/voicings", icon: Piano },
         { label: "Studio", href: "/music/studio", icon: Grid3x3 },
         { label: "Recording", href: "/music/recording", icon: Disc },
       ],

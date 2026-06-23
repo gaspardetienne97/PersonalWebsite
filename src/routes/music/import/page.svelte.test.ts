@@ -33,4 +33,24 @@ describe("/music/import/+page.svelte", () => {
     expect(document.body.textContent).toContain("120 bpm");
     expect(document.body.textContent).toContain("Projection");
   });
+
+  test("saves an imported MIDI file to repertoire", async () => {
+    const library = { saveImportedSong: vi.fn(async () => ({ id: "song-1", title: "test" })) };
+    render(Page, { library });
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    Object.defineProperty(input, "files", { value: [midiFile()], configurable: true });
+    input?.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Analysis complete"));
+    const save = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+      button.textContent?.includes("Save to repertoire"),
+    );
+    save?.click();
+
+    await vi.waitFor(() => expect(library.saveImportedSong).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Saved to repertoire."));
+    expect(
+      document.querySelector<HTMLAnchorElement>('a[href="/music/songs"]')?.textContent,
+    ).toContain("Open songs");
+  });
 });

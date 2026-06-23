@@ -3,10 +3,26 @@ import { JAM_PROGRESSIONS, type JamProgression } from "@repo/music-core/engines/
 import { chordNotes, pitchClass } from "@repo/music-core/engines/theory";
 import type { SoundPatternStep } from "@repo/music-core/engines/sound";
 
+/** A backing track served from a static URL (e.g. the bundled jazz drum tracks). */
+export interface BuiltinBackingTrack {
+  id: string;
+  label: string;
+  url: string;
+  bpm?: number;
+}
+
 export type BackingSelection =
   | { kind: "none" }
   | { kind: "generated"; progressionId: string; bpm: number; loop: boolean }
-  | { kind: "imported"; track: ImportedBackingTrackRow; loop: boolean };
+  | { kind: "imported"; track: ImportedBackingTrackRow; loop: boolean }
+  | { kind: "builtin"; track: BuiltinBackingTrack; loop: boolean };
+
+/** True for selections backed by the shared `<audio>` element (imported + builtin). */
+function isAudioSelection(
+  selection: BackingSelection,
+): selection is Extract<BackingSelection, { kind: "imported" | "builtin" }> {
+  return selection.kind === "imported" || selection.kind === "builtin";
+}
 
 export interface BackingTrackState {
   selection: BackingSelection;
@@ -27,6 +43,7 @@ export interface BackingTrackPlaybackAdapter {
   playGenerated(selection: Extract<BackingSelection, { kind: "generated" }>): Promise<void>;
   stopGenerated(): void;
   loadImported(track: ImportedBackingTrackRow): Promise<number>;
+  loadBuiltin(track: BuiltinBackingTrack): Promise<number>;
   playImported(): Promise<void>;
   pauseImported(): void;
   stopImported(): void;
@@ -98,6 +115,17 @@ export class BackingTrackEngine {
     });
   }
 
+  selectBuiltin(track: BuiltinBackingTrack, options: { loop?: boolean } = {}): void {
+    this.stop();
+    this.#setState({
+      selection: { kind: "builtin", track: { ...track }, loop: options.loop !== false },
+      status: "idle",
+      positionMs: 0,
+      durationMs: 0,
+      message: undefined,
+    });
+  }
+
   async play(): Promise<void> {
     const selection = this.#state.selection;
     if (selection.kind === "none") return;
@@ -113,13 +141,19 @@ export class BackingTrackEngine {
         return;
       }
 
-      const durationMs = await this.#adapter.loadImported(selection.track);
+      const durationMs =
+        selection.kind === "builtin"
+          ? await this.#adapter.loadBuiltin(selection.track)
+          : await this.#adapter.loadImported(selection.track);
       this.#adapter.setImportedLoop(selection.loop);
       this.#adapter.setImportedVolume(this.#state.volume);
       await this.#adapter.playImported();
       this.#setState({
         status: "playing",
-        durationMs: normalizeDuration(durationMs, selection.track.durationMs),
+        durationMs: normalizeDuration(
+          durationMs,
+          selection.kind === "imported" ? selection.track.durationMs : this.#state.durationMs,
+        ),
       });
     } catch (error) {
       this.#setState({
@@ -137,7 +171,7 @@ export class BackingTrackEngine {
       this.#setState({ status: "paused" });
       return;
     }
-    if (selection.kind === "imported") {
+    if (isAudioSelection(selection)) {
       this.#adapter.pauseImported();
       this.#setState({ status: "paused" });
     }
@@ -146,13 +180,13 @@ export class BackingTrackEngine {
   stop(): void {
     const selection = this.#state.selection;
     if (selection.kind === "generated") this.#adapter.stopGenerated();
-    if (selection.kind === "imported") this.#adapter.stopImported();
+    if (isAudioSelection(selection)) this.#adapter.stopImported();
     if (selection.kind !== "none") this.#setState({ status: "stopped", positionMs: 0 });
   }
 
   seek(positionMs: number): void {
     const nextPosition = clampPosition(positionMs, this.#state.durationMs);
-    if (this.#state.selection.kind === "imported") {
+    if (isAudioSelection(this.#state.selection)) {
       this.#adapter.seekImported(nextPosition);
     }
     this.#setState({ positionMs: nextPosition });
@@ -161,7 +195,7 @@ export class BackingTrackEngine {
   setLoop(loop: boolean): void {
     const selection = this.#state.selection;
     if (selection.kind === "none") return;
-    if (selection.kind === "imported") {
+    if (isAudioSelection(selection)) {
       this.#adapter.setImportedLoop(loop);
     }
     this.#setState({ selection: { ...selection, loop } });
@@ -169,7 +203,7 @@ export class BackingTrackEngine {
 
   setVolume(volume: number): void {
     const nextVolume = clamp01(volume);
-    if (this.#state.selection.kind === "imported") {
+    if (isAudioSelection(this.#state.selection)) {
       this.#adapter.setImportedVolume(nextVolume);
     }
     this.#setState({ volume: nextVolume });
@@ -247,10 +281,10 @@ function cloneState(state: BackingTrackState): BackingTrackState {
 
 function cloneSelection(selection: BackingSelection): BackingSelection {
   if (selection.kind === "imported") {
-    return {
-      ...selection,
-      track: structuredClone(selection.track),
-    };
+    return { ...selection, track: structuredClone(selection.track) };
+  }
+  if (selection.kind === "builtin") {
+    return { ...selection, track: structuredClone(selection.track) };
   }
   return { ...selection };
 }

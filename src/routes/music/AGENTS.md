@@ -106,6 +106,29 @@ This file provides guidance for agents working on the Music app under
 - `src/routes/music/_components/OnScreenKeyboard.svelte` is the fallback input
   surface and should push normalized `NoteEvent`s through the shared router.
   (Phase 1.5 T1.5a will add selectable fretboard/MPC-grid surfaces alongside it.)
+- `src/routes/music/_components/InstrumentView.svelte` is the **shared
+  instrument-agnostic display**: given a pitch set (MIDI) + an `InstrumentId`, it
+  renders the right view by reusing the existing components — piano →
+  `PianoKeyboard`, guitar/ukulele → `FretboardInput` (chord/scale tones lit on
+  the neck; tap to hear), aerophone → arpeggiated `AerophoneFingering` (a
+  monophonic instrument can't play a chord, so the pitch set degrades to an
+  arpeggio). Use this anywhere a chord/scale/voicing is shown so views stay
+  instrument-aware instead of hardcoding the keyboard. Consumers: the chord
+  library, the jazz advanced-voicing cards, and the scales reference. A page
+  passes `router={runtime.router}` so fretted views can sound notes.
+- **Instrument applicability is one primitive, not per-page literals.** The
+  "generalize content across instruments" rule lives in `domain/applicability.ts`
+  (re-exported from `@repo/music-core/domain`): `VIEWABLE_INSTRUMENTS` (the
+  toggle list — piano/guitar/ukulele/aerophone), `isMonophonic`,
+  `ContentApplicability` (`all | pitched | polyphonic | { only }`),
+  `instrumentsForApplicability`, and `degradesToArpeggio`. Every instrument
+  toggle imports `VIEWABLE_INSTRUMENTS` (do NOT re-declare the literal), and
+  monophonic/arpeggio decisions use `isMonophonic`/`degradesToArpeggio`. Content
+  carries its own tag — e.g. `CurriculumLesson.applies` drives the lesson path's
+  Aerophone arpeggio annotations. Melodic content (scales, licks) is `pitched`;
+  chord voicings are `polyphonic` (degrade to arpeggio on monophonic
+  instruments); instrument-specific drills (spider, MPC rudiments, Aerophone
+  breath) use `{ only: [...] }` and stay pinned.
 
 ### Current Routes
 
@@ -114,15 +137,59 @@ This file provides guidance for agents working on the Music app under
 - `/music/connect`: device profiles — name MIDI devices, assign instruments, and
   pick the preferred input source per instrument (`DeviceProfileStore`). The
   transport bar's MIDI instrument/channel picker reads these preferences.
-- `/music/learn`: entry point for learning tools.
+- `/music/learn`: entry point for learning tools, with the guided **Jazz Path**
+  surfaced at the top.
+- `/music/learn/path`: the ordered, instrument-aware jazz lesson path. Each step
+  deep-links into a real tool (ear → chord library → scales → the graded ii-V-I
+  drill → jam); per-step status/mastery is derived from the live skill graph
+  (`SkillGraphStore.getMastery`), so doing the graded drill visibly advances the
+  voicing steps. Projection: `buildJazzLessonPath({ mastery, instrument })` in
+  `@repo/music-core/engines/jazz` (pure; polyphonic lessons annotate the
+  Aerophone arpeggio fallback). The jazz reference page links here via "Open
+  tracked path".
+- `/music/learn/aerophone`: Aerophone fingering visualizer and live practice
+  aid. It uses `@repo/music-core/engines/aerophone-fingering` plus the shared
+  runtime router so incoming MIDI/on-screen notes can highlight the matching
+  fingering. The Learn hub links here directly; per-note fingering caveats still
+  belong in deferred hardware verification until checked on the physical unit.
 - `/music/learn/ear`: interval/chord/scale-degree ear training.
 - `/music/learn/reading`: note flashcards and generated sight-reading. Registers
   a transport `PlaybackSource` so Play previews the on-screen melody.
 - `/music/learn/rhythm`: pulse timing trainer.
-- `/music/learn/theory`: chord and theory library.
+- `/music/learn/theory`: chord and theory library. Each chord/scale renders
+  through `InstrumentView` with an **instrument toggle** (Piano/Guitar/Ukulele/
+  Aerophone, defaulting to the active instrument); chords also expose a
+  voicing/inversion selector (`chordVoicings` in `@repo/music-core/engines/library`
+  — root position, inversions, drop-2). It no longer shows the old fixed
+  guitar+ukulele chord-chart pair.
+- `/music/learn/jazz`: jazz-piano content (Julian Bradley pack) — ordered
+  curriculum, chord/scale map, the rootless ii-V-I voicing drill across 12 keys
+  (piano-only; JT9 is a two-hand piano drill), altered/upper-structure V7
+  voicings (instrument-aware via `InstrumentView`), the 29 licks (playable
+  transcriptions + improv techniques), and the standards repertoire. Pure data
+  lives in `@repo/music-core/engines/jazz`.
 - `/music/play`: play/practice entry point.
-- `/music/play/scales`: scales and technique trainer.
-- `/music/import`: parse a MIDI file into a `Score` and play it back.
+- `/music/play/scales`: scales and technique trainer. The aside shows a
+  reference of the practiced scale on the chosen instrument via `InstrumentView`.
+- `/music/play/voicings`: **graded** voicing drill across all 12 keys, with
+  **Major / Minor / Altered V7** variants (major = rootless ii-V-I, JT9; minor =
+  iiø7 → V7alt → i-m7, JT7; altered = V7b9 → V7alt → II-major upper structure,
+  JT10-12). Input (MIDI or on-screen) is scored per chord through the standard
+  exercise pipeline, awarding XP toward the `harmony.ii-v-i` skill and
+  journaling the run. Instrument-aware: polyphonic instruments are graded on the
+  held chord, monophonic (Aerophone) on the arpeggio. This is the graded
+  counterpart to the reference drill on `/music/learn/jazz` (which links to it
+  via "Practice (graded)"). Engine:
+  `@repo/music-core/engines/voicing-drill-session`; exercise:
+  `@repo/music-core/exercises/voicing-drill`. Resolved voicings come from the
+  jazz engine's `buildDrillVoicings(variant, startPosition)`, so the session no
+  longer re-derives them.
+- `/music/import`: parse a MIDI file, preview it, and save it to repertoire.
+- `/music/songs`: saved repertoire library backed by the `songs` store. It
+  reopens imported MIDI songs as domain `Score`s, registers selected-song
+  playback with the shared transport, and logs `SessionSource:"song"` practice
+  through `runtime.recordPractice`. The first slice is list + replay + practice
+  logging; arbitrary-file score-following remains Phase 3.
 - `/music/jam`: chord-progression jam/improv with target tones + recording.
 - `/music/studio`: step sequencer with a pad bank and Tone playback.
 - `/music/recording`: take list, waveform, compare, and self-review.
@@ -161,13 +228,31 @@ Important areas:
   technique ladder, journal projections).
 - `src/engines/device-profiles/`: MIDI device profiles + per-instrument
   preferred source (drives `/music/connect` and the transport MIDI picker).
-- `src/engines/reading-session/`, `rhythm-session/`, `technique-session/`:
-  per-capability session orchestrators over the exercise framework.
+- `src/engines/reading-session/`, `rhythm-session/`, `technique-session/`,
+  `voicing-drill-session/`: per-capability session orchestrators over the
+  exercise framework. `voicing-drill-session` sequences the 12-key ii-V-I through
+  `ExerciseRunHost` (XP + `harmony.ii-v-i`) and exports the pure
+  `buildVoicingDrillTargets(instrument, { variant, startPosition })` (major,
+  minor, and altered V7); its gradable unit is the `exercises/voicing-drill`
+  exercise (chord-hold grading for polyphonic instruments, arpeggio-sequence
+  grading for monophonic).
 - `src/engines/score-follower/`: streaming pitch+timing grading over a `Score`.
 - `src/engines/library/`, `tunings/`: chord/scale data and tuning profiles.
-- `src/engines/import/`: parse MIDI files into a domain `Score` (uses
-  `@tonejs/midi`).
+  `library` also exports `chordVoicings(pianoMidi)` — root position, inversions,
+  and drop-2 as instrument-agnostic pitch sets for `InstrumentView`.
+- `src/engines/import/`: parse MIDI files into `ImportedSong` models (uses
+  `@tonejs/midi`) for preview/import UI.
+- `src/engines/song-library/`: convert imported MIDI models into canonical
+  domain `Score`s, persist/reopen them through `PracticeStore.songs`, and
+  project stored scores into transport playback patterns for `/music/songs`.
 - `src/engines/jam/`: chord-progression jam sessions + target tones.
+- `src/engines/jazz/`: jazz-piano reference content (chord vocabulary,
+  chord/scale map, voicing recipes — `realizeVoicing`, `realizeDominantVoicing`,
+  `realizeUpperStructure` — the 12-key ii-V-I drill, 29 licks with playable MIDI
+  phrases (`LICK_PHRASES`/`lickTimeline`), improv techniques, repertoire, the
+  backing-track catalogue, and the curriculum). Pure data + functions; surfaced
+  at `/music/learn/jazz`. The backing tracks reference MP3s served from
+  `static/audio/jazz/` (gitignored; the user's licensed Julian Bradley files).
 - `src/engines/recording/`: take capture, compare, self-review.
 - `src/engines/sequencer/`: step sequencer (grid, pads, patterns).
 - `src/engines/settings/`: typed app settings over `PracticeStore.settings`.

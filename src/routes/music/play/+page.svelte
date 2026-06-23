@@ -6,6 +6,7 @@
   import Circle from "lucide-svelte/icons/circle";
   import Drum from "lucide-svelte/icons/drum";
   import Gauge from "lucide-svelte/icons/gauge";
+  import ListMusic from "lucide-svelte/icons/list-music";
   import Mic from "lucide-svelte/icons/mic";
   import Save from "lucide-svelte/icons/save";
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
@@ -457,6 +458,7 @@
       playGenerated: async () => {},
       stopGenerated: () => {},
       loadImported: async (track) => track.durationMs,
+      loadBuiltin: async () => 0,
       playImported: async () => {},
       pauseImported: () => {},
       stopImported: () => {},
@@ -668,6 +670,15 @@
       meta="Intonation"
       action="Open intonation"
       icon={AudioWaveform}
+    />
+    <MusicToolCard
+      href="/music/songs"
+      title="Song Library"
+      description="Reopen saved imported songs, replay them, and log repertoire practice into the journal."
+      eyebrow="Play"
+      meta="Repertoire"
+      action="Open songs"
+      icon={ListMusic}
     />
   </section>
 </PracticeScreen>

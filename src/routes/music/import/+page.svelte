@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import Upload from "lucide-svelte/icons/upload";
 
   import {
@@ -7,6 +8,8 @@
     type ImportedNote,
     type ImportedSong,
   } from "@repo/music-core/engines/import";
+  import { SongLibrary } from "@repo/music-core/engines/song-library";
+  import { PracticeStore } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { onDestroy } from "svelte";
@@ -14,9 +17,19 @@
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
-  import { useMusicRuntime } from "../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
 
-  const runtime = useMusicRuntime();
+  interface SongSaver {
+    saveImportedSong(song: ImportedSong): Promise<{ id: string; title: string }>;
+  }
+
+  const {
+    runtime = useMusicRuntime(),
+    library = browser ? new SongLibrary(new PracticeStore()) : undefined,
+  }: {
+    runtime?: MusicRuntime;
+    library?: SongSaver;
+  } = $props();
 
   const PROJECTIONS = [
     { value: "piano", label: "Piano" },
@@ -28,6 +41,8 @@
   let song = $state<ImportedSong | undefined>();
   let status = $state("Drop a MIDI file, or browse to import one.");
   let projection = $state("piano");
+  let saving = $state(false);
+  let savedSongId = $state<string | undefined>();
   let fileInput: HTMLInputElement;
 
   const roll = $derived(song ? pianoRoll(song, 600) : []);
@@ -69,6 +84,7 @@
     try {
       const buffer = await file.arrayBuffer();
       song = parseMidiFile(buffer, file.name.replace(/\.midi?$/i, ""));
+      savedSongId = undefined;
       status = `Imported "${song.name}" in ${song.totalNotes > 0 ? "a moment" : "no time"}.`;
     } catch (error) {
       song = undefined;
@@ -84,6 +100,20 @@
   function onDrop(event: DragEvent): void {
     event.preventDefault();
     onFiles(event.dataTransfer?.files ?? null);
+  }
+
+  async function saveToRepertoire(): Promise<void> {
+    if (!song || !library || saving) return;
+    saving = true;
+    try {
+      const saved = await library.saveImportedSong(song);
+      savedSongId = saved.id;
+      status = "Saved to repertoire.";
+    } catch (error) {
+      status = error instanceof Error ? `Could not save song: ${error.message}` : "Could not save song.";
+    } finally {
+      saving = false;
+    }
   }
 </script>
 
@@ -127,9 +157,17 @@
     <Card.Root>
       <Card.Header class="flex-row items-center justify-between gap-2">
         <Card.Title class="truncate">{song.name}</Card.Title>
-        <span class="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
-          Analysis complete
-        </span>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <span class="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
+            Analysis complete
+          </span>
+          <Button size="sm" disabled={!library || saving} onclick={saveToRepertoire}>
+            {saving ? "Saving..." : "Save to repertoire"}
+          </Button>
+          {#if savedSongId}
+            <Button size="sm" variant="outline" href="/music/songs">Open songs</Button>
+          {/if}
+        </div>
       </Card.Header>
       <Card.Content class="grid grid-cols-2 gap-4 sm:grid-cols-5">
         {#each [["Key", song.keyEstimate ?? "—"], ["Tempo", `${Math.round(song.bpm)} bpm`], ["Time", song.timeSignature.join(" / ")], ["Notes", String(song.totalNotes)], ["Length", `${song.durationSec.toFixed(1)}s`]] as [label, value]}

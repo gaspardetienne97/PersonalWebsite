@@ -17,6 +17,7 @@
     type JamProgression,
     type TargetTone,
   } from "@repo/music-core/engines/jam";
+  import { JAZZ_BACKING_TRACKS } from "@repo/music-core/engines/jazz";
   import { chordNotes, pitchClass } from "@repo/music-core/engines/theory";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -60,6 +61,11 @@
   let recordedCount = $state(0);
   const backingEngine = new BackingTrackEngine(createBackingAdapter());
   let backingState = $state<BackingTrackState>(backingEngine.state);
+  // Default backing is the bundled drum track that matches the progression feel.
+  const drumTracks = JAZZ_BACKING_TRACKS;
+  let backingMode = $state<"drums" | "chords">("drums");
+  let drumTrackId = $state("swing-125");
+  const drumTrack = $derived(drumTracks.find((t) => t.id === drumTrackId) ?? drumTracks[0]!);
 
   const current = $derived(progression.chords[currentIndex] ?? progression.chords[0]!);
   const next = $derived(
@@ -92,7 +98,21 @@
   });
 
   // The transport Play button uses the shared backing engine/player path.
+  // Drums mode plays the bundled MP3 (default); chords mode synths the changes.
   $effect(() => {
+    if (backingMode === "drums") {
+      backingEngine.selectBuiltin(
+        { id: drumTrack.id, label: drumTrack.label, url: drumTrack.url, bpm: drumTrack.bpm },
+        { loop: true },
+      );
+      runtime.setPlaybackSource({
+        label: `${drumTrack.label} backing`,
+        durationSec: 0,
+        play: () => backingEngine.play(),
+        stop: () => backingEngine.stop(),
+      });
+      return;
+    }
     backingEngine.selectGenerated({
       kind: "generated",
       progressionId: progression.id,
@@ -170,6 +190,7 @@
       playGenerated: async () => {},
       stopGenerated: () => {},
       loadImported: async (track) => track.durationMs,
+      loadBuiltin: async () => 0,
       playImported: async () => {},
       pauseImported: () => {},
       stopImported: () => {},
@@ -305,6 +326,37 @@
             value={progression.id}
             onChange={selectStyle}
           />
+
+          <div class="grid gap-2">
+            <span
+              class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+            >Backing source</span>
+            <SegmentedControl
+              class="w-full"
+              size="sm"
+              options={[
+                { value: "drums", label: "Drum track" },
+                { value: "chords", label: "Synth chords" },
+              ]}
+              value={backingMode}
+              onChange={(v) => (backingMode = v as "drums" | "chords")}
+            />
+            {#if backingMode === "drums"}
+              <select
+                bind:value={drumTrackId}
+                aria-label="Drum backing track"
+                class="h-9 rounded-md border bg-background px-3 text-sm"
+              >
+                {#each drumTracks as track (track.id)}
+                  <option value={track.id}>{track.label}</option>
+                {/each}
+              </select>
+              {#if drumTrack.songs.length}
+                <p class="text-xs text-muted-foreground">For: {drumTrack.songs.join(", ")}</p>
+              {/if}
+            {/if}
+          </div>
+
           <div class="grid gap-1 text-sm">
             <div class="flex justify-between"><span class="text-muted-foreground">Key</span><span class="font-medium">{progression.key}</span></div>
             <div class="flex justify-between"><span class="text-muted-foreground">Next</span><span class="font-medium">{next.symbol}</span></div>

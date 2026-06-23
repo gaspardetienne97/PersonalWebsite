@@ -21,6 +21,7 @@
     "./engines/input-router": "./src/engines/input-router/index.ts",
     "./engines/intonation-session": "./src/engines/intonation-session/index.ts",
     "./engines/jam": "./src/engines/jam/index.ts",
+    "./engines/jazz": "./src/engines/jazz/index.ts",
     "./engines/library": "./src/engines/library/index.ts",
     "./engines/media-library": "./src/engines/media-library/index.ts",
     "./engines/midi": "./src/engines/midi/index.ts",
@@ -36,11 +37,13 @@
     "./engines/sessions": "./src/engines/sessions/index.ts",
     "./engines/settings": "./src/engines/settings/index.ts",
     "./engines/skills": "./src/engines/skills/index.ts",
+    "./engines/song-library": "./src/engines/song-library/index.ts",
     "./engines/sound": "./src/engines/sound/index.ts",
     "./engines/technique-session": "./src/engines/technique-session/index.ts",
     "./engines/store": "./src/engines/store/index.ts",
     "./engines/theory": "./src/engines/theory/index.ts",
     "./engines/transport": "./src/engines/transport/index.ts",
+    "./engines/voicing-drill-session": "./src/engines/voicing-drill-session/index.ts",
     "./engines/tunings": "./src/engines/tunings/index.ts",
     "./engines/tunings/store": "./src/engines/tunings/tuning-store.ts",
     "./exercises/aerophone-long-tone": "./src/exercises/aerophone-long-tone.ts",
@@ -53,7 +56,8 @@
     "./exercises/rhythm-pulse": "./src/exercises/rhythm-pulse.ts",
     "./exercises/scale-degree-recognition": "./src/exercises/scale-degree-recognition.ts",
     "./exercises/scale-pattern": "./src/exercises/scale-pattern.ts",
-    "./exercises/sight-reading": "./src/exercises/sight-reading.ts"
+    "./exercises/sight-reading": "./src/exercises/sight-reading.ts",
+    "./exercises/voicing-drill": "./src/exercises/voicing-drill.ts"
   },
   "scripts": {
     "check": "tsc --noEmit",

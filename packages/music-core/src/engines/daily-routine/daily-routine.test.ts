@@ -32,6 +32,28 @@ describe("daily routine", () => {
     expect(plan[0]?.skillId).toBe("rhythm.pulse.quarter");
   });
 
+  test("can include the ii-V-I voicing drill from harmony weak spots", () => {
+    const plan = buildDailyRoutinePlan([
+      {
+        skillId: "harmony.ii-v-i",
+        skillName: "ii-V-I",
+        href: "/music/play/voicings",
+      },
+      {
+        skillId: "rhythm.pulse.quarter",
+        skillName: "Quarter-note pulse",
+        href: "/music/learn/rhythm",
+      },
+    ]);
+
+    expect(plan.map((step) => step.id)).toEqual(["voicings", "rhythm", "ear", "reading", "scales"]);
+    expect(plan[0]).toMatchObject({
+      label: "ii-V-I Voicings",
+      href: "/music/play/voicings",
+      skillId: "harmony.ii-v-i",
+    });
+  });
+
   test("advances from real drill captures and builds a combined summary", () => {
     const plan = buildDailyRoutinePlan([]).slice(0, 2);
     const routine = new DailyRoutineSession(plan);

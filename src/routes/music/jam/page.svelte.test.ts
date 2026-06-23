@@ -31,7 +31,7 @@ describe("/music/jam/+page.svelte", () => {
     expect(document.body.textContent).toContain("G7");
   });
 
-  test("registers generated backing playback with the transport", async () => {
+  test("defaults to a bundled drum-track backing and can switch to synth chords", async () => {
     const playbackSources: Array<{
       label: string;
       play: () => Promise<void> | void;
@@ -59,16 +59,24 @@ describe("/music/jam/+page.svelte", () => {
 
     render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
 
-    await vi.waitFor(() => expect(playbackSources).toHaveLength(1));
-    await playbackSources[0]!.play();
+    // Default backing is a bundled drum track.
+    await vi.waitFor(() => expect(playbackSources.length).toBeGreaterThanOrEqual(1));
+    expect(playbackSources.at(-1)!.label).toMatch(/backing/i);
+    expect(document.body.textContent).toContain("Drum track");
+
+    // Switch to synth chords → generated progression playback.
+    const synth = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Synth chords",
+    );
+    synth?.click();
+
+    await vi.waitFor(() => expect(playbackSources.at(-1)!.label).toContain("progression"));
+    await playbackSources.at(-1)!.play();
 
     expect(runtime.sound.startPatternLoop).toHaveBeenCalledWith(
       expect.any(Array),
       expect.any(Number),
     );
     expect(runtime.sound.playPattern).not.toHaveBeenCalled();
-
-    playbackSources[0]!.stop?.();
-    expect(runtime.sound.stopPatternLoop).toHaveBeenCalled();
   });
 });

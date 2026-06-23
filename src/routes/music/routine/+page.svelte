@@ -80,7 +80,7 @@
 <PracticeScreen>
   <PracticeScreenHeader
     title="Daily Routine"
-    subtitle="One focused pass through ear training, reading, rhythm, and technique."
+    subtitle="One focused pass through today's priority drills."
   />
 
   {#if routine?.status === "summary" && routine.summary}
@@ -89,7 +89,7 @@
         <Badge variant="secondary">Routine complete</Badge>
         <Card.Title class="text-2xl">Today's work is logged</Card.Title>
         <Card.Description>
-          All four drills were combined into one daily-routine journal entry.
+          Every drill was combined into one daily-routine journal entry.
         </Card.Description>
       </Card.Header>
       <Card.Content class="grid gap-4 sm:grid-cols-3">
@@ -147,7 +147,7 @@
     {:else}
       <Card.Root>
         <Card.Header>
-          <Card.Description>About 20 minutes</Card.Description>
+          <Card.Description>About 20-25 minutes</Card.Description>
           <Card.Title>A balanced session, ordered for today</Card.Title>
         </Card.Header>
         <Card.Content class="flex items-center gap-2 text-sm text-muted-foreground">

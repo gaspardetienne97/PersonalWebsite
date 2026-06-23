@@ -23,6 +23,7 @@ function createAdapter(): BackingTrackPlaybackAdapter {
     playGenerated: vi.fn(async () => undefined),
     stopGenerated: vi.fn(),
     loadImported: vi.fn(async () => 45_000),
+    loadBuiltin: vi.fn(async () => 30_000),
     playImported: vi.fn(async () => undefined),
     pauseImported: vi.fn(),
     stopImported: vi.fn(),
@@ -51,6 +52,27 @@ describe("music-core/backing-track", () => {
     expect(adapter.stopGenerated).toHaveBeenCalled();
     expect(engine.state.status).toBe("stopped");
     expect(engine.state.positionMs).toBe(0);
+  });
+
+  test("plays a built-in (static URL) backing track via the audio path", async () => {
+    const adapter = createAdapter();
+    const engine = new BackingTrackEngine(adapter);
+
+    engine.selectBuiltin({
+      id: "swing-125",
+      label: "Swing — 125 bpm",
+      url: "/audio/jazz/swing-125.mp3",
+    });
+    await engine.play();
+    engine.setVolume(0.5);
+    engine.pause();
+
+    expect(adapter.loadBuiltin).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "swing-125", url: "/audio/jazz/swing-125.mp3" }),
+    );
+    expect(adapter.playImported).toHaveBeenCalled();
+    expect(adapter.setImportedVolume).toHaveBeenLastCalledWith(0.5);
+    expect(engine.state).toMatchObject({ status: "paused", selection: { kind: "builtin" } });
   });
 
   test("loads, seeks, loops, and changes volume for imported backing tracks", async () => {

@@ -39,6 +39,7 @@ describe("/music/play/+page.svelte", () => {
     expect(document.querySelector('a[href="/music/play/mpc"]')?.textContent).toContain(
       "MPC Rudiments",
     );
+    expect(document.querySelector('a[href="/music/songs"]')?.textContent).toContain("Song Library");
   });
 
   test("records MIDI notes into a free-practice journal capture", async () => {

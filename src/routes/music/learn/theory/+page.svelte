@@ -5,7 +5,9 @@
   import Play from "lucide-svelte/icons/play";
   import Search from "lucide-svelte/icons/search";
 
+  import { INSTRUMENT_LABELS, VIEWABLE_INSTRUMENTS, type InstrumentId } from "@repo/music-core/domain";
   import {
+    chordVoicings,
     TheoryLibrary,
     type TheoryItemKind,
     type TheoryLibraryItem,
@@ -17,18 +19,24 @@
   import { Input } from "@repo/ui/input";
   import { cn } from "@repo/ui/utils";
 
+  import InstrumentView from "../../_components/InstrumentView.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
-  import ChordDiagram from "./_components/ChordDiagram.svelte";
-  import PianoKeyboard from "./_components/PianoKeyboard.svelte";
 
   const runtime = useMusicRuntime();
   const library = new TheoryLibrary(browser ? new PracticeStore() : undefined);
 
+  // Instruments the chord/scale views support, defaulting to the active one.
+  let viewInstrument = $state<InstrumentId>(
+    VIEWABLE_INSTRUMENTS.includes(runtime.activeInstrument) ? runtime.activeInstrument : "piano",
+  );
+
   let query = $state("");
   let kind = $state<TheoryItemKind>("chord");
   let selectedId = $state("c-maj7");
+  let voicingId = $state("root");
   let savedIds = $state<ReadonlySet<string>>(new Set());
   let status = $state("");
   let pending = $state(false);
@@ -40,24 +48,35 @@
     return results[0];
   });
 
+  // Chords expose root position + inversions + drop-2; scales are a single set.
+  const voicings = $derived(selected?.kind === "chord" ? chordVoicings(selected.pianoMidi) : []);
+  const activeVoicing = $derived(
+    voicings.find((voicing) => voicing.id === voicingId) ?? voicings[0],
+  );
+  const viewMidi = $derived(
+    selected ? (activeVoicing?.midi ?? selected.pianoMidi) : [],
+  );
+
   void library.load().then(() => {
     savedIds = new Set(library.savedIds);
   });
 
   function selectKind(nextKind: TheoryItemKind): void {
     kind = nextKind;
+    voicingId = "root";
     status = "";
   }
 
   function selectItem(item: TheoryLibraryItem): void {
     selectedId = item.id;
+    voicingId = "root";
     status = "";
   }
 
   async function playSelected(): Promise<void> {
     if (!selected || !(await runtime.enableAudio())) return;
-    runtime.sound.playChord(selected.pianoMidi, 0.8);
-    status = `Playing ${selected.symbol}.`;
+    runtime.sound.playChord(viewMidi.length > 0 ? viewMidi : selected.pianoMidi, 0.8);
+    status = `Playing ${selected.symbol}${activeVoicing && selected.kind === "chord" ? ` — ${activeVoicing.label}` : ""}.`;
   }
 
   async function toggleSaved(): Promise<void> {
@@ -217,8 +236,45 @@
             </div>
 
             <div class="space-y-3">
-              <h2 class="text-sm font-semibold">Piano voicing</h2>
-              <PianoKeyboard notes={selected.notes} />
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-sm font-semibold">
+                  {selected.kind === "chord" ? "Voicing" : "Scale"} on {INSTRUMENT_LABELS[
+                    viewInstrument
+                  ]}
+                </h2>
+                <SegmentedControl
+                  size="sm"
+                  ariaLabel="Instrument"
+                  options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
+                  value={viewInstrument}
+                  onChange={(v) => (viewInstrument = v as InstrumentId)}
+                />
+              </div>
+
+              {#if selected.kind === "chord" && voicings.length > 1}
+                <div class="flex flex-wrap gap-1.5" role="group" aria-label="Voicing / inversion">
+                  {#each voicings as voicing (voicing.id)}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={activeVoicing?.id === voicing.id ? "secondary" : "ghost"}
+                      aria-pressed={activeVoicing?.id === voicing.id}
+                      onclick={() => (voicingId = voicing.id)}
+                    >
+                      {voicing.label}
+                    </Button>
+                  {/each}
+                </div>
+              {/if}
+
+              <InstrumentView midi={viewMidi} instrument={viewInstrument} router={runtime.router} />
+
+              {#if viewInstrument === "aerophone" && selected.kind === "chord"}
+                <p class="text-xs text-muted-foreground">
+                  The Aerophone is monophonic — the chord is shown as an arpeggio to play one note
+                  at a time.
+                </p>
+              {/if}
             </div>
 
             {#if status}
@@ -226,38 +282,6 @@
             {/if}
           </Card.Content>
         </Card.Root>
-
-        {#if selected.kind === "chord"}
-          <section class="grid gap-6 md:grid-cols-2">
-            {#each ["guitar", "ukulele"] as instrument}
-              {@const voicings = selected.voicings[instrument as "guitar" | "ukulele"]}
-              <Card.Root>
-                <Card.Header class="flex-row items-center justify-between gap-2">
-                  <div>
-                    <Card.Description>String voicing</Card.Description>
-                    <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"}</Card.Title>
-                  </div>
-                  {#if voicings.length > 0}
-                    <Badge variant="outline">{voicings.length} voicing{voicings.length === 1 ? "" : "s"}</Badge>
-                  {/if}
-                </Card.Header>
-                <Card.Content>
-                  {#if voicings.length > 0}
-                    <div class="flex flex-wrap gap-4">
-                      {#each voicings as voicing}
-                        <ChordDiagram {voicing} />
-                      {/each}
-                    </div>
-                  {:else}
-                    <p class="text-sm text-muted-foreground">
-                      No curated {instrument} voicing is available yet.
-                    </p>
-                  {/if}
-                </Card.Content>
-              </Card.Root>
-            {/each}
-          </section>
-        {/if}
       </article>
     {/if}
   </section>

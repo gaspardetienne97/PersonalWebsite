@@ -38,6 +38,17 @@ export const JAM_PROGRESSIONS: JamProgression[] = [
     ],
   },
   {
+    id: "minor-ii-v-i",
+    name: "Minor ii–V–i",
+    key: "C minor",
+    style: "jazz",
+    chords: [
+      { symbol: "Dm7b5", roman: "iiø", scale: "D locrian", bars: 2 },
+      { symbol: "G7alt", roman: "V7alt", scale: "G altered", bars: 2 },
+      { symbol: "Cm7", roman: "i", scale: "C dorian", bars: 2 },
+    ],
+  },
+  {
     id: "blues",
     name: "12-bar blues",
     key: "C",

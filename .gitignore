@@ -32,3 +32,7 @@ vite.config.ts.timestamp-*
 
 storybook-static
 .vite-hooks
+
+# Local-only jazz backing tracks (licensed Julian Bradley drum tracks, served
+# from static/ in dev/preview but not committed — large and not ours to ship)
+/static/audio/

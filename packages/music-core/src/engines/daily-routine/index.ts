@@ -81,15 +81,25 @@ const DEFAULT_STEPS: DailyRoutineStep[] = [
   },
 ];
 
+const RECOMMENDED_STEPS: DailyRoutineStep[] = [
+  {
+    id: "voicings",
+    label: "ii-V-I Voicings",
+    href: "/music/play/voicings",
+    description: "Cycle the graded ii-V-I drill through all 12 keys.",
+  },
+  ...DEFAULT_STEPS,
+];
+
 export function buildDailyRoutinePlan(
   recommendations: DailyRoutineRecommendation[],
 ): DailyRoutineStep[] {
-  const defaultsByHref = new Map(DEFAULT_STEPS.map((step) => [step.href, step]));
+  const stepsByHref = new Map(RECOMMENDED_STEPS.map((step) => [step.href, step]));
   const selected: DailyRoutineStep[] = [];
   const seen = new Set<string>();
 
   for (const recommendation of recommendations) {
-    const step = defaultsByHref.get(recommendation.href);
+    const step = stepsByHref.get(recommendation.href);
     if (!step || seen.has(step.href)) continue;
     selected.push({ ...step, skillId: recommendation.skillId });
     seen.add(step.href);

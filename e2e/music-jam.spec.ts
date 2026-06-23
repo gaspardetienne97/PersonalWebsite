@@ -7,7 +7,11 @@ test.describe("music jam / improv", () => {
 
     await expect(page.getByRole("heading", { name: "Jam / Improv" })).toBeVisible();
 
-    // The transport Play button is context-aware: it plays the on-screen progression.
+    // The transport defaults to the bundled drum backing.
+    await expect(page.getByRole("button", { name: "Play Swing — 125 bpm backing" })).toBeVisible();
+
+    // Synth mode makes the transport context-aware for the on-screen progression.
+    await page.getByRole("button", { name: "Synth chords" }).click();
     await expect(page.getByRole("button", { name: "Play ii–V–I progression" })).toBeVisible();
 
     // Switching progression re-labels the transport Play button.

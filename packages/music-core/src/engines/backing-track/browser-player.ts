@@ -69,6 +69,21 @@ export class BrowserBackingPlayer implements BackingTrackPlaybackAdapter {
       : track.durationMs;
   }
 
+  async loadBuiltin(
+    track: Extract<BackingSelection, { kind: "builtin" }>["track"],
+  ): Promise<number> {
+    if (this.#loadedTrackId !== track.id) {
+      // Static URL — stream it directly; no blob/object URL needed.
+      if (this.#objectUrl) this.#replaceObjectUrl(undefined);
+      this.#audio.src = track.url;
+      this.#audio.load?.();
+      this.#loadedTrackId = track.id;
+    }
+    return Number.isFinite(this.#audio.duration) && this.#audio.duration >= 0
+      ? Math.round(this.#audio.duration * 1_000)
+      : 0;
+  }
+
   playImported(): Promise<void> {
     return this.#audio.play();
   }

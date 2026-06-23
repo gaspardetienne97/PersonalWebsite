@@ -18,8 +18,12 @@
   import { Label } from "@repo/ui/label";
   import { Progress } from "@repo/ui/progress";
 
+  import { INSTRUMENT_LABELS, VIEWABLE_INSTRUMENTS, type InstrumentId } from "@repo/music-core/domain";
+
+  import InstrumentView from "../../_components/InstrumentView.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -30,6 +34,13 @@
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
+
+  // Reference view of the scale being practiced (C major, C4–C5), shown on the
+  // chosen instrument via the shared InstrumentView.
+  const C_MAJOR_MIDI = [60, 62, 64, 65, 67, 69, 71, 72];
+  let scaleInstrument = $state<InstrumentId>(
+    VIEWABLE_INSTRUMENTS.includes(runtime.activeInstrument) ? runtime.activeInstrument : "piano",
+  );
 
   let ready = $state(false);
   let pending = $state(false);
@@ -267,6 +278,27 @@
             {/each}
           </Card.Content>
         </Card.Root>
+        <Card.Root>
+          <Card.Header class="gap-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <Card.Description>Reference</Card.Description>
+                <Card.Title>C major on {INSTRUMENT_LABELS[scaleInstrument]}</Card.Title>
+              </div>
+              <SegmentedControl
+                size="sm"
+                ariaLabel="Scale instrument"
+                options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
+                value={scaleInstrument}
+                onChange={(v) => (scaleInstrument = v as InstrumentId)}
+              />
+            </div>
+          </Card.Header>
+          <Card.Content>
+            <InstrumentView midi={C_MAJOR_MIDI} instrument={scaleInstrument} router={runtime.router} />
+          </Card.Content>
+        </Card.Root>
+
         <Card.Root>
           <Card.Header>
             <Card.Description>Streak</Card.Description>

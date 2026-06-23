@@ -8,6 +8,7 @@ export * from "./time";
 export * from "./capability";
 export * from "./modality";
 export * from "./instrument";
+export * from "./applicability";
 export * from "./note-event";
 export * from "./skill";
 export * from "./score";
