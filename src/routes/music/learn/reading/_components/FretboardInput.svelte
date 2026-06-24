@@ -13,6 +13,7 @@
     wrongMidiNotes = [],
     router,
     visibleFrets = 12,
+    visibleStrings,
     onAccepted,
   }: {
     tuning: TuningProfile;
@@ -22,10 +23,16 @@
     wrongMidiNotes?: number[];
     router: InputRouter;
     visibleFrets?: number;
+    visibleStrings?: number[];
     onAccepted?: (event: NoteEvent) => void;
   } = $props();
 
   const fretCount = $derived(Math.min(tuning.fretCount, Math.max(0, visibleFrets)));
+  const strings = $derived(
+    tuning.openStrings
+      .map((openMidi, index) => ({ openMidi, stringNumber: index + 1 }))
+      .filter(({ stringNumber }) => visibleStrings === undefined || visibleStrings.includes(stringNumber)),
+  );
 
   function play(midiNote: number): void {
     const event = router.noteOn(midiNote, "onscreen", tuning.instrument);
@@ -54,9 +61,9 @@
       <span class="text-center text-xs text-muted-foreground">{fret}</span>
     {/each}
 
-    {#each tuning.openStrings as openMidi, index}
+    {#each strings as { openMidi, stringNumber } (stringNumber)}
       <span class="flex items-center justify-center text-xs font-medium text-muted-foreground">
-        {index + 1}
+        {stringNumber}
       </span>
       {#each Array.from({ length: fretCount + 1 }, (_, fret) => fret) as fret}
         {@const midiNote = openMidi + fret}
@@ -64,7 +71,7 @@
         {@const noteState = state(midiNote)}
         <button
           type="button"
-          aria-label={`String ${index + 1} fret ${fret}, ${note}${noteState ? `, ${noteState}` : ""}`}
+          aria-label={`String ${stringNumber} fret ${fret}, ${note}${noteState ? `, ${noteState}` : ""}`}
           class={cn(
             "grid size-10 place-items-center rounded-sm border bg-background text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             noteState === "target" && "border-primary bg-primary/15",

@@ -69,6 +69,7 @@
       items: [
         { label: "Practice Lab", href: "/music/play", icon: FlaskConical },
         { label: "MPC Rudiments", href: "/music/play/mpc", icon: Drum },
+        { label: "Spider Drill", href: "/music/play/spider", icon: SlidersHorizontal },
         { label: "Tuner", href: "/music/tuner", icon: Gauge },
         { label: "Intonation", href: "/music/intonation", icon: AudioWaveform },
         { label: "Import & Play", href: "/music/import", icon: Upload },

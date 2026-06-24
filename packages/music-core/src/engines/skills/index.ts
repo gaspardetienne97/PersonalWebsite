@@ -309,6 +309,27 @@ export function seedCoreSkills(): SkillSeed {
       "beginner",
       ["aerophone", "breath", "swell", "dynamics"],
     ),
+    skill("technique.strings", "String Instrument Technique", Capability.Technique, "beginner", [
+      "guitar",
+      "ukulele",
+      "fretting",
+    ]),
+    skill("technique.strings.spider", "Chromatic Spider Drill", Capability.Technique, "beginner", [
+      "guitar",
+      "ukulele",
+      "spider",
+      "chromatic",
+    ]),
+    skill("technique.guitar.spider", "Guitar Spider Drill", Capability.Technique, "beginner", [
+      "guitar",
+      "spider",
+      "chromatic",
+    ]),
+    skill("technique.ukulele.spider", "Ukulele Spider Drill", Capability.Technique, "beginner", [
+      "ukulele",
+      "spider",
+      "chromatic",
+    ]),
     skill("technique.mpc", "MPC Technique", Capability.Technique, "beginner", [
       "mpc",
       "pads",
@@ -351,6 +372,8 @@ export function seedCoreSkills(): SkillSeed {
       "technique.aerophone.breath-steadiness",
       "technique.aerophone.dynamic-control",
     ],
+    "technique.strings": ["technique.strings.spider"],
+    "technique.strings.spider": ["technique.guitar.spider", "technique.ukulele.spider"],
     "technique.mpc": ["technique.mpc.single-strokes"],
   };
 

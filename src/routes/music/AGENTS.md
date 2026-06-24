@@ -171,6 +171,12 @@ This file provides guidance for agents working on the Music app under
 - `/music/play`: play/practice entry point.
 - `/music/play/scales`: scales and technique trainer. The aside shows a
   reference of the practiced scale on the chosen instrument via `InstrumentView`.
+- `/music/play/spider`: graded guitar/ukulele 1-2-3-4 chromatic drill. Setup
+  selects a curated tuning, string, starting fret, and tempo; MIDI and the shared
+  `FretboardInput` feed the same `TechniqueSession.startSpider()` run. The
+  exercise scores pitch order + timing evenness, awards XP/mastery to the shared
+  and instrument-specific spider skills, and records a tagged drill journal
+  entry.
 - `/music/play/voicings`: **graded** voicing drill across all 12 keys, with
   **Major / Minor / Altered V7** variants (major = rootless ii-V-I, JT9; minor =
   iiø7 → V7alt → i-m7, JT7; altered = V7b9 → V7alt → II-major upper structure,
@@ -235,8 +241,12 @@ Important areas:
   `buildVoicingDrillTargets(instrument, { variant, startPosition })` (major,
   minor, and altered V7); its gradable unit is the `exercises/voicing-drill`
   exercise (chord-hold grading for polyphonic instruments, arpeggio-sequence
-  grading for monophonic).
+  grading for monophonic). `technique-session` also owns the string-instrument
+  spider run through `startSpider()`.
 - `src/engines/score-follower/`: streaming pitch+timing grading over a `Score`.
+- `src/exercises/string-spider.ts`: guitar/ukulele one-string 1-2-3-4 target
+  generation and pitch-order/evenness grading. Keep fretboard rendering and
+  route state out of this exercise.
 - `src/engines/library/`, `tunings/`: chord/scale data and tuning profiles.
   `library` also exports `chordVoicings(pianoMidi)` — root position, inversions,
   and drop-2 as instrument-agnostic pitch sets for `InstrumentView`.

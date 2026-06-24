@@ -57,6 +57,7 @@
     "./exercises/scale-degree-recognition": "./src/exercises/scale-degree-recognition.ts",
     "./exercises/scale-pattern": "./src/exercises/scale-pattern.ts",
     "./exercises/sight-reading": "./src/exercises/sight-reading.ts",
+    "./exercises/string-spider": "./src/exercises/string-spider.ts",
     "./exercises/voicing-drill": "./src/exercises/voicing-drill.ts"
   },
   "scripts": {

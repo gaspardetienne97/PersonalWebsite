@@ -39,6 +39,9 @@ describe("/music/play/+page.svelte", () => {
     expect(document.querySelector('a[href="/music/play/mpc"]')?.textContent).toContain(
       "MPC Rudiments",
     );
+    expect(document.querySelector('a[href="/music/play/spider"]')?.textContent).toContain(
+      "Spider Drill",
+    );
     expect(document.querySelector('a[href="/music/songs"]')?.textContent).toContain("Song Library");
   });
 

@@ -6,6 +6,7 @@ import type { PipelineServices } from "@repo/music-core/engines/exercise";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills";
+import { curatedTunings } from "@repo/music-core/engines/tunings";
 
 import { TechniqueSession, type TechniqueSessionState } from "./index";
 
@@ -146,6 +147,39 @@ describe("TechniqueSession", () => {
       0,
     );
     expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
+    session.dispose();
+  });
+
+  test("completes a guitar spider through the shared pipeline", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    const prompt = await session.startSpider({
+      tuning: curatedTunings("guitar")[0]!,
+      stringNumber: 6,
+      startFret: 0,
+      bpm: 120,
+    });
+    prompt.midiNotes.forEach((midiNote, index) => {
+      dependencies.router.push({
+        ...note(midiNote, index * prompt.targetSpacingMs),
+        instrument: "guitar",
+      });
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      noteAccuracy: 1,
+      meanEvennessErrorMs: 0,
+    });
+    expect(session.state.results[0]?.event.skillIds).toEqual(
+      expect.arrayContaining(["technique.strings.spider", "technique.guitar.spider"]),
+    );
+    expect(
+      dependencies.services.skills.getMastery("technique.guitar.spider").observations,
+    ).toBeGreaterThan(0);
     session.dispose();
   });
 

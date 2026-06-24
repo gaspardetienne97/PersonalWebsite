@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vite-plus/test";
+import { afterEach, describe, expect, test } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import type { NoteEvent } from "@repo/music-core/domain";
@@ -6,6 +6,10 @@ import { InputRouter } from "@repo/music-core/engines/input-router";
 import { curatedTunings } from "@repo/music-core/engines/tunings";
 
 import FretboardInput from "./FretboardInput.svelte";
+
+afterEach(() => {
+  document.body.replaceChildren();
+});
 
 describe("FretboardInput", () => {
   test("renders conventional string numbers and emits selected fret pitches", () => {
@@ -36,5 +40,17 @@ describe("FretboardInput", () => {
       instrument: "guitar",
       inputProfileId: "guitar.standard",
     });
+  });
+
+  test("can render only selected strings for focused drills", () => {
+    render(FretboardInput, {
+      tuning: curatedTunings("guitar")[0]!,
+      router: new InputRouter(),
+      visibleStrings: [6],
+      visibleFrets: 8,
+    });
+
+    expect(document.querySelector('[aria-label^="String 6 fret 5,"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label^="String 1 fret 5,"]')).toBeNull();
   });
 });

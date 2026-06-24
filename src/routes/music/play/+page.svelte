@@ -654,6 +654,15 @@
       icon={Drum}
     />
     <MusicToolCard
+      href="/music/play/spider"
+      title="Spider Drill"
+      description="Build guitar or ukulele fretting-hand independence with a graded chromatic 1-2-3-4 pattern."
+      eyebrow="Play"
+      meta="Strings"
+      action="Start spider practice"
+      icon={SlidersHorizontal}
+    />
+    <MusicToolCard
       href="/music/tuner"
       title="Tuner"
       description="Tune by ear with a live mic: nearest note, cents deviation, and a flat / in-tune / sharp meter."

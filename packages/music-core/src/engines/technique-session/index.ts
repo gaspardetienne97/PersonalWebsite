@@ -23,6 +23,11 @@ import {
   type ScalePatternKind,
   type ScalePatternPrompt,
 } from "@repo/music-core/exercises/scale-pattern";
+import {
+  createStringSpiderExercise,
+  type StringSpiderPrompt,
+} from "@repo/music-core/exercises/string-spider";
+import type { TuningProfile } from "@repo/music-core/engines/tunings";
 
 export interface TechniqueScaleOptions {
   tonic: string;
@@ -49,11 +54,19 @@ export interface TechniqueMpcRudimentOptions {
   bpm: number;
 }
 
+export interface TechniqueSpiderOptions {
+  tuning: TuningProfile;
+  stringNumber: number;
+  startFret: number;
+  bpm: number;
+}
+
 export type TechniquePrompt =
   | ScalePatternPrompt
   | AerophoneLongTonePrompt
   | AerophoneSwellPrompt
-  | MpcSingleStrokePrompt;
+  | MpcSingleStrokePrompt
+  | StringSpiderPrompt;
 
 export interface TechniqueSessionDependencies {
   router: InputRouter;
@@ -254,6 +267,33 @@ export class TechniqueSession {
     this.#error = undefined;
     this.#notify();
     return this.#currentPrompt;
+  }
+
+  async startSpider(options: TechniqueSpiderOptions): Promise<StringSpiderPrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createStringSpiderExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-spider-${options.tuning.id}-${options.stringNumber}-${options.startFret}-${options.bpm}`,
+      inputs: ["midi", "onscreen"],
+      context: {
+        targetSkillIds: exercise.skillIds,
+        difficulty: difficultyForBpm(options.bpm),
+        instrument: options.tuning.instrument,
+      },
+    });
+
+    const currentPrompt = prompt.payload as StringSpiderPrompt;
+    this.#status = "active";
+    this.#currentPrompt = currentPrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return currentPrompt;
   }
 
   async retrySave(): Promise<void> {
