@@ -188,9 +188,12 @@ This file provides guidance for agents working on the Music app under
 - `/music/songs/[id]`: Phase 3 Song Studio foundation. It loads a stored
   canonical `Score`, renders shared notation when supported, registers preview
   playback, and runs wait-mode `score-follower` through the shared input router.
-  Keep import parsing in `@repo/music-core/engines/score-import`, persistence in
-  `SongLibrary`, and follower behavior in `score-follower`; the route should
-  only compose them.
+  Canonical whole-score, multi-section, and custom practice ranges come from
+  `@repo/music-core/engines/score-practice`; renderer components must emit
+  canonical beats rather than own range or looping state. Keep import parsing
+  in `score-import`, persistence in `SongLibrary`, range/session behavior in
+  `score-practice`, and note grading in `score-follower`; the route should only
+  compose them with shared runtime lifecycle.
 - `/music/play/scales`: scales and technique trainer. The aside shows a
   reference of the practiced scale on the chosen instrument via `InstrumentView`.
 - `/music/play/spider`: graded guitar/ukulele 1-2-3-4 chromatic drill. Setup
@@ -291,6 +294,12 @@ Important areas:
   `startChordPerfect()`, and the Aerophone articulation run through
   `startArticulation()`.
 - `src/engines/score-follower/`: streaming pitch+timing grading over a `Score`.
+- `src/engines/score-practice/`: canonical Song Studio practice selection and
+  orchestration. It derives measure/note-group boundaries, validates
+  whole-score/multi-section/custom half-open ranges, rebases groups into
+  `PracticeSegment`s, and owns execution queues/aggregate summaries as those
+  Phase 3 slices land. VexFlow/OSMD geometry and Svelte lifecycle do not belong
+  in this engine.
 - `src/exercises/string-spider.ts`: guitar/ukulele one-string 1-2-3-4 target
   generation and pitch-order/evenness grading. Keep fretboard rendering and
   route state out of this exercise.
