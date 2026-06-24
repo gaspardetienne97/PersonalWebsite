@@ -24,6 +24,7 @@ export interface ScheduledTick {
 export interface TransportEvent {
   kind: "beat" | "subdivision";
   atSeconds: number;
+  atMonotonicMs: MonotonicMs;
   beat: number;
   subdivision: number;
   accented: boolean;
@@ -53,6 +54,8 @@ export interface TransportEngineOptions {
   countInBars?: number;
   quantizationGrid?: QuantizationGrid;
   onMetronomeClick?: (atSeconds: number, accented: boolean) => void;
+  audioNowSeconds?: () => number;
+  monotonicNowMs?: () => MonotonicMs;
 }
 
 type TransportListener = (event: TransportEvent) => void;
@@ -97,12 +100,16 @@ export class TransportEngine {
   #clock: ToneTransportClock;
   #listeners = new Set<TransportListener>();
   #onMetronomeClick: ((atSeconds: number, accented: boolean) => void) | undefined;
+  #audioNowSeconds: () => number;
+  #monotonicNowMs: () => MonotonicMs;
   #scheduledEventId: number | undefined;
   #subdivisionIndex = 0;
 
   constructor(clock: ToneTransportClock, options: TransportEngineOptions = {}) {
     this.#clock = clock;
     this.#onMetronomeClick = options.onMetronomeClick;
+    this.#audioNowSeconds = options.audioNowSeconds ?? (() => performance.now() / 1_000);
+    this.#monotonicNowMs = options.monotonicNowMs ?? (() => monotonicMs(performance.now()));
     this.state = createTransportState(options.bpm, options.numerator, options.denominator);
     this.state.countInBars = options.countInBars ?? 0;
     this.state.quantizationGrid = options.quantizationGrid ?? "4n";
@@ -199,6 +206,9 @@ export class TransportEngine {
     const event: TransportEvent = {
       kind: subdivision === 0 ? "beat" : "subdivision",
       atSeconds,
+      atMonotonicMs: monotonicMs(
+        this.#monotonicNowMs() + (atSeconds - this.#audioNowSeconds()) * 1_000,
+      ),
       beat,
       subdivision,
       accented,
@@ -216,10 +226,15 @@ export async function createToneTransportEngine(
   options: TransportEngineOptions = {},
 ): Promise<TransportEngine> {
   const tone = await import("tone");
-  return new TransportEngine(tone.getTransport() as unknown as ToneTransportClock, options);
+  return new TransportEngine(tone.getTransport() as unknown as ToneTransportClock, {
+    ...options,
+    audioNowSeconds: options.audioNowSeconds ?? tone.now,
+    monotonicNowMs: options.monotonicNowMs ?? (() => monotonicMs(performance.now())),
+  });
 }
 
 function gridSubdivisionsPerBeat(grid: QuantizationGrid, denominator: number): number {
   const gridDenominator = Number.parseInt(grid, 10);
   return Math.max(1, gridDenominator / denominator);
 }
+import { monotonicMs, type MonotonicMs } from "@repo/music-core/domain";

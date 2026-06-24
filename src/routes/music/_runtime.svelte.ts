@@ -2,10 +2,12 @@ import { getContext, setContext } from "svelte";
 
 import {
   INSTRUMENT_LABELS,
+  monotonicMs,
   unixMs,
   type ExerciseRunRecord,
   type InputSource,
   type InstrumentId,
+  type MonotonicMs,
   type ScoringEvent,
   type SessionSource,
   type UnixMs,
@@ -57,6 +59,7 @@ export interface MidiInstrumentOption {
 
 export interface MusicRuntimeOptions {
   createTransport?: (options: TransportEngineOptions) => Promise<TransportEngine>;
+  monotonicNowMs?: () => MonotonicMs;
 }
 
 /**
@@ -82,6 +85,7 @@ export class MusicRuntime {
   readonly midi = new MidiEngine();
   readonly sound = new SoundEngine();
   readonly #createTransport: (options: TransportEngineOptions) => Promise<TransportEngine>;
+  readonly #monotonicNowMs: () => MonotonicMs;
 
   audioEnabled = $state(false);
   audioPending = $state(false);
@@ -135,6 +139,7 @@ export class MusicRuntime {
 
   constructor(options: MusicRuntimeOptions = {}) {
     this.#createTransport = options.createTransport ?? createToneTransportEngine;
+    this.#monotonicNowMs = options.monotonicNowMs ?? (() => monotonicMs(performance.now()));
   }
 
   enableAudio(): Promise<boolean> {
@@ -378,23 +383,33 @@ export class MusicRuntime {
     this.metronomeRunning = true;
   }
 
-  async runCountIn(): Promise<void> {
-    if (this.countInBars === 0) return;
+  async runCountIn(): Promise<MonotonicMs> {
     if (!(await this.enableAudio())) throw new Error(this.audioMessage);
     const transport = await this.#ensureTransport();
     transport.setBpm(this.transportBpm);
     transport.setCountInBars(this.countInBars);
+    if (this.countInBars === 0) {
+      transport.start();
+      this.metronomeRunning = true;
+      return this.#monotonicNowMs();
+    }
 
-    await new Promise<void>((resolve) => {
+    return new Promise<MonotonicMs>((resolve) => {
       const unsubscribe = transport.subscribe((event) => {
         if (event.kind === "beat" && !event.countingIn) {
           unsubscribe();
-          resolve();
+          resolve(event.atMonotonicMs);
         }
       });
       transport.start();
       this.metronomeRunning = true;
     });
+  }
+
+  stopPracticeClock(): void {
+    if (this.#transport?.state.running) this.#transport.stop();
+    this.metronomeRunning = false;
+    this.activeBeat = -1;
   }
 
   async #ensureTransport(): Promise<TransportEngine> {

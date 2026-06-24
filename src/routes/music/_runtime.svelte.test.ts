@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   Capability,
+  monotonicMs,
   unixMs,
   type ExerciseRunRecord,
   type ScoringEvent,
@@ -117,6 +118,7 @@ describe("MusicRuntime shared UI state", () => {
     transport.emit({
       kind: "beat",
       atSeconds: 0,
+      atMonotonicMs: monotonicMs(1_000),
       beat: 3,
       subdivision: 0,
       accented: false,
@@ -125,17 +127,41 @@ describe("MusicRuntime shared UI state", () => {
     transport.emit({
       kind: "beat",
       atSeconds: 0.5,
+      atMonotonicMs: monotonicMs(1_500),
       beat: 0,
       subdivision: 0,
       accented: true,
       countingIn: false,
     });
 
-    await expect(ready).resolves.toBeUndefined();
+    await expect(ready).resolves.toBe(1_500);
     expect(transport.setBpm).toHaveBeenCalledWith(rt.transportBpm);
     expect(transport.setCountInBars).toHaveBeenCalledWith(1);
     expect(transport.start).toHaveBeenCalledOnce();
     expect(rt.activeBeat).toBe(0);
+    rt.dispose();
+  });
+
+  it("starts immediately with zero count-in and stops the practice clock idempotently", async () => {
+    const transport = createFakeTransport();
+    const rt = new MusicRuntime({
+      createTransport: async () => transport,
+      monotonicNowMs: () => monotonicMs(1_234),
+    });
+    vi.spyOn(rt, "enableAudio").mockResolvedValue(true);
+
+    rt.setCountIn(0);
+
+    await expect(rt.runCountIn()).resolves.toBe(1_234);
+    expect(transport.start).toHaveBeenCalledOnce();
+    expect(rt.metronomeRunning).toBe(true);
+
+    rt.stopPracticeClock();
+    rt.stopPracticeClock();
+
+    expect(transport.stop).toHaveBeenCalledOnce();
+    expect(rt.metronomeRunning).toBe(false);
+    expect(rt.activeBeat).toBe(-1);
     rt.dispose();
   });
 

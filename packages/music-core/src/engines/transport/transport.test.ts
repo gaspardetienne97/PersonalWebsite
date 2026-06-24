@@ -1,5 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { monotonicMs } from "@repo/music-core/domain";
+
 import {
   scheduleMetronomeTicks,
   TransportEngine,
@@ -71,6 +73,21 @@ describe("music-core/transport", () => {
       { atSeconds: 10.5, accented: false },
       { atSeconds: 11, accented: false },
     ]);
+  });
+
+  test("projects scheduled audio time onto the monotonic performance clock", () => {
+    const mock = createClockMock();
+    const events: TransportEvent[] = [];
+    const transport = new TransportEngine(mock.clock, {
+      audioNowSeconds: () => 10,
+      monotonicNowMs: () => monotonicMs(5_000),
+    });
+    transport.subscribe((event) => events.push(event));
+
+    transport.start();
+    mock.tick(10.25);
+
+    expect(events[0]?.atMonotonicMs).toBe(5_250);
   });
 
   test("applies tempo, time signature, count-in, loop points, and cleanup", () => {
