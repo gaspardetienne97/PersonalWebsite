@@ -14,8 +14,8 @@ test.describe("music import & play-along", () => {
     expect(response?.status()).toBe(200);
 
     await expect(page.getByRole("heading", { name: "Import & Play-Along" })).toBeVisible();
-    await expect(page.getByText("Drop a MIDI file, or browse", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("MIDI file")).toBeAttached();
+    await expect(page.getByText("Drop a score file, or browse", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Score file")).toBeAttached();
   });
 
   test("saves an imported MIDI file and logs repertoire practice", async ({ page }) => {
@@ -56,4 +56,51 @@ test.describe("music import & play-along", () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
   });
+
+  test("imports MusicXML and renders it with OSMD in Song Studio", async ({ page }) => {
+    await page.goto("/music/import");
+    await page.setInputFiles('input[type="file"]', {
+      name: "xml-study.musicxml",
+      mimeType: "application/vnd.recordare.musicxml+xml",
+      buffer: Buffer.from(MUSIC_XML),
+    });
+
+    await expect(page.getByRole("heading", { name: "XML Study" })).toBeVisible();
+    await page.getByRole("button", { name: "Save to repertoire" }).click();
+    await expect(page.getByText("Saved to repertoire.")).toBeVisible();
+
+    await page.getByRole("link", { name: "Open songs" }).click();
+    await page.getByRole("link", { name: "Open Song Studio" }).click();
+    await expect(page.getByRole("heading", { name: "XML Study", level: 1 })).toBeVisible();
+    await expect(page.getByLabel("MusicXML score").locator("svg")).toBeVisible();
+
+    await page.getByRole("button", { name: "Start follow-along" }).click();
+    for (const note of ["C4", "E4", "G4"]) {
+      await page.getByRole("button", { name: note, exact: true }).click();
+    }
+    await expect(page.getByRole("heading", { name: "Score complete" })).toBeVisible();
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  });
 });
+
+const MUSIC_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>XML Study</work-title></work>
+  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+  <part id="P1"><measure number="1">
+    <attributes>
+      <divisions>1</divisions>
+      <key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef>
+    </attributes>
+    <direction><sound tempo="100"/></direction>
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+    <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+    <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
+  </measure></part>
+</score-partwise>`;

@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import type { ImportedSong } from "@repo/music-core/engines/import";
 
-import { parseMidiScore, scoreFromImportedSong } from "./index";
+import { parseMidiScore, parseMusicXmlScore, scoreFromImportedSong } from "./index";
 
 describe("scoreFromImportedSong", () => {
   test("preserves beat-native timing maps and classifies track roles", () => {
@@ -133,3 +133,147 @@ describe("parseMidiScore", () => {
     expect(score.notes[0]?.velocity).toBeCloseTo(0.75, 2);
   });
 });
+
+describe("parseMusicXmlScore", () => {
+  test("parses score-partwise notation into the canonical practice model", () => {
+    const score = parseMusicXmlScore(MUSIC_XML, {
+      id: "musicxml-1",
+      fallbackName: "Fallback",
+    });
+
+    expect(score).toMatchObject({
+      id: "musicxml-1",
+      title: "MusicXML Study",
+      origin: "musicxml",
+      keySignature: "F major",
+      tempoMap: [{ atBeat: 0, bpm: 96 }],
+      timeSignatures: [
+        { atBeat: 0, numerator: 4, denominator: 4 },
+        { atBeat: 4, numerator: 3, denominator: 4 },
+      ],
+    });
+    expect(score.voices).toEqual([
+      { id: "P1:voice:1", name: "Piano · Voice 1", role: "other" },
+      { id: "P1:voice:2", name: "Piano · Voice 2", role: "other" },
+      { id: "P2:voice:1", name: "Bass · Voice 1", role: "bass" },
+    ]);
+    expect(score.notes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          midiNote: 60,
+          writtenPitch: { step: "C", octave: 4 },
+          startBeat: 0,
+          durationBeats: 1,
+          voiceId: "P1:voice:1",
+        }),
+        expect.objectContaining({
+          midiNote: 64,
+          startBeat: 0,
+          durationBeats: 1,
+          voiceId: "P1:voice:1",
+        }),
+        expect.objectContaining({
+          midiNote: 55,
+          startBeat: 0,
+          durationBeats: 2,
+          voiceId: "P1:voice:2",
+        }),
+        expect.objectContaining({
+          midiNote: 41,
+          startBeat: 0,
+          durationBeats: 4,
+          voiceId: "P2:voice:1",
+        }),
+        expect.objectContaining({
+          midiNote: 62,
+          startBeat: 4,
+          durationBeats: 1,
+          voiceId: "P1:voice:1",
+        }),
+      ]),
+    );
+    expect(score.rests).toContainEqual({
+      startBeat: 1,
+      durationBeats: 1,
+      voiceId: "P1:voice:1",
+    });
+    expect(score.chords).toContainEqual({
+      symbol: "Fmaj7",
+      startBeat: 0,
+    });
+    expect(score.lyrics).toContainEqual({ text: "La", startBeat: 0 });
+    expect(score.sections[0]?.endBeat).toBe(7);
+  });
+
+  test("rejects malformed XML and unsupported score roots", () => {
+    expect(() => parseMusicXmlScore("<score-partwise><part>", { id: "broken" })).toThrow(
+      "MusicXML could not be parsed",
+    );
+    expect(() => parseMusicXmlScore('<score-timewise version="4.0"/>', { id: "timewise" })).toThrow(
+      "Only score-partwise MusicXML is supported",
+    );
+  });
+});
+
+const MUSIC_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>MusicXML Study</work-title></work>
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+    <score-part id="P2"><part-name>Bass</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <key><fifths>-1</fifths><mode>major</mode></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+      </attributes>
+      <direction><sound tempo="96"/></direction>
+      <harmony>
+        <root><root-step>F</root-step></root>
+        <kind text="maj7">major-seventh</kind>
+      </harmony>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>4</duration><voice>1</voice>
+        <lyric><text>La</text></lyric>
+      </note>
+      <note>
+        <chord/>
+        <pitch><step>E</step><octave>4</octave></pitch>
+        <duration>4</duration><voice>1</voice>
+      </note>
+      <note><rest/><duration>4</duration><voice>1</voice></note>
+      <backup><duration>8</duration></backup>
+      <note>
+        <pitch><step>G</step><octave>3</octave></pitch>
+        <duration>8</duration><voice>2</voice>
+      </note>
+    </measure>
+    <measure number="2">
+      <attributes><time><beats>3</beats><beat-type>4</beat-type></time></attributes>
+      <note>
+        <pitch><step>D</step><octave>4</octave></pitch>
+        <duration>4</duration><voice>1</voice>
+      </note>
+      <forward><duration>8</duration></forward>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+      </attributes>
+      <note>
+        <pitch><step>F</step><octave>2</octave></pitch>
+        <duration>16</duration><voice>1</voice>
+      </note>
+    </measure>
+    <measure number="2">
+      <attributes><time><beats>3</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest/><duration>12</duration><voice>1</voice></note>
+    </measure>
+  </part>
+</score-partwise>`;

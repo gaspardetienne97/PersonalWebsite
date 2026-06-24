@@ -23,6 +23,7 @@
   import { Progress } from "@repo/ui/progress";
 
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import MusicXmlScore from "../../_components/MusicXmlScore.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import SegmentProgress from "../../_components/SegmentProgress.svelte";
@@ -215,7 +216,12 @@
             <Badge variant="secondary">{score.origin.toUpperCase()}</Badge>
           </Card.Header>
           <Card.Content class="grid gap-4">
-            {#if notation.view}
+            {#if song.source?.format === "musicxml"}
+              <MusicXmlScore
+                xml={song.source.content}
+                onError={(message) => (status = message)}
+              />
+            {:else if notation.view}
               <StaffNotation view={notation.view} />
             {:else}
               <div class="rounded-md border p-4 text-sm text-muted-foreground">

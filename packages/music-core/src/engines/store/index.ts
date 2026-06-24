@@ -32,8 +32,14 @@ export interface SongRow {
   id: string;
   title: string;
   score?: Score;
+  source?: SongSource;
   createdAt?: number;
   updatedAt?: number;
+}
+
+export interface SongSource {
+  format: "musicxml";
+  content: string;
 }
 
 export interface ImportedBackingTrackRow {

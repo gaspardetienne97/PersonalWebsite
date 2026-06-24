@@ -77,6 +77,27 @@ describe("SongLibrary", () => {
       { midiNotes: [67], offsetSeconds: 2, durationSeconds: 2 },
     ]);
   });
+
+  test("persists a canonical score with its original MusicXML source", async () => {
+    const store = createStore();
+    const library = new SongLibrary(store, {
+      makeId: () => "song-musicxml",
+      now: () => unixMs(4_000),
+    });
+    const score = scoreFromImportedSong(importedSong("MusicXML Study"), "preview-id");
+    score.origin = "musicxml";
+    const source = {
+      format: "musicxml" as const,
+      content: '<score-partwise version="4.0"/>',
+    };
+
+    const saved = await library.saveScore(score, source);
+
+    expect(saved.id).toBe("song-musicxml");
+    expect(saved.score?.id).toBe("song-musicxml");
+    expect(saved.source).toEqual(source);
+    await expect(library.get("song-musicxml")).resolves.toEqual(saved);
+  });
 });
 
 function importedSong(name: string) {

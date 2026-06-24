@@ -8,8 +8,13 @@
     type ImportedNote,
     type ImportedSong,
   } from "@repo/music-core/engines/import";
+  import type { Score } from "@repo/music-core/domain";
+  import { parseMusicXmlScore } from "@repo/music-core/engines/score-import";
   import { SongLibrary } from "@repo/music-core/engines/song-library";
-  import { PracticeStore } from "@repo/music-core/engines/store";
+  import {
+    PracticeStore,
+    type SongSource,
+  } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { onDestroy } from "svelte";
@@ -21,6 +26,10 @@
 
   interface SongSaver {
     saveImportedSong(song: ImportedSong): Promise<{ id: string; title: string }>;
+    saveScore?(
+      score: Score,
+      source?: SongSource,
+    ): Promise<{ id: string; title: string }>;
   }
 
   const {
@@ -39,6 +48,8 @@
   ];
 
   let song = $state<ImportedSong | undefined>();
+  let musicXmlScore = $state.raw<Score>();
+  let musicXmlSource = "";
   let status = $state("Drop a MIDI file, or browse to import one.");
   let projection = $state("piano");
   let saving = $state(false);
@@ -82,12 +93,28 @@
   async function importFile(file: File): Promise<void> {
     status = `Parsing ${file.name}…`;
     try {
-      const buffer = await file.arrayBuffer();
-      song = parseMidiFile(buffer, file.name.replace(/\.midi?$/i, ""));
+      const fallbackName = file.name.replace(/\.(midi?|musicxml|xml)$/i, "");
+      if (/\.(musicxml|xml)$/i.test(file.name)) {
+        const xml = await file.text();
+        musicXmlScore = parseMusicXmlScore(xml, {
+          id: "musicxml-preview",
+          fallbackName,
+        });
+        musicXmlSource = xml;
+        song = undefined;
+      } else {
+        const buffer = await file.arrayBuffer();
+        song = parseMidiFile(buffer, fallbackName);
+        musicXmlScore = undefined;
+        musicXmlSource = "";
+      }
       savedSongId = undefined;
-      status = `Imported "${song.name}" in ${song.totalNotes > 0 ? "a moment" : "no time"}.`;
+      const importedName = musicXmlScore?.title ?? song?.name ?? fallbackName;
+      status = `Imported "${importedName}".`;
     } catch (error) {
       song = undefined;
+      musicXmlScore = undefined;
+      musicXmlSource = "";
       status = error instanceof Error ? `Could not parse that file: ${error.message}` : "Import failed.";
     }
   }
@@ -103,10 +130,19 @@
   }
 
   async function saveToRepertoire(): Promise<void> {
-    if (!song || !library || saving) return;
+    if ((!song && !musicXmlScore) || !library || saving) return;
     saving = true;
     try {
-      const saved = await library.saveImportedSong(song);
+      const saved =
+        musicXmlScore && musicXmlSource && library.saveScore
+          ? await library.saveScore(musicXmlScore, {
+              format: "musicxml",
+              content: musicXmlSource,
+            })
+          : song
+            ? await library.saveImportedSong(song)
+            : undefined;
+      if (!saved) throw new Error("MusicXML saving is unavailable.");
       savedSongId = saved.id;
       status = "Saved to repertoire.";
     } catch (error) {
@@ -124,7 +160,7 @@
 <PracticeScreen>
   <PracticeScreenHeader
     title="Import & Play-Along"
-    subtitle="Drop a MIDI file — we detect key, tempo, and notes, then project them onto your instrument."
+    subtitle="Import MIDI or MusicXML locally, then save the canonical score to your repertoire."
   />
 
   <!-- Drop zone -->
@@ -138,19 +174,69 @@
     <span class="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
       <Upload class="size-5" aria-hidden="true" />
     </span>
-    <span class="font-semibold">Drop a MIDI file, or browse</span>
-    <span class="text-sm text-muted-foreground">.mid / .midi · parsed locally, never uploaded</span>
+    <span class="font-semibold">Drop a score file, or browse</span>
+    <span class="text-sm text-muted-foreground"
+      >.mid / .midi / .musicxml / .xml · parsed locally, never uploaded</span
+    >
   </button>
   <input
     bind:this={fileInput}
     type="file"
-    accept=".mid,.midi,audio/midi"
+    accept=".mid,.midi,.musicxml,.xml,audio/midi,application/vnd.recordare.musicxml+xml,application/xml,text/xml"
     class="hidden"
-    aria-label="MIDI file"
+    aria-label="Score file"
     onchange={(event) => onFiles(event.currentTarget.files)}
   />
 
   <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+
+  {#if musicXmlScore}
+    <Card.Root>
+      <Card.Header class="flex-row items-center justify-between gap-2">
+        <div>
+          <Card.Description>MusicXML</Card.Description>
+          <Card.Title class="truncate">{musicXmlScore.title ?? "Untitled"}</Card.Title>
+        </div>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <span class="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
+            Analysis complete
+          </span>
+          <Button
+            size="sm"
+            disabled={!library?.saveScore || saving}
+            onclick={saveToRepertoire}
+          >
+            {saving ? "Saving..." : "Save to repertoire"}
+          </Button>
+          {#if savedSongId}
+            <Button size="sm" variant="outline" href="/music/songs">Open songs</Button>
+          {/if}
+        </div>
+      </Card.Header>
+      <Card.Content class="grid grid-cols-2 gap-4 sm:grid-cols-5">
+        {#each [
+          ["Key", musicXmlScore.keySignature ?? "—"],
+          ["Tempo", `${Math.round(musicXmlScore.tempoMap[0]?.bpm ?? 120)} bpm`],
+          [
+            "Time",
+            `${musicXmlScore.timeSignatures[0]?.numerator ?? 4} / ${musicXmlScore.timeSignatures[0]?.denominator ?? 4}`,
+          ],
+          ["Notes", String(musicXmlScore.notes.length)],
+          ["Parts", String(musicXmlScore.voices.length)],
+        ] as [label, value]}
+          <div class="rounded-xl border p-3">
+            <div class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              {label}
+            </div>
+            <div class="mt-1 text-lg font-bold tabular-nums">{value}</div>
+          </div>
+        {/each}
+        <p class="col-span-full text-sm text-muted-foreground">
+          Save this score, then open Song Studio for full MusicXML engraving and follow-along.
+        </p>
+      </Card.Content>
+    </Card.Root>
+  {/if}
 
   {#if song}
     <!-- Parsed summary -->

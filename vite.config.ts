@@ -66,6 +66,7 @@ export default defineConfig({
       "lucide-svelte/icons/zap",
       "svguitar",
       "tone",
+      "opensheetmusicdisplay",
       "@repo/music-core > webmidi",
     ],
   },

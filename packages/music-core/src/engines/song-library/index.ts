@@ -3,7 +3,7 @@ import { unixMs } from "@repo/music-core/domain";
 import type { ImportedSong } from "@repo/music-core/engines/import";
 import { scoreFromImportedSong } from "@repo/music-core/engines/score-import";
 import type { SoundPatternStep } from "@repo/music-core/engines/sound";
-import type { PracticeStore, SongRow } from "@repo/music-core/engines/store";
+import type { PracticeStore, SongRow, SongSource } from "@repo/music-core/engines/store";
 
 export interface SongLibraryOptions {
   now?: () => UnixMs;
@@ -23,12 +23,17 @@ export class SongLibrary {
   }
 
   async saveImportedSong(song: ImportedSong): Promise<SongRow> {
+    return this.saveScore(scoreFromImportedSong(song, "import-preview"));
+  }
+
+  async saveScore(score: Score, source?: SongSource): Promise<SongRow> {
     const now = this.#now();
     const id = this.#makeId();
     const row: SongRow = {
       id,
-      title: song.name,
-      score: scoreFromImportedSong(song, id),
+      title: score.title ?? "Untitled",
+      score: { ...structuredClone(score), id },
+      ...(source ? { source: { ...source } } : {}),
       createdAt: now,
       updatedAt: now,
     };

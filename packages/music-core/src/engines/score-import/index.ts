@@ -5,6 +5,8 @@ import {
   type ImportedTrack,
 } from "@repo/music-core/engines/import";
 
+export { parseMusicXmlScore, type ParseMusicXmlScoreOptions } from "./musicxml";
+
 export interface ParseMidiScoreOptions {
   id: string;
   fallbackName?: string;

@@ -38,6 +38,27 @@ describe("/music/songs/[id]/+page.svelte", () => {
     );
     runtime.dispose();
   });
+
+  test("uses OSMD for stored MusicXML while retaining canonical practice controls", async () => {
+    const library = {
+      get: vi.fn(async () => ({
+        ...songRow(),
+        source: { format: "musicxml" as const, content: MUSIC_XML },
+        score: { ...score(), origin: "musicxml" as const },
+      })),
+    };
+    const runtime = new MusicRuntime();
+
+    render(Page, { songId: "song-1", runtime, library });
+
+    await vi.waitFor(
+      () => expect(document.querySelector('[aria-label="MusicXML score"] svg')).not.toBeNull(),
+      { timeout: 5_000 },
+    );
+    expect(document.querySelector('[aria-label="Staff notation"]')).toBeNull();
+    expect(button("Start follow-along")).not.toBeUndefined();
+    runtime.dispose();
+  });
 });
 
 function button(label: string): HTMLButtonElement | undefined {
@@ -75,3 +96,18 @@ function score(): Score {
     markers: [],
   };
 }
+
+const MUSIC_XML = `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+  <part id="P1"><measure number="1">
+    <attributes>
+      <divisions>1</divisions>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef>
+    </attributes>
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+    <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+    <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
+  </measure></part>
+</score-partwise>`;

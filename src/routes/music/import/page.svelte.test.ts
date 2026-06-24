@@ -2,6 +2,8 @@ import { Midi } from "@tonejs/midi";
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
+import type { SongSource } from "@repo/music-core/engines/store";
+
 import Page from "./+page.svelte";
 
 function midiFile(): File {
@@ -53,4 +55,49 @@ describe("/music/import/+page.svelte", () => {
       document.querySelector<HTMLAnchorElement>('a[href="/music/songs"]')?.textContent,
     ).toContain("Open songs");
   });
+
+  test("parses and saves an uncompressed MusicXML score with its source", async () => {
+    const saveScore = vi.fn(async (_score: unknown, _source?: SongSource) => ({
+      id: "song-xml",
+      title: "XML Study",
+    }));
+    const library = {
+      saveImportedSong: vi.fn(),
+      saveScore,
+    };
+    render(Page, { library });
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File([MUSIC_XML], "xml-study.musicxml", {
+      type: "application/vnd.recordare.musicxml+xml",
+    });
+    Object.defineProperty(input, "files", { value: [file], configurable: true });
+    input?.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("XML Study"));
+    expect(document.body.textContent).toContain("MusicXML");
+    const save = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+      button.textContent?.includes("Save to repertoire"),
+    );
+    save?.click();
+
+    await vi.waitFor(() => expect(saveScore).toHaveBeenCalledOnce());
+    expect(saveScore).toHaveBeenCalledWith(
+      expect.objectContaining({ origin: "musicxml", title: "XML Study" }),
+      { format: "musicxml", content: MUSIC_XML },
+    );
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Saved to repertoire."));
+  });
 });
+
+const MUSIC_XML = `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <work><work-title>XML Study</work-title></work>
+  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+  <part id="P1"><measure number="1">
+    <attributes>
+      <divisions>1</divisions>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+    </attributes>
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note>
+  </measure></part>
+</score-partwise>`;

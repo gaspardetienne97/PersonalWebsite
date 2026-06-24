@@ -54,8 +54,10 @@ This file provides guidance for agents working on the Music app under
   the browser. For future chord practice, use expected-target matching or
   extend the existing monophonic audio path only when the exercise contract is
   explicit and testable.
-- **Notation:** Use VexFlow for Phase 1 notation. Defer OpenSheetMusicDisplay to
-  Phase 3 when MusicXML import and score-following over real scores are needed.
+- **Notation:** Use shared VexFlow `StaffNotation` for generated/MIDI canonical
+  scores. MusicXML-backed songs retain their original XML and use the
+  dynamically imported OSMD renderer for engraving. Playback and score
+  following still consume the canonical `Score`, never OSMD internals.
 - **Persistence:** Phase 1 persists client-side practice state through
   `PracticeStore`/IndexedDB. This app is not live yet, so do not create database
   migrations for Music features unless the user explicitly asks for server
@@ -126,6 +128,9 @@ This file provides guidance for agents working on the Music app under
 - `src/routes/music/_components/StaffNotation.svelte` is the shared VexFlow
   renderer for canonical `NotationView` projections. Reading and Song Studio
   consume it; do not fork route-specific staff renderers.
+- `src/routes/music/_components/MusicXmlScore.svelte` is the shared lazy OSMD
+  renderer for original MusicXML source. Keep OSMD imports inside this browser
+  component and preserve canonical controls when rendering fails.
 - **Instrument applicability is one primitive, not per-page literals.** The
   "generalize content across instruments" rule lives in `domain/applicability.ts`
   (re-exported from `@repo/music-core/domain`): `VIEWABLE_INSTRUMENTS` (the
@@ -228,7 +233,8 @@ This file provides guidance for agents working on the Music app under
   `@repo/music-core/exercises/voicing-drill`. Resolved voicings come from the
   jazz engine's `buildDrillVoicings(variant, startPosition)`, so the session no
   longer re-derives them.
-- `/music/import`: parse a MIDI file, preview it, and save it to repertoire.
+- `/music/import`: parse MIDI or uncompressed MusicXML locally, preview canonical
+  metadata, and save it to repertoire. `.mxl` is deferred.
 - `/music/songs`: saved repertoire library backed by the `songs` store. It
   reopens imported MIDI songs as domain `Score`s, registers selected-song
   playback with the shared transport, and logs `SessionSource:"song"` practice
@@ -306,9 +312,9 @@ Important areas:
   and drop-2 as instrument-agnostic pitch sets for `InstrumentView`.
 - `src/engines/import/`: parse MIDI files into `ImportedSong` models (uses
   `@tonejs/midi`) for preview/import UI, including beat-native timing metadata.
-- `src/engines/score-import/`: canonical import boundary. It converts raw MIDI
-  or an `ImportedSong` into the domain `Score`; future MusicXML parsing belongs
-  here rather than in routes or persistence.
+- `src/engines/score-import/`: canonical import boundary. It converts raw MIDI,
+  `ImportedSong`, and uncompressed `score-partwise` MusicXML into the domain
+  `Score`. Keep it framework-agnostic and independent from OSMD.
 - `src/engines/song-library/`: persist/reopen canonical scores through
   `PracticeStore.songs` and project stored scores into tempo-map-aware transport
   playback patterns for `/music/songs`.
