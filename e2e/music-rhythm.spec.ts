@@ -7,6 +7,7 @@ test.describe("music rhythm workflows", () => {
 
     await expect(page).toHaveURL("/music/learn/rhythm");
     await expect(page.getByRole("heading", { name: "Rhythm Trainer" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start microphone" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start Pulse" })).toBeEnabled();
 
     await page.getByRole("button", { name: "Start Pulse" }).click();
@@ -19,5 +20,15 @@ test.describe("music rhythm workflows", () => {
     await expect(page.getByText("Pulse complete")).toBeVisible();
     // The summary now surfaces timing via the meter + readout tiles.
     await expect(page.getByText("Signed offset")).toBeVisible();
+  });
+
+  test("keeps microphone setup visible without mobile overflow", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/music/learn/rhythm");
+
+    await expect(page.getByRole("button", { name: "Start microphone" })).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
   });
 });

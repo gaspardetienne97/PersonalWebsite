@@ -16,13 +16,11 @@ This file provides guidance for agents working on the Music app under
   new explicit decision.
 - The implementation follows `IMPLEMENTATION_PLAN.md` and
   `music-practice-app-plan.md` (both untracked local plans at the repo root).
-  Phase 0 and Phase 1 are complete (including the Practice OS shell + transport
-  audio work and the connect/jam/import/recording/studio screens). The active
-  backlog is **§5A "Phase 1.5"** in `IMPLEMENTATION_PLAN.md` (input surfaces,
-  fingering visualizer, editable journal, semantic component colors,
-  research-driven libraries, docs, dependency audit); larger items live in the
-  Phase 2–4 bullets of §6. Do not reopen completed Phase 0/1 tickets — continue
-  from Phase 1.5.
+  Phase 0, Phase 1, §5A Phase 1.5, §5C route migration, and the §5D Phase 2
+  tuner/intonation/technique surfaces are complete. The active implementation
+  backlog is the Phase 3–5 engine work plus explicitly deferred hardware/source
+  verification. Do not reopen completed milestones unless a regression or a
+  new product decision requires it.
 
 ## Core Decisions Already Made
 
@@ -43,20 +41,29 @@ This file provides guidance for agents working on the Music app under
 - **Known hardware:** MIDI events were recognized from a Roland FP-30X and an
   MPC One+. Keep exercise input wired through the shared router so real MIDI can
   advance sessions, not only the home route.
-- **Audio scope:** Browser audio is currently only for playback/metronome. Audio
-  pitch detection is Phase 2 and should not be added in Phase 1.
+- **Audio input:** `@repo/music-core/engines/audio-in` owns microphone capture,
+  monophonic pitch detection, tuner readings, and transient onset detection.
+  Reuse `AudioPitchSource`; do not create route-local `getUserMedia`,
+  `AudioContext`, or AudioWorklet implementations.
+- **Onset timing:** Subscribe with `AudioPitchSource.subscribeOnsets()` and push
+  normalized `OnsetEvent`s through the shared `MusicRuntime.inputRouter`.
+  Keep onset analysis pure/testable, require an explicit user action before
+  requesting microphone permission, stop capture on route teardown, and gate
+  scored input until after any audible count-in to avoid speaker bleed.
 - **Chord recognition:** Do not attempt real-time polyphonic chord detection in
   the browser. For future chord practice, use expected-target matching or
-  monophonic audio only when Phase 2 is intentionally started.
+  extend the existing monophonic audio path only when the exercise contract is
+  explicit and testable.
 - **Notation:** Use VexFlow for Phase 1 notation. Defer OpenSheetMusicDisplay to
   Phase 3 when MusicXML import and score-following over real scores are needed.
 - **Persistence:** Phase 1 persists client-side practice state through
   `PracticeStore`/IndexedDB. This app is not live yet, so do not create database
   migrations for Music features unless the user explicitly asks for server
   persistence.
-- **Dependencies:** Do not add Phase 2+ dependencies such as pitchy,
-  pitchfinder, opensheetmusicdisplay, or basic-pitch until the relevant phase is
-  active.
+- **Dependencies:** The current pitch and onset detectors are implemented
+  without a third-party analysis dependency. Do not add `pitchy`,
+  `pitchfinder`, OpenSheetMusicDisplay, or Basic Pitch unless a planned engine
+  demonstrably needs it and its phase is active.
 - **Licensing:** Avoid Essentia.js in any closed-source build because it is
   AGPL-v3.
 

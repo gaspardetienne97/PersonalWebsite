@@ -1,14 +1,14 @@
 /**
  * AudioPitchSource — the thin browser layer of `audio-in`. Wires
  * `getUserMedia` → AudioContext → {@link ./pitch-worklet} and runs the pure
- * detector on each posted frame, emitting a {@link TunerReading} and an
- * `audio`-source {@link NoteOnEvent} (so the Input Router can consume mic pitch
- * exactly like MIDI). All Web-Audio glue lives here; the analysis math stays in
- * {@link ./pitch-detect} and {@link ./tuner} where it is unit-tested.
+ * detectors on each posted frame, emitting tuner readings, pitch events, and
+ * transient onset events. All Web-Audio glue lives here; the analysis math
+ * stays in pure modules where it is unit-tested.
  */
 
-import type { MonotonicMs, NoteOnEvent } from "@repo/music-core/domain";
+import type { MonotonicMs, NoteOnEvent, OnsetEvent } from "@repo/music-core/domain";
 
+import { OnsetDetector, type OnsetDetectOptions } from "./onset-detect";
 import { detectPitch, type PitchDetectOptions } from "./pitch-detect";
 import pitchWorkletSource from "./pitch-worklet.js?raw";
 import { tunerReading, type TunerOptions, type TunerReading } from "./tuner";
@@ -24,10 +24,12 @@ export interface AudioPitchState {
 export interface AudioPitchSourceOptions {
   detect?: Omit<PitchDetectOptions, "sampleRate">;
   tuner?: TunerOptions;
+  onset?: OnsetDetectOptions;
 }
 
 type ReadingListener = (reading: TunerReading) => void;
 type EventListener = (event: NoteOnEvent) => void;
+type OnsetListener = (event: OnsetEvent) => void;
 type StateListener = (state: AudioPitchState) => void;
 
 async function loadPitchWorklet(context: AudioContext): Promise<void> {
@@ -50,14 +52,17 @@ export class AudioPitchSource {
   #state: AudioPitchState = { status: "idle" };
   #detectOptions: Omit<PitchDetectOptions, "sampleRate">;
   #tunerOptions: TunerOptions;
+  #onsetDetector: OnsetDetector;
 
   #readingListeners = new Set<ReadingListener>();
   #eventListeners = new Set<EventListener>();
+  #onsetListeners = new Set<OnsetListener>();
   #stateListeners = new Set<StateListener>();
 
   constructor(options: AudioPitchSourceOptions = {}) {
     this.#detectOptions = options.detect ?? {};
     this.#tunerOptions = options.tuner ?? {};
+    this.#onsetDetector = new OnsetDetector(options.onset);
   }
 
   get state(): AudioPitchState {
@@ -81,6 +86,7 @@ export class AudioPitchSource {
     }
 
     this.#setState({ status: "requesting" });
+    this.#onsetDetector.reset();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -111,7 +117,7 @@ export class AudioPitchSource {
       this.#setState({
         status: denied ? "denied" : "error",
         message: denied
-          ? "Microphone access was blocked. Allow it to use the tuner."
+          ? "Microphone access was blocked. Allow it to use audio input."
           : err instanceof Error
             ? err.message
             : "Could not start audio input.",
@@ -132,6 +138,7 @@ export class AudioPitchSource {
     this.#source = undefined;
     this.#stream = undefined;
     this.#context = undefined;
+    this.#onsetDetector.reset();
     if (this.#state.status === "running") this.#setState({ status: "idle" });
   }
 
@@ -145,6 +152,11 @@ export class AudioPitchSource {
     return () => this.#eventListeners.delete(listener);
   }
 
+  subscribeOnsets(listener: OnsetListener): () => void {
+    this.#onsetListeners.add(listener);
+    return () => this.#onsetListeners.delete(listener);
+  }
+
   subscribeState(listener: StateListener): () => void {
     this.#stateListeners.add(listener);
     listener(this.#state);
@@ -152,6 +164,24 @@ export class AudioPitchSource {
   }
 
   #onFrame(frame: Float32Array, sampleRate: number): void {
+    const timestamp = (globalThis.performance?.now() ?? 0) as MonotonicMs;
+    if (this.#onsetListeners.size > 0) {
+      const detection = this.#onsetDetector.process(frame, timestamp);
+      if (detection) {
+        const event: OnsetEvent = {
+          type: "onset",
+          strength: detection.strength,
+          source: "audio",
+          confidence: detection.strength,
+          timestamp,
+          clock: "performance",
+        };
+        for (const listener of this.#onsetListeners) listener(event);
+      }
+    }
+
+    if (this.#readingListeners.size === 0 && this.#eventListeners.size === 0) return;
+
     const estimate = detectPitch(frame, { sampleRate, ...this.#detectOptions });
     const reading = tunerReading(estimate, this.#tunerOptions);
     if (!reading) return;
@@ -166,7 +196,7 @@ export class AudioPitchSource {
         velocity: 1,
         source: "audio",
         confidence: reading.clarity,
-        timestamp: (globalThis.performance?.now() ?? 0) as MonotonicMs,
+        timestamp,
         clock: "performance",
       };
       for (const listener of this.#eventListeners) listener(event);

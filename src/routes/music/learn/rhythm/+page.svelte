@@ -8,6 +8,10 @@
     RhythmSession,
     type RhythmSessionState,
   } from "@repo/music-core/engines/rhythm-session";
+  import {
+    AudioPitchSource,
+    type AudioPitchState,
+  } from "@repo/music-core/engines/audio-in";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { rhythmHudProjection } from "@repo/music-core/engines/projection";
@@ -31,6 +35,7 @@
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
+  const microphone = new AudioPitchSource();
 
   let ready = $state(false);
   let pending = $state(false);
@@ -43,6 +48,9 @@
   let unsubscribeSession: (() => void) | undefined;
   let midiEnabled = $state(runtime.midi.state.enabled);
   let midiStatus = $state(midiMessage());
+  let microphoneState = $state<AudioPitchState>(microphone.state);
+  let microphoneStatus = $state("Start the microphone to score acoustic note attacks.");
+  let microphoneAcceptAfterMs = Number.POSITIVE_INFINITY;
   let captured = false;
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
@@ -53,8 +61,10 @@
     runtime.activeSource === "midi"
       ? "MIDI"
       : runtime.activeSource === "audio"
-        ? "Audio"
-        : "On-screen",
+        ? "Microphone"
+        : microphoneState.status === "running"
+          ? "Microphone"
+          : "On-screen",
   );
 
   void initialize();
@@ -62,6 +72,24 @@
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
     midiStatus = midiMessage();
+  });
+  const unsubscribeMicrophoneState = microphone.subscribeState((state) => {
+    microphoneState = state;
+    microphoneStatus =
+      state.status === "requesting"
+        ? "Requesting microphone access..."
+        : state.status === "running"
+          ? "Microphone is listening for note attacks."
+          : state.message ?? "Microphone is off.";
+  });
+  const unsubscribeOnsets = microphone.subscribeOnsets((event) => {
+    if (
+      sessionState?.status !== "active" ||
+      event.timestamp < microphoneAcceptAfterMs
+    ) {
+      return;
+    }
+    runtime.router.push(event);
   });
 
   async function initialize(): Promise<void> {
@@ -85,6 +113,14 @@
     await runtime.midi.enable();
   }
 
+  async function toggleMicrophone(): Promise<void> {
+    if (microphoneState.status === "running") {
+      await microphone.stop();
+      return;
+    }
+    await microphone.start();
+  }
+
   async function startPulse(): Promise<void> {
     if (!ready || pending) return;
     pending = true;
@@ -94,6 +130,7 @@
       session?.dispose();
       unsubscribeSession?.();
       captured = false;
+      microphoneAcceptAfterMs = Number.POSITIVE_INFINITY;
       session = new RhythmSession({
         router: runtime.router,
         services: { skills, analytics, progress },
@@ -117,10 +154,12 @@
       const delayMs = runtime.audioEnabled
         ? runtime.sound.playCountIn({ bpm, beats: 4, beatsPerMeasure: 4 }).delayMs
         : 1_000;
+      const startTimestampMs = performance.now() + delayMs;
+      microphoneAcceptAfterMs = startTimestampMs;
       await session.start({
         bpm,
         beats,
-        startTimestampMs: performance.now() + delayMs,
+        startTimestampMs,
       });
       status =
         delayMs > 0
@@ -165,6 +204,9 @@
   onDestroy(() => {
     unsubscribeSession?.();
     unsubscribeMidiState();
+    unsubscribeMicrophoneState();
+    unsubscribeOnsets();
+    void microphone.stop();
     session?.dispose();
   });
 </script>
@@ -183,7 +225,11 @@
     subtitle="Lock your timing against the grid — feedback in milliseconds, ahead or behind."
   >
     {#snippet controls()}
-      <SourceReadout label="Input" device={sourceLabel} live={runtime.activeSource === "midi"}>
+      <SourceReadout
+        label="Input"
+        device={sourceLabel}
+        live={runtime.activeSource === "midi" || microphoneState.status === "running"}
+      >
         {#snippet icon()}<Drum class="size-4" aria-hidden="true" />{/snippet}
       </SourceReadout>
     {/snippet}
@@ -230,12 +276,27 @@
             <Card.Description>Pulse practice</Card.Description>
             <Card.Title>Quarter-note timing</Card.Title>
           </div>
-          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-          </Button>
+          <div class="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!AudioPitchSource.supported || microphoneState.status === "requesting"}
+              onclick={toggleMicrophone}
+            >
+              {microphoneState.status === "running"
+                ? "Stop microphone"
+                : microphoneState.status === "requesting"
+                  ? "Starting microphone..."
+                  : "Start microphone"}
+            </Button>
+          </div>
         </Card.Header>
         <Card.Content class="grid gap-6">
           <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
+          <p class="text-sm text-muted-foreground" aria-live="polite">{microphoneStatus}</p>
 
           <div class="grid gap-5 sm:grid-cols-3">
             <div class="grid gap-2">

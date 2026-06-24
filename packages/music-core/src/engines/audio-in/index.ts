@@ -6,6 +6,7 @@
  * Layered so the analysis math is pure and testable while the browser glue stays
  * thin:
  *  - {@link ./pitch-detect}: McLeod Pitch Method + frequency/MIDI/cents math (pure).
+ *  - {@link ./onset-detect}: adaptive RMS transient detection (pure).
  *  - {@link ./tuner}: estimate → note + cents + flat/in-tune/sharp zone (pure).
  *  - {@link ./capture}: getUserMedia + AudioWorklet emitting readings & events.
  */
@@ -19,6 +20,13 @@ export {
   type PitchDetectOptions,
   type PitchEstimate,
 } from "./pitch-detect";
+
+export {
+  OnsetDetector,
+  frameRms,
+  type OnsetDetection,
+  type OnsetDetectOptions,
+} from "./onset-detect";
 
 export {
   tunerReading,

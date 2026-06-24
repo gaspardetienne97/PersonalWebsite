@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   AudioPitchSource,
+  OnsetDetector,
   centsBetween,
   detectPitch,
   frequencyToMidi,
@@ -28,6 +29,10 @@ function sine(freq: number, length = 4096, harmonics: number[] = []): Float32Arr
     buf[i] = v;
   }
   return buf;
+}
+
+function level(value: number, length = 2048): Float32Array {
+  return new Float32Array(length).fill(value);
 }
 
 describe("frequency <-> midi", () => {
@@ -140,6 +145,43 @@ describe("intonationZone", () => {
   });
 });
 
+describe("OnsetDetector", () => {
+  test("ignores silence and quiet background noise", () => {
+    const detector = new OnsetDetector();
+
+    expect(detector.process(level(0), 0)).toBeNull();
+    expect(detector.process(level(0.005), 50)).toBeNull();
+  });
+
+  test("emits one onset for a sudden transient", () => {
+    const detector = new OnsetDetector();
+    detector.process(level(0.005), 0);
+
+    const onset = detector.process(level(0.2), 50);
+
+    expect(onset?.strength).toBeGreaterThan(0);
+    expect(onset?.rms).toBeCloseTo(0.2, 3);
+  });
+
+  test("does not retrigger while the signal remains loud", () => {
+    const detector = new OnsetDetector();
+    detector.process(level(0.005), 0);
+
+    expect(detector.process(level(0.2), 50)).not.toBeNull();
+    expect(detector.process(level(0.2), 150)).toBeNull();
+    expect(detector.process(level(0.2), 250)).toBeNull();
+  });
+
+  test("re-arms after the signal releases and cooldown elapses", () => {
+    const detector = new OnsetDetector({ cooldownMs: 80 });
+    detector.process(level(0.005), 0);
+    detector.process(level(0.2), 50);
+
+    expect(detector.process(level(0.005), 100)).toBeNull();
+    expect(detector.process(level(0.2), 150)).not.toBeNull();
+  });
+});
+
 describe("AudioPitchSource", () => {
   test("loads the pitch worklet from a Blob URL", async () => {
     let moduleUrl = "";
@@ -187,6 +229,65 @@ describe("AudioPitchSource", () => {
 
     expect(moduleUrl).toMatch(/^blob:/);
     expect(fetchWorklet).not.toHaveBeenCalled();
+    await source.stop();
+  });
+
+  test("emits audio onset events without requiring a detectable pitch", async () => {
+    const workletPort: {
+      close: ReturnType<typeof vi.fn>;
+      onmessage: ((event: MessageEvent<Float32Array>) => void) | null;
+    } = {
+      close: vi.fn(),
+      onmessage: null,
+    };
+    const stream = {
+      getTracks: () => [{ stop: vi.fn() }],
+    };
+    class FakeAudioContext {
+      audioWorklet = { addModule: vi.fn(async () => {}) };
+      sampleRate = SAMPLE_RATE;
+      state = "running";
+
+      createMediaStreamSource() {
+        return {
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        };
+      }
+
+      async close() {}
+    }
+
+    class FakeAudioWorkletNode {
+      port = workletPort;
+      disconnect = vi.fn();
+    }
+
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        getUserMedia: vi.fn(async () => stream),
+      },
+    });
+    vi.stubGlobal("AudioContext", FakeAudioContext);
+    vi.stubGlobal("AudioWorkletNode", FakeAudioWorkletNode);
+
+    const listener = vi.fn();
+    const source = new AudioPitchSource();
+    source.subscribeOnsets(listener);
+    await source.start();
+
+    workletPort.onmessage?.({ data: level(0.005) } as MessageEvent<Float32Array>);
+    workletPort.onmessage?.({ data: level(0.2) } as MessageEvent<Float32Array>);
+    workletPort.onmessage?.({ data: level(0.2) } as MessageEvent<Float32Array>);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "onset",
+        source: "audio",
+        strength: expect.any(Number),
+      }),
+    );
     await source.stop();
   });
 });
