@@ -12,7 +12,7 @@
   import SourceReadout from "../../../_components/SourceReadout.svelte";
   import FretboardInput from "./FretboardInput.svelte";
   import PianoInput from "./PianoInput.svelte";
-  import StaffNotation from "./StaffNotation.svelte";
+  import StaffNotation from "../../../_components/StaffNotation.svelte";
 
   let {
     state,

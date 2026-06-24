@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, test } from "vitest";
 
 import { unixMs } from "@repo/music-core/domain";
+import { scoreFromImportedSong } from "@repo/music-core/engines/score-import";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 
-import { SongLibrary, importedSongToScore, scorePlaybackPattern } from "./index";
+import { SongLibrary, scorePlaybackPattern } from "./index";
 
 const databases: PracticeDatabase[] = [];
 
@@ -51,12 +52,29 @@ describe("SongLibrary", () => {
   });
 
   test("projects a stored score into a playback pattern", () => {
-    const score = importedSongToScore(importedSong("Pattern Test"), "song-pattern");
+    const score = scoreFromImportedSong(importedSong("Pattern Test"), "song-pattern");
 
     expect(scorePlaybackPattern(score)).toEqual([
       { midiNotes: [60], offsetSeconds: 0, durationSeconds: 0.5 },
       { midiNotes: [64], offsetSeconds: 0.5, durationSeconds: 0.5 },
       { midiNotes: [67], offsetSeconds: 1, durationSeconds: 1 },
+    ]);
+  });
+
+  test("projects playback timing across tempo-map changes", () => {
+    const score = scoreFromImportedSong(importedSong("Tempo Map"), "tempo-map");
+    score.tempoMap = [
+      { atBeat: 0, bpm: 120 },
+      { atBeat: 4, bpm: 60 },
+    ];
+    score.notes = [
+      { midiNote: 60, startBeat: 0, durationBeats: 2, velocity: 0.8, voiceId: "voice-1" },
+      { midiNote: 67, startBeat: 4, durationBeats: 2, velocity: 0.8, voiceId: "voice-1" },
+    ];
+
+    expect(scorePlaybackPattern(score)).toEqual([
+      { midiNotes: [60], offsetSeconds: 0, durationSeconds: 1 },
+      { midiNotes: [67], offsetSeconds: 2, durationSeconds: 2 },
     ]);
   });
 });

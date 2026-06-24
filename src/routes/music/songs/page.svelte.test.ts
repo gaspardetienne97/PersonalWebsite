@@ -23,6 +23,7 @@ describe("/music/songs/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Autumn Leaves"));
     document.querySelector<HTMLButtonElement>('button[aria-label="Open Autumn Leaves"]')?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("3 notes"));
+    expect(document.querySelector('a[href="/music/songs/song-1"]')).not.toBeNull();
 
     const play = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
       button.textContent?.includes("Play preview"),

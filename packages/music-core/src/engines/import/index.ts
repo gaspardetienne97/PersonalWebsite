@@ -3,6 +3,7 @@
 // namespace + default interop so it works in SSR, the browser, and tests.
 import * as TonejsMidi from "@tonejs/midi";
 
+import type { TempoMarker, TimeSignatureMarker } from "@repo/music-core/domain";
 import { midiToNote } from "@repo/music-core/engines/theory";
 
 const Midi: typeof TonejsMidi.Midi =
@@ -14,6 +15,8 @@ export interface ImportedNote {
   time: number;
   duration: number;
   velocity: number;
+  startBeat?: number;
+  durationBeats?: number;
 }
 
 export interface ImportedTrack {
@@ -29,6 +32,8 @@ export interface ImportedSong {
   tracks: ImportedTrack[];
   totalNotes: number;
   keyEstimate?: string;
+  tempoMap?: TempoMarker[];
+  timeSignatures?: TimeSignatureMarker[];
 }
 
 /** Parse a MIDI file (`.mid`) into a normalized, projectable song model. */
@@ -36,6 +41,7 @@ export function parseMidiFile(data: ArrayBuffer, fallbackName = "Untitled"): Imp
   const midi = new Midi(data);
   const bpm = midi.header.tempos[0]?.bpm ?? 120;
   const ts = midi.header.timeSignatures[0]?.timeSignature ?? [4, 4];
+  const ppq = midi.header.ppq;
 
   const tracks: ImportedTrack[] = midi.tracks
     .map((track) => ({
@@ -45,6 +51,8 @@ export function parseMidiFile(data: ArrayBuffer, fallbackName = "Untitled"): Imp
         time: note.time,
         duration: note.duration,
         velocity: note.velocity,
+        startBeat: round(note.ticks / ppq),
+        durationBeats: round(note.durationTicks / ppq),
       })),
     }))
     .filter((track) => track.notes.length > 0);
@@ -59,6 +67,21 @@ export function parseMidiFile(data: ArrayBuffer, fallbackName = "Untitled"): Imp
     tracks,
     totalNotes: allNotes.length,
     keyEstimate: estimateKey(allNotes),
+    tempoMap:
+      midi.header.tempos.length === 0
+        ? [{ atBeat: 0, bpm }]
+        : midi.header.tempos.map((tempo) => ({
+            atBeat: round(tempo.ticks / ppq),
+            bpm: tempo.bpm,
+          })),
+    timeSignatures:
+      midi.header.timeSignatures.length === 0
+        ? [{ atBeat: 0, numerator: ts[0] ?? 4, denominator: ts[1] ?? 4 }]
+        : midi.header.timeSignatures.map((signature) => ({
+            atBeat: round(signature.ticks / ppq),
+            numerator: signature.timeSignature[0] ?? 4,
+            denominator: signature.timeSignature[1] ?? 4,
+          })),
   };
 }
 
@@ -97,4 +120,8 @@ export function pianoRoll(song: ImportedSong, maxNotes = 400): ImportedNote[] {
     .flatMap((track) => track.notes)
     .sort((left, right) => left.time - right.time)
     .slice(0, maxNotes);
+}
+
+function round(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
 }

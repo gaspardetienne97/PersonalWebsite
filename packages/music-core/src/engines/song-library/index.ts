@@ -1,6 +1,7 @@
-import type { Score, ScoreVoice, UnixMs } from "@repo/music-core/domain";
+import type { Score, UnixMs } from "@repo/music-core/domain";
 import { unixMs } from "@repo/music-core/domain";
-import type { ImportedSong, ImportedTrack } from "@repo/music-core/engines/import";
+import type { ImportedSong } from "@repo/music-core/engines/import";
+import { scoreFromImportedSong } from "@repo/music-core/engines/score-import";
 import type { SoundPatternStep } from "@repo/music-core/engines/sound";
 import type { PracticeStore, SongRow } from "@repo/music-core/engines/store";
 
@@ -27,7 +28,7 @@ export class SongLibrary {
     const row: SongRow = {
       id,
       title: song.name,
-      score: importedSongToScore(song, id),
+      score: scoreFromImportedSong(song, id),
       createdAt: now,
       updatedAt: now,
     };
@@ -49,66 +50,39 @@ export class SongLibrary {
   }
 }
 
-export function importedSongToScore(song: ImportedSong, id: string): Score {
-  const beatsPerSecond = song.bpm / 60;
-  const voices = song.tracks.map((track, index) => ({
-    id: `voice-${index + 1}`,
-    name: track.name || `Track ${index + 1}`,
-    role: roleForTrack(track),
-  })) satisfies ScoreVoice[];
-
-  const notes = song.tracks.flatMap((track, trackIndex) =>
-    track.notes.map((note) => ({
-      midiNote: note.midi,
-      startBeat: round(note.time * beatsPerSecond),
-      durationBeats: round(note.duration * beatsPerSecond),
-      velocity: note.velocity,
-      voiceId: voices[trackIndex]!.id,
-    })),
-  );
-
-  return {
-    id,
-    title: song.name,
-    origin: "midi",
-    keySignature: song.keyEstimate,
-    tempoMap: [{ atBeat: 0, bpm: song.bpm }],
-    timeSignatures: [
-      { atBeat: 0, numerator: song.timeSignature[0], denominator: song.timeSignature[1] },
-    ],
-    voices,
-    notes,
-    chords: [],
-    sections: [
-      {
-        id: "full-song",
-        name: "Full song",
-        startBeat: 0,
-        endBeat: round(song.durationSec * beatsPerSecond),
-      },
-    ],
-    markers: [],
-  };
-}
-
 export function scorePlaybackPattern(score: Score): SoundPatternStep[] {
-  const bpm = score.tempoMap[0]?.bpm ?? 120;
-  const secondsPerBeat = 60 / bpm;
   return [...score.notes]
     .sort((left, right) => left.startBeat - right.startBeat)
-    .map((note) => ({
-      midiNotes: [note.midiNote],
-      offsetSeconds: round(note.startBeat * secondsPerBeat),
-      durationSeconds: round(note.durationBeats * secondsPerBeat),
-    }));
+    .map((note) => {
+      const offsetSeconds = secondsAtBeat(note.startBeat, score.tempoMap);
+      const endSeconds = secondsAtBeat(note.startBeat + note.durationBeats, score.tempoMap);
+      return {
+        midiNotes: [note.midiNote],
+        offsetSeconds: round(offsetSeconds),
+        durationSeconds: round(endSeconds - offsetSeconds),
+      };
+    });
 }
 
-function roleForTrack(track: ImportedTrack): ScoreVoice["role"] {
-  const name = track.name.toLowerCase();
-  if (name.includes("bass")) return "bass";
-  if (name.includes("drum") || name.includes("perc")) return "drums";
-  if (name.includes("melody") || name.includes("lead")) return "melody";
-  return "other";
+function secondsAtBeat(beat: number, tempoMap: Score["tempoMap"]): number {
+  const markers = [...tempoMap].sort((left, right) => left.atBeat - right.atBeat);
+  let currentBeat = 0;
+  let bpm = markers[0]?.bpm ?? 120;
+  let seconds = 0;
+
+  for (const marker of markers) {
+    if (marker.atBeat <= currentBeat) {
+      bpm = marker.bpm;
+      continue;
+    }
+    const segmentEnd = Math.min(beat, marker.atBeat);
+    seconds += ((segmentEnd - currentBeat) * 60) / bpm;
+    if (beat <= marker.atBeat) return seconds;
+    currentBeat = marker.atBeat;
+    bpm = marker.bpm;
+  }
+
+  return seconds + ((beat - currentBeat) * 60) / bpm;
 }
 
 function round(value: number): number {

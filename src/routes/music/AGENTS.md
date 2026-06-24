@@ -123,6 +123,9 @@ This file provides guidance for agents working on the Music app under
   instrument-aware instead of hardcoding the keyboard. Consumers: the chord
   library, the jazz advanced-voicing cards, and the scales reference. A page
   passes `router={runtime.router}` so fretted views can sound notes.
+- `src/routes/music/_components/StaffNotation.svelte` is the shared VexFlow
+  renderer for canonical `NotationView` projections. Reading and Song Studio
+  consume it; do not fork route-specific staff renderers.
 - **Instrument applicability is one primitive, not per-page literals.** The
   "generalize content across instruments" rule lives in `domain/applicability.ts`
   (re-exported from `@repo/music-core/domain`): `VIEWABLE_INSTRUMENTS` (the
@@ -176,6 +179,13 @@ This file provides guidance for agents working on the Music app under
   transcriptions + improv techniques), and the standards repertoire. Pure data
   lives in `@repo/music-core/engines/jazz`.
 - `/music/play`: play/practice entry point.
+- `/music/songs`: persisted repertoire list and preview.
+- `/music/songs/[id]`: Phase 3 Song Studio foundation. It loads a stored
+  canonical `Score`, renders shared notation when supported, registers preview
+  playback, and runs wait-mode `score-follower` through the shared input router.
+  Keep import parsing in `@repo/music-core/engines/score-import`, persistence in
+  `SongLibrary`, and follower behavior in `score-follower`; the route should
+  only compose them.
 - `/music/play/scales`: scales and technique trainer. The aside shows a
   reference of the practiced scale on the chosen instrument via `InstrumentView`.
 - `/music/play/spider`: graded guitar/ukulele 1-2-3-4 chromatic drill. Setup
@@ -222,8 +232,8 @@ This file provides guidance for agents working on the Music app under
 - `/music/songs`: saved repertoire library backed by the `songs` store. It
   reopens imported MIDI songs as domain `Score`s, registers selected-song
   playback with the shared transport, and logs `SessionSource:"song"` practice
-  through `runtime.recordPractice`. The first slice is list + replay + practice
-  logging; arbitrary-file score-following remains Phase 3.
+  through `runtime.recordPractice`. Selected songs link to `/music/songs/[id]`
+  for score preview and follow-along.
 - `/music/jam`: chord-progression jam/improv with target tones + recording.
 - `/music/studio`: step sequencer with a pad bank and Tone playback.
 - `/music/recording`: take list, waveform, compare, and self-review.
@@ -295,10 +305,13 @@ Important areas:
   `library` also exports `chordVoicings(pianoMidi)` — root position, inversions,
   and drop-2 as instrument-agnostic pitch sets for `InstrumentView`.
 - `src/engines/import/`: parse MIDI files into `ImportedSong` models (uses
-  `@tonejs/midi`) for preview/import UI.
-- `src/engines/song-library/`: convert imported MIDI models into canonical
-  domain `Score`s, persist/reopen them through `PracticeStore.songs`, and
-  project stored scores into transport playback patterns for `/music/songs`.
+  `@tonejs/midi`) for preview/import UI, including beat-native timing metadata.
+- `src/engines/score-import/`: canonical import boundary. It converts raw MIDI
+  or an `ImportedSong` into the domain `Score`; future MusicXML parsing belongs
+  here rather than in routes or persistence.
+- `src/engines/song-library/`: persist/reopen canonical scores through
+  `PracticeStore.songs` and project stored scores into tempo-map-aware transport
+  playback patterns for `/music/songs`.
 - `src/engines/jam/`: chord-progression jam sessions + target tones.
 - `src/engines/jazz/`: jazz-piano reference content (chord vocabulary,
   chord/scale map, voicing recipes — `realizeVoicing`, `realizeDominantVoicing`,

@@ -42,5 +42,18 @@ test.describe("music import & play-along", () => {
     await expect(page.getByRole("button", { name: "Open autumn-test" })).toBeVisible();
     await page.getByRole("button", { name: /Log practice/ }).click();
     await expect(page.getByText("Song practice logged.")).toBeVisible();
+
+    await page.getByRole("link", { name: "Open Song Studio" }).click();
+    await expect(page).toHaveURL(/\/music\/songs\/song-/);
+    await expect(page.getByRole("heading", { name: "autumn-test", level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "Start follow-along" }).click();
+    for (const note of ["C4", "E4", "G4"]) {
+      await page.getByRole("button", { name: note, exact: true }).click();
+    }
+    await expect(page.getByRole("heading", { name: "Score complete" })).toBeVisible();
+    await page.setViewportSize({ width: 375, height: 812 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
   });
 });

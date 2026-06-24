@@ -190,6 +190,9 @@
             </div>
           </Card.Content>
           <Card.Footer class="flex-wrap gap-2">
+            <Button href={`/music/songs/${selected.id}`} variant="outline">
+              Open Song Studio
+            </Button>
             <Button onclick={playSelected}>
               <Play class="size-4" aria-hidden="true" />
               Play preview
