@@ -6,6 +6,7 @@
   import Circle from "lucide-svelte/icons/circle";
   import Drum from "lucide-svelte/icons/drum";
   import Gauge from "lucide-svelte/icons/gauge";
+  import Guitar from "lucide-svelte/icons/guitar";
   import Hand from "lucide-svelte/icons/hand";
   import ListMusic from "lucide-svelte/icons/list-music";
   import Mic from "lucide-svelte/icons/mic";
@@ -662,6 +663,15 @@
       meta="Strings"
       action="Start spider practice"
       icon={SlidersHorizontal}
+    />
+    <MusicToolCard
+      href="/music/play/chord-perfect"
+      title="Chord-Perfect"
+      description="Drill clean chord changes: fret a guitar or ukulele shape and sound each string low to high, graded note by note."
+      eyebrow="Play"
+      meta="Strings"
+      action="Start chord-perfect"
+      icon={Guitar}
     />
     <MusicToolCard
       href="/music/play/two-hand"

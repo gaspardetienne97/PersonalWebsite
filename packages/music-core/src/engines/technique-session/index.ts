@@ -24,6 +24,11 @@ import {
   type ScalePatternPrompt,
 } from "@repo/music-core/exercises/scale-pattern";
 import {
+  createChordPerfectExercise,
+  type ChordPerfectPrompt,
+  type ChordShape,
+} from "@repo/music-core/exercises/chord-perfect";
+import {
   createStringSpiderExercise,
   type StringSpiderPrompt,
 } from "@repo/music-core/exercises/string-spider";
@@ -71,13 +76,19 @@ export interface TechniqueTwoHandOptions {
   bars?: number;
 }
 
+export interface TechniqueChordPerfectOptions {
+  tuning: TuningProfile;
+  shape: ChordShape;
+}
+
 export type TechniquePrompt =
   | ScalePatternPrompt
   | AerophoneLongTonePrompt
   | AerophoneSwellPrompt
   | MpcSingleStrokePrompt
   | StringSpiderPrompt
-  | TwoHandIndependencePrompt;
+  | TwoHandIndependencePrompt
+  | ChordPerfectPrompt;
 
 export interface TechniqueSessionDependencies {
   router: InputRouter;
@@ -325,6 +336,33 @@ export class TechniqueSession {
     });
 
     const currentPrompt = prompt.payload as TwoHandIndependencePrompt;
+    this.#status = "active";
+    this.#currentPrompt = currentPrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return currentPrompt;
+  }
+
+  async startChordPerfect(options: TechniqueChordPerfectOptions): Promise<ChordPerfectPrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createChordPerfectExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-chord-perfect-${options.shape.id}`,
+      inputs: ["midi", "onscreen"],
+      context: {
+        targetSkillIds: exercise.skillIds,
+        difficulty: 0.4,
+        instrument: options.tuning.instrument,
+      },
+    });
+
+    const currentPrompt = prompt.payload as ChordPerfectPrompt;
     this.#status = "active";
     this.#currentPrompt = currentPrompt;
     this.#results = [];

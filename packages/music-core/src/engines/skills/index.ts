@@ -330,6 +330,27 @@ export function seedCoreSkills(): SkillSeed {
       "spider",
       "chromatic",
     ]),
+    skill(
+      "technique.strings.chord-perfect",
+      "Chord-Perfect Drill",
+      Capability.Technique,
+      "beginner",
+      ["guitar", "ukulele", "chords", "fretting"],
+    ),
+    skill(
+      "technique.guitar.chord-perfect",
+      "Guitar Chord-Perfect",
+      Capability.Technique,
+      "beginner",
+      ["guitar", "chords", "fretting"],
+    ),
+    skill(
+      "technique.ukulele.chord-perfect",
+      "Ukulele Chord-Perfect",
+      Capability.Technique,
+      "beginner",
+      ["ukulele", "chords", "fretting"],
+    ),
     skill("technique.piano", "Piano Technique", Capability.Technique, "beginner", [
       "piano",
       "keys",
@@ -384,8 +405,12 @@ export function seedCoreSkills(): SkillSeed {
       "technique.aerophone.breath-steadiness",
       "technique.aerophone.dynamic-control",
     ],
-    "technique.strings": ["technique.strings.spider"],
+    "technique.strings": ["technique.strings.spider", "technique.strings.chord-perfect"],
     "technique.strings.spider": ["technique.guitar.spider", "technique.ukulele.spider"],
+    "technique.strings.chord-perfect": [
+      "technique.guitar.chord-perfect",
+      "technique.ukulele.chord-perfect",
+    ],
     "technique.piano": ["technique.piano.two-hand-independence"],
     "technique.mpc": ["technique.mpc.single-strokes"],
   };

@@ -177,6 +177,12 @@ This file provides guidance for agents working on the Music app under
   exercise scores pitch order + timing evenness, awards XP/mastery to the shared
   and instrument-specific spider skills, and records a tagged drill journal
   entry.
+- `/music/play/chord-perfect`: graded guitar/ukulele Chord-Perfect drill. Pick an
+  instrument + a curated open-chord shape; MIDI and the shared `FretboardInput`
+  (whole shape lit, next string highlighted) feed `TechniqueSession.startChordPerfect()`,
+  which grades each voiced string in ascending-pitch order and awards XP/mastery to
+  `technique.{guitar,ukulele}.chord-perfect`. The chord shapes are standard open
+  voicings carrying a hardware-verification caveat (see the handoff).
 - `/music/play/two-hand`: graded piano two-hand independence drill. The left
   hand holds a steady root pulse (one note per beat) while the right hand runs a
   faster scale line (two notes per beat). MIDI and two on-screen `OnScreenKeyboard`s
@@ -259,6 +265,10 @@ Important areas:
   generation (steady LH pulse vs. faster RH line) and per-hand pitch/evenness
   grading (hands split by register). Keep keyboard rendering and route state out
   of this exercise.
+- `src/exercises/chord-perfect.ts`: guitar/ukulele Chord-Perfect — curated open
+  chord shapes (`CHORD_SHAPES`/`chordShapesFor`), per-string target generation
+  from a shape + tuning, and ascending pitch-order grading. Shapes are standard
+  open voicings; treat as hardware-pending until verified on the instrument.
 - `src/engines/library/`, `tunings/`: chord/scale data and tuning profiles.
   `library` also exports `chordVoicings(pianoMidi)` — root position, inversions,
   and drop-2 as instrument-agnostic pitch sets for `InstrumentView`.
