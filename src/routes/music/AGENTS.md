@@ -297,9 +297,11 @@ Important areas:
 - `src/engines/score-practice/`: canonical Song Studio practice selection and
   orchestration. It derives measure/note-group boundaries, validates
   whole-score/multi-section/custom half-open ranges, rebases groups into
-  `PracticeSegment`s, and owns execution queues/aggregate summaries as those
-  Phase 3 slices land. VexFlow/OSMD geometry and Svelte lifecycle do not belong
-  in this engine.
+  `PracticeSegment`s, expands sequence/per-section execution queues, creates an
+  isolated score follower per take, drives clock-based performance progress,
+  and owns aggregate take/section summaries. VexFlow/OSMD geometry, count-in
+  audio, timers, persistence calls, and Svelte lifecycle do not belong in this
+  engine.
 - `src/exercises/string-spider.ts`: guitar/ukulele one-string 1-2-3-4 target
   generation and pitch-order/evenness grading. Keep fretboard rendering and
   route state out of this exercise.
