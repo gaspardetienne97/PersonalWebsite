@@ -6,6 +6,11 @@ import {
 import { ExerciseRunHost, type PipelineServices } from "@repo/music-core/engines/exercise";
 import type { InputRouter } from "@repo/music-core/engines/input-router";
 import {
+  createAerophoneArticulationExercise,
+  type AerophoneArticulationPrompt,
+  type ArticulationStyle,
+} from "@repo/music-core/exercises/aerophone-articulation";
+import {
   createAerophoneLongToneExercise,
   type AerophoneLongTonePrompt,
 } from "@repo/music-core/exercises/aerophone-long-tone";
@@ -81,10 +86,19 @@ export interface TechniqueChordPerfectOptions {
   shape: ChordShape;
 }
 
+export interface TechniqueArticulationOptions {
+  targetMidi: number;
+  style: ArticulationStyle;
+  count?: number;
+  bpm?: number;
+  breathController?: number;
+}
+
 export type TechniquePrompt =
   | ScalePatternPrompt
   | AerophoneLongTonePrompt
   | AerophoneSwellPrompt
+  | AerophoneArticulationPrompt
   | MpcSingleStrokePrompt
   | StringSpiderPrompt
   | TwoHandIndependencePrompt
@@ -336,6 +350,35 @@ export class TechniqueSession {
     });
 
     const currentPrompt = prompt.payload as TwoHandIndependencePrompt;
+    this.#status = "active";
+    this.#currentPrompt = currentPrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return currentPrompt;
+  }
+
+  async startArticulation(
+    options: TechniqueArticulationOptions,
+  ): Promise<AerophoneArticulationPrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createAerophoneArticulationExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-articulation-${options.style}-${options.targetMidi}`,
+      inputs: ["midi", "onscreen"],
+      context: {
+        targetSkillIds: exercise.skillIds,
+        difficulty: difficultyForBpm(options.bpm ?? 90),
+        instrument: "aerophone",
+      },
+    });
+
+    const currentPrompt = prompt.payload as AerophoneArticulationPrompt;
     this.#status = "active";
     this.#currentPrompt = currentPrompt;
     this.#results = [];

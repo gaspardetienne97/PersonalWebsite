@@ -13,6 +13,7 @@
   import Save from "lucide-svelte/icons/save";
   import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
   import Square from "lucide-svelte/icons/square";
+  import Wind from "lucide-svelte/icons/wind";
 
   import {
     monotonicMs,
@@ -681,6 +682,15 @@
       meta="Piano"
       action="Start independence drill"
       icon={Hand}
+    />
+    <MusicToolCard
+      href="/music/play/articulation"
+      title="Aerophone Articulation"
+      description="Tongue a repeated note staccato or legato; graded on articulation from note length and breath (CC2) on a wind controller."
+      eyebrow="Play"
+      meta="Aerophone"
+      action="Start articulation drill"
+      icon={Wind}
     />
     <MusicToolCard
       href="/music/tuner"

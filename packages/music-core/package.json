@@ -46,6 +46,7 @@
     "./engines/voicing-drill-session": "./src/engines/voicing-drill-session/index.ts",
     "./engines/tunings": "./src/engines/tunings/index.ts",
     "./engines/tunings/store": "./src/engines/tunings/tuning-store.ts",
+    "./exercises/aerophone-articulation": "./src/exercises/aerophone-articulation.ts",
     "./exercises/aerophone-long-tone": "./src/exercises/aerophone-long-tone.ts",
     "./exercises/aerophone-swell": "./src/exercises/aerophone-swell.ts",
     "./exercises/chord-perfect": "./src/exercises/chord-perfect.ts",

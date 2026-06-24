@@ -74,6 +74,7 @@
         { label: "Spider Drill", href: "/music/play/spider", icon: SlidersHorizontal },
         { label: "Chord-Perfect", href: "/music/play/chord-perfect", icon: Guitar },
         { label: "Two-Hand Independence", href: "/music/play/two-hand", icon: Hand },
+        { label: "Articulation", href: "/music/play/articulation", icon: Wind },
         { label: "Tuner", href: "/music/tuner", icon: Gauge },
         { label: "Intonation", href: "/music/intonation", icon: AudioWaveform },
         { label: "Import & Play", href: "/music/import", icon: Upload },

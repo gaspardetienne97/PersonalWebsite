@@ -177,6 +177,14 @@ This file provides guidance for agents working on the Music app under
   exercise scores pitch order + timing evenness, awards XP/mastery to the shared
   and instrument-specific spider skills, and records a tagged drill journal
   entry.
+- `/music/play/articulation`: graded Aerophone articulation drill. Tongue a
+  repeated note staccato or legato; `TechniqueSession.startArticulation()` reads
+  note length (noteOn/noteOff) for the articulation score and tracks breath CC
+  (CC2) for the breath curve, awarding XP/mastery to
+  `technique.aerophone(.articulation)`. MIDI/wind-controller first — an on-screen
+  tap (noteOn only) completes the pitch dimension but reads as "no sustained
+  input" for articulation. Reuses `AerophoneFingering` + an `OnScreenKeyboard`
+  fallback.
 - `/music/play/chord-perfect`: graded guitar/ukulele Chord-Perfect drill. Pick an
   instrument + a curated open-chord shape; MIDI and the shared `FretboardInput`
   (whole shape lit, next string highlighted) feed `TechniqueSession.startChordPerfect()`,
@@ -255,8 +263,10 @@ Important areas:
   minor, and altered V7); its gradable unit is the `exercises/voicing-drill`
   exercise (chord-hold grading for polyphonic instruments, arpeggio-sequence
   grading for monophonic). `technique-session` also owns the string-instrument
-  spider run through `startSpider()` and the piano two-hand independence run
-  through `startTwoHand()`.
+  spider run through `startSpider()`, the piano two-hand independence run
+  through `startTwoHand()`, the guitar/uke Chord-Perfect run through
+  `startChordPerfect()`, and the Aerophone articulation run through
+  `startArticulation()`.
 - `src/engines/score-follower/`: streaming pitch+timing grading over a `Score`.
 - `src/exercises/string-spider.ts`: guitar/ukulele one-string 1-2-3-4 target
   generation and pitch-order/evenness grading. Keep fretboard rendering and
@@ -269,6 +279,11 @@ Important areas:
   chord shapes (`CHORD_SHAPES`/`chordShapesFor`), per-string target generation
   from a shape + tuning, and ascending pitch-order grading. Shapes are standard
   open voicings; treat as hardware-pending until verified on the instrument.
+- `src/exercises/aerophone-articulation.ts`: Aerophone staccato/legato drill —
+  repeated-note target generation and articulation grading from note durations
+  (sounding fraction vs. the style target) plus breath-CC tracking. Note-off
+  timing and breath CC come from a wind controller; on-screen taps score pitch
+  only.
 - `src/engines/library/`, `tunings/`: chord/scale data and tuning profiles.
   `library` also exports `chordVoicings(pianoMidi)` — root position, inversions,
   and drop-2 as instrument-agnostic pitch sets for `InstrumentView`.

@@ -132,6 +132,7 @@ describe("music-core/skills", () => {
         "technique.scale.natural-minor",
         "technique.aerophone.breath-steadiness",
         "technique.aerophone.dynamic-control",
+        "technique.aerophone.articulation",
         "technique.strings",
         "technique.strings.spider",
         "technique.guitar.spider",
