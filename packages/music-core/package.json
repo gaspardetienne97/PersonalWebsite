@@ -33,6 +33,7 @@
     "./engines/rhythm-session": "./src/engines/rhythm-session/index.ts",
     "./engines/score-follower": "./src/engines/score-follower/index.ts",
     "./engines/score-import": "./src/engines/score-import/index.ts",
+    "./engines/score-practice": "./src/engines/score-practice/index.ts",
     "./engines/semantic-color": "./src/engines/semantic-color/index.ts",
     "./engines/sequencer": "./src/engines/sequencer/index.ts",
     "./engines/sessions": "./src/engines/sessions/index.ts",
