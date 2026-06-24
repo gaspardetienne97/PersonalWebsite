@@ -136,6 +136,8 @@ describe("music-core/skills", () => {
         "technique.strings.spider",
         "technique.guitar.spider",
         "technique.ukulele.spider",
+        "technique.piano",
+        "technique.piano.two-hand-independence",
         "technique.mpc",
         "technique.mpc.single-strokes",
       ]),

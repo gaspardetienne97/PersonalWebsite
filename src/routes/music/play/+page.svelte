@@ -6,6 +6,7 @@
   import Circle from "lucide-svelte/icons/circle";
   import Drum from "lucide-svelte/icons/drum";
   import Gauge from "lucide-svelte/icons/gauge";
+  import Hand from "lucide-svelte/icons/hand";
   import ListMusic from "lucide-svelte/icons/list-music";
   import Mic from "lucide-svelte/icons/mic";
   import Save from "lucide-svelte/icons/save";
@@ -661,6 +662,15 @@
       meta="Strings"
       action="Start spider practice"
       icon={SlidersHorizontal}
+    />
+    <MusicToolCard
+      href="/music/play/two-hand"
+      title="Two-Hand Independence"
+      description="A graded piano drill: hold a steady left-hand pulse while the right hand runs a faster scale line."
+      eyebrow="Play"
+      meta="Piano"
+      action="Start independence drill"
+      icon={Hand}
     />
     <MusicToolCard
       href="/music/tuner"

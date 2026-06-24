@@ -10,6 +10,7 @@
   import Ear from "lucide-svelte/icons/ear";
   import FlaskConical from "lucide-svelte/icons/flask-conical";
   import Gauge from "lucide-svelte/icons/gauge";
+  import Hand from "lucide-svelte/icons/hand";
   import CircleHelp from "lucide-svelte/icons/circle-help";
   import House from "lucide-svelte/icons/house";
   import Library from "lucide-svelte/icons/library";
@@ -70,6 +71,7 @@
         { label: "Practice Lab", href: "/music/play", icon: FlaskConical },
         { label: "MPC Rudiments", href: "/music/play/mpc", icon: Drum },
         { label: "Spider Drill", href: "/music/play/spider", icon: SlidersHorizontal },
+        { label: "Two-Hand Independence", href: "/music/play/two-hand", icon: Hand },
         { label: "Tuner", href: "/music/tuner", icon: Gauge },
         { label: "Intonation", href: "/music/intonation", icon: AudioWaveform },
         { label: "Import & Play", href: "/music/import", icon: Upload },

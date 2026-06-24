@@ -27,6 +27,10 @@ import {
   createStringSpiderExercise,
   type StringSpiderPrompt,
 } from "@repo/music-core/exercises/string-spider";
+import {
+  createTwoHandIndependenceExercise,
+  type TwoHandIndependencePrompt,
+} from "@repo/music-core/exercises/two-hand-independence";
 import type { TuningProfile } from "@repo/music-core/engines/tunings";
 
 export interface TechniqueScaleOptions {
@@ -61,12 +65,19 @@ export interface TechniqueSpiderOptions {
   bpm: number;
 }
 
+export interface TechniqueTwoHandOptions {
+  tonic: string;
+  bpm: number;
+  bars?: number;
+}
+
 export type TechniquePrompt =
   | ScalePatternPrompt
   | AerophoneLongTonePrompt
   | AerophoneSwellPrompt
   | MpcSingleStrokePrompt
-  | StringSpiderPrompt;
+  | StringSpiderPrompt
+  | TwoHandIndependencePrompt;
 
 export interface TechniqueSessionDependencies {
   router: InputRouter;
@@ -287,6 +298,33 @@ export class TechniqueSession {
     });
 
     const currentPrompt = prompt.payload as StringSpiderPrompt;
+    this.#status = "active";
+    this.#currentPrompt = currentPrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return currentPrompt;
+  }
+
+  async startTwoHand(options: TechniqueTwoHandOptions): Promise<TwoHandIndependencePrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createTwoHandIndependenceExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-two-hand-${options.tonic}-${options.bpm}-${options.bars ?? 2}`,
+      inputs: ["midi", "onscreen"],
+      context: {
+        targetSkillIds: exercise.skillIds,
+        difficulty: difficultyForBpm(options.bpm),
+        instrument: "piano",
+      },
+    });
+
+    const currentPrompt = prompt.payload as TwoHandIndependencePrompt;
     this.#status = "active";
     this.#currentPrompt = currentPrompt;
     this.#results = [];

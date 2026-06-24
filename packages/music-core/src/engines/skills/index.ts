@@ -330,6 +330,18 @@ export function seedCoreSkills(): SkillSeed {
       "spider",
       "chromatic",
     ]),
+    skill("technique.piano", "Piano Technique", Capability.Technique, "beginner", [
+      "piano",
+      "keys",
+      "hands",
+    ]),
+    skill(
+      "technique.piano.two-hand-independence",
+      "Two-Hand Independence",
+      Capability.Technique,
+      "beginner",
+      ["piano", "independence", "coordination", "hands"],
+    ),
     skill("technique.mpc", "MPC Technique", Capability.Technique, "beginner", [
       "mpc",
       "pads",
@@ -374,6 +386,7 @@ export function seedCoreSkills(): SkillSeed {
     ],
     "technique.strings": ["technique.strings.spider"],
     "technique.strings.spider": ["technique.guitar.spider", "technique.ukulele.spider"],
+    "technique.piano": ["technique.piano.two-hand-independence"],
     "technique.mpc": ["technique.mpc.single-strokes"],
   };
 

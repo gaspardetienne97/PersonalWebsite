@@ -177,6 +177,13 @@ This file provides guidance for agents working on the Music app under
   exercise scores pitch order + timing evenness, awards XP/mastery to the shared
   and instrument-specific spider skills, and records a tagged drill journal
   entry.
+- `/music/play/two-hand`: graded piano two-hand independence drill. The left
+  hand holds a steady root pulse (one note per beat) while the right hand runs a
+  faster scale line (two notes per beat). MIDI and two on-screen `OnScreenKeyboard`s
+  (left/right) feed `TechniqueSession.startTwoHand()`; each hand is graded
+  independently by register (a split midi) on pitch order + timing evenness,
+  awards XP/mastery to `technique.piano(.two-hand-independence)`, and records a
+  tagged drill journal entry.
 - `/music/play/voicings`: **graded** voicing drill across all 12 keys, with
   **Major / Minor / Altered V7** variants (major = rootless ii-V-I, JT9; minor =
   iiø7 → V7alt → i-m7, JT7; altered = V7b9 → V7alt → II-major upper structure,
@@ -242,11 +249,16 @@ Important areas:
   minor, and altered V7); its gradable unit is the `exercises/voicing-drill`
   exercise (chord-hold grading for polyphonic instruments, arpeggio-sequence
   grading for monophonic). `technique-session` also owns the string-instrument
-  spider run through `startSpider()`.
+  spider run through `startSpider()` and the piano two-hand independence run
+  through `startTwoHand()`.
 - `src/engines/score-follower/`: streaming pitch+timing grading over a `Score`.
 - `src/exercises/string-spider.ts`: guitar/ukulele one-string 1-2-3-4 target
   generation and pitch-order/evenness grading. Keep fretboard rendering and
   route state out of this exercise.
+- `src/exercises/two-hand-independence.ts`: piano two-hand independence target
+  generation (steady LH pulse vs. faster RH line) and per-hand pitch/evenness
+  grading (hands split by register). Keep keyboard rendering and route state out
+  of this exercise.
 - `src/engines/library/`, `tunings/`: chord/scale data and tuning profiles.
   `library` also exports `chordVoicings(pianoMidi)` — root position, inversions,
   and drop-2 as instrument-agnostic pitch sets for `InstrumentView`.
