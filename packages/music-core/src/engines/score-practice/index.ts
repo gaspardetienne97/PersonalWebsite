@@ -1,5 +1,14 @@
-import type { Score, ScoreSection } from "@repo/music-core/domain";
-import type { ExpectedNoteGroup } from "@repo/music-core/engines/score-follower";
+import type { MonotonicMs, NoteEvent, Score, ScoreSection } from "@repo/music-core/domain";
+import {
+  beatToMs,
+  createScoreFollower,
+  type ExpectedNoteGroup,
+  type ScoreFollowerAnswer,
+  type ScoreFollowerLiveState,
+  type ScoreFollowerMode,
+  type ScoreFollowerRun,
+  type TimingStrictness,
+} from "@repo/music-core/engines/score-follower";
 
 const EPSILON = 1e-6;
 
@@ -40,6 +49,84 @@ export interface ScorePracticePlan {
   expectedGroups: number;
 }
 
+export interface ScorePracticeOptions {
+  mode: ScoreFollowerMode;
+  bpm: number;
+  strictness: TimingStrictness;
+  totalTakes: 1 | 2 | 4 | 8;
+}
+
+export interface PracticeExecution {
+  id: string;
+  take: number;
+  segmentIds: string[];
+  groups: ExpectedNoteGroup[];
+  durationBeats: number;
+  startsNewTake: boolean;
+  segmentGroupCounts: number[];
+  segmentExpectedNotes: number[];
+}
+
+export interface ScorePracticeTakeSummary {
+  take: number;
+  score: number;
+  expectedNotes: number;
+  matchedNotes: number;
+  meanAbsoluteTimingErrorMs?: number;
+  segmentIds: string[];
+}
+
+export interface ScorePracticeSectionSummary {
+  segmentId: string;
+  label: string;
+  score: number;
+  expectedNotes: number;
+  matchedNotes: number;
+  bestTake?: number;
+}
+
+export interface ScorePracticeSummary {
+  aggregateScore: number;
+  matchedNotes: number;
+  expectedNotes: number;
+  pitchCompletion: number;
+  meanAbsoluteTimingErrorMs?: number;
+  earlyNotes: number;
+  onTimeNotes: number;
+  lateNotes: number;
+  missedNotes: number;
+  extraNotes: number;
+  bestTake?: number;
+  takes: ScorePracticeTakeSummary[];
+  sections: ScorePracticeSectionSummary[];
+}
+
+export type ScorePracticeExecutionResult = Omit<
+  ReturnType<ScoreFollowerRun["finish"]>,
+  "answer"
+> & {
+  answer: ScoreFollowerAnswer;
+};
+export type ScorePracticeStatus =
+  | "ready"
+  | "count-in"
+  | "running"
+  | "between"
+  | "complete"
+  | "cancelled";
+
+export interface ScorePracticeState {
+  status: ScorePracticeStatus;
+  executionIndex: number;
+  execution?: PracticeExecution;
+  take: number;
+  currentSegmentId?: string;
+  progress: number;
+  live?: ScoreFollowerLiveState;
+  completedResults: ScorePracticeExecutionResult[];
+  summary?: ScorePracticeSummary;
+}
+
 export function buildScoreSelectionMap(score: Score): ScoreSelectionMap {
   const endBeat = scoreEndBeat(score);
   const measureStarts = scoreMeasureStarts(score, endBeat);
@@ -69,6 +156,157 @@ export function buildScorePracticePlan(
     durationBeats: segments.reduce((total, segment) => total + segment.durationBeats, 0),
     expectedGroups: segments.reduce((total, segment) => total + segment.groups.length, 0),
   };
+}
+
+export function buildPracticeExecutions(
+  plan: ScorePracticePlan,
+  options: Pick<ScorePracticeOptions, "totalTakes">,
+): PracticeExecution[] {
+  const order = plan.selection.kind === "sections" ? plan.selection.order : "sequence";
+  if (order === "per-section") {
+    return plan.segments.flatMap((segment) =>
+      Array.from({ length: options.totalTakes }, (_, index) =>
+        segmentExecution(segment, index + 1),
+      ),
+    );
+  }
+  return Array.from({ length: options.totalTakes }, (_, index) =>
+    sequenceExecution(plan.segments, index + 1),
+  );
+}
+
+export class ScorePracticeSession {
+  readonly #plan: ScorePracticePlan;
+  readonly #options: ScorePracticeOptions;
+  readonly #executions: PracticeExecution[];
+  readonly #records: Array<{
+    execution: PracticeExecution;
+    result: ScorePracticeExecutionResult;
+  }> = [];
+  #status: ScorePracticeStatus = "ready";
+  #executionIndex = 0;
+  #follower?: ScoreFollowerRun;
+  #startTimestampMs?: MonotonicMs;
+  #live?: ScoreFollowerLiveState;
+  #summary?: ScorePracticeSummary;
+
+  constructor(plan: ScorePracticePlan, options: ScorePracticeOptions) {
+    if (!Number.isFinite(options.bpm) || options.bpm <= 0) {
+      throw new Error("Practice BPM must be positive");
+    }
+    this.#plan = plan;
+    this.#options = options;
+    this.#executions = buildPracticeExecutions(plan, options);
+  }
+
+  get state(): ScorePracticeState {
+    const execution = this.#executions[this.#executionIndex];
+    return {
+      status: this.#status,
+      executionIndex: this.#executionIndex,
+      ...(execution ? { execution, take: execution.take } : { take: this.#options.totalTakes }),
+      ...(execution && this.#live
+        ? { currentSegmentId: segmentAtGroup(execution, this.#live.currentGroupIndex) }
+        : {}),
+      progress: this.#live?.progress ?? (this.#status === "complete" ? 1 : 0),
+      ...(this.#live ? { live: this.#live } : {}),
+      completedResults: this.#records.map(({ result }) => result),
+      summary: this.#summary,
+    };
+  }
+
+  markCountingIn(): ScorePracticeState {
+    if (this.#status !== "ready" && this.#status !== "between") {
+      throw new Error(`Cannot count in from ${this.#status}`);
+    }
+    this.#status = "count-in";
+    this.#live = undefined;
+    return this.state;
+  }
+
+  startExecution(startTimestampMs: MonotonicMs): ScorePracticeState {
+    if (!["ready", "count-in", "between"].includes(this.#status)) {
+      throw new Error(`Cannot start practice from ${this.#status}`);
+    }
+    const execution = this.#executions[this.#executionIndex];
+    if (!execution) throw new Error("No practice execution is available");
+
+    this.#startTimestampMs = startTimestampMs;
+    this.#follower = createScoreFollower(execution.groups, {
+      mode: this.#options.mode,
+      bpm: this.#options.bpm,
+      strictness: this.#options.strictness,
+      startTimestampMs,
+    });
+    this.#live = this.#follower.getLiveState();
+    this.#status = "running";
+    return this.state;
+  }
+
+  accept(event: NoteEvent): ScorePracticeState {
+    if (this.#status !== "running" || !this.#follower) return this.state;
+    this.#follower.accept(event);
+    this.#live = this.#follower.getLiveState();
+    return this.state;
+  }
+
+  tick(timestampMs: MonotonicMs): ScorePracticeState {
+    if (
+      this.#status !== "running" ||
+      this.#options.mode !== "performance" ||
+      this.#startTimestampMs === undefined ||
+      !this.#follower
+    ) {
+      return this.state;
+    }
+    const execution = this.#executions[this.#executionIndex];
+    if (!execution) return this.state;
+
+    const elapsedMs = Math.max(0, timestampMs - this.#startTimestampMs);
+    const elapsedBeats = elapsedMs / beatToMs(1, this.#options.bpm);
+    const followerLive = this.#follower.getLiveState();
+    const currentGroupIndex = temporalGroupIndex(execution.groups, elapsedBeats);
+    this.#live = {
+      ...followerLive,
+      progress: Math.min(1, elapsedBeats / execution.durationBeats),
+      currentGroupIndex,
+      expectedMidiNotes: execution.groups[currentGroupIndex]?.midiNotes ?? [],
+    };
+    return this.state;
+  }
+
+  finishExecution(): ScorePracticeState {
+    if (this.#status !== "running" || !this.#follower) {
+      throw new Error(`Cannot finish practice from ${this.#status}`);
+    }
+    const execution = this.#executions[this.#executionIndex]!;
+    const result = this.#follower.finish();
+    if (!result.answer) throw new Error("Score follower returned no answer");
+    this.#records.push({ execution, result: { ...result, answer: result.answer } });
+    this.#follower = undefined;
+    this.#startTimestampMs = undefined;
+    this.#live = undefined;
+    this.#executionIndex += 1;
+
+    if (this.#executionIndex < this.#executions.length) {
+      this.#status = "between";
+    } else {
+      this.#status = "complete";
+      this.#summary = summarizePractice(this.#plan, this.#records);
+    }
+    return this.state;
+  }
+
+  cancel(): ScorePracticeState {
+    this.#status = "cancelled";
+    this.#executionIndex = 0;
+    this.#follower = undefined;
+    this.#startTimestampMs = undefined;
+    this.#live = undefined;
+    this.#records.length = 0;
+    this.#summary = undefined;
+    return this.state;
+  }
 }
 
 function resolveRanges(
@@ -256,4 +494,224 @@ function sortedUnique(values: number[]): number[] {
     .filter(
       (value, index, sorted) => index === 0 || Math.abs(value - sorted[index - 1]!) > EPSILON,
     );
+}
+
+function segmentExecution(segment: PracticeSegment, take: number): PracticeExecution {
+  return {
+    id: `${segment.id}:take:${take}`,
+    take,
+    segmentIds: [segment.id],
+    groups: segment.groups.map((group) => ({ ...group })),
+    durationBeats: segment.durationBeats,
+    startsNewTake: true,
+    segmentGroupCounts: [segment.groups.length],
+    segmentExpectedNotes: [expectedNoteCount(segment.groups)],
+  };
+}
+
+function sequenceExecution(segments: PracticeSegment[], take: number): PracticeExecution {
+  let offset = 0;
+  const groups: ExpectedNoteGroup[] = [];
+  for (const segment of segments) {
+    groups.push(
+      ...segment.groups.map((group) => ({
+        ...group,
+        id: `${segment.id}:${group.id}:take:${take}`,
+        startBeat: group.startBeat + offset,
+      })),
+    );
+    offset += segment.durationBeats;
+  }
+  return {
+    id: `sequence:take:${take}`,
+    take,
+    segmentIds: segments.map(({ id }) => id),
+    groups,
+    durationBeats: offset,
+    startsNewTake: true,
+    segmentGroupCounts: segments.map(({ groups: segmentGroups }) => segmentGroups.length),
+    segmentExpectedNotes: segments.map(({ groups: segmentGroups }) =>
+      expectedNoteCount(segmentGroups),
+    ),
+  };
+}
+
+function temporalGroupIndex(groups: ExpectedNoteGroup[], beat: number): number {
+  const index = groups.findIndex(({ startBeat }) => startBeat >= beat - EPSILON);
+  return index < 0 ? groups.length : index;
+}
+
+function segmentAtGroup(execution: PracticeExecution, groupIndex: number): string | undefined {
+  let boundary = 0;
+  for (const [index, count] of execution.segmentGroupCounts.entries()) {
+    boundary += count;
+    if (groupIndex < boundary) return execution.segmentIds[index];
+  }
+  return execution.segmentIds.at(-1);
+}
+
+function summarizePractice(
+  plan: ScorePracticePlan,
+  records: Array<{ execution: PracticeExecution; result: ScorePracticeExecutionResult }>,
+): ScorePracticeSummary {
+  const expectedNotes = records.reduce(
+    (total, { result }) => total + result.answer.expectedNotes,
+    0,
+  );
+  const matchedNotes = records.reduce((total, { result }) => total + result.answer.matchedNotes, 0);
+  const timingErrors = records.flatMap(({ result }) =>
+    result.metrics.flatMap((metric) => (metric.kind === "timing" ? [metric.errorMs] : [])),
+  );
+  const aggregateScore =
+    expectedNotes === 0
+      ? 0
+      : records.reduce(
+          (total, { result }) => total + result.score * result.answer.expectedNotes,
+          0,
+        ) / expectedNotes;
+  const takes = summarizeTakes(records);
+  const bestTake = [...takes].sort(
+    (left, right) => right.score - left.score || left.take - right.take,
+  )[0]?.take;
+
+  return {
+    aggregateScore,
+    matchedNotes,
+    expectedNotes,
+    pitchCompletion: expectedNotes === 0 ? 0 : matchedNotes / expectedNotes,
+    ...(timingErrors.length > 0
+      ? {
+          meanAbsoluteTimingErrorMs:
+            timingErrors.reduce((total, error) => total + Math.abs(error), 0) / timingErrors.length,
+        }
+      : {}),
+    earlyNotes: timingErrors.filter((error) => error < -20).length,
+    onTimeNotes: timingErrors.filter((error) => Math.abs(error) <= 20).length,
+    lateNotes: timingErrors.filter((error) => error > 20).length,
+    missedNotes: records.reduce((total, { result }) => total + result.answer.missedNotes, 0),
+    extraNotes: records.reduce((total, { result }) => total + result.answer.extraNotes, 0),
+    ...(bestTake === undefined ? {} : { bestTake }),
+    takes,
+    sections: summarizeSections(plan, records),
+  };
+}
+
+function summarizeTakes(
+  records: Array<{ execution: PracticeExecution; result: ScorePracticeExecutionResult }>,
+): ScorePracticeTakeSummary[] {
+  const byTake = new Map<
+    number,
+    Array<{ execution: PracticeExecution; result: ScorePracticeExecutionResult }>
+  >();
+  for (const record of records) {
+    const entries = byTake.get(record.execution.take) ?? [];
+    entries.push(record);
+    byTake.set(record.execution.take, entries);
+  }
+
+  return [...byTake.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([take, entries]) => {
+      const expectedNotes = entries.reduce(
+        (total, { result }) => total + result.answer.expectedNotes,
+        0,
+      );
+      const matchedNotes = entries.reduce(
+        (total, { result }) => total + result.answer.matchedNotes,
+        0,
+      );
+      const timingErrors = entries.flatMap(({ result }) =>
+        result.metrics.flatMap((metric) => (metric.kind === "timing" ? [metric.errorMs] : [])),
+      );
+      return {
+        take,
+        score:
+          expectedNotes === 0
+            ? 0
+            : entries.reduce(
+                (total, { result }) => total + result.score * result.answer.expectedNotes,
+                0,
+              ) / expectedNotes,
+        expectedNotes,
+        matchedNotes,
+        ...(timingErrors.length > 0
+          ? {
+              meanAbsoluteTimingErrorMs:
+                timingErrors.reduce((total, error) => total + Math.abs(error), 0) /
+                timingErrors.length,
+            }
+          : {}),
+        segmentIds: [...new Set(entries.flatMap(({ execution }) => execution.segmentIds))],
+      };
+    });
+}
+
+function summarizeSections(
+  plan: ScorePracticePlan,
+  records: Array<{ execution: PracticeExecution; result: ScorePracticeExecutionResult }>,
+): ScorePracticeSectionSummary[] {
+  return plan.segments.map((segment) => {
+    const attempts = records.flatMap(({ execution, result }) => {
+      const segmentIndex = execution.segmentIds.indexOf(segment.id);
+      if (segmentIndex < 0) return [];
+      const outcomes = expectedNoteOutcomes(result);
+      const start = execution.segmentExpectedNotes
+        .slice(0, segmentIndex)
+        .reduce((total, count) => total + count, 0);
+      const expectedNotes = execution.segmentExpectedNotes[segmentIndex] ?? 0;
+      const segmentOutcomes = outcomes.slice(start, start + expectedNotes);
+      const matchedNotes = segmentOutcomes.filter(({ matched }) => matched).length;
+      return [
+        {
+          take: execution.take,
+          expectedNotes,
+          matchedNotes,
+          score:
+            execution.segmentIds.length === 1
+              ? result.score
+              : expectedNotes === 0
+                ? 0
+                : matchedNotes / expectedNotes,
+        },
+      ];
+    });
+    const expectedNotes = attempts.reduce((total, attempt) => total + attempt.expectedNotes, 0);
+    const matchedNotes = attempts.reduce((total, attempt) => total + attempt.matchedNotes, 0);
+    const bestAttempt = [...attempts].sort(
+      (left, right) => right.score - left.score || left.take - right.take,
+    )[0];
+    const score =
+      expectedNotes === 0
+        ? 0
+        : attempts.reduce((total, attempt) => total + attempt.score * attempt.expectedNotes, 0) /
+          expectedNotes;
+
+    return {
+      segmentId: segment.id,
+      label: segment.label,
+      score,
+      expectedNotes,
+      matchedNotes,
+      ...(bestAttempt ? { bestTake: bestAttempt.take } : {}),
+    };
+  });
+}
+
+function expectedNoteCount(groups: ExpectedNoteGroup[]): number {
+  return groups.reduce((total, group) => total + group.midiNotes.length, 0);
+}
+
+function expectedNoteOutcomes(
+  result: ScorePracticeExecutionResult,
+): Array<{ matched: boolean; timingErrorMs?: number }> {
+  const outcomes: Array<{ matched: boolean; timingErrorMs?: number }> = [];
+  for (const metric of result.metrics) {
+    if (metric.kind === "pitch") {
+      outcomes.push({ matched: metric.actualMidi !== undefined });
+    } else if (metric.kind === "timing") {
+      const current = outcomes.at(-1);
+      if (current) current.timingErrorMs = metric.errorMs;
+    }
+  }
+  return outcomes;
 }

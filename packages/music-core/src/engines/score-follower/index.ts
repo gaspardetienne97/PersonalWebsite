@@ -37,6 +37,10 @@ export interface ScoreFollowerOptions {
 export interface ScoreFollowerAnswer {
   completedGroups: number;
   expectedGroups: number;
+  matchedNotes: number;
+  expectedNotes: number;
+  missedNotes: number;
+  extraNotes: number;
   playedMidiNotes: number[];
   wrongMidiNotes: number[];
 }
@@ -142,6 +146,9 @@ function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
       const score = groups.length === 0 ? 1 : completed / groups.length;
       const wrongMidiNotes = sortedUnique([...wrong]);
       const expectedMidiNotes = groups.flatMap(({ midiNotes }) => midiNotes);
+      const matchedNotes = groups
+        .slice(0, completed)
+        .reduce((total, group) => total + group.midiNotes.length, 0);
 
       return {
         correct: completed === groups.length && wrongMidiNotes.length === 0,
@@ -156,6 +163,10 @@ function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
         answer: {
           completedGroups: completed,
           expectedGroups: groups.length,
+          matchedNotes,
+          expectedNotes: expectedMidiNotes.length,
+          missedNotes: expectedMidiNotes.length - matchedNotes,
+          extraNotes: wrongMidiNotes.length,
           playedMidiNotes: [...playedMidiNotes],
           wrongMidiNotes,
         },
@@ -264,6 +275,10 @@ function performanceModeRun(
         answer: {
           completedGroups,
           expectedGroups: groups.length,
+          matchedNotes: matchedCount,
+          expectedNotes: expectedCount,
+          missedNotes: expectedCount - matchedCount,
+          extraNotes: wrongMidiNotes.length,
           playedMidiNotes: noteOns.map((event) => event.midiNote),
           wrongMidiNotes,
         },

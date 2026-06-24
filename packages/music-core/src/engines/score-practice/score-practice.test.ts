@@ -1,8 +1,10 @@
 import { describe, expect, test } from "vitest";
 
-import type { Score } from "@repo/music-core/domain";
+import { monotonicMs, type NoteEvent, type Score } from "@repo/music-core/domain";
 
 import {
+  ScorePracticeSession,
+  buildPracticeExecutions,
   buildScorePracticePlan,
   buildScoreSelectionMap,
   type ScorePracticeSelection,
@@ -147,6 +149,156 @@ describe("music-core/score-practice", () => {
   ])("rejects $name", ({ selection, message }) => {
     expect(() => buildScorePracticePlan(changingMeterScore(), selection)).toThrow(message);
   });
+
+  test("sequence mode concatenates sections into one execution per take", () => {
+    const executions = buildPracticeExecutions(sectionPlan("sequence"), { totalTakes: 2 });
+
+    expect(executions.map(({ take, segmentIds }) => ({ take, segmentIds }))).toEqual([
+      { take: 1, segmentIds: ["a", "b"] },
+      { take: 2, segmentIds: ["a", "b"] },
+    ]);
+    expect(executions[0]?.groups.map(({ startBeat }) => startBeat)).toEqual([0, 1, 3, 4, 6]);
+    expect(executions[0]?.durationBeats).toBe(7);
+  });
+
+  test("per-section mode completes all takes before moving sections", () => {
+    const executions = buildPracticeExecutions(sectionPlan("per-section"), { totalTakes: 2 });
+
+    expect(executions.map(({ take, segmentIds }) => ({ take, segmentIds }))).toEqual([
+      { take: 1, segmentIds: ["a"] },
+      { take: 2, segmentIds: ["a"] },
+      { take: 1, segmentIds: ["b"] },
+      { take: 2, segmentIds: ["b"] },
+    ]);
+    expect(executions.map(({ startsNewTake }) => startsNewTake)).toEqual([true, true, true, true]);
+  });
+
+  test("creates an isolated follower for every performance take", () => {
+    const session = new ScorePracticeSession(singleNotePlan(), {
+      mode: "performance",
+      bpm: 60,
+      strictness: "normal",
+      totalTakes: 2,
+    });
+
+    session.markCountingIn();
+    session.startExecution(monotonicMs(1_000));
+    session.accept(noteOn(60, 1_000));
+    expect(session.finishExecution().status).toBe("between");
+
+    session.markCountingIn();
+    session.startExecution(monotonicMs(2_000));
+    const state = session.finishExecution();
+
+    expect(state.status).toBe("complete");
+    expect(state.summary?.takes.map(({ score }) => score)).toEqual([1, 0]);
+    expect(state.summary).toMatchObject({
+      aggregateScore: 0.5,
+      matchedNotes: 1,
+      expectedNotes: 2,
+      missedNotes: 1,
+      bestTake: 1,
+    });
+  });
+
+  test("advances performance progress from the shared clock despite missed notes", () => {
+    const session = new ScorePracticeSession(
+      buildScorePracticePlan(changingMeterScore(), { kind: "full" }),
+      {
+        mode: "performance",
+        bpm: 60,
+        strictness: "normal",
+        totalTakes: 1,
+      },
+    );
+
+    expect(session.accept(noteOn(60, 900)).status).toBe("ready");
+    session.markCountingIn();
+    expect(session.accept(noteOn(60, 950)).status).toBe("count-in");
+    session.startExecution(monotonicMs(1_000));
+
+    const state = session.tick(monotonicMs(3_000));
+
+    expect(state.progress).toBeCloseTo(2 / 7);
+    expect(state.live?.currentGroupIndex).toBe(2);
+  });
+
+  test("aggregates timing bands, misses, extras, and best take deterministically", () => {
+    const session = new ScorePracticeSession(threeNotePlan(), {
+      mode: "performance",
+      bpm: 60,
+      strictness: "normal",
+      totalTakes: 1,
+    });
+
+    session.markCountingIn();
+    session.startExecution(monotonicMs(10_000));
+    session.accept(noteOn(60, 9_950));
+    session.accept(noteOn(62, 11_010));
+    session.accept(noteOn(65, 12_080));
+    session.accept(noteOn(70, 11_500));
+
+    const summary = session.finishExecution().summary;
+
+    expect(summary).toMatchObject({
+      matchedNotes: 3,
+      expectedNotes: 3,
+      pitchCompletion: 1,
+      earlyNotes: 1,
+      onTimeNotes: 1,
+      lateNotes: 1,
+      missedNotes: 0,
+      extraNotes: 1,
+      bestTake: 1,
+    });
+    expect(summary?.meanAbsoluteTimingErrorMs).toBeCloseTo(140 / 3);
+  });
+
+  test("attributes sequence matches to the section that owns each expected note", () => {
+    const score = scoreWithNotes([note(60, 0, 1), note(62, 1, 1)]);
+    score.sections = [
+      { id: "a", name: "A", startBeat: 0, endBeat: 1 },
+      { id: "b", name: "B", startBeat: 1, endBeat: 2 },
+    ];
+    const session = new ScorePracticeSession(
+      buildScorePracticePlan(score, {
+        kind: "sections",
+        sectionIds: ["a", "b"],
+        order: "sequence",
+      }),
+      {
+        mode: "performance",
+        bpm: 60,
+        strictness: "normal",
+        totalTakes: 1,
+      },
+    );
+
+    session.startExecution(monotonicMs(1_000));
+    session.accept(noteOn(60, 1_000));
+
+    expect(session.finishExecution().summary?.sections).toMatchObject([
+      { segmentId: "a", matchedNotes: 1, expectedNotes: 1, score: 1 },
+      { segmentId: "b", matchedNotes: 0, expectedNotes: 1, score: 0 },
+    ]);
+  });
+
+  test("cancels without producing a completed aggregate", () => {
+    const session = new ScorePracticeSession(singleNotePlan(), {
+      mode: "wait",
+      bpm: 90,
+      strictness: "normal",
+      totalTakes: 1,
+    });
+
+    session.startExecution(monotonicMs(0));
+
+    expect(session.cancel()).toMatchObject({
+      status: "cancelled",
+      summary: undefined,
+      completedResults: [],
+    });
+  });
 });
 
 function changingMeterScore(): Score {
@@ -179,5 +331,50 @@ function note(midiNote: number, startBeat: number, durationBeats: number) {
     durationBeats,
     velocity: 0.8,
     voiceId: "melody",
+  };
+}
+
+function sectionPlan(order: "sequence" | "per-section") {
+  return buildScorePracticePlan(changingMeterScore(), {
+    kind: "sections",
+    sectionIds: ["a", "b"],
+    order,
+  });
+}
+
+function singleNotePlan() {
+  return buildScorePracticePlan(scoreWithNotes([note(60, 0, 1)]), { kind: "full" });
+}
+
+function threeNotePlan() {
+  return buildScorePracticePlan(scoreWithNotes([note(60, 0, 1), note(62, 1, 1), note(65, 2, 1)]), {
+    kind: "full",
+  });
+}
+
+function scoreWithNotes(notes: Score["notes"]): Score {
+  return {
+    id: "compact",
+    title: "Compact",
+    origin: "generated",
+    keySignature: "C major",
+    tempoMap: [{ atBeat: 0, bpm: 60 }],
+    timeSignatures: [{ atBeat: 0, numerator: 4, denominator: 4 }],
+    voices: [{ id: "melody", name: "Melody", role: "melody" }],
+    notes,
+    chords: [],
+    sections: [],
+    markers: [],
+  };
+}
+
+function noteOn(midiNote: number, timestamp: number): NoteEvent {
+  return {
+    type: "noteOn",
+    midiNote,
+    velocity: 1,
+    source: "midi",
+    timestamp: monotonicMs(timestamp),
+    clock: "performance",
   };
 }

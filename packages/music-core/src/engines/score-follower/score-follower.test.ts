@@ -111,6 +111,12 @@ describe("music-core/score-follower", () => {
     const result = run.finish();
     expect(result.correct).toBe(true);
     expect(result.score).toBe(1);
+    expect(result.answer).toMatchObject({
+      matchedNotes: 5,
+      expectedNotes: 5,
+      missedNotes: 0,
+      extraNotes: 0,
+    });
     expect(result.metrics).toEqual([
       { kind: "pitch", expectedMidi: 48, actualMidi: 48 },
       { kind: "timing", expectedMs: 10_000, actualMs: 10_000, errorMs: 0 },
@@ -146,6 +152,10 @@ describe("music-core/score-follower", () => {
     expect(result.score).toBeLessThan(1);
     expect(result.answer).toMatchObject({
       completedGroups: 1,
+      matchedNotes: 2,
+      expectedNotes: 5,
+      missedNotes: 3,
+      extraNotes: 2,
       wrongMidiNotes: [67, 70],
     });
     expect(result.metrics).toContainEqual({
