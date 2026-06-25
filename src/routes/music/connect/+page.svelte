@@ -171,7 +171,8 @@
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {#each midiDevices as device (device.id)}
           {@const profile = profileFor(device.id)}
-          <Card.Root>
+          {@const ignored = profile?.ignored ?? false}
+          <Card.Root class={ignored ? "opacity-60" : ""}>
             <Card.Header class="flex-row items-start justify-between gap-2">
               <div class="min-w-0">
                 <Card.Title class="truncate">{profile?.alias || device.name}</Card.Title>
@@ -179,9 +180,15 @@
                   {device.manufacturer ?? "USB-MIDI"}
                 </Card.Description>
               </div>
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
-                <span class="size-1.5 rounded-full bg-current"></span>Live
-              </span>
+              {#if ignored}
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                  <span class="size-1.5 rounded-full bg-current"></span>Ignored
+                </span>
+              {:else}
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
+                  <span class="size-1.5 rounded-full bg-current"></span>Live
+                </span>
+              {/if}
             </Card.Header>
             <Card.Content class="grid gap-3">
               <label class="grid gap-1.5">
@@ -209,6 +216,19 @@
                     <option value={instrument.id}>{instrument.label}</option>
                   {/each}
                 </select>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  class="size-4"
+                  aria-label="Ignore input from {device.name}"
+                  checked={ignored}
+                  onchange={(event) =>
+                    updateProfile(device.id, { ignored: event.currentTarget.checked })}
+                />
+                <span class="text-muted-foreground">
+                  Ignore this input (drop its notes; e.g. an MPC control port)
+                </span>
               </label>
             </Card.Content>
           </Card.Root>

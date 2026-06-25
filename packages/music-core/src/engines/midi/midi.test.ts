@@ -200,6 +200,34 @@ describe("music-core/midi", () => {
     });
   });
 
+  test("ignored inputs drop note events but still emit raw for diagnostics", async () => {
+    const mock = createWebMidiMock();
+    const control = new FakeInput("mpc-private", "MPC One+ Private", "Akai");
+    mock.facade.inputs.push(control);
+    const engine = new MidiEngine({
+      capabilityTarget: { requestMIDIAccess: vi.fn() },
+      loadWebMidi: async () => mock.facade,
+    });
+    const notes: unknown[] = [];
+    const raw: unknown[] = [];
+    engine.subscribe((event) => notes.push(event));
+    engine.subscribeRaw((event) => raw.push(event));
+
+    await engine.enable();
+    engine.setIgnoredInputs(["mpc-private"]);
+    expect(engine.isInputIgnored("mpc-private")).toBe(true);
+
+    control.emit([0x90, 38, 100], 10);
+    expect(notes).toHaveLength(0); // note suppressed
+    expect(raw).toHaveLength(1); // raw still flows
+
+    // Un-ignoring restores note input.
+    engine.setIgnoredInputs([]);
+    control.emit([0x90, 40, 100], 20);
+    expect(notes).toHaveLength(1);
+    expect(notes.at(-1)).toMatchObject({ type: "noteOn", midiNote: 40, deviceId: "mpc-private" });
+  });
+
   test("falls back to ordinary MIDI when SysEx permission is denied", async () => {
     const mock = createWebMidiMock();
     const outSend = vi.fn();

@@ -40,6 +40,8 @@ export interface DeviceProfile {
   instrument?: InstrumentId;
   /** Preferred MIDI channel (1-16), when fixed. */
   channel?: number;
+  /** Drop this input's note events (e.g. an MPC control port that floods traffic). */
+  ignored?: boolean;
 }
 
 export type InstrumentSourcePreferences = Partial<Record<InstrumentId, InputSource>>;

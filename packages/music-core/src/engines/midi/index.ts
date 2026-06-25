@@ -200,6 +200,7 @@ export class MidiEngine {
   #rawListeners = new Set<RawMidiListener>();
   #stateListeners = new Set<MidiStateListener>();
   #inputListeners = new Map<WebMidiInput, (event: WebMidiMessage) => void>();
+  #ignoredInputIds = new Set<string>();
   #handlePortsChanged = () => this.#refreshDevices();
 
   constructor(options: MidiEngineOptions = {}) {
@@ -244,6 +245,20 @@ export class MidiEngine {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Replace the set of input port ids whose note events are dropped. Ignored
+   * inputs still emit raw events (so diagnostics keep seeing them), but their
+   * normalized notes never reach `subscribe` listeners — used to silence an MPC
+   * control port that floods controller-mode traffic.
+   */
+  setIgnoredInputs(ids: Iterable<string>): void {
+    this.#ignoredInputIds = new Set(ids);
+  }
+
+  isInputIgnored(id: string): boolean {
+    return this.#ignoredInputIds.has(id);
   }
 
   subscribe(listener: MidiListener): () => void {
@@ -349,6 +364,7 @@ export class MidiEngine {
         deviceId: input.id,
       };
       this.#rawListeners.forEach((subscriber) => subscriber(rawEvent));
+      if (this.#ignoredInputIds.has(input.id)) return;
       const summary = summarizeMidiDevice(input, "input");
       const event = normalizeMidiMessage(
         message.rawData,

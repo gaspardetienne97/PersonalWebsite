@@ -291,6 +291,9 @@ export class MusicRuntime {
     }
     this.midiInstruments = options;
     this.inputSurfaces = state.surfaces;
+    this.midi.setIgnoredInputs(
+      state.profiles.filter((profile) => profile.ignored).map((profile) => profile.id),
+    );
   }
 
   /** The on-screen surface to show for an instrument (chosen in Connect, or default). */
