@@ -263,5 +263,7 @@ export class SampleKitStore {
 }
 
 function displayNameFor(fileName: string): string {
-  return fileName.replace(/\.[^.]+$/, "") || fileName;
+  const stem = fileName.replace(/\.[^.]+$/, "");
+  const words = stem.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return (words || stem).replace(/\b\w/g, (character) => character.toUpperCase()) || fileName;
 }
