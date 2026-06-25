@@ -82,6 +82,7 @@
         { label: "Jam / Improv", href: "/music/jam", icon: WandSparkles },
         { label: "ii-V-I Drill", href: "/music/play/voicings", icon: Piano },
         { label: "Studio", href: "/music/studio", icon: Grid3x3 },
+        { label: "Piano Roll", href: "/music/piano-roll", icon: Piano },
         { label: "Recording", href: "/music/recording", icon: Disc },
       ],
     },

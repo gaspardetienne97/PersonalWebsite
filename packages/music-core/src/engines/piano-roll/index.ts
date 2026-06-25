@@ -1,0 +1,99 @@
+/**
+ * Piano-roll editing — pure, immutable edits on a canonical {@link Score}. The
+ * route renders a pitch×time grid over a Score's notes (one colour per voice =
+ * multitrack-lite) and calls these helpers to add/remove notes; playback and
+ * export reuse the existing `scoreToPattern` / `scoreToMidiBlob` /
+ * `renderEventsToWav` engines, so the roll has no playback code of its own.
+ */
+
+import type { Score, ScoreNote } from "@repo/music-core/domain";
+
+export const PIANO_ROLL_VELOCITY = 0.85;
+
+export interface PianoRollCell {
+  voiceId: string;
+  midiNote: number;
+  startBeat: number;
+  durationBeats: number;
+  velocity?: number;
+}
+
+/** A blank 3-track score (Lead/Keys/Bass) for a fresh piano-roll session. */
+export function createPianoRollScore(bpm = 100): Score {
+  return {
+    id: "piano-roll",
+    title: "Piano Roll",
+    origin: "generated",
+    tempoMap: [{ atBeat: 0, bpm }],
+    timeSignatures: [{ atBeat: 0, numerator: 4, denominator: 4 }],
+    voices: [
+      { id: "lead", name: "Lead", role: "melody" },
+      { id: "keys", name: "Keys", role: "harmony" },
+      { id: "bass", name: "Bass", role: "bass" },
+    ],
+    notes: [],
+    chords: [],
+    sections: [],
+    markers: [],
+  };
+}
+
+/** The note in `voiceId` at `midiNote` whose span covers `beat`, if any. */
+export function noteAt(
+  score: Score,
+  voiceId: string,
+  midiNote: number,
+  beat: number,
+): ScoreNote | undefined {
+  return score.notes.find(
+    (note) =>
+      note.voiceId === voiceId &&
+      note.midiNote === midiNote &&
+      beat >= note.startBeat &&
+      beat < note.startBeat + note.durationBeats,
+  );
+}
+
+/**
+ * Add a note at the cell, or remove the note already covering it (so clicking a
+ * placed note deletes it). Returns a new Score; the input is never mutated.
+ *
+ * ponytail: overlapping notes in the same voice/pitch are allowed — no
+ * auto-trim. Add trimming if it becomes a problem in practice.
+ */
+export function toggleNoteAt(score: Score, cell: PianoRollCell): Score {
+  const existing = noteAt(score, cell.voiceId, cell.midiNote, cell.startBeat);
+  if (existing) {
+    return { ...score, notes: score.notes.filter((note) => note !== existing) };
+  }
+  const note: ScoreNote = {
+    midiNote: cell.midiNote,
+    startBeat: cell.startBeat,
+    durationBeats: cell.durationBeats,
+    velocity: cell.velocity ?? PIANO_ROLL_VELOCITY,
+    voiceId: cell.voiceId,
+  };
+  return { ...score, notes: [...score.notes, note] };
+}
+
+/** Drop every note belonging to a voice (the per-track "clear"). */
+export function clearVoice(score: Score, voiceId: string): Score {
+  return { ...score, notes: score.notes.filter((note) => note.voiceId !== voiceId) };
+}
+
+/** Drop the notes of muted voices — used to build the playable/export score. */
+export function withoutVoices(score: Score, mutedVoiceIds: Iterable<string>): Score {
+  const muted = new Set(mutedVoiceIds);
+  if (muted.size === 0) return score;
+  return { ...score, notes: score.notes.filter((note) => !muted.has(note.voiceId)) };
+}
+
+/** Loop length in beats: the last note end rounded up to a whole bar (min 1). */
+export function scoreLoopBeats(score: Score, beatsPerBar = 4, minBars = 1): number {
+  const end = score.notes.reduce(
+    (latest, note) => Math.max(latest, note.startBeat + note.durationBeats),
+    0,
+  );
+  const bars = Math.max(minBars, Math.ceil(end / beatsPerBar));
+  return bars * beatsPerBar;
+}
