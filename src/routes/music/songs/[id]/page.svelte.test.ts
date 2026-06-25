@@ -64,6 +64,27 @@ describe("/music/songs/[id]/+page.svelte", () => {
     runtime.dispose();
   });
 
+  test("switches the canonical score to an Aerophone fingering view", async () => {
+    const library = { get: vi.fn(async () => songRow()) };
+    const runtime = new MusicRuntime();
+
+    render(Page, { songId: "song-1", runtime, library });
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
+    );
+
+    button("Fingering")?.click();
+
+    await vi.waitFor(() => {
+      const view = document.querySelector('[aria-label="Aerophone fingering"]');
+      expect(view).not.toBeNull();
+      // one fingering diagram per onset (C4/E4/G4 melody -> 3 notes)
+      expect(view?.querySelectorAll("svg").length).toBe(3);
+    });
+    runtime.dispose();
+  });
+
   test("uses OSMD for stored MusicXML while retaining canonical practice controls", async () => {
     const library = {
       get: vi.fn(async () => ({

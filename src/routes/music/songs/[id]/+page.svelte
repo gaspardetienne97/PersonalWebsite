@@ -16,6 +16,7 @@
   import { notationView, type NotationView } from "@repo/music-core/engines/notation";
   import {
     filterScoreVoices,
+    projectScoreToAerophone,
     projectScoreToFretboard,
   } from "@repo/music-core/engines/projection";
   import { curatedTunings } from "@repo/music-core/engines/tunings";
@@ -43,6 +44,7 @@
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import MusicXmlScore from "../../_components/MusicXmlScore.svelte";
   import TabNotation from "../../_components/TabNotation.svelte";
+  import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import SegmentProgress from "../../_components/SegmentProgress.svelte";
@@ -129,7 +131,7 @@
 
   // Tab view: guitar/ukulele projection of the (voice-filtered) canonical score.
   const TAB_TUNINGS = [...curatedTunings("guitar"), ...curatedTunings("ukulele")];
-  let notationMode = $state<"staff" | "tab">("staff");
+  let notationMode = $state<"staff" | "tab" | "fingering">("staff");
   let tabTuningId = $state(TAB_TUNINGS[0]!.id);
   const tabTuning = $derived(TAB_TUNINGS.find(({ id }) => id === tabTuningId) ?? TAB_TUNINGS[0]!);
   const beatsPerMeasure = $derived.by(() => {
@@ -137,9 +139,11 @@
     return signature ? signature.numerator * (4 / signature.denominator) : 4;
   });
   const tabProjection = $derived(score ? projectScoreToFretboard(score, tabTuning) : undefined);
-  // Custom range selection is drawn on the staff, so tab can't be active then.
+  const aerophoneProjection = $derived(score ? projectScoreToAerophone(score) : undefined);
+  // Custom range selection is drawn on the staff, so other views can't be active then.
   const selectionEditing = $derived(setup.selection.kind === "custom" && !practicing);
   const showTab = $derived(notationMode === "tab" && !selectionEditing);
+  const showFingering = $derived(notationMode === "fingering" && !selectionEditing);
 
   const live = $derived(practiceState?.live);
   const progressPercent = $derived(Math.round((live?.progress ?? 0) * 100));
@@ -572,6 +576,16 @@
               >
                 Tab
               </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={showFingering ? "secondary" : "outline"}
+                aria-pressed={showFingering}
+                disabled={selectionEditing}
+                onclick={() => (notationMode = "fingering")}
+              >
+                Fingering
+              </Button>
               {#if showTab}
                 <select
                   class="h-9 rounded-md border bg-background px-2 text-sm"
@@ -590,6 +604,12 @@
             </div>
             {#if showTab && tabProjection}
               <TabNotation projection={tabProjection} tuning={tabTuning} {beatsPerMeasure} />
+            {:else if showFingering && aerophoneProjection}
+              <div class="flex flex-wrap gap-3 overflow-x-auto" aria-label="Aerophone fingering">
+                {#each aerophoneProjection.notes as note (note.sourceIndex)}
+                  <AerophoneFingering midi={note.midiNote} size={88} />
+                {/each}
+              </div>
             {:else if song.source?.format === "musicxml"}
               <MusicXmlScore
                 xml={song.source.content}

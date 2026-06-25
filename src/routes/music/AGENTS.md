@@ -231,10 +231,11 @@ This file provides guidance for agents working on the Music app under
   grading, counts, and input surfaces. Group MusicXML voices by their canonical
   source part ID and keep MIDI voices individually selectable. Do not allow an
   empty selection or selection changes during an active practice run. A
-  session-local Staff/Tab toggle projects the same voice-filtered canonical
-  score onto a guitar/ukulele fretboard via `projectScoreToFretboard()` +
-  `TabNotation`; Tab is disabled while editing a custom range (selection is a
-  staff-only interaction).
+  session-local Staff/Tab/Fingering toggle projects the same voice-filtered
+  canonical score: Tab via `projectScoreToFretboard()` + `TabNotation`, Fingering
+  via `projectScoreToAerophone()` (monophonic top-line) rendered as a row of
+  `AerophoneFingering` diagrams. Tab and Fingering are disabled while editing a
+  custom range (selection is a staff-only interaction).
   `e2e/music-import.spec.ts` is the regression workflow for MIDI and MusicXML
   import-to-practice behavior. Preserve its direct renderer selection,
   zero-count-in multi-take Performance, persistence, and 375px overflow checks
@@ -328,11 +329,15 @@ Important areas:
 - `src/engines/dashboard/`: dashboard and skill tree view projections.
 - `src/engines/projection/`: derived view helpers (journal focus, rhythm HUD,
   technique ladder, journal projections, canonical score voice filtering, and
-  guitar/ukulele fretboard projection). `projectScoreToFretboard()` turns a
-  canonical `Score` + `TuningProfile` into an `InstrumentProjection` (one
+  guitar/ukulele fretboard + Aerophone projections). `projectScoreToFretboard()`
+  turns a canonical `Score` + `TuningProfile` into an `InstrumentProjection` (one
   playable shape per onset, lowest frets; out-of-range notes drop), and
-  `tabLines()` renders that as monospace TAB rows. Reuse these for any
-  fretboard/tab view instead of re-deriving positions.
+  `tabLines()` renders that as monospace TAB rows. `projectScoreToAerophone()`
+  reduces a score to a monophonic top-line `InstrumentProjection` (highest note
+  per onset, since the Aerophone is monophonic); per-note fingering is derived
+  for display by `AerophoneFingering` from the MIDI, not stored in the
+  projection. Reuse these for any fretboard/tab/fingering view instead of
+  re-deriving positions.
   Use `filterScoreVoices()` when a route needs a subset of score parts; do not
   independently filter notes in notation, playback, and practice code.
 - `src/engines/device-profiles/`: MIDI device profiles + per-instrument

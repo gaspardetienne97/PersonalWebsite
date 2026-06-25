@@ -7,6 +7,7 @@ import {
   projectFretboard,
   projectPiano,
   projectPlayableGroup,
+  projectScoreToAerophone,
   projectScoreToFretboard,
   tabLines,
 } from "./index";
@@ -174,6 +175,21 @@ describe("music-core/projection", () => {
     expect(projection.notes).toEqual([
       { sourceIndex: 0, midiNote: 20, startBeat: 0, durationBeats: 1 },
     ]);
+  });
+
+  test("reduces a score to a monophonic top-line for the Aerophone", () => {
+    const projection = projectScoreToAerophone(
+      tabScore([
+        { midiNote: 60, startBeat: 0 }, // chord onset: keep the top note (67)
+        { midiNote: 64, startBeat: 0 },
+        { midiNote: 67, startBeat: 0 },
+        { midiNote: 62, startBeat: 1 },
+      ]),
+    );
+
+    expect(projection.options).toMatchObject({ instrument: "aerophone" });
+    expect(projection.notes.map((note) => note.midiNote)).toEqual([67, 62]);
+    expect(projection.notes.map((note) => note.startBeat)).toEqual([0, 1]);
   });
 
   test("renders fretboard projection as monospace tab rows", () => {

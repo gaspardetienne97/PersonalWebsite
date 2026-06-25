@@ -129,6 +129,36 @@ export function projectScoreToFretboard(
 }
 
 /**
+ * Project a score onto the Aerophone as a single readable line. The Aerophone
+ * is monophonic, so each onset keeps only its highest note (the melody on top);
+ * per-note fingering is derived for display from the MIDI, not stored here.
+ */
+export function projectScoreToAerophone(
+  score: Score,
+  options: { transpose?: number } = {},
+): InstrumentProjection {
+  const transpose = options.transpose ?? 0;
+
+  const topByOnset = new Map<number, { sourceIndex: number; note: ScoreNote }>();
+  score.notes.forEach((note, sourceIndex) => {
+    const current = topByOnset.get(note.startBeat);
+    if (!current || note.midiNote > current.note.midiNote) {
+      topByOnset.set(note.startBeat, { sourceIndex, note });
+    }
+  });
+
+  const notes = [...topByOnset.values()]
+    .sort((left, right) => left.note.startBeat - right.note.startBeat)
+    .map((entry) => toProjectedNote(entry, transpose, undefined));
+
+  return {
+    scoreId: score.id,
+    options: { instrument: "aerophone", transpose },
+    notes,
+  };
+}
+
+/**
  * Render a fretboard projection as classic monospace TAB rows. Each row is one
  * string line per tuning string (string 1 / highest pitch on top), grouped into
  * `measuresPerRow` measures so the view wraps instead of overflowing. Onsets are
