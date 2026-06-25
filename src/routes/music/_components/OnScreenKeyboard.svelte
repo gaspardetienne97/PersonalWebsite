@@ -24,7 +24,7 @@
   // the piano-chart SVG is the visual. Both emit the same NoteEvent.
   const accessibleNotes = $derived(notes ?? DEFAULT_NOTES);
 
-  let container: HTMLDivElement;
+  let container = undefined as unknown as HTMLDivElement;
   let piano = $state<PianoInstrument | undefined>();
 
   /** Span the octaves the highlighted notes need, else a default 2-octave view. */
@@ -40,12 +40,12 @@
   }
 
   // piano-chart sets SVG fill attributes, so CSS vars can't resolve — read the
-  // theme token's HSL triple at mount and wrap it. ponytail: re-reads on mount;
-  // a live theme toggle won't recolor until remount, which is rare here.
+  // resolved theme token (already a complete oklch() color) at mount. ponytail:
+  // re-reads on mount; a live theme toggle won't recolor until remount (rare).
   function themeColor(token: string, fallback: string): string {
     if (typeof window === "undefined") return fallback;
     const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
-    return value ? `hsl(${value})` : fallback;
+    return value || fallback;
   }
 
   function emit(midiNote: number): void {
