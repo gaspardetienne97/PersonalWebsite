@@ -200,6 +200,25 @@ describe("MusicRuntime shared UI state", () => {
     rt.dispose();
   });
 
+  it("attaches a sample-kit store that persists to music.sample-kits", async () => {
+    const map = new Map<string, { id: string; value: unknown }>();
+    const repo = {
+      get: async (id: string) => map.get(id),
+      put: async (record: { id: string; value: unknown }) => {
+        map.set(record.id, record);
+      },
+    };
+
+    const rt = new MusicRuntime();
+    await rt.attachStorage(repo);
+    const kit = await rt.sampleKits!.create("Runtime Kit");
+    expect(kit.name).toBe("Runtime Kit");
+    expect(map.get("music.sample-kits")?.value).toEqual([
+      expect.objectContaining({ name: "Runtime Kit" }),
+    ]);
+    rt.dispose();
+  });
+
   it("plays a registered playback source instead of the metronome", async () => {
     const rt = new MusicRuntime();
     // Pretend audio is already enabled so togglePlayback proceeds to play().

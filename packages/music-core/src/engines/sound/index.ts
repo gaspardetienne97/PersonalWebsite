@@ -56,9 +56,15 @@ export interface AudioGateState {
   message: string;
 }
 
-export interface DrumSample {
-  name: string;
+export interface DrumPadSample {
+  padId: string;
+  midiNote: number;
   url: string;
+}
+
+export interface DrumPatternStep {
+  padIds: string[];
+  offsetSeconds: number;
 }
 
 export interface SoundPatternStep {
@@ -177,6 +183,7 @@ export class SoundEngine {
   #droneNote: number | undefined;
   #instrumentName = SOUND_PRESET_NAMES[0]!;
   #patternLoopTimer: ReturnType<typeof setTimeout> | undefined;
+  #drumPatternLoopTimer: ReturnType<typeof setTimeout> | undefined;
   #loadTone: ToneLoader;
   enabled = false;
   muted = false;
@@ -311,21 +318,62 @@ export class SoundEngine {
     await tone.loaded();
   }
 
-  async loadDrumKit(samples: DrumSample[]): Promise<void> {
+  async loadDrumKit(samples: DrumPadSample[]): Promise<void> {
     const tone = this.#requireTone();
-    this.#players?.dispose();
-    const players = new tone.Players(
-      Object.fromEntries(samples.map(({ name, url }) => [name, url])),
+    // Build the replacement before disposing the working kit, so a failed
+    // decode/load leaves the previous players intact.
+    const previous = this.#players;
+    const next = new tone.Players(
+      Object.fromEntries(samples.map(({ padId, url }) => [padId, url])),
     );
-    this.#players = this.#master ? players.connect(this.#master) : players.toDestination();
-    await tone.loaded();
+    const connected = this.#master ? next.connect(this.#master) : next.toDestination();
+    try {
+      await tone.loaded();
+    } catch (error) {
+      connected.dispose();
+      throw error;
+    }
+    this.#players = connected;
+    previous?.dispose();
   }
 
-  playDrum(name: string, time?: ToneTime, velocity = 0.8): void {
+  playDrum(padId: string, time?: ToneTime, velocity = 0.8): void {
     if (!this.enabled || !this.#tone || !this.#players) return;
-    const player = this.#players.player(name);
+    const player = this.#players.player(padId);
     player.volume.value = this.#tone.gainToDb(clampVelocity(velocity));
     player.start(time);
+  }
+
+  playDrumPattern(steps: DrumPatternStep[], velocity = 0.8): void {
+    if (!this.enabled || !this.#tone || !this.#players) return;
+    const startAt = this.#tone.now();
+    for (const step of steps) {
+      for (const padId of step.padIds) {
+        this.playDrum(padId, startAt + step.offsetSeconds, velocity);
+      }
+    }
+  }
+
+  startDrumPatternLoop(steps: DrumPatternStep[], durationSec: number, velocity = 0.8): void {
+    if (!Number.isFinite(durationSec) || durationSec <= 0) {
+      throw new Error("Drum loop duration must be finite and greater than zero.");
+    }
+
+    this.stopDrumPatternLoop();
+    if (!this.enabled || !this.#tone) return;
+
+    const playAndScheduleNext = () => {
+      this.playDrumPattern(steps, velocity);
+      this.#drumPatternLoopTimer = setTimeout(playAndScheduleNext, durationSec * 1_000);
+    };
+    playAndScheduleNext();
+  }
+
+  stopDrumPatternLoop(): void {
+    if (this.#drumPatternLoopTimer !== undefined) {
+      clearTimeout(this.#drumPatternLoopTimer);
+      this.#drumPatternLoopTimer = undefined;
+    }
   }
 
   // --- Intonation drone -----------------------------------------------------
@@ -436,6 +484,7 @@ export class SoundEngine {
 
   dispose(): void {
     this.stopPatternLoop();
+    this.stopDrumPatternLoop();
     this.#synth?.dispose();
     this.#patternSynth?.dispose();
     this.#sampler?.dispose();

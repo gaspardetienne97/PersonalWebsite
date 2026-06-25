@@ -27,8 +27,10 @@ import {
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { createMediaLibrary, type MediaLibrary } from "@repo/music-core/engines/media-library";
 import { MidiEngine } from "@repo/music-core/engines/midi";
+import { SampleKitStore } from "@repo/music-core/engines/sample-kit";
 import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
 import { SOUND_PRESET_NAMES, SoundEngine } from "@repo/music-core/engines/sound";
+import { deleteBinary, getBinary, putBinary } from "@repo/music-core/engines/store";
 import type { PracticeStore } from "@repo/music-core/engines/store";
 import {
   createToneTransportEngine,
@@ -120,6 +122,7 @@ export class MusicRuntime {
 
   /** Journal sink: completed activities are appended via recordPractice. */
   media = $state<MediaLibrary | undefined>();
+  sampleKits = $state.raw<SampleKitStore | undefined>(undefined);
   dailyRoutine = $state<DailyRoutineState | undefined>();
   #settings: DeviceProfileRepository | undefined;
   #journal: PracticeSessionStore | undefined;
@@ -169,6 +172,10 @@ export class MusicRuntime {
   async attachStorage(settings: DeviceProfileRepository): Promise<void> {
     this.#settings = settings;
     this.#deviceProfiles = new DeviceProfileStore(settings);
+    this.sampleKits = new SampleKitStore({
+      repository: settings,
+      binaries: { put: putBinary, get: getBinary, delete: deleteBinary },
+    });
     await this.reloadMidiInstruments();
   }
 

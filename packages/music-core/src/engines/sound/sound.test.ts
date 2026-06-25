@@ -49,7 +49,6 @@ function createToneMock() {
   const samplerTrigger = vi.fn();
   const droneAttack = vi.fn();
   const droneRelease = vi.fn();
-  const playerStart = vi.fn();
   const start = vi.fn(async () => undefined);
   const loaded = vi.fn(async () => undefined);
   const dispose = vi.fn();
@@ -100,17 +99,37 @@ function createToneMock() {
     triggerAttackRelease = samplerTrigger;
   }
 
+  interface MockPlayer {
+    start: ReturnType<typeof vi.fn>;
+    volume: { value: number };
+  }
+
+  const playersInstances: Players[] = [];
+
   class Players extends DestinationNode {
+    pads = new Map<string, MockPlayer>();
+    disposeSpy = vi.fn();
+
     constructor(public urls: Record<string, string>) {
       super();
+      for (const padId of Object.keys(urls)) {
+        this.pads.set(padId, { start: vi.fn(), volume: { value: 0 } });
+      }
+      playersInstances.push(this);
     }
 
-    player(name: string) {
-      return {
-        start: playerStart,
-        volume: { value: 0 },
-        name,
-      };
+    player(name: string): MockPlayer {
+      let pad = this.pads.get(name);
+      if (!pad) {
+        pad = { start: vi.fn(), volume: { value: 0 } };
+        this.pads.set(name, pad);
+      }
+      return pad;
+    }
+
+    dispose() {
+      this.disposeSpy();
+      dispose();
     }
   }
 
@@ -135,8 +154,9 @@ function createToneMock() {
     samplerTrigger,
     droneAttack,
     droneRelease,
-    playerStart,
     dispose,
+    playersInstances,
+    playerFor: (padId: string) => playersInstances.at(-1)!.player(padId),
     masterGain: () => gains.find((gain) => gain.isMaster),
     metronomeGain: () => gains.find((gain) => !gain.isMaster),
     droneGain: () => gains.filter((gain) => !gain.isMaster).at(-1),
@@ -171,13 +191,103 @@ describe("music-core/sound", () => {
     expect(mock.samplerTrigger).toHaveBeenCalledWith("C4", 0.18, undefined, 0.8);
 
     await sound.loadDrumKit([
-      { name: "kick", url: "/samples/kick.wav" },
-      { name: "snare", url: "/samples/snare.wav" },
+      { padId: "kick", midiNote: 36, url: "/samples/kick.wav" },
+      { padId: "snare", midiNote: 38, url: "/samples/snare.wav" },
     ]);
     sound.playDrum("kick", 3, 0.5);
 
     expect(mock.loaded).toHaveBeenCalledTimes(2);
-    expect(mock.playerStart).toHaveBeenCalledWith(3);
+    expect(mock.playerFor("kick").start).toHaveBeenCalledWith(3);
+  });
+
+  test("loads pad IDs, applies velocity, and disposes replaced players", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    await sound.loadDrumKit([{ padId: "pad-36", midiNote: 36, url: "blob:kick" }]);
+    const firstPlayers = mock.playersInstances.at(-1)!;
+    sound.playDrum("pad-36", 12, 0.4);
+    expect(mock.playerFor("pad-36").volume.value).toBe(0.4);
+    expect(mock.playerFor("pad-36").start).toHaveBeenCalledWith(12);
+
+    await sound.loadDrumKit([{ padId: "pad-38", midiNote: 38, url: "blob:snare" }]);
+    expect(firstPlayers.disposeSpy).toHaveBeenCalledOnce();
+  });
+
+  test("keeps the working drum kit when a replacement fails to load", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    await sound.loadDrumKit([{ padId: "pad-36", midiNote: 36, url: "blob:kick" }]);
+    const firstPlayers = mock.playersInstances.at(-1)!;
+    mock.loaded.mockRejectedValueOnce(new Error("decode failed"));
+    await expect(
+      sound.loadDrumKit([{ padId: "pad-38", midiNote: 38, url: "blob:bad" }]),
+    ).rejects.toThrow("decode failed");
+
+    // the failed replacement is disposed; the original kit survives
+    expect(mock.playersInstances.at(-1)!.disposeSpy).toHaveBeenCalledOnce();
+    expect(firstPlayers.disposeSpy).not.toHaveBeenCalled();
+    sound.playDrum("pad-36", 1, 0.8);
+    expect(firstPlayers.player("pad-36").start).toHaveBeenCalledWith(1);
+  });
+
+  test("schedules one drum-loop start time per step and replaces the prior timer", async () => {
+    vi.useFakeTimers();
+    try {
+      const mock = createToneMock();
+      const sound = new SoundEngine(async () => mock.tone);
+      await sound.enable();
+      await sound.loadDrumKit([
+        { padId: "pad-36", midiNote: 36, url: "blob:kick" },
+        { padId: "pad-38", midiNote: 38, url: "blob:snare" },
+      ]);
+
+      sound.startDrumPatternLoop(
+        [
+          { padIds: ["pad-36"], offsetSeconds: 0 },
+          { padIds: ["pad-38"], offsetSeconds: 0.5 },
+        ],
+        1,
+      );
+      expect(mock.playerFor("pad-36").start).toHaveBeenCalledWith(10);
+      expect(mock.playerFor("pad-38").start).toHaveBeenCalledWith(10.5);
+
+      sound.startDrumPatternLoop([{ padIds: ["pad-36"], offsetSeconds: 0 }], 2);
+      vi.advanceTimersByTime(1_000);
+      // the prior 1s timer was replaced, so pad-36 fired twice (initial + new loop)
+      expect(mock.playerFor("pad-36").start).toHaveBeenCalledTimes(2);
+
+      sound.stopDrumPatternLoop();
+      vi.advanceTimersByTime(2_000);
+      expect(mock.playerFor("pad-36").start).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("rejects an invalid drum loop duration and stops the loop on dispose", async () => {
+    vi.useFakeTimers();
+    try {
+      const mock = createToneMock();
+      const sound = new SoundEngine(async () => mock.tone);
+      await sound.enable();
+      await sound.loadDrumKit([{ padId: "pad-36", midiNote: 36, url: "blob:kick" }]);
+
+      expect(() =>
+        sound.startDrumPatternLoop([{ padIds: ["pad-36"], offsetSeconds: 0 }], 0),
+      ).toThrow("Drum loop duration must be finite and greater than zero.");
+
+      sound.startDrumPatternLoop([{ padIds: ["pad-36"], offsetSeconds: 0 }], 1);
+      expect(mock.playerFor("pad-36").start).toHaveBeenCalledTimes(1);
+      sound.dispose();
+      vi.advanceTimersByTime(2_000);
+      expect(mock.playerFor("pad-36").start).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("schedules a multi-step prompt pattern after audio is enabled", async () => {
