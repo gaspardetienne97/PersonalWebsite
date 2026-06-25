@@ -192,7 +192,10 @@ This file provides guidance for agents working on the Music app under
   belong in deferred hardware verification until checked on the physical unit.
 - `/music/learn/ear`: interval/chord/scale-degree ear training.
 - `/music/learn/reading`: note flashcards and generated sight-reading. Registers
-  a transport `PlaybackSource` so Play previews the on-screen melody.
+  a transport `PlaybackSource` so Play previews the on-screen melody. The guitar/
+  ukulele sight-reading session has an opt-in **Show/Hide tab** reveal
+  (`projectScoreToFretboard` + `TabNotation`), hidden by default so it doesn't
+  short-circuit reading the staff.
 - `/music/learn/rhythm`: pulse timing trainer.
 - `/music/learn/theory`: chord and theory library. Each chord/scale renders
   through `InstrumentView` with an **instrument toggle** (Piano/Guitar/Ukulele/

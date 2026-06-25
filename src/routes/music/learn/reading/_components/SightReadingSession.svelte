@@ -1,6 +1,7 @@
 <script lang="ts">
   import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
+  import { projectScoreToFretboard } from "@repo/music-core/engines/projection";
   import type { ReadingSessionState } from "@repo/music-core/engines/reading-session";
   import { beatToMs, type ScoreFollowerLiveState } from "@repo/music-core/engines/score-follower";
   import { midiToNote } from "@repo/music-core/engines/theory";
@@ -13,6 +14,7 @@
   import FretboardInput from "./FretboardInput.svelte";
   import PianoInput from "./PianoInput.svelte";
   import StaffNotation from "../../../_components/StaffNotation.svelte";
+  import TabNotation from "../../../_components/TabNotation.svelte";
 
   let {
     sessionState,
@@ -59,6 +61,17 @@
   );
   let startTimestampMs = $state(0);
 
+  // Opt-in fretboard reveal for guitar/ukulele — hidden by default so it
+  // doesn't short-circuit reading the staff.
+  let showTab = $state(false);
+  const tabProjection = $derived(
+    tuning && prompt ? projectScoreToFretboard(prompt.score, tuning) : undefined,
+  );
+  const beatsPerMeasure = $derived.by(() => {
+    const signature = prompt?.score.timeSignatures?.[0];
+    return signature ? signature.numerator * (4 / signature.denominator) : 4;
+  });
+
   async function start(): Promise<void> {
     startTimestampMs = await onStart();
   }
@@ -99,6 +112,24 @@
       </Card.Header>
       <Card.Content class="grid min-w-0 gap-6">
         <StaffNotation view={prompt.notation} />
+
+        {#if tuning && tabProjection}
+          <div class="grid gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              class="justify-self-start"
+              aria-pressed={showTab}
+              onclick={() => (showTab = !showTab)}
+            >
+              {showTab ? "Hide tab" : "Show tab"}
+            </Button>
+            {#if showTab}
+              <TabNotation projection={tabProjection} {tuning} {beatsPerMeasure} />
+            {/if}
+          </div>
+        {/if}
 
         {#if !started}
           <div class="flex flex-wrap items-center gap-3 rounded-md border bg-muted px-4 py-3">
