@@ -164,10 +164,61 @@ export function skillRelationshipRow(relationship: SkillRelationship): SkillRela
   };
 }
 
+function pathParts(key: string): string[] {
+  const parts = key.split("/").filter(Boolean);
+  if (parts.length === 0 || parts.some((part) => part === "." || part === "..")) {
+    throw new Error("Binary storage key is invalid.");
+  }
+  return parts;
+}
+
+async function resolveParent(
+  root: FileSystemDirectoryHandle,
+  key: string,
+  create: boolean,
+): Promise<{ directory: FileSystemDirectoryHandle; fileName: string; parents: string[] }> {
+  const parts = pathParts(key);
+  const fileName = parts.at(-1)!;
+  const parents = parts.slice(0, -1);
+  let directory = root;
+  for (const part of parents) {
+    directory = await directory.getDirectoryHandle(part, { create });
+  }
+  return { directory, fileName, parents };
+}
+
+/** Remove now-empty parent directories from deepest to shallowest. */
+async function pruneEmptyParents(
+  root: FileSystemDirectoryHandle,
+  parents: string[],
+): Promise<void> {
+  for (let depth = parents.length; depth > 0; depth -= 1) {
+    const chain = parents.slice(0, depth);
+    const dirName = chain.at(-1)!;
+    let parent = root;
+    try {
+      for (const part of chain.slice(0, -1)) {
+        parent = await parent.getDirectoryHandle(part, { create: false });
+      }
+      await parent.removeEntry(dirName);
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === "NotFoundError" || error.name === "InvalidModificationError")
+      ) {
+        // Missing or non-empty directory — stop pruning this branch.
+        return;
+      }
+      throw error;
+    }
+  }
+}
+
 export async function putBinary(key: string, blob: Blob): Promise<void> {
   const root = await getOpfsRoot();
   if (!root) throw new Error(LOCAL_BINARY_STORAGE_UNAVAILABLE);
-  const handle = await root.getFileHandle(key, { create: true });
+  const { directory, fileName } = await resolveParent(root, key, true);
+  const handle = await directory.getFileHandle(fileName, { create: true });
   const writable = await handle.createWritable();
   await writable.write(blob);
   await writable.close();
@@ -176,19 +227,22 @@ export async function putBinary(key: string, blob: Blob): Promise<void> {
 export async function deleteBinary(key: string): Promise<void> {
   const root = await getOpfsRoot();
   if (!root) throw new Error(LOCAL_BINARY_STORAGE_UNAVAILABLE);
+  const { directory, fileName, parents } = await resolveParent(root, key, false);
   try {
-    await root.removeEntry(key);
+    await directory.removeEntry(fileName);
   } catch (error) {
     if (error instanceof DOMException && error.name === "NotFoundError") return;
     throw error;
   }
+  await pruneEmptyParents(root, parents);
 }
 
 export async function getBinary(key: string): Promise<Blob | undefined> {
   const root = await getOpfsRoot();
   if (!root) return undefined;
   try {
-    return await (await root.getFileHandle(key)).getFile();
+    const { directory, fileName } = await resolveParent(root, key, false);
+    return await (await directory.getFileHandle(fileName)).getFile();
   } catch (error) {
     if (error instanceof DOMException && error.name === "NotFoundError") return undefined;
     throw error;
@@ -199,10 +253,23 @@ export async function list(prefix = ""): Promise<string[]> {
   const root = await getOpfsRoot();
   if (!root) return [];
   const keys: string[] = [];
-  for await (const [name] of (root as IterableFileSystemDirectoryHandle).entries()) {
-    if (name.startsWith(prefix)) keys.push(name);
+  await walkOpfs(root, "", keys);
+  return keys.filter((key) => key.startsWith(prefix)).sort();
+}
+
+async function walkOpfs(
+  directory: FileSystemDirectoryHandle,
+  base: string,
+  keys: string[],
+): Promise<void> {
+  for await (const [name, handle] of (directory as IterableFileSystemDirectoryHandle).entries()) {
+    const full = base ? `${base}/${name}` : name;
+    if (handle.kind === "directory") {
+      await walkOpfs(handle as FileSystemDirectoryHandle, full, keys);
+    } else {
+      keys.push(full);
+    }
   }
-  return keys.sort();
 }
 
 export async function storageEstimate(): Promise<StorageEstimate> {

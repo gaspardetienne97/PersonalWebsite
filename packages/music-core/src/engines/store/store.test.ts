@@ -220,6 +220,28 @@ describe("music-core/store", () => {
     await expect(list("store-test-")).resolves.not.toContain(key);
   });
 
+  test("round-trips nested OPFS paths and prunes empty directories", async () => {
+    if (!("storage" in navigator) || !navigator.storage.getDirectory) return;
+
+    const kitId = crypto.randomUUID();
+    const key = `music.sample-kits/${kitId}/sample-kick.wav`;
+    await putBinary(key, new Blob(["kick"], { type: "audio/wav" }));
+    await expect(getBinary(key).then((blob) => blob?.text())).resolves.toBe("kick");
+    await expect(list("music.sample-kits/")).resolves.toContain(key);
+
+    await deleteBinary(key);
+    await expect(getBinary(key)).resolves.toBeUndefined();
+    // the kit directory is pruned once its last file is removed
+    await expect(list(`music.sample-kits/${kitId}`)).resolves.toEqual([]);
+  });
+
+  test("rejects invalid binary keys", async () => {
+    if (!("storage" in navigator) || !navigator.storage.getDirectory) return;
+    await expect(putBinary("../escape.wav", new Blob(["x"]))).rejects.toThrow(
+      "Binary storage key is invalid.",
+    );
+  });
+
   test("rejects binary writes and deletes when OPFS is unavailable", async () => {
     await withStorage(undefined, async () => {
       await expect(putBinary("unavailable", new Blob())).rejects.toThrow(unavailableMessage);

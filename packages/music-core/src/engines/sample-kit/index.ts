@@ -202,3 +202,12 @@ export function cloneSampleKit(kit: SampleKit): SampleKit {
     assignments: kit.assignments.map((assignment) => ({ ...assignment })),
   };
 }
+
+export {
+  SampleKitStore,
+  type SampleKitRepository,
+  type SampleBinaryStore,
+  type ResolvedSample,
+  type ResolvedSampleKit,
+  type SampleKitStoreOptions,
+} from "./store";
