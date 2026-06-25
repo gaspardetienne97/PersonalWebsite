@@ -123,8 +123,13 @@ This file provides guidance for agents working on the Music app under
   (`top-12 h-[calc(100dvh-3rem)] self-start`) and the transport bar is
   `sticky bottom-0`. Preserve this when touching layout.
 - `src/routes/music/_components/OnScreenKeyboard.svelte` is the fallback input
-  surface and should push normalized `NoteEvent`s through the shared router.
-  (Phase 1.5 T1.5a will add selectable fretboard/MPC-grid surfaces alongside it.)
+  surface and should push normalized `NoteEvent`s through the shared router. It
+  renders a real piano via **piano-chart** (SVG) for the visual, with a
+  screen-reader/keyboard-accessible `<button>` layer (also the deterministic
+  test surface — page tests click those by note label). `FretboardInput` follows
+  the same dual-layer pattern over **fretboard.js**. Both read theme tokens as
+  complete `oklch()` colors (NOT HSL triples) and load the lib via dynamic
+  `import()` in `onMount` to stay SSR-safe.
 - `src/routes/music/_components/InstrumentView.svelte` is the **shared
   instrument-agnostic display**: given a pitch set (MIDI) + an `InstrumentId`, it
   renders the right view by reusing the existing components — piano →
