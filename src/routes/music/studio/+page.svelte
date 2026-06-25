@@ -1,26 +1,49 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
 
   import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
   import Trash2 from "lucide-svelte/icons/trash-2";
 
   import {
+    buildMpcKitExport,
+    buildMpcKitZip,
+    canExportToDirectory,
+    isMpcPadMidi,
+    writeMpcKitToDirectory,
+    type MpcPadMidi,
+    type SampleKitStore,
+  } from "@repo/music-core/engines/sample-kit";
+  import {
     BOOM_BAP_KIT,
     StepSequencer,
     type StepSequencerPattern,
   } from "@repo/music-core/engines/sequencer";
-  import type { SoundPatternStep } from "@repo/music-core/engines/sound";
+  import type { DrumPatternStep, SoundPatternStep } from "@repo/music-core/engines/sound";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import SampleKitPanel from "./_components/SampleKitPanel.svelte";
+  import {
+    SampleKitPlaybackController,
+    type ActiveSampleKit,
+  } from "./_components/sample-kit-playback";
 
   const STEPS = 16;
   const STUDIO_PATTERN_ID = "music.studio.boom-bap";
-  let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  const ACTIVE_KIT_ID = "music.studio.active-sample-kit";
+
+  let {
+    runtime = useMusicRuntime(),
+    playback,
+  }: { runtime?: MusicRuntime; playback?: SampleKitPlaybackController } = $props();
+
+  const playbackController = untrack(
+    () => playback ?? new SampleKitPlaybackController({ sound: runtime.sound }),
+  );
   const sequencer = new StepSequencer(BOOM_BAP_KIT, STEPS);
 
   // A seeded boom-bap groove so the grid isn't empty on first load.
@@ -44,21 +67,48 @@
   let playing = $state(false);
   let activeStep = $state(-1);
   let patternStatus = $state("Pattern changes save locally.");
+  let activeKit = $state<ActiveSampleKit>();
+  // Plain (non-reactive) so the storage effect doesn't invalidate itself.
+  let initializedStore: SampleKitStore | undefined;
+  let restoreKitId: string | undefined;
   let stepTimer: ReturnType<typeof setInterval> | undefined;
+  let routerUnsubscribe: (() => void) | undefined;
+  const directoryExportAvailable = canExportToDirectory();
 
   $effect(() => {
-    const steps = patternSteps(grid);
+    // Re-register when the grid or tempo changes; play() re-projects at call
+    // time so an activated kit (non-reactive pad state) routes its rows to drums.
+    void grid;
     const durationSec = patternDurationSec();
     runtime.setPlaybackSource({
       label: "Studio boom-bap pattern",
       durationSec,
-      play: () => playPattern(steps, durationSec),
+      play: () => playPattern(),
       stop: () => stopPattern(),
     });
   });
 
+  // Storage is attached by the parent layout from its own onMount, so react once
+  // the shared SampleKitStore becomes available rather than reading it eagerly.
+  $effect(() => {
+    const store = runtime.sampleKits;
+    if (!store || initializedStore === store) return;
+    initializedStore = store;
+    void runtime
+      .readLocalState<string>(ACTIVE_KIT_ID)
+      .then((kitId) => {
+        restoreKitId = kitId ?? undefined;
+      })
+      .catch(() => undefined);
+  });
+
   onMount(() => {
     void loadSavedPattern();
+    routerUnsubscribe = runtime.router?.subscribe((event) => {
+      if (event.type === "noteOn" && isMpcPadMidi(event.midiNote)) {
+        playbackController.playMidi(event.midiNote, event.velocity ?? 0.9);
+      }
+    });
   });
 
   function snapshot(): boolean[][] {
@@ -87,35 +137,54 @@
   }
 
   async function playPattern(
-    steps: SoundPatternStep[] = patternSteps(),
+    projection = projectPattern(),
     durationSec = patternDurationSec(),
   ): Promise<void> {
     if (!(await runtime.enableAudio())) return;
+    await restoreActiveKit();
     stopPattern();
-    runtime.sound.startPatternLoop(steps, durationSec, 0.9);
+    runtime.sound.startDrumPatternLoop(projection.drums, durationSec, 0.9);
+    runtime.sound.startPatternLoop(projection.synth, durationSec, 0.9);
     startStepIndicator(durationSec);
     playing = true;
   }
 
   function stopPattern(): void {
+    runtime.sound.stopDrumPatternLoop();
     runtime.sound.stopPatternLoop();
     stopStepIndicator();
     playing = false;
   }
 
-  function patternSteps(rows = grid): SoundPatternStep[] {
+  interface StudioPatternProjection {
+    drums: DrumPatternStep[];
+    synth: SoundPatternStep[];
+  }
+
+  function projectPattern(rows = grid): StudioPatternProjection {
     const secondsPerStep = secondsPerSixteenth();
-    const steps: SoundPatternStep[] = [];
+    const drums: DrumPatternStep[] = [];
+    const synth: SoundPatternStep[] = [];
+
     for (let step = 0; step < STEPS; step += 1) {
-      const pads = sequencer.rows.filter((_, rowIndex) => rows[rowIndex]?.[step] ?? false);
-      if (pads.length === 0) continue;
-      steps.push({
-        midiNotes: pads.map((pad) => pad.midi),
-        offsetSeconds: step * secondsPerStep,
-        durationSeconds: Math.min(0.16, secondsPerStep * 0.9),
-      });
+      const activeRows = sequencer.rows.filter((_, rowIndex) => rows[rowIndex]?.[step] ?? false);
+      const padIds = activeRows
+        .map((row) => playbackController.padIdForMidi(row.midi))
+        .filter((padId): padId is string => padId !== undefined);
+      const midiNotes = activeRows
+        .filter((row) => playbackController.padIdForMidi(row.midi) === undefined)
+        .map((row) => row.midi);
+
+      if (padIds.length > 0) drums.push({ padIds, offsetSeconds: step * secondsPerStep });
+      if (midiNotes.length > 0) {
+        synth.push({
+          midiNotes,
+          offsetSeconds: step * secondsPerStep,
+          durationSeconds: Math.min(0.16, secondsPerStep * 0.9),
+        });
+      }
     }
-    return steps;
+    return { drums, synth };
   }
 
   function patternDurationSec(): number {
@@ -130,16 +199,102 @@
     stopStepIndicator();
     activeStep = 0;
     let step = 0;
-    stepTimer = setInterval(() => {
-      step = (step + 1) % STEPS;
-      activeStep = step;
-    }, Math.max(20, (durationSec / STEPS) * 1000));
+    stepTimer = setInterval(
+      () => {
+        step = (step + 1) % STEPS;
+        activeStep = step;
+      },
+      Math.max(20, (durationSec / STEPS) * 1000),
+    );
   }
 
   function stopStepIndicator(): void {
     if (stepTimer !== undefined) clearInterval(stepTimer);
     stepTimer = undefined;
     activeStep = -1;
+  }
+
+  function auditionPad(midiNote: number): void {
+    void (async () => {
+      if (!(await runtime.enableAudio())) return;
+      await restoreActiveKit();
+      if (!playbackController.playMidi(midiNote, 0.9)) {
+        runtime.sound.playNote(midiNote, 0.15, undefined, 0.9);
+      }
+    })();
+  }
+
+  async function activateKit(kitId: string): Promise<void> {
+    const store = runtime.sampleKits;
+    if (!store) return;
+    await runtime.enableAudio();
+    const resolved = await store.resolvePlayback(kitId);
+    activeKit = await playbackController.activate(resolved);
+    restoreKitId = kitId;
+    await runtime.writeLocalState(ACTIVE_KIT_ID, kitId);
+    if (activeKit.pads.some((pad) => pad.status === "export-only")) {
+      patternStatus =
+        "The sample could not be decoded for browser playback. It remains available for MPC export.";
+    }
+  }
+
+  // Restore the previously active kit on the first audio-enabling interaction.
+  async function restoreActiveKit(): Promise<void> {
+    if (activeKit || !restoreKitId || !runtime.sampleKits) return;
+    try {
+      await activateKit(restoreKitId);
+    } catch {
+      restoreKitId = undefined;
+    }
+  }
+
+  async function buildExport(store: SampleKitStore, kitId: string) {
+    const resolved = await store.resolvePlayback(kitId);
+    const blobs = new Map<string, Blob>();
+    for (const sample of resolved.samples) {
+      if (sample.blob) blobs.set(sample.asset.binaryKey, sample.blob);
+    }
+    return buildMpcKitExport(resolved.kit, blobs);
+  }
+
+  async function exportDirectory(kitId: string): Promise<void> {
+    const store = runtime.sampleKits;
+    if (!store) return;
+    const picker = (window as { showDirectoryPicker?: (options: { mode: string }) => Promise<FileSystemDirectoryHandle> })
+      .showDirectoryPicker;
+    if (!picker) throw new Error("Choose an SD card or USB drive mounted on this computer.");
+
+    let root: FileSystemDirectoryHandle;
+    try {
+      root = await picker({ mode: "readwrite" });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new Error("Directory access was cancelled. Download a ZIP instead.");
+      }
+      throw new Error("Choose an SD card or USB drive mounted on this computer.");
+    }
+
+    const exportKit = await buildExport(store, kitId);
+    try {
+      await writeMpcKitToDirectory(exportKit, root);
+    } catch {
+      throw new Error(
+        "The MPC export could not be written completely. Remove the partial folder before retrying.",
+      );
+    }
+  }
+
+  async function exportZip(kitId: string): Promise<void> {
+    const store = runtime.sampleKits;
+    if (!store) return;
+    const exportKit = await buildExport(store, kitId);
+    const result = await buildMpcKitZip(exportKit);
+    const url = URL.createObjectURL(result.blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = result.fileName;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   async function loadSavedPattern(): Promise<void> {
@@ -178,6 +333,8 @@
 
   onDestroy(() => {
     stopPattern();
+    routerUnsubscribe?.();
+    playbackController.dispose();
     runtime.setPlaybackSource(undefined);
   });
 </script>
@@ -261,13 +418,25 @@
     </Card.Content>
   </Card.Root>
 
+  {#if runtime.sampleKits}
+    <SampleKitPanel
+      store={runtime.sampleKits}
+      {activeKit}
+      onactivate={activateKit}
+      onaudition={auditionPad}
+      ondirectoryexport={exportDirectory}
+      onzipexport={exportZip}
+      {directoryExportAvailable}
+    />
+  {/if}
+
   <Card.Root>
     <Card.Header><Card.Description>Pad bank · Boom Bap</Card.Description></Card.Header>
     <Card.Content class="grid grid-cols-3 gap-2 sm:grid-cols-6">
       {#each sequencer.rows as row}
         <button
           type="button"
-          onclick={() => runtime.audioEnabled && runtime.sound.playNote(row.midi, 0.15, undefined, 0.9)}
+          onclick={() => auditionPad(row.midi)}
           class="grid aspect-square place-items-center rounded-xl bg-primary/15 text-sm font-bold text-primary transition-transform hover:scale-105 active:scale-95"
         >
           {row.name}
