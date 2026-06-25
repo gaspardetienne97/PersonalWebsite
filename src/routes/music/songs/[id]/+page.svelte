@@ -134,15 +134,12 @@
   let notationMode = $state<"staff" | "tab" | "fingering">("staff");
   let tabTuningId = $state(TAB_TUNINGS[0]!.id);
   const tabTuning = $derived(TAB_TUNINGS.find(({ id }) => id === tabTuningId) ?? TAB_TUNINGS[0]!);
-  const beatsPerMeasure = $derived.by(() => {
-    const signature = sourceScore?.timeSignatures?.[0];
-    return signature ? signature.numerator * (4 / signature.denominator) : 4;
-  });
   const tabProjection = $derived(score ? projectScoreToFretboard(score, tabTuning) : undefined);
   const aerophoneProjection = $derived(score ? projectScoreToAerophone(score) : undefined);
-  // Custom range selection is drawn on the staff, so other views can't be active then.
+  // Staff and Tab both support range selection; Fingering can't, so it's hidden
+  // while editing a custom range.
   const selectionEditing = $derived(setup.selection.kind === "custom" && !practicing);
-  const showTab = $derived(notationMode === "tab" && !selectionEditing);
+  const showTab = $derived(notationMode === "tab");
   const showFingering = $derived(notationMode === "fingering" && !selectionEditing);
 
   const live = $derived(practiceState?.live);
@@ -571,7 +568,6 @@
                 size="sm"
                 variant={showTab ? "secondary" : "outline"}
                 aria-pressed={showTab}
-                disabled={selectionEditing}
                 onclick={() => (notationMode = "tab")}
               >
                 Tab
@@ -598,12 +594,23 @@
                 </select>
               {:else if selectionEditing}
                 <span class="text-xs text-muted-foreground">
-                  Tab is unavailable while editing a custom range.
+                  Fingering is unavailable while editing a custom range.
                 </span>
               {/if}
             </div>
-            {#if showTab && tabProjection}
-              <TabNotation projection={tabProjection} tuning={tabTuning} {beatsPerMeasure} />
+            {#if showTab && tabProjection && notation.view}
+              <TabNotation
+                view={notation.view}
+                projection={tabProjection}
+                tuning={tabTuning}
+                {selectionMap}
+                {highlightedRanges}
+                {customSelection}
+                snap={setup.selection.kind === "custom" ? setup.selection.snap : "note-group"}
+                selectionEnabled={setup.selection.kind === "custom" && !practicing}
+                onSelectionChange={updateCustomSelection}
+                onError={(message) => (status = message)}
+              />
             {:else if showFingering && aerophoneProjection}
               <div class="flex flex-wrap gap-3 overflow-x-auto" aria-label="Aerophone fingering">
                 {#each aerophoneProjection.notes as note (note.sourceIndex)}

@@ -9,7 +9,6 @@ import {
   projectPlayableGroup,
   projectScoreToAerophone,
   projectScoreToFretboard,
-  tabLines,
 } from "./index";
 
 function tabScore(notes: { midiNote: number; startBeat: number }[]) {
@@ -190,22 +189,5 @@ describe("music-core/projection", () => {
     expect(projection.options).toMatchObject({ instrument: "aerophone" });
     expect(projection.notes.map((note) => note.midiNote)).toEqual([67, 62]);
     expect(projection.notes.map((note) => note.startBeat)).toEqual([0, 1]);
-  });
-
-  test("renders fretboard projection as monospace tab rows", () => {
-    const projection = projectScoreToFretboard(
-      tabScore([
-        { midiNote: 40, startBeat: 0 }, // low E open -> string 6
-        { midiNote: 64, startBeat: 1 }, // high E open -> string 1
-      ]),
-      guitarStandard,
-    );
-    const rows = tabLines(projection, guitarStandard, { beatsPerMeasure: 4 });
-
-    expect(rows).toHaveLength(1); // both onsets in one measure -> one row
-    const [lines] = rows;
-    expect(lines).toHaveLength(6); // six guitar strings
-    expect(lines![0]).toBe("E |-----0-|"); // string 1: open high E on the 2nd onset
-    expect(lines![5]).toBe("E |--0----|"); // string 6: open low E on the 1st onset
   });
 });

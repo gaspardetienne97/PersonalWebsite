@@ -134,12 +134,19 @@ This file provides guidance for agents working on the Music app under
   `partIds` input filters a temporary XML copy through
   `score-import/filterMusicXmlParts()`; never rewrite persisted source to hide
   parts.
-- `src/routes/music/_components/TabNotation.svelte` is the shared read-only
-  guitar/ukulele TAB renderer. It takes a fretboard `InstrumentProjection` (from
-  `projection/projectScoreToFretboard()`) plus its `TuningProfile` and renders
-  `projection/tabLines()` as monospace string lines in an `overflow-x-auto` box.
-  It is presentation only — no selection/practice state; range editing stays on
-  the staff renderers.
+- `src/routes/music/_components/TabNotation.svelte` is the shared guitar/ukulele
+  TAB renderer, built on **VexFlow** (`TabStave`/`TabNote`/`GhostNote`) — the same
+  engine as `StaffNotation`, NOT VexTab (VexFlow renders tab natively; VexTab
+  would add a second bundled VexFlow). It takes a `NotationView` (durations,
+  measures, beat metadata) plus a fretboard `InstrumentProjection` (from
+  `projection/projectScoreToFretboard()`, for exact str/fret) and a
+  `TuningProfile` (string count). Because it renders real VexFlow geometry it
+  reuses the **same `notation-selection.ts` seam** as `StaffNotation`/
+  `MusicXmlScore` — accepting the identical selection props (selectionMap,
+  highlightedRanges, customSelection, snap, selectionEnabled, onSelectionChange)
+  so custom-range drag/tap selection works on tab exactly like the staff. Tab is
+  single-staff (first staff); rests + out-of-range notes render as `GhostNote`
+  spacers to keep timing aligned.
 - `src/routes/music/_components/notation-selection.ts` is the shared
   renderer-independent selection seam. VexFlow and OSMD adapters provide
   canonical beat-backed `NotationHitTarget`s and consume its range/overlay
@@ -235,10 +242,11 @@ This file provides guidance for agents working on the Music app under
   source part ID and keep MIDI voices individually selectable. Do not allow an
   empty selection or selection changes during an active practice run. A
   session-local Staff/Tab/Fingering toggle projects the same voice-filtered
-  canonical score: Tab via `projectScoreToFretboard()` + `TabNotation`, Fingering
-  via `projectScoreToAerophone()` (monophonic top-line) rendered as a row of
-  `AerophoneFingering` diagrams. Tab and Fingering are disabled while editing a
-  custom range (selection is a staff-only interaction).
+  canonical score: Tab via `projectScoreToFretboard()` + the VexFlow
+  `TabNotation`, Fingering via `projectScoreToAerophone()` (monophonic top-line)
+  rendered as a row of `AerophoneFingering` diagrams. Staff and Tab both support
+  custom-range drag selection (same `notation-selection` seam); only Fingering is
+  disabled while editing a custom range.
   `e2e/music-import.spec.ts` is the regression workflow for MIDI and MusicXML
   import-to-practice behavior. Preserve its direct renderer selection,
   zero-count-in multi-take Performance, persistence, and 375px overflow checks
@@ -334,8 +342,8 @@ Important areas:
   technique ladder, journal projections, canonical score voice filtering, and
   guitar/ukulele fretboard + Aerophone projections). `projectScoreToFretboard()`
   turns a canonical `Score` + `TuningProfile` into an `InstrumentProjection` (one
-  playable shape per onset, lowest frets; out-of-range notes drop), and
-  `tabLines()` renders that as monospace TAB rows. `projectScoreToAerophone()`
+  playable shape per onset, lowest frets; out-of-range notes drop), consumed by
+  `TabNotation` for VexFlow tab rendering. `projectScoreToAerophone()`
   reduces a score to a monophonic top-line `InstrumentProjection` (highest note
   per onset, since the Aerophone is monophonic); per-note fingering is derived
   for display by `AerophoneFingering` from the MIDI, not stored in the

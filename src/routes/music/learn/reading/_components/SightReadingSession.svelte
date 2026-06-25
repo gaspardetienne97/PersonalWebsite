@@ -67,10 +67,6 @@
   const tabProjection = $derived(
     tuning && prompt ? projectScoreToFretboard(prompt.score, tuning) : undefined,
   );
-  const beatsPerMeasure = $derived.by(() => {
-    const signature = prompt?.score.timeSignatures?.[0];
-    return signature ? signature.numerator * (4 / signature.denominator) : 4;
-  });
 
   async function start(): Promise<void> {
     startTimestampMs = await onStart();
@@ -126,7 +122,7 @@
               {showTab ? "Hide tab" : "Show tab"}
             </Button>
             {#if showTab}
-              <TabNotation projection={tabProjection} {tuning} {beatsPerMeasure} />
+              <TabNotation view={prompt.notation} projection={tabProjection} {tuning} />
             {/if}
           </div>
         {/if}

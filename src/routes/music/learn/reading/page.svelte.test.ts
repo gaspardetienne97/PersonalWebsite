@@ -113,11 +113,11 @@ describe("/music/learn/reading/+page.svelte", () => {
     expect(document.body.textContent).toContain("120 BPM");
     expect(document.body.textContent).toContain("Strict timing");
 
-    // Opt-in fretboard reveal: hidden by default, shows the phrase as tab.
+    // Opt-in fretboard reveal: hidden by default, shows the phrase as VexFlow tab.
     expect(document.querySelector('[aria-label="Guitar tab"]')).toBeNull();
     button("Show tab")?.click();
     await vi.waitFor(() =>
-      expect(document.querySelector('[aria-label="Guitar tab"]')).not.toBeNull(),
+      expect(document.querySelector('[aria-label="Guitar tab"] svg')).not.toBeNull(),
     );
 
     button("Start count-in")?.click();

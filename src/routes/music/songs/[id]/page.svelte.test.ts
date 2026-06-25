@@ -55,10 +55,10 @@ describe("/music/songs/[id]/+page.svelte", () => {
     button("Tab")?.click();
 
     await vi.waitFor(() => {
-      const tab = document.querySelector('[aria-label="Guitar tab"]');
-      expect(tab).not.toBeNull();
-      // melody C4/E4/G4 -> three onsets voiced on the fretboard
-      expect(tab?.textContent).toMatch(/\d/);
+      // VexFlow tab renders to SVG, with fret numbers as text.
+      const svg = document.querySelector('[aria-label="Guitar tab"] svg');
+      expect(svg).not.toBeNull();
+      expect(svg?.textContent).toMatch(/\d/);
     });
     expect(document.querySelector('[aria-label="Tab tuning"]')).not.toBeNull();
     runtime.dispose();
