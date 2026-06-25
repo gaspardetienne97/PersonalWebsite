@@ -309,7 +309,21 @@ This file provides guidance for agents working on the Music app under
   through `runtime.recordPractice`. Selected songs link to `/music/songs/[id]`
   for score preview and follow-along.
 - `/music/jam`: chord-progression jam/improv with target tones + recording.
-- `/music/studio`: step sequencer with a pad bank and Tone playback.
+- `/music/studio`: step sequencer with a pad bank, Tone playback, and persistent
+  **MPC sample kits**. Sample-kit metadata belongs in `SampleKitStore`
+  (`@repo/music-core/engines/sample-kit`), never in route-local state; sample
+  blobs live in OPFS through the shared `putBinary`/`getBinary`/`deleteBinary`
+  store helpers (nested `music.sample-kits/{kitId}/…` keys). Browser decode
+  probing and object-URL lifecycle live in
+  `studio/_components/sample-kit-playback.ts` (`SampleKitPlaybackController`);
+  Tone ownership stays in `SoundEngine` (`loadDrumKit`/`playDrum`/
+  `startDrumPatternLoop`). The route projects the grid into a hybrid
+  `{ drums, synth }` pattern — rows whose MIDI maps to an active pad play as
+  samples, the rest fall back to the synth. MPC export (`buildMpcKitExport` →
+  XPM 2.1 Drum Program) is generated from code: any XPM compatibility change
+  needs a fixture-based test **and** physical MPC One+ verification before
+  claiming hardware compatibility. Never copy or commit user-owned sample packs
+  or the local MPC fixture; `static/audio` sample material is gitignored.
 - `/music/recording`: take list, waveform, compare, and self-review.
 - `/music/track`: practice journal and routine/session tracking.
 - `/music/settings`: app settings over `PracticeStore.settings`.
@@ -334,6 +348,11 @@ Important areas:
   graph (master → destination; metronome → metronome gain → master), selectable
   synth presets (`SOUND_PRESETS`/`SOUND_PRESET_NAMES`, `setInstrument`), master
   mute / metronome blend, and the pure `scoreToPattern(score, {bpm?})` helper.
+- `src/engines/sample-kit/`: framework-agnostic MPC sample kits — Bank A (MIDI
+  36-51) auto-mapping + assignment model (`index.ts`), transactional
+  metadata/OPFS-blob persistence (`SampleKitStore` in `store.ts`), pure XPM 2.1
+  export (`mpc-export.ts`), and the browser directory/ZIP writers
+  (`browser-export.ts`). No Tone, Svelte, or audio-decode in the engine.
 - `src/engines/transport/`: metronome/transport scheduling (count-in, BPM).
 - `src/engines/notation/`: VexFlow-based notation rendering data.
 - `src/engines/skills/`: seeded skill graph and mastery.
