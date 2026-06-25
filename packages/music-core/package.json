@@ -30,6 +30,7 @@
     "./engines/recording": "./src/engines/recording/index.ts",
     "./engines/projection": "./src/engines/projection/index.ts",
     "./engines/reading-session": "./src/engines/reading-session/index.ts",
+    "./engines/sample-kit": "./src/engines/sample-kit/index.ts",
     "./engines/rhythm-session": "./src/engines/rhythm-session/index.ts",
     "./engines/score-follower": "./src/engines/score-follower/index.ts",
     "./engines/score-import": "./src/engines/score-import/index.ts",
