@@ -40,6 +40,34 @@ describe("/music/recording/+page.svelte", () => {
     expect(document.body.textContent).toContain("1 notes");
   });
 
+  test("exports a recorded take as a MIDI download", async () => {
+    const createSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:take");
+    const revokeSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    render(Page);
+
+    button("New recording")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((candidate) => candidate.textContent?.trim() === "C4")
+      ?.click();
+    await vi.waitFor(() => expect(button("Stop · 1")).not.toBeUndefined());
+    button("Stop")?.click();
+    await vi.waitFor(() => expect(button("MIDI")).not.toBeUndefined());
+
+    button("MIDI")?.click();
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    const blob = createSpy.mock.calls[0]?.[0] as Blob;
+    expect(blob.type).toBe("audio/midi");
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
+    clickSpy.mockRestore();
+  });
+
   test("loads saved audio takes from the media library", async () => {
     const runtime = new MusicRuntime();
     const take: AudioTakeRow = {

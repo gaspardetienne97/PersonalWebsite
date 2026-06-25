@@ -1,4 +1,4 @@
-import type { InputSource, NoteEvent } from "@repo/music-core/domain";
+import type { InputSource, NoteEvent, Score, ScoreNote } from "@repo/music-core/domain";
 
 export interface TakeNote {
   midi: number;
@@ -95,4 +95,37 @@ export class RecordingSession {
     }
     return { total, matched, accuracy: total === 0 ? 0 : matched / total };
   }
+}
+
+/**
+ * Convert a recorded {@link Take} into a canonical {@link Score} so it can flow
+ * into the MIDI/audio export engines. Millisecond timestamps become beats at the
+ * given tempo.
+ *
+ * ponytail: note-off isn't captured, so every note gets a fixed eighth-note
+ * length. Upgrade path: capture noteOff in `RecordingSession` and use the real
+ * gate time if held-note fidelity matters.
+ */
+export function takeToScore(take: Take, bpm: number): Score {
+  const msPerBeat = 60000 / Math.max(1, bpm);
+  const durationBeats = 0.5;
+  const notes: ScoreNote[] = take.notes.map((note) => ({
+    midiNote: note.midi,
+    startBeat: note.atMs / msPerBeat,
+    durationBeats,
+    velocity: note.velocity,
+    voiceId: take.source,
+  }));
+  return {
+    id: take.id,
+    title: take.name,
+    origin: "midi",
+    tempoMap: [{ atBeat: 0, bpm }],
+    timeSignatures: [{ atBeat: 0, numerator: 4, denominator: 4 }],
+    voices: [{ id: take.source, name: take.name, role: "other" }],
+    notes,
+    chords: [],
+    sections: [],
+    markers: [],
+  };
 }

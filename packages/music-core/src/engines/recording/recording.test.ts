@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
 
-import { RecordingSession } from "./index";
+import { RecordingSession, takeToScore } from "./index";
 
 function noteOn(midiNote: number, atMs: number): NoteEvent {
   return {
@@ -59,5 +59,24 @@ describe("RecordingSession", () => {
     const take = session.stop(100);
     session.remove(take.id);
     expect(session.takes()).toHaveLength(0);
+  });
+});
+
+describe("takeToScore", () => {
+  test("maps take timing to beats at the given tempo", () => {
+    const session = new RecordingSession();
+    session.start(0);
+    session.capture(noteOn(60, 0)); // beat 0
+    session.capture(noteOn(64, 500)); // half a beat at 120bpm = beat 1
+    const take = session.stop(1000, "Riff");
+
+    const score = takeToScore(take, 120);
+    expect(score.origin).toBe("midi");
+    expect(score.title).toBe("Riff");
+    expect(score.tempoMap[0]?.bpm).toBe(120);
+    expect(score.notes).toEqual([
+      expect.objectContaining({ midiNote: 60, startBeat: 0, durationBeats: 0.5 }),
+      expect.objectContaining({ midiNote: 64, startBeat: 1, durationBeats: 0.5 }),
+    ]);
   });
 });

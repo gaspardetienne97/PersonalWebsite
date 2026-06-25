@@ -3,15 +3,21 @@
   import { onDestroy, onMount } from "svelte";
 
   import Circle from "lucide-svelte/icons/circle";
+  import Download from "lucide-svelte/icons/download";
   import Square from "lucide-svelte/icons/square";
 
   import { unixMs } from "@repo/music-core/domain";
+  import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
   import {
     AudioTakeRecorder,
     type AudioTakeRecording,
   } from "@repo/music-core/engines/audio-recording";
   import type { MediaUsage } from "@repo/music-core/engines/media-library";
-  import { RecordingSession, type Take as MidiTake } from "@repo/music-core/engines/recording";
+  import {
+    RecordingSession,
+    takeToScore,
+    type Take as MidiTake,
+  } from "@repo/music-core/engines/recording";
   import type { AudioTakeRow } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -141,6 +147,16 @@
   function removeTake(id: string): void {
     recorder.remove(id);
     midiTakes = recorder.takes();
+  }
+
+  function exportTakeMidi(take: MidiTake): void {
+    const blob = scoreToMidiBlob(takeToScore(take, runtime.transportBpm));
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${take.name}.mid`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   function playTake(event: { type: string; midiNote: number; velocity: number }): void {
@@ -322,7 +338,18 @@
                     {take.notes.length} notes · {(take.durationMs / 1000).toFixed(1)}s
                   </div>
                 </div>
-                <Button type="button" variant="ghost" size="sm" onclick={() => removeTake(take.id)}>Delete</Button>
+                <div class="flex flex-col gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={take.notes.length === 0}
+                    onclick={() => exportTakeMidi(take)}
+                  >
+                    <Download class="size-4" aria-hidden="true" />MIDI
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onclick={() => removeTake(take.id)}>Delete</Button>
+                </div>
               </div>
             {/each}
           {/if}
