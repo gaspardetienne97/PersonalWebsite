@@ -1,9 +1,13 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
 
+  import Download from "lucide-svelte/icons/download";
   import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
   import Trash2 from "lucide-svelte/icons/trash-2";
+
+  import type { Score, ScoreNote } from "@repo/music-core/domain";
+  import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
 
   import {
     buildMpcKitExport,
@@ -297,6 +301,51 @@
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  /** The boom-bap grid as a canonical Score: one voice per pad row, one note per
+   *  active cell (a 16th note), tempo from the transport. */
+  function patternScore(): Score {
+    const beatsPerStep = 4 / STEPS;
+    const notes: ScoreNote[] = [];
+    sequencer.rows.forEach((row, rowIndex) => {
+      for (let step = 0; step < STEPS; step += 1) {
+        if (grid[rowIndex]?.[step]) {
+          notes.push({
+            midiNote: row.midi,
+            startBeat: step * beatsPerStep,
+            durationBeats: beatsPerStep,
+            velocity: 0.9,
+            voiceId: row.id,
+          });
+        }
+      }
+    });
+    return {
+      id: "studio-pattern",
+      title: "Studio Pattern",
+      origin: "generated",
+      tempoMap: [{ atBeat: 0, bpm: runtime.transportBpm }],
+      timeSignatures: [{ atBeat: 0, numerator: 4, denominator: 4 }],
+      voices: sequencer.rows.map((row) => ({ id: row.id, name: row.name, role: "drums" as const })),
+      notes,
+      chords: [],
+      sections: [],
+      markers: [],
+    };
+  }
+
+  function exportPatternMidi(): void {
+    downloadBlob(scoreToMidiBlob(patternScore()), "studio-pattern.mid");
+  }
+
+  function downloadBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
   async function loadSavedPattern(): Promise<void> {
     const saved = await runtime.readLocalState<StepSequencerPattern>(STUDIO_PATTERN_ID);
     if (!isStepSequencerPattern(saved)) return;
@@ -351,6 +400,9 @@
     {#snippet controls()}
       <Button type="button" variant="outline" onclick={clearGrid}>
         <Trash2 class="size-4" aria-hidden="true" />Clear
+      </Button>
+      <Button type="button" variant="outline" onclick={exportPatternMidi}>
+        <Download class="size-4" aria-hidden="true" />Export MIDI
       </Button>
       <Button type="button" onclick={() => void togglePlay()}>
         {#if playing}

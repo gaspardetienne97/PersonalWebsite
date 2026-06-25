@@ -4,6 +4,7 @@
   import { onDestroy, onMount } from "svelte";
 
   import ArrowLeft from "lucide-svelte/icons/arrow-left";
+  import Download from "lucide-svelte/icons/download";
   import ListMusic from "lucide-svelte/icons/list-music";
   import Play from "lucide-svelte/icons/play";
 
@@ -13,6 +14,7 @@
     type ExerciseRunRecord,
     type UnixMs,
   } from "@repo/music-core/domain";
+  import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
   import { notationView, type NotationView } from "@repo/music-core/engines/notation";
   import {
     filterScoreVoices,
@@ -233,6 +235,16 @@
   async function playPreview(): Promise<void> {
     if (!score || !(await runtime.enableAudio())) return;
     runtime.sound.playPattern(scorePlaybackPattern(score));
+  }
+
+  function exportMidi(): void {
+    if (!score) return;
+    const url = URL.createObjectURL(scoreToMidiBlob(score));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${(song?.title ?? "song").replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "song"}.mid`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   function updateSetup(value: ScorePracticeSetupValue): void {
@@ -661,6 +673,10 @@
               onclick={startPractice}
             >
               Start practice
+            </Button>
+            <Button type="button" variant="outline" disabled={!score} onclick={exportMidi}>
+              <Download class="size-4" aria-hidden="true" />
+              Export MIDI
             </Button>
             {#if practicing}
               <Button type="button" variant="outline" onclick={cancelPractice}>

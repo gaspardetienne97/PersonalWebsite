@@ -103,6 +103,23 @@ describe("/music/studio/+page.svelte", () => {
     expect(document.querySelectorAll('button[aria-label^="Kick step"]').length).toBe(16);
   });
 
+  test("exports the pattern as a MIDI download", () => {
+    const createSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:midi");
+    const revokeSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    render(Page);
+
+    studioButton("Export MIDI")!.click();
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
+    clickSpy.mockRestore();
+  });
+
   test("toggles a step cell", async () => {
     render(Page);
     const cell = document.querySelector<HTMLButtonElement>('button[aria-label="Snare step 1"]');

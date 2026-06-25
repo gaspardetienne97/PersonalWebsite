@@ -42,6 +42,27 @@ describe("/music/songs/[id]/+page.svelte", () => {
     runtime.dispose();
   });
 
+  test("exports the loaded score as a MIDI download", async () => {
+    const library = { get: vi.fn(async () => songRow()) };
+    const runtime = new MusicRuntime();
+    const createSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:midi");
+    const revokeSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+
+    render(Page, { songId: "song-1", runtime, library });
+    await vi.waitFor(() => expect(button("Export MIDI")).not.toBeUndefined());
+    button("Export MIDI")?.click();
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
+    clickSpy.mockRestore();
+    runtime.dispose();
+  });
+
   test("switches the canonical score to a guitar tab view", async () => {
     const library = { get: vi.fn(async () => songRow()) };
     const runtime = new MusicRuntime();

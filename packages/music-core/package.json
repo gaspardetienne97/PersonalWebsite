@@ -29,6 +29,7 @@
     "./engines/progress": "./src/engines/progress/index.ts",
     "./engines/recording": "./src/engines/recording/index.ts",
     "./engines/projection": "./src/engines/projection/index.ts",
+    "./engines/midi-export": "./src/engines/midi-export/index.ts",
     "./engines/reading-session": "./src/engines/reading-session/index.ts",
     "./engines/sample-kit": "./src/engines/sample-kit/index.ts",
     "./engines/rhythm-session": "./src/engines/rhythm-session/index.ts",
