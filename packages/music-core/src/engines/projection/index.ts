@@ -49,6 +49,33 @@ export function projectPiano(midiNotes: number[]): PianoLocation[] {
   }));
 }
 
+export function projectScoreToPiano(
+  score: Score,
+  options: { splitMidi?: number } = {},
+): InstrumentProjection {
+  const splitMidi = options.splitMidi ?? 60;
+  const roles = new Map(score.voices.map(({ id, role }) => [id, role]));
+
+  return {
+    scoreId: score.id,
+    options: { instrument: "piano" },
+    notes: score.notes.map((note, sourceIndex) => ({
+      sourceIndex,
+      midiNote: note.midiNote,
+      startBeat: note.startBeat,
+      durationBeats: note.durationBeats,
+      hand:
+        roles.get(note.voiceId) === "bass"
+          ? "left"
+          : roles.get(note.voiceId) === "melody"
+            ? "right"
+            : note.midiNote < splitMidi
+              ? "left"
+              : "right",
+    })),
+  };
+}
+
 export function projectFretboard(midiNotes: number[], tuning: TuningProfile): FretboardLocation[] {
   return midiNotes.flatMap((midiNote) =>
     tuning.openStrings.flatMap((openMidi, index) => {

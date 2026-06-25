@@ -1,7 +1,10 @@
 <script lang="ts">
   import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
-  import { projectScoreToFretboard } from "@repo/music-core/engines/projection";
+  import {
+    projectScoreToFretboard,
+    projectScoreToPiano,
+  } from "@repo/music-core/engines/projection";
   import type { ReadingSessionState } from "@repo/music-core/engines/reading-session";
   import { beatToMs, type ScoreFollowerLiveState } from "@repo/music-core/engines/score-follower";
   import { midiToNote } from "@repo/music-core/engines/theory";
@@ -44,6 +47,21 @@
   const complete = $derived(progress >= 1);
   const mode = $derived(prompt?.options.mode ?? "wait");
   const targetNotes = $derived(currentGroup?.midiNotes ?? []);
+  const pianoProjection = $derived(
+    prompt?.options.instrument === "piano" ? projectScoreToPiano(prompt.score) : undefined,
+  );
+  const pianoHandHint = $derived.by(() => {
+    if (!currentGroup || !pianoProjection) return undefined;
+    const hands = new Set(
+      pianoProjection.notes
+        .filter(({ sourceIndex }) => currentGroup.sourceNoteIndexes.includes(sourceIndex))
+        .flatMap(({ hand }) => (hand === undefined ? [] : [hand])),
+    );
+    if (hands.size > 1) return "Both hands";
+    if (hands.has("left")) return "Left hand";
+    if (hands.has("right")) return "Right hand";
+    return undefined;
+  });
   const pianoNotes = $derived(
     prompt
       ? Array.from(
@@ -142,6 +160,14 @@
                     ? "Phrase complete"
                     : targetNotes.map((midiNote) => midiToNote(midiNote)).join(", ")}
                 </p>
+                {#if pianoHandHint}
+                  <p
+                    class="mt-1 text-xs font-semibold text-muted-foreground"
+                    data-testid="piano-hand-hint"
+                  >
+                    {pianoHandHint}
+                  </p>
+                {/if}
               </div>
               <div class="flex flex-wrap gap-2">
                 {#each targetNotes as midiNote}

@@ -81,6 +81,9 @@ describe("/music/learn/reading/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
     button("Start count-in")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Expected notes"));
+    expect(document.querySelector('[data-testid="piano-hand-hint"]')?.textContent).toContain(
+      "Right hand",
+    );
 
     for (let index = 0; index < 32 && button("Finish phrase")?.disabled; index += 1) {
       const targets = [

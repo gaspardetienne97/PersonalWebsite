@@ -9,6 +9,7 @@ import {
   projectPlayableGroup,
   projectScoreToAerophone,
   projectScoreToFretboard,
+  projectScoreToPiano,
 } from "./index";
 
 function tabScore(notes: { midiNote: number; startBeat: number }[]) {
@@ -88,6 +89,65 @@ describe("music-core/projection", () => {
       { midiNote: 48, hand: "left" },
       { midiNote: 60, hand: "right" },
       { midiNote: 72, hand: "right" },
+    ]);
+  });
+
+  test("projects score notes to piano hands from semantic voice roles", () => {
+    const score = {
+      ...tabScore([]),
+      id: "piano-hands",
+      voices: [
+        { id: "right", name: "Right Hand", role: "melody" as const },
+        { id: "left", name: "Left Hand", role: "bass" as const },
+      ],
+      notes: [
+        {
+          midiNote: 55,
+          startBeat: 0,
+          durationBeats: 1,
+          velocity: 0.8,
+          voiceId: "right",
+        },
+        {
+          midiNote: 67,
+          startBeat: 0,
+          durationBeats: 1,
+          velocity: 0.8,
+          voiceId: "left",
+        },
+      ],
+    };
+
+    expect(projectScoreToPiano(score).notes).toEqual([
+      {
+        sourceIndex: 0,
+        midiNote: 55,
+        startBeat: 0,
+        durationBeats: 1,
+        hand: "right",
+      },
+      {
+        sourceIndex: 1,
+        midiNote: 67,
+        startBeat: 0,
+        durationBeats: 1,
+        hand: "left",
+      },
+    ]);
+  });
+
+  test("uses the requested register split when a score voice has no hand role", () => {
+    const score = {
+      ...tabScore([
+        { midiNote: 59, startBeat: 0 },
+        { midiNote: 60, startBeat: 1 },
+      ]),
+      voices: [{ id: "v1", name: "Piano", role: "other" as const }],
+    };
+
+    expect(projectScoreToPiano(score, { splitMidi: 60 }).notes.map(({ hand }) => hand)).toEqual([
+      "left",
+      "right",
     ]);
   });
 

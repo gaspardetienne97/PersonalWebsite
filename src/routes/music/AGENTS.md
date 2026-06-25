@@ -202,7 +202,11 @@ This file provides guidance for agents working on the Music app under
   a transport `PlaybackSource` so Play previews the on-screen melody. The guitar/
   ukulele sight-reading session has an opt-in **Show/Hide tab** reveal
   (`projectScoreToFretboard` + `TabNotation`), hidden by default so it doesn't
-  short-circuit reading the staff.
+  short-circuit reading the staff. Piano sight-reading uses
+  `projectScoreToPiano()` and the follower group's canonical
+  `sourceNoteIndexes` to show `Left hand`, `Right hand`, or `Both hands` for the
+  current target. Do not infer this independently from rendered clefs or DOM
+  geometry.
 - `/music/learn/rhythm`: pulse timing trainer.
 - `/music/learn/theory`: chord and theory library. Each chord/scale renders
   through `InstrumentView` with an **instrument toggle** (Piano/Guitar/Ukulele/
@@ -340,7 +344,10 @@ Important areas:
 - `src/engines/dashboard/`: dashboard and skill tree view projections.
 - `src/engines/projection/`: derived view helpers (journal focus, rhythm HUD,
   technique ladder, journal projections, canonical score voice filtering, and
-  guitar/ukulele fretboard + Aerophone projections). `projectScoreToFretboard()`
+  piano, guitar/ukulele fretboard, and Aerophone projections).
+  `projectScoreToPiano()` preserves source indexes/timing and assigns bass
+  voices left, melody voices right, then uses a configurable register split for
+  unclassified voices. `projectScoreToFretboard()`
   turns a canonical `Score` + `TuningProfile` into an `InstrumentProjection` (one
   playable shape per onset, lowest frets; out-of-range notes drop), consumed by
   `TabNotation` for VexFlow tab rendering. `projectScoreToAerophone()`
