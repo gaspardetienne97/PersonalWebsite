@@ -134,6 +134,12 @@ This file provides guidance for agents working on the Music app under
   `partIds` input filters a temporary XML copy through
   `score-import/filterMusicXmlParts()`; never rewrite persisted source to hide
   parts.
+- `src/routes/music/_components/TabNotation.svelte` is the shared read-only
+  guitar/ukulele TAB renderer. It takes a fretboard `InstrumentProjection` (from
+  `projection/projectScoreToFretboard()`) plus its `TuningProfile` and renders
+  `projection/tabLines()` as monospace string lines in an `overflow-x-auto` box.
+  It is presentation only — no selection/practice state; range editing stays on
+  the staff renderers.
 - `src/routes/music/_components/notation-selection.ts` is the shared
   renderer-independent selection seam. VexFlow and OSMD adapters provide
   canonical beat-backed `NotationHitTarget`s and consume its range/overlay
@@ -224,7 +230,11 @@ This file provides guidance for agents working on the Music app under
   `filterScoreVoices()` and use that result for notation, preview, planning,
   grading, counts, and input surfaces. Group MusicXML voices by their canonical
   source part ID and keep MIDI voices individually selectable. Do not allow an
-  empty selection or selection changes during an active practice run.
+  empty selection or selection changes during an active practice run. A
+  session-local Staff/Tab toggle projects the same voice-filtered canonical
+  score onto a guitar/ukulele fretboard via `projectScoreToFretboard()` +
+  `TabNotation`; Tab is disabled while editing a custom range (selection is a
+  staff-only interaction).
   `e2e/music-import.spec.ts` is the regression workflow for MIDI and MusicXML
   import-to-practice behavior. Preserve its direct renderer selection,
   zero-count-in multi-take Performance, persistence, and 375px overflow checks
@@ -317,7 +327,12 @@ Important areas:
 - `src/engines/sessions/`: practice journal/session records.
 - `src/engines/dashboard/`: dashboard and skill tree view projections.
 - `src/engines/projection/`: derived view helpers (journal focus, rhythm HUD,
-  technique ladder, journal projections, and canonical score voice filtering).
+  technique ladder, journal projections, canonical score voice filtering, and
+  guitar/ukulele fretboard projection). `projectScoreToFretboard()` turns a
+  canonical `Score` + `TuningProfile` into an `InstrumentProjection` (one
+  playable shape per onset, lowest frets; out-of-range notes drop), and
+  `tabLines()` renders that as monospace TAB rows. Reuse these for any
+  fretboard/tab view instead of re-deriving positions.
   Use `filterScoreVoices()` when a route needs a subset of score parts; do not
   independently filter notes in notation, playback, and practice code.
 - `src/engines/device-profiles/`: MIDI device profiles + per-instrument

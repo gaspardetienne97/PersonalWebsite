@@ -42,6 +42,28 @@ describe("/music/songs/[id]/+page.svelte", () => {
     runtime.dispose();
   });
 
+  test("switches the canonical score to a guitar tab view", async () => {
+    const library = { get: vi.fn(async () => songRow()) };
+    const runtime = new MusicRuntime();
+
+    render(Page, { songId: "song-1", runtime, library });
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
+    );
+
+    button("Tab")?.click();
+
+    await vi.waitFor(() => {
+      const tab = document.querySelector('[aria-label="Guitar tab"]');
+      expect(tab).not.toBeNull();
+      // melody C4/E4/G4 -> three onsets voiced on the fretboard
+      expect(tab?.textContent).toMatch(/\d/);
+    });
+    expect(document.querySelector('[aria-label="Tab tuning"]')).not.toBeNull();
+    runtime.dispose();
+  });
+
   test("uses OSMD for stored MusicXML while retaining canonical practice controls", async () => {
     const library = {
       get: vi.fn(async () => ({

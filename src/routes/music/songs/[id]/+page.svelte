@@ -14,7 +14,11 @@
     type UnixMs,
   } from "@repo/music-core/domain";
   import { notationView, type NotationView } from "@repo/music-core/engines/notation";
-  import { filterScoreVoices } from "@repo/music-core/engines/projection";
+  import {
+    filterScoreVoices,
+    projectScoreToFretboard,
+  } from "@repo/music-core/engines/projection";
+  import { curatedTunings } from "@repo/music-core/engines/tunings";
   import {
     buildScorePracticePlan,
     buildPracticeExecutions,
@@ -38,6 +42,7 @@
 
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import MusicXmlScore from "../../_components/MusicXmlScore.svelte";
+  import TabNotation from "../../_components/TabNotation.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import SegmentProgress from "../../_components/SegmentProgress.svelte";
@@ -121,6 +126,21 @@
     }
   });
   const notation = $derived.by(() => notationProjection(score));
+
+  // Tab view: guitar/ukulele projection of the (voice-filtered) canonical score.
+  const TAB_TUNINGS = [...curatedTunings("guitar"), ...curatedTunings("ukulele")];
+  let notationMode = $state<"staff" | "tab">("staff");
+  let tabTuningId = $state(TAB_TUNINGS[0]!.id);
+  const tabTuning = $derived(TAB_TUNINGS.find(({ id }) => id === tabTuningId) ?? TAB_TUNINGS[0]!);
+  const beatsPerMeasure = $derived.by(() => {
+    const signature = sourceScore?.timeSignatures?.[0];
+    return signature ? signature.numerator * (4 / signature.denominator) : 4;
+  });
+  const tabProjection = $derived(score ? projectScoreToFretboard(score, tabTuning) : undefined);
+  // Custom range selection is drawn on the staff, so tab can't be active then.
+  const selectionEditing = $derived(setup.selection.kind === "custom" && !practicing);
+  const showTab = $derived(notationMode === "tab" && !selectionEditing);
+
   const live = $derived(practiceState?.live);
   const progressPercent = $derived(Math.round((live?.progress ?? 0) * 100));
   const expectedNames = $derived((live?.expectedMidiNotes ?? []).map((note) => midiToNote(note)));
@@ -532,7 +552,45 @@
                 </div>
               </div>
             {/if}
-            {#if song.source?.format === "musicxml"}
+            <div class="flex flex-wrap items-center gap-2" aria-label="Notation view">
+              <Button
+                type="button"
+                size="sm"
+                variant={!showTab ? "secondary" : "outline"}
+                aria-pressed={!showTab}
+                onclick={() => (notationMode = "staff")}
+              >
+                Staff
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={showTab ? "secondary" : "outline"}
+                aria-pressed={showTab}
+                disabled={selectionEditing}
+                onclick={() => (notationMode = "tab")}
+              >
+                Tab
+              </Button>
+              {#if showTab}
+                <select
+                  class="h-9 rounded-md border bg-background px-2 text-sm"
+                  aria-label="Tab tuning"
+                  bind:value={tabTuningId}
+                >
+                  {#each TAB_TUNINGS as tuning (tuning.id)}
+                    <option value={tuning.id}>{tuning.name}</option>
+                  {/each}
+                </select>
+              {:else if selectionEditing}
+                <span class="text-xs text-muted-foreground">
+                  Tab is unavailable while editing a custom range.
+                </span>
+              {/if}
+            </div>
+            {#if showTab && tabProjection}
+              <TabNotation projection={tabProjection} tuning={tabTuning} {beatsPerMeasure} />
+            {:else if song.source?.format === "musicxml"}
               <MusicXmlScore
                 xml={song.source.content}
                 partIds={selectedPartIds}

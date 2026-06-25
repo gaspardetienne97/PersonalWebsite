@@ -1,5 +1,11 @@
-import type { Score } from "@repo/music-core/domain";
+import type {
+  InstrumentProjection,
+  ProjectedNote,
+  Score,
+  ScoreNote,
+} from "@repo/music-core/domain";
 import type { TuningProfile } from "@repo/music-core/engines/tunings";
+import { midiToNote } from "@repo/music-core/engines/theory";
 
 export { rhythmHudProjection, type RhythmHudData } from "./rhythm-hud";
 export { tempoLadderProjection, type TempoRung, type TempoLadderOptions } from "./technique-ladder";
@@ -67,6 +73,153 @@ export function projectPlayableGroup(
   const solutions: PlayableFretboardGroup[] = [];
   collectSolutions(candidates, 0, [], new Set(), maxSpan, solutions);
   return solutions.sort(compareGroups)[0];
+}
+
+/**
+ * Project a whole canonical score onto a fretboard as TAB. Notes sharing an
+ * onset beat are placed together as one playable shape (one note per string,
+ * lowest frets, smallest span); a group that won't fit one shape (more notes
+ * than strings, out of range, or too wide) degrades to each note's lowest
+ * single position, dropping any note off the fretboard.
+ */
+export function projectScoreToFretboard(
+  score: Score,
+  tuning: TuningProfile,
+  options: { transpose?: number; maxSpan?: number } = {},
+): InstrumentProjection {
+  const transpose = options.transpose ?? 0;
+  const maxSpan = options.maxSpan ?? 5;
+
+  const byOnset = new Map<number, { sourceIndex: number; note: ScoreNote }[]>();
+  score.notes.forEach((note, sourceIndex) => {
+    const group = byOnset.get(note.startBeat) ?? [];
+    group.push({ sourceIndex, note });
+    byOnset.set(note.startBeat, group);
+  });
+
+  const projected: ProjectedNote[] = [];
+  for (const startBeat of [...byOnset.keys()].sort((a, b) => a - b)) {
+    const group = byOnset.get(startBeat)!;
+    const midiNotes = group.map(({ note }) => note.midiNote + transpose);
+    const shape = projectPlayableGroup(midiNotes, tuning, maxSpan);
+    if (shape && shape.positions.length === group.length) {
+      group.forEach((entry, index) => {
+        const { string, fret } = shape.positions[index]!;
+        projected.push(toProjectedNote(entry, transpose, [{ string, fret }]));
+      });
+    } else {
+      for (const entry of group) {
+        const lowest = lowestPosition(entry.note.midiNote + transpose, tuning);
+        projected.push(toProjectedNote(entry, transpose, lowest ? [lowest] : undefined));
+      }
+    }
+  }
+
+  projected.sort(
+    (left, right) =>
+      left.startBeat - right.startBeat ||
+      (left.frets?.[0]?.string ?? 99) - (right.frets?.[0]?.string ?? 99),
+  );
+
+  return {
+    scoreId: score.id,
+    options: { instrument: tuning.instrument, profileId: tuning.id, transpose },
+    notes: projected,
+  };
+}
+
+/**
+ * Render a fretboard projection as classic monospace TAB rows. Each row is one
+ * string line per tuning string (string 1 / highest pitch on top), grouped into
+ * `measuresPerRow` measures so the view wraps instead of overflowing. Onsets are
+ * placed event-by-event (not proportionally spaced) — readable tab, not engraving.
+ *
+ * ponytail: uses one fixed beats-per-measure; mid-piece meter changes aren't
+ * re-barred (rare in imported lead sheets). Pass the first time signature.
+ */
+export function tabLines(
+  projection: InstrumentProjection,
+  tuning: TuningProfile,
+  options: { beatsPerMeasure?: number; measuresPerRow?: number } = {},
+): string[][] {
+  const beatsPerMeasure =
+    options.beatsPerMeasure && options.beatsPerMeasure > 0 ? options.beatsPerMeasure : 4;
+  const measuresPerRow =
+    options.measuresPerRow && options.measuresPerRow > 0 ? options.measuresPerRow : 4;
+  const stringCount = tuning.openStrings.length;
+
+  const onsetMap = new Map<number, Map<number, number>>();
+  for (const note of projection.notes) {
+    const position = note.frets?.[0];
+    if (!position) continue;
+    const column = onsetMap.get(note.startBeat) ?? new Map<number, number>();
+    column.set(position.string, position.fret);
+    onsetMap.set(note.startBeat, column);
+  }
+  const onsets = [...onsetMap.entries()].sort(([left], [right]) => left - right);
+
+  const lastBeat = onsets.length === 0 ? 0 : onsets[onsets.length - 1]![0];
+  const measureCount = Math.max(1, Math.floor(lastBeat / beatsPerMeasure) + 1);
+  const measures: Map<number, number>[][] = Array.from({ length: measureCount }, () => []);
+  for (const [beat, column] of onsets) {
+    measures[Math.min(measureCount - 1, Math.floor(beat / beatsPerMeasure))]!.push(column);
+  }
+
+  const labels = tuning.openStrings.map((midi) => noteLetter(midi));
+
+  const rows: string[][] = [];
+  for (let start = 0; start < measureCount; start += measuresPerRow) {
+    const rowMeasures = measures.slice(start, start + measuresPerRow);
+    const lines: string[] = [];
+    for (let stringIndex = 0; stringIndex < stringCount; stringIndex += 1) {
+      const stringNumber = stringIndex + 1;
+      let line = `${labels[stringIndex]!.padEnd(2)}|`;
+      for (const measure of rowMeasures) {
+        if (measure.length === 0) {
+          line += "----|";
+          continue;
+        }
+        for (const column of measure) {
+          const fret = column.get(stringNumber);
+          line += `-${fret === undefined ? "--" : String(fret).padStart(2, "-")}`;
+        }
+        line += "-|";
+      }
+      lines.push(line);
+    }
+    rows.push(lines);
+  }
+  return rows;
+}
+
+function noteLetter(midiNote: number): string {
+  return midiToNote(midiNote).replace(/[0-9-]/g, "");
+}
+
+function toProjectedNote(
+  entry: { sourceIndex: number; note: ScoreNote },
+  transpose: number,
+  frets: { string: number; fret: number }[] | undefined,
+): ProjectedNote {
+  return {
+    sourceIndex: entry.sourceIndex,
+    midiNote: entry.note.midiNote + transpose,
+    startBeat: entry.note.startBeat,
+    durationBeats: entry.note.durationBeats,
+    ...(frets ? { frets } : {}),
+  };
+}
+
+function lowestPosition(
+  midiNote: number,
+  tuning: TuningProfile,
+): { string: number; fret: number } | undefined {
+  const locations = projectFretboard([midiNote], tuning);
+  if (locations.length === 0) return undefined;
+  const best = locations.sort(
+    (left, right) => left.fret - right.fret || left.string - right.string,
+  )[0]!;
+  return { string: best.string, fret: best.fret };
 }
 
 function collectSolutions(

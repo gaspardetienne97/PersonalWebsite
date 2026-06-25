@@ -2,7 +2,34 @@ import { describe, expect, test } from "vitest";
 
 import { curatedTunings } from "@repo/music-core/engines/tunings";
 
-import { filterScoreVoices, projectFretboard, projectPiano, projectPlayableGroup } from "./index";
+import {
+  filterScoreVoices,
+  projectFretboard,
+  projectPiano,
+  projectPlayableGroup,
+  projectScoreToFretboard,
+  tabLines,
+} from "./index";
+
+function tabScore(notes: { midiNote: number; startBeat: number }[]) {
+  return {
+    id: "tab",
+    origin: "midi" as const,
+    tempoMap: [{ atBeat: 0, bpm: 120 }],
+    timeSignatures: [{ atBeat: 0, numerator: 4, denominator: 4 }],
+    voices: [{ id: "v1", name: "Melody", role: "melody" as const }],
+    notes: notes.map(({ midiNote, startBeat }) => ({
+      midiNote,
+      startBeat,
+      durationBeats: 1,
+      velocity: 0.8,
+      voiceId: "v1",
+    })),
+    chords: [],
+    sections: [],
+    markers: [],
+  };
+}
 
 const guitarStandard = curatedTunings("guitar")[0]!;
 const ukuleleHighG = curatedTunings("ukulele")[0]!;
@@ -90,5 +117,79 @@ describe("music-core/projection", () => {
 
   test("rejects groups outside the selected instrument range", () => {
     expect(projectPlayableGroup([40, 41, 42], ukuleleHighG)).toBeUndefined();
+  });
+
+  test("projects a score to tab, one note per onset, lowest playable position", () => {
+    const projection = projectScoreToFretboard(
+      tabScore([
+        { midiNote: 40, startBeat: 0 }, // low E -> open string 6
+        { midiNote: 64, startBeat: 1 }, // high E -> open string 1
+      ]),
+      guitarStandard,
+    );
+
+    expect(projection.options).toMatchObject({
+      instrument: "guitar",
+      profileId: "guitar.standard",
+    });
+    expect(projection.notes).toEqual([
+      {
+        sourceIndex: 0,
+        midiNote: 40,
+        startBeat: 0,
+        durationBeats: 1,
+        frets: [{ string: 6, fret: 0 }],
+      },
+      {
+        sourceIndex: 1,
+        midiNote: 64,
+        startBeat: 1,
+        durationBeats: 1,
+        frets: [{ string: 1, fret: 0 }],
+      },
+    ]);
+  });
+
+  test("places notes sharing an onset on distinct strings as one shape", () => {
+    const projection = projectScoreToFretboard(
+      tabScore([
+        { midiNote: 60, startBeat: 0 },
+        { midiNote: 64, startBeat: 0 },
+        { midiNote: 67, startBeat: 0 },
+      ]),
+      guitarStandard,
+    );
+
+    const strings = projection.notes.map((note) => note.frets?.[0]?.string);
+    expect(new Set(strings).size).toBe(3);
+    expect(projection.notes).toHaveLength(3);
+  });
+
+  test("drops notes that fall off the fretboard", () => {
+    const projection = projectScoreToFretboard(
+      tabScore([{ midiNote: 20, startBeat: 0 }]), // below the lowest open string
+      guitarStandard,
+    );
+
+    expect(projection.notes).toEqual([
+      { sourceIndex: 0, midiNote: 20, startBeat: 0, durationBeats: 1 },
+    ]);
+  });
+
+  test("renders fretboard projection as monospace tab rows", () => {
+    const projection = projectScoreToFretboard(
+      tabScore([
+        { midiNote: 40, startBeat: 0 }, // low E open -> string 6
+        { midiNote: 64, startBeat: 1 }, // high E open -> string 1
+      ]),
+      guitarStandard,
+    );
+    const rows = tabLines(projection, guitarStandard, { beatsPerMeasure: 4 });
+
+    expect(rows).toHaveLength(1); // both onsets in one measure -> one row
+    const [lines] = rows;
+    expect(lines).toHaveLength(6); // six guitar strings
+    expect(lines![0]).toBe("E |-----0-|"); // string 1: open high E on the 2nd onset
+    expect(lines![5]).toBe("E |--0----|"); // string 6: open low E on the 1st onset
   });
 });
