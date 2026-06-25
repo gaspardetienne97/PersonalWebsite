@@ -7,12 +7,25 @@
   import ListMusic from "lucide-svelte/icons/list-music";
   import Play from "lucide-svelte/icons/play";
 
+  import {
+    monotonicMs,
+    unixMs,
+    type ExerciseRunRecord,
+    type UnixMs,
+  } from "@repo/music-core/domain";
   import { notationView, type NotationView } from "@repo/music-core/engines/notation";
   import {
-    createScoreFollower,
+    buildScorePracticePlan,
+    buildPracticeExecutions,
+    buildScoreSelectionMap,
+    ScorePracticeSession,
+    type ScorePracticePlan,
+    type ScorePracticeState,
+  } from "@repo/music-core/engines/score-practice";
+  import {
+    beatToMs,
     expectedGroups,
-    type ScoreFollowerLiveState,
-    type ScoreFollowerRun,
+    timingWindowMs,
   } from "@repo/music-core/engines/score-follower";
   import { scorePlaybackPattern, SongLibrary } from "@repo/music-core/engines/song-library";
   import { PracticeStore, type SongRow } from "@repo/music-core/engines/store";
@@ -29,6 +42,9 @@
   import SegmentProgress from "../../_components/SegmentProgress.svelte";
   import StaffNotation from "../../_components/StaffNotation.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
+  import ScorePracticeSetup from "./_components/ScorePracticeSetup.svelte";
+  import ScorePracticeSummary from "./_components/ScorePracticeSummary.svelte";
+  import type { ScorePracticeSetupValue } from "./_components/score-practice-types";
 
   interface SongLibraryLike {
     get(id: string): Promise<SongRow | undefined>;
@@ -50,13 +66,39 @@
   let practicing = $state(false);
   let completed = $state(false);
   let finishing = false;
-  let follower: ScoreFollowerRun | undefined;
+  let setup = $state<ScorePracticeSetupValue>({
+    mode: "wait",
+    selection: { kind: "full" },
+    bpm: 120,
+    strictness: "normal",
+    countInBars: 1,
+    totalTakes: 1,
+  });
+  let practiceSession: ScorePracticeSession | undefined;
+  let practiceState = $state.raw<ScorePracticeState>();
+  let practicePlan: ScorePracticePlan | undefined;
+  let executionStartedAt: UnixMs | undefined;
+  let executionTimes: Array<{ startedAt: UnixMs; endedAt: UnixMs }> = [];
+  let practiceStartedAt: UnixMs | undefined;
+  let captureId = "";
+  let previousTransport: { bpm: number; countInBars: number } | undefined;
+  let tickTimer: ReturnType<typeof setInterval> | undefined;
+  let endTimer: ReturnType<typeof setTimeout> | undefined;
   let unsubscribeInput = () => undefined;
-  let live = $state.raw<ScoreFollowerLiveState>();
 
   const score = $derived(song?.score);
   const groups = $derived(score ? expectedGroups(score) : []);
+  const selectionMap = $derived(score ? buildScoreSelectionMap(score) : undefined);
+  const planProjection = $derived.by((): { plan?: ScorePracticePlan; error?: string } => {
+    if (!score) return {};
+    try {
+      return { plan: buildScorePracticePlan(score, setup.selection) };
+    } catch (error) {
+      return { error: message(error, "Invalid practice range.") };
+    }
+  });
   const notation = $derived.by(() => notationProjection(score));
+  const live = $derived(practiceState?.live);
   const progressPercent = $derived(Math.round((live?.progress ?? 0) * 100));
   const expectedNames = $derived((live?.expectedMidiNotes ?? []).map((note) => midiToNote(note)));
   const keyboardNotes = $derived(
@@ -64,13 +106,35 @@
       ? [...new Set(score.notes.map(({ midiNote }) => midiToNote(midiNote)))].slice(0, 16)
       : [],
   );
+  const highlightedRanges = $derived.by(() => {
+    if (!score || setup.selection.kind !== "sections") return [];
+    return setup.selection.sectionIds.flatMap((id) => {
+      const section = score.sections.find((candidate) => candidate.id === id);
+      return section
+        ? [
+            {
+              id: section.id,
+              startBeat: section.startBeat,
+              endBeat: section.endBeat,
+              active: practiceState?.currentSegmentId === section.id,
+            },
+          ]
+        : [];
+    });
+  });
+  const customSelection = $derived(
+    setup.selection.kind === "custom"
+      ? { startBeat: setup.selection.startBeat, endBeat: setup.selection.endBeat }
+      : undefined,
+  );
 
   onMount(() => {
     unsubscribeInput = runtime.router.subscribe((event) => {
-      if (!practicing || !follower) return;
-      follower.accept(event);
-      live = follower.getLiveState();
-      if (live.progress >= 1) void finishFollowAlong();
+      if (!practicing || !practiceSession) return;
+      practiceState = practiceSession.accept(event);
+      if (setup.mode === "wait" && (practiceState.live?.progress ?? 0) >= 1) {
+        void finishCurrentExecution();
+      }
     });
     void loadSong();
   });
@@ -92,6 +156,9 @@
   });
 
   onDestroy(() => {
+    clearPracticeTimers();
+    runtime.stopPracticeClock();
+    restoreTransportPreferences();
     unsubscribeInput();
     runtime.setPlaybackSource(undefined);
   });
@@ -104,6 +171,12 @@
     }
     try {
       song = await library.get(songId);
+      if (song?.score) {
+        setup = {
+          ...setup,
+          bpm: Math.round(song.score.tempoMap[0]?.bpm ?? 120),
+        };
+      }
       status = song?.score ? "Score ready." : "This saved song has no score data.";
     } catch (error) {
       status = message(error, "Could not load the score.");
@@ -117,38 +190,195 @@
     runtime.sound.playPattern(scorePlaybackPattern(score));
   }
 
-  function startFollowAlong(): void {
-    if (!score || groups.length === 0) return;
-    follower = createScoreFollower(groups, {
-      mode: "wait",
-      bpm: score.tempoMap[0]?.bpm ?? 120,
-      strictness: "normal",
-    });
-    live = follower.getLiveState();
+  function updateSetup(value: ScorePracticeSetupValue): void {
+    setup = value;
     completed = false;
-    practicing = true;
-    status = "Follow the highlighted score. Timing is paused until you play the right notes.";
   }
 
-  async function finishFollowAlong(): Promise<void> {
-    if (!song || !follower || finishing) return;
+  function updateCustomSelection(range: { startBeat: number; endBeat: number }): void {
+    if (setup.selection.kind !== "custom") return;
+    setup = {
+      ...setup,
+      selection: { ...setup.selection, ...range },
+    };
+  }
+
+  async function startPractice(): Promise<void> {
+    const plan = planProjection.plan;
+    if (!plan || practicing) return;
+    practicePlan = plan;
+    executionTimes = [];
+    practiceStartedAt = unixMs(Date.now());
+    captureId = `song-practice-${song?.id ?? "unknown"}-${practiceStartedAt}`;
+    previousTransport = {
+      bpm: runtime.transportBpm,
+      countInBars: runtime.countInBars,
+    };
+    practiceSession = new ScorePracticeSession(plan, {
+      mode: setup.mode,
+      bpm: setup.bpm,
+      strictness: setup.strictness,
+      totalTakes: setup.mode === "wait" ? 1 : setup.totalTakes,
+    });
+    completed = false;
+    practicing = true;
+    if (setup.mode === "wait") {
+      executionStartedAt = unixMs(Date.now());
+      practiceState = practiceSession.startExecution(monotonicMs(performance.now()));
+      status = "Follow the selected score. Timing is paused until you play the right notes.";
+      return;
+    }
+    await startCurrentPerformanceExecution();
+  }
+
+  async function startCurrentPerformanceExecution(): Promise<void> {
+    if (!practiceSession || !practicing) return;
+    clearPracticeTimers();
+    practiceState = practiceSession.markCountingIn();
+    runtime.setTransportBpm(setup.bpm);
+    runtime.setCountIn(setup.countInBars);
+    status = setup.countInBars === 0 ? "Performance starting." : "Count in.";
+    try {
+      const downbeat = await runtime.runCountIn();
+      if (!practiceSession || !practicing) return;
+      executionStartedAt = unixMs(Date.now());
+      practiceState = practiceSession.startExecution(downbeat);
+      status = `Take ${practiceState.take} · play with the metronome.`;
+      schedulePerformanceExecution(downbeat);
+    } catch (error) {
+      practicing = false;
+      runtime.stopPracticeClock();
+      restoreTransportPreferences();
+      status = message(error, "Performance practice could not start.");
+    }
+  }
+
+  function schedulePerformanceExecution(downbeat: ReturnType<typeof monotonicMs>): void {
+    const execution = practiceState?.execution;
+    if (!execution) return;
+    tickTimer = setInterval(() => {
+      if (!practiceSession) return;
+      practiceState = practiceSession.tick(monotonicMs(performance.now()));
+    }, 50);
+    const durationMs = beatToMs(execution.durationBeats, setup.bpm);
+    const lastGroup = execution.groups.at(-1);
+    const finalWindow = lastGroup
+      ? timingWindowMs({
+          bpm: setup.bpm,
+          durationBeats: lastGroup.durationBeats,
+          strictness: setup.strictness,
+        })
+      : 0;
+    const elapsedBeforeScheduling = Math.max(0, performance.now() - downbeat);
+    endTimer = setTimeout(
+      () => void finishCurrentExecution(),
+      Math.max(0, durationMs + finalWindow - elapsedBeforeScheduling),
+    );
+  }
+
+  async function finishCurrentExecution(): Promise<void> {
+    if (!song || !practiceSession || finishing) return;
+    clearPracticeTimers();
+    if (setup.mode === "performance") runtime.stopPracticeClock();
+    if (executionStartedAt !== undefined) {
+      executionTimes.push({ startedAt: executionStartedAt, endedAt: unixMs(Date.now()) });
+      executionStartedAt = undefined;
+    }
+    practiceState = practiceSession.finishExecution();
+    if (practiceState.status === "between") {
+      if (setup.mode === "performance") {
+        await startCurrentPerformanceExecution();
+      } else {
+        executionStartedAt = unixMs(Date.now());
+        practiceState = practiceSession.startExecution(monotonicMs(performance.now()));
+      }
+      return;
+    }
+    if (practiceState.status !== "complete") return;
+
     finishing = true;
     practicing = false;
-    const result = follower.finish();
     completed = true;
-    status = `Score complete · ${Math.round(result.score * 100)}% pitch progress.`;
+    const scorePercent = Math.round((practiceState.summary?.aggregateScore ?? 0) * 100);
+    status = `Practice complete · ${scorePercent}% score.`;
+    restoreTransportPreferences();
     try {
       await runtime.recordPractice({
+        id: captureId,
         source: "song",
-        tags: ["song", song.id, "score-following"],
-        xpEarned: Math.max(5, Math.round(result.score * 20)),
-        note: `Score follow-along · ${song.title}`,
+        instrument: runtime.activeInstrument,
+        startedAt: practiceStartedAt,
+        endedAt: unixMs(Date.now()),
+        tags: ["song", song.id, "score-following", setup.mode, setup.selection.kind],
+        runs: practiceRuns(),
+        xpEarned: 5 + Math.round((practiceState.summary?.aggregateScore ?? 0) * 15),
+        note: `Score practice · ${song.title} · ${scorePercent}%`,
       });
     } catch (error) {
       status = message(error, "Score complete, but practice logging failed.");
     } finally {
       finishing = false;
     }
+  }
+
+  function cancelPractice(): void {
+    clearPracticeTimers();
+    runtime.stopPracticeClock();
+    restoreTransportPreferences();
+    practiceState = practiceSession?.cancel();
+    practiceSession = undefined;
+    practicing = false;
+    completed = false;
+    status = "Practice cancelled.";
+  }
+
+  function practiceRuns(): ExerciseRunRecord[] {
+    if (!practicePlan) return [];
+    const executions = buildPracticeExecutions(practicePlan, {
+      totalTakes: setup.mode === "wait" ? 1 : setup.totalTakes,
+    });
+    return executions.map((execution, index) => {
+      const times = executionTimes[index] ?? {
+        startedAt: practiceStartedAt ?? unixMs(Date.now()),
+        endedAt: unixMs(Date.now()),
+      };
+      return {
+        id: `${captureId}-${execution.id}`,
+        exerciseId: "song.score-practice",
+        startedAt: times.startedAt,
+        endedAt: times.endedAt,
+        promptIds: execution.groups.map(({ id }) => id),
+        targetSkillIds: [],
+        instrument: runtime.activeInstrument,
+        difficulty: strictnessDifficulty(setup.strictness),
+        params: {
+          bpm: setup.bpm,
+          strictness: setup.strictness,
+          selection: setup.selection.kind,
+          segmentIds: execution.segmentIds,
+          take: execution.take,
+          totalTakes: setup.mode === "wait" ? 1 : setup.totalTakes,
+        },
+      };
+    });
+  }
+
+  function strictnessDifficulty(strictness: ScorePracticeSetupValue["strictness"]): number {
+    return { relaxed: 0.35, normal: 0.6, strict: 0.85 }[strictness];
+  }
+
+  function clearPracticeTimers(): void {
+    if (tickTimer !== undefined) clearInterval(tickTimer);
+    if (endTimer !== undefined) clearTimeout(endTimer);
+    tickTimer = undefined;
+    endTimer = undefined;
+  }
+
+  function restoreTransportPreferences(): void {
+    if (!previousTransport) return;
+    runtime.setTransportBpm(previousTransport.bpm);
+    runtime.setCountIn(previousTransport.countInBars);
+    previousTransport = undefined;
   }
 
   function notationProjection(
@@ -219,10 +449,28 @@
             {#if song.source?.format === "musicxml"}
               <MusicXmlScore
                 xml={song.source.content}
+                {selectionMap}
+                {highlightedRanges}
+                {customSelection}
+                snap={setup.selection.kind === "custom"
+                  ? setup.selection.snap
+                  : "note-group"}
+                selectionEnabled={setup.selection.kind === "custom" && !practicing}
+                onSelectionChange={updateCustomSelection}
                 onError={(message) => (status = message)}
               />
             {:else if notation.view}
-              <StaffNotation view={notation.view} />
+              <StaffNotation
+                view={notation.view}
+                {selectionMap}
+                {highlightedRanges}
+                {customSelection}
+                snap={setup.selection.kind === "custom"
+                  ? setup.selection.snap
+                  : "note-group"}
+                selectionEnabled={setup.selection.kind === "custom" && !practicing}
+                onSelectionChange={updateCustomSelection}
+              />
             {:else}
               <div class="rounded-md border p-4 text-sm text-muted-foreground">
                 Staff preview unavailable: {notation.error}
@@ -237,23 +485,35 @@
             <Button
               type="button"
               variant="outline"
-              disabled={practicing || groups.length === 0}
-              onclick={startFollowAlong}
+              disabled={practicing || !planProjection.plan}
+              onclick={startPractice}
             >
-              Start follow-along
+              Start practice
             </Button>
+            {#if practicing}
+              <Button type="button" variant="outline" onclick={cancelPractice}>
+                Cancel practice
+              </Button>
+            {/if}
           </Card.Footer>
         </Card.Root>
 
-        {#if practicing || completed}
+        {#if practicing}
           <Card.Root>
             <Card.Header>
-              <Card.Description>Wait mode</Card.Description>
-              <Card.Title>{completed ? "Score complete" : `Play ${expectedNames.join(" + ")}`}</Card.Title>
+              <Card.Description>
+                {setup.mode === "wait" ? "Wait mode" : `Performance · take ${practiceState?.take ?? 1}`}
+                · {practiceState?.currentSegmentId ?? "full"}
+              </Card.Description>
+              <Card.Title>
+                {practiceState?.status === "count-in"
+                  ? "Get ready"
+                  : `Play ${expectedNames.join(" + ")}`}
+              </Card.Title>
             </Card.Header>
             <Card.Content class="grid gap-5">
               <SegmentProgress
-                total={groups.length}
+                total={practiceState?.execution?.groups.length ?? 0}
                 current={live?.currentGroupIndex ?? 0}
                 label="Score"
               />
@@ -264,9 +524,32 @@
             </Card.Content>
           </Card.Root>
         {/if}
+
+        {#if completed && practiceState?.summary}
+          <ScorePracticeSummary summary={practiceState.summary} />
+        {/if}
       </div>
 
       <aside class="grid content-start gap-4">
+        <Card.Root>
+          <Card.Header>
+            <Card.Description>Practice setup</Card.Description>
+            <Card.Title>Choose a range</Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <ScorePracticeSetup
+              sections={score.sections}
+              scoreEndBeat={Math.max(
+                0,
+                ...score.notes.map((note) => note.startBeat + note.durationBeats),
+              )}
+              value={setup}
+              active={practicing}
+              onChange={updateSetup}
+            />
+          </Card.Content>
+        </Card.Root>
+
         <Card.Root>
           <Card.Header>
             <Card.Description>Score details</Card.Description>
@@ -290,6 +573,9 @@
             </div>
           </Card.Content>
         </Card.Root>
+        {#if planProjection.error}
+          <p class="text-sm text-destructive" role="alert">{planProjection.error}</p>
+        {/if}
         <p class="text-sm text-muted-foreground" role="status">{status}</p>
       </aside>
     </section>

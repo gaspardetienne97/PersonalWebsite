@@ -136,6 +136,7 @@ function createToneMock() {
     droneAttack,
     droneRelease,
     playerStart,
+    dispose,
     masterGain: () => gains.find((gain) => gain.isMaster),
     metronomeGain: () => gains.find((gain) => !gain.isMaster),
     droneGain: () => gains.filter((gain) => !gain.isMaster).at(-1),
@@ -195,6 +196,19 @@ describe("music-core/sound", () => {
 
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(1, ["C4", "E4", "G4"], 0.6, 10, 0.8);
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["B4"], 0.5, 10.8, 0.8);
+  });
+
+  test("replaces scheduled pattern playback instead of overlapping it", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    sound.playPattern([{ midiNotes: [60], offsetSeconds: 0, durationSeconds: 2 }]);
+    sound.playPattern([{ midiNotes: [67], offsetSeconds: 0, durationSeconds: 1 }]);
+
+    expect(mock.dispose).toHaveBeenCalledTimes(1);
+    expect(mock.synthTrigger).toHaveBeenNthCalledWith(1, ["C4"], 2, 10, 0.8);
+    expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["G4"], 1, 10, 0.8);
   });
 
   test("starts and stops a generated pattern loop", async () => {

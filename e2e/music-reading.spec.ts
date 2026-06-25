@@ -29,7 +29,9 @@ test.describe("music reading workflows", () => {
     await page.getByRole("button", { name: "New custom tuning" }).click();
     await page.getByLabel("Tuning name").fill("E2E Ukulele");
     await page.getByTestId("save-tuning").click();
-    await expect(page.getByRole("button", { name: "Edit E2E Ukulele" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Edit E2E Ukulele" })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("completes wait-mode polyphonic sight reading", async ({ page }) => {

@@ -6,6 +6,7 @@ import {
 } from "@repo/music-core/engines/import";
 
 export { parseMusicXmlScore, type ParseMusicXmlScoreOptions } from "./musicxml";
+export { extractCompressedMusicXml } from "./mxl";
 
 export interface ParseMidiScoreOptions {
   id: string;

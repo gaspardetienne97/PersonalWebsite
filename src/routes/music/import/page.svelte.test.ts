@@ -1,4 +1,5 @@
 import { Midi } from "@tonejs/midi";
+import JSZip from "jszip";
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
@@ -86,6 +87,38 @@ describe("/music/import/+page.svelte", () => {
       { format: "musicxml", content: MUSIC_XML },
     );
     await vi.waitFor(() => expect(document.body.textContent).toContain("Saved to repertoire."));
+  });
+
+  test("extracts and saves a compressed MusicXML score with its source", async () => {
+    const saveScore = vi.fn(async (_score: unknown, _source?: SongSource) => ({
+      id: "song-mxl",
+      title: "XML Study",
+    }));
+    render(Page, { library: { saveImportedSong: vi.fn(), saveScore } });
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    const archive = new JSZip();
+    archive.file(
+      "META-INF/container.xml",
+      `<container><rootfiles><rootfile full-path="score.musicxml"/></rootfiles></container>`,
+    );
+    archive.file("score.musicxml", MUSIC_XML);
+    const file = new File([await archive.generateAsync({ type: "uint8array" })], "xml-study.mxl", {
+      type: "application/vnd.recordare.musicxml",
+    });
+    Object.defineProperty(input, "files", { value: [file], configurable: true });
+    input?.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("XML Study"));
+    const save = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+      button.textContent?.includes("Save to repertoire"),
+    );
+    save?.click();
+
+    await vi.waitFor(() => expect(saveScore).toHaveBeenCalledOnce());
+    expect(saveScore).toHaveBeenCalledWith(
+      expect.objectContaining({ origin: "musicxml", title: "XML Study" }),
+      { format: "musicxml", content: MUSIC_XML },
+    );
   });
 });
 

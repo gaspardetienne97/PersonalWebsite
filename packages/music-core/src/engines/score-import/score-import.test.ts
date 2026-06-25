@@ -1,9 +1,15 @@
 import { Midi } from "@tonejs/midi";
+import JSZip from "jszip";
 import { describe, expect, test } from "vitest";
 
 import type { ImportedSong } from "@repo/music-core/engines/import";
 
-import { parseMidiScore, parseMusicXmlScore, scoreFromImportedSong } from "./index";
+import {
+  extractCompressedMusicXml,
+  parseMidiScore,
+  parseMusicXmlScore,
+  scoreFromImportedSong,
+} from "./index";
 
 describe("scoreFromImportedSong", () => {
   test("preserves beat-native timing maps and classifies track roles", () => {
@@ -212,6 +218,55 @@ describe("parseMusicXmlScore", () => {
     expect(() => parseMusicXmlScore('<score-timewise version="4.0"/>', { id: "timewise" })).toThrow(
       "Only score-partwise MusicXML is supported",
     );
+  });
+});
+
+describe("extractCompressedMusicXml", () => {
+  test("extracts the container-declared root score from an MXL archive", async () => {
+    const archive = new JSZip();
+    archive.file(
+      "META-INF/container.xml",
+      `<?xml version="1.0"?>
+<container>
+  <rootfiles>
+    <rootfile full-path="scores/main.musicxml" media-type="application/vnd.recordare.musicxml+xml"/>
+  </rootfiles>
+</container>`,
+    );
+    archive.file("scores/main.musicxml", MUSIC_XML);
+    archive.file("scores/ignored.musicxml", "<score-partwise/>");
+
+    const data = await archive.generateAsync({ type: "arraybuffer" });
+
+    await expect(extractCompressedMusicXml(data)).resolves.toBe(MUSIC_XML);
+  });
+
+  test("falls back to the first score XML when container metadata is absent", async () => {
+    const archive = new JSZip();
+    archive.file("z-last.musicxml", '<score-partwise id="last"/>');
+    archive.file("a-first.xml", MUSIC_XML);
+    archive.file("META-INF/metadata.xml", "<metadata/>");
+
+    const data = await archive.generateAsync({ type: "arraybuffer" });
+
+    await expect(extractCompressedMusicXml(data)).resolves.toBe(MUSIC_XML);
+  });
+
+  test("rejects invalid archives and unsafe container paths", async () => {
+    await expect(extractCompressedMusicXml(new Uint8Array([1, 2, 3]).buffer)).rejects.toThrow(
+      "Compressed MusicXML archive could not be opened",
+    );
+
+    const archive = new JSZip();
+    archive.file(
+      "META-INF/container.xml",
+      `<container><rootfiles><rootfile full-path="../score.musicxml"/></rootfiles></container>`,
+    );
+    archive.file("score.musicxml", MUSIC_XML);
+
+    await expect(
+      extractCompressedMusicXml(await archive.generateAsync({ type: "arraybuffer" })),
+    ).rejects.toThrow("unsafe score path");
   });
 });
 

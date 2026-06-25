@@ -70,6 +70,7 @@
     "@types/node": "catalog:",
     "@vitest/browser": "^4.1.0",
     "drizzle-kit": "catalog:",
+    "jszip": "^3.10.1",
     "mdsvex": "catalog:",
     "playwright": "catalog:",
     "storybook": "catalog:",

@@ -131,6 +131,20 @@ This file provides guidance for agents working on the Music app under
 - `src/routes/music/_components/MusicXmlScore.svelte` is the shared lazy OSMD
   renderer for original MusicXML source. Keep OSMD imports inside this browser
   component and preserve canonical controls when rendering fails.
+- `src/routes/music/_components/notation-selection.ts` is the shared
+  renderer-independent selection seam. VexFlow and OSMD adapters provide
+  canonical beat-backed `NotationHitTarget`s and consume its range/overlay
+  helpers. Keep score-plan construction, looping, and follower state out of
+  renderer components.
+- `StaffNotation` and `MusicXmlScore` accept the same optional selection props:
+  canonical selection map, highlighted ranges, custom range, snap mode,
+  enabled state, and `onSelectionChange`. Preserve drag and two-tap behavior in
+  both renderers. OSMD geometry must come from public `GraphicSheet` data and
+  its overlay must remain separate from OSMD's source model/SVG classes.
+  Keep each renderer's outer wrapper and scroll host constrained with
+  `min-w-0 max-w-full`; their SVGs may be wider than the viewport, but that
+  width must remain inside the renderer's horizontal scroller rather than
+  widening the Music page.
 - **Instrument applicability is one primitive, not per-page literals.** The
   "generalize content across instruments" rule lives in `domain/applicability.ts`
   (re-exported from `@repo/music-core/domain`): `VIEWABLE_INSTRUMENTS` (the
@@ -185,6 +199,11 @@ This file provides guidance for agents working on the Music app under
   lives in `@repo/music-core/engines/jazz`.
 - `/music/play`: play/practice entry point.
 - `/music/songs`: persisted repertoire list and preview.
+- `/music/import`: accepts MIDI, uncompressed MusicXML, and compressed `.mxl`.
+  Keep archive extraction in `@repo/music-core/engines/score-import`; resolve
+  `META-INF/container.xml` first and persist only the extracted XML through the
+  existing MusicXML `SongSource`. Do not add an archive-specific storage format
+  or make Song Studio understand ZIP files.
 - `/music/songs/[id]`: Phase 3 Song Studio foundation. It loads a stored
   canonical `Score`, renders shared notation when supported, registers preview
   playback, and runs wait-mode `score-follower` through the shared input router.
@@ -193,7 +212,18 @@ This file provides guidance for agents working on the Music app under
   canonical beats rather than own range or looping state. Keep import parsing
   in `score-import`, persistence in `SongLibrary`, range/session behavior in
   `score-practice`, and note grading in `score-follower`; the route should only
-  compose them with shared runtime lifecycle.
+  compose them with shared runtime lifecycle. The route setup supports
+  Wait/Performance, Whole/Sections/Custom Range, Sequence/Per Section,
+  measure/note-group snap, BPM/strictness/count-in, and 1/2/4/8 finite takes.
+  Preserve one journal capture per completed practice session with one
+  `ExerciseRunRecord` per execution and no imported-song mastery events.
+  `e2e/music-import.spec.ts` is the regression workflow for MIDI and MusicXML
+  import-to-practice behavior. Preserve its direct renderer selection,
+  zero-count-in multi-take Performance, persistence, and 375px overflow checks
+  when changing Song Studio, notation renderers, setup controls, or transport.
+  The completed baseline is 13 notation/selection tests, 5 Song Studio route
+  tests, 4 import E2E scenarios (including `.mxl`), and a green 45-test full
+  Playwright suite.
 - `/music/play/scales`: scales and technique trainer. The aside shows a
   reference of the practiced scale on the chosen instrument via `InstrumentView`.
 - `/music/play/spider`: graded guitar/ukulele 1-2-3-4 chromatic drill. Setup
@@ -302,6 +332,15 @@ Important areas:
   and owns aggregate take/section summaries. VexFlow/OSMD geometry, count-in
   audio, timers, persistence calls, and Svelte lifecycle do not belong in this
   engine.
+- Song Studio performance timing starts from the monotonic downbeat returned by
+  `MusicRuntime.runCountIn()`. Always stop it through
+  `runtime.stopPracticeClock()` on completion, cancellation, errors, and route
+  teardown; do not derive scoring timestamps from wall-clock time or duplicate
+  transport instances.
+- `SoundEngine.playPattern()` has replacement semantics: each invocation
+  cancels the previous scheduled pattern through its dedicated playback synth.
+  Preserve this when changing score previews, exercise replay, transport
+  playback, or pattern loops; repeated user actions must not layer copies.
 - `src/exercises/string-spider.ts`: guitar/ukulele one-string 1-2-3-4 target
   generation and pitch-order/evenness grading. Keep fretboard rendering and
   route state out of this exercise.

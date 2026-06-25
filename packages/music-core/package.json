@@ -73,6 +73,7 @@
   "dependencies": {
     "@tonejs/midi": "^2.0.28",
     "dexie": "catalog:",
+    "jszip": "^3.10.1",
     "tonal": "catalog:",
     "tone": "^15.3.11",
     "vexflow": "catalog:",

@@ -9,7 +9,10 @@
     type ImportedSong,
   } from "@repo/music-core/engines/import";
   import type { Score } from "@repo/music-core/domain";
-  import { parseMusicXmlScore } from "@repo/music-core/engines/score-import";
+  import {
+    extractCompressedMusicXml,
+    parseMusicXmlScore,
+  } from "@repo/music-core/engines/score-import";
   import { SongLibrary } from "@repo/music-core/engines/song-library";
   import {
     PracticeStore,
@@ -93,9 +96,11 @@
   async function importFile(file: File): Promise<void> {
     status = `Parsing ${file.name}…`;
     try {
-      const fallbackName = file.name.replace(/\.(midi?|musicxml|xml)$/i, "");
-      if (/\.(musicxml|xml)$/i.test(file.name)) {
-        const xml = await file.text();
+      const fallbackName = file.name.replace(/\.(midi?|musicxml|mxl|xml)$/i, "");
+      if (/\.(musicxml|mxl|xml)$/i.test(file.name)) {
+        const xml = /\.mxl$/i.test(file.name)
+          ? await extractCompressedMusicXml(await file.arrayBuffer())
+          : await file.text();
         musicXmlScore = parseMusicXmlScore(xml, {
           id: "musicxml-preview",
           fallbackName,
@@ -176,13 +181,13 @@
     </span>
     <span class="font-semibold">Drop a score file, or browse</span>
     <span class="text-sm text-muted-foreground"
-      >.mid / .midi / .musicxml / .xml · parsed locally, never uploaded</span
+      >.mid / .midi / .musicxml / .mxl / .xml · parsed locally, never uploaded</span
     >
   </button>
   <input
     bind:this={fileInput}
     type="file"
-    accept=".mid,.midi,.musicxml,.xml,audio/midi,application/vnd.recordare.musicxml+xml,application/xml,text/xml"
+    accept=".mid,.midi,.musicxml,.mxl,.xml,audio/midi,application/vnd.recordare.musicxml,application/vnd.recordare.musicxml+xml,application/xml,text/xml"
     class="hidden"
     aria-label="Score file"
     onchange={(event) => onFiles(event.currentTarget.files)}

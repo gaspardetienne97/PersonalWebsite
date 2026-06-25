@@ -162,6 +162,7 @@ export function scoreToPattern(score: Score, options: { bpm?: number } = {}): Sc
 export class SoundEngine {
   #tone: ToneSoundModule | undefined;
   #synth: ToneInstrument | undefined;
+  #patternSynth: ToneInstrument | undefined;
   #sampler: ToneInstrument | undefined;
   #players: TonePlayers | undefined;
   #metronome: ToneInstrument | undefined;
@@ -263,10 +264,15 @@ export class SoundEngine {
   }
 
   playPattern(steps: SoundPatternStep[], velocity = 0.8): void {
-    if (!this.enabled || !this.#tone) return;
+    if (!this.enabled || !this.#tone || !this.#master) return;
+    this.#patternSynth?.dispose();
+    this.#patternSynth = new this.#tone.PolySynth(
+      this.#tone.Synth,
+      SOUND_PRESETS[this.#instrumentName],
+    ).connect(this.#master);
     const startAt = this.#tone.now();
     for (const step of steps) {
-      this.#instrument?.triggerAttackRelease(
+      this.#patternSynth.triggerAttackRelease(
         step.midiNotes.map((note) => midiToNote(note)),
         step.durationSeconds,
         startAt + step.offsetSeconds,
@@ -431,6 +437,7 @@ export class SoundEngine {
   dispose(): void {
     this.stopPatternLoop();
     this.#synth?.dispose();
+    this.#patternSynth?.dispose();
     this.#sampler?.dispose();
     this.#players?.dispose();
     this.#metronome?.dispose();
@@ -439,6 +446,7 @@ export class SoundEngine {
     this.#droneGain?.dispose();
     this.#master?.dispose();
     this.#synth = undefined;
+    this.#patternSynth = undefined;
     this.#sampler = undefined;
     this.#players = undefined;
     this.#metronome = undefined;
