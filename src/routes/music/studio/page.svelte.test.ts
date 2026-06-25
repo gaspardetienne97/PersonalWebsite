@@ -120,6 +120,25 @@ describe("/music/studio/+page.svelte", () => {
     clickSpy.mockRestore();
   });
 
+  test("exports the pattern as a WAV download", async () => {
+    const createSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:wav");
+    const revokeSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    render(Page);
+
+    studioButton("Export WAV")!.click();
+    await vi.waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1));
+    const downloaded = createSpy.mock.calls.at(-1)?.[0] as Blob;
+    expect(downloaded.type).toBe("audio/wav");
+    expect(downloaded.size).toBeGreaterThan(44);
+
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
+    clickSpy.mockRestore();
+  });
+
   test("toggles a step cell", async () => {
     render(Page);
     const cell = document.querySelector<HTMLButtonElement>('button[aria-label="Snare step 1"]');

@@ -7,6 +7,11 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
 
   import type { Score, ScoreNote } from "@repo/music-core/domain";
+  import {
+    midiToFrequency,
+    renderEventsToWav,
+    type AudioRenderEvent,
+  } from "@repo/music-core/engines/audio-export";
   import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
 
   import {
@@ -337,6 +342,83 @@
     downloadBlob(scoreToMidiBlob(patternScore()), "studio-pattern.mid");
   }
 
+  let exporting = $state(false);
+
+  /** Decode the active kit's playable samples into AudioBuffers keyed by MIDI
+   *  note, so the WAV render mixes the real one-shots (synth fallback otherwise). */
+  async function decodeActiveKitBuffers(): Promise<Map<number, AudioBuffer>> {
+    const buffers = new Map<number, AudioBuffer>();
+    const store = runtime.sampleKits;
+    if (!store || !activeKit) return buffers;
+    const AudioCtor =
+      (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+        .AudioContext ??
+      (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtor) return buffers;
+
+    const resolved = await store.resolvePlayback(activeKit.kitId);
+    const blobById = new Map(resolved.samples.map((sample) => [sample.asset.id, sample.blob]));
+    const context = new AudioCtor();
+    try {
+      for (const assignment of resolved.kit.assignments) {
+        const blob = blobById.get(assignment.sampleId);
+        if (!blob) continue;
+        try {
+          buffers.set(assignment.midiNote, await context.decodeAudioData(await blob.arrayBuffer()));
+        } catch {
+          // Undecodable sample: leave it to the synth fallback below.
+        }
+      }
+    } finally {
+      await context.close();
+    }
+    return buffers;
+  }
+
+  function patternAudioEvents(buffers: Map<number, AudioBuffer>): AudioRenderEvent[] {
+    const secondsPerStep = secondsPerSixteenth();
+    const synthDuration = Math.min(0.16, secondsPerStep * 0.9);
+    const events: AudioRenderEvent[] = [];
+    sequencer.rows.forEach((row, rowIndex) => {
+      for (let step = 0; step < STEPS; step += 1) {
+        if (!grid[rowIndex]?.[step]) continue;
+        const startSec = step * secondsPerStep;
+        const buffer = buffers.get(row.midi);
+        events.push(
+          buffer
+            ? { startSec, buffer, velocity: 0.9 }
+            : {
+                startSec,
+                frequency: midiToFrequency(row.midi),
+                durationSec: synthDuration,
+                velocity: 0.9,
+              },
+        );
+      }
+    });
+    return events;
+  }
+
+  async function exportPatternWav(): Promise<void> {
+    if (exporting) return;
+    exporting = true;
+    patternStatus = "Rendering audio…";
+    try {
+      // Offline render — no live AudioContext needed. Samples are mixed in only
+      // if a kit is already active; otherwise rows render as synth fallback.
+      const buffers = await decodeActiveKitBuffers();
+      const blob = await renderEventsToWav(patternAudioEvents(buffers), {
+        durationSec: patternDurationSec(),
+      });
+      downloadBlob(blob, "studio-pattern.wav");
+      patternStatus = "Exported studio-pattern.wav.";
+    } catch (error) {
+      patternStatus = error instanceof Error ? error.message : "Audio export failed.";
+    } finally {
+      exporting = false;
+    }
+  }
+
   function downloadBlob(blob: Blob, fileName: string): void {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -403,6 +485,9 @@
       </Button>
       <Button type="button" variant="outline" onclick={exportPatternMidi}>
         <Download class="size-4" aria-hidden="true" />Export MIDI
+      </Button>
+      <Button type="button" variant="outline" disabled={exporting} onclick={() => void exportPatternWav()}>
+        <Download class="size-4" aria-hidden="true" />Export WAV
       </Button>
       <Button type="button" onclick={() => void togglePlay()}>
         {#if playing}
