@@ -32,6 +32,9 @@
   let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const recorder = new RecordingSession();
   const audioRecorder = new AudioTakeRecorder();
+  // MIDI takes are tiny structured JSON, so they persist via the runtime's
+  // Dexie-backed local state (OPFS is for binaries; audio takes use it).
+  const MIDI_TAKES_ID = "music.recording.midi-takes";
 
   let recording = $state(false);
   let liveCount = $state(0);
@@ -101,9 +104,34 @@
     });
   });
 
-  onMount(async () => {
-    await Promise.all([loadAudioTakes(), loadAudioDevices()]);
+  onMount(() => {
+    void loadAudioDevices();
   });
+
+  // Storage is attached by the parent layout from its own onMount, which runs
+  // AFTER this page's onMount (child mounts first). So load persisted takes once
+  // storage becomes available rather than reading eagerly (which silently no-ops).
+  let storageLoaded = false; // plain, non-reactive — keeps this effect from looping.
+  $effect(() => {
+    const media = runtime.media;
+    if (!media || storageLoaded) return;
+    storageLoaded = true;
+    void loadMidiTakes();
+    void loadAudioTakes();
+  });
+
+  async function loadMidiTakes(): Promise<void> {
+    const saved = await runtime.readLocalState<MidiTake[]>(MIDI_TAKES_ID);
+    if (!Array.isArray(saved) || saved.length === 0) return;
+    recorder.restore(saved);
+    midiTakes = recorder.takes();
+    if (midiTakes[0]) compareA = midiTakes[0].id;
+    if (midiTakes[1]) compareB = midiTakes[1].id;
+  }
+
+  function saveMidiTakes(): void {
+    void runtime.writeLocalState(MIDI_TAKES_ID, recorder.takes());
+  }
 
   onDestroy(() => {
     unsubscribeRecorder();
@@ -128,6 +156,7 @@
       midiTakes = recorder.takes();
       if (midiTakes[0]) compareA = midiTakes[0].id;
       if (midiTakes[1]) compareB = midiTakes[1].id;
+      saveMidiTakes();
       if (audioTake) await saveAudioTake(audioTake);
     } else {
       const startedAt = performance.now();
@@ -147,6 +176,7 @@
   function removeTake(id: string): void {
     recorder.remove(id);
     midiTakes = recorder.takes();
+    saveMidiTakes();
   }
 
   function exportTakeMidi(take: MidiTake): void {

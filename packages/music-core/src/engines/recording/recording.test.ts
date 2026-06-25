@@ -52,6 +52,25 @@ describe("RecordingSession", () => {
     expect(result.accuracy).toBeCloseTo(2 / 3, 2);
   });
 
+  test("restores persisted takes and keeps new ids unique", () => {
+    const session = new RecordingSession();
+    session.restore([
+      {
+        id: "take-2",
+        name: "Take 2",
+        source: "midi",
+        notes: [{ midi: 60, atMs: 0, velocity: 0.8 }],
+        durationMs: 100,
+      },
+    ]);
+    expect(session.takes()).toHaveLength(1);
+
+    session.start(0);
+    session.capture(noteOn(64, 0));
+    const next = session.stop(100);
+    expect(next.id).toBe("take-3"); // counter advanced past the restored take-2
+  });
+
   test("removes a take", () => {
     const session = new RecordingSession();
     session.start(0);

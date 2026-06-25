@@ -73,6 +73,16 @@ export class RecordingSession {
     return this.#takes.map((take) => ({ ...take, notes: [...take.notes] }));
   }
 
+  /** Reload persisted takes (most-recent first) and keep the id counter ahead
+   *  of them so newly recorded takes don't collide with restored ids. */
+  restore(takes: Take[]): void {
+    this.#takes = takes.map((take) => ({ ...take, notes: [...take.notes] }));
+    this.#counter = takes.reduce((max, take) => {
+      const n = Number(take.id.replace(/^take-/, ""));
+      return Number.isFinite(n) ? Math.max(max, n) : max;
+    }, this.#counter);
+  }
+
   take(id: string): Take | undefined {
     const found = this.#takes.find((take) => take.id === id);
     return found ? { ...found, notes: [...found.notes] } : undefined;
