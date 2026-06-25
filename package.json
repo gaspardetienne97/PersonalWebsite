@@ -27,6 +27,7 @@
   "dependencies": {
     "@fontsource/fira-mono": "catalog:",
     "@inlang/paraglide-js": "catalog:",
+    "@moonwave99/fretboard.js": "catalog:",
     "@node-rs/argon2": "^2.0.2",
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",
@@ -43,6 +44,7 @@
     "lucide-svelte": "catalog:",
     "mode-watcher": "catalog:",
     "opensheetmusicdisplay": "catalog:",
+    "piano-chart": "catalog:",
     "postgres": "catalog:",
     "svelte": "catalog:",
     "svguitar": "catalog:",
