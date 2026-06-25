@@ -27,6 +27,7 @@
     "./engines/media-library": "./src/engines/media-library/index.ts",
     "./engines/midi": "./src/engines/midi/index.ts",
     "./engines/notation": "./src/engines/notation/index.ts",
+    "./engines/pad-color": "./src/engines/pad-color/index.ts",
     "./engines/piano-roll": "./src/engines/piano-roll/index.ts",
     "./engines/progress": "./src/engines/progress/index.ts",
     "./engines/recording": "./src/engines/recording/index.ts",

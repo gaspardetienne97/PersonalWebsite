@@ -9,6 +9,7 @@ describe("/music/connect/+page.svelte", () => {
 
     expect(document.querySelector("h1")?.textContent).toContain("Connect Instruments");
     expect(document.body.textContent).toContain("MIDI devices");
+    expect(document.body.textContent).toContain("MPC One+ pad LEDs");
     expect(document.body.textContent).toContain("Preferred source per instrument");
     expect(document.body.textContent).toContain("On-screen fallback");
     expect(

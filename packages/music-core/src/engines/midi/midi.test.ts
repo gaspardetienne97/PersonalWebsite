@@ -142,25 +142,35 @@ describe("music-core/midi", () => {
     const mock = createWebMidiMock();
     const keyboard = new FakeInput("keys-1", "KeyLab 61", "Arturia");
     mock.facade.inputs.push(keyboard);
+    const outSend = vi.fn();
     mock.facade.outputs.push({
       id: "out-1",
       name: "KeyLab MIDI Out",
       manufacturer: "Arturia",
       state: "connected",
       type: "output",
+      send: outSend,
     });
     const engine = new MidiEngine({
       capabilityTarget: { requestMIDIAccess: vi.fn() },
       loadWebMidi: async () => mock.facade,
     });
     const events: unknown[] = [];
+    const rawEvents: unknown[] = [];
     engine.subscribe((event) => events.push(event));
+    engine.subscribeRaw((event) => rawEvents.push(event));
 
     await expect(engine.enable()).resolves.toBe(true);
     await expect(engine.enable()).resolves.toBe(true);
-    expect(mock.facade.enable).toHaveBeenCalledWith({ sysex: false });
+    expect(mock.facade.enable).toHaveBeenCalledWith({ sysex: true });
     expect(mock.facade.enable).toHaveBeenCalledOnce();
+    expect(engine.state.sysexEnabled).toBe(true);
     expect(engine.devices).toHaveLength(2);
+
+    // Raw MIDI/SysEx output to a port by id.
+    expect(engine.send("out-1", [0xf0, 0x47, 0xf7])).toBe(true);
+    expect(outSend).toHaveBeenCalledWith([0xf0, 0x47, 0xf7]);
+    expect(engine.send("missing", [0x90, 60, 100])).toBe(false);
 
     keyboard.emit([0x90, 64, 127], 42);
     expect(events.at(-1)).toMatchObject({
@@ -181,6 +191,65 @@ describe("music-core/midi", () => {
       controller: 2,
       instrument: "aerophone",
     });
+
+    keyboard.emit([0xf0, 0x47, 0x00, 0x3b, 0x01, 0xf7], 60);
+    expect(rawEvents.at(-1)).toEqual({
+      data: [0xf0, 0x47, 0x00, 0x3b, 0x01, 0xf7],
+      timestamp: 60,
+      deviceId: "keys-1",
+    });
+  });
+
+  test("falls back to ordinary MIDI when SysEx permission is denied", async () => {
+    const mock = createWebMidiMock();
+    const outSend = vi.fn();
+    mock.facade.outputs.push({
+      id: "out-1",
+      name: "MPC One+ Public",
+      manufacturer: "Akai Professional",
+      state: "connected",
+      type: "output",
+      send: outSend,
+    });
+    vi.mocked(mock.facade.enable)
+      .mockRejectedValueOnce(new Error("SysEx permission denied"))
+      .mockResolvedValueOnce(undefined);
+    const engine = new MidiEngine({
+      capabilityTarget: { requestMIDIAccess: vi.fn() },
+      loadWebMidi: async () => mock.facade,
+    });
+
+    await expect(engine.enable()).resolves.toBe(true);
+    expect(mock.facade.enable).toHaveBeenNthCalledWith(1, { sysex: true });
+    expect(mock.facade.enable).toHaveBeenNthCalledWith(2, { sysex: false });
+    expect(engine.state).toMatchObject({
+      enabled: true,
+      sysexEnabled: false,
+      sysexError: "SysEx permission denied",
+    });
+    expect(engine.send("out-1", [0x90, 36, 100])).toBe(true);
+    expect(engine.send("out-1", [0xf0, 0x47, 0xf7])).toBe(false);
+    expect(outSend).toHaveBeenCalledOnce();
+  });
+
+  test("does not send before MIDI has been enabled", () => {
+    const mock = createWebMidiMock();
+    const outSend = vi.fn();
+    mock.facade.outputs.push({
+      id: "out-1",
+      name: "MPC One+ Public",
+      manufacturer: "Akai Professional",
+      state: "connected",
+      type: "output",
+      send: outSend,
+    });
+    const engine = new MidiEngine({
+      capabilityTarget: { requestMIDIAccess: vi.fn() },
+      loadWebMidi: async () => mock.facade,
+    });
+
+    expect(engine.send("out-1", [0x90, 36, 100])).toBe(false);
+    expect(outSend).not.toHaveBeenCalled();
   });
 
   test("reports missing Web MIDI support under an unsupported browser stub", async () => {
@@ -202,7 +271,7 @@ describe("music-core/midi", () => {
 
   test("reports a denied MIDI permission request without enabling the engine", async () => {
     const mock = createWebMidiMock();
-    vi.mocked(mock.facade.enable).mockRejectedValueOnce(new Error("Permission denied"));
+    vi.mocked(mock.facade.enable).mockRejectedValue(new Error("Permission denied"));
     const engine = new MidiEngine({
       capabilityTarget: { requestMIDIAccess: vi.fn() },
       loadWebMidi: async () => mock.facade,

@@ -41,6 +41,8 @@ export interface WebMidiPort {
   manufacturer?: string;
   state?: string;
   type: string;
+  /** Outputs can send raw MIDI bytes (incl. SysEx); inputs leave this unset. */
+  send?(data: number[] | Uint8Array, options?: unknown): unknown;
 }
 
 export interface WebMidiMessage {
@@ -70,6 +72,8 @@ export interface WebMidiFacade {
 export interface MidiEngineState {
   supported: boolean;
   enabled: boolean;
+  sysexEnabled: boolean;
+  sysexError?: string;
   error?: string;
   inputs: MidiDeviceSummary[];
   outputs: MidiDeviceSummary[];
@@ -82,6 +86,12 @@ interface MidiEngineOptions {
 
 type MidiListener = (event: NoteEvent) => void;
 type MidiStateListener = (state: MidiEngineState) => void;
+export interface RawMidiEvent {
+  data: number[];
+  timestamp: number;
+  deviceId: string;
+}
+type RawMidiListener = (event: RawMidiEvent) => void;
 
 const AEROPHONE_PROFILE: MidiDeviceProfile = {
   id: "roland-aerophone",
@@ -187,6 +197,7 @@ export class MidiEngine {
   #loadWebMidi: () => Promise<WebMidiFacade>;
   #webMidi: WebMidiFacade | undefined;
   #listeners = new Set<MidiListener>();
+  #rawListeners = new Set<RawMidiListener>();
   #stateListeners = new Set<MidiStateListener>();
   #inputListeners = new Map<WebMidiInput, (event: WebMidiMessage) => void>();
   #handlePortsChanged = () => this.#refreshDevices();
@@ -198,6 +209,7 @@ export class MidiEngine {
     this.state = {
       supported: capability.supported,
       enabled: false,
+      sysexEnabled: false,
       ...(capability.reason ? { error: capability.reason } : {}),
       inputs: [],
       outputs: [],
@@ -216,9 +228,32 @@ export class MidiEngine {
     return [...this.state.inputs, ...this.state.outputs];
   }
 
+  /**
+   * Send raw MIDI bytes (including SysEx) to an output port by id. Returns false
+   * if MIDI isn't enabled or the port is unknown/can't send. Requires `enable()`
+   * to have succeeded with SysEx granted.
+   */
+  send(outputId: string, data: number[] | Uint8Array): boolean {
+    if (!this.state.enabled) return false;
+    if (data[0] === 0xf0 && !this.state.sysexEnabled) return false;
+    const output = this.#webMidi?.outputs.find((port) => port.id === outputId);
+    if (!output?.send) return false;
+    try {
+      output.send(data);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   subscribe(listener: MidiListener): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
+  }
+
+  subscribeRaw(listener: RawMidiListener): () => void {
+    this.#rawListeners.add(listener);
+    return () => this.#rawListeners.delete(listener);
   }
 
   subscribeState(listener: MidiStateListener): () => void {
@@ -238,12 +273,26 @@ export class MidiEngine {
 
     try {
       this.#webMidi = await this.#loadWebMidi();
-      await this.#webMidi.enable({ sysex: false });
+      let sysexEnabled = true;
+      let sysexError: string | undefined;
+      try {
+        await this.#webMidi.enable({ sysex: true });
+      } catch (error) {
+        sysexEnabled = false;
+        sysexError = error instanceof Error ? error.message : "SysEx access was denied.";
+        await this.#webMidi.enable({ sysex: false });
+      }
       this.#webMidi.addListener("connected", this.#handlePortsChanged);
       this.#webMidi.addListener("disconnected", this.#handlePortsChanged);
       this.#webMidi.addListener("portschanged", this.#handlePortsChanged);
       this.#refreshDevices();
-      this.#updateState({ supported: true, enabled: true, error: undefined });
+      this.#updateState({
+        supported: true,
+        enabled: true,
+        sysexEnabled,
+        sysexError,
+        error: undefined,
+      });
       return true;
     } catch (error) {
       this.#updateState({
@@ -264,7 +313,13 @@ export class MidiEngine {
       await this.#webMidi.disable();
     }
     this.#webMidi = undefined;
-    this.#updateState({ enabled: false, inputs: [], outputs: [] });
+    this.#updateState({
+      enabled: false,
+      sysexEnabled: false,
+      sysexError: undefined,
+      inputs: [],
+      outputs: [],
+    });
   }
 
   #refreshDevices(): void {
@@ -288,6 +343,12 @@ export class MidiEngine {
   #bindInput(input: WebMidiInput): void {
     if (this.#inputListeners.has(input)) return;
     const listener = (message: WebMidiMessage) => {
+      const rawEvent: RawMidiEvent = {
+        data: Array.from(message.rawData),
+        timestamp: message.timestamp,
+        deviceId: input.id,
+      };
+      this.#rawListeners.forEach((subscriber) => subscriber(rawEvent));
       const summary = summarizeMidiDevice(input, "input");
       const event = normalizeMidiMessage(
         message.rawData,
@@ -311,6 +372,7 @@ export class MidiEngine {
   #updateState(patch: Partial<MidiEngineState>): void {
     Object.assign(this.state, patch);
     if ("error" in patch && patch.error === undefined) delete this.state.error;
+    if ("sysexError" in patch && patch.sysexError === undefined) delete this.state.sysexError;
     this.#stateListeners.forEach((listener) => listener(this.state));
   }
 }

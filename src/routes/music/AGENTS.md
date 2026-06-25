@@ -41,6 +41,16 @@ This file provides guidance for agents working on the Music app under
 - **Known hardware:** MIDI events were recognized from a Roland FP-30X and an
   MPC One+. Keep exercise input wired through the shared router so real MIDI can
   advance sessions, not only the home route.
+- **MPC controller mode:** `@repo/music-core/engines/pad-color` owns the MPC
+  One+ controller-mode SysEx protocol, reverse-engineered by tracing MPC 3's
+  CoreMIDI output (local-only `docs/tools/run-mpc-usb-trace.sh`). Every frame is
+  a literal capture: product id `0x56`, pad color `F0 47 7F 56 65 00 04 [pad]
+  [R] [G] [B] F7` (RGB 7-bit), heartbeat `52`, enter-mode `62`. Use
+  `padColorSysex` / `mpcControllerInitSysex` / `mpcHeartbeatSysex`. `MidiEngine`
+  owns output enumeration, raw-message subscriptions, and SysEx permission
+  fallback. The browser→hardware path still needs on-device confirmation (the
+  preview Chromium has no Web MIDI); never turn pad output into an automatic
+  route side effect — keep it user-triggered from the Connect diagnostic.
 - **Audio input:** `@repo/music-core/engines/audio-in` owns microphone capture,
   monophonic pitch detection, tuner readings, and transient onset detection.
   Reuse `AudioPitchSource`; do not create route-local `getUserMedia`,
@@ -344,6 +354,10 @@ Important areas:
 - `src/engines/input-router/`: source arbitration, normalized input stream, and
   the active instrument + **active MIDI channel** filter.
 - `src/engines/midi/`: Web MIDI support and device/event normalization.
+- `src/engines/pad-color/`: captured MPC One+ controller-mode SysEx — init
+  handshake, heartbeat, verified pad-color frames, app pad palettes, and kit
+  color mapping. Hardware diagnostics belong on `/music/connect`; generic MIDI
+  output and permission handling stay in `midi`.
 - `src/engines/sound/`: Tone-backed playback + metronome sounds. Owns the gain
   graph (master → destination; metronome → metronome gain → master), selectable
   synth presets (`SOUND_PRESETS`/`SOUND_PRESET_NAMES`, `setInstrument`), master

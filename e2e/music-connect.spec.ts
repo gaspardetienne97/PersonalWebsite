@@ -7,6 +7,7 @@ test.describe("music connect instruments", () => {
 
     await expect(page.getByRole("heading", { name: "Connect Instruments" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "MIDI devices" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "MPC One+ pad LEDs" })).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Preferred source per instrument" }),
     ).toBeVisible();

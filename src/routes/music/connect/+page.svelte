@@ -22,6 +22,7 @@
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import { useMusicRuntime } from "../_runtime.svelte";
+  import MpcHardwareDiagnostic from "./_components/MpcHardwareDiagnostic.svelte";
 
   const INSTRUMENTS: { id: InstrumentId; label: string }[] = [
     { id: "piano", label: "Piano" },
@@ -54,6 +55,8 @@
   let surfaces = $state<InstrumentSurfacePreferences>({});
   let midiEnabled = $state(runtime.midi.state.enabled);
   let midiDevices = $state<MidiDeviceSummary[]>(runtime.midi.state.inputs ?? []);
+  let midiOutputs = $state<MidiDeviceSummary[]>(runtime.midi.state.outputs ?? []);
+  let sysexEnabled = $state(runtime.midi.state.sysexEnabled);
   let midiError = $state(runtime.midi.state.error);
 
   const capabilities = $derived(midiCapabilities(browser ? navigator : {}));
@@ -61,6 +64,8 @@
   const unsubscribeMidi = runtime.midi.subscribeState((state) => {
     midiEnabled = state.enabled;
     midiDevices = state.inputs;
+    midiOutputs = state.outputs;
+    sysexEnabled = state.sysexEnabled;
     midiError = state.error;
   });
 
@@ -210,6 +215,20 @@
         {/each}
       </div>
     {/if}
+  </section>
+
+  <section aria-label="MPC hardware diagnostic">
+    <h2 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      MPC hardware
+    </h2>
+    {#key midiOutputs.map((output) => output.id).join("|")}
+      <MpcHardwareDiagnostic
+        outputs={midiOutputs}
+        {sysexEnabled}
+        send={(outputId, data) => runtime.midi.send(outputId, data)}
+        subscribeRaw={(listener) => runtime.midi.subscribeRaw(listener)}
+      />
+    {/key}
   </section>
 
   <!-- Per-instrument preferred source + on-screen surface -->
