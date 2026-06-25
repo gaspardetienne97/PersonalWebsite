@@ -129,6 +129,39 @@ test.describe("music import & play-along", () => {
     await expect(page.getByRole("heading", { name: "XML Study", level: 1 })).toBeVisible();
     await expect(page.getByLabel("MusicXML score").locator("svg")).toBeVisible();
   });
+
+  test("selects one MusicXML part for preview and practice", async ({ page }) => {
+    await page.goto("/music/import");
+    await page.setInputFiles('input[type="file"]', {
+      name: "two-parts.musicxml",
+      mimeType: "application/vnd.recordare.musicxml+xml",
+      buffer: Buffer.from(MULTI_PART_MUSIC_XML),
+    });
+
+    await page.getByRole("button", { name: "Save to repertoire" }).click();
+    await page.getByRole("link", { name: "Open songs" }).click();
+    await page.getByRole("link", { name: "Open Song Studio" }).click();
+
+    const parts = page.getByLabel("Score parts");
+    await expect(parts.getByRole("button", { name: "Piano" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await parts.getByRole("button", { name: "Piano" }).click();
+    await expect(parts.getByRole("button", { name: "Piano" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expect(parts.getByRole("button", { name: "Bass" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await page.getByRole("button", { name: "Start practice" }).click();
+    await expect(page.getByText("Play E2")).toBeVisible();
+    await page.getByRole("button", { name: "E2", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Practice complete" })).toBeVisible();
+  });
 });
 
 async function selectFirstTwoNotationGroups(
@@ -164,5 +197,30 @@ const MUSIC_XML = `<?xml version="1.0" encoding="UTF-8"?>
     <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
     <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
     <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
+  </measure></part>
+</score-partwise>`;
+
+const MULTI_PART_MUSIC_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Two Part Study</work-title></work>
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+    <score-part id="P2"><part-name>Bass</part-name></score-part>
+  </part-list>
+  <part id="P1"><measure number="1">
+    <attributes>
+      <divisions>1</divisions>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef>
+    </attributes>
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type><voice>1</voice></note>
+  </measure></part>
+  <part id="P2"><measure number="1">
+    <attributes>
+      <divisions>1</divisions>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>F</sign><line>4</line></clef>
+    </attributes>
+    <note><pitch><step>E</step><octave>2</octave></pitch><duration>4</duration><type>whole</type><voice>1</voice></note>
   </measure></part>
 </score-partwise>`;

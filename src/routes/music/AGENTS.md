@@ -130,7 +130,10 @@ This file provides guidance for agents working on the Music app under
   consume it; do not fork route-specific staff renderers.
 - `src/routes/music/_components/MusicXmlScore.svelte` is the shared lazy OSMD
   renderer for original MusicXML source. Keep OSMD imports inside this browser
-  component and preserve canonical controls when rendering fails.
+  component and preserve canonical controls when rendering fails. Its optional
+  `partIds` input filters a temporary XML copy through
+  `score-import/filterMusicXmlParts()`; never rewrite persisted source to hide
+  parts.
 - `src/routes/music/_components/notation-selection.ts` is the shared
   renderer-independent selection seam. VexFlow and OSMD adapters provide
   canonical beat-backed `NotationHitTarget`s and consume its range/overlay
@@ -217,12 +220,18 @@ This file provides guidance for agents working on the Music app under
   measure/note-group snap, BPM/strictness/count-in, and 1/2/4/8 finite takes.
   Preserve one journal capture per completed practice session with one
   `ExerciseRunRecord` per execution and no imported-song mastery events.
+  Voice/part selection is session-local. Filter the canonical score once with
+  `filterScoreVoices()` and use that result for notation, preview, planning,
+  grading, counts, and input surfaces. Group MusicXML voices by their canonical
+  source part ID and keep MIDI voices individually selectable. Do not allow an
+  empty selection or selection changes during an active practice run.
   `e2e/music-import.spec.ts` is the regression workflow for MIDI and MusicXML
   import-to-practice behavior. Preserve its direct renderer selection,
   zero-count-in multi-take Performance, persistence, and 375px overflow checks
   when changing Song Studio, notation renderers, setup controls, or transport.
-  The completed baseline is 13 notation/selection tests, 5 Song Studio route
-  tests, 4 import E2E scenarios (including `.mxl`), and a green 45-test full
+  The completed baseline is 13 notation/selection tests, 6 Song Studio route
+  tests, 5 import E2E scenarios (including `.mxl` and MusicXML part selection),
+  and a green 46-test full
   Playwright suite.
 - `/music/play/scales`: scales and technique trainer. The aside shows a
   reference of the practiced scale on the chosen instrument via `InstrumentView`.
@@ -308,7 +317,9 @@ Important areas:
 - `src/engines/sessions/`: practice journal/session records.
 - `src/engines/dashboard/`: dashboard and skill tree view projections.
 - `src/engines/projection/`: derived view helpers (journal focus, rhythm HUD,
-  technique ladder, journal projections).
+  technique ladder, journal projections, and canonical score voice filtering).
+  Use `filterScoreVoices()` when a route needs a subset of score parts; do not
+  independently filter notes in notation, playback, and practice code.
 - `src/engines/device-profiles/`: MIDI device profiles + per-instrument
   preferred source (drives `/music/connect` and the transport MIDI picker).
 - `src/engines/reading-session/`, `rhythm-session/`, `technique-session/`,
@@ -364,7 +375,8 @@ Important areas:
   `@tonejs/midi`) for preview/import UI, including beat-native timing metadata.
 - `src/engines/score-import/`: canonical import boundary. It converts raw MIDI,
   `ImportedSong`, and uncompressed `score-partwise` MusicXML into the domain
-  `Score`. Keep it framework-agnostic and independent from OSMD.
+  `Score`. It also owns non-destructive `filterMusicXmlParts()` source filtering
+  for renderers. Keep it framework-agnostic and independent from OSMD.
 - `src/engines/song-library/`: persist/reopen canonical scores through
   `PracticeStore.songs` and project stored scores into tempo-map-aware transport
   playback patterns for `/music/songs`.

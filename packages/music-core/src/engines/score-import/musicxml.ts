@@ -16,15 +16,29 @@ export interface ParseMusicXmlScoreOptions {
   fallbackName?: string;
 }
 
-export function parseMusicXmlScore(xml: string, options: ParseMusicXmlScoreOptions): Score {
-  if (typeof DOMParser === "undefined") {
-    throw new Error("MusicXML parsing requires a DOMParser.");
-  }
+export function filterMusicXmlParts(xml: string, partIds: string[]): string {
+  if (partIds.length === 0) throw new Error("Select at least one MusicXML part");
+  const document = parseMusicXmlDocument(xml);
+  const selected = new Set(partIds);
+  const known = new Set(
+    descendants(document.documentElement, "score-part").map(
+      (part) => part.getAttribute("id") ?? "",
+    ),
+  );
+  const unknown = partIds.find((id) => !known.has(id));
+  if (unknown) throw new Error(`Unknown MusicXML part: ${unknown}`);
 
-  const document = new DOMParser().parseFromString(xml, "application/xml");
-  if (document.querySelector("parsererror")) {
-    throw new Error("MusicXML could not be parsed.");
+  for (const declaration of descendants(document.documentElement, "score-part")) {
+    if (!selected.has(declaration.getAttribute("id") ?? "")) declaration.remove();
   }
+  for (const part of children(document.documentElement, "part")) {
+    if (!selected.has(part.getAttribute("id") ?? "")) part.remove();
+  }
+  return new XMLSerializer().serializeToString(document);
+}
+
+export function parseMusicXmlScore(xml: string, options: ParseMusicXmlScoreOptions): Score {
+  const document = parseMusicXmlDocument(xml);
   const root = document.documentElement;
   if (root.localName !== "score-partwise") {
     throw new Error("Only score-partwise MusicXML is supported.");
@@ -177,6 +191,17 @@ export function parseMusicXmlScore(xml: string, options: ParseMusicXmlScoreOptio
     markers: [],
     lyrics,
   };
+}
+
+function parseMusicXmlDocument(xml: string): XMLDocument {
+  if (typeof DOMParser === "undefined") {
+    throw new Error("MusicXML parsing requires a DOMParser.");
+  }
+  const document = new DOMParser().parseFromString(xml, "application/xml");
+  if (document.querySelector("parsererror")) {
+    throw new Error("MusicXML could not be parsed.");
+  }
+  return document;
 }
 
 function parseTime(attributes: Element):

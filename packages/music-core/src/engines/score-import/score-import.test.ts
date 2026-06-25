@@ -6,6 +6,7 @@ import type { ImportedSong } from "@repo/music-core/engines/import";
 
 import {
   extractCompressedMusicXml,
+  filterMusicXmlParts,
   parseMidiScore,
   parseMusicXmlScore,
   scoreFromImportedSong,
@@ -218,6 +219,24 @@ describe("parseMusicXmlScore", () => {
     expect(() => parseMusicXmlScore('<score-timewise version="4.0"/>', { id: "timewise" })).toThrow(
       "Only score-partwise MusicXML is supported",
     );
+  });
+});
+
+describe("filterMusicXmlParts", () => {
+  test("keeps only selected part declarations and score bodies", () => {
+    const filtered = filterMusicXmlParts(MUSIC_XML, ["P2"]);
+    const document = new DOMParser().parseFromString(filtered, "application/xml");
+
+    expect(
+      [...document.querySelectorAll("score-part")].map((part) => part.getAttribute("id")),
+    ).toEqual(["P2"]);
+    expect(
+      [...document.documentElement.querySelectorAll(":scope > part")].map((part) =>
+        part.getAttribute("id"),
+      ),
+    ).toEqual(["P2"]);
+    expect(filtered).toContain("<part-name>Bass</part-name>");
+    expect(filtered).not.toContain("<part-name>Piano</part-name>");
   });
 });
 

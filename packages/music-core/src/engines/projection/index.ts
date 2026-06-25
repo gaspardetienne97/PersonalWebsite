@@ -1,3 +1,4 @@
+import type { Score } from "@repo/music-core/domain";
 import type { TuningProfile } from "@repo/music-core/engines/tunings";
 
 export { rhythmHudProjection, type RhythmHudData } from "./rhythm-hud";
@@ -19,6 +20,21 @@ export interface FretboardLocation {
 export interface PlayableFretboardGroup {
   positions: FretboardLocation[];
   span: number;
+}
+
+export function filterScoreVoices(score: Score, voiceIds: string[]): Score {
+  if (voiceIds.length === 0) throw new Error("Select at least one score voice");
+  const selected = new Set(voiceIds);
+  const known = new Set(score.voices.map(({ id }) => id));
+  const unknown = voiceIds.find((id) => !known.has(id));
+  if (unknown) throw new Error(`Unknown score voice: ${unknown}`);
+
+  return {
+    ...score,
+    voices: score.voices.filter(({ id }) => selected.has(id)),
+    notes: score.notes.filter(({ voiceId }) => selected.has(voiceId)),
+    ...(score.rests ? { rests: score.rests.filter(({ voiceId }) => selected.has(voiceId)) } : {}),
+  };
 }
 
 export function projectPiano(midiNotes: number[]): PianoLocation[] {

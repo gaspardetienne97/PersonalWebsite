@@ -6,6 +6,7 @@
     ScoreSelectionBoundary,
     ScoreSelectionMap,
   } from "@repo/music-core/engines/score-practice";
+  import { filterMusicXmlParts } from "@repo/music-core/engines/score-import";
 
   import {
     nearestHit,
@@ -18,6 +19,7 @@
 
   let {
     xml,
+    partIds,
     selectionMap,
     highlightedRanges = [],
     customSelection,
@@ -27,6 +29,7 @@
     onError = () => undefined,
   }: {
     xml: string;
+    partIds?: string[];
     selectionMap?: ScoreSelectionMap;
     highlightedRanges?: NotationRangeHighlight[];
     customSelection?: BeatRange;
@@ -101,7 +104,7 @@
     hitTargets = [];
     host.replaceChildren();
 
-    void renderMusicXml(host, xml).then(
+    void renderSelectedMusicXml(host, xml, partIds).then(
       async ({ cleanup, osmd }) => {
         if (disposed) {
           cleanup();
@@ -168,6 +171,17 @@
       cleanup: () => osmd.clear(),
       osmd: osmd as unknown as OsmdSelectionSource,
     };
+  }
+
+  async function renderSelectedMusicXml(
+    target: HTMLDivElement,
+    content: string,
+    selectedPartIds: string[] | undefined,
+  ): Promise<{ cleanup: () => void; osmd: OsmdSelectionSource }> {
+    return renderMusicXml(
+      target,
+      selectedPartIds?.length ? filterMusicXmlParts(content, selectedPartIds) : content,
+    );
   }
 
   function buildSelectionRegions(

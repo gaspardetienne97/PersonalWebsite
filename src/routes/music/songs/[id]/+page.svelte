@@ -14,6 +14,7 @@
     type UnixMs,
   } from "@repo/music-core/domain";
   import { notationView, type NotationView } from "@repo/music-core/engines/notation";
+  import { filterScoreVoices } from "@repo/music-core/engines/projection";
   import {
     buildScorePracticePlan,
     buildPracticeExecutions,
@@ -63,6 +64,7 @@
   let song = $state.raw<SongRow>();
   let loading = $state(true);
   let status = $state("Loading score.");
+  let selectedVoiceIds = $state<string[]>([]);
   let practicing = $state(false);
   let completed = $state(false);
   let finishing = false;
@@ -86,7 +88,28 @@
   let endTimer: ReturnType<typeof setTimeout> | undefined;
   let unsubscribeInput = () => undefined;
 
-  const score = $derived(song?.score);
+  const sourceScore = $derived(song?.score);
+  const voiceOptions = $derived.by(() => scoreVoiceOptions(sourceScore));
+  const score = $derived.by(() => {
+    if (!sourceScore) return undefined;
+    const selected =
+      selectedVoiceIds.length > 0
+        ? selectedVoiceIds
+        : sourceScore.voices.map(({ id }) => id);
+    return filterScoreVoices(sourceScore, selected);
+  });
+  const selectedPartIds = $derived(
+    sourceScore?.origin === "musicxml"
+      ? [
+          ...new Set(
+            selectedVoiceIds.flatMap((id) => {
+              const separator = id.indexOf(":voice:");
+              return separator > 0 ? [id.slice(0, separator)] : [];
+            }),
+          ),
+        ]
+      : undefined,
+  );
   const groups = $derived(score ? expectedGroups(score) : []);
   const selectionMap = $derived(score ? buildScoreSelectionMap(score) : undefined);
   const planProjection = $derived.by((): { plan?: ScorePracticePlan; error?: string } => {
@@ -172,6 +195,7 @@
     try {
       song = await library.get(songId);
       if (song?.score) {
+        selectedVoiceIds = song.score.voices.map(({ id }) => id);
         setup = {
           ...setup,
           bpm: Math.round(song.score.tempoMap[0]?.bpm ?? 120),
@@ -193,6 +217,19 @@
   function updateSetup(value: ScorePracticeSetupValue): void {
     setup = value;
     completed = false;
+  }
+
+  function toggleVoiceOption(voiceIds: string[]): void {
+    if (practicing) return;
+    const selected = voiceIds.every((id) => selectedVoiceIds.includes(id));
+    const next = selected
+      ? selectedVoiceIds.filter((id) => !voiceIds.includes(id))
+      : [...new Set([...selectedVoiceIds, ...voiceIds])];
+    if (next.length === 0) return;
+    selectedVoiceIds = next;
+    completed = false;
+    practiceState = undefined;
+    status = "Score parts updated.";
   }
 
   function updateCustomSelection(range: { startBeat: number; endBeat: number }): void {
@@ -394,6 +431,32 @@
     }
   }
 
+  function scoreVoiceOptions(
+    value: SongRow["score"],
+  ): Array<{ id: string; label: string; voiceIds: string[] }> {
+    if (!value) return [];
+    if (value.origin !== "musicxml") {
+      return value.voices.map((voice) => ({
+        id: voice.id,
+        label: voice.name,
+        voiceIds: [voice.id],
+      }));
+    }
+
+    const groups = new Map<string, { id: string; label: string; voiceIds: string[] }>();
+    for (const voice of value.voices) {
+      const id = voice.id.split(":voice:")[0] ?? voice.id;
+      const group = groups.get(id) ?? {
+        id,
+        label: voice.name.replace(/\s*·\s*Voice\s+\d+$/i, ""),
+        voiceIds: [],
+      };
+      group.voiceIds.push(voice.id);
+      groups.set(id, group);
+    }
+    return [...groups.values()];
+  }
+
   function message(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
   }
@@ -446,9 +509,33 @@
             <Badge variant="secondary">{score.origin.toUpperCase()}</Badge>
           </Card.Header>
           <Card.Content class="grid gap-4">
+            {#if voiceOptions.length > 1}
+              <div class="grid gap-2">
+                <p class="text-sm font-medium">Score parts</p>
+                <div class="flex flex-wrap gap-2" aria-label="Score parts">
+                  {#each voiceOptions as option (option.id)}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={option.voiceIds.every((id) => selectedVoiceIds.includes(id))
+                        ? "secondary"
+                        : "outline"}
+                      aria-pressed={option.voiceIds.every((id) =>
+                        selectedVoiceIds.includes(id),
+                      )}
+                      disabled={practicing}
+                      onclick={() => toggleVoiceOption(option.voiceIds)}
+                    >
+                      {option.label}
+                    </Button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
             {#if song.source?.format === "musicxml"}
               <MusicXmlScore
                 xml={song.source.content}
+                partIds={selectedPartIds}
                 {selectionMap}
                 {highlightedRanges}
                 {customSelection}
@@ -565,7 +652,7 @@
             </div>
             <div class="flex justify-between gap-3">
               <span class="text-muted-foreground">Voices</span>
-              <strong>{score.voices.length}</strong>
+              <strong>{score.voices.length} / {sourceScore?.voices.length ?? 0}</strong>
             </div>
             <div class="flex justify-between gap-3">
               <span class="text-muted-foreground">Note groups</span>

@@ -63,6 +63,44 @@ describe("/music/songs/[id]/+page.svelte", () => {
     runtime.dispose();
   });
 
+  test("filters MusicXML rendering and practice targets to selected parts", async () => {
+    const library = {
+      get: vi.fn(async () => multiPartSongRow()),
+    };
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    const playPattern = vi.spyOn(runtime.sound, "playPattern");
+
+    render(Page, { songId: "song-parts", runtime, library });
+
+    await vi.waitFor(
+      () => expect(document.querySelector('[aria-label="MusicXML score"] svg')).not.toBeNull(),
+      { timeout: 5_000 },
+    );
+    const partButtons = document.querySelectorAll<HTMLButtonElement>(
+      '[aria-label="Score parts"] button',
+    );
+    expect([...partButtons].map(({ textContent }) => textContent?.trim())).toEqual([
+      "Piano",
+      "Bass",
+    ]);
+    partButtons[0]?.click();
+    await vi.waitFor(() => expect(partButtons[0]?.getAttribute("aria-pressed")).toBe("false"));
+    partButtons[1]?.click();
+    expect(partButtons[1]?.getAttribute("aria-pressed")).toBe("true");
+
+    button("Play preview")?.click();
+    await vi.waitFor(() => expect(playPattern).toHaveBeenCalledOnce());
+    expect(playPattern.mock.calls[0]?.[0]).toEqual([
+      { midiNotes: [40], offsetSeconds: 0, durationSeconds: 2 },
+    ]);
+
+    button("Start practice")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Play E2"));
+    expect(document.body.textContent).not.toContain("Play C4");
+    runtime.dispose();
+  });
+
   test("selects multiple sections and completes the resolved wait-mode queue", async () => {
     const library = {
       get: vi.fn(async () => songRow()),
@@ -203,6 +241,43 @@ function score(): Score {
   };
 }
 
+function multiPartSongRow(): SongRow {
+  return {
+    id: "song-parts",
+    title: "Two Parts",
+    createdAt: 1_000,
+    updatedAt: 2_000,
+    source: { format: "musicxml", content: MULTI_PART_MUSIC_XML },
+    score: {
+      ...score(),
+      id: "song-parts",
+      title: "Two Parts",
+      origin: "musicxml",
+      voices: [
+        { id: "P1:voice:1", name: "Piano · Voice 1", role: "other" },
+        { id: "P2:voice:1", name: "Bass · Voice 1", role: "bass" },
+      ],
+      notes: [
+        {
+          midiNote: 60,
+          startBeat: 0,
+          durationBeats: 4,
+          velocity: 0.8,
+          voiceId: "P1:voice:1",
+        },
+        {
+          midiNote: 40,
+          startBeat: 0,
+          durationBeats: 4,
+          velocity: 0.8,
+          voiceId: "P2:voice:1",
+        },
+      ],
+      sections: [{ id: "full", name: "Full song", startBeat: 0, endBeat: 4 }],
+    },
+  };
+}
+
 const MUSIC_XML = `<?xml version="1.0"?>
 <score-partwise version="4.0">
   <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
@@ -215,5 +290,24 @@ const MUSIC_XML = `<?xml version="1.0"?>
     <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
     <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
     <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
+  </measure></part>
+</score-partwise>`;
+
+const MULTI_PART_MUSIC_XML = `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+    <score-part id="P2"><part-name>Bass</part-name></score-part>
+  </part-list>
+  <part id="P1"><measure number="1">
+    <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type><voice>1</voice></note>
+  </measure></part>
+  <part id="P2"><measure number="1">
+    <attributes>
+      <divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>F</sign><line>4</line></clef>
+    </attributes>
+    <note><pitch><step>E</step><octave>2</octave></pitch><duration>4</duration><type>whole</type><voice>1</voice></note>
   </measure></part>
 </score-partwise>`;
