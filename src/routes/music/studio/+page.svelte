@@ -36,6 +36,7 @@
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import SampleKitPanel from "./_components/SampleKitPanel.svelte";
+  import StudioPadLeds from "./_components/StudioPadLeds.svelte";
   import {
     SampleKitPlaybackController,
     type ActiveSampleKit,
@@ -566,6 +567,8 @@
       {directoryExportAvailable}
     />
   {/if}
+
+  <StudioPadLeds {runtime} {activeKit} />
 
   <Card.Root>
     <Card.Header><Card.Description>Pad bank · Boom Bap</Card.Description></Card.Header>
