@@ -30,6 +30,8 @@ export interface ExerciseContext {
   difficulty: number;
   /** Instrument the user will answer on, when relevant. */
   instrument?: InstrumentId;
+  /** Optional exercise-specific context that should stay framework-agnostic. */
+  metadata?: Record<string, unknown>;
 }
 
 export interface ExercisePrompt<P = unknown> {

@@ -6,8 +6,13 @@ import {
   type NoteEvent,
 } from "@repo/music-core/domain";
 
-export type EarTrainingDrill = "interval" | "chord-quality" | "scale-degree";
-export type EarTrainingAnswerMode = "choice" | "play-back";
+export type EarTrainingDrill =
+  | "interval"
+  | "chord-quality"
+  | "scale-degree"
+  | "melody-dictation"
+  | "repertoire-transfer";
+export type EarTrainingAnswerMode = "choice" | "play-back" | "voice" | "listen";
 export type EarTrainingFeedbackMode = "practice" | "test";
 
 export interface PromptPlaybackStep {

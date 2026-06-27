@@ -38,6 +38,7 @@
     router,
     instrument = "piano",
     surface = "keyboard",
+    voiceStatus,
     onReplay,
     onAnswer,
     onAccepted,
@@ -47,6 +48,7 @@
     router: InputRouter;
     instrument?: InstrumentId;
     surface?: InputSurfaceId;
+    voiceStatus?: string;
     onReplay: () => void;
     onAnswer: (token: string) => void;
     onAccepted: (event: NoteEvent) => void;
@@ -59,7 +61,11 @@
       ? "Chord Quality"
       : prompt?.drill === "scale-degree"
         ? "Scale Degree"
-        : "Interval",
+        : prompt?.drill === "melody-dictation"
+          ? "Melody Dictation"
+          : prompt?.drill === "repertoire-transfer"
+            ? "Repertoire Transfer"
+            : "Interval",
   );
   const total = $derived(state.queue.length);
   const answered = $derived(state.results.length);
@@ -124,9 +130,17 @@
     <div class="min-w-0 flex-1">
       <h2 class="text-lg font-bold tracking-tight">What {drillLabel.toLowerCase()} did you hear?</h2>
       <p class="text-sm text-muted-foreground">
-        {state.options.answerMode === "choice"
+        {prompt?.drill === "melody-dictation"
+          ? "Play back the phrase on MIDI or the on-screen keyboard."
+          : prompt?.drill === "repertoire-transfer"
+            ? "Play back the saved-song phrase on MIDI or the on-screen keyboard."
+          : state.options.answerMode === "choice"
           ? "Listen, then choose — or play it on your instrument."
-          : "Play the answer on MIDI or the on-screen keyboard."}
+          : state.options.answerMode === "listen"
+            ? "Pocket mode: listen, check the answer, then self-mark the rep."
+          : state.options.answerMode === "voice"
+            ? "Sing the answer into the microphone."
+            : "Play the answer on MIDI or the on-screen keyboard."}
       </p>
     </div>
     <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
@@ -144,6 +158,33 @@
           {choice.label}
         </button>
       {/each}
+    </div>
+  {:else if prompt && state.options.answerMode === "voice"}
+    <div class="rounded-2xl border bg-card p-5">
+      <div class="grid gap-2 text-center">
+        <p class="text-lg font-semibold">Sing the answer</p>
+        <p class="text-sm text-muted-foreground">
+          Match the target scale degree with your voice. {voiceStatus ?? ""}
+        </p>
+      </div>
+    </div>
+  {:else if prompt && state.options.answerMode === "listen"}
+    <div class="grid gap-4 rounded-2xl border bg-card p-5">
+      <div class="grid gap-1 text-center">
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Pocket mode
+        </p>
+        <p class="text-2xl font-bold">{prompt.answerLabel}</p>
+        <p class="text-sm text-muted-foreground">
+          Mark whether you identified it correctly after listening.
+        </p>
+      </div>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <Button type="button" variant="outline" onclick={() => onAnswer("__listen_missed")}>
+          Missed it
+        </Button>
+        <Button type="button" onclick={() => onAnswer("__listen_correct")}>I heard it</Button>
+      </div>
     </div>
   {:else if prompt}
     <div class="rounded-2xl border bg-card p-5">

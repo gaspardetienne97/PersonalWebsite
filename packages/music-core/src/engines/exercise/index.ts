@@ -369,6 +369,7 @@ function exerciseContext(
     targetSkillIds: [...targetSkillIds],
     difficulty: clamp(context.difficulty ?? 0.6, 0, 1),
     ...(context.instrument !== undefined ? { instrument: context.instrument } : {}),
+    ...(context.metadata !== undefined ? { metadata: { ...context.metadata } } : {}),
   };
 }
 

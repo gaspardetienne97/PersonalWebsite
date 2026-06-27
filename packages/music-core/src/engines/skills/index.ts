@@ -170,10 +170,12 @@ export function seedCoreSkills(): SkillSeed {
     ]),
     ...[
       ["1", "Tonic"],
+      ["b2", "Flat 2nd"],
       ["2", "Supertonic"],
       ["b3", "Flat 3rd"],
       ["3", "Mediant"],
       ["4", "Subdominant"],
+      ["#4", "Sharp 4th / Flat 5th"],
       ["5", "Dominant"],
       ["b6", "Flat 6th"],
       ["6", "Submediant"],
