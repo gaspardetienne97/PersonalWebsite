@@ -44,3 +44,5 @@ export {
 } from "./capture";
 
 export { recordMicClip, micClipSupported, type RecordMicClipOptions } from "./record-clip";
+
+export { computeChroma, type ChromaOptions } from "./chroma";
