@@ -36,9 +36,13 @@ export {
 } from "./curriculum";
 export {
   buildRepertoireEarTransfers,
+  buildRepertoireReviewQueue,
   createRepertoireTransferExercise,
   type RepertoireEarTransfer,
   type RepertoireEarTransferOptions,
+  type RepertoireReviewItem,
+  type RepertoireReviewQueueOptions,
+  type RepertoireReviewStatus,
   type RepertoireTransferPrompt,
 } from "./repertoire";
 

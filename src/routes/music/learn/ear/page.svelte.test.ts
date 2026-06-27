@@ -263,6 +263,42 @@ describe("/music/learn/ear/+page.svelte", () => {
     );
   });
 
+  test("ranks a review queue across saved songs with status badges", async () => {
+    render(Page, {
+      library: {
+        list: vi.fn(async () => [
+          {
+            id: "song-1",
+            title: "Song One",
+            createdAt: 0,
+            updatedAt: 0,
+            score: { ...repertoireScore(), id: "s1", title: "Song One" },
+          },
+          {
+            id: "song-2",
+            title: "Song Two",
+            createdAt: 0,
+            updatedAt: 0,
+            score: { ...repertoireScore(), id: "s2", title: "Song Two" },
+          },
+        ]),
+      },
+    });
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Review phrases from your saved songs"),
+    );
+    expect(document.body.textContent).toContain("Song One");
+    expect(document.body.textContent).toContain("Song Two");
+    // Each phrase carries a review-status badge (exact value depends on practice history).
+    expect(document.body.textContent).toMatch(/New|Review due|Strong/);
+    // One Practice button per ranked phrase.
+    const practiceButtons = [...document.querySelectorAll("button")].filter(
+      (button) => button.textContent?.trim() === "Practice transfer",
+    );
+    expect(practiceButtons.length).toBe(2);
+  });
+
   test("starts a scored repertoire transfer drill from a saved song phrase", async () => {
     render(Page, {
       library: {

@@ -242,10 +242,14 @@ This file provides guidance for agents working on the Music app under
   Exercise pipeline. Repertoire transfer prompts come from
   `@repo/music-core/engines/ear-training/repertoire`: pass saved `Score`s through
   `buildRepertoireEarTransfers()` and keep scale-degree/key parsing there. The
-  route surface previews the first available phrase and starts a one-prompt
-  play-back session through `createRepertoireTransferExercise()`; broader saved
-  song review queues should extend that engine path. Do not create route-local
-  grading, route-local scale-degree parsing, or route-local microphone capture.
+  landing surfaces a ranked review queue across all saved songs via
+  `buildRepertoireReviewQueue(scores, getMastery, { now })`, which scores each
+  phrase by its weakest scale-degree skill after the shared forgetting curve
+  (`applyDecay`) and tags it new/due/strong — no per-phrase SRS persistence. The
+  route re-ranks after each practice and on level change, and starts a one-prompt
+  play-back session through `createRepertoireTransferExercise()`. Keep ranking and
+  decay in the engine; do not create route-local grading, scale-degree parsing,
+  or microphone capture.
 - `/music/learn/reading`: note flashcards and generated sight-reading. Registers
   a transport `PlaybackSource` so Play previews the on-screen melody. The guitar/
   ukulele sight-reading session has an opt-in **Show/Hide tab** reveal

@@ -2,18 +2,19 @@
   import { browser } from "$app/environment";
   import { onDestroy } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import { nowUnix, type NoteEvent } from "@repo/music-core/domain";
   import {
     AudioPitchSource,
     type AudioPitchState,
   } from "@repo/music-core/engines/audio-in";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
-    buildRepertoireEarTransfers,
+    buildRepertoireReviewQueue,
     createRepertoireTransferExercise,
     EarTrainingSession,
     type EarTrainingSessionState,
     type RepertoireEarTransfer,
+    type RepertoireReviewItem,
   } from "@repo/music-core/engines/ear-training";
   import { ExerciseRegistry, ExerciseScheduler } from "@repo/music-core/engines/exercise";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
@@ -91,7 +92,7 @@
   let midiStatus = $state(midiMessage());
   let voiceState = $state<AudioPitchState>({ status: "idle" });
   let voiceStatus = $state("Voice mode starts the microphone for scale-degree sessions.");
-  let repertoireTransfers = $state<RepertoireEarTransfer[]>([]);
+  let reviewQueue = $state<RepertoireReviewItem[]>([]);
   let session: EarTrainingSession | undefined;
   let sessionState = $state<EarTrainingSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
@@ -127,7 +128,8 @@
     };
   });
 
-  void Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load(), loadRepertoireTransfers()])
+  void Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()])
+    .then(() => loadRepertoireTransfers())
     .then(() => {
       ready = true;
       status = "Ready for a ten-prompt session.";
@@ -161,6 +163,7 @@
   function setScaleDegreeSet(next: ScaleDegreeSetId): void {
     scaleDegreeSet = next;
     lastFreePlayDegree = undefined;
+    void loadRepertoireTransfers();
   }
 
   async function enableMidi(): Promise<void> {
@@ -171,12 +174,10 @@
     const songLibrary = library ?? (browser && store ? new SongLibrary(store) : undefined);
     if (!songLibrary) return;
     const songs = await songLibrary.list();
-    repertoireTransfers = songs.flatMap((song) =>
-      buildRepertoireEarTransfers(song.score, {
-        phraseLength: 4,
-        scaleDegreeSet,
-        maxPrompts: 1,
-      }),
+    reviewQueue = buildRepertoireReviewQueue(
+      songs.map((song) => song.score),
+      (skillId) => skills.getMastery(skillId),
+      { phraseLength: 4, scaleDegreeSet, now: nowUnix(), limit: 6 },
     );
   }
 
@@ -266,6 +267,8 @@
           next.summary.accuracy * 100,
         )}%)`,
       });
+      // Practice updates mastery, so re-rank the review queue.
+      void loadRepertoireTransfers();
     }
     if (next.status === "summary" && next.options.answerMode === "voice") {
       void stopVoiceMic();
@@ -402,7 +405,7 @@
       {droneOn}
       freePlayChoices={freePlayChoices}
       lastFreePlayDegree={lastFreePlayDegree}
-      {repertoireTransfers}
+      {reviewQueue}
       {midiEnabled}
       {midiStatus}
       {audioSupported}

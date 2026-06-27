@@ -1,10 +1,13 @@
 import {
+  applyDecay,
   Capability,
+  unixMs,
   type ExerciseDefinition,
   type ExerciseResult,
   type NoteEvent,
   type Score,
   type ScoringMetric,
+  type SkillMastery,
 } from "@repo/music-core/domain";
 import {
   earTrainingRun,
@@ -104,6 +107,93 @@ export function buildRepertoireEarTransfers(
   }
 
   return result;
+}
+
+export type RepertoireReviewStatus = "new" | "due" | "strong";
+
+export interface RepertoireReviewItem {
+  transfer: RepertoireEarTransfer;
+  /** new = a degree never practiced; due = decayed mastery is low; strong = high & recent. */
+  status: RepertoireReviewStatus;
+  /** Higher = more worth reviewing. New phrases outrank reviewed ones; weaker outranks stronger. */
+  priority: number;
+  weakestSkillId: string;
+  /** The weakest degree's mastery after the forgetting curve (0-1). */
+  decayedMastery: number;
+}
+
+export interface RepertoireReviewQueueOptions {
+  phraseLength?: number;
+  scaleDegreeSet?: ScaleDegreeSetId;
+  /** Phrases to harvest per song before ranking. */
+  phrasesPerSong?: number;
+  /** UnixMs "now" for the forgetting curve; omit to skip decay. */
+  now?: number;
+  /** Cap on the returned queue length. */
+  limit?: number;
+  dueBelow?: number;
+  strongAbove?: number;
+}
+
+/**
+ * Project all saved songs into one ranked ear-training review queue. Each phrase
+ * is scored by its weakest scale-degree skill (after the shared forgetting-curve
+ * decay), so the same list browses everything, surfaces new material, and floats
+ * stale/weak phrases for review — no per-phrase SRS persistence needed.
+ */
+export function buildRepertoireReviewQueue(
+  scores: Score[],
+  getMastery: (skillId: string) => SkillMastery,
+  options: RepertoireReviewQueueOptions = {},
+): RepertoireReviewItem[] {
+  const limit = Math.max(1, Math.floor(options.limit ?? 6));
+  const dueBelow = options.dueBelow ?? 0.5;
+  const strongAbove = options.strongAbove ?? 0.8;
+  const now = options.now;
+
+  const items: RepertoireReviewItem[] = [];
+  for (const score of scores) {
+    const transfers = buildRepertoireEarTransfers(score, {
+      ...(options.phraseLength !== undefined ? { phraseLength: options.phraseLength } : {}),
+      ...(options.scaleDegreeSet !== undefined ? { scaleDegreeSet: options.scaleDegreeSet } : {}),
+      maxPrompts: Math.max(1, Math.floor(options.phrasesPerSong ?? 8)),
+    });
+
+    for (const transfer of transfers) {
+      const skillIds = [
+        ...new Set(transfer.degrees.map((degree) => `pitch.scale-degree.${degree}`)),
+      ];
+      let weakest = { id: skillIds[0] ?? "pitch.scale-degree.1", decayed: 1, observations: 0 };
+      for (const id of skillIds) {
+        const mastery = getMastery(id);
+        const decayed =
+          now === undefined ? mastery.mastery : applyDecay(mastery, unixMs(now)).mastery;
+        if (decayed < weakest.decayed) {
+          weakest = { id, decayed, observations: mastery.observations };
+        }
+      }
+
+      const status: RepertoireReviewStatus =
+        weakest.observations === 0 ? "new" : weakest.decayed >= strongAbove ? "strong" : "due";
+      const priority = 1 - weakest.decayed + (status === "new" ? 1 : 0);
+      items.push({
+        transfer,
+        status,
+        priority,
+        weakestSkillId: weakest.id,
+        decayedMastery: weakest.decayed,
+      });
+    }
+  }
+
+  return items
+    .sort(
+      (left, right) =>
+        right.priority - left.priority ||
+        left.transfer.title.localeCompare(right.transfer.title) ||
+        left.transfer.startBeat - right.transfer.startBeat,
+    )
+    .slice(0, limit);
 }
 
 export function createRepertoireTransferExercise(

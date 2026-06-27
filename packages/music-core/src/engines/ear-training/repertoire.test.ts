@@ -1,8 +1,19 @@
 import { describe, expect, test } from "vitest";
 
-import { monotonicMs, type NoteEvent, type Score, type ScoreNote } from "@repo/music-core/domain";
+import {
+  monotonicMs,
+  unixMs,
+  type NoteEvent,
+  type Score,
+  type ScoreNote,
+  type SkillMastery,
+} from "@repo/music-core/domain";
 
-import { buildRepertoireEarTransfers, createRepertoireTransferExercise } from "./repertoire";
+import {
+  buildRepertoireEarTransfers,
+  buildRepertoireReviewQueue,
+  createRepertoireTransferExercise,
+} from "./repertoire";
 
 describe("repertoire ear-transfer projection", () => {
   test("extracts short scale-degree phrases from a saved melody score", () => {
@@ -98,6 +109,92 @@ describe("repertoire ear-transfer projection", () => {
     });
   });
 });
+
+describe("repertoire review queue", () => {
+  const masteryFor =
+    (overrides: Record<string, Partial<SkillMastery>>) =>
+    (skillId: string): SkillMastery => ({
+      skillId,
+      mastery: 0,
+      confidence: 0,
+      decayRate: 0.02,
+      observations: 0,
+      ...overrides[skillId],
+    });
+
+  test("collects phrases across all songs and orders weakest scale-degree first", () => {
+    const songA = { ...scoreWithNotes(scale([60, 62, 64, 67])), id: "a", title: "A song" };
+    const songB = { ...scoreWithNotes(scale([60, 64, 65, 67])), id: "b", title: "B song" };
+
+    const queue = buildRepertoireReviewQueue(
+      [songA, songB],
+      masteryFor({
+        "pitch.scale-degree.1": { mastery: 0.9, observations: 8 },
+        "pitch.scale-degree.2": { mastery: 0.85, observations: 8 },
+        "pitch.scale-degree.3": { mastery: 0.85, observations: 8 },
+        "pitch.scale-degree.4": { mastery: 0.2, observations: 5 }, // weak link in song B
+        "pitch.scale-degree.5": { mastery: 0.85, observations: 8 },
+      }),
+      { phraseLength: 4 },
+    );
+
+    expect(queue.map((item) => [item.transfer.scoreId, item.status])).toEqual([
+      ["b", "due"],
+      ["a", "strong"],
+    ]);
+    expect(queue[0]!.weakestSkillId).toBe("pitch.scale-degree.4");
+  });
+
+  test("marks never-practiced phrases as new and ranks them above reviewed ones", () => {
+    const queue = buildRepertoireReviewQueue(
+      [scoreWithNotes(scale([60, 62, 64, 67]))],
+      masteryFor({}),
+      {
+        phraseLength: 4,
+      },
+    );
+
+    expect(queue[0]!.status).toBe("new");
+    expect(queue[0]!.priority).toBeGreaterThan(1);
+  });
+
+  test("decays once-strong skills by recency so stale phrases become due", () => {
+    const lastPracticed = 1_000_000_000_000;
+    const strong = { mastery: 0.9, observations: 8, lastPracticed: unixMs(lastPracticed) };
+
+    const queue = buildRepertoireReviewQueue(
+      [scoreWithNotes(scale([60, 62, 64, 67]))],
+      masteryFor({
+        "pitch.scale-degree.1": strong,
+        "pitch.scale-degree.2": strong,
+        "pitch.scale-degree.3": strong,
+        "pitch.scale-degree.5": strong,
+      }),
+      { phraseLength: 4, now: lastPracticed + 60 * 86_400_000 },
+    );
+
+    expect(queue[0]!.status).toBe("due");
+    expect(queue[0]!.decayedMastery).toBeCloseTo(0.9 * Math.exp(-0.02 * 60), 5);
+  });
+
+  test("caps the queue to the limit", () => {
+    const steps = [0, 2, 4, 5, 7];
+    const notes = Array.from({ length: 24 }, (_, index) =>
+      note(60 + steps[index % steps.length]!, index),
+    );
+
+    const queue = buildRepertoireReviewQueue([scoreWithNotes(notes)], masteryFor({}), {
+      phraseLength: 3,
+      limit: 4,
+    });
+
+    expect(queue.length).toBe(4);
+  });
+});
+
+function scale(midiNotes: number[]): ScoreNote[] {
+  return midiNotes.map((midiNote, index) => note(midiNote, index));
+}
 
 function scoreWithNotes(notes: ScoreNote[]): Score {
   return {

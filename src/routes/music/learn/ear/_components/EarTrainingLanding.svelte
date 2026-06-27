@@ -12,6 +12,7 @@
   import {
     EAR_TRAINING_LEARNING_PATH,
     type RepertoireEarTransfer,
+    type RepertoireReviewItem,
   } from "@repo/music-core/engines/ear-training";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -28,7 +29,7 @@
     droneOn,
     freePlayChoices,
     lastFreePlayDegree,
-    repertoireTransfers,
+    reviewQueue,
     midiEnabled,
     midiStatus,
     audioSupported,
@@ -52,7 +53,7 @@
     droneOn: boolean;
     freePlayChoices: ScaleDegreeFreePlayChoice[];
     lastFreePlayDegree?: ScaleDegreeFreePlayChoice;
-    repertoireTransfers: RepertoireEarTransfer[];
+    reviewQueue: RepertoireReviewItem[];
     midiEnabled: boolean;
     midiStatus: string;
     audioSupported: boolean;
@@ -161,39 +162,55 @@
     onPlayDegree={onPlayFreePlayDegree}
   />
 
-  {#if repertoireTransfers[0]}
-    {@const transfer = repertoireTransfers[0]}
+  {#if reviewQueue.length}
     <Card.Root>
       <Card.Header>
         <Card.Description>Repertoire transfer</Card.Description>
-        <Card.Title>{transfer.title}</Card.Title>
+        <Card.Title>Review phrases from your saved songs</Card.Title>
         <Card.Description>
-          Hear a real phrase from your saved songs, then map it back to scale-degree motion.
+          Ranked by what's gone stale — new and weak phrases float to the top. Hear a real phrase,
+          then map it back to scale-degree motion.
         </Card.Description>
       </Card.Header>
-      <Card.Content class="grid gap-2">
-        <p class="text-sm font-medium">{transfer.answerLabel}</p>
-        <p class="text-xs text-muted-foreground">
-          Beats {transfer.startBeat}–{transfer.endBeat}
-          {transfer.unsupportedDegrees.length
-            ? ` · outside current level: ${transfer.unsupportedDegrees.join(", ")}`
-            : ""}
-        </p>
+      <Card.Content class="grid gap-3">
+        {#each reviewQueue as item (item.transfer.id)}
+          {@const transfer = item.transfer}
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+            <div class="min-w-0 space-y-0.5">
+              <p class="flex flex-wrap items-center gap-2 text-sm font-medium">
+                <span class="truncate">{transfer.title}</span>
+                <span
+                  class="rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  {item.status === "new"
+                    ? "New"
+                    : item.status === "due"
+                      ? "Review due"
+                      : "Strong"}
+                </span>
+              </p>
+              <p class="text-xs text-muted-foreground">
+                {transfer.answerLabel}
+                {transfer.unsupportedDegrees.length
+                  ? ` · outside current level: ${transfer.unsupportedDegrees.join(", ")}`
+                  : ""}
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onclick={() => onPlayRepertoireTransfer(transfer)}>
+                Preview transfer
+              </Button>
+              <Button
+                type="button"
+                disabled={!ready || pending}
+                onclick={() => onStartRepertoireTransfer(transfer)}
+              >
+                Practice transfer
+              </Button>
+            </div>
+          </div>
+        {/each}
       </Card.Content>
-      <Card.Footer>
-        <div class="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onclick={() => onPlayRepertoireTransfer(transfer)}
-          >
-            Preview transfer
-          </Button>
-          <Button type="button" disabled={!ready || pending} onclick={() => onStartRepertoireTransfer(transfer)}>
-            Practice transfer
-          </Button>
-        </div>
-      </Card.Footer>
     </Card.Root>
   {/if}
 
