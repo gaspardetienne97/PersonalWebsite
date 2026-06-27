@@ -42,3 +42,5 @@ export {
   type AudioPitchStatus,
   type AudioPitchSourceOptions,
 } from "./capture";
+
+export { recordMicClip, micClipSupported, type RecordMicClipOptions } from "./record-clip";
