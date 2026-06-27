@@ -13,6 +13,7 @@
     "./engines/backing-track": "./src/engines/backing-track/index.ts",
     "./engines/backing-track/browser-player": "./src/engines/backing-track/browser-player.ts",
     "./engines/challenges": "./src/engines/challenges/index.ts",
+    "./engines/chord-follower": "./src/engines/chord-follower/index.ts",
     "./engines/chord-id": "./src/engines/chord-id/index.ts",
     "./engines/chord-verification": "./src/engines/chord-verification/index.ts",
     "./engines/coach": "./src/engines/coach/index.ts",
