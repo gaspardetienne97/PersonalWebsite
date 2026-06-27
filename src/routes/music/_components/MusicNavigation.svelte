@@ -78,6 +78,7 @@
         { label: "Tuner", href: "/music/tuner", icon: Gauge },
         { label: "Intonation", href: "/music/intonation", icon: AudioWaveform },
         { label: "Import & Play", href: "/music/import", icon: Upload },
+        { label: "Transcribe", href: "/music/transcribe", icon: AudioWaveform },
         { label: "Songs", href: "/music/songs", icon: ListMusic },
         { label: "Jam / Improv", href: "/music/jam", icon: WandSparkles },
         { label: "ii-V-I Drill", href: "/music/play/voicings", icon: Piano },
@@ -93,6 +94,7 @@
     {
       label: "Progress",
       items: [
+        { label: "Coach", href: "/music/coach", icon: WandSparkles },
         {
           label: "Skill Tree",
           href: "/music/progress",

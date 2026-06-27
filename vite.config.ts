@@ -67,6 +67,7 @@ export default defineConfig({
       "svguitar",
       "tone",
       "opensheetmusicdisplay",
+      "@spotify/basic-pitch",
       "@repo/music-core > webmidi",
     ],
   },

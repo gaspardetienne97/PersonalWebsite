@@ -4,6 +4,11 @@
 
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+  import {
+    AudioPitchSource,
+    type AudioPitchState,
+  } from "@repo/music-core/engines/audio-in";
+  import { verifyChordTarget } from "@repo/music-core/engines/chord-verification";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
@@ -13,6 +18,7 @@
   } from "@repo/music-core/engines/technique-session";
   import { curatedTunings, type StringInstrumentId } from "@repo/music-core/engines/tunings";
   import {
+    chordShapeMidiNotes,
     chordShapesFor,
     type ChordPerfectAnswer,
     type ChordPerfectPrompt,
@@ -30,6 +36,22 @@
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
+
+  interface ChordVerifierAudioSource {
+    readonly state: AudioPitchState;
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    subscribeState(listener: (state: AudioPitchState) => void): () => void;
+    subscribeEvents(listener: (event: NoteEvent) => void): () => void;
+  }
+
+  const {
+    audioSource = new AudioPitchSource(),
+    audioSupported = AudioPitchSource.supported,
+  }: {
+    audioSource?: ChordVerifierAudioSource;
+    audioSupported?: boolean;
+  } = $props();
 
   const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
@@ -52,7 +74,13 @@
   let midiEnabled = $state(runtime.midi.state.enabled);
   let session = $state<TechniqueSession | undefined>();
   let sessionState = $state<TechniqueSessionState | undefined>();
+  let verifierActive = $state(false);
+  let micVerifierActive = $state(false);
+  let audioState = $state<AudioPitchState>({ status: "idle" });
+  let verifiedMidiNotes = $state<number[]>([]);
   let unsubscribeSession: (() => void) | undefined;
+  let unsubscribeAudioState: (() => void) | undefined;
+  let unsubscribeAudioEvents: (() => void) | undefined;
 
   const shapes = $derived(chordShapesFor(instrument));
   const shape = $derived(shapes.find((entry) => entry.id === shapeId) ?? shapes[0]!);
@@ -74,8 +102,25 @@
     Math.min(total, Math.round((sessionState?.live?.progress ?? 0) * total)),
   );
   const nextMidi = $derived(prompt?.midiNotes[completedNotes]);
-  const targetMidi = $derived(prompt?.shapeMidiNotes ?? []);
+  const shapeMidi = $derived(chordShapeMidiNotes(tuning, shape));
+  const targetMidi = $derived(prompt?.shapeMidiNotes ?? shapeMidi);
   const correctMidi = $derived(prompt?.midiNotes.slice(0, completedNotes) ?? []);
+  const verification = $derived(
+    verifyChordTarget({ expectedMidiNotes: shapeMidi, observedMidiNotes: verifiedMidiNotes }),
+  );
+  const verificationStatus = $derived(
+    verification.correct
+      ? "Target complete"
+      : verifierActive || micVerifierActive
+        ? "Listening for chord tones"
+        : "Start the verifier, then pick or play the chord tones.",
+  );
+  const missingToneLabels = $derived(
+    verification.missingPitchClasses.map(pitchClassLabel).join(", ") || "None",
+  );
+  const observedToneLabels = $derived(
+    verification.observedPitchClasses.map(pitchClassLabel).join(", ") || "None yet",
+  );
   const midiStatus = $derived(
     midiEnabled
       ? `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`
@@ -86,6 +131,10 @@
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
+  });
+  const unsubscribeVerifierInput = runtime.router.subscribe((event) => {
+    if (!verifierActive || event.type !== "noteOn") return;
+    verifiedMidiNotes = [...verifiedMidiNotes, event.midiNote].slice(-24);
   });
 
   async function initialize(): Promise<void> {
@@ -123,6 +172,7 @@
   function selectInstrument(value: string): void {
     instrument = value as StringInstrumentId;
     shapeId = chordShapesFor(instrument)[0]!.id;
+    clearVerifier();
     runtime.setActiveInstrument(instrument);
   }
 
@@ -150,6 +200,32 @@
     status = "Drill cancelled. You can start again.";
   }
 
+  function startVerifier(): void {
+    verifierActive = true;
+    verifiedMidiNotes = [];
+  }
+
+  async function startMicVerifier(): Promise<void> {
+    verifierActive = true;
+    micVerifierActive = true;
+    verifiedMidiNotes = [];
+    await audioSource.start();
+  }
+
+  function stopVerifier(): void {
+    verifierActive = false;
+    if (micVerifierActive) void stopMicVerifier();
+  }
+
+  async function stopMicVerifier(): Promise<void> {
+    micVerifierActive = false;
+    await audioSource.stop();
+  }
+
+  function clearVerifier(): void {
+    verifiedMidiNotes = [];
+  }
+
   function playAccepted(event: NoteEvent): void {
     if (event.type === "noteOn" && runtime.audioEnabled) {
       runtime.sound.playNote(event.midiNote, 0.12, undefined, event.velocity);
@@ -160,13 +236,30 @@
     return error instanceof Error ? error.message : fallback;
   }
 
+  function pitchClassLabel(pitchClass: number): string {
+    return ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][pitchClass] ?? "?";
+  }
+
   onMount(() => {
     runtime.setActiveInstrument(instrument);
+    audioState = audioSource.state;
+    unsubscribeAudioState = audioSource.subscribeState((next) => {
+      audioState = next;
+      if (next.status !== "running" && next.status !== "requesting") micVerifierActive = false;
+    });
+    unsubscribeAudioEvents = audioSource.subscribeEvents((event) => {
+      if (!micVerifierActive || event.type !== "noteOn") return;
+      runtime.router.push(event);
+    });
   });
 
   onDestroy(() => {
     unsubscribeSession?.();
     unsubscribeMidiState();
+    unsubscribeVerifierInput();
+    unsubscribeAudioState?.();
+    unsubscribeAudioEvents?.();
+    void audioSource.stop();
     session?.dispose();
   });
 </script>
@@ -272,22 +365,64 @@
       </Card.Footer>
     </Card.Root>
 
-    <Card.Root class="min-w-0">
-      <Card.Header>
-        <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</Card.Title>
-        <Card.Description>{midiStatus}</Card.Description>
-      </Card.Header>
-      <Card.Content class="min-w-0 overflow-hidden">
-        <FretboardInput
-          {tuning}
-          router={runtime.router}
-          targetMidiNotes={targetMidi}
-          activeMidiNotes={nextMidi === undefined ? [] : [nextMidi]}
-          correctMidiNotes={correctMidi}
-          visibleFrets={5}
-          onAccepted={playAccepted}
-        />
-      </Card.Content>
-    </Card.Root>
+    <aside class="grid content-start gap-4">
+      <Card.Root>
+        <Card.Header>
+          <Card.Description>Expected-target verifier</Card.Description>
+          <Card.Title class="text-base">{verificationStatus}</Card.Title>
+        </Card.Header>
+        <Card.Content class="grid gap-3 text-sm">
+          <div class="grid grid-cols-2 gap-3">
+            <HudTile label="Coverage" value={Math.round(verification.coverage * 100)} unit="%" />
+            <HudTile label="Score" value={Math.round(verification.score * 100)} unit="%" />
+          </div>
+          <p class="text-muted-foreground">Observed: {observedToneLabels}</p>
+          <p class="text-muted-foreground">Missing: {missingToneLabels}</p>
+          {#if audioState.status === "denied" || audioState.status === "error"}
+            <p class="text-destructive">{audioState.message}</p>
+          {/if}
+        </Card.Content>
+        <Card.Footer class="flex-wrap gap-2">
+          {#if verifierActive}
+            <Button type="button" variant="outline" onclick={stopVerifier}>Stop verifier</Button>
+          {:else}
+            <Button type="button" disabled={!ready} onclick={startVerifier}>Start verifier</Button>
+          {/if}
+          {#if micVerifierActive}
+            <Button type="button" variant="outline" onclick={() => void stopMicVerifier()}>
+              Stop mic verifier
+            </Button>
+          {:else}
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!ready || !audioSupported || audioState.status === "requesting"}
+              onclick={() => void startMicVerifier()}
+            >
+              {audioState.status === "requesting" ? "Starting mic..." : "Start mic verifier"}
+            </Button>
+          {/if}
+          <Button type="button" variant="ghost" onclick={clearVerifier}>Reset</Button>
+        </Card.Footer>
+      </Card.Root>
+
+      <Card.Root class="min-w-0">
+        <Card.Header>
+          <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</Card.Title>
+          <Card.Description>{midiStatus}</Card.Description>
+        </Card.Header>
+        <Card.Content class="min-w-0 overflow-hidden">
+          <FretboardInput
+            {tuning}
+            router={runtime.router}
+            targetMidiNotes={targetMidi}
+            activeMidiNotes={nextMidi === undefined ? [] : [nextMidi]}
+            correctMidiNotes={correctMidi}
+            visibleFrets={5}
+            onAccepted={playAccepted}
+          />
+        </Card.Content>
+      </Card.Root>
+    </aside>
   </section>
 </PracticeScreen>

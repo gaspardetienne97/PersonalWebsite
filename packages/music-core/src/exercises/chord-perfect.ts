@@ -54,6 +54,17 @@ export function chordShapesFor(instrument: StringInstrumentId): ChordShape[] {
   return CHORD_SHAPES.filter((entry) => entry.instrument === instrument);
 }
 
+export function chordShapeMidiNotes(tuning: TuningProfile, shape: ChordShape): number[] {
+  if (shape.frets.length !== tuning.openStrings.length) {
+    throw new Error("Chord shape does not match the tuning's string count.");
+  }
+
+  return shape.frets
+    .map((fret, index) => (fret === null ? undefined : tuning.openStrings[index]! + fret))
+    .filter((midi): midi is number => midi !== undefined)
+    .sort((left, right) => left - right);
+}
+
 export interface ChordPerfectOptions {
   tuning: TuningProfile;
   shape: ChordShape;
@@ -80,14 +91,7 @@ export function createChordPerfectExercise(
   options: ChordPerfectOptions,
 ): ExerciseDefinition<ChordPerfectPrompt, ChordPerfectAnswer> {
   const { tuning, shape } = options;
-  if (shape.frets.length !== tuning.openStrings.length) {
-    throw new Error("Chord shape does not match the tuning's string count.");
-  }
-
-  const voiced = shape.frets
-    .map((fret, index) => (fret === null ? undefined : tuning.openStrings[index]! + fret))
-    .filter((midi): midi is number => midi !== undefined);
-  const midiNotes = [...voiced].sort((a, b) => a - b);
+  const midiNotes = chordShapeMidiNotes(tuning, shape);
 
   return {
     id: `technique.${tuning.instrument}.chord-perfect`,
@@ -99,7 +103,7 @@ export function createChordPerfectExercise(
     generate: () => ({
       id: `chord-perfect-${shape.id}`,
       payload: {
-        label: `${shape.name} · ${voiced.length} strings`,
+        label: `${shape.name} · ${midiNotes.length} strings`,
         instrument: tuning.instrument,
         tuningId: tuning.id,
         shapeId: shape.id,

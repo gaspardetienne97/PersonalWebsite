@@ -212,7 +212,40 @@ This file provides guidance for agents working on the Music app under
   runtime router so incoming MIDI/on-screen notes can highlight the matching
   fingering. The Learn hub links here directly; per-note fingering caveats still
   belong in deferred hardware verification until checked on the physical unit.
-- `/music/learn/ear`: interval/chord/scale-degree ear training.
+- `/music/learn/ear`: interval/chord/scale-degree ear training. Mixed sessions
+  use `EarTrainingSession` with `queueMode:"adaptive"` so scheduler
+  weakness/review/new priorities are preserved while rotating drill types to
+  avoid back-to-back repeats. Focused sessions should keep balanced cycling.
+  Keep the curriculum spine tonic-first and scale-degree-first: anchor tonic,
+  build diatonic degrees, sing/play targets, transfer into melodies, add
+  chromatic color, then attach harmony/interval vocabulary. The route may
+  present the path, but ordering belongs in the
+  `@repo/music-core/engines/ear-training` curriculum projection. Scale-degree
+  level metadata belongs with `scale-degree-recognition` in `@repo/music-core`;
+  route controls should consume `SCALE_DEGREE_SETS` and pass `scaleDegreeSet`
+  into `EarTrainingSession` instead of duplicating degree lists. Chromatic color
+  support includes b2 and #4 in the seeded skill graph and the Chromatic color
+  level; add future degree colors in the engine/skill seed first, then surface
+  them through the shared set list. The free-play warmup is intentionally
+  unscored: it may start/stop the shared `SoundEngine` drone and play tonic→degree
+  comparisons, but it must not write XP, mastery, analytics, or practice-journal
+  records. Pocket mode is listening-only but still graded by self-assessment:
+  call `EarTrainingSession.answerListening()` so heard/missed reps flow through
+  the Exercise pipeline, Skill Graph, Analytics, Progress, and journal capture.
+  Voice mode is intentionally scoped to focused Scale Degree sessions: start
+  `AudioPitchSource` from the user action, push microphone `noteOn` events
+  through `MusicRuntime.router`, and let `EarTrainingSession` listen to `audio`
+  input for the run. Stop the microphone on summary, abandon, and teardown.
+  Melody Dictation is a focused play-back drill only: use
+  `@repo/music-core/exercises/melody-dictation`, keep it out of choice-mode mixed
+  review, and grade ordered MIDI/on-screen note sequences through the shared
+  Exercise pipeline. Repertoire transfer prompts come from
+  `@repo/music-core/engines/ear-training/repertoire`: pass saved `Score`s through
+  `buildRepertoireEarTransfers()` and keep scale-degree/key parsing there. The
+  route surface previews the first available phrase and starts a one-prompt
+  play-back session through `createRepertoireTransferExercise()`; broader saved
+  song review queues should extend that engine path. Do not create route-local
+  grading, route-local scale-degree parsing, or route-local microphone capture.
 - `/music/learn/reading`: note flashcards and generated sight-reading. Registers
   a transport `PlaybackSource` so Play previews the on-screen melody. The guitar/
   ukulele sight-reading session has an opt-in **Show/Hide tab** reveal
@@ -294,8 +327,14 @@ This file provides guidance for agents working on the Music app under
   instrument + a curated open-chord shape; MIDI and the shared `FretboardInput`
   (whole shape lit, next string highlighted) feed `TechniqueSession.startChordPerfect()`,
   which grades each voiced string in ascending-pitch order and awards XP/mastery to
-  `technique.{guitar,ukulele}.chord-perfect`. The chord shapes are standard open
-  voicings carrying a hardware-verification caveat (see the handoff).
+  `technique.{guitar,ukulele}.chord-perfect`. It also includes an expected-target
+  verifier backed by `@repo/music-core/engines/chord-verification`: accumulated
+  MIDI/on-screen/microphone pitch notes are compared to the selected shape's
+  chord tones by pitch class, with coverage/missing/extra tone feedback. The mic
+  verifier starts `AudioPitchSource` and pushes audio `noteOn` events through the
+  shared `InputRouter` before verification. This is target matching, not open
+  polyphonic chord recognition. The chord shapes are standard open voicings
+  carrying a hardware-verification caveat (see the handoff).
 - `/music/play/two-hand`: graded piano two-hand independence drill. The left
   hand holds a steady root pulse (one note per beat) while the right hand runs a
   faster scale line (two notes per beat). MIDI and two on-screen `OnScreenKeyboard`s
@@ -339,11 +378,43 @@ This file provides guidance for agents working on the Music app under
   needs a fixture-based test **and** physical MPC One+ verification before
   claiming hardware compatibility. Never copy or commit user-owned sample packs
   or the local MPC fixture; `static/audio` sample material is gitignored.
+- `/music/piano-roll`: multitrack-lite editor over the canonical `Score`.
+  Editing helpers belong in `@repo/music-core/engines/piano-roll`
+  (`toggleNoteAt`, `setVoiceVelocity`, `resizeNoteAt`, `addVoice`,
+  `removeVoice`, `clearVoice`, `withoutVoices`, `scoreLoopBeats`); the route
+  should keep playback/export thin by reusing `scoreToPattern`,
+  `scoreToMidiBlob`, and `renderEventsToWav`. Track colors stay on theme chart
+  tokens and wrap across dynamic voices. Velocity lane/control and horizontal
+  visual zoom are built; drag-resize uses explicit Resize mode. Do not add
+  route-local playback/export engines for future piano-roll polish.
 - `/music/recording`: take list, waveform, compare, and self-review.
 - `/music/track`: practice journal and routine/session tracking.
 - `/music/settings`: app settings over `PracticeStore.settings`.
 - `/music/progress`: dashboard, skill tree, weak spots, achievements, streaks,
-  and practice-next picks.
+  practice-next picks, and personal daily challenges. Challenge cards must come
+  from `@repo/music-core/engines/challenges`; keep them non-competitive unless
+  the user explicitly asks for leagues/social ranking.
+- `/music/coach`: Phase 5 local Practice Coach. It uses
+  `@repo/music-core/engines/coach` to project Skill Graph, Analytics, Progress,
+  Sessions, and `daily-routine` into a deterministic recommendation view. Keep it
+  local/offline; do not add an external AI/API dependency unless the user makes
+  a new explicit product decision.
+- `/music/transcribe`: Phase 5 Transcription Trainer. It uses
+  `@repo/music-core/engines/transcription` to parse manual note rows into a draft
+  and convert the draft to a canonical `audio-transcription` score that can be
+  practiced through the existing wait-mode `ScorePracticeSession` and saved to
+  repertoire. The default browser extractor lives in route code
+  (`basic-pitch-extractor.ts`) and uses `@spotify/basic-pitch` by dynamically
+  loading the bundled TensorFlow model/shard assets, decoding source audio, and
+  resampling it to 22.05 kHz mono. Keep the core transcription engine
+  framework-agnostic; Basic Pitch output must adapt to
+  `ExtractedTranscriptionNote[]` and then flow through `extractedNotesToDraft()`.
+  Generated-score playback must stay on the shared transport/audio path by
+  registering `scoreToPattern(score)` with `MusicRuntime.setPlaybackSource()`;
+  do not add a route-local player. Keep route input wired through
+  `MusicRuntime.router` so MIDI, on-screen, and extractor-backed flows use the
+  same score follower. Real-audio extraction quality still needs manual browser
+  validation and threshold/cleanup tuning.
 
 ### Core Package
 
@@ -380,6 +451,21 @@ Important areas:
 - `src/engines/progress/`: XP, level, streak, achievements.
 - `src/engines/sessions/`: practice journal/session records.
 - `src/engines/dashboard/`: dashboard and skill tree view projections.
+- `src/engines/challenges/`: personal practice challenge projection over
+  Progress, Sessions, Analytics, and Skill Graph. It is intentionally
+  non-competitive: daily XP, weak-skill reps, capability variety, streak
+  continuity, and a neutral weekly summary. Do not add leagues or social
+  ranking unless the user explicitly changes that product decision.
+- `src/engines/coach/`: local practice coach projection over dashboard-style
+  weak spots, progress state, sessions, and the daily-routine planner.
+- `src/engines/transcription/`: local transcription draft model. Keep parsing
+  and draft→Score conversion framework-agnostic. Basic Pitch stays in route-level
+  browser adapter code and must adapt extractor output to
+  `ExtractedTranscriptionNote[]`, then pass it through `extractedNotesToDraft()`
+  before touching UI or score-following.
+- `src/engines/chord-verification/`: expected-target chord-tone verifier. Keep
+  this limited to comparing observed monophonic/MIDI notes against a selected
+  target; do not turn it into open browser polyphonic chord recognition.
 - `src/engines/projection/`: derived view helpers (journal focus, rhythm HUD,
   technique ladder, journal projections, canonical score voice filtering, and
   piano, guitar/ukulele fretboard, and Aerophone projections).

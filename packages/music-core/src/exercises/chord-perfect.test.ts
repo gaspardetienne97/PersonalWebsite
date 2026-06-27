@@ -3,7 +3,12 @@ import { describe, expect, test } from "vitest";
 import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
 import { curatedTunings } from "@repo/music-core/engines/tunings";
 
-import { CHORD_SHAPES, chordShapesFor, createChordPerfectExercise } from "./chord-perfect";
+import {
+  CHORD_SHAPES,
+  chordShapeMidiNotes,
+  chordShapesFor,
+  createChordPerfectExercise,
+} from "./chord-perfect";
 
 // Expected pitch-class set per curated shape — the authoritative check that the
 // fret data is correct, independent of any one voicing.
@@ -23,10 +28,12 @@ describe("createChordPerfectExercise", () => {
   test("every curated shape resolves to the right chord tones", () => {
     for (const shape of CHORD_SHAPES) {
       const tuning = curatedTunings(shape.instrument).find((entry) => entry.id === shape.tuningId)!;
+      const shapeMidi = chordShapeMidiNotes(tuning, shape);
       const prompt = createChordPerfectExercise({ tuning, shape }).generate({
         targetSkillIds: [],
         difficulty: 0.4,
       });
+      expect(prompt.payload.midiNotes).toEqual(shapeMidi);
       const pcs = new Set(prompt.payload.midiNotes.map((midi) => ((midi % 12) + 12) % 12));
       expect([...pcs].sort((a, b) => a - b)).toEqual(
         [...new Set(EXPECTED_PCS[shape.id])].sort((a, b) => a - b),

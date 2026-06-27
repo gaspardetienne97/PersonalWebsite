@@ -3,6 +3,10 @@
 
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
+    buildChallengeBoard,
+    type ChallengeBoard,
+  } from "@repo/music-core/engines/challenges";
+  import {
     buildDashboardView,
     buildSkillTreeView,
     type DashboardView,
@@ -33,6 +37,7 @@
   let status = $state("Loading progress.");
   let dashboard = $state<DashboardView | undefined>();
   let skillTree = $state<SkillTreeView | undefined>();
+  let challenges = $state<ChallengeBoard | undefined>();
 
   const weekDots = $derived.by(() => {
     const last7 = (dashboard?.streakCalendar ?? []).slice(-7);
@@ -84,6 +89,17 @@
       analytics,
     });
     skillTree = buildSkillTreeView({ skills, analytics });
+    challenges = buildChallengeBoard({
+      progressState: progress.state,
+      sessions: sessions.all(),
+      skills,
+      analytics,
+    });
+  }
+
+  function challengePercent(progressValue: number, target: number): number {
+    if (target <= 0) return 100;
+    return Math.min(100, Math.round((progressValue / target) * 100));
   }
 </script>
 
@@ -102,7 +118,7 @@
   />
 
 
-  {#if !dashboard || !skillTree}
+  {#if !dashboard || !skillTree || !challenges}
     <Card.Root>
       <Card.Content class="py-6 text-sm text-muted-foreground">{status}</Card.Content>
     </Card.Root>
@@ -166,6 +182,46 @@
           </Card.Content>
           <Card.Footer>
             <Button href={dashboard.dailyChallenge.href}>Start challenge</Button>
+          </Card.Footer>
+        </Card.Root>
+
+        <Card.Root>
+          <Card.Header>
+            <Card.Description>Personal practice goals</Card.Description>
+            <Card.Title>Daily challenges</Card.Title>
+          </Card.Header>
+          <Card.Content class="grid gap-3 md:grid-cols-2">
+            {#each challenges.daily as challenge (challenge.id)}
+              <a class="grid gap-3 rounded-md border p-3 hover:bg-accent/50" href={challenge.href}>
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-medium">{challenge.title}</p>
+                    <p class="text-xs text-muted-foreground">{challenge.description}</p>
+                  </div>
+                  <span
+                    class={[
+                      "rounded-full border px-2 py-0.5 text-xs",
+                      challenge.complete
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "text-muted-foreground",
+                    ]}
+                  >
+                    {challenge.complete ? "done" : "open"}
+                  </span>
+                </div>
+                <Progress value={challengePercent(challenge.progress, challenge.target)} max={100} />
+                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>{challenge.progress}/{challenge.target}</span>
+                  <span>{challenge.reason}</span>
+                </div>
+              </a>
+            {/each}
+          </Card.Content>
+          <Card.Footer class="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <span class="font-medium text-foreground">This week</span>
+            <span>{challenges.weeklySummary.xp} XP</span>
+            <span>{challenges.weeklySummary.sessions} sessions</span>
+            <span>{challenges.weeklySummary.completedChallenges} challenges today</span>
           </Card.Footer>
         </Card.Root>
 

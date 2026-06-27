@@ -22,4 +22,13 @@ describe("/music/progress/+page.svelte", () => {
     expect(document.body.textContent).toContain("Streak calendar");
     expect(document.body.textContent).toContain("Capability summary");
   });
+
+  test("shows personal daily challenges", async () => {
+    render(Page);
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Daily challenges"));
+    expect(document.body.textContent).toContain("Hit today's XP");
+    expect(document.body.textContent).toContain("Cross-train two skills");
+    expect(document.body.textContent).toContain("This week");
+  });
 });

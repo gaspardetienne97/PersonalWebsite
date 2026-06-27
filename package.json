@@ -34,6 +34,7 @@
     "@repo/music-core": "workspace:*",
     "@repo/pdf-core": "workspace:*",
     "@repo/ui": "workspace:*",
+    "@spotify/basic-pitch": "catalog:",
     "@spotify/web-api-ts-sdk": "^1.2.0",
     "@tonejs/midi": "^2.0.28",
     "@vite-pwa/sveltekit": "catalog:",
