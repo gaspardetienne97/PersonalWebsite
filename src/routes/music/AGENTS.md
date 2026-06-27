@@ -60,10 +60,15 @@ This file provides guidance for agents working on the Music app under
   Keep onset analysis pure/testable, require an explicit user action before
   requesting microphone permission, stop capture on route teardown, and gate
   scored input until after any audible count-in to avoid speaker bleed.
-- **Chord recognition:** Do not attempt real-time polyphonic chord detection in
-  the browser. For future chord practice, use expected-target matching or
-  extend the existing monophonic audio path only when the exercise contract is
-  explicit and testable.
+- **Chord recognition:** Do not attempt **real-time streaming** polyphonic chord
+  detection in the browser (the live `audio-in` pitch source is monophonic by
+  design). Two sanctioned paths exist: expected-target matching
+  (`chord-verification`), and **buffered analyze-on-demand** identification —
+  record a short clip (`audio-in/recordMicClip`), run the existing Basic Pitch
+  adapter on the whole buffer, reduce to a pitch-class set, then name it with
+  `chord-id`'s `identifyChord()` and/or verify it. The buffered path is allowed
+  because it is not continuous streaming; keep `chord-id` limited to pitch-class
+  template matching and never wire polyphonic detection into a live frame loop.
 - **Notation:** Use shared VexFlow `StaffNotation` for generated/MIDI canonical
   scores. MusicXML-backed songs retain their original XML and use the
   dynamically imported OSMD renderer for engraving. Playback and score
@@ -336,9 +341,15 @@ This file provides guidance for agents working on the Music app under
   MIDI/on-screen/microphone pitch notes are compared to the selected shape's
   chord tones by pitch class, with coverage/missing/extra tone feedback. The mic
   verifier starts `AudioPitchSource` and pushes audio `noteOn` events through the
-  shared `InputRouter` before verification. This is target matching, not open
-  polyphonic chord recognition. The chord shapes are standard open voicings
-  carrying a hardware-verification caveat (see the handoff).
+  shared `InputRouter` before verification. It also has a **Strum & identify**
+  panel: `recordMicClip()` captures one strum, the shared Basic Pitch adapter
+  transcribes the whole buffer, and `chord-id/identifyChord()` names the chord
+  (ranked candidates) while `chord-verification` checks it against the selected
+  shape. The strum analyzer is an injectable prop so route tests stay off the
+  microphone. This is buffered analyze-on-demand, not live polyphonic streaming.
+  The chord shapes are standard open voicings carrying a hardware-verification
+  caveat (see the handoff); real-strum identification accuracy is likewise
+  hardware-pending.
 - `/music/play/two-hand`: graded piano two-hand independence drill. The left
   hand holds a steady root pulse (one note per beat) while the right hand runs a
   faster scale line (two notes per beat). MIDI and two on-screen `OnScreenKeyboard`s
@@ -470,6 +481,15 @@ Important areas:
 - `src/engines/chord-verification/`: expected-target chord-tone verifier. Keep
   this limited to comparing observed monophonic/MIDI notes against a selected
   target; do not turn it into open browser polyphonic chord recognition.
+- `src/engines/chord-id/`: open chord identification — `identifyChord(pitchClasses)`
+  matches a pitch-class set against quality templates across all 12 roots and
+  ranks by Jaccard similarity (inversion-agnostic, prefers the most complete
+  chord); `toPitchClasses()` reduces MIDI to a deduped pitch-class set. Pure;
+  extend the quality table here, not at call sites. Feed it pitch classes from
+  an analyzed buffer or MIDI — it has no audio/streaming concerns.
+- `src/engines/audio-in/` also exports `recordMicClip()` — the buffered
+  (MediaRecorder) counterpart to the streaming `AudioPitchSource`, for
+  analyze-on-demand capture. The stream factory is injectable for tests.
 - `src/engines/projection/`: derived view helpers (journal focus, rhythm HUD,
   technique ladder, journal projections, canonical score voice filtering, and
   piano, guitar/ukulele fretboard, and Aerophone projections).

@@ -85,6 +85,21 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       expect(document.body.textContent).toContain("100%");
     });
   });
+
+  test("identifies a strummed chord and verifies it against the target shape", async () => {
+    const analyzeStrum = vi.fn(async () => [60, 64, 67]); // C major
+    render(Page, { analyzeStrum, audioSupported: true });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+
+    await vi.waitFor(() => expect(analyzeStrum).toHaveBeenCalledOnce());
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Detected tones: C, E, G");
+      expect(document.body.textContent).toContain("100% match");
+      expect(document.body.textContent).toContain("matches the target");
+    });
+  });
 });
 
 function button(label: string): HTMLButtonElement | undefined {

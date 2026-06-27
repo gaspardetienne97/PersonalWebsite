@@ -8,7 +8,15 @@
     AudioPitchSource,
     type AudioPitchState,
   } from "@repo/music-core/engines/audio-in";
-  import { verifyChordTarget } from "@repo/music-core/engines/chord-verification";
+  import {
+    identifyChord,
+    toPitchClasses,
+    type ChordCandidate,
+  } from "@repo/music-core/engines/chord-id";
+  import {
+    verifyChordTarget,
+    type ChordVerificationResult,
+  } from "@repo/music-core/engines/chord-verification";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
@@ -48,10 +56,24 @@
   const {
     audioSource = new AudioPitchSource(),
     audioSupported = AudioPitchSource.supported,
+    analyzeStrum = defaultAnalyzeStrum,
   }: {
     audioSource?: ChordVerifierAudioSource;
     audioSupported?: boolean;
+    /** Record a strum and return the detected MIDI notes. Injectable for tests. */
+    analyzeStrum?: () => Promise<number[]>;
   } = $props();
+
+  // ponytail: reuse the transcribe route's Basic Pitch adapter — one shared
+  // polyphonic extractor, loaded only when a strum is actually analyzed.
+  async function defaultAnalyzeStrum(): Promise<number[]> {
+    const { recordMicClip } = await import("@repo/music-core/engines/audio-in");
+    const blob = await recordMicClip({ durationMs: 1300 });
+    const { extractBasicPitchNotes } = await import("../../transcribe/basic-pitch-extractor");
+    const file = new File([blob], "strum.webm", { type: blob.type || "audio/webm" });
+    const notes = await extractBasicPitchNotes(file);
+    return notes.map((note) => note.midiNote);
+  }
 
   const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
@@ -225,6 +247,42 @@
   function clearVerifier(): void {
     verifiedMidiNotes = [];
   }
+
+  let strumBusy = $state(false);
+  let strumStatus = $state("");
+  let strumPitchClasses = $state<number[]>([]);
+  let strumCandidates = $state<ChordCandidate[]>([]);
+  let strumVerification = $state<ChordVerificationResult | undefined>();
+
+  // Buffered polyphonic identification: record one strum, analyze the whole
+  // clip, then both name the chord and verify it against the selected shape.
+  async function strumAndIdentify(): Promise<void> {
+    if (strumBusy) return;
+    strumBusy = true;
+    strumStatus = "Listening — strum the chord once.";
+    strumCandidates = [];
+    strumVerification = undefined;
+    try {
+      const midiNotes = await analyzeStrum();
+      strumPitchClasses = toPitchClasses(midiNotes);
+      strumCandidates = identifyChord(strumPitchClasses);
+      strumVerification = verifyChordTarget({
+        expectedMidiNotes: shapeMidi,
+        observedMidiNotes: midiNotes,
+      });
+      strumStatus = strumPitchClasses.length
+        ? "Heard it."
+        : "No clear pitches — try again closer to the mic.";
+    } catch (error) {
+      strumStatus = message(error, "Could not analyze the strum.");
+    } finally {
+      strumBusy = false;
+    }
+  }
+
+  const strumDetectedLabels = $derived(
+    strumPitchClasses.map(pitchClassLabel).join(", ") || "None yet",
+  );
 
   function playAccepted(event: NoteEvent): void {
     if (event.type === "noteOn" && runtime.audioEnabled) {
@@ -403,6 +461,61 @@
             </Button>
           {/if}
           <Button type="button" variant="ghost" onclick={clearVerifier}>Reset</Button>
+        </Card.Footer>
+      </Card.Root>
+
+      <Card.Root>
+        <Card.Header>
+          <Card.Description>Strum &amp; identify</Card.Description>
+          <Card.Title class="text-base">
+            {strumCandidates[0] ? strumCandidates[0].symbol : "What did you just play?"}
+          </Card.Title>
+          <Card.Description>
+            Record one strum — Basic Pitch hears the whole chord, names it, and checks it against
+            {shape.name}.
+          </Card.Description>
+        </Card.Header>
+        <Card.Content class="grid gap-3 text-sm">
+          {#if strumCandidates.length}
+            <div class="flex flex-wrap items-baseline gap-2">
+              <span class="text-2xl font-semibold">{strumCandidates[0]!.symbol}</span>
+              <span class="text-muted-foreground">
+                {Math.round(strumCandidates[0]!.confidence * 100)}% match
+              </span>
+            </div>
+            {#if strumCandidates.length > 1}
+              <p class="text-xs text-muted-foreground">
+                Other readings:
+                {strumCandidates
+                  .slice(1, 3)
+                  .map((candidate) => `${candidate.symbol} (${Math.round(candidate.confidence * 100)}%)`)
+                  .join(", ")}
+              </p>
+            {/if}
+          {/if}
+          <p class="text-muted-foreground">Detected tones: {strumDetectedLabels}</p>
+          {#if strumVerification}
+            <p class="text-muted-foreground">
+              vs {shape.name}: {strumVerification.correct
+                ? "matches the target"
+                : `${Math.round(strumVerification.coverage * 100)}% of the target`}
+            </p>
+          {/if}
+          {#if strumStatus}
+            <p class="text-muted-foreground" aria-live="polite">{strumStatus}</p>
+          {/if}
+          {#if audioState.status === "denied" || audioState.status === "error"}
+            <p class="text-destructive">{audioState.message}</p>
+          {/if}
+        </Card.Content>
+        <Card.Footer>
+          <Button
+            type="button"
+            disabled={!audioSupported || strumBusy}
+            onclick={() => void strumAndIdentify()}
+          >
+            {strumBusy ? "Listening..." : "Strum & identify"}
+          </Button>
         </Card.Footer>
       </Card.Root>
 
