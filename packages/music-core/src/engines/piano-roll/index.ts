@@ -18,6 +18,14 @@ export interface PianoRollCell {
   velocity?: number;
 }
 
+export interface PianoRollResize {
+  voiceId: string;
+  midiNote: number;
+  beat: number;
+  endBeat: number;
+  minDurationBeats?: number;
+}
+
 /** A blank 3-track score (Lead/Keys/Bass) for a fresh piano-roll session. */
 export function createPianoRollScore(bpm = 100): Score {
   return {
@@ -76,6 +84,62 @@ export function toggleNoteAt(score: Score, cell: PianoRollCell): Score {
   return { ...score, notes: [...score.notes, note] };
 }
 
+/** Set every note in a voice to one velocity. */
+export function setVoiceVelocity(score: Score, voiceId: string, velocity: number): Score {
+  const nextVelocity = Math.max(0, Math.min(1, velocity));
+  return {
+    ...score,
+    notes: score.notes.map((note) =>
+      note.voiceId === voiceId ? { ...note, velocity: nextVelocity } : note,
+    ),
+  };
+}
+
+/** Resize the note covering `beat` by moving its end. */
+export function resizeNoteAt(score: Score, edit: PianoRollResize): Score {
+  const existing = noteAt(score, edit.voiceId, edit.midiNote, edit.beat);
+  if (!existing) return score;
+  const minDuration = edit.minDurationBeats ?? 0.25;
+  const durationBeats = Math.max(minDuration, edit.endBeat - existing.startBeat);
+  return {
+    ...score,
+    notes: score.notes.map((note) => (note === existing ? { ...note, durationBeats } : note)),
+  };
+}
+
+/** Add a voice with a stable unique id derived from its name. */
+export function addVoice(score: Score, name = "Track"): Score {
+  const baseName = name.trim() || "Track";
+  const existingIds = new Set(score.voices.map((voice) => voice.id));
+  const existingNames = new Set(score.voices.map((voice) => voice.name));
+  let index = 1;
+  let voiceName = baseName;
+  while (existingNames.has(voiceName)) {
+    index += 1;
+    voiceName = `${baseName} ${index}`;
+  }
+  const baseId = slugify(voiceName);
+  let id = baseId;
+  let suffix = 2;
+  while (existingIds.has(id)) {
+    id = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+  return {
+    ...score,
+    voices: [...score.voices, { id, name: voiceName, role: "melody" }],
+  };
+}
+
+/** Remove a voice and its notes. */
+export function removeVoice(score: Score, voiceId: string): Score {
+  return {
+    ...score,
+    voices: score.voices.filter((voice) => voice.id !== voiceId),
+    notes: score.notes.filter((note) => note.voiceId !== voiceId),
+  };
+}
+
 /** Drop every note belonging to a voice (the per-track "clear"). */
 export function clearVoice(score: Score, voiceId: string): Score {
   return { ...score, notes: score.notes.filter((note) => note.voiceId !== voiceId) };
@@ -96,4 +160,13 @@ export function scoreLoopBeats(score: Score, beatsPerBar = 4, minBars = 1): numb
   );
   const bars = Math.max(minBars, Math.ceil(end / beatsPerBar));
   return bars * beatsPerBar;
+}
+
+function slugify(value: string): string {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "track"
+  );
 }

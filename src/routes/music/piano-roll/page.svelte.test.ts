@@ -33,6 +33,55 @@ describe("/music/piano-roll/+page.svelte", () => {
     await vi.waitFor(() => expect(cell("C4 step 5")).toHaveAttribute("aria-pressed", "true"));
   });
 
+  test("shows a velocity lane and applies the selected velocity to the active track", async () => {
+    render(Page);
+    expect(document.querySelector('[aria-label="Velocity lane"]')).not.toBeNull();
+
+    const input = document.querySelector<HTMLInputElement>('input[aria-label="Note velocity"]')!;
+    input.value = "0.42";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    button("Apply velocity")?.click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Set Lead velocity to 42%."),
+    );
+  });
+
+  test("supports horizontal grid zoom without changing the score", async () => {
+    render(Page);
+
+    const input = document.querySelector<HTMLInputElement>('input[aria-label="Horizontal zoom"]')!;
+    input.value = "2";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("2.00x"));
+    expect(cell("C4 step 1")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("resizes a note end by dragging in resize mode", async () => {
+    render(Page);
+    expect(button("Resize notes")).not.toBeUndefined();
+
+    button("Resize notes")!.click();
+    cell("C4 step 1")?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    cell("C4 step 8")?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+
+    await vi.waitFor(() => expect(cell("C4 step 8")).toHaveAttribute("aria-pressed", "true"));
+    expect(cell("C4 step 9")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("adds and removes tracks", async () => {
+    render(Page);
+
+    button("Add track")?.click();
+    await vi.waitFor(() => expect(button("Track")).not.toBeUndefined());
+
+    button("Track")?.click();
+    button("Remove track")?.click();
+    await vi.waitFor(() => expect(button("Track")).toBeUndefined());
+    expect(button("Lead")).not.toBeUndefined();
+  });
+
   test("exports the score as a MIDI download", () => {
     const createSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:midi");
     const revokeSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);

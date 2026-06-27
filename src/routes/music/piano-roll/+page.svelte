@@ -15,9 +15,14 @@
   } from "@repo/music-core/engines/audio-export";
   import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
   import {
+    addVoice,
     clearVoice,
     createPianoRollScore,
+    noteAt,
+    removeVoice,
+    resizeNoteAt,
     scoreLoopBeats,
+    setVoiceVelocity,
     toggleNoteAt,
     withoutVoices,
   } from "@repo/music-core/engines/piano-roll";
@@ -52,6 +57,10 @@
   let activeVoiceId = $state("lead");
   let mutedVoiceIds = $state<string[]>([]);
   let noteLengthBeats = $state(0.5);
+  let noteVelocity = $state(0.85);
+  let gridZoom = $state(1);
+  let resizeMode = $state(false);
+  let resizing = $state<{ voiceId: string; midiNote: number; beat: number } | undefined>();
   let playing = $state(false);
   let activeStep = $state(-1);
   let status = $state("Click cells to place notes. Changes save locally.");
@@ -102,6 +111,20 @@
     return map;
   });
 
+  const activeVoiceVelocityLane = $derived.by(() =>
+    Array.from({ length: STEPS }, (_, step) => {
+      const beat = step * STEP_BEATS;
+      const notes = score.notes.filter(
+        (note) =>
+          note.voiceId === activeVoiceId &&
+          beat >= note.startBeat &&
+          beat < note.startBeat + note.durationBeats,
+      );
+      if (notes.length === 0) return 0;
+      return notes.reduce((sum, note) => sum + note.velocity, 0) / notes.length;
+    }),
+  );
+
   $effect(() => {
     void score;
     const durationSec = scoreLoopBeats(score) * secondsPerBeat();
@@ -130,13 +153,78 @@
   });
 
   function toggleCell(midiNote: number, step: number): void {
+    if (resizeMode) return;
     score = toggleNoteAt(score, {
       voiceId: activeVoiceId,
       midiNote,
       startBeat: step * STEP_BEATS,
       durationBeats: noteLengthBeats,
+      velocity: noteVelocity,
     });
     void saveScore();
+  }
+
+  function toggleResizeMode(): void {
+    resizeMode = !resizeMode;
+    resizing = undefined;
+    status = resizeMode ? "Drag a note end to resize it." : "Click cells to place notes.";
+  }
+
+  function startResize(midiNote: number, step: number): void {
+    if (!resizeMode) return;
+    const beat = step * STEP_BEATS;
+    const note = noteAt(score, activeVoiceId, midiNote, beat);
+    if (!note) return;
+    resizing = { voiceId: activeVoiceId, midiNote, beat };
+  }
+
+  async function finishResize(midiNote: number, step: number): Promise<void> {
+    if (!resizeMode || !resizing) return;
+    const edit = resizing;
+    resizing = undefined;
+    if (edit.midiNote !== midiNote) return;
+    score = resizeNoteAt(score, {
+      ...edit,
+      endBeat: (step + 1) * STEP_BEATS,
+      minDurationBeats: STEP_BEATS,
+    });
+    await saveScore();
+    status = `Resized ${midiToNote(midiNote)}.`;
+  }
+
+  function setVelocity(value: number): void {
+    noteVelocity = Math.round(Math.max(0, Math.min(1, value)) * 100) / 100;
+  }
+
+  function onVelocityInput(event: Event): void {
+    setVelocity(Number((event.currentTarget as HTMLInputElement).value));
+  }
+
+  function onZoomInput(event: Event): void {
+    gridZoom = Number((event.currentTarget as HTMLInputElement).value);
+  }
+
+  async function applyVelocityToTrack(): Promise<void> {
+    score = setVoiceVelocity(score, activeVoiceId, noteVelocity);
+    await saveScore();
+    status = `Set ${activeVoiceName()} velocity to ${velocityPercent(noteVelocity)}.`;
+  }
+
+  async function addTrack(): Promise<void> {
+    score = addVoice(score);
+    activeVoiceId = score.voices.at(-1)?.id ?? activeVoiceId;
+    await saveScore();
+    status = `Added ${activeVoiceName()}.`;
+  }
+
+  async function removeActiveTrack(): Promise<void> {
+    if (score.voices.length <= 1) return;
+    const index = score.voices.findIndex((voice) => voice.id === activeVoiceId);
+    score = removeVoice(score, activeVoiceId);
+    mutedVoiceIds = mutedVoiceIds.filter((id) => id !== activeVoiceId);
+    activeVoiceId = score.voices[Math.max(0, index - 1)]?.id ?? score.voices[0]?.id ?? activeVoiceId;
+    await saveScore();
+    status = `Removed track.`;
   }
 
   function clearTrack(voiceId: string): void {
@@ -263,6 +351,18 @@
   function cellLabel(midiNote: number, step: number): string {
     return `${midiToNote(midiNote)} step ${step + 1}`;
   }
+
+  function activeVoiceName(): string {
+    return score.voices.find((voice) => voice.id === activeVoiceId)?.name ?? "track";
+  }
+
+  function trackColor(index: number): string {
+    return TRACK_COLORS[index % TRACK_COLORS.length] ?? "bg-chart-1";
+  }
+
+  function velocityPercent(velocity: number): string {
+    return `${Math.round(velocity * 100)}%`;
+  }
 </script>
 
 <svelte:head>
@@ -277,6 +377,23 @@
     {#snippet controls()}
       <Button type="button" variant="outline" onclick={() => clearTrack(activeVoiceId)}>
         <Trash2 class="size-4" aria-hidden="true" />Clear track
+      </Button>
+      <Button type="button" variant="outline" onclick={() => void addTrack()}>Add track</Button>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={score.voices.length <= 1}
+        onclick={() => void removeActiveTrack()}
+      >
+        Remove track
+      </Button>
+      <Button
+        type="button"
+        variant={resizeMode ? "default" : "outline"}
+        aria-pressed={resizeMode}
+        onclick={toggleResizeMode}
+      >
+        Resize notes
       </Button>
       <Button type="button" variant="outline" onclick={exportMidi}>
         <Download class="size-4" aria-hidden="true" />Export MIDI
@@ -308,11 +425,7 @@
                 ? 'border-primary bg-primary/10'
                 : 'border-input hover:bg-muted'}"
             >
-              <span
-                class="size-3 rounded-sm {TRACK_COLORS[voiceIndex]} {mutedVoiceIds.includes(voice.id)
-                  ? 'opacity-30'
-                  : ''}"
-              ></span>
+              <span class="size-3 rounded-sm {trackColor(voiceIndex)} {mutedVoiceIds.includes(voice.id) ? 'opacity-30' : ''}"></span>
               {voice.name}
             </button>
             <button
@@ -348,11 +461,42 @@
             </button>
           {/each}
         </div>
+        <label class="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          Velocity
+          <input
+            aria-label="Note velocity"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={noteVelocity}
+            oninput={onVelocityInput}
+            class="w-28 accent-primary"
+          />
+          <span class="w-9 text-right tabular-nums">{velocityPercent(noteVelocity)}</span>
+        </label>
+        <Button type="button" variant="outline" size="sm" onclick={() => void applyVelocityToTrack()}>
+          Apply velocity
+        </Button>
+        <label class="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          Zoom
+          <input
+            aria-label="Horizontal zoom"
+            type="range"
+            min="1"
+            max="2"
+            step="0.25"
+            value={gridZoom}
+            oninput={onZoomInput}
+            class="w-24 accent-primary"
+          />
+          <span class="w-8 text-right tabular-nums">{gridZoom.toFixed(2)}x</span>
+        </label>
       </div>
     </Card.Header>
     <Card.Content>
       <div class="max-h-[28rem] overflow-auto">
-        <div class="min-w-[680px]">
+        <div style={`min-width: ${Math.round(680 * gridZoom)}px`}>
           <!-- step ruler -->
           <div class="sticky top-0 z-10 flex gap-px bg-background pl-12">
             {#each Array(STEPS) as _, step (step)}
@@ -382,20 +526,43 @@
                   type="button"
                   aria-label={cellLabel(midiNote, step)}
                   aria-pressed={!!cover && cover.active}
+                  onpointerdown={() => startResize(midiNote, step)}
+                  onpointerup={() => void finishResize(midiNote, step)}
                   onclick={() => toggleCell(midiNote, step)}
                   class="h-3.5 flex-1 rounded-[2px] border border-transparent transition-colors {cover
-                    ? `${TRACK_COLORS[cover.voiceIndex]} ${cover.active ? '' : 'opacity-40'}`
+                    ? `${trackColor(cover.voiceIndex)} ${cover.active ? '' : 'opacity-40'}`
                     : isC
                       ? 'bg-muted/70 hover:bg-muted'
-                      : step % 4 === 0
-                        ? 'bg-muted/40 hover:bg-muted'
-                        : 'bg-background hover:bg-muted/60'} {activeStep === step
+                        : step % 4 === 0
+                          ? 'bg-muted/40 hover:bg-muted'
+                          : 'bg-background hover:bg-muted/60'} {resizeMode
+                    ? 'cursor-ew-resize'
+                    : ''} {activeStep === step
                     ? 'ring-1 ring-primary/40'
                     : ''}"
                 ></button>
               {/each}
             </div>
           {/each}
+
+          <div class="mt-3 flex items-end gap-px pl-12" aria-label="Velocity lane">
+            {#each activeVoiceVelocityLane as velocity, step (step)}
+              <button
+                type="button"
+                aria-label={`Velocity step ${step + 1}: ${velocityPercent(velocity)}`}
+                onclick={() => setVelocity(velocity || noteVelocity)}
+                class="flex h-14 flex-1 items-end rounded-[2px] bg-muted/40 p-px hover:bg-muted {activeStep ===
+                step
+                  ? 'ring-1 ring-primary/40'
+                  : ''}"
+              >
+                <span
+                  class="w-full rounded-[1px] bg-primary/70"
+                  style={`height: ${Math.max(velocity * 100, velocity > 0 ? 8 : 0)}%`}
+                ></span>
+              </button>
+            {/each}
+          </div>
         </div>
       </div>
     </Card.Content>
