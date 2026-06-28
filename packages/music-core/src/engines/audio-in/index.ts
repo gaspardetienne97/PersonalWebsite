@@ -50,3 +50,5 @@ export { computeChroma, chromaToPitchClasses, type ChromaOptions } from "./chrom
 export { resampleLinear } from "./resample";
 
 export { FrameRing } from "./frame-ring";
+
+export { ChordAudioSource, type ChordAnalysis, type ChordAudioSourceOptions } from "./chord-source";
