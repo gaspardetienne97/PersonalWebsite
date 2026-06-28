@@ -42,4 +42,17 @@ describe("chord identification", () => {
   test("toPitchClasses dedupes octaves and sorts", () => {
     expect(toPitchClasses([60, 72, 64, 67, 48])).toEqual([0, 4, 7]);
   });
+
+  test("identifies common extensions (sus4 sevenths, add9, ninths)", () => {
+    expect(identifyChord([0, 5, 7, 10])[0]!.symbol).toBe("C7sus4");
+    expect(identifyChord([0, 2, 4, 7])[0]!.symbol).toBe("Cadd9");
+    expect(identifyChord([0, 2, 4, 7, 10])[0]!.symbol).toBe("C9");
+    expect(identifyChord([0, 2, 4, 7, 11])[0]!.symbol).toBe("Cmaj9");
+    expect(identifyChord([0, 2, 3, 7, 10])[0]!.symbol).toBe("Cm9");
+  });
+
+  test("still prefers a plain triad over the richer add9 for a 3-note set", () => {
+    // add9 [0,2,4,7] must not outrank the exact C major triad for [0,4,7].
+    expect(identifyChord([0, 4, 7])[0]!.symbol).toBe("C");
+  });
 });

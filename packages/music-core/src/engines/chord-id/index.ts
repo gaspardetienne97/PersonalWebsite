@@ -22,8 +22,11 @@ interface ChordQuality {
   intervals: number[];
 }
 
-// Common triads and seventh chords. Extend here (not at call sites) to widen
-// recognition; Jaccard ranking keeps richer templates from drowning the triads.
+// Triads, sevenths, and common extensions. Extend here (not at call sites) to
+// widen recognition; Jaccard ranking keeps richer templates from drowning the
+// triads. Note: identification is on pitch-class SETS, so it is inversion- and
+// voicing-agnostic — slash chords (C/E) and a chord's inversions share one set
+// and cannot be distinguished here; do not add them as separate qualities.
 const QUALITIES: ChordQuality[] = [
   { quality: "maj", symbol: "", intervals: [0, 4, 7] },
   { quality: "min", symbol: "m", intervals: [0, 3, 7] },
@@ -31,13 +34,18 @@ const QUALITIES: ChordQuality[] = [
   { quality: "aug", symbol: "aug", intervals: [0, 4, 8] },
   { quality: "sus2", symbol: "sus2", intervals: [0, 2, 7] },
   { quality: "sus4", symbol: "sus4", intervals: [0, 5, 7] },
+  { quality: "add9", symbol: "add9", intervals: [0, 2, 4, 7] },
   { quality: "6", symbol: "6", intervals: [0, 4, 7, 9] },
   { quality: "min6", symbol: "m6", intervals: [0, 3, 7, 9] },
   { quality: "maj7", symbol: "maj7", intervals: [0, 4, 7, 11] },
   { quality: "min7", symbol: "m7", intervals: [0, 3, 7, 10] },
   { quality: "dom7", symbol: "7", intervals: [0, 4, 7, 10] },
+  { quality: "7sus4", symbol: "7sus4", intervals: [0, 5, 7, 10] },
   { quality: "min7b5", symbol: "m7b5", intervals: [0, 3, 6, 10] },
   { quality: "dim7", symbol: "dim7", intervals: [0, 3, 6, 9] },
+  { quality: "dom9", symbol: "9", intervals: [0, 2, 4, 7, 10] },
+  { quality: "maj9", symbol: "maj9", intervals: [0, 2, 4, 7, 11] },
+  { quality: "min9", symbol: "m9", intervals: [0, 2, 3, 7, 10] },
 ];
 
 export interface ChordCandidate {
