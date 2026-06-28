@@ -56,10 +56,26 @@ export async function extractBasicPitchNotes(
   if (typeof AudioContext === "undefined" || typeof OfflineAudioContext === "undefined") {
     throw new Error("Basic Pitch extraction requires browser audio APIs.");
   }
+  return evaluateBasicPitchAudio(await decodeToBasicPitchAudio(file), onProgress);
+}
 
+/**
+ * Analyze samples that are ALREADY 22.05 kHz mono (e.g. a resampled onset
+ * window from the live capture). Skips File decode; shares the model-eval core.
+ */
+export async function extractBasicPitchNotesFromSamples(
+  samples: Float32Array,
+  onProgress: BasicPitchProgressCallback = () => undefined,
+): Promise<ExtractedTranscriptionNote[]> {
+  return evaluateBasicPitchAudio(samples, onProgress);
+}
+
+async function evaluateBasicPitchAudio(
+  audio: Float32Array,
+  onProgress: BasicPitchProgressCallback,
+): Promise<ExtractedTranscriptionNote[]> {
   const { BasicPitch, addPitchBendsToNoteEvents, noteFramesToTime, outputToNotesPoly } =
     await import("@spotify/basic-pitch");
-  const audio = await decodeToBasicPitchAudio(file);
 
   const frames: number[][] = [];
   const onsets: number[][] = [];
