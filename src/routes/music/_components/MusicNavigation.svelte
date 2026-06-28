@@ -73,6 +73,7 @@
         { label: "MPC Rudiments", href: "/music/play/mpc", icon: Drum },
         { label: "Spider Drill", href: "/music/play/spider", icon: SlidersHorizontal },
         { label: "Chord-Perfect", href: "/music/play/chord-perfect", icon: Guitar },
+        { label: "Chord Progression", href: "/music/play/chord-progression", icon: Guitar },
         { label: "Two-Hand Independence", href: "/music/play/two-hand", icon: Hand },
         { label: "Articulation", href: "/music/play/articulation", icon: Wind },
         { label: "Tuner", href: "/music/tuner", icon: Gauge },

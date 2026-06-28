@@ -60,15 +60,16 @@ This file provides guidance for agents working on the Music app under
   Keep onset analysis pure/testable, require an explicit user action before
   requesting microphone permission, stop capture on route teardown, and gate
   scored input until after any audible count-in to avoid speaker bleed.
-- **Chord recognition:** Do not attempt **real-time streaming** polyphonic chord
-  detection in the browser (the live `audio-in` pitch source is monophonic by
-  design). Two sanctioned paths exist: expected-target matching
-  (`chord-verification`), and **buffered analyze-on-demand** identification —
-  record a short clip (`audio-in/recordMicClip`), run the existing Basic Pitch
-  adapter on the whole buffer, reduce to a pitch-class set, then name it with
-  `chord-id`'s `identifyChord()` and/or verify it. The buffered path is allowed
-  because it is not continuous streaming; keep `chord-id` limited to pitch-class
-  template matching and never wire polyphonic detection into a live frame loop.
+- **Chord recognition:** Do not attempt OPEN real-time polyphonic recognition
+  ("what chord is this, out of all chords?"). Two constrained paths are
+  sanctioned: (1) buffered analyze-on-demand identification (`chord-id` +
+  `recordMicClip`/Basic Pitch); and (2) real-time **chord following** of a KNOWN
+  progression — `ChordAudioSource` streams chroma + onset windows, the route
+  turns them into `ChordObservation`s (chroma via `chromaToPitchClasses`, onsets
+  via buffered Basic Pitch), and `chord-follower` aligns/grades them against the
+  expected progression. Following is allowed because it matches against a known
+  target set, stays worklet-isolated, and is unit-testable via injected
+  observations; do not widen `chord-follower` into open classification.
 - **Notation:** Use shared VexFlow `StaffNotation` for generated/MIDI canonical
   scores. MusicXML-backed songs retain their original XML and use the
   dynamically imported OSMD renderer for engraving. Playback and score
@@ -350,6 +351,17 @@ This file provides guidance for agents working on the Music app under
   The chord shapes are standard open voicings carrying a hardware-verification
   caveat (see the handoff); real-strum identification accuracy is likewise
   hardware-pending.
+- `/music/play/chord-progression`: graded chord-following drill for a known
+  progression (`@repo/music-core/engines/jam`'s `JAM_PROGRESSIONS`). `ChordAudioSource`
+  streams chroma + onset windows; chroma frames become `ChordObservation`s via
+  `chromaToPitchClasses`, onsets are confirmed through the buffered Basic Pitch
+  adapter + `chord-id/toPitchClasses`, and `chord-follower` aligns/grades each
+  against `expectedChordsFromProgression()` for correctness and timing. Both the
+  audio source and the onset analyzer are injectable props so route tests stay
+  off the mic and model. Completion records one journal entry (no fabricated
+  per-skill mastery events). Real-strum grading accuracy on a physical
+  guitar/ukulele is Phase 4 hardware-pending; this route proves the
+  mic→chroma→onset→Basic-Pitch→follower path wires up and renders cleanly.
 - `/music/play/two-hand`: graded piano two-hand independence drill. The left
   hand holds a steady root pulse (one note per beat) while the right hand runs a
   faster scale line (two notes per beat). MIDI and two on-screen `OnScreenKeyboard`s
