@@ -45,7 +45,7 @@ export {
 
 export { recordMicClip, micClipSupported, type RecordMicClipOptions } from "./record-clip";
 
-export { computeChroma, type ChromaOptions } from "./chroma";
+export { computeChroma, chromaToPitchClasses, type ChromaOptions } from "./chroma";
 
 export { resampleLinear } from "./resample";
 

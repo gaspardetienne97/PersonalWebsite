@@ -31,6 +31,15 @@ export function computeChroma(frame: Float32Array, options: ChromaOptions): Floa
   return chroma;
 }
 
+/** Pitch classes whose normalized chroma energy clears `threshold` (ascending). */
+export function chromaToPitchClasses(chroma: Float32Array, threshold = 0.5): number[] {
+  const out: number[] = [];
+  for (let pitchClass = 0; pitchClass < 12; pitchClass++) {
+    if ((chroma[pitchClass] ?? 0) >= threshold) out.push(pitchClass);
+  }
+  return out;
+}
+
 /** Generalized Goertzel power at `frequency` over the frame. */
 function goertzelPower(frame: Float32Array, frequency: number, sampleRate: number): number {
   const k = (frequency / sampleRate) * frame.length;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { computeChroma } from "./chroma";
+import { chromaToPitchClasses, computeChroma } from "./chroma";
 
 const SAMPLE_RATE = 44_100;
 const SIZE = 2048;
@@ -38,5 +38,19 @@ describe("computeChroma", () => {
     expect([...computeChroma(new Float32Array(SIZE), { sampleRate: SAMPLE_RATE })]).toEqual(
       Array.from({ length: 12 }, () => 0),
     );
+  });
+});
+
+describe("chromaToPitchClasses", () => {
+  test("keeps pitch classes at or above the threshold", () => {
+    const chroma = new Float32Array(12).fill(0.1);
+    chroma[0] = 1;
+    chroma[4] = 0.8;
+    chroma[7] = 0.6;
+    expect(chromaToPitchClasses(chroma, 0.5)).toEqual([0, 4, 7]);
+  });
+
+  test("returns empty when nothing clears the threshold", () => {
+    expect(chromaToPitchClasses(new Float32Array(12).fill(0.2), 0.5)).toEqual([]);
   });
 });
