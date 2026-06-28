@@ -101,6 +101,7 @@ function createToneMock() {
 
   interface MockPlayer {
     start: ReturnType<typeof vi.fn>;
+    stop: ReturnType<typeof vi.fn>;
     volume: { value: number };
   }
 
@@ -113,7 +114,7 @@ function createToneMock() {
     constructor(public urls: Record<string, string>) {
       super();
       for (const padId of Object.keys(urls)) {
-        this.pads.set(padId, { start: vi.fn(), volume: { value: 0 } });
+        this.pads.set(padId, { start: vi.fn(), stop: vi.fn(), volume: { value: 0 } });
       }
       playersInstances.push(this);
     }
@@ -121,7 +122,7 @@ function createToneMock() {
     player(name: string): MockPlayer {
       let pad = this.pads.get(name);
       if (!pad) {
-        pad = { start: vi.fn(), volume: { value: 0 } };
+        pad = { start: vi.fn(), stop: vi.fn(), volume: { value: 0 } };
         this.pads.set(name, pad);
       }
       return pad;
@@ -208,8 +209,10 @@ describe("music-core/sound", () => {
     await sound.loadDrumKit([{ padId: "pad-36", midiNote: 36, url: "blob:kick" }]);
     const firstPlayers = mock.playersInstances.at(-1)!;
     sound.playDrum("pad-36", 12, 0.4);
+    sound.stopDrum("pad-36", 13);
     expect(mock.playerFor("pad-36").volume.value).toBe(0.4);
     expect(mock.playerFor("pad-36").start).toHaveBeenCalledWith(12);
+    expect(mock.playerFor("pad-36").stop).toHaveBeenCalledWith(13);
 
     await sound.loadDrumKit([{ padId: "pad-38", midiNote: 38, url: "blob:snare" }]);
     expect(firstPlayers.disposeSpy).toHaveBeenCalledOnce();

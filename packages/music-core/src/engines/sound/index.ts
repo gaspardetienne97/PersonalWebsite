@@ -28,6 +28,7 @@ interface ToneGain {
 interface TonePlayer {
   volume: { value: number };
   start(time?: ToneTime): unknown;
+  stop(time?: ToneTime): unknown;
 }
 
 interface TonePlayers {
@@ -342,6 +343,11 @@ export class SoundEngine {
     const player = this.#players.player(padId);
     player.volume.value = this.#tone.gainToDb(clampVelocity(velocity));
     player.start(time);
+  }
+
+  stopDrum(padId: string, time?: ToneTime): void {
+    if (!this.enabled || !this.#players) return;
+    this.#players.player(padId).stop(time);
   }
 
   playDrumPattern(steps: DrumPatternStep[], velocity = 0.8): void {

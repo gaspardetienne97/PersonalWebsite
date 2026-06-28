@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import { onDestroy, onMount } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import { monotonicMs, type NoteEvent, type ScoringEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     AudioPitchSource,
@@ -18,6 +18,7 @@
     type ChordVerificationResult,
   } from "@repo/music-core/engines/chord-verification";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
+  import { runExerciseThroughPipeline } from "@repo/music-core/engines/exercise";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
@@ -28,8 +29,10 @@
   import {
     chordShapeMidiNotes,
     chordShapesFor,
+    createOpenChordIdentificationExercise,
     type ChordPerfectAnswer,
     type ChordPerfectPrompt,
+    type OpenChordIdentificationAnswer,
   } from "@repo/music-core/exercises/chord-perfect";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -253,6 +256,17 @@
   let strumPitchClasses = $state<number[]>([]);
   let strumCandidates = $state<ChordCandidate[]>([]);
   let strumVerification = $state<ChordVerificationResult | undefined>();
+  let strumScore = $state<
+    | {
+        correct: boolean;
+        score: number;
+        xp: number;
+        event: ScoringEvent;
+        answer: OpenChordIdentificationAnswer;
+        feedback: string;
+      }
+    | undefined
+  >();
 
   // Buffered polyphonic identification: record one strum, analyze the whole
   // clip, then both name the chord and verify it against the selected shape.
@@ -262,6 +276,7 @@
     strumStatus = "Listening — strum the chord once.";
     strumCandidates = [];
     strumVerification = undefined;
+    strumScore = undefined;
     try {
       const midiNotes = await analyzeStrum();
       strumPitchClasses = toPitchClasses(midiNotes);
@@ -270,6 +285,46 @@
         expectedMidiNotes: shapeMidi,
         observedMidiNotes: midiNotes,
       });
+      if (ready) {
+        const exercise = createOpenChordIdentificationExercise({ tuning, shape });
+        const outcome = await runExerciseThroughPipeline({
+          exercise,
+          input: midiNotes.map((midiNote, index) => ({
+            type: "noteOn" as const,
+            midiNote,
+            velocity: 1,
+            source: "audio" as const,
+            instrument,
+            timestamp: monotonicMs(index * 10),
+            clock: "performance" as const,
+          })),
+          services: { skills, analytics, progress },
+          sessionId: `open-chord-id-${Date.now()}`,
+          runId: `open-chord-id-${shape.id}-${Date.now()}`,
+          context: {
+            targetSkillIds: exercise.skillIds,
+            difficulty: 0.45,
+            instrument,
+          },
+        });
+        const answer = outcome.result.answer as OpenChordIdentificationAnswer;
+        strumScore = {
+          correct: outcome.result.correct,
+          score: outcome.result.score,
+          xp: outcome.xp,
+          event: outcome.event,
+          answer,
+          feedback: outcome.result.feedback[0]?.message ?? "",
+        };
+        void runtime.recordPractice({
+          source: "drill",
+          instrument,
+          tags: ["technique", "open-chord-id", "chord-perfect", instrument],
+          scoringEvents: [outcome.event],
+          xpEarned: outcome.xp,
+          note: `${instrument === "guitar" ? "Guitar" : "Ukulele"} open chord ID · ${shape.name} · ${answer.detectedSymbol ?? "unclear"}`,
+        });
+      }
       strumStatus = strumPitchClasses.length
         ? "Heard it."
         : "No clear pitches — try again closer to the mic.";
@@ -501,6 +556,14 @@
                 : `${Math.round(strumVerification.coverage * 100)}% of the target`}
             </p>
           {/if}
+          {#if strumScore}
+            <SessionFeedback
+              kind={strumScore.correct ? "correct" : "wrong"}
+              message="Open chord ID scored"
+              detail={`${strumScore.feedback} · ${Math.round(strumScore.score * 100)}% credit`}
+              xp={strumScore.xp}
+            />
+          {/if}
           {#if strumStatus}
             <p class="text-muted-foreground" aria-live="polite">{strumStatus}</p>
           {/if}
@@ -511,7 +574,7 @@
         <Card.Footer>
           <Button
             type="button"
-            disabled={!audioSupported || strumBusy}
+            disabled={!ready || !audioSupported || strumBusy}
             onclick={() => void strumAndIdentify()}
           >
             {strumBusy ? "Listening..." : "Strum & identify"}

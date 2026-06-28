@@ -1,13 +1,18 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  MPC_BANK_A_MIDI,
+  MPC_BANKS,
+  MPC_PAD_MIDI,
   assignSample,
   autoMapSamples,
   cloneSampleKit,
   isMpcPadMidi,
   safeSampleFileName,
   sampleBinaryKey,
+  sampleForPadVelocity,
+  renameSample,
+  setPadChokeGroup,
+  setPadVelocityLayers,
   unassignPad,
   validateSampleFile,
   type SampleAsset,
@@ -79,8 +84,20 @@ describe("sample-kit/auto-mapping", () => {
     const assignments = autoMapSamples(
       Array.from({ length: 18 }, (_, index) => asset(`s${index}`, `sample-${index}.wav`)),
     );
-    expect(assignments).toHaveLength(16);
-    expect(assignments.map(({ midiNote }) => midiNote)).toEqual([...MPC_BANK_A_MIDI]);
+    expect(assignments).toHaveLength(18);
+    expect(assignments.map(({ midiNote }) => midiNote)).toEqual(MPC_PAD_MIDI.slice(0, 18));
+  });
+
+  test("maps overflow imports into banks B-D after Bank A fills", () => {
+    const assignments = autoMapSamples(
+      Array.from({ length: 64 }, (_, index) => asset(`s${index}`, `sample-${index}.wav`)),
+    );
+
+    expect(MPC_BANKS.map((bank) => bank.id)).toEqual(["A", "B", "C", "D"]);
+    expect(assignments).toHaveLength(64);
+    expect(assignments.map(({ midiNote }) => midiNote)).toEqual(MPC_PAD_MIDI);
+    expect(assignments[16]).toMatchObject({ midiNote: 52, sampleId: "s16" });
+    expect(assignments[63]).toMatchObject({ midiNote: 99, sampleId: "s63" });
   });
 
   test("does not reassign a sample already placed by an existing assignment", () => {
@@ -118,11 +135,11 @@ describe("sample-kit/validation", () => {
 });
 
 describe("sample-kit/names and keys", () => {
-  test("isMpcPadMidi guards Bank A only", () => {
+  test("isMpcPadMidi guards Banks A-D", () => {
     expect(isMpcPadMidi(36)).toBe(true);
-    expect(isMpcPadMidi(51)).toBe(true);
+    expect(isMpcPadMidi(99)).toBe(true);
     expect(isMpcPadMidi(35)).toBe(false);
-    expect(isMpcPadMidi(52)).toBe(false);
+    expect(isMpcPadMidi(100)).toBe(false);
   });
 
   test("safeSampleFileName keeps the extension and transliterates the stem", () => {
@@ -141,11 +158,11 @@ describe("sample-kit/names and keys", () => {
 describe("sample-kit/assignment", () => {
   test("moves a sample to a pad and clears the previous occupant", () => {
     const kit = kitWith([asset("kick", "kick.wav"), asset("snare", "snare.wav")]);
-    const moved = assignSample(kit, "snare", 36, 99);
+    const moved = assignSample(kit, "snare", 52, 99);
     expect(moved.assignments).toContainEqual(
-      expect.objectContaining({ midiNote: 36, sampleId: "snare" }),
+      expect.objectContaining({ midiNote: 52, sampleId: "snare" }),
     );
-    expect(moved.assignments.filter((a) => a.midiNote === 36)).toHaveLength(1);
+    expect(moved.assignments.filter((a) => a.midiNote === 52)).toHaveLength(1);
     expect(moved.updatedAt).toBe(99);
     expect(kit.assignments).not.toBe(moved.assignments);
   });
@@ -155,6 +172,31 @@ describe("sample-kit/assignment", () => {
     expect(() => assignSample(kit, "ghost", 40)).toThrow("Sample not found: ghost.");
   });
 
+  test("renames a sample and updates assignment labels", () => {
+    const kit = setPadVelocityLayers(
+      kitWith([asset("soft", "kick-soft.wav"), asset("hard", "kick-hard.wav")]),
+      36,
+      [
+        { sampleId: "soft", minVelocity: 0, maxVelocity: 0.49 },
+        { sampleId: "hard", minVelocity: 0.5, maxVelocity: 1 },
+      ],
+    );
+
+    const renamed = renameSample(kit, "hard", "Layer Slam", 222);
+
+    expect(renamed.samples.find((sample) => sample.id === "hard")?.displayName).toBe("Layer Slam");
+    expect(renamed.assignments[0]?.velocityLayers?.[1]).toMatchObject({
+      sampleId: "hard",
+      label: "Layer Slam",
+    });
+    expect(renamed.updatedAt).toBe(222);
+  });
+
+  test("rejects empty sample display names", () => {
+    const kit = kitWith([asset("kick", "kick.wav")]);
+    expect(() => renameSample(kit, "kick", "   ")).toThrow("Sample names cannot be empty.");
+  });
+
   test("unassignPad removes the pad and keeps assignments sorted", () => {
     const kit = kitWith([asset("kick", "kick.wav"), asset("snare", "snare.wav")]);
     const cleared = unassignPad(kit, 36, 5);
@@ -162,11 +204,80 @@ describe("sample-kit/assignment", () => {
     expect(cleared.updatedAt).toBe(5);
   });
 
+  test("sets and resolves velocity layers for one pad", () => {
+    const kit = kitWith([
+      asset("soft", "kick-soft.wav"),
+      asset("hard", "kick-hard.wav"),
+      asset("ghost", "ghost.wav"),
+    ]);
+    const layered = setPadVelocityLayers(
+      kit,
+      36,
+      [
+        { sampleId: "soft", minVelocity: 0, maxVelocity: 0.49 },
+        { sampleId: "hard", minVelocity: 0.5, maxVelocity: 1 },
+      ],
+      123,
+    );
+    const assignment = layered.assignments.find((entry) => entry.midiNote === 36)!;
+
+    expect(assignment).toMatchObject({ midiNote: 36, sampleId: "soft", label: "kick-soft" });
+    expect(assignment.velocityLayers).toEqual([
+      { sampleId: "soft", label: "kick-soft", minVelocity: 0, maxVelocity: 0.49 },
+      { sampleId: "hard", label: "kick-hard", minVelocity: 0.5, maxVelocity: 1 },
+    ]);
+    expect(sampleForPadVelocity(assignment, 0.2)).toMatchObject({ sampleId: "soft" });
+    expect(sampleForPadVelocity(assignment, 0.9)).toMatchObject({ sampleId: "hard" });
+    expect(layered.updatedAt).toBe(123);
+  });
+
+  test("rejects invalid velocity layers", () => {
+    const kit = kitWith([asset("soft", "kick-soft.wav")]);
+
+    expect(() => setPadVelocityLayers(kit, 36, [])).toThrow(
+      "A pad needs at least one velocity layer.",
+    );
+    expect(() =>
+      setPadVelocityLayers(kit, 36, [{ sampleId: "soft", minVelocity: 0.8, maxVelocity: 0.2 }]),
+    ).toThrow("Velocity layer 1 must start before it ends.");
+    expect(() =>
+      setPadVelocityLayers(kit, 36, [{ sampleId: "missing", minVelocity: 0, maxVelocity: 1 }]),
+    ).toThrow("Sample not found: missing.");
+  });
+
+  test("sets and clears a pad choke group", () => {
+    const kit = kitWith([asset("closed", "closed-hat.wav"), asset("open", "open-hat.wav")]);
+    const grouped = setPadChokeGroup(kit, 42, 1, 99);
+    const cleared = setPadChokeGroup(grouped, 42, undefined, 100);
+
+    expect(grouped.assignments.find((entry) => entry.midiNote === 42)).toMatchObject({
+      chokeGroup: 1,
+    });
+    expect(grouped.updatedAt).toBe(99);
+    expect(cleared.assignments.find((entry) => entry.midiNote === 42)?.chokeGroup).toBeUndefined();
+    expect(cleared.updatedAt).toBe(100);
+  });
+
+  test("rejects invalid choke group numbers", () => {
+    const kit = kitWith([asset("closed", "closed-hat.wav")]);
+
+    expect(() => setPadChokeGroup(kit, 42, 0)).toThrow("Choke group must be 1-16.");
+    expect(() => setPadChokeGroup(kit, 42, 17)).toThrow("Choke group must be 1-16.");
+  });
+
   test("cloneSampleKit deep-copies samples and assignments", () => {
-    const kit = kitWith([asset("kick", "kick.wav")]);
+    const kit = setPadVelocityLayers(
+      kitWith([asset("soft", "kick-soft.wav"), asset("hard", "kick-hard.wav")]),
+      36,
+      [
+        { sampleId: "soft", minVelocity: 0, maxVelocity: 0.49 },
+        { sampleId: "hard", minVelocity: 0.5, maxVelocity: 1 },
+      ],
+    );
     const clone = cloneSampleKit(kit);
     expect(clone).toEqual(kit);
     expect(clone.samples).not.toBe(kit.samples);
     expect(clone.assignments).not.toBe(kit.assignments);
+    expect(clone.assignments[0]?.velocityLayers).not.toBe(kit.assignments[0]?.velocityLayers);
   });
 });

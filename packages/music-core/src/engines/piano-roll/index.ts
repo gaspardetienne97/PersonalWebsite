@@ -26,6 +26,27 @@ export interface PianoRollResize {
   minDurationBeats?: number;
 }
 
+export interface PianoRollGridStep {
+  step: number;
+  beat: number;
+  bar: number;
+  stepInBar: number;
+  isBarStart: boolean;
+}
+
+export interface PianoRollGrid {
+  barCount: number;
+  beatCount: number;
+  stepCount: number;
+  steps: PianoRollGridStep[];
+}
+
+export interface PianoRollGridOptions {
+  beatsPerBar?: number;
+  stepBeats?: number;
+  minBars?: number;
+}
+
 /** A blank 3-track score (Lead/Keys/Bass) for a fresh piano-roll session. */
 export function createPianoRollScore(bpm = 100): Score {
   return {
@@ -160,6 +181,29 @@ export function scoreLoopBeats(score: Score, beatsPerBar = 4, minBars = 1): numb
   );
   const bars = Math.max(minBars, Math.ceil(end / beatsPerBar));
   return bars * beatsPerBar;
+}
+
+/** Build the time axis used by the piano-roll route. */
+export function buildPianoRollGrid(
+  score: Score,
+  { beatsPerBar = 4, stepBeats = 0.25, minBars = 2 }: PianoRollGridOptions = {},
+): PianoRollGrid {
+  const beatCount = scoreLoopBeats(score, beatsPerBar, minBars);
+  const barCount = beatCount / beatsPerBar;
+  const stepsPerBar = Math.round(beatsPerBar / stepBeats);
+  const stepCount = Math.round(beatCount / stepBeats);
+  const steps = Array.from({ length: stepCount }, (_, step) => {
+    const beat = step * stepBeats;
+    const stepInBar = step % stepsPerBar;
+    return {
+      step,
+      beat,
+      bar: Math.floor(step / stepsPerBar) + 1,
+      stepInBar,
+      isBarStart: stepInBar === 0,
+    };
+  });
+  return { barCount, beatCount, stepCount, steps };
 }
 
 function slugify(value: string): string {

@@ -13,12 +13,17 @@ import {
   assignSample,
   autoMapSamples,
   cloneSampleKit,
+  removeSampleFromKit,
+  renameSample,
   sampleBinaryKey,
+  setPadChokeGroup,
+  setPadVelocityLayers,
   unassignPad,
   validateSampleFile,
   type MpcPadMidi,
   type SampleAsset,
   type SampleKit,
+  type SampleVelocityLayerInput,
 } from "./index";
 
 export interface SampleKitRepository {
@@ -151,20 +156,54 @@ export class SampleKitStore {
     return cloneSampleKit(updated);
   }
 
+  async setVelocityLayers(
+    kitId: string,
+    midiNote: MpcPadMidi,
+    layers: SampleVelocityLayerInput[],
+  ): Promise<SampleKit> {
+    const kits = await this.#read();
+    const kit = this.#require(kits, kitId);
+    const updated = setPadVelocityLayers(kit, midiNote, layers, this.#now());
+    this.#replace(kits, updated);
+    await this.#persist(kits);
+    return cloneSampleKit(updated);
+  }
+
+  async setChokeGroup(
+    kitId: string,
+    midiNote: MpcPadMidi,
+    chokeGroup: number | undefined,
+  ): Promise<SampleKit> {
+    const kits = await this.#read();
+    const kit = this.#require(kits, kitId);
+    const updated = setPadChokeGroup(kit, midiNote, chokeGroup, this.#now());
+    this.#replace(kits, updated);
+    await this.#persist(kits);
+    return cloneSampleKit(updated);
+  }
+
+  async renameSample(kitId: string, sampleId: string, displayName: string): Promise<SampleKit> {
+    const kits = await this.#read();
+    const kit = this.#require(kits, kitId);
+    const updated = renameSample(kit, sampleId, displayName, this.#now());
+    this.#replace(kits, updated);
+    await this.#persist(kits);
+    return cloneSampleKit(updated);
+  }
+
   async deleteSample(kitId: string, sampleId: string): Promise<SampleKit> {
     const kits = await this.#read();
     const kit = this.#require(kits, kitId);
     const sample = kit.samples.find((candidate) => candidate.id === sampleId);
     if (!sample) throw new Error(`Sample not found: ${sampleId}.`);
 
-    kit.samples = kit.samples.filter((candidate) => candidate.id !== sampleId);
-    kit.assignments = kit.assignments.filter((assignment) => assignment.sampleId !== sampleId);
-    kit.updatedAt = this.#now();
+    const updated = removeSampleFromKit(kit, sampleId, this.#now());
+    this.#replace(kits, updated);
 
     // Persist metadata first; if blob cleanup then fails, metadata stays updated.
     await this.#persist(kits);
     await this.#deleteBlobs([sample.binaryKey]);
-    return cloneSampleKit(kit);
+    return cloneSampleKit(updated);
   }
 
   async deleteKit(kitId: string): Promise<void> {

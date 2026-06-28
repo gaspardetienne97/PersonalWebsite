@@ -16,13 +16,16 @@
 
 import {
   Capability,
+  discreteRun,
   type ExerciseDefinition,
   type ExerciseRun,
   type NoteEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
+import { identifyChord, toPitchClasses } from "@repo/music-core/engines/chord-id";
 import { midiToNote } from "@repo/music-core/engines/theory";
 import type { StringInstrumentId, TuningProfile } from "@repo/music-core/engines/tunings";
+import { verifyChordTarget } from "@repo/music-core/engines/chord-verification";
 
 export interface ChordShape {
   id: string;
@@ -87,6 +90,25 @@ export interface ChordPerfectAnswer {
   pitchAccuracy: number;
 }
 
+export interface OpenChordIdentificationPrompt {
+  label: string;
+  instrument: StringInstrumentId;
+  tuningId: string;
+  shapeId: string;
+  expectedSymbol: string;
+  expectedPitchClasses: number[];
+  shapeMidiNotes: number[];
+}
+
+export interface OpenChordIdentificationAnswer {
+  expectedSymbol: string;
+  detectedSymbol?: string;
+  confidence: number;
+  targetCoverage: number;
+  pitchClasses: number[];
+  observedMidiNotes: number[];
+}
+
 export function createChordPerfectExercise(
   options: ChordPerfectOptions,
 ): ExerciseDefinition<ChordPerfectPrompt, ChordPerfectAnswer> {
@@ -114,6 +136,42 @@ export function createChordPerfectExercise(
     }),
     createRun(prompt) {
       return chordPerfectRun(prompt.payload);
+    },
+  };
+}
+
+export function createOpenChordIdentificationExercise(
+  options: ChordPerfectOptions,
+): ExerciseDefinition<OpenChordIdentificationPrompt, OpenChordIdentificationAnswer> {
+  const { tuning, shape } = options;
+  const midiNotes = chordShapeMidiNotes(tuning, shape);
+  const expectedPitchClasses = toPitchClasses(midiNotes);
+  const expectedSymbol = identifyChord(expectedPitchClasses, {
+    maxCandidates: 1,
+    minConfidence: 1,
+  })[0]?.symbol;
+
+  return {
+    id: `technique.${tuning.instrument}.open-chord-id`,
+    name: `${shape.name} Open Chord ID`,
+    capabilities: [Capability.Technique, Capability.Harmony, Capability.Pitch],
+    skillIds: ["technique.strings.open-chord-id", `technique.${tuning.instrument}.open-chord-id`],
+    inputs: ["audio", "midi", "onscreen"],
+    streaming: false,
+    generate: () => ({
+      id: `open-chord-id-${shape.id}`,
+      payload: {
+        label: `${shape.name} · open chord ID`,
+        instrument: tuning.instrument,
+        tuningId: tuning.id,
+        shapeId: shape.id,
+        expectedSymbol: expectedSymbol ?? shape.name,
+        expectedPitchClasses,
+        shapeMidiNotes: midiNotes,
+      },
+    }),
+    createRun(prompt) {
+      return discreteRun((input) => gradeOpenChordIdentification(prompt.payload, input));
     },
   };
 }
@@ -161,6 +219,68 @@ function chordPerfectRun(prompt: ChordPerfectPrompt): ExerciseRun<ChordPerfectAn
         input,
       };
     },
+  };
+}
+
+function gradeOpenChordIdentification(prompt: OpenChordIdentificationPrompt, input: NoteEvent[]) {
+  const observedMidiNotes = input
+    .filter((event) => event.type === "noteOn")
+    .map((event) => event.midiNote);
+  const pitchClasses = toPitchClasses(observedMidiNotes);
+  const detected = identifyChord(pitchClasses, { maxCandidates: 1 })[0];
+  const verification = verifyChordTarget({
+    expectedMidiNotes: prompt.shapeMidiNotes,
+    observedMidiNotes,
+  });
+  const detectedSymbol = detected?.symbol;
+  const correct = detectedSymbol === prompt.expectedSymbol && verification.correct;
+  const score = correct
+    ? 1
+    : Math.max(0, Math.min(1, (detected?.confidence ?? 0) * 0.35 + verification.score * 0.65));
+  const metrics: ScoringMetric[] = [
+    { kind: "choice", expected: prompt.expectedSymbol, actual: detectedSymbol },
+    {
+      kind: "chord",
+      expectedPitchClasses: [...prompt.expectedPitchClasses],
+      actualPitchClasses: [...pitchClasses],
+      missingPitchClasses: [...verification.missingPitchClasses],
+      extraPitchClasses: [...verification.extraPitchClasses],
+    },
+  ];
+
+  return {
+    correct,
+    score,
+    metrics,
+    feedback: [
+      correct
+        ? { severity: "good" as const, message: `Heard ${prompt.expectedSymbol}.` }
+        : {
+            severity: "warn" as const,
+            message: detectedSymbol
+              ? `Heard ${detectedSymbol}; target was ${prompt.expectedSymbol}.`
+              : `Target was ${prompt.expectedSymbol}; no clear chord was detected.`,
+          },
+    ],
+    target: {
+      label: prompt.expectedSymbol,
+      choice: prompt.expectedSymbol,
+      midiNotes: prompt.shapeMidiNotes,
+    },
+    response: {
+      label: detectedSymbol,
+      choice: detectedSymbol,
+      midiNotes: observedMidiNotes,
+    },
+    answer: {
+      expectedSymbol: prompt.expectedSymbol,
+      detectedSymbol,
+      confidence: detected?.confidence ?? 0,
+      targetCoverage: verification.coverage,
+      pitchClasses,
+      observedMidiNotes,
+    },
+    input,
   };
 }
 

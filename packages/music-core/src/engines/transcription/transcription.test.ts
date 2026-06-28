@@ -79,3 +79,38 @@ test("extractedNotesToDraft maps second-based extractor output to beat-based dra
     { midiNote: 64, startBeat: 1, durationBeats: 0.5, confidence: 0.7 },
   ]);
 });
+
+test("extractedNotesToDraft filters extractor noise and sorts the remaining notes", () => {
+  const draft = extractedNotesToDraft(
+    [
+      { midiNote: 64, startSec: 0.5, durationSec: 0.4, confidence: 0.7 },
+      { midiNote: 67, startSec: 0.25, durationSec: 0.02, confidence: 0.9 },
+      { midiNote: 60, startSec: 0, durationSec: 0.5, confidence: 0.8 },
+      { midiNote: 69, startSec: 0.75, durationSec: 0.5, confidence: 0.1 },
+    ],
+    { id: "extract-1", title: "Memo", bpm: 120 },
+  );
+
+  expect(draft.notes).toEqual([
+    { midiNote: 60, startBeat: 0, durationBeats: 1, confidence: 0.8 },
+    { midiNote: 64, startBeat: 1, durationBeats: 0.8, confidence: 0.7 },
+  ]);
+});
+
+test("extractedNotesToDraft merges split same-pitch fragments across tiny gaps", () => {
+  const draft = extractedNotesToDraft(
+    [
+      { midiNote: 60, startSec: 0, durationSec: 0.24, confidence: 0.7 },
+      { midiNote: 60, startSec: 0.26, durationSec: 0.24, confidence: 0.9 },
+      { midiNote: 60, startSec: 0.9, durationSec: 0.25, confidence: 0.8 },
+      { midiNote: 64, startSec: 0.27, durationSec: 0.2, confidence: 0.75 },
+    ],
+    { id: "extract-1", title: "Memo", bpm: 120 },
+  );
+
+  expect(draft.notes).toEqual([
+    { midiNote: 60, startBeat: 0, durationBeats: 1, confidence: 0.8 },
+    { midiNote: 64, startBeat: 0.54, durationBeats: 0.4, confidence: 0.75 },
+    { midiNote: 60, startBeat: 1.8, durationBeats: 0.5, confidence: 0.8 },
+  ]);
+});

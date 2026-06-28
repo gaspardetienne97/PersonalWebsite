@@ -9,6 +9,7 @@ import {
   type ScoringMetric,
   type SkillMastery,
 } from "@repo/music-core/domain";
+import type { ScheduledExercise } from "@repo/music-core/engines/exercise";
 import {
   earTrainingRun,
   playedMidiNotes,
@@ -117,6 +118,8 @@ export interface RepertoireReviewItem {
   status: RepertoireReviewStatus;
   /** Higher = more worth reviewing. New phrases outrank reviewed ones; weaker outranks stronger. */
   priority: number;
+  /** 0-1 estimate from melodic range, leap size, and chromatic scale degrees. */
+  phraseDifficulty: number;
   weakestSkillId: string;
   /** The weakest degree's mastery after the forgetting curve (0-1). */
   decayedMastery: number;
@@ -135,6 +138,28 @@ export interface RepertoireReviewQueueOptions {
   strongAbove?: number;
 }
 
+export type RepertoireReviewPlanSectionId = "warmup" | "review" | "new" | "stretch";
+
+export interface RepertoireReviewPlanSection {
+  id: RepertoireReviewPlanSectionId;
+  title: string;
+  goal: string;
+  items: RepertoireReviewItem[];
+}
+
+export interface RepertoireReviewPlan {
+  sections: RepertoireReviewPlanSection[];
+  recommendedOrder: RepertoireReviewItem[];
+  totalItems: number;
+}
+
+export interface RepertoireReviewPlanOptions {
+  warmupCount?: number;
+  reviewCount?: number;
+  newCount?: number;
+  stretchCount?: number;
+}
+
 /**
  * Project all saved songs into one ranked ear-training review queue. Each phrase
  * is scored by its weakest scale-degree skill (after the shared forgetting-curve
@@ -147,7 +172,6 @@ export function buildRepertoireReviewQueue(
   options: RepertoireReviewQueueOptions = {},
 ): RepertoireReviewItem[] {
   const limit = Math.max(1, Math.floor(options.limit ?? 6));
-  const dueBelow = options.dueBelow ?? 0.5;
   const strongAbove = options.strongAbove ?? 0.8;
   const now = options.now;
 
@@ -175,11 +199,13 @@ export function buildRepertoireReviewQueue(
 
       const status: RepertoireReviewStatus =
         weakest.observations === 0 ? "new" : weakest.decayed >= strongAbove ? "strong" : "due";
-      const priority = 1 - weakest.decayed + (status === "new" ? 1 : 0);
+      const phraseDifficulty = estimateRepertoirePhraseDifficulty(transfer);
+      const priority = 1 - weakest.decayed + (status === "new" ? 1 : 0) + phraseDifficulty * 0.25;
       items.push({
         transfer,
         status,
         priority,
+        phraseDifficulty,
         weakestSkillId: weakest.id,
         decayedMastery: weakest.decayed,
       });
@@ -194,6 +220,135 @@ export function buildRepertoireReviewQueue(
         left.transfer.startBeat - right.transfer.startBeat,
     )
     .slice(0, limit);
+}
+
+export function buildRepertoireReviewPlan(
+  queue: RepertoireReviewItem[],
+  options: RepertoireReviewPlanOptions = {},
+): RepertoireReviewPlan {
+  const used = new Set<string>();
+  const warmup = takeItems(
+    queue
+      .filter((item) => item.status === "strong")
+      .sort(
+        (left, right) =>
+          left.phraseDifficulty - right.phraseDifficulty || right.priority - left.priority,
+      ),
+    options.warmupCount ?? 1,
+    used,
+  );
+  const review = takeItems(
+    queue.filter((item) => item.status === "due").sort(byPriority),
+    options.reviewCount ?? 3,
+    used,
+  );
+  const fresh = takeItems(
+    queue.filter((item) => item.status === "new").sort(byPriority),
+    options.newCount ?? 2,
+    used,
+  );
+  const stretch = takeItems(
+    queue
+      .filter((item) => !used.has(item.transfer.id))
+      .sort(
+        (left, right) =>
+          right.phraseDifficulty - left.phraseDifficulty || right.priority - left.priority,
+      ),
+    options.stretchCount ?? 1,
+    used,
+  );
+  const sections = (
+    [
+      {
+        id: "warmup",
+        title: "Warm up",
+        goal: "Start with a familiar phrase so the key center and answer surface are stable.",
+        items: warmup,
+      },
+      {
+        id: "review",
+        title: "Review due",
+        goal: "Revisit weak or stale phrases before introducing more material.",
+        items: review,
+      },
+      {
+        id: "new",
+        title: "New material",
+        goal: "Introduce a small amount of unpracticed repertoire transfer.",
+        items: fresh,
+      },
+      {
+        id: "stretch",
+        title: "Stretch",
+        goal: "End with the highest-difficulty remaining phrase for challenge without overloading the session.",
+        items: stretch,
+      },
+    ] satisfies RepertoireReviewPlanSection[]
+  ).filter(({ items }) => items.length > 0);
+  const recommendedOrder = sections.flatMap(({ items }) => items.map((item) => ({ ...item })));
+  return {
+    sections,
+    recommendedOrder,
+    totalItems: recommendedOrder.length,
+  };
+}
+
+export function buildRepertoireReviewPlanSchedule(plan: RepertoireReviewPlan): ScheduledExercise[] {
+  return plan.recommendedOrder.map((item) => ({
+    exerciseId: `ear.repertoire-transfer.${safeId(item.transfer.id)}`,
+    targetSkillIds: [`pitch.scale-degree.${item.transfer.degrees[0] ?? "1"}`],
+    difficulty: round(clamp01(0.4 + item.phraseDifficulty * 0.4)),
+    reason: item.status === "new" ? "new" : "review",
+  }));
+}
+
+export function estimateRepertoirePhraseDifficulty(transfer: RepertoireEarTransfer): number {
+  if (transfer.midiNotes.length < 2) return 0;
+
+  const midiNotes = transfer.midiNotes;
+  const range = Math.max(...midiNotes) - Math.min(...midiNotes);
+  const intervals = midiNotes
+    .slice(1)
+    .map((midiNote, index) => Math.abs(midiNote - midiNotes[index]!));
+  const largestLeap = Math.max(...intervals);
+  const leapLoad =
+    intervals.reduce((total, interval) => total + Math.max(0, interval - 2), 0) /
+    Math.max(1, intervals.length * 12);
+  const chromaticRatio =
+    transfer.degrees.filter((degree) => degree.includes("#") || degree.includes("b")).length /
+    transfer.degrees.length;
+
+  return clamp01(
+    (range / 24) * 0.3 + (largestLeap / 12) * 0.25 + leapLoad * 0.25 + chromaticRatio * 0.2,
+  );
+}
+
+function takeItems(
+  items: RepertoireReviewItem[],
+  count: number,
+  used: Set<string>,
+): RepertoireReviewItem[] {
+  const result: RepertoireReviewItem[] = [];
+  for (const item of items) {
+    if (result.length >= Math.max(0, Math.floor(count))) break;
+    if (used.has(item.transfer.id)) continue;
+    used.add(item.transfer.id);
+    result.push({ ...item });
+  }
+  return result;
+}
+
+function byPriority(left: RepertoireReviewItem, right: RepertoireReviewItem): number {
+  return (
+    right.priority - left.priority ||
+    right.phraseDifficulty - left.phraseDifficulty ||
+    left.transfer.title.localeCompare(right.transfer.title) ||
+    left.transfer.startBeat - right.transfer.startBeat
+  );
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
 }
 
 export function createRepertoireTransferExercise(

@@ -96,6 +96,104 @@ describe("buildMpcKitExport", () => {
     ]);
   });
 
+  test("exports assignments from banks B-D with their MIDI note sample names", async () => {
+    const kit = kitFixture({
+      samples: [
+        {
+          id: "a",
+          fileName: "Bank D Hit.wav",
+          displayName: "Bank D Hit",
+          mimeType: "audio/wav",
+          size: 1,
+          binaryKey: "k/a",
+        },
+      ],
+      assignments: [{ midiNote: 99, sampleId: "a", label: "Bank D Hit" }],
+    });
+
+    const result = buildMpcKitExport(kit, blobMap([["k/a", "hit"]]));
+    expect(result.files.map(({ relativePath }) => relativePath)).toEqual([
+      "My-Kit.xpm",
+      "Samples/099-Bank-D-Hit.wav",
+    ]);
+
+    const xml = await result.files[0]!.content.text();
+    expect(xml).toContain("<MidiNote>99</MidiNote>");
+    expect(xml).toContain("<SampleName>Samples/099-Bank-D-Hit</SampleName>");
+  });
+
+  test("exports velocity layers with MPC 0-127 velocity ranges", async () => {
+    const kit = kitFixture({
+      samples: [
+        {
+          id: "a",
+          fileName: "Kick Soft.wav",
+          displayName: "Kick Soft",
+          mimeType: "audio/wav",
+          size: 1,
+          binaryKey: "k/a",
+        },
+        {
+          id: "b",
+          fileName: "Kick Hard.wav",
+          displayName: "Kick Hard",
+          mimeType: "audio/wav",
+          size: 1,
+          binaryKey: "k/b",
+        },
+      ],
+      assignments: [
+        {
+          midiNote: 36,
+          sampleId: "a",
+          label: "Kick",
+          velocityLayers: [
+            { sampleId: "a", label: "Kick Soft", minVelocity: 0, maxVelocity: 0.49 },
+            { sampleId: "b", label: "Kick Hard", minVelocity: 0.5, maxVelocity: 1 },
+          ],
+        },
+      ],
+    });
+
+    const result = buildMpcKitExport(
+      kit,
+      blobMap([
+        ["k/a", "soft"],
+        ["k/b", "hard"],
+      ]),
+    );
+    expect(result.files.map(({ relativePath }) => relativePath)).toEqual([
+      "My-Kit.xpm",
+      "Samples/036-Kick-Soft.wav",
+      "Samples/036-Kick-Hard.wav",
+    ]);
+
+    const xml = await result.files[0]!.content.text();
+    expect(xml).toContain('<Layer number="1">');
+    expect(xml).toContain("<VelStart>0</VelStart>");
+    expect(xml).toContain("<VelEnd>62</VelEnd>");
+    expect(xml).toContain("<SampleName>Samples/036-Kick-Soft</SampleName>");
+    expect(xml).toContain('<Layer number="2">');
+    expect(xml).toContain("<VelStart>64</VelStart>");
+    expect(xml).toContain("<VelEnd>127</VelEnd>");
+    expect(xml).toContain("<SampleName>Samples/036-Kick-Hard</SampleName>");
+  });
+
+  test("exports choke groups as MPC mute groups", async () => {
+    const kit = kitFixture({
+      assignments: [
+        { midiNote: 42, sampleId: "a", label: "Closed Hat", chokeGroup: 1 },
+        { midiNote: 46, sampleId: "b", label: "Open Hat", chokeGroup: 1 },
+      ],
+    });
+
+    const result = buildMpcKitExport(kit, blobMap());
+    const xml = await result.files[0]!.content.text();
+
+    expect(xml).toMatch(/<MidiNote>42<\/MidiNote>\s*<MuteGroup>1<\/MuteGroup>/);
+    expect(xml).toMatch(/<MidiNote>46<\/MidiNote>\s*<MuteGroup>1<\/MuteGroup>/);
+  });
+
   test("rejects a kit with no assigned samples", () => {
     expect(() => buildMpcKitExport(kitFixture({ assignments: [] }), blobMap())).toThrow(
       "This kit has no assigned samples.",

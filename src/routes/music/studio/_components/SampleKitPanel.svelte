@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
 
   import {
-    MPC_BANK_A_MIDI,
+    MPC_BANKS,
     type MpcPadMidi,
     type SampleKit,
     type SampleKitStore,
@@ -41,8 +41,13 @@
   let renaming = $state(false);
   let renameName = $state("");
   let confirmingDelete = $state(false);
+  let selectedBankId = $state<(typeof MPC_BANKS)[number]["id"]>("A");
+  let sampleNameDrafts = $state<Record<string, string>>({});
 
   const selectedKit = $derived(kits.find((kit) => kit.id === selectedKitId));
+  const selectedBank = $derived(
+    MPC_BANKS.find((bank) => bank.id === selectedBankId) ?? MPC_BANKS[0],
+  );
   const unassigned = $derived(
     selectedKit
       ? selectedKit.samples.filter(
@@ -125,6 +130,60 @@
     return run(async () => {
       const kit = await store.assign(kitId, sampleId, midiNote);
       await reload(kit.id);
+    });
+  }
+
+  function assignHardLayer(assignment: { sampleId: string }, sampleId: string, midiNote: MpcPadMidi): Promise<void> {
+    if (!selectedKit || !sampleId) return Promise.resolve();
+    const kitId = selectedKit.id;
+    return run(async () => {
+      const kit = await store.setVelocityLayers(kitId, midiNote, [
+        { sampleId: assignment.sampleId, minVelocity: 0, maxVelocity: 0.63 },
+        { sampleId, minVelocity: 0.64, maxVelocity: 1 },
+      ]);
+      await reload(kit.id);
+    });
+  }
+
+  function assignChokeGroup(midiNote: MpcPadMidi, value: string): Promise<void> {
+    if (!selectedKit) return Promise.resolve();
+    const kitId = selectedKit.id;
+    const chokeGroup = value === "" ? undefined : Number(value);
+    return run(async () => {
+      const kit = await store.setChokeGroup(kitId, midiNote, chokeGroup);
+      await reload(kit.id);
+    });
+  }
+
+  function sampleNameDraft(sampleId: string, fallback: string): string {
+    return sampleNameDrafts[sampleId] ?? fallback;
+  }
+
+  function updateSampleNameDraft(sampleId: string, value: string): void {
+    sampleNameDrafts = { ...sampleNameDrafts, [sampleId]: value };
+  }
+
+  function renameImportedSample(sampleId: string, displayName: string): Promise<void> {
+    if (!selectedKit) return Promise.resolve();
+    const kitId = selectedKit.id;
+    return run(async () => {
+      const kit = await store.renameSample(kitId, sampleId, displayName);
+      sampleNameDrafts = { ...sampleNameDrafts, [sampleId]: displayName.trim() };
+      await reload(kit.id);
+      message = "Sample renamed.";
+    });
+  }
+
+  function deleteImportedSample(sampleId: string): Promise<void> {
+    if (!selectedKit) return Promise.resolve();
+    const kitId = selectedKit.id;
+    return run(async () => {
+      const kit = await store.deleteSample(kitId, sampleId);
+      const remainingDrafts = { ...sampleNameDrafts };
+      delete remainingDrafts[sampleId];
+      sampleNameDrafts = remainingDrafts;
+      await reload(kit.id);
+      message = "Sample deleted.";
     });
   }
 
@@ -249,19 +308,84 @@
         />
       </div>
 
-      <div class="grid grid-cols-4 gap-2" aria-label="Bank A pads">
-        {#each MPC_BANK_A_MIDI as midiNote, index (midiNote)}
+      {#if selectedKit.samples.length > 0}
+        <div class="grid gap-2">
+          <p class="text-sm font-medium">Samples</p>
+          <div class="grid gap-2">
+            {#each selectedKit.samples as sample (sample.id)}
+              <div class="grid gap-2 rounded-md border p-2 sm:grid-cols-[1fr_auto_auto]">
+                <label class="sr-only" for={`sample-name-${sample.id}`}>
+                  Sample name for {sample.fileName}
+                </label>
+                <input
+                  id={`sample-name-${sample.id}`}
+                  class="h-8 min-w-0 rounded border bg-background px-2 text-xs"
+                  value={sampleNameDraft(sample.id, sample.displayName)}
+                  disabled={busy}
+                  oninput={(event) =>
+                    updateSampleNameDraft(
+                      sample.id,
+                      (event.currentTarget as HTMLInputElement).value,
+                    )}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  aria-label={`Save sample ${sample.id}`}
+                  onclick={() =>
+                    renameImportedSample(
+                      sample.id,
+                      sampleNameDraft(sample.id, sample.displayName),
+                    )}
+                >
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  aria-label={`Delete sample ${sample.id}`}
+                  onclick={() => deleteImportedSample(sample.id)}
+                >
+                  Delete
+                </Button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <div class="flex flex-wrap gap-1" aria-label="Pad bank">
+        {#each MPC_BANKS as bank (bank.id)}
+          <button
+            type="button"
+            class="rounded-md border px-3 py-1 text-xs font-medium aria-pressed:bg-muted"
+            aria-pressed={selectedBankId === bank.id}
+            onclick={() => (selectedBankId = bank.id)}
+          >
+            {bank.label}
+          </button>
+        {/each}
+      </div>
+
+      <div class="grid grid-cols-4 gap-2" aria-label={`${selectedBank.label} pads`}>
+        {#each selectedBank.midiNotes as midiNote, index (midiNote)}
           {@const assignment = selectedKit.assignments.find((a) => a.midiNote === midiNote)}
           {@const status = padStatus(midiNote)}
           <div class="grid min-w-0 gap-1 rounded-md border p-2">
             <button
               type="button"
               class="grid min-w-0 gap-0.5 text-left"
-              aria-label={`Pad ${index + 1}, MIDI ${midiNote}, ${assignment ? assignment.label : "empty"}`}
+              aria-label={`Pad ${selectedBank.id}${index + 1}, MIDI ${midiNote}, ${assignment ? assignment.label : "empty"}`}
               disabled={busy || !assignment}
               onclick={() => onaudition(midiNote)}
             >
-              <span class="text-xs text-muted-foreground">Pad {index + 1} · {midiNote}</span>
+              <span class="text-xs text-muted-foreground"
+                >Pad {selectedBank.id}{index + 1} · {midiNote}</span
+              >
               <span class="truncate text-sm font-medium">{assignment ? assignment.label : "—"}</span>
             </button>
             {#if status}
@@ -294,6 +418,61 @@
                 </button>
               {/if}
             </div>
+            {#if assignment && selectedKit.samples.length > 1}
+              {@const hardLayer = assignment.velocityLayers?.[1]}
+              <div class="grid gap-1">
+                <label class="text-[0.7rem] text-muted-foreground" for={`hard-layer-${midiNote}`}>
+                  Hard layer
+                </label>
+                <select
+                  id={`hard-layer-${midiNote}`}
+                  class="h-7 min-w-0 rounded border bg-background px-1 text-xs"
+                  disabled={busy}
+                  value={hardLayer?.sampleId ?? ""}
+                  onchange={(event) =>
+                    assignHardLayer(
+                      assignment,
+                      (event.currentTarget as HTMLSelectElement).value,
+                      midiNote,
+                    )}
+                >
+                  <option value="">None</option>
+                  {#each selectedKit.samples.filter((sample) => sample.id !== assignment.sampleId) as sample (sample.id)}
+                    <option value={sample.id}>{sample.displayName}</option>
+                  {/each}
+                </select>
+                {#if hardLayer}
+                  <p class="truncate text-[0.7rem] text-muted-foreground">
+                    Hard layer: {hardLayer.label}
+                  </p>
+                {/if}
+              </div>
+            {/if}
+            {#if assignment}
+              <div class="grid gap-1">
+                <label class="text-[0.7rem] text-muted-foreground" for={`choke-group-${midiNote}`}>
+                  Choke group
+                </label>
+                <select
+                  id={`choke-group-${midiNote}`}
+                  class="h-7 min-w-0 rounded border bg-background px-1 text-xs"
+                  disabled={busy}
+                  value={assignment.chokeGroup?.toString() ?? ""}
+                  onchange={(event) =>
+                    assignChokeGroup(midiNote, (event.currentTarget as HTMLSelectElement).value)}
+                >
+                  <option value="">None</option>
+                  {#each Array.from({ length: 16 }, (_, group) => group + 1) as group}
+                    <option value={group}>{group}</option>
+                  {/each}
+                </select>
+                {#if assignment.chokeGroup}
+                  <p class="truncate text-[0.7rem] text-muted-foreground">
+                    Choke group {assignment.chokeGroup}
+                  </p>
+                {/if}
+              </div>
+            {/if}
           </div>
         {/each}
       </div>

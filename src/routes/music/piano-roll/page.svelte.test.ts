@@ -58,6 +58,18 @@ describe("/music/piano-roll/+page.svelte", () => {
     expect(cell("C4 step 1")).toHaveAttribute("aria-pressed", "true");
   });
 
+  test("adds another bar and allows notes beyond the initial two-bar grid", async () => {
+    render(Page);
+
+    expect(cell("C4 step 33")).toBeNull();
+    button("Add bar")?.click();
+
+    await vi.waitFor(() => expect(cell("C4 step 33")).not.toBeNull());
+    cell("C4 step 33")?.click();
+    await vi.waitFor(() => expect(cell("C4 step 33")).toHaveAttribute("aria-pressed", "true"));
+    expect(document.body.textContent).toContain("3 bars");
+  });
+
   test("resizes a note end by dragging in resize mode", async () => {
     render(Page);
     expect(button("Resize notes")).not.toBeUndefined();

@@ -13,6 +13,7 @@
     EAR_TRAINING_LEARNING_PATH,
     type RepertoireEarTransfer,
     type RepertoireReviewItem,
+    type RepertoireReviewPlan,
   } from "@repo/music-core/engines/ear-training";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -30,6 +31,7 @@
     freePlayChoices,
     lastFreePlayDegree,
     reviewQueue,
+    reviewPlan,
     midiEnabled,
     midiStatus,
     audioSupported,
@@ -41,6 +43,7 @@
     onPlayFreePlayDegree,
     onPlayRepertoireTransfer,
     onStartRepertoireTransfer,
+    onStartRepertoireReviewPlan,
     onEnableMidi,
     onStart,
   }: {
@@ -54,6 +57,7 @@
     freePlayChoices: ScaleDegreeFreePlayChoice[];
     lastFreePlayDegree?: ScaleDegreeFreePlayChoice;
     reviewQueue: RepertoireReviewItem[];
+    reviewPlan?: RepertoireReviewPlan;
     midiEnabled: boolean;
     midiStatus: string;
     audioSupported: boolean;
@@ -65,6 +69,7 @@
     onPlayFreePlayDegree: (choice: ScaleDegreeFreePlayChoice) => void;
     onPlayRepertoireTransfer: (transfer: RepertoireEarTransfer) => void;
     onStartRepertoireTransfer: (transfer: RepertoireEarTransfer) => void;
+    onStartRepertoireReviewPlan: () => void;
     onEnableMidi: () => void;
     onStart: (drill: EarTrainingDrill | "mixed") => void;
   } = $props();
@@ -173,6 +178,34 @@
         </Card.Description>
       </Card.Header>
       <Card.Content class="grid gap-3">
+        {#if reviewPlan?.sections.length}
+          <section class="grid gap-2 rounded-md border bg-muted/30 p-3">
+            <div>
+              <p class="text-sm font-semibold">Repertoire review plan</p>
+              <p class="text-xs text-muted-foreground">
+                {reviewPlan.totalItems} phrase{reviewPlan.totalItems === 1 ? "" : "s"} sequenced
+                from warmup to stretch.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              class="w-full sm:w-auto"
+              disabled={!ready || pending || reviewPlan.totalItems === 0}
+              onclick={onStartRepertoireReviewPlan}
+            >
+              Practice review plan
+            </Button>
+            <div class="grid gap-2 md:grid-cols-4">
+              {#each reviewPlan.sections as section (section.id)}
+                <div class="rounded-md border bg-background p-2">
+                  <p class="text-xs font-semibold">{section.title}</p>
+                  <p class="text-[11px] text-muted-foreground">{section.items.length} phrase{section.items.length === 1 ? "" : "s"}</p>
+                </div>
+              {/each}
+            </div>
+          </section>
+        {/if}
         {#each reviewQueue as item (item.transfer.id)}
           {@const transfer = item.transfer}
           <div class="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">

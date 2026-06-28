@@ -36,10 +36,16 @@ export {
 } from "./curriculum";
 export {
   buildRepertoireEarTransfers,
+  buildRepertoireReviewPlan,
+  buildRepertoireReviewPlanSchedule,
   buildRepertoireReviewQueue,
   createRepertoireTransferExercise,
   type RepertoireEarTransfer,
   type RepertoireEarTransferOptions,
+  type RepertoireReviewPlan,
+  type RepertoireReviewPlanOptions,
+  type RepertoireReviewPlanSection,
+  type RepertoireReviewPlanSectionId,
   type RepertoireReviewItem,
   type RepertoireReviewQueueOptions,
   type RepertoireReviewStatus,

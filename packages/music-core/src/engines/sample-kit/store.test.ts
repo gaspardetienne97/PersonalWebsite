@@ -145,6 +145,105 @@ describe("SampleKitStore", () => {
     expect(binaries.keys()).not.toContain(removedKey);
   });
 
+  test("persists velocity layers on a pad", async () => {
+    const { store } = makeStore();
+    const kit = await store.create("Layered");
+    const imported = await store.importFiles(kit.id, [
+      audioFile("kick-soft.wav"),
+      audioFile("kick-hard.wav"),
+    ]);
+
+    const layered = await store.setVelocityLayers(imported.id, 36, [
+      { sampleId: imported.samples[0]!.id, minVelocity: 0, maxVelocity: 0.49 },
+      { sampleId: imported.samples[1]!.id, minVelocity: 0.5, maxVelocity: 1 },
+    ]);
+
+    expect(layered.assignments[0]?.velocityLayers).toEqual([
+      expect.objectContaining({ sampleId: imported.samples[0]!.id, minVelocity: 0 }),
+      expect.objectContaining({ sampleId: imported.samples[1]!.id, maxVelocity: 1 }),
+    ]);
+    await expect(store.load()).resolves.toEqual([
+      expect.objectContaining({
+        assignments: [
+          expect.objectContaining({
+            midiNote: 36,
+            velocityLayers: [
+              expect.objectContaining({ sampleId: imported.samples[0]!.id }),
+              expect.objectContaining({ sampleId: imported.samples[1]!.id }),
+            ],
+          }),
+        ],
+      }),
+    ]);
+  });
+
+  test("renames sample display names and keeps pad labels in sync", async () => {
+    const { store } = makeStore();
+    const kit = await store.create("Editable");
+    const imported = await store.importFiles(kit.id, [audioFile("kick.wav")]);
+
+    const renamed = await store.renameSample(imported.id, imported.samples[0]!.id, "Sub Kick");
+
+    expect(renamed.samples[0]?.displayName).toBe("Sub Kick");
+    expect(renamed.assignments[0]).toMatchObject({ label: "Sub Kick" });
+    await expect(store.load()).resolves.toEqual([
+      expect.objectContaining({
+        samples: [expect.objectContaining({ displayName: "Sub Kick" })],
+        assignments: [expect.objectContaining({ label: "Sub Kick" })],
+      }),
+    ]);
+  });
+
+  test("deleting a velocity-layer sample collapses the pad to remaining layers", async () => {
+    const { store } = makeStore();
+    const kit = await store.create("Editable Layers");
+    const imported = await store.importFiles(kit.id, [
+      audioFile("kick-soft.wav"),
+      audioFile("kick-hard.wav"),
+    ]);
+    const layered = await store.setVelocityLayers(imported.id, 36, [
+      { sampleId: imported.samples[0]!.id, minVelocity: 0, maxVelocity: 0.49 },
+      { sampleId: imported.samples[1]!.id, minVelocity: 0.5, maxVelocity: 1 },
+    ]);
+
+    const edited = await store.deleteSample(layered.id, imported.samples[1]!.id);
+
+    expect(edited.assignments).toEqual([
+      expect.objectContaining({
+        midiNote: 36,
+        sampleId: imported.samples[0]!.id,
+      }),
+    ]);
+    expect(edited.assignments[0]?.velocityLayers).toBeUndefined();
+  });
+
+  test("persists choke groups on pads", async () => {
+    const { store } = makeStore();
+    const kit = await store.create("Choked");
+    const imported = await store.importFiles(kit.id, [
+      audioFile("closed-hat.wav"),
+      audioFile("open-hat.wav"),
+    ]);
+
+    await store.setChokeGroup(imported.id, 42, 1);
+    const grouped = await store.setChokeGroup(imported.id, 46, 1);
+
+    expect(grouped.assignments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ midiNote: 42, chokeGroup: 1 }),
+        expect.objectContaining({ midiNote: 46, chokeGroup: 1 }),
+      ]),
+    );
+    await expect(store.load()).resolves.toEqual([
+      expect.objectContaining({
+        assignments: expect.arrayContaining([
+          expect.objectContaining({ midiNote: 42, chokeGroup: 1 }),
+          expect.objectContaining({ midiNote: 46, chokeGroup: 1 }),
+        ]),
+      }),
+    ]);
+  });
+
   test("returns clones and marks missing playback blobs", async () => {
     const binaries = fakeBinaries();
     const { store } = makeStore({ binaries });

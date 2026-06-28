@@ -98,6 +98,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       expect(document.body.textContent).toContain("Detected tones: C, E, G");
       expect(document.body.textContent).toContain("100% match");
       expect(document.body.textContent).toContain("matches the target");
+      expect(document.body.textContent).toContain("Open chord ID scored");
+      expect(document.body.textContent).toContain("Heard C");
     });
   });
 });

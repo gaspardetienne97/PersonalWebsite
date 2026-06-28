@@ -9,14 +9,21 @@
   } from "@repo/music-core/engines/audio-in";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
+    buildRepertoireReviewPlan,
+    buildRepertoireReviewPlanSchedule,
     buildRepertoireReviewQueue,
     createRepertoireTransferExercise,
     EarTrainingSession,
     type EarTrainingSessionState,
     type RepertoireEarTransfer,
     type RepertoireReviewItem,
+    type RepertoireReviewPlan,
   } from "@repo/music-core/engines/ear-training";
-  import { ExerciseRegistry, ExerciseScheduler } from "@repo/music-core/engines/exercise";
+  import {
+    ExerciseRegistry,
+    ExerciseScheduler,
+    type ScheduledExercise,
+  } from "@repo/music-core/engines/exercise";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { SongLibrary } from "@repo/music-core/engines/song-library";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
@@ -93,6 +100,7 @@
   let voiceState = $state<AudioPitchState>({ status: "idle" });
   let voiceStatus = $state("Voice mode starts the microphone for scale-degree sessions.");
   let reviewQueue = $state<RepertoireReviewItem[]>([]);
+  let reviewPlan = $state<RepertoireReviewPlan | undefined>();
   let session: EarTrainingSession | undefined;
   let sessionState = $state<EarTrainingSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
@@ -179,11 +187,16 @@
       (skillId) => skills.getMastery(skillId),
       { phraseLength: 4, scaleDegreeSet, now: nowUnix(), limit: 6 },
     );
+    reviewPlan = buildRepertoireReviewPlan(reviewQueue);
   }
 
   async function startSession(
     drill: EarTrainingDrill | "mixed",
-    overrides: { answerMode?: EarTrainingAnswerMode; length?: number } = {},
+    overrides: {
+      answerMode?: EarTrainingAnswerMode;
+      length?: number;
+      scheduled?: ScheduledExercise[];
+    } = {},
   ): Promise<void> {
     if (!ready || pending) return;
     const sessionAnswerMode = overrides.answerMode ?? answerMode;
@@ -222,7 +235,12 @@
         {
           router: runtime.router,
           registry,
-          scheduler,
+          scheduler:
+            overrides.scheduled === undefined
+              ? scheduler
+              : ({
+                  buildQueue: () => overrides.scheduled ?? [],
+                } as ExerciseScheduler),
           services: { skills, analytics, progress },
         },
         {
@@ -246,6 +264,19 @@
   async function startRepertoireTransfer(transfer: RepertoireEarTransfer): Promise<void> {
     registry.register(createRepertoireTransferExercise(transfer));
     await startSession("repertoire-transfer", { answerMode: "play-back", length: 1 });
+  }
+
+  async function startRepertoireReviewPlan(): Promise<void> {
+    if (!reviewPlan || reviewPlan.recommendedOrder.length === 0) return;
+    for (const item of reviewPlan.recommendedOrder) {
+      registry.register(createRepertoireTransferExercise(item.transfer));
+    }
+    const scheduled = buildRepertoireReviewPlanSchedule(reviewPlan);
+    await startSession("repertoire-transfer", {
+      answerMode: "play-back",
+      length: scheduled.length,
+      scheduled,
+    });
   }
 
   function handleSessionState(next: EarTrainingSessionState): void {
@@ -406,6 +437,7 @@
       freePlayChoices={freePlayChoices}
       lastFreePlayDegree={lastFreePlayDegree}
       {reviewQueue}
+      {reviewPlan}
       {midiEnabled}
       {midiStatus}
       {audioSupported}
@@ -417,6 +449,7 @@
       onPlayFreePlayDegree={playFreePlayDegree}
       onPlayRepertoireTransfer={playRepertoireTransfer}
       onStartRepertoireTransfer={startRepertoireTransfer}
+      onStartRepertoireReviewPlan={startRepertoireReviewPlan}
       onEnableMidi={enableMidi}
       onStart={startSession}
     />

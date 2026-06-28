@@ -11,8 +11,11 @@ import {
 
 import {
   buildRepertoireEarTransfers,
+  buildRepertoireReviewPlan,
+  buildRepertoireReviewPlanSchedule,
   buildRepertoireReviewQueue,
   createRepertoireTransferExercise,
+  type RepertoireReviewItem,
 } from "./repertoire";
 
 describe("repertoire ear-transfer projection", () => {
@@ -158,6 +161,30 @@ describe("repertoire review queue", () => {
     expect(queue[0]!.priority).toBeGreaterThan(1);
   });
 
+  test("uses phrase difficulty as a priority boost when mastery is tied", () => {
+    const easy = { ...scoreWithNotes(scale([60, 62, 64, 65])), id: "easy", title: "Easy" };
+    const hard = { ...scoreWithNotes(scale([60, 66, 61, 67])), id: "hard", title: "Hard" };
+    const practiced = { mastery: 0.5, observations: 4 };
+
+    const queue = buildRepertoireReviewQueue(
+      [easy, hard],
+      masteryFor({
+        "pitch.scale-degree.1": practiced,
+        "pitch.scale-degree.2": practiced,
+        "pitch.scale-degree.3": practiced,
+        "pitch.scale-degree.4": practiced,
+        "pitch.scale-degree.5": practiced,
+        "pitch.scale-degree.b2": practiced,
+        "pitch.scale-degree.#4": practiced,
+      }),
+      { phraseLength: 4 },
+    );
+
+    expect(queue.map((item) => item.transfer.scoreId)).toEqual(["hard", "easy"]);
+    expect(queue[0]!.phraseDifficulty).toBeGreaterThan(queue[1]!.phraseDifficulty);
+    expect(queue[0]!.priority).toBeGreaterThan(queue[1]!.priority);
+  });
+
   test("decays once-strong skills by recency so stale phrases become due", () => {
     const lastPracticed = 1_000_000_000_000;
     const strong = { mastery: 0.9, observations: 8, lastPracticed: unixMs(lastPracticed) };
@@ -189,6 +216,63 @@ describe("repertoire review queue", () => {
     });
 
     expect(queue.length).toBe(4);
+  });
+});
+
+describe("repertoire review plan", () => {
+  test("splits a ranked phrase queue into warmup, review, new, and stretch blocks", () => {
+    const items = [
+      reviewItem("new-hard", "new", 1.5, 0.7),
+      reviewItem("due-hard", "due", 1.3, 0.8),
+      reviewItem("due-easy", "due", 1.1, 0.2),
+      reviewItem("strong-easy", "strong", 0.2, 0.1),
+      reviewItem("new-easy", "new", 1.2, 0.15),
+      reviewItem("due-stretch", "due", 1, 0.95),
+    ];
+
+    const plan = buildRepertoireReviewPlan(items, {
+      warmupCount: 1,
+      reviewCount: 2,
+      newCount: 1,
+      stretchCount: 1,
+    });
+
+    expect(plan.sections.map((section) => [section.id, section.items.map(itemId)])).toEqual([
+      ["warmup", ["strong-easy"]],
+      ["review", ["due-hard", "due-easy"]],
+      ["new", ["new-hard"]],
+      ["stretch", ["due-stretch"]],
+    ]);
+    expect(plan.recommendedOrder.map(itemId)).toEqual([
+      "strong-easy",
+      "due-hard",
+      "due-easy",
+      "new-hard",
+      "due-stretch",
+    ]);
+    expect(plan.totalItems).toBe(5);
+  });
+
+  test("converts a review plan into scheduled repertoire-transfer exercises", () => {
+    const plan = buildRepertoireReviewPlan(
+      [reviewItem("due", "due", 1.2, 0.5), reviewItem("new", "new", 1.4, 0.8)],
+      { warmupCount: 0, reviewCount: 1, newCount: 1, stretchCount: 0 },
+    );
+
+    expect(buildRepertoireReviewPlanSchedule(plan)).toEqual([
+      {
+        exerciseId: "ear.repertoire-transfer.due",
+        targetSkillIds: ["pitch.scale-degree.1"],
+        difficulty: 0.6,
+        reason: "review",
+      },
+      {
+        exerciseId: "ear.repertoire-transfer.new",
+        targetSkillIds: ["pitch.scale-degree.1"],
+        difficulty: 0.72,
+        reason: "new",
+      },
+    ]);
   });
 });
 
@@ -234,4 +318,32 @@ function noteOn(midiNote: number): NoteEvent {
     timestamp: monotonicMs(0),
     clock: "performance",
   };
+}
+
+function reviewItem(
+  id: string,
+  status: RepertoireReviewItem["status"],
+  priority: number,
+  phraseDifficulty: number,
+): RepertoireReviewItem {
+  const transfer = buildRepertoireEarTransfers(scoreWithNotes(scale([60, 62, 64, 67])), {
+    phraseLength: 4,
+  })[0]!;
+  return {
+    transfer: {
+      ...transfer,
+      id,
+      scoreId: id,
+      title: id,
+    },
+    status,
+    priority,
+    phraseDifficulty,
+    weakestSkillId: "pitch.scale-degree.1",
+    decayedMastery: 1 - priority,
+  };
+}
+
+function itemId(item: RepertoireReviewItem): string {
+  return item.transfer.id;
 }

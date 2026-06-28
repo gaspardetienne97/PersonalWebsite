@@ -37,6 +37,12 @@ export interface ParseManualTranscriptionOptions {
   source?: TranscriptionSource;
 }
 
+export interface ExtractedNotesToDraftOptions extends ParseManualTranscriptionOptions {
+  minConfidence?: number;
+  minDurationSec?: number;
+  mergeSamePitchGapSec?: number;
+}
+
 export function parseManualTranscription(
   text: string,
   options: ParseManualTranscriptionOptions,
@@ -56,21 +62,75 @@ export function parseManualTranscription(
 
 export function extractedNotesToDraft(
   notes: ExtractedTranscriptionNote[],
-  options: ParseManualTranscriptionOptions,
+  options: ExtractedNotesToDraftOptions,
 ): TranscriptionDraft {
   const beatsPerSecond = options.bpm / 60;
+  const cleaned = cleanExtractedNotes(notes, {
+    minConfidence: options.minConfidence ?? 0.25,
+    minDurationSec: options.minDurationSec ?? 0.05,
+    mergeSamePitchGapSec: options.mergeSamePitchGapSec ?? 0.08,
+  });
   return {
     id: options.id,
     title: options.title,
     bpm: options.bpm,
     ...(options.source ? { source: options.source } : {}),
-    notes: notes.map((note) => ({
+    notes: cleaned.map((note) => ({
       midiNote: note.midiNote,
       startBeat: round(note.startSec * beatsPerSecond),
       durationBeats: round(note.durationSec * beatsPerSecond),
       confidence: clamp01(note.confidence ?? 1),
     })),
   };
+}
+
+function cleanExtractedNotes(
+  notes: ExtractedTranscriptionNote[],
+  options: Required<
+    Pick<ExtractedNotesToDraftOptions, "minConfidence" | "minDurationSec" | "mergeSamePitchGapSec">
+  >,
+): ExtractedTranscriptionNote[] {
+  const sorted = notes
+    .filter((note) => isUsableExtractedNote(note, options))
+    .map((note) => ({ ...note, confidence: clamp01(note.confidence ?? 1) }))
+    .sort((left, right) => left.startSec - right.startSec || left.midiNote - right.midiNote);
+  const merged: ExtractedTranscriptionNote[] = [];
+  for (const note of sorted) {
+    const previous = merged.at(-1);
+    if (
+      previous &&
+      previous.midiNote === note.midiNote &&
+      note.startSec - (previous.startSec + previous.durationSec) <= options.mergeSamePitchGapSec
+    ) {
+      const previousEnd = previous.startSec + previous.durationSec;
+      const nextEnd = Math.max(previousEnd, note.startSec + note.durationSec);
+      previous.confidence = round(((previous.confidence ?? 1) + (note.confidence ?? 1)) / 2);
+      previous.durationSec = round(nextEnd - previous.startSec);
+    } else {
+      merged.push(note);
+    }
+  }
+  return merged.sort(
+    (left, right) => left.startSec - right.startSec || left.midiNote - right.midiNote,
+  );
+}
+
+function isUsableExtractedNote(
+  note: ExtractedTranscriptionNote,
+  options: Required<
+    Pick<ExtractedNotesToDraftOptions, "minConfidence" | "minDurationSec" | "mergeSamePitchGapSec">
+  >,
+): boolean {
+  return (
+    Number.isInteger(note.midiNote) &&
+    note.midiNote >= 0 &&
+    note.midiNote <= 127 &&
+    Number.isFinite(note.startSec) &&
+    note.startSec >= 0 &&
+    Number.isFinite(note.durationSec) &&
+    note.durationSec >= options.minDurationSec &&
+    clamp01(note.confidence ?? 1) >= options.minConfidence
+  );
 }
 
 export function transcriptionDraftToScore(draft: TranscriptionDraft): Score {

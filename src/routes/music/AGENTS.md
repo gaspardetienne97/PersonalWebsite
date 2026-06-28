@@ -253,11 +253,17 @@ This file provides guidance for agents working on the Music app under
   landing surfaces a ranked review queue across all saved songs via
   `buildRepertoireReviewQueue(scores, getMastery, { now })`, which scores each
   phrase by its weakest scale-degree skill after the shared forgetting curve
-  (`applyDecay`) and tags it new/due/strong — no per-phrase SRS persistence. The
-  route re-ranks after each practice and on level change, and starts a one-prompt
-  play-back session through `createRepertoireTransferExercise()`. Keep ranking and
-  decay in the engine; do not create route-local grading, scale-degree parsing,
-  or microphone capture.
+  (`applyDecay`) plus `phraseDifficulty` from melodic range, leap size, and
+  chromatic degrees, then tags it new/due/strong — no per-phrase SRS persistence.
+  `buildRepertoireReviewPlan()` groups that queue into warmup, review, new, and
+  stretch blocks; `buildRepertoireReviewPlanSchedule()` converts that plan into
+  scheduled `repertoire-transfer` prompts for a multi-prompt session. The route
+  may render those sections but must not duplicate the planning rules. The route
+  re-ranks after each practice and on level change, and can start either a
+  single play-back phrase through `createRepertoireTransferExercise()` or the
+  full planned session through the schedule helper. Keep ranking and decay in the
+  engine; do not create route-local grading, scale-degree parsing, or microphone
+  capture.
 - `/music/learn/reading`: note flashcards and generated sight-reading. Registers
   a transport `PlaybackSource` so Play previews the on-screen melody. The guitar/
   ukulele sight-reading session has an opt-in **Show/Hide tab** reveal
@@ -348,11 +354,14 @@ This file provides guidance for agents working on the Music app under
   panel: `recordMicClip()` captures one strum, the shared Basic Pitch adapter
   transcribes the whole buffer, and `chord-id/identifyChord()` names the chord
   (ranked candidates) while `chord-verification` checks it against the selected
-  shape. The strum analyzer is an injectable prop so route tests stay off the
-  microphone. This is buffered analyze-on-demand, not live polyphonic streaming.
-  The chord shapes are standard open voicings carrying a hardware-verification
-  caveat (see the handoff); real-strum identification accuracy is likewise
-  hardware-pending.
+  shape. The analyzed strum is scored through
+  `createOpenChordIdentificationExercise()` and `runExerciseThroughPipeline()`,
+  advancing `technique.strings.open-chord-id` plus the guitar/uke child skill and
+  recording XP/analytics/journal like every other graded drill. The strum
+  analyzer is an injectable prop so route tests stay off the microphone. This is
+  buffered analyze-on-demand, not live polyphonic streaming. The chord shapes are
+  standard open voicings carrying a hardware-verification caveat (see the
+  handoff); real-strum identification accuracy is likewise hardware-pending.
 - `/music/play/chord-progression`: graded chord-following drill for a known
   progression (`@repo/music-core/engines/jam`'s `JAM_PROGRESSIONS`). `ChordAudioSource`
   streams chroma + onset windows; onsets are confirmed through the buffered
@@ -395,13 +404,19 @@ This file provides guidance for agents working on the Music app under
   for score preview and follow-along.
 - `/music/jam`: chord-progression jam/improv with target tones + recording.
 - `/music/studio`: step sequencer with a pad bank, Tone playback, and persistent
-  **MPC sample kits**. Sample-kit metadata belongs in `SampleKitStore`
+  **MPC sample kits**. Sample kits cover MPC Banks A-D (MIDI 36-99); the Studio
+  panel renders one 16-pad bank at a time with an A/B/C/D selector. Pads can
+  carry a simple soft/hard velocity layer split (0-0.63, 0.64-1) and an MPC
+  choke group (1-16) through the panel; imported samples can be renamed or
+  deleted in-place. Richer waveform trim/fade editing belongs in the sample-kit
+  engine first. Sample-kit metadata belongs in `SampleKitStore`
   (`@repo/music-core/engines/sample-kit`), never in route-local state; sample
   blobs live in OPFS through the shared `putBinary`/`getBinary`/`deleteBinary`
   store helpers (nested `music.sample-kits/{kitId}/…` keys). Browser decode
   probing and object-URL lifecycle live in
   `studio/_components/sample-kit-playback.ts` (`SampleKitPlaybackController`);
-  Tone ownership stays in `SoundEngine` (`loadDrumKit`/`playDrum`/
+  same-choke-group playback stopping happens there via `SoundEngine.stopDrum`.
+  Tone ownership stays in `SoundEngine` (`loadDrumKit`/`playDrum`/`stopDrum`/
   `startDrumPatternLoop`). The route projects the grid into a hybrid
   `{ drums, synth }` pattern — rows whose MIDI maps to an active pad play as
   samples, the rest fall back to the synth. MPC export (`buildMpcKitExport` →
@@ -412,12 +427,15 @@ This file provides guidance for agents working on the Music app under
 - `/music/piano-roll`: multitrack-lite editor over the canonical `Score`.
   Editing helpers belong in `@repo/music-core/engines/piano-roll`
   (`toggleNoteAt`, `setVoiceVelocity`, `resizeNoteAt`, `addVoice`,
-  `removeVoice`, `clearVoice`, `withoutVoices`, `scoreLoopBeats`); the route
-  should keep playback/export thin by reusing `scoreToPattern`,
+  `removeVoice`, `clearVoice`, `withoutVoices`, `scoreLoopBeats`,
+  `buildPianoRollGrid`); the route should keep playback/export thin by reusing
+  `scoreToPattern`,
   `scoreToMidiBlob`, and `renderEventsToWav`. Track colors stay on theme chart
   tokens and wrap across dynamic voices. Velocity lane/control and horizontal
-  visual zoom are built; drag-resize uses explicit Resize mode. Do not add
-  route-local playback/export engines for future piano-roll polish.
+  visual zoom are built; drag-resize uses explicit Resize mode. Longer sketches
+  use the core grid projection plus the route-level Add bar control instead of
+  fixed two-bar rendering. Do not add route-local playback/export engines for
+  future piano-roll polish.
 - `/music/recording`: take list, waveform, compare, and self-review.
 - `/music/track`: practice journal and routine/session tracking.
 - `/music/settings`: app settings over `PracticeStore.settings`.
@@ -440,12 +458,15 @@ This file provides guidance for agents working on the Music app under
   resampling it to 22.05 kHz mono. Keep the core transcription engine
   framework-agnostic; Basic Pitch output must adapt to
   `ExtractedTranscriptionNote[]` and then flow through `extractedNotesToDraft()`.
+  That core adapter owns default cleanup: confidence/duration filtering,
+  chronological sorting, and nearby same-pitch fragment merging. Keep those
+  heuristics in `@repo/music-core`, not in route code.
   Generated-score playback must stay on the shared transport/audio path by
   registering `scoreToPattern(score)` with `MusicRuntime.setPlaybackSource()`;
   do not add a route-local player. Keep route input wired through
   `MusicRuntime.router` so MIDI, on-screen, and extractor-backed flows use the
   same score follower. Real-audio extraction quality still needs manual browser
-  validation and threshold/cleanup tuning.
+  validation and threshold tuning.
 
 ### Core Package
 
@@ -469,11 +490,15 @@ Important areas:
   graph (master → destination; metronome → metronome gain → master), selectable
   synth presets (`SOUND_PRESETS`/`SOUND_PRESET_NAMES`, `setInstrument`), master
   mute / metronome blend, and the pure `scoreToPattern(score, {bpm?})` helper.
-- `src/engines/sample-kit/`: framework-agnostic MPC sample kits — Bank A (MIDI
-  36-51) auto-mapping + assignment model (`index.ts`), transactional
+- `src/engines/sample-kit/`: framework-agnostic MPC sample kits — Banks A-D
+  (MIDI 36-99) auto-mapping + assignment model (`index.ts`), velocity-layer
+  helpers (`setPadVelocityLayers`, `sampleForPadVelocity`), choke groups
+  (`setPadChokeGroup`), sample display-name editing (`renameSample`) and
+  layer-aware sample deletion (`removeSampleFromKit`), transactional
   metadata/OPFS-blob persistence (`SampleKitStore` in `store.ts`), pure XPM 2.1
-  export (`mpc-export.ts`), and the browser directory/ZIP writers
-  (`browser-export.ts`). No Tone, Svelte, or audio-decode in the engine.
+  export with layer slots and `MuteGroup` values (`mpc-export.ts`), and the
+  browser directory/ZIP writers (`browser-export.ts`). No Tone, Svelte, or
+  audio-decode in the engine.
 - `src/engines/transport/`: metronome/transport scheduling (count-in, BPM).
 - `src/engines/notation/`: VexFlow-based notation rendering data.
 - `src/engines/skills/`: seeded skill graph and mastery.
@@ -493,7 +518,8 @@ Important areas:
   and draft→Score conversion framework-agnostic. Basic Pitch stays in route-level
   browser adapter code and must adapt extractor output to
   `ExtractedTranscriptionNote[]`, then pass it through `extractedNotesToDraft()`
-  before touching UI or score-following.
+  before touching UI or score-following. Cleanup heuristics for extractor output
+  belong here and must stay pure/tested.
 - `src/engines/chord-verification/`: expected-target chord-tone verifier. Keep
   this limited to comparing observed monophonic/MIDI notes against a selected
   target; do not turn it into open browser polyphonic chord recognition.
@@ -563,8 +589,10 @@ Important areas:
   of this exercise.
 - `src/exercises/chord-perfect.ts`: guitar/ukulele Chord-Perfect — curated open
   chord shapes (`CHORD_SHAPES`/`chordShapesFor`), per-string target generation
-  from a shape + tuning, and ascending pitch-order grading. Shapes are standard
-  open voicings; treat as hardware-pending until verified on the instrument.
+  from a shape + tuning, ascending pitch-order grading, and scored buffered
+  open-chord identification via `createOpenChordIdentificationExercise()`.
+  Shapes are standard open voicings; treat as hardware-pending until verified on
+  the instrument.
 - `src/exercises/aerophone-articulation.ts`: Aerophone staccato/legato drill —
   repeated-note target generation and articulation grading from note durations
   (sounding fraction vs. the style target) plus breath-CC tracking. Note-off

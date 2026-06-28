@@ -360,6 +360,27 @@ export function seedCoreSkills(): SkillSeed {
       "beginner",
       ["ukulele", "chords", "fretting"],
     ),
+    skill(
+      "technique.strings.open-chord-id",
+      "Open Chord Identification",
+      Capability.Technique,
+      "beginner",
+      ["guitar", "ukulele", "chords", "identification"],
+    ),
+    skill(
+      "technique.guitar.open-chord-id",
+      "Guitar Open Chord Identification",
+      Capability.Technique,
+      "beginner",
+      ["guitar", "chords", "identification"],
+    ),
+    skill(
+      "technique.ukulele.open-chord-id",
+      "Ukulele Open Chord Identification",
+      Capability.Technique,
+      "beginner",
+      ["ukulele", "chords", "identification"],
+    ),
     skill("technique.piano", "Piano Technique", Capability.Technique, "beginner", [
       "piano",
       "keys",
@@ -415,11 +436,19 @@ export function seedCoreSkills(): SkillSeed {
       "technique.aerophone.dynamic-control",
       "technique.aerophone.articulation",
     ],
-    "technique.strings": ["technique.strings.spider", "technique.strings.chord-perfect"],
+    "technique.strings": [
+      "technique.strings.spider",
+      "technique.strings.chord-perfect",
+      "technique.strings.open-chord-id",
+    ],
     "technique.strings.spider": ["technique.guitar.spider", "technique.ukulele.spider"],
     "technique.strings.chord-perfect": [
       "technique.guitar.chord-perfect",
       "technique.ukulele.chord-perfect",
+    ],
+    "technique.strings.open-chord-id": [
+      "technique.guitar.open-chord-id",
+      "technique.ukulele.open-chord-id",
     ],
     "technique.piano": ["technique.piano.two-hand-independence"],
     "technique.mpc": ["technique.mpc.single-strokes"],

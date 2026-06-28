@@ -6,7 +6,7 @@
  * MPC fixture.
  */
 
-import { MPC_BANK_A_MIDI, type SampleKit } from "./index";
+import { MPC_BANK_A_MIDI, velocityLayersForAssignment, type SampleKit } from "./index";
 
 export interface MpcExportFile {
   relativePath: string;
@@ -29,27 +29,42 @@ export function buildMpcKitExport(kit: SampleKit, blobs: ReadonlyMap<string, Blo
   const programFileName = `${folderName}.xpm`;
 
   const usedStems = new Set<string>();
-  const padsByMidi = new Map<number, { sampleName: string; label: string }>();
+  const padsByMidi = new Map<
+    number,
+    {
+      label: string;
+      muteGroup: number;
+      layers: { sampleName: string; minVelocity: number; maxVelocity: number }[];
+    }
+  >();
   const sampleFiles: MpcExportFile[] = [];
 
   for (const assignment of assigned) {
-    const sample = kit.samples.find((candidate) => candidate.id === assignment.sampleId);
-    const blob = sample ? blobs.get(sample.binaryKey) : undefined;
-    if (!sample || !blob) {
-      throw new Error(`A sample assigned to pad ${assignment.midiNote} is missing.`);
-    }
-    const extension = sample.fileName.split(".").at(-1)?.toLowerCase() ?? "";
-    if (!EXPORTABLE_EXTENSIONS.has(extension)) {
-      throw new Error(`This file type cannot be exported to MPC: ${sample.fileName}.`);
-    }
-    const stem = uniqueStem(safeName(stemOf(sample.fileName), "sample"), usedStems);
-    const padded = String(assignment.midiNote).padStart(3, "0");
-    const baseName = `${padded}-${stem}`;
-    padsByMidi.set(assignment.midiNote, {
-      sampleName: `Samples/${baseName}`,
-      label: assignment.label,
+    const layers = velocityLayersForAssignment(assignment).map((layer) => {
+      const sample = kit.samples.find((candidate) => candidate.id === layer.sampleId);
+      const blob = sample ? blobs.get(sample.binaryKey) : undefined;
+      if (!sample || !blob) {
+        throw new Error(`A sample assigned to pad ${assignment.midiNote} is missing.`);
+      }
+      const extension = sample.fileName.split(".").at(-1)?.toLowerCase() ?? "";
+      if (!EXPORTABLE_EXTENSIONS.has(extension)) {
+        throw new Error(`This file type cannot be exported to MPC: ${sample.fileName}.`);
+      }
+      const stem = uniqueStem(safeName(stemOf(sample.fileName), "sample"), usedStems);
+      const padded = String(assignment.midiNote).padStart(3, "0");
+      const baseName = `${padded}-${stem}`;
+      sampleFiles.push({ relativePath: `Samples/${baseName}.${extension}`, content: blob });
+      return {
+        sampleName: `Samples/${baseName}`,
+        minVelocity: layer.minVelocity,
+        maxVelocity: layer.maxVelocity,
+      };
     });
-    sampleFiles.push({ relativePath: `Samples/${baseName}.${extension}`, content: blob });
+    padsByMidi.set(assignment.midiNote, {
+      label: assignment.label,
+      muteGroup: assignment.chokeGroup ?? 0,
+      layers,
+    });
   }
 
   const xml = buildXpm(kit.name, padsByMidi);
@@ -100,7 +115,14 @@ function xmlEscape(value: string): string {
 
 function buildXpm(
   programName: string,
-  padsByMidi: ReadonlyMap<number, { sampleName: string; label: string }>,
+  padsByMidi: ReadonlyMap<
+    number,
+    {
+      label: string;
+      muteGroup: number;
+      layers: { sampleName: string; minVelocity: number; maxVelocity: number }[];
+    }
+  >,
 ): string {
   const instruments: string[] = [];
   for (let number = 1; number <= 128; number += 1) {
@@ -130,26 +152,30 @@ ${instruments.join("\n")}
 function instrumentXml(
   number: number,
   midiNote: number,
-  pad: { sampleName: string; label: string } | undefined,
+  pad:
+    | {
+        label: string;
+        muteGroup: number;
+        layers: { sampleName: string; minVelocity: number; maxVelocity: number }[];
+      }
+    | undefined,
 ): string {
-  const layers = [
-    pad
-      ? `        <Layer number="1">
+  const layers = Array.from({ length: 4 }, (_, index) => {
+    const layer = pad?.layers[index];
+    return layer
+      ? `        <Layer number="${index + 1}">
           <Active>True</Active>
-          <VelStart>0</VelStart>
-          <VelEnd>127</VelEnd>
-          <SampleName>${xmlEscape(pad.sampleName)}</SampleName>
+          <VelStart>${velocityToMidi(layer.minVelocity)}</VelStart>
+          <VelEnd>${velocityToMidi(layer.maxVelocity)}</VelEnd>
+          <SampleName>${xmlEscape(layer.sampleName)}</SampleName>
         </Layer>`
-      : emptyLayer(1),
-    emptyLayer(2),
-    emptyLayer(3),
-    emptyLayer(4),
-  ].join("\n");
+      : emptyLayer(index + 1);
+  }).join("\n");
 
   return `    <Instrument number="${number}">
       <Name>${pad ? xmlEscape(pad.label) : ""}</Name>
       <MidiNote>${midiNote}</MidiNote>
-      <MuteGroup>0</MuteGroup>
+      <MuteGroup>${pad?.muteGroup ?? 0}</MuteGroup>
       <Layers>
 ${layers}
       </Layers>
@@ -158,4 +184,8 @@ ${layers}
 
 function emptyLayer(number: number): string {
   return `        <Layer number="${number}"><Active>False</Active><SampleName></SampleName></Layer>`;
+}
+
+function velocityToMidi(value: number): number {
+  return Math.max(0, Math.min(127, Math.round(value * 127)));
 }

@@ -4,6 +4,7 @@ import {
   addVoice,
   clearVoice,
   createPianoRollScore,
+  buildPianoRollGrid,
   noteAt,
   PIANO_ROLL_VELOCITY,
   removeVoice,
@@ -137,5 +138,19 @@ describe("scoreLoopBeats", () => {
 
     const score = toggleNoteAt(empty, cell({ startBeat: 4, durationBeats: 1 }));
     expect(scoreLoopBeats(score)).toBe(8); // note ends at beat 5 → 2 bars
+  });
+});
+
+describe("buildPianoRollGrid", () => {
+  test("renders enough steps for notes beyond the initial two bars", () => {
+    let score = createPianoRollScore();
+    score = toggleNoteAt(score, cell({ startBeat: 9, durationBeats: 1 }));
+
+    const grid = buildPianoRollGrid(score, { beatsPerBar: 4, stepBeats: 0.25, minBars: 2 });
+
+    expect(grid.barCount).toBe(3);
+    expect(grid.stepCount).toBe(48);
+    expect(grid.steps[32]).toMatchObject({ step: 32, beat: 8, bar: 3, stepInBar: 0 });
+    expect(grid.steps.at(-1)).toMatchObject({ step: 47, beat: 11.75, bar: 3 });
   });
 });

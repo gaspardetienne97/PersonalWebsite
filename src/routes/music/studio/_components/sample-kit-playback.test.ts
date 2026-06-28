@@ -54,7 +54,11 @@ function resolvedKit(entries: Entry[]): ResolvedSampleKit {
 
 describe("SampleKitPlaybackController", () => {
   test("loads only playable pads and revokes the previous kit after replacement", async () => {
-    const sound = { loadDrumKit: vi.fn(async () => undefined), playDrum: vi.fn() };
+    const sound = {
+      loadDrumKit: vi.fn(async () => undefined),
+      playDrum: vi.fn(),
+      stopDrum: vi.fn(),
+    };
     const urls: string[] = [];
     const revoked: string[] = [];
     const controller = new SampleKitPlaybackController({
@@ -98,6 +102,7 @@ describe("SampleKitPlaybackController", () => {
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error("decode failed")),
       playDrum: vi.fn(),
+      stopDrum: vi.fn(),
     };
     const revoked: string[] = [];
     let counter = 0;
@@ -116,5 +121,74 @@ describe("SampleKitPlaybackController", () => {
     // the failed load revoked only its own new url; the prior kit stays active
     expect(revoked).toEqual(["blob:2"]);
     expect(controller.playMidi(36, 0.8)).toBe(true);
+  });
+
+  test("loads velocity layers and chooses the layer from hit velocity", async () => {
+    const sound = {
+      loadDrumKit: vi.fn(async () => undefined),
+      playDrum: vi.fn(),
+      stopDrum: vi.fn(),
+    };
+    const controller = new SampleKitPlaybackController({
+      sound,
+      createObjectURL: (blob) => `blob:${blob.size}`,
+      revokeObjectURL: vi.fn(),
+      canDecode: async () => true,
+    });
+    const resolved = resolvedKit([available(36, "soft", "s"), available(37, "hard", "hard")]);
+    resolved.kit.assignments = [
+      {
+        midiNote: 36,
+        sampleId: "soft",
+        label: "Kick",
+        velocityLayers: [
+          { sampleId: "soft", label: "Soft", minVelocity: 0, maxVelocity: 0.49 },
+          { sampleId: "hard", label: "Hard", minVelocity: 0.5, maxVelocity: 1 },
+        ],
+      },
+    ];
+
+    const active = await controller.activate(resolved);
+
+    expect(active.pads[0]?.layers).toEqual([
+      expect.objectContaining({ sampleId: "soft", status: "playable" }),
+      expect.objectContaining({ sampleId: "hard", status: "playable" }),
+    ]);
+    expect(sound.loadDrumKit).toHaveBeenCalledWith([
+      expect.objectContaining({ padId: "pad-36-layer-1", midiNote: 36 }),
+      expect.objectContaining({ padId: "pad-36-layer-2", midiNote: 36 }),
+    ]);
+    expect(controller.playMidi(36, 0.2)).toBe(true);
+    expect(sound.playDrum).toHaveBeenLastCalledWith("pad-36-layer-1", undefined, 0.2);
+    expect(controller.playMidi(36, 0.9)).toBe(true);
+    expect(sound.playDrum).toHaveBeenLastCalledWith("pad-36-layer-2", undefined, 0.9);
+  });
+
+  test("stops other playable pads in the same choke group before playing", async () => {
+    const sound = {
+      loadDrumKit: vi.fn(async () => undefined),
+      playDrum: vi.fn(),
+      stopDrum: vi.fn(),
+    };
+    const controller = new SampleKitPlaybackController({
+      sound,
+      createObjectURL: (blob) => `blob:${blob.size}`,
+      revokeObjectURL: vi.fn(),
+      canDecode: async () => true,
+    });
+    const resolved = resolvedKit([
+      available(42, "closed", "closed"),
+      available(46, "open", "open"),
+      available(49, "crash", "crash"),
+    ]);
+    resolved.kit.assignments[0]!.chokeGroup = 1;
+    resolved.kit.assignments[1]!.chokeGroup = 1;
+
+    await controller.activate(resolved);
+    expect(controller.playMidi(46, 0.8)).toBe(true);
+
+    expect(sound.stopDrum).toHaveBeenCalledWith("pad-42", undefined);
+    expect(sound.stopDrum).not.toHaveBeenCalledWith("pad-49", undefined);
+    expect(sound.playDrum).toHaveBeenCalledWith("pad-46", undefined, 0.8);
   });
 });

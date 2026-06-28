@@ -16,12 +16,12 @@
   import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
   import {
     addVoice,
+    buildPianoRollGrid,
     clearVoice,
     createPianoRollScore,
     noteAt,
     removeVoice,
     resizeNoteAt,
-    scoreLoopBeats,
     setVoiceVelocity,
     toggleNoteAt,
     withoutVoices,
@@ -40,7 +40,8 @@
   const PITCH_HIGH = 84; // C6
   const PITCH_LOW = 36; // C2
   const STEP_BEATS = 0.25; // 1/16 grid
-  const STEPS = 32; // 2 bars of 4/4
+  const BEATS_PER_BAR = 4;
+  const MIN_BARS = 2;
   const SCORE_ID = "music.piano-roll.score";
   // Theme-driven track colours (multitrack-lite); one per default voice.
   const TRACK_COLORS = ["bg-chart-1", "bg-chart-2", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
@@ -59,6 +60,7 @@
   let noteLengthBeats = $state(0.5);
   let noteVelocity = $state(0.85);
   let gridZoom = $state(1);
+  let visibleBars = $state(MIN_BARS);
   let resizeMode = $state(false);
   let resizing = $state<{ voiceId: string; midiNote: number; beat: number } | undefined>();
   let playing = $state(false);
@@ -94,6 +96,15 @@
     return 60 / runtimeBpm();
   }
 
+  const grid = $derived(
+    buildPianoRollGrid(score, {
+      beatsPerBar: BEATS_PER_BAR,
+      stepBeats: STEP_BEATS,
+      minBars: visibleBars,
+    }),
+  );
+  const gridMinWidth = $derived(Math.round(340 * grid.barCount * gridZoom));
+
   // Per-cell cover lookup: key = midi*100 + step → which voice owns it + active?
   const coverMap = $derived.by(() => {
     const map = new Map<number, { voiceIndex: number; active: boolean }>();
@@ -101,7 +112,7 @@
       const voiceIndex = score.voices.findIndex((voice) => voice.id === note.voiceId);
       const startStep = Math.round(note.startBeat / STEP_BEATS);
       const endStep = Math.round((note.startBeat + note.durationBeats) / STEP_BEATS);
-      for (let step = startStep; step < endStep && step < STEPS; step += 1) {
+      for (let step = startStep; step < endStep && step < grid.stepCount; step += 1) {
         const key = note.midiNote * 100 + step;
         const active = note.voiceId === activeVoiceId;
         const existing = map.get(key);
@@ -112,8 +123,7 @@
   });
 
   const activeVoiceVelocityLane = $derived.by(() =>
-    Array.from({ length: STEPS }, (_, step) => {
-      const beat = step * STEP_BEATS;
+    grid.steps.map(({ beat }) => {
       const notes = score.notes.filter(
         (note) =>
           note.voiceId === activeVoiceId &&
@@ -127,7 +137,7 @@
 
   $effect(() => {
     void score;
-    const durationSec = scoreLoopBeats(score) * secondsPerBeat();
+    const durationSec = grid.beatCount * secondsPerBeat();
     runtime.setPlaybackSource({
       label: "Piano roll",
       durationSec,
@@ -227,6 +237,11 @@
     status = `Removed track.`;
   }
 
+  function addBar(): void {
+    visibleBars = grid.barCount + 1;
+    status = `${visibleBars} bars visible.`;
+  }
+
   function clearTrack(voiceId: string): void {
     if (playing) stopScore();
     score = clearVoice(score, voiceId);
@@ -252,7 +267,7 @@
     stopScore();
     const audible = withoutVoices(score, mutedVoiceIds);
     const pattern = scoreToPattern(audible, { bpm: runtimeBpm() });
-    const durationSec = scoreLoopBeats(score) * secondsPerBeat();
+    const durationSec = grid.beatCount * secondsPerBeat();
     runtime.sound.startPatternLoop(pattern.steps, durationSec, 0.9);
     startStepIndicator(durationSec);
     playing = true;
@@ -270,10 +285,10 @@
     let step = 0;
     stepTimer = setInterval(
       () => {
-        step = (step + 1) % STEPS;
+        step = (step + 1) % grid.stepCount;
         activeStep = step;
       },
-      Math.max(20, (durationSec / STEPS) * 1000),
+      Math.max(20, (durationSec / grid.stepCount) * 1000),
     );
   }
 
@@ -302,7 +317,7 @@
         velocity: note.velocity,
       }));
       const blob = await renderEventsToWav(events, {
-        durationSec: scoreLoopBeats(score) * spb,
+        durationSec: grid.beatCount * spb,
       });
       downloadBlob(blob, "piano-roll.wav");
       status = "Exported piano-roll.wav.";
@@ -363,6 +378,10 @@
   function velocityPercent(velocity: number): string {
     return `${Math.round(velocity * 100)}%`;
   }
+
+  function gridSummary(): string {
+    return `${grid.barCount} ${grid.barCount === 1 ? "bar" : "bars"}`;
+  }
 </script>
 
 <svelte:head>
@@ -372,7 +391,7 @@
 <PracticeScreen>
   <PracticeScreenHeader
     title="Piano Roll"
-    subtitle="Multitrack note editor — sketch melodies and parts on a pitch × time grid, then play or export. Two bars, 4/4."
+    subtitle="Multitrack note editor — sketch melodies and parts on a pitch × time grid, then play or export. {gridSummary()}, 4/4."
   >
     {#snippet controls()}
       <Button type="button" variant="outline" onclick={() => clearTrack(activeVoiceId)}>
@@ -395,6 +414,7 @@
       >
         Resize notes
       </Button>
+      <Button type="button" variant="outline" onclick={addBar}>Add bar</Button>
       <Button type="button" variant="outline" onclick={exportMidi}>
         <Download class="size-4" aria-hidden="true" />Export MIDI
       </Button>
@@ -496,16 +516,16 @@
     </Card.Header>
     <Card.Content>
       <div class="max-h-[28rem] overflow-auto">
-        <div style={`min-width: ${Math.round(680 * gridZoom)}px`}>
+        <div style={`min-width: ${gridMinWidth}px`}>
           <!-- step ruler -->
           <div class="sticky top-0 z-10 flex gap-px bg-background pl-12">
-            {#each Array(STEPS) as _, step (step)}
+            {#each grid.steps as step (step.step)}
               <div
-                class="flex-1 text-center text-[10px] font-semibold {activeStep === step
+                class="flex-1 text-center text-[10px] font-semibold {activeStep === step.step
                   ? 'text-primary'
                   : 'text-muted-foreground'}"
               >
-                {step % 4 === 0 ? step / 4 + 1 : ""}
+                {step.isBarStart ? step.bar : ""}
               </div>
             {/each}
           </div>
@@ -520,24 +540,24 @@
               >
                 {isC ? midiToNote(midiNote) : ""}
               </div>
-              {#each Array(STEPS) as _, step (step)}
-                {@const cover = coverMap.get(midiNote * 100 + step)}
+              {#each grid.steps as step (step.step)}
+                {@const cover = coverMap.get(midiNote * 100 + step.step)}
                 <button
                   type="button"
-                  aria-label={cellLabel(midiNote, step)}
+                  aria-label={cellLabel(midiNote, step.step)}
                   aria-pressed={!!cover && cover.active}
-                  onpointerdown={() => startResize(midiNote, step)}
-                  onpointerup={() => void finishResize(midiNote, step)}
-                  onclick={() => toggleCell(midiNote, step)}
+                  onpointerdown={() => startResize(midiNote, step.step)}
+                  onpointerup={() => void finishResize(midiNote, step.step)}
+                  onclick={() => toggleCell(midiNote, step.step)}
                   class="h-3.5 flex-1 rounded-[2px] border border-transparent transition-colors {cover
                     ? `${trackColor(cover.voiceIndex)} ${cover.active ? '' : 'opacity-40'}`
                     : isC
                       ? 'bg-muted/70 hover:bg-muted'
-                        : step % 4 === 0
+                        : step.step % 4 === 0
                           ? 'bg-muted/40 hover:bg-muted'
                           : 'bg-background hover:bg-muted/60'} {resizeMode
                     ? 'cursor-ew-resize'
-                    : ''} {activeStep === step
+                    : ''} {activeStep === step.step
                     ? 'ring-1 ring-primary/40'
                     : ''}"
                 ></button>

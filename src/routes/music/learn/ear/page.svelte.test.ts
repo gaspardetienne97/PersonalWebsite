@@ -299,6 +299,32 @@ describe("/music/learn/ear/+page.svelte", () => {
     expect(practiceButtons.length).toBe(2);
   });
 
+  test("surfaces a structured repertoire review plan", async () => {
+    render(Page, {
+      library: {
+        list: vi.fn(async () => [
+          {
+            id: "song-1",
+            title: "Song One",
+            createdAt: 0,
+            updatedAt: 0,
+            score: { ...repertoireScore(), id: "s1", title: "Song One" },
+          },
+          {
+            id: "song-2",
+            title: "Song Two",
+            createdAt: 0,
+            updatedAt: 0,
+            score: { ...repertoireScore(), id: "s2", title: "Song Two" },
+          },
+        ]),
+      },
+    });
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Repertoire review plan"));
+    expect(document.body.textContent).toMatch(/Warm up|Review due|New material|Stretch/);
+  });
+
   test("starts a scored repertoire transfer drill from a saved song phrase", async () => {
     render(Page, {
       library: {
@@ -331,6 +357,50 @@ describe("/music/learn/ear/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
     expect(document.body.textContent).toContain("1 of 1 correct");
     expect(document.body.textContent).not.toContain("Cannot read properties");
+  });
+
+  test("starts the repertoire review plan as a multi-prompt transfer session", async () => {
+    render(Page, {
+      library: {
+        list: vi.fn(async () => [
+          {
+            id: "song-1",
+            title: "Song One",
+            createdAt: 0,
+            updatedAt: 0,
+            score: { ...repertoireScore(), id: "s1", title: "Song One" },
+          },
+          {
+            id: "song-2",
+            title: "Song Two",
+            createdAt: 0,
+            updatedAt: 0,
+            score: { ...repertoireScore(), id: "s2", title: "Song Two" },
+          },
+        ]),
+      },
+    });
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Repertoire review plan"));
+    [...document.querySelectorAll("button")]
+      .find((button) => button.textContent?.trim() === "Practice review plan")
+      ?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("1 / 2"));
+    for (const noteName of ["C4", "D4", "E4", "G4"]) {
+      [...document.querySelectorAll("button")]
+        .find((button) => button.textContent === noteName)
+        ?.click();
+    }
+    await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 2"));
+    for (const noteName of ["C4", "D4", "E4", "G4"]) {
+      [...document.querySelectorAll("button")]
+        .find((button) => button.textContent === noteName)
+        ?.click();
+    }
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
+    expect(document.body.textContent).toContain("2 of 2 correct");
   });
 
   test("stops the free-play drone before starting a scored session", async () => {

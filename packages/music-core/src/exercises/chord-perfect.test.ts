@@ -8,6 +8,7 @@ import {
   chordShapeMidiNotes,
   chordShapesFor,
   createChordPerfectExercise,
+  createOpenChordIdentificationExercise,
 } from "./chord-perfect";
 
 // Expected pitch-class set per curated shape — the authoritative check that the
@@ -76,6 +77,57 @@ describe("createChordPerfectExercise", () => {
 
     expect(result.correct).toBe(false);
     expect(result.feedback[0]?.message).toContain("3/4");
+  });
+
+  test("scores a clean analyzed strum as open chord identification", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const shape = chordShapesFor("guitar").find((entry) => entry.id === "guitar.c-major")!;
+    const exercise = createOpenChordIdentificationExercise({ tuning, shape });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    [60, 64, 67].forEach((midi, index) => run.accept(note(midi, index * 10)));
+    const result = run.finish({ reason: "completed" });
+
+    expect(prompt.payload.expectedSymbol).toBe("C");
+    expect(result.correct).toBe(true);
+    expect(result.score).toBe(1);
+    expect(result.answer).toMatchObject({
+      detectedSymbol: "C",
+      expectedSymbol: "C",
+      targetCoverage: 1,
+    });
+    expect(result.metrics).toEqual(
+      expect.arrayContaining([
+        { kind: "choice", expected: "C", actual: "C" },
+        expect.objectContaining({
+          kind: "chord",
+          expectedPitchClasses: [0, 4, 7],
+          actualPitchClasses: [0, 4, 7],
+        }),
+      ]),
+    );
+  });
+
+  test("keeps the detected symbol when open chord identification misses the target", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const shape = chordShapesFor("guitar").find((entry) => entry.id === "guitar.c-major")!;
+    const exercise = createOpenChordIdentificationExercise({ tuning, shape });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    [57, 60, 64].forEach((midi, index) => run.accept(note(midi, index * 10)));
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.correct).toBe(false);
+    expect(result.answer).toMatchObject({
+      detectedSymbol: "Am",
+      expectedSymbol: "C",
+    });
+    expect(result.response).toMatchObject({ label: "Am", choice: "Am" });
+    expect(result.feedback[0]?.message).toContain("Heard Am");
   });
 });
 
