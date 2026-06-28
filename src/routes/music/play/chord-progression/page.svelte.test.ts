@@ -71,3 +71,58 @@ test("grades a strummed progression from injected onset observations", async () 
   });
   expect(audioSource.subscribeAnalysis).toHaveBeenCalled();
 });
+
+test("chroma-only analyses update the detected-tones readout but never grade or advance", async () => {
+  let analysisCb:
+    | ((a: {
+        chroma: Float32Array;
+        timestamp: number;
+        onset: boolean;
+        onsetWindow?: Float32Array;
+      }) => void)
+    | undefined;
+  const audioSource = {
+    state: { status: "idle" as const },
+    start: vi.fn(async () => {}),
+    stop: vi.fn(async () => {}),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn((cb: typeof analysisCb) => {
+      analysisCb = cb;
+      return () => {};
+    }),
+  };
+  const expected = expectedChordsFromProgression(JAM_PROGRESSIONS[0]!);
+  const analyzeOnsetWindow = vi.fn(async () => {
+    const chord = expected[0]!;
+    return chord.pitchClasses.map((pc) => 60 + pc);
+  });
+  const runtime = new MusicRuntime();
+  vi.spyOn(runtime, "runCountIn").mockResolvedValue(performance.now() as never);
+
+  render(Page, { audioSource, analyzeOnsetWindow, runtime });
+  button("Start")?.click();
+  await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalled());
+
+  // Chroma-only frames (no onsetWindow) — bins 0/4/7 (C major triad) set to 1.
+  for (let i = 0; i < 5; i++) {
+    const chroma = new Float32Array(12);
+    chroma[0] = 1;
+    chroma[4] = 1;
+    chroma[7] = 1;
+    analysisCb?.({
+      chroma,
+      timestamp: 1000 + i,
+      onset: false,
+    });
+  }
+
+  // Give any (incorrect) async grading a chance to run before asserting it didn't.
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  expect(analyzeOnsetWindow).not.toHaveBeenCalled();
+  await vi.waitFor(() => {
+    expect(document.body.textContent).toContain("C");
+  });
+  expect(document.body.textContent).not.toContain("matched in-time");
+  expect(document.body.textContent).not.toContain("matched off-time");
+});

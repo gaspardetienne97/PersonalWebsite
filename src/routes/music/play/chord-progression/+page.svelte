@@ -122,23 +122,32 @@
     await finish();
   }
 
+  let onsetQueue: Promise<void> = Promise.resolve();
+
   async function onAnalysis(analysis: ChordAnalysis): Promise<void> {
     if (!follower) return;
-    let observation: ChordObservation;
-    if (analysis.onsetWindow) {
-      const midi = await analyzeOnsetWindow(analysis.onsetWindow);
-      const pitchClasses = toPitchClasses(midi);
-      observation = { pitchClasses, confidence: 0.9, source: "onset", atMs: analysis.timestamp };
-      detected = pitchClasses;
-    } else {
-      observation = {
-        pitchClasses: chromaToPitchClasses(analysis.chroma),
-        confidence: 0.4,
-        source: "chroma",
-        atMs: analysis.timestamp,
-      };
-      detected = observation.pitchClasses;
+    // Chroma is display-only in v1: show heard tones but never grade/advance from
+    // it (the follower grades from onsets; it does not yet weight by source, so
+    // feeding chroma would set timing and advance with no strum).
+    if (!analysis.onsetWindow) {
+      detected = chromaToPitchClasses(analysis.chroma);
+      return;
     }
+    onsetQueue = onsetQueue.then(() => gradeOnset(analysis));
+    await onsetQueue;
+  }
+
+  async function gradeOnset(analysis: ChordAnalysis): Promise<void> {
+    if (!follower || !analysis.onsetWindow) return;
+    const midi = await analyzeOnsetWindow(analysis.onsetWindow);
+    const pitchClasses = toPitchClasses(midi);
+    detected = pitchClasses;
+    const observation: ChordObservation = {
+      pitchClasses,
+      confidence: 0.9,
+      source: "onset",
+      atMs: analysis.timestamp,
+    };
     followerState = follower.accept(observation);
     if (followerState.done) await finish();
   }

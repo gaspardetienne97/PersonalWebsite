@@ -53,8 +53,10 @@ This file provides guidance for agents working on the Music app under
   route side effect — keep it user-triggered from the Connect diagnostic.
 - **Audio input:** `@repo/music-core/engines/audio-in` owns microphone capture,
   monophonic pitch detection, tuner readings, and transient onset detection.
-  Reuse `AudioPitchSource`; do not create route-local `getUserMedia`,
-  `AudioContext`, or AudioWorklet implementations.
+  Reuse `AudioPitchSource` (streaming monophonic pitch) or `ChordAudioSource`
+  (streaming chroma + onset windows for chord following); new capture sources
+  belong in the `audio-in` engine — never route-local `getUserMedia`/
+  `AudioContext`/AudioWorklet.
 - **Onset timing:** Subscribe with `AudioPitchSource.subscribeOnsets()` and push
   normalized `OnsetEvent`s through the shared `MusicRuntime.inputRouter`.
   Keep onset analysis pure/testable, require an explicit user action before
@@ -353,10 +355,12 @@ This file provides guidance for agents working on the Music app under
   hardware-pending.
 - `/music/play/chord-progression`: graded chord-following drill for a known
   progression (`@repo/music-core/engines/jam`'s `JAM_PROGRESSIONS`). `ChordAudioSource`
-  streams chroma + onset windows; chroma frames become `ChordObservation`s via
-  `chromaToPitchClasses`, onsets are confirmed through the buffered Basic Pitch
-  adapter + `chord-id/toPitchClasses`, and `chord-follower` aligns/grades each
-  against `expectedChordsFromProgression()` for correctness and timing. Both the
+  streams chroma + onset windows; onsets are confirmed through the buffered
+  Basic Pitch adapter + `chord-id/toPitchClasses` and turned into
+  `ChordObservation`s that `chord-follower` aligns/grades against
+  `expectedChordsFromProgression()` for correctness and timing. Chroma drives
+  only the detected-tones readout; grading/advancement comes from
+  onset-confirmed Basic Pitch observations, never chroma. Both the
   audio source and the onset analyzer are injectable props so route tests stay
   off the mic and model. Completion records one journal entry (no fabricated
   per-skill mastery events). Real-strum grading accuracy on a physical
