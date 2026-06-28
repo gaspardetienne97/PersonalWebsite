@@ -49,7 +49,12 @@ export type ChordObservationSource = "chroma" | "onset";
 
 export interface ChordObservation {
   pitchClasses: number[];
-  /** Reserved for Phase 2 chroma/onset fusion; not yet weighted in Phase 1. */
+  /**
+   * Evidence weight, 0-1. Observations below the follower's `strongConfidence`
+   * (default 0.6) update the detected readout only; at/above it they grade,
+   * time, and advance. So onset-confirmed observations (≈0.9) drive grading
+   * while chroma (≈0.4) stays corroboration and can't advance with no strum.
+   */
   confidence: number;
   source: ChordObservationSource;
   atMs: number;
@@ -74,6 +79,12 @@ export interface ChordFollowerOptions {
   matchThreshold?: number;
   /** Coverage of the NEXT chord that triggers advancing. */
   advanceThreshold?: number;
+  /**
+   * Confidence at/above which an observation grades/times/advances; below it the
+   * observation only updates the detected readout (default 0.6). Onsets ≈0.9 are
+   * strong; chroma ≈0.4 is display-only.
+   */
+  strongConfidence?: number;
 }
 
 export interface ChordFollowerState {
@@ -122,7 +133,11 @@ export function createChordFollower(
 ): ChordFollowerRun {
   const matchThreshold = options.matchThreshold ?? 0.75;
   const advanceThreshold = options.advanceThreshold ?? 0.6;
+  const strongConfidence = options.strongConfidence ?? 0.6;
   const strictness = options.strictness ?? "normal";
+
+  const isStrong = (observation: ChordObservation): boolean =>
+    observation.confidence >= strongConfidence;
 
   const grades: ChordGrade[] = [];
   let currentIndex = 0;
@@ -183,6 +198,11 @@ export function createChordFollower(
     accept(observation) {
       detected = [...observation.pitchClasses];
       if (currentIndex >= expected.length) return snapshot();
+
+      // Weak (chroma) observations update the detected readout only — they never
+      // grade, time, or advance. Only strong (onset-confirmed) observations move
+      // the follower, so noisy chroma can't advance the progression with no strum.
+      if (!isStrong(observation)) return snapshot();
 
       // Keep advancing while we match the next chord better than the current
       while (true) {

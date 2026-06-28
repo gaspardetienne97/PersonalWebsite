@@ -32,6 +32,10 @@ function onset(pitchClasses: number[], atMs: number): ChordObservation {
   return { pitchClasses, confidence: 1, source: "onset", atMs };
 }
 
+function chroma(pitchClasses: number[], atMs: number): ChordObservation {
+  return { pitchClasses, confidence: 0.4, source: "chroma", atMs };
+}
+
 describe("createChordFollower", () => {
   const expected = expectedChordsFromProgression(II_V_I); // Dm7, G7, Cmaj7
   const bpm = 120;
@@ -86,5 +90,46 @@ describe("createChordFollower", () => {
     });
     const summary = run.finish();
     expect(summary.grades[0]!.matched).toBe(false);
+  });
+});
+
+describe("createChordFollower source/confidence fusion", () => {
+  const expected = expectedChordsFromProgression(II_V_I);
+  const bpm = 120;
+  const startAtMs = 1_000;
+  const downbeat = (index: number) => startAtMs + beatToMs(expected[index]!.startBeat, bpm);
+
+  test("weak chroma observations update the readout but never grade or advance", () => {
+    const run = createChordFollower(expected, { bpm, startAtMs });
+    for (let i = 0; i < 3; i++) run.accept(chroma(expected[0]!.pitchClasses, downbeat(0)));
+
+    expect(run.state().currentIndex).toBe(0);
+    expect(run.state().detectedPitchClasses).toEqual(expected[0]!.pitchClasses);
+    const summary = run.finish();
+    expect(summary.correct).toBe(0);
+    expect(summary.grades[0]!.matched).toBe(false);
+  });
+
+  test("timing comes from the onset, not an earlier in-time chroma", () => {
+    const run = createChordFollower(expected, { bpm, startAtMs, strictness: "strict" });
+    run.accept(chroma(expected[0]!.pitchClasses, downbeat(0))); // chroma in-time — ignored for timing
+    run.accept(onset(expected[0]!.pitchClasses, downbeat(0) + 2_000)); // onset late
+    const summary = run.finish();
+
+    expect(summary.grades[0]!.matched).toBe(true);
+    expect(summary.grades[0]!.timingBand).toBe("late");
+  });
+
+  test("chroma of the next chord between onsets does not false-advance", () => {
+    const run = createChordFollower(expected, { bpm, startAtMs });
+    run.accept(onset(expected[0]!.pitchClasses, downbeat(0)));
+    run.accept(chroma(expected[1]!.pitchClasses, downbeat(0) + 10)); // chroma of G7 — must not advance
+    expect(run.state().currentIndex).toBe(0);
+
+    run.accept(onset(expected[1]!.pitchClasses, downbeat(1)));
+    expect(run.state().currentIndex).toBe(1);
+    const summary = run.finish();
+    expect(summary.grades[0]!.matched).toBe(true);
+    expect(summary.grades[1]!.matched).toBe(true);
   });
 });

@@ -126,11 +126,18 @@
 
   async function onAnalysis(analysis: ChordAnalysis): Promise<void> {
     if (!follower) return;
-    // Chroma is display-only in v1: show heard tones but never grade/advance from
-    // it (the follower grades from onsets; it does not yet weight by source, so
-    // feeding chroma would set timing and advance with no strum).
+    // Chroma is a weak observation: the follower honors source/confidence, so it
+    // uses chroma for the detected readout only — it grades/times/advances from
+    // onsets, so feeding chroma here can't false-advance with no strum.
     if (!analysis.onsetWindow) {
-      detected = chromaToPitchClasses(analysis.chroma);
+      const observation: ChordObservation = {
+        pitchClasses: chromaToPitchClasses(analysis.chroma),
+        confidence: 0.4,
+        source: "chroma",
+        atMs: analysis.timestamp,
+      };
+      followerState = follower.accept(observation);
+      detected = followerState.detectedPitchClasses;
       return;
     }
     onsetQueue = onsetQueue.then(() => gradeOnset(analysis));
