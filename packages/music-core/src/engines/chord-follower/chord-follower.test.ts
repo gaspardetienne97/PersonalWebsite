@@ -75,4 +75,16 @@ describe("createChordFollower", () => {
     run.finish();
     expect(run.state().grades[0]!.timingBand).toBe("late");
   });
+
+  test("does not grade a noise-flooded all-12 observation as a clean match", () => {
+    const run = createChordFollower(expected, { bpm, startAtMs });
+    run.accept({
+      pitchClasses: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      confidence: 1,
+      source: "chroma",
+      atMs: downbeat(0),
+    });
+    const summary = run.finish();
+    expect(summary.grades[0]!.matched).toBe(false);
+  });
 });

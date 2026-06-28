@@ -49,6 +49,7 @@ export type ChordObservationSource = "chroma" | "onset";
 
 export interface ChordObservation {
   pitchClasses: number[];
+  /** Reserved for Phase 2 chroma/onset fusion; not yet weighted in Phase 1. */
   confidence: number;
   source: ChordObservationSource;
   atMs: number;
@@ -103,6 +104,18 @@ function coverage(observed: number[], template: number[]): number {
   return matched / template.length;
 }
 
+// Mirrors chord-verification's extra-tone penalty: a chord shouldn't grade clean
+// if the observation is flooded with non-chord tones. Tune in Phase 4 (hardware).
+const EXTRA_TONE_PENALTY = 0.25;
+
+function extraToneRatio(observed: number[], template: number[]): number {
+  if (template.length === 0) return 0;
+  const set = new Set(template);
+  let extra = 0;
+  for (const pitchClass of observed) if (!set.has(pitchClass)) extra++;
+  return extra / template.length;
+}
+
 export function createChordFollower(
   expected: ExpectedChord[],
   options: ChordFollowerOptions,
@@ -114,6 +127,7 @@ export function createChordFollower(
   const grades: ChordGrade[] = [];
   let currentIndex = 0;
   let currentBest = 0;
+  let bestExtraRatio = 0;
   let firstHitMs: number | undefined;
   let detected: number[] = [];
 
@@ -133,7 +147,8 @@ export function createChordFollower(
   function finalizeCurrent(): void {
     const chord = expected[currentIndex];
     if (!chord) return;
-    const matched = currentBest >= matchThreshold;
+    const matchScore = Math.max(0, currentBest - EXTRA_TONE_PENALTY * bestExtraRatio);
+    const matched = matchScore >= matchThreshold;
     grades.push({
       symbol: chord.symbol,
       matched,
@@ -142,12 +157,16 @@ export function createChordFollower(
       ...(matched && firstHitMs !== undefined ? { atMs: firstHitMs } : {}),
     });
     currentBest = 0;
+    bestExtraRatio = 0;
     firstHitMs = undefined;
   }
 
   function applyTo(index: number, observation: ChordObservation): void {
     const cover = coverage(observation.pitchClasses, expected[index]!.pitchClasses);
-    if (cover > currentBest) currentBest = cover;
+    if (cover > currentBest) {
+      currentBest = cover;
+      bestExtraRatio = extraToneRatio(observation.pitchClasses, expected[index]!.pitchClasses);
+    }
     if (cover >= matchThreshold && firstHitMs === undefined) firstHitMs = observation.atMs;
   }
 
