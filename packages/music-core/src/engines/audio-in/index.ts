@@ -48,3 +48,5 @@ export { recordMicClip, micClipSupported, type RecordMicClipOptions } from "./re
 export { computeChroma, type ChromaOptions } from "./chroma";
 
 export { resampleLinear } from "./resample";
+
+export { FrameRing } from "./frame-ring";
