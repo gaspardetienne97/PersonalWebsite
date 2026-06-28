@@ -36,3 +36,9 @@ storybook-static
 # Local-only jazz backing tracks (licensed Julian Bradley drum tracks, served
 # from static/ in dev/preview but not committed — large and not ours to ship)
 /static/audio/
+
+# AI
+/.claude/launch.json
+/.codex
+/.serena
+/.superpowers
