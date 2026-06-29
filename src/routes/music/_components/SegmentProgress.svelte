@@ -21,7 +21,7 @@
 </script>
 
 <div class="flex items-center gap-2 {cls}">
-  <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+  <span class="eyebrow">{label}</span>
   <div
     class="flex flex-1 gap-1"
     role="progressbar"

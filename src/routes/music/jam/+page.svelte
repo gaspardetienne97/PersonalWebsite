@@ -225,7 +225,7 @@
       <!-- Now playing -->
       <Card.Root>
         <Card.Content class="flex flex-col items-center gap-2 py-8 text-center">
-          <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <span class="eyebrow">
             Now playing · {current.roman} in {progression.key}
           </span>
           <span class="text-6xl font-bold tracking-tight text-primary">{current.symbol}</span>
@@ -329,7 +329,7 @@
 
           <div class="grid gap-2">
             <span
-              class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+              class="eyebrow"
             >Backing source</span>
             <SegmentedControl
               class="w-full"

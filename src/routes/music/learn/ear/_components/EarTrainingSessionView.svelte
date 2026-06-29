@@ -93,7 +93,7 @@
   <!-- combo / replay orb / accuracy -->
   <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
     <div class="flex flex-col items-center gap-1 rounded-2xl border bg-card p-4">
-      <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      <span class="flex items-center gap-1 eyebrow">
         <Zap class="size-3" aria-hidden="true" /> Combo
       </span>
       <span class="text-3xl font-bold tabular-nums text-primary">{combo}</span>
@@ -114,7 +114,7 @@
     </button>
 
     <div class="flex flex-col items-center gap-1 rounded-2xl border bg-card p-4">
-      <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      <span class="flex items-center gap-1 eyebrow">
         <Target class="size-3" aria-hidden="true" /> Accuracy
       </span>
       <span class="text-3xl font-bold tabular-nums {accuracyToneClass}">{accuracyPct}%</span>

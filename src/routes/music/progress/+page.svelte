@@ -125,28 +125,28 @@
   {:else}
     <section class="grid gap-4 md:grid-cols-4" aria-label="Dashboard">
       <Card.Root class="flex flex-col items-center gap-3 p-5">
-        <span class="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+        <span class="w-full eyebrow"
           >Today's XP</span
         >
         <ProgressRing value={dashboard.todayXp} total={dashboard.todayGoalXp} label="Today's XP" size={132} gradient />
         <span class="text-xs text-muted-foreground">Daily goal</span>
       </Card.Root>
       <Card.Root class="flex flex-col items-center gap-2 p-5">
-        <span class="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+        <span class="w-full eyebrow"
           >Streak</span
         >
         <div class="text-3xl" aria-hidden="true">🔥</div>
         <span class="text-3xl font-bold leading-none tabular-nums">{dashboard.streakDays}</span>
-        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">days</span>
+        <span class="eyebrow">days</span>
         <WeekDots completedDays={weekDots.completedDays} todayIndex={weekDots.todayIndex} />
       </Card.Root>
       <Card.Root class="flex flex-col justify-center gap-1 p-5">
-        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Level</span>
+        <span class="eyebrow">Level</span>
         <span class="text-4xl font-bold tabular-nums">{dashboard.level}</span>
         <span class="text-xs text-muted-foreground">Across all instruments</span>
       </Card.Root>
       <Card.Root class="flex flex-col gap-2 p-5">
-        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+        <span class="eyebrow"
           >Practice next</span
         >
         <span class="text-lg font-bold leading-tight">{dashboard.dailyChallenge.skillName}</span>

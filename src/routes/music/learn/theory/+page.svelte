@@ -151,7 +151,7 @@
         </Button>
       </div>
 
-      <div class="flex items-center justify-between px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      <div class="flex items-center justify-between px-1 eyebrow">
         <span>{results.length} {kind}{results.length === 1 ? "" : "s"}</span>
         <span>{savedIds.size} saved</span>
       </div>

@@ -171,7 +171,7 @@
 
   <!-- Connected MIDI devices -->
   <section aria-label="Connected devices">
-    <h2 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+    <h2 class="mb-3 eyebrow">
       MIDI devices
     </h2>
     {#if midiDevices.length === 0}
@@ -254,7 +254,7 @@
 
   <!-- Live MIDI activity monitor -->
   <section aria-label="Live MIDI activity">
-    <h2 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+    <h2 class="mb-3 eyebrow">
       Live activity
     </h2>
     <Card.Root>
@@ -277,7 +277,7 @@
   </section>
 
   <section aria-label="MPC hardware diagnostic">
-    <h2 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+    <h2 class="mb-3 eyebrow">
       MPC hardware
     </h2>
     {#key midiOutputs.map((output) => output.id).join("|")}
@@ -292,7 +292,7 @@
 
   <!-- Per-instrument preferred source + on-screen surface -->
   <section aria-label="Input routing">
-    <h2 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+    <h2 class="mb-3 eyebrow">
       Preferred source per instrument
     </h2>
     <Card.Root>
@@ -327,7 +327,7 @@
   <!-- On-screen fallback -->
   <section aria-label="On-screen fallback">
     <div class="mb-3 flex items-center gap-2">
-      <h2 class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      <h2 class="eyebrow">
         On-screen fallback
       </h2>
       <span class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">

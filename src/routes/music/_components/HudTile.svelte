@@ -23,7 +23,7 @@
 </script>
 
 <div class="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3 {cls}">
-  <span class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+  <span class="flex items-center gap-1.5 eyebrow">
     {#if icon}{@render icon()}{/if}
     {label}
   </span>

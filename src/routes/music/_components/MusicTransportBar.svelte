@@ -1,9 +1,6 @@
 <script lang="ts">
   import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
-  import Repeat from "lucide-svelte/icons/repeat";
-  import SkipBack from "lucide-svelte/icons/skip-back";
-  import SkipForward from "lucide-svelte/icons/skip-forward";
   import Volume2 from "lucide-svelte/icons/volume-2";
   import VolumeX from "lucide-svelte/icons/volume-x";
   import Waveform from "lucide-svelte/icons/audio-waveform";
@@ -109,13 +106,13 @@
         class="flex flex-col rounded-md px-1 text-left hover:bg-muted"
         aria-label="Tempo presets"
       >
-        <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tempo</span>
+        <span class="eyebrow">Tempo</span>
         <span class="text-sm font-bold tabular-nums"
           >{bpm}<span class="ml-1 text-xs font-normal text-muted-foreground">bpm</span></span
         >
       </Popover.Trigger>
       <Popover.Content class="w-44 p-1.5" side="top" align="start">
-        <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <p class="px-2 py-1 eyebrow">
           Common tempos
         </p>
         {#each TEMPO_PRESETS as preset (preset)}
@@ -145,7 +142,7 @@
     />
 
     <div class="hidden flex-col sm:flex">
-      <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Count in</span>
+      <span class="eyebrow">Count in</span>
       <div role="group" aria-label="Count in" class="mt-0.5 flex items-center gap-0.5">
         {#each COUNT_IN_OPTIONS as option (option)}
           <button
@@ -165,9 +162,6 @@
 
   <!-- center: transport controls -->
   <div class="mx-auto flex items-center gap-2">
-    <button type="button" class="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-muted" aria-label="Previous">
-      <SkipBack class="size-4" aria-hidden="true" />
-    </button>
     <button
       type="button"
       onclick={onToggle}
@@ -186,12 +180,6 @@
         <Play class="size-5 translate-x-0.5" aria-hidden="true" />
       {/if}
     </button>
-    <button type="button" class="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-muted" aria-label="Next">
-      <SkipForward class="size-4" aria-hidden="true" />
-    </button>
-    <button type="button" class="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-muted" aria-label="Repeat">
-      <Repeat class="size-4" aria-hidden="true" />
-    </button>
   </div>
 
   <!-- right: input + mute + metronome blend + tap + audio -->
@@ -207,7 +195,7 @@
             "All"}
         </Popover.Trigger>
         <Popover.Content class="w-48 p-1.5" side="top" align="end">
-          <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p class="px-2 py-1 eyebrow">
             Listen to
           </p>
           {#each midiInstruments as option (option.instrument)}
@@ -250,7 +238,7 @@
       {/if}
     </button>
     <div class="hidden flex-col sm:flex">
-      <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      <span class="flex items-center gap-1 eyebrow">
         <MetronomeIcon class="size-3" /> Blend
       </span>
       <input
@@ -274,7 +262,7 @@
           {instrument}
         </Popover.Trigger>
         <Popover.Content class="w-40 p-1.5" side="top" align="end">
-          <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p class="px-2 py-1 eyebrow">
             Playback sound
           </p>
           {#each instruments as name (name)}

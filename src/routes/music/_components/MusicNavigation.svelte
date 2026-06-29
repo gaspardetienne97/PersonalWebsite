@@ -83,7 +83,7 @@
       <Music class="size-4 text-primary" aria-hidden="true" />
       Practice OS
     </span>
-    <span class="text-[10px] uppercase tracking-widest text-muted-foreground">cross-instrument</span>
+    <span class="eyebrow">cross-instrument</span>
   </div>
 
   <nav aria-label="Music sections" class="flex-1 overflow-y-auto py-3">

@@ -207,3 +207,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Section eyebrow / overline — one source of truth for the repeated label style. */
+@utility eyebrow {
+  @apply text-[10px] font-bold uppercase tracking-widest text-muted-foreground;
+}

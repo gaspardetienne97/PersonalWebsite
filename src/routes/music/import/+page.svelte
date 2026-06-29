@@ -230,7 +230,7 @@
           ["Parts", String(musicXmlScore.voices.length)],
         ] as [label, value]}
           <div class="rounded-xl border p-3">
-            <div class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <div class="eyebrow">
               {label}
             </div>
             <div class="mt-1 text-lg font-bold tabular-nums">{value}</div>
@@ -263,7 +263,7 @@
       <Card.Content class="grid grid-cols-2 gap-4 sm:grid-cols-5">
         {#each [["Key", song.keyEstimate ?? "—"], ["Tempo", `${Math.round(song.bpm)} bpm`], ["Time", song.timeSignature.join(" / ")], ["Notes", String(song.totalNotes)], ["Length", `${song.durationSec.toFixed(1)}s`]] as [label, value]}
           <div class="rounded-xl border p-3">
-            <div class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</div>
+            <div class="eyebrow">{label}</div>
             <div class="mt-1 text-lg font-bold tabular-nums">{value}</div>
           </div>
         {/each}

@@ -80,7 +80,7 @@
 
   <!-- Quick start -->
   <section aria-label="Quick start" class="grid gap-3">
-    <h2 class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+    <h2 class="eyebrow">
       Quick start
     </h2>
     <ol class="grid gap-3">
@@ -138,7 +138,7 @@
 
   <!-- Areas of the app -->
   <section aria-label="Areas of the app" class="grid gap-3">
-    <h2 class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+    <h2 class="eyebrow">
       Around the app
     </h2>
     <div class="grid gap-4 sm:grid-cols-2">
