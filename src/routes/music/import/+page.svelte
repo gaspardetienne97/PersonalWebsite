@@ -214,7 +214,7 @@
             {saving ? "Saving..." : "Save to repertoire"}
           </Button>
           {#if savedSongId}
-            <Button size="sm" variant="outline" href="/music/songs">Open songs</Button>
+            <Button size="sm" variant="outline" href="/music/library?tab=songs">Open songs</Button>
           {/if}
         </div>
       </Card.Header>
@@ -256,7 +256,7 @@
             {saving ? "Saving..." : "Save to repertoire"}
           </Button>
           {#if savedSongId}
-            <Button size="sm" variant="outline" href="/music/songs">Open songs</Button>
+            <Button size="sm" variant="outline" href="/music/library?tab=songs">Open songs</Button>
           {/if}
         </div>
       </Card.Header>

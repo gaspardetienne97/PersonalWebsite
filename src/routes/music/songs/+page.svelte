@@ -139,7 +139,7 @@
           <div class="rounded-md border p-4 text-sm text-muted-foreground">
             Import a MIDI file, then save it to repertoire.
           </div>
-          <Button href="/music/import" variant="outline">Import a song</Button>
+          <Button href="/music/library?tab=import" variant="outline">Import a song</Button>
         {:else}
           {#each songs as song (song.id)}
             <button

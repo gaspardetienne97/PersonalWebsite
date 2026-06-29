@@ -42,7 +42,7 @@
     { label: "Warm-up · long tones", meta: "Technique", href: "/music/play/scales" },
     { label: "Ear training", meta: "Listening", href: "/music/learn/ear" },
     { label: "Rhythm lock", meta: "Timing", href: "/music/learn/rhythm" },
-    { label: "Jazz voicings", meta: "Harmony", href: "/music/learn/theory" },
+    { label: "Jazz voicings", meta: "Harmony", href: "/music/library?tab=reference" },
   ];
   const weeklySessionGoal = 5;
   let tagText = $state("journal");

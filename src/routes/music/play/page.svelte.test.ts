@@ -42,7 +42,9 @@ describe("/music/play/+page.svelte", () => {
     expect(document.querySelector('a[href="/music/play/spider"]')?.textContent).toContain(
       "Spider Drill",
     );
-    expect(document.querySelector('a[href="/music/songs"]')?.textContent).toContain("Song Library");
+    expect(document.querySelector('a[href="/music/library?tab=songs"]')?.textContent).toContain(
+      "Song Library",
+    );
   });
 
   test("records MIDI notes into a free-practice journal capture", async () => {

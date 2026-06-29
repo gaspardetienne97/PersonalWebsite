@@ -53,7 +53,7 @@ describe("/music/import/+page.svelte", () => {
     await vi.waitFor(() => expect(library.saveImportedSong).toHaveBeenCalledOnce());
     await vi.waitFor(() => expect(document.body.textContent).toContain("Saved to repertoire."));
     expect(
-      document.querySelector<HTMLAnchorElement>('a[href="/music/songs"]')?.textContent,
+      document.querySelector<HTMLAnchorElement>('a[href="/music/library?tab=songs"]')?.textContent,
     ).toContain("Open songs");
   });
 

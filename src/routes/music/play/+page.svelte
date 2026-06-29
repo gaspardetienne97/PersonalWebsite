@@ -701,7 +701,7 @@
       icon={Gauge}
     />
     <MusicToolCard
-      href="/music/songs"
+      href="/music/library?tab=songs"
       title="Song Library"
       description="Reopen saved imported songs, replay them, and log repertoire practice into the journal."
       eyebrow="Play"

@@ -311,7 +311,7 @@
           {saving ? "Saving..." : "Save to repertoire"}
         </Button>
         {#if savedSongId}
-          <Button href="/music/songs" variant="outline">Open songs</Button>
+          <Button href="/music/library?tab=songs" variant="outline">Open songs</Button>
         {/if}
       </Card.Footer>
     </Card.Root>

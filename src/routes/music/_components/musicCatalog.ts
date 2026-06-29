@@ -224,7 +224,7 @@ export const PATHS: CatalogItem[] = [
 /** Repertoire + reference — the Library hub. */
 export const LIBRARY_ITEMS: CatalogItem[] = [
   {
-    href: "/music/songs",
+    href: "/music/library?tab=songs",
     title: "Songs",
     description: "Your saved repertoire. Open a song to practice it with the score follower.",
     meta: "Repertoire",
@@ -232,7 +232,7 @@ export const LIBRARY_ITEMS: CatalogItem[] = [
     icon: ListMusic,
   },
   {
-    href: "/music/learn/theory",
+    href: "/music/library?tab=reference",
     title: "Chord & Scale Reference",
     description: "Explore and hear chords and scales across piano, guitar, ukulele, and aerophone.",
     meta: "Reference",
@@ -240,7 +240,7 @@ export const LIBRARY_ITEMS: CatalogItem[] = [
     icon: Library,
   },
   {
-    href: "/music/import",
+    href: "/music/library?tab=import",
     title: "Import",
     description: "Bring in MIDI or MusicXML files locally and save them to your repertoire.",
     meta: "Import",
@@ -248,7 +248,7 @@ export const LIBRARY_ITEMS: CatalogItem[] = [
     icon: Upload,
   },
   {
-    href: "/music/transcribe",
+    href: "/music/library?tab=import&mode=transcribe",
     title: "Transcribe",
     description: "Turn an audio file into a playable score with in-browser Basic Pitch.",
     meta: "Audio → MIDI",

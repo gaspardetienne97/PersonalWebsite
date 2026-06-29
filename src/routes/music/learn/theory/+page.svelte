@@ -101,16 +101,16 @@
 </script>
 
 <svelte:head>
-  <title>Theory Library | Musicianship OS</title>
+  <title>Chord &amp; Scale Reference | Musicianship OS</title>
   <meta
     name="description"
     content="Explore, hear, and save chord and scale theory across piano, guitar, and ukulele."
   />
 </svelte:head>
 
-<PracticeScreen>
-  <PracticeScreenHeader
-    title="Chord & Theory Library"
+  <PracticeScreen>
+    <PracticeScreenHeader
+    title="Chord & Scale Reference"
     subtitle="Every chord and scale, voiced for every instrument."
   />
 

@@ -509,7 +509,7 @@
     subtitle="Read, preview, and follow the canonical score with MIDI or on-screen input."
   >
     {#snippet controls()}
-      <Button href="/music/songs" variant="outline" size="sm">
+      <Button href="/music/library?tab=songs" variant="outline" size="sm">
         <ArrowLeft class="size-4" aria-hidden="true" />
         Song Library
       </Button>
