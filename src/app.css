@@ -212,3 +212,34 @@
 @utility eyebrow {
   @apply text-[10px] font-bold uppercase tracking-widest text-muted-foreground;
 }
+
+/* One orchestrated entrance reveal — fade + rise. Stagger with `animation-delay`
+   on children. Auto-disabled under reduced-motion by the guard below. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility reveal-up {
+  animation: reveal-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Accessibility: honor the OS "reduce motion" setting everywhere at once. The
+   audit found zero motion guards; this neutralizes every transition/animation
+   (hover scales, ring fills, the reveal above, the Skeleton pulse) in one place. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

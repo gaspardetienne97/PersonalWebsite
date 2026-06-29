@@ -45,7 +45,7 @@
   </div>
 
   {#if tab === "today"}
-    <TodayPlan />
+    <div class="reveal-up"><TodayPlan /></div>
   {:else if tab === "drills"}
     <div class="mb-4">
       <SegmentedControl
@@ -55,7 +55,7 @@
         ariaLabel="Filter drills by skill"
       />
     </div>
-    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Practice drills">
+    <section class="reveal-up grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Practice drills">
       {#each filteredDrills as drill (drill.href)}
         <MusicToolCard
           href={drill.href}
@@ -69,7 +69,7 @@
       {/each}
     </section>
   {:else}
-    <section class="grid gap-4 md:grid-cols-2" aria-label="Guided paths">
+    <section class="reveal-up grid gap-4 md:grid-cols-2" aria-label="Guided paths">
       {#each PATHS as path (path.href)}
         <MusicToolCard
           href={path.href}
