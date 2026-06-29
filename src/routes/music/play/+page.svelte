@@ -2,7 +2,6 @@
   import { browser } from "$app/environment";
   import { onDestroy, onMount } from "svelte";
 
-  import AudioWaveform from "lucide-svelte/icons/audio-waveform";
   import Circle from "lucide-svelte/icons/circle";
   import Drum from "lucide-svelte/icons/drum";
   import Gauge from "lucide-svelte/icons/gauge";
@@ -700,15 +699,6 @@
       meta="Intonation"
       action="Open tuner"
       icon={Gauge}
-    />
-    <MusicToolCard
-      href="/music/intonation"
-      title="Intonation & Drone"
-      description="Hold pitch against a tonic drone with live cents feedback, in-tune %, and a pitch trace."
-      eyebrow="Play"
-      meta="Intonation"
-      action="Open intonation"
-      icon={AudioWaveform}
     />
     <MusicToolCard
       href="/music/songs"
