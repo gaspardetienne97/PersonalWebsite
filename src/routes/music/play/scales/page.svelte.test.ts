@@ -18,12 +18,24 @@ describe("/music/play/scales/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
   });
 
+  test("offers a scale selector with modes and jazz scales", async () => {
+    render(Page);
+    const select = document.querySelector<HTMLSelectElement>("#scale-kind");
+    expect(select).not.toBeNull();
+    const values = [...(select?.options ?? [])].map((option) => option.value);
+    expect(values).toContain("major");
+    expect(values).toContain("dorian");
+    expect(values).toContain("altered");
+    // Grouped into Modes vs Jazz/modal.
+    expect(select?.querySelectorAll("optgroup")).toHaveLength(2);
+  });
+
   test("completes an on-screen C major scale with evenness feedback", async () => {
     render(Page);
     await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
     button("Start Scale")?.click();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("C major"));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("C Major"));
     for (const note of ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]) {
       button(note)?.click();
     }

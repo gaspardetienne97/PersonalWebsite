@@ -85,9 +85,11 @@ export const DRILLS: DrillItem[] = [
   {
     href: "/music/play/scales",
     title: "Scales & Technique",
-    description: "Play scales evenly at a tempo target; clean runs unlock the next tempo rung.",
+    description:
+      "Play any scale — major, the modes, or jazz (altered, bebop, diminished) — evenly at a tempo target; clean runs unlock the next rung.",
     skill: "Technique",
     instruments: ["piano"],
+    tags: ["jazz"],
     meta: "Technique",
     action: "Practice scales",
     icon: Dumbbell,

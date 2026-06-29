@@ -12,6 +12,11 @@
     TechniqueSession,
     type TechniqueSessionState,
   } from "@repo/music-core/engines/technique-session";
+  import {
+    JAZZ_SCALE_KINDS,
+    scaleSemitones,
+    type ScalePatternKind,
+  } from "@repo/music-core/exercises/scale-pattern";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Input } from "@repo/ui/input";
@@ -35,9 +40,29 @@
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
 
-  // Reference view of the scale being practiced (C major, C4–C5), shown on the
-  // chosen instrument via the shared InstrumentView.
-  const C_MAJOR_MIDI = [60, 62, 64, 65, 67, 69, 71, 72];
+  // Which scale to practice. The drill is technical (play it evenly, unlock
+  // faster tempos); jazz/modal scales make it double as jazz vocabulary.
+  const SCALE_OPTIONS: { value: ScalePatternKind; label: string; jazz: boolean }[] = [
+    { value: "major", label: "Major", jazz: false },
+    { value: "natural-minor", label: "Natural minor", jazz: false },
+    { value: "dorian", label: "Dorian", jazz: true },
+    { value: "phrygian", label: "Phrygian", jazz: false },
+    { value: "lydian", label: "Lydian", jazz: true },
+    { value: "mixolydian", label: "Mixolydian", jazz: true },
+    { value: "locrian", label: "Locrian", jazz: false },
+    { value: "melodic-minor", label: "Melodic minor", jazz: true },
+    { value: "altered", label: "Altered (super-locrian)", jazz: true },
+    { value: "bebop-dominant", label: "Bebop dominant", jazz: true },
+    { value: "whole-tone", label: "Whole tone", jazz: true },
+    { value: "diminished", label: "Diminished (half-whole)", jazz: true },
+  ];
+  let scale = $state<ScalePatternKind>("major");
+  const scaleLabel = $derived(
+    SCALE_OPTIONS.find((option) => option.value === scale)?.label ?? "Major",
+  );
+  const isJazzScale = $derived(JAZZ_SCALE_KINDS.includes(scale));
+  // Reference view of the selected scale (C4 up an octave), on the chosen instrument.
+  const referenceMidi = $derived(scaleSemitones(scale).map((semitones) => 60 + semitones));
   let scaleInstrument = $state<InstrumentId>(
     VIEWABLE_INSTRUMENTS.includes(runtime.activeInstrument) ? runtime.activeInstrument : "piano",
   );
@@ -86,10 +111,10 @@
           void runtime.recordPractice({
             source: "drill",
             instrument: runtime.activeInstrument,
-            tags: ["scales"],
+            tags: isJazzScale ? ["scales", "jazz"] : ["scales"],
             scoringEvents: state.summary.results.map((result) => result.event),
             xpEarned: state.summary.xp,
-            note: `Scales · ${Math.round(state.summary.noteAccuracy * 100)}% notes clean`,
+            note: `${scaleLabel} scale · ${Math.round(state.summary.noteAccuracy * 100)}% notes clean`,
           });
         }
       });
@@ -120,10 +145,10 @@
       captured = false;
       await session.startScale({
         tonic: "C4",
-        scale: "major",
+        scale,
         bpm: tempo,
       });
-      status = "Play the notes evenly from C4 to C5.";
+      status = `Play the ${scaleLabel} scale evenly from C4 to C5.`;
     } catch (error) {
       status = message(error, "The scale session could not be started.");
     } finally {
@@ -198,7 +223,7 @@
         <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
           <div class="space-y-1">
             <Card.Description>Scale practice</Card.Description>
-            <Card.Title>C major technique</Card.Title>
+            <Card.Title>C {scaleLabel}</Card.Title>
           </div>
           <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
             {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
@@ -206,6 +231,28 @@
         </Card.Header>
         <Card.Content class="grid gap-6">
           <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
+
+          <div class="grid max-w-xs gap-2">
+            <Label for="scale-kind">Scale</Label>
+            <select
+              id="scale-kind"
+              aria-label="Scale"
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              bind:value={scale}
+              disabled={sessionState?.status === "active"}
+            >
+              <optgroup label="Modes">
+                {#each SCALE_OPTIONS.filter((option) => !option.jazz) as option (option.value)}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
+              <optgroup label="Jazz / modal">
+                {#each SCALE_OPTIONS.filter((option) => option.jazz) as option (option.value)}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
+            </select>
+          </div>
 
           <div class="grid max-w-xs gap-2">
             <Label for="scale-tempo">Tempo</Label>
@@ -283,7 +330,7 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <Card.Description>Reference</Card.Description>
-                <Card.Title>C major on {INSTRUMENT_LABELS[scaleInstrument]}</Card.Title>
+                <Card.Title>C {scaleLabel} on {INSTRUMENT_LABELS[scaleInstrument]}</Card.Title>
               </div>
               <SegmentedControl
                 size="sm"
@@ -295,7 +342,7 @@
             </div>
           </Card.Header>
           <Card.Content>
-            <InstrumentView midi={C_MAJOR_MIDI} instrument={scaleInstrument} router={runtime.router} />
+            <InstrumentView midi={referenceMidi} instrument={scaleInstrument} router={runtime.router} />
           </Card.Content>
         </Card.Root>
 

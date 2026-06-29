@@ -15,7 +15,52 @@ export interface ScalePatternPrompt {
   targetSpacingMs: number;
 }
 
-export type ScalePatternKind = "major";
+export type ScalePatternKind =
+  | "major"
+  | "natural-minor"
+  | "dorian"
+  | "phrygian"
+  | "lydian"
+  | "mixolydian"
+  | "locrian"
+  | "melodic-minor"
+  | "altered"
+  | "bebop-dominant"
+  | "whole-tone"
+  | "diminished";
+
+/** Ascending semitone offsets from the tonic, octave inclusive. */
+const SCALE_INTERVALS: Record<ScalePatternKind, number[]> = {
+  major: [0, 2, 4, 5, 7, 9, 11, 12],
+  "natural-minor": [0, 2, 3, 5, 7, 8, 10, 12],
+  dorian: [0, 2, 3, 5, 7, 9, 10, 12],
+  phrygian: [0, 1, 3, 5, 7, 8, 10, 12],
+  lydian: [0, 2, 4, 6, 7, 9, 11, 12],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10, 12],
+  locrian: [0, 1, 3, 5, 6, 8, 10, 12],
+  "melodic-minor": [0, 2, 3, 5, 7, 9, 11, 12],
+  altered: [0, 1, 3, 4, 6, 8, 10, 12],
+  "bebop-dominant": [0, 2, 4, 5, 7, 9, 10, 11, 12],
+  "whole-tone": [0, 2, 4, 6, 8, 10, 12],
+  diminished: [0, 1, 3, 4, 6, 7, 9, 10, 12],
+};
+
+/** Ascending semitone offsets for a scale kind (octave inclusive). */
+export function scaleSemitones(scale: ScalePatternKind): number[] {
+  return SCALE_INTERVALS[scale] ?? SCALE_INTERVALS.major;
+}
+
+/** Scales beyond the church-mode basics that read as jazz vocabulary. */
+export const JAZZ_SCALE_KINDS: ScalePatternKind[] = [
+  "dorian",
+  "mixolydian",
+  "lydian",
+  "melodic-minor",
+  "altered",
+  "bebop-dominant",
+  "whole-tone",
+  "diminished",
+];
 
 export interface ScalePatternOptions {
   tonic?: string;
@@ -126,8 +171,7 @@ function scaleRun(prompt: ScalePatternPrompt): ExerciseRun<number[]> {
 
 function scaleMidiNotes(tonic: string, scale: ScalePatternKind): number[] {
   const root = noteToMidi(tonic);
-  const intervals = scale === "major" ? [0, 2, 4, 5, 7, 9, 11, 12] : [];
-  return intervals.map((semitones) => root + semitones);
+  return (SCALE_INTERVALS[scale] ?? SCALE_INTERVALS.major).map((semitones) => root + semitones);
 }
 
 function pitchClassLabel(note: string): string {
