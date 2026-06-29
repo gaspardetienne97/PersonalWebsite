@@ -19,12 +19,17 @@ describe("/music/learn/jazz/+page.svelte", () => {
 
     tabButton("Voicings")?.click();
     await Promise.resolve();
-    expect(document.body.textContent).toContain("Rootless ii-V-I");
+    expect(document.body.textContent).toContain("Rootless ii-V-I drill preview");
+    expect(document.body.textContent).toContain("Practice major");
     expect(document.body.textContent).toContain("Upper structures");
-    // 12 keys × 3 voiced chords, plus the advanced-voicing keyboards.
-    expect(document.querySelectorAll('[aria-label="Piano voicing"]').length).toBeGreaterThanOrEqual(
-      36,
+    const drillLink = [...document.querySelectorAll("a")].find((anchor) =>
+      anchor.textContent?.includes("Practice major"),
     );
+    expect(drillLink?.getAttribute("href")).toBe("/music/play/voicings?variant=major");
+    // The 12-key reference grid now lives on the graded drill page as its preview;
+    // the remaining instrument views belong to the advanced altered/upper-structure reference.
+    expect(document.querySelectorAll('[aria-label="Piano voicing"]').length).toBeLessThan(36);
+    expect(document.body.textContent).not.toContain("C major  Play Dm7");
 
     tabButton("Repertoire")?.click();
     await Promise.resolve();

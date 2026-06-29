@@ -2,7 +2,6 @@
   import Play from "lucide-svelte/icons/play";
 
   import {
-    buildIIVIDrill,
     CHORD_EXTENSIONS,
     DOMINANT_VOICINGS,
     IMPROV_TECHNIQUES,
@@ -15,13 +14,10 @@
     lickTimeline,
     realizeDominantVoicing,
     realizeUpperStructure,
-    realizeVoicing,
     scalesForFamily,
     UPPER_STRUCTURES,
     type DominantVoicingId,
-    type DrillStep,
     type LickCategory,
-    type RootlessPosition,
   } from "@repo/music-core/engines/jazz";
   import { INSTRUMENT_LABELS, VIEWABLE_INSTRUMENTS, type InstrumentId } from "@repo/music-core/domain";
   import { midiToNote } from "@repo/music-core/engines/theory";
@@ -34,7 +30,6 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
-  import PianoKeyboard from "../theory/_components/PianoKeyboard.svelte";
 
   const runtime = useMusicRuntime();
 
@@ -52,10 +47,6 @@
   let selectedFamily = $state(JAZZ_CHORD_TYPES[0]!.id);
   const selectedChord = $derived(JAZZ_CHORD_TYPES.find((c) => c.id === selectedFamily)!);
   const selectedScales = $derived(scalesForFamily(selectedChord.family));
-
-  // --- Voicings tab: the 12-key ii-V-I rootless drill (JT9) ---
-  let startPosition = $state<RootlessPosition>("A");
-  const drill = $derived(buildIIVIDrill(startPosition));
 
   // Advanced V7 voicings demonstrated over G7 (G4 = 67).
   const G7_ROOT = 67;
@@ -93,18 +84,6 @@
         0.85,
       );
     }
-  }
-
-  async function playProgression(chords: DrillStep["chords"]): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
-    chords.forEach((chord, index) => {
-      const v = realizeVoicing(chord.rootMidi, chord.family, chord.position === "A" ? "rootlessA" : "rootlessB");
-      runtime.sound.playChord(v.bassMidi === undefined ? v.midi : [v.bassMidi - 12, ...v.midi], 0.9, `+${index * 0.95}`);
-    });
-  }
-
-  function voicingNotes(midi: number[], bass?: number): string[] {
-    return (bass === undefined ? midi : [bass, ...midi]).map((m) => midiToNote(m, true));
   }
 
   function voicingMidi(midi: number[], bass?: number): number[] {
@@ -260,58 +239,19 @@
       <Card.Root>
         <Card.Header class="gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <Card.Title class="text-lg">Rootless ii-V-I — all 12 keys</Card.Title>
+            <Card.Title class="text-lg">Rootless ii-V-I drill preview</Card.Title>
             <Card.Description>
-              Position A = 3 5 7 9 (melody on the 9th). Position B = 7 9 3 5 (melody on the 5th).
-              Drill all 12 keys note-perfectly, three times in a row.
+              The full 12-key reference now lives inside the graded drill, so the preview,
+              instrument view, and scoring targets stay in one place.
             </Card.Description>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <SegmentedControl
-              options={[
-                { value: "A", label: "Start A (A-B-A)" },
-                { value: "B", label: "Start B (B-A-B)" },
-              ]}
-              value={startPosition}
-              onChange={(v) => (startPosition = v as RootlessPosition)}
-              ariaLabel="Starting position"
-              size="sm"
-            />
-            <Button href="/music/play/voicings" size="sm">Practice (graded) →</Button>
+          <div class="flex flex-wrap items-center gap-2 md:justify-end">
+            <Button href="/music/play/voicings?variant=major" size="sm">Practice major →</Button>
+            <Button href="/music/play/voicings?variant=minor" size="sm" variant="outline">Practice minor →</Button>
+            <Button href="/music/play/voicings?variant=altered" size="sm" variant="outline">Practice altered →</Button>
           </div>
         </Card.Header>
       </Card.Root>
-
-      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {#each drill as step (step.key)}
-          <Card.Root>
-            <Card.Header class="flex-row items-center justify-between gap-2 pb-3">
-              <Card.Title class="text-base">{step.key} major</Card.Title>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onclick={() => playProgression(step.chords)}
-              >
-                <Play aria-hidden="true" />
-                Play
-              </Button>
-            </Card.Header>
-            <Card.Content class="space-y-3">
-              {#each step.chords as chord}
-                {@const v = realizeVoicing(chord.rootMidi, chord.family, chord.position === "A" ? "rootlessA" : "rootlessB")}
-                <div class="space-y-1.5">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="font-semibold">{chord.symbol}</span>
-                    <Badge variant="secondary">Pos {chord.position}</Badge>
-                  </div>
-                  <PianoKeyboard notes={voicingNotes(v.midi, v.bassMidi)} />
-                </div>
-              {/each}
-            </Card.Content>
-          </Card.Root>
-        {/each}
-      </div>
 
       <Card.Root>
         <Card.Header class="gap-2 sm:flex-row sm:items-center sm:justify-between">

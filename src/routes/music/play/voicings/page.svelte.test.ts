@@ -41,6 +41,16 @@ describe("/music/play/voicings/+page.svelte", () => {
     expect(start).not.toBeUndefined();
   });
 
+  test("shows the configured 12-key drill preview before starting", async () => {
+    render(Page);
+
+    expect(document.body.textContent).toContain("Drill preview");
+    expect(document.body.textContent).toContain("C major");
+    expect(document.body.textContent).toContain("Dm7");
+    expect(document.body.textContent).toContain("G7");
+    expect(document.body.textContent).toContain("Cmaj7");
+  });
+
   test("starts the altered dominant variant", async () => {
     render(Page);
 

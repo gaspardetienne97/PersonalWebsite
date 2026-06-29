@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import Check from "lucide-svelte/icons/check";
   import { onDestroy } from "svelte";
 
@@ -11,10 +12,15 @@
     type NoteEvent,
   } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
-  import type { DrillVariant, RootlessPosition } from "@repo/music-core/engines/jazz";
+  import {
+    buildDrillVoicings,
+    type DrillVariant,
+    type RootlessPosition,
+  } from "@repo/music-core/engines/jazz";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
+  import { midiToNote } from "@repo/music-core/engines/theory";
   import {
     VoicingDrillSession,
     type VoicingDrillState,
@@ -68,8 +74,14 @@
   });
   const mono = $derived(isMonophonic(instrument));
   const variantLabel = $derived(variantLabels[variant]);
+  const preview = $derived(buildDrillVoicings(variant, startPosition));
 
   void initialize();
+
+  $effect(() => {
+    variant = normalizeVariant($page.url?.searchParams.get("variant") ?? null);
+    startPosition = normalizeStartPosition($page.url?.searchParams.get("start") ?? null);
+  });
 
   $effect(() => {
     if (session) return;
@@ -155,6 +167,18 @@
     if (event.type === "noteOn" && runtime.audioEnabled) {
       runtime.sound.playNote(event.midiNote, 0.2, undefined, event.velocity);
     }
+  }
+
+  function normalizeVariant(value: string | null): DrillVariant {
+    return value === "minor" || value === "altered" ? value : "major";
+  }
+
+  function normalizeStartPosition(value: string | null): RootlessPosition {
+    return value === "B" ? "B" : "A";
+  }
+
+  function previewNotes(midi: number[], bass?: number): string {
+    return (bass === undefined ? midi : [bass, ...midi]).map((note) => midiToNote(note, true)).join(" ");
   }
 
   onDestroy(() => {
@@ -329,6 +353,33 @@
     </div>
 
     <aside class="grid content-start gap-4">
+      <Card.Root>
+        <Card.Header>
+          <Card.Description>Reference</Card.Description>
+          <Card.Title class="text-base">Drill preview</Card.Title>
+        </Card.Header>
+        <Card.Content class="grid max-h-[28rem] gap-2 overflow-y-auto pr-1 text-sm">
+          {#each preview as step (step.key)}
+            <div class="rounded-md border px-3 py-2">
+              <div class="mb-1 flex items-center justify-between gap-2">
+                <span class="font-semibold">{step.key} {variant === "minor" ? "minor" : "major"}</span>
+                <Badge variant="outline">{step.chords.length} chords</Badge>
+              </div>
+              <div class="grid gap-1">
+                {#each step.chords as chord}
+                  <div class="flex items-baseline justify-between gap-2">
+                    <span class="font-medium">{chord.symbol}</span>
+                    <span class="text-right text-xs text-muted-foreground">
+                      {previewNotes(chord.midi, chord.bassMidi)}
+                    </span>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </Card.Content>
+      </Card.Root>
+
       <Card.Root>
         <Card.Header>
           <Card.Description>Progress</Card.Description>

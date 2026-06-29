@@ -22,7 +22,7 @@
     {/if}
   </div>
   {#if controls}
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex w-full min-w-0 flex-wrap items-center gap-2 overflow-x-auto pb-1 sm:w-auto">
       {@render controls()}
     </div>
   {/if}
