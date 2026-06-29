@@ -37,7 +37,8 @@
         BLACK_KEYS.has(pitch)
           ? "border-foreground bg-foreground text-background"
           : "border-border bg-background text-foreground",
-        active && "border-primary bg-primary text-primary-foreground",
+        active &&
+          "border-practice-accent bg-practice-accent text-practice-accent-foreground",
       )}
     >
       {pitch}

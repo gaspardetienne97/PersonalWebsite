@@ -75,7 +75,9 @@
 
   function stateColor(s: FretState): string {
     if (s === "wrong") return themeColor("--destructive", "#ef4444");
-    return themeColor("--primary", "#6366f1");
+    if (s === "correct") return themeColor("--success", "#22c55e");
+    // target / active — the fixed practice-accent "play this" highlight.
+    return themeColor("--practice-accent", "#7c5cff");
   }
 
   /** One dot per highlighted position across the visible strings/frets. */

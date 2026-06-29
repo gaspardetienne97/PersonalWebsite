@@ -81,9 +81,9 @@
         endNote: "C",
         showNoteNames: "onpress",
         keyPressStyle: "vivid",
-        vividKeyPressColor: themeColor("--primary", "#6366f1"),
+        vividKeyPressColor: themeColor("--practice-accent", "#7c5cff"),
         highlightedNotes: notes ?? [],
-        highlightColor: themeColor("--primary", "#6366f1"),
+        highlightColor: themeColor("--practice-accent", "#7c5cff"),
       });
       instance.create();
       instance.addKeyMouseDownListener(pressKey);
