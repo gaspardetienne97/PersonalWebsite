@@ -30,6 +30,7 @@
   import PitchTrace from "../_components/PitchTrace.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
+  import PracticeStage from "../_components/PracticeStage.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
   import { useMusicRuntime } from "../_runtime.svelte";
@@ -263,8 +264,7 @@
       </Card.Content>
     </Card.Root>
   {:else if tool === "tune"}
-    <Card.Root>
-      <Card.Content class="flex flex-col items-center gap-6 py-10">
+    <PracticeStage class="flex flex-col items-center gap-6 px-6 py-10">
         <div class="flex flex-col items-center gap-1">
           <span
             class="text-7xl font-bold tabular-nums tracking-tight transition-colors {tunerActive
@@ -310,8 +310,7 @@
             {/if}
           </div>
         </div>
-      </Card.Content>
-    </Card.Root>
+    </PracticeStage>
   {:else if tool === "intonation"}
     <Card.Root>
       <Card.Header class="flex-row items-center justify-between gap-3 space-y-0">
@@ -327,41 +326,43 @@
         />
       </Card.Header>
       <Card.Content class="flex flex-col items-center gap-5 py-8">
-        <div class="w-full max-w-md">
-          <CentsGauge
-            cents={cents}
-            zone={zone}
-            toleranceCents={INTONATION_TOLERANCE_CENTS}
-            active={intonationActive}
-          />
-        </div>
+        <PracticeStage class="flex w-full flex-col items-center gap-5 px-6 py-8">
+          <div class="w-full max-w-md">
+            <CentsGauge
+              cents={cents}
+              zone={zone}
+              toleranceCents={INTONATION_TOLERANCE_CENTS}
+              active={intonationActive}
+            />
+          </div>
 
-        <div class="flex flex-col items-center gap-1">
-          <span
-            class="text-6xl font-bold tabular-nums leading-none transition-colors {intonationActive
-              ? zone === 'in-tune'
-                ? 'text-success'
-                : 'text-foreground'
-              : 'text-muted-foreground/40'}"
-          >
-            {note ?? "-"}
-          </span>
-          <span
-            class="text-sm font-semibold {intonationActive
-              ? zone === 'in-tune'
-                ? 'text-success'
-                : 'text-primary'
-              : 'text-muted-foreground'}"
-          >
-            {#if intonationActive}
-              {intonationCentsLabel} · {zoneLabel}{#if frequency > 0}<span class="text-muted-foreground"> · {frequency.toFixed(1)} Hz</span>{/if}
-            {:else if running}
-              Listening...
-            {:else}
-              Start the mic and play a note
-            {/if}
-          </span>
-        </div>
+          <div class="flex flex-col items-center gap-1">
+            <span
+              class="text-6xl font-bold tabular-nums leading-none transition-colors {intonationActive
+                ? zone === 'in-tune'
+                  ? 'text-success'
+                  : 'text-foreground'
+                : 'text-muted-foreground/40'}"
+            >
+              {note ?? "-"}
+            </span>
+            <span
+              class="text-sm font-semibold {intonationActive
+                ? zone === 'in-tune'
+                  ? 'text-success'
+                  : 'text-primary'
+                : 'text-muted-foreground'}"
+            >
+              {#if intonationActive}
+                {intonationCentsLabel} · {zoneLabel}{#if frequency > 0}<span class="text-muted-foreground"> · {frequency.toFixed(1)} Hz</span>{/if}
+              {:else if running}
+                Listening...
+              {:else}
+                Start the mic and play a note
+              {/if}
+            </span>
+          </div>
+        </PracticeStage>
 
         <div class="grid w-full max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
           <HudTile label="In tune" value={Math.round(stats.inTunePercent)} unit="%" tone="good">

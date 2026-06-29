@@ -7,6 +7,7 @@
   import FretboardInput from "../learn/reading/_components/FretboardInput.svelte";
   import MpcPadGrid from "./MpcPadGrid.svelte";
   import OnScreenKeyboard from "./OnScreenKeyboard.svelte";
+  import PracticeStage from "./PracticeStage.svelte";
   import SegmentedControl from "./SegmentedControl.svelte";
 
   let {
@@ -42,13 +43,15 @@
     onChange={(value) => (surface = value as InputSurfaceId)}
   />
 
-  {#if surface === "keyboard"}
-    <OnScreenKeyboard {router} {instrument} {notes} {onAccepted} />
-  {:else if surface === "guitar" && guitarTuning}
-    <FretboardInput {router} tuning={guitarTuning} {onAccepted} />
-  {:else if surface === "ukulele" && ukuleleTuning}
-    <FretboardInput {router} tuning={ukuleleTuning} {onAccepted} />
-  {:else if surface === "mpc"}
-    <MpcPadGrid {router} {onAccepted} />
-  {/if}
+  <PracticeStage {instrument} class="overflow-x-auto p-4">
+    {#if surface === "keyboard"}
+      <OnScreenKeyboard {router} {instrument} {notes} {onAccepted} />
+    {:else if surface === "guitar" && guitarTuning}
+      <FretboardInput {router} tuning={guitarTuning} {onAccepted} />
+    {:else if surface === "ukulele" && ukuleleTuning}
+      <FretboardInput {router} tuning={ukuleleTuning} {onAccepted} />
+    {:else if surface === "mpc"}
+      <MpcPadGrid {router} {onAccepted} />
+    {/if}
+  </PracticeStage>
 </div>

@@ -7,6 +7,7 @@
   import FretboardInput from "../learn/reading/_components/FretboardInput.svelte";
   import PianoKeyboard from "../learn/theory/_components/PianoKeyboard.svelte";
   import AerophoneFingering from "./AerophoneFingering.svelte";
+  import PracticeStage from "./PracticeStage.svelte";
 
   let {
     midi,
@@ -37,15 +38,17 @@
   );
 </script>
 
-{#if (instrument === "guitar" || instrument === "ukulele") && tuning && router}
-  <FretboardInput {tuning} {router} targetMidiNotes={midi} visibleFrets={12} />
-{:else if instrument === "aerophone"}
-  <div class="flex flex-wrap items-end gap-3" role="group" aria-label="Aerophone arpeggio">
-    {#each arpeggio as note, index (`${note}-${index}`)}
-      <AerophoneFingering midi={note} size={88} />
-    {/each}
-  </div>
-{:else}
-  <!-- Piano (and any pitched fallback). -->
-  <PianoKeyboard notes={noteNames} />
-{/if}
+<PracticeStage {instrument} class="overflow-x-auto p-4">
+  {#if (instrument === "guitar" || instrument === "ukulele") && tuning && router}
+    <FretboardInput {tuning} {router} targetMidiNotes={midi} visibleFrets={12} />
+  {:else if instrument === "aerophone"}
+    <div class="flex flex-wrap items-end gap-3" role="group" aria-label="Aerophone arpeggio">
+      {#each arpeggio as note, index (`${note}-${index}`)}
+        <AerophoneFingering midi={note} size={88} />
+      {/each}
+    </div>
+  {:else}
+    <!-- Piano (and any pitched fallback). -->
+    <PianoKeyboard notes={noteNames} />
+  {/if}
+</PracticeStage>
