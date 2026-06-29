@@ -7,7 +7,6 @@
     IMPROV_TECHNIQUES,
     JAZZ_BACKING_TRACKS,
     JAZZ_CHORD_TYPES,
-    JAZZ_CURRICULUM,
     JAZZ_LICKS,
     JAZZ_REPERTOIRE,
     LICK_PHRASES,
@@ -33,10 +32,9 @@
 
   const runtime = useMusicRuntime();
 
-  type Tab = "path" | "theory" | "voicings" | "licks" | "repertoire";
-  let tab = $state<Tab>("path");
+  type Tab = "theory" | "voicings" | "licks" | "repertoire";
+  let tab = $state<Tab>("theory");
   const tabs = [
-    { value: "path", label: "Learning path" },
     { value: "theory", label: "Chords & scales" },
     { value: "voicings", label: "Voicings" },
     { value: "licks", label: "Licks" },
@@ -125,40 +123,16 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  {#if tab === "path"}
-    <section class="grid gap-3" aria-label="Learning path">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <p class="text-sm text-muted-foreground">
-          Jazz works best learned in order. Each step builds on the last — don't jump around.
-        </p>
-        <Button href="/music/learn/path" size="sm" variant="outline">Open tracked path →</Button>
-      </div>
-      {#each JAZZ_CURRICULUM as lesson (lesson.id)}
-        <Card.Root>
-          <Card.Header class="flex-row items-start gap-4">
-            <div
-              class="flex size-9 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-bold"
-              aria-hidden="true"
-            >
-              {lesson.order}
-            </div>
-            <div class="min-w-0 flex-1 space-y-1">
-              <Card.Title class="text-lg">{lesson.title}</Card.Title>
-              <p class="text-sm text-muted-foreground">{lesson.summary}</p>
-              <div class="flex flex-wrap items-center gap-2 pt-1">
-                {#each lesson.resources as resource}
-                  <Badge variant="outline">{resource}</Badge>
-                {/each}
-                {#if lesson.href}
-                  <Button href={lesson.href} variant="link" size="sm" class="h-auto p-0">Practice →</Button>
-                {/if}
-              </div>
-            </div>
-          </Card.Header>
-        </Card.Root>
-      {/each}
-    </section>
-  {:else if tab === "theory"}
+  <div
+    class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 px-4 py-2.5"
+  >
+    <p class="text-sm text-muted-foreground">
+      Reference material. Want it in order, tracked by your progress?
+    </p>
+    <Button href="/music/learn/path" size="sm" variant="outline">Open the Jazz Path →</Button>
+  </div>
+
+  {#if tab === "theory"}
     <section class="grid min-w-0 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]" aria-label="Chords and scales">
       <div class="grid max-h-[34rem] gap-2 overflow-y-auto pr-1" role="listbox" aria-label="Chord types">
         {#each JAZZ_CHORD_TYPES as chord (chord.id)}

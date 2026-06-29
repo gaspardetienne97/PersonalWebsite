@@ -8,9 +8,13 @@ describe("/music/learn/jazz/+page.svelte", () => {
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("Jazz Piano");
-    // Learning path is the default tab.
-    expect(document.body.textContent).toContain("Memorize your intervals");
-    expect(document.body.textContent).toContain("Rootless voicings");
+    // The duplicate "Learning path" tab is gone; Chords & scales is the default,
+    // and a banner points to the canonical tracked Jazz Path instead.
+    expect(document.body.textContent).toContain("Go-to scales");
+    const pathPointer = [...document.querySelectorAll("a")].find((anchor) =>
+      anchor.textContent?.includes("Jazz Path"),
+    );
+    expect(pathPointer?.getAttribute("href")).toBe("/music/learn/path");
 
     const tabButton = (label: string) =>
       [...document.querySelectorAll('[aria-label="Jazz section"] button')].find(

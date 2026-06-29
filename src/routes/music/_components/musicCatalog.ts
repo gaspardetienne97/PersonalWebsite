@@ -210,15 +210,6 @@ export const PATHS: CatalogItem[] = [
     action: "Open the path",
     icon: Music,
   },
-  {
-    href: "/music/learn/jazz",
-    title: "Jazz Piano Guide",
-    description:
-      "Chord symbols, chord-scale theory, rootless ii-V-I voicings, 29 licks, and standards.",
-    meta: "Reference",
-    action: "Open the guide",
-    icon: Piano,
-  },
 ];
 
 /** Repertoire + reference — the Library hub. */
@@ -238,6 +229,15 @@ export const LIBRARY_ITEMS: CatalogItem[] = [
     meta: "Reference",
     action: "Open reference",
     icon: Library,
+  },
+  {
+    href: "/music/learn/jazz",
+    title: "Jazz Piano Guide",
+    description:
+      "Jazz reference: chord symbols, chord-scale theory, rootless ii-V-I voicings, 29 licks, and standards.",
+    meta: "Reference",
+    action: "Open the guide",
+    icon: Piano,
   },
   {
     href: "/music/library?tab=import",

@@ -3,6 +3,7 @@
 
   import { JAZZ_CHORD_TYPES, scalesForFamily } from "@repo/music-core/engines/jazz";
   import { Badge } from "@repo/ui/badge";
+  import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
   import SegmentedControl from "../_components/SegmentedControl.svelte";
@@ -71,9 +72,12 @@
       <TheoryPage />
 
       <Card.Root>
-        <Card.Header>
-          <Card.Description>Jazz reference</Card.Description>
-          <Card.Title>Jazz chord-scale matches</Card.Title>
+        <Card.Header class="flex-row items-start justify-between gap-3 space-y-0">
+          <div class="space-y-1.5">
+            <Card.Description>Jazz reference</Card.Description>
+            <Card.Title>Jazz chord-scale matches</Card.Title>
+          </div>
+          <Button href="/music/learn/jazz" size="sm" variant="outline">Full Jazz Piano Guide →</Button>
         </Card.Header>
         <Card.Content class="grid gap-2 md:grid-cols-2">
           {#each JAZZ_CHORD_TYPES as chord (chord.id)}
