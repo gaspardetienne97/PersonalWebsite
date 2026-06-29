@@ -215,11 +215,16 @@ This file provides guidance for agents working on the Music app under
   `@repo/music-core/engines/jazz` (pure; polyphonic lessons annotate the
   Aerophone arpeggio fallback). The jazz reference page links here via "Open
   tracked path".
-- `/music/learn/aerophone`: Aerophone fingering visualizer and live practice
-  aid. It uses `@repo/music-core/engines/aerophone-fingering` plus the shared
-  runtime router so incoming MIDI/on-screen notes can highlight the matching
-  fingering. The Learn hub links here directly; per-note fingering caveats still
-  belong in deferred hardware verification until checked on the physical unit.
+- `/music/learn/aerophone`: the unified Aerophone technique surface: fingering
+  visualizer, long-tone breath drill, dynamic-swell drill, and graded
+  staccato/legato articulation mode. It uses
+  `@repo/music-core/engines/aerophone-fingering` plus the shared runtime router
+  so incoming MIDI/on-screen notes can highlight the matching fingering. The
+  articulation mode uses `TechniqueSession.startArticulation()` and grades note
+  length plus CC2 breath, awarding XP/mastery to
+  `technique.aerophone(.articulation)`. The Learn hub links here directly;
+  per-note fingering caveats still belong in deferred hardware verification
+  until checked on the physical unit.
 - `/music/learn/ear`: interval/chord/scale-degree ear training. Mixed sessions
   use `EarTrainingSession` with `queueMode:"adaptive"` so scheduler
   weakness/review/new priorities are preserved while rotating drill types to
@@ -333,14 +338,9 @@ This file provides guidance for agents working on the Music app under
   exercise scores pitch order + timing evenness, awards XP/mastery to the shared
   and instrument-specific spider skills, and records a tagged drill journal
   entry.
-- `/music/play/articulation`: graded Aerophone articulation drill. Tongue a
-  repeated note staccato or legato; `TechniqueSession.startArticulation()` reads
-  note length (noteOn/noteOff) for the articulation score and tracks breath CC
-  (CC2) for the breath curve, awarding XP/mastery to
-  `technique.aerophone(.articulation)`. MIDI/wind-controller first — an on-screen
-  tap (noteOn only) completes the pitch dimension but reads as "no sustained
-  input" for articulation. Reuses `AerophoneFingering` + an `OnScreenKeyboard`
-  fallback.
+- `/music/play/articulation`: retired route; redirects to
+  `/music/learn/aerophone?mode=articulation`. Keep new Aerophone technique work
+  in the unified `/music/learn/aerophone` surface.
 - `/music/play/chord-perfect`: graded guitar/ukulele Chord-Perfect drill. Pick an
   instrument + a curated open-chord shape; MIDI and the shared `FretboardInput`
   (whole shape lit, next string highlighted) feed `TechniqueSession.startChordPerfect()`,

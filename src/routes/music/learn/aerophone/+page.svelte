@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import { onDestroy, onMount } from "svelte";
@@ -15,12 +16,18 @@
     type TechniqueSessionState,
   } from "@repo/music-core/engines/technique-session";
   import { midiToNote } from "@repo/music-core/engines/theory";
+  import {
+    type AerophoneArticulationAnswer,
+    type AerophoneArticulationPrompt,
+    type ArticulationStyle,
+  } from "@repo/music-core/exercises/aerophone-articulation";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
   import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
@@ -43,15 +50,24 @@
     { value: "6000", label: "6 sec" },
     { value: "8000", label: "8 sec" },
   ];
+  type DrillMode = "long-tone" | "swell" | "articulation";
   const drillModes = [
     { value: "long-tone", label: "Long tone" },
     { value: "swell", label: "Dynamic swell" },
+    { value: "articulation", label: "Articulation" },
   ];
+  const styleOptions = [
+    { value: "staccato", label: "Staccato" },
+    { value: "legato", label: "Legato" },
+  ];
+  const tempoOptions = [70, 90, 110].map((value) => ({ value: String(value), label: `${value} BPM` }));
 
   let selected = $state(67); // G4
   let live = $state(false);
-  let drillMode = $state("long-tone");
+  let drillMode = $state<DrillMode>("long-tone");
   let durationMs = $state("5000");
+  let articulationStyle = $state<ArticulationStyle>("staccato");
+  let articulationBpm = $state("90");
   let ready = $state(false);
   let pending = $state(false);
   let status = $state("Preparing your Aerophone practice history.");
@@ -75,26 +91,59 @@
       ? sessionState.currentPrompt
       : undefined,
   );
-  const activePrompt = $derived(longTonePrompt ?? swellPrompt);
+  const articulationPrompt = $derived(
+    sessionState?.currentPrompt && "style" in sessionState.currentPrompt
+      ? (sessionState.currentPrompt as AerophoneArticulationPrompt)
+      : undefined,
+  );
+  const activePrompt = $derived(longTonePrompt ?? swellPrompt ?? articulationPrompt);
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
   const liveControl = $derived(Math.round((sessionState?.live?.runningScore ?? 0) * 100));
   const targetMidi = $derived(activePrompt?.targetMidi ?? selected);
   const targetLabel = $derived(midiToNote(targetMidi));
+  const completedNotes = $derived(
+    Math.min(articulationPrompt?.count ?? 8, Math.round((sessionState?.live?.progress ?? 0) * (articulationPrompt?.count ?? 8))),
+  );
+  const articulationAnswer = $derived(
+    summary?.results[0]?.prompt && "style" in summary.results[0].prompt
+      ? (summary.results[0].result.answer as AerophoneArticulationAnswer)
+      : undefined,
+  );
   const durationOptions = $derived(
     drillMode === "swell" ? swellDurations : longToneDurations,
   );
-  const trainerTitle = $derived(
-    drillMode === "swell" ? "Dynamic Swell Trainer" : "Long Tone Trainer",
-  );
-  const controlLabel = $derived(drillMode === "swell" ? "Shape" : "Steadiness");
-  const startLabel = $derived(
-    drillMode === "swell" ? "Start dynamic swell" : "Start long tone",
-  );
+  const trainerTitle = $derived.by(() => {
+    if (drillMode === "articulation") return "Articulation Trainer";
+    return drillMode === "swell" ? "Dynamic Swell Trainer" : "Long Tone Trainer";
+  });
+  const controlLabel = $derived.by(() => {
+    if (drillMode === "articulation") return "Articulation";
+    return drillMode === "swell" ? "Shape" : "Steadiness";
+  });
+  const startLabel = $derived.by(() => {
+    if (drillMode === "articulation") return "Start articulation drill";
+    return drillMode === "swell" ? "Start dynamic swell" : "Start long tone";
+  });
   const cancelLabel = $derived(
-    drillMode === "swell" ? "Cancel dynamic swell" : "Cancel long tone",
+    drillMode === "articulation"
+      ? "Cancel articulation drill"
+      : drillMode === "swell"
+        ? "Cancel dynamic swell"
+        : "Cancel long tone",
   );
+  const repeatLabel = $derived.by(() => {
+    if (drillMode === "articulation") return "Repeat articulation";
+    return `Repeat ${drillMode === "swell" ? "swell" : "long tone"}`;
+  });
 
   void initialize();
+  let queryModeApplied = false;
+
+  $effect(() => {
+    if (queryModeApplied) return;
+    queryModeApplied = true;
+    selectDrillMode(normalizeMode($page.url?.searchParams.get("mode") ?? null));
+  });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
@@ -127,17 +176,28 @@
         if (state.summary && !captured) {
           captured = true;
           const result = state.summary.results[0];
+          const isArticulation = result?.prompt && "style" in result.prompt;
           const isSwell = result?.prompt && "durationMs" in result.prompt;
           const score = Math.round((result?.result.score ?? 0) * 100);
+          const articulation = result?.result.answer as AerophoneArticulationAnswer | undefined;
+          const completedArticulationPrompt = isArticulation
+            ? (result.prompt as AerophoneArticulationPrompt)
+            : undefined;
           void runtime.recordPractice({
             source: "drill",
             instrument: "aerophone",
-            tags: ["aerophone", isSwell ? "dynamic-swell" : "long-tone", "breath"],
+            tags: [
+              "aerophone",
+              isArticulation ? "articulation" : isSwell ? "dynamic-swell" : "long-tone",
+              isArticulation ? "technique" : "breath",
+            ],
             scoringEvents: state.summary.results.map((result) => result.event),
             xpEarned: state.summary.xp,
-            note: isSwell
-              ? `Aerophone dynamic swell · ${score}% control`
-              : `Aerophone long tone · ${Math.round(state.summary.breathSteadiness * 100)}% steadiness`,
+            note: completedArticulationPrompt && articulation
+              ? `Aerophone ${completedArticulationPrompt.style} · ${midiToNote(completedArticulationPrompt.targetMidi)} · ${Math.round(articulation.articulationScore * 100)}% articulation`
+              : isSwell
+                ? `Aerophone dynamic swell · ${score}% control`
+                : `Aerophone long tone · ${Math.round(state.summary.breathSteadiness * 100)}% steadiness`,
           });
         }
       });
@@ -161,10 +221,12 @@
 
   function selectDrillMode(value: string): void {
     if (sessionState?.status === "active") return;
-    drillMode = value;
-    durationMs = value === "swell" ? "6000" : "5000";
-    status =
-      value === "swell"
+    const next = normalizeMode(value);
+    drillMode = next;
+    durationMs = next === "swell" ? "6000" : "5000";
+    status = next === "articulation"
+      ? "Tongue the selected fingering staccato or legato."
+      : next === "swell"
         ? "Shape a smooth soft-loud-soft breath curve."
         : "Hold the target with steady breath.";
   }
@@ -177,7 +239,16 @@
     status = "";
 
     try {
-      if (drillMode === "swell") {
+      if (drillMode === "articulation") {
+        await session.startArticulation({
+          targetMidi: selected,
+          style: articulationStyle,
+          count: 8,
+          bpm: Number(articulationBpm),
+          breathController: 2,
+        });
+        status = `Play ${midiToNote(selected)} ${articulationStyle}, eight times.`;
+      } else if (drillMode === "swell") {
         await session.startSwell({
           targetMidi: selected,
           durationMs: Number(durationMs),
@@ -203,6 +274,17 @@
     session?.abandon();
     breathLevel = 0;
     status = "Drill cancelled. Choose a target and start again.";
+  }
+
+  function normalizeMode(value: string | null): DrillMode {
+    if (value === "swell" || value === "articulation") return value;
+    return "long-tone";
+  }
+
+  function playAccepted(event: NoteEvent): void {
+    if (event.type === "noteOn" && runtime.audioEnabled) {
+      runtime.sound.playNote(event.midiNote, 0.12, undefined, event.velocity);
+    }
   }
 
   function message(error: unknown, fallback: string): string {
@@ -234,7 +316,7 @@
 <PracticeScreen>
   <PracticeScreenHeader
     title="Aerophone Technique"
-    subtitle="Build steady breath support with MIDI CC2 feedback, then review sax-mode fingerings across the instrument."
+    subtitle="Build breath support, tongue clean articulations, and review sax-mode fingerings across the instrument."
   >
     {#snippet controls()}
       <SourceReadout
@@ -285,9 +367,9 @@
     <Card.Root>
       <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
         <div class="space-y-1">
-          <Card.Description>Breath CC2 · MIDI</Card.Description>
-          <Card.Title>{trainerTitle}</Card.Title>
-        </div>
+            <Card.Description>Breath CC2 · MIDI</Card.Description>
+            <Card.Title>{trainerTitle}</Card.Title>
+          </div>
         <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
           {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
         </Button>
@@ -305,28 +387,66 @@
             <p class="text-sm font-medium">Target {targetLabel}</p>
             <p class="text-xs text-muted-foreground" aria-live="polite">{midiStatus}</p>
           </div>
-          <SegmentedControl
-            ariaLabel="Drill duration"
-            options={durationOptions}
-            bind:value={durationMs}
-            size="sm"
-          />
+          {#if drillMode === "articulation"}
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <SegmentedControl
+                ariaLabel="Articulation style"
+                options={styleOptions}
+                value={articulationStyle}
+                onChange={(value) => (articulationStyle = value as ArticulationStyle)}
+                size="sm"
+              />
+              <SegmentedControl
+                ariaLabel="Articulation tempo"
+                options={tempoOptions}
+                bind:value={articulationBpm}
+                size="sm"
+              />
+            </div>
+          {:else}
+            <SegmentedControl
+              ariaLabel="Drill duration"
+              options={durationOptions}
+              bind:value={durationMs}
+              size="sm"
+            />
+          {/if}
         </div>
 
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <HudTile label="Target" value={targetLabel} tone="accent" />
           <HudTile label="Breath" value={breathLevel} unit="%" />
-          <HudTile label={controlLabel} value={liveControl} unit="%" tone="good" />
-          <HudTile label="Hold" value={liveProgress} unit="%" />
+          {#if drillMode === "articulation"}
+            <HudTile
+              label="Notes"
+              value={completedNotes}
+              unit={`/${articulationPrompt?.count ?? 8}`}
+              tone="good"
+            />
+            <HudTile label="Style" value={articulationStyle === "staccato" ? "Staccato" : "Legato"} />
+          {:else}
+            <HudTile label={controlLabel} value={liveControl} unit="%" tone="good" />
+            <HudTile label="Hold" value={liveProgress} unit="%" />
+          {/if}
         </div>
 
         {#if sessionState?.status === "active" && activePrompt}
           <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
             <div class="flex items-center justify-between gap-3 text-sm">
               <span class="font-medium">{activePrompt.label}</span>
-              <span class="tabular-nums text-muted-foreground">{liveProgress}%</span>
+              <span class="tabular-nums text-muted-foreground">
+                {#if articulationPrompt}
+                  {completedNotes}/{articulationPrompt.count}
+                {:else}
+                  {liveProgress}%
+                {/if}
+              </span>
             </div>
-            <Progress value={liveProgress} max={100} />
+            {#if articulationPrompt}
+              <Progress value={completedNotes} max={articulationPrompt.count} />
+            {:else}
+              <Progress value={liveProgress} max={100} />
+            {/if}
             {#if swellPrompt}
               <div class="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
                 <span class="rounded-md border bg-background px-2 py-1.5">Soft</span>
@@ -344,19 +464,38 @@
           </div>
         {/if}
 
+        {#if drillMode === "articulation"}
+          <div class="grid gap-3 rounded-md border border-dashed bg-muted/20 p-3">
+            <p class="text-xs text-muted-foreground">
+              Articulation grading reads note length and breath (CC2), so a wind controller
+              scores it fully. On-screen taps complete the pitch dimension only.
+            </p>
+            <OnScreenKeyboard
+              router={runtime.router}
+              instrument="aerophone"
+              notes={[targetLabel]}
+              onAccepted={playAccepted}
+            />
+          </div>
+        {/if}
+
         {#if summary}
           {@const completedResult = summary.results[0]}
+          {@const completedArticulation =
+            completedResult?.prompt && "style" in completedResult.prompt}
           {@const completedSwell =
             completedResult?.prompt && "durationMs" in completedResult.prompt}
           <div class="grid gap-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
             <p class="text-sm font-semibold">
-              {completedSwell ? "Dynamic swell" : "Long tone"} complete · {summary.xp} XP
+              {completedArticulation ? "Articulation" : completedSwell ? "Dynamic swell" : "Long tone"} complete · {summary.xp} XP
             </p>
             <p class="text-sm text-muted-foreground">
-              {completedSwell
+              {completedArticulation
+                ? Math.round((articulationAnswer?.articulationScore ?? 0) * 100)
+                : completedSwell
                 ? Math.round((completedResult?.result.score ?? 0) * 100)
                 : Math.round(summary.breathSteadiness * 100)}%
-              {completedSwell ? "control" : "breath steadiness"} ·
+              {completedArticulation ? "articulation" : completedSwell ? "control" : "breath steadiness"} ·
               {Math.round(summary.noteAccuracy * 100)}% pitch accuracy
             </p>
             <p class="text-sm text-muted-foreground">
@@ -370,7 +509,7 @@
           <Button type="button" variant="outline" onclick={cancelDrill}>{cancelLabel}</Button>
         {:else}
           <Button type="button" disabled={!ready || pending} onclick={startDrill}>
-            {pending ? "Starting..." : summary ? `Repeat ${drillMode === "swell" ? "swell" : "long tone"}` : startLabel}
+            {pending ? "Starting..." : summary ? repeatLabel : startLabel}
           </Button>
         {/if}
         <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>

@@ -127,7 +127,7 @@ export const DRILLS: DrillItem[] = [
     href: "/music/learn/aerophone",
     title: "Aerophone Technique",
     description:
-      "Breath long-tones and dynamic swells with the fingering chart and CC2 breath feedback.",
+      "Breath long-tones, dynamic swells, articulation, and fingerings with CC2 feedback.",
     skill: "Technique",
     instruments: ["aerophone"],
     meta: "Wind",
@@ -135,7 +135,7 @@ export const DRILLS: DrillItem[] = [
     icon: Wind,
   },
   {
-    href: "/music/play/articulation",
+    href: "/music/learn/aerophone?mode=articulation",
     title: "Articulation",
     description: "Tongue a note staccato vs legato, graded on note durations and the breath curve.",
     skill: "Technique",

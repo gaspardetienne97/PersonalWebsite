@@ -17,6 +17,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     expect(document.body.textContent).toContain("G4");
     expect(document.body.textContent).toContain("Breath CC2");
     expect(button("Dynamic swell")).not.toBeUndefined();
+    expect(button("Articulation")).not.toBeUndefined();
     await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
 
     button("Start long tone")?.click();
@@ -30,10 +31,43 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       expect(button("Start dynamic swell")).not.toBeUndefined();
     });
   });
+
+  test("runs the articulation drill from the unified Aerophone surface", async () => {
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    button("Articulation")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Articulation Trainer");
+      expect(button("Start articulation drill")).not.toBeUndefined();
+    });
+
+    const styles = [...document.querySelectorAll('[aria-label="Articulation style"] button')].map(
+      (candidate) => candidate.textContent?.trim(),
+    );
+    expect(styles).toEqual(["Staccato", "Legato"]);
+
+    button("Start articulation drill")?.click();
+    await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
+
+    for (let index = 0; index < 8; index += 1) keyboardKey("G4")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Articulation complete");
+      expect(button("Repeat articulation")).not.toBeUndefined();
+    });
+  });
 });
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (candidate) => candidate.textContent?.trim() === label,
   );
+}
+
+function keyboardKey(label: string): HTMLButtonElement | undefined {
+  return [
+    ...document.querySelectorAll<HTMLButtonElement>('[aria-label="On-screen keyboard"] button'),
+  ].find((candidate) => candidate.textContent?.trim() === label);
 }

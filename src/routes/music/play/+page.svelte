@@ -683,7 +683,7 @@
       icon={Hand}
     />
     <MusicToolCard
-      href="/music/play/articulation"
+      href="/music/learn/aerophone?mode=articulation"
       title="Aerophone Articulation"
       description="Tongue a repeated note staccato or legato; graded on articulation from note length and breath (CC2) on a wind controller."
       eyebrow="Play"
