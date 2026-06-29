@@ -1,9 +1,9 @@
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import type { MusicRuntime } from "../_runtime.svelte";
-import { SampleKitPlaybackController } from "./_components/sample-kit-playback";
-import Page from "./+page.svelte";
+import type { MusicRuntime } from "../../_runtime.svelte";
+import { SampleKitPlaybackController } from "../../studio/_components/sample-kit-playback";
+import Panel from "./StudioPanel.svelte";
 
 function padAsset(midi: number) {
   return {
@@ -93,10 +93,10 @@ function studioButton(label: string): HTMLButtonElement | undefined {
   );
 }
 
-describe("/music/studio/+page.svelte", () => {
+describe("StudioPanel", () => {
   test("renders the sequencer grid and pad bank", () => {
-    render(Page);
-    expect(document.querySelector("h1")?.textContent).toContain("Studio");
+    render(Panel);
+    expect(document.body.textContent).toContain("Studio");
     expect(document.body.textContent).toContain("Sequencer");
     expect(document.body.textContent).toContain("Pad bank");
     // 6 rows x 16 steps of step buttons
@@ -109,7 +109,7 @@ describe("/music/studio/+page.svelte", () => {
     const clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => undefined);
-    render(Page);
+    render(Panel);
 
     studioButton("Export MIDI")!.click();
     expect(createSpy).toHaveBeenCalledTimes(1);
@@ -126,7 +126,7 @@ describe("/music/studio/+page.svelte", () => {
     const clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => undefined);
-    render(Page);
+    render(Panel);
 
     studioButton("Export WAV")!.click();
     await vi.waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1));
@@ -140,7 +140,7 @@ describe("/music/studio/+page.svelte", () => {
   });
 
   test("toggles a step cell", async () => {
-    render(Page);
+    render(Panel);
     const cell = document.querySelector<HTMLButtonElement>('button[aria-label="Snare step 1"]');
     expect(cell).not.toBeNull();
     const before = cell?.getAttribute("aria-pressed");
@@ -176,7 +176,7 @@ describe("/music/studio/+page.svelte", () => {
       },
     };
 
-    render(Page, { runtime: runtime as unknown as MusicRuntime });
+    render(Panel, { runtime: runtime as unknown as MusicRuntime });
 
     await vi.waitFor(() => expect(playbackSources).toHaveLength(1));
     await playbackSources[0]!.play();
@@ -221,7 +221,7 @@ describe("/music/studio/+page.svelte", () => {
       },
     };
 
-    render(Page, { runtime: runtime as unknown as MusicRuntime });
+    render(Panel, { runtime: runtime as unknown as MusicRuntime });
 
     const snareStep1 = document.querySelector<HTMLButtonElement>(
       'button[aria-label="Snare step 1"]',
@@ -254,7 +254,7 @@ describe("/music/studio/+page.svelte", () => {
 
   test("auditions assigned MPC notes and ignores unrelated notes", async () => {
     const harness = makeStudioRuntime([36]);
-    render(Page, {
+    render(Panel, {
       runtime: harness.runtime as unknown as MusicRuntime,
       playback: harness.playback,
     });
@@ -272,7 +272,7 @@ describe("/music/studio/+page.svelte", () => {
 
   test("loops assigned rows as samples and unassigned rows as synth fallback", async () => {
     const harness = makeStudioRuntime([36, 38]);
-    render(Page, {
+    render(Panel, {
       runtime: harness.runtime as unknown as MusicRuntime,
       playback: harness.playback,
     });
@@ -300,7 +300,7 @@ describe("/music/studio/+page.svelte", () => {
   test("stops both playback paths and disposes sample URLs on route teardown", () => {
     const harness = makeStudioRuntime([36]);
     const disposeSpy = vi.spyOn(harness.playback, "dispose");
-    const { unmount } = render(Page, {
+    const { unmount } = render(Panel, {
       runtime: harness.runtime as unknown as MusicRuntime,
       playback: harness.playback,
     });

@@ -4,8 +4,8 @@ import type { AudioTakeRow } from "@repo/music-core/engines/store";
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import { MusicRuntime } from "../_runtime.svelte";
-import Page from "./+page.svelte";
+import { MusicRuntime } from "../../_runtime.svelte";
+import Panel from "./RecorderPanel.svelte";
 
 function button(match: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find((candidate) =>
@@ -13,10 +13,10 @@ function button(match: string): HTMLButtonElement | undefined {
   );
 }
 
-describe("/music/recording/+page.svelte", () => {
+describe("RecorderPanel", () => {
   test("renders takes, compare, and capture surfaces", () => {
-    render(Page);
-    expect(document.querySelector("h1")?.textContent).toContain("Recording & Self-Review");
+    render(Panel);
+    expect(document.body.textContent).toContain("Recording & Self-Review");
     expect(document.body.textContent).toContain("Takes");
     expect(document.body.textContent).toContain("No takes yet");
     expect(
@@ -25,7 +25,7 @@ describe("/music/recording/+page.svelte", () => {
   });
 
   test("records an on-screen take and lists it", async () => {
-    render(Page);
+    render(Panel);
     button("New recording")?.click();
     await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
@@ -46,7 +46,7 @@ describe("/music/recording/+page.svelte", () => {
     const clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => undefined);
-    render(Page);
+    render(Panel);
 
     button("New recording")?.click();
     await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
@@ -95,7 +95,7 @@ describe("/music/recording/+page.svelte", () => {
       }),
     } as unknown as MusicRuntime["media"];
 
-    render(Page, { runtime });
+    render(Panel, { runtime });
     await vi.waitFor(() => expect(document.body.textContent).toContain("Saved riff"));
   });
 
@@ -104,7 +104,7 @@ describe("/music/recording/+page.svelte", () => {
     vi.spyOn(runtime, "readLocalState").mockResolvedValue(undefined as never);
     const writeSpy = vi.spyOn(runtime, "writeLocalState").mockResolvedValue(undefined);
 
-    render(Page, { runtime });
+    render(Panel, { runtime });
     button("New recording")?.click();
     await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     [...document.querySelectorAll<HTMLButtonElement>("button")]
@@ -153,7 +153,7 @@ describe("/music/recording/+page.svelte", () => {
       deleteTake: vi.fn().mockResolvedValue(undefined),
     } as unknown as MusicRuntime["media"];
 
-    render(Page, { runtime });
+    render(Panel, { runtime });
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Practice Lab take.webm"));
     expect(document.body.textContent).toContain("Audio takes");

@@ -32,15 +32,13 @@
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
-  import PracticeScreen from "../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
-  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
-  import SampleKitPanel from "./_components/SampleKitPanel.svelte";
-  import StudioPadLeds from "./_components/StudioPadLeds.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
+  import SampleKitPanel from "../../studio/_components/SampleKitPanel.svelte";
+  import StudioPadLeds from "../../studio/_components/StudioPadLeds.svelte";
   import {
     SampleKitPlaybackController,
     type ActiveSampleKit,
-  } from "./_components/sample-kit-playback";
+  } from "../../studio/_components/sample-kit-playback";
 
   const STEPS = 16;
   const STUDIO_PATTERN_ID = "music.studio.boom-bap";
@@ -471,16 +469,15 @@
   });
 </script>
 
-<svelte:head>
-  <title>Studio | Musicianship OS</title>
-</svelte:head>
-
-<PracticeScreen>
-  <PracticeScreenHeader
-    title="Studio"
-    subtitle="DAW-lite for the MPC pads — sequence a pattern and play it back. Complements your gear, doesn't replace it."
-  >
-    {#snippet controls()}
+<div class="grid gap-6">
+  <section class="flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 sm:flex-row sm:items-start">
+    <div>
+      <h2 class="text-xl font-semibold tracking-tight">Studio</h2>
+      <p class="text-sm text-muted-foreground">
+        DAW-lite for the MPC pads — sequence a pattern and play it back. Complements your gear, doesn't replace it.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2 sm:justify-end">
       <Button type="button" variant="outline" onclick={clearGrid}>
         <Trash2 class="size-4" aria-hidden="true" />Clear
       </Button>
@@ -497,8 +494,8 @@
           <Play class="size-4" aria-hidden="true" />Play
         {/if}
       </Button>
-    {/snippet}
-  </PracticeScreenHeader>
+    </div>
+  </section>
 
   <Card.Root>
     <Card.Header class="flex-row items-center justify-between gap-2">
@@ -584,4 +581,4 @@
       {/each}
     </Card.Content>
   </Card.Root>
-</PracticeScreen>
+</div>

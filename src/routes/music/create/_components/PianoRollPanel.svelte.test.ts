@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import type { MusicRuntime } from "../_runtime.svelte";
-import Page from "./+page.svelte";
+import type { MusicRuntime } from "../../_runtime.svelte";
+import Panel from "./PianoRollPanel.svelte";
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
@@ -14,10 +14,10 @@ function cell(label: string): HTMLButtonElement | null {
   return document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
 }
 
-describe("/music/piano-roll/+page.svelte", () => {
+describe("PianoRollPanel", () => {
   test("renders the grid and the three tracks", () => {
-    render(Page);
-    expect(document.querySelector("h1")?.textContent).toContain("Piano Roll");
+    render(Panel);
+    expect(document.body.textContent).toContain("Piano Roll");
     expect(button("Lead")).not.toBeUndefined();
     expect(button("Keys")).not.toBeUndefined();
     expect(button("Bass")).not.toBeUndefined();
@@ -27,14 +27,14 @@ describe("/music/piano-roll/+page.svelte", () => {
   });
 
   test("places a note on an empty cell", async () => {
-    render(Page);
+    render(Panel);
     const empty = cell("C4 step 5");
     empty?.click();
     await vi.waitFor(() => expect(cell("C4 step 5")).toHaveAttribute("aria-pressed", "true"));
   });
 
   test("shows a velocity lane and applies the selected velocity to the active track", async () => {
-    render(Page);
+    render(Panel);
     expect(document.querySelector('[aria-label="Velocity lane"]')).not.toBeNull();
 
     const input = document.querySelector<HTMLInputElement>('input[aria-label="Note velocity"]')!;
@@ -48,7 +48,7 @@ describe("/music/piano-roll/+page.svelte", () => {
   });
 
   test("supports horizontal grid zoom without changing the score", async () => {
-    render(Page);
+    render(Panel);
 
     const input = document.querySelector<HTMLInputElement>('input[aria-label="Horizontal zoom"]')!;
     input.value = "2";
@@ -59,7 +59,7 @@ describe("/music/piano-roll/+page.svelte", () => {
   });
 
   test("adds another bar and allows notes beyond the initial two-bar grid", async () => {
-    render(Page);
+    render(Panel);
 
     expect(cell("C4 step 33")).toBeNull();
     button("Add bar")?.click();
@@ -71,7 +71,7 @@ describe("/music/piano-roll/+page.svelte", () => {
   });
 
   test("resizes a note end by dragging in resize mode", async () => {
-    render(Page);
+    render(Panel);
     expect(button("Resize notes")).not.toBeUndefined();
 
     button("Resize notes")!.click();
@@ -83,7 +83,7 @@ describe("/music/piano-roll/+page.svelte", () => {
   });
 
   test("adds and removes tracks", async () => {
-    render(Page);
+    render(Panel);
 
     button("Add track")?.click();
     await vi.waitFor(() => expect(button("Track")).not.toBeUndefined());
@@ -100,7 +100,7 @@ describe("/music/piano-roll/+page.svelte", () => {
     const clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => undefined);
-    render(Page);
+    render(Panel);
 
     button("Export MIDI")!.click();
     const blob = createSpy.mock.calls.at(-1)?.[0] as Blob;
@@ -118,7 +118,7 @@ describe("/music/piano-roll/+page.svelte", () => {
     const clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => undefined);
-    render(Page);
+    render(Panel);
 
     button("Export WAV")!.click();
     await vi.waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1));
@@ -149,7 +149,7 @@ describe("/music/piano-roll/+page.svelte", () => {
       sound,
     };
 
-    render(Page, { runtime: runtime as unknown as MusicRuntime });
+    render(Panel, { runtime: runtime as unknown as MusicRuntime });
     await vi.waitFor(() => expect(sources).toHaveLength(1));
 
     await sources.at(-1)!.play();

@@ -22,12 +22,10 @@
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
-  import AudioTakePanel from "../_components/AudioTakePanel.svelte";
-  import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
-  import PracticeScreen from "../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
-  import SourceReadout from "../_components/SourceReadout.svelte";
-  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import AudioTakePanel from "../../_components/AudioTakePanel.svelte";
+  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import SourceReadout from "../../_components/SourceReadout.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const recorder = new RecordingSession();
@@ -320,16 +318,15 @@
   }
 </script>
 
-<svelte:head>
-  <title>Recording & Self-Review | Musicianship OS</title>
-</svelte:head>
-
-<PracticeScreen>
-  <PracticeScreenHeader
-    title="Recording & Self-Review"
-    subtitle="Record any take, compare them, and let the numbers show what to fix."
-  >
-    {#snippet controls()}
+<div class="grid gap-6">
+  <section class="flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 sm:flex-row sm:items-start">
+    <div>
+      <h2 class="text-xl font-semibold tracking-tight">Recording & Self-Review</h2>
+      <p class="text-sm text-muted-foreground">
+        Record any take, compare them, and let the numbers show what to fix.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2 sm:justify-end">
       <SourceReadout label="Input" device={sourceLabel} live={runtime.activeSource === "midi"} />
       <Button type="button" variant={recording ? "destructive" : "default"} onclick={() => void toggleRecording()}>
         {#if recording}
@@ -338,8 +335,8 @@
           <Circle class="size-4 fill-current text-destructive" aria-hidden="true" />New recording
         {/if}
       </Button>
-    {/snippet}
-  </PracticeScreenHeader>
+    </div>
+  </section>
 
   <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
     <div class="grid gap-6">
@@ -466,4 +463,4 @@
       {/if}
     </aside>
   </section>
-</PracticeScreen>
+</div>

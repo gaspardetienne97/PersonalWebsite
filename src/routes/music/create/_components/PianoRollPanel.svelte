@@ -31,9 +31,7 @@
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
-  import PracticeScreen from "../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
-  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
 
@@ -384,16 +382,15 @@
   }
 </script>
 
-<svelte:head>
-  <title>Piano Roll | Musicianship OS</title>
-</svelte:head>
-
-<PracticeScreen>
-  <PracticeScreenHeader
-    title="Piano Roll"
-    subtitle="Multitrack note editor — sketch melodies and parts on a pitch × time grid, then play or export. {gridSummary()}, 4/4."
-  >
-    {#snippet controls()}
+<div class="grid gap-6">
+  <section class="flex flex-col justify-between gap-4 rounded-lg border bg-card p-4">
+    <div>
+      <h2 class="text-xl font-semibold tracking-tight">Piano Roll</h2>
+      <p class="text-sm text-muted-foreground">
+        Multitrack note editor — sketch melodies and parts on a pitch × time grid, then play or export. {gridSummary()}, 4/4.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
       <Button type="button" variant="outline" onclick={() => clearTrack(activeVoiceId)}>
         <Trash2 class="size-4" aria-hidden="true" />Clear track
       </Button>
@@ -428,8 +425,8 @@
           <Play class="size-4" aria-hidden="true" />Play
         {/if}
       </Button>
-    {/snippet}
-  </PracticeScreenHeader>
+    </div>
+  </section>
 
   <Card.Root>
     <Card.Header class="flex-row flex-wrap items-center justify-between gap-3">
@@ -587,4 +584,4 @@
       </div>
     </Card.Content>
   </Card.Root>
-</PracticeScreen>
+</div>

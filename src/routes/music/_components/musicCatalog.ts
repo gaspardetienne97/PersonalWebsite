@@ -260,7 +260,7 @@ export const LIBRARY_ITEMS: CatalogItem[] = [
 /** Creation tools — the Create hub. */
 export const CREATE_ITEMS: CatalogItem[] = [
   {
-    href: "/music/studio",
+    href: "/music/create?mode=beat",
     title: "Studio",
     description: "A 16-step drum sequencer with sample-kit loading and MPC kit export.",
     meta: "Beats",
@@ -268,7 +268,7 @@ export const CREATE_ITEMS: CatalogItem[] = [
     icon: Grid3x3,
   },
   {
-    href: "/music/piano-roll",
+    href: "/music/create?mode=piano-roll",
     title: "Piano Roll",
     description: "A multitrack note editor — sketch parts, then play or export MIDI/WAV.",
     meta: "Melodic",
@@ -276,7 +276,7 @@ export const CREATE_ITEMS: CatalogItem[] = [
     icon: Piano,
   },
   {
-    href: "/music/recording",
+    href: "/music/create?mode=recorder",
     title: "Recording",
     description: "Capture MIDI and audio takes, compare them, and export.",
     meta: "Capture",
