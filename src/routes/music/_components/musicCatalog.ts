@@ -44,6 +44,8 @@ export interface DrillItem extends CatalogItem {
   skill: DrillSkill;
   /** Instruments this drill targets (for the instrument filter + hue). Empty = any. */
   instruments: string[];
+  /** Cross-cutting style/genre tags (e.g. "jazz") for the Drills filter. */
+  tags?: string[];
 }
 
 /** Every practice drill, surfaced in Practice ▸ Drills (filterable by skill + instrument). */
@@ -171,6 +173,7 @@ export const DRILLS: DrillItem[] = [
     description: "Play jazz voicings across all 12 keys — rootless, minor, and altered variants.",
     skill: "Harmony",
     instruments: ["piano"],
+    tags: ["jazz"],
     meta: "Harmony",
     action: "Start voicing drill",
     icon: Piano,
