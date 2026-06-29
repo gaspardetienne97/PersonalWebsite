@@ -14,6 +14,22 @@ export interface ChordVerificationResult {
   correct: boolean;
 }
 
+/**
+ * Extra-tone penalty weight: a chord shouldn't grade clean when the observation
+ * is flooded with non-chord tones. Shared by `verifyChordTarget` and the
+ * streaming `chord-follower` so the constant lives in exactly one place.
+ */
+export const EXTRA_TONE_PENALTY = 0.25;
+
+/**
+ * Coverage of the expected template, penalized by the ratio of extra (non-chord)
+ * tones. The single grading formula used by both chord-verification and the
+ * real-time chord-follower.
+ */
+export function coverageScore(coverage: number, extraRatio: number): number {
+  return clamp01(coverage - EXTRA_TONE_PENALTY * extraRatio);
+}
+
 export function verifyChordTarget(input: ChordVerificationInput): ChordVerificationResult {
   const expectedPitchClasses = uniquePitchClasses(input.expectedMidiNotes);
   const observedPitchClasses = uniquePitchClasses(input.observedMidiNotes);
@@ -34,7 +50,7 @@ export function verifyChordTarget(input: ChordVerificationInput): ChordVerificat
     expectedPitchClasses.length === 0
       ? extraPitchClasses.length
       : extraPitchClasses.length / expectedPitchClasses.length;
-  const score = clamp01(coverage - extraPenalty * 0.25);
+  const score = coverageScore(coverage, extraPenalty);
 
   return {
     expectedPitchClasses,

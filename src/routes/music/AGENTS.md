@@ -681,9 +681,26 @@ If you add a new engine or public exercise, update
   `text-foreground`, `bg-card`, `text-muted-foreground`, `border`, `bg-primary`,
   and `text-primary-foreground`.
 - Do not copy the Claude Design handoff colors/fonts directly into route code.
-  Port the structure and UX, then let the site theme drive color and type.
-- Avoid custom component palettes unless they are implemented as tokens in the
-  UI package and used consistently.
+  Port the structure and UX. **Chrome** (sidebar, page, cards, primary actions,
+  text) is driven by the site theme tokens. Same fonts as the site — no second
+  font family.
+- **Practice-canvas palette (scoped, allowed).** The Music app defines a small
+  scoped palette used *only* inside `PracticeStage` (the interactive
+  keyboard/fretboard/staff/sequencer/gauge surface):
+  - `--stage*` — the adaptive instrument-panel surface (charcoal in dark, soft
+    neutral inset in light). Never used for chrome.
+  - `--practice-accent` — the single focus/target/progress accent on the stage.
+  - `--instr-*` / `data-instr` — instrument **identity** only (badge, switcher,
+    now-playing, accent line); never to convey data/judgment, and never as small
+    text on the stage (use a tinted fill + a tested `--instr-*-foreground`).
+  - `--success/--warn/--info/--destructive` — data/judgment only (mastery, tuner,
+    timing). Never collide with instrument hue.
+  These live as tokens in `src/app.css` (registered in `@theme inline`); use the
+  Tailwind utilities (`bg-stage`, `text-stage-foreground`, `ring-practice-accent`,
+  `bg-instr`). Do not use stage/instr tokens outside `PracticeStage`.
+- Still forbidden: hardcoded hex in components (except documented `themeColor()`
+  fallbacks for third-party canvas libs), restyling chrome per-page, or a second
+  font family.
 - Keep card radii and spacing aligned with the existing shadcn Svelte
   components.
 - Route pages own their semantic `h1`. Shared chrome should use non-heading

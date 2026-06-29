@@ -12,6 +12,7 @@ import {
   timingWindowMs,
   type TimingStrictness,
 } from "@repo/music-core/engines/score-follower";
+import { coverageScore } from "@repo/music-core/engines/chord-verification";
 import { chordNotes, pitchClass } from "@repo/music-core/engines/theory";
 import type { JamProgression } from "@repo/music-core/engines/jam";
 
@@ -115,10 +116,6 @@ function coverage(observed: number[], template: number[]): number {
   return matched / template.length;
 }
 
-// Mirrors chord-verification's extra-tone penalty: a chord shouldn't grade clean
-// if the observation is flooded with non-chord tones. Tune in Phase 4 (hardware).
-const EXTRA_TONE_PENALTY = 0.25;
-
 function extraToneRatio(observed: number[], template: number[]): number {
   if (template.length === 0) return 0;
   const set = new Set(template);
@@ -162,7 +159,7 @@ export function createChordFollower(
   function finalizeCurrent(): void {
     const chord = expected[currentIndex];
     if (!chord) return;
-    const matchScore = Math.max(0, currentBest - EXTRA_TONE_PENALTY * bestExtraRatio);
+    const matchScore = coverageScore(currentBest, bestExtraRatio);
     const matched = matchScore >= matchThreshold;
     grades.push({
       symbol: chord.symbol,

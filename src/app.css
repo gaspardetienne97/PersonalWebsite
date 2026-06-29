@@ -48,6 +48,25 @@
   --warn-foreground: oklch(0.99 0.01 90);
   --info: oklch(0.55 0.15 250);
   --info-foreground: oklch(0.985 0.01 250);
+
+  /* Practice-canvas "stage" — the instrument-panel surface, scoped to PracticeStage.
+     Light = a soft neutral inset (not stark white); dark = charcoal. Never used for chrome. */
+  --stage: oklch(0.94 0.006 256);
+  --stage-2: oklch(0.9 0.008 256);
+  --stage-foreground: oklch(0.2 0.03 264);
+  --stage-muted: oklch(0.5 0.02 258);
+  --stage-line: oklch(0.86 0.01 256);
+  /* Single fixed practice accent (focus/target/progress on the stage). */
+  --practice-accent: oklch(0.52 0.2 277);
+  --practice-accent-foreground: oklch(0.99 0 0);
+  /* Instrument identity hues — badges/switcher/now-playing/accent-line only, never data. */
+  --instr-piano: oklch(0.55 0.2 277);
+  --instr-guitar: oklch(0.72 0.16 70);
+  --instr-ukulele: oklch(0.7 0.12 185);
+  --instr-aerophone: oklch(0.58 0.2 300);
+  --instr-mpc: oklch(0.63 0.22 12);
+  --instr-voice: oklch(0.7 0.14 162);
+  --instr: var(--instr-piano);
 }
 
 .dark {
@@ -90,6 +109,16 @@
   --warn-foreground: oklch(0.2 0.05 80);
   --info: oklch(0.7 0.14 250);
   --info-foreground: oklch(0.18 0.04 250);
+
+  /* Stage goes charcoal in dark mode (the "instrument panel" look). */
+  --stage: oklch(0.2 0.02 265);
+  --stage-2: oklch(0.25 0.025 265);
+  --stage-foreground: oklch(0.97 0.003 248);
+  --stage-muted: oklch(0.7 0.02 257);
+  --stage-line: oklch(0.3 0.03 265);
+  --practice-accent: oklch(0.62 0.2 290);
+  --practice-accent-foreground: oklch(0.99 0 0);
+  /* Instrument hues stay constant across themes (mid-lightness reads on both). */
 }
 
 @theme inline {
@@ -134,6 +163,40 @@
   --color-warn-foreground: var(--warn-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-stage: var(--stage);
+  --color-stage-2: var(--stage-2);
+  --color-stage-foreground: var(--stage-foreground);
+  --color-stage-muted: var(--stage-muted);
+  --color-stage-line: var(--stage-line);
+  --color-practice-accent: var(--practice-accent);
+  --color-practice-accent-foreground: var(--practice-accent-foreground);
+  --color-instr: var(--instr);
+  --color-instr-piano: var(--instr-piano);
+  --color-instr-guitar: var(--instr-guitar);
+  --color-instr-ukulele: var(--instr-ukulele);
+  --color-instr-aerophone: var(--instr-aerophone);
+  --color-instr-mpc: var(--instr-mpc);
+  --color-instr-voice: var(--instr-voice);
+}
+
+/* Per-instrument accent override: set data-instr on a PracticeStage subtree to retint --instr. */
+[data-instr="piano"] {
+  --instr: var(--instr-piano);
+}
+[data-instr="guitar"] {
+  --instr: var(--instr-guitar);
+}
+[data-instr="ukulele"] {
+  --instr: var(--instr-ukulele);
+}
+[data-instr="aerophone"] {
+  --instr: var(--instr-aerophone);
+}
+[data-instr="mpc"] {
+  --instr: var(--instr-mpc);
+}
+[data-instr="voice"] {
+  --instr: var(--instr-voice);
 }
 
 @layer base {
