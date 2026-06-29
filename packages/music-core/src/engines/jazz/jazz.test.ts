@@ -4,6 +4,7 @@ import {
   buildAlteredDominantVoicings,
   buildIIVIDrill,
   CHORD_SCALE_MAP,
+  gradeLickSequence,
   JAZZ_LICKS,
   JAZZ_REPERTOIRE,
   LICK_PHRASES,
@@ -145,5 +146,37 @@ describe("content catalogues", () => {
   it("has the 33-song repertoire", () => {
     expect(JAZZ_REPERTOIRE).toHaveLength(33);
     expect(JAZZ_REPERTOIRE.filter((s) => s.feel === "latin")).toHaveLength(7);
+  });
+});
+
+describe("gradeLickSequence", () => {
+  it("scores a perfect play-back as 100%", () => {
+    const expected = [62, 65, 69, 72];
+    expect(gradeLickSequence(expected, [62, 65, 69, 72])).toEqual({
+      matched: 4,
+      total: 4,
+      accuracy: 1,
+    });
+  });
+
+  it("is octave-lenient (pitch-class match)", () => {
+    // Same pitch classes an octave up still count.
+    expect(gradeLickSequence([62, 65], [74, 77]).accuracy).toBe(1);
+  });
+
+  it("counts wrong and missing notes against accuracy, ignores extras", () => {
+    // 2nd note wrong, 4th missing → 2/4 matched. Extra trailing note ignored.
+    expect(gradeLickSequence([62, 65, 69, 72], [62, 66, 69])).toEqual({
+      matched: 2,
+      total: 4,
+      accuracy: 0.5,
+    });
+    expect(gradeLickSequence([62, 65], [62, 65, 99]).accuracy).toBe(1);
+  });
+
+  it("grades a real lick phrase played back correctly", () => {
+    const phrase = LICK_PHRASES[1]!;
+    const played = phrase.map(([midi]) => midi);
+    expect(gradeLickSequence(played, played).accuracy).toBe(1);
   });
 });

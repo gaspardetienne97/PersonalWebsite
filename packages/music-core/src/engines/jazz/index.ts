@@ -1788,6 +1788,33 @@ export function lickDurationBeats(phrase: LickNote[]): number {
   return phrase.reduce((total, [, beats]) => total + beats, 0);
 }
 
+export interface LickGrade {
+  /** Notes played in the right place (pitch-class), 0..total. */
+  matched: number;
+  total: number;
+  /** matched / total, 0..1. */
+  accuracy: number;
+}
+
+/**
+ * Grade a played-back lick against its phrase by positional pitch-class match.
+ * Octave-lenient (so on-screen / different-register playing still scores) and
+ * position-based: the i-th played note is compared to the i-th phrase note, so
+ * wrong or missing notes count against accuracy. Extra notes past the phrase
+ * length are ignored. Pure — the route layer captures the played midi sequence.
+ */
+export function gradeLickSequence(expectedMidi: number[], playedMidi: number[]): LickGrade {
+  const total = expectedMidi.length;
+  if (total === 0) return { matched: 0, total: 0, accuracy: 1 };
+  const pc = (n: number) => ((n % 12) + 12) % 12;
+  let matched = 0;
+  for (let i = 0; i < total; i++) {
+    const played = playedMidi[i];
+    if (played !== undefined && pc(played) === pc(expectedMidi[i]!)) matched += 1;
+  }
+  return { matched, total, accuracy: matched / total };
+}
+
 // ---------------------------------------------------------------------------
 // Lesson path — the ordered curriculum projected over real skill progress and
 // the active instrument. Threads the existing tools into one path.

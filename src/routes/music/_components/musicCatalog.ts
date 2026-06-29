@@ -179,6 +179,18 @@ export const DRILLS: DrillItem[] = [
     icon: Piano,
   },
   {
+    href: "/music/play/licks",
+    title: "Jazz Licks",
+    description:
+      "Hear a transcribed ii-V-I line, then play it back — graded note-by-note against the phrase.",
+    skill: "Play",
+    instruments: ["piano"],
+    tags: ["jazz"],
+    meta: "Vocabulary",
+    action: "Start licks drill",
+    icon: Music,
+  },
+  {
     href: "/music/play",
     title: "Free Play",
     description:
