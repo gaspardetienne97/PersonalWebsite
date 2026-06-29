@@ -44,6 +44,8 @@
     "./skeleton/index.js": "./src/skeleton/index.ts",
     "./slider": "./src/slider/index.ts",
     "./slider/index.js": "./src/slider/index.ts",
+    "./sonner": "./src/sonner/index.ts",
+    "./sonner/index.js": "./src/sonner/index.ts",
     "./toggle": "./src/toggle/index.ts",
     "./toggle/index.js": "./src/toggle/index.ts",
     "./toggle-group": "./src/toggle-group/index.ts",
@@ -56,7 +58,9 @@
     "clsx": "catalog:",
     "embla-carousel-svelte": "catalog:",
     "lucide-svelte": "catalog:",
+    "mode-watcher": "catalog:",
     "svelte": "catalog:",
+    "svelte-sonner": "catalog:",
     "tailwind-merge": "catalog:",
     "tailwind-variants": "catalog:"
   },

@@ -30,6 +30,7 @@
   import { midiToNote } from "@repo/music-core/engines/theory";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import { toast } from "@repo/ui/sonner";
 
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
@@ -319,8 +320,11 @@
       });
       downloadBlob(blob, "piano-roll.wav");
       status = "Exported piano-roll.wav.";
+      toast.success("Exported piano-roll.wav");
     } catch (error) {
-      status = error instanceof Error ? error.message : "Audio export failed.";
+      const message = error instanceof Error ? error.message : "Audio export failed.";
+      status = message;
+      toast.error(message);
     } finally {
       exporting = false;
     }
@@ -347,8 +351,11 @@
     try {
       await runtime.writeLocalState(SCORE_ID, score);
       status = "Saved locally.";
+      toast.success("Piano roll saved locally");
     } catch (error) {
-      status = error instanceof Error ? error.message : "Could not save.";
+      const message = error instanceof Error ? error.message : "Could not save.";
+      status = message;
+      toast.error(message);
     }
   }
 

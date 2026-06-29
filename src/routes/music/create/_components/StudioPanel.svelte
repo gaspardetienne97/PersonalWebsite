@@ -31,6 +31,7 @@
   import type { DrumPatternStep, SoundPatternStep } from "@repo/music-core/engines/sound";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import { toast } from "@repo/ui/sonner";
 
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
   import SampleKitPanel from "../../studio/_components/SampleKitPanel.svelte";
@@ -411,8 +412,11 @@
       });
       downloadBlob(blob, "studio-pattern.wav");
       patternStatus = "Exported studio-pattern.wav.";
+      toast.success("Exported studio-pattern.wav");
     } catch (error) {
-      patternStatus = error instanceof Error ? error.message : "Audio export failed.";
+      const message = error instanceof Error ? error.message : "Audio export failed.";
+      patternStatus = message;
+      toast.error(message);
     } finally {
       exporting = false;
     }
@@ -439,8 +443,11 @@
     try {
       await runtime.writeLocalState(STUDIO_PATTERN_ID, sequencer.toPattern());
       patternStatus = "Saved locally.";
+      toast.success("Pattern saved locally");
     } catch (error) {
-      patternStatus = error instanceof Error ? error.message : "Pattern could not be saved.";
+      const message = error instanceof Error ? error.message : "Pattern could not be saved.";
+      patternStatus = message;
+      toast.error(message);
     }
   }
 

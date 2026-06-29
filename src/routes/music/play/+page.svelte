@@ -40,6 +40,7 @@
   import type { AudioTakeRow, ImportedBackingTrackRow } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import { toast } from "@repo/ui/sonner";
 
   import AudioTakePanel from "../_components/AudioTakePanel.svelte";
   import BackingTrackPanel from "../_components/BackingTrackPanel.svelte";
@@ -214,7 +215,12 @@
 
     try {
       await persistResult(result, audioTake);
-      statusMessage = result.noteCount > 0 ? "Saved to practice journal." : "Nothing to save yet.";
+      if (result.noteCount > 0 && !saveError) {
+        statusMessage = "Saved to practice journal.";
+        toast.success("Saved to practice journal");
+      } else {
+        statusMessage = result.noteCount > 0 ? "Saved to practice journal." : "Nothing to save yet.";
+      }
     } finally {
       saving = false;
     }

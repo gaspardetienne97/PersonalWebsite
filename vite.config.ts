@@ -27,6 +27,11 @@ export default defineConfig({
       },
     },
   },
+  ssr: {
+    // svelte-sonner ships raw .svelte files; Vite must compile them for SSR
+    // instead of letting Node import the .svelte extension directly.
+    noExternal: ["svelte-sonner"],
+  },
   optimizeDeps: {
     include: [
       "lucide-svelte/icons/moon",

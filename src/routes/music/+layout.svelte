@@ -5,6 +5,7 @@
   import { pwaInfo } from "virtual:pwa-info";
 
   import { PracticeStore } from "@repo/music-core/engines/store";
+  import { Toaster } from "@repo/ui/sonner";
 
   import CommandPalette from "./_components/CommandPalette.svelte";
   import MusicNavigation from "./_components/MusicNavigation.svelte";
@@ -87,4 +88,5 @@
     />
   </div>
   <CommandPalette bind:open={paletteOpen} />
+  <Toaster position="bottom-center" richColors closeButton />
 </div>
