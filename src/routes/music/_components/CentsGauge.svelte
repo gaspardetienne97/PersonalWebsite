@@ -38,11 +38,12 @@
   const zoneStart = $derived(pt(-tolDeg));
   const zoneEnd = $derived(pt(tolDeg));
 
+  // Semantic: in-tune → success, off-pitch (flat/sharp) → warn (not the brand accent).
   const needleClass = $derived(
-    !active ? "stroke-muted-foreground" : zone === "in-tune" ? "stroke-success" : "stroke-primary",
+    !active ? "stroke-muted-foreground" : zone === "in-tune" ? "stroke-success" : "stroke-warn",
   );
   const pivotClass = $derived(
-    !active ? "fill-muted-foreground" : zone === "in-tune" ? "fill-success" : "fill-primary",
+    !active ? "fill-muted-foreground" : zone === "in-tune" ? "fill-success" : "fill-warn",
   );
 
   // Five evenly spaced ticks across the arc.

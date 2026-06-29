@@ -39,7 +39,7 @@
       ? 'bg-muted-foreground/40'
       : zone === 'in-tune'
         ? 'bg-success'
-        : 'bg-primary'}"
+        : 'bg-warn'}"
     style="left:{active ? pctLeft : 50}%"
   ></div>
   <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">♭ flat</span>

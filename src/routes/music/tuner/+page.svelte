@@ -298,7 +298,7 @@
               class={tunerActive
                 ? tuner?.zone === "in-tune"
                   ? "text-success"
-                  : "text-primary"
+                  : "text-warn"
                 : "text-muted-foreground"}
             >
               {tunerCentsLabel}
@@ -350,7 +350,7 @@
               class="text-sm font-semibold {intonationActive
                 ? zone === 'in-tune'
                   ? 'text-success'
-                  : 'text-primary'
+                  : 'text-warn'
                 : 'text-muted-foreground'}"
             >
               {#if intonationActive}

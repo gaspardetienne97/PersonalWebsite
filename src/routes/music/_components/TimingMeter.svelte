@@ -24,7 +24,7 @@
   <div
     class="absolute inset-y-1 w-1 -translate-x-1/2 rounded-full transition-[left] duration-150 {zone === 'pocket'
       ? 'bg-success'
-      : 'bg-primary'}"
+      : 'bg-warn'}"
     style="left:{pctLeft}%"
   ></div>
   <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Behind</span>
