@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import Plug from "lucide-svelte/icons/plug";
 
-  import type { InputSource, InstrumentId } from "@repo/music-core/domain";
+  import type { InputSource, InstrumentId, NoteEvent } from "@repo/music-core/domain";
   import {
     DeviceProfileStore,
     defaultSurfaceForInstrument,
@@ -58,6 +58,7 @@
   let midiOutputs = $state<MidiDeviceSummary[]>(runtime.midi.state.outputs ?? []);
   let sysexEnabled = $state(runtime.midi.state.sysexEnabled);
   let midiError = $state(runtime.midi.state.error);
+  let liveEvents = $state<NoteEvent[]>([]);
 
   const capabilities = $derived(midiCapabilities(browser ? navigator : {}));
 
@@ -68,6 +69,17 @@
     sysexEnabled = state.sysexEnabled;
     midiError = state.error;
   });
+
+  // Live activity monitor — confirms messages actually flow from a connected device.
+  const unsubscribeEvents = runtime.midi.subscribe((event) => {
+    liveEvents = [event, ...liveEvents].slice(0, 10);
+  });
+
+  function describeEvent(event: NoteEvent): string {
+    const ch = "channel" in event && event.channel != null ? `ch ${event.channel + 1}` : "ch —";
+    const note = "midiNote" in event && event.midiNote != null ? ` · note ${event.midiNote}` : "";
+    return `${event.type} · ${ch}${note} · ${Math.round(event.timestamp)}ms`;
+  }
 
   void initialize();
 
@@ -122,7 +134,10 @@
     status = "On-screen surface saved.";
   }
 
-  onDestroy(() => unsubscribeMidi());
+  onDestroy(() => {
+    unsubscribeMidi();
+    unsubscribeEvents();
+  });
 </script>
 
 <svelte:head>
@@ -235,6 +250,30 @@
         {/each}
       </div>
     {/if}
+  </section>
+
+  <!-- Live MIDI activity monitor -->
+  <section aria-label="Live MIDI activity">
+    <h2 class="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      Live activity
+    </h2>
+    <Card.Root>
+      <Card.Content class="py-5">
+        {#if liveEvents.length === 0}
+          <p class="text-sm text-muted-foreground" aria-live="polite">
+            {midiEnabled
+              ? "Waiting for a MIDI message. Play a note to confirm the connection."
+              : "Enable MIDI, then play a note to see live messages here."}
+          </p>
+        {:else}
+          <ol class="grid gap-1 font-mono text-xs text-muted-foreground" aria-live="polite">
+            {#each liveEvents as event (event.timestamp)}
+              <li class="rounded-md border px-3 py-2">{describeEvent(event)}</li>
+            {/each}
+          </ol>
+        {/if}
+      </Card.Content>
+    </Card.Root>
   </section>
 
   <section aria-label="MPC hardware diagnostic">
