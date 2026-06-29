@@ -193,6 +193,18 @@ export const DRILLS: DrillItem[] = [
     icon: Music,
   },
   {
+    href: "/music/play/chord-scales",
+    title: "Chord-Scale Drill",
+    description:
+      "As a ii-V-I moves, play the go-to scale for each chord — Dorian, Mixolydian, Ionian — graded note-by-note.",
+    skill: "Harmony",
+    instruments: ["piano"],
+    tags: ["jazz"],
+    meta: "Harmony",
+    action: "Start chord-scale drill",
+    icon: Music,
+  },
+  {
     href: "/music/play",
     title: "Free Play",
     description:
