@@ -193,9 +193,10 @@ export const DRILLS: DrillItem[] = [
     href: "/music/jam",
     title: "Jam / Improv",
     description:
-      "Solo over a backing progression with chord/scale target tones lit up on the keyboard.",
+      "Solo over a ii-V-I, minor ii-V-i, blues, or modal vamp with chord/scale target tones lit up — a swing backing by default.",
     skill: "Play",
     instruments: [],
+    tags: ["jazz"],
     meta: "Improv",
     action: "Start jamming",
     icon: WandSparkles,
