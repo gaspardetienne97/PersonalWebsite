@@ -94,7 +94,7 @@
       onclick={onToggleMetronome}
       aria-label={metronomeRunning ? "Stop metronome" : "Start metronome"}
       aria-pressed={metronomeRunning}
-      class="grid size-9 place-items-center rounded-lg {metronomeRunning
+      class="grid size-10 place-items-center rounded-lg {metronomeRunning
         ? 'bg-primary/15 text-primary'
         : 'bg-muted text-muted-foreground hover:bg-muted/70'}"
     >
@@ -227,7 +227,7 @@
       onclick={onToggleMute}
       aria-label={muted ? "Unmute audio" : "Mute audio"}
       aria-pressed={muted}
-      class="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted {muted
+      class="grid size-10 place-items-center rounded-lg text-muted-foreground hover:bg-muted {muted
         ? 'text-destructive'
         : ''}"
     >
