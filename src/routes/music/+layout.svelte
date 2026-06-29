@@ -6,11 +6,14 @@
 
   import { PracticeStore } from "@repo/music-core/engines/store";
 
+  import CommandPalette from "./_components/CommandPalette.svelte";
   import MusicNavigation from "./_components/MusicNavigation.svelte";
+  import MusicTopBar from "./_components/MusicTopBar.svelte";
   import MusicTransportBar from "./_components/MusicTransportBar.svelte";
   import { createMusicRuntime } from "./_runtime.svelte";
 
   let { children } = $props();
+  let paletteOpen = $state(false);
   const webManifest = pwaInfo?.webManifest.linkTag;
   const currentPath = $derived($page.url?.pathname ?? "/music");
   const runtime = createMusicRuntime();
@@ -51,6 +54,7 @@
 <div class="flex min-h-screen bg-background text-foreground">
   <MusicNavigation {currentPath} />
   <div class="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+    <MusicTopBar onSearch={() => (paletteOpen = true)} />
     <div class="flex-1">
       {@render children()}
     </div>
@@ -82,4 +86,5 @@
         runtime.setActiveMidiInstrument(instrument, channel)}
     />
   </div>
+  <CommandPalette bind:open={paletteOpen} />
 </div>
