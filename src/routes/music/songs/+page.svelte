@@ -9,6 +9,8 @@
   import { Badge } from "@repo/ui/badge";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import { Empty } from "@repo/ui/empty";
+  import { Skeleton } from "@repo/ui/skeleton";
 
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
@@ -134,12 +136,17 @@
       </Card.Header>
       <Card.Content class="grid gap-2">
         {#if loading}
-          <p class="text-sm text-muted-foreground">Loading saved songs.</p>
+          {#each [0, 1, 2, 3] as i (i)}
+            <Skeleton class="h-14 w-full" />
+          {/each}
         {:else if songs.length === 0}
-          <div class="rounded-md border p-4 text-sm text-muted-foreground">
-            Import a MIDI file, then save it to repertoire.
-          </div>
-          <Button href="/music/library?tab=import" variant="outline">Import a song</Button>
+          <Empty
+            title="No saved songs yet"
+            description="Import a MIDI file, then save it to your repertoire."
+          >
+            {#snippet icon()}<ListMusic aria-hidden="true" />{/snippet}
+            <Button href="/music/library?tab=import" variant="outline">Import a song</Button>
+          </Empty>
         {:else}
           {#each songs as song (song.id)}
             <button

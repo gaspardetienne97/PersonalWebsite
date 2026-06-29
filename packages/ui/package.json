@@ -20,6 +20,8 @@
     "./dialog/index.js": "./src/dialog/index.ts",
     "./dropdown-menu": "./src/dropdown-menu/index.ts",
     "./dropdown-menu/index.js": "./src/dropdown-menu/index.ts",
+    "./empty": "./src/empty/index.ts",
+    "./empty/index.js": "./src/empty/index.ts",
     "./input": "./src/input/index.ts",
     "./input/index.js": "./src/input/index.ts",
     "./label": "./src/label/index.ts",

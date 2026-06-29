@@ -14,6 +14,7 @@
   import { PracticeStore } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import { Empty } from "@repo/ui/empty";
   import { Input } from "@repo/ui/input";
   import { onDestroy } from "svelte";
 
@@ -175,13 +176,24 @@
       MIDI devices
     </h2>
     {#if midiDevices.length === 0}
-      <Card.Root>
-        <Card.Content class="py-6 text-sm text-muted-foreground">
-          {midiEnabled
-            ? "No MIDI inputs detected. Connect a device and it will appear here."
-            : "Enable MIDI to detect connected controllers."}
-        </Card.Content>
-      </Card.Root>
+      <Empty
+        title={midiEnabled ? "No MIDI inputs detected" : "No devices connected"}
+        description={midiEnabled
+          ? "Connect a controller and it will appear here automatically."
+          : "Enable MIDI to detect connected controllers."}
+      >
+        {#snippet icon()}<Plug aria-hidden="true" />{/snippet}
+        {#if !midiEnabled}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!capabilities.supported}
+            onclick={enableMidi}
+          >
+            Enable MIDI
+          </Button>
+        {/if}
+      </Empty>
     {:else}
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {#each midiDevices as device (device.id)}
