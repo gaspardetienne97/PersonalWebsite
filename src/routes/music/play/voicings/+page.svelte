@@ -30,8 +30,10 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import InstrumentView from "../../_components/InstrumentView.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -209,8 +211,8 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-    <div class="min-w-0 space-y-4">
+  <PracticeDrillShell>
+    {#snippet setup()}
       <Card.Root>
         <Card.Header class="gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -350,9 +352,9 @@
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>
       </Card.Root>
-    </div>
+    {/snippet}
 
-    <aside class="grid content-start gap-4">
+    {#snippet rail()}
       <Card.Root>
         <Card.Header>
           <Card.Description>Reference</Card.Description>
@@ -380,26 +382,14 @@
         </Card.Content>
       </Card.Root>
 
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Progress</Card.Description>
-          <Card.Title>{drillState ? `${drillState.results.length} / ${drillState.total}` : `0 / 36`}</Card.Title>
-        </Card.Header>
-        <Card.Content class="grid gap-1 text-sm">
-          <div class="flex justify-between">
-            <span class="text-muted-foreground">Accuracy</span>
-            <span class="font-medium tabular-nums">{Math.round((drillState?.accuracy ?? 0) * 100)}%</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-muted-foreground">XP earned</span>
-            <span class="font-medium tabular-nums">{drillState?.xp ?? 0}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-muted-foreground">Skill</span>
-            <span class="font-medium">ii-V-I (Harmony)</span>
-          </div>
-        </Card.Content>
-      </Card.Root>
-    </aside>
-  </section>
+      <DrillProgressRail
+        title={drillState ? `${drillState.results.length} / ${drillState.total} chords` : "0 / 36 chords"}
+        items={[
+          { label: "Accuracy", value: `${Math.round((drillState?.accuracy ?? 0) * 100)}%` },
+          { label: "XP earned", value: drillState?.xp ?? 0 },
+          { label: "Skill", value: "ii-V-I (Harmony)" },
+        ]}
+      />
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>
