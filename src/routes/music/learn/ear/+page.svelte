@@ -43,6 +43,7 @@
     type ScaleDegreeSetId,
   } from "@repo/music-core/exercises/scale-degree-recognition";
 
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -309,10 +310,15 @@
   function replayCurrent(): void {
     if (!session) return;
     try {
-      runtime.sound.playPattern(session.replay().playback);
+      const prompt = session.replay();
+      runtime.sound.playPattern(prompt.playback, playbackVelocity(prompt.drill));
     } catch (error) {
       status = error instanceof Error ? error.message : "The prompt could not be played.";
     }
+  }
+
+  function playbackVelocity(drill: EarTrainingDrill): number {
+    return drill === "interval" ? 1 : 0.8;
   }
 
   async function answerChoice(token: string): Promise<void> {
@@ -461,19 +467,23 @@
     />
     <RoutineContinueAction routine={runtime.dailyRoutine} />
   {:else}
-    <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <EarTrainingSessionView
-        state={sessionState}
-        router={runtime.router}
-        instrument={runtime.activeInstrument}
-        surface={runtime.surfaceFor(runtime.activeInstrument)}
-        {voiceStatus}
-        onReplay={replayCurrent}
-        onAnswer={answerChoice}
-        onAccepted={playAccepted}
-        onAbandon={abandon}
-      />
-      <EarTrainingSessionRail state={sessionState} streak={progress.state.streakDays} />
-    </section>
+    <PracticeDrillShell>
+      {#snippet stage()}
+        <EarTrainingSessionView
+          state={sessionState}
+          router={runtime.router}
+          instrument={runtime.activeInstrument}
+          surface={runtime.surfaceFor(runtime.activeInstrument)}
+          {voiceStatus}
+          onReplay={replayCurrent}
+          onAnswer={answerChoice}
+          onAccepted={playAccepted}
+          onAbandon={abandon}
+        />
+      {/snippet}
+      {#snippet rail()}
+        <EarTrainingSessionRail state={sessionState} streak={progress.state.streakDays} />
+      {/snippet}
+    </PracticeDrillShell>
   {/if}
 </PracticeScreen>
