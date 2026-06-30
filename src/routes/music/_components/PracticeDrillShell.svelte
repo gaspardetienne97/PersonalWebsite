@@ -9,6 +9,7 @@
   // the body when the run is complete. Layout only — it holds no scoring or
   // session state; routes pass rendered regions as snippets.
   let {
+    complete = false,
     setup,
     stage,
     feedback,
@@ -17,18 +18,19 @@
     children,
     class: cls = "",
   }: {
+    /** When true (and a summary snippet exists), show the summary instead of the run. */
+    complete?: boolean;
     setup?: Snippet;
     stage?: Snippet;
     feedback?: Snippet;
     rail?: Snippet;
-    /** When provided, replaces setup/stage/rail with the completed-run summary. */
     summary?: Snippet;
     children?: Snippet;
     class?: string;
   } = $props();
 </script>
 
-{#if summary}
+{#if complete && summary}
   <div class={cn("space-y-4", cls)}>{@render summary()}</div>
 {:else}
   <div class={cn("grid gap-6", rail ? "lg:grid-cols-[minmax(0,1fr)_18rem]" : "", cls)}>

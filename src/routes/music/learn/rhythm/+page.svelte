@@ -23,8 +23,12 @@
   import { Label } from "@repo/ui/label";
   import { Progress } from "@repo/ui/progress";
 
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import TimingMeter from "../../_components/TimingMeter.svelte";
@@ -54,7 +58,7 @@
   let captured = false;
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
-  const summary = $derived(sessionState?.summary);
+  const runSummary = $derived(sessionState?.summary);
   const hud = $derived(sessionState ? rhythmHudProjection(sessionState) : undefined);
   const activeBeatIndex = $derived(Math.floor((sessionState?.live?.progress ?? 0) * beats));
   const sourceLabel = $derived(
@@ -235,41 +239,8 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  {#if summary}
-    <Card.Root>
-      <Card.Header>
-        <Card.Description>Pulse complete</Card.Description>
-        <Card.Title>{Math.round(summary.accuracy * 100)}% accuracy · {summary.xp} XP</Card.Title>
-      </Card.Header>
-      <Card.Content class="grid gap-4 text-sm text-muted-foreground">
-        <TimingMeter offsetMs={hud?.offsetMs ?? 0} />
-        <div class="grid grid-cols-3 gap-2">
-          <div class="rounded-lg border p-3 text-center">
-            <span class="block text-xl font-bold tabular-nums text-foreground">{hud?.accuracyPct ?? 0}%</span>
-            <small>Accuracy</small>
-          </div>
-          <div class="rounded-lg border p-3 text-center">
-            <span class="block text-xl font-bold tabular-nums text-foreground"
-              >{hud?.offsetMs ?? 0}<small>ms</small></span
-            >
-            <small>Signed offset</small>
-          </div>
-          <div class="rounded-lg border p-3 text-center">
-            <span class="block text-xl font-bold tabular-nums text-foreground"
-              >±{hud?.avgAbsOffsetMs ?? 0}<small>ms</small></span
-            >
-            <small>Avg offset</small>
-          </div>
-        </div>
-        <p>{summary.results[0]?.result.feedback[0]?.message}</p>
-      </Card.Content>
-      <Card.Footer class="flex-wrap gap-3">
-        <Button type="button" onclick={repeat}>Try again</Button>
-        <RoutineContinueAction routine={runtime.dailyRoutine} />
-      </Card.Footer>
-    </Card.Root>
-  {:else}
-    <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+  <PracticeDrillShell complete={!!runSummary}>
+    {#snippet setup()}
       <Card.Root>
         <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
           <div class="space-y-1">
@@ -327,42 +298,6 @@
               <Button type="button" variant="outline" onclick={tapTempo}>Tap tempo</Button>
             </div>
           </div>
-
-          {#if sessionState?.status === "active"}
-            <div class="grid gap-4 rounded-md border p-4">
-              <div class="flex items-center justify-between gap-3">
-                <p class="text-sm font-medium">Progress</p>
-                <p class="text-sm text-muted-foreground">{liveProgress}%</p>
-              </div>
-              <!-- beat visualizer -->
-              <div class="flex justify-center gap-3" aria-hidden="true">
-                {#each Array.from({ length: beats }, (_, i) => i) as beatIndex}
-                  <div
-                    class="grid size-11 place-items-center rounded-full border text-sm font-bold tabular-nums transition-colors {beatIndex ===
-                    activeBeatIndex
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'text-muted-foreground'}"
-                  >
-                    {beatIndex + 1}
-                  </div>
-                {/each}
-              </div>
-              <Progress value={liveProgress} max={100} />
-              <div class="grid grid-cols-2 gap-2 text-center">
-                <div class="rounded-lg border p-2">
-                  <span class="block text-lg font-bold tabular-nums">{hud?.runningScorePct ?? 0}%</span>
-                  <small class="text-muted-foreground">Running score</small>
-                </div>
-                <div class="rounded-lg border p-2">
-                  <span class="block text-lg font-bold tabular-nums">{liveProgress}%</span>
-                  <small class="text-muted-foreground">Through pattern</small>
-                </div>
-              </div>
-              <Button type="button" size="lg" data-testid="tap-beat" onclick={tapBeat}>
-                Tap beat
-              </Button>
-            </div>
-          {/if}
         </Card.Content>
         <Card.Footer class="flex-wrap gap-3">
           <Button
@@ -375,24 +310,92 @@
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>
       </Card.Root>
+    {/snippet}
 
-      <aside class="grid content-start gap-4">
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Current target</Card.Description>
-            <Card.Title>{bpm} BPM</Card.Title>
-          </Card.Header>
-          <Card.Content class="text-sm text-muted-foreground">
-            {beats} quarter-note taps
-          </Card.Content>
-        </Card.Root>
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Streak</Card.Description>
-            <Card.Title>{progress.state.streakDays} days</Card.Title>
-          </Card.Header>
-        </Card.Root>
-      </aside>
-    </section>
-  {/if}
+    {#snippet stage()}
+      {#if sessionState?.status === "active"}
+        <PracticeStage class="grid gap-4 p-5">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm font-medium">Progress</p>
+            <p class="text-sm text-stage-muted">{liveProgress}%</p>
+          </div>
+          <!-- beat visualizer -->
+          <div class="flex justify-center gap-3" aria-hidden="true">
+            {#each Array.from({ length: beats }, (_, i) => i) as beatIndex (beatIndex)}
+              <div
+                class="grid size-11 place-items-center rounded-full border text-sm font-bold tabular-nums transition-colors {beatIndex ===
+                activeBeatIndex
+                  ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
+                  : 'border-stage-line text-stage-muted'}"
+              >
+                {beatIndex + 1}
+              </div>
+            {/each}
+          </div>
+          <Progress value={liveProgress} max={100} />
+          <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="rounded-lg border border-stage-line p-2">
+              <span class="block text-lg font-bold tabular-nums">{hud?.runningScorePct ?? 0}%</span>
+              <small class="text-stage-muted">Running score</small>
+            </div>
+            <div class="rounded-lg border border-stage-line p-2">
+              <span class="block text-lg font-bold tabular-nums">{liveProgress}%</span>
+              <small class="text-stage-muted">Through pattern</small>
+            </div>
+          </div>
+          <Button type="button" size="lg" data-testid="tap-beat" onclick={tapBeat}>Tap beat</Button>
+        </PracticeStage>
+      {/if}
+    {/snippet}
+
+    {#snippet rail()}
+      <DrillProgressRail
+        title="This session"
+        items={[
+          { label: "Target", value: `${bpm} BPM` },
+          { label: "Pattern", value: `${beats} taps` },
+          { label: "Streak", value: `${progress.state.streakDays} days` },
+        ]}
+      />
+    {/snippet}
+
+    {#snippet summary()}
+      <Card.Root>
+        <Card.Header>
+          <Card.Description>Pulse complete</Card.Description>
+          <Card.Title>
+            {Math.round((runSummary?.accuracy ?? 0) * 100)}% accuracy · {runSummary?.xp ?? 0} XP
+          </Card.Title>
+        </Card.Header>
+        <Card.Content class="grid gap-4 text-sm text-muted-foreground">
+          <TimingMeter offsetMs={hud?.offsetMs ?? 0} />
+          <div class="grid grid-cols-3 gap-2">
+            <div class="rounded-lg border p-3 text-center">
+              <span class="block text-xl font-bold tabular-nums text-foreground"
+                >{hud?.accuracyPct ?? 0}%</span
+              >
+              <small>Accuracy</small>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <span class="block text-xl font-bold tabular-nums text-foreground"
+                >{hud?.offsetMs ?? 0}<small>ms</small></span
+              >
+              <small>Signed offset</small>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <span class="block text-xl font-bold tabular-nums text-foreground"
+                >±{hud?.avgAbsOffsetMs ?? 0}<small>ms</small></span
+              >
+              <small>Avg offset</small>
+            </div>
+          </div>
+          <p>{runSummary?.results[0]?.result.feedback[0]?.message}</p>
+        </Card.Content>
+        <Card.Footer class="flex-wrap gap-3">
+          <AdaptiveRetryBar onRetry={repeat} retryLabel="Try again" />
+          <RoutineContinueAction routine={runtime.dailyRoutine} />
+        </Card.Footer>
+      </Card.Root>
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>
