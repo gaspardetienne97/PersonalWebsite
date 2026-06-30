@@ -21,8 +21,10 @@
 
   import HudTile from "../../_components/HudTile.svelte";
   import MpcPadGrid, { MPC_PAD_MIDI } from "../../_components/MpcPadGrid.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -188,128 +190,131 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <Card.Root>
-      <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <Card.Description>Alternating eighth notes</Card.Description>
-          <Card.Title>Single strokes</Card.Title>
-        </div>
-        <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-          {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-        </Button>
-      </Card.Header>
-
-      <Card.Content class="grid gap-6">
-        <fieldset
-          disabled={sessionState?.status === "active"}
-          class="grid gap-4 disabled:opacity-70"
-        >
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="grid gap-2">
-              <Label for="mpc-left-pad">Left pad</Label>
-              <select
-                id="mpc-left-pad"
-                aria-label="Left pad"
-                bind:value={leftPadMidi}
-                class="h-9 rounded-md border bg-background px-3 text-sm"
-              >
-                {#each padOptions as midi}
-                  <option value={String(midi)}>Pad {midi}</option>
-                {/each}
-              </select>
-            </div>
-            <div class="grid gap-2">
-              <Label for="mpc-right-pad">Right pad</Label>
-              <select
-                id="mpc-right-pad"
-                aria-label="Right pad"
-                bind:value={rightPadMidi}
-                class="h-9 rounded-md border bg-background px-3 text-sm"
-              >
-                {#each padOptions as midi}
-                  <option value={String(midi)}>Pad {midi}</option>
-                {/each}
-              </select>
-            </div>
+  <PracticeDrillShell>
+    {#snippet setup()}
+      <Card.Root>
+        <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <Card.Description>Alternating eighth notes</Card.Description>
+            <Card.Title>Single strokes</Card.Title>
           </div>
-
-          <div class="flex flex-wrap gap-3">
-            <SegmentedControl
-              ariaLabel="Hit count"
-              options={hitCountOptions}
-              bind:value={hitCount}
-            />
-            <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
-          </div>
-        </fieldset>
-
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <HudTile label="Next pad" value={nextPad ?? leftPadMidi} tone="accent" />
-          <HudTile label="Hits" value={completedHits} unit={`/${totalHits}`} />
-          <HudTile label="Quality" value={runningScore} unit="%" tone="good" />
-          <HudTile label="Tempo" value={bpm} unit="BPM" />
-        </div>
-
-        {#if prompt}
-          <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-            <div class="flex items-center justify-between gap-3 text-sm">
-              <span class="font-medium">{prompt.label}</span>
-              <span class="tabular-nums text-muted-foreground">
-                {completedHits}/{prompt.hitCount}
-              </span>
-            </div>
-            <Progress value={completedHits} max={prompt.hitCount} />
-            <div class="flex flex-wrap gap-2" aria-label="Target sequence">
-              {#each prompt.targetSequence as midi, index}
-                <span
-                  class="grid size-9 place-items-center rounded-md border text-xs font-semibold
-                    {index < completedHits
-                    ? 'border-success/30 bg-success/10 text-success'
-                    : index === completedHits
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'bg-background text-muted-foreground'}"
-                >
-                  {midi}
-                </span>
-              {/each}
-            </div>
-            <p class="text-sm text-muted-foreground" aria-live="polite">
-              {sessionState?.live?.feedback[0]?.message ?? status}
-            </p>
-          </div>
-        {/if}
-
-        {#if summary && answer}
-          <SessionFeedback
-            kind={summary.correct === summary.total ? "correct" : "wrong"}
-            message="Rudiment complete"
-            detail={`${Math.round((result?.result.score ?? 0) * 100)}% total · ${Math.round(answer.padAccuracy * 100)}% pad accuracy · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error · ${Math.round(answer.velocityConsistency * 100)}% velocity consistency`}
-            xp={summary.xp}
-          />
-        {/if}
-      </Card.Content>
-
-      <Card.Footer class="flex-wrap gap-3">
-        {#if sessionState?.status === "active"}
-          <Button type="button" variant="outline" onclick={cancel}>Cancel rudiment</Button>
-        {:else}
-          <Button type="button" disabled={!ready || pending} onclick={start}>
-            {pending ? "Starting..." : summary ? "Repeat rudiment" : "Start rudiment"}
+          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
           </Button>
-        {/if}
-        <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-      </Card.Footer>
-    </Card.Root>
+        </Card.Header>
 
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>Bank A pads</Card.Title>
-        <Card.Description>{midiStatus}</Card.Description>
-      </Card.Header>
-      <Card.Content class="overflow-x-auto">
+        <Card.Content class="grid gap-6">
+          <fieldset
+            disabled={sessionState?.status === "active"}
+            class="grid gap-4 disabled:opacity-70"
+          >
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="grid gap-2">
+                <Label for="mpc-left-pad">Left pad</Label>
+                <select
+                  id="mpc-left-pad"
+                  aria-label="Left pad"
+                  bind:value={leftPadMidi}
+                  class="h-9 rounded-md border bg-background px-3 text-sm"
+                >
+                  {#each padOptions as midi}
+                    <option value={String(midi)}>Pad {midi}</option>
+                  {/each}
+                </select>
+              </div>
+              <div class="grid gap-2">
+                <Label for="mpc-right-pad">Right pad</Label>
+                <select
+                  id="mpc-right-pad"
+                  aria-label="Right pad"
+                  bind:value={rightPadMidi}
+                  class="h-9 rounded-md border bg-background px-3 text-sm"
+                >
+                  {#each padOptions as midi}
+                    <option value={String(midi)}>Pad {midi}</option>
+                  {/each}
+                </select>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <SegmentedControl
+                ariaLabel="Hit count"
+                options={hitCountOptions}
+                bind:value={hitCount}
+              />
+              <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
+            </div>
+          </fieldset>
+        </Card.Content>
+
+        <Card.Footer class="flex-wrap gap-3">
+          {#if sessionState?.status === "active"}
+            <Button type="button" variant="outline" onclick={cancel}>Cancel rudiment</Button>
+          {:else}
+            <Button type="button" disabled={!ready || pending} onclick={start}>
+              {pending ? "Starting..." : summary ? "Repeat rudiment" : "Start rudiment"}
+            </Button>
+          {/if}
+          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+        </Card.Footer>
+      </Card.Root>
+    {/snippet}
+
+    {#snippet stage()}
+      <PracticeStage instrument="mpc" class="space-y-2 overflow-x-auto p-4">
+        <p class="eyebrow">Bank A pads</p>
         <MpcPadGrid router={runtime.router} />
-      </Card.Content>
-    </Card.Root>
-  </section>
+      </PracticeStage>
+    {/snippet}
+
+    {#snippet feedback()}
+      {#if summary && answer}
+        <SessionFeedback
+          kind={summary.correct === summary.total ? "correct" : "wrong"}
+          message="Rudiment complete"
+          detail={`${Math.round((result?.result.score ?? 0) * 100)}% total · ${Math.round(answer.padAccuracy * 100)}% pad accuracy · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error · ${Math.round(answer.velocityConsistency * 100)}% velocity consistency`}
+          xp={summary.xp}
+        />
+      {/if}
+    {/snippet}
+
+    {#snippet rail()}
+      <div class="grid grid-cols-2 gap-3">
+        <HudTile label="Next pad" value={nextPad ?? leftPadMidi} tone="accent" />
+        <HudTile label="Hits" value={completedHits} unit={`/${totalHits}`} />
+        <HudTile label="Quality" value={runningScore} unit="%" tone="good" />
+        <HudTile label="Tempo" value={bpm} unit="BPM" />
+      </div>
+      {#if prompt}
+        <div class="grid gap-3 rounded-lg border bg-card p-4">
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <span class="font-medium">{prompt.label}</span>
+            <span class="tabular-nums text-muted-foreground">
+              {completedHits}/{prompt.hitCount}
+            </span>
+          </div>
+          <Progress value={completedHits} max={prompt.hitCount} />
+          <div class="flex flex-wrap gap-2" aria-label="Target sequence">
+            {#each prompt.targetSequence as midi, index}
+              <span
+                class="grid size-9 place-items-center rounded-md border text-xs font-semibold
+                  {index < completedHits
+                  ? 'border-success/30 bg-success/10 text-success'
+                  : index === completedHits
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'bg-background text-muted-foreground'}"
+              >
+                {midi}
+              </span>
+            {/each}
+          </div>
+          <p class="text-sm text-muted-foreground" aria-live="polite">
+            {sessionState?.live?.feedback[0]?.message ?? status}
+          </p>
+        </div>
+      {/if}
+      <p class="text-xs text-muted-foreground" aria-live="polite">{midiStatus}</p>
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>
