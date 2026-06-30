@@ -14,10 +14,13 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import PracticeDrillShell from "../../../_components/PracticeDrillShell.svelte";
   import FretboardInput from "./FretboardInput.svelte";
   import PianoInput from "./PianoInput.svelte";
   import StaffNotation from "../../../_components/StaffNotation.svelte";
   import TabNotation from "../../../_components/TabNotation.svelte";
+  import type { NotationRangeHighlight } from "../../../_components/notation-selection";
+  import { suggestedFingerings } from "../../../_components/piano-visual";
 
   let {
     sessionState,
@@ -47,6 +50,37 @@
   const complete = $derived(progress >= 1);
   const mode = $derived(prompt?.options.mode ?? "wait");
   const targetNotes = $derived(currentGroup?.midiNotes ?? []);
+  const currentNotationEventIds = $derived.by(() => {
+    if (!prompt || !currentGroup) return [];
+    const currentNotes = currentGroup.sourceNoteIndexes
+      .map((index) => prompt.score.notes[index])
+      .filter((note) => note !== undefined);
+
+    return prompt.notation.measures
+      .flatMap(({ events }) => events)
+      .filter(
+        (event) =>
+          event.kind === "note" &&
+          currentNotes.some(
+            (note) =>
+              note.voiceId === event.voiceId &&
+              note.startBeat === event.startBeat &&
+              note.durationBeats === event.durationBeats,
+          ),
+      )
+      .map(({ id }) => id);
+  });
+  const currentNotationHighlights = $derived.by<NotationRangeHighlight[]>(() => {
+    if (!currentGroup) return [];
+    return [
+      {
+        id: "current-group",
+        startBeat: currentGroup.startBeat,
+        endBeat: currentGroup.startBeat + currentGroup.durationBeats,
+        active: true,
+      },
+    ];
+  });
   const pianoProjection = $derived(
     prompt?.options.instrument === "piano" ? projectScoreToPiano(prompt.score) : undefined,
   );
@@ -61,6 +95,22 @@
     if (hands.has("left")) return "Left hand";
     if (hands.has("right")) return "Right hand";
     return undefined;
+  });
+  const pianoFingerings = $derived.by(() => {
+    if (!currentGroup || !pianoProjection) return {};
+    const notes = pianoProjection.notes.filter(({ sourceIndex }) =>
+      currentGroup.sourceNoteIndexes.includes(sourceIndex),
+    );
+    return {
+      ...suggestedFingerings(
+        notes.filter(({ hand }) => hand === "left").map(({ midiNote }) => midiNote),
+        "left",
+      ),
+      ...suggestedFingerings(
+        notes.filter(({ hand }) => hand !== "left").map(({ midiNote }) => midiNote),
+        "right",
+      ),
+    };
   });
   const pianoNotes = $derived(
     prompt
@@ -112,7 +162,8 @@
 </script>
 
 {#if prompt}
-  <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+  <PracticeDrillShell>
+    {#snippet stage()}
     <Card.Root class="min-w-0">
       <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
         <div class="space-y-1">
@@ -125,7 +176,11 @@
         <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
       </Card.Header>
       <Card.Content class="grid min-w-0 gap-6">
-        <StaffNotation view={prompt.notation} />
+        <StaffNotation
+          view={prompt.notation}
+          activeEventIds={currentNotationEventIds}
+          highlightedRanges={currentNotationHighlights}
+        />
 
         {#if tuning && tabProjection}
           <div class="grid gap-2">
@@ -189,6 +244,7 @@
                 targetMidiNotes={targetNotes}
                 activeMidiNotes={live?.heldMidiNotes ?? []}
                 wrongMidiNotes={live?.wrongMidiNotes ?? []}
+                suggestedFingerings={pianoFingerings}
                 {router}
                 {onAccepted}
               />
@@ -212,8 +268,9 @@
         {/if}
       </Card.Content>
     </Card.Root>
+    {/snippet}
 
-    <aside class="grid content-start gap-4">
+    {#snippet rail()}
       <Card.Root>
         <Card.Header>
           <Card.Description>{mode === "performance" ? "Performance" : "Wait mode"}</Card.Description>
@@ -247,6 +304,6 @@
         </Card.Header>
       </Card.Root>
       <Button type="button" disabled={!complete} onclick={onFinish}>Finish phrase</Button>
-    </aside>
-  </section>
+    {/snippet}
+  </PracticeDrillShell>
 {/if}
