@@ -27,8 +27,10 @@
 
   import FretboardInput from "../../learn/reading/_components/FretboardInput.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -207,121 +209,93 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <section class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <Card.Root class="min-w-0">
-      <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <Card.Description>Chromatic fretting</Card.Description>
-          <Card.Title>1-2-3-4 on one string</Card.Title>
-        </div>
-        <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-          {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-        </Button>
-      </Card.Header>
-
-      <Card.Content class="grid gap-6">
-        <fieldset
-          disabled={sessionState?.status === "active"}
-          class="grid gap-4 disabled:opacity-70"
-        >
-          <SegmentedControl
-            ariaLabel="Instrument"
-            options={instrumentOptions}
-            value={instrument}
-            onChange={selectInstrument}
-          />
-
-          <div class="grid gap-4 sm:grid-cols-3">
-            <div class="grid gap-2">
-              <Label for="spider-tuning">Tuning</Label>
-              <select
-                id="spider-tuning"
-                aria-label="Tuning"
-                bind:value={tuningId}
-                class="h-9 rounded-md border bg-background px-3 text-sm"
-              >
-                {#each tunings as profile (profile.id)}
-                  <option value={profile.id}>{profile.name}</option>
-                {/each}
-              </select>
-            </div>
-            <div class="grid gap-2">
-              <Label for="spider-string">String</Label>
-              <select
-                id="spider-string"
-                aria-label="String"
-                bind:value={stringNumber}
-                class="h-9 rounded-md border bg-background px-3 text-sm"
-              >
-                {#each tuning.openStrings as _, index}
-                  <option value={index + 1}>String {index + 1}</option>
-                {/each}
-              </select>
-            </div>
-            <div class="grid gap-2">
-              <Label for="spider-fret">Starting fret</Label>
-              <select
-                id="spider-fret"
-                aria-label="Starting fret"
-                bind:value={startFret}
-                class="h-9 rounded-md border bg-background px-3 text-sm"
-              >
-                {#each Array.from({ length: Math.min(10, tuning.fretCount - 2) }, (_, fret) => fret) as fret}
-                  <option value={fret}>Fret {fret}</option>
-                {/each}
-              </select>
-            </div>
+  <PracticeDrillShell>
+    {#snippet setup()}
+      <Card.Root class="min-w-0">
+        <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <Card.Description>Chromatic fretting</Card.Description>
+            <Card.Title>1-2-3-4 on one string</Card.Title>
           </div>
-
-          <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
-        </fieldset>
-
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <HudTile label="Next fret" value={nextMidi === undefined ? "—" : startFret + completedNotes} tone="accent" />
-          <HudTile label="Notes" value={completedNotes} unit="/4" />
-          <HudTile label="Quality" value={Math.round((sessionState?.live?.runningScore ?? 0) * 100)} unit="%" tone="good" />
-          <HudTile label="Tempo" value={bpm} unit="BPM" />
-        </div>
-
-        {#if prompt}
-          <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-            <div class="flex items-center justify-between gap-3 text-sm">
-              <span class="font-medium">{prompt.label}</span>
-              <span class="tabular-nums text-muted-foreground">{completedNotes}/4</span>
-            </div>
-            <Progress value={completedNotes} max={4} />
-            <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-          </div>
-        {/if}
-
-        {#if summary && answer}
-          <SessionFeedback
-            kind={summary.correct === summary.total ? "correct" : "wrong"}
-            message="Spider complete"
-            detail={`${Math.round(answer.pitchAccuracy * 100)}% notes · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error`}
-            xp={summary.xp}
-          />
-        {/if}
-      </Card.Content>
-
-      <Card.Footer class="flex-wrap gap-3">
-        {#if sessionState?.status === "active"}
-          <Button type="button" variant="outline" onclick={cancel}>Cancel spider</Button>
-        {:else}
-          <Button type="button" disabled={!ready || pending} onclick={start}>
-            {pending ? "Starting..." : summary ? "Repeat spider" : "Start spider"}
+          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
           </Button>
-        {/if}
-        <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-      </Card.Footer>
-    </Card.Root>
+        </Card.Header>
 
-    <Card.Root class="min-w-0">
-      <Card.Header>
-        <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</Card.Title>
-        <Card.Description>{midiStatus}</Card.Description>
-      </Card.Header>
-      <Card.Content class="min-w-0 overflow-hidden">
+        <Card.Content class="grid gap-6">
+          <fieldset
+            disabled={sessionState?.status === "active"}
+            class="grid gap-4 disabled:opacity-70"
+          >
+            <SegmentedControl
+              ariaLabel="Instrument"
+              options={instrumentOptions}
+              value={instrument}
+              onChange={selectInstrument}
+            />
+
+            <div class="grid gap-4 sm:grid-cols-3">
+              <div class="grid gap-2">
+                <Label for="spider-tuning">Tuning</Label>
+                <select
+                  id="spider-tuning"
+                  aria-label="Tuning"
+                  bind:value={tuningId}
+                  class="h-9 rounded-md border bg-background px-3 text-sm"
+                >
+                  {#each tunings as profile (profile.id)}
+                    <option value={profile.id}>{profile.name}</option>
+                  {/each}
+                </select>
+              </div>
+              <div class="grid gap-2">
+                <Label for="spider-string">String</Label>
+                <select
+                  id="spider-string"
+                  aria-label="String"
+                  bind:value={stringNumber}
+                  class="h-9 rounded-md border bg-background px-3 text-sm"
+                >
+                  {#each tuning.openStrings as _, index}
+                    <option value={index + 1}>String {index + 1}</option>
+                  {/each}
+                </select>
+              </div>
+              <div class="grid gap-2">
+                <Label for="spider-fret">Starting fret</Label>
+                <select
+                  id="spider-fret"
+                  aria-label="Starting fret"
+                  bind:value={startFret}
+                  class="h-9 rounded-md border bg-background px-3 text-sm"
+                >
+                  {#each Array.from({ length: Math.min(10, tuning.fretCount - 2) }, (_, fret) => fret) as fret}
+                    <option value={fret}>Fret {fret}</option>
+                  {/each}
+                </select>
+              </div>
+            </div>
+
+            <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
+          </fieldset>
+        </Card.Content>
+
+        <Card.Footer class="flex-wrap gap-3">
+          {#if sessionState?.status === "active"}
+            <Button type="button" variant="outline" onclick={cancel}>Cancel spider</Button>
+          {:else}
+            <Button type="button" disabled={!ready || pending} onclick={start}>
+              {pending ? "Starting..." : summary ? "Repeat spider" : "Start spider"}
+            </Button>
+          {/if}
+          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+        </Card.Footer>
+      </Card.Root>
+    {/snippet}
+
+    {#snippet stage()}
+      <PracticeStage {instrument} class="min-w-0 space-y-2 overflow-x-auto p-4">
+        <p class="eyebrow">{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</p>
         <FretboardInput
           {tuning}
           router={runtime.router}
@@ -332,7 +306,46 @@
           visibleStrings={[stringNumber]}
           onAccepted={playAccepted}
         />
-      </Card.Content>
-    </Card.Root>
-  </section>
+      </PracticeStage>
+    {/snippet}
+
+    {#snippet feedback()}
+      {#if summary && answer}
+        <SessionFeedback
+          kind={summary.correct === summary.total ? "correct" : "wrong"}
+          message="Spider complete"
+          detail={`${Math.round(answer.pitchAccuracy * 100)}% notes · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error`}
+          xp={summary.xp}
+        />
+      {/if}
+    {/snippet}
+
+    {#snippet rail()}
+      <div class="grid grid-cols-2 gap-3">
+        <HudTile
+          label="Next fret"
+          value={nextMidi === undefined ? "—" : startFret + completedNotes}
+          tone="accent"
+        />
+        <HudTile label="Notes" value={completedNotes} unit="/4" />
+        <HudTile
+          label="Quality"
+          value={Math.round((sessionState?.live?.runningScore ?? 0) * 100)}
+          unit="%"
+          tone="good"
+        />
+        <HudTile label="Tempo" value={bpm} unit="BPM" />
+      </div>
+      {#if prompt}
+        <div class="grid gap-3 rounded-lg border bg-card p-4">
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <span class="font-medium">{prompt.label}</span>
+            <span class="tabular-nums text-muted-foreground">{completedNotes}/4</span>
+          </div>
+          <Progress value={completedNotes} max={4} />
+        </div>
+      {/if}
+      <p class="text-xs text-muted-foreground" aria-live="polite">{midiStatus}</p>
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>
