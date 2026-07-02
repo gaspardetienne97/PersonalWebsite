@@ -6,13 +6,42 @@
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
-  let { summary, onRepeat }: { summary: Summary; onRepeat: () => void } = $props();
+  import AdaptiveRetryBar from "../../../_components/AdaptiveRetryBar.svelte";
+
+  let {
+    summary,
+    onRepeat,
+    onSlower,
+    onMissedGroups,
+  }: {
+    summary: Summary;
+    onRepeat: () => void;
+    onSlower?: () => void;
+    onMissedGroups?: () => void;
+  } = $props();
 
   function label(prompt: NoteReadingPrompt | SightReadingPrompt): string {
     if ("writtenPitches" in prompt) {
       return prompt.writtenPitches.map((pitch) => writtenPitchName(pitch, true)).join(" ");
     }
     return `${prompt.options.instrument} sight reading · ${prompt.groups.length} groups`;
+  }
+
+  function hasSightReading(summary: Summary): boolean {
+    return summary.results.some(({ prompt }) => "groups" in prompt);
+  }
+
+  function hasMissedSightReadingGroups(summary: Summary): boolean {
+    return summary.results.some(({ prompt, result }) => {
+      if (!("groups" in prompt)) return false;
+      const answer = result.answer;
+      return (
+        answer !== undefined &&
+        typeof answer === "object" &&
+        Array.isArray((answer as { missedGroups?: unknown }).missedGroups) &&
+        (answer as { missedGroups: unknown[] }).missedGroups.length > 0
+      );
+    });
   }
 </script>
 
@@ -44,8 +73,14 @@
     </Card.Content>
   </Card.Root>
 
-  <div class="flex flex-wrap gap-2">
-    <Button type="button" onclick={onRepeat}>Repeat session</Button>
+  <div class="flex flex-wrap items-center gap-2">
+    <AdaptiveRetryBar
+      onRetry={onRepeat}
+      onSlower={hasSightReading(summary) ? onSlower : undefined}
+      onWeakItem={hasMissedSightReadingGroups(summary) ? onMissedGroups : undefined}
+      retryLabel="Repeat session"
+      weakItemLabel="Practice missed groups"
+    />
     <Button href="/music/learn" variant="ghost">Return to Learn</Button>
   </div>
 </section>

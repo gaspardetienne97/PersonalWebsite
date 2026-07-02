@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { replaceState } from "$app/navigation";
   import { page } from "$app/stores";
 
   import PracticeScreen from "../_components/PracticeScreen.svelte";
@@ -27,6 +28,33 @@
   function normalizeMode(value: string | null): CreateMode {
     return value === "piano-roll" || value === "recorder" ? value : "beat";
   }
+
+  function selectMode(value: string): void {
+    mode = normalizeMode(value);
+    syncModeUrl(mode);
+  }
+
+  function syncModeUrl(nextMode: CreateMode): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("mode", nextMode);
+    const href = `${url.pathname}${url.search}${url.hash}`;
+    try {
+      replaceState(href, $page.state);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("before router is initialized")
+      ) {
+        window.history.replaceState(window.history.state, "", href);
+        return;
+      }
+      throw error;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -46,7 +74,7 @@
       <SegmentedControl
         options={modes}
         value={mode}
-        onChange={(value) => (mode = value as CreateMode)}
+        onChange={selectMode}
         ariaLabel="Create mode"
       />
     {/snippet}

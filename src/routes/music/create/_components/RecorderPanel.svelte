@@ -4,10 +4,12 @@
 
   import Circle from "lucide-svelte/icons/circle";
   import Download from "lucide-svelte/icons/download";
+  import ListMusic from "lucide-svelte/icons/list-music";
   import Square from "lucide-svelte/icons/square";
 
-  import { unixMs } from "@repo/music-core/domain";
+  import { unixMs, type Score } from "@repo/music-core/domain";
   import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
+  import { SongLibrary } from "@repo/music-core/engines/song-library";
   import {
     AudioTakeRecorder,
     type AudioTakeRecording,
@@ -18,7 +20,7 @@
     takeToScore,
     type Take as MidiTake,
   } from "@repo/music-core/engines/recording";
-  import type { AudioTakeRow } from "@repo/music-core/engines/store";
+  import { PracticeStore, type AudioTakeRow } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
@@ -26,8 +28,21 @@
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
+  import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "./piano-roll-storage";
 
-  let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  interface SongStudioSaver {
+    saveScore(score: Score): Promise<{ id: string; title: string }>;
+  }
+
+  let {
+    runtime = useMusicRuntime(),
+    navigateToCreate = defaultNavigateToCreate,
+    library = browser ? new SongLibrary(new PracticeStore()) : undefined,
+  }: {
+    runtime?: MusicRuntime;
+    navigateToCreate?: (href: string) => void | Promise<void>;
+    library?: SongStudioSaver;
+  } = $props();
   const recorder = new RecordingSession();
   const audioRecorder = new AudioTakeRecorder();
   // MIDI takes are tiny structured JSON, so they persist via the runtime's
@@ -47,6 +62,9 @@
   let micArmed = $state(false);
   let unsavedTake = $state<AudioTakeRecording | undefined>();
   let audioMessage = $state("");
+  let midiMessage = $state("");
+  let savingSongTakeId = $state<string | undefined>();
+  let savedSongId = $state<string | undefined>();
   let performanceVolume = $state(1);
   let backingReviewVolume = $state(0.75);
   let playingAudioTakeId = $state<string | undefined>();
@@ -187,6 +205,33 @@
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  async function openTakeInPianoRoll(take: MidiTake): Promise<void> {
+    try {
+      await runtime.writeLocalState(PIANO_ROLL_PENDING_TAKE_IMPORT_ID, {
+        take,
+        bpm: runtime.transportBpm,
+      });
+      midiMessage = `Sent ${take.name} to Piano Roll.`;
+      await navigateToCreate("/music/create?mode=piano-roll&source=recorder-take");
+    } catch (error) {
+      midiMessage = error instanceof Error ? error.message : "MIDI take could not be opened in Piano Roll.";
+    }
+  }
+
+  async function saveTakeToSongStudio(take: MidiTake): Promise<void> {
+    if (!library || savingSongTakeId) return;
+    savingSongTakeId = take.id;
+    try {
+      const saved = await library.saveScore(takeToScore(take, runtime.transportBpm));
+      savedSongId = saved.id;
+      midiMessage = "Saved to Song Studio.";
+    } catch (error) {
+      midiMessage = error instanceof Error ? error.message : "Could not save to Song Studio.";
+    } finally {
+      savingSongTakeId = undefined;
+    }
+  }
+
   function playTake(event: { type: string; midiNote: number; velocity: number }): void {
     if (event.type === "noteOn" && runtime.audioEnabled) {
       runtime.sound.playNote(event.midiNote, 0.18, undefined, event.velocity);
@@ -316,6 +361,10 @@
     if (reviewUrl && browser) URL.revokeObjectURL(reviewUrl);
     reviewUrl = undefined;
   }
+
+  function defaultNavigateToCreate(href: string): void {
+    if (browser) window.location.assign(href);
+  }
 </script>
 
 <div class="grid gap-6">
@@ -375,10 +424,39 @@
                   >
                     <Download class="size-4" aria-hidden="true" />MIDI
                   </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={take.notes.length === 0}
+                    onclick={() => void openTakeInPianoRoll(take)}
+                  >
+                    Open in Piano Roll
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={!library || savingSongTakeId !== undefined || take.notes.length === 0}
+                    onclick={() => void saveTakeToSongStudio(take)}
+                  >
+                    <ListMusic class="size-4" aria-hidden="true" />
+                    {savingSongTakeId === take.id ? "Saving..." : "Save to Song Studio"}
+                  </Button>
+                  {#if savedSongId}
+                    <Button href={`/music/songs/${savedSongId}`} variant="ghost" size="sm">
+                      Open Song Studio
+                    </Button>
+                  {/if}
                   <Button type="button" variant="ghost" size="sm" onclick={() => removeTake(take.id)}>Delete</Button>
                 </div>
               </div>
             {/each}
+            {#if midiMessage}
+              <p class="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground" role="status">
+                {midiMessage}
+              </p>
+            {/if}
           {/if}
         </Card.Content>
       </Card.Root>

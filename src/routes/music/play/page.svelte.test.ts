@@ -13,12 +13,12 @@ function button(name: string): HTMLButtonElement | undefined {
   );
 }
 
-function renderLab() {
+function renderLab(options: { navigateToCreate?: (href: string) => void | Promise<void> } = {}) {
   const runtime = new MusicRuntime();
   runtime.audioEnabled = true;
   runtime.setCountIn(0);
   const recordPractice = vi.spyOn(runtime, "recordPractice").mockResolvedValue();
-  render(Page, { runtime });
+  render(Page, { runtime, ...options });
   return { runtime, recordPractice };
 }
 
@@ -66,6 +66,52 @@ describe("/music/play/+page.svelte", () => {
         }),
       ),
     );
+  });
+
+  test("adds recorded MIDI notes to the shared take review panel", async () => {
+    const { runtime } = renderLab();
+
+    button("Start recording")?.click();
+    runtime.router.noteOn(60, "midi", "piano");
+    runtime.router.noteOn(64, "midi", "piano");
+    await vi.waitFor(() => expect(document.body.textContent).toContain("2 notes"));
+
+    button("Stop recording")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("MIDI takes"));
+    expect(document.body.textContent).toContain("Practice Lab take 1");
+    expect(document.querySelectorAll("[data-density-bucket]")).toHaveLength(16);
+  });
+
+  test("sends a recorded MIDI take to the Create piano roll", async () => {
+    const navigateToCreate = vi.fn();
+    const { runtime } = renderLab({ navigateToCreate });
+    const writeLocalState = vi.spyOn(runtime, "writeLocalState").mockResolvedValue();
+
+    button("Start recording")?.click();
+    runtime.router.noteOn(60, "midi", "piano");
+    runtime.router.noteOn(64, "midi", "piano");
+    await vi.waitFor(() => expect(document.body.textContent).toContain("2 notes"));
+    button("Stop recording")?.click();
+
+    await vi.waitFor(() => expect(button("Open in Piano Roll")).not.toBeUndefined());
+    button("Open in Piano Roll")?.click();
+
+    await vi.waitFor(() => {
+      expect(writeLocalState).toHaveBeenCalledWith(
+        "music.piano-roll.pending-take-import",
+        expect.objectContaining({
+          bpm: runtime.transportBpm,
+          take: expect.objectContaining({
+            name: "Practice Lab take 1",
+            notes: [expect.objectContaining({ midi: 60 }), expect.objectContaining({ midi: 64 })],
+          }),
+        }),
+      );
+      expect(navigateToCreate).toHaveBeenCalledWith(
+        "/music/create?mode=piano-roll&source=practice-lab-take",
+      );
+    });
   });
 
   test("captures on-screen input through the same router subscription", async () => {

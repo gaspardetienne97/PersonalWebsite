@@ -8,7 +8,11 @@
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
+    normalizeTwoHandDrillConfig,
     TechniqueSession,
+    TWO_HAND_DRILL_TEMPOS,
+    TWO_HAND_DRILL_TONICS,
+    type TwoHandDrillConfig,
     type TechniqueSessionState,
   } from "@repo/music-core/engines/technique-session";
   import {
@@ -20,6 +24,7 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -27,6 +32,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
+  import { suggestedFingerings } from "../../_components/piano-visual";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -34,17 +40,20 @@
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
-  const keyOptions = ["C4", "G4", "F4", "D4"].map((value) => ({
+  const initialConfig = normalizeTwoHandDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
+  const keyOptions = TWO_HAND_DRILL_TONICS.map((value) => ({
     value,
     label: value.replace(/\d+$/, ""),
   }));
-  const tempoOptions = [60, 80, 100, 120].map((value) => ({
+  const tempoOptions = TWO_HAND_DRILL_TEMPOS.map((value) => ({
     value: String(value),
     label: `${value} BPM`,
   }));
 
-  let tonic = $state("C4");
-  let bpm = $state("80");
+  let tonic = $state(initialConfig.tonic);
+  let bpm = $state(String(initialConfig.bpm));
   let ready = $state(false);
   let pending = $state(false);
   let captured = false;
@@ -69,6 +78,8 @@
   const display = $derived(activePrompt ?? previewPrompt);
   const leftKeys = $derived([...new Set(display.leftNoteLabels)]);
   const rightKeys = $derived([...new Set(display.rightNoteLabels)]);
+  const leftFingerings = $derived(suggestedFingerings(display.leftMidiNotes, "left"));
+  const rightFingerings = $derived(suggestedFingerings(display.rightMidiNotes, "right"));
   const totalNotes = $derived(display.leftMidiNotes.length + display.rightMidiNotes.length);
   const playedNotes = $derived(Math.round((sessionState?.live?.progress ?? 0) * totalNotes));
 
@@ -83,6 +94,10 @@
   );
 
   void initialize();
+
+  $effect(() => {
+    syncConfigUrl();
+  });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
@@ -126,19 +141,39 @@
     await runtime.midi.enable();
   }
 
-  async function start(): Promise<void> {
+  async function start(config: TwoHandDrillConfig = normalizeTwoHandDrillConfig({ tonic, bpm })): Promise<void> {
     if (!ready || pending || !session) return;
     pending = true;
     captured = false;
+    tonic = config.tonic;
+    bpm = String(config.bpm);
     status = "";
     try {
-      await session.startTwoHand({ tonic, bpm: Number(bpm), bars: 2 });
+      await session.startTwoHand({ tonic: config.tonic, bpm: config.bpm, bars: 2 });
       status = "Left hand on each beat, right hand twice as fast.";
     } catch (error) {
       status = message(error, "The two-hand drill could not be started.");
     } finally {
       pending = false;
     }
+  }
+
+  function slowDown(): void {
+    const current = normalizeTwoHandDrillConfig({ tonic, bpm }).bpm;
+    const nextBpm =
+      [...TWO_HAND_DRILL_TEMPOS].reverse().find((tempo) => tempo < current) ??
+      TWO_HAND_DRILL_TEMPOS[0];
+    void start(normalizeTwoHandDrillConfig({ tonic, bpm: nextBpm }));
+  }
+
+  function syncConfigUrl(): void {
+    if (!browser) return;
+    const config = normalizeTwoHandDrillConfig({ tonic, bpm });
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    params.set("tonic", config.tonic);
+    params.set("bpm", String(config.bpm));
+    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
   }
 
   function cancel(): void {
@@ -240,15 +275,16 @@
             detail={`LH ${Math.round(answer.leftAccuracy * 100)}% · RH ${Math.round(answer.rightAccuracy * 100)}% · ${Math.round(answer.meanEvennessErrorMs)}ms evenness`}
             xp={summary.xp}
           />
+          <AdaptiveRetryBar onRetry={() => void start()} onSlower={slowDown} retryLabel="Repeat drill" />
         {/if}
       </Card.Content>
 
       <Card.Footer class="flex-wrap gap-3">
         {#if sessionState?.status === "active"}
           <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
-        {:else}
-          <Button type="button" disabled={!ready || pending} onclick={start}>
-            {pending ? "Starting..." : summary ? "Repeat drill" : "Start drill"}
+        {:else if !summary}
+          <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
+            {pending ? "Starting..." : "Start drill"}
           </Button>
         {/if}
         <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
@@ -263,11 +299,21 @@
       <Card.Content class="grid min-w-0 gap-4">
         <div class="grid gap-2">
           <span class="text-xs font-medium text-muted-foreground">Left hand</span>
-          <OnScreenKeyboard router={runtime.router} notes={leftKeys} onAccepted={playAccepted} />
+          <OnScreenKeyboard
+            router={runtime.router}
+            notes={leftKeys}
+            suggestedFingerings={leftFingerings}
+            onAccepted={playAccepted}
+          />
         </div>
         <div class="grid gap-2">
           <span class="text-xs font-medium text-muted-foreground">Right hand</span>
-          <OnScreenKeyboard router={runtime.router} notes={rightKeys} onAccepted={playAccepted} />
+          <OnScreenKeyboard
+            router={runtime.router}
+            notes={rightKeys}
+            suggestedFingerings={rightFingerings}
+            onAccepted={playAccepted}
+          />
         </div>
       </Card.Content>
     </Card.Root>

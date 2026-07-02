@@ -7,7 +7,9 @@ import {
   type NoteOnEvent,
 } from "@repo/music-core/domain";
 import {
+  buildMpcRudimentSequence,
   createMpcSingleStrokeExercise,
+  MPC_RUDIMENT_PATTERNS,
   type MpcHitCount,
 } from "@repo/music-core/exercises/mpc-single-stroke";
 
@@ -18,6 +20,23 @@ const context: ExerciseContext = {
 };
 
 describe("createMpcSingleStrokeExercise", () => {
+  test("exports reusable rudiment pattern data for singles, doubles, and paradiddles", () => {
+    expect(MPC_RUDIMENT_PATTERNS.map((pattern) => pattern.id)).toEqual([
+      "single-strokes",
+      "double-strokes",
+      "paradiddle",
+    ]);
+    expect(buildMpcRudimentSequence("single-strokes", 36, 38, 8)).toEqual([
+      36, 38, 36, 38, 36, 38, 36, 38,
+    ]);
+    expect(buildMpcRudimentSequence("double-strokes", 36, 38, 8)).toEqual([
+      36, 36, 38, 38, 36, 36, 38, 38,
+    ]);
+    expect(buildMpcRudimentSequence("paradiddle", 36, 38, 8)).toEqual([
+      36, 38, 36, 36, 38, 36, 38, 38,
+    ]);
+  });
+
   test("passes eight steady alternating hits at the default tempo", () => {
     const exercise = createMpcSingleStrokeExercise();
     const prompt = exercise.generate(context);
@@ -67,6 +86,24 @@ describe("createMpcSingleStrokeExercise", () => {
     });
     expect(result.metrics.filter((metric) => metric.kind === "timing")).toHaveLength(8);
     expect(result.metrics.filter((metric) => metric.kind === "velocity")).toHaveLength(8);
+  });
+
+  test("grades double-stroke and paradiddle target sequences", () => {
+    const doubleStroke = createMpcSingleStrokeExercise({ patternId: "double-strokes" });
+    const doublePrompt = doubleStroke.generate(context);
+    expect(doublePrompt.payload).toMatchObject({
+      patternId: "double-strokes",
+      patternLabel: "Double strokes",
+      targetSequence: [36, 36, 38, 38, 36, 36, 38, 38],
+    });
+
+    const paradiddle = createMpcSingleStrokeExercise({ patternId: "paradiddle" });
+    const paradiddlePrompt = paradiddle.generate(context);
+    expect(paradiddlePrompt.payload).toMatchObject({
+      patternId: "paradiddle",
+      patternLabel: "Paradiddle",
+      targetSequence: [36, 38, 36, 36, 38, 36, 38, 38],
+    });
   });
 
   test("ignores other notes while a configured wrong pad consumes the current target", () => {

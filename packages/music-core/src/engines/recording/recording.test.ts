@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
 
-import { RecordingSession, takeToScore } from "./index";
+import { buildTakeDensity, RecordingSession, takeToScore } from "./index";
 
 function noteOn(midiNote: number, atMs: number): NoteEvent {
   return {
@@ -96,6 +96,33 @@ describe("takeToScore", () => {
     expect(score.notes).toEqual([
       expect.objectContaining({ midiNote: 60, startBeat: 0, durationBeats: 0.5 }),
       expect.objectContaining({ midiNote: 64, startBeat: 1, durationBeats: 0.5 }),
+    ]);
+  });
+});
+
+describe("buildTakeDensity", () => {
+  test("groups take notes into normalized timeline buckets", () => {
+    const density = buildTakeDensity(
+      {
+        id: "take-1",
+        name: "Take 1",
+        source: "midi",
+        durationMs: 4_000,
+        notes: [
+          { midi: 60, atMs: 0, velocity: 0.8 },
+          { midi: 62, atMs: 800, velocity: 0.8 },
+          { midi: 64, atMs: 2_100, velocity: 0.8 },
+          { midi: 67, atMs: 3_900, velocity: 0.8 },
+        ],
+      },
+      4,
+    );
+
+    expect(density).toEqual([
+      expect.objectContaining({ index: 0, startMs: 0, endMs: 1_000, count: 2, intensity: 1 }),
+      expect.objectContaining({ index: 1, startMs: 1_000, endMs: 2_000, count: 0, intensity: 0 }),
+      expect.objectContaining({ index: 2, startMs: 2_000, endMs: 3_000, count: 1, intensity: 0.5 }),
+      expect.objectContaining({ index: 3, startMs: 3_000, endMs: 4_000, count: 1, intensity: 0.5 }),
     ]);
   });
 });

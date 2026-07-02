@@ -20,7 +20,8 @@ test.describe("music reading workflows", () => {
     await page.getByRole("button", { name: "Start Flashcards" }).click();
     const targets = page.locator('[aria-label*=", target"]');
     await expect(targets.first()).toBeVisible();
-    await targets.first().click();
+    await targets.first().focus();
+    await page.keyboard.press("Enter");
     await expect(page.getByText("2 / 10")).toBeVisible();
   });
 
@@ -42,7 +43,7 @@ test.describe("music reading workflows", () => {
 
     for (let index = 0; index < 32; index += 1) {
       if (await page.getByRole("button", { name: "Finish phrase" }).isEnabled()) break;
-      const targets = page.getByTestId("expected-note");
+      const targets = page.getByTestId("score-expected-note");
       const count = await targets.count();
       for (let targetIndex = 0; targetIndex < count; targetIndex += 1) {
         await targets.nth(targetIndex).click();
@@ -55,14 +56,14 @@ test.describe("music reading workflows", () => {
 
   test("completes performance-mode sight reading", async ({ page }) => {
     await page.getByRole("button", { name: "Sight-Reading" }).click();
-    await page.getByRole("button", { name: "Performance" }).click();
+    await page.getByRole("button", { name: "Assess" }).click();
     await page.getByRole("button", { name: "Start Sight-Reading" }).click();
     await page.getByRole("button", { name: "Start count-in" }).click();
     await expect(page.getByText("Timing feedback")).toBeVisible();
 
     for (let index = 0; index < 32; index += 1) {
       if (await page.getByRole("button", { name: "Finish phrase" }).isEnabled()) break;
-      const targets = page.getByTestId("expected-note");
+      const targets = page.getByTestId("score-expected-note");
       const count = await targets.count();
       for (let targetIndex = 0; targetIndex < count; targetIndex += 1) {
         await targets.nth(targetIndex).click();

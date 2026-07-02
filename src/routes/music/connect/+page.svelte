@@ -59,7 +59,8 @@
   let midiOutputs = $state<MidiDeviceSummary[]>(runtime.midi.state.outputs ?? []);
   let sysexEnabled = $state(runtime.midi.state.sysexEnabled);
   let midiError = $state(runtime.midi.state.error);
-  let liveEvents = $state<NoteEvent[]>([]);
+  let liveEventSeq = 0;
+  let liveEvents = $state<Array<{ id: string; event: NoteEvent }>>([]);
 
   const capabilities = $derived(midiCapabilities(browser ? navigator : {}));
 
@@ -73,7 +74,8 @@
 
   // Live activity monitor — confirms messages actually flow from a connected device.
   const unsubscribeEvents = runtime.midi.subscribe((event) => {
-    liveEvents = [event, ...liveEvents].slice(0, 10);
+    liveEventSeq += 1;
+    liveEvents = [{ id: `${event.timestamp}-${liveEventSeq}`, event }, ...liveEvents].slice(0, 10);
   });
 
   function describeEvent(event: NoteEvent): string {
@@ -279,8 +281,8 @@
           </p>
         {:else}
           <ol class="grid gap-1 font-mono text-xs text-muted-foreground" aria-live="polite">
-            {#each liveEvents as event (event.timestamp)}
-              <li class="rounded-md border px-3 py-2">{describeEvent(event)}</li>
+            {#each liveEvents as entry (entry.id)}
+              <li class="rounded-md border px-3 py-2">{describeEvent(entry.event)}</li>
             {/each}
           </ol>
         {/if}

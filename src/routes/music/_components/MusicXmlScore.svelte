@@ -23,6 +23,7 @@
     selectionMap,
     highlightedRanges = [],
     customSelection,
+    cursorBeat,
     snap = "note-group",
     selectionEnabled = false,
     onSelectionChange,
@@ -33,6 +34,7 @@
     selectionMap?: ScoreSelectionMap;
     highlightedRanges?: NotationRangeHighlight[];
     customSelection?: BeatRange;
+    cursorBeat?: number;
     snap?: LoopSnap;
     selectionEnabled?: boolean;
     onSelectionChange?: (range: BeatRange) => void;
@@ -64,10 +66,26 @@
       }>;
       MeasureList: Array<Array<{ PositionAndShape: GraphicalBox }>>;
     };
+    cursor: OsmdCursor;
+  }
+
+  interface OsmdCursor {
+    cursorElement?: HTMLElement;
+    Iterator?: {
+      EndReached: boolean;
+      CurrentSourceTimestamp?: { RealValue: number };
+      currentTimeStamp?: { RealValue: number };
+    };
+    show(): void;
+    hide(): void;
+    reset(): void;
+    next(): void;
+    update(): void;
   }
 
   let wrapper = $state<HTMLDivElement>();
   let host = $state<HTMLDivElement>();
+  let renderedOsmd = $state.raw<OsmdSelectionSource>();
   let status = $state<"loading" | "rendered" | "error">("loading");
   let errorMessage = $state("");
   let selectionRegions = $state.raw<SelectionRegion[]>([]);
@@ -102,6 +120,7 @@
     errorMessage = "";
     selectionRegions = [];
     hitTargets = [];
+    renderedOsmd = undefined;
     host.replaceChildren();
 
     void renderSelectedMusicXml(host, xml, partIds).then(
@@ -113,6 +132,7 @@
         clear = cleanup;
         try {
           selectionRegions = buildSelectionRegions(osmd, selectionMap, snap);
+          renderedOsmd = osmd;
           await tick();
           if (!disposed) hitTargets = collectHitTargets(wrapper!, snap);
         } catch (error) {
@@ -143,6 +163,11 @@
     };
   });
 
+  $effect(() => {
+    if (!renderedOsmd) return;
+    syncCursor(renderedOsmd, cursorBeat);
+  });
+
   async function renderMusicXml(
     target: HTMLDivElement,
     content: string,
@@ -164,6 +189,7 @@
       drawComposer: false,
       drawLyricist: false,
       drawingParameters: "compacttight",
+      cursorsOptions: [{ type: 1, color: "#7c3aed", alpha: 1, follow: false }],
     });
     await osmd.load(content);
     osmd.render();
@@ -182,6 +208,40 @@
       target,
       selectedPartIds?.length ? filterMusicXmlParts(content, selectedPartIds) : content,
     );
+  }
+
+  function syncCursor(osmd: OsmdSelectionSource, beat: number | undefined): void {
+    const cursor = osmd.cursor;
+    if (beat === undefined || !Number.isFinite(beat)) {
+      cursor.hide();
+      return;
+    }
+
+    cursor.reset();
+    const targetTimestamp = beat / 4;
+    for (let guard = 0; guard < 10_000 && !cursor.Iterator?.EndReached; guard += 1) {
+      if (cursorSourceTimestamp(cursor) >= targetTimestamp - 1e-6) break;
+      cursor.next();
+    }
+    cursor.show();
+    cursor.update();
+    styleCursor(cursor.cursorElement);
+  }
+
+  function cursorSourceTimestamp(cursor: OsmdCursor): number {
+    return (
+      cursor.Iterator?.CurrentSourceTimestamp?.RealValue ??
+      cursor.Iterator?.currentTimeStamp?.RealValue ??
+      0
+    );
+  }
+
+  function styleCursor(cursorElement: HTMLElement | undefined): void {
+    if (!cursorElement) return;
+    cursorElement.dataset.osmdCursor = "follow-line";
+    cursorElement.style.zIndex = "20";
+    cursorElement.style.pointerEvents = "none";
+    cursorElement.style.filter = "drop-shadow(0 0 3px rgba(124, 58, 237, 0.75))";
   }
 
   function buildSelectionRegions(
@@ -367,7 +427,7 @@
 
 <div bind:this={wrapper} class="relative min-w-0 max-w-full">
   <div
-    class="min-h-48 w-full min-w-0 max-w-full overflow-x-auto rounded-md border bg-background p-2 text-foreground [&_svg]:min-w-[320px] {selectionEnabled
+    class="relative min-h-48 w-full min-w-0 max-w-full overflow-x-auto rounded-md border bg-background p-2 text-foreground [&_svg]:min-w-[320px] {selectionEnabled
       ? 'cursor-crosshair'
       : ''}"
     role={selectionEnabled ? "group" : "img"}

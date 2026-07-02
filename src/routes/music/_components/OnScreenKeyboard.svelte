@@ -6,37 +6,36 @@
   import { noteToMidi } from "@repo/music-core/engines/theory";
   import type { Instrument as PianoInstrument, INoteValue } from "piano-chart";
 
+  import { pianoFingerMarkers, pianoOctaveRange } from "./piano-visual";
+
   const DEFAULT_NOTES = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
 
   let {
     router,
     instrument = "piano",
     notes,
+    suggestedFingerings,
     onAccepted,
   }: {
     router: InputRouter;
     instrument?: InstrumentId;
     notes?: string[];
+    suggestedFingerings?: Record<number, number>;
     onAccepted?: (event: NoteEvent) => void;
   } = $props();
 
   // The screen-reader / keyboard layer mirrors the notes the caller cares about;
   // the piano-chart SVG is the visual. Both emit the same NoteEvent.
   const accessibleNotes = $derived(notes ?? DEFAULT_NOTES);
+  const range = $derived(pianoOctaveRange(notes ?? [], { startOctave: 3, endOctave: 5 }));
+  const fingerMarkers = $derived(pianoFingerMarkers(suggestedFingerings, range));
 
   let container = undefined as unknown as HTMLDivElement;
   let piano = $state<PianoInstrument | undefined>();
 
   /** Span the octaves the highlighted notes need, else a default 2-octave view. */
   function octaveRange(): { startOctave: number; endOctave: number } {
-    const octaves = (notes ?? [])
-      .map((note) => Number.parseInt(note.match(/(-?\d+)$/)?.[1] ?? "", 10))
-      .filter((value) => Number.isFinite(value));
-    if (octaves.length === 0) return { startOctave: 3, endOctave: 5 };
-    return {
-      startOctave: Math.max(0, Math.min(...octaves)),
-      endOctave: Math.min(8, Math.max(...octaves)),
-    };
+    return range;
   }
 
   // piano-chart sets SVG fill attributes, so CSS vars can't resolve — read the
@@ -107,11 +106,24 @@
 </script>
 
 <div role="group" aria-label="On-screen keyboard" class="grid gap-2">
-  <div
-    bind:this={container}
-    aria-hidden="true"
-    class="h-28 w-full min-w-0 overflow-x-auto rounded-md border bg-card p-2 sm:h-32"
-  ></div>
+  <div class="relative">
+    <div
+      bind:this={container}
+      aria-hidden="true"
+      class="h-28 w-full min-w-0 overflow-x-auto rounded-md border bg-card p-2 pt-8 sm:h-32"
+    ></div>
+    {#each fingerMarkers as marker (marker.midiNote)}
+      <span
+        data-testid={`finger-${marker.midiNote}`}
+        class="pointer-events-none absolute top-2 grid size-5 place-items-center rounded-full bg-primary text-[11px] font-bold leading-none text-primary-foreground shadow-sm"
+        style:left={`${marker.leftPercent}%`}
+        style:transform="translateX(-50%)"
+        aria-hidden="true"
+      >
+        {marker.finger}
+      </span>
+    {/each}
+  </div>
   <!-- Keyboard/screen-reader accessible layer (also the deterministic test surface). -->
   <div class="sr-only">
     {#each accessibleNotes as note (note)}

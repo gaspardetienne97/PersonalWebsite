@@ -6,7 +6,9 @@
  * `renderEventsToWav` engines, so the roll has no playback code of its own.
  */
 
-import type { Score, ScoreNote } from "@repo/music-core/domain";
+import type { Score, ScoreNote, ScoreSection } from "@repo/music-core/domain";
+
+import { takeToScore, type Take } from "../recording";
 
 export const PIANO_ROLL_VELOCITY = 0.85;
 
@@ -47,6 +49,12 @@ export interface PianoRollGridOptions {
   minBars?: number;
 }
 
+export interface PianoRollSectionEdit {
+  name: string;
+  startBeat: number;
+  endBeat: number;
+}
+
 /** A blank 3-track score (Lead/Keys/Bass) for a fresh piano-roll session. */
 export function createPianoRollScore(bpm = 100): Score {
   return {
@@ -65,6 +73,83 @@ export function createPianoRollScore(bpm = 100): Score {
     sections: [],
     markers: [],
   };
+}
+
+export function createPianoRollScoreFromTake(take: Take, bpm = 100): Score {
+  const score = takeToScore(take, bpm);
+  const voiceName = take.name.trim() || "Imported take";
+  return {
+    ...score,
+    voices: [{ id: "lead", name: voiceName, role: "melody" }],
+    notes: score.notes.map((note) => ({ ...note, voiceId: "lead" })),
+  };
+}
+
+export function mergeTakeIntoPianoRollScore(score: Score, take: Take, bpm = 100): Score {
+  const imported = createPianoRollScoreFromTake(take, bpm);
+  const withVoice = addVoice(score, imported.voices[0]?.name ?? "Imported take");
+  const voiceId = withVoice.voices.at(-1)?.id ?? "lead";
+  return {
+    ...withVoice,
+    notes: [...withVoice.notes, ...imported.notes.map((note) => ({ ...note, voiceId }))],
+  };
+}
+
+export function addPianoRollSection(score: Score, section: PianoRollSectionEdit): Score {
+  const nextSection: ScoreSection = {
+    id: uniqueSectionId(score.sections, section.name),
+    name: section.name.trim() || "Section",
+    startBeat: section.startBeat,
+    endBeat: section.endBeat,
+  };
+  assertSectionRange(nextSection);
+  assertNoSectionOverlap(score.sections, nextSection);
+  return {
+    ...score,
+    sections: [...score.sections, nextSection].sort(
+      (left, right) => left.startBeat - right.startBeat || left.endBeat - right.endBeat,
+    ),
+  };
+}
+
+export function renamePianoRollSection(score: Score, sectionId: string, name: string): Score {
+  const nextName = name.trim();
+  if (!nextName) return score;
+  return {
+    ...score,
+    sections: score.sections.map((section) =>
+      section.id === sectionId ? { ...section, name: nextName } : section,
+    ),
+  };
+}
+
+export function resizePianoRollSection(
+  score: Score,
+  sectionId: string,
+  range: Pick<PianoRollSectionEdit, "startBeat" | "endBeat">,
+): Score {
+  const section = score.sections.find((candidate) => candidate.id === sectionId);
+  if (!section) return score;
+  const resized: ScoreSection = {
+    ...section,
+    startBeat: range.startBeat,
+    endBeat: range.endBeat,
+  };
+  assertSectionRange(resized);
+  assertNoSectionOverlap(
+    score.sections.filter((candidate) => candidate.id !== sectionId),
+    resized,
+  );
+  return {
+    ...score,
+    sections: score.sections
+      .map((candidate) => (candidate.id === sectionId ? resized : candidate))
+      .sort((left, right) => left.startBeat - right.startBeat || left.endBeat - right.endBeat),
+  };
+}
+
+export function removePianoRollSection(score: Score, sectionId: string): Score {
+  return { ...score, sections: score.sections.filter((section) => section.id !== sectionId) };
 }
 
 /** The note in `voiceId` at `midiNote` whose span covers `beat`, if any. */
@@ -213,4 +298,31 @@ function slugify(value: string): string {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") || "track"
   );
+}
+
+function uniqueSectionId(sections: ScoreSection[], name: string): string {
+  const existingIds = new Set(sections.map((section) => section.id));
+  const base = slugify(name || "Section");
+  let id = base;
+  let suffix = 2;
+  while (existingIds.has(id)) {
+    id = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return id;
+}
+
+function assertSectionRange(section: ScoreSection): void {
+  if (section.endBeat <= section.startBeat) {
+    throw new Error("Piano-roll sections must end after they start");
+  }
+}
+
+function assertNoSectionOverlap(sections: ScoreSection[], nextSection: ScoreSection): void {
+  const overlaps = sections.some(
+    (section) => nextSection.startBeat < section.endBeat && nextSection.endBeat > section.startBeat,
+  );
+  if (overlaps) {
+    throw new Error("Piano-roll sections must not overlap");
+  }
 }

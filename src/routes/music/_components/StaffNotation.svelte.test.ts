@@ -73,6 +73,25 @@ describe("StaffNotation", () => {
     ).toBe("true");
   });
 
+  test("marks active noteheads and active range cursors for score following", async () => {
+    mockNotationRects();
+    render(StaffNotation, {
+      view: notationFixture(),
+      activeEventIds: ["note:right-hand:4:1"],
+      highlightedRanges: [{ id: "current-group", startBeat: 4, endBeat: 5, active: true }],
+    });
+
+    await notationHost();
+
+    expect(
+      document
+        .querySelector('[data-event-id="note:right-hand:4:1"]')
+        ?.getAttribute("data-active-note"),
+    ).toBe("true");
+    expect(document.querySelector('[data-notation-cursor="current-group"]')).not.toBeNull();
+    expect(document.querySelector('[data-notation-cursor-label="current-group"]')).not.toBeNull();
+  });
+
   test("keeps selection inert when the renderer interaction is disabled", async () => {
     mockNotationRects();
     const onSelectionChange = vi.fn();

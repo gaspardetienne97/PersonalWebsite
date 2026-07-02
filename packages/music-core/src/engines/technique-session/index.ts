@@ -1,8 +1,10 @@
 import {
   type ExerciseLiveState,
   type ExerciseResult,
+  type InstrumentId,
   type ScoringEvent,
 } from "@repo/music-core/domain";
+import { AEROPHONE_RANGE } from "@repo/music-core/engines/aerophone-fingering";
 import { ExerciseRunHost, type PipelineServices } from "@repo/music-core/engines/exercise";
 import type { InputRouter } from "@repo/music-core/engines/input-router";
 import {
@@ -20,13 +22,17 @@ import {
 } from "@repo/music-core/exercises/aerophone-swell";
 import {
   createMpcSingleStrokeExercise,
+  MPC_RUDIMENT_PATTERNS,
   type MpcHitCount,
+  type MpcRudimentPatternId,
   type MpcSingleStrokePrompt,
 } from "@repo/music-core/exercises/mpc-single-stroke";
 import {
   createScalePatternExercise,
+  type ScaleMotion,
   type ScalePatternKind,
   type ScalePatternPrompt,
+  type ScaleSpan,
 } from "@repo/music-core/exercises/scale-pattern";
 import {
   createChordPerfectExercise,
@@ -41,18 +47,195 @@ import {
   createTwoHandIndependenceExercise,
   type TwoHandIndependencePrompt,
 } from "@repo/music-core/exercises/two-hand-independence";
-import type { TuningProfile } from "@repo/music-core/engines/tunings";
+import {
+  curatedTunings,
+  type StringInstrumentId,
+  type TuningProfile,
+} from "@repo/music-core/engines/tunings";
 
 export interface TechniqueScaleOptions {
   tonic: string;
   scale: ScalePatternKind;
   bpm: number;
+  motion?: ScaleMotion;
+  span?: ScaleSpan;
+}
+
+export const SCALE_DRILL_SCALES = [
+  "major",
+  "natural-minor",
+  "harmonic-minor",
+  "dorian",
+  "phrygian",
+  "lydian",
+  "mixolydian",
+  "locrian",
+  "melodic-minor",
+  "major-pentatonic",
+  "minor-pentatonic",
+  "blues",
+  "altered",
+  "bebop-major",
+  "bebop-dominant",
+  "whole-tone",
+  "diminished",
+] as const satisfies readonly ScalePatternKind[];
+
+export const SCALE_DRILL_MOTIONS = [
+  "up",
+  "down",
+  "up-down",
+] as const satisfies readonly ScaleMotion[];
+
+export const SCALE_DRILL_SPANS = [
+  "pentascale",
+  "one-octave",
+  "two-octave",
+] as const satisfies readonly ScaleSpan[];
+
+export const SCALE_DRILL_TONICS = [
+  "C4",
+  "Db4",
+  "D4",
+  "Eb4",
+  "E4",
+  "F4",
+  "Gb4",
+  "G4",
+  "Ab4",
+  "A4",
+  "Bb4",
+  "B4",
+] as const;
+
+export interface ScaleDrillConfig {
+  scale: ScalePatternKind;
+  tonic: (typeof SCALE_DRILL_TONICS)[number];
+  instrument: Extract<InstrumentId, "piano" | "guitar" | "ukulele" | "aerophone">;
+  bpm: number;
+  motion: ScaleMotion;
+  span: ScaleSpan;
+}
+
+export interface ScaleDrillConfigSource {
+  scale?: unknown;
+  tonic?: unknown;
+  key?: unknown;
+  instrument?: unknown;
+  bpm?: unknown;
+  motion?: unknown;
+  span?: unknown;
+  get?: (key: string) => unknown;
+}
+
+export const SCALE_DRILL_DEFAULT_CONFIG: ScaleDrillConfig = {
+  scale: "major",
+  tonic: "C4",
+  instrument: "piano",
+  bpm: 100,
+  motion: "up",
+  span: "one-octave",
+};
+
+export function normalizeScaleDrillConfig(source: ScaleDrillConfigSource): ScaleDrillConfig {
+  const rawScale = readScaleConfigValue(source, "scale");
+  const rawTonic = readScaleConfigValue(source, "tonic") ?? readScaleConfigValue(source, "key");
+  const rawInstrument = readScaleConfigValue(source, "instrument");
+  const rawMotion = readScaleConfigValue(source, "motion");
+  const rawSpan = readScaleConfigValue(source, "span");
+
+  return {
+    scale: SCALE_DRILL_SCALES.includes(rawScale as ScalePatternKind)
+      ? (rawScale as ScalePatternKind)
+      : SCALE_DRILL_DEFAULT_CONFIG.scale,
+    tonic: normalizeScaleTonic(rawTonic),
+    instrument:
+      rawInstrument === "piano" ||
+      rawInstrument === "guitar" ||
+      rawInstrument === "ukulele" ||
+      rawInstrument === "aerophone"
+        ? rawInstrument
+        : SCALE_DRILL_DEFAULT_CONFIG.instrument,
+    bpm: normalizeInteger(readScaleConfigValue(source, "bpm"), 100, 60, 180),
+    motion: SCALE_DRILL_MOTIONS.includes(rawMotion as ScaleMotion)
+      ? (rawMotion as ScaleMotion)
+      : SCALE_DRILL_DEFAULT_CONFIG.motion,
+    span: SCALE_DRILL_SPANS.includes(rawSpan as ScaleSpan)
+      ? (rawSpan as ScaleSpan)
+      : SCALE_DRILL_DEFAULT_CONFIG.span,
+  };
 }
 
 export interface TechniqueLongToneOptions {
   targetMidi: number;
   holdMs: number;
   breathController?: number;
+}
+
+export const AEROPHONE_DRILL_MODES = ["long-tone", "swell", "articulation"] as const;
+export const AEROPHONE_LONG_TONE_DURATIONS = [3000, 5000, 8000] as const;
+export const AEROPHONE_SWELL_DURATIONS = [4000, 6000, 8000] as const;
+export const AEROPHONE_ARTICULATION_STYLES = ["staccato", "legato"] as const;
+export const AEROPHONE_ARTICULATION_TEMPOS = [70, 90, 110] as const;
+
+export type AerophoneDrillMode = (typeof AEROPHONE_DRILL_MODES)[number];
+
+export interface AerophoneDrillConfig {
+  mode: AerophoneDrillMode;
+  targetMidi: number;
+  durationMs: number;
+  style: ArticulationStyle;
+  bpm: (typeof AEROPHONE_ARTICULATION_TEMPOS)[number];
+}
+
+export interface AerophoneDrillConfigSource {
+  mode?: unknown;
+  target?: unknown;
+  targetMidi?: unknown;
+  note?: unknown;
+  midi?: unknown;
+  duration?: unknown;
+  durationMs?: unknown;
+  holdMs?: unknown;
+  swellMs?: unknown;
+  style?: unknown;
+  bpm?: unknown;
+  tempo?: unknown;
+  get?: (key: string) => unknown;
+}
+
+export const AEROPHONE_DRILL_DEFAULT_CONFIG: AerophoneDrillConfig = {
+  mode: "long-tone",
+  targetMidi: 67,
+  durationMs: 5000,
+  style: "staccato",
+  bpm: 90,
+};
+
+export function normalizeAerophoneDrillConfig(
+  source: AerophoneDrillConfigSource,
+): AerophoneDrillConfig {
+  const mode = normalizeAerophoneMode(readAerophoneConfigValue(source, "mode"));
+  return {
+    mode,
+    targetMidi: normalizeAerophoneTarget(
+      readAerophoneConfigValue(source, "target") ??
+        readAerophoneConfigValue(source, "targetMidi") ??
+        readAerophoneConfigValue(source, "note") ??
+        readAerophoneConfigValue(source, "midi"),
+    ),
+    durationMs: normalizeAerophoneDuration(
+      readAerophoneConfigValue(source, "duration") ??
+        readAerophoneConfigValue(source, "durationMs") ??
+        readAerophoneConfigValue(source, "holdMs") ??
+        readAerophoneConfigValue(source, "swellMs"),
+      mode,
+    ),
+    style: normalizeAerophoneStyle(readAerophoneConfigValue(source, "style")),
+    bpm: normalizeAerophoneTempo(
+      readAerophoneConfigValue(source, "bpm") ?? readAerophoneConfigValue(source, "tempo"),
+    ),
+  };
 }
 
 export interface TechniqueSwellOptions {
@@ -66,6 +249,74 @@ export interface TechniqueMpcRudimentOptions {
   rightPadMidi: number;
   hitCount: MpcHitCount;
   bpm: number;
+  patternId?: MpcRudimentPatternId;
+}
+
+export const MPC_RUDIMENT_PAD_OPTIONS = Array.from({ length: 16 }, (_, index) => index + 36);
+export const MPC_RUDIMENT_TEMPOS = [60, 80, 100, 120] as const;
+export const MPC_RUDIMENT_PATTERN_OPTIONS = MPC_RUDIMENT_PATTERNS.map((pattern) => ({
+  value: pattern.id,
+  label: pattern.label,
+}));
+
+export interface MpcRudimentConfig {
+  patternId: MpcRudimentPatternId;
+  leftPadMidi: number;
+  rightPadMidi: number;
+  hitCount: MpcHitCount;
+  bpm: number;
+}
+
+export interface MpcRudimentConfigSource {
+  pattern?: unknown;
+  patternId?: unknown;
+  left?: unknown;
+  leftPadMidi?: unknown;
+  right?: unknown;
+  rightPadMidi?: unknown;
+  hits?: unknown;
+  hitCount?: unknown;
+  bpm?: unknown;
+  get?: (key: string) => unknown;
+}
+
+export const MPC_RUDIMENT_DEFAULT_CONFIG: MpcRudimentConfig = {
+  patternId: "single-strokes",
+  leftPadMidi: 36,
+  rightPadMidi: 38,
+  hitCount: 8,
+  bpm: 80,
+};
+
+export function normalizeMpcRudimentConfig(source: MpcRudimentConfigSource): MpcRudimentConfig {
+  const patternId = normalizeMpcRudimentPattern(
+    readMpcConfigValue(source, "pattern") ?? readMpcConfigValue(source, "patternId"),
+  );
+  const leftPadMidi = normalizeMpcPad(
+    readMpcConfigValue(source, "left") ?? readMpcConfigValue(source, "leftPadMidi"),
+    MPC_RUDIMENT_DEFAULT_CONFIG.leftPadMidi,
+  );
+  const requestedRightPad = normalizeMpcPad(
+    readMpcConfigValue(source, "right") ?? readMpcConfigValue(source, "rightPadMidi"),
+    MPC_RUDIMENT_DEFAULT_CONFIG.rightPadMidi,
+  );
+  const rightPadMidi =
+    requestedRightPad === leftPadMidi
+      ? leftPadMidi === MPC_RUDIMENT_DEFAULT_CONFIG.rightPadMidi
+        ? MPC_RUDIMENT_DEFAULT_CONFIG.leftPadMidi
+        : MPC_RUDIMENT_DEFAULT_CONFIG.rightPadMidi
+      : requestedRightPad;
+  const hitCountValue = Number(
+    readMpcConfigValue(source, "hits") ?? readMpcConfigValue(source, "hitCount"),
+  );
+
+  return {
+    patternId,
+    leftPadMidi,
+    rightPadMidi,
+    hitCount: hitCountValue === 16 ? 16 : MPC_RUDIMENT_DEFAULT_CONFIG.hitCount,
+    bpm: normalizeMpcTempo(readMpcConfigValue(source, "bpm")),
+  };
 }
 
 export interface TechniqueSpiderOptions {
@@ -75,10 +326,116 @@ export interface TechniqueSpiderOptions {
   bpm: number;
 }
 
+export const SPIDER_DRILL_TEMPOS = [60, 80, 100, 120] as const;
+
+export interface SpiderDrillConfig {
+  instrument: StringInstrumentId;
+  tuningId: string;
+  stringNumber: number;
+  startFret: number;
+  bpm: number;
+}
+
+export interface SpiderDrillConfigSource {
+  instrument?: unknown;
+  tuning?: unknown;
+  tuningId?: unknown;
+  string?: unknown;
+  stringNumber?: unknown;
+  fret?: unknown;
+  startFret?: unknown;
+  bpm?: unknown;
+  get?: (key: string) => unknown;
+}
+
+export const SPIDER_DRILL_DEFAULT_CONFIG: SpiderDrillConfig = {
+  instrument: "guitar",
+  tuningId: "guitar.standard",
+  stringNumber: 6,
+  startFret: 5,
+  bpm: 80,
+};
+
+export function normalizeSpiderDrillConfig(
+  source: SpiderDrillConfigSource,
+  defaultInstrument: StringInstrumentId = SPIDER_DRILL_DEFAULT_CONFIG.instrument,
+): SpiderDrillConfig {
+  const requestedInstrument = readConfigValue(source, "instrument");
+  const instrument =
+    requestedInstrument === "guitar" || requestedInstrument === "ukulele"
+      ? requestedInstrument
+      : defaultInstrument;
+  const tunings = curatedTunings(instrument);
+  const defaultTuningId =
+    instrument === SPIDER_DRILL_DEFAULT_CONFIG.instrument
+      ? SPIDER_DRILL_DEFAULT_CONFIG.tuningId
+      : tunings[0]!.id;
+  const requestedTuning = readConfigValue(source, "tuning") ?? readConfigValue(source, "tuningId");
+  const tuning = tunings.find((profile) => profile.id === requestedTuning) ?? tunings[0]!;
+  const defaultStringNumber =
+    instrument === SPIDER_DRILL_DEFAULT_CONFIG.instrument
+      ? SPIDER_DRILL_DEFAULT_CONFIG.stringNumber
+      : tuning.openStrings.length;
+  const stringNumber = normalizeInteger(
+    readConfigValue(source, "string") ?? readConfigValue(source, "stringNumber"),
+    defaultStringNumber,
+    1,
+    tuning.openStrings.length,
+  );
+  const startFret = normalizeInteger(
+    readConfigValue(source, "fret") ?? readConfigValue(source, "startFret"),
+    SPIDER_DRILL_DEFAULT_CONFIG.startFret,
+    0,
+    Math.max(0, Math.min(9, tuning.fretCount - 3)),
+  );
+
+  return {
+    instrument,
+    tuningId: tunings.some((profile) => profile.id === requestedTuning)
+      ? String(requestedTuning)
+      : defaultTuningId,
+    stringNumber,
+    startFret,
+    bpm: normalizeSpiderTempo(readConfigValue(source, "bpm")),
+  };
+}
+
 export interface TechniqueTwoHandOptions {
   tonic: string;
   bpm: number;
   bars?: number;
+}
+
+export const TWO_HAND_DRILL_TONICS = ["C4", "G4", "F4", "D4"] as const;
+export const TWO_HAND_DRILL_TEMPOS = [60, 80, 100, 120] as const;
+
+export interface TwoHandDrillConfig {
+  tonic: (typeof TWO_HAND_DRILL_TONICS)[number];
+  bpm: (typeof TWO_HAND_DRILL_TEMPOS)[number];
+}
+
+export interface TwoHandDrillConfigSource {
+  tonic?: unknown;
+  key?: unknown;
+  bpm?: unknown;
+  tempo?: unknown;
+  get?: (key: string) => unknown;
+}
+
+export const TWO_HAND_DRILL_DEFAULT_CONFIG: TwoHandDrillConfig = {
+  tonic: "C4",
+  bpm: 80,
+};
+
+export function normalizeTwoHandDrillConfig(source: TwoHandDrillConfigSource): TwoHandDrillConfig {
+  return {
+    tonic: normalizeTwoHandTonic(
+      readTwoHandConfigValue(source, "tonic") ?? readTwoHandConfigValue(source, "key"),
+    ),
+    bpm: normalizeTwoHandTempo(
+      readTwoHandConfigValue(source, "bpm") ?? readTwoHandConfigValue(source, "tempo"),
+    ),
+  };
 }
 
 export interface TechniqueChordPerfectOptions {
@@ -563,6 +920,137 @@ function consistency(values: number[]): number {
 
 function difficultyForBpm(bpm: number): number {
   return Math.max(0.2, Math.min(0.9, (bpm - 60) / 160));
+}
+
+function normalizeMpcPad(value: unknown, fallback: number): number {
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric)) return fallback;
+  return MPC_RUDIMENT_PAD_OPTIONS.includes(numeric) ? numeric : fallback;
+}
+
+function normalizeAerophoneMode(value: unknown): AerophoneDrillMode {
+  return AEROPHONE_DRILL_MODES.includes(value as AerophoneDrillMode)
+    ? (value as AerophoneDrillMode)
+    : AEROPHONE_DRILL_DEFAULT_CONFIG.mode;
+}
+
+function normalizeAerophoneTarget(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return AEROPHONE_DRILL_DEFAULT_CONFIG.targetMidi;
+  return Math.max(
+    AEROPHONE_RANGE.lowestMidi,
+    Math.min(AEROPHONE_RANGE.highestMidi, Math.round(numeric)),
+  );
+}
+
+function normalizeAerophoneDuration(value: unknown, mode: AerophoneDrillMode): number {
+  const durations = mode === "swell" ? AEROPHONE_SWELL_DURATIONS : AEROPHONE_LONG_TONE_DURATIONS;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return mode === "swell" ? 6000 : 5000;
+  return durations.reduce((closest, duration) =>
+    Math.abs(duration - numeric) < Math.abs(closest - numeric) ? duration : closest,
+  );
+}
+
+function normalizeAerophoneStyle(value: unknown): ArticulationStyle {
+  return AEROPHONE_ARTICULATION_STYLES.includes(value as ArticulationStyle)
+    ? (value as ArticulationStyle)
+    : AEROPHONE_DRILL_DEFAULT_CONFIG.style;
+}
+
+function normalizeAerophoneTempo(value: unknown): AerophoneDrillConfig["bpm"] {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return AEROPHONE_DRILL_DEFAULT_CONFIG.bpm;
+  return AEROPHONE_ARTICULATION_TEMPOS.reduce((closest, tempo) =>
+    Math.abs(tempo - numeric) < Math.abs(closest - numeric) ? tempo : closest,
+  );
+}
+
+function readAerophoneConfigValue(source: AerophoneDrillConfigSource, key: string): unknown {
+  const value = source.get?.(key);
+  if (value !== null && value !== undefined && value !== "") return value;
+  const direct = source[key as keyof AerophoneDrillConfigSource];
+  return direct === "" ? undefined : direct;
+}
+
+function normalizeMpcTempo(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return MPC_RUDIMENT_DEFAULT_CONFIG.bpm;
+  return MPC_RUDIMENT_TEMPOS.reduce((closest, tempo) =>
+    Math.abs(tempo - numeric) < Math.abs(closest - numeric) ? tempo : closest,
+  );
+}
+
+function normalizeMpcRudimentPattern(value: unknown): MpcRudimentPatternId {
+  return MPC_RUDIMENT_PATTERNS.some((pattern) => pattern.id === value)
+    ? (value as MpcRudimentPatternId)
+    : MPC_RUDIMENT_DEFAULT_CONFIG.patternId;
+}
+
+function readMpcConfigValue(source: MpcRudimentConfigSource, key: string): unknown {
+  const value = source.get?.(key);
+  if (value !== null && value !== undefined && value !== "") return value;
+  const direct = source[key as keyof MpcRudimentConfigSource];
+  return direct === "" ? undefined : direct;
+}
+
+function normalizeSpiderTempo(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return SPIDER_DRILL_DEFAULT_CONFIG.bpm;
+  return SPIDER_DRILL_TEMPOS.reduce((closest, tempo) =>
+    Math.abs(tempo - numeric) < Math.abs(closest - numeric) ? tempo : closest,
+  );
+}
+
+function normalizeTwoHandTempo(value: unknown): TwoHandDrillConfig["bpm"] {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return TWO_HAND_DRILL_DEFAULT_CONFIG.bpm;
+  return TWO_HAND_DRILL_TEMPOS.reduce((closest, tempo) =>
+    Math.abs(tempo - numeric) < Math.abs(closest - numeric) ? tempo : closest,
+  );
+}
+
+function normalizeTwoHandTonic(value: unknown): TwoHandDrillConfig["tonic"] {
+  if (typeof value !== "string") return TWO_HAND_DRILL_DEFAULT_CONFIG.tonic;
+  const requested = value.match(/-?\d+$/) ? value : `${value}4`;
+  return TWO_HAND_DRILL_TONICS.includes(requested as TwoHandDrillConfig["tonic"])
+    ? (requested as TwoHandDrillConfig["tonic"])
+    : TWO_HAND_DRILL_DEFAULT_CONFIG.tonic;
+}
+
+function readTwoHandConfigValue(source: TwoHandDrillConfigSource, key: string): unknown {
+  const value = source.get?.(key);
+  if (value !== null && value !== undefined && value !== "") return value;
+  const direct = source[key as keyof TwoHandDrillConfigSource];
+  return direct === "" ? undefined : direct;
+}
+
+function normalizeInteger(value: unknown, fallback: number, min: number, max: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(numeric)));
+}
+
+function readScaleConfigValue(source: ScaleDrillConfigSource, key: string): unknown {
+  const value = source.get?.(key);
+  if (value !== null && value !== undefined && value !== "") return value;
+  const direct = source[key as keyof ScaleDrillConfigSource];
+  return direct === "" ? undefined : direct;
+}
+
+function normalizeScaleTonic(value: unknown): ScaleDrillConfig["tonic"] {
+  if (typeof value !== "string") return SCALE_DRILL_DEFAULT_CONFIG.tonic;
+  const requested = value.match(/-?\d+$/) ? value : `${value}4`;
+  return SCALE_DRILL_TONICS.includes(requested as ScaleDrillConfig["tonic"])
+    ? (requested as ScaleDrillConfig["tonic"])
+    : SCALE_DRILL_DEFAULT_CONFIG.tonic;
+}
+
+function readConfigValue(source: SpiderDrillConfigSource, key: string): unknown {
+  const value = source.get?.(key);
+  if (value !== null && value !== undefined && value !== "") return value;
+  const direct = source[key as keyof SpiderDrillConfigSource];
+  return direct === "" ? undefined : direct;
 }
 
 function difficultyForHold(holdMs: number): number {

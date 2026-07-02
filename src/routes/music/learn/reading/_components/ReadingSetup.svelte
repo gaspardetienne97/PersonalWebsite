@@ -126,7 +126,7 @@
                   aria-pressed={value.mode === mode}
                   onclick={() => patch({ mode: mode as ReadingSetupValue["mode"] })}
                 >
-                  {mode === "wait" ? "Wait" : "Performance"}
+                  {mode === "wait" ? "Learn" : "Assess"}
                 </Button>
               {/each}
             </div>

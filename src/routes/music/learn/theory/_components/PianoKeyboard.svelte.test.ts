@@ -1,12 +1,15 @@
-import { describe, expect, test } from "vite-plus/test";
+import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import PianoKeyboard from "./PianoKeyboard.svelte";
 
 describe("theory PianoKeyboard", () => {
-  test("marks the selected pitch classes across one octave", () => {
+  test("renders a piano-chart preview and marks selected pitch classes", async () => {
     render(PianoKeyboard, { notes: ["C", "E", "G", "B"] });
 
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Piano voicing"] svg')).not.toBeNull(),
+    );
     const keys = [
       ...document.querySelectorAll('[role="group"][aria-label="Piano voicing"] button'),
     ];

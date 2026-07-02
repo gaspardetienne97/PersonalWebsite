@@ -17,6 +17,42 @@ export interface RhythmSessionOptions {
   startTimestampMs: number;
 }
 
+export interface RhythmDrillConfig {
+  bpm: number;
+  beats: number;
+}
+
+export interface RhythmDrillConfigSource {
+  bpm?: unknown;
+  beats?: unknown;
+  get?: (key: "bpm" | "beats") => string | null;
+}
+
+export const RHYTHM_DRILL_DEFAULT_CONFIG: RhythmDrillConfig = {
+  bpm: 100,
+  beats: 4,
+};
+
+const RHYTHM_BPM_MIN = 40;
+const RHYTHM_BPM_MAX = 220;
+const RHYTHM_BEATS_MIN = 2;
+const RHYTHM_BEATS_MAX = 16;
+
+export function normalizeRhythmDrillConfig(source: RhythmDrillConfigSource): RhythmDrillConfig {
+  return {
+    bpm: normalizeInteger(readConfigValue(source, "bpm"), {
+      fallback: RHYTHM_DRILL_DEFAULT_CONFIG.bpm,
+      min: RHYTHM_BPM_MIN,
+      max: RHYTHM_BPM_MAX,
+    }),
+    beats: normalizeInteger(readConfigValue(source, "beats"), {
+      fallback: RHYTHM_DRILL_DEFAULT_CONFIG.beats,
+      min: RHYTHM_BEATS_MIN,
+      max: RHYTHM_BEATS_MAX,
+    }),
+  };
+}
+
 export interface RhythmSessionDependencies {
   router: InputRouter;
   services: PipelineServices;
@@ -220,4 +256,18 @@ function summarize(results: RhythmResultView[]): RhythmSummary {
     meanAbsoluteErrorMs,
     results: [...results],
   };
+}
+
+function readConfigValue(source: RhythmDrillConfigSource, key: "bpm" | "beats"): unknown {
+  if (source.get) return source.get(key);
+  return source[key];
+}
+
+function normalizeInteger(
+  value: unknown,
+  bounds: { fallback: number; min: number; max: number },
+): number {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed)) return bounds.fallback;
+  return Math.min(bounds.max, Math.max(bounds.min, Math.round(parsed)));
 }

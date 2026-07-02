@@ -40,6 +40,7 @@ export interface ScoreFollowerAnswer {
   matchedNotes: number;
   expectedNotes: number;
   missedNotes: number;
+  missedGroups: ExpectedNoteGroup[];
   extraNotes: number;
   playedMidiNotes: number[];
   wrongMidiNotes: number[];
@@ -149,6 +150,7 @@ function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
       const matchedNotes = groups
         .slice(0, completed)
         .reduce((total, group) => total + group.midiNotes.length, 0);
+      const missedGroups = groups.slice(completed);
 
       return {
         correct: completed === groups.length && wrongMidiNotes.length === 0,
@@ -166,6 +168,7 @@ function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
           matchedNotes,
           expectedNotes: expectedMidiNotes.length,
           missedNotes: expectedMidiNotes.length - matchedNotes,
+          missedGroups: cloneGroups(missedGroups),
           extraNotes: wrongMidiNotes.length,
           playedMidiNotes: [...playedMidiNotes],
           wrongMidiNotes,
@@ -242,6 +245,9 @@ function performanceModeRun(
       const missedMidiNotes = sortedUnique(
         expected.filter((note) => !matched.has(note.index)).map(({ midiNote }) => midiNote),
       );
+      const missedGroups = groups.filter((_, groupIndex) =>
+        expected.some((note) => note.groupIndex === groupIndex && !matched.has(note.index)),
+      );
       const wrongMidiNotes = sortedUnique([...extraMidiNotes]);
       const completedGroups = groups.filter((_, groupIndex) =>
         expected.some((note) => note.groupIndex === groupIndex && matched.has(note.index)),
@@ -278,6 +284,7 @@ function performanceModeRun(
           matchedNotes: matchedCount,
           expectedNotes: expectedCount,
           missedNotes: expectedCount - matchedCount,
+          missedGroups: cloneGroups(missedGroups),
           extraNotes: wrongMidiNotes.length,
           playedMidiNotes: noteOns.map((event) => event.midiNote),
           wrongMidiNotes,
@@ -327,6 +334,14 @@ function pitchMetrics(
 
 function sortedUnique(values: number[]): number[] {
   return [...new Set(values)].sort((left, right) => left - right);
+}
+
+function cloneGroups(groups: ExpectedNoteGroup[]): ExpectedNoteGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    midiNotes: [...group.midiNotes],
+    sourceNoteIndexes: [...group.sourceNoteIndexes],
+  }));
 }
 
 function clamp01(value: number): number {

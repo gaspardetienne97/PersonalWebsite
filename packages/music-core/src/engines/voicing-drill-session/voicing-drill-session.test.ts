@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildVoicingDrillTargets } from "./index";
+import { buildVoicingDrillTargets, normalizeVoicingDrillConfig } from "./index";
 
 describe("buildVoicingDrillTargets", () => {
   it("produces 36 chord targets (12 keys × ii-V-I) for a polyphonic instrument", () => {
@@ -42,5 +42,37 @@ describe("buildVoicingDrillTargets", () => {
     expect(targets.every((target) => target.symbol.includes("7"))).toBe(true);
     expect(targets[2]!.displayMidi).toEqual([67, 71, 77, 81, 85, 88]);
     expect(new Set(targets[2]!.expectedPitchClasses)).toEqual(new Set([7, 11, 5, 9, 1, 4]));
+  });
+});
+
+describe("normalizeVoicingDrillConfig", () => {
+  it("normalizes shareable voicing drill config values", () => {
+    const params = new URLSearchParams(
+      "instrument=guitar&variant=altered&start=B&strict=held&advance=manual",
+    );
+
+    expect(normalizeVoicingDrillConfig(params)).toEqual({
+      instrument: "guitar",
+      variant: "altered",
+      startPosition: "B",
+      strict: true,
+      autoAdvance: false,
+    });
+
+    expect(
+      normalizeVoicingDrillConfig({
+        instrument: "drums",
+        variant: "unknown",
+        start: "C",
+        strict: "no",
+        advance: "auto",
+      }),
+    ).toEqual({
+      instrument: "piano",
+      variant: "major",
+      startPosition: "A",
+      strict: false,
+      autoAdvance: true,
+    });
   });
 });

@@ -9,6 +9,8 @@
   import type { EarTrainingSessionState } from "@repo/music-core/engines/ear-training";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
   import { masteryTone } from "@repo/music-core/engines/semantic-color";
+  import { midiToNote } from "@repo/music-core/engines/theory";
+  import type { ScaleDegreeRecognitionPrompt } from "@repo/music-core/exercises/scale-degree-recognition";
 
   import { toneTextClass } from "../../../_components/semantic-color";
   import { Button } from "@repo/ui/button";
@@ -16,6 +18,14 @@
   import InputSurface from "../../../_components/InputSurface.svelte";
   import SegmentProgress from "../../../_components/SegmentProgress.svelte";
   import SessionFeedback from "../../../_components/SessionFeedback.svelte";
+  import MelodyDictationStage from "./MelodyDictationStage.svelte";
+  import PhraseResultFeedback from "./PhraseResultFeedback.svelte";
+
+  type MelodySlotPrompt = NonNullable<EarTrainingSessionState["currentPrompt"]> & {
+    targetMidiNotes: number[];
+    tonicMidi?: number;
+    sourceTitle?: string;
+  };
 
   const CHROMATIC_NOTES = [
     "C4",
@@ -40,6 +50,7 @@
     surface = "keyboard",
     voiceStatus,
     onReplay,
+    onPlayTonic,
     onAnswer,
     onAccepted,
     onAbandon,
@@ -50,12 +61,40 @@
     surface?: InputSurfaceId;
     voiceStatus?: string;
     onReplay: () => void;
+    onPlayTonic?: (midiNote: number) => void;
     onAnswer: (token: string) => void;
     onAccepted: (event: NoteEvent) => void;
     onAbandon: () => void;
   } = $props();
 
   const prompt = $derived(state.currentPrompt);
+  const latestPhraseResult = $derived.by(() => {
+    const result = state.results.at(-1);
+    if (
+      !result ||
+      (result.drill !== "melody-dictation" && result.drill !== "repertoire-transfer") ||
+      state.feedback.length === 0
+    ) {
+      return undefined;
+    }
+    return result;
+  });
+  const melodySlotPrompt = $derived.by<MelodySlotPrompt | undefined>(() => {
+    if (
+      !prompt ||
+      (prompt.drill !== "melody-dictation" && prompt.drill !== "repertoire-transfer")
+    ) {
+      return undefined;
+    }
+    if (!hasNumberArray((prompt as { targetMidiNotes?: unknown }).targetMidiNotes)) {
+      return undefined;
+    }
+    return prompt as MelodySlotPrompt;
+  });
+  const scaleDegreePrompt = $derived.by<ScaleDegreeRecognitionPrompt | undefined>(() => {
+    if (prompt?.drill !== "scale-degree" || !("tonicMidi" in prompt)) return undefined;
+    return prompt as ScaleDegreeRecognitionPrompt;
+  });
   const drillLabel = $derived(
     prompt?.drill === "chord-quality"
       ? "Chord Quality"
@@ -83,6 +122,25 @@
     return streak;
   });
   const feedbackKind = $derived(state.feedback[0]?.severity === "good" ? "correct" : "wrong");
+
+  function contextLabel(context: ScaleDegreeRecognitionPrompt["scaleContext"]): string {
+    return {
+      major: "Major",
+      "natural-minor": "Natural minor",
+      "harmonic-minor": "Harmonic minor",
+      "melodic-minor": "Melodic minor",
+      chromatic: "Chromatic",
+    }[context];
+  }
+
+  function degreeParts(label: string): { degree: string; solfege: string } {
+    const [degree = label, solfege = ""] = label.split("/").map((part) => part.trim());
+    return { degree, solfege };
+  }
+
+  function hasNumberArray(value: unknown): value is number[] {
+    return Array.isArray(value) && value.every((item) => typeof item === "number");
+  }
 </script>
 
 <div class="flex min-w-0 flex-col gap-6">
@@ -148,17 +206,58 @@
 
   <!-- answers -->
   {#if prompt && state.options.answerMode === "choice"}
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-label="Answer choices">
-      {#each prompt.choices as choice (choice.token)}
-        <button
-          type="button"
-          onclick={() => onAnswer(choice.token)}
-          class="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl border bg-card text-lg font-bold transition-colors hover:border-primary/40 hover:bg-primary/5"
+    {#if scaleDegreePrompt}
+      <div class="grid gap-4">
+        <div
+          class="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card p-4"
+          data-testid="scale-degree-context"
         >
-          {choice.label}
-        </button>
-      {/each}
-    </div>
+          <div>
+            <p class="text-sm font-semibold">Tonic context</p>
+            <p class="text-sm text-muted-foreground">
+              Tonic · {midiToNote(scaleDegreePrompt.tonicMidi)} · {contextLabel(
+                scaleDegreePrompt.scaleContext,
+              )}
+            </p>
+          </div>
+          <Button type="button" variant="outline" onclick={onReplay}>Hear tonic + target</Button>
+        </div>
+        <div
+          class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+          aria-label="Scale-degree answer choices"
+        >
+          {#each scaleDegreePrompt.choices as choice (choice.token)}
+            {@const parts = degreeParts(choice.label)}
+            <button
+              type="button"
+              data-degree-token={choice.token}
+              onclick={() => onAnswer(choice.token)}
+              class="flex min-h-20 flex-col items-center justify-center gap-1 rounded-md border bg-card transition-colors hover:border-primary/40 hover:bg-primary/5"
+            >
+              <span class="text-2xl font-bold tabular-nums">{parts.degree}</span>
+              <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {parts.solfege}
+              </span>
+            </button>
+          {/each}
+        </div>
+      </div>
+    {:else}
+      <div
+        class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+        aria-label="Answer choices"
+      >
+        {#each prompt.choices as choice (choice.token)}
+          <button
+            type="button"
+            onclick={() => onAnswer(choice.token)}
+            class="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl border bg-card text-lg font-bold transition-colors hover:border-primary/40 hover:bg-primary/5"
+          >
+            {choice.label}
+          </button>
+        {/each}
+      </div>
+    {/if}
   {:else if prompt && state.options.answerMode === "voice"}
     <div class="rounded-2xl border bg-card p-5">
       <div class="grid gap-2 text-center">
@@ -186,6 +285,16 @@
         <Button type="button" onclick={() => onAnswer("__listen_correct")}>I heard it</Button>
       </div>
     </div>
+  {:else if melodySlotPrompt}
+    <MelodyDictationStage
+      prompt={melodySlotPrompt}
+      {router}
+      {surface}
+      {instrument}
+      {onReplay}
+      {onPlayTonic}
+      {onAccepted}
+    />
   {:else if prompt}
     <div class="rounded-2xl border bg-card p-5">
       <InputSurface {router} {surface} {instrument} notes={CHROMATIC_NOTES} {onAccepted} />
@@ -196,5 +305,9 @@
     <div data-testid="feedback">
       <SessionFeedback kind={feedbackKind} message={state.feedback[0].message} />
     </div>
+  {/if}
+
+  {#if latestPhraseResult}
+    <PhraseResultFeedback result={latestPhraseResult} />
   {/if}
 </div>

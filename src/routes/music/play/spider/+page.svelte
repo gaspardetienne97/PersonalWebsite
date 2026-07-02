@@ -8,6 +8,8 @@
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
+    normalizeSpiderDrillConfig,
+    SPIDER_DRILL_TEMPOS,
     TechniqueSession,
     type TechniqueSessionState,
   } from "@repo/music-core/engines/technique-session";
@@ -25,12 +27,14 @@
   import { Label } from "@repo/ui/label";
   import { Progress } from "@repo/ui/progress";
 
-  import FretboardInput from "../../learn/reading/_components/FretboardInput.svelte";
+  import FrettedSequenceStage, {
+    type FrettedSequenceStep,
+  } from "../../_components/FrettedSequenceStage.svelte";
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
-  import PracticeStage from "../../_components/PracticeStage.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -45,18 +49,22 @@
     { value: "guitar", label: "Guitar" },
     { value: "ukulele", label: "Ukulele" },
   ];
-  const tempoOptions = [60, 80, 100, 120].map((value) => ({
+  const tempoOptions = SPIDER_DRILL_TEMPOS.map((value) => ({
     value: String(value),
     label: `${value} BPM`,
   }));
   const defaultInstrument: StringInstrumentId =
     runtime.activeInstrument === "ukulele" ? "ukulele" : "guitar";
+  const initialConfig = normalizeSpiderDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+    defaultInstrument,
+  );
 
-  let instrument = $state<StringInstrumentId>(defaultInstrument);
-  let tuningId = $state(curatedTunings(defaultInstrument)[0]!.id);
-  let stringNumber = $state(defaultInstrument === "guitar" ? 6 : 4);
-  let startFret = $state(5);
-  let bpm = $state("80");
+  let instrument = $state<StringInstrumentId>(initialConfig.instrument);
+  let tuningId = $state(initialConfig.tuningId);
+  let stringNumber = $state(initialConfig.stringNumber);
+  let startFret = $state(initialConfig.startFret);
+  let bpm = $state(String(initialConfig.bpm));
   let ready = $state(false);
   let pending = $state(false);
   let captured = false;
@@ -82,15 +90,27 @@
     Math.min(4, Math.round((sessionState?.live?.progress ?? 0) * 4)),
   );
   const nextMidi = $derived(prompt?.midiNotes[completedNotes]);
-  const targetMidi = $derived(prompt?.midiNotes ?? []);
-  const correctMidi = $derived(prompt?.midiNotes.slice(0, completedNotes) ?? []);
+  const sequenceSteps = $derived.by<FrettedSequenceStep[]>(() => {
+    return (prompt?.midiNotes ?? []).map((midiNote, index) => ({
+      id: `string-${stringNumber}-fret-${startFret + index}`,
+      label: `Fret ${startFret + index}`,
+      midiNote,
+    }));
+  });
   const midiStatus = $derived(
     midiEnabled
       ? `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`
       : runtime.midi.state.error ?? "MIDI permission has not been requested.",
   );
+  const normalizedConfig = $derived(
+    normalizeSpiderDrillConfig({ instrument, tuning: tuningId, string: stringNumber, fret: startFret, bpm }),
+  );
 
   void initialize();
+
+  $effect(() => {
+    syncConfigUrl();
+  });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
@@ -130,10 +150,18 @@
   }
 
   function selectInstrument(value: string): void {
-    instrument = value as StringInstrumentId;
-    const profiles = curatedTunings(instrument);
-    tuningId = profiles[0]!.id;
-    stringNumber = instrument === "guitar" ? 6 : 4;
+    const config = normalizeSpiderDrillConfig(
+      {
+        instrument: value,
+        bpm,
+      },
+      value === "ukulele" ? "ukulele" : "guitar",
+    );
+    instrument = config.instrument;
+    tuningId = config.tuningId;
+    stringNumber = config.stringNumber;
+    startFret = config.startFret;
+    bpm = String(config.bpm);
     runtime.setActiveInstrument(instrument);
   }
 
@@ -143,17 +171,18 @@
 
   async function start(): Promise<void> {
     if (!ready || pending || !session) return;
+    const config = normalizedConfig;
     pending = true;
     captured = false;
     status = "";
     try {
       await session.startSpider({
-        tuning,
-        stringNumber,
-        startFret,
-        bpm: Number(bpm),
+        tuning: curatedTunings(config.instrument).find((profile) => profile.id === config.tuningId) ?? tuning,
+        stringNumber: config.stringNumber,
+        startFret: config.startFret,
+        bpm: config.bpm,
       });
-      status = `Play frets ${startFret}-${startFret + 3} on string ${stringNumber}.`;
+      status = `Play frets ${config.startFret}-${config.startFret + 3} on string ${config.stringNumber}.`;
     } catch (error) {
       status = message(error, "The spider drill could not be started.");
     } finally {
@@ -166,6 +195,15 @@
     status = "Spider cancelled. You can start again.";
   }
 
+  async function slowDown(): Promise<void> {
+    const current = Number(bpm);
+    const slowerTempo =
+      [...SPIDER_DRILL_TEMPOS].reverse().find((tempo) => tempo < current) ??
+      SPIDER_DRILL_TEMPOS[0];
+    bpm = String(slowerTempo);
+    await start();
+  }
+
   function playAccepted(event: NoteEvent): void {
     if (event.type === "noteOn" && runtime.audioEnabled) {
       runtime.sound.playNote(event.midiNote, 0.12, undefined, event.velocity);
@@ -174,6 +212,21 @@
 
   function message(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
+  }
+
+  function syncConfigUrl(): void {
+    const config = normalizedConfig;
+    const params = new URLSearchParams(window.location.search);
+    params.set("instrument", config.instrument);
+    params.set("tuning", config.tuningId);
+    params.set("string", String(config.stringNumber));
+    params.set("fret", String(config.startFret));
+    params.set("bpm", String(config.bpm));
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
+    );
   }
 
   onMount(() => {
@@ -294,29 +347,31 @@
     {/snippet}
 
     {#snippet stage()}
-      <PracticeStage {instrument} class="min-w-0 space-y-2 overflow-x-auto p-4">
-        <p class="eyebrow">{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</p>
-        <FretboardInput
-          {tuning}
-          router={runtime.router}
-          targetMidiNotes={targetMidi}
-          activeMidiNotes={nextMidi === undefined ? [] : [nextMidi]}
-          correctMidiNotes={correctMidi}
-          visibleFrets={12}
-          visibleStrings={[stringNumber]}
-          onAccepted={playAccepted}
-        />
-      </PracticeStage>
+      <FrettedSequenceStage
+        {instrument}
+        label={`${instrument === "guitar" ? "Guitar" : "Ukulele"} string ${stringNumber} · frets ${startFret}-${startFret + 3}`}
+        {tuning}
+        router={runtime.router}
+        steps={sequenceSteps}
+        completedCount={completedNotes}
+        currentIndex={completedNotes}
+        visibleFrets={12}
+        visibleStrings={[stringNumber]}
+        onAccepted={playAccepted}
+      />
     {/snippet}
 
     {#snippet feedback()}
       {#if summary && answer}
-        <SessionFeedback
-          kind={summary.correct === summary.total ? "correct" : "wrong"}
-          message="Spider complete"
-          detail={`${Math.round(answer.pitchAccuracy * 100)}% notes · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error`}
-          xp={summary.xp}
-        />
+        <div class="grid gap-3">
+          <SessionFeedback
+            kind={summary.correct === summary.total ? "correct" : "wrong"}
+            message="Spider complete"
+            detail={`${Math.round(answer.pitchAccuracy * 100)}% notes · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error`}
+            xp={summary.xp}
+          />
+          <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Repeat spider" />
+        </div>
       {/if}
     {/snippet}
 

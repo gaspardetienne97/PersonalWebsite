@@ -7,9 +7,24 @@ import { InputRouter } from "@repo/music-core/engines/input-router";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills";
 
-import { RhythmSession, type RhythmSessionState } from "./index";
+import { normalizeRhythmDrillConfig, RhythmSession, type RhythmSessionState } from "./index";
 
 describe("RhythmSession", () => {
+  test("normalizes shareable drill config values", () => {
+    expect(normalizeRhythmDrillConfig({ bpm: "72", beats: "6" })).toEqual({
+      bpm: 72,
+      beats: 6,
+    });
+    expect(normalizeRhythmDrillConfig({ bpm: "12", beats: "99" })).toEqual({
+      bpm: 40,
+      beats: 16,
+    });
+    expect(normalizeRhythmDrillConfig({ bpm: "fast", beats: null })).toEqual({
+      bpm: 100,
+      beats: 4,
+    });
+  });
+
   test("completes and persists an in-time quarter-note pulse", async () => {
     const dependencies = await setup();
     const session = new RhythmSession(dependencies);

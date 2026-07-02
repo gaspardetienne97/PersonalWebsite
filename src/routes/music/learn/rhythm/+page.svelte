@@ -5,6 +5,8 @@
   import Drum from "lucide-svelte/icons/drum";
 
   import {
+    normalizeRhythmDrillConfig,
+    RHYTHM_DRILL_DEFAULT_CONFIG,
     RhythmSession,
     type RhythmSessionState,
   } from "@repo/music-core/engines/rhythm-session";
@@ -40,12 +42,15 @@
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
   const microphone = new AudioPitchSource();
+  const initialConfig = browser
+    ? normalizeRhythmDrillConfig(new URLSearchParams(window.location.search))
+    : RHYTHM_DRILL_DEFAULT_CONFIG;
 
   let ready = $state(false);
   let pending = $state(false);
   let status = $state("Preparing your rhythm history.");
-  let bpm = $state(100);
-  let beats = $state(4);
+  let bpm = $state(initialConfig.bpm);
+  let beats = $state(initialConfig.beats);
   let tapTempoMarks = $state<number[]>([]);
   let session = $state<RhythmSession | undefined>();
   let sessionState = $state<RhythmSessionState | undefined>();
@@ -72,6 +77,11 @@
   );
 
   void initialize();
+
+  $effect(() => {
+    if (!browser) return;
+    syncConfigUrl();
+  });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
@@ -199,6 +209,19 @@
   function repeat(): void {
     sessionState = undefined;
     status = "Ready for a pulse session.";
+  }
+
+  function slowDown(): void {
+    bpm = normalizeRhythmDrillConfig({ bpm: bpm - 10, beats }).bpm;
+    repeat();
+  }
+
+  function syncConfigUrl(): void {
+    const config = normalizeRhythmDrillConfig({ bpm, beats });
+    const url = new URL(window.location.href);
+    url.searchParams.set("bpm", String(config.bpm));
+    url.searchParams.set("beats", String(config.beats));
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }
 
   function message(error: unknown, fallback: string): string {
@@ -392,7 +415,7 @@
           <p>{runSummary?.results[0]?.result.feedback[0]?.message}</p>
         </Card.Content>
         <Card.Footer class="flex-wrap gap-3">
-          <AdaptiveRetryBar onRetry={repeat} retryLabel="Try again" />
+          <AdaptiveRetryBar onRetry={repeat} onSlower={slowDown} retryLabel="Try again" />
           <RoutineContinueAction routine={runtime.dailyRoutine} />
         </Card.Footer>
       </Card.Root>

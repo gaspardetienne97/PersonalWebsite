@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { Capability, unixMs } from "@repo/music-core/domain";
+
 import {
+  buildJazzSequenceCapture,
   buildAlteredDominantVoicings,
   buildIIVIDrill,
   CHORD_SCALE_MAP,
@@ -10,6 +13,8 @@ import {
   LICK_PHRASES,
   lickDurationBeats,
   lickTimeline,
+  normalizeChordScaleDrillConfig,
+  normalizeJazzLickDrillConfig,
   realizeDominantVoicing,
   realizeUpperStructure,
   realizeVoicing,
@@ -68,6 +73,45 @@ describe("chord-scale map", () => {
     for (const family of new Set(CHORD_SCALE_MAP.map((e) => e.family))) {
       expect(scalesForFamily(family).length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("normalizeChordScaleDrillConfig", () => {
+  it("restores shareable chord-scale drill config values", () => {
+    expect(normalizeChordScaleDrillConfig(new URLSearchParams("changes=minor"))).toEqual({
+      changesId: "minor",
+    });
+  });
+
+  it("falls back to major changes for unknown values", () => {
+    expect(normalizeChordScaleDrillConfig({ variant: "outside" })).toEqual({
+      changesId: "major",
+    });
+  });
+});
+
+describe("normalizeJazzLickDrillConfig", () => {
+  it("restores a shareable lick category and lick number", () => {
+    expect(
+      normalizeJazzLickDrillConfig(new URLSearchParams("category=minor-chord&lick=26")),
+    ).toEqual({
+      category: "minor-chord",
+      lickNumber: 26,
+    });
+  });
+
+  it("derives category from a valid lick when category is omitted", () => {
+    expect(normalizeJazzLickDrillConfig({ lickNumber: 18 })).toEqual({
+      category: "minor-ii-V-i",
+      lickNumber: 18,
+    });
+  });
+
+  it("falls back to the first lick in a valid category when the lick does not belong", () => {
+    expect(normalizeJazzLickDrillConfig({ category: "minor-chord", lick: "3" })).toEqual({
+      category: "minor-chord",
+      lickNumber: 25,
+    });
   });
 });
 
@@ -178,5 +222,59 @@ describe("gradeLickSequence", () => {
     const phrase = LICK_PHRASES[1]!;
     const played = phrase.map(([midi]) => midi);
     expect(gradeLickSequence(played, played).accuracy).toBe(1);
+  });
+
+  it("projects a graded jazz sequence into scoring event and run records", () => {
+    const expectedMidi = [62, 65, 69, 72];
+    const playedMidi = [62, 66, 69, 72];
+    const grade = gradeLickSequence(expectedMidi, playedMidi);
+
+    const capture = buildJazzSequenceCapture({
+      exerciseId: "jazz.lick.playback",
+      label: "Lick #1",
+      sessionId: "session-1",
+      runId: "run-1",
+      eventId: "event-1",
+      promptId: "lick-1",
+      skillIds: ["harmony.ii-v-i"],
+      capabilities: [Capability.Harmony, Capability.Improvisation, Capability.Pitch],
+      expectedMidi,
+      playedMidi,
+      grade,
+      startedAt: unixMs(100),
+      endedAt: unixMs(250),
+      difficulty: 0.6,
+      instrument: "piano",
+      params: { lickNumber: 1 },
+    });
+
+    expect(capture.run).toMatchObject({
+      id: "run-1",
+      exerciseId: "jazz.lick.playback",
+      promptIds: ["lick-1"],
+      targetSkillIds: ["harmony.ii-v-i"],
+      instrument: "piano",
+      difficulty: 0.6,
+      params: { lickNumber: 1 },
+    });
+    expect(capture.event).toMatchObject({
+      id: "event-1",
+      sessionId: "session-1",
+      runId: "run-1",
+      exerciseId: "jazz.lick.playback",
+      skillIds: ["harmony.ii-v-i"],
+      capabilities: ["harmony", "improv", "pitch"],
+      modality: "played",
+      partialCredit: 0.75,
+      correct: false,
+      target: { label: "Lick #1", midiNotes: expectedMidi },
+      response: { midiNotes: playedMidi },
+    });
+    expect(capture.event.metrics).toEqual([
+      { kind: "pitch", expectedMidi: 62, actualMidi: 62 },
+      { kind: "pitch", expectedMidi: 65, actualMidi: 66 },
+      { kind: "pitch", expectedMidi: 69, actualMidi: 69 },
+      { kind: "pitch", expectedMidi: 72, actualMidi: 72 },
+    ]);
   });
 });

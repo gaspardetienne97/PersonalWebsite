@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import { onDestroy, onMount, untrack } from "svelte";
 
   import Download from "lucide-svelte/icons/download";
+  import ListMusic from "lucide-svelte/icons/list-music";
   import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
   import Trash2 from "lucide-svelte/icons/trash-2";
@@ -13,6 +15,8 @@
     type AudioRenderEvent,
   } from "@repo/music-core/engines/audio-export";
   import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
+  import { SongLibrary } from "@repo/music-core/engines/song-library";
+  import { PracticeStore } from "@repo/music-core/engines/store";
 
   import {
     buildMpcKitExport,
@@ -45,10 +49,19 @@
   const STUDIO_PATTERN_ID = "music.studio.boom-bap";
   const ACTIVE_KIT_ID = "music.studio.active-sample-kit";
 
+  interface SongStudioSaver {
+    saveScore(score: Score): Promise<{ id: string; title: string }>;
+  }
+
   let {
     runtime = useMusicRuntime(),
     playback,
-  }: { runtime?: MusicRuntime; playback?: SampleKitPlaybackController } = $props();
+    library = browser ? new SongLibrary(new PracticeStore()) : undefined,
+  }: {
+    runtime?: MusicRuntime;
+    playback?: SampleKitPlaybackController;
+    library?: SongStudioSaver;
+  } = $props();
 
   const playbackController = untrack(
     () => playback ?? new SampleKitPlaybackController({ sound: runtime.sound }),
@@ -77,6 +90,8 @@
   let activeStep = $state(-1);
   let patternStatus = $state("Pattern changes save locally.");
   let activeKit = $state<ActiveSampleKit>();
+  let savingToSongStudio = $state(false);
+  let savedSongId = $state<string | undefined>();
   // Plain (non-reactive) so the storage effect doesn't invalidate itself.
   let initializedStore: SampleKitStore | undefined;
   let restoreKitId: string | undefined;
@@ -333,13 +348,30 @@
       voices: sequencer.rows.map((row) => ({ id: row.id, name: row.name, role: "drums" as const })),
       notes,
       chords: [],
-      sections: [],
+      sections: [{ id: "loop", name: "Beat loop", startBeat: 0, endBeat: 4 }],
       markers: [],
     };
   }
 
   function exportPatternMidi(): void {
     downloadBlob(scoreToMidiBlob(patternScore()), "studio-pattern.mid");
+  }
+
+  async function savePatternToSongStudio(): Promise<void> {
+    if (!library || savingToSongStudio) return;
+    savingToSongStudio = true;
+    try {
+      const saved = await library.saveScore(patternScore());
+      savedSongId = saved.id;
+      patternStatus = "Saved to Song Studio.";
+      toast.success("Saved to Song Studio");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not save to Song Studio.";
+      patternStatus = message;
+      toast.error(message);
+    } finally {
+      savingToSongStudio = false;
+    }
   }
 
   let exporting = $state(false);
@@ -494,6 +526,20 @@
       <Button type="button" variant="outline" disabled={exporting} onclick={() => void exportPatternWav()}>
         <Download class="size-4" aria-hidden="true" />Export WAV
       </Button>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={!library || savingToSongStudio}
+        onclick={() => void savePatternToSongStudio()}
+      >
+        <ListMusic class="size-4" aria-hidden="true" />
+        {savingToSongStudio ? "Saving..." : "Save to Song Studio"}
+      </Button>
+      {#if savedSongId}
+        <Button href={`/music/songs/${savedSongId}`} variant="outline">
+          Open Song Studio
+        </Button>
+      {/if}
       <Button type="button" onclick={() => void togglePlay()}>
         {#if playing}
           <Pause class="size-4" aria-hidden="true" />Stop

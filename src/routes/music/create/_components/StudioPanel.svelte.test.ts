@@ -139,6 +139,46 @@ describe("StudioPanel", () => {
     clickSpy.mockRestore();
   });
 
+  test("saves the beat-grid pattern to Song Studio", async () => {
+    const savedScores: unknown[] = [];
+    const library = {
+      saveScore: vi.fn(async (score: unknown) => {
+        savedScores.push(score);
+        return { id: "song-beat", title: "Studio Pattern" };
+      }),
+    };
+    const harness = makeStudioRuntime([]);
+
+    render(Panel, {
+      runtime: harness.runtime as unknown as MusicRuntime,
+      playback: harness.playback,
+      library,
+    });
+
+    studioButton("Save to Song Studio")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Saved to Song Studio."));
+    expect(library.saveScore).toHaveBeenCalledTimes(1);
+    expect(savedScores[0]).toEqual(
+      expect.objectContaining({
+        title: "Studio Pattern",
+        origin: "generated",
+        sections: [{ id: "loop", name: "Beat loop", startBeat: 0, endBeat: 4 }],
+        notes: expect.arrayContaining([
+          expect.objectContaining({
+            midiNote: 36,
+            startBeat: 0,
+            durationBeats: 0.25,
+            voiceId: "kick",
+          }),
+        ]),
+      }),
+    );
+    expect(
+      document.querySelector<HTMLAnchorElement>('a[href="/music/songs/song-beat"]')?.textContent,
+    ).toContain("Open Song Studio");
+  });
+
   test("toggles a step cell", async () => {
     render(Panel);
     const cell = document.querySelector<HTMLButtonElement>('button[aria-label="Snare step 1"]');

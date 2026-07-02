@@ -9,6 +9,7 @@ import {
   chordShapesFor,
   createChordPerfectExercise,
   createOpenChordIdentificationExercise,
+  normalizeChordPerfectDrillConfig,
 } from "./chord-perfect";
 
 // Expected pitch-class set per curated shape — the authoritative check that the
@@ -41,6 +42,25 @@ describe("createChordPerfectExercise", () => {
       );
       // Voiced notes are sorted low to high.
       expect(prompt.payload.midiNotes).toEqual([...prompt.payload.midiNotes].sort((a, b) => a - b));
+    }
+  });
+
+  test("curated open shapes carry explicit suggested fingering aligned with frets", () => {
+    const cMajor = CHORD_SHAPES.find((shape) => shape.id === "guitar.c-major");
+
+    expect(cMajor?.fingers).toEqual([null, 1, null, 2, 3, null]);
+
+    for (const shape of CHORD_SHAPES) {
+      expect(shape.fingers).toHaveLength(shape.frets.length);
+      shape.frets.forEach((fret, index) => {
+        const finger = shape.fingers[index];
+        if (fret === null || fret === 0) {
+          expect(finger).toBeNull();
+        } else {
+          expect(finger).toBeGreaterThanOrEqual(1);
+          expect(finger).toBeLessThanOrEqual(4);
+        }
+      });
     }
   });
 
@@ -128,6 +148,41 @@ describe("createChordPerfectExercise", () => {
     });
     expect(result.response).toMatchObject({ label: "Am", choice: "Am" });
     expect(result.feedback[0]?.message).toContain("Heard Am");
+  });
+
+  test("normalizes shareable chord-perfect drill config values", () => {
+    expect(
+      normalizeChordPerfectDrillConfig(
+        new URLSearchParams("mode=pick&instrument=ukulele&shape=ukulele.g-major"),
+      ),
+    ).toEqual({
+      mode: "pick",
+      instrument: "ukulele",
+      shapeId: "ukulele.g-major",
+      tuningId: "ukulele.high-g",
+    });
+
+    expect(
+      normalizeChordPerfectDrillConfig({ workflow: "strum", chord: "guitar.d-major" }),
+    ).toEqual({
+      mode: "strum",
+      instrument: "guitar",
+      shapeId: "guitar.d-major",
+      tuningId: "guitar.standard",
+    });
+
+    expect(
+      normalizeChordPerfectDrillConfig({
+        mode: "not-a-mode",
+        instrument: "ukulele",
+        shape: "guitar.c-major",
+      }),
+    ).toEqual({
+      mode: "build",
+      instrument: "ukulele",
+      shapeId: "ukulele.c-major",
+      tuningId: "ukulele.high-g",
+    });
   });
 });
 

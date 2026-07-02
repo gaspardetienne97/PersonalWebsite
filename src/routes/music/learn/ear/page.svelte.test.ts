@@ -9,6 +9,7 @@ import Page from "./+page.svelte";
 describe("/music/learn/ear/+page.svelte", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    window.history.replaceState({}, "", "/");
     vi.spyOn(SoundEngine.prototype, "enable").mockImplementation(async function () {
       this.enabled = true;
       return { enabled: true, message: "Audio enabled." };
@@ -34,10 +35,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
     expect(document.body.textContent).toContain("1 / 10");
 
-    const firstAnswer = document.querySelector<HTMLButtonElement>(
-      '[aria-label="Answer choices"] button',
-    );
-    firstAnswer?.click();
+    answerChoiceButton()?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
     expect(document.querySelector('[data-testid="feedback"]')).not.toBeNull();
@@ -74,6 +72,20 @@ describe("/music/learn/ear/+page.svelte", () => {
       [...document.querySelectorAll("button")].some((button) => button.textContent === "C#4"),
     ).toBe(true);
     expect(document.querySelector('[data-testid="feedback"]')).toBeNull();
+  });
+
+  test("plays interval prompts louder than the default pattern level", async () => {
+    const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern");
+    render(Page);
+
+    const interval = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Start Interval"),
+    );
+    await vi.waitFor(() => expect(interval?.disabled).toBe(false));
+    interval?.click();
+
+    await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
+    expect(playPattern.mock.calls.at(-1)?.[1]).toBe(1);
   });
 
   test("starts Pocket mode and advances from listening self-assessment", async () => {
@@ -164,13 +176,52 @@ describe("/music/learn/ear/+page.svelte", () => {
     melody?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play back the phrase"));
-    for (const noteName of ["C4", "G4", "C4"]) {
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="melody-slot-stage"]')).not.toBeNull(),
+    );
+    expect(document.querySelector('[data-testid="melody-slot-stage"]')?.textContent).toContain(
+      "Phrase memory",
+    );
+    expect(document.querySelector('[data-testid="melody-slot-stage"]')?.textContent).toContain(
+      "3 notes",
+    );
+    expect(document.querySelector('[data-testid="melody-slot-stage"]')?.textContent).toContain(
+      "Hear tonic again",
+    );
+    expect(document.querySelectorAll('[data-testid="melody-slot"]')).toHaveLength(3);
+
+    [...document.querySelectorAll("button")].find((button) => button.textContent === "C4")?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="melody-slot"]')?.textContent).toContain("C4"),
+    );
+
+    for (const noteName of ["F4", "C4"]) {
       [...document.querySelectorAll("button")]
         .find((button) => button.textContent === noteName)
         ?.click();
     }
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="phrase-result-feedback"]')).not.toBeNull(),
+    );
+    expect(document.querySelector('[data-testid="phrase-result-feedback"]')?.textContent).toContain(
+      "Position feedback",
+    );
+    expect(document.querySelector('[data-testid="phrase-result-feedback"]')?.textContent).toContain(
+      "/ 3 matched",
+    );
+    expect(document.querySelector('[data-testid="phrase-result-feedback"]')?.textContent).toContain(
+      "Expected",
+    );
+    expect(document.querySelector('[data-testid="phrase-result-feedback"]')?.textContent).toContain(
+      "Played",
+    );
+    const resultStates = [
+      ...document.querySelectorAll('[data-testid="phrase-result-position"]'),
+    ].map((element) => element.getAttribute("data-state"));
+    expect(resultStates).toHaveLength(3);
+    expect(resultStates).toContain("review");
   });
 
   test("uses the selected scale-degree level for focused sessions", async () => {
@@ -188,12 +239,53 @@ describe("/music/learn/ear/+page.svelte", () => {
     await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
     scaleDegree?.click();
 
-    await vi.waitFor(() =>
-      expect(
-        document.querySelector<HTMLButtonElement>('[aria-label="Answer choices"] button'),
-      ).not.toBeNull(),
+    await vi.waitFor(() => expect(answerChoiceButton()).not.toBeNull());
+    expect(document.querySelector('[data-testid="scale-degree-context"]')?.textContent).toContain(
+      "Tonic context",
     );
-    expect(document.querySelectorAll('[aria-label="Answer choices"] button')).toHaveLength(5);
+    expect(
+      document.querySelectorAll('[aria-label="Scale-degree answer choices"] button'),
+    ).toHaveLength(5);
+    expect(
+      [...document.querySelectorAll('[aria-label="Scale-degree answer choices"] button')].map(
+        (button) => button.getAttribute("data-degree-token"),
+      ),
+    ).toEqual(["1", "2", "3", "4", "5"]);
+  });
+
+  test("restores setup from shareable query parameters", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/music/learn/ear?drill=scale-degree&answer=play-back&feedback=test&level=chromatic-color",
+    );
+
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Play-back")?.getAttribute("aria-pressed")).toBe("true"));
+    expect(button("Test")).toHaveAttribute("aria-pressed", "true");
+    expect(button("Chromatic color")).toHaveAttribute("aria-pressed", "true");
+    expect(window.location.search).toContain("drill=scale-degree");
+  });
+
+  test("keeps setup changes and the selected drill in the shareable URL", async () => {
+    window.history.replaceState({}, "", "/music/learn/ear");
+    render(Page);
+
+    button("Pocket")?.click();
+    button("Test")?.click();
+    button("Major pentachord")?.click();
+    await vi.waitFor(() => expect(window.location.search).toContain("answer=listen"));
+    expect(window.location.search).toContain("feedback=test");
+    expect(window.location.search).toContain("level=major-pentachord");
+
+    const scaleDegree = [...document.querySelectorAll("button")].find((candidate) =>
+      candidate.textContent?.includes("Start Scale Degree"),
+    );
+    await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
+    scaleDegree?.click();
+
+    await vi.waitFor(() => expect(window.location.search).toContain("drill=scale-degree"));
   });
 
   test("plays an unscored scale-degree warmup over a drone", async () => {
@@ -356,7 +448,53 @@ describe("/music/learn/ear/+page.svelte", () => {
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
     expect(document.body.textContent).toContain("1 of 1 correct");
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="phrase-result-feedback"]')).not.toBeNull(),
+    );
+    expect(document.querySelector('[data-testid="phrase-result-feedback"]')?.textContent).toContain(
+      "4 / 4 matched",
+    );
     expect(document.body.textContent).not.toContain("Cannot read properties");
+  });
+
+  test("retries repertoire phrase mistakes as focused scale-degree review", async () => {
+    render(Page, {
+      library: {
+        list: vi.fn(async () => [
+          {
+            id: "song-1",
+            title: "Transfer Study",
+            createdAt: 0,
+            updatedAt: 0,
+            score: repertoireScore(),
+          },
+        ]),
+      },
+    });
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Repertoire transfer"));
+    [...document.querySelectorAll("button")]
+      .find((button) => button.textContent?.trim() === "Practice transfer")
+      ?.click();
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Play back the saved-song phrase"),
+    );
+    for (const noteName of ["C4", "D4", "D4", "G4"]) {
+      [...document.querySelectorAll("button")]
+        .find((button) => button.textContent === noteName)
+        ?.click();
+    }
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
+    expect(document.body.textContent).toContain("3 → 2");
+
+    [...document.querySelectorAll("button")]
+      .find((button) => button.textContent?.trim() === "Retry mistakes")
+      ?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("1 / 1"));
+    expect(document.body.textContent).toContain("What scale degree did you hear?");
   });
 
   test("starts the repertoire review plan as a multi-prompt transfer session", async () => {
@@ -438,12 +576,8 @@ describe("/music/learn/ear/+page.svelte", () => {
     mixed?.click();
 
     for (let index = 0; index < 10; index += 1) {
-      await vi.waitFor(() =>
-        expect(
-          document.querySelector<HTMLButtonElement>('[aria-label="Answer choices"] button'),
-        ).not.toBeNull(),
-      );
-      document.querySelector<HTMLButtonElement>('[aria-label="Answer choices"] button')?.click();
+      await vi.waitFor(() => expect(answerChoiceButton()).not.toBeNull());
+      answerChoiceButton()?.click();
       if (index < 9) {
         await vi.waitFor(() => expect(document.body.textContent).toContain(`${index + 2} / 10`));
       }
@@ -455,6 +589,20 @@ describe("/music/learn/ear/+page.svelte", () => {
     expect(document.body.textContent).toContain("Repeat session");
   });
 });
+
+function button(label: string): HTMLButtonElement | undefined {
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>("button")];
+  return (
+    buttons.find((candidate) => candidate.textContent?.trim() === label) ??
+    buttons.find((candidate) => candidate.textContent?.includes(label))
+  );
+}
+
+function answerChoiceButton(): HTMLButtonElement | null {
+  return document.querySelector<HTMLButtonElement>(
+    '[aria-label="Answer choices"] button, [aria-label="Scale-degree answer choices"] button',
+  );
+}
 
 function audioNote(midiNote: number): NoteOnEvent {
   return {

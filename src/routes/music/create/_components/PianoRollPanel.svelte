@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import { onDestroy, onMount } from "svelte";
 
   import Download from "lucide-svelte/icons/download";
+  import ListMusic from "lucide-svelte/icons/list-music";
   import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
   import Trash2 from "lucide-svelte/icons/trash-2";
@@ -16,11 +18,17 @@
   import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
   import {
     addVoice,
+    addPianoRollSection,
     buildPianoRollGrid,
     clearVoice,
     createPianoRollScore,
+    createPianoRollScoreFromTake,
     noteAt,
+    mergeTakeIntoPianoRollScore,
+    removePianoRollSection,
     removeVoice,
+    renamePianoRollSection,
+    resizePianoRollSection,
     resizeNoteAt,
     setVoiceVelocity,
     toggleNoteAt,
@@ -33,15 +41,31 @@
   import { toast } from "@repo/ui/sonner";
 
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
+  import {
+    PIANO_ROLL_PENDING_TAKE_IMPORT_ID,
+    PIANO_ROLL_SCORE_ID,
+    type PianoRollPendingTakeImport,
+  } from "./piano-roll-storage";
+  import { SongLibrary } from "@repo/music-core/engines/song-library";
+  import { PracticeStore } from "@repo/music-core/engines/store";
 
-  let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  interface SongStudioSaver {
+    saveScore(score: Score): Promise<{ id: string; title: string }>;
+  }
+
+  let {
+    runtime = useMusicRuntime(),
+    library = browser ? new SongLibrary(new PracticeStore()) : undefined,
+  }: {
+    runtime?: MusicRuntime;
+    library?: SongStudioSaver;
+  } = $props();
 
   const PITCH_HIGH = 84; // C6
   const PITCH_LOW = 36; // C2
   const STEP_BEATS = 0.25; // 1/16 grid
   const BEATS_PER_BAR = 4;
   const MIN_BARS = 2;
-  const SCORE_ID = "music.piano-roll.score";
   // Theme-driven track colours (multitrack-lite); one per default voice.
   const TRACK_COLORS = ["bg-chart-1", "bg-chart-2", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
   const NOTE_LENGTHS = [
@@ -60,11 +84,17 @@
   let noteVelocity = $state(0.85);
   let gridZoom = $state(1);
   let visibleBars = $state(MIN_BARS);
+  let sectionName = $state("Intro");
+  let sectionDrafts = $state<Record<string, string>>({});
+  let sectionRangeDrafts = $state<Record<string, { startBar: string; endBar: string }>>({});
   let resizeMode = $state(false);
   let resizing = $state<{ voiceId: string; midiNote: number; beat: number } | undefined>();
   let playing = $state(false);
   let activeStep = $state(-1);
   let status = $state("Click cells to place notes. Changes save locally.");
+  let pendingTakeImport = $state.raw<PianoRollPendingTakeImport | undefined>();
+  let savingToSongStudio = $state(false);
+  let savedSongId = $state<string | undefined>();
   let storageLoaded = false; // plain, non-reactive (see recording route): wait for storage.
   let stepTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -241,6 +271,74 @@
     status = `${visibleBars} bars visible.`;
   }
 
+  async function addArrangementSection(): Promise<void> {
+    const name = sectionName.trim() || nextSectionName();
+    const startBeat =
+      score.sections.reduce((latest, section) => Math.max(latest, section.endBeat), 0) || 0;
+    const endBeat = startBeat + BEATS_PER_BAR;
+    score = addPianoRollSection(score, { name, startBeat, endBeat });
+    visibleBars = Math.max(visibleBars, Math.ceil(endBeat / BEATS_PER_BAR));
+    sectionName = nextSectionName();
+    await saveScore();
+    status = `Added ${name}.`;
+  }
+
+  async function removeArrangementSection(sectionId: string): Promise<void> {
+    const section = score.sections.find((candidate) => candidate.id === sectionId);
+    score = removePianoRollSection(score, sectionId);
+    const nextDrafts = { ...sectionDrafts };
+    delete nextDrafts[sectionId];
+    sectionDrafts = nextDrafts;
+    const nextRangeDrafts = { ...sectionRangeDrafts };
+    delete nextRangeDrafts[sectionId];
+    sectionRangeDrafts = nextRangeDrafts;
+    await saveScore();
+    status = section ? `Removed ${section.name}.` : "Removed section.";
+  }
+
+  async function renameArrangementSection(sectionId: string): Promise<void> {
+    const section = score.sections.find((candidate) => candidate.id === sectionId);
+    if (!section) return;
+    const name = (sectionDrafts[sectionId] ?? section.name).trim();
+    if (!name) {
+      status = "Section name is required.";
+      return;
+    }
+    score = renamePianoRollSection(score, sectionId, name);
+    sectionDrafts = { ...sectionDrafts, [sectionId]: name };
+    await saveScore();
+    status = `Renamed ${section.name} to ${name}.`;
+  }
+
+  async function resizeArrangementSection(sectionId: string): Promise<void> {
+    const section = score.sections.find((candidate) => candidate.id === sectionId);
+    if (!section) return;
+    const draft = sectionRangeDraft(section);
+    const startBar = Number.parseInt(draft.startBar, 10);
+    const endBar = Number.parseInt(draft.endBar, 10);
+    if (!Number.isFinite(startBar) || !Number.isFinite(endBar) || startBar < 1 || endBar < startBar) {
+      status = "Section bars must be valid.";
+      return;
+    }
+    try {
+      score = resizePianoRollSection(score, sectionId, {
+        startBeat: (startBar - 1) * BEATS_PER_BAR,
+        endBeat: endBar * BEATS_PER_BAR,
+      });
+      const resized = score.sections.find((candidate) => candidate.id === sectionId);
+      if (!resized) return;
+      sectionRangeDrafts = {
+        ...sectionRangeDrafts,
+        [sectionId]: { startBar: String(startBar), endBar: String(endBar) },
+      };
+      visibleBars = Math.max(visibleBars, endBar);
+      await saveScore();
+      status = `Resized ${resized.name} to ${sectionBars(resized)}.`;
+    } catch (error) {
+      status = error instanceof Error ? error.message : "Could not resize section.";
+    }
+  }
+
   function clearTrack(voiceId: string): void {
     if (playing) stopScore();
     score = clearVoice(score, voiceId);
@@ -301,6 +399,23 @@
     downloadBlob(scoreToMidiBlob(score), "piano-roll.mid");
   }
 
+  async function saveToSongStudio(): Promise<void> {
+    if (!library || savingToSongStudio) return;
+    savingToSongStudio = true;
+    try {
+      const saved = await library.saveScore(score);
+      savedSongId = saved.id;
+      status = "Saved to Song Studio.";
+      toast.success("Saved to Song Studio");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not save to Song Studio.";
+      status = message;
+      toast.error(message);
+    } finally {
+      savingToSongStudio = false;
+    }
+  }
+
   let exporting = $state(false);
 
   async function exportWav(): Promise<void> {
@@ -340,16 +455,61 @@
   }
 
   async function loadScore(): Promise<void> {
-    const saved = await runtime.readLocalState<Score>(SCORE_ID);
+    const saved = await runtime.readLocalState<Score>(PIANO_ROLL_SCORE_ID);
+    const storedPendingImport = await runtime.readLocalState<PianoRollPendingTakeImport>(
+      PIANO_ROLL_PENDING_TAKE_IMPORT_ID,
+    );
+    const pendingImport = isPendingTakeImport(storedPendingImport) ? storedPendingImport : undefined;
     if (isScore(saved)) {
       score = saved;
+      pendingTakeImport = pendingImport;
       status = "Loaded saved piano roll.";
+      return;
     }
+    if (pendingImport) {
+      score = createPianoRollScoreFromTake(pendingImport.take, pendingImport.bpm);
+      await runtime.writeLocalState(PIANO_ROLL_SCORE_ID, score);
+      await runtime.writeLocalState(PIANO_ROLL_PENDING_TAKE_IMPORT_ID, undefined);
+      pendingTakeImport = undefined;
+      status = `Imported ${pendingImport.take.name}.`;
+    }
+  }
+
+  async function addPendingImportAsTrack(): Promise<void> {
+    if (!pendingTakeImport) return;
+    const imported = pendingTakeImport;
+    score = mergeTakeIntoPianoRollScore(score, imported.take, imported.bpm);
+    activeVoiceId = score.voices.at(-1)?.id ?? activeVoiceId;
+    await resolvePendingImport(`Imported ${importName(imported)} as a new track.`);
+  }
+
+  async function replaceScoreWithPendingImport(): Promise<void> {
+    if (!pendingTakeImport) return;
+    const imported = pendingTakeImport;
+    score = createPianoRollScoreFromTake(imported.take, imported.bpm);
+    activeVoiceId = score.voices[0]?.id ?? "lead";
+    mutedVoiceIds = [];
+    await resolvePendingImport(`Replaced piano roll with ${importName(imported)}.`);
+  }
+
+  async function discardPendingImport(): Promise<void> {
+    if (!pendingTakeImport) return;
+    const imported = pendingTakeImport;
+    pendingTakeImport = undefined;
+    await runtime.writeLocalState(PIANO_ROLL_PENDING_TAKE_IMPORT_ID, undefined);
+    status = `Discarded ${importName(imported)}.`;
+  }
+
+  async function resolvePendingImport(message: string): Promise<void> {
+    await runtime.writeLocalState(PIANO_ROLL_SCORE_ID, score);
+    await runtime.writeLocalState(PIANO_ROLL_PENDING_TAKE_IMPORT_ID, undefined);
+    pendingTakeImport = undefined;
+    status = message;
   }
 
   async function saveScore(): Promise<void> {
     try {
-      await runtime.writeLocalState(SCORE_ID, score);
+      await runtime.writeLocalState(PIANO_ROLL_SCORE_ID, score);
       status = "Saved locally.";
       toast.success("Piano roll saved locally");
     } catch (error) {
@@ -365,6 +525,16 @@
       typeof value === "object" &&
       Array.isArray((value as Score).notes) &&
       Array.isArray((value as Score).voices)
+    );
+  }
+
+  function isPendingTakeImport(value: unknown): value is PianoRollPendingTakeImport {
+    return (
+      !!value &&
+      typeof value === "object" &&
+      typeof (value as PianoRollPendingTakeImport).bpm === "number" &&
+      !!(value as PianoRollPendingTakeImport).take &&
+      Array.isArray((value as PianoRollPendingTakeImport).take.notes)
     );
   }
 
@@ -384,8 +554,39 @@
     return `${Math.round(velocity * 100)}%`;
   }
 
+  function importName(imported: PianoRollPendingTakeImport): string {
+    return imported.take.name.trim() || "Imported take";
+  }
+
   function gridSummary(): string {
     return `${grid.barCount} ${grid.barCount === 1 ? "bar" : "bars"}`;
+  }
+
+  function nextSectionName(): string {
+    const names = ["Intro", "Verse", "Chorus", "Bridge", "Solo", "Outro"];
+    return names[score.sections.length] ?? `Section ${score.sections.length + 1}`;
+  }
+
+  function sectionBars(section: Score["sections"][number]): string {
+    const startBar = Math.floor(section.startBeat / BEATS_PER_BAR) + 1;
+    const endBar = Math.max(startBar, Math.ceil(section.endBeat / BEATS_PER_BAR));
+    return `bars ${startBar}-${endBar}`;
+  }
+
+  function sectionDraft(section: Score["sections"][number]): string {
+    return sectionDrafts[section.id] ?? section.name;
+  }
+
+  function sectionRangeDraft(section: Score["sections"][number]): {
+    startBar: string;
+    endBar: string;
+  } {
+    return (
+      sectionRangeDrafts[section.id] ?? {
+        startBar: String(Math.floor(section.startBeat / BEATS_PER_BAR) + 1),
+        endBar: String(Math.max(1, Math.ceil(section.endBeat / BEATS_PER_BAR))),
+      }
+    );
   }
 </script>
 
@@ -425,6 +626,20 @@
       <Button type="button" variant="outline" disabled={exporting} onclick={() => void exportWav()}>
         <Download class="size-4" aria-hidden="true" />Export WAV
       </Button>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={!library || savingToSongStudio}
+        onclick={() => void saveToSongStudio()}
+      >
+        <ListMusic class="size-4" aria-hidden="true" />
+        {savingToSongStudio ? "Saving..." : "Save to Song Studio"}
+      </Button>
+      {#if savedSongId}
+        <Button href={`/music/songs/${savedSongId}`} variant="outline">
+          Open Song Studio
+        </Button>
+      {/if}
       <Button type="button" onclick={() => void togglePlay()}>
         {#if playing}
           <Pause class="size-4" aria-hidden="true" />Stop
@@ -434,6 +649,135 @@
       </Button>
     </div>
   </section>
+
+  {#if pendingTakeImport}
+    <section class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+      <div>
+        <h3 class="text-sm font-semibold">Import {importName(pendingTakeImport)}?</h3>
+        <p class="text-sm text-muted-foreground">
+          Add this recorder take as a new track, replace the current roll, or discard the import.
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <Button type="button" onclick={() => void addPendingImportAsTrack()}>Add as track</Button>
+        <Button type="button" variant="outline" onclick={() => void replaceScoreWithPendingImport()}>
+          Replace roll
+        </Button>
+        <Button type="button" variant="ghost" onclick={() => void discardPendingImport()}>
+          Discard import
+        </Button>
+      </div>
+    </section>
+  {/if}
+
+  <Card.Root>
+    <Card.Header class="flex-row flex-wrap items-center justify-between gap-3">
+      <div>
+        <Card.Title>Arrangement</Card.Title>
+        <Card.Description>Label song sections directly on the roll for later practice ranges.</Card.Description>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="text-xs font-semibold text-muted-foreground" for="piano-roll-section-name">
+          Section name
+        </label>
+        <input
+          id="piano-roll-section-name"
+          aria-label="Section name"
+          value={sectionName}
+          oninput={(event) => (sectionName = (event.currentTarget as HTMLInputElement).value)}
+          class="h-9 w-32 rounded-md border border-input bg-background px-3 text-sm"
+        />
+        <Button type="button" variant="outline" onclick={() => void addArrangementSection()}>
+          Add section
+        </Button>
+      </div>
+    </Card.Header>
+    <Card.Content>
+      {#if score.sections.length === 0}
+        <p class="text-sm text-muted-foreground">No sections yet.</p>
+      {:else}
+        <div class="flex flex-wrap gap-2">
+          {#each score.sections as section (section.id)}
+            <div class="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+              <div>
+                <p class="text-sm font-semibold">{section.name} · {sectionBars(section)}</p>
+                <p class="text-xs text-muted-foreground">
+                  Beat {section.startBeat}-{section.endBeat}
+                </p>
+              </div>
+              <input
+                aria-label={`Rename ${section.name}`}
+                value={sectionDraft(section)}
+                oninput={(event) =>
+                  (sectionDrafts = {
+                    ...sectionDrafts,
+                    [section.id]: (event.currentTarget as HTMLInputElement).value,
+                  })}
+                class="h-8 w-28 rounded-md border border-input bg-background px-2 text-sm"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onclick={() => void renameArrangementSection(section.id)}
+              >
+                Rename {section.name}
+              </Button>
+              <div class="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="1"
+                  aria-label={`Start bar ${section.name}`}
+                  value={sectionRangeDraft(section).startBar}
+                  oninput={(event) =>
+                    (sectionRangeDrafts = {
+                      ...sectionRangeDrafts,
+                      [section.id]: {
+                        ...sectionRangeDraft(section),
+                        startBar: (event.currentTarget as HTMLInputElement).value,
+                      },
+                    })}
+                  class="h-8 w-16 rounded-md border border-input bg-background px-2 text-sm"
+                />
+                <span class="text-xs text-muted-foreground">to</span>
+                <input
+                  type="number"
+                  min="1"
+                  aria-label={`End bar ${section.name}`}
+                  value={sectionRangeDraft(section).endBar}
+                  oninput={(event) =>
+                    (sectionRangeDrafts = {
+                      ...sectionRangeDrafts,
+                      [section.id]: {
+                        ...sectionRangeDraft(section),
+                        endBar: (event.currentTarget as HTMLInputElement).value,
+                      },
+                    })}
+                  class="h-8 w-16 rounded-md border border-input bg-background px-2 text-sm"
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onclick={() => void resizeArrangementSection(section.id)}
+              >
+                Resize {section.name}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onclick={() => void removeArrangementSection(section.id)}
+              >
+                Remove {section.name}
+              </Button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </Card.Content>
+  </Card.Root>
 
   <Card.Root>
     <Card.Header class="flex-row flex-wrap items-center justify-between gap-3">

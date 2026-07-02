@@ -14,58 +14,77 @@
   import {
     JAM_PROGRESSIONS,
     JamSession,
+    normalizeJamPracticeConfig,
+    type JamBackingMode,
     type JamProgression,
     type TargetTone,
   } from "@repo/music-core/engines/jam";
   import { JAZZ_BACKING_TRACKS } from "@repo/music-core/engines/jazz";
+  import { RecordingSession, takeToScore, type Take } from "@repo/music-core/engines/recording";
+  import { scoreToPattern } from "@repo/music-core/engines/sound";
   import { chordNotes, pitchClass } from "@repo/music-core/engines/theory";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { onDestroy } from "svelte";
 
-  import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
+  import MidiTakeReviewPanel from "../_components/MidiTakeReviewPanel.svelte";
+  import ProgressionChartStage from "../_components/ProgressionChartStage.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
+  import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
 
-  // One octave starting at C; white/black layout for the target-tone keyboard.
-  const WHITE = [
-    { pc: 0, label: "C" },
-    { pc: 2, label: "D" },
-    { pc: 4, label: "E" },
-    { pc: 5, label: "F" },
-    { pc: 7, label: "G" },
-    { pc: 9, label: "A" },
-    { pc: 11, label: "B" },
-  ];
-  const BLACK = [
-    { pc: 1, left: 10 },
-    { pc: 3, left: 24 },
-    { pc: 6, left: 52 },
-    { pc: 8, left: 66 },
-    { pc: 10, left: 80 },
-  ];
+  const drumTracks = JAZZ_BACKING_TRACKS;
+  const jamConfigOptions = {
+    drumTrackIds: drumTracks.map((track) => track.id),
+    defaultDrumTrackId: drumTracks[0]?.id,
+  };
+  const initialSearchParams = browser ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const initialQueryHasTempo = initialSearchParams.has("bpm") || initialSearchParams.has("tempo");
+  const initialConfig = normalizeJamPracticeConfig(initialSearchParams, jamConfigOptions);
+  const initialProgression =
+    JAM_PROGRESSIONS.find((entry) => entry.id === initialConfig.progressionId) ?? JAM_PROGRESSIONS[0]!;
+  const initialSession = new JamSession(initialProgression);
 
-  const DEFAULT_PROGRESSION = JAM_PROGRESSIONS[0]!;
-  const initialSession = new JamSession(DEFAULT_PROGRESSION);
+  const {
+    runtime = useMusicRuntime(),
+    navigateToCreate = defaultNavigateToCreate,
+  }: {
+    runtime?: MusicRuntime;
+    navigateToCreate?: (href: string) => void | Promise<void>;
+  } = $props();
 
-  const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
-
-  let progression = $state<JamProgression>(DEFAULT_PROGRESSION);
+  let progression = $state<JamProgression>(initialProgression);
   let session = $state(initialSession);
   let tones = $state<TargetTone[]>(initialSession.targetTones());
   let currentIndex = $state(0);
   let recording = $state(false);
   let recordedCount = $state(0);
+  let midiTakes = $state<Take[]>([]);
+  let selectedMidiTake = $state<Take | undefined>();
+  const midiRecorder = new RecordingSession();
   const backingEngine = new BackingTrackEngine(createBackingAdapter());
   let backingState = $state<BackingTrackState>(backingEngine.state);
   // Default backing is the bundled drum track that matches the progression feel.
-  const drumTracks = JAZZ_BACKING_TRACKS;
-  let backingMode = $state<"drums" | "chords">("drums");
-  let drumTrackId = $state("swing-125");
+  let backingMode = $state<JamBackingMode>(initialConfig.backingMode);
+  let drumTrackId = $state(initialConfig.drumTrackId);
+  let backingBpm = $state(initialConfig.bpm);
+  let transportInitialized = false;
   const drumTrack = $derived(drumTracks.find((t) => t.id === drumTrackId) ?? drumTracks[0]!);
+  const normalizedConfig = $derived(
+    normalizeJamPracticeConfig(
+      {
+        progression: progression.id,
+        backing: backingMode,
+        drums: drumTrackId,
+        bpm: backingBpm,
+      },
+      jamConfigOptions,
+    ),
+  );
 
   const current = $derived(progression.chords[currentIndex] ?? progression.chords[0]!);
   const next = $derived(
@@ -75,15 +94,6 @@
     runtime.activeSource === "midi" ? "MIDI" : runtime.activeSource === "audio" ? "Audio" : "On-screen",
   );
 
-  function roleFor(pc: number): TargetTone["role"] {
-    return tones.find((tone) => tone.pitchClass === pc)?.role ?? "avoid";
-  }
-  function roleClass(role: TargetTone["role"], black = false): string {
-    if (role === "chord") return "bg-primary text-primary-foreground";
-    if (role === "scale") return black ? "bg-primary/50 text-white" : "bg-primary/20 text-primary";
-    return black ? "" : "";
-  }
-
   const unsubscribeBacking = backingEngine.subscribe((state) => {
     backingState = state;
   });
@@ -92,6 +102,7 @@
     const unsubscribe = runtime.router.subscribe((event) => {
       if (!recording || event.type !== "noteOn") return;
       session.record(event);
+      midiRecorder.capture(event);
       recordedCount = session.recorded().length;
     });
     return () => unsubscribe();
@@ -100,6 +111,21 @@
   // The transport Play button uses the shared backing engine/player path.
   // Drums mode plays the bundled MP3 (default); chords mode synths the changes.
   $effect(() => {
+    if (transportInitialized) return;
+    if (initialQueryHasTempo) runtime.setTransportBpm(initialConfig.bpm);
+    transportInitialized = true;
+  });
+
+  $effect(() => {
+    backingBpm = runtime.transportBpm;
+  });
+
+  $effect(() => {
+    syncConfigUrl();
+  });
+
+  $effect(() => {
+    const config = normalizedConfig;
     if (backingMode === "drums") {
       backingEngine.selectBuiltin(
         { id: drumTrack.id, label: drumTrack.label, url: drumTrack.url, bpm: drumTrack.bpm },
@@ -115,8 +141,8 @@
     }
     backingEngine.selectGenerated({
       kind: "generated",
-      progressionId: progression.id,
-      bpm: runtime.transportBpm,
+      progressionId: config.progressionId,
+      bpm: config.bpm,
       loop: true,
     });
     const durationSec = backingEngine.state.durationMs / 1_000;
@@ -129,11 +155,19 @@
   });
 
   function selectStyle(id: string): void {
-    progression = JAM_PROGRESSIONS.find((entry) => entry.id === id) ?? JAM_PROGRESSIONS[0]!;
+    const config = normalizeJamPracticeConfig({ progression: id, backing: backingMode, drums: drumTrackId, bpm: backingBpm }, jamConfigOptions);
+    progression = JAM_PROGRESSIONS.find((entry) => entry.id === config.progressionId) ?? JAM_PROGRESSIONS[0]!;
     session = new JamSession(progression);
     currentIndex = 0;
     tones = session.targetTones();
     recordedCount = 0;
+  }
+
+  function selectBackingMode(value: string): void {
+    backingMode = normalizeJamPracticeConfig(
+      { progression: progression.id, backing: value, drums: drumTrackId, bpm: backingBpm },
+      jamConfigOptions,
+    ).backingMode;
   }
 
   function refresh(): void {
@@ -164,11 +198,59 @@
   }
 
   function toggleRecording(): void {
-    recording = !recording;
+    if (recording) {
+      const take = midiRecorder.stop(performance.now(), `${progression.name} chorus ${midiTakes.length + 1}`);
+      if (take.notes.length > 0) {
+        midiTakes = [take, ...midiTakes];
+        selectedMidiTake = take;
+      }
+      recording = false;
+      return;
+    }
+    recording = true;
     if (recording) {
       session.clearRecording();
+      midiRecorder.start(performance.now());
       recordedCount = 0;
     }
+  }
+
+  async function playMidiTake(take: Take): Promise<void> {
+    if (!(await runtime.enableAudio())) return;
+    const pattern = scoreToPattern(takeToScore(take, backingBpm), { bpm: backingBpm });
+    runtime.sound.playPattern(pattern.steps);
+  }
+
+  function deleteMidiTake(take: Take): void {
+    midiTakes = midiTakes.filter((candidate) => candidate.id !== take.id);
+    selectedMidiTake = midiTakes[0];
+  }
+
+  function practiceMidiTake(take: Take): void {
+    selectedMidiTake = take;
+    recording = false;
+    recordedCount = take.notes.length;
+  }
+
+  async function openMidiTakeInPianoRoll(take: Take): Promise<void> {
+    await runtime.writeLocalState(PIANO_ROLL_PENDING_TAKE_IMPORT_ID, { take, bpm: backingBpm });
+    await navigateToCreate("/music/create?mode=piano-roll&source=jam-chorus-take");
+  }
+
+  function syncConfigUrl(): void {
+    if (!browser) return;
+    const config = normalizedConfig;
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    params.set("progression", config.progressionId);
+    params.set("backing", config.backingMode);
+    params.set("drums", config.drumTrackId);
+    params.set("bpm", String(config.bpm));
+    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
+  }
+
+  function defaultNavigateToCreate(href: string): void {
+    if (browser) window.location.assign(href);
   }
 
   onDestroy(() => {
@@ -215,83 +297,26 @@
       <SourceReadout label="Soloing on" device={sourceLabel} live={runtime.activeSource === "midi"} />
       <Button type="button" variant={recording ? "default" : "outline"} onclick={toggleRecording}>
         <Circle class="size-4 {recording ? 'fill-current text-destructive' : ''}" aria-hidden="true" />
-        {recording ? `Recording · ${recordedCount}` : "Record solo"}
+        {recording ? `Stop chorus · Recording · ${recordedCount}` : "Record chorus"}
       </Button>
     {/snippet}
   </PracticeScreenHeader>
 
   <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
     <div class="grid gap-6">
-      <!-- Now playing -->
-      <Card.Root>
-        <Card.Content class="flex flex-col items-center gap-2 py-8 text-center">
-          <span class="eyebrow">
-            Now playing · {current.roman} in {progression.key}
-          </span>
-          <span class="text-6xl font-bold tracking-tight text-primary">{current.symbol}</span>
-          <span class="text-sm text-muted-foreground">{current.scale}</span>
-          <div class="mt-2 flex flex-wrap items-center justify-center gap-4 text-xs">
-            <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-primary"></span>Chord tones</span>
-            <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-primary/30"></span>Scale tones</span>
-            <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-muted"></span>Avoid</span>
-          </div>
-        </Card.Content>
-      </Card.Root>
-
-      <!-- Progression rail -->
-      <Card.Root>
-        <Card.Header class="flex-row items-center justify-between gap-2">
-          <Card.Description>Progression · {progression.name}</Card.Description>
-          <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-            {current.bars} bars each
-          </span>
-        </Card.Header>
-        <Card.Content class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {#each progression.chords as chord, index}
-            <div
-              class="rounded-xl border p-3 text-center {index === currentIndex
-                ? 'border-primary bg-primary/10'
-                : ''}"
-            >
-              <div class="text-lg font-bold">{chord.symbol}</div>
-              <div class="text-xs text-muted-foreground">
-                {chord.roman}{index === currentIndex ? " · now" : index === (currentIndex + 1) % progression.chords.length ? " · next" : ""}
-              </div>
-            </div>
-          {/each}
-        </Card.Content>
-      </Card.Root>
-
-      <!-- Target tones keyboard -->
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Target tones · {current.symbol} / {current.scale}</Card.Description>
-        </Card.Header>
-        <Card.Content>
-          <div class="relative mx-auto h-32 max-w-md select-none">
-            <div class="flex h-full gap-1">
-              {#each WHITE as key}
-                <div
-                  class="flex flex-1 items-end justify-center rounded-b-md border pb-2 text-xs font-semibold {roleClass(
-                    roleFor(key.pc),
-                  ) || 'bg-background text-muted-foreground'}"
-                >
-                  {key.label}
-                </div>
-              {/each}
-            </div>
-            {#each BLACK as key}
-              <div
-                class="absolute top-0 h-20 w-[9%] rounded-b-md border border-foreground/20 {roleClass(
-                  roleFor(key.pc),
-                  true,
-                ) || 'bg-foreground'}"
-                style="left:{key.left}%"
-              ></div>
-            {/each}
-          </div>
-        </Card.Content>
-      </Card.Root>
+      <ProgressionChartStage {progression} {currentIndex} {tones} />
+      <MidiTakeReviewPanel
+        title="Review chorus takes"
+        description="Compare recorded chorus ideas against the current progression."
+        emptyLabel="Recorded chorus takes will appear here."
+        takes={midiTakes}
+        selectedTake={selectedMidiTake}
+        onSelectTake={(take) => (selectedMidiTake = take)}
+        onPlayTake={playMidiTake}
+        onDeleteTake={deleteMidiTake}
+        onPracticeTake={practiceMidiTake}
+        onOpenInPianoRoll={openMidiTakeInPianoRoll}
+      />
 
       <!-- Solo input -->
       <Card.Root>
@@ -339,7 +364,7 @@
                 { value: "chords", label: "Synth chords" },
               ]}
               value={backingMode}
-              onChange={(v) => (backingMode = v as "drums" | "chords")}
+              onChange={selectBackingMode}
             />
             {#if backingMode === "drums"}
               <select

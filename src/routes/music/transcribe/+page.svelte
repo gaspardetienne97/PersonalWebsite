@@ -20,6 +20,7 @@
     type TranscriptionDraft,
   } from "@repo/music-core/engines/transcription";
   import { PracticeStore } from "@repo/music-core/engines/store";
+  import type { AudioTakeRow } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
@@ -56,6 +57,7 @@
   let extracting = $state(false);
   let extractionProgress = $state(0);
   let savedSongId = $state<string | undefined>();
+  let savedTakes = $state<AudioTakeRow[]>([]);
   let practiceSession: ScorePracticeSession | undefined;
   let practiceState = $state.raw<ScorePracticeState>();
   let finishingTrainer = false;
@@ -77,6 +79,7 @@
       practiceState = practiceSession.accept(event);
       if ((practiceState.live?.progress ?? practiceState.progress) >= 1) finishTrainer();
     });
+    void loadSavedTakes();
   });
 
   $effect(() => {
@@ -100,6 +103,21 @@
   function onAudioFile(files: FileList | null): void {
     audioFile = files?.[0];
     if (audioFile) status = `Attached ${audioFile.name}. Manual notes still drive this draft.`;
+  }
+
+  async function loadSavedTakes(): Promise<void> {
+    savedTakes = (await runtime.media?.listTakes()) ?? [];
+  }
+
+  async function useSavedTake(take: AudioTakeRow): Promise<void> {
+    const blob = await runtime.media?.takeBlob(take.id);
+    if (!blob) {
+      status = "Saved take audio is unavailable.";
+      return;
+    }
+    const extension = take.mimeType.includes("webm") ? "webm" : take.mimeType.includes("wav") ? "wav" : "audio";
+    audioFile = new File([blob], `${take.name}.${extension}`, { type: take.mimeType });
+    status = `Attached ${audioFile.name}. Manual notes still drive this draft.`;
   }
 
   function buildTranscription(): void {
@@ -355,6 +373,30 @@
           </Button>
         </Card.Footer>
       </Card.Root>
+
+      {#if savedTakes.length > 0}
+        <Card.Root>
+          <Card.Header>
+            <Card.Description>Saved recorder takes</Card.Description>
+            <Card.Title class="text-base">Use Practice Lab audio</Card.Title>
+          </Card.Header>
+          <Card.Content class="grid gap-2">
+            {#each savedTakes as take (take.id)}
+              <div class="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
+                <span class="min-w-0">
+                  <span class="block truncate text-sm font-semibold">{take.name}</span>
+                  <span class="text-xs text-muted-foreground">
+                    {Math.round(take.durationMs / 1_000)}s · {take.instrument}
+                  </span>
+                </span>
+                <Button type="button" size="sm" variant="outline" onclick={() => void useSavedTake(take)}>
+                  Use as source
+                </Button>
+              </div>
+            {/each}
+          </Card.Content>
+        </Card.Root>
+      {/if}
 
       <Card.Root>
         <Card.Header>

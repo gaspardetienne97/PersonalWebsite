@@ -1,15 +1,35 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import Play from "lucide-svelte/icons/play";
   import { onDestroy } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
-  import { gradeLickSequence, type LickGrade } from "@repo/music-core/engines/jazz";
-  import { midiToNote } from "@repo/music-core/engines/theory";
+  import {
+    Capability,
+    unixMs,
+    type ExerciseRunRecord,
+    type NoteEvent,
+    type ScoringEvent,
+  } from "@repo/music-core/domain";
+  import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+  import {
+    buildJazzSequenceCapture,
+    gradeLickSequence,
+    normalizeChordScaleDrillConfig,
+    type ChordScaleDrillChangesId,
+    type LickGrade,
+  } from "@repo/music-core/engines/jazz";
+  import {
+    targetTones,
+    type JamProgression,
+    type TargetTone,
+  } from "@repo/music-core/engines/jam";
+  import { ProgressEngine } from "@repo/music-core/engines/progress";
+  import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
+  import { PracticeStore } from "@repo/music-core/engines/store";
   import {
     scaleSemitones,
     type ScalePatternKind,
   } from "@repo/music-core/exercises/scale-pattern";
-  import { Badge } from "@repo/ui/badge";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
@@ -17,6 +37,7 @@
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -24,6 +45,14 @@
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const SCALE_BPM = 132;
+  const CHORD_SCALE_SKILL = "harmony.ii-v-i";
+  const CHORD_SCALE_CAPABILITIES = [Capability.Harmony, Capability.Technique, Capability.Pitch];
+  const CHORD_SCALE_DIFFICULTY = 0.65;
+  const store = browser ? new PracticeStore() : undefined;
+  const skills = new SkillGraphStore(store);
+  const analytics = new AnalyticsEngine(store);
+  const progress = new ProgressEngine(store);
+  const servicesReady = Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
 
   // The go-to scale for each chord as a ii-V-I moves — the relationship the Jazz
   // Guide teaches as reference, here drilled by ear and hand. Roots in C; scale
@@ -35,9 +64,16 @@
     scaleLabel: string;
   }
   interface Changes {
-    id: string;
+    id: ChordScaleDrillChangesId;
     label: string;
     chords: Change[];
+  }
+  interface CompletedChord {
+    change: Change;
+    index: number;
+    expectedMidi: number[];
+    playedMidi: number[];
+    grade: LickGrade;
   }
   const ALL_CHANGES: Changes[] = [
     {
@@ -60,26 +96,48 @@
     },
   ];
   const changesOptions = ALL_CHANGES.map((entry) => ({ value: entry.id, label: entry.label }));
+  const initialConfig = normalizeChordScaleDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
 
-  let changesId = $state("major");
+  let changesId = $state<ChordScaleDrillChangesId>(initialConfig.changesId);
   let chordIndex = $state(0);
   let phase = $state<"idle" | "listening" | "graded">("idle");
   let played = $state<number[]>([]);
   let grades = $state<LickGrade[]>([]);
+  let completedChords = $state<CompletedChord[]>([]);
   let status = $state("Hear the scale for each chord, then play it back.");
   let captured = false;
+  let attemptStartedAt = unixMs(Date.now());
   let unsubscribe: (() => void) | undefined;
 
   const changes = $derived(ALL_CHANGES.find((entry) => entry.id === changesId) ?? ALL_CHANGES[0]);
   const chord = $derived(changes.chords[chordIndex]);
   const scaleMidi = $derived(scaleSemitones(chord.scale).map((semitones) => chord.rootMidi + semitones));
-  const scaleNotes = $derived(scaleMidi.map((midi) => midiToNote(midi, true)).join("  "));
+  const progressionView = $derived<JamProgression>({
+    id: `chord-scale-${changes.id}`,
+    name: changes.label,
+    key: changes.id === "minor" ? "C minor" : "C major",
+    style: "jazz",
+    chords: changes.chords.map((entry, index) => ({
+      symbol: entry.symbol,
+      roman: romanFor(changes.id, index),
+      scale: entry.scaleLabel,
+      bars: 1,
+    })),
+  });
+  const chartTones = $derived<TargetTone[]>(targetTones(normalizedChordSymbol(chord.symbol), chord.scaleLabel));
   const done = $derived(grades.length === changes.chords.length);
+  const normalizedConfig = $derived(normalizeChordScaleDrillConfig({ changes: changesId }));
   const overall = $derived(
     grades.length === 0
       ? 0
       : Math.round((grades.reduce((sum, g) => sum + g.accuracy, 0) / grades.length) * 100),
   );
+
+  $effect(() => {
+    syncConfigUrl();
+  });
 
   function reset(): void {
     unsubscribe?.();
@@ -88,13 +146,24 @@
     phase = "idle";
     played = [];
     grades = [];
+    completedChords = [];
     captured = false;
     status = "Hear the scale for each chord, then play it back.";
   }
 
   function selectChanges(id: string): void {
-    changesId = id;
+    changesId = normalizeChordScaleDrillConfig({ changes: id }).changesId;
     reset();
+  }
+
+  function romanFor(changesKind: string, index: number): string {
+    if (index === 0) return changesKind === "minor" ? "iiø" : "ii";
+    if (index === 1) return changesKind === "minor" ? "V7alt" : "V";
+    return changesKind === "minor" ? "i" : "I";
+  }
+
+  function normalizedChordSymbol(symbol: string): string {
+    return symbol.replaceAll("♭", "b").replaceAll("♯", "#");
   }
 
   async function hearScale(): Promise<void> {
@@ -107,6 +176,7 @@
 
   function startAttempt(): void {
     unsubscribe?.();
+    if (completedChords.length === 0) attemptStartedAt = unixMs(Date.now());
     phase = "listening";
     played = [];
     status = `Play ${chord.scaleLabel} over ${chord.symbol}…`;
@@ -123,31 +193,119 @@
   function gradeChord(): void {
     unsubscribe?.();
     unsubscribe = undefined;
-    const grade = gradeLickSequence(scaleMidi, played);
+    const currentChord = chord;
+    const currentIndex = chordIndex;
+    const expected = [...scaleMidi];
+    const response = [...played];
+    const grade = gradeLickSequence(expected, response);
+    const nextCompleted = [
+      ...completedChords,
+      { change: currentChord, index: currentIndex, expectedMidi: expected, playedMidi: response, grade },
+    ];
     grades = [...grades, grade];
+    completedChords = nextCompleted;
     if (chordIndex < changes.chords.length - 1) {
       phase = "idle";
       chordIndex += 1;
       status = `${Math.round(grade.accuracy * 100)}% — next chord: ${changes.chords[chordIndex].symbol}.`;
     } else {
       phase = "graded";
-      finish();
+      void finish(nextCompleted);
     }
   }
 
-  function finish(): void {
-    status = `Done — ${overall}% across ${changes.chords.length} chords.`;
+  async function finish(completed = completedChords): Promise<void> {
     if (!captured) {
       captured = true;
-      const xp = Math.round((overall / 100) * 30);
-      void runtime.recordPractice({
+      const endedAt = unixMs(Date.now());
+      const sessionId = stableId("jazz-chord-scale-session");
+      const runId = stableId("jazz-chord-scale-run");
+      const exerciseId = `jazz.chord-scale.${changes.id}`;
+      const captures = completed.map((item) =>
+        buildJazzSequenceCapture({
+          exerciseId,
+          label: `${item.change.symbol} · ${item.change.scaleLabel}`,
+          sessionId,
+          runId,
+          eventId: stableId(`jazz-chord-scale-event-${item.index + 1}`),
+          promptId: `${changes.id}-${item.index + 1}-${item.change.symbol}`,
+          skillIds: [CHORD_SCALE_SKILL, `technique.scale.${item.change.scale}`],
+          capabilities: CHORD_SCALE_CAPABILITIES,
+          expectedMidi: item.expectedMidi,
+          playedMidi: item.playedMidi,
+          grade: item.grade,
+          startedAt: attemptStartedAt,
+          endedAt,
+          difficulty: CHORD_SCALE_DIFFICULTY,
+          instrument: "piano",
+          params: {
+            changesId: changes.id,
+            chordSymbol: item.change.symbol,
+            scale: item.change.scale,
+          },
+        }),
+      );
+      const scoringEvents = captures.map((capture) => capture.event);
+      const runs = [mergeChordScaleRun(captures.map((capture) => capture.run), exerciseId, runId)];
+      const xp = await ingestScoringEvents(scoringEvents);
+      status = `Done — ${overall}% across ${changes.chords.length} chords · +${xp} XP.`;
+      await runtime.recordPractice({
+        id: sessionId,
         source: "drill",
         instrument: "piano",
         tags: ["jazz", "chord-scales"],
+        scoringEvents,
+        runs,
         xpEarned: xp,
         note: `${changes.label} chord-scales · ${overall}%`,
       });
+    } else {
+      status = `Done — ${overall}% across ${changes.chords.length} chords.`;
     }
+  }
+
+  function mergeChordScaleRun(
+    runs: ExerciseRunRecord[],
+    exerciseId: string,
+    runId: string,
+  ): ExerciseRunRecord {
+    return {
+      id: runId,
+      exerciseId,
+      startedAt: attemptStartedAt,
+      endedAt: unixMs(Date.now()),
+      promptIds: runs.flatMap((run) => run.promptIds),
+      targetSkillIds: [...new Set(runs.flatMap((run) => run.targetSkillIds))],
+      instrument: "piano",
+      difficulty: CHORD_SCALE_DIFFICULTY,
+      params: { changesId: changes.id, chords: changes.chords.map((entry) => entry.symbol) },
+    };
+  }
+
+  async function ingestScoringEvents(events: ScoringEvent[]): Promise<number> {
+    await servicesReady;
+    let xp = 0;
+    for (const event of events) {
+      await skills.ingest(event);
+      await analytics.ingest(event);
+      xp += await progress.ingest(event, skills);
+    }
+    return xp;
+  }
+
+  function stableId(prefix: string): string {
+    return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
+  }
+
+  function syncConfigUrl(): void {
+    const config = normalizedConfig;
+    const params = new URLSearchParams(window.location.search);
+    params.set("changes", config.changesId);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
+    );
   }
 
   onDestroy(() => unsubscribe?.());
@@ -177,6 +335,8 @@
 
   <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
     <div class="min-w-0 space-y-4">
+      <ProgressionChartStage progression={progressionView} currentIndex={chordIndex} tones={chartTones} />
+
       <Card.Root>
         <Card.Header class="gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -193,35 +353,6 @@
         </Card.Header>
 
         <Card.Content class="space-y-5">
-          <!-- The three chords; the current one is highlighted. -->
-          <div class="grid gap-2 sm:grid-cols-3" role="list" aria-label="Chord changes">
-            {#each changes.chords as entry, index (entry.symbol)}
-              <div
-                role="listitem"
-                class="rounded-lg border p-3 transition-colors {index === chordIndex && !done
-                  ? 'border-practice-accent bg-practice-accent/5'
-                  : grades[index]
-                    ? 'bg-muted/40'
-                    : ''}"
-              >
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-lg font-bold">{entry.symbol}</span>
-                  {#if grades[index]}
-                    <Badge variant="secondary">{Math.round(grades[index].accuracy * 100)}%</Badge>
-                  {/if}
-                </div>
-                <span class="text-sm text-muted-foreground">{entry.scaleLabel}</span>
-              </div>
-            {/each}
-          </div>
-
-          {#if !done}
-            <div class="space-y-2 rounded-lg border bg-muted/30 p-4">
-              <p class="eyebrow">Play this · {chord.scaleLabel} over {chord.symbol}</p>
-              <p class="font-mono text-sm tabular-nums">{scaleNotes}</p>
-            </div>
-          {/if}
-
           {#if phase === "listening"}
             <div class="space-y-1.5">
               <div class="flex justify-between text-xs text-muted-foreground">

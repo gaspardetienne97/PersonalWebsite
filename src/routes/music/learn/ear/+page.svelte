@@ -9,12 +9,15 @@
   } from "@repo/music-core/engines/audio-in";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
+    buildEarTrainingRetrySchedule,
     buildRepertoireReviewPlan,
     buildRepertoireReviewPlanSchedule,
     buildRepertoireReviewQueue,
     createRepertoireTransferExercise,
     EarTrainingSession,
+    normalizeEarTrainingConfig,
     type EarTrainingSessionState,
+    type EarTrainingConfigDrill,
     type RepertoireEarTransfer,
     type RepertoireReviewItem,
     type RepertoireReviewPlan,
@@ -87,12 +90,16 @@
   registry.register(scaleDegreeRecognitionExercise);
   registry.register(melodyDictationExercise);
   const scheduler = new ExerciseScheduler(registry, skills, analytics);
+  const initialConfig = normalizeEarTrainingConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
 
   let ready = $state(false);
   let pending = $state(false);
-  let answerMode = $state<EarTrainingAnswerMode>("choice");
-  let feedbackMode = $state<EarTrainingFeedbackMode>("practice");
-  let scaleDegreeSet = $state<ScaleDegreeSetId>("anchor");
+  let preferredDrill = $state<EarTrainingConfigDrill>(initialConfig.drill);
+  let answerMode = $state<EarTrainingAnswerMode>(initialConfig.answerMode);
+  let feedbackMode = $state<EarTrainingFeedbackMode>(initialConfig.feedbackMode);
+  let scaleDegreeSet = $state<ScaleDegreeSetId>(initialConfig.scaleDegreeSet);
   let droneOn = $state(false);
   let lastFreePlayDegree = $state<ScaleDegreeFreePlayChoice | undefined>();
   let status = $state("Preparing your learning history.");
@@ -112,10 +119,22 @@
   const freePlayChoices = $derived(
     scaleDegreeFreePlayChoices({ tonicMidi: freePlayTonicMidi, scaleDegreeSet }),
   );
+  const normalizedConfig = $derived(
+    normalizeEarTrainingConfig({
+      drill: preferredDrill,
+      answer: answerMode,
+      feedback: feedbackMode,
+      level: scaleDegreeSet,
+    }),
+  );
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
     midiStatus = midiMessage();
+  });
+
+  $effect(() => {
+    syncConfigUrl();
   });
 
   $effect(() => {
@@ -162,15 +181,15 @@
   }
 
   function setAnswerMode(mode: EarTrainingAnswerMode): void {
-    answerMode = mode;
+    answerMode = normalizeEarTrainingConfig({ answer: mode }).answerMode;
   }
 
   function setFeedbackMode(mode: EarTrainingFeedbackMode): void {
-    feedbackMode = mode;
+    feedbackMode = normalizeEarTrainingConfig({ feedback: mode }).feedbackMode;
   }
 
   function setScaleDegreeSet(next: ScaleDegreeSetId): void {
-    scaleDegreeSet = next;
+    scaleDegreeSet = normalizeEarTrainingConfig({ level: next }).scaleDegreeSet;
     lastFreePlayDegree = undefined;
     void loadRepertoireTransfers();
   }
@@ -196,11 +215,15 @@
     overrides: {
       answerMode?: EarTrainingAnswerMode;
       length?: number;
+      scaleDegreeSet?: ScaleDegreeSetId;
       scheduled?: ScheduledExercise[];
     } = {},
   ): Promise<void> {
     if (!ready || pending) return;
     const sessionAnswerMode = overrides.answerMode ?? answerMode;
+    if (drill !== "repertoire-transfer") {
+      preferredDrill = drill;
+    }
     if (sessionAnswerMode === "voice" && drill !== "scale-degree") {
       status = "Voice mode is only available for focused scale-degree sessions.";
       return;
@@ -250,7 +273,7 @@
           feedbackMode,
           ...(overrides.length !== undefined ? { length: overrides.length } : {}),
           queueMode: drill === "mixed" ? "adaptive" : "balanced",
-          scaleDegreeSet,
+          scaleDegreeSet: overrides.scaleDegreeSet ?? scaleDegreeSet,
         },
       );
       unsubscribeSession = session.subscribe(handleSessionState);
@@ -339,6 +362,10 @@
     }
   }
 
+  function playTonic(midiNote: number): void {
+    runtime.sound.playNote(midiNote, 0.45, undefined, 0.8);
+  }
+
   async function toggleFreePlayDrone(): Promise<void> {
     if (droneOn) {
       stopFreePlayDrone();
@@ -388,6 +415,41 @@
     const drill = sessionState?.options.drill ?? "mixed";
     sessionState = undefined;
     void startSession(drill);
+  }
+
+  function retryMistakes(): void {
+    const retryState = sessionState;
+    const scheduled = retryState?.summary
+      ? buildEarTrainingRetrySchedule(retryState.summary, {
+          limit: Math.min(10, Math.max(1, retryState.summary.confusions.length)),
+        })
+      : [];
+    if (scheduled.length === 0) {
+      repeatSession();
+      return;
+    }
+
+    sessionState = undefined;
+    void startSession("mixed", {
+      answerMode: retryState?.options.answerMode,
+      length: scheduled.length,
+      scaleDegreeSet: "full-current",
+      scheduled,
+    });
+  }
+
+  function syncConfigUrl(): void {
+    const config = normalizedConfig;
+    const params = new URLSearchParams(window.location.search);
+    params.set("drill", config.drill);
+    params.set("answer", config.answerMode);
+    params.set("feedback", config.feedbackMode);
+    params.set("level", config.scaleDegreeSet);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
+    );
   }
 
   async function stopVoiceMic(): Promise<void> {
@@ -463,7 +525,7 @@
     <EarTrainingSummary
       summary={sessionState.summary}
       onRepeat={repeatSession}
-      onRetry={repeatSession}
+      onRetry={retryMistakes}
     />
     <RoutineContinueAction routine={runtime.dailyRoutine} />
   {:else}
@@ -476,6 +538,7 @@
           surface={runtime.surfaceFor(runtime.activeInstrument)}
           {voiceStatus}
           onReplay={replayCurrent}
+          onPlayTonic={playTonic}
           onAnswer={answerChoice}
           onAccepted={playAccepted}
           onAbandon={abandon}

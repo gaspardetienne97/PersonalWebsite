@@ -9,13 +9,20 @@
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
+    normalizeScaleDrillConfig,
+    SCALE_DRILL_MOTIONS,
+    SCALE_DRILL_SPANS,
+    SCALE_DRILL_TONICS,
     TechniqueSession,
     type TechniqueSessionState,
   } from "@repo/music-core/engines/technique-session";
+  import { noteToMidi } from "@repo/music-core/engines/theory";
   import {
     JAZZ_SCALE_KINDS,
-    scaleSemitones,
+    scalePatternSemitones,
+    type ScaleMotion,
     type ScalePatternKind,
+    type ScaleSpan,
   } from "@repo/music-core/exercises/scale-pattern";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -26,6 +33,7 @@
   import { INSTRUMENT_LABELS, VIEWABLE_INSTRUMENTS, type InstrumentId } from "@repo/music-core/domain";
 
   import InstrumentView from "../../_components/InstrumentView.svelte";
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
@@ -39,38 +47,67 @@
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
+  const initialConfig = normalizeScaleDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
 
   // Which scale to practice. The drill is technical (play it evenly, unlock
   // faster tempos); jazz/modal scales make it double as jazz vocabulary.
   const SCALE_OPTIONS: { value: ScalePatternKind; label: string; jazz: boolean }[] = [
     { value: "major", label: "Major", jazz: false },
     { value: "natural-minor", label: "Natural minor", jazz: false },
+    { value: "harmonic-minor", label: "Harmonic minor", jazz: false },
     { value: "dorian", label: "Dorian", jazz: true },
     { value: "phrygian", label: "Phrygian", jazz: false },
     { value: "lydian", label: "Lydian", jazz: true },
     { value: "mixolydian", label: "Mixolydian", jazz: true },
     { value: "locrian", label: "Locrian", jazz: false },
     { value: "melodic-minor", label: "Melodic minor", jazz: true },
+    { value: "major-pentatonic", label: "Major pentatonic", jazz: false },
+    { value: "minor-pentatonic", label: "Minor pentatonic", jazz: false },
+    { value: "blues", label: "Blues", jazz: true },
     { value: "altered", label: "Altered (super-locrian)", jazz: true },
+    { value: "bebop-major", label: "Bebop major", jazz: true },
     { value: "bebop-dominant", label: "Bebop dominant", jazz: true },
     { value: "whole-tone", label: "Whole tone", jazz: true },
     { value: "diminished", label: "Diminished (half-whole)", jazz: true },
   ];
-  let scale = $state<ScalePatternKind>("major");
+  const MOTION_OPTIONS: { value: ScaleMotion; label: string }[] = SCALE_DRILL_MOTIONS.map(
+    (value) => ({
+      value,
+      label: value === "up" ? "Ascending" : value === "down" ? "Descending" : "Up-down",
+    }),
+  );
+  const SPAN_OPTIONS: { value: ScaleSpan; label: string }[] = SCALE_DRILL_SPANS.map((value) => ({
+    value,
+    label:
+      value === "pentascale" ? "Pentascale" : value === "two-octave" ? "Two octaves" : "One octave",
+  }));
+  let scale = $state<ScalePatternKind>(initialConfig.scale);
   const scaleLabel = $derived(
     SCALE_OPTIONS.find((option) => option.value === scale)?.label ?? "Major",
   );
   const isJazzScale = $derived(JAZZ_SCALE_KINDS.includes(scale));
-  // Reference view of the selected scale (C4 up an octave), on the chosen instrument.
-  const referenceMidi = $derived(scaleSemitones(scale).map((semitones) => 60 + semitones));
-  let scaleInstrument = $state<InstrumentId>(
-    VIEWABLE_INSTRUMENTS.includes(runtime.activeInstrument) ? runtime.activeInstrument : "piano",
+  let tonic = $state(initialConfig.tonic);
+  let motion = $state<ScaleMotion>(initialConfig.motion);
+  let span = $state<ScaleSpan>(initialConfig.span);
+  const motionLabel = $derived(
+    MOTION_OPTIONS.find((option) => option.value === motion)?.label ?? "Ascending",
   );
+  const spanLabel = $derived(
+    SPAN_OPTIONS.find((option) => option.value === span)?.label ?? "One octave",
+  );
+  const tonicLabel = $derived(tonic.replace(/\d+$/, ""));
+  // Reference view of the selected scale pattern on the chosen instrument.
+  const referenceMidi = $derived(
+    scalePatternSemitones(scale, span, motion).map((semitones) => noteToMidi(tonic) + semitones),
+  );
+  let scaleInstrument = $state<InstrumentId>(initialConfig.instrument);
 
   let ready = $state(false);
   let pending = $state(false);
   let status = $state("Preparing your technique history.");
-  let tempo = $state(100);
+  let tempo = $state(initialConfig.bpm);
   let session = $state<TechniqueSession | undefined>();
   let sessionState = $state<TechniqueSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
@@ -86,8 +123,15 @@
   const tempoLadder = $derived(
     ladderState ? tempoLadderProjection(ladderState, { startBpm: 100, stepBpm: 10, rungs: 6 }) : [],
   );
+  const normalizedConfig = $derived(
+    normalizeScaleDrillConfig({ scale, tonic, instrument: scaleInstrument, bpm: tempo, motion, span }),
+  );
 
   void initialize();
+
+  $effect(() => {
+    syncConfigUrl();
+  });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
@@ -104,7 +148,7 @@
       unsubscribeSession = session.subscribe((state) => {
         sessionState = state;
         status = state.error ?? "";
-        tempo = state.nextTargetBpm;
+        if (state.summary) tempo = state.nextTargetBpm;
         // Auto-capture the finished scale run into the journal (once).
         if (state.summary && !captured) {
           captured = true;
@@ -143,12 +187,15 @@
 
     try {
       captured = false;
+      const config = normalizedConfig;
       await session.startScale({
-        tonic: "C4",
-        scale,
-        bpm: tempo,
+        tonic: config.tonic,
+        scale: config.scale,
+        bpm: config.bpm,
+        motion: config.motion,
+        span: config.span,
       });
-      status = `Play the ${scaleLabel} scale evenly from C4 to C5.`;
+      status = `Play the ${tonicLabel} ${scaleLabel} ${spanLabel.toLowerCase()} ${motionLabel.toLowerCase()} evenly.`;
     } catch (error) {
       status = message(error, "The scale session could not be started.");
     } finally {
@@ -161,9 +208,30 @@
     if (runtime.audioEnabled) runtime.sound.playNote(event.midiNote, 0.12, undefined, event.velocity);
   }
 
-  function repeat(): void {
-    sessionState = session?.state;
-    status = "Ready for scale practice.";
+  async function slowDown(): Promise<void> {
+    tempo = normalizeScaleDrillConfig({
+      scale,
+      tonic,
+      instrument: scaleInstrument,
+      bpm: tempo - 10,
+    }).bpm;
+    await startScale();
+  }
+
+  function syncConfigUrl(): void {
+    const config = normalizedConfig;
+    const params = new URLSearchParams(window.location.search);
+    params.set("scale", config.scale);
+    params.set("tonic", config.tonic);
+    params.set("instrument", config.instrument);
+    params.set("bpm", String(config.bpm));
+    params.set("motion", config.motion);
+    params.set("span", config.span);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
+    );
   }
 
   function message(error: unknown, fallback: string): string {
@@ -193,7 +261,7 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI · Guitar" : "On-screen"}
+        device={runtime.activeSource === "midi" ? `MIDI · ${INSTRUMENT_LABELS[scaleInstrument]}` : "On-screen"}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
@@ -213,17 +281,21 @@
         <p>{summary.results[0]?.result.feedback[0]?.message}</p>
       </Card.Content>
       <Card.Footer class="flex-wrap gap-3">
-        <Button type="button" onclick={repeat}>Practice next tempo</Button>
+        <AdaptiveRetryBar
+          onRetry={startScale}
+          onSlower={slowDown}
+          retryLabel="Practice next tempo"
+        />
         <RoutineContinueAction routine={runtime.dailyRoutine} />
       </Card.Footer>
     </Card.Root>
   {:else}
-    <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
       <Card.Root>
         <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
           <div class="space-y-1">
             <Card.Description>Scale practice</Card.Description>
-            <Card.Title>C {scaleLabel}</Card.Title>
+            <Card.Title>{tonicLabel} {scaleLabel}</Card.Title>
           </div>
           <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
             {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
@@ -232,26 +304,73 @@
         <Card.Content class="grid gap-6">
           <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
 
-          <div class="grid max-w-xs gap-2">
-            <Label for="scale-kind">Scale</Label>
-            <select
-              id="scale-kind"
-              aria-label="Scale"
-              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
-              bind:value={scale}
-              disabled={sessionState?.status === "active"}
-            >
-              <optgroup label="Modes">
-                {#each SCALE_OPTIONS.filter((option) => !option.jazz) as option (option.value)}
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-2">
+              <Label for="scale-kind">Scale</Label>
+              <select
+                id="scale-kind"
+                aria-label="Scale"
+                class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                bind:value={scale}
+                disabled={sessionState?.status === "active"}
+              >
+                <optgroup label="Modes">
+                  {#each SCALE_OPTIONS.filter((option) => !option.jazz) as option (option.value)}
+                    <option value={option.value}>{option.label}</option>
+                  {/each}
+                </optgroup>
+                <optgroup label="Jazz / modal">
+                  {#each SCALE_OPTIONS.filter((option) => option.jazz) as option (option.value)}
+                    <option value={option.value}>{option.label}</option>
+                  {/each}
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="grid gap-2">
+              <Label for="scale-tonic">Tonic</Label>
+              <select
+                id="scale-tonic"
+                aria-label="Tonic"
+                class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                bind:value={tonic}
+                disabled={sessionState?.status === "active"}
+              >
+                {#each SCALE_DRILL_TONICS as note}
+                  <option value={note}>{note.replace(/\d+$/, "")}</option>
+                {/each}
+              </select>
+            </div>
+
+            <div class="grid gap-2">
+              <Label for="scale-span">Span</Label>
+              <select
+                id="scale-span"
+                aria-label="Span"
+                class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                bind:value={span}
+                disabled={sessionState?.status === "active"}
+              >
+                {#each SPAN_OPTIONS as option (option.value)}
                   <option value={option.value}>{option.label}</option>
                 {/each}
-              </optgroup>
-              <optgroup label="Jazz / modal">
-                {#each SCALE_OPTIONS.filter((option) => option.jazz) as option (option.value)}
+              </select>
+            </div>
+
+            <div class="grid gap-2">
+              <Label for="scale-motion">Motion</Label>
+              <select
+                id="scale-motion"
+                aria-label="Motion"
+                class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                bind:value={motion}
+                disabled={sessionState?.status === "active"}
+              >
+                {#each MOTION_OPTIONS as option (option.value)}
                   <option value={option.value}>{option.label}</option>
                 {/each}
-              </optgroup>
-            </select>
+              </select>
+            </div>
           </div>
 
           <div class="grid max-w-xs gap-2">
@@ -301,8 +420,8 @@
         </Card.Footer>
       </Card.Root>
 
-      <aside class="grid content-start gap-4">
-        <Card.Root>
+      <aside class="grid min-w-0 content-start gap-4">
+        <Card.Root class="min-w-0">
           <Card.Header>
             <Card.Description>Tempo ladder</Card.Description>
             <Card.Title>{currentTempo} BPM target</Card.Title>
@@ -325,12 +444,12 @@
             {/each}
           </Card.Content>
         </Card.Root>
-        <Card.Root>
+        <Card.Root class="min-w-0">
           <Card.Header class="gap-2">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <Card.Description>Reference</Card.Description>
-                <Card.Title>C {scaleLabel} on {INSTRUMENT_LABELS[scaleInstrument]}</Card.Title>
+                <Card.Title>{tonicLabel} {scaleLabel} on {INSTRUMENT_LABELS[scaleInstrument]}</Card.Title>
               </div>
               <SegmentedControl
                 size="sm"
@@ -341,12 +460,12 @@
               />
             </div>
           </Card.Header>
-          <Card.Content>
+          <Card.Content class="min-w-0 overflow-x-auto">
             <InstrumentView midi={referenceMidi} instrument={scaleInstrument} router={runtime.router} />
           </Card.Content>
         </Card.Root>
 
-        <Card.Root>
+        <Card.Root class="min-w-0">
           <Card.Header>
             <Card.Description>Streak</Card.Description>
             <Card.Title>{progress.state.streakDays} days</Card.Title>

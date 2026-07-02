@@ -70,6 +70,27 @@ describe("MusicXmlScore", () => {
     expect(onSelectionChange).toHaveBeenCalledWith({ startBeat: 0, endBeat: 8 });
     expect(document.querySelectorAll("[data-notation-highlight]")).toHaveLength(2);
   });
+
+  test("shows the native OSMD cursor at the requested beat", async () => {
+    const onError = vi.fn();
+    render(MusicXmlScore, {
+      xml: MUSIC_XML,
+      cursorBeat: 4,
+      onError,
+    });
+
+    await scoreHost();
+
+    const cursor = document.querySelector<HTMLElement>("#cursorImg-0");
+    expect(cursor).not.toBeNull();
+    await vi.waitFor(() => expect(getComputedStyle(cursor!).display).toBe("block"));
+    expect(cursor!.dataset.osmdCursor).toBe("follow-line");
+    expect(cursor!.style.zIndex).toBe("20");
+    expect(cursor!.style.pointerEvents).toBe("none");
+    expect(cursor!.style.filter).toContain("drop-shadow");
+    expect(cursor!.style.left).not.toBe("");
+    expect(onError).not.toHaveBeenCalled();
+  });
 });
 
 const MUSIC_XML = `<?xml version="1.0"?>

@@ -34,6 +34,31 @@ export interface ChordShape {
   tuningId: string;
   /** Fret per string in string-number order (index 0 = string 1); null = muted. */
   frets: (number | null)[];
+  /** Suggested fretting finger per string; null for open or muted strings. */
+  fingers: (number | null)[];
+}
+
+export const CHORD_PERFECT_MODES = ["build", "pick", "strum"] as const;
+
+export type ChordPerfectMode = (typeof CHORD_PERFECT_MODES)[number];
+
+export interface ChordPerfectDrillConfig {
+  mode: ChordPerfectMode;
+  instrument: StringInstrumentId;
+  tuningId: string;
+  shapeId: string;
+}
+
+export interface ChordPerfectDrillConfigSource {
+  mode?: unknown;
+  workflow?: unknown;
+  instrument?: unknown;
+  tuning?: unknown;
+  tuningId?: unknown;
+  shape?: unknown;
+  shapeId?: unknown;
+  chord?: unknown;
+  get?: (key: string) => unknown;
 }
 
 /**
@@ -42,19 +67,117 @@ export interface ChordShape {
  * E-A-D-G-B-E, ukulele high-G is G-C-E-A.
  */
 export const CHORD_SHAPES: ChordShape[] = [
-  shape("guitar.c-major", "C major", "guitar", "guitar.standard", [0, 1, 0, 2, 3, null]),
-  shape("guitar.g-major", "G major", "guitar", "guitar.standard", [3, 0, 0, 0, 2, 3]),
-  shape("guitar.d-major", "D major", "guitar", "guitar.standard", [2, 3, 2, 0, null, null]),
-  shape("guitar.e-minor", "E minor", "guitar", "guitar.standard", [0, 0, 0, 2, 2, 0]),
-  shape("guitar.a-minor", "A minor", "guitar", "guitar.standard", [0, 1, 2, 2, 0, null]),
-  shape("ukulele.c-major", "C major", "ukulele", "ukulele.high-g", [3, 0, 0, 0]),
-  shape("ukulele.f-major", "F major", "ukulele", "ukulele.high-g", [0, 1, 0, 2]),
-  shape("ukulele.g-major", "G major", "ukulele", "ukulele.high-g", [2, 3, 2, 0]),
-  shape("ukulele.a-minor", "A minor", "ukulele", "ukulele.high-g", [0, 0, 0, 2]),
+  shape(
+    "guitar.c-major",
+    "C major",
+    "guitar",
+    "guitar.standard",
+    [0, 1, 0, 2, 3, null],
+    [null, 1, null, 2, 3, null],
+  ),
+  shape(
+    "guitar.g-major",
+    "G major",
+    "guitar",
+    "guitar.standard",
+    [3, 0, 0, 0, 2, 3],
+    [3, null, null, null, 1, 2],
+  ),
+  shape(
+    "guitar.d-major",
+    "D major",
+    "guitar",
+    "guitar.standard",
+    [2, 3, 2, 0, null, null],
+    [1, 3, 2, null, null, null],
+  ),
+  shape(
+    "guitar.e-minor",
+    "E minor",
+    "guitar",
+    "guitar.standard",
+    [0, 0, 0, 2, 2, 0],
+    [null, null, null, 3, 2, null],
+  ),
+  shape(
+    "guitar.a-minor",
+    "A minor",
+    "guitar",
+    "guitar.standard",
+    [0, 1, 2, 2, 0, null],
+    [null, 1, 3, 2, null, null],
+  ),
+  shape(
+    "ukulele.c-major",
+    "C major",
+    "ukulele",
+    "ukulele.high-g",
+    [3, 0, 0, 0],
+    [3, null, null, null],
+  ),
+  shape(
+    "ukulele.f-major",
+    "F major",
+    "ukulele",
+    "ukulele.high-g",
+    [0, 1, 0, 2],
+    [null, 1, null, 2],
+  ),
+  shape("ukulele.g-major", "G major", "ukulele", "ukulele.high-g", [2, 3, 2, 0], [1, 3, 2, null]),
+  shape(
+    "ukulele.a-minor",
+    "A minor",
+    "ukulele",
+    "ukulele.high-g",
+    [0, 0, 0, 2],
+    [null, null, null, 2],
+  ),
 ];
 
 export function chordShapesFor(instrument: StringInstrumentId): ChordShape[] {
   return CHORD_SHAPES.filter((entry) => entry.instrument === instrument);
+}
+
+export const CHORD_PERFECT_DRILL_DEFAULT_CONFIG: ChordPerfectDrillConfig = {
+  mode: "build",
+  instrument: "guitar",
+  tuningId: "guitar.standard",
+  shapeId: "guitar.c-major",
+};
+
+export function normalizeChordPerfectDrillConfig(
+  source: ChordPerfectDrillConfigSource,
+  defaultInstrument: StringInstrumentId = CHORD_PERFECT_DRILL_DEFAULT_CONFIG.instrument,
+): ChordPerfectDrillConfig {
+  const requestedShapeId =
+    readChordPerfectConfigValue(source, "shape") ??
+    readChordPerfectConfigValue(source, "shapeId") ??
+    readChordPerfectConfigValue(source, "chord");
+  const requestedShape = CHORD_SHAPES.find((entry) => entry.id === requestedShapeId);
+  const requestedInstrument = readChordPerfectConfigValue(source, "instrument");
+  const instrument =
+    requestedInstrument === "guitar" || requestedInstrument === "ukulele"
+      ? requestedInstrument
+      : (requestedShape?.instrument ?? defaultInstrument);
+  const requestedTuning =
+    readChordPerfectConfigValue(source, "tuning") ??
+    readChordPerfectConfigValue(source, "tuningId");
+  const defaultShape = chordShapesFor(instrument)[0]!;
+  const selectedShape =
+    requestedShape?.instrument === instrument &&
+    (requestedTuning === undefined || requestedShape.tuningId === requestedTuning)
+      ? requestedShape
+      : defaultShape;
+
+  return {
+    mode: normalizeChordPerfectMode(
+      readChordPerfectConfigValue(source, "mode") ??
+        readChordPerfectConfigValue(source, "workflow"),
+    ),
+    instrument,
+    tuningId: selectedShape.tuningId,
+    shapeId: selectedShape.id,
+  };
 }
 
 export function chordShapeMidiNotes(tuning: TuningProfile, shape: ChordShape): number[] {
@@ -290,6 +413,20 @@ function shape(
   instrument: StringInstrumentId,
   tuningId: string,
   frets: (number | null)[],
+  fingers: (number | null)[],
 ): ChordShape {
-  return { id, name, instrument, tuningId, frets };
+  return { id, name, instrument, tuningId, frets, fingers };
+}
+
+function normalizeChordPerfectMode(value: unknown): ChordPerfectMode {
+  return CHORD_PERFECT_MODES.includes(value as ChordPerfectMode)
+    ? (value as ChordPerfectMode)
+    : CHORD_PERFECT_DRILL_DEFAULT_CONFIG.mode;
+}
+
+function readChordPerfectConfigValue(source: ChordPerfectDrillConfigSource, key: string): unknown {
+  const value = source.get?.(key);
+  if (value !== null && value !== undefined && value !== "") return value;
+  const direct = source[key as keyof ChordPerfectDrillConfigSource];
+  return direct === "" ? undefined : direct;
 }

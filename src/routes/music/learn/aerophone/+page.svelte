@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import { onDestroy, onMount } from "svelte";
@@ -12,7 +11,14 @@
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
+    AEROPHONE_ARTICULATION_STYLES,
+    AEROPHONE_ARTICULATION_TEMPOS,
+    AEROPHONE_DRILL_MODES,
+    AEROPHONE_LONG_TONE_DURATIONS,
+    AEROPHONE_SWELL_DURATIONS,
+    normalizeAerophoneDrillConfig,
     TechniqueSession,
+    type AerophoneDrillMode,
     type TechniqueSessionState,
   } from "@repo/music-core/engines/technique-session";
   import { midiToNote } from "@repo/music-core/engines/theory";
@@ -21,10 +27,13 @@
     type AerophoneArticulationPrompt,
     type ArticulationStyle,
   } from "@repo/music-core/exercises/aerophone-articulation";
+  import type { AerophoneLongTonePrompt } from "@repo/music-core/exercises/aerophone-long-tone";
+  import type { AerophoneSwellPrompt } from "@repo/music-core/exercises/aerophone-swell";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
@@ -40,34 +49,43 @@
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
-  const longToneDurations = [
-    { value: "3000", label: "3 sec" },
-    { value: "5000", label: "5 sec" },
-    { value: "8000", label: "8 sec" },
-  ];
-  const swellDurations = [
-    { value: "4000", label: "4 sec" },
-    { value: "6000", label: "6 sec" },
-    { value: "8000", label: "8 sec" },
-  ];
-  type DrillMode = "long-tone" | "swell" | "articulation";
-  const drillModes = [
-    { value: "long-tone", label: "Long tone" },
-    { value: "swell", label: "Dynamic swell" },
-    { value: "articulation", label: "Articulation" },
-  ];
-  const styleOptions = [
-    { value: "staccato", label: "Staccato" },
-    { value: "legato", label: "Legato" },
-  ];
-  const tempoOptions = [70, 90, 110].map((value) => ({ value: String(value), label: `${value} BPM` }));
+  const longToneDurations = AEROPHONE_LONG_TONE_DURATIONS.map((value) => ({
+    value: String(value),
+    label: `${value / 1000} sec`,
+  }));
+  const swellDurations = AEROPHONE_SWELL_DURATIONS.map((value) => ({
+    value: String(value),
+    label: `${value / 1000} sec`,
+  }));
+  type TechniqueResult = NonNullable<TechniqueSessionState["summary"]>["results"][number];
+  type SummaryDimension = {
+    label: string;
+    value: string;
+    detail: string;
+  };
+  const drillModes = AEROPHONE_DRILL_MODES.map((value) => ({
+    value,
+    label:
+      value === "articulation" ? "Articulation" : value === "swell" ? "Dynamic swell" : "Long tone",
+  }));
+  const styleOptions = AEROPHONE_ARTICULATION_STYLES.map((value) => ({
+    value,
+    label: value === "legato" ? "Legato" : "Staccato",
+  }));
+  const tempoOptions = AEROPHONE_ARTICULATION_TEMPOS.map((value) => ({
+    value: String(value),
+    label: `${value} BPM`,
+  }));
+  const initialConfig = normalizeAerophoneDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
 
-  let selected = $state(67); // G4
+  let selected = $state(initialConfig.targetMidi);
   let live = $state(false);
-  let drillMode = $state<DrillMode>("long-tone");
-  let durationMs = $state("5000");
-  let articulationStyle = $state<ArticulationStyle>("staccato");
-  let articulationBpm = $state("90");
+  let drillMode = $state<AerophoneDrillMode>(initialConfig.mode);
+  let durationMs = $state(String(initialConfig.durationMs));
+  let articulationStyle = $state<ArticulationStyle>(initialConfig.style);
+  let articulationBpm = $state(String(initialConfig.bpm));
   let ready = $state(false);
   let pending = $state(false);
   let status = $state("Preparing your Aerophone practice history.");
@@ -109,6 +127,7 @@
       ? (summary.results[0].result.answer as AerophoneArticulationAnswer)
       : undefined,
   );
+  const summaryDimensions = $derived.by(() => buildSummaryDimensions(summary?.results[0]));
   const durationOptions = $derived(
     drillMode === "swell" ? swellDurations : longToneDurations,
   );
@@ -131,18 +150,17 @@
         ? "Cancel dynamic swell"
         : "Cancel long tone",
   );
-  const repeatLabel = $derived.by(() => {
-    if (drillMode === "articulation") return "Repeat articulation";
-    return `Repeat ${drillMode === "swell" ? "swell" : "long tone"}`;
-  });
+  const swellEnvelopeBars = [24, 56, 92, 56, 24];
+  const articulationSteps = $derived(
+    Array.from({ length: articulationPrompt?.count ?? 8 }, (_, index) => index + 1),
+  );
+  const articulationTargetPercent = $derived(articulationStyle === "staccato" ? 35 : 95);
+  const liveBreathWidth = $derived(`width: ${breathLevel}%`);
 
   void initialize();
-  let queryModeApplied = false;
 
   $effect(() => {
-    if (queryModeApplied) return;
-    queryModeApplied = true;
-    selectDrillMode(normalizeMode($page.url?.searchParams.get("mode") ?? null));
+    syncConfigUrl();
   });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
@@ -151,7 +169,7 @@
   });
 
   function select(midi: number, fromInput = false): void {
-    selected = midi;
+    selected = normalizeAerophoneDrillConfig({ target: midi }).targetMidi;
     live = fromInput;
   }
 
@@ -221,14 +239,44 @@
 
   function selectDrillMode(value: string): void {
     if (sessionState?.status === "active") return;
-    const next = normalizeMode(value);
-    drillMode = next;
-    durationMs = next === "swell" ? "6000" : "5000";
-    status = next === "articulation"
+    const config = normalizeAerophoneDrillConfig({
+      mode: value,
+      target: selected,
+      style: articulationStyle,
+      bpm: articulationBpm,
+    });
+    drillMode = config.mode;
+    durationMs = String(config.durationMs);
+    status = config.mode === "articulation"
       ? "Tongue the selected fingering staccato or legato."
-      : next === "swell"
+      : config.mode === "swell"
         ? "Shape a smooth soft-loud-soft breath curve."
         : "Hold the target with steady breath.";
+  }
+
+  function syncConfigUrl(): void {
+    if (!browser) return;
+    const config = normalizeAerophoneDrillConfig({
+      mode: drillMode,
+      target: selected,
+      duration: durationMs,
+      style: articulationStyle,
+      bpm: articulationBpm,
+    });
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    params.set("mode", config.mode);
+    params.set("target", String(config.targetMidi));
+    if (config.mode === "articulation") {
+      params.delete("duration");
+      params.set("style", config.style);
+      params.set("bpm", String(config.bpm));
+    } else {
+      params.set("duration", String(config.durationMs));
+      params.delete("style");
+      params.delete("bpm");
+    }
+    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
   }
 
   async function startDrill(): Promise<void> {
@@ -276,9 +324,19 @@
     status = "Drill cancelled. Choose a target and start again.";
   }
 
-  function normalizeMode(value: string | null): DrillMode {
-    if (value === "swell" || value === "articulation") return value;
-    return "long-tone";
+  function slowDownArticulation(): void {
+    const current = normalizeAerophoneDrillConfig({
+      mode: "articulation",
+      target: selected,
+      style: articulationStyle,
+      bpm: articulationBpm,
+    }).bpm;
+    const slowerTempo =
+      [...AEROPHONE_ARTICULATION_TEMPOS].reverse().find((tempo) => tempo < current) ??
+      AEROPHONE_ARTICULATION_TEMPOS[0];
+    drillMode = "articulation";
+    articulationBpm = String(slowerTempo);
+    void startDrill();
   }
 
   function playAccepted(event: NoteEvent): void {
@@ -289,6 +347,108 @@
 
   function message(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
+  }
+
+  function buildSummaryDimensions(view: TechniqueResult | undefined): SummaryDimension[] {
+    if (!view) return [];
+    const { prompt, result } = view;
+    const pitchMetrics = result.metrics.filter((metric) => metric.kind === "pitch");
+    const correctPitches = pitchMetrics.filter(
+      (metric) => metric.actualMidi === metric.expectedMidi,
+    ).length;
+    const pitchAccuracy = pitchMetrics.length === 0 ? 0 : correctPitches / pitchMetrics.length;
+    const breathMetric = result.metrics.find((metric) => metric.kind === "breath");
+    const breathSamples = breathMetric?.actualCurve?.length ?? 0;
+    const dimensions: SummaryDimension[] = [
+      {
+        label: "Pitch",
+        value: percent(pitchAccuracy),
+        detail:
+          pitchMetrics.length === 0
+            ? "No pitch target recorded"
+            : `${correctPitches}/${pitchMetrics.length} targets matched`,
+      },
+      {
+        label: "Breath",
+        value: percent(breathMetric?.steadiness ?? 0),
+        detail: `CC2 samples ${breathSamples}`,
+      },
+    ];
+
+    if ("style" in prompt) {
+      const articulationPrompt = prompt as AerophoneArticulationPrompt;
+      const answer = result.answer as AerophoneArticulationAnswer;
+      dimensions.push(
+        {
+          label: "Articulation",
+          value: percent(answer.articulationScore),
+          detail: `${articulationPrompt.style} target · ${percent(answer.meanSoundingFraction)} beat average`,
+        },
+        {
+          label: "Duration",
+          value: percent(answer.meanSoundingFraction),
+          detail: `${answer.playedMidiNotes.length}/${articulationPrompt.count} attacks recorded`,
+        },
+      );
+      return dimensions;
+    }
+
+    if ("durationMs" in prompt) {
+      const swellPrompt = prompt as AerophoneSwellPrompt;
+      const durationRatio = breathDurationRatio(
+        result.input,
+        swellPrompt.breathController,
+        swellPrompt.durationMs,
+      );
+      dimensions.push(
+        {
+          label: "Articulation",
+          value: "N/A",
+          detail: "Use articulation mode for tongue timing",
+        },
+        {
+          label: "Duration",
+          value: percent(durationRatio),
+          detail: `${Number(swellPrompt.durationMs) / 1000}s swell target`,
+        },
+      );
+      return dimensions;
+    }
+
+    if ("holdMs" in prompt) {
+      const longTonePrompt = prompt as AerophoneLongTonePrompt;
+      const durationRatio = breathDurationRatio(
+        result.input,
+        longTonePrompt.breathController,
+        longTonePrompt.holdMs,
+      );
+      dimensions.push(
+        {
+          label: "Articulation",
+          value: "N/A",
+          detail: "Use articulation mode for tongue timing",
+        },
+        {
+          label: "Duration",
+          value: percent(durationRatio),
+          detail: `${Number(longTonePrompt.holdMs) / 1000}s hold target`,
+        },
+      );
+    }
+
+    return dimensions;
+  }
+
+  function breathDurationRatio(input: NoteEvent[], controller: number, targetMs: number): number {
+    const samples = input.filter((event) => event.type === "cc" && event.controller === controller);
+    const first = samples[0]?.timestamp;
+    const last = samples.at(-1)?.timestamp;
+    if (first === undefined || last === undefined || targetMs <= 0) return 0;
+    return Math.max(0, Math.min(1, (Number(last) - Number(first)) / targetMs));
+  }
+
+  function percent(value: number): string {
+    return `${Math.round(value * 100)}%`;
   }
 
   onMount(() => {
@@ -430,6 +590,123 @@
           {/if}
         </div>
 
+        <div class="grid gap-4 rounded-lg border bg-muted/20 p-4" aria-label="Aerophone technique stage">
+          {#if drillMode === "swell"}
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-semibold uppercase text-muted-foreground">
+                  Swell envelope
+                </p>
+                <h2 class="text-base font-semibold">Target CC2 envelope</h2>
+              </div>
+              <span class="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground">
+                {Number(durationMs) / 1000}s
+              </span>
+            </div>
+            <div class="grid gap-3">
+              <div class="grid h-28 grid-cols-5 items-end gap-2" aria-label="Target CC2 envelope">
+                {#each swellEnvelopeBars as level, index}
+                  <div class="flex h-full flex-col justify-end gap-1">
+                    <div
+                      class="rounded-t-md bg-primary/80"
+                      style={`height: ${level}%`}
+                      aria-hidden="true"
+                    ></div>
+                    <span class="text-center text-[10px] font-medium text-muted-foreground">
+                      {index === 2 ? "Peak" : index < 2 ? "Rise" : "Fall"}
+                    </span>
+                  </div>
+                {/each}
+              </div>
+              <div class="grid gap-1" aria-label="Actual CC2 envelope">
+                <div class="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Actual CC2 envelope</span>
+                  <span class="tabular-nums">{breathLevel}% live</span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-background">
+                  <div class="h-full rounded-full bg-success" style={liveBreathWidth}></div>
+                </div>
+              </div>
+            </div>
+          {:else if drillMode === "articulation"}
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-semibold uppercase text-muted-foreground">
+                  Articulation attack grid
+                </p>
+                <h2 class="text-base font-semibold">Duration markers</h2>
+              </div>
+              <span class="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground">
+                {articulationTargetPercent}% beat target
+              </span>
+            </div>
+            <div class="grid gap-3">
+              <div
+                class="grid gap-2"
+                style={`grid-template-columns: repeat(${articulationSteps.length}, minmax(0, 1fr));`}
+              >
+                {#each articulationSteps as step}
+                  <div class="grid gap-1">
+                    <div class="h-12 rounded-md border bg-background p-1">
+                      <div
+                        class="h-full rounded bg-primary/75"
+                        style={`width: ${articulationTargetPercent}%`}
+                        aria-hidden="true"
+                      ></div>
+                    </div>
+                    <span class="text-center text-[10px] font-medium text-muted-foreground">
+                      {step}
+                    </span>
+                  </div>
+                {/each}
+              </div>
+              <div class="grid gap-1" aria-label="Breath starts">
+                <div class="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Breath starts</span>
+                  <span>{articulationStyle === "staccato" ? "Detached attacks" : "Connected airflow"}</span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-background">
+                  <div class="h-full rounded-full bg-success" style={liveBreathWidth}></div>
+                </div>
+              </div>
+            </div>
+          {:else}
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-semibold uppercase text-muted-foreground">
+                  Long-tone stage
+                </p>
+                <h2 class="text-base font-semibold">Pitch lane</h2>
+              </div>
+              <span class="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground">
+                {Number(durationMs) / 1000}s hold
+              </span>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="grid gap-2 rounded-md border bg-background p-3">
+                <span class="text-xs font-semibold text-muted-foreground">Pitch lane</span>
+                <span class="text-lg font-semibold">{targetLabel}</span>
+              </div>
+              <div class="grid gap-2 rounded-md border bg-background p-3">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-semibold text-muted-foreground">Breath steadiness</span>
+                  <span class="text-xs tabular-nums text-muted-foreground">{breathLevel}%</span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-muted">
+                  <div class="h-full rounded-full bg-success" style={liveBreathWidth}></div>
+                </div>
+              </div>
+              <div class="grid gap-2 rounded-md border bg-background p-3">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-semibold text-muted-foreground">Hold timer</span>
+                  <span class="text-xs tabular-nums text-muted-foreground">{liveProgress}%</span>
+                </div>
+                <Progress value={liveProgress} max={100} />
+              </div>
+            </div>
+          {/if}
+        </div>
+
         {#if sessionState?.status === "active" && activePrompt}
           <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
             <div class="flex items-center justify-between gap-3 text-sm">
@@ -501,15 +778,42 @@
             <p class="text-sm text-muted-foreground">
               {summary.results[0]?.result.feedback[0]?.message}
             </p>
+            {#if summaryDimensions.length > 0}
+              <div class="grid gap-2 pt-2" aria-label="Summary dimensions">
+                <p class="text-xs font-semibold uppercase text-muted-foreground">
+                  Summary dimensions
+                </p>
+                <div class="grid gap-2 sm:grid-cols-4">
+                  {#each summaryDimensions as dimension}
+                    <div class="grid gap-1 rounded-md border bg-background/70 p-3">
+                      <span class="text-xs font-medium text-muted-foreground">
+                        {dimension.label}
+                      </span>
+                      <span class="text-lg font-semibold tabular-nums">{dimension.value}</span>
+                      <span class="text-xs text-muted-foreground">{dimension.detail}</span>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+            <AdaptiveRetryBar
+              onRetry={() => void startDrill()}
+              onSlower={completedArticulation ? slowDownArticulation : undefined}
+              retryLabel={completedArticulation
+                ? "Repeat articulation"
+                : completedSwell
+                  ? "Repeat swell"
+                  : "Repeat long tone"}
+            />
           </div>
         {/if}
       </Card.Content>
       <Card.Footer class="flex-wrap gap-3">
         {#if sessionState?.status === "active"}
           <Button type="button" variant="outline" onclick={cancelDrill}>{cancelLabel}</Button>
-        {:else}
+        {:else if !summary}
           <Button type="button" disabled={!ready || pending} onclick={startDrill}>
-            {pending ? "Starting..." : summary ? repeatLabel : startLabel}
+            {pending ? "Starting..." : startLabel}
           </Button>
         {/if}
         <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>

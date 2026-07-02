@@ -8,6 +8,7 @@ import { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./+page.svelte";
 
 afterEach(() => {
+  window.history.replaceState({}, "", "/");
   document.body.replaceChildren();
 });
 
@@ -51,6 +52,15 @@ test("grades a strummed progression from injected onset observations", async () 
   vi.spyOn(runtime, "runCountIn").mockResolvedValue(performance.now() as never);
 
   render(Page, { audioSource, analyzeOnsetWindow, runtime });
+  expect(
+    document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
+  ).toContain(expected[0]!.symbol);
+  expect(
+    document.querySelector('[data-testid="progression-cell-0"]')?.getAttribute("data-state"),
+  ).toBe("current");
+  expect(document.querySelectorAll('[data-tone-role="chord"]').length).toBeGreaterThan(0);
+  expect(document.querySelectorAll('[data-tone-role="scale"]').length).toBeGreaterThan(0);
+
   button("Start")?.click();
   await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalled());
 
@@ -63,6 +73,16 @@ test("grades a strummed progression from injected onset observations", async () 
       onsetWindow: new Float32Array(8),
     });
     await vi.waitFor(() => expect(analyzeOnsetWindow).toHaveBeenCalledTimes(i + 1));
+    if (i === 1) {
+      await vi.waitFor(() =>
+        expect(
+          document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
+        ).toContain(expected[1]!.symbol),
+      );
+      expect(
+        document.querySelector('[data-testid="progression-cell-1"]')?.getAttribute("data-state"),
+      ).toBe("current");
+    }
   }
 
   await vi.waitFor(() => {
@@ -125,4 +145,34 @@ test("chroma-only analyses update the detected-tones readout but never grade or 
   });
   expect(document.body.textContent).not.toContain("matched in-time");
   expect(document.body.textContent).not.toContain("matched off-time");
+});
+
+test("restores progression drill setup from shareable query parameters", async () => {
+  window.history.pushState(
+    {},
+    "",
+    "/music/play/chord-progression?progression=minor-ii-v-i&bpm=112",
+  );
+
+  render(Page);
+
+  expect(document.body.textContent).toContain("Minor ii–V–i");
+  const tempo = document.querySelector<HTMLInputElement>("#tempo");
+  expect(tempo?.value).toBe("112");
+});
+
+test("keeps progression drill setup changes in the shareable URL", async () => {
+  render(Page);
+
+  button("12-bar blues")?.click();
+  const tempo = document.querySelector<HTMLInputElement>("#tempo");
+  expect(tempo).toBeTruthy();
+  tempo!.value = "140";
+  tempo!.dispatchEvent(new Event("input", { bubbles: true }));
+
+  await vi.waitFor(() => {
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("progression")).toBe("blues");
+    expect(params.get("bpm")).toBe("140");
+  });
 });

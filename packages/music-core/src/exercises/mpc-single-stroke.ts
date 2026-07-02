@@ -12,16 +12,36 @@ const EXERCISE_ID = "technique.mpc.single-strokes";
 const SKILL_IDS = ["technique.mpc", EXERCISE_ID];
 
 export type MpcHitCount = 8 | 16;
+export type MpcRudimentPatternId = "single-strokes" | "double-strokes" | "paradiddle";
+
+export interface MpcRudimentPattern {
+  id: MpcRudimentPatternId;
+  label: string;
+  unit: readonly ("left" | "right")[];
+}
+
+export const MPC_RUDIMENT_PATTERNS: readonly MpcRudimentPattern[] = [
+  { id: "single-strokes", label: "Single strokes", unit: ["left", "right"] },
+  { id: "double-strokes", label: "Double strokes", unit: ["left", "left", "right", "right"] },
+  {
+    id: "paradiddle",
+    label: "Paradiddle",
+    unit: ["left", "right", "left", "left", "right", "left", "right", "right"],
+  },
+];
 
 export interface MpcSingleStrokeOptions {
   leftPadMidi?: number;
   rightPadMidi?: number;
   hitCount?: MpcHitCount;
   bpm?: number;
+  patternId?: MpcRudimentPatternId;
 }
 
 export interface MpcSingleStrokePrompt {
   label: string;
+  patternId: MpcRudimentPatternId;
+  patternLabel: string;
   leftPadMidi: number;
   rightPadMidi: number;
   hitCount: MpcHitCount;
@@ -55,6 +75,7 @@ export function createMpcSingleStrokeExercise(
   if (leftPadMidi === rightPadMidi) {
     throw new Error("Choose two different MPC pads");
   }
+  const pattern = rudimentPattern(options.patternId ?? "single-strokes");
 
   const hitCount = options.hitCount ?? 8;
   if (hitCount !== 8 && hitCount !== 16) {
@@ -66,10 +87,8 @@ export function createMpcSingleStrokeExercise(
     throw new Error("BPM must be a finite number");
   }
   const bpm = clamp(requestedBpm, 30, 240);
-  const targetSequence = Array.from({ length: hitCount }, (_, index) =>
-    index % 2 === 0 ? leftPadMidi : rightPadMidi,
-  );
-  const label = `MPC single strokes: pads ${leftPadMidi} / ${rightPadMidi}`;
+  const targetSequence = buildMpcRudimentSequence(pattern.id, leftPadMidi, rightPadMidi, hitCount);
+  const label = `MPC ${pattern.label.toLowerCase()}: pads ${leftPadMidi} / ${rightPadMidi}`;
 
   return {
     id: EXERCISE_ID,
@@ -82,6 +101,8 @@ export function createMpcSingleStrokeExercise(
       id: `mpc-single-strokes-${leftPadMidi}-${rightPadMidi}-${hitCount}-${bpm}`,
       payload: {
         label,
+        patternId: pattern.id,
+        patternLabel: pattern.label,
         leftPadMidi,
         rightPadMidi,
         hitCount,
@@ -94,6 +115,18 @@ export function createMpcSingleStrokeExercise(
       return singleStrokeRun(prompt.payload);
     },
   };
+}
+
+export function buildMpcRudimentSequence(
+  patternId: MpcRudimentPatternId,
+  leftPadMidi: number,
+  rightPadMidi: number,
+  hitCount: MpcHitCount,
+): number[] {
+  const pattern = rudimentPattern(patternId);
+  return Array.from({ length: hitCount }, (_, index) =>
+    pattern.unit[index % pattern.unit.length] === "left" ? leftPadMidi : rightPadMidi,
+  );
 }
 
 function singleStrokeRun(prompt: MpcSingleStrokePrompt): ExerciseRun<MpcSingleStrokeAnswer> {
@@ -278,4 +311,10 @@ function validatePadMidi(name: "leftPadMidi" | "rightPadMidi", value: number): v
   if (!Number.isInteger(value) || value < 0 || value > 127) {
     throw new Error(`${name} must be an integer between 0 and 127`);
   }
+}
+
+function rudimentPattern(patternId: MpcRudimentPatternId): MpcRudimentPattern {
+  const pattern = MPC_RUDIMENT_PATTERNS.find((candidate) => candidate.id === patternId);
+  if (!pattern) throw new Error(`Unknown MPC rudiment pattern: ${patternId}`);
+  return pattern;
 }

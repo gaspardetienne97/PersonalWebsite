@@ -13,33 +13,49 @@ export interface ScalePatternPrompt {
   noteLabels: string[];
   bpm: number;
   targetSpacingMs: number;
+  motion: ScaleMotion;
+  span: ScaleSpan;
 }
 
 export type ScalePatternKind =
   | "major"
   | "natural-minor"
+  | "harmonic-minor"
   | "dorian"
   | "phrygian"
   | "lydian"
   | "mixolydian"
   | "locrian"
   | "melodic-minor"
+  | "major-pentatonic"
+  | "minor-pentatonic"
+  | "blues"
   | "altered"
+  | "bebop-major"
   | "bebop-dominant"
   | "whole-tone"
   | "diminished";
+
+export type ScaleMotion = "up" | "down" | "up-down";
+
+export type ScaleSpan = "pentascale" | "one-octave" | "two-octave";
 
 /** Ascending semitone offsets from the tonic, octave inclusive. */
 const SCALE_INTERVALS: Record<ScalePatternKind, number[]> = {
   major: [0, 2, 4, 5, 7, 9, 11, 12],
   "natural-minor": [0, 2, 3, 5, 7, 8, 10, 12],
+  "harmonic-minor": [0, 2, 3, 5, 7, 8, 11, 12],
   dorian: [0, 2, 3, 5, 7, 9, 10, 12],
   phrygian: [0, 1, 3, 5, 7, 8, 10, 12],
   lydian: [0, 2, 4, 6, 7, 9, 11, 12],
   mixolydian: [0, 2, 4, 5, 7, 9, 10, 12],
   locrian: [0, 1, 3, 5, 6, 8, 10, 12],
   "melodic-minor": [0, 2, 3, 5, 7, 9, 11, 12],
+  "major-pentatonic": [0, 2, 4, 7, 9, 12],
+  "minor-pentatonic": [0, 3, 5, 7, 10, 12],
+  blues: [0, 3, 5, 6, 7, 10, 12],
   altered: [0, 1, 3, 4, 6, 8, 10, 12],
+  "bebop-major": [0, 2, 4, 5, 7, 8, 9, 11, 12],
   "bebop-dominant": [0, 2, 4, 5, 7, 9, 10, 11, 12],
   "whole-tone": [0, 2, 4, 6, 8, 10, 12],
   diminished: [0, 1, 3, 4, 6, 7, 9, 10, 12],
@@ -50,6 +66,15 @@ export function scaleSemitones(scale: ScalePatternKind): number[] {
   return SCALE_INTERVALS[scale] ?? SCALE_INTERVALS.major;
 }
 
+/** Semitone offsets for a scale practice prompt after span and motion are applied. */
+export function scalePatternSemitones(
+  scale: ScalePatternKind,
+  span: ScaleSpan = "one-octave",
+  motion: ScaleMotion = "up",
+): number[] {
+  return applyMotion(scaleSpanSemitones(scale, span), motion);
+}
+
 /** Scales beyond the church-mode basics that read as jazz vocabulary. */
 export const JAZZ_SCALE_KINDS: ScalePatternKind[] = [
   "dorian",
@@ -57,6 +82,7 @@ export const JAZZ_SCALE_KINDS: ScalePatternKind[] = [
   "lydian",
   "melodic-minor",
   "altered",
+  "bebop-major",
   "bebop-dominant",
   "whole-tone",
   "diminished",
@@ -66,6 +92,8 @@ export interface ScalePatternOptions {
   tonic?: string;
   scale?: ScalePatternKind;
   bpm?: number;
+  motion?: ScaleMotion;
+  span?: ScaleSpan;
 }
 
 export function createScalePatternExercise(
@@ -74,24 +102,28 @@ export function createScalePatternExercise(
   const tonic = options.tonic ?? "C4";
   const scale = options.scale ?? "major";
   const bpm = options.bpm ?? 120;
-  const midiNotes = scaleMidiNotes(tonic, scale);
-  const label = `${pitchClassLabel(tonic)} ${scale}`;
+  const motion = options.motion ?? "up";
+  const span = options.span ?? "one-octave";
+  const midiNotes = scaleMidiNotes(tonic, scale, span, motion);
+  const label = `${pitchClassLabel(tonic)} ${scaleLabel(scale)} · ${spanLabel(span)} · ${motionLabel(motion)}`;
 
   return {
-    id: `technique.scale.${pitchClassLabel(tonic).toLowerCase()}-${scale}`,
+    id: `technique.scale.${pitchClassLabel(tonic).toLowerCase()}-${scale}-${span}-${motion}`,
     name: `${label} Scale`,
     capabilities: [Capability.Technique, Capability.Pitch],
     skillIds: [`technique.scale.${scale}`],
     inputs: ["midi", "onscreen"],
     streaming: true,
     generate: () => ({
-      id: `scale-${pitchClassLabel(tonic).toLowerCase()}-${scale}-${bpm}`,
+      id: `scale-${pitchClassLabel(tonic).toLowerCase()}-${scale}-${span}-${motion}-${bpm}`,
       payload: {
         label,
         midiNotes,
         noteLabels: midiNotes.map((midi) => midiToNote(midi)),
         bpm,
         targetSpacingMs: 60_000 / bpm,
+        motion,
+        span,
       },
     }),
     createRun(prompt) {
@@ -169,9 +201,45 @@ function scaleRun(prompt: ScalePatternPrompt): ExerciseRun<number[]> {
   };
 }
 
-function scaleMidiNotes(tonic: string, scale: ScalePatternKind): number[] {
+function scaleMidiNotes(
+  tonic: string,
+  scale: ScalePatternKind,
+  span: ScaleSpan,
+  motion: ScaleMotion,
+): number[] {
   const root = noteToMidi(tonic);
-  return (SCALE_INTERVALS[scale] ?? SCALE_INTERVALS.major).map((semitones) => root + semitones);
+  return scalePatternSemitones(scale, span, motion).map((semitones) => root + semitones);
+}
+
+function scaleSpanSemitones(scale: ScalePatternKind, span: ScaleSpan): number[] {
+  const intervals = SCALE_INTERVALS[scale] ?? SCALE_INTERVALS.major;
+  if (span === "pentascale") return intervals.filter((interval) => interval < 12).slice(0, 5);
+  if (span === "two-octave") {
+    return [...intervals, ...intervals.slice(1).map((interval) => interval + 12)];
+  }
+  return intervals;
+}
+
+function applyMotion(intervals: number[], motion: ScaleMotion): number[] {
+  if (motion === "down") return [...intervals].reverse();
+  if (motion === "up-down") return [...intervals, ...intervals.slice(0, -1).reverse()];
+  return intervals;
+}
+
+function scaleLabel(scale: ScalePatternKind): string {
+  return scale.replaceAll("-", " ");
+}
+
+function spanLabel(span: ScaleSpan): string {
+  if (span === "pentascale") return "pentascale";
+  if (span === "two-octave") return "two octaves";
+  return "one octave";
+}
+
+function motionLabel(motion: ScaleMotion): string {
+  if (motion === "down") return "descending";
+  if (motion === "up-down") return "up-down";
+  return "ascending";
 }
 
 function pitchClassLabel(note: string): string {

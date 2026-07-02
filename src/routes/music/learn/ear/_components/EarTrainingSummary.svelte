@@ -3,6 +3,7 @@
   import { intensityStep } from "@repo/music-core/engines/semantic-color";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import PhraseResultFeedback from "./PhraseResultFeedback.svelte";
 
   let {
     summary,
@@ -47,11 +48,16 @@
     <Card.Content>
       <ol class="grid gap-2 text-sm">
         {#each summary.recentResults.slice(-5).reverse() as item, i (i)}
-          <li class="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-            <span class="truncate">{item.prompt.answerLabel}</span>
-            <span class={item.result.correct ? "text-foreground" : "text-muted-foreground"}>
-              {item.result.correct ? "Correct" : "Review"}
-            </span>
+          <li class="grid gap-3 rounded-md border px-3 py-2">
+            <div class="flex items-center justify-between gap-3">
+              <span class="truncate">{item.prompt.answerLabel}</span>
+              <span class={item.result.correct ? "text-foreground" : "text-muted-foreground"}>
+                {item.result.correct ? "Correct" : "Review"}
+              </span>
+            </div>
+            {#if item.drill === "melody-dictation" || item.drill === "repertoire-transfer"}
+              <PhraseResultFeedback result={item} />
+            {/if}
           </li>
         {/each}
       </ol>

@@ -7,7 +7,6 @@
   } from "@repo/music-core/engines/projection";
   import type { ReadingSessionState } from "@repo/music-core/engines/reading-session";
   import { beatToMs, type ScoreFollowerLiveState } from "@repo/music-core/engines/score-follower";
-  import { midiToNote } from "@repo/music-core/engines/theory";
   import type { TuningProfile } from "@repo/music-core/engines/tunings";
   import type { SightReadingPrompt } from "@repo/music-core/exercises/sight-reading";
   import { Button } from "@repo/ui/button";
@@ -15,11 +14,7 @@
   import { Progress } from "@repo/ui/progress";
 
   import PracticeDrillShell from "../../../_components/PracticeDrillShell.svelte";
-  import FretboardInput from "./FretboardInput.svelte";
-  import PianoInput from "./PianoInput.svelte";
-  import StaffNotation from "../../../_components/StaffNotation.svelte";
-  import TabNotation from "../../../_components/TabNotation.svelte";
-  import type { NotationRangeHighlight } from "../../../_components/notation-selection";
+  import ScoreFollowerStage from "../../../_components/ScoreFollowerStage.svelte";
   import { suggestedFingerings } from "../../../_components/piano-visual";
 
   let {
@@ -49,38 +44,7 @@
   const started = $derived(sessionState.countIn === "playing");
   const complete = $derived(progress >= 1);
   const mode = $derived(prompt?.options.mode ?? "wait");
-  const targetNotes = $derived(currentGroup?.midiNotes ?? []);
-  const currentNotationEventIds = $derived.by(() => {
-    if (!prompt || !currentGroup) return [];
-    const currentNotes = currentGroup.sourceNoteIndexes
-      .map((index) => prompt.score.notes[index])
-      .filter((note) => note !== undefined);
-
-    return prompt.notation.measures
-      .flatMap(({ events }) => events)
-      .filter(
-        (event) =>
-          event.kind === "note" &&
-          currentNotes.some(
-            (note) =>
-              note.voiceId === event.voiceId &&
-              note.startBeat === event.startBeat &&
-              note.durationBeats === event.durationBeats,
-          ),
-      )
-      .map(({ id }) => id);
-  });
-  const currentNotationHighlights = $derived.by<NotationRangeHighlight[]>(() => {
-    if (!currentGroup) return [];
-    return [
-      {
-        id: "current-group",
-        startBeat: currentGroup.startBeat,
-        endBeat: currentGroup.startBeat + currentGroup.durationBeats,
-        active: true,
-      },
-    ];
-  });
+  const canFinish = $derived(complete || (started && mode === "performance"));
   const pianoProjection = $derived(
     prompt?.options.instrument === "piano" ? projectScoreToPiano(prompt.score) : undefined,
   );
@@ -176,89 +140,44 @@
         <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
       </Card.Header>
       <Card.Content class="grid min-w-0 gap-6">
-        <StaffNotation
-          view={prompt.notation}
-          activeEventIds={currentNotationEventIds}
-          highlightedRanges={currentNotationHighlights}
-        />
-
-        {#if tuning && tabProjection}
-          <div class="grid gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              class="justify-self-start"
-              aria-pressed={showTab}
-              onclick={() => (showTab = !showTab)}
-            >
-              {showTab ? "Hide tab" : "Show tab"}
-            </Button>
-            {#if showTab}
-              <TabNotation view={prompt.notation} projection={tabProjection} {tuning} />
-            {/if}
-          </div>
-        {/if}
-
         {#if !started}
+          <ScoreFollowerStage
+            score={prompt.score}
+            view={prompt.notation}
+            groups={prompt.groups}
+            currentGroupIndex={live?.currentGroupIndex ?? 0}
+            instrument={prompt.options.instrument}
+            {tuning}
+            {tabProjection}
+            {showTab}
+            onShowTabChange={(value) => (showTab = value)}
+            router={router}
+            inputEnabled={false}
+          />
           <div class="flex flex-wrap items-center gap-3 rounded-md border bg-muted px-4 py-3">
             <span class="text-sm font-medium">Count-in ready</span>
             <Button type="button" onclick={start}>Start count-in</Button>
           </div>
         {:else}
-          <div class="grid gap-3">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p class="text-sm font-medium">Expected notes</p>
-                <p class="text-sm text-muted-foreground">
-                  {targetNotes.length === 0
-                    ? "Phrase complete"
-                    : targetNotes.map((midiNote) => midiToNote(midiNote)).join(", ")}
-                </p>
-                {#if pianoHandHint}
-                  <p
-                    class="mt-1 text-xs font-semibold text-muted-foreground"
-                    data-testid="piano-hand-hint"
-                  >
-                    {pianoHandHint}
-                  </p>
-                {/if}
-              </div>
-              <div class="flex flex-wrap gap-2">
-                {#each targetNotes as midiNote}
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    data-testid="expected-note"
-                    onclick={() => playExpected(midiNote)}
-                  >
-                    {midiToNote(midiNote)}
-                  </Button>
-                {/each}
-              </div>
-            </div>
-
-            {#if prompt.options.instrument === "piano"}
-              <PianoInput
-                midiNotes={pianoNotes}
-                targetMidiNotes={targetNotes}
-                activeMidiNotes={live?.heldMidiNotes ?? []}
-                wrongMidiNotes={live?.wrongMidiNotes ?? []}
-                suggestedFingerings={pianoFingerings}
-                {router}
-                {onAccepted}
-              />
-            {:else if tuning}
-              <FretboardInput
-                {tuning}
-                targetMidiNotes={targetNotes}
-                wrongMidiNotes={live?.wrongMidiNotes ?? []}
-                {router}
-                visibleFrets={Math.min(12, tuning.fretCount)}
-                {onAccepted}
-              />
-            {/if}
-          </div>
+          <ScoreFollowerStage
+            score={prompt.score}
+            view={prompt.notation}
+            groups={prompt.groups}
+            currentGroupIndex={live?.currentGroupIndex ?? 0}
+            instrument={prompt.options.instrument}
+            {tuning}
+            {tabProjection}
+            {showTab}
+            onShowTabChange={(value) => (showTab = value)}
+            router={router}
+            activeMidiNotes={live?.heldMidiNotes ?? []}
+            wrongMidiNotes={live?.wrongMidiNotes ?? []}
+            {pianoNotes}
+            {pianoHandHint}
+            suggestedFingerings={pianoFingerings}
+            onExpectedNoteSelected={playExpected}
+            {onAccepted}
+          />
         {/if}
 
         {#if sessionState.error}
@@ -273,7 +192,7 @@
     {#snippet rail()}
       <Card.Root>
         <Card.Header>
-          <Card.Description>{mode === "performance" ? "Performance" : "Wait mode"}</Card.Description>
+          <Card.Description>{mode === "performance" ? "Assess mode" : "Learn mode"}</Card.Description>
           <Card.Title>{Math.round(progress * 100)}%</Card.Title>
         </Card.Header>
         <Card.Content>
@@ -303,7 +222,7 @@
           <Card.Title>{sessionXp}</Card.Title>
         </Card.Header>
       </Card.Root>
-      <Button type="button" disabled={!complete} onclick={onFinish}>Finish phrase</Button>
+      <Button type="button" disabled={!canFinish} onclick={onFinish}>Finish phrase</Button>
     {/snippet}
   </PracticeDrillShell>
 {/if}

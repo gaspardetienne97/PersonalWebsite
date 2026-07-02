@@ -9,7 +9,12 @@
  * arpeggio.
  */
 
-import { isMonophonic, type InstrumentId, type ScoringEvent } from "@repo/music-core/domain";
+import {
+  isMonophonic,
+  VIEWABLE_INSTRUMENTS,
+  type InstrumentId,
+  type ScoringEvent,
+} from "@repo/music-core/domain";
 import { ExerciseRunHost, type PipelineServices } from "@repo/music-core/engines/exercise";
 import type { InputRouter } from "@repo/music-core/engines/input-router";
 import {
@@ -25,6 +30,61 @@ import {
 } from "@repo/music-core/exercises/voicing-drill";
 
 const pitchClass = (midi: number): number => ((midi % 12) + 12) % 12;
+
+export interface VoicingDrillConfig {
+  instrument: InstrumentId;
+  variant: DrillVariant;
+  startPosition: RootlessPosition;
+  strict: boolean;
+  autoAdvance: boolean;
+}
+
+export type VoicingDrillConfigSource = {
+  get?: (key: string) => string | null;
+  instrument?: unknown;
+  variant?: unknown;
+  start?: unknown;
+  startPosition?: unknown;
+  strict?: unknown;
+  advance?: unknown;
+  auto?: unknown;
+  autoAdvance?: unknown;
+};
+
+export const VOICING_DRILL_DEFAULT_CONFIG: VoicingDrillConfig = {
+  instrument: "piano",
+  variant: "major",
+  startPosition: "A",
+  strict: false,
+  autoAdvance: true,
+};
+
+export function normalizeVoicingDrillConfig(
+  source: VoicingDrillConfigSource,
+  defaultInstrument: InstrumentId = VOICING_DRILL_DEFAULT_CONFIG.instrument,
+): VoicingDrillConfig {
+  const rawInstrument = readVoicingConfigValue(source, ["instrument"]);
+  const instrument = VIEWABLE_INSTRUMENTS.includes(rawInstrument as InstrumentId)
+    ? (rawInstrument as InstrumentId)
+    : VIEWABLE_INSTRUMENTS.includes(defaultInstrument)
+      ? defaultInstrument
+      : VOICING_DRILL_DEFAULT_CONFIG.instrument;
+  const rawVariant = readVoicingConfigValue(source, ["variant"]);
+  const variant: DrillVariant =
+    rawVariant === "minor" || rawVariant === "altered" ? rawVariant : "major";
+  const rawStart = readVoicingConfigValue(source, ["start", "startPosition"]);
+  const rawStrict = readVoicingConfigValue(source, ["strict"]);
+  const rawAdvance = readVoicingConfigValue(source, ["advance", "auto", "autoAdvance"]);
+
+  return {
+    instrument,
+    variant,
+    startPosition: rawStart === "B" ? "B" : "A",
+    strict:
+      rawStrict === "held" || rawStrict === "strict" || rawStrict === "true" || rawStrict === "1",
+    autoAdvance: !(rawAdvance === "manual" || rawAdvance === "false" || rawAdvance === "0"),
+  };
+}
 
 /** Pure: the ordered list of chord targets for the 12-key ii-V-I drill. */
 export function buildVoicingDrillTargets(
@@ -189,4 +249,22 @@ export class VoicingDrillSession {
     const state = this.state;
     this.#listeners.forEach((listener) => listener(state));
   }
+}
+
+function readVoicingConfigValue(
+  source: VoicingDrillConfigSource,
+  keys: string[],
+): string | undefined {
+  if (typeof source.get === "function") {
+    for (const key of keys) {
+      const value = source.get(key);
+      if (value !== null) return value;
+    }
+    return undefined;
+  }
+  for (const key of keys) {
+    const value = source[key as keyof VoicingDrillConfigSource];
+    if (value !== undefined && value !== null) return String(value);
+  }
+  return undefined;
 }

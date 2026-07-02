@@ -121,6 +121,77 @@ describe("RecorderPanel", () => {
     );
   });
 
+  test("sends a recorded MIDI take to the Piano Roll import flow", async () => {
+    const runtime = new MusicRuntime();
+    const navigateToCreate = vi.fn();
+    vi.spyOn(runtime, "readLocalState").mockResolvedValue(undefined as never);
+    const writeSpy = vi.spyOn(runtime, "writeLocalState").mockResolvedValue(undefined);
+
+    render(Panel, { runtime, navigateToCreate });
+
+    button("New recording")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((candidate) => candidate.textContent?.trim() === "C4")
+      ?.click();
+    await vi.waitFor(() => expect(button("Stop · 1")).not.toBeUndefined());
+    button("Stop")?.click();
+
+    await vi.waitFor(() => expect(button("Open in Piano Roll")).not.toBeUndefined());
+    button("Open in Piano Roll")?.click();
+
+    await vi.waitFor(() => {
+      expect(writeSpy).toHaveBeenCalledWith(
+        "music.piano-roll.pending-take-import",
+        expect.objectContaining({
+          bpm: runtime.transportBpm,
+          take: expect.objectContaining({
+            name: "Take 1",
+            notes: [expect.objectContaining({ midi: 60 })],
+          }),
+        }),
+      );
+      expect(navigateToCreate).toHaveBeenCalledWith(
+        "/music/create?mode=piano-roll&source=recorder-take",
+      );
+    });
+  });
+
+  test("saves a recorded MIDI take to Song Studio", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "readLocalState").mockResolvedValue(undefined as never);
+    const library = {
+      saveScore: vi.fn(async (score: unknown) => {
+        expect(score).toEqual(
+          expect.objectContaining({
+            title: "Take 1",
+            origin: "midi",
+            tempoMap: [{ atBeat: 0, bpm: runtime.transportBpm }],
+            notes: [expect.objectContaining({ midiNote: 60, voiceId: "onscreen" })],
+          }),
+        );
+        return { id: "song-recorder-take", title: "Take 1" };
+      }),
+    };
+
+    render(Panel, { runtime, library });
+
+    button("New recording")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((candidate) => candidate.textContent?.trim() === "C4")
+      ?.click();
+    await vi.waitFor(() => expect(button("Stop · 1")).not.toBeUndefined());
+    button("Stop")?.click();
+
+    await vi.waitFor(() => expect(button("Save to Song Studio")).not.toBeUndefined());
+    button("Save to Song Studio")?.click();
+
+    await vi.waitFor(() => expect(library.saveScore).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Saved to Song Studio."));
+    expect(document.querySelector('a[href="/music/songs/song-recorder-take"]')).not.toBeNull();
+  });
+
   test("loads saved audio takes from the media library", async () => {
     const runtime = new MusicRuntime();
     const take: AudioTakeRow = {

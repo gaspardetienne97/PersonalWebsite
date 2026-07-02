@@ -5,6 +5,7 @@
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
+    normalizeReadingDrillConfig,
     ReadingSession,
     type ReadingSessionState,
   } from "@repo/music-core/engines/reading-session";
@@ -33,25 +34,14 @@
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
   const tuningStore = store ? new CustomTuningStore(store.settings) : undefined;
+  const initialConfig = normalizeReadingDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
 
   let ready = $state(false);
   let pending = $state(false);
   let status = $state("Preparing your reading history.");
-  let setup = $state<ReadingSetupValue>({
-    activity: "flashcards",
-    instrument: "piano",
-    clefs: ["treble"],
-    keySignature: "C major",
-    range: { lowestMidi: 48, highestMidi: 84 },
-    difficulty: 0.4,
-    promptKind: "single-note",
-    answerMode: "choice",
-    mode: "wait",
-    bpm: 90,
-    strictness: "normal",
-    meter: "simple",
-    measures: 2,
-  });
+  let setup = $state<ReadingSetupValue>({ ...initialConfig });
   let customTunings = $state<TuningProfile[]>([]);
   let session = $state<ReadingSession | undefined>();
   let sessionState = $state<ReadingSessionState | undefined>();
@@ -72,6 +62,7 @@
   const activeTuning = $derived(
     availableTunings.find(({ id }) => id === setup.tuningId) ?? availableTunings[0],
   );
+  const normalizedSetup = $derived(normalizeReadingDrillConfig(setup));
 
   // The transport Play button previews the on-screen sight-reading melody.
   $effect(() => {
@@ -87,6 +78,10 @@
       durationSec,
       play: () => runtime.sound.playPattern(steps),
     });
+  });
+
+  $effect(() => {
+    syncConfigUrl();
   });
 
   void initialize();
@@ -113,9 +108,10 @@
   }
 
   function updateSetup(next: ReadingSetupValue): void {
-    setup = next;
-    if (next.instrument !== "piano" && !next.tuningId) {
-      setup = { ...next, tuningId: availableTunings[0]?.id };
+    const normalized = normalizeReadingDrillConfig(next);
+    setup = normalized;
+    if (normalized.instrument !== "piano" && !normalized.tuningId) {
+      setup = { ...normalized, tuningId: availableTunings[0]?.id };
     }
   }
 
@@ -251,12 +247,31 @@
     void start();
   }
 
+  function slowDown(): void {
+    setup = normalizeReadingDrillConfig({
+      ...setup,
+      activity: "sight-reading",
+      bpm: setup.bpm - 10,
+    });
+    sessionState = undefined;
+    void start();
+  }
+
+  function practiceMissedGroups(): void {
+    if (!session?.prepareMissedSightReading()) {
+      repeat();
+      return;
+    }
+    captured = false;
+    runtime.router.setActiveInstrument(setup.instrument);
+  }
+
   async function saveTuning(profile: TuningProfile): Promise<void> {
     if (!tuningStore) return;
     try {
       await tuningStore.save(profile);
       customTunings = await tuningStore.list();
-      setup = { ...setup, instrument: profile.instrument, tuningId: profile.id };
+      updateSetup({ ...setup, instrument: profile.instrument, tuningId: profile.id });
       status = `${profile.name} saved.`;
     } catch (error) {
       status = message(error, "The tuning could not be saved.");
@@ -268,7 +283,10 @@
     try {
       await tuningStore.delete(id);
       customTunings = await tuningStore.list();
-      setup = { ...setup, tuningId: curatedTunings(setup.instrument as "guitar" | "ukulele")[0]?.id };
+      updateSetup({
+        ...setup,
+        tuningId: curatedTunings(setup.instrument as "guitar" | "ukulele")[0]?.id,
+      });
       status = "Custom tuning deleted.";
     } catch (error) {
       status = message(error, "The tuning could not be deleted.");
@@ -277,6 +295,31 @@
 
   function message(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
+  }
+
+  function syncConfigUrl(): void {
+    const config = normalizedSetup;
+    const url = new URL(window.location.href);
+    url.searchParams.set("activity", config.activity);
+    url.searchParams.set("instrument", config.instrument);
+    if (config.tuningId) {
+      url.searchParams.set("tuning", config.tuningId);
+    } else {
+      url.searchParams.delete("tuning");
+    }
+    url.searchParams.set("clefs", config.clefs.join(","));
+    url.searchParams.set("key", config.keySignature);
+    url.searchParams.set("low", String(config.range.lowestMidi));
+    url.searchParams.set("high", String(config.range.highestMidi));
+    url.searchParams.set("difficulty", String(config.difficulty));
+    url.searchParams.set("prompt", config.promptKind);
+    url.searchParams.set("answer", config.answerMode);
+    url.searchParams.set("mode", config.mode);
+    url.searchParams.set("bpm", String(config.bpm));
+    url.searchParams.set("strict", config.strictness);
+    url.searchParams.set("meter", config.meter);
+    url.searchParams.set("measures", String(config.measures));
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }
 
   onDestroy(() => {
@@ -327,7 +370,12 @@
       onDeleteTuning={deleteTuning}
     />
   {:else if sessionState.status === "summary" && sessionState.summary}
-    <ReadingSummary summary={sessionState.summary} onRepeat={repeat} />
+    <ReadingSummary
+      summary={sessionState.summary}
+      onRepeat={repeat}
+      onSlower={setup.activity === "sight-reading" ? slowDown : undefined}
+      onMissedGroups={practiceMissedGroups}
+    />
     <RoutineContinueAction routine={runtime.dailyRoutine} />
   {:else if sessionState.status === "sight-reading" && session}
     <SightReadingSession

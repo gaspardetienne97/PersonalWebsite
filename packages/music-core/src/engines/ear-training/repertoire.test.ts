@@ -85,7 +85,12 @@ describe("repertoire ear-transfer projection", () => {
     expect(exercise).toMatchObject({
       id: "ear.repertoire-transfer.score-1-0-4",
       name: "Repertoire Transfer",
-      skillIds: ["pitch.scale-degree.1"],
+      skillIds: [
+        "pitch.scale-degree.1",
+        "pitch.scale-degree.2",
+        "pitch.scale-degree.3",
+        "pitch.scale-degree.5",
+      ],
       inputs: ["midi", "onscreen"],
     });
     expect(prompt.payload).toMatchObject({
@@ -262,13 +267,23 @@ describe("repertoire review plan", () => {
     expect(buildRepertoireReviewPlanSchedule(plan)).toEqual([
       {
         exerciseId: "ear.repertoire-transfer.due",
-        targetSkillIds: ["pitch.scale-degree.1"],
+        targetSkillIds: [
+          "pitch.scale-degree.1",
+          "pitch.scale-degree.2",
+          "pitch.scale-degree.3",
+          "pitch.scale-degree.5",
+        ],
         difficulty: 0.6,
         reason: "review",
       },
       {
         exerciseId: "ear.repertoire-transfer.new",
-        targetSkillIds: ["pitch.scale-degree.1"],
+        targetSkillIds: [
+          "pitch.scale-degree.1",
+          "pitch.scale-degree.2",
+          "pitch.scale-degree.3",
+          "pitch.scale-degree.5",
+        ],
         difficulty: 0.72,
         reason: "new",
       },

@@ -37,7 +37,9 @@
   } from "@repo/music-core/engines/free-practice";
   import { JAM_PROGRESSIONS } from "@repo/music-core/engines/jam";
   import type { MediaUsage } from "@repo/music-core/engines/media-library";
+  import { RecordingSession, takeToScore, type Take } from "@repo/music-core/engines/recording";
   import type { AudioTakeRow, ImportedBackingTrackRow } from "@repo/music-core/engines/store";
+  import { scoreToPattern } from "@repo/music-core/engines/sound";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { toast } from "@repo/ui/sonner";
@@ -45,18 +47,26 @@
   import AudioTakePanel from "../_components/AudioTakePanel.svelte";
   import BackingTrackPanel from "../_components/BackingTrackPanel.svelte";
   import InputSurface from "../_components/InputSurface.svelte";
+  import MidiTakeReviewPanel from "../_components/MidiTakeReviewPanel.svelte";
   import MusicToolCard from "../_components/MusicToolCard.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
   import { useMusicRuntime, type MusicRuntime, type PracticeCaptureEntry } from "../_runtime.svelte";
+  import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
 
   interface StartBoundary {
     wallClock: UnixMs;
     monotonic: ReturnType<typeof monotonicMs>;
   }
 
-  let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  let {
+    runtime = useMusicRuntime(),
+    navigateToCreate = defaultNavigateToCreate,
+  }: {
+    runtime?: MusicRuntime;
+    navigateToCreate?: (href: string) => void | Promise<void>;
+  } = $props();
 
   let instrument = $state<InstrumentId>(initialInstrument());
   let surface = $state(initialSurface());
@@ -73,6 +83,8 @@
   let importedTracks = $state<ImportedBackingTrackRow[]>([]);
   let takes = $state<AudioTakeRow[]>([]);
   let selectedTake = $state<AudioTakeRow | undefined>();
+  let midiTakes = $state<Take[]>([]);
+  let selectedMidiTake = $state<Take | undefined>();
   let mediaUsage = $state<MediaUsage | undefined>();
   let unsavedTake = $state<AudioTakeRecording | undefined>();
   let performanceVolume = $state(1);
@@ -82,6 +94,7 @@
   let takeUrl = $state<string | undefined>();
 
   const audioRecorder = new AudioTakeRecorder();
+  const midiRecorder = new RecordingSession();
   let recorderState = $state(audioRecorder.state);
   const backingEngine = new BackingTrackEngine(createBackingAdapter());
   let backingState = $state<BackingTrackState>(backingEngine.state);
@@ -117,6 +130,7 @@
       }
       if (!activeSession || !recording) return;
       activeSession.accept(event);
+      midiRecorder.capture(event);
       activeState = activeSession.state;
     });
   }
@@ -169,6 +183,7 @@
       startedAt: boundary.wallClock,
       startedAtMonotonic: boundary.monotonic,
     });
+    midiRecorder.start(Number(boundary.monotonic));
     activeSession = session;
     activeState = session.state;
     runtime.setActiveInstrument(instrument);
@@ -209,6 +224,11 @@
     }
 
     const result = session.stop(boundary.wallClock);
+    const midiTake = midiRecorder.stop(Number(boundary.monotonic), `Practice Lab take ${midiTakes.length + 1}`);
+    if (midiTake.notes.length > 0) {
+      midiTakes = [midiTake, ...midiTakes];
+      selectedMidiTake = midiTake;
+    }
     activeSession = undefined;
     activeState = undefined;
     lastResult = result;
@@ -376,6 +396,35 @@
     await audio.play();
   }
 
+  async function playMidiTake(take: Take): Promise<void> {
+    if (!(await runtime.enableAudio())) return;
+    const pattern = scoreToPattern(takeToScore(take, runtime.transportBpm), { bpm: runtime.transportBpm });
+    runtime.sound.playPattern(pattern.steps);
+  }
+
+  function deleteMidiTake(take: Take): void {
+    midiTakes = midiTakes.filter((candidate) => candidate.id !== take.id);
+    selectedMidiTake = midiTakes[0];
+  }
+
+  function practiceMidiTake(take: Take): void {
+    selectedMidiTake = take;
+    statusMessage = `Reviewing ${take.name}. Replay it, then record a cleaner pass.`;
+  }
+
+  async function openMidiTakeInPianoRoll(take: Take): Promise<void> {
+    try {
+      await runtime.writeLocalState(PIANO_ROLL_PENDING_TAKE_IMPORT_ID, {
+        take,
+        bpm: runtime.transportBpm,
+      });
+      statusMessage = `Sent ${take.name} to Piano Roll.`;
+      await navigateToCreate("/music/create?mode=piano-roll&source=practice-lab-take");
+    } catch (error) {
+      saveError = error instanceof Error ? error.message : "MIDI take could not be opened in Piano Roll.";
+    }
+  }
+
   function downloadTake(take: AudioTakeRow): void {
     void runtime.media?.takeBlob(take.id).then((blob) => {
       if (!blob || !browser) return;
@@ -391,6 +440,10 @@
   function revokeTakeUrl(): void {
     if (takeUrl && browser) URL.revokeObjectURL(takeUrl);
     takeUrl = undefined;
+  }
+
+  function defaultNavigateToCreate(href: string): void {
+    if (browser) window.location.assign(href);
   }
 
   function boundaryNow(): StartBoundary {
@@ -637,6 +690,17 @@
           onDownloadTake={downloadTake}
           onDeleteTake={deleteTake}
           onRetrySave={retryTakeSave}
+        />
+        <MidiTakeReviewPanel
+          takes={midiTakes}
+          selectedTake={selectedMidiTake}
+          description="Review MIDI and on-screen takes alongside your audio capture."
+          emptyLabel="Recorded MIDI takes will appear here after free practice."
+          onSelectTake={(take) => (selectedMidiTake = take)}
+          onPlayTake={playMidiTake}
+          onDeleteTake={deleteMidiTake}
+          onPracticeTake={practiceMidiTake}
+          onOpenInPianoRoll={openMidiTakeInPianoRoll}
         />
       </aside>
     </div>

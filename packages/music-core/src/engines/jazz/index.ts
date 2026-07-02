@@ -10,9 +10,14 @@
  */
 
 import {
+  Capability,
   degradesToArpeggio,
   type ContentApplicability,
+  type ExerciseRunRecord,
   type InstrumentId,
+  type ScoringEvent,
+  type ScoringMetric,
+  type UnixMs,
 } from "@repo/music-core/domain";
 import { noteToMidi } from "@repo/music-core/engines/theory";
 
@@ -151,6 +156,36 @@ export interface ChordScaleEntry {
   hint?: string;
 }
 
+export type ChordScaleDrillChangesId = "major" | "minor";
+
+export interface ChordScaleDrillConfig {
+  changesId: ChordScaleDrillChangesId;
+}
+
+export type ChordScaleDrillConfigSource =
+  | URLSearchParams
+  | {
+      changes?: unknown;
+      changesId?: unknown;
+      variant?: unknown;
+    };
+
+export const CHORD_SCALE_DRILL_CHANGES: readonly ChordScaleDrillChangesId[] = ["major", "minor"];
+
+export const CHORD_SCALE_DRILL_DEFAULT_CONFIG: ChordScaleDrillConfig = {
+  changesId: "major",
+};
+
+export function normalizeChordScaleDrillConfig(
+  source: ChordScaleDrillConfigSource,
+): ChordScaleDrillConfig {
+  return {
+    changesId: normalizeChordScaleChangesId(
+      readChordScaleConfigValue(source, ["changes", "changesId", "variant"]),
+    ),
+  };
+}
+
 /**
  * JT4: the "go-to" scales jazz musicians use over each chord type. Every scale
  * here contains the chord tones (1 3 5 7); they vary in the colour tones.
@@ -246,6 +281,31 @@ export function scalesForFamily(family: ChordFamily): ChordScaleEntry[] {
   return CHORD_SCALE_MAP.filter((entry) => entry.family === family).sort(
     (a, b) => Number(b.recommended ?? false) - Number(a.recommended ?? false),
   );
+}
+
+function readChordScaleConfigValue(
+  source: ChordScaleDrillConfigSource,
+  keys: string[],
+): string | undefined {
+  if (source instanceof URLSearchParams) {
+    for (const key of keys) {
+      const value = source.get(key);
+      if (value !== null) return value;
+    }
+    return undefined;
+  }
+
+  for (const key of keys) {
+    const value = source[key as keyof typeof source];
+    if (typeof value === "string") return value;
+  }
+  return undefined;
+}
+
+function normalizeChordScaleChangesId(value: string | undefined): ChordScaleDrillChangesId {
+  return CHORD_SCALE_DRILL_CHANGES.includes(value as ChordScaleDrillChangesId)
+    ? (value as ChordScaleDrillChangesId)
+    : CHORD_SCALE_DRILL_DEFAULT_CONFIG.changesId;
 }
 
 // ---------------------------------------------------------------------------
@@ -669,6 +729,32 @@ export const IMPROV_TECHNIQUES: ImprovTechnique[] = [
 
 export type LickCategory = "major-ii-V-I" | "major-ii-V-I-VI" | "minor-ii-V-i" | "minor-chord";
 
+export interface JazzLickDrillConfig {
+  category: LickCategory;
+  lickNumber: number;
+}
+
+export type JazzLickDrillConfigSource =
+  | URLSearchParams
+  | {
+      category?: unknown;
+      lick?: unknown;
+      lickNumber?: unknown;
+      number?: unknown;
+    };
+
+export const JAZZ_LICK_CATEGORIES: readonly LickCategory[] = [
+  "major-ii-V-I",
+  "major-ii-V-I-VI",
+  "minor-ii-V-i",
+  "minor-chord",
+];
+
+export const JAZZ_LICK_DRILL_DEFAULT_CONFIG: JazzLickDrillConfig = {
+  category: "major-ii-V-I",
+  lickNumber: 1,
+};
+
 export interface JazzLick {
   number: number;
   category: LickCategory;
@@ -920,6 +1006,69 @@ export const JAZZ_LICKS: JazzLick[] = [
     tip: "Ascending minor pentatonic in 4-note cells; the left hand plays the first note of each cell.",
   },
 ];
+
+export function normalizeJazzLickDrillConfig(
+  source: JazzLickDrillConfigSource,
+): JazzLickDrillConfig {
+  const requestedCategory = normalizeLickCategory(readJazzLickConfigValue(source, ["category"]));
+  const requestedNumber = normalizeLickNumber(
+    readJazzLickConfigValue(source, ["lick", "lickNumber", "number"]),
+  );
+  const requestedLick =
+    requestedNumber === undefined
+      ? undefined
+      : JAZZ_LICKS.find((entry) => entry.number === requestedNumber);
+
+  if (requestedCategory) {
+    const categoryLick =
+      requestedLick?.category === requestedCategory
+        ? requestedLick
+        : JAZZ_LICKS.find((entry) => entry.category === requestedCategory);
+    return {
+      category: requestedCategory,
+      lickNumber: categoryLick?.number ?? JAZZ_LICK_DRILL_DEFAULT_CONFIG.lickNumber,
+    };
+  }
+
+  if (requestedLick) {
+    return {
+      category: requestedLick.category,
+      lickNumber: requestedLick.number,
+    };
+  }
+
+  return JAZZ_LICK_DRILL_DEFAULT_CONFIG;
+}
+
+function readJazzLickConfigValue(
+  source: JazzLickDrillConfigSource,
+  keys: string[],
+): string | undefined {
+  if (source instanceof URLSearchParams) {
+    for (const key of keys) {
+      const value = source.get(key);
+      if (value !== null) return value;
+    }
+    return undefined;
+  }
+
+  for (const key of keys) {
+    const value = source[key as keyof typeof source];
+    if (typeof value === "string") return value;
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return undefined;
+}
+
+function normalizeLickCategory(value: string | undefined): LickCategory | undefined {
+  return JAZZ_LICK_CATEGORIES.includes(value as LickCategory) ? (value as LickCategory) : undefined;
+}
+
+function normalizeLickNumber(value: string | undefined): number | undefined {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) return undefined;
+  return JAZZ_LICKS.some((entry) => entry.number === parsed) ? parsed : undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Backing tracks (JT14-18) — catalogue of the included practice tracks.
@@ -1794,6 +1943,67 @@ export interface LickGrade {
   total: number;
   /** matched / total, 0..1. */
   accuracy: number;
+}
+
+export interface JazzSequenceCaptureArgs {
+  exerciseId: string;
+  label: string;
+  sessionId: string;
+  runId: string;
+  eventId: string;
+  promptId: string;
+  skillIds: string[];
+  capabilities: Capability[];
+  expectedMidi: number[];
+  playedMidi: number[];
+  grade: LickGrade;
+  startedAt: UnixMs;
+  endedAt: UnixMs;
+  difficulty: number;
+  instrument?: InstrumentId;
+  params?: Record<string, unknown>;
+}
+
+export interface JazzSequenceCapture {
+  event: ScoringEvent;
+  run: ExerciseRunRecord;
+}
+
+export function buildJazzSequenceCapture(args: JazzSequenceCaptureArgs): JazzSequenceCapture {
+  const metrics: ScoringMetric[] = args.expectedMidi.map((expectedMidi, index) => ({
+    kind: "pitch",
+    expectedMidi,
+    actualMidi: args.playedMidi[index],
+  }));
+  const run: ExerciseRunRecord = {
+    id: args.runId,
+    exerciseId: args.exerciseId,
+    startedAt: args.startedAt,
+    endedAt: args.endedAt,
+    promptIds: [args.promptId],
+    targetSkillIds: [...args.skillIds],
+    difficulty: args.difficulty,
+    ...(args.instrument !== undefined ? { instrument: args.instrument } : {}),
+    ...(args.params !== undefined ? { params: { ...args.params } } : {}),
+  };
+  const event: ScoringEvent = {
+    id: args.eventId,
+    sessionId: args.sessionId,
+    exerciseId: args.exerciseId,
+    runId: args.runId,
+    skillIds: [...args.skillIds],
+    capabilities: [...args.capabilities],
+    modality: "played",
+    at: args.endedAt,
+    correct: args.grade.accuracy >= 0.9,
+    partialCredit: args.grade.accuracy,
+    difficulty: args.difficulty,
+    metrics,
+    target: { label: args.label, midiNotes: [...args.expectedMidi] },
+    response: { midiNotes: [...args.playedMidi] },
+  };
+
+  return { event, run };
 }
 
 /**

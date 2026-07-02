@@ -296,7 +296,7 @@ export function buildRepertoireReviewPlan(
 export function buildRepertoireReviewPlanSchedule(plan: RepertoireReviewPlan): ScheduledExercise[] {
   return plan.recommendedOrder.map((item) => ({
     exerciseId: `ear.repertoire-transfer.${safeId(item.transfer.id)}`,
-    targetSkillIds: [`pitch.scale-degree.${item.transfer.degrees[0] ?? "1"}`],
+    targetSkillIds: targetSkillIdsForTransfer(item.transfer),
     difficulty: round(clamp01(0.4 + item.phraseDifficulty * 0.4)),
     reason: item.status === "new" ? "new" : "review",
   }));
@@ -347,6 +347,11 @@ function byPriority(left: RepertoireReviewItem, right: RepertoireReviewItem): nu
   );
 }
 
+function targetSkillIdsForTransfer(transfer: RepertoireEarTransfer): string[] {
+  const ids = [...new Set(transfer.degrees.map((degree) => `pitch.scale-degree.${degree}`))];
+  return ids.length > 0 ? ids : ["pitch.scale-degree.1"];
+}
+
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
@@ -354,12 +359,13 @@ function clamp01(value: number): number {
 export function createRepertoireTransferExercise(
   transfer: RepertoireEarTransfer,
 ): ExerciseDefinition<RepertoireTransferPrompt, string[]> {
-  const targetSkillId = `pitch.scale-degree.${transfer.degrees[0] ?? "1"}`;
+  const targetSkillIds = targetSkillIdsForTransfer(transfer);
+  const targetSkillId = targetSkillIds[0] ?? "pitch.scale-degree.1";
   return {
     id: `ear.repertoire-transfer.${safeId(transfer.id)}`,
     name: "Repertoire Transfer",
     capabilities: [Capability.EarTraining, Capability.Pitch],
-    skillIds: [targetSkillId],
+    skillIds: targetSkillIds,
     inputs: ["midi", "onscreen"],
     streaming: false,
     generate() {

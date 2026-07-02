@@ -21,6 +21,7 @@ import {
   type EarTrainingPromptBase,
 } from "@repo/music-core/exercises/ear-training";
 import {
+  SCALE_DEGREE_SETS,
   degreeTokensForScaleDegreeSet,
   type ScaleDegreeSetId,
 } from "@repo/music-core/exercises/scale-degree-recognition";
@@ -61,6 +62,49 @@ export interface EarTrainingSessionOptions {
   scaleDegreeSet?: ScaleDegreeSetId;
 }
 
+export type EarTrainingConfigDrill = Exclude<EarTrainingDrill, "repertoire-transfer"> | "mixed";
+
+export interface EarTrainingConfig {
+  drill: EarTrainingConfigDrill;
+  answerMode: EarTrainingAnswerMode;
+  feedbackMode: EarTrainingFeedbackMode;
+  scaleDegreeSet: ScaleDegreeSetId;
+}
+
+export type EarTrainingConfigSource = {
+  get?: (key: string) => string | null;
+  drill?: unknown;
+  answer?: unknown;
+  answerMode?: unknown;
+  feedback?: unknown;
+  feedbackMode?: unknown;
+  level?: unknown;
+  scaleDegreeSet?: unknown;
+};
+
+export const EAR_TRAINING_DEFAULT_CONFIG: EarTrainingConfig = {
+  drill: "mixed",
+  answerMode: "choice",
+  feedbackMode: "practice",
+  scaleDegreeSet: "anchor",
+};
+
+export function normalizeEarTrainingConfig(source: EarTrainingConfigSource): EarTrainingConfig {
+  const rawDrill = readEarConfigValue(source, ["drill"]);
+  const rawAnswer = readEarConfigValue(source, ["answer", "answerMode"]);
+  const rawFeedback = readEarConfigValue(source, ["feedback", "feedbackMode"]);
+  const rawLevel = readEarConfigValue(source, ["level", "scaleDegreeSet"]);
+
+  return {
+    drill: normalizeEarDrill(rawDrill),
+    answerMode: normalizeEarAnswerMode(rawAnswer),
+    feedbackMode: rawFeedback === "test" ? "test" : EAR_TRAINING_DEFAULT_CONFIG.feedbackMode,
+    scaleDegreeSet: SCALE_DEGREE_SETS.some((set) => set.id === rawLevel)
+      ? (rawLevel as ScaleDegreeSetId)
+      : EAR_TRAINING_DEFAULT_CONFIG.scaleDegreeSet,
+  };
+}
+
 export interface EarTrainingSessionDependencies {
   router: InputRouter;
   registry: ExerciseRegistry;
@@ -75,6 +119,7 @@ export interface EarTrainingQueueItem {
   drill: EarTrainingDrill;
   exerciseId: string;
   targetSkillId: string;
+  targetSkillIds: string[];
   difficulty: number;
   reason: ScheduledExercise["reason"];
 }
@@ -82,6 +127,7 @@ export interface EarTrainingQueueItem {
 export interface EarTrainingResultView {
   drill: EarTrainingDrill;
   targetSkillId: string;
+  targetSkillIds: string[];
   prompt: EarTrainingPromptBase;
   result: ExerciseResult;
   event: ScoringEvent;
@@ -112,6 +158,10 @@ export interface EarTrainingSummary {
   confusions: EarTrainingConfusion[];
 }
 
+export interface EarTrainingRetryScheduleOptions {
+  limit?: number;
+}
+
 export interface EarTrainingSessionState {
   status: "ready" | "active" | "summary" | "abandoned";
   options: EarTrainingSessionOptions;
@@ -124,6 +174,30 @@ export interface EarTrainingSessionState {
   sessionXp: number;
   error?: string;
   summary?: EarTrainingSummary;
+}
+
+export function buildEarTrainingRetrySchedule(
+  summary: EarTrainingSummary,
+  options: EarTrainingRetryScheduleOptions = {},
+): ScheduledExercise[] {
+  const limit = Math.max(1, Math.floor(options.limit ?? 10));
+  const scheduled: ScheduledExercise[] = [];
+  const seen = new Set<string>();
+
+  for (const confusion of [...summary.confusions].sort(
+    (left, right) =>
+      right.count - left.count ||
+      left.drill.localeCompare(right.drill) ||
+      left.expected.localeCompare(right.expected),
+  )) {
+    const item = retryScheduleItem(confusion);
+    if (!item || seen.has(item.targetSkillIds[0]!)) continue;
+    seen.add(item.targetSkillIds[0]!);
+    scheduled.push(item);
+    if (scheduled.length >= limit) break;
+  }
+
+  return scheduled;
 }
 
 type StateListener = (state: EarTrainingSessionState) => void;
@@ -272,7 +346,7 @@ export class EarTrainingSession {
       runId: `${this.#sessionId}-${this.#currentIndex + 1}`,
       inputs: inputsForAnswerMode(this.options.answerMode, item.drill),
       context: {
-        targetSkillIds: [item.targetSkillId],
+        targetSkillIds: item.targetSkillIds,
         difficulty: item.difficulty,
         ...(this.options.scaleDegreeSet !== undefined
           ? { metadata: { scaleDegreeSet: this.options.scaleDegreeSet } }
@@ -317,6 +391,7 @@ export class EarTrainingSession {
       this.#results.push({
         drill: item.drill,
         targetSkillId: item.targetSkillId,
+        targetSkillIds: [...item.targetSkillIds],
         prompt,
         result: outcome.result,
         event: outcome.event,
@@ -385,6 +460,7 @@ function buildSessionQueue(
       drill,
       exerciseId: item.exerciseId,
       targetSkillId,
+      targetSkillIds: [...item.targetSkillIds],
       difficulty: item.difficulty,
       reason: item.reason,
     });
@@ -408,6 +484,7 @@ function buildSessionQueue(
             drill,
             exerciseId: item.exerciseId,
             targetSkillId,
+            targetSkillIds: [...item.targetSkillIds],
             difficulty: item.difficulty,
             reason: item.reason,
           } satisfies EarTrainingQueueItem;
@@ -466,6 +543,40 @@ function adaptiveMixedQueue(items: EarTrainingQueueItem[], length: number): EarT
 function cycleToLength(items: EarTrainingQueueItem[], length: number): EarTrainingQueueItem[] {
   if (items.length === 0) return [];
   return Array.from({ length }, (_, index) => ({ ...items[index % items.length]! }));
+}
+
+function normalizeEarDrill(value: string | undefined): EarTrainingConfigDrill {
+  if (
+    value === "interval" ||
+    value === "chord-quality" ||
+    value === "scale-degree" ||
+    value === "melody-dictation" ||
+    value === "mixed"
+  ) {
+    return value;
+  }
+  return EAR_TRAINING_DEFAULT_CONFIG.drill;
+}
+
+function normalizeEarAnswerMode(value: string | undefined): EarTrainingAnswerMode {
+  if (value === "play") return "play-back";
+  if (value === "play-back" || value === "voice" || value === "listen") return value;
+  return EAR_TRAINING_DEFAULT_CONFIG.answerMode;
+}
+
+function readEarConfigValue(source: EarTrainingConfigSource, keys: string[]): string | undefined {
+  if (typeof source.get === "function") {
+    for (const key of keys) {
+      const value = source.get(key);
+      if (value !== null) return value;
+    }
+    return undefined;
+  }
+  for (const key of keys) {
+    const value = source[key as keyof EarTrainingConfigSource];
+    if (value !== undefined && value !== null) return String(value);
+  }
+  return undefined;
 }
 
 function drillForExercise(exerciseId: string): EarTrainingDrill | undefined {
@@ -529,6 +640,13 @@ function summarize(results: EarTrainingResultView[], streakDays: number): EarTra
       confusion.count += 1;
       confusionCounts.set(key, confusion);
     }
+
+    for (const confusion of phraseDegreeConfusions(item)) {
+      const key = `${item.drill}:${confusion.expected}:${confusion.actual}`;
+      const existing = confusionCounts.get(key) ?? confusion;
+      existing.count += 1;
+      confusionCounts.set(key, existing);
+    }
   }
 
   const correct = results.filter(({ result }) => result.correct).length;
@@ -542,4 +660,74 @@ function summarize(results: EarTrainingResultView[], streakDays: number): EarTra
     recentResults: [...results],
     confusions: [...confusionCounts.values()],
   };
+}
+
+function phraseDegreeConfusions(item: EarTrainingResultView): EarTrainingConfusion[] {
+  if (item.drill !== "melody-dictation" && item.drill !== "repertoire-transfer") {
+    return [];
+  }
+  const promptDegrees = (item.prompt as { degrees?: unknown }).degrees;
+  const answerDegrees = item.result.answer;
+  if (!isStringArray(promptDegrees) || !isStringArray(answerDegrees)) return [];
+
+  const result: EarTrainingConfusion[] = [];
+  for (const [index, expected] of promptDegrees.entries()) {
+    const metric = item.result.metrics[index];
+    if (metric?.kind !== "pitch") continue;
+    const actual = answerDegrees[index];
+    if (actual === undefined || actual === expected) continue;
+    result.push({
+      drill: item.drill,
+      expected,
+      actual,
+      count: 0,
+    });
+  }
+  return result;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function retryScheduleItem(confusion: EarTrainingConfusion): ScheduledExercise | undefined {
+  if (
+    confusion.drill === "scale-degree" ||
+    confusion.drill === "melody-dictation" ||
+    confusion.drill === "repertoire-transfer"
+  ) {
+    return retryItem("ear.scale-degree-recognition", `pitch.scale-degree.${confusion.expected}`);
+  }
+  if (confusion.drill === "interval") {
+    return retryItem("ear.interval-recognition", `pitch.interval.${confusion.expected}`);
+  }
+  if (confusion.drill === "chord-quality") {
+    const skillId = chordQualitySkillId(confusion.expected);
+    return skillId === undefined ? undefined : retryItem("ear.chord-quality-recognition", skillId);
+  }
+  return undefined;
+}
+
+function retryItem(exerciseId: string, skillId: string): ScheduledExercise {
+  return {
+    exerciseId,
+    targetSkillIds: [skillId],
+    difficulty: 0.5,
+    reason: "weakness",
+  };
+}
+
+function chordQualitySkillId(token: string): string | undefined {
+  const skillIds: Record<string, string> = {
+    major: "harmony.triad.major",
+    minor: "harmony.triad.minor",
+    diminished: "harmony.triad.diminished",
+    augmented: "harmony.triad.augmented",
+    "major-7": "harmony.seventh.major",
+    "dominant-7": "harmony.seventh.dominant",
+    "minor-7": "harmony.seventh.minor",
+    "half-diminished-7": "harmony.seventh.half-diminished",
+    "diminished-7": "harmony.seventh.diminished",
+  };
+  return skillIds[token];
 }

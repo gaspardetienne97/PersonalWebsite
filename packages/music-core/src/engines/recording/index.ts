@@ -21,6 +21,14 @@ export interface TakeComparison {
   accuracy: number;
 }
 
+export interface TakeDensityBucket {
+  index: number;
+  startMs: number;
+  endMs: number;
+  count: number;
+  intensity: number;
+}
+
 /**
  * In-session MIDI/on-screen take recorder. Captures note-on events with
  * timing relative to the take start; supports listing, removal, and take-vs-take
@@ -138,4 +146,28 @@ export function takeToScore(take: Take, bpm: number): Score {
     sections: [],
     markers: [],
   };
+}
+
+export function buildTakeDensity(take: Take, bucketCount = 16): TakeDensityBucket[] {
+  const count = Math.max(1, Math.round(bucketCount));
+  const durationMs = Math.max(1, take.durationMs, ...take.notes.map((note) => note.atMs));
+  const bucketMs = durationMs / count;
+  const buckets = Array.from({ length: count }, (_, index) => ({
+    index,
+    startMs: Math.round(index * bucketMs),
+    endMs: Math.round((index + 1) * bucketMs),
+    count: 0,
+    intensity: 0,
+  }));
+
+  for (const note of take.notes) {
+    const index = Math.min(count - 1, Math.max(0, Math.floor(note.atMs / bucketMs)));
+    buckets[index]!.count += 1;
+  }
+
+  const maxCount = Math.max(1, ...buckets.map((bucket) => bucket.count));
+  return buckets.map((bucket) => ({
+    ...bucket,
+    intensity: bucket.count / maxCount,
+  }));
 }

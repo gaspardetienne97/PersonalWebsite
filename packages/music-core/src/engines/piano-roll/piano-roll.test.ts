@@ -3,11 +3,17 @@ import { describe, expect, test } from "vitest";
 import {
   addVoice,
   clearVoice,
+  createPianoRollScoreFromTake,
   createPianoRollScore,
   buildPianoRollGrid,
+  addPianoRollSection,
+  mergeTakeIntoPianoRollScore,
   noteAt,
   PIANO_ROLL_VELOCITY,
   removeVoice,
+  removePianoRollSection,
+  renamePianoRollSection,
+  resizePianoRollSection,
   resizeNoteAt,
   scoreLoopBeats,
   setVoiceVelocity,
@@ -152,5 +158,140 @@ describe("buildPianoRollGrid", () => {
     expect(grid.stepCount).toBe(48);
     expect(grid.steps[32]).toMatchObject({ step: 32, beat: 8, bar: 3, stepInBar: 0 });
     expect(grid.steps.at(-1)).toMatchObject({ step: 47, beat: 11.75, bar: 3 });
+  });
+});
+
+describe("createPianoRollScoreFromTake", () => {
+  test("maps a recorded take into an editable lead track", () => {
+    const score = createPianoRollScoreFromTake(
+      {
+        id: "take-1",
+        name: "Morning idea",
+        source: "midi",
+        durationMs: 1_000,
+        notes: [
+          { midi: 60, atMs: 0, velocity: 0.8 },
+          { midi: 64, atMs: 500, velocity: 0.7 },
+        ],
+      },
+      120,
+    );
+
+    expect(score).toMatchObject({
+      id: "take-1",
+      title: "Morning idea",
+      origin: "midi",
+      voices: [{ id: "lead", name: "Morning idea", role: "melody" }],
+    });
+    expect(score.notes).toEqual([
+      expect.objectContaining({ voiceId: "lead", midiNote: 60, startBeat: 0 }),
+      expect.objectContaining({ voiceId: "lead", midiNote: 64, startBeat: 1 }),
+    ]);
+    expect(score.tempoMap[0]?.bpm).toBe(120);
+  });
+});
+
+describe("mergeTakeIntoPianoRollScore", () => {
+  test("adds a recorded take as a uniquely named track without replacing existing notes", () => {
+    let score = toggleNoteAt(createPianoRollScore(100), cell({ midiNote: 67, startBeat: 0 }));
+    score = addVoice(score, "Morning idea");
+
+    const merged = mergeTakeIntoPianoRollScore(
+      score,
+      {
+        id: "take-1",
+        name: "Morning idea",
+        source: "midi",
+        durationMs: 1_000,
+        notes: [
+          { midi: 60, atMs: 0, velocity: 0.8 },
+          { midi: 64, atMs: 500, velocity: 0.7 },
+        ],
+      },
+      120,
+    );
+
+    expect(merged.voices.map((voice) => voice.name)).toEqual([
+      "Lead",
+      "Keys",
+      "Bass",
+      "Morning idea",
+      "Morning idea 2",
+    ]);
+    expect(merged.notes).toEqual([
+      expect.objectContaining({ voiceId: "lead", midiNote: 67 }),
+      expect.objectContaining({ voiceId: "morning-idea-2", midiNote: 60, startBeat: 0 }),
+      expect.objectContaining({ voiceId: "morning-idea-2", midiNote: 64, startBeat: 1 }),
+    ]);
+    expect(score.notes).toHaveLength(1);
+  });
+});
+
+describe("piano-roll arrangement sections", () => {
+  test("adds, renames, and removes non-overlapping score sections immutably", () => {
+    const score = createPianoRollScore();
+
+    const withIntro = addPianoRollSection(score, {
+      name: "Intro",
+      startBeat: 0,
+      endBeat: 4,
+    });
+    const withVerse = addPianoRollSection(withIntro, {
+      name: "Verse",
+      startBeat: 4,
+      endBeat: 8,
+    });
+    const renamed = renamePianoRollSection(withVerse, "intro", "Head");
+    const removed = removePianoRollSection(renamed, "verse");
+
+    expect(withVerse.sections).toEqual([
+      { id: "intro", name: "Intro", startBeat: 0, endBeat: 4 },
+      { id: "verse", name: "Verse", startBeat: 4, endBeat: 8 },
+    ]);
+    expect(renamed.sections[0]).toMatchObject({ id: "intro", name: "Head" });
+    expect(removed.sections).toEqual([{ id: "intro", name: "Head", startBeat: 0, endBeat: 4 }]);
+    expect(score.sections).toHaveLength(0);
+  });
+
+  test("rejects overlapping arrangement sections", () => {
+    const score = addPianoRollSection(createPianoRollScore(), {
+      name: "Intro",
+      startBeat: 0,
+      endBeat: 4,
+    });
+
+    expect(() =>
+      addPianoRollSection(score, {
+        name: "Verse",
+        startBeat: 3,
+        endBeat: 8,
+      }),
+    ).toThrow("Piano-roll sections must not overlap");
+  });
+
+  test("resizes arrangement sections while preserving overlap validation", () => {
+    const score = addPianoRollSection(
+      addPianoRollSection(createPianoRollScore(), {
+        name: "Intro",
+        startBeat: 0,
+        endBeat: 4,
+      }),
+      {
+        name: "Verse",
+        startBeat: 4,
+        endBeat: 8,
+      },
+    );
+
+    const resized = resizePianoRollSection(score, "intro", { startBeat: 0, endBeat: 2 });
+
+    expect(resized.sections).toEqual([
+      { id: "intro", name: "Intro", startBeat: 0, endBeat: 2 },
+      { id: "verse", name: "Verse", startBeat: 4, endBeat: 8 },
+    ]);
+    expect(score.sections[0]).toMatchObject({ startBeat: 0, endBeat: 4 });
+    expect(() => resizePianoRollSection(score, "intro", { startBeat: 0, endBeat: 5 })).toThrow(
+      "Piano-roll sections must not overlap",
+    );
   });
 });

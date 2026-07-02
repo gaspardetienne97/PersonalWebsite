@@ -31,6 +31,8 @@
   } = $props();
 
   type FretState = "target" | "active" | "correct" | "wrong";
+  type FretDot = Position & { color: string; label: string; state: FretState };
+  type FretboardConstructor = new (options?: Record<string, unknown>) => FretboardType;
 
   const fretCount = $derived(Math.min(tuning.fretCount, Math.max(0, visibleFrets)));
   const strings = $derived(
@@ -63,8 +65,9 @@
   }
 
   // --- fretboard.js visual layer -------------------------------------------
-  let visual = undefined as unknown as HTMLDivElement;
+  let visual = $state<HTMLDivElement>();
   let fretboard = $state<FretboardType | undefined>();
+  let FretboardCtor = $state<FretboardConstructor>();
 
   function themeColor(token: string, fallback: string): string {
     if (typeof window === "undefined") return fallback;
@@ -76,17 +79,37 @@
   function stateColor(s: FretState): string {
     if (s === "wrong") return themeColor("--destructive", "#ef4444");
     if (s === "correct") return themeColor("--success", "#22c55e");
-    // target / active — the fixed practice-accent "play this" highlight.
-    return themeColor("--practice-accent", "#7c5cff");
+    if (s === "active") return themeColor("--practice-accent", "#7c5cff");
+    return themeColor("--warn", "#d97706");
+  }
+
+  function stateTextColor(s: FretState): string {
+    if (s === "wrong") return themeColor("--background", "#ffffff");
+    if (s === "correct") return themeColor("--success-foreground", "#052e16");
+    if (s === "active") return themeColor("--practice-accent-foreground", "#ffffff");
+    return themeColor("--warn-foreground", "#422006");
+  }
+
+  function noteLabel(midiNote: number): string {
+    return midiToNote(midiNote).replace(/\d+$/, "");
   }
 
   /** One dot per highlighted position across the visible strings/frets. */
-  function highlightDots(): (Position & { color: string })[] {
-    const dots: (Position & { color: string })[] = [];
+  function highlightDots(): FretDot[] {
+    const dots: FretDot[] = [];
     for (const { openMidi } of strings) {
       for (let fret = 0; fret <= fretCount; fret++) {
-        const s = fretState(openMidi + fret);
-        if (s) dots.push({ string: fbStringFor(openMidi), fret, color: stateColor(s) });
+        const midiNote = openMidi + fret;
+        const s = fretState(midiNote);
+        if (s) {
+          dots.push({
+            string: fbStringFor(openMidi),
+            fret,
+            color: stateColor(s),
+            label: noteLabel(midiNote),
+            state: s,
+          });
+        }
       }
     }
     return dots;
@@ -94,34 +117,50 @@
 
   onMount(() => {
     let destroyed = false;
-    let board: FretboardType | undefined;
     void (async () => {
       const { Fretboard } = await import("@moonwave99/fretboard.js");
       if (destroyed) return;
-      board = new Fretboard({
-        el: visual,
-        tuning: fbTuning,
-        stringCount: fbTuning.length,
-        fretCount,
-        height: 180,
-        dotStrokeColor: themeColor("--border", "#555"),
-        stringColor: themeColor("--muted-foreground", "#888"),
-        fretColor: themeColor("--muted-foreground", "#888"),
-        nutColor: themeColor("--foreground", "#fff"),
-        middleFretColor: themeColor("--muted-foreground", "#888"),
-        fretNumbersColor: themeColor("--muted-foreground", "#888"),
-        showFretNumbers: true,
-      });
-      board.render();
-      board.on("click", (position: Position) => {
-        const openMidi = fbOpenMidi[position.string - 1];
-        if (openMidi !== undefined) play(openMidi + position.fret);
-      });
-      fretboard = board;
+      FretboardCtor = Fretboard as FretboardConstructor;
     })();
     return () => {
       destroyed = true;
-      fretboard = undefined;
+      FretboardCtor = undefined;
+    };
+  });
+
+  $effect(() => {
+    const Fretboard = FretboardCtor;
+    if (!Fretboard || !visual) return;
+
+    const openMidiByString = [...fbOpenMidi];
+    const board = new Fretboard({
+      el: visual,
+      tuning: fbTuning,
+      stringCount: fbTuning.length,
+      fretCount,
+      height: 180,
+      dotSize: 26,
+      dotTextSize: 11,
+      dotText: (dot: FretDot) => dot.label,
+      dotStrokeColor: themeColor("--border", "#555"),
+      stringColor: themeColor("--muted-foreground", "#888"),
+      fretColor: themeColor("--muted-foreground", "#888"),
+      nutColor: themeColor("--foreground", "#fff"),
+      middleFretColor: themeColor("--muted-foreground", "#888"),
+      fretNumbersColor: themeColor("--muted-foreground", "#888"),
+      showFretNumbers: true,
+    });
+    board.render();
+    board.on("click", (position: Position) => {
+      const openMidi = openMidiByString[position.string - 1];
+      if (openMidi !== undefined) play(openMidi + position.fret);
+    });
+    fretboard = board;
+
+    return () => {
+      board.removeEventListeners();
+      visual?.replaceChildren();
+      if (fretboard === board) fretboard = undefined;
     };
   });
 
@@ -130,7 +169,20 @@
     const dots = highlightDots();
     if (!fretboard) return;
     fretboard.setDots(dots).render();
-    fretboard.style({ fill: (dot: { color?: string }) => dot.color ?? "transparent" });
+    fretboard.style({
+      fill: (dot: FretDot) => dot.color,
+      text: (dot: FretDot) => dot.label,
+      fontSize: 11,
+      fontFill: themeColor("--foreground", "#111111"),
+    });
+    for (const state of ["target", "active", "correct", "wrong"] as const) {
+      fretboard.style({
+        filter: { state },
+        text: (dot: FretDot) => dot.label,
+        fontSize: 11,
+        fontFill: stateTextColor(state),
+      });
+    }
   });
 </script>
 
@@ -138,7 +190,7 @@
 <div
   bind:this={visual}
   aria-hidden="true"
-  class="w-full max-w-full min-w-0 overflow-x-auto rounded-md border bg-card p-2"
+  class="w-full max-w-full min-w-0 overflow-x-auto rounded-md border bg-stage/70 p-3 shadow-inner"
 ></div>
 
 <!-- Accessible/keyboard layer: real per-fret buttons, screen-reader friendly. -->
@@ -166,6 +218,11 @@
         aria-label={`String ${stringNumber} fret ${fret}, ${note}${noteState ? `, ${noteState}` : ""}`}
         class={cn(
           "grid size-10 place-items-center rounded-sm border bg-background text-xs font-medium",
+          noteState === "target" && "border-warn/60 bg-warn/15 text-foreground",
+          noteState === "active" &&
+            "border-practice-accent/70 bg-practice-accent/15 text-foreground",
+          noteState === "correct" && "border-success/70 bg-success/15 text-foreground",
+          noteState === "wrong" && "border-destructive/70 bg-destructive/15 text-foreground",
         )}
         onclick={() => play(midiNote)}
       >

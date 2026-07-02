@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import { onDestroy, onMount } from "svelte";
 
   import {
@@ -15,7 +16,12 @@
     type ChordAnalysis,
     type AudioPitchState,
   } from "@repo/music-core/engines/audio-in";
-  import { JAM_PROGRESSIONS, type JamProgression } from "@repo/music-core/engines/jam";
+  import {
+    JAM_PROGRESSIONS,
+    normalizeChordProgressionDrillConfig,
+    targetTones,
+    type TargetTone,
+  } from "@repo/music-core/engines/jam";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Label } from "@repo/ui/label";
@@ -23,6 +29,7 @@
   import HudTile from "../../_components/HudTile.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
@@ -60,9 +67,12 @@
     value: entry.id,
     label: entry.name,
   }));
+  const initialConfig = normalizeChordProgressionDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
 
-  let progressionId = $state(JAM_PROGRESSIONS[0]!.id);
-  let bpm = $state(90);
+  let progressionId = $state(initialConfig.progressionId);
+  let bpm = $state(initialConfig.bpm);
   let followerState = $state<ChordFollowerState | undefined>();
   let detected = $state<number[]>([]);
   let running = $state(false);
@@ -77,10 +87,18 @@
     JAM_PROGRESSIONS.find((entry) => entry.id === progressionId) ?? JAM_PROGRESSIONS[0]!,
   );
   const expected = $derived(expectedChordsFromProgression(progression));
+  const currentIndex = $derived(followerState?.currentIndex ?? 0);
+  const currentChord = $derived(progression.chords[currentIndex] ?? progression.chords[0]!);
+  const chartTones = $derived<TargetTone[]>(targetTones(currentChord.symbol, currentChord.scale));
   const detectedLabels = $derived(detected.map(pitchClassLabel).join(", ") || "None yet");
+  const normalizedConfig = $derived(normalizeChordProgressionDrillConfig({ progression: progressionId, bpm }));
+
+  $effect(() => {
+    syncConfigUrl();
+  });
 
   function selectProgression(value: string): void {
-    progressionId = value;
+    progressionId = normalizeChordProgressionDrillConfig({ progression: value, bpm }).progressionId;
   }
 
   function chordGrade(index: number) {
@@ -107,8 +125,9 @@
     captured = false;
     status = "Listening — strum each chord on the beat.";
     try {
+      const config = normalizedConfig;
       const startAtMs = await runtime.runCountIn();
-      follower = createChordFollower(expected, { bpm, startAtMs });
+      follower = createChordFollower(expected, { bpm: config.bpm, startAtMs });
       followerState = follower.state();
       unsubscribeAnalysis = audioSource.subscribeAnalysis(onAnalysis);
       await audioSource.start();
@@ -186,6 +205,18 @@
     return ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][pitchClass] ?? "?";
   }
 
+  function syncConfigUrl(): void {
+    const config = normalizedConfig;
+    const params = new URLSearchParams(window.location.search);
+    params.set("progression", config.progressionId);
+    params.set("bpm", String(config.bpm));
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
+    );
+  }
+
   onMount(() => {
     audioState = audioSource.state;
     unsubscribeAudioState = audioSource.subscribeState((next) => {
@@ -215,66 +246,70 @@
   />
 
   <section class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <Card.Root class="min-w-0">
-      <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <Card.Description>Known progression</Card.Description>
-          <Card.Title>{progression.name}</Card.Title>
-          <Card.Description>{progression.key} · {progression.style}</Card.Description>
-        </div>
-      </Card.Header>
+    <div class="min-w-0 space-y-4">
+      <ProgressionChartStage progression={progression} currentIndex={currentIndex} tones={chartTones} />
 
-      <Card.Content class="grid gap-6">
-        <fieldset disabled={running} class="grid gap-4 disabled:opacity-70">
-          <SegmentedControl
-            ariaLabel="Progression"
-            options={progressionOptions}
-            value={progressionId}
-            onChange={selectProgression}
-          />
-          <div class="grid gap-2">
-            <Label for="tempo">Tempo</Label>
-            <input
-              id="tempo"
-              type="number"
-              min="40"
-              max="220"
-              bind:value={bpm}
-              class="h-9 w-32 rounded-md border bg-background px-3 text-sm"
-            />
+      <Card.Root class="min-w-0">
+        <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <Card.Description>Known progression</Card.Description>
+            <Card.Title>{progression.name}</Card.Title>
+            <Card.Description>{progression.key} · {progression.style}</Card.Description>
           </div>
-        </fieldset>
+        </Card.Header>
 
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <HudTile label="Chord" value={followerState?.currentIndex ?? 0} unit={`/${expected.length}`} />
-          <HudTile
-            label="Matched"
-            value={followerState?.grades.filter((grade) => grade.matched).length ?? 0}
-            unit={`/${expected.length}`}
-            tone="good"
-          />
-          <HudTile label="Tempo" value={bpm} unit="bpm" tone="accent" />
-        </div>
+        <Card.Content class="grid gap-6">
+          <fieldset disabled={running} class="grid gap-4 disabled:opacity-70">
+            <SegmentedControl
+              ariaLabel="Progression"
+              options={progressionOptions}
+              value={progressionId}
+              onChange={selectProgression}
+            />
+            <div class="grid gap-2">
+              <Label for="tempo">Tempo</Label>
+              <input
+                id="tempo"
+                type="number"
+                min="40"
+                max="220"
+                bind:value={bpm}
+                class="h-9 w-32 rounded-md border bg-background px-3 text-sm"
+              />
+            </div>
+          </fieldset>
 
-        <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-        {#if audioState.status === "denied" || audioState.status === "error"}
-          <p class="text-destructive">{audioState.message}</p>
-        {/if}
-      </Card.Content>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <HudTile label="Chord" value={currentIndex} unit={`/${expected.length}`} />
+            <HudTile
+              label="Matched"
+              value={followerState?.grades.filter((grade) => grade.matched).length ?? 0}
+              unit={`/${expected.length}`}
+              tone="good"
+            />
+            <HudTile label="Tempo" value={bpm} unit="bpm" tone="accent" />
+          </div>
 
-      <Card.Footer class="flex-wrap gap-3">
-        {#if running}
-          <Button type="button" variant="outline" onclick={() => void stop()}>Stop</Button>
-        {:else}
-          <Button type="button" onclick={() => void start()}>Start</Button>
-        {/if}
-      </Card.Footer>
-    </Card.Root>
+          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+          {#if audioState.status === "denied" || audioState.status === "error"}
+            <p class="text-destructive">{audioState.message}</p>
+          {/if}
+        </Card.Content>
+
+        <Card.Footer class="flex-wrap gap-3">
+          {#if running}
+            <Button type="button" variant="outline" onclick={() => void stop()}>Stop</Button>
+          {:else}
+            <Button type="button" onclick={() => void start()}>Start</Button>
+          {/if}
+        </Card.Footer>
+      </Card.Root>
+    </div>
 
     <aside class="grid content-start gap-4">
       <Card.Root>
         <Card.Header>
-          <Card.Description>Progression chart</Card.Description>
+          <Card.Description>Progression grades</Card.Description>
           <Card.Title class="text-base">Chord-by-chord grading</Card.Title>
         </Card.Header>
         <Card.Content class="grid gap-2 text-sm">

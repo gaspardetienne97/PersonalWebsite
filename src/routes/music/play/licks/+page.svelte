@@ -1,22 +1,30 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import Play from "lucide-svelte/icons/play";
   import { onDestroy } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import { Capability, unixMs, type NoteEvent, type ScoringEvent } from "@repo/music-core/domain";
+  import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
+    buildJazzSequenceCapture,
     gradeLickSequence,
     JAZZ_LICKS,
     LICK_PHRASES,
     lickTimeline,
+    normalizeJazzLickDrillConfig,
     type LickCategory,
     type LickGrade,
   } from "@repo/music-core/engines/jazz";
+  import { ProgressEngine } from "@repo/music-core/engines/progress";
+  import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
+  import { PracticeStore } from "@repo/music-core/engines/store";
   import { midiToNote } from "@repo/music-core/engines/theory";
   import { Badge } from "@repo/ui/badge";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
@@ -27,6 +35,18 @@
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const LICK_BPM = 150;
+  const LICK_EXERCISE_ID = "jazz.lick.playback";
+  const LICK_SKILL_IDS = ["harmony.ii-v-i"];
+  const LICK_CAPABILITIES = [Capability.Harmony, Capability.Improvisation, Capability.Pitch];
+  const LICK_DIFFICULTY = 0.6;
+  const initialConfig = normalizeJazzLickDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
+  const store = browser ? new PracticeStore() : undefined;
+  const skills = new SkillGraphStore(store);
+  const analytics = new AnalyticsEngine(store);
+  const progress = new ProgressEngine(store);
+  const servicesReady = Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
 
   const lickCategories = [
     { value: "major-ii-V-I", label: "Major ii-V-I" },
@@ -35,8 +55,8 @@
     { value: "minor-chord", label: "Minor chord" },
   ];
 
-  let category = $state<LickCategory>("major-ii-V-I");
-  let lickNumber = $state(1);
+  let category = $state<LickCategory>(initialConfig.category);
+  let lickNumber = $state(initialConfig.lickNumber);
 
   const visibleLicks = $derived(JAZZ_LICKS.filter((l) => l.category === category));
   const lick = $derived(JAZZ_LICKS.find((l) => l.number === lickNumber) ?? visibleLicks[0]);
@@ -49,12 +69,19 @@
   let grade = $state<LickGrade | undefined>();
   let status = $state("Pick a lick, hear it, then play it back.");
   let captured = false;
+  let attemptStartedAt = unixMs(Date.now());
   let unsubscribe: (() => void) | undefined;
 
+  $effect(() => {
+    syncConfigUrl();
+  });
+
   function selectCategory(next: LickCategory): void {
-    category = next;
-    // Jump to the first lick in the new category and reset the attempt.
-    selectLick(JAZZ_LICKS.find((entry) => entry.category === next)?.number ?? 1);
+    const config = normalizeJazzLickDrillConfig({ category: next });
+    category = config.category;
+    lickNumber = config.lickNumber;
+    reset();
+    status = "Pick a lick, hear it, then play it back.";
   }
 
   function reset(): void {
@@ -67,9 +94,21 @@
   }
 
   function selectLick(next: number): void {
-    lickNumber = next;
+    const config = normalizeJazzLickDrillConfig({ category, lickNumber: next });
+    category = config.category;
+    lickNumber = config.lickNumber;
     reset();
     status = "Pick a lick, hear it, then play it back.";
+  }
+
+  function syncConfigUrl(): void {
+    if (!browser) return;
+    const config = normalizeJazzLickDrillConfig({ category, lickNumber });
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    params.set("category", config.category);
+    params.set("lick", String(config.lickNumber));
+    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
   }
 
   async function playReference(): Promise<void> {
@@ -87,6 +126,7 @@
 
   function startAttempt(): void {
     reset();
+    attemptStartedAt = unixMs(Date.now());
     phase = "listening";
     status = "Play the lick…";
     unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
@@ -95,27 +135,76 @@
         runtime.sound.playNote(event.midiNote, 0.18, undefined, event.velocity);
       }
       played = [...played, event.midiNote];
-      if (played.length >= expectedMidi.length) finish();
+      if (played.length >= expectedMidi.length) void finish();
     });
   }
 
-  function finish(): void {
+  async function finish(): Promise<void> {
     unsubscribe?.();
     unsubscribe = undefined;
-    grade = gradeLickSequence(expectedMidi, played);
+    const currentLick = lick;
+    const expected = [...expectedMidi];
+    const response = [...played];
+    const result = gradeLickSequence(expected, response);
+    grade = result;
     phase = "graded";
-    const xp = Math.round(grade.accuracy * 20);
-    status = `${grade.matched}/${grade.total} notes · ${Math.round(grade.accuracy * 100)}% · +${xp} XP`;
     if (!captured) {
       captured = true;
-      void runtime.recordPractice({
+      const endedAt = unixMs(Date.now());
+      const sessionId = stableId("jazz-lick-session");
+      const runId = stableId("jazz-lick-run");
+      const capture = buildJazzSequenceCapture({
+        exerciseId: LICK_EXERCISE_ID,
+        label: `Lick #${currentLick?.number ?? lickNumber}`,
+        sessionId,
+        runId,
+        eventId: stableId("jazz-lick-event"),
+        promptId: `lick-${currentLick?.number ?? lickNumber}`,
+        skillIds: LICK_SKILL_IDS,
+        capabilities: LICK_CAPABILITIES,
+        expectedMidi: expected,
+        playedMidi: response,
+        grade: result,
+        startedAt: attemptStartedAt,
+        endedAt,
+        difficulty: LICK_DIFFICULTY,
+        instrument: "piano",
+        params: {
+          category,
+          lickNumber: currentLick?.number ?? lickNumber,
+          progression: currentLick?.progression ?? [],
+        },
+      });
+      const xp = await ingestScoringEvents([capture.event]);
+      status = `${result.matched}/${result.total} notes · ${Math.round(result.accuracy * 100)}% · +${xp} XP`;
+      await runtime.recordPractice({
+        id: sessionId,
         source: "drill",
         instrument: "piano",
         tags: ["jazz", "licks"],
+        scoringEvents: [capture.event],
+        runs: [capture.run],
         xpEarned: xp,
-        note: `Lick #${lick?.number}: ${Math.round(grade.accuracy * 100)}%`,
+        note: `Lick #${currentLick?.number ?? lickNumber}: ${Math.round(result.accuracy * 100)}%`,
       });
+    } else {
+      status = `${result.matched}/${result.total} notes · ${Math.round(result.accuracy * 100)}%`;
     }
+  }
+
+  async function ingestScoringEvents(events: ScoringEvent[]): Promise<number> {
+    await servicesReady;
+    let xp = 0;
+    for (const event of events) {
+      await skills.ingest(event);
+      await analytics.ingest(event);
+      xp += await progress.ingest(event, skills);
+    }
+    return xp;
+  }
+
+  function stableId(prefix: string): string {
+    return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
   }
 
   onDestroy(() => unsubscribe?.());
@@ -209,6 +298,7 @@
                 Play the reference again and match the line note-for-note.
               </p>
             </div>
+            <AdaptiveRetryBar onRetry={startAttempt} retryLabel="Repeat lick" />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
           {/if}
 

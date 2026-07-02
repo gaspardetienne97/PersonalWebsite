@@ -33,6 +33,7 @@
   import {
     beatToMs,
     expectedGroups,
+    type ExpectedNoteGroup,
     timingWindowMs,
   } from "@repo/music-core/engines/score-follower";
   import { scorePlaybackPattern, SongLibrary } from "@repo/music-core/engines/song-library";
@@ -43,12 +44,12 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
-  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import MusicXmlScore from "../../_components/MusicXmlScore.svelte";
   import TabNotation from "../../_components/TabNotation.svelte";
   import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import ScoreFollowerStage from "../../_components/ScoreFollowerStage.svelte";
   import SegmentProgress from "../../_components/SegmentProgress.svelte";
   import StaffNotation from "../../_components/StaffNotation.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
@@ -147,11 +148,35 @@
   const live = $derived(practiceState?.live);
   const progressPercent = $derived(Math.round((live?.progress ?? 0) * 100));
   const expectedNames = $derived((live?.expectedMidiNotes ?? []).map((note) => midiToNote(note)));
-  const keyboardNotes = $derived(
-    score
-      ? [...new Set(score.notes.map(({ midiNote }) => midiToNote(midiNote)))].slice(0, 16)
-      : [],
+  const stageGroups = $derived.by(() =>
+    score ? canonicalStageGroups(score, practiceState?.execution?.groups ?? groups) : [],
   );
+  const stageGroupIndex = $derived(
+    Math.min(live?.currentGroupIndex ?? 0, Math.max(0, stageGroups.length - 1)),
+  );
+  const stageInstrument = $derived<"piano" | "guitar" | "ukulele">(
+    runtime.activeInstrument === "guitar" || runtime.activeInstrument === "ukulele"
+      ? runtime.activeInstrument
+      : "piano",
+  );
+  const stageTuning = $derived(
+    stageInstrument === "piano"
+      ? undefined
+      : TAB_TUNINGS.find(({ id, instrument }) => id === tabTuningId && instrument === stageInstrument) ??
+          TAB_TUNINGS.find(({ instrument }) => instrument === stageInstrument),
+  );
+  const stageTabProjection = $derived(
+    score && stageTuning ? projectScoreToFretboard(score, stageTuning) : undefined,
+  );
+  const musicXmlCursorBeat = $derived.by(() => {
+    if (!score || !practiceState?.execution || !live) return undefined;
+    const group = practiceState.execution.groups[live.currentGroupIndex];
+    if (!group) return undefined;
+    return group.sourceNoteIndexes
+      .map((index) => score.notes[index]?.startBeat)
+      .filter((beat) => beat !== undefined)
+      .sort((left, right) => left - right)[0];
+  });
   const highlightedRanges = $derived.by(() => {
     if (!score || setup.selection.kind !== "sections") return [];
     return setup.selection.sectionIds.flatMap((id) => {
@@ -464,6 +489,27 @@
     }
   }
 
+  function canonicalStageGroups(value: SongRow["score"], input: ExpectedNoteGroup[]): ExpectedNoteGroup[] {
+    if (!value) return [];
+    return input.map((group) => {
+      const sourceNotes = group.sourceNoteIndexes
+        .map((index) => value.notes[index])
+        .filter((note) => note !== undefined);
+      if (sourceNotes.length === 0) return group;
+      const startBeat = Math.min(...sourceNotes.map((note) => note.startBeat));
+      const endBeat = Math.max(...sourceNotes.map((note) => note.startBeat + note.durationBeats));
+      return {
+        ...group,
+        startBeat,
+        durationBeats: Math.max(0, endBeat - startBeat),
+      };
+    });
+  }
+
+  function playExpectedNote(midiNote: number): void {
+    runtime.router.noteOn(midiNote, "onscreen", stageInstrument);
+  }
+
   function scoreVoiceOptions(
     value: SongRow["score"],
   ): Array<{ id: string; label: string; voiceIds: string[] }> {
@@ -636,6 +682,7 @@
                 {selectionMap}
                 {highlightedRanges}
                 {customSelection}
+                cursorBeat={musicXmlCursorBeat ?? 0}
                 snap={setup.selection.kind === "custom"
                   ? setup.selection.snap
                   : "note-group"}
@@ -706,8 +753,22 @@
                 label="Score"
               />
               <Progress value={progressPercent} max={100} />
-              {#if practicing}
-                <OnScreenKeyboard router={runtime.router} notes={keyboardNotes} />
+              {#if notation.view}
+                <ScoreFollowerStage
+                  score={score}
+                  view={notation.view}
+                  groups={stageGroups}
+                  currentGroupIndex={stageGroupIndex}
+                  instrument={stageInstrument}
+                  router={runtime.router}
+                  activeMidiNotes={live?.heldMidiNotes ?? []}
+                  wrongMidiNotes={live?.wrongMidiNotes ?? []}
+                  tuning={stageTuning}
+                  tabProjection={stageTabProjection}
+                  showTab={stageInstrument !== "piano"}
+                  inputEnabled={practiceState?.status === "running"}
+                  onExpectedNoteSelected={playExpectedNote}
+                />
               {/if}
             </Card.Content>
           </Card.Root>

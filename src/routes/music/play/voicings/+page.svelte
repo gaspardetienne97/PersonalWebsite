@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import Check from "lucide-svelte/icons/check";
   import { onDestroy } from "svelte";
 
@@ -22,6 +21,7 @@
   import { PracticeStore } from "@repo/music-core/engines/store";
   import { midiToNote } from "@repo/music-core/engines/theory";
   import {
+    normalizeVoicingDrillConfig,
     VoicingDrillSession,
     type VoicingDrillState,
   } from "@repo/music-core/engines/voicing-drill-session";
@@ -30,6 +30,7 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import InstrumentView from "../../_components/InstrumentView.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
@@ -46,20 +47,26 @@
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
+  const hasInstrumentQuery = browser
+    ? new URLSearchParams(window.location.search).has("instrument")
+    : false;
+  const initialConfig = normalizeVoicingDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+  );
   const variantLabels: Record<DrillVariant, string> = {
     major: "Rootless ii-V-I",
     minor: "Minor ii-V-i",
     altered: "Altered V7",
   };
 
-  let instrument = $state<InstrumentId>("piano");
-  let variant = $state<DrillVariant>("major");
-  let startPosition = $state<RootlessPosition>("A");
+  let instrument = $state<InstrumentId>(initialConfig.instrument);
+  let variant = $state<DrillVariant>(initialConfig.variant);
+  let startPosition = $state<RootlessPosition>(initialConfig.startPosition);
   // Grading: lenient (any note played, beginner/on-screen) vs held-together
   // (true chord detection, best with a MIDI instrument). Auto-advance moves on as
   // soon as the target is matched, so no manual "Check" is needed.
-  let strict = $state(false);
-  let autoAdvance = $state(true);
+  let strict = $state(initialConfig.strict);
+  let autoAdvance = $state(initialConfig.autoAdvance);
 
   let ready = $state(false);
   let session = $state<VoicingDrillSession | undefined>();
@@ -77,16 +84,24 @@
   const mono = $derived(isMonophonic(instrument));
   const variantLabel = $derived(variantLabels[variant]);
   const preview = $derived(buildDrillVoicings(variant, startPosition));
+  const normalizedConfig = $derived(
+    normalizeVoicingDrillConfig({
+      instrument,
+      variant,
+      start: startPosition,
+      strict: strict ? "held" : "lenient",
+      advance: autoAdvance ? "auto" : "manual",
+    }),
+  );
 
   void initialize();
 
   $effect(() => {
-    variant = normalizeVariant($page.url?.searchParams.get("variant") ?? null);
-    startPosition = normalizeStartPosition($page.url?.searchParams.get("start") ?? null);
+    syncConfigUrl();
   });
 
   $effect(() => {
-    if (session) return;
+    if (hasInstrumentQuery || session) return;
     instrument = VIEWABLE_INSTRUMENTS.includes(runtime.activeInstrument)
       ? runtime.activeInstrument
       : "piano";
@@ -118,16 +133,17 @@
 
   function startDrill(): void {
     if (!ready || pending) return;
+    const config = normalizedConfig;
     unsubscribeSession?.();
     session?.dispose();
     captured = false;
     session = new VoicingDrillSession({
       router: runtime.router,
       services: { skills, analytics, progress },
-      instrument,
-      variant,
-      startPosition,
-      strict,
+      instrument: config.instrument,
+      variant: config.variant,
+      startPosition: config.startPosition,
+      strict: config.strict,
     });
     unsubscribeSession = session.subscribe((next) => {
       drillState = next;
@@ -135,7 +151,7 @@
         captured = true;
         void runtime.recordPractice({
           source: "drill",
-          instrument,
+          instrument: config.instrument,
           tags: ["jazz", "voicings", "ii-v-i"],
           scoringEvents: next.results.map((result) => result.event),
           xpEarned: next.xp,
@@ -171,16 +187,23 @@
     }
   }
 
-  function normalizeVariant(value: string | null): DrillVariant {
-    return value === "minor" || value === "altered" ? value : "major";
-  }
-
-  function normalizeStartPosition(value: string | null): RootlessPosition {
-    return value === "B" ? "B" : "A";
-  }
-
   function previewNotes(midi: number[], bass?: number): string {
     return (bass === undefined ? midi : [bass, ...midi]).map((note) => midiToNote(note, true)).join(" ");
+  }
+
+  function syncConfigUrl(): void {
+    const config = normalizedConfig;
+    const params = new URLSearchParams(window.location.search);
+    params.set("instrument", config.instrument);
+    params.set("variant", config.variant);
+    params.set("start", config.startPosition);
+    params.set("strict", config.strict ? "held" : "lenient");
+    params.set("advance", config.autoAdvance ? "auto" : "manual");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
+    );
   }
 
   onDestroy(() => {
@@ -321,6 +344,7 @@
                 {Math.round(drillState.accuracy * 100)}% accuracy · +{drillState.xp} XP across {drillState.total} chords.
               </p>
             </div>
+            <AdaptiveRetryBar onRetry={startDrill} retryLabel="Repeat voicings" />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
           {/if}
 

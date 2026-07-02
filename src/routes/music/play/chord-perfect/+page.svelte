@@ -30,7 +30,9 @@
     chordShapeMidiNotes,
     chordShapesFor,
     createOpenChordIdentificationExercise,
+    normalizeChordPerfectDrillConfig,
     type ChordPerfectAnswer,
+    type ChordPerfectMode,
     type ChordPerfectPrompt,
     type OpenChordIdentificationAnswer,
   } from "@repo/music-core/exercises/chord-perfect";
@@ -40,6 +42,7 @@
   import { Progress } from "@repo/ui/progress";
 
   import FretboardInput from "../../learn/reading/_components/FretboardInput.svelte";
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
@@ -54,6 +57,12 @@
     stop(): Promise<void>;
     subscribeState(listener: (state: AudioPitchState) => void): () => void;
     subscribeEvents(listener: (event: NoteEvent) => void): () => void;
+  }
+
+  interface ToneMapItem {
+    pitchClass: number;
+    label: string;
+    status: "matched" | "missing" | "extra";
   }
 
   const {
@@ -87,11 +96,21 @@
     { value: "guitar", label: "Guitar" },
     { value: "ukulele", label: "Ukulele" },
   ];
+  const modeOptions = [
+    { value: "build", label: "Build shape" },
+    { value: "pick", label: "Pick strings cleanly" },
+    { value: "strum", label: "Strum and identify" },
+  ];
   const defaultInstrument: StringInstrumentId =
     runtime.activeInstrument === "ukulele" ? "ukulele" : "guitar";
+  const initialConfig = normalizeChordPerfectDrillConfig(
+    browser ? new URLSearchParams(window.location.search) : {},
+    defaultInstrument,
+  );
 
-  let instrument = $state<StringInstrumentId>(defaultInstrument);
-  let shapeId = $state(chordShapesFor(defaultInstrument)[0]!.id);
+  let instrument = $state<StringInstrumentId>(initialConfig.instrument);
+  let mode = $state<ChordPerfectMode>(initialConfig.mode);
+  let shapeId = $state(initialConfig.shapeId);
   let ready = $state(false);
   let pending = $state(false);
   let captured = false;
@@ -109,6 +128,16 @@
 
   const shapes = $derived(chordShapesFor(instrument));
   const shape = $derived(shapes.find((entry) => entry.id === shapeId) ?? shapes[0]!);
+  const shapeGuide = $derived(
+    shape.frets
+      .map((fret, index) => ({
+        key: `${shape.id}-${index}`,
+        stringNumber: index + 1,
+        fret,
+        finger: shape.fingers[index] ?? null,
+      }))
+      .reverse(),
+  );
   const tuning = $derived(
     curatedTunings(instrument).find((entry) => entry.id === shape.tuningId) ??
       curatedTunings(instrument)[0]!,
@@ -133,6 +162,8 @@
   const verification = $derived(
     verifyChordTarget({ expectedMidiNotes: shapeMidi, observedMidiNotes: verifiedMidiNotes }),
   );
+  const verifierToneMap = $derived(toneMap(verification));
+  const verifierFeedbackDetail = $derived(feedbackDetail(verification));
   const verificationStatus = $derived(
     verification.correct
       ? "Target complete"
@@ -151,8 +182,11 @@
       ? `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`
       : (runtime.midi.state.error ?? "MIDI permission has not been requested."),
   );
-
   void initialize();
+
+  $effect(() => {
+    syncConfigUrl();
+  });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
@@ -195,10 +229,16 @@
   }
 
   function selectInstrument(value: string): void {
-    instrument = value as StringInstrumentId;
-    shapeId = chordShapesFor(instrument)[0]!.id;
+    const config = normalizeChordPerfectDrillConfig({ mode, instrument: value });
+    instrument = config.instrument;
+    shapeId = config.shapeId;
     clearVerifier();
     runtime.setActiveInstrument(instrument);
+  }
+
+  function selectMode(value: string): void {
+    mode = normalizeChordPerfectDrillConfig({ mode: value, instrument, shape: shapeId }).mode;
+    if (mode !== "pick") stopVerifier();
   }
 
   async function enableMidi(): Promise<void> {
@@ -249,6 +289,18 @@
 
   function clearVerifier(): void {
     verifiedMidiNotes = [];
+  }
+
+  function syncConfigUrl(): void {
+    if (!browser) return;
+    const config = normalizeChordPerfectDrillConfig({ mode, instrument, shape: shapeId });
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    params.set("mode", config.mode);
+    params.set("instrument", config.instrument);
+    params.set("tuning", config.tuningId);
+    params.set("shape", config.shapeId);
+    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
   }
 
   let strumBusy = $state(false);
@@ -338,6 +390,26 @@
   const strumDetectedLabels = $derived(
     strumPitchClasses.map(pitchClassLabel).join(", ") || "None yet",
   );
+  const strumToneMap = $derived(strumVerification ? toneMap(strumVerification) : []);
+  const modeCopy = $derived(
+    mode === "build"
+      ? {
+          description: "Clean chord changes",
+          title: "Build shape",
+          detail: "Sound each voiced string from low to high.",
+        }
+      : mode === "pick"
+        ? {
+            description: "Expected-target verifier",
+            title: verificationStatus,
+            detail: "Pick strings or play into the mic until every chord tone is covered.",
+          }
+        : {
+            description: "Strum and identify",
+            title: strumCandidates[0] ? strumCandidates[0].symbol : "What did you just play?",
+            detail: `Record one strum, identify the chord, then check it against ${shape.name}.`,
+          },
+  );
 
   function playAccepted(event: NoteEvent): void {
     if (event.type === "noteOn" && runtime.audioEnabled) {
@@ -351,6 +423,31 @@
 
   function pitchClassLabel(pitchClass: number): string {
     return ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][pitchClass] ?? "?";
+  }
+
+  function toneMap(result: ChordVerificationResult): ToneMapItem[] {
+    const expected = result.expectedPitchClasses.map((pitchClass) => ({
+      pitchClass,
+      label: pitchClassLabel(pitchClass),
+      status: result.matchedPitchClasses.includes(pitchClass) ? "matched" : "missing",
+    }));
+    const extra = result.extraPitchClasses.map((pitchClass) => ({
+      pitchClass,
+      label: pitchClassLabel(pitchClass),
+      status: "extra" as const,
+    }));
+    return [...expected, ...extra];
+  }
+
+  function feedbackDetail(result: ChordVerificationResult): string {
+    const covered = result.matchedPitchClasses.length;
+    const total = result.expectedPitchClasses.length;
+    const missing = result.missingPitchClasses.map(pitchClassLabel);
+    const extra = result.extraPitchClasses.map(pitchClassLabel);
+    const parts = [`${covered}/${total} tones covered`, `${Math.round(result.score * 100)}% score`];
+    if (missing.length) parts.push(`Missing: ${missing.join(", ")}`);
+    if (extra.length) parts.push(`Extra: ${extra.join(", ")}`);
+    return parts.join(" · ");
   }
 
   onMount(() => {
@@ -403,12 +500,21 @@
     <Card.Root class="min-w-0">
       <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <Card.Description>Clean chord changes</Card.Description>
-          <Card.Title>One string at a time</Card.Title>
+          <Card.Description>{modeCopy.description}</Card.Description>
+          <Card.Title>{modeCopy.title}</Card.Title>
+          <Card.Description>{modeCopy.detail}</Card.Description>
         </div>
-        <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-          {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-        </Button>
+        <div class="flex flex-wrap items-center gap-3">
+          <SegmentedControl
+            ariaLabel="Chord-perfect workflow"
+            options={modeOptions}
+            value={mode}
+            onChange={selectMode}
+          />
+          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+          </Button>
+        </div>
       </Card.Header>
 
       <Card.Content class="grid gap-6">
@@ -445,57 +551,161 @@
           <HudTile label="Chord" value={shape.name} tone="accent" />
         </div>
 
-        {#if prompt}
-          <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-            <div class="flex items-center justify-between gap-3 text-sm">
-              <span class="font-medium">{prompt.label}</span>
-              <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
-            </div>
-            <Progress value={completedNotes} max={total} />
-            <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+        <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+          <div>
+            <p class="text-sm font-medium">Suggested fingering</p>
+            <p class="text-xs text-muted-foreground">Low string to high string</p>
           </div>
-        {/if}
+          <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {#each shapeGuide as string (string.key)}
+              <div class="rounded-md border bg-background px-3 py-2 text-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <span class="font-medium">String {string.stringNumber}</span>
+                  {#if string.fret === null}
+                    <span class="text-muted-foreground">Muted</span>
+                  {:else if string.fret === 0}
+                    <span class="text-muted-foreground">Open</span>
+                  {:else}
+                    <span>Fret {string.fret}</span>
+                  {/if}
+                </div>
+                {#if string.finger !== null}
+                  <p class="text-xs text-muted-foreground">Finger {string.finger}</p>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </div>
 
-        {#if summary && answer}
-          <SessionFeedback
-            kind={summary.correct === summary.total ? "correct" : "wrong"}
-            message="Chord-perfect check"
-            detail={`${Math.round(answer.pitchAccuracy * 100)}% of strings rang clean`}
-            xp={summary.xp}
-          />
+        {#if mode === "build"}
+          {#if prompt}
+            <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+              <div class="flex items-center justify-between gap-3 text-sm">
+                <span class="font-medium">{prompt.label}</span>
+                <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
+              </div>
+              <Progress value={completedNotes} max={total} />
+              <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+            </div>
+          {/if}
+
+          {#if summary && answer}
+            <SessionFeedback
+              kind={summary.correct === summary.total ? "correct" : "wrong"}
+              message="Chord-perfect check"
+              detail={`${Math.round(answer.pitchAccuracy * 100)}% of strings rang clean`}
+              xp={summary.xp}
+            />
+            <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat chord" />
+          {/if}
+        {:else if mode === "pick"}
+          <div class="grid gap-4 rounded-lg border bg-muted/30 p-4">
+            {#if verifierActive || verifiedMidiNotes.length > 0}
+              <SessionFeedback
+                kind={verification.correct ? "correct" : "wrong"}
+                message="Target chord tones"
+                detail={verifierFeedbackDetail}
+              />
+            {/if}
+            <div class="grid gap-2 text-sm">
+              <p class="font-medium">Tone map</p>
+              <div class="flex flex-wrap gap-2">
+                {#each verifierToneMap as tone (`${tone.pitchClass}-${tone.status}`)}
+                  <span
+                    class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status ===
+                    'matched'
+                      ? 'border-success/30 bg-success/10 text-success'
+                      : tone.status === 'extra'
+                        ? 'border-warn/30 bg-warn/10 text-warn'
+                        : 'border-muted-foreground/25 bg-background text-muted-foreground'}"
+                  >
+                    {tone.label} {tone.status}
+                  </span>
+                {/each}
+              </div>
+              <p class="text-muted-foreground">Observed: {observedToneLabels}</p>
+              <p class="text-muted-foreground">Missing: {missingToneLabels}</p>
+            </div>
+            {#if audioState.status === "denied" || audioState.status === "error"}
+              <p class="text-destructive">{audioState.message}</p>
+            {/if}
+          </div>
+        {:else}
+          <div class="grid gap-4 rounded-lg border bg-muted/30 p-4 text-sm">
+            {#if strumCandidates.length}
+              <div class="flex flex-wrap items-baseline gap-2">
+                <span class="text-2xl font-semibold">{strumCandidates[0]!.symbol}</span>
+                <span class="text-muted-foreground">
+                  {Math.round(strumCandidates[0]!.confidence * 100)}% match
+                </span>
+              </div>
+              {#if strumCandidates.length > 1}
+                <p class="text-xs text-muted-foreground">
+                  Other readings:
+                  {strumCandidates
+                    .slice(1, 3)
+                    .map(
+                      (candidate) =>
+                        `${candidate.symbol} (${Math.round(candidate.confidence * 100)}%)`,
+                    )
+                    .join(", ")}
+                </p>
+              {/if}
+            {/if}
+            <p class="text-muted-foreground">Detected tones: {strumDetectedLabels}</p>
+            {#if strumVerification}
+              <div class="grid gap-2">
+                <p class="font-medium">Tone map</p>
+                <div class="flex flex-wrap gap-2">
+                  {#each strumToneMap as tone (`${tone.pitchClass}-${tone.status}`)}
+                    <span
+                      class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status ===
+                      'matched'
+                        ? 'border-success/30 bg-success/10 text-success'
+                        : tone.status === 'extra'
+                          ? 'border-warn/30 bg-warn/10 text-warn'
+                          : 'border-muted-foreground/25 bg-background text-muted-foreground'}"
+                    >
+                      {tone.label} {tone.status}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+              <p class="text-muted-foreground">
+                vs {shape.name}: {strumVerification.correct
+                  ? "matches the target"
+                  : `${Math.round(strumVerification.coverage * 100)}% of the target`}
+              </p>
+            {/if}
+            {#if strumScore}
+              <SessionFeedback
+                kind={strumScore.correct ? "correct" : "wrong"}
+                message="Open chord ID scored"
+                detail={`${strumScore.feedback} · ${Math.round(strumScore.score * 100)}% credit`}
+                xp={strumScore.xp}
+              />
+            {/if}
+            {#if strumStatus}
+              <p class="text-muted-foreground" aria-live="polite">{strumStatus}</p>
+            {/if}
+            {#if audioState.status === "denied" || audioState.status === "error"}
+              <p class="text-destructive">{audioState.message}</p>
+            {/if}
+          </div>
         {/if}
       </Card.Content>
 
       <Card.Footer class="flex-wrap gap-3">
-        {#if sessionState?.status === "active"}
-          <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
-        {:else}
-          <Button type="button" disabled={!ready || pending} onclick={start}>
-            {pending ? "Starting..." : summary ? "Repeat chord" : "Start drill"}
-          </Button>
-        {/if}
-        <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-      </Card.Footer>
-    </Card.Root>
-
-    <aside class="grid content-start gap-4">
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Expected-target verifier</Card.Description>
-          <Card.Title class="text-base">{verificationStatus}</Card.Title>
-        </Card.Header>
-        <Card.Content class="grid gap-3 text-sm">
-          <div class="grid grid-cols-2 gap-3">
-            <HudTile label="Coverage" value={Math.round(verification.coverage * 100)} unit="%" />
-            <HudTile label="Score" value={Math.round(verification.score * 100)} unit="%" />
-          </div>
-          <p class="text-muted-foreground">Observed: {observedToneLabels}</p>
-          <p class="text-muted-foreground">Missing: {missingToneLabels}</p>
-          {#if audioState.status === "denied" || audioState.status === "error"}
-            <p class="text-destructive">{audioState.message}</p>
+        {#if mode === "build"}
+          {#if sessionState?.status === "active"}
+            <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
+          {:else if !summary}
+            <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
+              {pending ? "Starting..." : "Start drill"}
+            </Button>
           {/if}
-        </Card.Content>
-        <Card.Footer class="flex-wrap gap-2">
+          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+        {:else if mode === "pick"}
           {#if verifierActive}
             <Button type="button" variant="outline" onclick={stopVerifier}>Stop verifier</Button>
           {:else}
@@ -516,62 +726,7 @@
             </Button>
           {/if}
           <Button type="button" variant="ghost" onclick={clearVerifier}>Reset</Button>
-        </Card.Footer>
-      </Card.Root>
-
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Strum &amp; identify</Card.Description>
-          <Card.Title class="text-base">
-            {strumCandidates[0] ? strumCandidates[0].symbol : "What did you just play?"}
-          </Card.Title>
-          <Card.Description>
-            Record one strum — Basic Pitch hears the whole chord, names it, and checks it against
-            {shape.name}.
-          </Card.Description>
-        </Card.Header>
-        <Card.Content class="grid gap-3 text-sm">
-          {#if strumCandidates.length}
-            <div class="flex flex-wrap items-baseline gap-2">
-              <span class="text-2xl font-semibold">{strumCandidates[0]!.symbol}</span>
-              <span class="text-muted-foreground">
-                {Math.round(strumCandidates[0]!.confidence * 100)}% match
-              </span>
-            </div>
-            {#if strumCandidates.length > 1}
-              <p class="text-xs text-muted-foreground">
-                Other readings:
-                {strumCandidates
-                  .slice(1, 3)
-                  .map((candidate) => `${candidate.symbol} (${Math.round(candidate.confidence * 100)}%)`)
-                  .join(", ")}
-              </p>
-            {/if}
-          {/if}
-          <p class="text-muted-foreground">Detected tones: {strumDetectedLabels}</p>
-          {#if strumVerification}
-            <p class="text-muted-foreground">
-              vs {shape.name}: {strumVerification.correct
-                ? "matches the target"
-                : `${Math.round(strumVerification.coverage * 100)}% of the target`}
-            </p>
-          {/if}
-          {#if strumScore}
-            <SessionFeedback
-              kind={strumScore.correct ? "correct" : "wrong"}
-              message="Open chord ID scored"
-              detail={`${strumScore.feedback} · ${Math.round(strumScore.score * 100)}% credit`}
-              xp={strumScore.xp}
-            />
-          {/if}
-          {#if strumStatus}
-            <p class="text-muted-foreground" aria-live="polite">{strumStatus}</p>
-          {/if}
-          {#if audioState.status === "denied" || audioState.status === "error"}
-            <p class="text-destructive">{audioState.message}</p>
-          {/if}
-        </Card.Content>
-        <Card.Footer>
+        {:else}
           <Button
             type="button"
             disabled={!ready || !audioSupported || strumBusy}
@@ -579,9 +734,11 @@
           >
             {strumBusy ? "Listening..." : "Strum & identify"}
           </Button>
-        </Card.Footer>
-      </Card.Root>
+        {/if}
+      </Card.Footer>
+    </Card.Root>
 
+    <aside class="grid content-start gap-4">
       <Card.Root class="min-w-0">
         <Card.Header>
           <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</Card.Title>

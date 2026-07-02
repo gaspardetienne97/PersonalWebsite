@@ -180,6 +180,23 @@ describe("music-core/score-follower", () => {
       message: "Extra notes: 67, 70.",
     });
   });
+
+  test("performance mode reports the groups that contain missed notes", () => {
+    const groups = expectedGroups(polyphonicScore());
+    const run = createScoreFollower(groups, {
+      mode: "performance",
+      bpm: 60,
+      strictness: "normal",
+      startTimestampMs: monotonicMs(10_000),
+    });
+
+    for (const midiNote of groups[0]!.midiNotes) run.accept(noteOn(midiNote, 10_000));
+    run.accept(noteOn(64, 12_000));
+
+    const result = run.finish();
+
+    expect(result.answer?.missedGroups).toEqual([groups[1]]);
+  });
 });
 
 function noteOn(midiNote: number, timestamp = 0): NoteEvent {

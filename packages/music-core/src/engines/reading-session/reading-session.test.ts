@@ -21,9 +21,65 @@ import type {
 } from "@repo/music-core/exercises/sight-reading";
 import type { NoteReadingPrompt } from "@repo/music-core/exercises/note-reading";
 
-import { ReadingSession } from "./index";
+import { normalizeReadingDrillConfig, ReadingSession } from "./index";
 
 describe("ReadingSession", () => {
+  test("normalizes shareable reading drill config values", () => {
+    const params = new URLSearchParams(
+      "activity=sight-reading&instrument=guitar&tuning=guitar-drop-d&clefs=treble,bass&key=G%20major&low=55&high=79&difficulty=0.7&prompt=chord&answer=play&mode=performance&bpm=128&strict=strict&meter=compound&measures=4",
+    );
+
+    expect(normalizeReadingDrillConfig(params)).toEqual({
+      activity: "sight-reading",
+      instrument: "guitar",
+      tuningId: "guitar-drop-d",
+      clefs: ["treble", "bass"],
+      keySignature: "G major",
+      range: { lowestMidi: 55, highestMidi: 79 },
+      difficulty: 0.7,
+      promptKind: "chord",
+      answerMode: "play",
+      mode: "performance",
+      bpm: 128,
+      strictness: "strict",
+      meter: "compound",
+      measures: 4,
+    });
+
+    expect(
+      normalizeReadingDrillConfig({
+        activity: "speed-run",
+        instrument: "mandolin",
+        clef: "alto",
+        key: "H major",
+        low: "120",
+        high: "12",
+        difficulty: "2",
+        prompt: "cluster",
+        answer: "sing",
+        mode: "listen",
+        bpm: "500",
+        strict: "exact",
+        meter: "odd",
+        measures: "20",
+      }),
+    ).toEqual({
+      activity: "flashcards",
+      instrument: "piano",
+      clefs: ["treble"],
+      keySignature: "C major",
+      range: { lowestMidi: 48, highestMidi: 84 },
+      difficulty: 1,
+      promptKind: "single-note",
+      answerMode: "choice",
+      mode: "wait",
+      bpm: 200,
+      strictness: "normal",
+      meter: "simple",
+      measures: 8,
+    });
+  });
+
   test("starts and advances a ten-prompt choice flashcard session through the pipeline", async () => {
     const dependencies = await setup();
     const session = new ReadingSession(dependencies);
@@ -184,6 +240,38 @@ describe("ReadingSession", () => {
     expect(session.state.status).toBe("summary");
     expect(session.state.results[0]?.event.id).toBe("reading-event-1");
     expect(dependencies.makeId).toHaveBeenCalledOnce();
+    session.dispose();
+  });
+
+  test("prepares a compact sight-reading retry from missed groups", async () => {
+    const dependencies = await setup();
+    const session = new ReadingSession(dependencies);
+
+    await session.prepareSightReading(sightReadingOptions());
+    const prompt = session.state.currentPrompt as SightReadingPrompt;
+    await session.startSightReading(monotonicMs(1_000));
+    for (const midiNote of prompt.groups[0]!.midiNotes) {
+      dependencies.router.push(noteOn(midiNote, 1_000));
+    }
+    await session.finishSightReading();
+
+    expect(session.state.summary?.results[0]?.result.answer).toMatchObject({
+      missedGroups: prompt.groups.slice(1),
+    });
+
+    const prepared = session.prepareMissedSightReading();
+
+    expect(prepared).toBe(true);
+    expect(session.state.status).toBe("sight-reading");
+    expect(session.state.countIn).toBe("ready");
+    const retryPrompt = session.state.currentPrompt as SightReadingPrompt;
+    expect(retryPrompt.groups).toHaveLength(prompt.groups.length - 1);
+    expect(retryPrompt.groups[0]).toMatchObject({
+      startBeat: 0,
+      midiNotes: prompt.groups[1]!.midiNotes,
+    });
+    expect(prompt.groups[1]!.startBeat).toBeGreaterThan(0);
+    expect(retryPrompt.score.notes[0]?.startBeat).toBe(0);
     session.dispose();
   });
 });

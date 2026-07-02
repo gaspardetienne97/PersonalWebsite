@@ -19,7 +19,12 @@ import {
 import { scaleDegreeRecognitionExercise } from "@repo/music-core/exercises/scale-degree-recognition";
 import type { ScaleDegreeRecognitionPrompt } from "@repo/music-core/exercises/scale-degree-recognition";
 
-import { EarTrainingSession } from "./index";
+import {
+  buildEarTrainingRetrySchedule,
+  EarTrainingSession,
+  normalizeEarTrainingConfig,
+} from "./index";
+import { buildRepertoireEarTransfers, createRepertoireTransferExercise } from "./repertoire";
 
 async function setup() {
   const router = new InputRouter({ now: () => 0 });
@@ -45,6 +50,35 @@ async function setup() {
     makeId: () => `event-${++id}`,
   };
 }
+
+describe("normalizeEarTrainingConfig", () => {
+  test("normalizes shareable ear-training config values", () => {
+    const params = new URLSearchParams(
+      "drill=scale-degree&answer=play-back&feedback=test&level=chromatic-color",
+    );
+
+    expect(normalizeEarTrainingConfig(params)).toEqual({
+      drill: "scale-degree",
+      answerMode: "play-back",
+      feedbackMode: "test",
+      scaleDegreeSet: "chromatic-color",
+    });
+
+    expect(
+      normalizeEarTrainingConfig({
+        drill: "unsupported",
+        answer: "tap",
+        feedback: "quiz",
+        level: "unknown",
+      }),
+    ).toEqual({
+      drill: "mixed",
+      answerMode: "choice",
+      feedbackMode: "practice",
+      scaleDegreeSet: "anchor",
+    });
+  });
+});
 
 describe("EarTrainingSession", () => {
   test("builds varied focused queues and balanced mixed queues", async () => {
@@ -307,6 +341,90 @@ describe("EarTrainingSession", () => {
     await vi.waitFor(() => expect(latest.status).toBe("summary"));
     expect(latest.results[0]?.result.correct).toBe(true);
     expect(latest.results[0]?.drill).toBe("melody-dictation");
+    unsubscribe();
+    session.dispose();
+  });
+
+  test("summarizes phrase mistakes as scale-degree confusions for repertoire review", async () => {
+    const dependencies = await setup();
+    const [transfer] = buildRepertoireEarTransfers(
+      {
+        id: "score-1",
+        title: "Transfer Study",
+        origin: "generated",
+        keySignature: "C",
+        tempoMap: [{ atBeat: 0, bpm: 120 }],
+        timeSignatures: [{ atBeat: 0, numerator: 4, denominator: 4 }],
+        voices: [{ id: "melody", name: "Melody", role: "melody" }],
+        notes: [60, 62, 64, 67].map((midiNote, index) => ({
+          midiNote,
+          startBeat: index,
+          durationBeats: 1,
+          velocity: 0.8,
+          voiceId: "melody",
+        })),
+        chords: [],
+        sections: [],
+        markers: [],
+      },
+      { phraseLength: 4 },
+    );
+    const exercise = createRepertoireTransferExercise(transfer!);
+    dependencies.registry.register(exercise);
+    const session = new EarTrainingSession(
+      {
+        ...dependencies,
+        scheduler: {
+          buildQueue: () => [
+            {
+              exerciseId: exercise.id,
+              targetSkillIds: [...exercise.skillIds],
+              difficulty: 0.5,
+              reason: "review",
+            },
+          ],
+        } as unknown as ExerciseScheduler,
+      },
+      {
+        drill: "repertoire-transfer",
+        answerMode: "play-back",
+        feedbackMode: "practice",
+        length: 1,
+      },
+    );
+    let latest = session.state;
+    const unsubscribe = session.subscribe((state) => {
+      latest = state;
+    });
+    await session.start();
+    session.replay();
+
+    for (const midiNote of [60, 62, 62, 67]) {
+      dependencies.router.noteOn(midiNote, "onscreen");
+    }
+
+    await vi.waitFor(() => expect(latest.status).toBe("summary"));
+    expect(latest.summary?.confusions).toContainEqual({
+      drill: "repertoire-transfer",
+      expected: "3",
+      actual: "2",
+      count: 1,
+    });
+    expect(latest.results[0]?.targetSkillId).toBe("pitch.scale-degree.1");
+    expect(latest.results[0]?.targetSkillIds).toEqual([
+      "pitch.scale-degree.1",
+      "pitch.scale-degree.2",
+      "pitch.scale-degree.3",
+      "pitch.scale-degree.5",
+    ]);
+    expect(buildEarTrainingRetrySchedule(latest.summary!)).toEqual([
+      {
+        exerciseId: "ear.scale-degree-recognition",
+        targetSkillIds: ["pitch.scale-degree.3"],
+        difficulty: 0.5,
+        reason: "weakness",
+      },
+    ]);
     unsubscribe();
     session.dispose();
   });

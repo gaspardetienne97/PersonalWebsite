@@ -27,6 +27,16 @@ describe("/music/songs/[id]/+page.svelte", () => {
 
     button("Start practice")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play C4"));
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-notation-cursor="current-group"]')).not.toBeNull(),
+    );
+    expect(document.querySelector("[data-testid='score-current-notes']")?.textContent).toContain(
+      "C4",
+    );
+    expect(document.querySelector("[data-testid='score-expected-note']")?.textContent).toContain(
+      "C4",
+    );
+    expect(document.querySelector('[aria-label="Piano input"]')).not.toBeNull();
 
     runtime.router.noteOn(60, "onscreen", "piano");
     runtime.router.noteOn(64, "onscreen", "piano");
@@ -124,6 +134,13 @@ describe("/music/songs/[id]/+page.svelte", () => {
     );
     expect(document.querySelector('[aria-label="Staff notation"]')).toBeNull();
     expect(button("Start practice")).not.toBeUndefined();
+    const cursor = document.querySelector<HTMLElement>("#cursorImg-0");
+    expect(cursor).not.toBeNull();
+    await vi.waitFor(() => expect(getComputedStyle(cursor!).display).toBe("block"));
+
+    button("Start practice")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Play C4"));
+    await vi.waitFor(() => expect(getComputedStyle(cursor!).display).toBe("block"));
     runtime.dispose();
   });
 

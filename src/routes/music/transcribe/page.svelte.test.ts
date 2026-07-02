@@ -58,6 +58,47 @@ describe("/music/transcribe/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Extracted 2 notes"));
   });
 
+  test("can use a saved Practice Lab audio take as the transcription source", async () => {
+    const runtime = {
+      activeInstrument: "piano",
+      router: {
+        subscribe: vi.fn(() => vi.fn()),
+        push: vi.fn(),
+      },
+      sound: {
+        playPattern: vi.fn(),
+      },
+      enableAudio: vi.fn(async () => true),
+      setPlaybackSource: vi.fn(),
+      media: {
+        listTakes: vi.fn(async () => [
+          {
+            id: "audio-take-1",
+            name: "Practice Lab dry take",
+            mimeType: "audio/webm",
+            size: 2048,
+            durationMs: 12_000,
+            createdAt: Date.now(),
+            instrument: "piano",
+            backingOffsetMs: 0,
+          },
+        ]),
+        takeBlob: vi.fn(async () => new Blob(["audio"], { type: "audio/webm" })),
+      },
+    } as unknown as MusicRuntime;
+
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Practice Lab dry take"));
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.includes("Use as source"))
+      ?.click();
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Attached Practice Lab dry take.webm"),
+    );
+  });
+
   test("practices the generated transcription with score-following input", async () => {
     render(Page);
 

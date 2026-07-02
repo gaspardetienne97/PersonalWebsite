@@ -232,6 +232,15 @@ export const DRILLS: DrillItem[] = [
 /** Guided curricula — Practice ▸ Paths. */
 export const PATHS: CatalogItem[] = [
   {
+    href: "/music/learn/ear",
+    title: "Ear Training Path",
+    description:
+      "A staged listening curriculum: tonic awareness, scale degrees, dictation, intervals, and chord qualities. Opens the same ear-training surface used for focused drills.",
+    meta: "Listening",
+    action: "Open ear path",
+    icon: Ear,
+  },
+  {
     href: "/music/learn/path",
     title: "Jazz Path",
     description:

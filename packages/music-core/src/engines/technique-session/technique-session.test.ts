@@ -8,9 +8,223 @@ import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills";
 import { curatedTunings } from "@repo/music-core/engines/tunings";
 
-import { TechniqueSession, type TechniqueSessionState } from "./index";
+import {
+  AEROPHONE_DRILL_DEFAULT_CONFIG,
+  MPC_RUDIMENT_DEFAULT_CONFIG,
+  normalizeAerophoneDrillConfig,
+  normalizeScaleDrillConfig,
+  normalizeMpcRudimentConfig,
+  normalizeSpiderDrillConfig,
+  normalizeTwoHandDrillConfig,
+  SCALE_DRILL_DEFAULT_CONFIG,
+  SPIDER_DRILL_DEFAULT_CONFIG,
+  TechniqueSession,
+  type TechniqueSessionState,
+} from "./index";
 
 describe("TechniqueSession", () => {
+  test("normalizes shareable Aerophone drill config values", () => {
+    expect(
+      normalizeAerophoneDrillConfig(
+        new URLSearchParams("mode=articulation&target=69&style=legato&bpm=110"),
+      ),
+    ).toEqual({
+      mode: "articulation",
+      targetMidi: 69,
+      durationMs: 5000,
+      style: "legato",
+      bpm: 110,
+    });
+
+    expect(normalizeAerophoneDrillConfig({ mode: "swell", note: "57", duration: "7000" })).toEqual({
+      mode: "swell",
+      targetMidi: 58,
+      durationMs: 6000,
+      style: "staccato",
+      bpm: 90,
+    });
+
+    expect(
+      normalizeAerophoneDrillConfig({
+        mode: "noise",
+        targetMidi: "999",
+        durationMs: "1000",
+        style: "slurred",
+        tempo: "72",
+      }),
+    ).toEqual({
+      ...AEROPHONE_DRILL_DEFAULT_CONFIG,
+      targetMidi: 78,
+      durationMs: 3000,
+      bpm: 70,
+    });
+  });
+
+  test("normalizes shareable scale drill config values", () => {
+    expect(
+      normalizeScaleDrillConfig({
+        scale: "bebop-major",
+        tonic: "Eb4",
+        instrument: "guitar",
+        bpm: "90",
+        motion: "up-down",
+        span: "two-octave",
+      }),
+    ).toEqual({
+      scale: "bebop-major",
+      tonic: "Eb4",
+      instrument: "guitar",
+      bpm: 90,
+      motion: "up-down",
+      span: "two-octave",
+    });
+
+    expect(
+      normalizeScaleDrillConfig({
+        scale: "noise",
+        key: "Bb",
+        instrument: "kazoo",
+        bpm: "999",
+        motion: "sideways",
+        span: "forever",
+      }),
+    ).toEqual({
+      ...SCALE_DRILL_DEFAULT_CONFIG,
+      tonic: "Bb4",
+      bpm: 180,
+    });
+
+    expect(normalizeScaleDrillConfig(new URLSearchParams("scale=dorian&tonic=F4&bpm=10"))).toEqual({
+      ...SCALE_DRILL_DEFAULT_CONFIG,
+      scale: "dorian",
+      tonic: "F4",
+      bpm: 60,
+    });
+
+    expect(
+      normalizeScaleDrillConfig(
+        new URLSearchParams("scale=blues&tonic=G4&motion=down&span=pentascale"),
+      ),
+    ).toEqual({
+      ...SCALE_DRILL_DEFAULT_CONFIG,
+      scale: "blues",
+      tonic: "G4",
+      motion: "down",
+      span: "pentascale",
+    });
+  });
+
+  test("normalizes shareable MPC rudiment config values", () => {
+    expect(
+      normalizeMpcRudimentConfig({
+        left: "40",
+        right: "41",
+        hits: "16",
+        bpm: "120",
+        pattern: "paradiddle",
+      }),
+    ).toEqual({
+      patternId: "paradiddle",
+      leftPadMidi: 40,
+      rightPadMidi: 41,
+      hitCount: 16,
+      bpm: 120,
+    });
+
+    expect(
+      normalizeMpcRudimentConfig({
+        left: "12",
+        right: "127",
+        hits: "99",
+        bpm: "10",
+      }),
+    ).toEqual({
+      ...MPC_RUDIMENT_DEFAULT_CONFIG,
+      bpm: 60,
+    });
+
+    expect(
+      normalizeMpcRudimentConfig({
+        left: "40",
+        right: "40",
+        hitCount: "16",
+        bpm: "95",
+      }),
+    ).toEqual({
+      patternId: "single-strokes",
+      leftPadMidi: 40,
+      rightPadMidi: 38,
+      hitCount: 16,
+      bpm: 100,
+    });
+  });
+
+  test("normalizes shareable spider drill config values", () => {
+    expect(
+      normalizeSpiderDrillConfig({
+        instrument: "ukulele",
+        tuning: "ukulele.low-g",
+        string: "4",
+        fret: "7",
+        bpm: "120",
+      }),
+    ).toEqual({
+      instrument: "ukulele",
+      tuningId: "ukulele.low-g",
+      stringNumber: 4,
+      startFret: 7,
+      bpm: 120,
+    });
+
+    expect(
+      normalizeSpiderDrillConfig({
+        instrument: "banjo",
+        tuning: "ukulele.low-g",
+        string: "99",
+        fret: "99",
+        bpm: "10",
+      }),
+    ).toEqual({
+      ...SPIDER_DRILL_DEFAULT_CONFIG,
+      stringNumber: 6,
+      startFret: 9,
+      bpm: 60,
+    });
+
+    expect(
+      normalizeSpiderDrillConfig({
+        instrument: "ukulele",
+        tuning: "guitar.drop-d",
+        string: "0",
+        fret: "-3",
+        bpm: "95",
+      }),
+    ).toEqual({
+      instrument: "ukulele",
+      tuningId: "ukulele.high-g",
+      stringNumber: 1,
+      startFret: 0,
+      bpm: 100,
+    });
+  });
+
+  test("normalizes shareable two-hand drill config values", () => {
+    expect(normalizeTwoHandDrillConfig(new URLSearchParams("tonic=G4&bpm=120"))).toEqual({
+      tonic: "G4",
+      bpm: 120,
+    });
+
+    expect(normalizeTwoHandDrillConfig({ key: "D", tempo: "10" })).toEqual({
+      tonic: "D4",
+      bpm: 60,
+    });
+
+    expect(normalizeTwoHandDrillConfig({ tonic: "Bb3", bpm: "999" })).toEqual({
+      tonic: "C4",
+      bpm: 120,
+    });
+  });
+
   test("completes an Aerophone long tone through the shared pipeline", async () => {
     const dependencies = await setup();
     const session = new TechniqueSession(dependencies);
@@ -116,8 +330,10 @@ describe("TechniqueSession", () => {
       rightPadMidi: 38,
       hitCount: 8,
       bpm: 100,
+      patternId: "double-strokes",
     });
     expect(prompt.targetSpacingMs).toBe(300);
+    expect(prompt.targetSequence).toEqual([36, 36, 38, 38, 36, 36, 38, 38]);
     Object.assign(prompt, {
       noteLabels: ["C4"],
       midiNotes: [60],
@@ -202,13 +418,15 @@ describe("TechniqueSession", () => {
         rightPadMidi: 41,
         hitCount: 16,
         bpm: 100,
+        patternId: "paradiddle",
       }),
     ).resolves.toMatchObject({
+      patternId: "paradiddle",
       leftPadMidi: 40,
       rightPadMidi: 41,
       hitCount: 16,
       bpm: 100,
-      targetSequence: Array.from({ length: 16 }, (_, index) => (index % 2 === 0 ? 40 : 41)),
+      targetSequence: [40, 41, 40, 40, 41, 40, 41, 41, 40, 41, 40, 40, 41, 40, 41, 41],
     });
     expect(session.state).toMatchObject({
       status: "active",
@@ -252,7 +470,7 @@ describe("TechniqueSession", () => {
 
     await vi.waitFor(() => expect(session.state.error).toBe("Persistence unavailable"));
     expect(session.state.status).toBe("active");
-    expect(session.state.currentPrompt?.label).toBe("C major");
+    expect(session.state.currentPrompt?.label).toBe("C major · one octave · ascending");
 
     await session.retrySave();
     expect(session.state.status).toBe("summary");

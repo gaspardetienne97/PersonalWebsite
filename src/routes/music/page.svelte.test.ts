@@ -18,4 +18,16 @@ describe("/music/+page.svelte (Practice hub)", () => {
     expect(document.querySelector('a[href="/music/routine"]')).toBeNull();
     expect(document.querySelector('a[href="/music/coach"]')).toBeNull();
   });
+
+  it("surfaces ear training as a guided path", async () => {
+    render(Page);
+
+    const pathsTab = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Paths",
+    );
+    pathsTab?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Ear Training Path"));
+    expect(document.querySelector('a[href="/music/learn/ear"]')).not.toBeNull();
+  });
 });

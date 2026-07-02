@@ -4,6 +4,7 @@ import {
   type ExerciseLiveState,
   type ExercisePrompt,
   type ExerciseResult,
+  type Score,
   type ScoringEvent,
 } from "@repo/music-core/domain";
 import {
@@ -26,10 +27,134 @@ import {
   type SightReadingOptions,
   type SightReadingPrompt,
 } from "@repo/music-core/exercises/sight-reading";
+import { expectedGroups } from "@repo/music-core/engines/score-follower";
 import type {
   ScoreFollowerAnswer,
   ScoreFollowerLiveState,
+  ScoreFollowerMode,
+  TimingStrictness,
+  ExpectedNoteGroup,
 } from "@repo/music-core/engines/score-follower";
+import { notationView, type Clef } from "@repo/music-core/engines/notation";
+
+export type ReadingDrillActivity = "flashcards" | "sight-reading";
+export type ReadingDrillInstrument = NoteReadingOptions["instrument"];
+export type ReadingDrillMeter = "simple" | "compound";
+
+export interface ReadingDrillConfig {
+  activity: ReadingDrillActivity;
+  instrument: ReadingDrillInstrument;
+  tuningId?: string;
+  clefs: Clef[];
+  keySignature: string;
+  range: { lowestMidi: number; highestMidi: number };
+  difficulty: number;
+  promptKind: NoteReadingOptions["promptKind"];
+  answerMode: ReadingAnswerMode;
+  mode: ScoreFollowerMode;
+  bpm: number;
+  strictness: TimingStrictness;
+  meter: ReadingDrillMeter;
+  measures: number;
+}
+
+export type ReadingDrillConfigSource = {
+  activity?: unknown;
+  instrument?: unknown;
+  tuning?: unknown;
+  tuningId?: unknown;
+  clef?: unknown;
+  clefs?: unknown;
+  key?: unknown;
+  keySignature?: unknown;
+  low?: unknown;
+  lowestMidi?: unknown;
+  high?: unknown;
+  highestMidi?: unknown;
+  difficulty?: unknown;
+  prompt?: unknown;
+  promptKind?: unknown;
+  answer?: unknown;
+  answerMode?: unknown;
+  mode?: unknown;
+  bpm?: unknown;
+  strict?: unknown;
+  strictness?: unknown;
+  meter?: unknown;
+  measures?: unknown;
+  get?: (key: string) => string | null;
+};
+
+export const READING_DRILL_DEFAULT_CONFIG: ReadingDrillConfig = {
+  activity: "flashcards",
+  instrument: "piano",
+  clefs: ["treble"],
+  keySignature: "C major",
+  range: { lowestMidi: 48, highestMidi: 84 },
+  difficulty: 0.4,
+  promptKind: "single-note",
+  answerMode: "choice",
+  mode: "wait",
+  bpm: 90,
+  strictness: "normal",
+  meter: "simple",
+  measures: 2,
+};
+
+const READING_KEYS = new Set([
+  "C major",
+  "G major",
+  "F major",
+  "D major",
+  "Bb major",
+  "A minor",
+  "E minor",
+  "D minor",
+]);
+
+export function normalizeReadingDrillConfig(source: ReadingDrillConfigSource): ReadingDrillConfig {
+  const lowestMidi = normalizeInteger(readReadingConfigValue(source, ["low", "lowestMidi"]), {
+    fallback: READING_DRILL_DEFAULT_CONFIG.range.lowestMidi,
+    min: 21,
+    max: 108,
+  });
+  const highestMidi = normalizeInteger(readReadingConfigValue(source, ["high", "highestMidi"]), {
+    fallback: READING_DRILL_DEFAULT_CONFIG.range.highestMidi,
+    min: 21,
+    max: 108,
+  });
+  const instrument = normalizeReadingInstrument(readReadingConfigValue(source, ["instrument"]));
+  const tuningId = readReadingConfigValue(source, ["tuning", "tuningId"]);
+
+  return {
+    activity: normalizeReadingActivity(readReadingConfigValue(source, ["activity"])),
+    instrument,
+    ...(instrument === "piano" || !tuningId ? {} : { tuningId }),
+    clefs: normalizeClefs(readReadingConfigValue(source, ["clefs", "clef"])),
+    keySignature: normalizeKeySignature(readReadingConfigValue(source, ["key", "keySignature"])),
+    range: normalizeRange(lowestMidi, highestMidi),
+    difficulty: normalizeDecimal(readReadingConfigValue(source, ["difficulty"]), {
+      fallback: READING_DRILL_DEFAULT_CONFIG.difficulty,
+      min: 0,
+      max: 1,
+    }),
+    promptKind: normalizePromptKind(readReadingConfigValue(source, ["prompt", "promptKind"])),
+    answerMode: normalizeAnswerMode(readReadingConfigValue(source, ["answer", "answerMode"])),
+    mode: normalizeSightReadingMode(readReadingConfigValue(source, ["mode"])),
+    bpm: normalizeInteger(readReadingConfigValue(source, ["bpm"]), {
+      fallback: READING_DRILL_DEFAULT_CONFIG.bpm,
+      min: 40,
+      max: 200,
+    }),
+    strictness: normalizeStrictness(readReadingConfigValue(source, ["strict", "strictness"])),
+    meter: normalizeMeter(readReadingConfigValue(source, ["meter"])),
+    measures: normalizeInteger(readReadingConfigValue(source, ["measures"]), {
+      fallback: READING_DRILL_DEFAULT_CONFIG.measures,
+      min: 1,
+      max: 8,
+    }),
+  };
+}
 
 export interface FlashcardSessionOptions extends NoteReadingOptions {
   answerMode: ReadingAnswerMode;
@@ -278,6 +403,43 @@ export class ReadingSession {
     await this.#completion;
   }
 
+  prepareMissedSightReading(): boolean {
+    this.#assertUsable();
+    if (this.#status !== "summary" || !this.#summary) return false;
+
+    const retry = missedSightReadingRetryPrompt(this.#summary);
+    if (!retry) return false;
+
+    const exercise = fixedSightReadingExercise(
+      retry.prompt,
+      createSightReadingExercise({
+        random: this.dependencies.random,
+        options: retry.prompt.options,
+      }),
+    );
+
+    this.#host.cancel();
+    this.#exercise = exercise;
+    this.#sightReadingOptions = retry.prompt.options;
+    this.#queue = [
+      {
+        targetSkillId: retry.result.targetSkillId,
+        difficulty: retry.queueDifficulty,
+        reason: "weakness",
+      },
+    ];
+    this.#status = "sight-reading";
+    this.#countIn = "ready";
+    this.#answerMode = undefined;
+    this.#currentIndex = 0;
+    this.#currentPrompt = retry.prompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return true;
+  }
+
   abandon(): void {
     if (this.#disposed || this.#status === "summary") return;
     this.#status = "abandoned";
@@ -414,4 +576,193 @@ function summarize(results: ReadingResultView[]): ReadingSummary {
     xp: results.reduce((total, result) => total + result.xp, 0),
     results: [...results],
   };
+}
+
+interface MissedSightReadingRetry {
+  result: ReadingResultView;
+  prompt: SightReadingPrompt;
+  queueDifficulty: number;
+}
+
+function missedSightReadingRetryPrompt(
+  summary: ReadingSummary,
+): MissedSightReadingRetry | undefined {
+  const result = [...summary.results]
+    .reverse()
+    .find(
+      (candidate) =>
+        isSightReadingPrompt(candidate.prompt) &&
+        sightReadingAnswer(candidate.result.answer)?.missedGroups.length,
+    );
+  if (!result || !isSightReadingPrompt(result.prompt)) return undefined;
+
+  const answer = sightReadingAnswer(result.result.answer);
+  if (!answer || answer.missedGroups.length === 0) return undefined;
+
+  const prompt = compactSightReadingPrompt(result.prompt, answer.missedGroups);
+  return {
+    result,
+    prompt,
+    queueDifficulty: prompt.options.difficulty,
+  };
+}
+
+function compactSightReadingPrompt(
+  prompt: SightReadingPrompt,
+  missedGroups: ExpectedNoteGroup[],
+): SightReadingPrompt {
+  const missedById = new Map(missedGroups.map((group) => [group.id, group]));
+  const orderedGroups = prompt.groups.filter((group) => missedById.has(group.id));
+  const notes: Score["notes"] = [];
+  let nextStartBeat = 0;
+
+  for (const group of orderedGroups) {
+    for (const sourceIndex of group.sourceNoteIndexes) {
+      const note = prompt.score.notes[sourceIndex];
+      if (!note) continue;
+      notes.push({
+        ...note,
+        startBeat: nextStartBeat,
+      });
+    }
+    nextStartBeat += group.durationBeats;
+  }
+
+  const totalBeats = Math.max(1, nextStartBeat);
+  const timeSignature = prompt.options.timeSignature;
+  const beatsPerMeasure = timeSignature.numerator * (4 / timeSignature.denominator);
+  const score: Score = {
+    ...prompt.score,
+    id: `${prompt.score.id}:missed:${orderedGroups.map(({ id }) => id).join(",")}`,
+    title: "Missed-group retry",
+    notes,
+    rests: undefined,
+    tempoMap: [{ ...(prompt.score.tempoMap[0] ?? { bpm: prompt.options.bpm }), atBeat: 0 }],
+    timeSignatures: [{ atBeat: 0, ...timeSignature }],
+    sections: [
+      {
+        id: "missed-groups",
+        name: "Missed groups",
+        startBeat: 0,
+        endBeat: totalBeats,
+      },
+    ],
+    markers: orderedGroups.map((group, index) => ({
+      id: `missed:${index}`,
+      beat:
+        index === 0
+          ? 0
+          : orderedGroups.slice(0, index).reduce((total, item) => total + item.durationBeats, 0),
+      label: `Missed group ${index + 1}`,
+      kind: "practice",
+    })),
+  };
+  const groups = expectedGroups(score);
+  const { startTimestampMs: _startTimestampMs, ...options } = prompt.options;
+
+  return {
+    score,
+    notation: notationView(score),
+    groups,
+    options: {
+      ...options,
+      measures: Math.max(1, Math.ceil(totalBeats / beatsPerMeasure)),
+    },
+  };
+}
+
+function sightReadingAnswer(answer: unknown): ScoreFollowerAnswer | undefined {
+  if (!answer || typeof answer !== "object") return undefined;
+  const candidate = answer as Partial<ScoreFollowerAnswer>;
+  return Array.isArray(candidate.missedGroups) ? (candidate as ScoreFollowerAnswer) : undefined;
+}
+
+function normalizeReadingActivity(value: string | undefined): ReadingDrillActivity {
+  return value === "sight-reading" || value === "flashcards"
+    ? value
+    : READING_DRILL_DEFAULT_CONFIG.activity;
+}
+
+function normalizeReadingInstrument(value: string | undefined): ReadingDrillInstrument {
+  return value === "piano" || value === "guitar" || value === "ukulele"
+    ? value
+    : READING_DRILL_DEFAULT_CONFIG.instrument;
+}
+
+function normalizeClefs(value: string | undefined): Clef[] {
+  if (!value) return [...READING_DRILL_DEFAULT_CONFIG.clefs];
+  const clefs = value
+    .split(",")
+    .map((candidate) => candidate.trim())
+    .filter((candidate): candidate is Clef => candidate === "treble" || candidate === "bass");
+  return clefs.length > 0 ? unique(clefs) : [...READING_DRILL_DEFAULT_CONFIG.clefs];
+}
+
+function normalizeKeySignature(value: string | undefined): string {
+  return value && READING_KEYS.has(value) ? value : READING_DRILL_DEFAULT_CONFIG.keySignature;
+}
+
+function normalizeRange(lowestMidi: number, highestMidi: number): ReadingDrillConfig["range"] {
+  if (lowestMidi <= highestMidi) return { lowestMidi, highestMidi };
+  return { ...READING_DRILL_DEFAULT_CONFIG.range };
+}
+
+function normalizePromptKind(value: string | undefined): NoteReadingOptions["promptKind"] {
+  return value === "single-note" || value === "chord"
+    ? value
+    : READING_DRILL_DEFAULT_CONFIG.promptKind;
+}
+
+function normalizeAnswerMode(value: string | undefined): ReadingAnswerMode {
+  return value === "choice" || value === "play" ? value : READING_DRILL_DEFAULT_CONFIG.answerMode;
+}
+
+function normalizeSightReadingMode(value: string | undefined): ScoreFollowerMode {
+  return value === "wait" || value === "performance" ? value : READING_DRILL_DEFAULT_CONFIG.mode;
+}
+
+function normalizeStrictness(value: string | undefined): TimingStrictness {
+  return value === "relaxed" || value === "normal" || value === "strict"
+    ? value
+    : READING_DRILL_DEFAULT_CONFIG.strictness;
+}
+
+function normalizeMeter(value: string | undefined): ReadingDrillMeter {
+  return value === "simple" || value === "compound" ? value : READING_DRILL_DEFAULT_CONFIG.meter;
+}
+
+function normalizeInteger(
+  value: string | undefined,
+  options: { fallback: number; min: number; max: number },
+): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed)) return options.fallback;
+  return Math.min(options.max, Math.max(options.min, parsed));
+}
+
+function normalizeDecimal(
+  value: string | undefined,
+  options: { fallback: number; min: number; max: number },
+): number {
+  const parsed = Number.parseFloat(value ?? "");
+  if (!Number.isFinite(parsed)) return options.fallback;
+  return Math.min(options.max, Math.max(options.min, parsed));
+}
+
+function readReadingConfigValue(
+  source: ReadingDrillConfigSource,
+  keys: string[],
+): string | undefined {
+  for (const key of keys) {
+    const queryValue = source.get?.(key);
+    if (queryValue) return queryValue;
+    const value = source[key as keyof ReadingDrillConfigSource];
+    if (typeof value === "string" && value.length > 0) return value;
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return undefined;
+}
+
+function unique<T>(values: T[]): T[] {
+  return [...new Set(values)];
 }

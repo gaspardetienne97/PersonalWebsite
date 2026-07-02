@@ -134,12 +134,14 @@
         const event = renderedEvents[index];
         if (!event) return;
         const range = boundaryRange(event.startBeat, boundaries?.noteGroupBoundaries);
+        const active = activeIds.includes(event.id);
         group.dataset.eventId = event.id;
         group.dataset.selectionKind = "note-group";
         group.dataset.boundaryId = range?.boundaryId ?? event.id;
         group.dataset.startBeat = String(range?.startBeat ?? event.startBeat);
         group.dataset.endBeat = String(range?.endBeat ?? event.startBeat + event.durationBeats);
-        group.classList.toggle("text-primary", activeIds.includes(event.id));
+        group.dataset.activeNote = active ? "true" : "false";
+        group.classList.toggle("text-practice-accent", active);
         group.classList.toggle("text-destructive", errorIds.includes(event.id));
       });
 
@@ -324,13 +326,26 @@
         data-notation-highlight={layer.rangeId}
         data-active={layer.active}
         class="absolute rounded-sm border {layer.active
-          ? 'border-primary/60 bg-primary/20'
-          : 'border-primary/30 bg-primary/10'}"
+          ? 'border-practice-accent/80 bg-practice-accent/20 shadow-[0_0_0_1px_hsl(var(--practice-accent)/0.22)]'
+          : 'border-practice-accent/30 bg-practice-accent/10'}"
         style:left="{layer.left}px"
         style:top="{layer.top}px"
         style:width="{layer.width}px"
         style:height="{layer.height}px"
-      ></span>
+      >
+        {#if layer.active}
+          <span
+            data-notation-cursor={layer.rangeId}
+            class="absolute -top-1 bottom-[-0.25rem] left-0 w-1.5 rounded-full bg-practice-accent ring-2 ring-background"
+          ></span>
+          <span
+            data-notation-cursor-label={layer.rangeId}
+            class="absolute left-2 top-1 rounded-sm bg-practice-accent px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-practice-accent-foreground shadow-sm"
+          >
+            Now
+          </span>
+        {/if}
+      </span>
     {/each}
   </div>
 </div>

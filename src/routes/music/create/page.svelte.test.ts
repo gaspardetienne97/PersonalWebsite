@@ -44,6 +44,23 @@ function makeRuntime(): MusicRuntime {
 }
 
 describe("/music/create/+page.svelte", () => {
+  test("syncs Create mode changes into the URL without dropping import params", async () => {
+    window.history.replaceState({}, "", "/music/create?source=practice-lab-take#compose");
+    render(Page, { runtime: makeRuntime() });
+
+    button("Piano roll")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Multitrack note editor"));
+
+    expect(window.location.pathname).toBe("/music/create");
+    expect(window.location.search).toBe("?source=practice-lab-take&mode=piano-roll");
+    expect(window.location.hash).toBe("#compose");
+
+    button("Recorder")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Record any take"));
+
+    expect(window.location.search).toBe("?source=practice-lab-take&mode=recorder");
+  });
+
   test("renders Studio as the default Create mode", () => {
     render(Page, { runtime: makeRuntime() });
 

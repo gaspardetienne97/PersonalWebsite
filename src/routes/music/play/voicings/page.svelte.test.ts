@@ -9,6 +9,7 @@ import Page from "./+page.svelte";
 
 afterEach(() => {
   vi.restoreAllMocks();
+  window.history.replaceState({}, "", "/");
   document.body.replaceChildren();
 });
 
@@ -74,6 +75,37 @@ describe("/music/play/voicings/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("G7b9"));
   });
 
+  test("restores setup from shareable query parameters", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/music/play/voicings?instrument=guitar&variant=minor&start=B&strict=held&advance=manual",
+    );
+
+    render(Page);
+
+    expect(button("Guitar")).toHaveAttribute("aria-pressed", "true");
+    expect(button("Minor")).toHaveAttribute("aria-pressed", "true");
+    expect(button("Held")).toHaveAttribute("aria-pressed", "true");
+    expect(button("Manual")).toHaveAttribute("aria-pressed", "true");
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+  });
+
+  test("keeps setup changes in the shareable URL", async () => {
+    window.history.replaceState({}, "", "/music/play/voicings");
+    render(Page);
+
+    button("Ukulele")?.click();
+    button("Altered V7")?.click();
+    button("Held")?.click();
+    button("Manual")?.click();
+
+    await vi.waitFor(() => expect(window.location.search).toContain("instrument=ukulele"));
+    expect(window.location.search).toContain("variant=altered");
+    expect(window.location.search).toContain("strict=held");
+    expect(window.location.search).toContain("advance=manual");
+  });
+
   test("renders the routine continuation action after a completed drill", async () => {
     const runtime = new MusicRuntime();
     vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
@@ -113,7 +145,45 @@ describe("/music/play/voicings/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("View routine summary"));
     runtime.dispose();
   });
+
+  test("offers a repeat action after a completed drill", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    button("Start drill")?.click();
+
+    const advanceButton = () =>
+      [...document.querySelectorAll("button")].find(
+        (candidate) =>
+          candidate.textContent?.includes("Skip chord") ||
+          candidate.textContent?.includes("Check chord"),
+      );
+
+    await vi.waitFor(() => expect(advanceButton()).not.toBeUndefined());
+    for (let index = 0; index < 36; index += 1) {
+      advanceButton()?.click();
+      if (index === 35) {
+        await vi.waitFor(() => expect(document.body.textContent).toContain("Drill complete"));
+      } else {
+        await vi.waitFor(() => expect(document.body.textContent).toContain(`${index + 2} / 36`));
+      }
+    }
+
+    await vi.waitFor(() => expect(button("Repeat voicings")).not.toBeUndefined());
+    button("Repeat voicings")?.click();
+    await vi.waitFor(() => expect(advanceButton()).not.toBeUndefined());
+    expect(document.body.textContent).toContain("1 / 36");
+    runtime.dispose();
+  });
 });
+
+function button(label: string): HTMLButtonElement | undefined {
+  return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+    (candidate) => candidate.textContent?.trim() === label,
+  );
+}
 
 function routineStep(): DailyRoutineStep {
   return {
