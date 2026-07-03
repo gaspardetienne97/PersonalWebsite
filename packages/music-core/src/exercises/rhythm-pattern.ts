@@ -70,6 +70,8 @@ export interface RhythmPatternAnswer {
   jitterMs: number;
   missedEvents: number;
   extraRestHits: number;
+  /** Unmatched hits outside rest windows (double-taps, noise). */
+  extraHits: number;
 }
 
 export const RHYTHM_PATTERN_CATALOG: RhythmPatternDefinition[] = [
@@ -229,34 +231,60 @@ function rhythmPatternRun(prompt: RhythmPatternPrompt): ExerciseRun<RhythmPatter
       return { progress, runningScore: progress, feedback: [] };
     },
     finish() {
-      const restHitIndices = hits
-        .map((event, index) => ({ event, index }))
-        .filter(({ event }) => isRestHit(prompt, Number(event.timestamp)))
-        .map(({ index }) => index);
-      const scorableHits = hits.filter((_hit, index) => !restHitIndices.includes(index));
-      const metrics: ScoringMetric[] = prompt.expectedMs.map((expectedMs, index) => {
-        const actual = Number(scorableHits[index]?.timestamp ?? Number.NaN);
-        const actualMs = Number.isFinite(actual) ? actual : expectedMs + 999;
-        return { kind: "timing", expectedMs, actualMs, errorMs: actualMs - expectedMs };
-      });
-      const errors = metrics
-        .filter((metric) => metric.kind === "timing")
-        .map((metric) => metric.errorMs);
-      const missedEvents = Math.max(0, prompt.events.length - scorableHits.length);
+      // Rest hits are never legitimate targets: exclude them from matching so
+      // a tap inside a rest window can't be credited to a neighbouring beat.
+      const pool = hits.map((event) => ({
+        atMs: Number(event.timestamp),
+        rest: isRestHit(prompt, Number(event.timestamp)),
+        used: false,
+      }));
+      // Each expected time claims the nearest unused hit within half the
+      // pattern's smallest event spacing — one miss can no longer shift every
+      // later hit onto the wrong slot, and no timing errors are fabricated.
+      const matchWindowMs = matchWindow(prompt);
+      const metrics: ScoringMetric[] = [];
+      const errors: number[] = [];
+      let missedEvents = 0;
+      for (const expectedMs of prompt.expectedMs) {
+        let best: (typeof pool)[number] | undefined;
+        for (const candidate of pool) {
+          if (candidate.used || candidate.rest) continue;
+          const errorMs = Math.abs(candidate.atMs - expectedMs);
+          if (errorMs > matchWindowMs) continue;
+          if (!best || errorMs < Math.abs(best.atMs - expectedMs)) best = candidate;
+        }
+        if (best) {
+          best.used = true;
+          metrics.push({
+            kind: "timing",
+            expectedMs,
+            actualMs: best.atMs,
+            errorMs: best.atMs - expectedMs,
+          });
+          errors.push(best.atMs - expectedMs);
+        } else {
+          missedEvents += 1;
+        }
+      }
+      const extraRestHits = pool.filter((candidate) => candidate.rest).length;
+      const extraHits = pool.filter((candidate) => !candidate.rest && !candidate.used).length;
       const meanAbsoluteErrorMs = average(errors.map((error) => Math.abs(error)));
       const meanSignedErrorMs = average(errors);
       const jitterMs = standardDeviation(errors);
-      const extraRestHits = restHitIndices.length;
-      const timingScore = Math.max(0, 1 - meanAbsoluteErrorMs / 160);
+      // No matched hits means no evidence of timekeeping — don't let an empty
+      // performance ride a 0ms "error" to a passing timing score.
+      const timingScore = errors.length === 0 ? 0 : Math.max(0, 1 - meanAbsoluteErrorMs / 160);
       const restPenalty = Math.min(0.5, extraRestHits * 0.2);
       const missedPenalty = Math.min(0.6, missedEvents * 0.2);
-      const score = Math.max(0, timingScore - restPenalty - missedPenalty);
+      const extraPenalty = Math.min(0.3, extraHits * 0.1);
+      const score = Math.max(0, timingScore - restPenalty - missedPenalty - extraPenalty);
       const answer: RhythmPatternAnswer = {
         meanAbsoluteErrorMs,
         meanSignedErrorMs,
         jitterMs,
         missedEvents,
         extraRestHits,
+        extraHits,
       };
 
       return {
@@ -276,6 +304,20 @@ function rhythmPatternRun(prompt: RhythmPatternPrompt): ExerciseRun<RhythmPatter
       };
     },
   };
+}
+
+/**
+ * Half the smallest inter-event spacing: a hit is only credited to an expected
+ * slot it is unambiguously closest to. Falls back to half a beat for
+ * single-event prompts.
+ */
+function matchWindow(prompt: RhythmPatternPrompt): number {
+  const beatMs = beatDurationMs(prompt.bpm);
+  let smallest = beatMs;
+  for (let index = 1; index < prompt.expectedMs.length; index += 1) {
+    smallest = Math.min(smallest, prompt.expectedMs[index]! - prompt.expectedMs[index - 1]!);
+  }
+  return smallest / 2;
 }
 
 function isRestHit(prompt: RhythmPatternPrompt, timestampMs: number): boolean {

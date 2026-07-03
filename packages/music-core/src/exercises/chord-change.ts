@@ -93,6 +93,32 @@ function buildTargets(options: ChordChangeOptions, repetitions: number): ChordCh
   });
 }
 
+/**
+ * Notes within one strum cluster tightly in time while moving to the next
+ * shape takes real milliseconds, so a silence this long starts the next
+ * target. Count-based chunking (the previous approach) let a single extra or
+ * missing string shift every later chord onto the wrong grading window.
+ */
+const CHANGE_GAP_MS = 350;
+
+function clusterByGap(played: NoteEvent[]): NoteEvent[][] {
+  const clusters: NoteEvent[][] = [];
+  for (const event of played) {
+    const cluster = clusters.at(-1);
+    const previous = cluster?.at(-1);
+    if (
+      cluster === undefined ||
+      previous === undefined ||
+      Number(event.timestamp) - Number(previous.timestamp) > CHANGE_GAP_MS
+    ) {
+      clusters.push([event]);
+    } else {
+      cluster.push(event);
+    }
+  }
+  return clusters;
+}
+
 function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswer> {
   const input: NoteEvent[] = [];
   const totalNotes = prompt.targets.reduce((sum, target) => sum + target.midiNotes.length, 0);
@@ -107,14 +133,14 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
     },
     finish() {
       const played = input.filter((event) => event.type === "noteOn");
+      const clusters = clusterByGap(played);
       const metrics: ScoringMetric[] = [];
       const coverageByChange: number[] = [];
-      let cursor = 0;
       let cleanChanges = 0;
       let completedChanges = 0;
 
-      for (const target of prompt.targets) {
-        const chunk = played.slice(cursor, cursor + target.midiNotes.length);
+      prompt.targets.forEach((target, targetIndex) => {
+        const chunk = clusters[targetIndex] ?? [];
         const observedMidiNotes = chunk.map((event) => event.midiNote);
         const verification = verifyChordTarget({
           expectedMidiNotes: target.midiNotes,
@@ -133,8 +159,7 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
         target.midiNotes.forEach((expectedMidi, index) => {
           metrics.push({ kind: "pitch", expectedMidi, actualMidi: chunk[index]?.midiNote });
         });
-        cursor += target.midiNotes.length;
-      }
+      });
 
       const score =
         coverageByChange.length === 0
@@ -142,10 +167,7 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
           : coverageByChange.reduce((sum, coverage) => sum + coverage, 0) / coverageByChange.length;
       const firstChangeLatencyMs =
         prompt.targets.length > 1
-          ? timestampDelta(
-              played[0]?.timestamp,
-              played[prompt.targets[0]?.midiNotes.length ?? 0]?.timestamp,
-            )
+          ? timestampDelta(clusters[0]?.[0]?.timestamp, clusters[1]?.[0]?.timestamp)
           : undefined;
       const correct = cleanChanges === prompt.targets.length && prompt.targets.length > 0;
 

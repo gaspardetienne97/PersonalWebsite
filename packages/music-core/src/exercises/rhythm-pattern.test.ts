@@ -117,6 +117,42 @@ describe("createRhythmPatternExercise", () => {
     expect(result.feedback[0]?.message).toContain("1 rest hit");
   });
 
+  test("one missed tap doesn't cascade into misgrading every later hit", () => {
+    const exercise = createRhythmPatternExercise({ patternId: "quarter-pulse", bpm: 120, bars: 1 });
+    const ctx = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+
+    // Miss beat 1 (500ms); the other three land dead on.
+    [0, 1000, 1500].forEach((time) => run.accept(tap(time)));
+    const result = run.finish({ reason: "completed" });
+
+    // The three real hits match their own slots with 0 error — no fabricated
+    // 999ms metrics, no shifted pairings.
+    const timing = result.metrics.filter((metric) => metric.kind === "timing");
+    expect(timing).toHaveLength(3);
+    expect(timing.map((metric) => metric.errorMs)).toEqual([0, 0, 0]);
+    expect(result.answer).toMatchObject({
+      missedEvents: 1,
+      extraHits: 0,
+      meanAbsoluteErrorMs: 0,
+      meanSignedErrorMs: 0,
+    });
+    // Exactly one miss penalty: 1 - 0.2.
+    expect(result.score).toBeCloseTo(0.8, 5);
+  });
+
+  test("an empty performance scores zero instead of riding a 0ms 'error'", () => {
+    const exercise = createRhythmPatternExercise({ patternId: "quarter-pulse", bpm: 120, bars: 1 });
+    const ctx = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const run = exercise.createRun(exercise.generate(ctx), ctx);
+
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.score).toBe(0);
+    expect(result.answer.missedEvents).toBe(4);
+  });
+
   test("tags sixteenth-note and gap-click patterns with adaptive review skills", () => {
     expect(createRhythmPatternExercise({ patternId: "sixteenths", bpm: 100 }).skillIds).toContain(
       "rhythm.subdivision.sixteenths",

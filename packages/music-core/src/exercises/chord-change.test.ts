@@ -49,6 +49,39 @@ describe("createChordChangeExercise", () => {
     expect(result.feedback[0]?.message).toContain("2/2 clean chord targets");
   });
 
+  test("an extra string squeak doesn't shift later chords onto the wrong window", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.c-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.g-major")!;
+    const exercise = createChordChangeExercise({ tuning, fromShape, toShape, repetitions: 1 });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.45 };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    // First strum: all C-major strings + a doubled string (squeak/re-attack)
+    // inside the same strum window.
+    prompt.payload.targets[0]!.midiNotes.forEach((midiNote, index) => {
+      run.accept(note(midiNote, index * 40));
+    });
+    run.accept(note(prompt.payload.targets[0]!.midiNotes[0]!, 260));
+    // Second strum after a real change gap: clean G major.
+    prompt.payload.targets[1]!.midiNotes.forEach((midiNote, index) => {
+      run.accept(note(midiNote, 1_200 + index * 40));
+    });
+
+    const result = run.finish({ reason: "completed" });
+
+    // Count-based chunking would have pulled a G-major note into the C window
+    // and graded both chords dirty; gap clustering keeps both clean.
+    expect(result.answer).toMatchObject({
+      completedChanges: 2,
+      cleanChanges: 2,
+      coverageByChange: [1, 1],
+      firstChangeLatencyMs: 1_200,
+    });
+    expect(result.correct).toBe(true);
+  });
+
   test("penalizes a wrong target shape during the second change", () => {
     const tuning = curatedTunings("guitar")[0]!;
     const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.c-major")!;
