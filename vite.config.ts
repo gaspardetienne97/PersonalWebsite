@@ -25,14 +25,17 @@ function buildOptions(isSsrBuild?: boolean): UserConfig["build"] {
       },
       output: {
         // Keep the in-browser neural-TTS runtime (Kokoro + transformers.js +
-        // onnxruntime) in one named, lazily-loaded chunk so it stays out of the
-        // music PWA precache and only downloads when a reader opts into it.
-        manualChunks(id) {
-          return /[\\/]node_modules[\\/](@huggingface[\\/]transformers|kokoro-js|onnxruntime[^\\/]*|phonemizer)[\\/]/.test(
-            id,
-          )
-            ? "kokoro-tts"
-            : undefined;
+        // onnxruntime) in one named, lazily-loaded chunk that only downloads
+        // when a reader opts into neural TTS. Rolldown (vite-plus) groups
+        // chunks via `advancedChunks` — rollup's `manualChunks` is silently
+        // ignored here, so don't swap this back.
+        advancedChunks: {
+          groups: [
+            {
+              name: "kokoro-tts",
+              test: /[\\/]node_modules[\\/](@huggingface[\\/]transformers|kokoro-js|onnxruntime[^\\/]*|phonemizer)[\\/]/,
+            },
+          ],
         },
       },
     },
