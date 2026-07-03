@@ -204,7 +204,14 @@ function buildRhythmPatternPrompt(
     ...(definition.clickSchedule === undefined
       ? {}
       : {
-          clickSchedule: definition.clickSchedule.filter((entry) => entry.bar < options.bars),
+          // Repeat the schedule cyclically across all requested bars, so
+          // "1 on / 1 off" stays on/off/on/off when the drill runs longer
+          // than the pattern's own bar count.
+          clickSchedule: Array.from({ length: options.bars }, (_unused, bar) => ({
+            bar,
+            audible:
+              definition.clickSchedule![bar % definition.clickSchedule!.length]?.audible ?? true,
+          })),
         }),
   };
 }

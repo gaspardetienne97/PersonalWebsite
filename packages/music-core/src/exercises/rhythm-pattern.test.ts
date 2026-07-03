@@ -58,6 +58,25 @@ describe("rhythm pattern catalog", () => {
     });
     expect(prompt.payload.events.map((event) => event.beat)).toEqual([0, 1, 2, 3]);
   });
+
+  test("repeats the gap-click schedule cyclically across extra bars", () => {
+    const exercise = createRhythmPatternExercise({
+      patternId: "gap-click-1-on-1-off",
+      bpm: 100,
+      bars: 4,
+      startTimestampMs: 0,
+    });
+    const prompt = exercise.generate({ targetSkillIds: exercise.skillIds, difficulty: 0.4 });
+
+    expect(prompt.payload.clickSchedule).toEqual([
+      { bar: 0, audible: true },
+      { bar: 1, audible: false },
+      { bar: 2, audible: true },
+      { bar: 3, audible: false },
+    ]);
+    // 4 bars of quarter notes = 16 targets, silent bars included.
+    expect(prompt.payload.events).toHaveLength(16);
+  });
 });
 
 describe("createRhythmPatternExercise", () => {

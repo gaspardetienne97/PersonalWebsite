@@ -9,6 +9,7 @@ import type { InputRouter } from "@repo/music-core/engines/input-router";
 import {
   createRhythmPatternExercise,
   RHYTHM_PATTERN_CATALOG,
+  rhythmPatternDefinition,
   type RhythmPatternId,
   type RhythmPatternPrompt,
 } from "@repo/music-core/exercises/rhythm-pattern";
@@ -169,7 +170,13 @@ export class RhythmSession {
         : createRhythmPatternExercise({
             patternId: pattern,
             bpm: options.bpm,
-            bars: Math.max(1, Math.ceil(options.beats / 4)),
+            // Never truncate a multi-bar pattern: gap-click needs its silent
+            // bar even when the beats config only asks for one bar.
+            bars: Math.max(
+              1,
+              Math.ceil(options.beats / 4),
+              rhythmPatternDefinition(pattern).defaultBars,
+            ),
             startTimestampMs: monotonicMs(options.startTimestampMs),
           });
     const prompt = this.#host.start({

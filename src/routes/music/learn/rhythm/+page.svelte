@@ -25,6 +25,7 @@
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { rhythmHudProjection } from "@repo/music-core/engines/projection";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
+  import type { CountInSchedule } from "@repo/music-core/engines/sound";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -43,9 +44,11 @@
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import TimingMeter from "../../_components/TimingMeter.svelte";
   import { replaceRouteState } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
-  const runtime = useMusicRuntime();
+  // Injectable for tests (the gap-click click scheduling is asserted against a
+  // mocked runtime), same pattern as chord-scales/licks.
+  const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -70,8 +73,9 @@
   let session = $state<RhythmSession | undefined>();
   let sessionState = $state<RhythmSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
-  let midiEnabled = $state(runtime.midi.state.enabled);
-  let midiStatus = $state(midiMessage());
+  // Seeded by the $effect below (avoids an init-time read of the runtime prop).
+  let midiEnabled = $state(false);
+  let midiStatus = $state("");
   let microphoneState = $state<AudioPitchState>(microphone.state);
   let microphoneStatus = $state("Start the microphone to score acoustic note attacks.");
   let microphoneAcceptAfterMs = Number.POSITIVE_INFINITY;
@@ -103,9 +107,13 @@
     syncConfigUrl();
   });
 
-  const unsubscribeMidiState = runtime.midi.subscribeState(() => {
+  $effect(() => {
     midiEnabled = runtime.midi.state.enabled;
     midiStatus = midiMessage();
+    return runtime.midi.subscribeState(() => {
+      midiEnabled = runtime.midi.state.enabled;
+      midiStatus = midiMessage();
+    });
   });
   const unsubscribeMicrophoneState = microphone.subscribeState((state) => {
     microphoneState = state;
@@ -185,18 +193,20 @@
         }
       });
 
-      const delayMs = runtime.audioEnabled
-        ? runtime.sound.playCountIn({ bpm, beats: 4, beatsPerMeasure: 4 }).delayMs
-        : 1_000;
+      const countIn = runtime.audioEnabled
+        ? runtime.sound.playCountIn({ bpm, beats: 4, beatsPerMeasure: 4 })
+        : undefined;
+      const delayMs = countIn?.delayMs ?? 1_000;
       const startTimestampMs = performance.now() + delayMs;
       microphoneAcceptAfterMs = startTimestampMs;
-      await session.start({
+      const startedPrompt = await session.start({
         bpm,
         beats,
         pattern,
         mode,
         startTimestampMs,
       });
+      scheduleDrillClicks(startedPrompt, countIn);
       status =
         delayMs > 0
           ? `Count in, then ${mode === "read-and-tap" ? "read and tap" : "tap"} ${patternLabel}.`
@@ -205,6 +215,29 @@
       status = message(error, "The rhythm session could not be started.");
     } finally {
       pending = false;
+    }
+  }
+
+  // Gap-click support: patterns with a clickSchedule get an audible metronome
+  // during the drill itself, but only on their "on" bars — the point of the
+  // drill is keeping time through the silent bars.
+  function scheduleDrillClicks(
+    startedPrompt: Awaited<ReturnType<RhythmSession["start"]>>,
+    countIn: CountInSchedule | undefined,
+  ): void {
+    if (!countIn) return;
+    if (!("clickSchedule" in startedPrompt) || !startedPrompt.clickSchedule) return;
+    const beatSeconds = 60 / startedPrompt.bpm;
+    const drillStartSeconds = countIn.startAudioSeconds + countIn.delayMs / 1_000;
+    for (const entry of startedPrompt.clickSchedule) {
+      if (!entry.audible) continue;
+      for (let beat = 0; beat < startedPrompt.meter.beats; beat += 1) {
+        const absoluteBeat = entry.bar * startedPrompt.meter.beats + beat;
+        runtime.sound.playMetronomeClick(
+          drillStartSeconds + absoluteBeat * beatSeconds,
+          beat === 0,
+        );
+      }
     }
   }
 
@@ -258,7 +291,6 @@
 
   onDestroy(() => {
     unsubscribeSession?.();
-    unsubscribeMidiState();
     unsubscribeMicrophoneState();
     unsubscribeOnsets();
     void microphone.stop();

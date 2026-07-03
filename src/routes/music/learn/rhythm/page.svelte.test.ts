@@ -3,6 +3,7 @@ import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
+import { MusicRuntime } from "../../_runtime.svelte";
 
 afterEach(() => {
   setTestUrl("/");
@@ -84,6 +85,28 @@ describe("/music/learn/rhythm/+page.svelte", () => {
       expect(document.querySelector('[aria-label="Rhythm pattern target"]')).not.toBeNull();
     });
     expect(button("Tap rhythm")).not.toBeUndefined();
+  });
+
+  test("gap-click schedules audible clicks for the on bar only", async () => {
+    setTestUrl("/music/learn/rhythm?pattern=gap-click-1-on-1-off&bpm=120");
+    const runtime = new MusicRuntime();
+    runtime.audioEnabled = true;
+    vi.spyOn(runtime.sound, "playCountIn").mockReturnValue({
+      startAudioSeconds: 0,
+      delayMs: 2_000,
+    });
+    const click = vi.spyOn(runtime.sound, "playMetronomeClick").mockImplementation(() => {});
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
+    button("Start Rhythm")?.click();
+
+    // 2 bars at 120 BPM starting 2s in: bar 0 clicks (accent on beat 1),
+    // bar 1 (beats at 4s+) stays silent — that's the gap.
+    await vi.waitFor(() => expect(click).toHaveBeenCalledTimes(4));
+    expect(click.mock.calls.map(([atSeconds]) => atSeconds)).toEqual([2, 2.5, 3, 3.5]);
+    expect(click.mock.calls.map(([, accented]) => accented)).toEqual([true, false, false, false]);
+    runtime.dispose();
   });
 
   test("offers a slower retry after a completed pulse run", async () => {

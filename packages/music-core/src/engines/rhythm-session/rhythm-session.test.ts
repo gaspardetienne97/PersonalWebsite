@@ -92,6 +92,32 @@ describe("RhythmSession", () => {
     session.dispose();
   });
 
+  test("gap-click keeps its silent bar even at the default 4-beat config", async () => {
+    const dependencies = await setup();
+    const session = new RhythmSession(dependencies);
+
+    // beats=4 would map to 1 bar; the 2-bar gap-click pattern must not lose
+    // its "off" bar to that truncation.
+    const prompt = await session.start({
+      bpm: 120,
+      beats: 4,
+      pattern: "gap-click-1-on-1-off",
+      startTimestampMs: 1_000,
+    });
+
+    expect(prompt).toMatchObject({
+      id: "gap-click-1-on-1-off",
+      bars: 2,
+      clickSchedule: [
+        { bar: 0, audible: true },
+        { bar: 1, audible: false },
+      ],
+    });
+    if ("events" in prompt) expect(prompt.events).toHaveLength(8);
+
+    session.dispose();
+  });
+
   test("uses the pattern engine for read-and-tap quarter-note prompts", async () => {
     const dependencies = await setup();
     const session = new RhythmSession(dependencies);
