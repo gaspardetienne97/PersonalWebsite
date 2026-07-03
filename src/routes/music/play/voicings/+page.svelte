@@ -40,7 +40,7 @@
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
@@ -49,10 +49,10 @@
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
   const hasInstrumentQuery = browser
-    ? new URLSearchParams(window.location.search).has("instrument")
+    ? initialDrillSearch().has("instrument")
     : false;
   const initialConfig = normalizeVoicingDrillConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
   const variantLabels: Record<DrillVariant, string> = {
     major: "Rootless ii-V-I",

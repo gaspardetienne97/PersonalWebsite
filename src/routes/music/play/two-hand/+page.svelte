@@ -35,7 +35,7 @@
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { suggestedFingerings } from "../../_components/piano-visual";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -44,7 +44,7 @@
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
   const initialConfig = normalizeTwoHandDrillConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
   const keyOptions = TWO_HAND_DRILL_TONICS.map((value) => ({
     value,

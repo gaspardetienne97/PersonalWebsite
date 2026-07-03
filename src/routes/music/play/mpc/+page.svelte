@@ -36,7 +36,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -54,7 +54,7 @@
     label: `${tempo} BPM`,
   }));
   const initialConfig = normalizeMpcRudimentConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
 
   let leftPadMidi = $state(String(initialConfig.leftPadMidi));

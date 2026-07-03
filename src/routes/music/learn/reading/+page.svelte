@@ -20,7 +20,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import FlashcardSession from "./_components/FlashcardSession.svelte";
   import ReadingSetup, {
@@ -36,7 +36,7 @@
   const progress = new ProgressEngine(store);
   const tuningStore = store ? new CustomTuningStore(store.settings) : undefined;
   const initialConfig = normalizeReadingDrillConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
 
   let ready = $state(false);

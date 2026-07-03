@@ -53,7 +53,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import EarTrainingLanding from "./_components/EarTrainingLanding.svelte";
   import EarTrainingSessionRail from "./_components/EarTrainingSessionRail.svelte";
@@ -95,7 +95,7 @@
   registry.register(melodyDictationExercise);
   const scheduler = new ExerciseScheduler(registry, skills, analytics);
   const initialConfig = normalizeEarTrainingConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
 
   let ready = $state(false);

@@ -41,7 +41,7 @@
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
@@ -98,7 +98,7 @@
   ];
   const changesOptions = ALL_CHANGES.map((entry) => ({ value: entry.id, label: entry.label }));
   const initialConfig = normalizeChordScaleDrillConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
 
   let changesId = $state<ChordScaleDrillChangesId>(initialConfig.changesId);

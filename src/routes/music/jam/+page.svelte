@@ -37,7 +37,7 @@
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
   import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
-  import { syncRouteQuery } from "../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
 
@@ -46,7 +46,7 @@
     drumTrackIds: drumTracks.map((track) => track.id),
     defaultDrumTrackId: drumTracks[0]?.id,
   };
-  const initialSearchParams = browser ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const initialSearchParams = browser ? initialDrillSearch() : new URLSearchParams();
   const initialQueryHasTempo = initialSearchParams.has("bpm") || initialSearchParams.has("tempo");
   const initialConfig = normalizeJamPracticeConfig(initialSearchParams, jamConfigOptions);
   const initialProgression =

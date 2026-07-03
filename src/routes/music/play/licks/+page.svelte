@@ -31,7 +31,7 @@
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
@@ -41,7 +41,7 @@
   const LICK_CAPABILITIES = [Capability.Harmony, Capability.Improvisation, Capability.Pitch];
   const LICK_DIFFICULTY = 0.6;
   const initialConfig = normalizeJazzLickDrillConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);

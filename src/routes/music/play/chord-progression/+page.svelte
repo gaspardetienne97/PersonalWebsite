@@ -34,7 +34,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface ChordSourceLike {
@@ -80,7 +80,7 @@
     label: value === 0 ? "0" : value > 0 ? `+${value}` : String(value),
   }));
   const initialConfig = normalizeChordProgressionDrillConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
 
   let progressionGroup = $state<JamProgressionGroup>(initialConfig.group);

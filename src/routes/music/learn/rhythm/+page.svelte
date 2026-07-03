@@ -42,7 +42,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import TimingMeter from "../../_components/TimingMeter.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   // Injectable for tests (the gap-click click scheduling is asserted against a
@@ -54,7 +54,7 @@
   const progress = new ProgressEngine(store);
   const microphone = new AudioPitchSource();
   const initialConfig = browser
-    ? normalizeRhythmDrillConfig(new URLSearchParams(window.location.search))
+    ? normalizeRhythmDrillConfig(initialDrillSearch())
     : RHYTHM_DRILL_DEFAULT_CONFIG;
   // Mode changes the *display* only (whether the notation target is shown);
   // both modes grade the same pattern. Labels say so.

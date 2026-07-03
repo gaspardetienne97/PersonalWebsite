@@ -46,7 +46,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { syncRouteQuery } from "../../_components/route-state";
+  import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -93,7 +93,7 @@
     label: `${value} BPM`,
   }));
   const initialConfig = normalizeAerophoneDrillConfig(
-    browser ? new URLSearchParams(window.location.search) : {},
+    browser ? initialDrillSearch() : {},
   );
 
   let selected = $state(initialConfig.targetMidi);
