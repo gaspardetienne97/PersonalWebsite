@@ -273,22 +273,19 @@ function practiceTargetForSkill(
 }
 
 function expandedPracticeTargetSkillId(skillId: string): string {
+  // Weak-skill picks are REMEDIATION: practice the weak skill itself, at its
+  // base drill variant. Only legacy ids and umbrella skills that have no
+  // drill of their own are re-routed — and always to the *base* variant.
+  // (Substituting harder variants here — weak chord-perfect → chord-changes,
+  // weak single-strokes → paradiddles — inverted remediation into escalation.)
   const expansion: Record<string, string> = {
     "rhythm.subdivisions": "rhythm.subdivision.eighths",
     "rhythm.eighths": "rhythm.subdivision.eighths",
     "rhythm.sixteenths": "rhythm.subdivision.sixteenths",
-    "technique.strings": "technique.strings.spider.permutations",
-    "technique.strings.spider": "technique.strings.spider.permutations",
-    "technique.guitar.spider": "technique.strings.spider.permutations",
-    "technique.ukulele.spider": "technique.strings.spider.permutations",
-    "technique.strings.chord-perfect": "technique.strings.chord-changes",
-    "technique.guitar.chord-perfect": "technique.guitar.chord-changes",
-    "technique.ukulele.chord-perfect": "technique.ukulele.chord-changes",
-    "technique.mpc": "technique.mpc.paradiddles",
-    "technique.mpc.single-strokes": "technique.mpc.paradiddles",
-    "technique.piano": "technique.piano.independence.shell-line",
-    "technique.piano.two-hand-independence": "technique.piano.independence.shell-line",
-    "technique.aerophone": "technique.aerophone.interval-landing",
+    "technique.strings": "technique.strings.spider",
+    "technique.mpc": "technique.mpc.single-strokes",
+    "technique.piano": "technique.piano.two-hand-independence",
+    "technique.aerophone": "technique.aerophone.breath-steadiness",
   };
   return expansion[skillId] ?? skillId;
 }

@@ -88,18 +88,18 @@ describe("dashboard projections", () => {
     expect(view.practiceNext[0]?.skillId).toBe("harmony.seventh.dominant");
   });
 
-  test("projects weak parent skills to expanded drill targets", async () => {
+  test("weak skills are remediated at their own base drill, not a harder variant", async () => {
     const { analytics, progress, sessions, skills } = await setup();
     const today = unixMs(Date.UTC(2026, 0, 16, 14));
-    await analytics.ingest(
-      event("weak-spider-parent", "technique.strings.spider", today, 0, false),
-    );
+    await analytics.ingest(event("weak-spider", "technique.strings.spider", today, 0, false));
 
+    // A weak spider skill recommends the spider drill itself (base pattern) —
+    // not the permutations variant. Escalation is progression, not remediation.
     const skillTree = buildSkillTreeView({ skills, analytics });
     expect(skillTree.practiceNext[0]).toMatchObject({
-      skillId: "technique.strings.spider.permutations",
-      skillName: "Spider Permutations",
-      href: "/music/play/spider?pattern=inside-out-1324",
+      skillId: "technique.strings.spider",
+      skillName: "Chromatic Spider Drill",
+      href: "/music/play/spider",
       accuracy: 0,
       attempts: 1,
     });
@@ -112,12 +112,26 @@ describe("dashboard projections", () => {
       now: today,
     });
     expect(dashboard.dailyChallenge).toMatchObject({
-      skillId: "technique.strings.spider.permutations",
-      skillName: "Spider Permutations",
-      href: "/music/play/spider?pattern=inside-out-1324",
+      skillId: "technique.strings.spider",
+      skillName: "Chromatic Spider Drill",
+      href: "/music/play/spider",
       reason: "weak-spot",
     });
-    expect(dashboard.continuePractice.href).toBe("/music/play/spider?pattern=inside-out-1324");
+    expect(dashboard.continuePractice.href).toBe("/music/play/spider");
+  });
+
+  test("umbrella skills without a drill of their own route to a base drill", async () => {
+    const { analytics, skills } = await setup();
+    const today = unixMs(Date.UTC(2026, 0, 16, 14));
+    await analytics.ingest(event("weak-mpc-parent", "technique.mpc", today, 0, false));
+
+    const skillTree = buildSkillTreeView({ skills, analytics });
+    // technique.mpc has no drill itself; it lands on single strokes (the base
+    // MPC drill), never on the paradiddle variant.
+    expect(skillTree.practiceNext[0]).toMatchObject({
+      skillId: "technique.mpc.single-strokes",
+      href: "/music/play/mpc",
+    });
   });
 });
 
