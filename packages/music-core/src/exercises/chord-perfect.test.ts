@@ -190,6 +190,7 @@ describe("createChordPerfectExercise", () => {
       shapeId: "ukulele.g-major",
       tuningId: "ukulele.high-g",
       toShapeId: "ukulele.c-major",
+      repetitions: 4,
     });
 
     expect(
@@ -200,6 +201,7 @@ describe("createChordPerfectExercise", () => {
       shapeId: "guitar.d-major",
       tuningId: "guitar.standard",
       toShapeId: "guitar.g-major",
+      repetitions: 4,
     });
 
     expect(
@@ -214,12 +216,13 @@ describe("createChordPerfectExercise", () => {
       shapeId: "ukulele.c-major",
       tuningId: "ukulele.high-g",
       toShapeId: "ukulele.f-major",
+      repetitions: 4,
     });
 
     expect(
       normalizeChordPerfectDrillConfig(
         new URLSearchParams(
-          "mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major",
+          "mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major&reps=2",
         ),
       ),
     ).toEqual({
@@ -228,6 +231,7 @@ describe("createChordPerfectExercise", () => {
       shapeId: "guitar.c-major",
       tuningId: "guitar.standard",
       toShapeId: "guitar.g-major",
+      repetitions: 2,
     });
   });
 });

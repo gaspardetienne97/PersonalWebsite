@@ -28,6 +28,7 @@
   } from "@repo/music-core/engines/technique-session";
   import { curatedTunings, type StringInstrumentId } from "@repo/music-core/engines/tunings";
   import {
+    CHORD_CHANGE_REPETITION_OPTIONS,
     chordShapeMidiNotes,
     chordShapesFor,
     createOpenChordIdentificationExercise,
@@ -119,6 +120,7 @@
   let mode = $state<ChordPerfectMode>(initialConfig.mode);
   let shapeId = $state(initialConfig.shapeId);
   let toShapeId = $state(initialConfig.toShapeId);
+  let repetitions = $state(initialConfig.repetitions);
   let ready = $state(false);
   let pending = $state(false);
   let captured = false;
@@ -304,6 +306,10 @@
     toShapeId = config.toShapeId;
   }
 
+  function selectRepetitions(value: string): void {
+    repetitions = normalizeChordPerfectDrillConfig({ reps: value }).repetitions;
+  }
+
   async function enableMidi(): Promise<void> {
     await runtime.midi.enable();
   }
@@ -315,8 +321,8 @@
     status = "";
     try {
       if (mode === "changes") {
-        await session.startChordChange({ tuning, fromShape: shape, toShape, repetitions: 1 });
-        status = `Switch from ${shape.name} to ${toShape.name} cleanly.`;
+        await session.startChordChange({ tuning, fromShape: shape, toShape, repetitions });
+        status = `Alternate ${shape.name} → ${toShape.name} cleanly, ${repetitions}×.`;
       } else {
         await session.startChordPerfect({ tuning, shape });
         status = `Sound each string of ${shape.name}, low to high.`;
@@ -366,6 +372,7 @@
       instrument,
       shape: shapeId,
       to: toShapeId,
+      reps: repetitions,
     });
     const url = new URL(window.location.href);
     const params = url.searchParams;
@@ -375,8 +382,10 @@
     params.set("shape", config.shapeId);
     if (config.mode === "changes") {
       params.set("to", config.toShapeId);
+      params.set("reps", String(config.repetitions));
     } else {
       params.delete("to");
+      params.delete("reps");
     }
     replaceRouteState(`${url.pathname}?${params.toString()}${url.hash}`, $page.state);
   }
@@ -638,6 +647,19 @@
                 {/each}
               </select>
             </div>
+            <div class="grid gap-2">
+              <Label id="change-repetitions-label">Repetitions</Label>
+              <SegmentedControl
+                size="sm"
+                ariaLabel="Repetitions"
+                options={CHORD_CHANGE_REPETITION_OPTIONS.map((count) => ({
+                  value: String(count),
+                  label: `${count}×`,
+                }))}
+                value={String(repetitions)}
+                onChange={selectRepetitions}
+              />
+            </div>
           {/if}
         </fieldset>
 
@@ -768,7 +790,11 @@
             <SessionFeedback
               kind={summary.correct === summary.total ? "correct" : "wrong"}
               message="Chord changes complete"
-              detail={`${changeAnswer.cleanChanges}/${changeAnswer.completedChanges || changePrompt?.targets.length || 0} targets clean`}
+              detail={`${changeAnswer.cleanChanges}/${changeAnswer.completedChanges || changePrompt?.targets.length || 0} targets clean${
+                changeAnswer.firstChangeLatencyMs === undefined
+                  ? ""
+                  : ` · first change ${(changeAnswer.firstChangeLatencyMs / 1000).toFixed(1)}s`
+              }`}
               xp={summary.xp}
             />
             <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat changes" />

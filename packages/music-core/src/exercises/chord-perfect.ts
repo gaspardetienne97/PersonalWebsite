@@ -52,6 +52,8 @@ export interface ChordPerfectDrillConfig {
   tuningId: string;
   shapeId: string;
   toShapeId: string;
+  /** Change-trainer round trips through from→to (1–8). */
+  repetitions: number;
 }
 
 export interface ChordPerfectDrillConfigSource {
@@ -66,6 +68,8 @@ export interface ChordPerfectDrillConfigSource {
   to?: unknown;
   toShape?: unknown;
   toShapeId?: unknown;
+  reps?: unknown;
+  repetitions?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -163,7 +167,10 @@ export const CHORD_PERFECT_DRILL_DEFAULT_CONFIG: ChordPerfectDrillConfig = {
   tuningId: "guitar.standard",
   shapeId: "guitar.c-major",
   toShapeId: "guitar.g-major",
+  repetitions: 4,
 };
+
+export const CHORD_CHANGE_REPETITION_OPTIONS = [1, 2, 4, 8] as const;
 
 export function normalizeChordPerfectDrillConfig(
   source: ChordPerfectDrillConfigSource,
@@ -214,7 +221,17 @@ export function normalizeChordPerfectDrillConfig(
     tuningId: selectedShape.tuningId,
     shapeId: selectedShape.id,
     toShapeId: transitionShape.id,
+    repetitions: normalizeChangeRepetitions(
+      readChordPerfectConfigValue(source, "reps") ??
+        readChordPerfectConfigValue(source, "repetitions"),
+    ),
   };
+}
+
+function normalizeChangeRepetitions(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return CHORD_PERFECT_DRILL_DEFAULT_CONFIG.repetitions;
+  return Math.max(1, Math.min(8, Math.round(parsed)));
 }
 
 export function chordShapeMidiNotes(tuning: TuningProfile, shape: ChordShape): number[] {

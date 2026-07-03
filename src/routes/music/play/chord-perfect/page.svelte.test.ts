@@ -196,7 +196,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
   test("restores and completes the chord-change trainer workflow", async () => {
     setTestUrl(
-      "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major",
+      "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major&reps=1",
     );
     render(Page);
 
@@ -206,6 +206,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     });
     expect(select("Chord")?.value).toBe("guitar.c-major");
     expect(select("To chord")?.value).toBe("guitar.g-major");
+    // The shareable reps param restores into the repetitions control.
+    expect(button("1×")).toHaveAttribute("aria-pressed", "true");
     expect(document.body.textContent).toContain("C major to G major");
 
     button("Start changes")?.click();
