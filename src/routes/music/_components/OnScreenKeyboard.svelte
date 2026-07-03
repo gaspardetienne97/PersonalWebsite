@@ -3,7 +3,7 @@
 
   import { monotonicMs, type InstrumentId, type NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
-  import { noteToMidi } from "@repo/music-core/engines/theory";
+  import { midiToNote, noteToMidi } from "@repo/music-core/engines/theory";
   import type { Instrument as PianoInstrument, INoteValue } from "piano-chart";
 
   import { pianoFingerMarkers, pianoOctaveRange } from "./piano-visual";
@@ -66,6 +66,77 @@
     emit(noteToMidi(`${note.note}${note.accidental ?? ""}${note.octave ?? 4}`));
   }
 
+  // --- QWERTY-as-piano: answer without reaching for the mouse or a cable. ---
+  // Classic DAW mapping: the home row walks the white keys from C, the row
+  // above it plays the sharps.
+  const QWERTY_SEMITONES: Record<string, number> = {
+    a: 0,
+    w: 1,
+    s: 2,
+    e: 3,
+    d: 4,
+    f: 5,
+    t: 6,
+    g: 7,
+    y: 8,
+    h: 9,
+    u: 10,
+    j: 11,
+    k: 12,
+    o: 13,
+    l: 14,
+    p: 15,
+    ";": 16,
+  };
+
+  // Anchor the mapping's C at the lowest highlighted octave so `A` plays the
+  // drill's own register (falls back to C4).
+  const qwertyBaseMidi = $derived.by(() => {
+    const octaves = accessibleNotes
+      .map((note) => Number.parseInt(note.match(/-?\d+$/)?.[0] ?? "", 10))
+      .filter((octave) => Number.isFinite(octave));
+    const baseOctave = octaves.length > 0 ? Math.min(...octaves) : 4;
+    return 12 * (baseOctave + 1);
+  });
+
+  function isTypingTarget(target: EventTarget | null): boolean {
+    return (
+      target instanceof HTMLElement &&
+      (target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable)
+    );
+  }
+
+  function onWindowKeydown(event: KeyboardEvent): void {
+    if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (isTypingTarget(event.target)) return;
+    const semitones = QWERTY_SEMITONES[event.key.toLowerCase()];
+    if (semitones === undefined) return;
+    event.preventDefault();
+    const midiNote = qwertyBaseMidi + semitones;
+    emit(midiNote);
+    flashKey(midiNote);
+  }
+
+  /** Mirror the mouse-press visual on the SVG keyboard, best effort. */
+  function flashKey(midiNote: number): void {
+    const match = /^([A-G])(#|b)?(-?\d+)$/.exec(midiToNote(midiNote));
+    if (!match || !piano) return;
+    const note = {
+      note: match[1],
+      ...(match[2] ? { accidental: match[2] } : {}),
+      octave: Number(match[3]),
+    } as INoteValue;
+    try {
+      piano.keyDown(note);
+      setTimeout(() => piano?.keyUp(note), 150);
+    } catch {
+      // The note may sit outside the rendered range — the emit still counted.
+    }
+  }
+
   onMount(() => {
     let destroyed = false;
     let instance: PianoInstrument | undefined;
@@ -105,6 +176,8 @@
   });
 </script>
 
+<svelte:window onkeydown={onWindowKeydown} />
+
 <div role="group" aria-label="On-screen keyboard" class="grid gap-2">
   <div class="relative">
     <div
@@ -130,4 +203,11 @@
       <button type="button" onclick={() => emit(noteToMidi(note))}>{note}</button>
     {/each}
   </div>
+  <p class="hidden text-xs text-muted-foreground sm:block">
+    Type to play: <kbd class="rounded border bg-muted px-1 font-mono">A</kbd>–<kbd
+      class="rounded border bg-muted px-1 font-mono">L</kbd
+    > white keys · <kbd class="rounded border bg-muted px-1 font-mono">W</kbd>–<kbd
+      class="rounded border bg-muted px-1 font-mono">P</kbd
+    > sharps
+  </p>
 </div>
