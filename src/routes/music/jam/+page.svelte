@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import Circle from "lucide-svelte/icons/circle";
   import Play from "lucide-svelte/icons/play";
   import SkipForward from "lucide-svelte/icons/skip-forward";
@@ -13,10 +14,13 @@
   import { BrowserBackingPlayer } from "@repo/music-core/engines/backing-track/browser-player";
   import {
     JAM_PROGRESSIONS,
+    JAM_PROGRESSION_GROUPS,
     JamSession,
     normalizeJamPracticeConfig,
+    transposeProgression,
     type JamBackingMode,
     type JamProgression,
+    type JamProgressionGroup,
     type TargetTone,
   } from "@repo/music-core/engines/jam";
   import { JAZZ_BACKING_TRACKS } from "@repo/music-core/engines/jazz";
@@ -34,6 +38,7 @@
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
   import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
+  import { replaceRouteState } from "../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
 
@@ -47,7 +52,16 @@
   const initialConfig = normalizeJamPracticeConfig(initialSearchParams, jamConfigOptions);
   const initialProgression =
     JAM_PROGRESSIONS.find((entry) => entry.id === initialConfig.progressionId) ?? JAM_PROGRESSIONS[0]!;
-  const initialSession = new JamSession(initialProgression);
+  const initialDisplayedProgression = transposeProgression(initialProgression, initialConfig.transpose);
+  const initialSession = new JamSession(initialDisplayedProgression);
+  const groupOptions = JAM_PROGRESSION_GROUPS.map((group) => ({
+    value: group.id,
+    label: group.label,
+  }));
+  const transposeOptions = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((value) => ({
+    value: String(value),
+    label: value === 0 ? "0" : value > 0 ? `+${value}` : String(value),
+  }));
 
   const {
     runtime = useMusicRuntime(),
@@ -57,7 +71,10 @@
     navigateToCreate?: (href: string) => void | Promise<void>;
   } = $props();
 
-  let progression = $state<JamProgression>(initialProgression);
+  let baseProgression = $state<JamProgression>(initialProgression);
+  let progressionGroup = $state<JamProgressionGroup>(initialConfig.group);
+  let progressionId = $state(initialConfig.progressionId);
+  let transposeSemitones = $state(String(initialConfig.transpose));
   let session = $state(initialSession);
   let tones = $state<TargetTone[]>(initialSession.targetTones());
   let currentIndex = $state(0);
@@ -74,13 +91,22 @@
   let backingBpm = $state(initialConfig.bpm);
   let transportInitialized = false;
   const drumTrack = $derived(drumTracks.find((t) => t.id === drumTrackId) ?? drumTracks[0]!);
+  const progression = $derived(transposeProgression(baseProgression, Number(transposeSemitones)));
+  const progressionOptions = $derived(
+    JAM_PROGRESSIONS.filter((entry) => entry.group === progressionGroup).map((entry) => ({
+      value: entry.id,
+      label: entry.name,
+    })),
+  );
   const normalizedConfig = $derived(
     normalizeJamPracticeConfig(
       {
-        progression: progression.id,
+        group: progressionGroup,
+        progression: progressionId,
         backing: backingMode,
         drums: drumTrackId,
         bpm: backingBpm,
+        transpose: transposeSemitones,
       },
       jamConfigOptions,
     ),
@@ -144,6 +170,7 @@
       progressionId: config.progressionId,
       bpm: config.bpm,
       loop: true,
+      transpose: config.transpose,
     });
     const durationSec = backingEngine.state.durationMs / 1_000;
     runtime.setPlaybackSource({
@@ -155,12 +182,54 @@
   });
 
   function selectStyle(id: string): void {
-    const config = normalizeJamPracticeConfig({ progression: id, backing: backingMode, drums: drumTrackId, bpm: backingBpm }, jamConfigOptions);
-    progression = JAM_PROGRESSIONS.find((entry) => entry.id === config.progressionId) ?? JAM_PROGRESSIONS[0]!;
-    session = new JamSession(progression);
+    const config = normalizeJamPracticeConfig(
+      { progression: id, backing: backingMode, drums: drumTrackId },
+      jamConfigOptions,
+    );
+    applyProgressionConfig(config, { updateTempo: true });
+  }
+
+  function selectGroup(value: string): void {
+    const config = normalizeJamPracticeConfig(
+      { group: value, backing: backingMode, drums: drumTrackId },
+      jamConfigOptions,
+    );
+    applyProgressionConfig(config, { updateTempo: true });
+  }
+
+  function selectTranspose(value: string): void {
+    const config = normalizeJamPracticeConfig(
+      {
+        group: progressionGroup,
+        progression: progressionId,
+        backing: backingMode,
+        drums: drumTrackId,
+        bpm: backingBpm,
+        transpose: value,
+      },
+      jamConfigOptions,
+    );
+    applyProgressionConfig(config, { updateTempo: false });
+  }
+
+  function applyProgressionConfig(
+    config: ReturnType<typeof normalizeJamPracticeConfig>,
+    options: { updateTempo: boolean },
+  ): void {
+    progressionGroup = config.group;
+    progressionId = config.progressionId;
+    transposeSemitones = String(config.transpose);
+    baseProgression =
+      JAM_PROGRESSIONS.find((entry) => entry.id === config.progressionId) ?? JAM_PROGRESSIONS[0]!;
+    const displayedProgression = transposeProgression(baseProgression, config.transpose);
+    session = new JamSession(displayedProgression);
     currentIndex = 0;
     tones = session.targetTones();
     recordedCount = 0;
+    if (options.updateTempo) {
+      backingBpm = config.bpm;
+      runtime.setTransportBpm(config.bpm);
+    }
   }
 
   function selectBackingMode(value: string): void {
@@ -242,11 +311,13 @@
     const config = normalizedConfig;
     const url = new URL(window.location.href);
     const params = url.searchParams;
+    params.set("group", config.group);
     params.set("progression", config.progressionId);
     params.set("backing", config.backingMode);
     params.set("drums", config.drumTrackId);
     params.set("bpm", String(config.bpm));
-    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
+    params.set("transpose", String(config.transpose));
+    replaceRouteState(`${url.pathname}?${params.toString()}${url.hash}`, $page.state);
   }
 
   function defaultNavigateToCreate(href: string): void {
@@ -347,9 +418,24 @@
         <Card.Content class="grid gap-3">
           <SegmentedControl
             class="w-full"
-            options={JAM_PROGRESSIONS.map((entry) => ({ value: entry.id, label: entry.name }))}
-            value={progression.id}
+            ariaLabel="Group"
+            options={groupOptions}
+            value={progressionGroup}
+            onChange={selectGroup}
+          />
+          <SegmentedControl
+            class="w-full"
+            ariaLabel="Progression"
+            options={progressionOptions}
+            value={progressionId}
             onChange={selectStyle}
+          />
+          <SegmentedControl
+            class="w-full"
+            ariaLabel="Transpose"
+            options={transposeOptions}
+            value={transposeSemitones}
+            onChange={selectTranspose}
           />
 
           <div class="grid gap-2">

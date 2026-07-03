@@ -10,6 +10,7 @@ import {
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills";
+import { cadenceRecognitionExercise } from "@repo/music-core/exercises/cadence-recognition";
 import { chordQualityRecognitionExercise } from "@repo/music-core/exercises/chord-quality-recognition";
 import { intervalRecognitionExercise } from "@repo/music-core/exercises/interval-recognition";
 import {
@@ -31,6 +32,7 @@ async function setup() {
   const registry = new ExerciseRegistry();
   registry.register(intervalRecognitionExercise);
   registry.register(chordQualityRecognitionExercise);
+  registry.register(cadenceRecognitionExercise);
   registry.register(scaleDegreeRecognitionExercise);
   registry.register(melodyDictationExercise);
   const skills = new SkillGraphStore();
@@ -62,6 +64,23 @@ describe("normalizeEarTrainingConfig", () => {
       answerMode: "play-back",
       feedbackMode: "test",
       scaleDegreeSet: "chromatic-color",
+      scaleDegreeLabelMode: "degree",
+    });
+
+    expect(normalizeEarTrainingConfig(new URLSearchParams("drill=cadence"))).toEqual({
+      drill: "cadence",
+      answerMode: "choice",
+      feedbackMode: "practice",
+      scaleDegreeSet: "anchor",
+      scaleDegreeLabelMode: "degree",
+    });
+
+    expect(normalizeEarTrainingConfig(new URLSearchParams("labels=solfege"))).toEqual({
+      drill: "mixed",
+      answerMode: "choice",
+      feedbackMode: "practice",
+      scaleDegreeSet: "anchor",
+      scaleDegreeLabelMode: "solfege",
     });
 
     expect(
@@ -76,6 +95,7 @@ describe("normalizeEarTrainingConfig", () => {
       answerMode: "choice",
       feedbackMode: "practice",
       scaleDegreeSet: "anchor",
+      scaleDegreeLabelMode: "degree",
     });
   });
 });
@@ -98,7 +118,7 @@ describe("EarTrainingSession", () => {
     expect(focused.queue.every((item) => item.drill === "interval")).toBe(true);
     expect(new Set(focused.queue.map((item) => item.targetSkillId)).size).toBeGreaterThan(1);
     expect(new Set(mixed.queue.map((item) => item.drill))).toEqual(
-      new Set(["interval", "chord-quality", "scale-degree"]),
+      new Set(["interval", "chord-quality", "scale-degree", "cadence"]),
     );
 
     focused.dispose();
@@ -168,6 +188,27 @@ describe("EarTrainingSession", () => {
     expect(new Set(session.queue.map(({ targetSkillId }) => targetSkillId))).toEqual(
       new Set(["pitch.scale-degree.1", "pitch.scale-degree.5"]),
     );
+    session.dispose();
+  });
+
+  test("passes solfege label mode into scale-degree prompts", async () => {
+    const dependencies = await setup();
+    const session = new EarTrainingSession(dependencies, {
+      drill: "scale-degree",
+      answerMode: "choice",
+      feedbackMode: "practice",
+      length: 1,
+      scaleDegreeSet: "anchor",
+      scaleDegreeLabelMode: "solfege",
+    });
+
+    const prompt = await session.start();
+
+    expect((prompt as ScaleDegreeRecognitionPrompt).labelMode).toBe("solfege");
+    expect(prompt.choices).toEqual([
+      { token: "1", label: "do" },
+      { token: "5", label: "sol" },
+    ]);
     session.dispose();
   });
 
@@ -262,7 +303,7 @@ describe("EarTrainingSession", () => {
     });
     expect(session.state.summary?.xp).toBeGreaterThan(0);
     expect(Object.keys(session.state.summary?.byDrill ?? {})).toEqual(
-      expect.arrayContaining(["interval", "chord-quality", "scale-degree"]),
+      expect.arrayContaining(["interval", "chord-quality", "scale-degree", "cadence"]),
     );
     expect(session.state.summary?.recentResults).toHaveLength(10);
     expect(session.state.summary?.confusions).toHaveLength(1);

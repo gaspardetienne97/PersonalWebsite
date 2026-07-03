@@ -6,10 +6,11 @@ import { type DailyRoutineStep } from "@repo/music-core/engines/daily-routine";
 
 import { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 
 afterEach(() => {
   vi.restoreAllMocks();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
   document.body.replaceChildren();
 });
 
@@ -76,9 +77,7 @@ describe("/music/play/voicings/+page.svelte", () => {
   });
 
   test("restores setup from shareable query parameters", async () => {
-    window.history.replaceState(
-      {},
-      "",
+    setTestUrl(
       "/music/play/voicings?instrument=guitar&variant=minor&start=B&strict=held&advance=manual",
     );
 
@@ -92,7 +91,7 @@ describe("/music/play/voicings/+page.svelte", () => {
   });
 
   test("keeps setup changes in the shareable URL", async () => {
-    window.history.replaceState({}, "", "/music/play/voicings");
+    setTestUrl("/music/play/voicings");
     render(Page);
 
     button("Ukulele")?.click();

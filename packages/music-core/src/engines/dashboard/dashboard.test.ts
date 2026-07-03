@@ -87,6 +87,38 @@ describe("dashboard projections", () => {
     });
     expect(view.practiceNext[0]?.skillId).toBe("harmony.seventh.dominant");
   });
+
+  test("projects weak parent skills to expanded drill targets", async () => {
+    const { analytics, progress, sessions, skills } = await setup();
+    const today = unixMs(Date.UTC(2026, 0, 16, 14));
+    await analytics.ingest(
+      event("weak-spider-parent", "technique.strings.spider", today, 0, false),
+    );
+
+    const skillTree = buildSkillTreeView({ skills, analytics });
+    expect(skillTree.practiceNext[0]).toMatchObject({
+      skillId: "technique.strings.spider.permutations",
+      skillName: "Spider Permutations",
+      href: "/music/play/spider?pattern=inside-out-1324",
+      accuracy: 0,
+      attempts: 1,
+    });
+
+    const dashboard = buildDashboardView({
+      progressState: progress.state,
+      sessions: sessions.all(),
+      skills,
+      analytics,
+      now: today,
+    });
+    expect(dashboard.dailyChallenge).toMatchObject({
+      skillId: "technique.strings.spider.permutations",
+      skillName: "Spider Permutations",
+      href: "/music/play/spider?pattern=inside-out-1324",
+      reason: "weak-spot",
+    });
+    expect(dashboard.continuePractice.href).toBe("/music/play/spider?pattern=inside-out-1324");
+  });
 });
 
 async function setup() {

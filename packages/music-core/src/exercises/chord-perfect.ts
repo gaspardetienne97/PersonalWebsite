@@ -32,13 +32,17 @@ export interface ChordShape {
   name: string;
   instrument: StringInstrumentId;
   tuningId: string;
+  difficulty: number;
   /** Fret per string in string-number order (index 0 = string 1); null = muted. */
   frets: (number | null)[];
   /** Suggested fretting finger per string; null for open or muted strings. */
   fingers: (number | null)[];
+  mutedStrings: number[];
+  openStrings: number[];
+  commonTransitions: string[];
 }
 
-export const CHORD_PERFECT_MODES = ["build", "pick", "strum"] as const;
+export const CHORD_PERFECT_MODES = ["build", "pick", "strum", "changes"] as const;
 
 export type ChordPerfectMode = (typeof CHORD_PERFECT_MODES)[number];
 
@@ -47,6 +51,7 @@ export interface ChordPerfectDrillConfig {
   instrument: StringInstrumentId;
   tuningId: string;
   shapeId: string;
+  toShapeId: string;
 }
 
 export interface ChordPerfectDrillConfigSource {
@@ -58,6 +63,9 @@ export interface ChordPerfectDrillConfigSource {
   shape?: unknown;
   shapeId?: unknown;
   chord?: unknown;
+  to?: unknown;
+  toShape?: unknown;
+  toShapeId?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -74,6 +82,7 @@ export const CHORD_SHAPES: ChordShape[] = [
     "guitar.standard",
     [0, 1, 0, 2, 3, null],
     [null, 1, null, 2, 3, null],
+    { difficulty: 2, commonTransitions: ["guitar.g-major", "guitar.a-minor", "guitar.d-major"] },
   ),
   shape(
     "guitar.g-major",
@@ -82,6 +91,7 @@ export const CHORD_SHAPES: ChordShape[] = [
     "guitar.standard",
     [3, 0, 0, 0, 2, 3],
     [3, null, null, null, 1, 2],
+    { difficulty: 2, commonTransitions: ["guitar.c-major", "guitar.d-major", "guitar.e-minor"] },
   ),
   shape(
     "guitar.d-major",
@@ -90,6 +100,7 @@ export const CHORD_SHAPES: ChordShape[] = [
     "guitar.standard",
     [2, 3, 2, 0, null, null],
     [1, 3, 2, null, null, null],
+    { difficulty: 2, commonTransitions: ["guitar.g-major", "guitar.a-minor"] },
   ),
   shape(
     "guitar.e-minor",
@@ -98,6 +109,7 @@ export const CHORD_SHAPES: ChordShape[] = [
     "guitar.standard",
     [0, 0, 0, 2, 2, 0],
     [null, null, null, 3, 2, null],
+    { difficulty: 1, commonTransitions: ["guitar.g-major", "guitar.a-minor"] },
   ),
   shape(
     "guitar.a-minor",
@@ -106,6 +118,7 @@ export const CHORD_SHAPES: ChordShape[] = [
     "guitar.standard",
     [0, 1, 2, 2, 0, null],
     [null, 1, 3, 2, null, null],
+    { difficulty: 2, commonTransitions: ["guitar.c-major", "guitar.e-minor"] },
   ),
   shape(
     "ukulele.c-major",
@@ -114,6 +127,7 @@ export const CHORD_SHAPES: ChordShape[] = [
     "ukulele.high-g",
     [3, 0, 0, 0],
     [3, null, null, null],
+    { difficulty: 1, commonTransitions: ["ukulele.f-major", "ukulele.g-major", "ukulele.a-minor"] },
   ),
   shape(
     "ukulele.f-major",
@@ -122,8 +136,12 @@ export const CHORD_SHAPES: ChordShape[] = [
     "ukulele.high-g",
     [0, 1, 0, 2],
     [null, 1, null, 2],
+    { difficulty: 2, commonTransitions: ["ukulele.c-major", "ukulele.g-major"] },
   ),
-  shape("ukulele.g-major", "G major", "ukulele", "ukulele.high-g", [2, 3, 2, 0], [1, 3, 2, null]),
+  shape("ukulele.g-major", "G major", "ukulele", "ukulele.high-g", [2, 3, 2, 0], [1, 3, 2, null], {
+    difficulty: 2,
+    commonTransitions: ["ukulele.c-major", "ukulele.f-major"],
+  }),
   shape(
     "ukulele.a-minor",
     "A minor",
@@ -131,6 +149,7 @@ export const CHORD_SHAPES: ChordShape[] = [
     "ukulele.high-g",
     [0, 0, 0, 2],
     [null, null, null, 2],
+    { difficulty: 1, commonTransitions: ["ukulele.c-major", "ukulele.f-major"] },
   ),
 ];
 
@@ -143,6 +162,7 @@ export const CHORD_PERFECT_DRILL_DEFAULT_CONFIG: ChordPerfectDrillConfig = {
   instrument: "guitar",
   tuningId: "guitar.standard",
   shapeId: "guitar.c-major",
+  toShapeId: "guitar.g-major",
 };
 
 export function normalizeChordPerfectDrillConfig(
@@ -168,6 +188,22 @@ export function normalizeChordPerfectDrillConfig(
     (requestedTuning === undefined || requestedShape.tuningId === requestedTuning)
       ? requestedShape
       : defaultShape;
+  const requestedToShapeId =
+    readChordPerfectConfigValue(source, "to") ??
+    readChordPerfectConfigValue(source, "toShape") ??
+    readChordPerfectConfigValue(source, "toShapeId");
+  const transitionShape =
+    CHORD_SHAPES.find(
+      (entry) =>
+        entry.id === requestedToShapeId &&
+        entry.instrument === instrument &&
+        entry.id !== selectedShape.id,
+    ) ??
+    selectedShape.commonTransitions
+      .map((id) => CHORD_SHAPES.find((entry) => entry.id === id && entry.instrument === instrument))
+      .find((entry): entry is ChordShape => entry !== undefined && entry.id !== selectedShape.id) ??
+    chordShapesFor(instrument).find((entry) => entry.id !== selectedShape.id) ??
+    selectedShape;
 
   return {
     mode: normalizeChordPerfectMode(
@@ -177,6 +213,7 @@ export function normalizeChordPerfectDrillConfig(
     instrument,
     tuningId: selectedShape.tuningId,
     shapeId: selectedShape.id,
+    toShapeId: transitionShape.id,
   };
 }
 
@@ -414,8 +451,30 @@ function shape(
   tuningId: string,
   frets: (number | null)[],
   fingers: (number | null)[],
+  metadata: { difficulty?: number; commonTransitions?: string[] } = {},
 ): ChordShape {
-  return { id, name, instrument, tuningId, frets, fingers };
+  return {
+    id,
+    name,
+    instrument,
+    tuningId,
+    difficulty: metadata.difficulty ?? defaultShapeDifficulty(frets),
+    frets,
+    fingers,
+    mutedStrings: frets
+      .map((fret, index) => (fret === null ? index + 1 : undefined))
+      .filter((stringNumber): stringNumber is number => stringNumber !== undefined),
+    openStrings: frets
+      .map((fret, index) => (fret === 0 ? index + 1 : undefined))
+      .filter((stringNumber): stringNumber is number => stringNumber !== undefined),
+    commonTransitions: metadata.commonTransitions ?? [],
+  };
+}
+
+function defaultShapeDifficulty(frets: (number | null)[]): number {
+  const frettedStrings = frets.filter((fret) => typeof fret === "number" && fret > 0).length;
+  const mutedStrings = frets.filter((fret) => fret === null).length;
+  return Math.max(1, Math.min(5, frettedStrings + mutedStrings));
 }
 
 function normalizeChordPerfectMode(value: unknown): ChordPerfectMode {

@@ -73,7 +73,7 @@
   }
 
   function routineHref(step: DailyRoutineStep): string {
-    return `${step.href}?routine=1`;
+    return `${step.href}${step.href.includes("?") ? "&" : "?"}routine=1`;
   }
 
   function formatDuration(durationMs: number): string {

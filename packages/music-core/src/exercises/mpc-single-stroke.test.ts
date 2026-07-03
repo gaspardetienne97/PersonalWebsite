@@ -25,6 +25,7 @@ describe("createMpcSingleStrokeExercise", () => {
       "single-strokes",
       "double-strokes",
       "paradiddle",
+      "moving-accent",
     ]);
     expect(buildMpcRudimentSequence("single-strokes", 36, 38, 8)).toEqual([
       36, 38, 36, 38, 36, 38, 36, 38,
@@ -34,6 +35,9 @@ describe("createMpcSingleStrokeExercise", () => {
     ]);
     expect(buildMpcRudimentSequence("paradiddle", 36, 38, 8)).toEqual([
       36, 38, 36, 36, 38, 36, 38, 38,
+    ]);
+    expect(buildMpcRudimentSequence("moving-accent", 36, 38, 8)).toEqual([
+      36, 38, 36, 38, 36, 38, 36, 38,
     ]);
   });
 
@@ -91,6 +95,7 @@ describe("createMpcSingleStrokeExercise", () => {
   test("grades double-stroke and paradiddle target sequences", () => {
     const doubleStroke = createMpcSingleStrokeExercise({ patternId: "double-strokes" });
     const doublePrompt = doubleStroke.generate(context);
+    expect(doubleStroke.skillIds).not.toContain("technique.mpc.paradiddles");
     expect(doublePrompt.payload).toMatchObject({
       patternId: "double-strokes",
       patternLabel: "Double strokes",
@@ -99,11 +104,87 @@ describe("createMpcSingleStrokeExercise", () => {
 
     const paradiddle = createMpcSingleStrokeExercise({ patternId: "paradiddle" });
     const paradiddlePrompt = paradiddle.generate(context);
+    expect(paradiddle.skillIds).toEqual([
+      "technique.mpc",
+      "technique.mpc.single-strokes",
+      "technique.mpc.paradiddles",
+    ]);
     expect(paradiddlePrompt.payload).toMatchObject({
       patternId: "paradiddle",
       patternLabel: "Paradiddle",
       targetSequence: [36, 38, 36, 36, 38, 36, 38, 38],
     });
+  });
+
+  test("builds moving-accent target events with velocity bands", () => {
+    const exercise = createMpcSingleStrokeExercise({ patternId: "moving-accent", hitCount: 16 });
+    const prompt = exercise.generate(context);
+
+    expect(prompt.payload).toMatchObject({
+      patternId: "moving-accent",
+      patternLabel: "Moving accent",
+      targetSequence: [36, 38, 36, 38, 36, 38, 36, 38, 36, 38, 36, 38, 36, 38, 36, 38],
+    });
+    expect(prompt.payload.targetEvents.map((event) => event.accent)).toEqual([
+      "accent",
+      "normal",
+      "normal",
+      "normal",
+      "normal",
+      "accent",
+      "normal",
+      "normal",
+      "normal",
+      "normal",
+      "accent",
+      "normal",
+      "normal",
+      "normal",
+      "normal",
+      "accent",
+    ]);
+    expect(prompt.payload.targetEvents[0]).toMatchObject({
+      index: 0,
+      beat: 0,
+      hand: "left",
+      padMidi: 36,
+      velocityBand: { min: 0.75, max: 1, label: "accent" },
+    });
+    expect(prompt.payload.targetEvents[1]).toMatchObject({
+      index: 1,
+      beat: 0.5,
+      hand: "right",
+      padMidi: 38,
+      velocityBand: { min: 0.25, max: 0.7, label: "tap" },
+    });
+  });
+
+  test("scores moving accents against target velocity bands", () => {
+    const exercise = createMpcSingleStrokeExercise({ patternId: "moving-accent", hitCount: 8 });
+    const prompt = exercise.generate(context);
+    const clean = exercise.createRun(prompt, context);
+
+    prompt.payload.targetEvents.forEach((event, index) => {
+      clean.accept(
+        note(
+          event.padMidi,
+          index * prompt.payload.targetSpacingMs,
+          event.accent === "accent" ? 0.9 : 0.45,
+        ),
+      );
+    });
+    const cleanResult = clean.finish({ reason: "completed" });
+    expect(cleanResult.correct).toBe(true);
+    expect(cleanResult.answer?.velocityConsistency).toBe(1);
+
+    const flat = exercise.createRun(prompt, context);
+    prompt.payload.targetEvents.forEach((event, index) => {
+      flat.accept(note(event.padMidi, index * prompt.payload.targetSpacingMs, 0.45));
+    });
+    const flatResult = flat.finish({ reason: "completed" });
+    expect(flatResult.correct).toBe(false);
+    expect(flatResult.answer?.velocityConsistency).toBeLessThan(1);
+    expect(flatResult.feedback[0]?.message.toLowerCase()).toContain("velocity control");
   });
 
   test("ignores other notes while a configured wrong pad consumes the current target", () => {

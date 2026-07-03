@@ -219,6 +219,9 @@ importers:
       embla-carousel-svelte:
         specifier: 'catalog:'
         version: 8.6.0(svelte@5.56.0)
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       lucide-svelte:
         specifier: 'catalog:'
         version: 0.561.0(svelte@5.56.0)
@@ -307,9 +310,6 @@ importers:
       drizzle-kit:
         specifier: 'catalog:'
         version: 0.31.10
-      jszip:
-        specifier: ^3.10.1
-        version: 3.10.1
       mdsvex:
         specifier: 'catalog:'
         version: 0.12.7(svelte@5.56.0)

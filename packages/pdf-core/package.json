@@ -13,9 +13,9 @@
     "./stores/settings": "./src/stores/settings.svelte.ts"
   },
   "scripts": {
-    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check": "tsc --noEmit --project ./tsconfig.json",
     "test": "vp test",
-    "build": "svelte-check --tsconfig ./tsconfig.json"
+    "build": "tsc --noEmit --project ./tsconfig.json"
   },
   "dependencies": {
     "jszip": "^3.10.1",

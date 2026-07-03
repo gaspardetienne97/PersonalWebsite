@@ -29,6 +29,8 @@
     currentIndex = 0,
     visibleFrets = 12,
     visibleStrings,
+    showTargetNotes = true,
+    showActiveTarget = true,
     wrongMidiNotes = [],
     onAccepted,
   }: {
@@ -41,13 +43,17 @@
     currentIndex?: number;
     visibleFrets?: number;
     visibleStrings?: number[];
+    showTargetNotes?: boolean;
+    showActiveTarget?: boolean;
     wrongMidiNotes?: number[];
     onAccepted?: (event: NoteEvent) => void;
   } = $props();
 
-  const targetMidiNotes = $derived(steps.map(({ midiNote }) => midiNote));
+  const targetMidiNotes = $derived(showTargetNotes ? steps.map(({ midiNote }) => midiNote) : []);
   const activeMidiNotes = $derived(
-    steps[currentIndex]?.midiNote === undefined ? [] : [steps[currentIndex]!.midiNote],
+    !showActiveTarget || steps[currentIndex]?.midiNote === undefined
+      ? []
+      : [steps[currentIndex]!.midiNote],
   );
   const correctMidiNotes = $derived(
     steps.slice(0, completedCount).map(({ midiNote }) => midiNote),

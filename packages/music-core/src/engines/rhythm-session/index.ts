@@ -7,6 +7,12 @@ import {
 import { ExerciseRunHost, type PipelineServices } from "@repo/music-core/engines/exercise";
 import type { InputRouter } from "@repo/music-core/engines/input-router";
 import {
+  createRhythmPatternExercise,
+  RHYTHM_PATTERN_CATALOG,
+  type RhythmPatternId,
+  type RhythmPatternPrompt,
+} from "@repo/music-core/exercises/rhythm-pattern";
+import {
   createRhythmPulseExercise,
   type RhythmPulsePrompt,
 } from "@repo/music-core/exercises/rhythm-pulse";
@@ -15,23 +21,38 @@ export interface RhythmSessionOptions {
   bpm: number;
   beats: number;
   startTimestampMs: number;
+  pattern?: RhythmPatternId;
+  mode?: RhythmDrillMode;
 }
+
+export type RhythmDrillMode = "pulse" | "read-and-tap";
 
 export interface RhythmDrillConfig {
   bpm: number;
   beats: number;
+  pattern: RhythmPatternId;
+  mode: RhythmDrillMode;
 }
 
 export interface RhythmDrillConfigSource {
   bpm?: unknown;
   beats?: unknown;
-  get?: (key: "bpm" | "beats") => string | null;
+  pattern?: unknown;
+  mode?: unknown;
+  get?: (key: "bpm" | "beats" | "pattern" | "mode") => string | null;
 }
 
 export const RHYTHM_DRILL_DEFAULT_CONFIG: RhythmDrillConfig = {
   bpm: 100,
   beats: 4,
+  pattern: "quarter-pulse",
+  mode: "pulse",
 };
+
+export const RHYTHM_DRILL_PATTERNS = RHYTHM_PATTERN_CATALOG.map((pattern) => ({
+  value: pattern.id,
+  label: pattern.label,
+}));
 
 const RHYTHM_BPM_MIN = 40;
 const RHYTHM_BPM_MAX = 220;
@@ -50,6 +71,8 @@ export function normalizeRhythmDrillConfig(source: RhythmDrillConfigSource): Rhy
       min: RHYTHM_BEATS_MIN,
       max: RHYTHM_BEATS_MAX,
     }),
+    pattern: normalizeRhythmPattern(readConfigValue(source, "pattern")),
+    mode: normalizeRhythmMode(readConfigValue(source, "mode")),
   };
 }
 
@@ -62,7 +85,7 @@ export interface RhythmSessionDependencies {
 }
 
 export interface RhythmResultView {
-  prompt: RhythmPulsePrompt;
+  prompt: RhythmPrompt;
   result: ExerciseResult;
   event: ScoringEvent;
   xp: number;
@@ -80,7 +103,7 @@ export interface RhythmSummary {
 
 export interface RhythmSessionState {
   status: "ready" | "active" | "summary" | "abandoned";
-  currentPrompt?: RhythmPulsePrompt;
+  currentPrompt?: RhythmPrompt;
   live?: ExerciseLiveState;
   results: RhythmResultView[];
   summary?: RhythmSummary;
@@ -88,13 +111,14 @@ export interface RhythmSessionState {
 }
 
 type StateListener = (state: RhythmSessionState) => void;
+type RhythmPrompt = RhythmPulsePrompt | RhythmPatternPrompt;
 
 export class RhythmSession {
   #host: ExerciseRunHost;
   #unsubscribeRouter: () => void;
   #listeners = new Set<StateListener>();
   #status: RhythmSessionState["status"] = "ready";
-  #currentPrompt?: RhythmPulsePrompt;
+  #currentPrompt?: RhythmPrompt;
   #results: RhythmResultView[] = [];
   #summary?: RhythmSummary;
   #error?: string;
@@ -129,28 +153,38 @@ export class RhythmSession {
     return () => this.#listeners.delete(listener);
   }
 
-  async start(options: RhythmSessionOptions): Promise<RhythmPulsePrompt> {
+  async start(options: RhythmSessionOptions): Promise<RhythmPrompt> {
     this.#assertUsable();
     if (this.#status === "active") throw new Error("A rhythm session is already active");
 
-    const exercise = createRhythmPulseExercise({
-      bpm: options.bpm,
-      beats: options.beats,
-      startTimestampMs: monotonicMs(options.startTimestampMs),
-    });
+    const pattern = options.pattern ?? "quarter-pulse";
+    const mode = options.mode ?? "pulse";
+    const exercise =
+      pattern === "quarter-pulse" && mode === "pulse"
+        ? createRhythmPulseExercise({
+            bpm: options.bpm,
+            beats: options.beats,
+            startTimestampMs: monotonicMs(options.startTimestampMs),
+          })
+        : createRhythmPatternExercise({
+            patternId: pattern,
+            bpm: options.bpm,
+            bars: Math.max(1, Math.ceil(options.beats / 4)),
+            startTimestampMs: monotonicMs(options.startTimestampMs),
+          });
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-pulse`,
+      runId: `${this.#sessionId}-${mode}-${pattern}`,
       inputs: ["midi", "onscreen", "audio"],
       context: {
-        targetSkillIds: ["rhythm.quarter-pulse"],
+        targetSkillIds: exercise.skillIds,
         difficulty: 0.4,
       },
     });
 
     this.#status = "active";
-    this.#currentPrompt = prompt.payload as RhythmPulsePrompt;
+    this.#currentPrompt = prompt.payload as RhythmPrompt;
     this.#results = [];
     this.#summary = undefined;
     this.#error = undefined;
@@ -258,9 +292,22 @@ function summarize(results: RhythmResultView[]): RhythmSummary {
   };
 }
 
-function readConfigValue(source: RhythmDrillConfigSource, key: "bpm" | "beats"): unknown {
+function readConfigValue(
+  source: RhythmDrillConfigSource,
+  key: "bpm" | "beats" | "pattern" | "mode",
+): unknown {
   if (source.get) return source.get(key);
   return source[key];
+}
+
+function normalizeRhythmMode(value: unknown): RhythmDrillMode {
+  return value === "read-and-tap" ? "read-and-tap" : RHYTHM_DRILL_DEFAULT_CONFIG.mode;
+}
+
+function normalizeRhythmPattern(value: unknown): RhythmPatternId {
+  return RHYTHM_PATTERN_CATALOG.some((pattern) => pattern.id === value)
+    ? (value as RhythmPatternId)
+    : RHYTHM_DRILL_DEFAULT_CONFIG.pattern;
 }
 
 function normalizeInteger(

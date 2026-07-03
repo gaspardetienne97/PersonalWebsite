@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
@@ -20,6 +21,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import FlashcardSession from "./_components/FlashcardSession.svelte";
   import ReadingSetup, {
@@ -156,6 +158,8 @@
           mode: setup.mode,
           strictness: setup.strictness,
           difficulty: setup.difficulty,
+          readingLevel: setup.readingLevel,
+          transposeSemitones: setup.transposeSemitones,
         });
       }
     } catch (error) {
@@ -311,7 +315,9 @@
     url.searchParams.set("key", config.keySignature);
     url.searchParams.set("low", String(config.range.lowestMidi));
     url.searchParams.set("high", String(config.range.highestMidi));
+    url.searchParams.set("level", config.readingLevel);
     url.searchParams.set("difficulty", String(config.difficulty));
+    url.searchParams.set("transpose", String(config.transposeSemitones));
     url.searchParams.set("prompt", config.promptKind);
     url.searchParams.set("answer", config.answerMode);
     url.searchParams.set("mode", config.mode);
@@ -319,7 +325,7 @@
     url.searchParams.set("strict", config.strictness);
     url.searchParams.set("meter", config.meter);
     url.searchParams.set("measures", String(config.measures));
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    replaceRouteState(`${url.pathname}${url.search}${url.hash}`, $page.state);
   }
 
   onDestroy(() => {

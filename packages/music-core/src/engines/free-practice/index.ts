@@ -48,7 +48,9 @@ export class FreePracticeSession {
   readonly #startedAtMonotonic: MonotonicMs;
   readonly #distinctNotes = new Set<number>();
   readonly #sourceCounts: Partial<Record<InputSource, number>> = {};
-  readonly #recentNotes = new Array<FreePracticeNote | undefined>(RECENT_NOTE_LIMIT);
+  readonly #recentNotes = Array.from<FreePracticeNote | undefined>({
+    length: RECENT_NOTE_LIMIT,
+  });
   #status: FreePracticeState["status"] = "recording";
   #noteCount = 0;
   #lowestMidiNote: number | undefined;

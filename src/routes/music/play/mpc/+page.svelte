@@ -1,12 +1,16 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import { onDestroy, onMount } from "svelte";
 
   import type {
     MpcSingleStrokeAnswer,
     MpcSingleStrokePrompt,
   } from "@repo/music-core/exercises/mpc-single-stroke";
-  import { buildMpcRudimentSequence } from "@repo/music-core/exercises/mpc-single-stroke";
+  import {
+    buildMpcRudimentSequence,
+    buildMpcRudimentTargetEvents,
+  } from "@repo/music-core/exercises/mpc-single-stroke";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
@@ -33,6 +37,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -100,6 +105,15 @@
   const stageTargetSequence = $derived(
     prompt?.targetSequence ??
       buildMpcRudimentSequence(
+        normalizedConfig.patternId,
+        normalizedConfig.leftPadMidi,
+        normalizedConfig.rightPadMidi,
+        normalizedConfig.hitCount,
+      ),
+  );
+  const stageTargetEvents = $derived(
+    prompt?.targetEvents ??
+      buildMpcRudimentTargetEvents(
         normalizedConfig.patternId,
         normalizedConfig.leftPadMidi,
         normalizedConfig.rightPadMidi,
@@ -177,7 +191,10 @@
         hitCount: config.hitCount,
         bpm: config.bpm,
       });
-      status = `Alternate pads ${config.leftPadMidi} and ${config.rightPadMidi}.`;
+      const patternLabel =
+        MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === config.patternId)?.label ??
+        "Single strokes";
+      status = `Play ${patternLabel.toLowerCase()} on pads ${config.leftPadMidi} and ${config.rightPadMidi}.`;
     } catch (error) {
       status = message(error, "The MPC rudiment could not be started.");
     } finally {
@@ -211,11 +228,7 @@
     params.set("right", String(config.rightPadMidi));
     params.set("hits", String(config.hitCount));
     params.set("bpm", String(config.bpm));
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
-    );
+    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
   }
 
   onMount(() => {
@@ -332,6 +345,7 @@
       <PadRudimentStage
         router={runtime.router}
         targetSequence={stageTargetSequence}
+        targetEvents={stageTargetEvents}
         completedHits={completedHits}
         bpm={normalizedConfig.bpm}
       />

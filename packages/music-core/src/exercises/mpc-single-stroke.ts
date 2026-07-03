@@ -12,12 +12,34 @@ const EXERCISE_ID = "technique.mpc.single-strokes";
 const SKILL_IDS = ["technique.mpc", EXERCISE_ID];
 
 export type MpcHitCount = 8 | 16;
-export type MpcRudimentPatternId = "single-strokes" | "double-strokes" | "paradiddle";
+export type MpcRudimentPatternId =
+  | "single-strokes"
+  | "double-strokes"
+  | "paradiddle"
+  | "moving-accent";
+export type MpcRudimentHand = "left" | "right";
+export type MpcRudimentAccent = "normal" | "accent";
+
+export interface MpcVelocityBand {
+  min: number;
+  max: number;
+  label: string;
+}
+
+export interface MpcRudimentTargetEvent {
+  index: number;
+  beat: number;
+  hand: MpcRudimentHand;
+  padMidi: number;
+  accent: MpcRudimentAccent;
+  velocityBand?: MpcVelocityBand;
+}
 
 export interface MpcRudimentPattern {
   id: MpcRudimentPatternId;
   label: string;
-  unit: readonly ("left" | "right")[];
+  unit: readonly MpcRudimentHand[];
+  accentMode?: "moving";
 }
 
 export const MPC_RUDIMENT_PATTERNS: readonly MpcRudimentPattern[] = [
@@ -28,6 +50,7 @@ export const MPC_RUDIMENT_PATTERNS: readonly MpcRudimentPattern[] = [
     label: "Paradiddle",
     unit: ["left", "right", "left", "left", "right", "left", "right", "right"],
   },
+  { id: "moving-accent", label: "Moving accent", unit: ["left", "right"], accentMode: "moving" },
 ];
 
 export interface MpcSingleStrokeOptions {
@@ -48,6 +71,7 @@ export interface MpcSingleStrokePrompt {
   bpm: number;
   targetSpacingMs: number;
   targetSequence: number[];
+  targetEvents: MpcRudimentTargetEvent[];
 }
 
 export interface MpcSingleStrokeAnswer {
@@ -63,7 +87,11 @@ interface RunAnalysis extends MpcSingleStrokeAnswer {
   timingAccuracy: number;
   completion: number;
   score: number;
+  velocityDimensionName: "velocity consistency" | "velocity control";
 }
+
+const accentVelocityBand: MpcVelocityBand = { min: 0.75, max: 1, label: "accent" };
+const tapVelocityBand: MpcVelocityBand = { min: 0.25, max: 0.7, label: "tap" };
 
 export function createMpcSingleStrokeExercise(
   options: MpcSingleStrokeOptions = {},
@@ -87,18 +115,26 @@ export function createMpcSingleStrokeExercise(
     throw new Error("BPM must be a finite number");
   }
   const bpm = clamp(requestedBpm, 30, 240);
-  const targetSequence = buildMpcRudimentSequence(pattern.id, leftPadMidi, rightPadMidi, hitCount);
+  const targetEvents = buildMpcRudimentTargetEvents(
+    pattern.id,
+    leftPadMidi,
+    rightPadMidi,
+    hitCount,
+  );
+  const targetSequence = targetEvents.map((event) => event.padMidi);
   const label = `MPC ${pattern.label.toLowerCase()}: pads ${leftPadMidi} / ${rightPadMidi}`;
+  const skillIds =
+    pattern.id === "paradiddle" ? [...SKILL_IDS, "technique.mpc.paradiddles"] : SKILL_IDS;
 
   return {
     id: EXERCISE_ID,
     name: "MPC Single Strokes",
     capabilities: [Capability.Technique, Capability.Rhythm],
-    skillIds: [...SKILL_IDS],
+    skillIds: [...skillIds],
     inputs: ["midi", "onscreen"],
     streaming: true,
     generate: () => ({
-      id: `mpc-single-strokes-${leftPadMidi}-${rightPadMidi}-${hitCount}-${bpm}`,
+      id: `mpc-${pattern.id}-${leftPadMidi}-${rightPadMidi}-${hitCount}-${bpm}`,
       payload: {
         label,
         patternId: pattern.id,
@@ -109,6 +145,7 @@ export function createMpcSingleStrokeExercise(
         bpm,
         targetSpacingMs: beatDurationMs(bpm) / 2,
         targetSequence: [...targetSequence],
+        targetEvents: [...targetEvents],
       },
     }),
     createRun(prompt) {
@@ -123,10 +160,32 @@ export function buildMpcRudimentSequence(
   rightPadMidi: number,
   hitCount: MpcHitCount,
 ): number[] {
-  const pattern = rudimentPattern(patternId);
-  return Array.from({ length: hitCount }, (_, index) =>
-    pattern.unit[index % pattern.unit.length] === "left" ? leftPadMidi : rightPadMidi,
+  return buildMpcRudimentTargetEvents(patternId, leftPadMidi, rightPadMidi, hitCount).map(
+    (event) => event.padMidi,
   );
+}
+
+export function buildMpcRudimentTargetEvents(
+  patternId: MpcRudimentPatternId,
+  leftPadMidi: number,
+  rightPadMidi: number,
+  hitCount: MpcHitCount,
+): MpcRudimentTargetEvent[] {
+  const pattern = rudimentPattern(patternId);
+  return Array.from({ length: hitCount }, (_, index) => {
+    const hand = pattern.unit[index % pattern.unit.length]!;
+    const accent = accentFor(pattern, index);
+    return {
+      index,
+      beat: index * 0.5,
+      hand,
+      padMidi: hand === "left" ? leftPadMidi : rightPadMidi,
+      accent,
+      ...(pattern.accentMode === "moving"
+        ? { velocityBand: accent === "accent" ? accentVelocityBand : tapVelocityBand }
+        : {}),
+    };
+  });
 }
 
 function singleStrokeRun(prompt: MpcSingleStrokePrompt): ExerciseRun<MpcSingleStrokeAnswer> {
@@ -154,11 +213,14 @@ function singleStrokeRun(prompt: MpcSingleStrokePrompt): ExerciseRun<MpcSingleSt
     finish() {
       const analysis = analyze(hits, prompt);
       const metrics = buildMetrics(hits, prompt, analysis);
+      const requiredVelocityScore = prompt.targetEvents.some((event) => event.velocityBand)
+        ? 0.875
+        : 0.65;
       const correct =
         analysis.completion === 1 &&
         analysis.padAccuracy >= 0.875 &&
         analysis.meanTimingErrorMs <= 90 &&
-        analysis.velocityConsistency >= 0.65;
+        analysis.velocityConsistency >= requiredVelocityScore;
 
       return {
         correct,
@@ -197,7 +259,10 @@ function analyze(hits: NoteOnEvent[], prompt: MpcSingleStrokePrompt): RunAnalysi
     hits.length === 0 ? 180 : mean(timingErrors.map((error) => Math.abs(error)));
   const padAccuracy = correctPadHits / prompt.hitCount;
   const timingAccuracy = hits.length === 0 ? 0 : clamp(1 - meanTimingErrorMs / 180);
-  const velocityConsistency = consistency(velocities);
+  const hasVelocityTargets = prompt.targetEvents.some((event) => event.velocityBand);
+  const velocityConsistency = hasVelocityTargets
+    ? velocityTargetAccuracy(hits, prompt)
+    : consistency(velocities);
   const completion = hits.length / prompt.hitCount;
   const score =
     padAccuracy * 0.45 + timingAccuracy * 0.3 + velocityConsistency * 0.15 + completion * 0.1;
@@ -212,6 +277,7 @@ function analyze(hits: NoteOnEvent[], prompt: MpcSingleStrokePrompt): RunAnalysi
     timingAccuracy,
     completion,
     score,
+    velocityDimensionName: hasVelocityTargets ? "velocity control" : "velocity consistency",
   };
 }
 
@@ -225,6 +291,7 @@ function buildMetrics(
   return hits.flatMap((hit, index): ScoringMetric[] => {
     const expectedMs = index * prompt.targetSpacingMs;
     const actualMs = analysis.relativeTimestampsMs[index]!;
+    const velocityTarget = prompt.targetEvents[index]?.velocityBand;
     return [
       {
         kind: "pitch",
@@ -237,7 +304,11 @@ function buildMetrics(
         actualMs,
         errorMs: actualMs - expectedMs,
       },
-      { kind: "velocity", expected: meanVelocity, actual: hit.velocity },
+      {
+        kind: "velocity",
+        expected: velocityTarget ? (velocityTarget.min + velocityTarget.max) / 2 : meanVelocity,
+        actual: hit.velocity,
+      },
     ];
   });
 }
@@ -277,7 +348,7 @@ function weakestDimensionFeedback(analysis: RunAnalysis): FeedbackItem {
   const dimensions = [
     { name: "pad accuracy", value: analysis.padAccuracy },
     { name: "timing", value: analysis.timingAccuracy },
-    { name: "velocity consistency", value: analysis.velocityConsistency },
+    { name: analysis.velocityDimensionName, value: analysis.velocityConsistency },
     { name: "completion", value: analysis.completion },
   ];
   const weakest = dimensions.reduce((lowest, dimension) =>
@@ -296,6 +367,22 @@ function consistency(values: number[]): number {
   const variance = mean(values.map((value) => (value - average) ** 2));
   if (variance <= Number.EPSILON) return 1;
   return clamp(1 - Math.sqrt(variance) / Math.max(average, 0.01));
+}
+
+function velocityTargetAccuracy(hits: NoteOnEvent[], prompt: MpcSingleStrokePrompt): number {
+  if (hits.length === 0) return 0;
+  const matched = hits.reduce((count, hit, index) => {
+    const band = prompt.targetEvents[index]?.velocityBand;
+    if (!band) return count + 1;
+    return count + (hit.velocity >= band.min && hit.velocity <= band.max ? 1 : 0);
+  }, 0);
+  return matched / prompt.hitCount;
+}
+
+function accentFor(pattern: MpcRudimentPattern, index: number): MpcRudimentAccent {
+  if (pattern.accentMode !== "moving") return "normal";
+  const groupIndex = Math.floor(index / 4);
+  return index % 4 === groupIndex % 4 ? "accent" : "normal";
 }
 
 function mean(values: number[]): number {

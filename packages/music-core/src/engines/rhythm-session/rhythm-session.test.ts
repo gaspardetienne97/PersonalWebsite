@@ -11,17 +11,37 @@ import { normalizeRhythmDrillConfig, RhythmSession, type RhythmSessionState } fr
 
 describe("RhythmSession", () => {
   test("normalizes shareable drill config values", () => {
-    expect(normalizeRhythmDrillConfig({ bpm: "72", beats: "6" })).toEqual({
+    expect(
+      normalizeRhythmDrillConfig({
+        bpm: "72",
+        beats: "6",
+        pattern: "eighth-rests",
+        mode: "read-and-tap",
+      }),
+    ).toEqual({
       bpm: 72,
       beats: 6,
+      pattern: "eighth-rests",
+      mode: "read-and-tap",
     });
     expect(normalizeRhythmDrillConfig({ bpm: "12", beats: "99" })).toEqual({
       bpm: 40,
       beats: 16,
+      pattern: "quarter-pulse",
+      mode: "pulse",
     });
-    expect(normalizeRhythmDrillConfig({ bpm: "fast", beats: null })).toEqual({
+    expect(
+      normalizeRhythmDrillConfig({
+        bpm: "fast",
+        beats: null,
+        pattern: "noise",
+        mode: "noise",
+      }),
+    ).toEqual({
       bpm: 100,
       beats: 4,
+      pattern: "quarter-pulse",
+      mode: "pulse",
     });
   });
 
@@ -43,6 +63,60 @@ describe("RhythmSession", () => {
     expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
 
     unsubscribe();
+    session.dispose();
+  });
+
+  test("completes and persists a selected rhythm pattern", async () => {
+    const dependencies = await setup();
+    const session = new RhythmSession(dependencies);
+
+    await session.start({
+      bpm: 120,
+      beats: 4,
+      pattern: "eighth-rests",
+      startTimestampMs: 1_000,
+    });
+    [1_000, 1_500, 2_000, 2_500].forEach((atMs) => dependencies.router.push(tap(atMs)));
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.results[0]?.prompt).toMatchObject({
+      id: "eighth-rests",
+      rests: [
+        { startBeat: 0.5, endBeat: 1 },
+        { startBeat: 1.5, endBeat: 2 },
+        { startBeat: 2.5, endBeat: 3 },
+        { startBeat: 3.5, endBeat: 4 },
+      ],
+    });
+    expect(session.state.results[0]?.event.skillIds).toContain("rhythm.pattern.eighth-rests");
+    session.dispose();
+  });
+
+  test("uses the pattern engine for read-and-tap quarter-note prompts", async () => {
+    const dependencies = await setup();
+    const session = new RhythmSession(dependencies);
+
+    await session.start({
+      bpm: 96,
+      beats: 4,
+      pattern: "quarter-pulse",
+      mode: "read-and-tap",
+      startTimestampMs: 2_000,
+    });
+
+    expect(session.state.currentPrompt).toMatchObject({
+      id: "quarter-pulse",
+      label: "Quarter-note pulse",
+      expectedMs: [2_000, 2_625, 3_250, 3_875],
+      events: [
+        { beat: 0, accent: "accent" },
+        { beat: 1, accent: "normal" },
+        { beat: 2, accent: "normal" },
+        { beat: 3, accent: "normal" },
+      ],
+    });
+    expect(session.state.currentPrompt).toHaveProperty("rests");
+
     session.dispose();
   });
 

@@ -3,6 +3,7 @@ import { render } from "vitest-browser-svelte";
 
 import type { MusicRuntime } from "../_runtime.svelte";
 import Page from "./+page.svelte";
+import { setTestUrl } from "../_components/test-url";
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
@@ -45,7 +46,7 @@ function makeRuntime(): MusicRuntime {
 
 describe("/music/create/+page.svelte", () => {
   test("syncs Create mode changes into the URL without dropping import params", async () => {
-    window.history.replaceState({}, "", "/music/create?source=practice-lab-take#compose");
+    setTestUrl("/music/create?source=practice-lab-take#compose");
     render(Page, { runtime: makeRuntime() });
 
     button("Piano roll")?.click();

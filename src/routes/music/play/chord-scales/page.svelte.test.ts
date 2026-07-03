@@ -4,11 +4,12 @@ import { render } from "vitest-browser-svelte";
 import { scaleSemitones } from "@repo/music-core/exercises/scale-pattern";
 
 import Page from "./+page.svelte";
+import { pushTestUrl, setTestUrl } from "../../_components/test-url";
 import type { MusicRuntime } from "../../_runtime.svelte";
 
 afterEach(() => {
   vi.restoreAllMocks();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
   document.body.replaceChildren();
 });
 
@@ -57,7 +58,7 @@ describe("/music/play/chord-scales/+page.svelte", () => {
   });
 
   test("restores chord-scale setup from shareable query parameters", async () => {
-    window.history.pushState({}, "", "/music/play/chord-scales?changes=minor");
+    pushTestUrl("/music/play/chord-scales?changes=minor");
 
     render(Page);
 

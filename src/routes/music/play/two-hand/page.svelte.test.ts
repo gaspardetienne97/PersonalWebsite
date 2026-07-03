@@ -2,11 +2,12 @@ import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 
 afterEach(() => {
   vi.restoreAllMocks();
   document.body.replaceChildren();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
 });
 
 describe("/music/play/two-hand/+page.svelte", () => {
@@ -35,25 +36,33 @@ describe("/music/play/two-hand/+page.svelte", () => {
   });
 
   test("restores and syncs the shareable two-hand setup URL", async () => {
-    window.history.replaceState({}, "", "/music/play/two-hand?tonic=G4&bpm=120");
+    setTestUrl("/music/play/two-hand?tonic=G4&bpm=120&pattern=alberti-rh-holds&hand=left");
     render(Page);
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("120BPM"));
+    expect(document.body.textContent).toContain("Alberti + holds");
     expect(
       document.querySelector('[aria-label="Key"] button[aria-pressed="true"]')?.textContent,
     ).toBe("G");
+    expect(
+      document.querySelector('[aria-label="Hand mode"] button[aria-pressed="true"]')?.textContent,
+    ).toContain("Left");
 
     button("F")?.click();
+    button("Contrary scale")?.click();
+    button("Both")?.click();
 
     await vi.waitFor(() => {
       const params = new URLSearchParams(window.location.search);
       expect(params.get("tonic")).toBe("F4");
       expect(params.get("bpm")).toBe("120");
+      expect(params.get("pattern")).toBe("contrary-motion-scale");
+      expect(params.get("hand")).toBe("both");
     });
   });
 
   test("offers a slower retry after a completed two-hand drill", async () => {
-    window.history.replaceState({}, "", "/music/play/two-hand?tonic=C4&bpm=100");
+    setTestUrl("/music/play/two-hand?tonic=C4&bpm=100");
     render(Page);
 
     await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import Drum from "lucide-svelte/icons/drum";
@@ -7,9 +8,15 @@
   import {
     normalizeRhythmDrillConfig,
     RHYTHM_DRILL_DEFAULT_CONFIG,
+    RHYTHM_DRILL_PATTERNS,
     RhythmSession,
+    type RhythmDrillMode,
     type RhythmSessionState,
   } from "@repo/music-core/engines/rhythm-session";
+  import type {
+    RhythmPatternId,
+    RhythmPatternPrompt,
+  } from "@repo/music-core/exercises/rhythm-pattern";
   import {
     AudioPitchSource,
     type AudioPitchState,
@@ -32,8 +39,10 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import PracticeStage from "../../_components/PracticeStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
+  import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import TimingMeter from "../../_components/TimingMeter.svelte";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -45,12 +54,18 @@
   const initialConfig = browser
     ? normalizeRhythmDrillConfig(new URLSearchParams(window.location.search))
     : RHYTHM_DRILL_DEFAULT_CONFIG;
+  const modeOptions = [
+    { value: "pulse", label: "Pulse" },
+    { value: "read-and-tap", label: "Read & Tap" },
+  ];
 
   let ready = $state(false);
   let pending = $state(false);
   let status = $state("Preparing your rhythm history.");
+  let mode = $state<RhythmDrillMode>(initialConfig.mode);
   let bpm = $state(initialConfig.bpm);
   let beats = $state(initialConfig.beats);
+  let pattern = $state<RhythmPatternId>(initialConfig.pattern);
   let tapTempoMarks = $state<number[]>([]);
   let session = $state<RhythmSession | undefined>();
   let sessionState = $state<RhythmSessionState | undefined>();
@@ -66,6 +81,11 @@
   const runSummary = $derived(sessionState?.summary);
   const hud = $derived(sessionState ? rhythmHudProjection(sessionState) : undefined);
   const activeBeatIndex = $derived(Math.floor((sessionState?.live?.progress ?? 0) * beats));
+  const activePatternEvents = $derived(patternEvents(sessionState?.currentPrompt));
+  const patternLabel = $derived(
+    RHYTHM_DRILL_PATTERNS.find((option) => option.value === pattern)?.label ?? "Quarter-note pulse",
+  );
+  const modeLabel = $derived(mode === "read-and-tap" ? "Read & Tap" : "Pulse");
   const sourceLabel = $derived(
     runtime.activeSource === "midi"
       ? "MIDI"
@@ -173,12 +193,14 @@
       await session.start({
         bpm,
         beats,
+        pattern,
+        mode,
         startTimestampMs,
       });
       status =
         delayMs > 0
-          ? `Count in, then tap ${beats} quarter notes.`
-          : `Tap ${beats} quarter notes.`;
+          ? `Count in, then ${mode === "read-and-tap" ? "read and tap" : "tap"} ${patternLabel}.`
+          : `${mode === "read-and-tap" ? "Read and tap" : "Tap"} ${patternLabel}.`;
     } catch (error) {
       status = message(error, "The rhythm session could not be started.");
     } finally {
@@ -208,20 +230,26 @@
 
   function repeat(): void {
     sessionState = undefined;
-    status = "Ready for a pulse session.";
+    status = "Ready for a rhythm session.";
   }
 
   function slowDown(): void {
-    bpm = normalizeRhythmDrillConfig({ bpm: bpm - 10, beats }).bpm;
+    bpm = normalizeRhythmDrillConfig({ bpm: bpm - 10, beats, pattern, mode }).bpm;
     repeat();
   }
 
   function syncConfigUrl(): void {
-    const config = normalizeRhythmDrillConfig({ bpm, beats });
+    const config = normalizeRhythmDrillConfig({ bpm, beats, pattern, mode });
     const url = new URL(window.location.href);
+    url.searchParams.set("mode", config.mode);
     url.searchParams.set("bpm", String(config.bpm));
     url.searchParams.set("beats", String(config.beats));
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    url.searchParams.set("pattern", config.pattern);
+    replaceRouteState(`${url.pathname}${url.search}${url.hash}`, $page.state);
+  }
+
+  function patternEvents(prompt: RhythmSessionState["currentPrompt"]): RhythmPatternPrompt["events"] {
+    return prompt && "events" in prompt ? prompt.events : [];
   }
 
   function message(error: unknown, fallback: string): string {
@@ -267,8 +295,8 @@
       <Card.Root>
         <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
           <div class="space-y-1">
-            <Card.Description>Pulse practice</Card.Description>
-            <Card.Title>Quarter-note timing</Card.Title>
+            <Card.Description>Pattern practice</Card.Description>
+            <Card.Title>{patternLabel}</Card.Title>
           </div>
           <div class="flex flex-wrap gap-2">
             <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
@@ -292,7 +320,26 @@
           <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
           <p class="text-sm text-muted-foreground" aria-live="polite">{microphoneStatus}</p>
 
-          <div class="grid gap-5 sm:grid-cols-3">
+          <SegmentedControl
+            ariaLabel="Rhythm mode"
+            options={modeOptions}
+            bind:value={mode}
+          />
+
+          <div class="grid gap-5 sm:grid-cols-4">
+            <div class="grid gap-2">
+              <Label for="rhythm-pattern">Pattern</Label>
+              <select
+                id="rhythm-pattern"
+                aria-label="Pattern"
+                bind:value={pattern}
+                class="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {#each RHYTHM_DRILL_PATTERNS as option (option.value)}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </select>
+            </div>
             <div class="grid gap-2">
               <Label for="rhythm-bpm">BPM</Label>
               <Input
@@ -328,7 +375,7 @@
             disabled={!ready || pending || sessionState?.status === "active"}
             onclick={startPulse}
           >
-            {pending ? "Starting..." : "Start Pulse"}
+            {pending ? "Starting..." : "Start Rhythm"}
           </Button>
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>
@@ -356,7 +403,7 @@
             {/each}
           </div>
           <Progress value={liveProgress} max={100} />
-          <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="grid grid-cols-2 gap-2 text-center">
             <div class="rounded-lg border border-stage-line p-2">
               <span class="block text-lg font-bold tabular-nums">{hud?.runningScorePct ?? 0}%</span>
               <small class="text-stage-muted">Running score</small>
@@ -366,7 +413,33 @@
               <small class="text-stage-muted">Through pattern</small>
             </div>
           </div>
-          <Button type="button" size="lg" data-testid="tap-beat" onclick={tapBeat}>Tap beat</Button>
+          <p class="text-center text-sm font-medium text-stage-muted">{patternLabel}</p>
+          {#if mode === "read-and-tap" && activePatternEvents.length > 0}
+            <div
+              aria-label="Rhythm pattern target"
+              class="grid gap-2 rounded-lg border border-stage-line bg-stage-surface/70 p-3"
+            >
+              <div class="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-wide text-stage-muted">
+                <span>{modeLabel}</span>
+                <span>{patternLabel}</span>
+              </div>
+              <div class="grid grid-cols-4 gap-2">
+                {#each activePatternEvents as event (event.id)}
+                  <div
+                    class="grid min-h-12 place-items-center rounded-md border text-sm font-bold tabular-nums {event.accent ===
+                    'accent'
+                      ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
+                      : 'border-stage-line bg-background/70 text-foreground'}"
+                  >
+                    {event.beat + 1}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+          <Button type="button" size="lg" data-testid="tap-beat" onclick={tapBeat}>
+            {mode === "read-and-tap" ? "Tap rhythm" : "Tap beat"}
+          </Button>
         </PracticeStage>
       {/if}
     {/snippet}
@@ -376,7 +449,8 @@
         title="This session"
         items={[
           { label: "Target", value: `${bpm} BPM` },
-          { label: "Pattern", value: `${beats} taps` },
+          { label: "Mode", value: modeLabel },
+          { label: "Pattern", value: patternLabel },
           { label: "Streak", value: `${progress.state.streakDays} days` },
         ]}
       />

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Clef } from "@repo/music-core/engines/notation";
+  import { READING_LEVELS, type ReadingLevelId } from "@repo/music-core/exercises/sight-reading";
   import type { TuningProfile } from "@repo/music-core/engines/tunings";
   import type {
     ReadingAnswerMode,
@@ -19,7 +20,9 @@
     clefs: Clef[];
     keySignature: string;
     range: { lowestMidi: number; highestMidi: number };
+    readingLevel: ReadingLevelId;
     difficulty: number;
+    transposeSemitones: number;
     promptKind: ReadingPromptKind;
     answerMode: ReadingAnswerMode;
     mode: "wait" | "performance";
@@ -290,6 +293,36 @@
           >
             {#each ["C major", "G major", "F major", "D major", "Bb major", "A minor", "E minor", "D minor"] as key}
               <option value={key}>{key}</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="grid gap-2">
+          <Label for="reading-level">Level</Label>
+          <select
+            id="reading-level"
+            class="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            value={value.readingLevel}
+            onchange={(event) => patch({ readingLevel: event.currentTarget.value as ReadingLevelId })}
+          >
+            {#each READING_LEVELS as level (level.id)}
+              <option value={level.id}>{level.label}</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="grid gap-2">
+          <Label for="reading-transpose">Transpose</Label>
+          <select
+            id="reading-transpose"
+            class="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            value={String(value.transposeSemitones)}
+            onchange={(event) => patch({ transposeSemitones: Number(event.currentTarget.value) })}
+          >
+            {#each [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5] as semitones}
+              <option value={String(semitones)}>
+                {semitones === 0 ? "Written pitch" : `${semitones > 0 ? "+" : ""}${semitones} st`}
+              </option>
             {/each}
           </select>
         </div>

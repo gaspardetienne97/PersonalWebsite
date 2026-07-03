@@ -6,9 +6,10 @@ import { JAM_PROGRESSIONS } from "@repo/music-core/engines/jam";
 
 import { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./+page.svelte";
+import { pushTestUrl, setTestUrl } from "../../_components/test-url";
 
 afterEach(() => {
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
   document.body.replaceChildren();
 });
 
@@ -148,23 +149,28 @@ test("chroma-only analyses update the detected-tones readout but never grade or 
 });
 
 test("restores progression drill setup from shareable query parameters", async () => {
-  window.history.pushState(
-    {},
-    "",
-    "/music/play/chord-progression?progression=minor-ii-v-i&bpm=112",
+  pushTestUrl(
+    "/music/play/chord-progression?group=jazz&progression=minor-ii-v-i&bpm=112&transpose=2",
   );
 
   render(Page);
 
   expect(document.body.textContent).toContain("Minor ii–V–i");
+  expect(document.body.textContent).toContain("D minor");
+  expect(document.body.textContent).toContain("Em7b5");
   const tempo = document.querySelector<HTMLInputElement>("#tempo");
   expect(tempo?.value).toBe("112");
+  expect(
+    document.querySelector('[aria-label="Transpose"] button[aria-pressed="true"]')?.textContent,
+  ).toContain("+2");
 });
 
 test("keeps progression drill setup changes in the shareable URL", async () => {
   render(Page);
 
+  button("Blues")?.click();
   button("12-bar blues")?.click();
+  button("+2")?.click();
   const tempo = document.querySelector<HTMLInputElement>("#tempo");
   expect(tempo).toBeTruthy();
   tempo!.value = "140";
@@ -172,7 +178,9 @@ test("keeps progression drill setup changes in the shareable URL", async () => {
 
   await vi.waitFor(() => {
     const params = new URLSearchParams(window.location.search);
+    expect(params.get("group")).toBe("blues");
     expect(params.get("progression")).toBe("blues");
     expect(params.get("bpm")).toBe("140");
+    expect(params.get("transpose")).toBe("2");
   });
 });

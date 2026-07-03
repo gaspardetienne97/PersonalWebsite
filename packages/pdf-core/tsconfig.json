@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "src",
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node", "svelte"]
   },
   "include": ["src/**/*.ts", "src/**/*.svelte"],
   "exclude": ["node_modules"]

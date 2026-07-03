@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import { nowUnix, type NoteEvent } from "@repo/music-core/domain";
@@ -31,6 +32,7 @@
   import { SongLibrary } from "@repo/music-core/engines/song-library";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore, type SongRow } from "@repo/music-core/engines/store";
+  import { cadenceRecognitionExercise } from "@repo/music-core/exercises/cadence-recognition";
   import { chordQualityRecognitionExercise } from "@repo/music-core/exercises/chord-quality-recognition";
   import type {
     EarTrainingAnswerMode,
@@ -42,6 +44,7 @@
   import {
     scaleDegreeFreePlayChoices,
     scaleDegreeRecognitionExercise,
+    type ScaleDegreeLabelMode,
     type ScaleDegreeFreePlayChoice,
     type ScaleDegreeSetId,
   } from "@repo/music-core/exercises/scale-degree-recognition";
@@ -51,6 +54,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import EarTrainingLanding from "./_components/EarTrainingLanding.svelte";
   import EarTrainingSessionRail from "./_components/EarTrainingSessionRail.svelte";
@@ -87,6 +91,7 @@
   const registry = new ExerciseRegistry();
   registry.register(intervalRecognitionExercise);
   registry.register(chordQualityRecognitionExercise);
+  registry.register(cadenceRecognitionExercise);
   registry.register(scaleDegreeRecognitionExercise);
   registry.register(melodyDictationExercise);
   const scheduler = new ExerciseScheduler(registry, skills, analytics);
@@ -100,6 +105,7 @@
   let answerMode = $state<EarTrainingAnswerMode>(initialConfig.answerMode);
   let feedbackMode = $state<EarTrainingFeedbackMode>(initialConfig.feedbackMode);
   let scaleDegreeSet = $state<ScaleDegreeSetId>(initialConfig.scaleDegreeSet);
+  let scaleDegreeLabelMode = $state<ScaleDegreeLabelMode>(initialConfig.scaleDegreeLabelMode);
   let droneOn = $state(false);
   let lastFreePlayDegree = $state<ScaleDegreeFreePlayChoice | undefined>();
   let status = $state("Preparing your learning history.");
@@ -125,6 +131,7 @@
       answer: answerMode,
       feedback: feedbackMode,
       level: scaleDegreeSet,
+      labels: scaleDegreeLabelMode,
     }),
   );
 
@@ -192,6 +199,10 @@
     scaleDegreeSet = normalizeEarTrainingConfig({ level: next }).scaleDegreeSet;
     lastFreePlayDegree = undefined;
     void loadRepertoireTransfers();
+  }
+
+  function setScaleDegreeLabelMode(next: ScaleDegreeLabelMode): void {
+    scaleDegreeLabelMode = normalizeEarTrainingConfig({ labels: next }).scaleDegreeLabelMode;
   }
 
   async function enableMidi(): Promise<void> {
@@ -271,6 +282,7 @@
           drill,
           answerMode: sessionAnswerMode,
           feedbackMode,
+          scaleDegreeLabelMode,
           ...(overrides.length !== undefined ? { length: overrides.length } : {}),
           queueMode: drill === "mixed" ? "adaptive" : "balanced",
           scaleDegreeSet: overrides.scaleDegreeSet ?? scaleDegreeSet,
@@ -445,11 +457,8 @@
     params.set("answer", config.answerMode);
     params.set("feedback", config.feedbackMode);
     params.set("level", config.scaleDegreeSet);
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
-    );
+    params.set("labels", config.scaleDegreeLabelMode);
+    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
   }
 
   async function stopVoiceMic(): Promise<void> {
@@ -500,6 +509,7 @@
       {answerMode}
       {feedbackMode}
       {scaleDegreeSet}
+      {scaleDegreeLabelMode}
       tonicName={freePlayTonicName}
       {droneOn}
       freePlayChoices={freePlayChoices}
@@ -513,6 +523,7 @@
       onAnswerMode={setAnswerMode}
       onFeedbackMode={setFeedbackMode}
       onScaleDegreeSet={setScaleDegreeSet}
+      onScaleDegreeLabelMode={setScaleDegreeLabelMode}
       onToggleDrone={toggleFreePlayDrone}
       onPlayFreePlayDegree={playFreePlayDegree}
       onPlayRepertoireTransfer={playRepertoireTransfer}

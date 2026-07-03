@@ -19,6 +19,7 @@ export type ScaleDegreeContext =
   | "harmonic-minor"
   | "melodic-minor"
   | "chromatic";
+export type ScaleDegreeLabelMode = "degree" | "solfege";
 
 interface ScaleDegree {
   token: string;
@@ -133,6 +134,7 @@ export interface ScaleDegreeRecognitionPrompt extends EarTrainingPromptBase {
   drill: "scale-degree";
   degree: string;
   solfege: string;
+  labelMode: ScaleDegreeLabelMode;
   semitones: number;
   scaleContext: ScaleDegreeContext;
   degreeSetId: ScaleDegreeSetId;
@@ -169,7 +171,8 @@ export function createScaleDegreeRecognitionExercise(
       const scaleContext = contextForDifficulty(ctx.difficulty, degree.token);
       const tonicMidi = 48 + Math.floor(random() * 13);
       const targetMidi = tonicMidi + degree.semitones;
-      const answerLabel = degreeLabel(degree);
+      const labelMode = scaleDegreeLabelMode(ctx.metadata?.scaleDegreeLabelMode);
+      const answerLabel = degreeLabel(degree, labelMode);
 
       return {
         id: `scale-degree-${scaleContext.token}-${degree.token}`,
@@ -180,7 +183,7 @@ export function createScaleDegreeRecognitionExercise(
           answerLabel,
           choices: choices.map((choice) => ({
             token: choice.token,
-            label: degreeLabel(choice),
+            label: degreeLabel(choice, labelMode),
           })),
           playback: [
             { midiNotes: [tonicMidi], offsetSeconds: 0, durationSeconds: 0.55 },
@@ -189,6 +192,7 @@ export function createScaleDegreeRecognitionExercise(
           requiredPlayedNotes: 1,
           degree: degree.token,
           solfege: degree.solfege,
+          labelMode,
           semitones: degree.semitones,
           scaleContext: scaleContext.token,
           degreeSetId: degreeSet?.id ?? "full-current",
@@ -211,6 +215,10 @@ export function scaleDegreeSetForId(value: unknown): ScaleDegreeSet | undefined 
 
 export function degreeTokensForScaleDegreeSet(value: unknown): string[] {
   return [...(scaleDegreeSetForId(value)?.degrees ?? DEGREES.map(({ token }) => token))];
+}
+
+export function scaleDegreeLabelMode(value: unknown): ScaleDegreeLabelMode {
+  return value === "solfege" ? "solfege" : "degree";
 }
 
 export function scaleDegreeFreePlayChoices(
@@ -254,8 +262,8 @@ function contextForDifficulty(difficulty: number, degree: string): ScaleContext 
     : SCALE_CONTEXTS.find((context) => context.degrees.includes(degree))!;
 }
 
-function degreeLabel(degree: ScaleDegree): string {
-  return `${degree.token} / ${degree.solfege}`;
+function degreeLabel(degree: ScaleDegree, mode: ScaleDegreeLabelMode = "degree"): string {
+  return mode === "solfege" ? degree.solfege : `${degree.token} / ${degree.solfege}`;
 }
 
 function freePlayChoiceForDegree(

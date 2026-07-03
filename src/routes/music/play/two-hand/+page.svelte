@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
@@ -10,6 +11,8 @@
   import {
     normalizeTwoHandDrillConfig,
     TechniqueSession,
+    TWO_HAND_DRILL_HAND_MODES,
+    TWO_HAND_DRILL_PATTERNS,
     TWO_HAND_DRILL_TEMPOS,
     TWO_HAND_DRILL_TONICS,
     type TwoHandDrillConfig,
@@ -33,6 +36,7 @@
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { suggestedFingerings } from "../../_components/piano-visual";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -51,9 +55,19 @@
     value: String(value),
     label: `${value} BPM`,
   }));
+  const patternOptions = TWO_HAND_DRILL_PATTERNS.map((pattern) => ({
+    value: pattern.id,
+    label: pattern.label,
+  }));
+  const handModeOptions = TWO_HAND_DRILL_HAND_MODES.map((mode) => ({
+    value: mode.id,
+    label: mode.label,
+  }));
 
   let tonic = $state(initialConfig.tonic);
   let bpm = $state(String(initialConfig.bpm));
+  let patternKind = $state(initialConfig.patternKind);
+  let handMode = $state(initialConfig.handMode);
   let ready = $state(false);
   let pending = $state(false);
   let captured = false;
@@ -70,7 +84,13 @@
   );
   // A preview prompt so the keyboards render before the drill starts.
   const previewPrompt = $derived(
-    createTwoHandIndependenceExercise({ tonic, bpm: Number(bpm), bars: 2 }).generate({
+    createTwoHandIndependenceExercise({
+      tonic,
+      bpm: Number(bpm),
+      bars: 2,
+      patternKind,
+      handMode,
+    }).generate({
       targetSkillIds: [],
       difficulty: 0.4,
     }).payload,
@@ -141,16 +161,31 @@
     await runtime.midi.enable();
   }
 
-  async function start(config: TwoHandDrillConfig = normalizeTwoHandDrillConfig({ tonic, bpm })): Promise<void> {
+  async function start(
+    config: TwoHandDrillConfig = normalizeTwoHandDrillConfig({
+      tonic,
+      bpm,
+      pattern: patternKind,
+      hand: handMode,
+    }),
+  ): Promise<void> {
     if (!ready || pending || !session) return;
     pending = true;
     captured = false;
     tonic = config.tonic;
     bpm = String(config.bpm);
+    patternKind = config.patternKind;
+    handMode = config.handMode;
     status = "";
     try {
-      await session.startTwoHand({ tonic: config.tonic, bpm: config.bpm, bars: 2 });
-      status = "Left hand on each beat, right hand twice as fast.";
+      await session.startTwoHand({
+        tonic: config.tonic,
+        bpm: config.bpm,
+        bars: 2,
+        patternKind: config.patternKind,
+        handMode: config.handMode,
+      });
+      status = `Playing ${display.patternLabel.toLowerCase()} · ${handModeLabel(config.handMode)}.`;
     } catch (error) {
       status = message(error, "The two-hand drill could not be started.");
     } finally {
@@ -159,21 +194,23 @@
   }
 
   function slowDown(): void {
-    const current = normalizeTwoHandDrillConfig({ tonic, bpm }).bpm;
+    const current = normalizeTwoHandDrillConfig({ tonic, bpm, pattern: patternKind, hand: handMode }).bpm;
     const nextBpm =
       [...TWO_HAND_DRILL_TEMPOS].reverse().find((tempo) => tempo < current) ??
       TWO_HAND_DRILL_TEMPOS[0];
-    void start(normalizeTwoHandDrillConfig({ tonic, bpm: nextBpm }));
+    void start(normalizeTwoHandDrillConfig({ tonic, bpm: nextBpm, pattern: patternKind, hand: handMode }));
   }
 
   function syncConfigUrl(): void {
     if (!browser) return;
-    const config = normalizeTwoHandDrillConfig({ tonic, bpm });
+    const config = normalizeTwoHandDrillConfig({ tonic, bpm, pattern: patternKind, hand: handMode });
     const url = new URL(window.location.href);
     const params = url.searchParams;
     params.set("tonic", config.tonic);
     params.set("bpm", String(config.bpm));
-    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
+    params.set("pattern", config.patternKind);
+    params.set("hand", config.handMode);
+    replaceRouteState(`${url.pathname}?${params.toString()}${url.hash}`, $page.state);
   }
 
   function cancel(): void {
@@ -189,6 +226,10 @@
 
   function message(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
+  }
+
+  function handModeLabel(value: TwoHandDrillConfig["handMode"]): string {
+    return TWO_HAND_DRILL_HAND_MODES.find((mode) => mode.id === value)?.label ?? "Both";
   }
 
   onDestroy(() => {
@@ -225,7 +266,7 @@
       <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <Card.Description>Hand independence</Card.Description>
-          <Card.Title>Steady pulse vs. running line</Card.Title>
+          <Card.Title>{display.patternLabel}</Card.Title>
         </div>
         <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
           {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
@@ -234,6 +275,12 @@
 
       <Card.Content class="grid gap-6">
         <fieldset disabled={sessionState?.status === "active"} class="grid gap-4 disabled:opacity-70">
+          <SegmentedControl ariaLabel="Pattern" options={patternOptions} bind:value={patternKind} />
+          <SegmentedControl
+            ariaLabel="Hand mode"
+            options={handModeOptions}
+            bind:value={handMode}
+          />
           <SegmentedControl ariaLabel="Key" options={keyOptions} bind:value={tonic} />
           <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
         </fieldset>

@@ -7,6 +7,7 @@ import { InputRouter } from "@repo/music-core/engines/input-router";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills";
 import { curatedTunings } from "@repo/music-core/engines/tunings";
+import { CHORD_SHAPES } from "@repo/music-core/exercises/chord-perfect";
 
 import {
   AEROPHONE_DRILL_DEFAULT_CONFIG,
@@ -15,9 +16,11 @@ import {
   normalizeScaleDrillConfig,
   normalizeMpcRudimentConfig,
   normalizeSpiderDrillConfig,
+  normalizeStringTechniqueConfig,
   normalizeTwoHandDrillConfig,
   SCALE_DRILL_DEFAULT_CONFIG,
   SPIDER_DRILL_DEFAULT_CONFIG,
+  STRING_TECHNIQUE_DEFAULT_CONFIG,
   TechniqueSession,
   type TechniqueSessionState,
 } from "./index";
@@ -34,14 +37,22 @@ describe("TechniqueSession", () => {
       durationMs: 5000,
       style: "legato",
       bpm: 110,
+      interval: "P5",
     });
 
-    expect(normalizeAerophoneDrillConfig({ mode: "swell", note: "57", duration: "7000" })).toEqual({
+    expect(
+      normalizeAerophoneDrillConfig({
+        mode: "swell",
+        note: "57",
+        duration: "7000",
+      }),
+    ).toEqual({
       mode: "swell",
       targetMidi: 58,
       durationMs: 6000,
       style: "staccato",
       bpm: 90,
+      interval: "P5",
     });
 
     expect(
@@ -167,6 +178,8 @@ describe("TechniqueSession", () => {
         string: "4",
         fret: "7",
         bpm: "120",
+        pattern: "inside-out-1324",
+        span: "adjacent-3",
       }),
     ).toEqual({
       instrument: "ukulele",
@@ -174,6 +187,8 @@ describe("TechniqueSession", () => {
       stringNumber: 4,
       startFret: 7,
       bpm: 120,
+      pattern: "inside-out-1324",
+      stringSpan: "adjacent-3",
     });
 
     expect(
@@ -183,12 +198,16 @@ describe("TechniqueSession", () => {
         string: "99",
         fret: "99",
         bpm: "10",
+        pattern: "not-a-pattern",
+        span: "not-a-span",
       }),
     ).toEqual({
       ...SPIDER_DRILL_DEFAULT_CONFIG,
       stringNumber: 6,
       startFret: 9,
       bpm: 60,
+      pattern: "ascending-1234",
+      stringSpan: "single",
     });
 
     expect(
@@ -205,23 +224,53 @@ describe("TechniqueSession", () => {
       stringNumber: 1,
       startFret: 0,
       bpm: 100,
+      pattern: "ascending-1234",
+      stringSpan: "single",
     });
   });
 
+  test("normalizes shareable string-technique drill mode values", () => {
+    expect(normalizeStringTechniqueConfig(new URLSearchParams("mode=note-finder"))).toEqual({
+      ...STRING_TECHNIQUE_DEFAULT_CONFIG,
+      mode: "note-finder",
+    });
+
+    expect(normalizeStringTechniqueConfig({ mode: "noise" })).toEqual(
+      STRING_TECHNIQUE_DEFAULT_CONFIG,
+    );
+  });
+
   test("normalizes shareable two-hand drill config values", () => {
-    expect(normalizeTwoHandDrillConfig(new URLSearchParams("tonic=G4&bpm=120"))).toEqual({
+    expect(
+      normalizeTwoHandDrillConfig(
+        new URLSearchParams("tonic=G4&bpm=120&pattern=alberti-rh-holds&hand=left"),
+      ),
+    ).toEqual({
       tonic: "G4",
       bpm: 120,
+      patternKind: "alberti-rh-holds",
+      handMode: "left",
     });
 
-    expect(normalizeTwoHandDrillConfig({ key: "D", tempo: "10" })).toEqual({
+    expect(normalizeTwoHandDrillConfig({ key: "D", tempo: "10", handMode: "right" })).toEqual({
       tonic: "D4",
       bpm: 60,
+      patternKind: "lh-pulse-rh-line",
+      handMode: "right",
     });
 
-    expect(normalizeTwoHandDrillConfig({ tonic: "Bb3", bpm: "999" })).toEqual({
+    expect(
+      normalizeTwoHandDrillConfig({
+        tonic: "Bb3",
+        bpm: "999",
+        pattern: "noise",
+        hand: "feet",
+      }),
+    ).toEqual({
       tonic: "C4",
       bpm: 120,
+      patternKind: "lh-pulse-rh-line",
+      handMode: "both",
     });
   });
 
@@ -292,6 +341,37 @@ describe("TechniqueSession", () => {
     session.dispose();
   });
 
+  test("completes an Aerophone interval landing over a drone target", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    await session.startIntervalLanding({
+      droneMidi: 60,
+      interval: "P5",
+      holdMs: 2_000,
+    });
+    dependencies.router.push(aerophoneNote(67, 0));
+    dependencies.router.push(breath(0.7, 0));
+    dependencies.router.push(breath(0.72, 1_000));
+    dependencies.router.push(breath(0.71, 2_000));
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      noteAccuracy: 1,
+    });
+    expect(session.state.results[0]?.prompt).toMatchObject({
+      droneMidi: 60,
+      targetMidi: 67,
+      interval: { id: "P5", label: "Perfect fifth" },
+    });
+    expect(session.state.results[0]?.event.skillIds).toContain(
+      "technique.aerophone.interval-landing",
+    );
+    session.dispose();
+  });
+
   test("completes a clean C major scale and unlocks the next tempo", async () => {
     const dependencies = await setup();
     const session = new TechniqueSession(dependencies);
@@ -353,7 +433,7 @@ describe("TechniqueSession", () => {
       nextTargetBpm: 100,
     });
     expect(session.state.results[0]?.event).toMatchObject({
-      runId: "technique-test-mpc-single-strokes-36-38-8-100",
+      runId: "technique-test-mpc-double-strokes-36-38-8-100",
       skillIds: expect.arrayContaining(["technique.mpc", "technique.mpc.single-strokes"]),
     });
     expect(
@@ -363,6 +443,47 @@ describe("TechniqueSession", () => {
       0,
     );
     expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
+    session.dispose();
+  });
+
+  test("completes a moving-accent MPC rudiment through the shared pipeline", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    const prompt = await session.startMpcRudiment({
+      leftPadMidi: 36,
+      rightPadMidi: 38,
+      hitCount: 8,
+      bpm: 100,
+      patternId: "moving-accent",
+    });
+    expect(prompt.patternId).toBe("moving-accent");
+    expect(prompt.targetEvents.map((event) => event.accent)).toEqual([
+      "accent",
+      "normal",
+      "normal",
+      "normal",
+      "normal",
+      "accent",
+      "normal",
+      "normal",
+    ]);
+
+    prompt.targetEvents.forEach((event, index) => {
+      dependencies.router.push(
+        mpcNote(
+          event.padMidi,
+          index * prompt.targetSpacingMs,
+          event.accent === "accent" ? 0.9 : 0.45,
+        ),
+      );
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({ total: 1, correct: 1 });
+    expect(session.state.results[0]?.event.runId).toBe(
+      "technique-test-mpc-moving-accent-36-38-8-100",
+    );
     session.dispose();
   });
 
@@ -395,6 +516,99 @@ describe("TechniqueSession", () => {
     );
     expect(
       dependencies.services.skills.getMastery("technique.guitar.spider").observations,
+    ).toBeGreaterThan(0);
+    session.dispose();
+  });
+
+  test("completes a multi-string guitar spider through the shared pipeline", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    const prompt = await session.startSpider({
+      tuning: curatedTunings("guitar")[0]!,
+      stringNumber: 6,
+      startFret: 5,
+      bpm: 120,
+      stringSpan: "adjacent-2",
+    });
+    expect(prompt.stringNumbers).toEqual([6, 5]);
+
+    prompt.midiNotes.forEach((midiNote, index) => {
+      dependencies.router.push({
+        ...note(midiNote, index * prompt.targetSpacingMs),
+        instrument: "guitar",
+      });
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      noteAccuracy: 1,
+    });
+    expect(session.state.results[0]?.result.feedback[0]?.message).toContain("8/8");
+    session.dispose();
+  });
+
+  test("completes a fretboard note finder prompt through the shared pipeline", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    const prompt = await session.startFretboardNoteFinder({
+      tuning: curatedTunings("guitar")[0]!,
+      stringNumber: 6,
+      fretNumber: 5,
+    });
+    dependencies.router.push({
+      ...note(prompt.targetMidi, 0),
+      instrument: "guitar",
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      noteAccuracy: 1,
+    });
+    expect(session.state.results[0]?.event.skillIds).toEqual(
+      expect.arrayContaining(["technique.strings.note-finder", "technique.guitar.note-finder"]),
+    );
+    session.dispose();
+  });
+
+  test("completes guitar chord changes through the shared pipeline", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.c-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.g-major")!;
+
+    const prompt = await session.startChordChange({
+      tuning,
+      fromShape,
+      toShape,
+      repetitions: 1,
+    });
+    prompt.targets.forEach((target, targetIndex) => {
+      target.midiNotes.forEach((midiNote, noteIndex) => {
+        dependencies.router.push({
+          ...note(midiNote, targetIndex * 1_000 + noteIndex * 40),
+          instrument: "guitar",
+        });
+      });
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary).toMatchObject({
+      total: 1,
+      correct: 1,
+      noteAccuracy: 1,
+    });
+    expect(session.state.results[0]?.event.skillIds).toEqual(
+      expect.arrayContaining(["technique.strings.chord-changes", "technique.guitar.chord-changes"]),
+    );
+    expect(
+      dependencies.services.skills.getMastery("technique.guitar.chord-changes").observations,
     ).toBeGreaterThan(0);
     session.dispose();
   });

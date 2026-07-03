@@ -26,7 +26,7 @@ import { normalizeReadingDrillConfig, ReadingSession } from "./index";
 describe("ReadingSession", () => {
   test("normalizes shareable reading drill config values", () => {
     const params = new URLSearchParams(
-      "activity=sight-reading&instrument=guitar&tuning=guitar-drop-d&clefs=treble,bass&key=G%20major&low=55&high=79&difficulty=0.7&prompt=chord&answer=play&mode=performance&bpm=128&strict=strict&meter=compound&measures=4",
+      "activity=sight-reading&instrument=guitar&tuning=guitar-drop-d&clefs=treble,bass&key=G%20major&low=55&high=79&level=level-3&difficulty=0.7&transpose=2&prompt=chord&answer=play&mode=performance&bpm=128&strict=strict&meter=compound&measures=4",
     );
 
     expect(normalizeReadingDrillConfig(params)).toEqual({
@@ -36,7 +36,9 @@ describe("ReadingSession", () => {
       clefs: ["treble", "bass"],
       keySignature: "G major",
       range: { lowestMidi: 55, highestMidi: 79 },
+      readingLevel: "level-3",
       difficulty: 0.7,
+      transposeSemitones: 2,
       promptKind: "chord",
       answerMode: "play",
       mode: "performance",
@@ -55,6 +57,8 @@ describe("ReadingSession", () => {
         low: "120",
         high: "12",
         difficulty: "2",
+        level: "impossible",
+        transpose: "99",
         prompt: "cluster",
         answer: "sing",
         mode: "listen",
@@ -69,7 +73,9 @@ describe("ReadingSession", () => {
       clefs: ["treble"],
       keySignature: "C major",
       range: { lowestMidi: 48, highestMidi: 84 },
+      readingLevel: "level-1",
       difficulty: 1,
+      transposeSemitones: 0,
       promptKind: "single-note",
       answerMode: "choice",
       mode: "wait",
@@ -210,6 +216,28 @@ describe("ReadingSession", () => {
     session.dispose();
   });
 
+  test("prepares sight-reading prompts with level metadata and transposition", async () => {
+    const dependencies = await setup();
+    const session = new ReadingSession(dependencies);
+
+    await session.prepareSightReading({
+      ...sightReadingOptions(),
+      readingLevel: "level-2",
+      transposeSemitones: -2,
+    });
+
+    const prompt = session.state.currentPrompt as SightReadingPrompt;
+    expect(prompt.readingLevel).toMatchObject({ id: "level-2", label: "Level 2" });
+    expect(prompt.transposeSemitones).toBe(-2);
+    expect(prompt.options.transposeSemitones).toBe(-2);
+    expect(prompt.score.markers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "transpose", label: "Transpose -2 st", kind: "practice" }),
+      ]),
+    );
+    session.dispose();
+  });
+
   test("preserves a completed sight-reading result for persistence retry", async () => {
     const dependencies = await setup();
     vi.spyOn(dependencies.services.analytics, "ingest").mockRejectedValueOnce(
@@ -316,6 +344,8 @@ function sightReadingOptions(): SightReadingOptions {
     mode: "performance",
     strictness: "normal",
     difficulty: 0.3,
+    readingLevel: "level-1",
+    transposeSemitones: 0,
   };
 }
 

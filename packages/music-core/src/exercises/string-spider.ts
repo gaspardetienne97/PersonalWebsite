@@ -13,6 +13,8 @@ export interface StringSpiderOptions {
   stringNumber: number;
   startFret: number;
   bpm: number;
+  pattern?: StringPatternKind;
+  stringSpan?: StringSpiderSpan;
 }
 
 export interface StringSpiderPrompt {
@@ -20,11 +22,23 @@ export interface StringSpiderPrompt {
   instrument: StringInstrumentId;
   tuningId: string;
   stringNumber: number;
+  stringNumbers: number[];
+  stringSpan: StringSpiderSpan;
   startFret: number;
+  pattern: StringPatternKind;
+  patternLabel: string;
+  fretNumbers: number[];
+  positions: StringSpiderPosition[];
   bpm: number;
   midiNotes: number[];
   noteLabels: string[];
   targetSpacingMs: number;
+}
+
+export interface StringSpiderPosition {
+  stringNumber: number;
+  fretNumber: number;
+  midiNote: number;
 }
 
 export interface StringSpiderAnswer {
@@ -33,34 +47,91 @@ export interface StringSpiderAnswer {
   meanTimingErrorMs: number;
 }
 
+export type StringPatternKind =
+  | "ascending-1234"
+  | "descending-4321"
+  | "inside-out-1324"
+  | "outside-in-1423";
+
+export type StringSpiderSpan = "single" | "adjacent-2" | "adjacent-3" | "all";
+
+export interface StringSpiderPattern {
+  id: StringPatternKind;
+  label: string;
+  fretOffsets: number[];
+}
+
+export const STRING_SPIDER_PATTERNS: StringSpiderPattern[] = [
+  { id: "ascending-1234", label: "1-2-3-4 ascending", fretOffsets: [0, 1, 2, 3] },
+  { id: "descending-4321", label: "4-3-2-1 descending", fretOffsets: [3, 2, 1, 0] },
+  { id: "inside-out-1324", label: "1-3-2-4 inside-out", fretOffsets: [0, 2, 1, 3] },
+  { id: "outside-in-1423", label: "1-4-2-3 outside-in", fretOffsets: [0, 3, 1, 2] },
+];
+
+export const STRING_SPIDER_SPANS: { id: StringSpiderSpan; label: string }[] = [
+  { id: "single", label: "Single string" },
+  { id: "adjacent-2", label: "2 adjacent strings" },
+  { id: "adjacent-3", label: "3 adjacent strings" },
+  { id: "all", label: "All strings from start" },
+];
+
 export function createStringSpiderExercise(
   options: StringSpiderOptions,
 ): ExerciseDefinition<StringSpiderPrompt, StringSpiderAnswer> {
   const { tuning, stringNumber, startFret, bpm } = options;
+  const pattern = stringSpiderPattern(options.pattern);
+  const stringSpan = stringSpiderSpan(options.stringSpan);
   const openMidi = tuning.openStrings[stringNumber - 1];
   if (openMidi === undefined) throw new Error(`String ${stringNumber} is not available.`);
-  if (startFret < 0 || startFret + 3 > tuning.fretCount) {
-    throw new Error("The 1-2-3-4 pattern must fit on the selected fretboard.");
+  const stringNumbers = stringNumbersForSpan(tuning, stringNumber, stringSpan);
+  const fretNumbers = stringNumbers.flatMap(() =>
+    pattern.fretOffsets.map((offset) => startFret + offset),
+  );
+  if (startFret < 0 || Math.max(...fretNumbers) > tuning.fretCount) {
+    throw new Error("The string independence pattern must fit on the selected fretboard.");
   }
 
-  const midiNotes = Array.from({ length: 4 }, (_, index) => openMidi + startFret + index);
+  const positions = stringNumbers.flatMap((targetStringNumber) => {
+    const targetOpenMidi = tuning.openStrings[targetStringNumber - 1]!;
+    return pattern.fretOffsets.map((offset) => {
+      const fretNumber = startFret + offset;
+      return {
+        stringNumber: targetStringNumber,
+        fretNumber,
+        midiNote: targetOpenMidi + fretNumber,
+      };
+    });
+  });
+  const midiNotes = positions.map((position) => position.midiNote);
   const instrumentLabel = tuning.instrument === "guitar" ? "Guitar" : "Ukulele";
+  const stringLabel =
+    stringNumbers.length === 1 ? `string ${stringNumber}` : `strings ${stringNumbers.join("-")}`;
 
   return {
-    id: `technique.${tuning.instrument}.spider`,
-    name: `${instrumentLabel} Spider 1-2-3-4`,
+    id: `technique.${tuning.instrument}.spider.${pattern.id}`,
+    name: `${instrumentLabel} String Independence ${pattern.label}`,
     capabilities: [Capability.Technique, Capability.Pitch],
-    skillIds: ["technique.strings.spider", `technique.${tuning.instrument}.spider`],
-    inputs: ["midi", "onscreen"],
+    skillIds: [
+      "technique.strings.spider",
+      "technique.strings.spider.permutations",
+      `technique.${tuning.instrument}.spider`,
+    ],
+    inputs: ["midi", "onscreen", "audio"],
     streaming: true,
     generate: () => ({
-      id: `spider-${tuning.id}-${stringNumber}-${startFret}-${bpm}`,
+      id: `spider-${tuning.id}-${pattern.id}-${stringSpan}-${stringNumber}-${startFret}-${bpm}`,
       payload: {
-        label: `${instrumentLabel} string ${stringNumber} · frets ${startFret}-${startFret + 3}`,
+        label: `${instrumentLabel} ${stringLabel} · ${pattern.label}`,
         instrument: tuning.instrument,
         tuningId: tuning.id,
         stringNumber,
+        stringNumbers,
+        stringSpan,
         startFret,
+        pattern: pattern.id,
+        patternLabel: pattern.label,
+        fretNumbers,
+        positions,
         bpm,
         midiNotes,
         noteLabels: midiNotes.map((midiNote) => midiToNote(midiNote)),
@@ -71,6 +142,43 @@ export function createStringSpiderExercise(
       return stringSpiderRun(prompt.payload);
     },
   };
+}
+
+export function stringSpiderPattern(
+  pattern: StringPatternKind = "ascending-1234",
+): StringSpiderPattern {
+  return (
+    STRING_SPIDER_PATTERNS.find((candidate) => candidate.id === pattern) ??
+    STRING_SPIDER_PATTERNS[0]!
+  );
+}
+
+export function stringSpiderSpan(span: StringSpiderSpan = "single"): StringSpiderSpan {
+  return STRING_SPIDER_SPANS.some((candidate) => candidate.id === span) ? span : "single";
+}
+
+function stringNumbersForSpan(
+  tuning: TuningProfile,
+  startString: number,
+  span: StringSpiderSpan,
+): number[] {
+  const requestedCount =
+    span === "single"
+      ? 1
+      : span === "adjacent-2"
+        ? 2
+        : span === "adjacent-3"
+          ? 3
+          : tuning.openStrings.length;
+  const strings: number[] = [];
+  for (
+    let stringNumber = startString;
+    stringNumber >= 1 && strings.length < requestedCount;
+    stringNumber -= 1
+  ) {
+    strings.push(stringNumber);
+  }
+  return strings;
 }
 
 function stringSpiderRun(prompt: StringSpiderPrompt): ExerciseRun<StringSpiderAnswer> {

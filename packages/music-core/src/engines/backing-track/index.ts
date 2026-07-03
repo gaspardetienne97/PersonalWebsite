@@ -1,5 +1,9 @@
 import type { ImportedBackingTrackRow } from "@repo/music-core/engines/store";
-import { JAM_PROGRESSIONS, type JamProgression } from "@repo/music-core/engines/jam";
+import {
+  JAM_PROGRESSIONS,
+  transposeProgression,
+  type JamProgression,
+} from "@repo/music-core/engines/jam";
 import { chordNotes, pitchClass } from "@repo/music-core/engines/theory";
 import type { SoundPatternStep } from "@repo/music-core/engines/sound";
 
@@ -13,7 +17,7 @@ export interface BuiltinBackingTrack {
 
 export type BackingSelection =
   | { kind: "none" }
-  | { kind: "generated"; progressionId: string; bpm: number; loop: boolean }
+  | { kind: "generated"; progressionId: string; bpm: number; loop: boolean; transpose?: number }
   | { kind: "imported"; track: ImportedBackingTrackRow; loop: boolean }
   | { kind: "builtin"; track: BuiltinBackingTrack; loop: boolean };
 
@@ -232,7 +236,10 @@ export class BackingTrackEngine {
 export function projectGenerated(
   selection: Extract<BackingSelection, { kind: "generated" }>,
 ): BackingProgressionPattern {
-  const progression = JAM_PROGRESSIONS.find((entry) => entry.id === selection.progressionId);
+  const baseProgression = JAM_PROGRESSIONS.find((entry) => entry.id === selection.progressionId);
+  const progression = baseProgression
+    ? transposeProgression(baseProgression, selection.transpose ?? 0)
+    : undefined;
   if (!progression) throw new Error(`Unknown generated progression: ${selection.progressionId}`);
   return projectProgression(progression, selection.bpm);
 }

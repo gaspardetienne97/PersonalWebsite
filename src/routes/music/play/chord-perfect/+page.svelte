@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import { onDestroy, onMount } from "svelte";
 
   import { monotonicMs, type NoteEvent, type ScoringEvent } from "@repo/music-core/domain";
@@ -36,6 +37,10 @@
     type ChordPerfectPrompt,
     type OpenChordIdentificationAnswer,
   } from "@repo/music-core/exercises/chord-perfect";
+  import type {
+    ChordChangeAnswer,
+    ChordChangePrompt,
+  } from "@repo/music-core/exercises/chord-change";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Label } from "@repo/ui/label";
@@ -49,6 +54,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   interface ChordVerifierAudioSource {
@@ -100,6 +106,7 @@
     { value: "build", label: "Build shape" },
     { value: "pick", label: "Pick strings cleanly" },
     { value: "strum", label: "Strum and identify" },
+    { value: "changes", label: "Change trainer" },
   ];
   const defaultInstrument: StringInstrumentId =
     runtime.activeInstrument === "ukulele" ? "ukulele" : "guitar";
@@ -111,6 +118,7 @@
   let instrument = $state<StringInstrumentId>(initialConfig.instrument);
   let mode = $state<ChordPerfectMode>(initialConfig.mode);
   let shapeId = $state(initialConfig.shapeId);
+  let toShapeId = $state(initialConfig.toShapeId);
   let ready = $state(false);
   let pending = $state(false);
   let captured = false;
@@ -128,6 +136,13 @@
 
   const shapes = $derived(chordShapesFor(instrument));
   const shape = $derived(shapes.find((entry) => entry.id === shapeId) ?? shapes[0]!);
+  const transitionShapes = $derived(shapes.filter((entry) => entry.id !== shape.id));
+  const toShape = $derived(
+    transitionShapes.find((entry) => entry.id === toShapeId) ??
+      transitionShapes.find((entry) => shape.commonTransitions.includes(entry.id)) ??
+      transitionShapes[0] ??
+      shape,
+  );
   const shapeGuide = $derived(
     shape.frets
       .map((fret, index) => ({
@@ -143,22 +158,44 @@
       curatedTunings(instrument)[0]!,
   );
   const prompt = $derived(
-    sessionState?.currentPrompt && "shapeId" in sessionState.currentPrompt
+    sessionState?.currentPrompt &&
+      "shapeId" in sessionState.currentPrompt &&
+      "midiNotes" in sessionState.currentPrompt
       ? (sessionState.currentPrompt as ChordPerfectPrompt)
+      : undefined,
+  );
+  const changePrompt = $derived(
+    sessionState?.currentPrompt && "targets" in sessionState.currentPrompt
+      ? (sessionState.currentPrompt as ChordChangePrompt)
       : undefined,
   );
   const summary = $derived(sessionState?.summary);
   const answer = $derived(
     summary?.results[0]?.result.answer as ChordPerfectAnswer | undefined,
   );
-  const total = $derived(prompt?.midiNotes.length ?? 0);
+  const changeAnswer = $derived(
+    summary?.results[0]?.result.answer as ChordChangeAnswer | undefined,
+  );
+  const shapeMidi = $derived(chordShapeMidiNotes(tuning, shape));
+  const transitionMidi = $derived([
+    ...new Set([...shapeMidi, ...chordShapeMidiNotes(tuning, toShape)]),
+  ]);
+  const changeMidiNotes = $derived(
+    changePrompt?.targets.flatMap((target) => target.midiNotes) ?? [],
+  );
+  const total = $derived(prompt?.midiNotes.length ?? changeMidiNotes.length);
   const completedNotes = $derived(
     Math.min(total, Math.round((sessionState?.live?.progress ?? 0) * total)),
   );
-  const nextMidi = $derived(prompt?.midiNotes[completedNotes]);
-  const shapeMidi = $derived(chordShapeMidiNotes(tuning, shape));
-  const targetMidi = $derived(prompt?.shapeMidiNotes ?? shapeMidi);
-  const correctMidi = $derived(prompt?.midiNotes.slice(0, completedNotes) ?? []);
+  const nextMidi = $derived((prompt?.midiNotes ?? changeMidiNotes)[completedNotes]);
+  const targetMidi = $derived(
+    changePrompt
+      ? changeMidiNotes
+      : mode === "changes"
+        ? transitionMidi
+        : (prompt?.shapeMidiNotes ?? shapeMidi),
+  );
+  const correctMidi = $derived((prompt?.midiNotes ?? changeMidiNotes).slice(0, completedNotes));
   const verification = $derived(
     verifyChordTarget({ expectedMidiNotes: shapeMidi, observedMidiNotes: verifiedMidiNotes }),
   );
@@ -208,15 +245,21 @@
         if (state.error) status = state.error;
         if (state.summary && !captured) {
           captured = true;
-          const detail = state.summary.results[0]?.result.answer as ChordPerfectAnswer | undefined;
+          const detail = state.summary.results[0]?.result.answer as
+            | ChordPerfectAnswer
+            | ChordChangeAnswer
+            | undefined;
+          const isChanges = detail !== undefined && "cleanChanges" in detail;
           void runtime.recordPractice({
             source: "drill",
             instrument,
-            tags: ["technique", "chord-perfect", instrument],
+            tags: ["technique", isChanges ? "chord-changes" : "chord-perfect", instrument],
             scoringEvents: state.summary.results.map(({ event }) => event),
             xpEarned: state.summary.xp,
             note: detail
-              ? `${instrument === "guitar" ? "Guitar" : "Ukulele"} chord-perfect · ${shape.name} · ${Math.round(detail.pitchAccuracy * 100)}% clean`
+              ? isChanges
+                ? `${instrument === "guitar" ? "Guitar" : "Ukulele"} chord changes · ${shape.name} to ${toShape.name} · ${detail.cleanChanges}/${detail.completedChanges} clean`
+                : `${instrument === "guitar" ? "Guitar" : "Ukulele"} chord-perfect · ${shape.name} · ${Math.round(detail.pitchAccuracy * 100)}% clean`
               : "Chord-perfect drill",
           });
         }
@@ -232,13 +275,33 @@
     const config = normalizeChordPerfectDrillConfig({ mode, instrument: value });
     instrument = config.instrument;
     shapeId = config.shapeId;
+    toShapeId = config.toShapeId;
     clearVerifier();
     runtime.setActiveInstrument(instrument);
   }
 
   function selectMode(value: string): void {
-    mode = normalizeChordPerfectDrillConfig({ mode: value, instrument, shape: shapeId }).mode;
+    const config = normalizeChordPerfectDrillConfig({
+      mode: value,
+      instrument,
+      shape: shapeId,
+      to: toShapeId,
+    });
+    mode = config.mode;
+    toShapeId = config.toShapeId;
     if (mode !== "pick") stopVerifier();
+  }
+
+  function selectShape(value: string): void {
+    const config = normalizeChordPerfectDrillConfig({ mode, instrument, shape: value });
+    shapeId = config.shapeId;
+    toShapeId = config.toShapeId;
+    clearVerifier();
+  }
+
+  function selectToShape(value: string): void {
+    const config = normalizeChordPerfectDrillConfig({ mode, instrument, shape: shapeId, to: value });
+    toShapeId = config.toShapeId;
   }
 
   async function enableMidi(): Promise<void> {
@@ -251,8 +314,13 @@
     captured = false;
     status = "";
     try {
-      await session.startChordPerfect({ tuning, shape });
-      status = `Sound each string of ${shape.name}, low to high.`;
+      if (mode === "changes") {
+        await session.startChordChange({ tuning, fromShape: shape, toShape, repetitions: 1 });
+        status = `Switch from ${shape.name} to ${toShape.name} cleanly.`;
+      } else {
+        await session.startChordPerfect({ tuning, shape });
+        status = `Sound each string of ${shape.name}, low to high.`;
+      }
     } catch (error) {
       status = message(error, "The chord-perfect drill could not be started.");
     } finally {
@@ -293,14 +361,24 @@
 
   function syncConfigUrl(): void {
     if (!browser) return;
-    const config = normalizeChordPerfectDrillConfig({ mode, instrument, shape: shapeId });
+    const config = normalizeChordPerfectDrillConfig({
+      mode,
+      instrument,
+      shape: shapeId,
+      to: toShapeId,
+    });
     const url = new URL(window.location.href);
     const params = url.searchParams;
     params.set("mode", config.mode);
     params.set("instrument", config.instrument);
     params.set("tuning", config.tuningId);
     params.set("shape", config.shapeId);
-    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
+    if (config.mode === "changes") {
+      params.set("to", config.toShapeId);
+    } else {
+      params.delete("to");
+    }
+    replaceRouteState(`${url.pathname}?${params.toString()}${url.hash}`, $page.state);
   }
 
   let strumBusy = $state(false);
@@ -404,11 +482,17 @@
             title: verificationStatus,
             detail: "Pick strings or play into the mic until every chord tone is covered.",
           }
-        : {
-            description: "Strum and identify",
-            title: strumCandidates[0] ? strumCandidates[0].symbol : "What did you just play?",
-            detail: `Record one strum, identify the chord, then check it against ${shape.name}.`,
-          },
+        : mode === "changes"
+          ? {
+              description: "Chord-change reps",
+              title: `${shape.name} to ${toShape.name}`,
+              detail: "Play the first chord, switch, then play the target chord cleanly.",
+            }
+          : {
+              description: "Strum and identify",
+              title: strumCandidates[0] ? strumCandidates[0].symbol : "What did you just play?",
+              detail: `Record one strum, identify the chord, then check it against ${shape.name}.`,
+            },
   );
 
   function playAccepted(event: NoteEvent): void {
@@ -531,6 +615,7 @@
               id="chord-shape"
               aria-label="Chord"
               bind:value={shapeId}
+              onchange={(event) => selectShape(event.currentTarget.value)}
               class="h-9 rounded-md border bg-background px-3 text-sm"
             >
               {#each shapes as entry (entry.id)}
@@ -538,6 +623,22 @@
               {/each}
             </select>
           </div>
+          {#if mode === "changes"}
+            <div class="grid gap-2">
+              <Label for="target-chord-shape">To chord</Label>
+              <select
+                id="target-chord-shape"
+                aria-label="To chord"
+                bind:value={toShapeId}
+                class="h-9 rounded-md border bg-background px-3 text-sm"
+                onchange={(event) => selectToShape(event.currentTarget.value)}
+              >
+                {#each transitionShapes as entry (entry.id)}
+                  <option value={entry.id}>{entry.name}</option>
+                {/each}
+              </select>
+            </div>
+          {/if}
         </fieldset>
 
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -548,7 +649,11 @@
             unit="%"
             tone="good"
           />
-          <HudTile label="Chord" value={shape.name} tone="accent" />
+          <HudTile
+            label="Chord"
+            value={mode === "changes" ? `${shape.name} to ${toShape.name}` : shape.name}
+            tone="accent"
+          />
         </div>
 
         <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
@@ -630,6 +735,44 @@
               <p class="text-destructive">{audioState.message}</p>
             {/if}
           </div>
+        {:else if mode === "changes"}
+          {#if changePrompt}
+            <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+              <div class="flex items-center justify-between gap-3 text-sm">
+                <span class="font-medium">{changePrompt.label}</span>
+                <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
+              </div>
+              <Progress value={completedNotes} max={total} />
+              <div class="flex flex-wrap gap-2 text-xs font-medium">
+                {#each changePrompt.targets as target (target.index)}
+                  <span
+                    class="rounded-full border px-2.5 py-1 {target.index ===
+                    Math.floor(completedNotes / Math.max(1, target.midiNotes.length))
+                      ? 'border-primary/30 bg-primary/10 text-primary'
+                      : 'bg-background text-muted-foreground'}"
+                  >
+                    {target.label}
+                  </span>
+                {/each}
+              </div>
+              <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+            </div>
+          {:else}
+            <div class="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
+              <p class="font-medium">{shape.name} to {toShape.name}</p>
+              <p class="text-muted-foreground">Start changes, play the first chord, then switch.</p>
+            </div>
+          {/if}
+
+          {#if summary && changeAnswer}
+            <SessionFeedback
+              kind={summary.correct === summary.total ? "correct" : "wrong"}
+              message="Chord changes complete"
+              detail={`${changeAnswer.cleanChanges}/${changeAnswer.completedChanges || changePrompt?.targets.length || 0} targets clean`}
+              xp={summary.xp}
+            />
+            <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat changes" />
+          {/if}
         {:else}
           <div class="grid gap-4 rounded-lg border bg-muted/30 p-4 text-sm">
             {#if strumCandidates.length}
@@ -726,6 +869,15 @@
             </Button>
           {/if}
           <Button type="button" variant="ghost" onclick={clearVerifier}>Reset</Button>
+        {:else if mode === "changes"}
+          {#if sessionState?.status === "active"}
+            <Button type="button" variant="outline" onclick={cancel}>Cancel changes</Button>
+          {:else if !summary}
+            <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
+              {pending ? "Starting..." : "Start changes"}
+            </Button>
+          {/if}
+          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         {:else}
           <Button
             type="button"

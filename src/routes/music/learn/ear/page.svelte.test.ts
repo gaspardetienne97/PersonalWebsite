@@ -5,11 +5,12 @@ import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
 import { SoundEngine } from "@repo/music-core/engines/sound";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 
 describe("/music/learn/ear/+page.svelte", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    window.history.replaceState({}, "", "/");
+    setTestUrl("/");
     vi.spyOn(SoundEngine.prototype, "enable").mockImplementation(async function () {
       this.enabled = true;
       return { enabled: true, message: "Audio enabled." };
@@ -24,6 +25,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     expect(document.body.textContent).toContain("Interval");
     expect(document.body.textContent).toContain("Chord Quality");
     expect(document.body.textContent).toContain("Scale Degree");
+    expect(document.body.textContent).toContain("Cadence");
     expect(document.body.textContent).toContain("Adaptive mix");
 
     const mixed = [...document.querySelectorAll("button")].find((button) =>
@@ -86,6 +88,24 @@ describe("/music/learn/ear/+page.svelte", () => {
 
     await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
     expect(playPattern.mock.calls.at(-1)?.[1]).toBe(1);
+  });
+
+  test("starts cadence recognition and advances from a choice answer", async () => {
+    const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern");
+    render(Page);
+
+    const cadence = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Start Cadence"),
+    );
+    await vi.waitFor(() => expect(cadence?.disabled).toBe(false));
+    cadence?.click();
+
+    await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
+    expect(document.body.textContent).toContain("What cadence did you hear?");
+    expect(document.body.textContent).toContain("Authentic");
+    answerChoiceButton()?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
   });
 
   test("starts Pocket mode and advances from listening self-assessment", async () => {
@@ -253,11 +273,30 @@ describe("/music/learn/ear/+page.svelte", () => {
     ).toEqual(["1", "2", "3", "4", "5"]);
   });
 
+  test("can run focused scale-degree recognition as functional solfege", async () => {
+    render(Page);
+
+    button("Solfege")?.click();
+    await vi.waitFor(() => expect(button("Solfege")).toHaveAttribute("aria-pressed", "true"));
+
+    const scaleDegree = [...document.querySelectorAll("button")].find((candidate) =>
+      candidate.textContent?.includes("Start Scale Degree"),
+    );
+    await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
+    scaleDegree?.click();
+
+    await vi.waitFor(() => expect(answerChoiceButton()).not.toBeNull());
+    expect(
+      [...document.querySelectorAll('[aria-label="Scale-degree answer choices"] button')].map(
+        (choice) => choice.textContent?.trim(),
+      ),
+    ).toEqual(["do", "sol"]);
+    expect(window.location.search).toContain("labels=solfege");
+  });
+
   test("restores setup from shareable query parameters", async () => {
-    window.history.replaceState(
-      {},
-      "",
-      "/music/learn/ear?drill=scale-degree&answer=play-back&feedback=test&level=chromatic-color",
+    setTestUrl(
+      "/music/learn/ear?drill=scale-degree&answer=play-back&feedback=test&level=chromatic-color&labels=solfege",
     );
 
     render(Page);
@@ -265,11 +304,12 @@ describe("/music/learn/ear/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Play-back")?.getAttribute("aria-pressed")).toBe("true"));
     expect(button("Test")).toHaveAttribute("aria-pressed", "true");
     expect(button("Chromatic color")).toHaveAttribute("aria-pressed", "true");
+    expect(button("Solfege")).toHaveAttribute("aria-pressed", "true");
     expect(window.location.search).toContain("drill=scale-degree");
   });
 
   test("keeps setup changes and the selected drill in the shareable URL", async () => {
-    window.history.replaceState({}, "", "/music/learn/ear");
+    setTestUrl("/music/learn/ear");
     render(Page);
 
     button("Pocket")?.click();

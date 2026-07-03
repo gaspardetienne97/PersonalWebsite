@@ -38,14 +38,74 @@ export interface SightReadingOptions {
   mode: ScoreFollowerMode;
   strictness: TimingStrictness;
   difficulty: number;
+  readingLevel?: ReadingLevelId;
+  transposeSemitones?: number;
   startTimestampMs?: MonotonicMs;
 }
+
+export type ReadingLevelId = "primer" | "level-1" | "level-2" | "level-3";
+
+export interface ReadingLevelMetadata {
+  id: ReadingLevelId;
+  label: string;
+  description: string;
+  rhythm: string;
+  recommendedDifficulty: number;
+  recommendedClefs: Clef[];
+  recommendedRange: { lowestMidi: number; highestMidi: number };
+  recommendedKeys: string[];
+}
+
+export const READING_LEVELS: ReadingLevelMetadata[] = [
+  {
+    id: "primer",
+    label: "Primer",
+    description: "Landmark notes and stepwise motion.",
+    rhythm: "quarters and halves",
+    recommendedDifficulty: 0.2,
+    recommendedClefs: ["treble"],
+    recommendedRange: { lowestMidi: 60, highestMidi: 72 },
+    recommendedKeys: ["C major"],
+  },
+  {
+    id: "level-1",
+    label: "Level 1",
+    description: "Stepwise phrases in familiar keys.",
+    rhythm: "quarters, halves, and simple eighths",
+    recommendedDifficulty: 0.4,
+    recommendedClefs: ["treble"],
+    recommendedRange: { lowestMidi: 55, highestMidi: 79 },
+    recommendedKeys: ["C major", "G major", "F major"],
+  },
+  {
+    id: "level-2",
+    label: "Level 2",
+    description: "Wider range, bass-clef option, and quicker movement.",
+    rhythm: "eighth-note motion",
+    recommendedDifficulty: 0.55,
+    recommendedClefs: ["treble", "bass"],
+    recommendedRange: { lowestMidi: 48, highestMidi: 84 },
+    recommendedKeys: ["C major", "G major", "F major", "A minor", "E minor"],
+  },
+  {
+    id: "level-3",
+    label: "Level 3",
+    description: "Compound meter, syncopation, and mixed rhythmic values.",
+    rhythm: "eighths and syncopation",
+    recommendedDifficulty: 0.7,
+    recommendedClefs: ["treble", "bass"],
+    recommendedRange: { lowestMidi: 43, highestMidi: 88 },
+    recommendedKeys: ["C major", "G major", "D major", "F major", "Bb major", "D minor"],
+  },
+];
 
 export interface SightReadingPrompt {
   score: Score;
   notation: NotationView;
   groups: ExpectedNoteGroup[];
   options: SightReadingOptions;
+  readingLevel?: ReadingLevelMetadata;
+  transposeSemitones: number;
 }
 
 export interface CreateSightReadingExerciseOptions {
@@ -69,6 +129,8 @@ export function createSightReadingExercise({
     generate: () => {
       const score = generateScore(options, random);
       const groups = expectedGroups(score);
+      const readingLevel = readingLevelFor(options.readingLevel);
+      const transposeSemitones = normalizeTranspose(options.transposeSemitones);
 
       return {
         id: `sight-reading:${options.instrument}:${options.keySignature}:${score.id}`,
@@ -77,6 +139,8 @@ export function createSightReadingExercise({
           notation: notationView(score),
           groups,
           options,
+          ...(readingLevel === undefined ? {} : { readingLevel }),
+          transposeSemitones,
         },
         scoreId: score.id,
       };
@@ -97,6 +161,8 @@ export function createSightReadingExercise({
 function generateScore(options: SightReadingOptions, random: () => number): Score {
   const voices = voicesFor(options);
   const rests: ScoreRest[] = [];
+  const readingLevel = readingLevelFor(options.readingLevel);
+  const transposeSemitones = normalizeTranspose(options.transposeSemitones);
   const notes =
     options.instrument === "piano"
       ? pianoNotes(options, random, rests)
@@ -111,6 +177,7 @@ function generateScore(options: SightReadingOptions, random: () => number): Scor
       options.timeSignature.denominator,
       options.measures,
       Math.round(options.difficulty * 100),
+      transposeSemitones,
     ].join(":"),
     title: "Generated sight reading",
     origin: "generated",
@@ -129,7 +196,28 @@ function generateScore(options: SightReadingOptions, random: () => number): Scor
         endBeat: measureDuration(options) * options.measures,
       },
     ],
-    markers: [],
+    markers: [
+      ...(readingLevel === undefined
+        ? []
+        : [
+            {
+              id: "reading-level",
+              beat: 0,
+              label: readingLevel.label,
+              kind: "practice" as const,
+            },
+          ]),
+      ...(transposeSemitones === 0
+        ? []
+        : [
+            {
+              id: "transpose",
+              beat: 0,
+              label: `Transpose ${transposeSemitones} st`,
+              kind: "practice" as const,
+            },
+          ]),
+    ],
   };
 }
 
@@ -217,12 +305,13 @@ function playableStringGroups(tuning: TuningProfile): number[][] {
 function note(
   options: SightReadingOptions,
   voiceId: string,
-  midiNote: number,
+  writtenConcertMidi: number,
   startBeat: number,
   durationBeats: number,
 ): ScoreNote {
   const tuning = options.instrument === "piano" ? undefined : tuningFor(options);
-  const writtenMidi = midiNote - (tuning?.notationTransposition ?? 0);
+  const midiNote = writtenConcertMidi + normalizeTranspose(options.transposeSemitones);
+  const writtenMidi = writtenConcertMidi - (tuning?.notationTransposition ?? 0);
   return {
     midiNote,
     writtenPitch: spellMidiForKey(writtenMidi, options.keySignature),
@@ -287,6 +376,15 @@ function validateOptions(options: SightReadingOptions): void {
   if (options.instrument !== "piano" && options.tuning?.instrument !== options.instrument) {
     throw new Error(`A ${options.instrument} tuning is required`);
   }
+}
+
+export function readingLevelFor(id: ReadingLevelId | undefined): ReadingLevelMetadata | undefined {
+  return READING_LEVELS.find((level) => level.id === id);
+}
+
+function normalizeTranspose(value: number | undefined): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(-12, Math.min(12, Math.round(value ?? 0)));
 }
 
 function sightReadingSkills(options: SightReadingOptions): string[] {

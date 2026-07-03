@@ -4,12 +4,13 @@ import { render } from "vitest-browser-svelte";
 import { LICK_PHRASES } from "@repo/music-core/engines/jazz";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 import type { MusicRuntime } from "../../_runtime.svelte";
 
 afterEach(() => {
   vi.restoreAllMocks();
   document.body.replaceChildren();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
 });
 
 describe("/music/play/licks/+page.svelte", () => {
@@ -53,7 +54,7 @@ describe("/music/play/licks/+page.svelte", () => {
   });
 
   test("restores and syncs the shareable lick setup URL", async () => {
-    window.history.replaceState({}, "", "/music/play/licks?category=minor-chord&lick=26");
+    setTestUrl("/music/play/licks?category=minor-chord&lick=26");
 
     render(Page);
 

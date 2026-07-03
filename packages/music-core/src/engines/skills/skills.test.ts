@@ -121,7 +121,12 @@ describe("music-core/skills", () => {
         "pitch.scale-degree.7",
         "harmony.triad.augmented",
         "harmony.seventh.major",
+        "ear.cadences.authentic",
+        "ear.cadences.deceptive",
         "harmony.ii-v-i",
+        "rhythm.subdivision.eighths",
+        "rhythm.subdivision.sixteenths",
+        "rhythm.gap-click",
         "rhythm.triplets",
         "rhythm.sixteenths",
         "reading.treble.landmarks",
@@ -135,20 +140,31 @@ describe("music-core/skills", () => {
         "technique.aerophone.breath-steadiness",
         "technique.aerophone.dynamic-control",
         "technique.aerophone.articulation",
+        "technique.aerophone.interval-landing",
+        "intonation.interval-landing",
         "technique.strings",
         "technique.strings.spider",
+        "technique.strings.spider.permutations",
+        "technique.strings.note-finder",
         "technique.guitar.spider",
+        "technique.guitar.note-finder",
         "technique.ukulele.spider",
+        "technique.ukulele.note-finder",
         "technique.strings.chord-perfect",
         "technique.guitar.chord-perfect",
         "technique.ukulele.chord-perfect",
+        "technique.strings.chord-changes",
+        "technique.guitar.chord-changes",
+        "technique.ukulele.chord-changes",
         "technique.strings.open-chord-id",
         "technique.guitar.open-chord-id",
         "technique.ukulele.open-chord-id",
         "technique.piano",
         "technique.piano.two-hand-independence",
+        "technique.piano.independence.shell-line",
         "technique.mpc",
         "technique.mpc.single-strokes",
+        "technique.mpc.paradiddles",
       ]),
     );
     expect(seed.skills).toEqual(
@@ -167,11 +183,58 @@ describe("music-core/skills", () => {
           level: "beginner",
           tags: ["mpc", "pads", "rudiment", "single-strokes"],
         }),
+        expect.objectContaining({
+          id: "technique.mpc.paradiddles",
+          name: "MPC Paradiddles",
+          capability: Capability.Technique,
+          level: "beginner",
+          tags: ["mpc", "pads", "rudiment", "paradiddle"],
+        }),
       ]),
     );
     expect(seed.relationships).toContainEqual({
+      from: "technique.strings.spider",
+      to: "technique.strings.spider.permutations",
+      kind: SkillRelationKind.Component,
+    });
+    expect(seed.relationships).toContainEqual({
+      from: "rhythm.subdivisions",
+      to: "rhythm.subdivision.eighths",
+      kind: SkillRelationKind.Component,
+    });
+    expect(seed.relationships).toContainEqual({
+      from: "rhythm.subdivisions",
+      to: "rhythm.gap-click",
+      kind: SkillRelationKind.Component,
+    });
+    expect(seed.relationships).toContainEqual({
       from: "technique.mpc",
       to: "technique.mpc.single-strokes",
+      kind: SkillRelationKind.Component,
+    });
+    expect(seed.relationships).toContainEqual({
+      from: "technique.mpc",
+      to: "technique.mpc.paradiddles",
+      kind: SkillRelationKind.Component,
+    });
+    expect(seed.relationships).toContainEqual({
+      from: "technique.piano.two-hand-independence",
+      to: "technique.piano.independence.shell-line",
+      kind: SkillRelationKind.Component,
+    });
+    expect(seed.relationships).toContainEqual({
+      from: "ear.cadences",
+      to: "ear.cadences.authentic",
+      kind: SkillRelationKind.Component,
+    });
+    expect(seed.relationships).toContainEqual({
+      from: "technique.strings.note-finder",
+      to: "technique.guitar.note-finder",
+      kind: SkillRelationKind.Component,
+    });
+    expect(seed.relationships).toContainEqual({
+      from: "technique.strings.chord-changes",
+      to: "technique.guitar.chord-changes",
       kind: SkillRelationKind.Component,
     });
     expect(

@@ -4,10 +4,12 @@ import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
 
 import {
   JAM_PROGRESSIONS,
+  JAM_PROGRESSION_GROUPS,
   JamSession,
   normalizeChordProgressionDrillConfig,
   normalizeJamPracticeConfig,
   targetTones,
+  transposeProgression,
 } from "./index";
 
 function note(midiNote: number): NoteEvent {
@@ -40,6 +42,29 @@ describe("targetTones", () => {
 });
 
 describe("JamSession", () => {
+  test("ships a grouped progression catalog with practice metadata", () => {
+    expect(JAM_PROGRESSION_GROUPS.map((group) => group.id)).toEqual([
+      "pop",
+      "guitar-uke",
+      "jazz",
+      "blues",
+      "modal",
+    ]);
+    expect(JAM_PROGRESSIONS.map((progression) => progression.group)).toContain("pop");
+    expect(JAM_PROGRESSIONS.map((progression) => progression.group)).toContain("guitar-uke");
+    expect(
+      JAM_PROGRESSIONS.every(
+        (progression) => typeof progression.defaultBpm === "number" && progression.defaultBpm > 0,
+      ),
+    ).toBe(true);
+    expect(JAM_PROGRESSIONS.find((progression) => progression.id === "ii-v-i")).toMatchObject({
+      group: "jazz",
+      keyRoot: "C",
+      defaultBpm: 110,
+      transposable: true,
+    });
+  });
+
   test("loops through the progression", () => {
     const session = new JamSession(JAM_PROGRESSIONS[0]!);
     const first = session.current.symbol;
@@ -72,13 +97,34 @@ describe("JamSession", () => {
   });
 });
 
+describe("transposeProgression", () => {
+  test("transposes chord symbols, scales, and key labels without mutating the catalog", () => {
+    const source = JAM_PROGRESSIONS.find((progression) => progression.id === "ii-v-i")!;
+    const transposed = transposeProgression(source, 2);
+
+    expect(transposed.id).toBe("ii-v-i");
+    expect(transposed.key).toBe("D major");
+    expect(transposed.keyRoot).toBe("D");
+    expect(transposed.chords.map((chord) => chord.symbol)).toEqual(["Em7", "A7", "Dmaj7", "B7"]);
+    expect(transposed.chords.map((chord) => chord.scale)).toEqual([
+      "E dorian",
+      "A mixolydian",
+      "D major",
+      "B mixolydian",
+    ]);
+    expect(source.chords[0]!.symbol).toBe("Dm7");
+  });
+});
+
 describe("normalizeChordProgressionDrillConfig", () => {
   test("restores and clamps shareable chord progression drill config", () => {
-    const params = new URLSearchParams("progression=minor-ii-v-i&bpm=236");
+    const params = new URLSearchParams("group=jazz&progression=minor-ii-v-i&bpm=236&transpose=2");
 
     expect(normalizeChordProgressionDrillConfig(params)).toEqual({
+      group: "jazz",
       progressionId: "minor-ii-v-i",
       bpm: 220,
+      transpose: 2,
     });
   });
 
@@ -87,10 +133,22 @@ describe("normalizeChordProgressionDrillConfig", () => {
       normalizeChordProgressionDrillConfig({
         progression: "unknown",
         bpm: "fast",
+        transpose: "99",
       }),
     ).toEqual({
+      group: "jazz",
       progressionId: JAM_PROGRESSIONS[0]!.id,
-      bpm: 90,
+      bpm: JAM_PROGRESSIONS[0]!.defaultBpm,
+      transpose: 0,
+    });
+  });
+
+  test("defaults to the selected group's first progression and default tempo", () => {
+    expect(normalizeChordProgressionDrillConfig({ group: "blues" })).toEqual({
+      group: "blues",
+      progressionId: "blues",
+      bpm: 95,
+      transpose: 0,
     });
   });
 });
@@ -102,13 +160,17 @@ describe("normalizeJamPracticeConfig", () => {
   };
 
   test("restores and clamps shareable jam config", () => {
-    const params = new URLSearchParams("progression=blues&backing=chords&bpm=236&drums=ballad-65");
+    const params = new URLSearchParams(
+      "group=blues&progression=blues&backing=chords&bpm=236&drums=ballad-65&transpose=-2",
+    );
 
     expect(normalizeJamPracticeConfig(params, drumOptions)).toEqual({
+      group: "blues",
       progressionId: "blues",
       backingMode: "chords",
       drumTrackId: "ballad-65",
       bpm: 220,
+      transpose: -2,
     });
   });
 
@@ -124,10 +186,12 @@ describe("normalizeJamPracticeConfig", () => {
         drumOptions,
       ),
     ).toEqual({
+      group: "jazz",
       progressionId: JAM_PROGRESSIONS[0]!.id,
       backingMode: "drums",
       drumTrackId: "swing-125",
-      bpm: 96,
+      bpm: JAM_PROGRESSIONS[0]!.defaultBpm,
+      transpose: 0,
     });
   });
 });

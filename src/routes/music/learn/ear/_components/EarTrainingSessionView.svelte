@@ -98,13 +98,15 @@
   const drillLabel = $derived(
     prompt?.drill === "chord-quality"
       ? "Chord Quality"
-      : prompt?.drill === "scale-degree"
-        ? "Scale Degree"
-        : prompt?.drill === "melody-dictation"
-          ? "Melody Dictation"
-          : prompt?.drill === "repertoire-transfer"
-            ? "Repertoire Transfer"
-            : "Interval",
+      : prompt?.drill === "cadence"
+        ? "Cadence"
+        : prompt?.drill === "scale-degree"
+          ? "Scale Degree"
+          : prompt?.drill === "melody-dictation"
+            ? "Melody Dictation"
+            : prompt?.drill === "repertoire-transfer"
+              ? "Repertoire Transfer"
+              : "Interval",
   );
   const total = $derived(state.queue.length);
   const answered = $derived(state.results.length);
@@ -186,7 +188,11 @@
       <Ear class="size-5" aria-hidden="true" />
     </span>
     <div class="min-w-0 flex-1">
-      <h2 class="text-lg font-bold tracking-tight">What {drillLabel.toLowerCase()} did you hear?</h2>
+      <h2 class="text-lg font-bold tracking-tight">
+        What {scaleDegreePrompt?.labelMode === "solfege"
+          ? "solfege syllable"
+          : drillLabel.toLowerCase()} did you hear?
+      </h2>
       <p class="text-sm text-muted-foreground">
         {prompt?.drill === "melody-dictation"
           ? "Play back the phrase on MIDI or the on-screen keyboard."

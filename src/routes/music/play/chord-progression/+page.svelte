@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import { onDestroy, onMount } from "svelte";
 
   import {
@@ -18,8 +19,11 @@
   } from "@repo/music-core/engines/audio-in";
   import {
     JAM_PROGRESSIONS,
+    JAM_PROGRESSION_GROUPS,
     normalizeChordProgressionDrillConfig,
     targetTones,
+    transposeProgression,
+    type JamProgressionGroup,
     type TargetTone,
   } from "@repo/music-core/engines/jam";
   import { Button } from "@repo/ui/button";
@@ -31,6 +35,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface ChordSourceLike {
@@ -67,12 +72,22 @@
     value: entry.id,
     label: entry.name,
   }));
+  const groupOptions = JAM_PROGRESSION_GROUPS.map((group) => ({
+    value: group.id,
+    label: group.label,
+  }));
+  const transposeOptions = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((value) => ({
+    value: String(value),
+    label: value === 0 ? "0" : value > 0 ? `+${value}` : String(value),
+  }));
   const initialConfig = normalizeChordProgressionDrillConfig(
     browser ? new URLSearchParams(window.location.search) : {},
   );
 
+  let progressionGroup = $state<JamProgressionGroup>(initialConfig.group);
   let progressionId = $state(initialConfig.progressionId);
   let bpm = $state(initialConfig.bpm);
+  let transposeSemitones = $state(String(initialConfig.transpose));
   let followerState = $state<ChordFollowerState | undefined>();
   let detected = $state<number[]>([]);
   let running = $state(false);
@@ -83,22 +98,48 @@
   let audioState = $state<AudioPitchState>({ status: "idle" });
   let captured = false;
 
-  const progression = $derived(
+  const baseProgression = $derived(
     JAM_PROGRESSIONS.find((entry) => entry.id === progressionId) ?? JAM_PROGRESSIONS[0]!,
   );
+  const filteredProgressionOptions = $derived(
+    JAM_PROGRESSIONS.filter((entry) => entry.group === progressionGroup).map((entry) => ({
+      value: entry.id,
+      label: entry.name,
+    })),
+  );
+  const progression = $derived(transposeProgression(baseProgression, Number(transposeSemitones)));
   const expected = $derived(expectedChordsFromProgression(progression));
   const currentIndex = $derived(followerState?.currentIndex ?? 0);
   const currentChord = $derived(progression.chords[currentIndex] ?? progression.chords[0]!);
   const chartTones = $derived<TargetTone[]>(targetTones(currentChord.symbol, currentChord.scale));
   const detectedLabels = $derived(detected.map(pitchClassLabel).join(", ") || "None yet");
-  const normalizedConfig = $derived(normalizeChordProgressionDrillConfig({ progression: progressionId, bpm }));
+  const normalizedConfig = $derived(
+    normalizeChordProgressionDrillConfig({
+      group: progressionGroup,
+      progression: progressionId,
+      bpm,
+      transpose: transposeSemitones,
+    }),
+  );
 
   $effect(() => {
     syncConfigUrl();
   });
 
+  function selectGroup(value: string): void {
+    const config = normalizeChordProgressionDrillConfig({ group: value });
+    progressionGroup = config.group;
+    progressionId = config.progressionId;
+    bpm = config.bpm;
+    transposeSemitones = String(config.transpose);
+  }
+
   function selectProgression(value: string): void {
-    progressionId = normalizeChordProgressionDrillConfig({ progression: value, bpm }).progressionId;
+    const config = normalizeChordProgressionDrillConfig({ progression: value });
+    progressionGroup = config.group;
+    progressionId = config.progressionId;
+    bpm = config.bpm;
+    transposeSemitones = String(config.transpose);
   }
 
   function chordGrade(index: number) {
@@ -208,13 +249,11 @@
   function syncConfigUrl(): void {
     const config = normalizedConfig;
     const params = new URLSearchParams(window.location.search);
+    params.set("group", config.group);
     params.set("progression", config.progressionId);
     params.set("bpm", String(config.bpm));
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
-    );
+    params.set("transpose", String(config.transpose));
+    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
   }
 
   onMount(() => {
@@ -261,10 +300,21 @@
         <Card.Content class="grid gap-6">
           <fieldset disabled={running} class="grid gap-4 disabled:opacity-70">
             <SegmentedControl
+              ariaLabel="Group"
+              options={groupOptions}
+              value={progressionGroup}
+              onChange={selectGroup}
+            />
+            <SegmentedControl
               ariaLabel="Progression"
-              options={progressionOptions}
+              options={filteredProgressionOptions.length > 0 ? filteredProgressionOptions : progressionOptions}
               value={progressionId}
               onChange={selectProgression}
+            />
+            <SegmentedControl
+              ariaLabel="Transpose"
+              options={transposeOptions}
+              bind:value={transposeSemitones}
             />
             <div class="grid gap-2">
               <Label for="tempo">Tempo</Label>

@@ -3,6 +3,7 @@ import { vi } from "vitest";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../_components/test-url";
 import type { MusicRuntime } from "../_runtime.svelte";
 
 function createRuntimeStub() {
@@ -49,7 +50,7 @@ function createRuntimeStub() {
 
 describe("/music/jam/+page.svelte", () => {
   afterEach(() => {
-    window.history.replaceState({}, "", "/");
+    setTestUrl("/");
   });
 
   test("renders the current chord, progression, and solo keyboard", () => {
@@ -112,34 +113,47 @@ describe("/music/jam/+page.svelte", () => {
   });
 
   test("restores shareable jam query config", async () => {
-    window.history.replaceState({}, "", "/music/jam?progression=blues&backing=chords&bpm=140");
+    setTestUrl("/music/jam?group=blues&progression=blues&backing=chords&bpm=140&transpose=2");
     const runtime = createRuntimeStub();
 
     render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
 
     await vi.waitFor(() => expect(runtime.setTransportBpm).toHaveBeenCalledWith(140));
     expect(document.body.textContent).toContain("12-bar blues");
-    expect(document.body.textContent).toContain("C7");
+    expect(document.body.textContent).toContain("D7");
     expect(document.body.textContent).toContain("Synth chords");
+    expect(
+      document.querySelector('[aria-label="Transpose"] button[aria-pressed="true"]')?.textContent,
+    ).toContain("+2");
   });
 
   test("syncs jam setup changes into the URL", async () => {
-    window.history.replaceState({}, "", "/music/jam");
-    render(Page, { props: { runtime: createRuntimeStub() as unknown as MusicRuntime } });
+    setTestUrl("/music/jam");
+    const runtime = createRuntimeStub();
+    render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
 
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "Modal")
+      ?.click();
     [...document.querySelectorAll<HTMLButtonElement>("button")]
       .find((button) => button.textContent?.trim() === "Modal vamp")
       ?.click();
     [...document.querySelectorAll<HTMLButtonElement>("button")]
       .find((button) => button.textContent?.trim() === "Synth chords")
       ?.click();
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "+2")
+      ?.click();
 
     await vi.waitFor(() => {
       const params = new URLSearchParams(window.location.search);
+      expect(params.get("group")).toBe("modal");
       expect(params.get("progression")).toBe("modal");
       expect(params.get("backing")).toBe("chords");
-      expect(params.get("bpm")).toBe("96");
+      expect(params.get("bpm")).toBe("84");
+      expect(params.get("transpose")).toBe("2");
     });
+    expect(runtime.setTransportBpm).toHaveBeenCalledWith(84);
   });
 
   test("records a chorus take into the shared take review panel", async () => {

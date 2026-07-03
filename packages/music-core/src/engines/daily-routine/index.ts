@@ -88,27 +88,59 @@ const RECOMMENDED_STEPS: DailyRoutineStep[] = [
     href: "/music/play/voicings",
     description: "Cycle the graded ii-V-I drill through all 12 keys.",
   },
+  {
+    id: "spider",
+    label: "String Independence",
+    href: "/music/play/spider",
+    description: "Run focused fretting permutations and note-finder work.",
+  },
+  {
+    id: "chord-perfect",
+    label: "Chord Work",
+    href: "/music/play/chord-perfect",
+    description: "Clean up chord shapes, recognition, and changes.",
+  },
+  {
+    id: "two-hand",
+    label: "Two-Hand Piano",
+    href: "/music/play/two-hand",
+    description: "Practice hand independence on the keyboard.",
+  },
+  {
+    id: "mpc",
+    label: "MPC Rudiments",
+    href: "/music/play/mpc",
+    description: "Build pad timing and rudiment control.",
+  },
+  {
+    id: "aerophone",
+    label: "Aerophone Technique",
+    href: "/music/learn/aerophone",
+    description: "Shape breath, articulation, dynamics, and interval landings.",
+  },
   ...DEFAULT_STEPS,
 ];
 
 export function buildDailyRoutinePlan(
   recommendations: DailyRoutineRecommendation[],
 ): DailyRoutineStep[] {
-  const stepsByHref = new Map(RECOMMENDED_STEPS.map((step) => [step.href, step]));
+  const stepsByHref = new Map(RECOMMENDED_STEPS.map((step) => [hrefRouteKey(step.href), step]));
   const selected: DailyRoutineStep[] = [];
   const seen = new Set<string>();
 
   for (const recommendation of recommendations) {
-    const step = stepsByHref.get(recommendation.href);
-    if (!step || seen.has(step.href)) continue;
-    selected.push({ ...step, skillId: recommendation.skillId });
-    seen.add(step.href);
+    const routeKey = hrefRouteKey(recommendation.href);
+    const step = stepsByHref.get(routeKey);
+    if (!step || seen.has(routeKey)) continue;
+    selected.push({ ...step, href: recommendation.href, skillId: recommendation.skillId });
+    seen.add(routeKey);
   }
 
   for (const step of DEFAULT_STEPS) {
-    if (seen.has(step.href)) continue;
+    const routeKey = hrefRouteKey(step.href);
+    if (seen.has(routeKey)) continue;
     selected.push({ ...step });
-    seen.add(step.href);
+    seen.add(routeKey);
   }
 
   return selected;
@@ -188,4 +220,8 @@ function meanAccuracy(events: ScoringEvent[]): number {
 
 function clone<T>(value: T): T {
   return structuredClone(value);
+}
+
+function hrefRouteKey(href: string): string {
+  return href.split(/[?#]/, 1)[0] ?? href;
 }

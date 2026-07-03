@@ -4,11 +4,12 @@ import { render } from "vitest-browser-svelte";
 import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 
 afterEach(() => {
   vi.restoreAllMocks();
   document.body.replaceChildren();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
 });
 
 describe("/music/play/chord-perfect/+page.svelte", () => {
@@ -175,11 +176,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
   });
 
   test("restores and syncs the shareable chord-perfect setup URL", async () => {
-    window.history.replaceState(
-      {},
-      "",
-      "/music/play/chord-perfect?mode=pick&instrument=ukulele&shape=ukulele.g-major",
-    );
+    setTestUrl("/music/play/chord-perfect?mode=pick&instrument=ukulele&shape=ukulele.g-major");
     render(Page);
 
     await vi.waitFor(() => {
@@ -194,6 +191,45 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       expect(params.get("mode")).toBe("strum");
       expect(params.get("instrument")).toBe("ukulele");
       expect(params.get("shape")).toBe("ukulele.g-major");
+    });
+  });
+
+  test("restores and completes the chord-change trainer workflow", async () => {
+    setTestUrl(
+      "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major",
+    );
+    render(Page);
+
+    await vi.waitFor(() => {
+      expect(button("Change trainer")).toHaveAttribute("aria-pressed", "true");
+      expect(button("Start changes")?.disabled).toBe(false);
+    });
+    expect(select("Chord")?.value).toBe("guitar.c-major");
+    expect(select("To chord")?.value).toBe("guitar.g-major");
+    expect(document.body.textContent).toContain("C major to G major");
+
+    button("Start changes")?.click();
+    await vi.waitFor(() => expect(button("Cancel changes")).not.toBeUndefined());
+
+    for (const [stringNumber, fret] of [
+      [5, 3],
+      [4, 2],
+      [3, 0],
+      [2, 1],
+      [1, 0],
+      [6, 3],
+      [5, 2],
+      [4, 0],
+      [3, 0],
+      [2, 0],
+      [1, 3],
+    ]) {
+      fretButton(stringNumber, fret)?.click();
+    }
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Chord changes complete");
+      expect(button("Repeat changes")).not.toBeUndefined();
     });
   });
 });

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import { onDestroy, onMount } from "svelte";
@@ -14,6 +15,7 @@
     AEROPHONE_ARTICULATION_STYLES,
     AEROPHONE_ARTICULATION_TEMPOS,
     AEROPHONE_DRILL_MODES,
+    AEROPHONE_INTERVAL_LANDING_OPTIONS,
     AEROPHONE_LONG_TONE_DURATIONS,
     AEROPHONE_SWELL_DURATIONS,
     normalizeAerophoneDrillConfig,
@@ -27,6 +29,10 @@
     type AerophoneArticulationPrompt,
     type ArticulationStyle,
   } from "@repo/music-core/exercises/aerophone-articulation";
+  import type {
+    AerophoneIntervalLandingId,
+    AerophoneIntervalLandingPrompt,
+  } from "@repo/music-core/exercises/aerophone-interval-landing";
   import type { AerophoneLongTonePrompt } from "@repo/music-core/exercises/aerophone-long-tone";
   import type { AerophoneSwellPrompt } from "@repo/music-core/exercises/aerophone-swell";
   import { Button } from "@repo/ui/button";
@@ -41,6 +47,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -66,7 +73,17 @@
   const drillModes = AEROPHONE_DRILL_MODES.map((value) => ({
     value,
     label:
-      value === "articulation" ? "Articulation" : value === "swell" ? "Dynamic swell" : "Long tone",
+      value === "interval-landing"
+        ? "Interval landing"
+        : value === "articulation"
+          ? "Articulation"
+          : value === "swell"
+            ? "Dynamic swell"
+            : "Long tone",
+  }));
+  const intervalOptions = AEROPHONE_INTERVAL_LANDING_OPTIONS.map((value) => ({
+    value: value.id,
+    label: value.label,
   }));
   const styleOptions = AEROPHONE_ARTICULATION_STYLES.map((value) => ({
     value,
@@ -86,6 +103,7 @@
   let durationMs = $state(String(initialConfig.durationMs));
   let articulationStyle = $state<ArticulationStyle>(initialConfig.style);
   let articulationBpm = $state(String(initialConfig.bpm));
+  let intervalKind = $state<AerophoneIntervalLandingId>(initialConfig.interval);
   let ready = $state(false);
   let pending = $state(false);
   let status = $state("Preparing your Aerophone practice history.");
@@ -100,7 +118,9 @@
 
   const summary = $derived(sessionState?.summary);
   const longTonePrompt = $derived(
-    sessionState?.currentPrompt && "holdMs" in sessionState.currentPrompt
+    sessionState?.currentPrompt &&
+      "holdMs" in sessionState.currentPrompt &&
+      !("interval" in sessionState.currentPrompt)
       ? sessionState.currentPrompt
       : undefined,
   );
@@ -114,11 +134,22 @@
       ? (sessionState.currentPrompt as AerophoneArticulationPrompt)
       : undefined,
   );
-  const activePrompt = $derived(longTonePrompt ?? swellPrompt ?? articulationPrompt);
+  const intervalPrompt = $derived(
+    sessionState?.currentPrompt && "interval" in sessionState.currentPrompt
+      ? (sessionState.currentPrompt as AerophoneIntervalLandingPrompt)
+      : undefined,
+  );
+  const activePrompt = $derived(longTonePrompt ?? swellPrompt ?? articulationPrompt ?? intervalPrompt);
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
   const liveControl = $derived(Math.round((sessionState?.live?.runningScore ?? 0) * 100));
   const targetMidi = $derived(activePrompt?.targetMidi ?? selected);
   const targetLabel = $derived(midiToNote(targetMidi));
+  const intervalDefinition = $derived(
+    AEROPHONE_INTERVAL_LANDING_OPTIONS.find((option) => option.id === intervalKind) ??
+      AEROPHONE_INTERVAL_LANDING_OPTIONS[1],
+  );
+  const intervalTargetMidi = $derived(selected + (intervalDefinition?.semitones ?? 7));
+  const intervalTargetLabel = $derived(midiToNote(intervalTargetMidi));
   const completedNotes = $derived(
     Math.min(articulationPrompt?.count ?? 8, Math.round((sessionState?.live?.progress ?? 0) * (articulationPrompt?.count ?? 8))),
   );
@@ -132,19 +163,24 @@
     drillMode === "swell" ? swellDurations : longToneDurations,
   );
   const trainerTitle = $derived.by(() => {
+    if (drillMode === "interval-landing") return "Interval Landing Trainer";
     if (drillMode === "articulation") return "Articulation Trainer";
     return drillMode === "swell" ? "Dynamic Swell Trainer" : "Long Tone Trainer";
   });
   const controlLabel = $derived.by(() => {
+    if (drillMode === "interval-landing") return "Landing";
     if (drillMode === "articulation") return "Articulation";
     return drillMode === "swell" ? "Shape" : "Steadiness";
   });
   const startLabel = $derived.by(() => {
+    if (drillMode === "interval-landing") return "Start interval landing";
     if (drillMode === "articulation") return "Start articulation drill";
     return drillMode === "swell" ? "Start dynamic swell" : "Start long tone";
   });
   const cancelLabel = $derived(
-    drillMode === "articulation"
+    drillMode === "interval-landing"
+      ? "Cancel interval landing"
+      : drillMode === "articulation"
       ? "Cancel articulation drill"
       : drillMode === "swell"
         ? "Cancel dynamic swell"
@@ -196,6 +232,7 @@
           const result = state.summary.results[0];
           const isArticulation = result?.prompt && "style" in result.prompt;
           const isSwell = result?.prompt && "durationMs" in result.prompt;
+          const isIntervalLanding = result?.prompt && "interval" in result.prompt;
           const score = Math.round((result?.result.score ?? 0) * 100);
           const articulation = result?.result.answer as AerophoneArticulationAnswer | undefined;
           const completedArticulationPrompt = isArticulation
@@ -206,14 +243,22 @@
             instrument: "aerophone",
             tags: [
               "aerophone",
-              isArticulation ? "articulation" : isSwell ? "dynamic-swell" : "long-tone",
-              isArticulation ? "technique" : "breath",
+              isIntervalLanding
+                ? "interval-landing"
+                : isArticulation
+                  ? "articulation"
+                  : isSwell
+                    ? "dynamic-swell"
+                    : "long-tone",
+              isIntervalLanding ? "intonation" : isArticulation ? "technique" : "breath",
             ],
             scoringEvents: state.summary.results.map((result) => result.event),
             xpEarned: state.summary.xp,
             note: completedArticulationPrompt && articulation
               ? `Aerophone ${completedArticulationPrompt.style} · ${midiToNote(completedArticulationPrompt.targetMidi)} · ${Math.round(articulation.articulationScore * 100)}% articulation`
-              : isSwell
+              : isIntervalLanding
+                ? `Aerophone interval landing · ${score}% control`
+                : isSwell
                 ? `Aerophone dynamic swell · ${score}% control`
                 : `Aerophone long tone · ${Math.round(state.summary.breathSteadiness * 100)}% steadiness`,
           });
@@ -244,14 +289,19 @@
       target: selected,
       style: articulationStyle,
       bpm: articulationBpm,
+      interval: intervalKind,
     });
     drillMode = config.mode;
     durationMs = String(config.durationMs);
-    status = config.mode === "articulation"
-      ? "Tongue the selected fingering staccato or legato."
-      : config.mode === "swell"
-        ? "Shape a smooth soft-loud-soft breath curve."
-        : "Hold the target with steady breath.";
+    intervalKind = config.interval;
+    if (config.mode !== "interval-landing") runtime.sound.stopDrone();
+    status = config.mode === "interval-landing"
+      ? "Land a target interval over the tonic drone."
+      : config.mode === "articulation"
+        ? "Tongue the selected fingering staccato or legato."
+        : config.mode === "swell"
+          ? "Shape a smooth soft-loud-soft breath curve."
+          : "Hold the target with steady breath.";
   }
 
   function syncConfigUrl(): void {
@@ -262,6 +312,7 @@
       duration: durationMs,
       style: articulationStyle,
       bpm: articulationBpm,
+      interval: intervalKind,
     });
     const url = new URL(window.location.href);
     const params = url.searchParams;
@@ -269,14 +320,21 @@
     params.set("target", String(config.targetMidi));
     if (config.mode === "articulation") {
       params.delete("duration");
+      params.delete("interval");
       params.set("style", config.style);
       params.set("bpm", String(config.bpm));
+    } else if (config.mode === "interval-landing") {
+      params.set("duration", String(config.durationMs));
+      params.set("interval", config.interval);
+      params.delete("style");
+      params.delete("bpm");
     } else {
       params.set("duration", String(config.durationMs));
+      params.delete("interval");
       params.delete("style");
       params.delete("bpm");
     }
-    window.history.replaceState({}, "", `${url.pathname}?${params.toString()}${url.hash}`);
+    replaceRouteState(`${url.pathname}?${params.toString()}${url.hash}`, $page.state);
   }
 
   async function startDrill(): Promise<void> {
@@ -303,6 +361,15 @@
           breathController: 2,
         });
         status = `Shape ${midiToNote(selected)} from soft to loud and back to soft.`;
+      } else if (drillMode === "interval-landing") {
+        if (runtime.audioEnabled) runtime.sound.startDrone(selected);
+        await session.startIntervalLanding({
+          droneMidi: selected,
+          interval: intervalKind,
+          holdMs: Number(durationMs),
+          breathController: 2,
+        });
+        status = `Land on ${intervalTargetLabel} over the ${midiToNote(selected)} drone.`;
       } else {
         await session.startLongTone({
           targetMidi: selected,
@@ -320,6 +387,7 @@
 
   function cancelDrill(): void {
     session?.abandon();
+    runtime.sound.stopDrone();
     breathLevel = 0;
     status = "Drill cancelled. Choose a target and start again.";
   }
@@ -415,6 +483,28 @@
       return dimensions;
     }
 
+    if ("interval" in prompt) {
+      const intervalPrompt = prompt as AerophoneIntervalLandingPrompt;
+      const durationRatio = breathDurationRatio(
+        result.input,
+        intervalPrompt.breathController,
+        intervalPrompt.holdMs,
+      );
+      dimensions.push(
+        {
+          label: "Interval",
+          value: result.correct ? "Hit" : "Miss",
+          detail: `${midiToNote(intervalPrompt.droneMidi)} drone to ${midiToNote(intervalPrompt.targetMidi)} landing`,
+        },
+        {
+          label: "Duration",
+          value: percent(durationRatio),
+          detail: `${Number(intervalPrompt.holdMs) / 1000}s landing hold`,
+        },
+      );
+      return dimensions;
+    }
+
     if ("holdMs" in prompt) {
       const longTonePrompt = prompt as AerophoneLongTonePrompt;
       const durationRatio = breathDurationRatio(
@@ -465,6 +555,7 @@
     unsubscribeRouter?.();
     unsubscribeSession?.();
     unsubscribeMidiState();
+    runtime.sound.stopDrone();
     session?.dispose();
   });
 </script>
@@ -547,7 +638,22 @@
             <p class="text-sm font-medium">Target {targetLabel}</p>
             <p class="text-xs text-muted-foreground" aria-live="polite">{midiStatus}</p>
           </div>
-          {#if drillMode === "articulation"}
+          {#if drillMode === "interval-landing"}
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <SegmentedControl
+                ariaLabel="Landing interval"
+                options={intervalOptions}
+                bind:value={intervalKind}
+                size="sm"
+              />
+              <SegmentedControl
+                ariaLabel="Drill duration"
+                options={durationOptions}
+                bind:value={durationMs}
+                size="sm"
+              />
+            </div>
+          {:else if drillMode === "articulation"}
             <div class="flex min-w-0 flex-wrap items-center gap-2">
               <SegmentedControl
                 ariaLabel="Articulation style"
@@ -576,7 +682,10 @@
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <HudTile label="Target" value={targetLabel} tone="accent" />
           <HudTile label="Breath" value={breathLevel} unit="%" />
-          {#if drillMode === "articulation"}
+          {#if drillMode === "interval-landing"}
+            <HudTile label="Drone" value={targetLabel} />
+            <HudTile label="Landing" value={intervalTargetLabel} tone="good" />
+          {:else if drillMode === "articulation"}
             <HudTile
               label="Notes"
               value={completedNotes}
@@ -591,7 +700,41 @@
         </div>
 
         <div class="grid gap-4 rounded-lg border bg-muted/20 p-4" aria-label="Aerophone technique stage">
-          {#if drillMode === "swell"}
+          {#if drillMode === "interval-landing"}
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-semibold uppercase text-muted-foreground">
+                  Drone interval lane
+                </p>
+                <h2 class="text-base font-semibold">Land the interval against the drone</h2>
+              </div>
+              <span class="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground">
+                {Number(durationMs) / 1000}s hold
+              </span>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+              <div class="grid gap-2 rounded-md border bg-background p-3">
+                <span class="text-xs font-semibold text-muted-foreground">Drone</span>
+                <span class="text-lg font-semibold">{targetLabel}</span>
+              </div>
+              <div class="text-center text-xs font-semibold uppercase text-muted-foreground">
+                {intervalDefinition?.label ?? "Perfect fifth"}
+              </div>
+              <div class="grid gap-2 rounded-md border bg-background p-3">
+                <span class="text-xs font-semibold text-muted-foreground">Landing</span>
+                <span class="text-lg font-semibold">{intervalTargetLabel}</span>
+              </div>
+            </div>
+            <div class="grid gap-1">
+              <div class="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Live breath pressure</span>
+                <span class="tabular-nums">{breathLevel}%</span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-background">
+                <div class="h-full rounded-full bg-success" style={liveBreathWidth}></div>
+              </div>
+            </div>
+          {:else if drillMode === "swell"}
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold uppercase text-muted-foreground">
@@ -762,17 +905,33 @@
             completedResult?.prompt && "style" in completedResult.prompt}
           {@const completedSwell =
             completedResult?.prompt && "durationMs" in completedResult.prompt}
+          {@const completedInterval =
+            completedResult?.prompt && "interval" in completedResult.prompt}
           <div class="grid gap-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
             <p class="text-sm font-semibold">
-              {completedArticulation ? "Articulation" : completedSwell ? "Dynamic swell" : "Long tone"} complete · {summary.xp} XP
+              {completedInterval
+                ? "Interval landing"
+                : completedArticulation
+                  ? "Articulation"
+                  : completedSwell
+                    ? "Dynamic swell"
+                    : "Long tone"} complete · {summary.xp} XP
             </p>
             <p class="text-sm text-muted-foreground">
-              {completedArticulation
+              {completedInterval
+                ? Math.round((completedResult?.result.score ?? 0) * 100)
+                : completedArticulation
                 ? Math.round((articulationAnswer?.articulationScore ?? 0) * 100)
                 : completedSwell
                 ? Math.round((completedResult?.result.score ?? 0) * 100)
                 : Math.round(summary.breathSteadiness * 100)}%
-              {completedArticulation ? "articulation" : completedSwell ? "control" : "breath steadiness"} ·
+              {completedInterval
+                ? "landing"
+                : completedArticulation
+                  ? "articulation"
+                  : completedSwell
+                    ? "control"
+                    : "breath steadiness"} ·
               {Math.round(summary.noteAccuracy * 100)}% pitch accuracy
             </p>
             <p class="text-sm text-muted-foreground">
@@ -801,9 +960,11 @@
               onSlower={completedArticulation ? slowDownArticulation : undefined}
               retryLabel={completedArticulation
                 ? "Repeat articulation"
-                : completedSwell
-                  ? "Repeat swell"
-                  : "Repeat long tone"}
+                : completedInterval
+                  ? "Repeat interval landing"
+                  : completedSwell
+                    ? "Repeat swell"
+                    : "Repeat long tone"}
             />
           </div>
         {/if}

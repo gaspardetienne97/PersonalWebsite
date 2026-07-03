@@ -13,6 +13,12 @@ import {
   type ArticulationStyle,
 } from "@repo/music-core/exercises/aerophone-articulation";
 import {
+  AEROPHONE_INTERVAL_LANDING_INTERVALS,
+  createAerophoneIntervalLandingExercise,
+  type AerophoneIntervalLandingId,
+  type AerophoneIntervalLandingPrompt,
+} from "@repo/music-core/exercises/aerophone-interval-landing";
+import {
   createAerophoneLongToneExercise,
   type AerophoneLongTonePrompt,
 } from "@repo/music-core/exercises/aerophone-long-tone";
@@ -35,17 +41,33 @@ import {
   type ScaleSpan,
 } from "@repo/music-core/exercises/scale-pattern";
 import {
+  createChordChangeExercise,
+  type ChordChangePrompt,
+} from "@repo/music-core/exercises/chord-change";
+import {
   createChordPerfectExercise,
   type ChordPerfectPrompt,
   type ChordShape,
 } from "@repo/music-core/exercises/chord-perfect";
 import {
+  createFretboardNoteFinderExercise,
+  type FretboardNoteFinderPrompt,
+} from "@repo/music-core/exercises/fretboard-note-finder";
+import {
   createStringSpiderExercise,
+  STRING_SPIDER_PATTERNS,
+  STRING_SPIDER_SPANS,
+  type StringPatternKind,
+  type StringSpiderSpan,
   type StringSpiderPrompt,
 } from "@repo/music-core/exercises/string-spider";
 import {
   createTwoHandIndependenceExercise,
+  TWO_HAND_HAND_MODES,
+  TWO_HAND_PATTERNS,
+  type TwoHandHandMode,
   type TwoHandIndependencePrompt,
+  type TwoHandPatternKind,
 } from "@repo/music-core/exercises/two-hand-independence";
 import {
   curatedTunings,
@@ -172,11 +194,17 @@ export interface TechniqueLongToneOptions {
   breathController?: number;
 }
 
-export const AEROPHONE_DRILL_MODES = ["long-tone", "swell", "articulation"] as const;
+export const AEROPHONE_DRILL_MODES = [
+  "long-tone",
+  "swell",
+  "articulation",
+  "interval-landing",
+] as const;
 export const AEROPHONE_LONG_TONE_DURATIONS = [3000, 5000, 8000] as const;
 export const AEROPHONE_SWELL_DURATIONS = [4000, 6000, 8000] as const;
 export const AEROPHONE_ARTICULATION_STYLES = ["staccato", "legato"] as const;
 export const AEROPHONE_ARTICULATION_TEMPOS = [70, 90, 110] as const;
+export const AEROPHONE_INTERVAL_LANDING_OPTIONS = AEROPHONE_INTERVAL_LANDING_INTERVALS;
 
 export type AerophoneDrillMode = (typeof AEROPHONE_DRILL_MODES)[number];
 
@@ -186,6 +214,7 @@ export interface AerophoneDrillConfig {
   durationMs: number;
   style: ArticulationStyle;
   bpm: (typeof AEROPHONE_ARTICULATION_TEMPOS)[number];
+  interval: AerophoneIntervalLandingId;
 }
 
 export interface AerophoneDrillConfigSource {
@@ -201,6 +230,7 @@ export interface AerophoneDrillConfigSource {
   style?: unknown;
   bpm?: unknown;
   tempo?: unknown;
+  interval?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -210,6 +240,7 @@ export const AEROPHONE_DRILL_DEFAULT_CONFIG: AerophoneDrillConfig = {
   durationMs: 5000,
   style: "staccato",
   bpm: 90,
+  interval: "P5",
 };
 
 export function normalizeAerophoneDrillConfig(
@@ -235,12 +266,20 @@ export function normalizeAerophoneDrillConfig(
     bpm: normalizeAerophoneTempo(
       readAerophoneConfigValue(source, "bpm") ?? readAerophoneConfigValue(source, "tempo"),
     ),
+    interval: normalizeAerophoneInterval(readAerophoneConfigValue(source, "interval")),
   };
 }
 
 export interface TechniqueSwellOptions {
   targetMidi: number;
   durationMs: number;
+  breathController?: number;
+}
+
+export interface TechniqueIntervalLandingOptions {
+  droneMidi: number;
+  interval: AerophoneIntervalLandingId;
+  holdMs: number;
   breathController?: number;
 }
 
@@ -324,9 +363,43 @@ export interface TechniqueSpiderOptions {
   stringNumber: number;
   startFret: number;
   bpm: number;
+  pattern?: StringPatternKind;
+  stringSpan?: StringSpiderSpan;
+}
+
+export type StringTechniqueMode = "spider" | "note-finder";
+
+export interface StringTechniqueConfig {
+  mode: StringTechniqueMode;
+}
+
+export interface StringTechniqueConfigSource {
+  mode?: unknown;
+  get?: (key: string) => unknown;
+}
+
+export const STRING_TECHNIQUE_DEFAULT_CONFIG: StringTechniqueConfig = {
+  mode: "spider",
+};
+
+export function normalizeStringTechniqueConfig(
+  source: StringTechniqueConfigSource,
+): StringTechniqueConfig {
+  const rawMode = readStringTechniqueConfigValue(source, "mode");
+  return {
+    mode: rawMode === "note-finder" ? "note-finder" : STRING_TECHNIQUE_DEFAULT_CONFIG.mode,
+  };
 }
 
 export const SPIDER_DRILL_TEMPOS = [60, 80, 100, 120] as const;
+export const SPIDER_DRILL_PATTERNS = STRING_SPIDER_PATTERNS.map((pattern) => ({
+  value: pattern.id,
+  label: pattern.label,
+}));
+export const SPIDER_DRILL_SPANS = STRING_SPIDER_SPANS.map((span) => ({
+  value: span.id,
+  label: span.label,
+}));
 
 export interface SpiderDrillConfig {
   instrument: StringInstrumentId;
@@ -334,6 +407,8 @@ export interface SpiderDrillConfig {
   stringNumber: number;
   startFret: number;
   bpm: number;
+  pattern: StringPatternKind;
+  stringSpan: StringSpiderSpan;
 }
 
 export interface SpiderDrillConfigSource {
@@ -345,6 +420,9 @@ export interface SpiderDrillConfigSource {
   fret?: unknown;
   startFret?: unknown;
   bpm?: unknown;
+  pattern?: unknown;
+  span?: unknown;
+  stringSpan?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -354,6 +432,8 @@ export const SPIDER_DRILL_DEFAULT_CONFIG: SpiderDrillConfig = {
   stringNumber: 6,
   startFret: 5,
   bpm: 80,
+  pattern: "ascending-1234",
+  stringSpan: "single",
 };
 
 export function normalizeSpiderDrillConfig(
@@ -397,6 +477,10 @@ export function normalizeSpiderDrillConfig(
     stringNumber,
     startFret,
     bpm: normalizeSpiderTempo(readConfigValue(source, "bpm")),
+    pattern: normalizeSpiderPattern(readConfigValue(source, "pattern")),
+    stringSpan: normalizeSpiderSpan(
+      readConfigValue(source, "span") ?? readConfigValue(source, "stringSpan"),
+    ),
   };
 }
 
@@ -404,14 +488,20 @@ export interface TechniqueTwoHandOptions {
   tonic: string;
   bpm: number;
   bars?: number;
+  patternKind?: TwoHandPatternKind;
+  handMode?: TwoHandHandMode;
 }
 
 export const TWO_HAND_DRILL_TONICS = ["C4", "G4", "F4", "D4"] as const;
 export const TWO_HAND_DRILL_TEMPOS = [60, 80, 100, 120] as const;
+export const TWO_HAND_DRILL_PATTERNS = TWO_HAND_PATTERNS;
+export const TWO_HAND_DRILL_HAND_MODES = TWO_HAND_HAND_MODES;
 
 export interface TwoHandDrillConfig {
   tonic: (typeof TWO_HAND_DRILL_TONICS)[number];
   bpm: (typeof TWO_HAND_DRILL_TEMPOS)[number];
+  patternKind: TwoHandPatternKind;
+  handMode: TwoHandHandMode;
 }
 
 export interface TwoHandDrillConfigSource {
@@ -419,12 +509,18 @@ export interface TwoHandDrillConfigSource {
   key?: unknown;
   bpm?: unknown;
   tempo?: unknown;
+  pattern?: unknown;
+  patternKind?: unknown;
+  hand?: unknown;
+  handMode?: unknown;
   get?: (key: string) => unknown;
 }
 
 export const TWO_HAND_DRILL_DEFAULT_CONFIG: TwoHandDrillConfig = {
   tonic: "C4",
   bpm: 80,
+  patternKind: "lh-pulse-rh-line",
+  handMode: "both",
 };
 
 export function normalizeTwoHandDrillConfig(source: TwoHandDrillConfigSource): TwoHandDrillConfig {
@@ -435,12 +531,32 @@ export function normalizeTwoHandDrillConfig(source: TwoHandDrillConfigSource): T
     bpm: normalizeTwoHandTempo(
       readTwoHandConfigValue(source, "bpm") ?? readTwoHandConfigValue(source, "tempo"),
     ),
+    patternKind: normalizeTwoHandPattern(
+      readTwoHandConfigValue(source, "pattern") ?? readTwoHandConfigValue(source, "patternKind"),
+    ),
+    handMode: normalizeTwoHandHandMode(
+      readTwoHandConfigValue(source, "hand") ?? readTwoHandConfigValue(source, "handMode"),
+    ),
   };
 }
 
 export interface TechniqueChordPerfectOptions {
   tuning: TuningProfile;
   shape: ChordShape;
+}
+
+export interface TechniqueChordChangeOptions {
+  tuning: TuningProfile;
+  fromShape: ChordShape;
+  toShape: ChordShape;
+  repetitions?: number;
+}
+
+export interface TechniqueFretboardNoteFinderOptions {
+  tuning: TuningProfile;
+  stringNumber: number;
+  fretNumber: number;
+  visibleFrets?: number;
 }
 
 export interface TechniqueArticulationOptions {
@@ -456,10 +572,13 @@ export type TechniquePrompt =
   | AerophoneLongTonePrompt
   | AerophoneSwellPrompt
   | AerophoneArticulationPrompt
+  | AerophoneIntervalLandingPrompt
   | MpcSingleStrokePrompt
   | StringSpiderPrompt
+  | FretboardNoteFinderPrompt
   | TwoHandIndependencePrompt
-  | ChordPerfectPrompt;
+  | ChordPerfectPrompt
+  | ChordChangePrompt;
 
 export interface TechniqueSessionDependencies {
   router: InputRouter;
@@ -636,6 +755,35 @@ export class TechniqueSession {
     return this.#currentPrompt;
   }
 
+  async startIntervalLanding(
+    options: TechniqueIntervalLandingOptions,
+  ): Promise<AerophoneIntervalLandingPrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createAerophoneIntervalLandingExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-interval-landing-${options.droneMidi}-${options.interval}`,
+      inputs: ["midi"],
+      context: {
+        targetSkillIds: ["technique.aerophone.interval-landing"],
+        difficulty: difficultyForHold(options.holdMs),
+        instrument: "aerophone",
+      },
+    });
+
+    const currentPrompt = prompt.payload as AerophoneIntervalLandingPrompt;
+    this.#status = "active";
+    this.#currentPrompt = currentPrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return currentPrompt;
+  }
+
   async startMpcRudiment(options: TechniqueMpcRudimentOptions): Promise<MpcSingleStrokePrompt> {
     this.#assertUsable();
     if (this.#status === "active") throw new Error("A technique session is already active");
@@ -644,7 +792,7 @@ export class TechniqueSession {
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-mpc-single-strokes-${options.leftPadMidi}-${options.rightPadMidi}-${options.hitCount}-${options.bpm}`,
+      runId: `${this.#sessionId}-mpc-${options.patternId ?? "single-strokes"}-${options.leftPadMidi}-${options.rightPadMidi}-${options.hitCount}-${options.bpm}`,
       inputs: ["midi", "onscreen"],
       context: {
         targetSkillIds: ["technique.mpc", "technique.mpc.single-strokes"],
@@ -670,8 +818,8 @@ export class TechniqueSession {
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-spider-${options.tuning.id}-${options.stringNumber}-${options.startFret}-${options.bpm}`,
-      inputs: ["midi", "onscreen"],
+      runId: `${this.#sessionId}-spider-${options.tuning.id}-${options.pattern ?? "ascending-1234"}-${options.stringSpan ?? "single"}-${options.stringNumber}-${options.startFret}-${options.bpm}`,
+      inputs: ["midi", "onscreen", "audio"],
       context: {
         targetSkillIds: exercise.skillIds,
         difficulty: difficultyForBpm(options.bpm),
@@ -689,6 +837,35 @@ export class TechniqueSession {
     return currentPrompt;
   }
 
+  async startFretboardNoteFinder(
+    options: TechniqueFretboardNoteFinderOptions,
+  ): Promise<FretboardNoteFinderPrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createFretboardNoteFinderExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-note-finder-${options.tuning.id}-${options.stringNumber}-${options.fretNumber}`,
+      inputs: ["midi", "onscreen", "audio"],
+      context: {
+        targetSkillIds: exercise.skillIds,
+        difficulty: 0.3,
+        instrument: options.tuning.instrument,
+      },
+    });
+
+    const currentPrompt = prompt.payload as FretboardNoteFinderPrompt;
+    this.#status = "active";
+    this.#currentPrompt = currentPrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return currentPrompt;
+  }
+
   async startTwoHand(options: TechniqueTwoHandOptions): Promise<TwoHandIndependencePrompt> {
     this.#assertUsable();
     if (this.#status === "active") throw new Error("A technique session is already active");
@@ -697,7 +874,7 @@ export class TechniqueSession {
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-two-hand-${options.tonic}-${options.bpm}-${options.bars ?? 2}`,
+      runId: `${this.#sessionId}-two-hand-${options.patternKind ?? "lh-pulse-rh-line"}-${options.handMode ?? "both"}-${options.tonic}-${options.bpm}-${options.bars ?? 2}`,
       inputs: ["midi", "onscreen"],
       context: {
         targetSkillIds: exercise.skillIds,
@@ -763,6 +940,33 @@ export class TechniqueSession {
     });
 
     const currentPrompt = prompt.payload as ChordPerfectPrompt;
+    this.#status = "active";
+    this.#currentPrompt = currentPrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return currentPrompt;
+  }
+
+  async startChordChange(options: TechniqueChordChangeOptions): Promise<ChordChangePrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createChordChangeExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-chord-change-${options.fromShape.id}-${options.toShape.id}-${options.repetitions ?? 2}`,
+      inputs: ["midi", "onscreen", "audio"],
+      context: {
+        targetSkillIds: exercise.skillIds,
+        difficulty: 0.45,
+        instrument: options.tuning.instrument,
+      },
+    });
+
+    const currentPrompt = prompt.payload as ChordChangePrompt;
     this.#status = "active";
     this.#currentPrompt = currentPrompt;
     this.#results = [];
@@ -958,6 +1162,12 @@ function normalizeAerophoneStyle(value: unknown): ArticulationStyle {
     : AEROPHONE_DRILL_DEFAULT_CONFIG.style;
 }
 
+function normalizeAerophoneInterval(value: unknown): AerophoneIntervalLandingId {
+  return AEROPHONE_INTERVAL_LANDING_INTERVALS.some((interval) => interval.id === value)
+    ? (value as AerophoneIntervalLandingId)
+    : AEROPHONE_DRILL_DEFAULT_CONFIG.interval;
+}
+
 function normalizeAerophoneTempo(value: unknown): AerophoneDrillConfig["bpm"] {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return AEROPHONE_DRILL_DEFAULT_CONFIG.bpm;
@@ -1002,6 +1212,18 @@ function normalizeSpiderTempo(value: unknown): number {
   );
 }
 
+function normalizeSpiderPattern(value: unknown): StringPatternKind {
+  return STRING_SPIDER_PATTERNS.some((pattern) => pattern.id === value)
+    ? (value as StringPatternKind)
+    : SPIDER_DRILL_DEFAULT_CONFIG.pattern;
+}
+
+function normalizeSpiderSpan(value: unknown): StringSpiderSpan {
+  return STRING_SPIDER_SPANS.some((span) => span.id === value)
+    ? (value as StringSpiderSpan)
+    : SPIDER_DRILL_DEFAULT_CONFIG.stringSpan;
+}
+
 function normalizeTwoHandTempo(value: unknown): TwoHandDrillConfig["bpm"] {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return TWO_HAND_DRILL_DEFAULT_CONFIG.bpm;
@@ -1018,10 +1240,29 @@ function normalizeTwoHandTonic(value: unknown): TwoHandDrillConfig["tonic"] {
     : TWO_HAND_DRILL_DEFAULT_CONFIG.tonic;
 }
 
+function normalizeTwoHandPattern(value: unknown): TwoHandPatternKind {
+  return TWO_HAND_PATTERNS.some((pattern) => pattern.id === value)
+    ? (value as TwoHandPatternKind)
+    : TWO_HAND_DRILL_DEFAULT_CONFIG.patternKind;
+}
+
+function normalizeTwoHandHandMode(value: unknown): TwoHandHandMode {
+  return TWO_HAND_HAND_MODES.some((mode) => mode.id === value)
+    ? (value as TwoHandHandMode)
+    : TWO_HAND_DRILL_DEFAULT_CONFIG.handMode;
+}
+
 function readTwoHandConfigValue(source: TwoHandDrillConfigSource, key: string): unknown {
   const value = source.get?.(key);
   if (value !== null && value !== undefined && value !== "") return value;
   const direct = source[key as keyof TwoHandDrillConfigSource];
+  return direct === "" ? undefined : direct;
+}
+
+function readStringTechniqueConfigValue(source: StringTechniqueConfigSource, key: string): unknown {
+  const value = source.get?.(key);
+  if (value !== null && value !== undefined && value !== "") return value;
+  const direct = source[key as keyof StringTechniqueConfigSource];
   return direct === "" ? undefined : direct;
 }
 

@@ -6,21 +6,34 @@
   import MpcPadGrid from "./MpcPadGrid.svelte";
   import PracticeStage from "./PracticeStage.svelte";
 
+  interface PadRudimentStageEvent {
+    padMidi: number;
+    accent?: "normal" | "accent";
+    velocityBand?: { label: string };
+  }
+
   let {
     router,
     targetSequence,
+    targetEvents,
     completedHits = 0,
     bpm,
     onAccepted,
   }: {
     router: InputRouter;
     targetSequence: number[];
+    targetEvents?: PadRudimentStageEvent[];
     completedHits?: number;
     bpm?: number | string;
     onAccepted?: (event: NoteEvent) => void;
   } = $props();
 
-  const nextPad = $derived(targetSequence[Math.min(completedHits, targetSequence.length - 1)]);
+  const sequenceEvents = $derived(
+    targetEvents ?? targetSequence.map((padMidi) => ({ padMidi, accent: "normal" as const })),
+  );
+  const nextPad = $derived(
+    sequenceEvents[Math.min(completedHits, sequenceEvents.length - 1)]?.padMidi,
+  );
 
   function stepState(index: number): "completed" | "current" | "upcoming" {
     if (index < completedHits) return "completed";
@@ -59,10 +72,10 @@
       </div>
       <div
         class="grid gap-2"
-        style={`grid-template-columns: repeat(${Math.max(1, targetSequence.length)}, minmax(2.25rem, 1fr));`}
+        style={`grid-template-columns: repeat(${Math.max(1, sequenceEvents.length)}, minmax(2.25rem, 1fr));`}
         aria-label="Rudiment sequence lane"
       >
-        {#each targetSequence as midi, index (`${midi}-${index}`)}
+        {#each sequenceEvents as event, index (`${event.padMidi}-${index}`)}
           {@const state = stepState(index)}
           <div
             data-rudiment-step={index}
@@ -76,7 +89,12 @@
             )}
           >
             <span class="text-[10px] uppercase opacity-70">{index + 1}</span>
-            <span>Pad {midi}</span>
+            <span>Pad {event.padMidi}</span>
+            {#if event.velocityBand}
+              <span class="text-[10px] uppercase opacity-70">
+                {event.accent === "accent" ? "Accent" : "Tap"}
+              </span>
+            {/if}
           </div>
         {/each}
       </div>

@@ -24,6 +24,8 @@ import {
 } from "@repo/music-core/exercises/note-reading";
 import {
   createSightReadingExercise,
+  READING_LEVELS,
+  type ReadingLevelId,
   type SightReadingOptions,
   type SightReadingPrompt,
 } from "@repo/music-core/exercises/sight-reading";
@@ -48,7 +50,9 @@ export interface ReadingDrillConfig {
   clefs: Clef[];
   keySignature: string;
   range: { lowestMidi: number; highestMidi: number };
+  readingLevel: ReadingLevelId;
   difficulty: number;
+  transposeSemitones: number;
   promptKind: NoteReadingOptions["promptKind"];
   answerMode: ReadingAnswerMode;
   mode: ScoreFollowerMode;
@@ -72,6 +76,10 @@ export type ReadingDrillConfigSource = {
   high?: unknown;
   highestMidi?: unknown;
   difficulty?: unknown;
+  level?: unknown;
+  readingLevel?: unknown;
+  transpose?: unknown;
+  transposeSemitones?: unknown;
   prompt?: unknown;
   promptKind?: unknown;
   answer?: unknown;
@@ -91,7 +99,9 @@ export const READING_DRILL_DEFAULT_CONFIG: ReadingDrillConfig = {
   clefs: ["treble"],
   keySignature: "C major",
   range: { lowestMidi: 48, highestMidi: 84 },
+  readingLevel: "level-1",
   difficulty: 0.4,
+  transposeSemitones: 0,
   promptKind: "single-note",
   answerMode: "choice",
   mode: "wait",
@@ -133,11 +143,15 @@ export function normalizeReadingDrillConfig(source: ReadingDrillConfigSource): R
     clefs: normalizeClefs(readReadingConfigValue(source, ["clefs", "clef"])),
     keySignature: normalizeKeySignature(readReadingConfigValue(source, ["key", "keySignature"])),
     range: normalizeRange(lowestMidi, highestMidi),
+    readingLevel: normalizeReadingLevel(readReadingConfigValue(source, ["level", "readingLevel"])),
     difficulty: normalizeDecimal(readReadingConfigValue(source, ["difficulty"]), {
       fallback: READING_DRILL_DEFAULT_CONFIG.difficulty,
       min: 0,
       max: 1,
     }),
+    transposeSemitones: normalizeTransposeSemitones(
+      readReadingConfigValue(source, ["transpose", "transposeSemitones"]),
+    ),
     promptKind: normalizePromptKind(readReadingConfigValue(source, ["prompt", "promptKind"])),
     answerMode: normalizeAnswerMode(readReadingConfigValue(source, ["answer", "answerMode"])),
     mode: normalizeSightReadingMode(readReadingConfigValue(source, ["mode"])),
@@ -664,6 +678,8 @@ function compactSightReadingPrompt(
     score,
     notation: notationView(score),
     groups,
+    ...(prompt.readingLevel === undefined ? {} : { readingLevel: prompt.readingLevel }),
+    transposeSemitones: prompt.transposeSemitones,
     options: {
       ...options,
       measures: Math.max(1, Math.ceil(totalBeats / beatsPerMeasure)),
@@ -705,6 +721,20 @@ function normalizeKeySignature(value: string | undefined): string {
 function normalizeRange(lowestMidi: number, highestMidi: number): ReadingDrillConfig["range"] {
   if (lowestMidi <= highestMidi) return { lowestMidi, highestMidi };
   return { ...READING_DRILL_DEFAULT_CONFIG.range };
+}
+
+function normalizeReadingLevel(value: string | undefined): ReadingLevelId {
+  return READING_LEVELS.some((level) => level.id === value)
+    ? (value as ReadingLevelId)
+    : READING_DRILL_DEFAULT_CONFIG.readingLevel;
+}
+
+function normalizeTransposeSemitones(value: string | undefined): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed < -12 || parsed > 12) {
+    return READING_DRILL_DEFAULT_CONFIG.transposeSemitones;
+  }
+  return parsed;
 }
 
 function normalizePromptKind(value: string | undefined): NoteReadingOptions["promptKind"] {

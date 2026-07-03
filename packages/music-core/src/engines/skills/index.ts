@@ -222,6 +222,20 @@ export function seedCoreSkills(): SkillSeed {
     skill("harmony.seventh.diminished", "Diminished 7th", Capability.Harmony, "intermediate", [
       "chord",
     ]),
+    skill("ear.cadences", "Cadences", Capability.Harmony, "beginner", ["cadence", "ear"]),
+    skill("ear.cadences.authentic", "Authentic Cadence", Capability.Harmony, "beginner", [
+      "cadence",
+      "ear",
+    ]),
+    skill("ear.cadences.plagal", "Plagal Cadence", Capability.Harmony, "beginner", [
+      "cadence",
+      "ear",
+    ]),
+    skill("ear.cadences.half", "Half Cadence", Capability.Harmony, "beginner", ["cadence", "ear"]),
+    skill("ear.cadences.deceptive", "Deceptive Cadence", Capability.Harmony, "beginner", [
+      "cadence",
+      "ear",
+    ]),
     skill("harmony.ii-v-i", "ii-V-I", Capability.Harmony, "intermediate", ["jazz", "progression"]),
     skill("rhythm.subdivisions", "Rhythm Subdivisions", Capability.Rhythm, "beginner", [
       "timing",
@@ -229,9 +243,27 @@ export function seedCoreSkills(): SkillSeed {
     ]),
     skill("rhythm.quarter-pulse", "Quarter-Note Pulse", Capability.Rhythm, "beginner", ["timing"]),
     skill("rhythm.eighths", "Eighth Notes", Capability.Rhythm, "beginner", ["subdivision"]),
+    skill("rhythm.subdivision.eighths", "Eighth-Note Subdivision", Capability.Rhythm, "beginner", [
+      "rhythm",
+      "subdivision",
+      "eighths",
+    ]),
     skill("rhythm.triplets", "Triplets", Capability.Rhythm, "early-intermediate", ["subdivision"]),
     skill("rhythm.sixteenths", "Sixteenth Notes", Capability.Rhythm, "early-intermediate", [
       "subdivision",
+    ]),
+    skill(
+      "rhythm.subdivision.sixteenths",
+      "Sixteenth-Note Subdivision",
+      Capability.Rhythm,
+      "early-intermediate",
+      ["rhythm", "subdivision", "sixteenths"],
+    ),
+    skill("rhythm.gap-click", "Gap Click Timing", Capability.Rhythm, "early-intermediate", [
+      "rhythm",
+      "metronome",
+      "gap-click",
+      "timing",
     ]),
     skill("reading.treble", "Treble Clef Reading", Capability.Reading, "beginner", ["staff"]),
     skill("reading.treble.landmarks", "Treble Landmark Notes", Capability.Reading, "beginner", [
@@ -318,6 +350,18 @@ export function seedCoreSkills(): SkillSeed {
       "beginner",
       ["aerophone", "breath", "articulation", "staccato", "legato"],
     ),
+    skill(
+      "technique.aerophone.interval-landing",
+      "Aerophone Interval Landing",
+      Capability.Technique,
+      "beginner",
+      ["aerophone", "intonation", "interval", "drone"],
+    ),
+    skill("intonation.interval-landing", "Interval Landing", Capability.Pitch, "beginner", [
+      "intonation",
+      "interval",
+      "drone",
+    ]),
     skill("technique.strings", "String Instrument Technique", Capability.Technique, "beginner", [
       "guitar",
       "ukulele",
@@ -329,10 +373,29 @@ export function seedCoreSkills(): SkillSeed {
       "spider",
       "chromatic",
     ]),
+    skill(
+      "technique.strings.spider.permutations",
+      "Spider Permutations",
+      Capability.Technique,
+      "beginner",
+      ["guitar", "ukulele", "spider", "permutation", "finger-independence"],
+    ),
+    skill(
+      "technique.strings.note-finder",
+      "Fretboard Note Finder",
+      Capability.Technique,
+      "beginner",
+      ["guitar", "ukulele", "fretboard", "note-finder"],
+    ),
     skill("technique.guitar.spider", "Guitar Spider Drill", Capability.Technique, "beginner", [
       "guitar",
       "spider",
       "chromatic",
+    ]),
+    skill("technique.guitar.note-finder", "Guitar Note Finder", Capability.Technique, "beginner", [
+      "guitar",
+      "fretboard",
+      "note-finder",
     ]),
     skill("technique.ukulele.spider", "Ukulele Spider Drill", Capability.Technique, "beginner", [
       "ukulele",
@@ -340,11 +403,25 @@ export function seedCoreSkills(): SkillSeed {
       "chromatic",
     ]),
     skill(
+      "technique.ukulele.note-finder",
+      "Ukulele Note Finder",
+      Capability.Technique,
+      "beginner",
+      ["ukulele", "fretboard", "note-finder"],
+    ),
+    skill(
       "technique.strings.chord-perfect",
       "Chord-Perfect Drill",
       Capability.Technique,
       "beginner",
       ["guitar", "ukulele", "chords", "fretting"],
+    ),
+    skill(
+      "technique.strings.chord-changes",
+      "Chord Change Trainer",
+      Capability.Technique,
+      "beginner",
+      ["guitar", "ukulele", "chords", "changes", "fretting"],
     ),
     skill(
       "technique.guitar.chord-perfect",
@@ -354,11 +431,25 @@ export function seedCoreSkills(): SkillSeed {
       ["guitar", "chords", "fretting"],
     ),
     skill(
+      "technique.guitar.chord-changes",
+      "Guitar Chord Changes",
+      Capability.Technique,
+      "beginner",
+      ["guitar", "chords", "changes", "fretting"],
+    ),
+    skill(
       "technique.ukulele.chord-perfect",
       "Ukulele Chord-Perfect",
       Capability.Technique,
       "beginner",
       ["ukulele", "chords", "fretting"],
+    ),
+    skill(
+      "technique.ukulele.chord-changes",
+      "Ukulele Chord Changes",
+      Capability.Technique,
+      "beginner",
+      ["ukulele", "chords", "changes", "fretting"],
     ),
     skill(
       "technique.strings.open-chord-id",
@@ -393,6 +484,13 @@ export function seedCoreSkills(): SkillSeed {
       "beginner",
       ["piano", "independence", "coordination", "hands"],
     ),
+    skill(
+      "technique.piano.independence.shell-line",
+      "Piano Shell + Line Independence",
+      Capability.Technique,
+      "early-intermediate",
+      ["piano", "independence", "shell", "line", "hands"],
+    ),
     skill("technique.mpc", "MPC Technique", Capability.Technique, "beginner", [
       "mpc",
       "pads",
@@ -405,6 +503,12 @@ export function seedCoreSkills(): SkillSeed {
       "beginner",
       ["mpc", "pads", "rudiment", "single-strokes"],
     ),
+    skill("technique.mpc.paradiddles", "MPC Paradiddles", Capability.Technique, "beginner", [
+      "mpc",
+      "pads",
+      "rudiment",
+      "paradiddle",
+    ]),
   ];
 
   const components: Record<string, string[]> = {
@@ -420,11 +524,17 @@ export function seedCoreSkills(): SkillSeed {
     "harmony.sevenths": skills
       .filter((item) => item.id.startsWith("harmony.seventh."))
       .map((item) => item.id),
+    "ear.cadences": skills
+      .filter((item) => item.id.startsWith("ear.cadences."))
+      .map((item) => item.id),
     "rhythm.subdivisions": [
       "rhythm.quarter-pulse",
       "rhythm.eighths",
+      "rhythm.subdivision.eighths",
       "rhythm.triplets",
       "rhythm.sixteenths",
+      "rhythm.subdivision.sixteenths",
+      "rhythm.gap-click",
     ],
     "reading.treble": ["reading.treble.landmarks", "reading.treble.stepwise"],
     "reading.bass": ["reading.bass.landmarks", "reading.bass.stepwise"],
@@ -435,23 +545,39 @@ export function seedCoreSkills(): SkillSeed {
       "technique.aerophone.breath-steadiness",
       "technique.aerophone.dynamic-control",
       "technique.aerophone.articulation",
+      "technique.aerophone.interval-landing",
     ],
     "technique.strings": [
       "technique.strings.spider",
+      "technique.strings.note-finder",
       "technique.strings.chord-perfect",
+      "technique.strings.chord-changes",
       "technique.strings.open-chord-id",
     ],
-    "technique.strings.spider": ["technique.guitar.spider", "technique.ukulele.spider"],
+    "technique.strings.spider": [
+      "technique.strings.spider.permutations",
+      "technique.guitar.spider",
+      "technique.ukulele.spider",
+    ],
+    "technique.strings.note-finder": [
+      "technique.guitar.note-finder",
+      "technique.ukulele.note-finder",
+    ],
     "technique.strings.chord-perfect": [
       "technique.guitar.chord-perfect",
       "technique.ukulele.chord-perfect",
+    ],
+    "technique.strings.chord-changes": [
+      "technique.guitar.chord-changes",
+      "technique.ukulele.chord-changes",
     ],
     "technique.strings.open-chord-id": [
       "technique.guitar.open-chord-id",
       "technique.ukulele.open-chord-id",
     ],
     "technique.piano": ["technique.piano.two-hand-independence"],
-    "technique.mpc": ["technique.mpc.single-strokes"],
+    "technique.piano.two-hand-independence": ["technique.piano.independence.shell-line"],
+    "technique.mpc": ["technique.mpc.single-strokes", "technique.mpc.paradiddles"],
   };
 
   return {

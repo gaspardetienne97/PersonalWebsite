@@ -54,6 +54,38 @@ describe("daily routine", () => {
     });
   });
 
+  test("preserves expanded drill query parameters while filling routine categories", () => {
+    const plan = buildDailyRoutinePlan([
+      {
+        skillId: "technique.mpc.paradiddles",
+        skillName: "MPC Paradiddles",
+        href: "/music/play/mpc?pattern=paradiddle",
+      },
+      {
+        skillId: "technique.mpc.single-strokes",
+        skillName: "MPC Alternating Single Strokes",
+        href: "/music/play/mpc",
+      },
+      {
+        skillId: "rhythm.gap-click",
+        skillName: "Gap Click Timing",
+        href: "/music/learn/rhythm?pattern=gap-click-1-on-1-off",
+      },
+    ]);
+
+    expect(plan.map((step) => step.href)).toEqual([
+      "/music/play/mpc?pattern=paradiddle",
+      "/music/learn/rhythm?pattern=gap-click-1-on-1-off",
+      "/music/learn/ear",
+      "/music/learn/reading",
+      "/music/play/scales",
+    ]);
+    expect(plan[0]).toMatchObject({
+      id: "mpc",
+      skillId: "technique.mpc.paradiddles",
+    });
+  });
+
   test("advances from real drill captures and builds a combined summary", () => {
     const plan = buildDailyRoutinePlan([]).slice(0, 2);
     const routine = new DailyRoutineSession(plan);

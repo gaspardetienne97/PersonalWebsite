@@ -7,6 +7,7 @@
   import {
     SCALE_DEGREE_SETS,
     type ScaleDegreeFreePlayChoice,
+    type ScaleDegreeLabelMode,
     type ScaleDegreeSetId,
   } from "@repo/music-core/exercises/scale-degree-recognition";
   import {
@@ -26,6 +27,7 @@
     answerMode,
     feedbackMode,
     scaleDegreeSet,
+    scaleDegreeLabelMode,
     tonicName,
     droneOn,
     freePlayChoices,
@@ -39,6 +41,7 @@
     onAnswerMode,
     onFeedbackMode,
     onScaleDegreeSet,
+    onScaleDegreeLabelMode,
     onToggleDrone,
     onPlayFreePlayDegree,
     onPlayRepertoireTransfer,
@@ -52,6 +55,7 @@
     answerMode: EarTrainingAnswerMode;
     feedbackMode: EarTrainingFeedbackMode;
     scaleDegreeSet: ScaleDegreeSetId;
+    scaleDegreeLabelMode: ScaleDegreeLabelMode;
     tonicName: string;
     droneOn: boolean;
     freePlayChoices: ScaleDegreeFreePlayChoice[];
@@ -65,6 +69,7 @@
     onAnswerMode: (mode: EarTrainingAnswerMode) => void;
     onFeedbackMode: (mode: EarTrainingFeedbackMode) => void;
     onScaleDegreeSet: (set: ScaleDegreeSetId) => void;
+    onScaleDegreeLabelMode: (mode: ScaleDegreeLabelMode) => void;
     onToggleDrone: () => void;
     onPlayFreePlayDegree: (choice: ScaleDegreeFreePlayChoice) => void;
     onPlayRepertoireTransfer: (transfer: RepertoireEarTransfer) => void;
@@ -126,6 +131,22 @@
           {/each}
         </div>
         <p class="text-xs text-muted-foreground">{voiceStatus}</p>
+      </div>
+      <div class="space-y-2 sm:col-span-2">
+        <p class="text-sm font-medium">Scale-degree answer labels</p>
+        <div class="grid grid-cols-2 rounded-md border p-1" aria-label="Scale-degree answer labels">
+          {#each ["degree", "solfege"] as mode}
+            <Button
+              type="button"
+              size="sm"
+              variant={scaleDegreeLabelMode === mode ? "secondary" : "ghost"}
+              aria-pressed={scaleDegreeLabelMode === mode}
+              onclick={() => onScaleDegreeLabelMode(mode as ScaleDegreeLabelMode)}
+            >
+              {mode === "solfege" ? "Solfege" : "Degree"}
+            </Button>
+          {/each}
+        </div>
       </div>
       <div class="space-y-2 sm:col-span-2">
         <p class="text-sm font-medium">Scale-degree level</p>
@@ -253,7 +274,7 @@
       <Card.Title>Mixed Session</Card.Title>
       <Card.Description>
         Ten prompts across intervals, chord qualities, and functional scale degrees,
-        prioritizing weak and review skills while rotating drill types.
+        cadences, prioritizing weak and review skills while rotating drill types.
       </Card.Description>
     </Card.Header>
     <Card.Footer>
@@ -314,6 +335,11 @@
         description: "Triads and seventh-chord qualities.",
       },
       {
+        drill: "cadence",
+        title: "Cadence",
+        description: "Authentic, plagal, half, and deceptive endings.",
+      },
+      {
         drill: "scale-degree",
         title: "Scale Degree",
         description: "Functional degrees in major and minor contexts.",
@@ -337,6 +363,7 @@
             disabled={!ready ||
               pending ||
               (answerMode === "voice" && item.drill !== "scale-degree") ||
+              (answerMode === "play-back" && item.drill === "cadence") ||
               ((answerMode === "choice" || answerMode === "listen") &&
                 item.drill === "melody-dictation")}
             onclick={() => onStart(item.drill as EarTrainingDrill)}

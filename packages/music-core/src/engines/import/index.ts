@@ -93,7 +93,7 @@ export function parseMidiFile(data: ArrayBuffer, fallbackName = "Untitled"): Imp
 export function estimateKey(notes: ImportedNote[]): string | undefined {
   if (notes.length === 0) return undefined;
 
-  const weights = new Array<number>(12).fill(0);
+  const weights = Array.from({ length: 12 }, () => 0);
   for (const note of notes) {
     weights[((note.midi % 12) + 12) % 12] += Math.max(note.duration, 0.1);
   }

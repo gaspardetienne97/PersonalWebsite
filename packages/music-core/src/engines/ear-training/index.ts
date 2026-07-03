@@ -23,6 +23,8 @@ import {
 import {
   SCALE_DEGREE_SETS,
   degreeTokensForScaleDegreeSet,
+  scaleDegreeLabelMode,
+  type ScaleDegreeLabelMode,
   type ScaleDegreeSetId,
 } from "@repo/music-core/exercises/scale-degree-recognition";
 
@@ -60,6 +62,7 @@ export interface EarTrainingSessionOptions {
   length?: number;
   queueMode?: "adaptive" | "balanced";
   scaleDegreeSet?: ScaleDegreeSetId;
+  scaleDegreeLabelMode?: ScaleDegreeLabelMode;
 }
 
 export type EarTrainingConfigDrill = Exclude<EarTrainingDrill, "repertoire-transfer"> | "mixed";
@@ -69,6 +72,7 @@ export interface EarTrainingConfig {
   answerMode: EarTrainingAnswerMode;
   feedbackMode: EarTrainingFeedbackMode;
   scaleDegreeSet: ScaleDegreeSetId;
+  scaleDegreeLabelMode: ScaleDegreeLabelMode;
 }
 
 export type EarTrainingConfigSource = {
@@ -80,6 +84,9 @@ export type EarTrainingConfigSource = {
   feedbackMode?: unknown;
   level?: unknown;
   scaleDegreeSet?: unknown;
+  labels?: unknown;
+  labelMode?: unknown;
+  scaleDegreeLabelMode?: unknown;
 };
 
 export const EAR_TRAINING_DEFAULT_CONFIG: EarTrainingConfig = {
@@ -87,6 +94,7 @@ export const EAR_TRAINING_DEFAULT_CONFIG: EarTrainingConfig = {
   answerMode: "choice",
   feedbackMode: "practice",
   scaleDegreeSet: "anchor",
+  scaleDegreeLabelMode: "degree",
 };
 
 export function normalizeEarTrainingConfig(source: EarTrainingConfigSource): EarTrainingConfig {
@@ -94,6 +102,7 @@ export function normalizeEarTrainingConfig(source: EarTrainingConfigSource): Ear
   const rawAnswer = readEarConfigValue(source, ["answer", "answerMode"]);
   const rawFeedback = readEarConfigValue(source, ["feedback", "feedbackMode"]);
   const rawLevel = readEarConfigValue(source, ["level", "scaleDegreeSet"]);
+  const rawLabels = readEarConfigValue(source, ["labels", "labelMode", "scaleDegreeLabelMode"]);
 
   return {
     drill: normalizeEarDrill(rawDrill),
@@ -102,6 +111,7 @@ export function normalizeEarTrainingConfig(source: EarTrainingConfigSource): Ear
     scaleDegreeSet: SCALE_DEGREE_SETS.some((set) => set.id === rawLevel)
       ? (rawLevel as ScaleDegreeSetId)
       : EAR_TRAINING_DEFAULT_CONFIG.scaleDegreeSet,
+    scaleDegreeLabelMode: scaleDegreeLabelMode(rawLabels),
   };
 }
 
@@ -349,7 +359,12 @@ export class EarTrainingSession {
         targetSkillIds: item.targetSkillIds,
         difficulty: item.difficulty,
         ...(this.options.scaleDegreeSet !== undefined
-          ? { metadata: { scaleDegreeSet: this.options.scaleDegreeSet } }
+          ? {
+              metadata: {
+                scaleDegreeSet: this.options.scaleDegreeSet,
+                scaleDegreeLabelMode: this.options.scaleDegreeLabelMode,
+              },
+            }
           : {}),
       },
     }) as ExercisePrompt<EarTrainingPromptBase>;
@@ -494,7 +509,7 @@ function buildSessionQueue(
     );
   }
 
-  const drills = (["interval", "chord-quality", "scale-degree"] as const).filter(
+  const drills = (["interval", "chord-quality", "scale-degree", "cadence"] as const).filter(
     (drill) => (byDrill.get(drill)?.length ?? 0) > 0,
   );
   const result: EarTrainingQueueItem[] = [];
@@ -549,6 +564,7 @@ function normalizeEarDrill(value: string | undefined): EarTrainingConfigDrill {
   if (
     value === "interval" ||
     value === "chord-quality" ||
+    value === "cadence" ||
     value === "scale-degree" ||
     value === "melody-dictation" ||
     value === "mixed"
@@ -582,6 +598,7 @@ function readEarConfigValue(source: EarTrainingConfigSource, keys: string[]): st
 function drillForExercise(exerciseId: string): EarTrainingDrill | undefined {
   if (exerciseId === "ear.interval-recognition") return "interval";
   if (exerciseId === "ear.chord-quality-recognition") return "chord-quality";
+  if (exerciseId === "ear.cadence-recognition") return "cadence";
   if (exerciseId === "ear.scale-degree-recognition") return "scale-degree";
   if (exerciseId === "ear.melody-dictation") return "melody-dictation";
   if (exerciseId.startsWith("ear.repertoire-transfer.")) return "repertoire-transfer";
@@ -595,6 +612,7 @@ function drillEligibleForAnswerMode(
   if (drill === "melody-dictation" || drill === "repertoire-transfer") {
     return answerMode === "play-back";
   }
+  if (drill === "cadence") return answerMode === "choice" || answerMode === "listen";
   return true;
 }
 
@@ -704,6 +722,9 @@ function retryScheduleItem(confusion: EarTrainingConfusion): ScheduledExercise |
   if (confusion.drill === "chord-quality") {
     const skillId = chordQualitySkillId(confusion.expected);
     return skillId === undefined ? undefined : retryItem("ear.chord-quality-recognition", skillId);
+  }
+  if (confusion.drill === "cadence") {
+    return retryItem("ear.cadence-recognition", `ear.cadences.${confusion.expected}`);
   }
   return undefined;
 }

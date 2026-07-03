@@ -9,6 +9,7 @@ import {
 export type EarTrainingDrill =
   | "interval"
   | "chord-quality"
+  | "cadence"
   | "scale-degree"
   | "melody-dictation"
   | "repertoire-transfer";

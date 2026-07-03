@@ -2,10 +2,11 @@ import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 
 afterEach(() => {
   vi.restoreAllMocks();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
   document.body.replaceChildren();
 });
 
@@ -37,9 +38,7 @@ describe("/music/play/scales/+page.svelte", () => {
   });
 
   test("restores setup from shareable query parameters", async () => {
-    window.history.replaceState(
-      {},
-      "",
+    setTestUrl(
       "/music/play/scales?scale=blues&tonic=Eb4&instrument=guitar&bpm=90&span=two-octave&motion=up-down",
     );
 
@@ -55,7 +54,7 @@ describe("/music/play/scales/+page.svelte", () => {
   });
 
   test("keeps setup changes in the shareable URL", async () => {
-    window.history.replaceState({}, "", "/music/play/scales");
+    setTestUrl("/music/play/scales");
     render(Page);
 
     const scaleSelect = document.querySelector<HTMLSelectElement>("#scale-kind");
@@ -97,7 +96,7 @@ describe("/music/play/scales/+page.svelte", () => {
   });
 
   test("offers a slower retry after a completed scale run", async () => {
-    window.history.replaceState({}, "", "/music/play/scales?bpm=90");
+    setTestUrl("/music/play/scales?bpm=90");
     render(Page);
     await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
 

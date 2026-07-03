@@ -2,11 +2,12 @@ import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 
 afterEach(() => {
   vi.restoreAllMocks();
   document.body.replaceChildren();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
 });
 
 describe("/music/learn/aerophone/+page.svelte", () => {
@@ -19,6 +20,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     expect(document.body.textContent).toContain("Breath CC2");
     expect(button("Dynamic swell")).not.toBeUndefined();
     expect(button("Articulation")).not.toBeUndefined();
+    expect(button("Interval landing")).not.toBeUndefined();
     await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
 
     button("Start long tone")?.click();
@@ -100,14 +102,17 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("95% beat target");
     });
+
+    button("Interval landing")?.click();
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Drone interval lane");
+      expect(document.body.textContent).toContain("Drone");
+      expect(document.body.textContent).toContain("Landing");
+    });
   });
 
   test("restores and syncs the shareable Aerophone setup URL", async () => {
-    window.history.replaceState(
-      {},
-      "",
-      "/music/learn/aerophone?mode=articulation&target=69&style=legato&bpm=110",
-    );
+    setTestUrl("/music/learn/aerophone?mode=articulation&target=69&style=legato&bpm=110");
     render(Page);
 
     await vi.waitFor(() => {
@@ -132,6 +137,24 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       const params = new URLSearchParams(window.location.search);
       expect(params.get("target")).toBe("70");
       expect(params.get("duration")).toBe("8000");
+    });
+  });
+
+  test("restores and starts the interval landing drill", async () => {
+    setTestUrl("/music/learn/aerophone?mode=interval-landing&target=60&interval=P5&duration=3000");
+    render(Page);
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Interval Landing Trainer");
+      expect(document.body.textContent).toContain("Target C4");
+      expect(button("Perfect fifth")).toHaveAttribute("aria-pressed", "true");
+      expect(button("Start interval landing")?.disabled).toBe(false);
+    });
+
+    button("Start interval landing")?.click();
+    await vi.waitFor(() => {
+      expect(button("Cancel interval landing")).not.toBeUndefined();
+      expect(document.body.textContent).toContain("Land on G4 over the C4 drone");
     });
   });
 });

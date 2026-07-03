@@ -3,10 +3,11 @@ import { tick } from "svelte";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 
 afterEach(() => {
   vi.restoreAllMocks();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
   document.body.replaceChildren();
 });
 
@@ -61,15 +62,11 @@ describe("/music/play/mpc/+page.svelte", () => {
   });
 
   test("restores setup from shareable query parameters", async () => {
-    window.history.replaceState(
-      {},
-      "",
-      "/music/play/mpc?pattern=paradiddle&left=40&right=41&hits=16&bpm=100",
-    );
+    setTestUrl("/music/play/mpc?pattern=moving-accent&left=40&right=41&hits=16&bpm=100");
 
     render(Page);
 
-    expect(button("Paradiddle")).toHaveAttribute("aria-pressed", "true");
+    expect(button("Moving accent")).toHaveAttribute("aria-pressed", "true");
     expect(select("Left pad")?.value).toBe("40");
     expect(select("Right pad")?.value).toBe("41");
     expect(button("16 hits")).toHaveAttribute("aria-pressed", "true");
@@ -78,7 +75,7 @@ describe("/music/play/mpc/+page.svelte", () => {
   });
 
   test("keeps setup changes in the shareable URL", async () => {
-    window.history.replaceState({}, "", "/music/play/mpc");
+    setTestUrl("/music/play/mpc");
     render(Page);
 
     select("Left pad")!.value = "44";
@@ -109,6 +106,24 @@ describe("/music/play/mpc/+page.svelte", () => {
       expect(
         document.querySelector('[aria-label="Rudiment sequence lane"]')?.textContent,
       ).toContain("Pad 38");
+    });
+  });
+
+  test("starts a moving-accent rudiment with visible accent cues", async () => {
+    render(Page);
+    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+
+    button("Moving accent")?.click();
+    button("Start rudiment")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("MPC moving accent");
+      expect(
+        document.querySelector('[aria-label="Rudiment sequence lane"]')?.textContent,
+      ).toContain("Accent");
+      expect(
+        document.querySelector('[aria-label="Rudiment sequence lane"]')?.textContent,
+      ).toContain("Tap");
     });
   });
 

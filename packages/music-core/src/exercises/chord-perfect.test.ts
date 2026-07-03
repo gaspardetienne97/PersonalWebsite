@@ -64,6 +64,35 @@ describe("createChordPerfectExercise", () => {
     }
   });
 
+  test("curated open shapes carry transition metadata for change training", () => {
+    const byId = new Map(CHORD_SHAPES.map((shape) => [shape.id, shape]));
+    const cMajor = byId.get("guitar.c-major");
+
+    expect(cMajor).toMatchObject({
+      difficulty: expect.any(Number),
+      mutedStrings: [6],
+      openStrings: [1, 3],
+      commonTransitions: expect.arrayContaining(["guitar.g-major", "guitar.a-minor"]),
+    });
+
+    for (const shape of CHORD_SHAPES) {
+      expect(shape.difficulty).toBeGreaterThanOrEqual(1);
+      expect(shape.mutedStrings).toEqual(
+        shape.frets
+          .map((fret, index) => (fret === null ? index + 1 : undefined))
+          .filter((stringNumber): stringNumber is number => stringNumber !== undefined),
+      );
+      expect(shape.openStrings).toEqual(
+        shape.frets
+          .map((fret, index) => (fret === 0 ? index + 1 : undefined))
+          .filter((stringNumber): stringNumber is number => stringNumber !== undefined),
+      );
+      for (const transitionId of shape.commonTransitions) {
+        expect(byId.get(transitionId)?.instrument).toBe(shape.instrument);
+      }
+    }
+  });
+
   test("scores a clean six-string guitar C as chord-perfect", () => {
     const tuning = curatedTunings("guitar")[0]!;
     const shape = chordShapesFor("guitar").find((entry) => entry.id === "guitar.c-major")!;
@@ -160,6 +189,7 @@ describe("createChordPerfectExercise", () => {
       instrument: "ukulele",
       shapeId: "ukulele.g-major",
       tuningId: "ukulele.high-g",
+      toShapeId: "ukulele.c-major",
     });
 
     expect(
@@ -169,6 +199,7 @@ describe("createChordPerfectExercise", () => {
       instrument: "guitar",
       shapeId: "guitar.d-major",
       tuningId: "guitar.standard",
+      toShapeId: "guitar.g-major",
     });
 
     expect(
@@ -182,6 +213,21 @@ describe("createChordPerfectExercise", () => {
       instrument: "ukulele",
       shapeId: "ukulele.c-major",
       tuningId: "ukulele.high-g",
+      toShapeId: "ukulele.f-major",
+    });
+
+    expect(
+      normalizeChordPerfectDrillConfig(
+        new URLSearchParams(
+          "mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major",
+        ),
+      ),
+    ).toEqual({
+      mode: "changes",
+      instrument: "guitar",
+      shapeId: "guitar.c-major",
+      tuningId: "guitar.standard",
+      toShapeId: "guitar.g-major",
     });
   });
 });

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/stores";
   import Check from "lucide-svelte/icons/check";
   import { onDestroy } from "svelte";
 
@@ -40,6 +41,7 @@
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
+  import { replaceRouteState } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
@@ -199,11 +201,7 @@
     params.set("start", config.startPosition);
     params.set("strict", config.strict ? "held" : "lenient");
     params.set("advance", config.autoAdvance ? "auto" : "manual");
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${window.location.pathname}?${params.toString()}${window.location.hash}`,
-    );
+    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
   }
 
   onDestroy(() => {

@@ -40,6 +40,22 @@ describe("scale degree recognition", () => {
     expect(prompt.payload.answerLabel).toBe("b6 / le");
   });
 
+  test("can display functional solfege while keeping numeric degree tokens", () => {
+    const exercise = createScaleDegreeRecognitionExercise({ random: () => 0 });
+    const prompt = exercise.generate({
+      ...context("5", 0.2),
+      metadata: { scaleDegreeLabelMode: "solfege", scaleDegreeSet: "anchor" },
+    });
+
+    expect(prompt.payload.labelMode).toBe("solfege");
+    expect(prompt.payload.answerToken).toBe("5");
+    expect(prompt.payload.answerLabel).toBe("sol");
+    expect(prompt.payload.choices).toEqual([
+      { token: "1", label: "do" },
+      { token: "5", label: "sol" },
+    ]);
+  });
+
   test("limits prompts and answer choices to the selected degree set", () => {
     const exercise = createScaleDegreeRecognitionExercise({ random: () => 0 });
     const prompt = exercise.generate({

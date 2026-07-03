@@ -45,6 +45,11 @@
   const complete = $derived(progress >= 1);
   const mode = $derived(prompt?.options.mode ?? "wait");
   const canFinish = $derived(complete || (started && mode === "performance"));
+  const levelLabel = $derived(prompt?.readingLevel?.label ?? "Custom level");
+  const transposeLabel = $derived.by(() => {
+    const semitones = prompt?.transposeSemitones ?? 0;
+    return semitones === 0 ? "written pitch" : `${semitones > 0 ? "+" : ""}${semitones} st`;
+  });
   const pianoProjection = $derived(
     prompt?.options.instrument === "piano" ? projectScoreToPiano(prompt.score) : undefined,
   );
@@ -133,7 +138,7 @@
         <div class="space-y-1">
           <Card.Description>
             {prompt.options.instrument === "piano" ? "Piano" : (tuning?.name ?? prompt.options.instrument)}
-            · {prompt.options.bpm} BPM · {prompt.options.keySignature}
+            · {prompt.options.bpm} BPM · {prompt.options.keySignature} · {levelLabel} · {transposeLabel}
           </Card.Description>
           <Card.Title>Sight-reading phrase</Card.Title>
         </div>

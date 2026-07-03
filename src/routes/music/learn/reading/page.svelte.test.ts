@@ -2,10 +2,11 @@ import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../../_components/test-url";
 
 afterEach(() => {
   document.body.replaceChildren();
-  window.history.replaceState({}, "", "/");
+  setTestUrl("/");
 });
 
 describe("/music/learn/reading/+page.svelte", () => {
@@ -20,10 +21,8 @@ describe("/music/learn/reading/+page.svelte", () => {
   });
 
   test("restores setup from shareable query parameters", async () => {
-    window.history.replaceState(
-      {},
-      "",
-      "/music/learn/reading?activity=sight-reading&instrument=guitar&tuning=guitar-drop-d&answer=play&mode=performance&key=G%20major&difficulty=0.7&bpm=120&strict=strict&meter=compound&measures=4",
+    setTestUrl(
+      "/music/learn/reading?activity=sight-reading&instrument=guitar&tuning=guitar-drop-d&answer=play&mode=performance&key=G%20major&level=level-3&difficulty=0.7&transpose=2&bpm=120&strict=strict&meter=compound&measures=4",
     );
 
     render(Page);
@@ -36,13 +35,15 @@ describe("/music/learn/reading/+page.svelte", () => {
     expect(button("Strict")?.getAttribute("aria-pressed")).toBe("true");
     expect(button("Compound")?.getAttribute("aria-pressed")).toBe("true");
     expect(document.querySelector<HTMLSelectElement>("#reading-key")?.value).toBe("G major");
+    expect(document.querySelector<HTMLSelectElement>("#reading-level")?.value).toBe("level-3");
     expect(document.querySelector<HTMLInputElement>("#reading-difficulty")?.value).toBe("0.7");
+    expect(document.querySelector<HTMLSelectElement>("#reading-transpose")?.value).toBe("2");
     expect(document.querySelector<HTMLInputElement>("#reading-tempo")?.value).toBe("120");
     expect(document.querySelector<HTMLInputElement>("#reading-measures")?.value).toBe("4");
   });
 
   test("keeps setup changes in the shareable URL", async () => {
-    window.history.replaceState({}, "", "/music/learn/reading");
+    setTestUrl("/music/learn/reading");
     render(Page);
 
     await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
@@ -58,6 +59,12 @@ describe("/music/learn/reading/+page.svelte", () => {
     setInput(document.querySelector<HTMLInputElement>("#reading-tempo")!, "132");
     setInput(document.querySelector<HTMLInputElement>("#reading-measures")!, "3");
     setInput(document.querySelector<HTMLInputElement>("#reading-difficulty")!, "0.6");
+    const levelSelect = document.querySelector<HTMLSelectElement>("#reading-level")!;
+    levelSelect.value = "level-2";
+    levelSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    const transposeSelect = document.querySelector<HTMLSelectElement>("#reading-transpose")!;
+    transposeSelect.value = "-2";
+    transposeSelect.dispatchEvent(new Event("change", { bubbles: true }));
     const keySelect = document.querySelector<HTMLSelectElement>("#reading-key")!;
     keySelect.value = "D minor";
     keySelect.dispatchEvent(new Event("change", { bubbles: true }));
@@ -69,7 +76,9 @@ describe("/music/learn/reading/+page.svelte", () => {
       expect(params.get("answer")).toBe("play");
       expect(params.get("mode")).toBe("performance");
       expect(params.get("key")).toBe("D minor");
+      expect(params.get("level")).toBe("level-2");
       expect(params.get("difficulty")).toBe("0.6");
+      expect(params.get("transpose")).toBe("-2");
       expect(params.get("bpm")).toBe("132");
       expect(params.get("strict")).toBe("strict");
       expect(params.get("meter")).toBe("compound");
@@ -180,6 +189,7 @@ describe("/music/learn/reading/+page.svelte", () => {
     expect(document.body.textContent).toContain("Standard");
     expect(document.body.textContent).toContain("120 BPM");
     expect(document.body.textContent).toContain("Strict timing");
+    expect(document.body.textContent).toContain("Level 1");
 
     // Opt-in fretboard reveal: hidden by default, shows the phrase as VexFlow tab.
     expect(document.querySelector('[aria-label="Guitar tab"]')).toBeNull();

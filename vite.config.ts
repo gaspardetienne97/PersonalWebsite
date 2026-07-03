@@ -1,32 +1,55 @@
 import tailwindcss from "@tailwindcss/vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { SvelteKitPWA } from "@vite-pwa/sveltekit";
-import { defineConfig } from "vite-plus";
+import type { RollupLog } from "rollup";
+import { defineConfig, type UserConfig } from "vite-plus";
 import { playwright } from "vite-plus/test/browser-playwright";
 
 import { pwaOptions } from "./pwa.config";
 
-export default defineConfig({
-  plugins: [tailwindcss(), sveltekit(), SvelteKitPWA(pwaOptions)],
-  build: {
+function buildOptions(isSsrBuild?: boolean): UserConfig["build"] {
+  const rolldownOptions = {
+    checks: { pluginTimings: false },
+    onLog(level: string, log: RollupLog, handler: (level: string, log: RollupLog) => void) {
+      if (isIgnoredBuildLog(log)) return;
+      handler(level, log);
+    },
+  };
+  if (isSsrBuild) return { rolldownOptions };
+  return {
+    rolldownOptions,
     rollupOptions: {
+      onLog(level, log, handler) {
+        if (isIgnoredBuildLog(log)) return;
+        handler(level, log);
+      },
       output: {
         // Keep the in-browser neural-TTS runtime (Kokoro + transformers.js +
         // onnxruntime) in one named, lazily-loaded chunk so it stays out of the
         // music PWA precache and only downloads when a reader opts into it.
-        // Rolldown (vite-plus) groups chunks via `advancedChunks`, not rollup's
-        // `manualChunks`.
-        advancedChunks: {
-          groups: [
-            {
-              name: "kokoro-tts",
-              test: /[\\/]node_modules[\\/](@huggingface[\\/]transformers|kokoro-js|onnxruntime[^\\/]*|phonemizer)[\\/]/,
-            },
-          ],
+        manualChunks(id) {
+          return /[\\/]node_modules[\\/](@huggingface[\\/]transformers|kokoro-js|onnxruntime[^\\/]*|phonemizer)[\\/]/.test(
+            id,
+          )
+            ? "kokoro-tts"
+            : undefined;
         },
       },
     },
-  },
+  };
+}
+
+function isIgnoredBuildLog(log: RollupLog): boolean {
+  const id = log.id ?? "";
+  return (
+    (log.code === "INVALID_ANNOTATION" && id.includes("@huggingface/transformers")) ||
+    (log.code === "CIRCULAR_DEPENDENCY" && (id.includes("readable-stream") || id.includes("jszip")))
+  );
+}
+
+export default defineConfig(({ isSsrBuild }) => ({
+  plugins: [tailwindcss(), sveltekit(), SvelteKitPWA(pwaOptions)],
+  build: buildOptions(isSsrBuild),
   ssr: {
     // svelte-sonner ships raw .svelte files; Vite must compile them for SSR
     // instead of letting Node import the .svelte extension directly.
@@ -125,4 +148,4 @@ export default defineConfig({
   run: {
     cache: true,
   },
-});
+}));

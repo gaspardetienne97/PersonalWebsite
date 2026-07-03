@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { replaceState } from "$app/navigation";
   import { page } from "$app/stores";
 
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
+  import { replaceRouteState } from "../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import PianoRollPanel from "./_components/PianoRollPanel.svelte";
   import RecorderPanel from "./_components/RecorderPanel.svelte";
@@ -42,18 +42,7 @@
     const url = new URL(window.location.href);
     url.searchParams.set("mode", nextMode);
     const href = `${url.pathname}${url.search}${url.hash}`;
-    try {
-      replaceState(href, $page.state);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("before router is initialized")
-      ) {
-        window.history.replaceState(window.history.state, "", href);
-        return;
-      }
-      throw error;
-    }
+    replaceRouteState(href, $page.state);
   }
 </script>
 

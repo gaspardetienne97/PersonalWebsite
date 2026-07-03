@@ -77,6 +77,12 @@ export interface SkillTreePracticePick {
   attempts: number;
 }
 
+interface PracticeTarget {
+  skillId: string;
+  skillName: string;
+  href: string;
+}
+
 export interface SkillTreeView {
   nodes: SkillTreeNode[];
   relationships: SkillTreeRelationship[];
@@ -161,16 +167,25 @@ export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView 
         a.id.localeCompare(b.id),
     );
 
+  const practiceNext: SkillTreePracticePick[] = [];
+  const seenPracticeTargets = new Set<string>();
+  for (const stats of weakStats) {
+    const target = practiceTargetForSkill(stats.skillId, skillById);
+    if (seenPracticeTargets.has(target.skillId)) continue;
+    practiceNext.push({
+      skillId: target.skillId,
+      skillName: target.skillName,
+      href: target.href,
+      accuracy: stats.accuracy,
+      attempts: stats.attempts,
+    });
+    seenPracticeTargets.add(target.skillId);
+  }
+
   return {
     nodes,
     relationships: args.skills.relationships.map(projectRelationship),
-    practiceNext: weakStats.map((stats) => ({
-      skillId: stats.skillId,
-      skillName: skillById.get(stats.skillId)?.name ?? stats.skillId,
-      href: hrefForSkill(stats.skillId),
-      accuracy: stats.accuracy,
-      attempts: stats.attempts,
-    })),
+    practiceNext,
     capabilitySummary: capabilitySummary(nodes),
   };
 }
@@ -178,13 +193,14 @@ export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView 
 function challengeFor(skills: SkillGraphStore, analytics: AnalyticsEngine): DashboardChallenge {
   const weak = analytics.weakestSkills(1)[0];
   if (weak) {
-    const skill = skills.skills.find((item) => item.id === weak.skillId);
+    const skillById = new Map(skills.skills.map((skill) => [skill.id, skill]));
+    const target = practiceTargetForSkill(weak.skillId, skillById);
     return {
-      skillId: weak.skillId,
-      skillName: skill?.name ?? weak.skillId,
+      skillId: target.skillId,
+      skillName: target.skillName,
       reason: "weak-spot",
-      label: `Practice ${skill?.name ?? weak.skillId}`,
-      href: hrefForSkill(weak.skillId),
+      label: `Practice ${target.skillName}`,
+      href: target.href,
     };
   }
 
@@ -199,15 +215,82 @@ function challengeFor(skills: SkillGraphStore, analytics: AnalyticsEngine): Dash
 }
 
 function actionForSkill(skillId: string, label: string): DashboardAction {
-  return { label, href: hrefForSkill(skillId) };
+  return { label, href: hrefForSkill(expandedPracticeTargetSkillId(skillId)) };
 }
 
 function hrefForSkill(skillId: string): string {
+  if (skillId === "ear.cadences" || skillId.startsWith("ear.cadences.")) {
+    return "/music/learn/ear?drill=cadence";
+  }
+  if (skillId === "intonation.interval-landing") {
+    return "/music/learn/aerophone?mode=interval-landing";
+  }
+  if (skillId === "rhythm.subdivision.eighths") return "/music/learn/rhythm?pattern=eighths";
+  if (skillId === "rhythm.subdivision.sixteenths") {
+    return "/music/learn/rhythm?pattern=sixteenths";
+  }
+  if (skillId === "rhythm.gap-click") {
+    return "/music/learn/rhythm?pattern=gap-click-1-on-1-off";
+  }
   if (skillId.startsWith("reading.")) return "/music/learn/reading";
   if (skillId.startsWith("rhythm.")) return "/music/learn/rhythm";
+  if (skillId === "technique.aerophone.interval-landing") {
+    return "/music/learn/aerophone?mode=interval-landing";
+  }
+  if (skillId.startsWith("technique.aerophone.")) return "/music/learn/aerophone";
+  if (skillId === "technique.strings.spider.permutations") {
+    return "/music/play/spider?pattern=inside-out-1324";
+  }
+  if (skillId.includes(".spider")) return "/music/play/spider";
+  if (skillId.includes(".note-finder")) return "/music/play/spider?mode=note-finder";
+  if (skillId === "technique.strings.chord-changes" || skillId.includes(".chord-changes")) {
+    return "/music/play/chord-perfect?mode=changes";
+  }
+  if (skillId.includes(".chord-perfect") || skillId.includes(".open-chord-id")) {
+    return "/music/play/chord-perfect";
+  }
+  if (skillId === "technique.mpc.paradiddles") return "/music/play/mpc?pattern=paradiddle";
+  if (skillId.startsWith("technique.mpc")) return "/music/play/mpc";
+  if (skillId === "technique.piano.independence.shell-line") {
+    return "/music/play/two-hand?pattern=lh-shell-rh-line";
+  }
+  if (skillId.startsWith("technique.piano")) return "/music/play/two-hand";
   if (skillId.startsWith("technique.")) return "/music/play/scales";
   if (skillId.startsWith("harmony.") || skillId.startsWith("pitch.")) return "/music/learn/ear";
   return "/music/learn";
+}
+
+function practiceTargetForSkill(
+  skillId: string,
+  skillById: ReadonlyMap<string, { name: string }>,
+): PracticeTarget {
+  const targetId = expandedPracticeTargetSkillId(skillId);
+  return {
+    skillId: targetId,
+    skillName: skillById.get(targetId)?.name ?? targetId,
+    href: hrefForSkill(targetId),
+  };
+}
+
+function expandedPracticeTargetSkillId(skillId: string): string {
+  const expansion: Record<string, string> = {
+    "rhythm.subdivisions": "rhythm.subdivision.eighths",
+    "rhythm.eighths": "rhythm.subdivision.eighths",
+    "rhythm.sixteenths": "rhythm.subdivision.sixteenths",
+    "technique.strings": "technique.strings.spider.permutations",
+    "technique.strings.spider": "technique.strings.spider.permutations",
+    "technique.guitar.spider": "technique.strings.spider.permutations",
+    "technique.ukulele.spider": "technique.strings.spider.permutations",
+    "technique.strings.chord-perfect": "technique.strings.chord-changes",
+    "technique.guitar.chord-perfect": "technique.guitar.chord-changes",
+    "technique.ukulele.chord-perfect": "technique.ukulele.chord-changes",
+    "technique.mpc": "technique.mpc.paradiddles",
+    "technique.mpc.single-strokes": "technique.mpc.paradiddles",
+    "technique.piano": "technique.piano.independence.shell-line",
+    "technique.piano.two-hand-independence": "technique.piano.independence.shell-line",
+    "technique.aerophone": "technique.aerophone.interval-landing",
+  };
+  return expansion[skillId] ?? skillId;
 }
 
 function recentInstruments(sessions: PracticeSession[]): InstrumentId[] {

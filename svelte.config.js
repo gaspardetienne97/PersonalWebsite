@@ -1,6 +1,12 @@
-import { mdsvex } from "mdsvex";
+import { escapeSvelte, mdsvex } from "mdsvex";
 import adapter from "@sveltejs/adapter-node";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+
+const highlightCodeBlock = (code, lang = "") => {
+  const language = lang.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  const className = language ? ` class="language-${language}"` : "";
+  return `<pre${className}><code${className}>${escapeSvelte(code)}</code></pre>`;
+};
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -8,7 +14,11 @@ const config = {
   // for more information about preprocessors
   preprocess: [
     vitePreprocess(),
-    mdsvex({ smartypants: true, extensions: [".md", ".mdx", ".svx"] }),
+    mdsvex({
+      smartypants: true,
+      extensions: [".md", ".mdx", ".svx"],
+      highlight: { highlighter: highlightCodeBlock },
+    }),
   ],
 
   kit: {
