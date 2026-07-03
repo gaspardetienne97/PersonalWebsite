@@ -35,6 +35,7 @@
   import { Progress } from "@repo/ui/progress";
 
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
@@ -49,6 +50,8 @@
   const CHORD_SCALE_SKILL = "harmony.ii-v-i";
   const CHORD_SCALE_CAPABILITIES = [Capability.Harmony, Capability.Technique, Capability.Pitch];
   const CHORD_SCALE_DIFFICULTY = 0.65;
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -367,6 +370,7 @@
                 Hear each scale again and match it note-for-note over its chord.
               </p>
             </div>
+            <LastRunDelta tags={["chord-scales"]} accuracy={overall / 100} before={visitStartedAt} />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
           {/if}
 

@@ -26,6 +26,7 @@
 
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -43,6 +44,8 @@
   const initialConfig = normalizeJazzLickDrillConfig(
     browser ? initialDrillSearch() : {},
   );
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -299,6 +302,7 @@
                 Play the reference again and match the line note-for-note.
               </p>
             </div>
+            <LastRunDelta tags={["licks"]} accuracy={grade?.accuracy ?? 0} before={visitStartedAt} />
             <AdaptiveRetryBar onRetry={startAttempt} retryLabel="Repeat lick" />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
           {/if}

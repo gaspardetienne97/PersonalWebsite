@@ -226,3 +226,43 @@ function round(value: number): number {
 
 const DAY_MS = 86_400_000;
 const WEEK_MS = DAY_MS * 7;
+
+export interface LastRunReference {
+  /** Mean partial credit of the prior run, 0-1. */
+  accuracy: number;
+  endedAt: UnixMs;
+}
+
+/**
+ * The most recent prior run of a drill — sessions carrying ALL of `tags`,
+ * with at least one scoring event, started before `before`. Drill summaries
+ * use it for "vs last run" deltas; `before` is the page-visit time so the
+ * just-recorded run (whose persistence may have already landed) and mid-visit
+ * retries never compare against themselves.
+ */
+export function lastRunReference(
+  sessions: PracticeSession[],
+  tags: string[],
+  before: UnixMs,
+): LastRunReference | undefined {
+  let best: PracticeSession | undefined;
+  for (const session of sessions) {
+    if (session.startTime >= before) continue;
+    if (session.scoringEvents.length === 0) continue;
+    if (!tags.every((tag) => session.tags.includes(tag))) continue;
+    if (!best || session.startTime > best.startTime) best = session;
+  }
+  if (!best) return undefined;
+  return {
+    accuracy: summarizeSession(best).meanScore,
+    endedAt: unixMs(best.endTime ?? best.startTime),
+  };
+}
+
+/** Mean partial credit of a run's scoring events — the same metric
+ * `lastRunReference` summarizes, so "vs last run" deltas compare like for
+ * like. */
+export function meanPartialCredit(events: readonly Pick<ScoringEvent, "partialCredit">[]): number {
+  if (events.length === 0) return 0;
+  return events.reduce((sum, event) => sum + event.partialCredit, 0) / events.length;
+}

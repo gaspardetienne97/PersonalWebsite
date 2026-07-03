@@ -33,6 +33,9 @@
   import { Progress } from "@repo/ui/progress";
 
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import { unixMs } from "@repo/music-core/domain";
+  import { meanPartialCredit } from "@repo/music-core/engines/sessions";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -48,6 +51,8 @@
   // Injectable for tests (the gap-click click scheduling is asserted against a
   // mocked runtime), same pattern as chord-scales/licks.
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -522,6 +527,7 @@
           <p>{runSummary?.results[0]?.result.feedback[0]?.message}</p>
         </Card.Content>
         <Card.Footer class="flex-wrap gap-3">
+          <LastRunDelta tags={["rhythm"]} accuracy={meanPartialCredit((runSummary?.results ?? []).map((result) => result.event))} before={visitStartedAt} />
           <AdaptiveRetryBar onRetry={repeat} onSlower={slowDown} retryLabel="Try again" />
           <RoutineContinueAction routine={runtime.dailyRoutine} />
         </Card.Footer>

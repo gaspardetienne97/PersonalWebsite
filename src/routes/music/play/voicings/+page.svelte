@@ -3,7 +3,7 @@
   import Check from "lucide-svelte/icons/check";
   import { onDestroy } from "svelte";
 
-  import {
+  import { unixMs,
     INSTRUMENT_LABELS,
     isMonophonic,
     VIEWABLE_INSTRUMENTS,
@@ -32,6 +32,7 @@
 
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import InstrumentView from "../../_components/InstrumentView.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
@@ -44,6 +45,8 @@
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -341,6 +344,7 @@
                 {Math.round(drillState.accuracy * 100)}% accuracy · +{drillState.xp} XP across {drillState.total} chords.
               </p>
             </div>
+            <LastRunDelta tags={["voicings"]} accuracy={drillState.accuracy} before={visitStartedAt} />
             <AdaptiveRetryBar onRetry={startDrill} retryLabel="Repeat voicings" />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
           {/if}

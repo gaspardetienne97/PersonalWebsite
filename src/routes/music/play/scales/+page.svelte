@@ -34,6 +34,9 @@
 
   import InstrumentView from "../../_components/InstrumentView.svelte";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import { unixMs } from "@repo/music-core/domain";
+  import { meanPartialCredit } from "@repo/music-core/engines/sessions";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
@@ -44,6 +47,8 @@
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -278,6 +283,7 @@
         <p>{summary.results[0]?.result.feedback[0]?.message}</p>
       </Card.Content>
       <Card.Footer class="flex-wrap gap-3">
+        <LastRunDelta tags={["scales"]} accuracy={meanPartialCredit(summary.results.map((result) => result.event))} before={visitStartedAt} />
         <AdaptiveRetryBar
           onRetry={startScale}
           onSlower={slowDown}

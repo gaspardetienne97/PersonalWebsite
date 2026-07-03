@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { Capability, unixMs, type ScoringEvent } from "@repo/music-core/domain";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 
-import { PracticeSessionStore } from "./index";
+import { lastRunReference, meanPartialCredit, PracticeSessionStore } from "./index";
 
 const databases: PracticeDatabase[] = [];
 
@@ -220,3 +220,54 @@ function createStore(): PracticeStore {
   databases.push(database);
   return new PracticeStore(database);
 }
+
+describe("lastRunReference", () => {
+  const drillSession = (id: string, at: number, tags: string[], credits: number[]) => ({
+    id,
+    startTime: unixMs(at),
+    endTime: unixMs(at + 60_000),
+    source: "drill" as const,
+    runs: [],
+    scoringEvents: credits.map((partialCredit, index) =>
+      event(`${id}-event-${index}`, "rhythm.patterns", at + index, id, partialCredit),
+    ),
+    xpEarned: 10,
+    tags,
+  });
+
+  test("finds the most recent prior run matching all tags", () => {
+    const sessions = [
+      drillSession("old", Date.UTC(2026, 0, 1), ["rhythm"], [0.5, 0.7]),
+      drillSession("newer", Date.UTC(2026, 0, 3), ["rhythm"], [0.8, 1]),
+      drillSession("other-drill", Date.UTC(2026, 0, 4), ["scales"], [1]),
+    ];
+
+    const reference = lastRunReference(sessions, ["rhythm"], unixMs(Date.UTC(2026, 0, 5)));
+    expect(reference?.accuracy).toBeCloseTo(0.9, 5);
+    expect(reference?.endedAt).toBe(unixMs(Date.UTC(2026, 0, 3) + 60_000));
+  });
+
+  test("ignores runs at or after the cutoff (the run being summarized)", () => {
+    const sessions = [
+      drillSession("previous", Date.UTC(2026, 0, 1), ["rhythm"], [0.6]),
+      drillSession("current", Date.UTC(2026, 0, 2, 12), ["rhythm"], [1]),
+    ];
+
+    const reference = lastRunReference(sessions, ["rhythm"], unixMs(Date.UTC(2026, 0, 2, 12)));
+    expect(reference?.accuracy).toBeCloseTo(0.6, 5);
+  });
+
+  test("returns undefined when no prior tagged run exists", () => {
+    const sessions = [drillSession("scales-only", Date.UTC(2026, 0, 1), ["scales"], [1])];
+    expect(lastRunReference(sessions, ["rhythm"], unixMs(Date.UTC(2026, 0, 5)))).toBeUndefined();
+  });
+});
+
+describe("meanPartialCredit", () => {
+  test("averages partial credit and handles the empty run", () => {
+    expect(meanPartialCredit([])).toBe(0);
+    expect(
+      meanPartialCredit([{ partialCredit: 1 }, { partialCredit: 0.5 }, { partialCredit: 0 }]),
+    ).toBeCloseTo(0.5, 5);
+  });
+});
