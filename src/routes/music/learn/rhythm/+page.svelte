@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import Drum from "lucide-svelte/icons/drum";
@@ -43,7 +42,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import TimingMeter from "../../_components/TimingMeter.svelte";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   // Injectable for tests (the gap-click click scheduling is asserted against a
@@ -57,9 +56,11 @@
   const initialConfig = browser
     ? normalizeRhythmDrillConfig(new URLSearchParams(window.location.search))
     : RHYTHM_DRILL_DEFAULT_CONFIG;
+  // Mode changes the *display* only (whether the notation target is shown);
+  // both modes grade the same pattern. Labels say so.
   const modeOptions = [
-    { value: "pulse", label: "Pulse" },
-    { value: "read-and-tap", label: "Read & Tap" },
+    { value: "pulse", label: "From memory" },
+    { value: "read-and-tap", label: "Read & tap" },
   ];
 
   let ready = $state(false);
@@ -89,7 +90,7 @@
   const patternLabel = $derived(
     RHYTHM_DRILL_PATTERNS.find((option) => option.value === pattern)?.label ?? "Quarter-note pulse",
   );
-  const modeLabel = $derived(mode === "read-and-tap" ? "Read & Tap" : "Pulse");
+  const modeLabel = $derived(mode === "read-and-tap" ? "Read & tap" : "From memory");
   const sourceLabel = $derived(
     runtime.activeSource === "midi"
       ? "MIDI"
@@ -188,7 +189,7 @@
             tags: ["rhythm"],
             scoringEvents: state.summary.results.map((result) => result.event),
             xpEarned: state.summary.xp,
-            note: `Rhythm pulse · ${Math.round(state.summary.accuracy * 100)}% accuracy`,
+            note: `Rhythm · ${patternLabel} · ${Math.round(state.summary.accuracy * 100)}% accuracy`,
           });
         }
       });
@@ -278,7 +279,7 @@
     url.searchParams.set("bpm", String(config.bpm));
     url.searchParams.set("beats", String(config.beats));
     url.searchParams.set("pattern", config.pattern);
-    replaceRouteState(`${url.pathname}${url.search}${url.hash}`, $page.state);
+    syncRouteQuery(`${url.pathname}${url.search}${url.hash}`);
   }
 
   function patternEvents(prompt: RhythmSessionState["currentPrompt"]): RhythmPatternPrompt["events"] {

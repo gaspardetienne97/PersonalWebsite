@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
@@ -21,7 +20,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import FlashcardSession from "./_components/FlashcardSession.svelte";
   import ReadingSetup, {
@@ -325,7 +324,7 @@
     url.searchParams.set("strict", config.strictness);
     url.searchParams.set("meter", config.meter);
     url.searchParams.set("measures", String(config.measures));
-    replaceRouteState(`${url.pathname}${url.search}${url.hash}`, $page.state);
+    syncRouteQuery(`${url.pathname}${url.search}${url.hash}`);
   }
 
   onDestroy(() => {

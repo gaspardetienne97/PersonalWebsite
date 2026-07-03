@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
@@ -36,7 +35,7 @@
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { suggestedFingerings } from "../../_components/piano-visual";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -210,7 +209,7 @@
     params.set("bpm", String(config.bpm));
     params.set("pattern", config.patternKind);
     params.set("hand", config.handMode);
-    replaceRouteState(`${url.pathname}?${params.toString()}${url.hash}`, $page.state);
+    syncRouteQuery(`${url.pathname}?${params.toString()}${url.hash}`);
   }
 
   function cancel(): void {

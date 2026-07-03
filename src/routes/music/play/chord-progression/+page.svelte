@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import { onDestroy, onMount } from "svelte";
 
   import {
@@ -35,7 +34,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface ChordSourceLike {
@@ -253,7 +252,7 @@
     params.set("progression", config.progressionId);
     params.set("bpm", String(config.bpm));
     params.set("transpose", String(config.transpose));
-    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
+    syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
   onMount(() => {

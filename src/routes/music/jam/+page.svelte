@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import Circle from "lucide-svelte/icons/circle";
   import Play from "lucide-svelte/icons/play";
   import SkipForward from "lucide-svelte/icons/skip-forward";
@@ -38,7 +37,7 @@
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
   import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
-  import { replaceRouteState } from "../_components/route-state";
+  import { syncRouteQuery } from "../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
 
@@ -317,7 +316,7 @@
     params.set("drums", config.drumTrackId);
     params.set("bpm", String(config.bpm));
     params.set("transpose", String(config.transpose));
-    replaceRouteState(`${url.pathname}?${params.toString()}${url.hash}`, $page.state);
+    syncRouteQuery(`${url.pathname}?${params.toString()}${url.hash}`);
   }
 
   function defaultNavigateToCreate(href: string): void {

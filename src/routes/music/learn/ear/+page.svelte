@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import { nowUnix, type NoteEvent } from "@repo/music-core/domain";
@@ -54,7 +53,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
   import EarTrainingLanding from "./_components/EarTrainingLanding.svelte";
   import EarTrainingSessionRail from "./_components/EarTrainingSessionRail.svelte";
@@ -458,7 +457,7 @@
     params.set("feedback", config.feedbackMode);
     params.set("level", config.scaleDegreeSet);
     params.set("labels", config.scaleDegreeLabelMode);
-    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
+    syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
   async function stopVoiceMic(): Promise<void> {

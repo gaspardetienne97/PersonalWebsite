@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import { onDestroy, onMount } from "svelte";
 
   import type {
@@ -37,7 +36,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -228,7 +227,7 @@
     params.set("right", String(config.rightPadMidi));
     params.set("hits", String(config.hitCount));
     params.set("bpm", String(config.bpm));
-    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
+    syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
   onMount(() => {

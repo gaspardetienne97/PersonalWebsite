@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import Play from "lucide-svelte/icons/play";
   import { onDestroy } from "svelte";
 
@@ -42,7 +41,7 @@
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
@@ -303,7 +302,7 @@
     const config = normalizedConfig;
     const params = new URLSearchParams(window.location.search);
     params.set("changes", config.changesId);
-    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
+    syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
   onDestroy(() => unsubscribe?.());

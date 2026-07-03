@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import { onDestroy, onMount } from "svelte";
 
   import { monotonicMs, type NoteEvent, type ScoringEvent } from "@repo/music-core/domain";
@@ -55,7 +54,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   interface ChordVerifierAudioSource {
@@ -387,7 +386,7 @@
       params.delete("to");
       params.delete("reps");
     }
-    replaceRouteState(`${url.pathname}?${params.toString()}${url.hash}`, $page.state);
+    syncRouteQuery(`${url.pathname}?${params.toString()}${url.hash}`);
   }
 
   let strumBusy = $state(false);

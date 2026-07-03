@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/stores";
   import { onDestroy } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
@@ -41,7 +40,7 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
-  import { replaceRouteState } from "../../_components/route-state";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -229,7 +228,7 @@
     params.set("bpm", String(config.bpm));
     params.set("motion", config.motion);
     params.set("span", config.span);
-    replaceRouteState(`${window.location.pathname}?${params.toString()}${window.location.hash}`, $page.state);
+    syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
   function message(error: unknown, fallback: string): string {

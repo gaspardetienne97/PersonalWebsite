@@ -4,7 +4,7 @@
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
-  import { replaceRouteState } from "../_components/route-state";
+  import { syncRouteQuery } from "../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import PianoRollPanel from "./_components/PianoRollPanel.svelte";
   import RecorderPanel from "./_components/RecorderPanel.svelte";
@@ -42,7 +42,7 @@
     const url = new URL(window.location.href);
     url.searchParams.set("mode", nextMode);
     const href = `${url.pathname}${url.search}${url.hash}`;
-    replaceRouteState(href, $page.state);
+    syncRouteQuery(href);
   }
 </script>
 
