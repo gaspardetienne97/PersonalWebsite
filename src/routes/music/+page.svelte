@@ -46,7 +46,7 @@
 </script>
 
 <svelte:head>
-  <title>Practice | Musicianship OS</title>
+  <title>Practice | Practice OS</title>
   <meta
     name="description"
     content="Your practice home — today's plan, every drill, and guided paths in one place."

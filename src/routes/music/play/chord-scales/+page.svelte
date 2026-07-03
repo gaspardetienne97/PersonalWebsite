@@ -312,7 +312,7 @@
 </script>
 
 <svelte:head>
-  <title>Chord-Scale Drill | Musicianship OS</title>
+  <title>Chord-Scale Drill | Practice OS</title>
   <meta
     name="description"
     content="Play the go-to scale for each chord as a ii-V-I moves — Dorian, Mixolydian, Ionian — graded note-by-note."

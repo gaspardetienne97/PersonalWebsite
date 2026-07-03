@@ -204,7 +204,7 @@
 </script>
 
 <svelte:head>
-  <title>Practice Journal | Musicianship OS</title>
+  <title>Practice Journal | Practice OS</title>
   <meta
     name="description"
     content="Review practice sessions, journal notes, weekly progress, and session history."

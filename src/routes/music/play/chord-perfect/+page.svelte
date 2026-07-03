@@ -567,7 +567,7 @@
 </script>
 
 <svelte:head>
-  <title>Chord-Perfect | Musicianship OS</title>
+  <title>Chord-Perfect | Practice OS</title>
   <meta
     name="description"
     content="Practice clean chord changes: fret a shape and sound each string from low to high, graded note by note."

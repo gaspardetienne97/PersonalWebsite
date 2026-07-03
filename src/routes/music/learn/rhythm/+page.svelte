@@ -305,7 +305,7 @@
 </script>
 
 <svelte:head>
-  <title>Rhythm Trainer | Musicianship OS</title>
+  <title>Rhythm Trainer | Practice OS</title>
   <meta
     name="description"
     content="Practice quarter-note pulse with MIDI, on-screen, and metronome-anchored timing feedback."

@@ -47,7 +47,7 @@
 </script>
 
 <svelte:head>
-  <title>Create | Musicianship OS</title>
+  <title>Create | Practice OS</title>
   <meta
     name="description"
     content="Make music with one Create workspace: beat grid, piano roll, and recorder."

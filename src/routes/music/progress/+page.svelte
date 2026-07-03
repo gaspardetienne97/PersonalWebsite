@@ -104,7 +104,7 @@
 </script>
 
 <svelte:head>
-  <title>Dashboard & Skill Tree | Musicianship OS</title>
+  <title>Dashboard & Skill Tree | Practice OS</title>
   <meta
     name="description"
     content="Review practice dashboard, skill mastery, weak spots, achievements, and streak history."

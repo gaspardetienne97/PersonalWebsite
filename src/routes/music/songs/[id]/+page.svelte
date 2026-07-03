@@ -542,7 +542,7 @@
 </script>
 
 <svelte:head>
-  <title>{song?.title ?? "Song Studio"} | Musicianship OS</title>
+  <title>{song?.title ?? "Song Studio"} | Practice OS</title>
   <meta
     name="description"
     content="Preview a saved score and practice it with engine-backed follow-along."

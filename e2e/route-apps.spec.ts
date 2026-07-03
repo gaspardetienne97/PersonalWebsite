@@ -11,14 +11,10 @@ test("personal site links to route apps", async ({ page }) => {
 test("music route app renders", async ({ page }) => {
   await page.goto("/music");
 
-  await expect(page.getByRole("heading", { name: "Musicianship OS" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "MIDI devices" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Live MIDI events" })).toBeVisible();
-  // Instrument hub + persistent transport bar replace the old status topbar.
-  await expect(page.getByText("Input router")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Play metronome" })).toBeVisible();
-  await page.getByRole("button", { name: "Answer m6" }).click();
-  await expect(page.getByText(/Correct\..*m6 mastery/i)).toBeVisible();
+  // The Practice hub (post-redesign home): Today / Drills / Paths.
+  await expect(page.getByRole("heading", { name: "Practice", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Drills" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Paths" })).toBeVisible();
 
   // The persistent transport bar owns the shared metronome.
   await page.getByRole("button", { name: "Play metronome" }).click();
@@ -49,11 +45,12 @@ test("music app shell persists across section routes", async ({ page }) => {
 
   const navigation = page.getByRole("navigation", { name: "Music sections" });
   await expect(navigation).toBeVisible();
-  // The Practice OS sidebar groups Learn into focused entries; navigate via one.
-  await navigation.getByRole("link", { name: "Ear Training" }).click();
+  // The sidebar holds the four intent hubs; navigate via one.
+  await navigation.getByRole("link", { name: "Library" }).click();
 
-  await expect(page).toHaveURL("/music/learn/ear");
-  await expect(page.getByRole("heading", { name: "Ear Training" })).toBeVisible();
+  await expect(page).toHaveURL("/music/library");
+  await expect(page.getByRole("heading", { name: "Library", exact: true })).toBeVisible();
+  // The shared transport bar survives the navigation.
   await expect(page.getByRole("button", { name: "Enable audio" })).toBeVisible();
 });
 

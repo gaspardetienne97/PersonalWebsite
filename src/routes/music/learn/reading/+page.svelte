@@ -337,7 +337,7 @@
 </script>
 
 <svelte:head>
-  <title>Note Reading | Musicianship OS</title>
+  <title>Note Reading | Practice OS</title>
   <meta
     name="description"
     content="Practice staff-note recognition and instrument locations with focused flashcards."

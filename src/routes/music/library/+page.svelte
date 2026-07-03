@@ -43,7 +43,7 @@
 </script>
 
 <svelte:head>
-  <title>Library | Musicianship OS</title>
+  <title>Library | Practice OS</title>
   <meta
     name="description"
     content="Your repertoire, reference, imports, and transcription workflows in one Music library."

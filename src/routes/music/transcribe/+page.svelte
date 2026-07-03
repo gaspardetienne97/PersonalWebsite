@@ -277,7 +277,7 @@
 </script>
 
 <svelte:head>
-  <title>Transcription Trainer | Musicianship OS</title>
+  <title>Transcription Trainer | Practice OS</title>
   <meta
     name="description"
     content="Draft an audio transcription locally and save it as a canonical practice score."

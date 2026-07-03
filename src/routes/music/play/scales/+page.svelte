@@ -248,7 +248,7 @@
 </script>
 
 <svelte:head>
-  <title>Scales & Technique | Musicianship OS</title>
+  <title>Scales & Technique | Practice OS</title>
   <meta
     name="description"
     content="Practice scale technique with MIDI or on-screen input, evenness feedback, and tempo unlocks."

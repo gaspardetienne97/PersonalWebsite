@@ -13,12 +13,12 @@
 </script>
 
 <svelte:head>
-  <title>{title} | Musicianship OS</title>
+  <title>{title} | Practice OS</title>
 </svelte:head>
 
 <section class="mx-auto grid w-full max-w-5xl gap-6 px-4 py-8 md:px-8">
   <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Musicianship OS</p>
+    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Practice OS</p>
     <h1 class="text-4xl font-bold tracking-tight">{title}</h1>
     <p class="max-w-2xl text-muted-foreground">{description}</p>
   </header>

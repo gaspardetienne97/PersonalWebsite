@@ -27,7 +27,34 @@
     continueLabel?: string;
     class?: string;
   } = $props();
+
+  // Keyboard shortcuts while the bar is mounted (i.e. at summary time).
+  // Deliberately NOT letters from the QWERTY-piano map (a/w/s/e/d/f/t/g/y/h/
+  // u/j/k/o/l/p/;) — drill keyboards stay mounted under summaries, and 'S'
+  // would both play a D and slow the drill down. 'r' and '-' are unmapped.
+  function onWindowKeydown(event: KeyboardEvent): void {
+    if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      (target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    if (event.key.toLowerCase() === "r" && onRetry) {
+      event.preventDefault();
+      onRetry();
+    } else if (event.key === "-" && onSlower) {
+      event.preventDefault();
+      onSlower();
+    }
+  }
 </script>
+
+<svelte:window onkeydown={onWindowKeydown} />
 
 <div class={cn("flex flex-wrap items-center gap-2", cls)}>
   {#if onRetry}
@@ -41,5 +68,12 @@
   {/if}
   {#if onContinue}
     <Button type="button" onclick={onContinue}>{continueLabel}</Button>
+  {/if}
+  {#if onRetry || onSlower}
+    <span class="hidden text-xs text-muted-foreground sm:inline" aria-hidden="true">
+      {#if onRetry}<kbd class="rounded border bg-muted px-1 font-mono">R</kbd> retry{/if}
+      {#if onRetry && onSlower}·{/if}
+      {#if onSlower}<kbd class="rounded border bg-muted px-1 font-mono">−</kbd> slower{/if}
+    </span>
   {/if}
 </div>

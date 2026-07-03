@@ -7,7 +7,7 @@ This file provides guidance for agents working on the Music app under
 
 - The Music app is the `/music` route inside the personal website. It is not a
   separate root website and should not replace the personal homepage.
-- The current product is "Musicianship OS": a MIDI-first, offline-capable
+- The current product is "Practice OS": a MIDI-first, offline-capable
   practice app for ear training, theory, note reading, sight-reading, rhythm,
   scales/technique, journaling, analytics, progress, XP, streaks, and a skill
   tree.

@@ -215,7 +215,7 @@
 </script>
 
 <svelte:head>
-  <title>Jazz Licks Drill | Musicianship OS</title>
+  <title>Jazz Licks Drill | Practice OS</title>
   <meta
     name="description"
     content="Hear a transcribed jazz lick, then play it back — graded note-by-note against the phrase, octave-lenient."

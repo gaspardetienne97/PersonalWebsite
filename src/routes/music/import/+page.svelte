@@ -159,7 +159,7 @@
 </script>
 
 <svelte:head>
-  <title>Import & Play | Musicianship OS</title>
+  <title>Import & Play | Practice OS</title>
 </svelte:head>
 
 <PracticeScreen>

@@ -239,7 +239,7 @@
 </script>
 
 <svelte:head>
-  <title>Two-Hand Independence | Musicianship OS</title>
+  <title>Two-Hand Independence | Practice OS</title>
   <meta
     name="description"
     content="A graded piano drill: hold a steady left-hand pulse while the right hand plays a faster line."

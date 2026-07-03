@@ -100,7 +100,7 @@
 </script>
 
 <svelte:head>
-  <title>Jazz Piano | Musicianship OS</title>
+  <title>Jazz Piano | Practice OS</title>
   <meta
     name="description"
     content="Learn jazz piano: chord symbols, chord-scale theory, rootless ii-V-I voicings, 29 licks, and a repertoire of standards."

@@ -532,7 +532,7 @@
 </script>
 
 <svelte:head>
-  <title>Practice Lab | Musicianship OS</title>
+  <title>Practice Lab | Practice OS</title>
   <meta
     name="description"
     content="Capture free practice with MIDI or on-screen input, backing tracks, and synchronized dry audio takes."

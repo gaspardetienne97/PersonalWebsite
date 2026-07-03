@@ -101,7 +101,7 @@
 </script>
 
 <svelte:head>
-  <title>Chord &amp; Scale Reference | Musicianship OS</title>
+  <title>Chord &amp; Scale Reference | Practice OS</title>
   <meta
     name="description"
     content="Explore, hear, and save chord and scale theory across piano, guitar, and ukulele."

@@ -48,7 +48,7 @@
 </script>
 
 <svelte:head>
-  <title>Settings | Musicianship OS</title>
+  <title>Settings | Practice OS</title>
   <meta name="description" content="Audio, MIDI, latency, and appearance preferences for the Music app." />
 </svelte:head>
 

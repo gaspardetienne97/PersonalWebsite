@@ -41,7 +41,7 @@
 </script>
 
 <svelte:head>
-  <title>Jazz Path | Musicianship OS</title>
+  <title>Jazz Path | Practice OS</title>
   <meta
     name="description"
     content="An ordered jazz-piano learning path that threads ear training, theory, voicings, the graded ii-V-I drill, and improv — tracked by real skill progress."

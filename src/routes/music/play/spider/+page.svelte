@@ -381,7 +381,7 @@
 </script>
 
 <svelte:head>
-  <title>String Independence | Musicianship OS</title>
+  <title>String Independence | Practice OS</title>
   <meta
     name="description"
     content="Practice graded fretting-hand independence patterns on guitar or ukulele."

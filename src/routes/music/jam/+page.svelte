@@ -355,7 +355,7 @@
 </script>
 
 <svelte:head>
-  <title>Jam / Improv | Musicianship OS</title>
+  <title>Jam / Improv | Practice OS</title>
 </svelte:head>
 
 <PracticeScreen>

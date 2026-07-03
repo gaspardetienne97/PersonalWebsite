@@ -476,7 +476,7 @@
 </script>
 
 <svelte:head>
-  <title>Ear Training | Musicianship OS</title>
+  <title>Ear Training | Practice OS</title>
   <meta
     name="description"
     content="Practice intervals, chord qualities, and functional scale degrees by ear."

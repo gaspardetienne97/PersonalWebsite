@@ -115,7 +115,7 @@
 </script>
 
 <svelte:head>
-  <title>Songs | Musicianship OS</title>
+  <title>Songs | Practice OS</title>
   <meta
     name="description"
     content="Reopen saved imported songs, replay them, and log repertoire practice."

@@ -218,7 +218,7 @@
 </script>
 
 <svelte:head>
-  <title>Tuner | Musicianship OS</title>
+  <title>Tuner | Practice OS</title>
   <meta
     name="description"
     content="Tune, practice intonation, and play a tonic drone from one microphone-aware practice tool."

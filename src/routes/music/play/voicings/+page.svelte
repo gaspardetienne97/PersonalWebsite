@@ -213,7 +213,7 @@
 </script>
 
 <svelte:head>
-  <title>ii-V-I Voicing Drill | Musicianship OS</title>
+  <title>ii-V-I Voicing Drill | Practice OS</title>
   <meta
     name="description"
     content="Play rootless, minor, and altered dominant jazz voicings through all 12 keys, graded on any instrument."

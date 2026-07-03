@@ -270,7 +270,7 @@
 </script>
 
 <svelte:head>
-  <title>Chord Progression | Musicianship OS</title>
+  <title>Chord Progression | Practice OS</title>
   <meta
     name="description"
     content="Strum a known chord progression in time — chroma + onset-confirmed Basic Pitch grade each chord change for correctness and timing."
