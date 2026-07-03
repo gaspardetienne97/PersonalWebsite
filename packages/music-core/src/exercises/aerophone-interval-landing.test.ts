@@ -5,6 +5,31 @@ import { monotonicMs, type ControlChangeEvent, type NoteOnEvent } from "@repo/mu
 import { createAerophoneIntervalLandingExercise } from "./aerophone-interval-landing";
 
 describe("createAerophoneIntervalLandingExercise", () => {
+  test("a flubbed attack corrected before the hold grades the settled note", () => {
+    const exercise = createAerophoneIntervalLandingExercise({
+      droneMidi: 60,
+      interval: "P5",
+      holdMs: 2_000,
+    });
+    const context = {
+      targetSkillIds: exercise.skillIds,
+      difficulty: 0.5,
+      instrument: "aerophone" as const,
+    };
+    const run = exercise.createRun(exercise.generate(context), context);
+
+    // Common wind flub: brief mis-fingered F#4, immediately corrected to G4.
+    run.accept(note(66, 0));
+    run.accept(note(67, 120));
+    run.accept(breath(0.7, 200));
+    run.accept(breath(0.71, 1_200));
+    run.accept(breath(0.7, 2_200));
+
+    const result = run.finish({ reason: "completed" });
+    expect(result.answer).toMatchObject({ playedMidi: 67, landingErrorSemitones: 0 });
+    expect(result.correct).toBe(true);
+  });
+
   test("scores a steady target landing over a drone", () => {
     const exercise = createAerophoneIntervalLandingExercise({
       droneMidi: 60,

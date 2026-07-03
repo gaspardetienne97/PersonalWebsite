@@ -95,7 +95,10 @@ function intervalLandingRun(
 
   return {
     accept(event) {
-      if (event.type === "noteOn" && playedMidi === undefined) {
+      if (event.type === "noteOn") {
+        // Grade the note the player SETTLES on, not the first attack — wind
+        // attacks commonly flub (a brief mis-finger, then the correction), and
+        // locking to the first noteOn permanently misgraded the whole hold.
         playedMidi = event.midiNote;
         input.push(event);
         return;

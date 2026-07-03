@@ -35,7 +35,7 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     setTestUrl("/music/learn/rhythm?mode=read-and-tap&bpm=72&beats=6&pattern=eighth-rests");
     render(Page);
 
-    expect(button("Read & Tap")).toHaveAttribute("aria-pressed", "true");
+    expect(button("Read & tap")).toHaveAttribute("aria-pressed", "true");
     expect(select("Pattern")?.value).toBe("eighth-rests");
     expect(input("BPM")?.value).toBe("72");
     expect(input("Beats")?.value).toBe("6");
@@ -52,7 +52,7 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     input("BPM")!.dispatchEvent(new Event("input", { bubbles: true }));
     input("Beats")!.value = "8";
     input("Beats")!.dispatchEvent(new Event("input", { bubbles: true }));
-    button("Read & Tap")?.click();
+    button("Read & tap")?.click();
 
     await vi.waitFor(() => expect(window.location.search).toContain("bpm=88"));
     expect(window.location.search).toContain("pattern=triplets");
@@ -77,11 +77,11 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     render(Page);
     await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
 
-    expect(button("Read & Tap")).toHaveAttribute("aria-pressed", "true");
+    expect(button("Read & tap")).toHaveAttribute("aria-pressed", "true");
     button("Start Rhythm")?.click();
 
     await vi.waitFor(() => {
-      expect(document.body.textContent).toContain("Read & Tap");
+      expect(document.body.textContent).toContain("Read & tap");
       expect(document.querySelector('[aria-label="Rhythm pattern target"]')).not.toBeNull();
     });
     expect(button("Tap rhythm")).not.toBeUndefined();

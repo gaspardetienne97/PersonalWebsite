@@ -30,7 +30,8 @@ describe("cadence recognition", () => {
     ]);
     expect(prompt.payload.playback).toHaveLength(2);
     expect(prompt.payload.playback[0]?.midiNotes).toEqual([55, 59, 62, 65]);
-    expect(prompt.payload.playback[1]?.midiNotes).toEqual([48, 52, 55, 59]);
+    // Plain I triad — a maj7 resolution would identify 'authentic' by chord colour alone.
+    expect(prompt.payload.playback[1]?.midiNotes).toEqual([48, 52, 55, 60]);
   });
 
   test("grades choice answers and records cadence confusions", () => {

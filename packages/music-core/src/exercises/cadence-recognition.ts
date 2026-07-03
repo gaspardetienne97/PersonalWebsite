@@ -25,7 +25,7 @@ const CADENCES: CadenceDefinition[] = [
     romanProgression: ["V", "I"],
     playback: [
       { midiNotes: [55, 59, 62, 65], offsetSeconds: 0, durationSeconds: 1 },
-      { midiNotes: [48, 52, 55, 59], offsetSeconds: 1.1, durationSeconds: 1.2 },
+      { midiNotes: [48, 52, 55, 60], offsetSeconds: 1.1, durationSeconds: 1.2 },
     ],
   },
   {
@@ -45,7 +45,7 @@ const CADENCES: CadenceDefinition[] = [
     romanProgression: ["I", "V"],
     playback: [
       { midiNotes: [48, 52, 55, 60], offsetSeconds: 0, durationSeconds: 1 },
-      { midiNotes: [55, 59, 62, 65], offsetSeconds: 1.1, durationSeconds: 1.2 },
+      { midiNotes: [55, 59, 62, 67], offsetSeconds: 1.1, durationSeconds: 1.2 },
     ],
   },
   {
