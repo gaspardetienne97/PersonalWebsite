@@ -58,6 +58,26 @@ describe("createTwoHandIndependenceExercise", () => {
     expect(shell.label).toContain("Shell + line");
   });
 
+  test("contrary motion descends the major scale in key", () => {
+    const prompt = createTwoHandIndependenceExercise({
+      tonic: "C4",
+      bpm: 120,
+      bars: 1,
+      patternKind: "contrary-motion-scale",
+    }).generate({ targetSkillIds: [], difficulty: 0.4 }).payload;
+
+    // LH ascends C major from C2 (36): C D E F G A B C…
+    expect(prompt.leftMidiNotes.slice(0, 8)).toEqual([36, 38, 40, 41, 43, 45, 47, 47]);
+    // RH descends C major from C5 (72): C B A G F E D — all diatonic, no ♭s.
+    expect(prompt.rightMidiNotes.slice(0, 7)).toEqual([72, 71, 69, 67, 65, 64, 62]);
+    // Both hands move together on the same eighth-note grid.
+    const beatZero = prompt.targetEvents.filter((event) => event.beat === 0);
+    expect(beatZero).toEqual([
+      { hand: "left", midiNote: 36, beat: 0 },
+      { hand: "right", midiNote: 72, beat: 0 },
+    ]);
+  });
+
   test("can isolate the left-hand lane for focused practice", () => {
     const prompt = createTwoHandIndependenceExercise({
       tonic: "C4",

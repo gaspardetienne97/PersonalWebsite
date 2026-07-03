@@ -367,11 +367,15 @@ function filterEventsByHandMode(
   return handMode === "both" ? events : events.filter((event) => event.hand === handMode);
 }
 
-function scaleNote(root: number, index: number, direction = 1): number {
+function scaleNote(root: number, index: number, direction: 1 | -1 = 1): number {
   const span = MAJOR_STEPS.length * 2;
   const phase = index % span;
   const step = phase < MAJOR_STEPS.length ? phase : span - 1 - phase;
-  return root + MAJOR_STEPS[step]! * direction;
+  if (direction === 1) return root + MAJOR_STEPS[step]!;
+  // Descending walks the major scale DOWN from `root` (degree offsets mirrored
+  // below the root). Negating the ascending semitone offsets would leave the
+  // key: from C5 that yields B♭4/A♭4/E♭4/D♭4 instead of B4/A4/E4/D4.
+  return root + (step === 0 ? 0 : MAJOR_STEPS[MAJOR_STEPS.length - step]! - 12);
 }
 
 function handSort(hand: TwoHandHand): number {
