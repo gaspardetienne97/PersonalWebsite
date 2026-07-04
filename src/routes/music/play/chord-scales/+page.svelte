@@ -39,6 +39,7 @@
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
@@ -388,6 +389,7 @@
               Hear scale
             </Button>
             <Button type="button" onclick={startAttempt}>Play it back</Button>
+            <StartShortcut onStart={startAttempt} enabled={phase !== "listening"} />
           {/if}
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>

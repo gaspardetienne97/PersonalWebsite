@@ -42,6 +42,7 @@
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
@@ -421,6 +422,7 @@
           >
             {pending ? "Starting..." : "Start Scale"}
           </Button>
+            <StartShortcut onStart={() => void startScale()} />
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>
       </Card.Root>

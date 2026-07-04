@@ -39,6 +39,7 @@
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -366,6 +367,7 @@
             <Button type="button" disabled={!ready || pending} onclick={startDrill}>
               {drillState?.status === "summary" ? "Restart drill" : "Start drill"}
             </Button>
+            <StartShortcut onStart={startDrill} />
           {:else if autoAdvance}
             <Button type="button" variant="outline" disabled={pending} onclick={check}>
               Skip chord

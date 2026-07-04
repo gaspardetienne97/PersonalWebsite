@@ -41,6 +41,7 @@
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import PracticeStage from "../../_components/PracticeStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
@@ -416,6 +417,7 @@
           >
             {pending ? "Starting..." : "Start Rhythm"}
           </Button>
+            <StartShortcut onStart={() => void startPulse()} />
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>
       </Card.Root>

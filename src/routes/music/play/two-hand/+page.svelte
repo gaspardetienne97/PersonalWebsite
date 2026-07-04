@@ -31,6 +31,7 @@
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -332,6 +333,7 @@
           <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
             {pending ? "Starting..." : "Start drill"}
           </Button>
+          <StartShortcut onStart={() => void start()} />
         {/if}
         <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
       </Card.Footer>

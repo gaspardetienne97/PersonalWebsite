@@ -30,6 +30,7 @@
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -320,6 +321,7 @@
           <Button type="button" onclick={startAttempt}>
             {phase === "graded" ? "Try again" : "Play it back"}
           </Button>
+          <StartShortcut onStart={startAttempt} enabled={phase !== "listening"} />
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>
       </Card.Root>
