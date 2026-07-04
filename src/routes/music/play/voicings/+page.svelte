@@ -33,6 +33,7 @@
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import InstrumentView from "../../_components/InstrumentView.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
@@ -347,6 +348,7 @@
             <LastRunDelta tags={["voicings"]} accuracy={drillState.accuracy} before={visitStartedAt} />
             <AdaptiveRetryBar onRetry={startDrill} retryLabel="Repeat voicings" />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
+            <NextUpSuggestion {skills} {analytics} currentPath="/music/play/voicings" routine={runtime.dailyRoutine} />
           {/if}
 
           {#if mono}

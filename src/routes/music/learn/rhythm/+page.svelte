@@ -34,6 +34,7 @@
 
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
   import { meanPartialCredit } from "@repo/music-core/engines/sessions";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
@@ -530,6 +531,7 @@
           <LastRunDelta tags={["rhythm"]} accuracy={meanPartialCredit((runSummary?.results ?? []).map((result) => result.event))} before={visitStartedAt} />
           <AdaptiveRetryBar onRetry={repeat} onSlower={slowDown} retryLabel="Try again" />
           <RoutineContinueAction routine={runtime.dailyRoutine} />
+          <NextUpSuggestion {skills} {analytics} currentPath="/music/learn/rhythm" routine={runtime.dailyRoutine} />
         </Card.Footer>
       </Card.Root>
     {/snippet}

@@ -35,6 +35,7 @@
   import InstrumentView from "../../_components/InstrumentView.svelte";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
   import { meanPartialCredit } from "@repo/music-core/engines/sessions";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
@@ -290,6 +291,7 @@
           retryLabel="Practice next tempo"
         />
         <RoutineContinueAction routine={runtime.dailyRoutine} />
+        <NextUpSuggestion {skills} {analytics} currentPath="/music/play/scales" routine={runtime.dailyRoutine} />
       </Card.Footer>
     </Card.Root>
   {:else}

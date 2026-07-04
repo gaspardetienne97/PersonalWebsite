@@ -36,6 +36,7 @@
 
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
@@ -372,6 +373,7 @@
             </div>
             <LastRunDelta tags={["chord-scales"]} accuracy={overall / 100} before={visitStartedAt} />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
+            <NextUpSuggestion {skills} {analytics} currentPath="/music/play/chord-scales" routine={runtime.dailyRoutine} />
           {/if}
 
           <OnScreenKeyboard router={runtime.router} />

@@ -27,6 +27,7 @@
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -305,6 +306,7 @@
             <LastRunDelta tags={["licks"]} accuracy={grade?.accuracy ?? 0} before={visitStartedAt} />
             <AdaptiveRetryBar onRetry={startAttempt} retryLabel="Repeat lick" />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
+            <NextUpSuggestion {skills} {analytics} currentPath="/music/play/licks" routine={runtime.dailyRoutine} />
           {/if}
 
           <OnScreenKeyboard router={runtime.router} />
