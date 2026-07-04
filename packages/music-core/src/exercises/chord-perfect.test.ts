@@ -191,6 +191,7 @@ describe("createChordPerfectExercise", () => {
       tuningId: "ukulele.high-g",
       toShapeId: "ukulele.c-major",
       repetitions: 4,
+      timed: false,
     });
 
     expect(
@@ -202,6 +203,7 @@ describe("createChordPerfectExercise", () => {
       tuningId: "guitar.standard",
       toShapeId: "guitar.g-major",
       repetitions: 4,
+      timed: false,
     });
 
     expect(
@@ -217,6 +219,7 @@ describe("createChordPerfectExercise", () => {
       tuningId: "ukulele.high-g",
       toShapeId: "ukulele.f-major",
       repetitions: 4,
+      timed: false,
     });
 
     expect(
@@ -232,7 +235,15 @@ describe("createChordPerfectExercise", () => {
       tuningId: "guitar.standard",
       toShapeId: "guitar.g-major",
       repetitions: 2,
+      timed: false,
     });
+
+    // One-minute-changes format restores from the shareable timed flag.
+    expect(
+      normalizeChordPerfectDrillConfig(
+        new URLSearchParams("mode=changes&shape=guitar.c-major&to=guitar.g-major&timed=1"),
+      ).timed,
+    ).toBe(true);
   });
 });
 

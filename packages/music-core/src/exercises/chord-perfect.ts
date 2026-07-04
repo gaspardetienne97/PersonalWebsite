@@ -54,6 +54,8 @@ export interface ChordPerfectDrillConfig {
   toShapeId: string;
   /** Change-trainer round trips through from→to (1–8). */
   repetitions: number;
+  /** Change-trainer timed format: one-minute changes instead of fixed reps. */
+  timed: boolean;
 }
 
 export interface ChordPerfectDrillConfigSource {
@@ -70,6 +72,7 @@ export interface ChordPerfectDrillConfigSource {
   toShapeId?: unknown;
   reps?: unknown;
   repetitions?: unknown;
+  timed?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -168,6 +171,7 @@ export const CHORD_PERFECT_DRILL_DEFAULT_CONFIG: ChordPerfectDrillConfig = {
   shapeId: "guitar.c-major",
   toShapeId: "guitar.g-major",
   repetitions: 4,
+  timed: false,
 };
 
 export const CHORD_CHANGE_REPETITION_OPTIONS = [1, 2, 4, 8] as const;
@@ -225,7 +229,12 @@ export function normalizeChordPerfectDrillConfig(
       readChordPerfectConfigValue(source, "reps") ??
         readChordPerfectConfigValue(source, "repetitions"),
     ),
+    timed: normalizeTimedFlag(readChordPerfectConfigValue(source, "timed")),
   };
+}
+
+function normalizeTimedFlag(value: unknown): boolean {
+  return value === true || value === "1" || value === "true";
 }
 
 function normalizeChangeRepetitions(value: unknown): number {

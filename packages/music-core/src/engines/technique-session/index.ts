@@ -550,6 +550,8 @@ export interface TechniqueChordChangeOptions {
   fromShape: ChordShape;
   toShape: ChordShape;
   repetitions?: number;
+  /** Timed one-minute-changes mode; the caller calls finishNow() at time-up. */
+  durationSeconds?: number;
 }
 
 export interface TechniqueFretboardNoteFinderOptions {
@@ -957,7 +959,11 @@ export class TechniqueSession {
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-chord-change-${options.fromShape.id}-${options.toShape.id}-${options.repetitions ?? 2}`,
+      runId: `${this.#sessionId}-chord-change-${options.fromShape.id}-${options.toShape.id}-${
+        options.durationSeconds === undefined
+          ? (options.repetitions ?? 2)
+          : `timed${options.durationSeconds}`
+      }`,
       inputs: ["midi", "onscreen", "audio"],
       context: {
         targetSkillIds: exercise.skillIds,
@@ -983,6 +989,16 @@ export class TechniqueSession {
     }
     this.#completion = this.#finishCurrent();
     await this.#completion;
+  }
+
+  /**
+   * Finish the active run immediately with whatever input arrived — used by
+   * timed drills whose end is a wall-clock, not an input-progress, condition.
+   */
+  finishNow(): void {
+    if (this.#disposed || this.#status !== "active" || this.#finishing) return;
+    this.#completion = this.#finishCurrent();
+    void this.#completion.catch(() => undefined);
   }
 
   abandon(): void {

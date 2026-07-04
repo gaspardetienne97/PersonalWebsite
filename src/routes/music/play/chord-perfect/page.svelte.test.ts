@@ -234,6 +234,47 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       expect(button("Repeat changes")).not.toBeUndefined();
     });
   });
+  test("runs one-minute changes on a clock and reports changes per minute", async () => {
+    setTestUrl(
+      "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major&timed=1",
+    );
+    render(Page, { changeDurationSeconds: 1 });
+
+    await vi.waitFor(() => {
+      expect(button("One-minute")).toHaveAttribute("aria-pressed", "true");
+      expect(button("Start changes")?.disabled).toBe(false);
+    });
+    // The reps selector yields to the clock in timed format.
+    expect(button("1×")).toBeUndefined();
+
+    button("Start changes")?.click();
+    await vi.waitFor(() => {
+      expect(button("Cancel changes")).not.toBeUndefined();
+      expect(document.querySelector('[data-testid="change-clock"]')?.textContent).toContain(
+        "1s left",
+      );
+    });
+
+    // One clean C-major strum inside the window.
+    for (const [stringNumber, fret] of [
+      [5, 3],
+      [4, 2],
+      [3, 0],
+      [2, 1],
+      [1, 0],
+    ]) {
+      fretButton(stringNumber, fret)?.click();
+    }
+
+    // The clock, not input progress, ends the run.
+    await vi.waitFor(
+      () => {
+        expect(document.body.textContent).toContain("clean changes/min");
+        expect(button("Repeat changes")).not.toBeUndefined();
+      },
+      { timeout: 5_000 },
+    );
+  });
 });
 
 function button(label: string): HTMLButtonElement | undefined {

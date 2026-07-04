@@ -77,11 +77,14 @@
     audioSource = new AudioPitchSource(),
     audioSupported = AudioPitchSource.supported,
     analyzeStrum = defaultAnalyzeStrum,
+    changeDurationSeconds = 60,
   }: {
     audioSource?: ChordVerifierAudioSource;
     audioSupported?: boolean;
     /** Record a strum and return the detected MIDI notes. Injectable for tests. */
     analyzeStrum?: () => Promise<number[]>;
+    /** One-minute-changes clock length. Injectable for tests. */
+    changeDurationSeconds?: number;
   } = $props();
 
   // ponytail: reuse the transcribe route's Basic Pitch adapter — one shared
@@ -122,6 +125,9 @@
   let shapeId = $state(initialConfig.shapeId);
   let toShapeId = $state(initialConfig.toShapeId);
   let repetitions = $state(initialConfig.repetitions);
+  let timed = $state(initialConfig.timed);
+  let secondsLeft = $state<number | undefined>();
+  let countdownTimer: ReturnType<typeof setInterval> | undefined;
   let ready = $state(false);
   let pending = $state(false);
   let captured = false;
@@ -261,7 +267,11 @@
             xpEarned: state.summary.xp,
             note: detail
               ? isChanges
-                ? `${instrument === "guitar" ? "Guitar" : "Ukulele"} chord changes · ${shape.name} to ${toShape.name} · ${detail.cleanChanges}/${detail.completedChanges} clean`
+                ? `${instrument === "guitar" ? "Guitar" : "Ukulele"} chord changes · ${shape.name} to ${toShape.name} · ${
+                    detail.changesPerMinute === undefined
+                      ? `${detail.cleanChanges}/${detail.completedChanges} clean`
+                      : `${detail.changesPerMinute} clean/min`
+                  }`
                 : `${instrument === "guitar" ? "Guitar" : "Ukulele"} chord-perfect · ${shape.name} · ${Math.round(detail.pitchAccuracy * 100)}% clean`
               : "Chord-perfect drill",
           });
@@ -321,7 +331,16 @@
     captured = false;
     status = "";
     try {
-      if (mode === "changes") {
+      if (mode === "changes" && timed) {
+        await session.startChordChange({
+          tuning,
+          fromShape: shape,
+          toShape,
+          durationSeconds: changeDurationSeconds,
+        });
+        startCountdown();
+        status = `Alternate ${shape.name} → ${toShape.name} — as many clean changes as you can.`;
+      } else if (mode === "changes") {
         await session.startChordChange({ tuning, fromShape: shape, toShape, repetitions });
         status = `Alternate ${shape.name} → ${toShape.name} cleanly, ${repetitions}×.`;
       } else {
@@ -336,8 +355,27 @@
   }
 
   function cancel(): void {
+    stopCountdown();
     session?.abandon();
     status = "Drill cancelled. You can start again.";
+  }
+
+  function startCountdown(): void {
+    stopCountdown();
+    secondsLeft = changeDurationSeconds;
+    countdownTimer = setInterval(() => {
+      secondsLeft = Math.max(0, (secondsLeft ?? 0) - 1);
+      if (secondsLeft === 0) {
+        stopCountdown();
+        session?.finishNow();
+      }
+    }, 1_000);
+  }
+
+  function stopCountdown(): void {
+    if (countdownTimer !== undefined) clearInterval(countdownTimer);
+    countdownTimer = undefined;
+    secondsLeft = undefined;
   }
 
   function startVerifier(): void {
@@ -374,6 +412,7 @@
       shape: shapeId,
       to: toShapeId,
       reps: repetitions,
+      timed,
     });
     const url = new URL(window.location.href);
     const params = url.searchParams;
@@ -384,9 +423,12 @@
     if (config.mode === "changes") {
       params.set("to", config.toShapeId);
       params.set("reps", String(config.repetitions));
+      if (config.timed) params.set("timed", "1");
+      else params.delete("timed");
     } else {
       params.delete("to");
       params.delete("reps");
+      params.delete("timed");
     }
     syncRouteQuery(`${url.pathname}?${params.toString()}${url.hash}`);
   }
@@ -494,9 +536,11 @@
           }
         : mode === "changes"
           ? {
-              description: "Chord-change reps",
+              description: timed ? "One-minute changes" : "Chord-change reps",
               title: `${shape.name} to ${toShape.name}`,
-              detail: "Play the first chord, switch, then play the target chord cleanly.",
+              detail: timed
+                ? "Alternate the two chords cleanly for the whole clock — your score is clean changes per minute."
+                : "Play the first chord, switch, then play the target chord cleanly.",
             }
           : {
               description: "Strum and identify",
@@ -558,6 +602,7 @@
   });
 
   onDestroy(() => {
+    stopCountdown();
     unsubscribeSession?.();
     unsubscribeMidiState();
     unsubscribeVerifierInput();
@@ -651,18 +696,33 @@
               </select>
             </div>
             <div class="grid gap-2">
-              <Label id="change-repetitions-label">Repetitions</Label>
+              <Label id="change-format-label">Format</Label>
               <SegmentedControl
                 size="sm"
-                ariaLabel="Repetitions"
-                options={CHORD_CHANGE_REPETITION_OPTIONS.map((count) => ({
-                  value: String(count),
-                  label: `${count}×`,
-                }))}
-                value={String(repetitions)}
-                onChange={selectRepetitions}
+                ariaLabel="Format"
+                options={[
+                  { value: "reps", label: "Reps" },
+                  { value: "timed", label: "One-minute" },
+                ]}
+                value={timed ? "timed" : "reps"}
+                onChange={(value) => (timed = value === "timed")}
               />
             </div>
+            {#if !timed}
+              <div class="grid gap-2">
+                <Label id="change-repetitions-label">Repetitions</Label>
+                <SegmentedControl
+                  size="sm"
+                  ariaLabel="Repetitions"
+                  options={CHORD_CHANGE_REPETITION_OPTIONS.map((count) => ({
+                    value: String(count),
+                    label: `${count}×`,
+                  }))}
+                  value={String(repetitions)}
+                  onChange={selectRepetitions}
+                />
+              </div>
+            {/if}
           {/if}
         </fieldset>
 
@@ -765,9 +825,22 @@
             <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
               <div class="flex items-center justify-between gap-3 text-sm">
                 <span class="font-medium">{changePrompt.label}</span>
-                <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
+                {#if changePrompt.durationSeconds !== undefined}
+                  <span class="tabular-nums text-muted-foreground" data-testid="change-clock">
+                    {secondsLeft ?? changePrompt.durationSeconds}s left
+                  </span>
+                {:else}
+                  <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
+                {/if}
               </div>
-              <Progress value={completedNotes} max={total} />
+              {#if changePrompt.durationSeconds !== undefined}
+                <Progress
+                  value={changePrompt.durationSeconds - (secondsLeft ?? changePrompt.durationSeconds)}
+                  max={changePrompt.durationSeconds}
+                />
+              {:else}
+                <Progress value={completedNotes} max={total} />
+              {/if}
               <div class="flex flex-wrap gap-2 text-xs font-medium">
                 {#each changePrompt.targets as target (target.index)}
                   <span
@@ -793,11 +866,13 @@
             <SessionFeedback
               kind={summary.correct === summary.total ? "correct" : "wrong"}
               message="Chord changes complete"
-              detail={`${changeAnswer.cleanChanges}/${changeAnswer.completedChanges || changePrompt?.targets.length || 0} targets clean${
-                changeAnswer.firstChangeLatencyMs === undefined
-                  ? ""
-                  : ` · first change ${(changeAnswer.firstChangeLatencyMs / 1000).toFixed(1)}s`
-              }`}
+              detail={changeAnswer.changesPerMinute === undefined
+                ? `${changeAnswer.cleanChanges}/${changeAnswer.completedChanges || changePrompt?.targets.length || 0} targets clean${
+                    changeAnswer.firstChangeLatencyMs === undefined
+                      ? ""
+                      : ` · first change ${(changeAnswer.firstChangeLatencyMs / 1000).toFixed(1)}s`
+                  }`
+                : `${changeAnswer.changesPerMinute} clean changes/min · ${changeAnswer.cleanChanges}/${changeAnswer.completedChanges} strums clean`}
               xp={summary.xp}
             />
             <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat changes" />

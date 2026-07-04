@@ -16,6 +16,12 @@ export interface ChordChangeOptions {
   fromShape: ChordShape;
   toShape: ChordShape;
   repetitions?: number;
+  /**
+   * Timed ("one-minute changes") mode: alternate from→to for this long with no
+   * repetition cap; the caller ends the run when time is up. Ignores
+   * `repetitions` and grades every strum cluster against the alternating pair.
+   */
+  durationSeconds?: number;
 }
 
 export interface ChordChangeTarget {
@@ -33,6 +39,8 @@ export interface ChordChangePrompt {
   fromShapeId: string;
   toShapeId: string;
   repetitions: number;
+  /** Present in timed mode; `targets` is then the alternating pair template. */
+  durationSeconds?: number;
   targets: ChordChangeTarget[];
 }
 
@@ -40,6 +48,8 @@ export interface ChordChangeAnswer {
   completedChanges: number;
   cleanChanges: number;
   firstChangeLatencyMs?: number;
+  /** Timed mode only: clean chord targets normalized to a 60s rate. */
+  changesPerMinute?: number;
   coverageByChange: number[];
   playedMidiNotes: number[];
 }
@@ -47,8 +57,11 @@ export interface ChordChangeAnswer {
 export function createChordChangeExercise(
   options: ChordChangeOptions,
 ): ExerciseDefinition<ChordChangePrompt, ChordChangeAnswer> {
+  const durationSeconds = options.durationSeconds;
   const repetitions = Math.max(1, Math.min(8, Math.round(options.repetitions ?? 2)));
-  const targets = buildTargets(options, repetitions);
+  // Timed mode grades an unbounded alternating cycle, so targets is just the
+  // from→to pair template.
+  const targets = buildTargets(options, durationSeconds === undefined ? repetitions : 1);
 
   return {
     id: `technique.${options.tuning.instrument}.chord-changes`,
@@ -61,14 +74,20 @@ export function createChordChangeExercise(
     inputs: ["midi", "onscreen", "audio"],
     streaming: true,
     generate: () => ({
-      id: `chord-change-${options.fromShape.id}-${options.toShape.id}-${repetitions}`,
+      id: `chord-change-${options.fromShape.id}-${options.toShape.id}-${
+        durationSeconds === undefined ? repetitions : `timed${durationSeconds}`
+      }`,
       payload: {
-        label: `${options.fromShape.name} to ${options.toShape.name} chord changes`,
+        label:
+          durationSeconds === undefined
+            ? `${options.fromShape.name} to ${options.toShape.name} chord changes`
+            : `${options.fromShape.name} to ${options.toShape.name} one-minute changes`,
         instrument: options.tuning.instrument,
         tuningId: options.tuning.id,
         fromShapeId: options.fromShape.id,
         toShapeId: options.toShape.id,
         repetitions,
+        ...(durationSeconds === undefined ? {} : { durationSeconds }),
         targets,
       },
     }),
@@ -122,6 +141,7 @@ function clusterByGap(played: NoteOnEvent[]): NoteOnEvent[][] {
 
 function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswer> {
   const input: NoteEvent[] = [];
+  const timed = prompt.durationSeconds !== undefined;
   const totalNotes = prompt.targets.reduce((sum, target) => sum + target.midiNotes.length, 0);
 
   return {
@@ -129,7 +149,9 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
       if (event.type === "noteOn") input.push(event);
     },
     getLiveState() {
-      const progress = totalNotes === 0 ? 0 : Math.min(1, input.length / totalNotes);
+      // Timed runs never self-complete on progress — the caller ends them when
+      // the clock runs out.
+      const progress = timed || totalNotes === 0 ? 0 : Math.min(1, input.length / totalNotes);
       return { progress, runningScore: progress, feedback: [] };
     },
     finish() {
@@ -140,7 +162,13 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
       let cleanChanges = 0;
       let completedChanges = 0;
 
-      prompt.targets.forEach((target, targetIndex) => {
+      // Timed mode: one grading window per strum cluster, cycling through the
+      // target pair. Reps mode: one window per fixed target.
+      const windows = timed
+        ? clusters.map((_, index) => prompt.targets[index % prompt.targets.length]!)
+        : prompt.targets;
+
+      windows.forEach((target, targetIndex) => {
         const chunk = clusters[targetIndex] ?? [];
         const observedMidiNotes = chunk.map((event) => event.midiNote);
         const verification = verifyChordTarget({
@@ -167,10 +195,16 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
           ? 0
           : coverageByChange.reduce((sum, coverage) => sum + coverage, 0) / coverageByChange.length;
       const firstChangeLatencyMs =
-        prompt.targets.length > 1
+        windows.length > 1
           ? timestampDelta(clusters[0]?.[0]?.timestamp, clusters[1]?.[0]?.timestamp)
           : undefined;
-      const correct = cleanChanges === prompt.targets.length && prompt.targets.length > 0;
+      const changesPerMinute =
+        prompt.durationSeconds === undefined
+          ? undefined
+          : Math.round((cleanChanges * 60) / prompt.durationSeconds);
+      const correct = timed
+        ? completedChanges > 0 && cleanChanges === completedChanges
+        : cleanChanges === windows.length && windows.length > 0;
 
       return {
         correct,
@@ -179,7 +213,9 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
         feedback: [
           {
             severity: correct ? "good" : "warn",
-            message: `${cleanChanges}/${prompt.targets.length} clean chord targets.`,
+            message: timed
+              ? `${cleanChanges} clean chord targets in ${prompt.durationSeconds}s.`
+              : `${cleanChanges}/${windows.length} clean chord targets.`,
           },
         ],
         target: {
@@ -191,6 +227,7 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
           completedChanges,
           cleanChanges,
           ...(firstChangeLatencyMs === undefined ? {} : { firstChangeLatencyMs }),
+          ...(changesPerMinute === undefined ? {} : { changesPerMinute }),
           coverageByChange,
           playedMidiNotes: played.map((event) => event.midiNote),
         },
