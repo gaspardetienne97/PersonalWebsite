@@ -41,6 +41,7 @@
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import PracticeStage from "../../_components/PracticeStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -329,6 +330,8 @@
       </SourceReadout>
     {/snippet}
   </PracticeScreenHeader>
+
+  <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
   <PracticeDrillShell complete={!!runSummary}>
     {#snippet setup()}

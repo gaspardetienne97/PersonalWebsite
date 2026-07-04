@@ -97,6 +97,12 @@ export class MusicRuntime {
   activeInstrument = $state<InstrumentId>("piano");
   activeSource = $state<InputSource>(this.router.activeSource);
   inputConfidence = $state<number>(this.router.confidence);
+  /**
+   * Focus mode: true while a drill run is active (set via DrillFocusScope).
+   * The music layout hides the nav/topbar and site chrome so the stage owns
+   * the screen; the transport stays (drills use it mid-run).
+   */
+  drillFocus = $state(false);
 
   /** Shared metronome state driving the persistent transport bar. */
   transportBpm = $state(96);

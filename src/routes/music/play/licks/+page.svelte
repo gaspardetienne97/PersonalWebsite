@@ -30,6 +30,7 @@
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
@@ -237,6 +238,8 @@
       />
     {/snippet}
   </PracticeScreenHeader>
+
+  <DrillFocusScope active={phase === "listening"} {runtime} />
 
   <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
     <div class="min-w-0 space-y-4">

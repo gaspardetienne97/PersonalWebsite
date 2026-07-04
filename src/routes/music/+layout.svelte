@@ -44,6 +44,16 @@
   onDestroy(() => {
     runtime.dispose();
   });
+
+  // Focus mode: while a drill run is active, hide the site header/footer via
+  // a class on <html> (see .drill-focus rules in app.css) — the music-local
+  // chrome (nav, topbar) is hidden in the template below. Cleared on layout
+  // destroy so leaving /music mid-run never strands the class.
+  $effect(() => {
+    if (!browser) return;
+    document.documentElement.classList.toggle("drill-focus", runtime.drillFocus);
+    return () => document.documentElement.classList.remove("drill-focus");
+  });
 </script>
 
 <svelte:head>
@@ -53,9 +63,13 @@
 </svelte:head>
 
 <div class="flex min-h-screen bg-background text-foreground">
-  <MusicNavigation {currentPath} />
+  {#if !runtime.drillFocus}
+    <MusicNavigation {currentPath} />
+  {/if}
   <div class="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
-    <MusicTopBar onSearch={() => (paletteOpen = true)} />
+    {#if !runtime.drillFocus}
+      <MusicTopBar onSearch={() => (paletteOpen = true)} />
+    {/if}
     <div class="flex-1">
       {@render children()}
     </div>

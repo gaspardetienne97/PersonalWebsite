@@ -230,6 +230,15 @@
   animation: reveal-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Focus mode: while a drill run is active (html.drill-focus, set by the music
+   layout), the site chrome yields the screen to the stage. The music-local nav
+   and topbar are hidden by the layout itself; these rules cover the global
+   header/footer that live outside the music tree. */
+.drill-focus .app > header,
+.drill-focus .app > footer {
+  display: none;
+}
+
 /* Accessibility: honor the OS "reduce motion" setting everywhere at once. The
    audit found zero motion guards; this neutralizes every transition/animation
    (hover scales, ring fills, the reveal above, the Skeleton pulse) in one place. */

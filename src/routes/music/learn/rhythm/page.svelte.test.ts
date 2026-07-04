@@ -101,6 +101,9 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
     button("Start Rhythm")?.click();
 
+    // Focus mode engages while the run is active.
+    await vi.waitFor(() => expect(runtime.drillFocus).toBe(true));
+
     // 2 bars at 120 BPM starting 2s in: bar 0 clicks (accent on beat 1),
     // bar 1 (beats at 4s+) stays silent — that's the gap.
     await vi.waitFor(() => expect(click).toHaveBeenCalledTimes(4));

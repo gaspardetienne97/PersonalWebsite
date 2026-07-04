@@ -42,6 +42,7 @@
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -270,6 +271,8 @@
       />
     {/snippet}
   </PracticeScreenHeader>
+
+  <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
   {#if summary}
     <Card.Root>

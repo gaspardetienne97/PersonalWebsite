@@ -106,15 +106,25 @@ describe("/music/play/chord-scales/+page.svelte", () => {
       document.querySelector('[data-testid="progression-cell-1"]')?.getAttribute("data-state"),
     ).toBe("current");
 
-    for (const scale of scales.slice(1)) {
+    // Wait for each chord's UI state before playing it — a single microtask
+    // isn't a real synchronization point once phase changes drive effects
+    // (focus mode, stage updates).
+    const symbols = ["G7", "Cmaj7"];
+    for (const [scaleIndex, scale] of scales.slice(1).entries()) {
+      await vi.waitFor(() =>
+        expect(
+          document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
+        ).toContain(symbols[scaleIndex]!),
+      );
       button("Play it back")?.click();
       for (const [index, midi] of scale.entries()) {
         harness.emit(midi, index * 100);
       }
-      await Promise.resolve();
     }
 
-    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce(), {
+      timeout: 5_000,
+    });
     const entry = harness.runtime.recordPractice.mock.calls[0]![0];
     expect(entry.tags).toEqual(["jazz", "chord-scales"]);
     expect(entry.scoringEvents).toHaveLength(3);

@@ -31,6 +31,7 @@
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
@@ -260,6 +261,8 @@
       />
     {/snippet}
   </PracticeScreenHeader>
+
+  <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
   <section class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
     <Card.Root class="min-w-0">
