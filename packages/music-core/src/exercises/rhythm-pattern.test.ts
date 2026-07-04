@@ -24,6 +24,9 @@ describe("rhythm pattern catalog", () => {
       "sixteenths",
       "eighth-rests",
       "triplets",
+      "off-beats",
+      "dotted-quarters",
+      "swing-eighths",
       "gap-click-1-on-1-off",
     ]);
     expect(rhythmPatternDefinition("gap-click-1-on-1-off").clickSchedule).toEqual([
@@ -57,6 +60,55 @@ describe("rhythm pattern catalog", () => {
       expectedMs: [1000, 1500, 2000, 2500],
     });
     expect(prompt.payload.events.map((event) => event.beat)).toEqual([0, 1, 2, 3]);
+  });
+
+  test("off-beats taps the &s against a click and penalizes downbeat taps", () => {
+    const definition = rhythmPatternDefinition("off-beats");
+    expect(definition.events.map((event) => event.beat)).toEqual([0.5, 1.5, 2.5, 3.5]);
+    expect(definition.clickSchedule).toEqual([{ bar: 0, audible: true }]);
+
+    const exercise = createRhythmPatternExercise({ patternId: "off-beats", bpm: 120, bars: 1 });
+    const ctx = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const run = exercise.createRun(exercise.generate(ctx), ctx);
+    expect(exercise.skillIds).toContain("rhythm.syncopation");
+
+    // Three clean &s at 250/750/1250ms, one classic failure ON the beat (1500ms).
+    [250, 750, 1250, 1500].forEach((time) => run.accept(tap(time)));
+    const result = run.finish({ reason: "completed" });
+
+    // The downbeat tap is a rest hit — penalized, never credited to a nearby &.
+    expect(result.answer).toMatchObject({ extraRestHits: 1, missedEvents: 1 });
+    expect(result.correct).toBe(false);
+  });
+
+  test("dotted quarters displace over two bars with a full click", () => {
+    const definition = rhythmPatternDefinition("dotted-quarters");
+    expect(definition.defaultBars).toBe(2);
+    expect(definition.events.map((event) => event.beat)).toEqual([0, 1.5, 3, 4.5, 6, 7.5]);
+    expect(definition.clickSchedule).toEqual([
+      { bar: 0, audible: true },
+      { bar: 1, audible: true },
+    ]);
+  });
+
+  test("swing eighths place the off-eighth at two-thirds of the beat", () => {
+    const exercise = createRhythmPatternExercise({
+      patternId: "swing-eighths",
+      bpm: 120,
+      bars: 1,
+      startTimestampMs: 0,
+    });
+    const prompt = exercise.generate({ targetSkillIds: exercise.skillIds, difficulty: 0.4 });
+
+    expect(exercise.skillIds).toContain("rhythm.swing");
+    expect(prompt.payload.events.slice(0, 4).map((event) => event.beat)).toEqual([
+      0,
+      2 / 3,
+      1,
+      1 + 2 / 3,
+    ]);
+    // 120 BPM: beat = 500ms, swung off-eighth lands ~333ms after the beat.
+    expect(prompt.payload.expectedMs.slice(0, 3).map(Math.round)).toEqual([0, 333, 500]);
   });
 
   test("repeats the gap-click schedule cyclically across extra bars", () => {

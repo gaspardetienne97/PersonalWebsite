@@ -15,6 +15,9 @@ export type RhythmPatternId =
   | "sixteenths"
   | "eighth-rests"
   | "triplets"
+  | "off-beats"
+  | "dotted-quarters"
+  | "swing-eighths"
   | "gap-click-1-on-1-off";
 
 export interface RhythmPatternEvent {
@@ -118,6 +121,65 @@ export const RHYTHM_PATTERN_CATALOG: RhythmPatternDefinition[] = [
     meter: { beats: 4, beatUnit: 4 },
     defaultBars: 1,
     events: beatGrid(12, 1 / 3),
+    rests: [],
+  },
+  {
+    // Syncopation: tap only the "&"s against an audible click on the beats.
+    // The downbeat halves are rest windows, so landing ON the click (the
+    // classic failure) is penalized rather than credited to a nearby "&".
+    id: "off-beats",
+    label: "Off-beats (syncopation)",
+    meter: { beats: 4, beatUnit: 4 },
+    defaultBars: 1,
+    events: Array.from({ length: 4 }, (_unused, index) => ({
+      id: `and-${index + 1}`,
+      beat: index + 0.5,
+      voice: "tap" as const,
+      accent: "normal" as const,
+    })),
+    rests: [
+      { startBeat: 0, endBeat: 0.5 },
+      { startBeat: 1, endBeat: 1.5 },
+      { startBeat: 2, endBeat: 2.5 },
+      { startBeat: 3, endBeat: 3.5 },
+    ],
+    clickSchedule: [{ bar: 0, audible: true }],
+  },
+  {
+    // Dotted quarters displace against the 4/4 click every 1.5 beats — the
+    // 3-against-4 feel resolves after two bars.
+    id: "dotted-quarters",
+    label: "Dotted quarters over 4/4",
+    meter: { beats: 4, beatUnit: 4 },
+    defaultBars: 2,
+    events: Array.from({ length: 6 }, (_unused, index) => ({
+      id: `dotted-${index + 1}`,
+      beat: index * 1.5,
+      voice: "tap" as const,
+      accent: index % 2 === 0 ? ("accent" as const) : ("normal" as const),
+    })),
+    rests: [],
+    clickSchedule: [
+      { bar: 0, audible: true },
+      { bar: 1, audible: true },
+    ],
+  },
+  {
+    // Triplet swing: the off-eighth sits at 2/3 of the beat, not the half.
+    id: "swing-eighths",
+    label: "Swing eighths",
+    meter: { beats: 4, beatUnit: 4 },
+    defaultBars: 1,
+    events: Array.from({ length: 8 }, (_unused, index) => {
+      const beat = Math.floor(index / 2);
+      const offset = index % 2 === 0 ? 0 : 2 / 3;
+      return {
+        id: `swing-${index + 1}`,
+        beat: beat + offset,
+        voice: "tap" as const,
+        accent: index === 0 ? ("accent" as const) : ("normal" as const),
+      };
+    }),
     rests: [],
   },
   {
@@ -329,6 +391,9 @@ function isRestHit(prompt: RhythmPatternPrompt, timestampMs: number): boolean {
 function rhythmSkillId(patternId: RhythmPatternId): string {
   if (patternId === "eighths") return "rhythm.subdivision.eighths";
   if (patternId === "sixteenths") return "rhythm.subdivision.sixteenths";
+  if (patternId === "off-beats") return "rhythm.syncopation";
+  if (patternId === "dotted-quarters") return "rhythm.dotted";
+  if (patternId === "swing-eighths") return "rhythm.swing";
   if (patternId === "gap-click-1-on-1-off") return "rhythm.gap-click";
   return "rhythm.patterns";
 }

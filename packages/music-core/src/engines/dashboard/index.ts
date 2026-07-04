@@ -232,6 +232,9 @@ function hrefForSkill(skillId: string): string {
   if (skillId === "rhythm.gap-click") {
     return "/music/learn/rhythm?pattern=gap-click-1-on-1-off";
   }
+  if (skillId === "rhythm.syncopation") return "/music/learn/rhythm?pattern=off-beats";
+  if (skillId === "rhythm.dotted") return "/music/learn/rhythm?pattern=dotted-quarters";
+  if (skillId === "rhythm.swing") return "/music/learn/rhythm?pattern=swing-eighths";
   if (skillId.startsWith("reading.")) return "/music/learn/reading";
   if (skillId.startsWith("rhythm.")) return "/music/learn/rhythm";
   if (skillId === "technique.aerophone.interval-landing") {

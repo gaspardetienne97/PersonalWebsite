@@ -265,6 +265,21 @@ export function seedCoreSkills(): SkillSeed {
       "gap-click",
       "timing",
     ]),
+    skill("rhythm.syncopation", "Off-Beat Syncopation", Capability.Rhythm, "early-intermediate", [
+      "rhythm",
+      "syncopation",
+      "off-beat",
+    ]),
+    skill("rhythm.dotted", "Dotted Rhythms", Capability.Rhythm, "early-intermediate", [
+      "rhythm",
+      "dotted",
+      "cross-rhythm",
+    ]),
+    skill("rhythm.swing", "Swing Feel", Capability.Rhythm, "intermediate", [
+      "rhythm",
+      "swing",
+      "jazz",
+    ]),
     skill("reading.treble", "Treble Clef Reading", Capability.Reading, "beginner", ["staff"]),
     skill("reading.treble.landmarks", "Treble Landmark Notes", Capability.Reading, "beginner", [
       "staff",
