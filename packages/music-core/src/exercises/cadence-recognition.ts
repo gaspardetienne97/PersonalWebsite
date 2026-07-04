@@ -85,7 +85,10 @@ export function createCadenceRecognitionExercise(
     generate(ctx) {
       const cadence = cadenceForSkill(ctx.targetSkillIds[0]);
       const choices = choicesForDifficulty(ctx.difficulty, cadence);
-      const transposeOctave = Math.floor(random() * 2) * 12;
+      // Random key (−5..+6 semitones) so users identify the cadence by
+      // function, not by memorizing absolute pitches. Base voicings span
+      // midi 48–69, so the shifted range stays in a sane register (43–75).
+      const transposeSemitones = Math.floor(random() * 12) - 5;
       return {
         id: `cadence-${cadence.token}`,
         payload: {
@@ -96,7 +99,7 @@ export function createCadenceRecognitionExercise(
           choices: choices.map(({ token, label }) => ({ token, label })),
           playback: cadence.playback.map((step) => ({
             ...step,
-            midiNotes: step.midiNotes.map((note) => note + transposeOctave),
+            midiNotes: step.midiNotes.map((note) => note + transposeSemitones),
           })),
           requiredPlayedNotes: 1,
           cadence: cadence.token,

@@ -202,7 +202,7 @@ describe("createRhythmPatternExercise", () => {
     const result = run.finish({ reason: "completed" });
 
     expect(result.score).toBe(0);
-    expect(result.answer.missedEvents).toBe(4);
+    expect(result.answer?.missedEvents).toBe(4);
   });
 
   test("tags sixteenth-note and gap-click patterns with adaptive review skills", () => {

@@ -3,6 +3,7 @@ import {
   type ExerciseDefinition,
   type ExerciseRun,
   type NoteEvent,
+  type NoteOnEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
 import { verifyChordTarget } from "@repo/music-core/engines/chord-verification";
@@ -101,8 +102,8 @@ function buildTargets(options: ChordChangeOptions, repetitions: number): ChordCh
  */
 const CHANGE_GAP_MS = 350;
 
-function clusterByGap(played: NoteEvent[]): NoteEvent[][] {
-  const clusters: NoteEvent[][] = [];
+function clusterByGap(played: NoteOnEvent[]): NoteOnEvent[][] {
+  const clusters: NoteOnEvent[][] = [];
   for (const event of played) {
     const cluster = clusters.at(-1);
     const previous = cluster?.at(-1);
@@ -132,7 +133,7 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
       return { progress, runningScore: progress, feedback: [] };
     },
     finish() {
-      const played = input.filter((event) => event.type === "noteOn");
+      const played = input.filter((event): event is NoteOnEvent => event.type === "noteOn");
       const clusters = clusterByGap(played);
       const metrics: ScoringMetric[] = [];
       const coverageByChange: number[] = [];
