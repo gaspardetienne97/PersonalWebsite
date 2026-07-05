@@ -266,6 +266,7 @@ describe("TechniqueSession", () => {
       bpm: 120,
       patternKind: "alberti-rh-holds",
       handMode: "left",
+      dynamics: false,
     });
 
     expect(normalizeTwoHandDrillConfig({ key: "D", tempo: "10", handMode: "right" })).toEqual({
@@ -273,6 +274,7 @@ describe("TechniqueSession", () => {
       bpm: 60,
       patternKind: "lh-pulse-rh-line",
       handMode: "right",
+      dynamics: false,
     });
 
     expect(
@@ -287,7 +289,11 @@ describe("TechniqueSession", () => {
       bpm: 120,
       patternKind: "lh-pulse-rh-line",
       handMode: "both",
+      dynamics: false,
     });
+
+    // Melody-louder mode restores from the shareable dynamics flag.
+    expect(normalizeTwoHandDrillConfig(new URLSearchParams("dynamics=1")).dynamics).toBe(true);
   });
 
   test("completes an Aerophone long tone through the shared pipeline", async () => {

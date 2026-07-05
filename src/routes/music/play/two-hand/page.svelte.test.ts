@@ -61,6 +61,22 @@ describe("/music/play/two-hand/+page.svelte", () => {
     });
   });
 
+  test("restores the melody-louder dynamics format and hides it for isolated hands", async () => {
+    setTestUrl("/music/play/two-hand?dynamics=1");
+    render(Page);
+
+    await vi.waitFor(() => {
+      expect(button("Melody louder")).toHaveAttribute("aria-pressed", "true");
+      expect(new URLSearchParams(window.location.search).get("dynamics")).toBe("1");
+    });
+
+    // Isolating one hand removes the dynamics choice (nothing to contrast).
+    button("Left")?.click();
+    await vi.waitFor(() => {
+      expect(button("Melody louder")).toBeUndefined();
+    });
+  });
+
   test("offers a slower retry after a completed two-hand drill", async () => {
     setTestUrl("/music/play/two-hand?tonic=C4&bpm=100");
     render(Page);

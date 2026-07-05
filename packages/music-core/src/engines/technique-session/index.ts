@@ -509,6 +509,7 @@ export interface TechniqueTwoHandOptions {
   bars?: number;
   patternKind?: TwoHandPatternKind;
   handMode?: TwoHandHandMode;
+  dynamics?: boolean;
 }
 
 export const TWO_HAND_DRILL_TONICS = ["C4", "G4", "F4", "D4"] as const;
@@ -521,6 +522,7 @@ export interface TwoHandDrillConfig {
   bpm: (typeof TWO_HAND_DRILL_TEMPOS)[number];
   patternKind: TwoHandPatternKind;
   handMode: TwoHandHandMode;
+  dynamics: boolean;
 }
 
 export interface TwoHandDrillConfigSource {
@@ -532,6 +534,7 @@ export interface TwoHandDrillConfigSource {
   patternKind?: unknown;
   hand?: unknown;
   handMode?: unknown;
+  dynamics?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -540,6 +543,7 @@ export const TWO_HAND_DRILL_DEFAULT_CONFIG: TwoHandDrillConfig = {
   bpm: 80,
   patternKind: "lh-pulse-rh-line",
   handMode: "both",
+  dynamics: false,
 };
 
 export function normalizeTwoHandDrillConfig(source: TwoHandDrillConfigSource): TwoHandDrillConfig {
@@ -556,7 +560,12 @@ export function normalizeTwoHandDrillConfig(source: TwoHandDrillConfigSource): T
     handMode: normalizeTwoHandHandMode(
       readTwoHandConfigValue(source, "hand") ?? readTwoHandConfigValue(source, "handMode"),
     ),
+    dynamics: normalizeTwoHandDynamics(readTwoHandConfigValue(source, "dynamics")),
   };
+}
+
+function normalizeTwoHandDynamics(value: unknown): boolean {
+  return value === true || value === "1" || value === "true";
 }
 
 export interface TechniqueChordPerfectOptions {
@@ -895,7 +904,7 @@ export class TechniqueSession {
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-two-hand-${options.patternKind ?? "lh-pulse-rh-line"}-${options.handMode ?? "both"}-${options.tonic}-${options.bpm}-${options.bars ?? 2}`,
+      runId: `${this.#sessionId}-two-hand-${options.patternKind ?? "lh-pulse-rh-line"}-${options.handMode ?? "both"}${options.dynamics ? "-dynamics" : ""}-${options.tonic}-${options.bpm}-${options.bars ?? 2}`,
       inputs: ["midi", "onscreen"],
       context: {
         targetSkillIds: exercise.skillIds,

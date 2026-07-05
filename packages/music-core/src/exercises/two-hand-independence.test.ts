@@ -152,13 +152,62 @@ describe("createTwoHandIndependenceExercise", () => {
     expect(result.answer).toMatchObject({ leftAccuracy: 1, rightAccuracy: 1 });
     expect(result.target?.midiNotes).toEqual(prompt.payload.leftMidiNotes);
   });
+
+  test("dynamics mode rewards the melody hand playing louder", () => {
+    const exercise = createTwoHandIndependenceExercise({
+      tonic: "C4",
+      bpm: 120,
+      bars: 1,
+      dynamics: true,
+    });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const prompt = exercise.generate(context);
+
+    expect(prompt.payload.dynamics).toBe(true);
+    expect(prompt.payload.melodyHand).toBe("right"); // RH carries the line here
+    expect(prompt.payload.label).toContain("dynamics");
+
+    // Melody sings out: RH at 0.9, LH accompaniment at 0.4.
+    const loud = exercise.createRun(prompt, context);
+    const { leftMidiNotes, rightMidiNotes, beatMs } = prompt.payload;
+    leftMidiNotes.forEach((midi, index) => loud.accept(note(midi, index * beatMs, 0.4)));
+    rightMidiNotes.forEach((midi, index) => loud.accept(note(midi, index * (beatMs / 2), 0.9)));
+    const loudResult = loud.finish({ reason: "completed" });
+
+    expect(loudResult.correct).toBe(true);
+    expect(loudResult.answer?.dynamicsContrast).toBeCloseTo(0.5, 5);
+    expect(loudResult.feedback.some(({ message }) => message.includes("louder"))).toBe(true);
+
+    // Same notes at a flat touch: pitch-perfect but no contrast — not correct.
+    const flat = exercise.createRun(prompt, context);
+    leftMidiNotes.forEach((midi, index) => flat.accept(note(midi, index * beatMs)));
+    rightMidiNotes.forEach((midi, index) => flat.accept(note(midi, index * (beatMs / 2))));
+    const flatResult = flat.finish({ reason: "completed" });
+
+    expect(flatResult.answer?.dynamicsContrast).toBeCloseTo(0, 5);
+    expect(flatResult.correct).toBe(false);
+    expect(flatResult.score).toBeLessThan(loudResult.score);
+  });
+
+  test("dynamics is forced off when a single hand is isolated", () => {
+    const prompt = createTwoHandIndependenceExercise({
+      tonic: "C4",
+      bpm: 120,
+      bars: 1,
+      handMode: "left",
+      dynamics: true,
+    }).generate({ targetSkillIds: [], difficulty: 0.4 });
+
+    expect(prompt.payload.dynamics).toBe(false);
+    expect(prompt.payload.label).not.toContain("dynamics");
+  });
 });
 
-function note(midiNote: number, atMs: number): NoteOnEvent {
+function note(midiNote: number, atMs: number, velocity = 1): NoteOnEvent {
   return {
     type: "noteOn",
     midiNote,
-    velocity: 1,
+    velocity,
     source: "onscreen",
     instrument: "piano",
     timestamp: monotonicMs(atMs),

@@ -69,6 +69,7 @@
   let bpm = $state(String(initialConfig.bpm));
   let patternKind = $state(initialConfig.patternKind);
   let handMode = $state(initialConfig.handMode);
+  let dynamics = $state(initialConfig.dynamics);
   let ready = $state(false);
   let pending = $state(false);
   let captured = false;
@@ -91,6 +92,7 @@
       bars: 2,
       patternKind,
       handMode,
+      dynamics,
     }).generate({
       targetSkillIds: [],
       difficulty: 0.4,
@@ -168,6 +170,7 @@
       bpm,
       pattern: patternKind,
       hand: handMode,
+      dynamics,
     }),
   ): Promise<void> {
     if (!ready || pending || !session) return;
@@ -177,6 +180,7 @@
     bpm = String(config.bpm);
     patternKind = config.patternKind;
     handMode = config.handMode;
+    dynamics = config.dynamics;
     status = "";
     try {
       await session.startTwoHand({
@@ -185,8 +189,9 @@
         bars: 2,
         patternKind: config.patternKind,
         handMode: config.handMode,
+        dynamics: config.dynamics,
       });
-      status = `Playing ${display.patternLabel.toLowerCase()} · ${handModeLabel(config.handMode)}.`;
+      status = `Playing ${display.patternLabel.toLowerCase()} · ${handModeLabel(config.handMode)}${config.dynamics && config.handMode === "both" ? " · melody louder" : ""}.`;
     } catch (error) {
       status = message(error, "The two-hand drill could not be started.");
     } finally {
@@ -199,18 +204,28 @@
     const nextBpm =
       [...TWO_HAND_DRILL_TEMPOS].reverse().find((tempo) => tempo < current) ??
       TWO_HAND_DRILL_TEMPOS[0];
-    void start(normalizeTwoHandDrillConfig({ tonic, bpm: nextBpm, pattern: patternKind, hand: handMode }));
+    void start(
+      normalizeTwoHandDrillConfig({ tonic, bpm: nextBpm, pattern: patternKind, hand: handMode, dynamics }),
+    );
   }
 
   function syncConfigUrl(): void {
     if (!browser) return;
-    const config = normalizeTwoHandDrillConfig({ tonic, bpm, pattern: patternKind, hand: handMode });
+    const config = normalizeTwoHandDrillConfig({
+      tonic,
+      bpm,
+      pattern: patternKind,
+      hand: handMode,
+      dynamics,
+    });
     const url = new URL(window.location.href);
     const params = url.searchParams;
     params.set("tonic", config.tonic);
     params.set("bpm", String(config.bpm));
     params.set("pattern", config.patternKind);
     params.set("hand", config.handMode);
+    if (config.dynamics) params.set("dynamics", "1");
+    else params.delete("dynamics");
     syncRouteQuery(`${url.pathname}?${params.toString()}${url.hash}`);
   }
 
@@ -286,6 +301,18 @@
           />
           <SegmentedControl ariaLabel="Key" options={keyOptions} bind:value={tonic} />
           <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
+          {#if handMode === "both"}
+            <SegmentedControl
+              size="sm"
+              ariaLabel="Dynamics"
+              options={[
+                { value: "even", label: "Even touch" },
+                { value: "melody", label: "Melody louder" },
+              ]}
+              value={dynamics ? "melody" : "even"}
+              onChange={(value) => (dynamics = value === "melody")}
+            />
+          {/if}
         </fieldset>
 
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -322,7 +349,11 @@
           <SessionFeedback
             kind={summary.correct === summary.total ? "correct" : "wrong"}
             message="Drill complete"
-            detail={`LH ${Math.round(answer.leftAccuracy * 100)}% · RH ${Math.round(answer.rightAccuracy * 100)}% · ${Math.round(answer.meanEvennessErrorMs)}ms evenness`}
+            detail={`LH ${Math.round(answer.leftAccuracy * 100)}% · RH ${Math.round(answer.rightAccuracy * 100)}% · ${Math.round(answer.meanEvennessErrorMs)}ms evenness${
+              answer.dynamicsContrast === undefined
+                ? ""
+                : ` · melody ${answer.dynamicsContrast > 0 ? "+" : ""}${Math.round(answer.dynamicsContrast * 100)}% louder`
+            }`}
             xp={summary.xp}
           />
           <AdaptiveRetryBar onRetry={() => void start()} onSlower={slowDown} retryLabel="Repeat drill" />

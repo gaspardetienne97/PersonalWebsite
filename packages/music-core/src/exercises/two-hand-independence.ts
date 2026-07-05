@@ -17,6 +17,7 @@ import {
   type ExerciseResult,
   type ExerciseRun,
   type NoteEvent,
+  type NoteOnEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
 import { midiToNote, noteToMidi } from "@repo/music-core/engines/theory";
@@ -29,6 +30,12 @@ export interface TwoHandIndependenceOptions {
   bars?: number;
   patternKind?: TwoHandPatternKind;
   handMode?: TwoHandHandMode;
+  /**
+   * Dynamics mode: the melody hand must play louder than the accompaniment
+   * (graded on MIDI velocity contrast between hands). Needs velocity-sensitive
+   * input and both hands, so it is forced off unless handMode is "both".
+   */
+  dynamics?: boolean;
 }
 
 export type TwoHandPatternKind =
@@ -85,6 +92,10 @@ export interface TwoHandIndependencePrompt {
   splitMidi: number;
   bpm: number;
   beatMs: number;
+  /** Dynamics mode: grade the melody hand louder than the accompaniment. */
+  dynamics: boolean;
+  /** The hand carrying the line (or holds) — the one that should sing out. */
+  melodyHand: TwoHandHand;
 }
 
 export interface TwoHandIndependenceAnswer {
@@ -94,6 +105,8 @@ export interface TwoHandIndependenceAnswer {
   rightAccuracy: number;
   /** Mean deviation from the expected note spacing, in ms — the evenness signal. */
   meanEvennessErrorMs: number;
+  /** Dynamics mode only: mean melody velocity minus mean accompaniment velocity (−1..1). */
+  dynamicsContrast?: number;
 }
 
 const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11];
@@ -106,6 +119,8 @@ export function createTwoHandIndependenceExercise(
   const bars = options.bars ?? 2;
   const patternKind = options.patternKind ?? "lh-pulse-rh-line";
   const handMode = options.handMode ?? "both";
+  const dynamics = (options.dynamics ?? false) && handMode === "both";
+  const melodyHand = melodyHandForPattern(patternKind);
   const beatMs = 60_000 / bpm;
 
   const rhRoot = noteToMidi(tonic);
@@ -138,9 +153,9 @@ export function createTwoHandIndependenceExercise(
     inputs: ["midi", "onscreen"],
     streaming: true,
     generate: () => ({
-      id: `two-hand-${patternKind}-${handMode}-${pitchClassLabel(tonic).toLowerCase()}-${bpm}-${bars}`,
+      id: `two-hand-${patternKind}-${handMode}${dynamics ? "-dynamics" : ""}-${pitchClassLabel(tonic).toLowerCase()}-${bpm}-${bars}`,
       payload: {
-        label,
+        label: dynamics ? `${label} · dynamics` : label,
         patternKind,
         patternLabel,
         handMode,
@@ -152,6 +167,8 @@ export function createTwoHandIndependenceExercise(
         splitMidi,
         bpm,
         beatMs,
+        dynamics,
+        melodyHand,
       },
     }),
     createRun(prompt) {
@@ -182,7 +199,7 @@ function gradeTwoHand(
   prompt: TwoHandIndependencePrompt,
   input: NoteEvent[],
 ): ExerciseResult<TwoHandIndependenceAnswer> {
-  const played = input.filter((event) => event.type === "noteOn");
+  const played = input.filter((event): event is NoteOnEvent => event.type === "noteOn");
   const leftExpected = prompt.targetEvents.filter((event) => event.hand === "left");
   const rightExpected = prompt.targetEvents.filter((event) => event.hand === "right");
   const leftExpectedNotes = new Set(leftExpected.map((event) => event.midiNote));
@@ -205,7 +222,21 @@ function gradeTwoHand(
       ? 0
       : evennessErrors.reduce((sum, error) => sum + error, 0) / evennessErrors.length;
   const evennessScore = Math.max(0, 1 - meanEvennessError / 180);
-  const score = pitchScore * 0.8 + evennessScore * 0.2;
+
+  // Dynamics mode: the melody hand should sing out over the accompaniment.
+  // Full credit at ≥0.2 mean-velocity separation (normalized 0-1 velocities);
+  // equal or inverted balance earns nothing.
+  const melodyPlayed = prompt.melodyHand === "left" ? leftPlayed : rightPlayed;
+  const accompanimentPlayed = prompt.melodyHand === "left" ? rightPlayed : leftPlayed;
+  const dynamicsContrast = prompt.dynamics
+    ? (meanVelocity(melodyPlayed) ?? 0) - (meanVelocity(accompanimentPlayed) ?? 0)
+    : undefined;
+  const dynamicsScore =
+    dynamicsContrast === undefined ? 0 : Math.max(0, Math.min(1, dynamicsContrast / 0.2));
+
+  const score = prompt.dynamics
+    ? pitchScore * 0.7 + evennessScore * 0.15 + dynamicsScore * 0.15
+    : pitchScore * 0.8 + evennessScore * 0.2;
 
   const leftAccuracy =
     prompt.leftMidiNotes.length === 0 ? 1 : left.correct / prompt.leftMidiNotes.length;
@@ -221,6 +252,17 @@ function gradeTwoHand(
         severity: score >= 0.9 ? "good" : "warn",
         message: `LH ${left.correct}/${prompt.leftMidiNotes.length} steady · RH ${right.correct}/${prompt.rightMidiNotes.length} line.`,
       },
+      ...(dynamicsContrast === undefined
+        ? []
+        : [
+            {
+              severity: (dynamicsScore >= 0.75 ? "good" : "warn") as "good" | "warn",
+              message:
+                dynamicsContrast > 0
+                  ? `Melody ${Math.round(dynamicsContrast * 100)}% louder than the accompaniment.`
+                  : `Bring the ${prompt.melodyHand} hand out — the melody wasn't louder.`,
+            },
+          ]),
     ],
     target: {
       label: prompt.label,
@@ -233,6 +275,7 @@ function gradeTwoHand(
       leftAccuracy,
       rightAccuracy,
       meanEvennessErrorMs: meanEvennessError,
+      ...(dynamicsContrast === undefined ? {} : { dynamicsContrast }),
     },
     input,
   };
@@ -398,6 +441,16 @@ function belongsToHand(
     return true;
   }
   return hand === "left" ? midiNote < prompt.splitMidi : midiNote >= prompt.splitMidi;
+}
+
+function meanVelocity(events: NoteOnEvent[]): number | undefined {
+  if (events.length === 0) return undefined;
+  return events.reduce((sum, event) => sum + event.velocity, 0) / events.length;
+}
+
+/** The hand carrying the line (or the sung holds) — the one to bring out. */
+function melodyHandForPattern(patternKind: TwoHandPatternKind): TwoHandHand {
+  return patternKind === "rh-pulse-lh-line" ? "left" : "right";
 }
 
 function labelForPattern(patternKind: TwoHandPatternKind): string {
