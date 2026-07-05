@@ -107,6 +107,7 @@
   let stringSpan = $state<StringSpiderSpan>(initialConfig.stringSpan);
   let startFret = $state(initialConfig.startFret);
   let pattern = $state<StringPatternKind>(initialConfig.pattern);
+  let crossing = $state(initialConfig.crossing);
   let bpm = $state(String(initialConfig.bpm));
   let ready = $state(false);
   let pending = $state(false);
@@ -199,6 +200,7 @@
       fret: startFret,
       bpm,
       pattern,
+      crossing,
     }),
   );
   const normalizedMode = $derived(normalizeStringTechniqueConfig({ mode }));
@@ -307,11 +309,12 @@
           bpm: config.bpm,
           pattern: config.pattern,
           stringSpan: config.stringSpan,
+          crossing: config.crossing,
         });
         const spanLabel =
           SPIDER_DRILL_SPANS.find((option) => option.value === config.stringSpan)?.label ??
           "the selected strings";
-        status = `Play ${SPIDER_DRILL_PATTERNS.find((option) => option.value === config.pattern)?.label ?? "the pattern"} across ${spanLabel.toLowerCase()}.`;
+        status = `Play ${SPIDER_DRILL_PATTERNS.find((option) => option.value === config.pattern)?.label ?? "the pattern"} across ${spanLabel.toLowerCase()}${config.crossing && config.stringSpan !== "single" ? ", crossing strings on every note" : ""}.`;
       }
     } catch (error) {
       status = message(error, "The string technique drill could not be started.");
@@ -356,6 +359,8 @@
     params.set("fret", String(config.startFret));
     params.set("bpm", String(config.bpm));
     params.set("pattern", config.pattern);
+    if (config.crossing) params.set("crossing", "1");
+    else params.delete("crossing");
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
@@ -519,6 +524,22 @@
                 </select>
               </div>
             </div>
+
+            {#if stringSpan !== "single"}
+              <div class="grid gap-2">
+                <Label id="spider-order-label">String order</Label>
+                <SegmentedControl
+                  size="sm"
+                  ariaLabel="String order"
+                  options={[
+                    { value: "blocks", label: "By string" },
+                    { value: "crossing", label: "Crossing" },
+                  ]}
+                  value={crossing ? "crossing" : "blocks"}
+                  onChange={(value) => (crossing = value === "crossing")}
+                />
+              </div>
+            {/if}
 
             <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
           </fieldset>

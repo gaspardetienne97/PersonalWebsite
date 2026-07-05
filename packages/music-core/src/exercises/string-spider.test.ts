@@ -108,6 +108,48 @@ describe("createStringSpiderExercise", () => {
     expect(prompt.payload.label).toContain("strings 6-5");
   });
 
+  test("crossing order alternates strings on every pattern step", () => {
+    const exercise = createStringSpiderExercise({
+      tuning: curatedTunings("guitar")[0]!,
+      stringNumber: 6,
+      startFret: 5,
+      bpm: 120,
+      stringSpan: "adjacent-2",
+      crossing: true,
+    });
+    const prompt = exercise.generate({
+      targetSkillIds: exercise.skillIds,
+      difficulty: 0.4,
+    });
+
+    expect(prompt.payload.crossing).toBe(true);
+    expect(prompt.payload.label).toContain("crossing");
+    // One pass starting from each string, hopping strings on every step:
+    // fingers walk 1-2-3-4 while the string alternates 6-5-6-5, then 5-6-5-6.
+    expect(prompt.payload.positions).toEqual([
+      { stringNumber: 6, fretNumber: 5, midiNote: 45 },
+      { stringNumber: 5, fretNumber: 6, midiNote: 51 },
+      { stringNumber: 6, fretNumber: 7, midiNote: 47 },
+      { stringNumber: 5, fretNumber: 8, midiNote: 53 },
+      { stringNumber: 5, fretNumber: 5, midiNote: 50 },
+      { stringNumber: 6, fretNumber: 6, midiNote: 46 },
+      { stringNumber: 5, fretNumber: 7, midiNote: 52 },
+      { stringNumber: 6, fretNumber: 8, midiNote: 48 },
+    ]);
+
+    // Crossing on a single string is a no-op, not an error.
+    const single = createStringSpiderExercise({
+      tuning: curatedTunings("guitar")[0]!,
+      stringNumber: 6,
+      startFret: 5,
+      bpm: 120,
+      stringSpan: "single",
+      crossing: true,
+    }).generate({ targetSkillIds: [], difficulty: 0.4 });
+    expect(single.payload.crossing).toBe(false);
+    expect(single.payload.midiNotes).toEqual([45, 46, 47, 48]);
+  });
+
   test("scores a clean ukulele pattern with pitch and timing feedback", () => {
     const exercise = createStringSpiderExercise({
       tuning: curatedTunings("ukulele")[0]!,

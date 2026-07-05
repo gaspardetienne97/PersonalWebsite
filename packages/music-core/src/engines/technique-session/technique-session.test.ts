@@ -198,7 +198,13 @@ describe("TechniqueSession", () => {
       bpm: 120,
       pattern: "inside-out-1324",
       stringSpan: "adjacent-3",
+      crossing: false,
     });
+
+    // String-crossing order restores from the shareable crossing flag.
+    expect(
+      normalizeSpiderDrillConfig(new URLSearchParams("span=adjacent-2&crossing=1")).crossing,
+    ).toBe(true);
 
     expect(
       normalizeSpiderDrillConfig({
@@ -235,6 +241,7 @@ describe("TechniqueSession", () => {
       bpm: 100,
       pattern: "ascending-1234",
       stringSpan: "single",
+      crossing: false,
     });
   });
 

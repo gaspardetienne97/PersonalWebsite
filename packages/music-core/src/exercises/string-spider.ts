@@ -15,6 +15,13 @@ export interface StringSpiderOptions {
   bpm: number;
   pattern?: StringPatternKind;
   stringSpan?: StringSpiderSpan;
+  /**
+   * String-crossing crawl: each pattern step lands on the next string in the
+   * span (finger 1 string A, finger 2 string B, ...), one pass starting from
+   * each string. Trains the crossing itself, not per-string blocks. No-op on
+   * single-string spans.
+   */
+  crossing?: boolean;
 }
 
 export interface StringSpiderPrompt {
@@ -24,6 +31,7 @@ export interface StringSpiderPrompt {
   stringNumber: number;
   stringNumbers: number[];
   stringSpan: StringSpiderSpan;
+  crossing: boolean;
   startFret: number;
   pattern: StringPatternKind;
   patternLabel: string;
@@ -84,24 +92,30 @@ export function createStringSpiderExercise(
   const openMidi = tuning.openStrings[stringNumber - 1];
   if (openMidi === undefined) throw new Error(`String ${stringNumber} is not available.`);
   const stringNumbers = stringNumbersForSpan(tuning, stringNumber, stringSpan);
-  const fretNumbers = stringNumbers.flatMap(() =>
-    pattern.fretOffsets.map((offset) => startFret + offset),
-  );
+  const crossing = (options.crossing ?? false) && stringNumbers.length > 1;
+
+  const positionAt = (targetStringNumber: number, offset: number): StringSpiderPosition => ({
+    stringNumber: targetStringNumber,
+    fretNumber: startFret + offset,
+    midiNote: tuning.openStrings[targetStringNumber - 1]! + startFret + offset,
+  });
+  // Crossing: each pattern step moves to the next string in the span, with one
+  // pass starting from each string, so every finger crosses from every string.
+  // Blocks (default): the full pattern on each string in turn.
+  const positions = crossing
+    ? stringNumbers.flatMap((_, startIndex) =>
+        pattern.fretOffsets.map((offset, step) =>
+          positionAt(stringNumbers[(startIndex + step) % stringNumbers.length]!, offset),
+        ),
+      )
+    : stringNumbers.flatMap((targetStringNumber) =>
+        pattern.fretOffsets.map((offset) => positionAt(targetStringNumber, offset)),
+      );
+  const fretNumbers = positions.map((position) => position.fretNumber);
   if (startFret < 0 || Math.max(...fretNumbers) > tuning.fretCount) {
     throw new Error("The string independence pattern must fit on the selected fretboard.");
   }
 
-  const positions = stringNumbers.flatMap((targetStringNumber) => {
-    const targetOpenMidi = tuning.openStrings[targetStringNumber - 1]!;
-    return pattern.fretOffsets.map((offset) => {
-      const fretNumber = startFret + offset;
-      return {
-        stringNumber: targetStringNumber,
-        fretNumber,
-        midiNote: targetOpenMidi + fretNumber,
-      };
-    });
-  });
   const midiNotes = positions.map((position) => position.midiNote);
   const instrumentLabel = tuning.instrument === "guitar" ? "Guitar" : "Ukulele";
   const stringLabel =
@@ -119,14 +133,15 @@ export function createStringSpiderExercise(
     inputs: ["midi", "onscreen", "audio"],
     streaming: true,
     generate: () => ({
-      id: `spider-${tuning.id}-${pattern.id}-${stringSpan}-${stringNumber}-${startFret}-${bpm}`,
+      id: `spider-${tuning.id}-${pattern.id}-${stringSpan}${crossing ? "-crossing" : ""}-${stringNumber}-${startFret}-${bpm}`,
       payload: {
-        label: `${instrumentLabel} ${stringLabel} · ${pattern.label}`,
+        label: `${instrumentLabel} ${stringLabel} · ${pattern.label}${crossing ? " · crossing" : ""}`,
         instrument: tuning.instrument,
         tuningId: tuning.id,
         stringNumber,
         stringNumbers,
         stringSpan,
+        crossing,
         startFret,
         pattern: pattern.id,
         patternLabel: pattern.label,

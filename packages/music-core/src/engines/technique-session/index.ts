@@ -375,6 +375,7 @@ export interface TechniqueSpiderOptions {
   bpm: number;
   pattern?: StringPatternKind;
   stringSpan?: StringSpiderSpan;
+  crossing?: boolean;
 }
 
 export type StringTechniqueMode = "spider" | "note-finder";
@@ -419,6 +420,7 @@ export interface SpiderDrillConfig {
   bpm: number;
   pattern: StringPatternKind;
   stringSpan: StringSpiderSpan;
+  crossing: boolean;
 }
 
 export interface SpiderDrillConfigSource {
@@ -433,6 +435,7 @@ export interface SpiderDrillConfigSource {
   pattern?: unknown;
   span?: unknown;
   stringSpan?: unknown;
+  crossing?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -444,6 +447,7 @@ export const SPIDER_DRILL_DEFAULT_CONFIG: SpiderDrillConfig = {
   bpm: 80,
   pattern: "ascending-1234",
   stringSpan: "single",
+  crossing: false,
 };
 
 export function normalizeSpiderDrillConfig(
@@ -491,7 +495,12 @@ export function normalizeSpiderDrillConfig(
     stringSpan: normalizeSpiderSpan(
       readConfigValue(source, "span") ?? readConfigValue(source, "stringSpan"),
     ),
+    crossing: normalizeSpiderCrossing(readConfigValue(source, "crossing")),
   };
+}
+
+function normalizeSpiderCrossing(value: unknown): boolean {
+  return value === true || value === "1" || value === "true";
 }
 
 export interface TechniqueTwoHandOptions {
@@ -830,7 +839,7 @@ export class TechniqueSession {
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-spider-${options.tuning.id}-${options.pattern ?? "ascending-1234"}-${options.stringSpan ?? "single"}-${options.stringNumber}-${options.startFret}-${options.bpm}`,
+      runId: `${this.#sessionId}-spider-${options.tuning.id}-${options.pattern ?? "ascending-1234"}-${options.stringSpan ?? "single"}${options.crossing ? "-crossing" : ""}-${options.stringNumber}-${options.startFret}-${options.bpm}`,
       inputs: ["midi", "onscreen", "audio"],
       context: {
         targetSkillIds: exercise.skillIds,

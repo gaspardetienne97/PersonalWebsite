@@ -132,6 +132,34 @@ describe("/music/play/spider/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Spider complete"));
   });
 
+  test("completes a string-crossing spider that alternates strings per note", async () => {
+    setTestUrl("/music/play/spider?span=adjacent-2&crossing=1");
+    render(Page);
+    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+
+    expect(button("Crossing")).toHaveAttribute("aria-pressed", "true");
+    button("Start spider")?.click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("crossing strings on every note"),
+    );
+
+    // Fingers 1-4 hop strings every step: 6-5-6-5, then the pass from string 5.
+    for (const [stringNumber, fret] of [
+      [6, 5],
+      [5, 6],
+      [6, 7],
+      [5, 8],
+      [5, 5],
+      [6, 6],
+      [5, 7],
+      [6, 8],
+    ]) {
+      fretButton(stringNumber, fret)?.click();
+    }
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Spider complete"));
+  });
+
   test("shows microphone input controls for acoustic guitar practice", async () => {
     const audioSource = createAudioSource();
     render(Page, { audioSource, audioSupported: true });
