@@ -15,6 +15,7 @@ import {
 import {
   AEROPHONE_INTERVAL_LANDING_INTERVALS,
   createAerophoneIntervalLandingExercise,
+  type AerophoneIntervalDirection,
   type AerophoneIntervalLandingId,
   type AerophoneIntervalLandingPrompt,
 } from "@repo/music-core/exercises/aerophone-interval-landing";
@@ -215,6 +216,7 @@ export interface AerophoneDrillConfig {
   style: ArticulationStyle;
   bpm: (typeof AEROPHONE_ARTICULATION_TEMPOS)[number];
   interval: AerophoneIntervalLandingId;
+  direction: AerophoneIntervalDirection;
 }
 
 export interface AerophoneDrillConfigSource {
@@ -231,6 +233,7 @@ export interface AerophoneDrillConfigSource {
   bpm?: unknown;
   tempo?: unknown;
   interval?: unknown;
+  direction?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -241,6 +244,7 @@ export const AEROPHONE_DRILL_DEFAULT_CONFIG: AerophoneDrillConfig = {
   style: "staccato",
   bpm: 90,
   interval: "P5",
+  direction: "up",
 };
 
 export function normalizeAerophoneDrillConfig(
@@ -267,7 +271,12 @@ export function normalizeAerophoneDrillConfig(
       readAerophoneConfigValue(source, "bpm") ?? readAerophoneConfigValue(source, "tempo"),
     ),
     interval: normalizeAerophoneInterval(readAerophoneConfigValue(source, "interval")),
+    direction: normalizeAerophoneDirection(readAerophoneConfigValue(source, "direction")),
   };
+}
+
+function normalizeAerophoneDirection(value: unknown): AerophoneIntervalDirection {
+  return value === "down" ? "down" : "up";
 }
 
 export interface TechniqueSwellOptions {
@@ -279,6 +288,7 @@ export interface TechniqueSwellOptions {
 export interface TechniqueIntervalLandingOptions {
   droneMidi: number;
   interval: AerophoneIntervalLandingId;
+  direction?: AerophoneIntervalDirection;
   holdMs: number;
   breathController?: number;
 }
@@ -767,7 +777,7 @@ export class TechniqueSession {
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-interval-landing-${options.droneMidi}-${options.interval}`,
+      runId: `${this.#sessionId}-interval-landing-${options.droneMidi}-${options.interval}-${options.direction ?? "up"}`,
       inputs: ["midi"],
       context: {
         targetSkillIds: ["technique.aerophone.interval-landing"],

@@ -157,6 +157,25 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       expect(document.body.textContent).toContain("Land on G4 over the C4 drone");
     });
   });
+
+  test("restores and starts a descending interval landing below the drone", async () => {
+    setTestUrl(
+      "/music/learn/aerophone?mode=interval-landing&target=60&interval=P5&direction=down&duration=3000",
+    );
+    render(Page);
+
+    await vi.waitFor(() => {
+      expect(button("Down")).toHaveAttribute("aria-pressed", "true");
+      // The landing HUD shows the target below the drone.
+      expect(document.body.textContent).toContain("F3");
+      expect(button("Start interval landing")?.disabled).toBe(false);
+    });
+
+    button("Start interval landing")?.click();
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Land on F3 below the C4 drone");
+    });
+  });
 });
 
 function button(label: string): HTMLButtonElement | undefined {

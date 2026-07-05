@@ -38,6 +38,7 @@ describe("TechniqueSession", () => {
       style: "legato",
       bpm: 110,
       interval: "P5",
+      direction: "up",
     });
 
     expect(
@@ -53,7 +54,15 @@ describe("TechniqueSession", () => {
       style: "staccato",
       bpm: 90,
       interval: "P5",
+      direction: "up",
     });
+
+    // Descending landings restore from the shareable direction flag.
+    expect(
+      normalizeAerophoneDrillConfig(
+        new URLSearchParams("mode=interval-landing&target=60&interval=P4&direction=down"),
+      ),
+    ).toMatchObject({ mode: "interval-landing", interval: "P4", direction: "down" });
 
     expect(
       normalizeAerophoneDrillConfig({

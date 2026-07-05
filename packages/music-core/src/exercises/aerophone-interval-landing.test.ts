@@ -82,6 +82,45 @@ describe("createAerophoneIntervalLandingExercise", () => {
     });
   });
 
+  test("lands descending intervals below the drone", () => {
+    const exercise = createAerophoneIntervalLandingExercise({
+      droneMidi: 60,
+      interval: "P5",
+      direction: "down",
+      holdMs: 2_000,
+    });
+    const context = {
+      targetSkillIds: exercise.skillIds,
+      difficulty: 0.5,
+      instrument: "aerophone" as const,
+    };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    expect(prompt.payload).toMatchObject({
+      label: "C4 down to F3 · Perfect fifth",
+      droneMidi: 60,
+      targetMidi: 53,
+      direction: "down",
+    });
+
+    run.accept(note(53, 0));
+    run.accept(breath(0.7, 0));
+    run.accept(breath(0.72, 1_000));
+    run.accept(breath(0.71, 2_000));
+
+    const result = run.finish();
+    expect(result.correct).toBe(true);
+    expect(result.answer).toMatchObject({ targetMidi: 53, playedMidi: 53 });
+
+    // The ascending G4 would have been correct in "up" mode — not here.
+    const wrongRun = exercise.createRun(exercise.generate(context), context);
+    wrongRun.accept(note(67, 0));
+    wrongRun.accept(breath(0.7, 0));
+    wrongRun.accept(breath(0.72, 2_000));
+    expect(wrongRun.finish().correct).toBe(false);
+  });
+
   test("penalizes landing on the wrong interval", () => {
     const exercise = createAerophoneIntervalLandingExercise({
       droneMidi: 60,

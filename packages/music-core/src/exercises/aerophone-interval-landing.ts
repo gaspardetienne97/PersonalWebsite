@@ -9,6 +9,9 @@ import { midiToNote } from "@repo/music-core/engines/theory";
 
 export type AerophoneIntervalLandingId = "P4" | "P5" | "P8" | "M3" | "m3";
 
+/** Landing direction relative to the drone: ascending (default) or descending. */
+export type AerophoneIntervalDirection = "up" | "down";
+
 export interface AerophoneIntervalLandingDefinition {
   id: AerophoneIntervalLandingId;
   label: string;
@@ -26,6 +29,7 @@ export const AEROPHONE_INTERVAL_LANDING_INTERVALS: AerophoneIntervalLandingDefin
 export interface AerophoneIntervalLandingOptions {
   droneMidi?: number;
   interval?: AerophoneIntervalLandingId;
+  direction?: AerophoneIntervalDirection;
   holdMs?: number;
   breathController?: number;
 }
@@ -35,6 +39,7 @@ export interface AerophoneIntervalLandingPrompt {
   droneMidi: number;
   targetMidi: number;
   interval: AerophoneIntervalLandingDefinition;
+  direction: AerophoneIntervalDirection;
   holdMs: number;
   breathController: number;
 }
@@ -53,10 +58,12 @@ export function createAerophoneIntervalLandingExercise(
 ): ExerciseDefinition<AerophoneIntervalLandingPrompt, AerophoneIntervalLandingAnswer> {
   const droneMidi = options.droneMidi ?? 60;
   const interval = aerophoneIntervalLandingDefinition(options.interval ?? "P5");
-  const targetMidi = droneMidi + interval.semitones;
+  const direction = options.direction ?? "up";
+  const targetMidi =
+    direction === "down" ? droneMidi - interval.semitones : droneMidi + interval.semitones;
   const holdMs = Math.max(500, options.holdMs ?? 3_000);
   const breathController = options.breathController ?? 2;
-  const label = `${midiToNote(droneMidi)} to ${midiToNote(targetMidi)} · ${interval.label}`;
+  const label = `${midiToNote(droneMidi)} ${direction === "down" ? "down to" : "to"} ${midiToNote(targetMidi)} · ${interval.label}`;
 
   return {
     id: "technique.aerophone.interval-landing",
@@ -66,8 +73,8 @@ export function createAerophoneIntervalLandingExercise(
     inputs: ["midi"],
     streaming: true,
     generate: () => ({
-      id: `aerophone-interval-landing-${droneMidi}-${interval.id}-${holdMs}`,
-      payload: { label, droneMidi, targetMidi, interval, holdMs, breathController },
+      id: `aerophone-interval-landing-${droneMidi}-${interval.id}-${direction}-${holdMs}`,
+      payload: { label, droneMidi, targetMidi, interval, direction, holdMs, breathController },
     }),
     createRun(prompt) {
       return intervalLandingRun(prompt.payload);

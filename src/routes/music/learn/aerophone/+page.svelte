@@ -103,6 +103,7 @@
   let articulationStyle = $state<ArticulationStyle>(initialConfig.style);
   let articulationBpm = $state(String(initialConfig.bpm));
   let intervalKind = $state<AerophoneIntervalLandingId>(initialConfig.interval);
+  let intervalDirection = $state(initialConfig.direction);
   let ready = $state(false);
   let pending = $state(false);
   let status = $state("Preparing your Aerophone practice history.");
@@ -147,7 +148,9 @@
     AEROPHONE_INTERVAL_LANDING_OPTIONS.find((option) => option.id === intervalKind) ??
       AEROPHONE_INTERVAL_LANDING_OPTIONS[1],
   );
-  const intervalTargetMidi = $derived(selected + (intervalDefinition?.semitones ?? 7));
+  const intervalTargetMidi = $derived(
+    selected + (intervalDirection === "down" ? -1 : 1) * (intervalDefinition?.semitones ?? 7),
+  );
   const intervalTargetLabel = $derived(midiToNote(intervalTargetMidi));
   const completedNotes = $derived(
     Math.min(articulationPrompt?.count ?? 8, Math.round((sessionState?.live?.progress ?? 0) * (articulationPrompt?.count ?? 8))),
@@ -289,10 +292,12 @@
       style: articulationStyle,
       bpm: articulationBpm,
       interval: intervalKind,
+      direction: intervalDirection,
     });
     drillMode = config.mode;
     durationMs = String(config.durationMs);
     intervalKind = config.interval;
+    intervalDirection = config.direction;
     if (config.mode !== "interval-landing") runtime.sound.stopDrone();
     status = config.mode === "interval-landing"
       ? "Land a target interval over the tonic drone."
@@ -312,6 +317,7 @@
       style: articulationStyle,
       bpm: articulationBpm,
       interval: intervalKind,
+      direction: intervalDirection,
     });
     const url = new URL(window.location.href);
     const params = url.searchParams;
@@ -320,16 +326,20 @@
     if (config.mode === "articulation") {
       params.delete("duration");
       params.delete("interval");
+      params.delete("direction");
       params.set("style", config.style);
       params.set("bpm", String(config.bpm));
     } else if (config.mode === "interval-landing") {
       params.set("duration", String(config.durationMs));
       params.set("interval", config.interval);
+      if (config.direction === "down") params.set("direction", "down");
+      else params.delete("direction");
       params.delete("style");
       params.delete("bpm");
     } else {
       params.set("duration", String(config.durationMs));
       params.delete("interval");
+      params.delete("direction");
       params.delete("style");
       params.delete("bpm");
     }
@@ -365,10 +375,11 @@
         await session.startIntervalLanding({
           droneMidi: selected,
           interval: intervalKind,
+          direction: intervalDirection,
           holdMs: Number(durationMs),
           breathController: 2,
         });
-        status = `Land on ${intervalTargetLabel} over the ${midiToNote(selected)} drone.`;
+        status = `Land on ${intervalTargetLabel} ${intervalDirection === "down" ? "below" : "over"} the ${midiToNote(selected)} drone.`;
       } else {
         await session.startLongTone({
           targetMidi: selected,
@@ -643,6 +654,15 @@
                 ariaLabel="Landing interval"
                 options={intervalOptions}
                 bind:value={intervalKind}
+                size="sm"
+              />
+              <SegmentedControl
+                ariaLabel="Landing direction"
+                options={[
+                  { value: "up", label: "Up" },
+                  { value: "down", label: "Down" },
+                ]}
+                bind:value={intervalDirection}
                 size="sm"
               />
               <SegmentedControl
