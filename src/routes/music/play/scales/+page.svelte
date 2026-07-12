@@ -21,6 +21,7 @@
     JAZZ_SCALE_KINDS,
     scalePatternSemitones,
     type ScaleMotion,
+    type ScalePatternPrompt,
     type ScalePatternKind,
     type ScaleSpan,
   } from "@repo/music-core/exercises/scale-pattern";
@@ -34,14 +35,18 @@
 
   import InstrumentView from "../../_components/InstrumentView.svelte";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
+  import HudTile from "../../_components/HudTile.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
   import { meanPartialCredit } from "@repo/music-core/engines/sessions";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -125,8 +130,30 @@
   let captured = false;
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
-  const activePrompt = $derived(sessionState?.currentPrompt);
+  const activePrompt = $derived(
+    sessionState?.currentPrompt &&
+      "noteLabels" in sessionState.currentPrompt &&
+      "bpm" in sessionState.currentPrompt
+      ? (sessionState.currentPrompt as ScalePatternPrompt)
+      : undefined,
+  );
   const summary = $derived(sessionState?.summary);
+  // The three top-level branches below (results / active / setup) as one value,
+  // so focus management and announcements key off actual branch swaps.
+  const phase = $derived<"results" | "active" | "setup">(
+    summary
+      ? "results"
+      : sessionState?.status === "active" && activePrompt
+        ? "active"
+        : "setup",
+  );
+  // Announced by the persistent live region; branch swaps remount the visible
+  // status text, so screen readers would otherwise miss the transitions.
+  const liveAnnouncement = $derived(
+    summary
+      ? `Scale complete. ${Math.round(summary.noteAccuracy * 100)}% notes clean · next target ${summary.nextTargetBpm} BPM.`
+      : status,
+  );
   const currentTempo = $derived(sessionState?.nextTargetBpm ?? tempo);
   const ladderState = $derived(sessionState ?? session?.state);
   const tempoLadder = $derived(
@@ -136,10 +163,26 @@
     normalizeScaleDrillConfig({ scale, tonic, instrument: scaleInstrument, bpm: tempo, motion, span }),
   );
 
+  // Branch swaps destroy the focused element (e.g. the Start button), dropping
+  // focus to <body>. Move it to the freshly mounted stage/results heading on
+  // each transition — but not on initial mount, so page load doesn't steal focus.
+  let activeHeading = $state<HTMLHeadingElement | null>(null);
+  let resultsHeading = $state<HTMLDivElement | null>(null);
+  let previousPhase: "results" | "active" | "setup" | undefined;
+
   void initialize();
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const current = phase;
+    const previous = previousPhase;
+    previousPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "active") activeHeading?.focus({ preventScroll: false });
+    else if (current === "results") resultsHeading?.focus({ preventScroll: false });
   });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
@@ -274,11 +317,14 @@
 
   <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
+  <!-- Persistent live region: mounted outside the branches so transitions announce. -->
+  <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
+
   {#if summary}
     <Card.Root>
       <Card.Header>
         <Card.Description>Scale complete</Card.Description>
-        <Card.Title>
+        <Card.Title tabindex={-1} bind:ref={resultsHeading}>
           {Math.round(summary.noteAccuracy * 100)}% notes · {summary.xp} XP
         </Card.Title>
       </Card.Header>
@@ -298,6 +344,50 @@
         <NextUpSuggestion {skills} {analytics} currentPath="/music/play/scales" routine={runtime.dailyRoutine} />
       </Card.Footer>
     </Card.Root>
+  {:else if sessionState?.status === "active" && activePrompt}
+    <PracticeDrillShell>
+      {#snippet stage()}
+        <PracticeStage instrument={scaleInstrument} class="grid gap-5 p-5 sm:p-6">
+          <div>
+            <p class="eyebrow">Focus mode · {motionLabel}</p>
+            <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={activeHeading}>
+              {activePrompt.label}
+            </h2>
+            <p class="text-sm text-stage-muted">
+              {activePrompt.bpm} BPM · Follow the scale cleanly before adding speed.
+            </p>
+          </div>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <HudTile label="Progress" value={liveProgress} unit="%" tone="accent" />
+            <HudTile label="Notes" value={activePrompt.noteLabels.length} />
+            <HudTile label="Tempo" value={activePrompt.bpm} unit="BPM" />
+            <HudTile label="Span" value={spanLabel} />
+          </div>
+          <Progress value={liveProgress} max={100} />
+          <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-4">
+            <OnScreenKeyboard
+              router={runtime.router}
+              notes={activePrompt.noteLabels}
+              onAccepted={playAccepted}
+            />
+          </div>
+          <p class="text-sm text-stage-muted">{status}</p>
+        </PracticeStage>
+      {/snippet}
+      {#snippet rail()}
+        <DrillProgressRail
+          title="Live run"
+          items={[
+            { label: "Scale", value: `${tonicLabel} ${scaleLabel}` },
+            { label: "Motion", value: motionLabel },
+            { label: "Target", value: `${currentTempo} BPM` },
+            { label: "Input", value: runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
+          ]}
+        >
+          <Button type="button" variant="outline" onclick={() => session?.abandon()}>End run</Button>
+        </DrillProgressRail>
+      {/snippet}
+    </PracticeDrillShell>
   {:else}
     <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
       <Card.Root>
@@ -313,7 +403,19 @@
         <Card.Content class="grid gap-6">
           <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
 
-          <div class="grid gap-4 sm:grid-cols-2">
+          <details class="group rounded-xl border bg-muted/20 p-3">
+            <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <span>
+                <span class="block text-sm font-semibold">Remembered setup</span>
+                <span class="text-xs text-muted-foreground">
+                  {tonicLabel} {scaleLabel} · {motionLabel} · {spanLabel} · {tempo} BPM
+                </span>
+              </span>
+              <span class="text-sm font-medium text-primary group-open:hidden">Edit setup</span>
+              <span class="hidden text-sm font-medium text-primary group-open:inline">Hide setup</span>
+            </summary>
+            <div class="mt-4 grid gap-5 border-t pt-4">
+            <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
               <Label for="scale-kind">Scale</Label>
               <select
@@ -345,7 +447,7 @@
                 bind:value={tonic}
                 disabled={sessionState?.status === "active"}
               >
-                {#each SCALE_DRILL_TONICS as note}
+                {#each SCALE_DRILL_TONICS as note (note)}
                   <option value={note}>{note.replace(/\d+$/, "")}</option>
                 {/each}
               </select>
@@ -398,24 +500,9 @@
               Current unlocked target: {currentTempo} BPM
             </p>
           </div>
-
-          {#if sessionState?.status === "active" && activePrompt}
-            <div class="grid gap-4 rounded-md border p-4">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <p class="text-sm font-medium">{activePrompt.label}</p>
-                  <p class="text-xs text-muted-foreground">{activePrompt.bpm} BPM</p>
-                </div>
-                <p class="text-sm text-muted-foreground">{liveProgress}%</p>
-              </div>
-              <Progress value={liveProgress} max={100} />
-              <OnScreenKeyboard
-                router={runtime.router}
-                notes={activePrompt.noteLabels}
-                onAccepted={playAccepted}
-              />
             </div>
-          {/if}
+          </details>
+
         </Card.Content>
         <Card.Footer class="flex-wrap gap-3">
           <Button
@@ -426,7 +513,7 @@
             {pending ? "Starting..." : "Start Scale"}
           </Button>
             <StartShortcut onStart={() => void startScale()} />
-          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+          <p class="text-sm text-muted-foreground">{status}</p>
         </Card.Footer>
       </Card.Root>
 
@@ -437,7 +524,7 @@
             <Card.Title>{currentTempo} BPM target</Card.Title>
           </Card.Header>
           <Card.Content class="grid gap-2">
-            {#each tempoLadder as rung}
+            {#each tempoLadder as rung (rung.bpm)}
               <div
                 class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm
                   {rung.status === 'target'

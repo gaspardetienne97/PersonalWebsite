@@ -39,7 +39,7 @@ describe("/music/play/two-hand/+page.svelte", () => {
     setTestUrl("/music/play/two-hand?tonic=G4&bpm=120&pattern=alberti-rh-holds&hand=left");
     render(Page);
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("120BPM"));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("120 BPM"));
     expect(document.body.textContent).toContain("Alberti + holds");
     expect(
       document.querySelector('[aria-label="Key"] button[aria-pressed="true"]')?.textContent,

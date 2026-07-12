@@ -461,7 +461,7 @@
           {#if mode === "read-and-tap" && activePatternEvents.length > 0}
             <div
               aria-label="Rhythm pattern target"
-              class="grid gap-2 rounded-lg border border-stage-line bg-stage-surface/70 p-3"
+              class="grid gap-2 rounded-lg border border-stage-line bg-stage-2/70 p-3"
             >
               <div class="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-wide text-stage-muted">
                 <span>{modeLabel}</span>
