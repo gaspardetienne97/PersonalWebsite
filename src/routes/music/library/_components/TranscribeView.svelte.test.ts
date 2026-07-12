@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import type { MusicRuntime } from "../_runtime.svelte";
-import Page from "./+page.svelte";
+import type { MusicRuntime } from "../../_runtime.svelte";
+import Page from "./TranscribeView.svelte";
 
 describe("/music/transcribe/+page.svelte", () => {
   test("builds and saves a manual transcription score", async () => {

@@ -12,9 +12,9 @@
   import { Empty } from "@repo/ui/empty";
   import { Skeleton } from "@repo/ui/skeleton";
 
-  import PracticeScreen from "../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
-  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface SongLibraryLike {
     list(): Promise<SongRow[]>;

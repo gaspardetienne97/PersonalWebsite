@@ -220,7 +220,7 @@
           {/if}
         </Card.Content>
       </Card.Root>
-      {#if coach?.primaryAction.href && coach.primaryAction.href !== "/music/routine"}
+      {#if coach?.primaryAction.href && coach.primaryAction.href !== "/music"}
         <Button href={coach.primaryAction.href} variant="outline">{coach.primaryAction.label}</Button>
       {/if}
     </aside>

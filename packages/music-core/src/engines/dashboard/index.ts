@@ -260,7 +260,7 @@ function hrefForSkill(skillId: string): string {
   if (skillId.startsWith("technique.piano")) return "/music/play/two-hand";
   if (skillId.startsWith("technique.")) return "/music/play/scales";
   if (skillId.startsWith("harmony.") || skillId.startsWith("pitch.")) return "/music/learn/ear";
-  return "/music/learn";
+  return "/music";
 }
 
 function practiceTargetForSkill(

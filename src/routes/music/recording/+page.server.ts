@@ -1,5 +1,0 @@
-import { redirect } from "@sveltejs/kit";
-
-export function load(): never {
-  redirect(302, "/music/create?mode=recorder");
-}

@@ -36,8 +36,8 @@ describe("MusicNavigation", () => {
     expect(activeHrefs).not.toContain("/music/progress");
   });
 
-  test("a songs sub-route lights up the Library hub", () => {
-    render(MusicNavigation, { currentPath: "/music/songs" });
+  test("a song detail lights up the Library hub", () => {
+    render(MusicNavigation, { currentPath: "/music/songs/song-1" });
     const activeHrefs = [...document.querySelectorAll('a[aria-current="page"]')].map((a) =>
       a.getAttribute("href"),
     );

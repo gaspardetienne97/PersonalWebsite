@@ -13,7 +13,7 @@
 
   // One flat index over the shared catalog + key destinations. ⌘K jumps anywhere.
   const COMMANDS: Command[] = [
-    { label: "Start today's plan", href: "/music/routine", group: "Today" },
+    { label: "Start today's plan", href: "/music", group: "Today" },
     ...DRILLS.map((d) => ({ label: d.title, href: d.href, group: "Drill" })),
     ...PATHS.map((p) => ({ label: p.title, href: p.href, group: "Path" })),
     ...LIBRARY_ITEMS.map((l) => ({ label: l.title, href: l.href, group: "Library" })),

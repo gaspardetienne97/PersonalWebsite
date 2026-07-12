@@ -5,7 +5,7 @@ import { render } from "vitest-browser-svelte";
 
 import type { SongSource } from "@repo/music-core/engines/store";
 
-import Page from "./+page.svelte";
+import Page from "./ImportView.svelte";
 
 function midiFile(): File {
   const midi = new Midi();

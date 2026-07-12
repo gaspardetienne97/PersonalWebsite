@@ -89,6 +89,6 @@
       <Button type="button" onclick={onRetry}>Retry mistakes</Button>
     {/if}
     <Button type="button" variant="outline" onclick={onRepeat}>Repeat session</Button>
-    <Button href="/music/learn" variant="ghost">Return to Learn</Button>
+    <Button href="/music" variant="ghost">Return to Practice</Button>
   </div>
 </section>

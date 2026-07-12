@@ -9,10 +9,10 @@
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
-  import ImportPage from "../import/+page.svelte";
-  import TheoryPage from "../learn/theory/+page.svelte";
-  import SongsPage from "../songs/+page.svelte";
-  import TranscribePage from "../transcribe/+page.svelte";
+  import ImportView from "./_components/ImportView.svelte";
+  import SongsView from "./_components/SongsView.svelte";
+  import TheoryReference from "./_components/TheoryReference.svelte";
+  import TranscribeView from "./_components/TranscribeView.svelte";
 
   type LibraryTab = "songs" | "reference" | "import";
   type ImportTab = "score" | "transcribe";
@@ -66,10 +66,10 @@
   </PracticeScreenHeader>
 
   {#if tab === "songs"}
-    <SongsPage />
+    <SongsView />
   {:else if tab === "reference"}
     <section class="space-y-6" aria-label="Unified reference">
-      <TheoryPage />
+      <TheoryReference />
 
       <Card.Root>
         <Card.Header class="flex-row items-start justify-between gap-3 space-y-0">
@@ -110,9 +110,9 @@
       </div>
 
       {#if importTab === "score"}
-        <ImportPage />
+        <ImportView />
       {:else}
-        <TranscribePage />
+        <TranscribeView />
       {/if}
     </section>
   {/if}

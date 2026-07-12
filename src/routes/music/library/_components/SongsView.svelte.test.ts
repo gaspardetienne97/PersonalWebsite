@@ -4,8 +4,8 @@ import { render } from "vitest-browser-svelte";
 import type { Score } from "@repo/music-core/domain";
 import type { SongRow } from "@repo/music-core/engines/store";
 
-import { MusicRuntime } from "../_runtime.svelte";
-import Page from "./+page.svelte";
+import { MusicRuntime } from "../../_runtime.svelte";
+import Page from "./SongsView.svelte";
 
 describe("/music/songs/+page.svelte", () => {
   test("lists saved songs, plays the selected score, and logs song practice", async () => {

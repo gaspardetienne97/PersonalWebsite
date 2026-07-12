@@ -50,7 +50,7 @@ describe("challenge projections", () => {
       progress: 125,
       target: 100,
       complete: true,
-      href: "/music/routine",
+      href: "/music",
     });
     expect(board.daily[1]).toMatchObject({
       id: "weak-spot-reps",

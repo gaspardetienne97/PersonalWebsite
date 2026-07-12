@@ -1,5 +1,5 @@
 // @tonejs/midi is CJS: under Node/SSR ESM a named `import { Midi }` is not
-// statically resolvable and 500s the SSR of /music/import. Resolve the class via
+// statically resolvable and 500s the SSR of the library import view. Resolve the class via
 // namespace + default interop so it works in SSR, the browser, and tests.
 import * as TonejsMidi from "@tonejs/midi";
 

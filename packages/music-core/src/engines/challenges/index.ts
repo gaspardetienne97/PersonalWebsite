@@ -64,7 +64,7 @@ export function buildChallengeBoard(args: BuildChallengeBoardArgs): ChallengeBoa
       id: "daily-xp",
       title: "Hit today's XP",
       description: "Finish one focused block and keep the day moving.",
-      href: "/music/routine",
+      href: "/music",
       progress: todayXp,
       target: dailyXpTarget,
       complete: todayXp >= dailyXpTarget,
@@ -86,7 +86,7 @@ export function buildChallengeBoard(args: BuildChallengeBoardArgs): ChallengeBoa
       id: "capability-variety",
       title: "Cross-train two skills",
       description: "Touch two capability areas so practice does not collapse into one lane.",
-      href: "/music/learn",
+      href: "/music",
       progress: capabilities.size,
       target: varietyTarget,
       complete: capabilities.size >= varietyTarget,
@@ -162,9 +162,9 @@ function hrefForSkill(skillId: string): string {
   if (skillId.startsWith("reading.")) return "/music/learn/reading";
   if (skillId.startsWith("rhythm.")) return "/music/learn/rhythm";
   if (skillId.startsWith("technique.")) return "/music/play/scales";
-  if (skillId.startsWith("harmony.")) return "/music/learn/theory";
+  if (skillId.startsWith("harmony.")) return "/music/library?tab=reference";
   if (skillId.startsWith("pitch.")) return "/music/learn/ear";
-  return "/music/learn";
+  return "/music";
 }
 
 function startOfUtcDay(at: UnixMs): UnixMs {

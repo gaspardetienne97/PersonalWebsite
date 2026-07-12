@@ -12,13 +12,13 @@
       <p class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Up next</p>
       <p class="font-semibold">{routine.currentStep.label}</p>
     </div>
-    <Button href="/music/routine">
+    <Button href="/music">
       Continue routine
       <ArrowRight class="size-4" aria-hidden="true" />
     </Button>
   </div>
 {:else if routine?.status === "summary"}
-  <Button href="/music/routine">
+  <Button href="/music">
     View routine summary
     <ArrowRight class="size-4" aria-hidden="true" />
   </Button>

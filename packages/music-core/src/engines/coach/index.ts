@@ -56,7 +56,7 @@ export function buildPracticeCoachView(args: BuildPracticeCoachViewArgs): Practi
     insights: insightsFor(args.progressState, args.sessions, focus),
     primaryAction: focus
       ? { label: `Practice ${focus.skillName}`, href: focus.href }
-      : { label: "Start daily routine", href: "/music/routine" },
+      : { label: "Start daily routine", href: "/music" },
   };
 }
 

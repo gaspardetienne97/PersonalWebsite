@@ -22,10 +22,10 @@
   import * as Card from "@repo/ui/card";
   import { onDestroy } from "svelte";
 
-  import PracticeScreen from "../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
-  import SegmentedControl from "../_components/SegmentedControl.svelte";
-  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SegmentedControl from "../../_components/SegmentedControl.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface SongSaver {
     saveImportedSong(song: ImportedSong): Promise<{ id: string; title: string }>;

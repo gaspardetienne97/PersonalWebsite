@@ -81,6 +81,6 @@
       retryLabel="Repeat session"
       weakItemLabel="Practice missed groups"
     />
-    <Button href="/music/learn" variant="ghost">Return to Learn</Button>
+    <Button href="/music" variant="ghost">Return to Practice</Button>
   </div>
 </section>

@@ -24,9 +24,9 @@
     },
     {
       title: "Pick a drill",
-      body: "Head to Learn and start an Ear Training, Note Reading, Rhythm, or Scales session. Choose how you answer (multiple choice or by playing the note).",
-      href: "/music/learn",
-      cta: "Open Learn",
+      body: "Open Practice and start an Ear Training, Note Reading, Rhythm, or Scales session. Choose how you answer (multiple choice or by playing the note).",
+      href: "/music",
+      cta: "Open Practice",
     },
     {
       title: "Play through it",
@@ -43,9 +43,9 @@
   const areas = [
     {
       icon: Ear,
-      label: "Learn",
+      label: "Practice",
       body: "Skill-building drills: Chord Library, Ear Training, Note Reading, Rhythm, and Scales & Drills. Each run feeds your Skill Tree.",
-      href: "/music/learn",
+      href: "/music",
     },
     {
       icon: BookOpen,

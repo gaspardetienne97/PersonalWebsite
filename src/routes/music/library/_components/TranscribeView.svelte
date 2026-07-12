@@ -25,10 +25,10 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
-  import { createBasicPitchExtractor } from "./basic-pitch-extractor";
-  import PracticeScreen from "../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
-  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import { createBasicPitchExtractor } from "../../transcribe/basic-pitch-extractor";
+  import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface TranscriptionSaver {
     saveScore(score: Score): Promise<{ id: string; title: string }>;

@@ -205,8 +205,8 @@ This file provides guidance for agents working on the Music app under
 - `/music/connect`: device profiles — name MIDI devices, assign instruments, and
   pick the preferred input source per instrument (`DeviceProfileStore`). The
   transport bar's MIDI instrument/channel picker reads these preferences.
-- `/music/learn`: entry point for learning tools, with the guided **Jazz Path**
-  surfaced at the top.
+- `/music`: entry point for practice tools; learning drills and the guided
+  **Jazz Path** are surfaced from the Practice hub.
 - `/music/learn/path`: the ordered, instrument-aware jazz lesson path. Each step
   deep-links into a real tool (ear → chord library → scales → the graded ii-V-I
   drill → jam); per-step status/mastery is derived from the live skill graph
@@ -279,7 +279,7 @@ This file provides guidance for agents working on the Music app under
   current target. Do not infer this independently from rendered clefs or DOM
   geometry.
 - `/music/learn/rhythm`: pulse timing trainer.
-- `/music/learn/theory`: chord and theory library. Each chord/scale renders
+- `/music/library?tab=reference`: chord and theory library. Each chord/scale renders
   through `InstrumentView` with an **instrument toggle** (Piano/Guitar/Ukulele/
   Aerophone, defaulting to the active instrument); chords also expose a
   voicing/inversion selector (`chordVoicings` in `@repo/music-core/engines/library`
@@ -292,8 +292,8 @@ This file provides guidance for agents working on the Music app under
   transcriptions + improv techniques), and the standards repertoire. Pure data
   lives in `@repo/music-core/engines/jazz`.
 - `/music/play`: play/practice entry point.
-- `/music/songs`: persisted repertoire list and preview.
-- `/music/import`: accepts MIDI, uncompressed MusicXML, and compressed `.mxl`.
+- `/music/library?tab=songs`: persisted repertoire list and preview.
+- `/music/library?tab=import`: accepts MIDI, uncompressed MusicXML, and compressed `.mxl`.
   Keep archive extraction in `@repo/music-core/engines/score-import`; resolve
   `META-INF/container.xml` first and persist only the extracted XML through the
   existing MusicXML `SongSource`. Do not add an archive-specific storage format
@@ -338,9 +338,8 @@ This file provides guidance for agents working on the Music app under
   exercise scores pitch order + timing evenness, awards XP/mastery to the shared
   and instrument-specific spider skills, and records a tagged drill journal
   entry.
-- `/music/play/articulation`: retired route; redirects to
-  `/music/learn/aerophone?mode=articulation`. Keep new Aerophone technique work
-  in the unified `/music/learn/aerophone` surface.
+- `/music/learn/aerophone?mode=articulation`: unified Aerophone articulation
+  surface. Keep new Aerophone technique work here.
 - `/music/play/chord-perfect`: graded guitar/ukulele Chord-Perfect drill. Pick an
   instrument + a curated open-chord shape; MIDI and the shared `FretboardInput`
   (whole shape lit, next string highlighted) feed `TechniqueSession.startChordPerfect()`,
@@ -395,15 +394,15 @@ This file provides guidance for agents working on the Music app under
   `@repo/music-core/exercises/voicing-drill`. Resolved voicings come from the
   jazz engine's `buildDrillVoicings(variant, startPosition)`, so the session no
   longer re-derives them.
-- `/music/import`: parse MIDI or uncompressed MusicXML locally, preview canonical
+- `/music/library?tab=import`: parse MIDI or uncompressed MusicXML locally, preview canonical
   metadata, and save it to repertoire. `.mxl` is deferred.
-- `/music/songs`: saved repertoire library backed by the `songs` store. It
+- `/music/library?tab=songs`: saved repertoire library backed by the `songs` store. It
   reopens imported MIDI songs as domain `Score`s, registers selected-song
   playback with the shared transport, and logs `SessionSource:"song"` practice
   through `runtime.recordPractice`. Selected songs link to `/music/songs/[id]`
   for score preview and follow-along.
 - `/music/jam`: chord-progression jam/improv with target tones + recording.
-- `/music/studio`: step sequencer with a pad bank, Tone playback, and persistent
+- `/music/create?mode=beat`: step sequencer with a pad bank, Tone playback, and persistent
   **MPC sample kits**. Sample kits cover MPC Banks A-D (MIDI 36-99); the Studio
   panel renders one 16-pad bank at a time with an A/B/C/D selector. Pads can
   carry a simple soft/hard velocity layer split (0-0.63, 0.64-1) and an MPC
@@ -424,7 +423,7 @@ This file provides guidance for agents working on the Music app under
   needs a fixture-based test **and** physical MPC One+ verification before
   claiming hardware compatibility. Never copy or commit user-owned sample packs
   or the local MPC fixture; `static/audio` sample material is gitignored.
-- `/music/piano-roll`: multitrack-lite editor over the canonical `Score`.
+- `/music/create?mode=piano-roll`: multitrack-lite editor over the canonical `Score`.
   Editing helpers belong in `@repo/music-core/engines/piano-roll`
   (`toggleNoteAt`, `setVoiceVelocity`, `resizeNoteAt`, `addVoice`,
   `removeVoice`, `clearVoice`, `withoutVoices`, `scoreLoopBeats`,
@@ -436,19 +435,19 @@ This file provides guidance for agents working on the Music app under
   use the core grid projection plus the route-level Add bar control instead of
   fixed two-bar rendering. Do not add route-local playback/export engines for
   future piano-roll polish.
-- `/music/recording`: take list, waveform, compare, and self-review.
+- `/music/create?mode=recorder`: take list, waveform, compare, and self-review.
 - `/music/track`: practice journal and routine/session tracking.
 - `/music/settings`: app settings over `PracticeStore.settings`.
 - `/music/progress`: dashboard, skill tree, weak spots, achievements, streaks,
   practice-next picks, and personal daily challenges. Challenge cards must come
   from `@repo/music-core/engines/challenges`; keep them non-competitive unless
   the user explicitly asks for leagues/social ranking.
-- `/music/coach`: Phase 5 local Practice Coach. It uses
+- `/music`: the Practice hub includes the Phase 5 local Practice Coach. It uses
   `@repo/music-core/engines/coach` to project Skill Graph, Analytics, Progress,
   Sessions, and `daily-routine` into a deterministic recommendation view. Keep it
   local/offline; do not add an external AI/API dependency unless the user makes
   a new explicit product decision.
-- `/music/transcribe`: Phase 5 Transcription Trainer. It uses
+- `/music/library?tab=import&mode=transcribe`: Phase 5 Transcription Trainer. It uses
   `@repo/music-core/engines/transcription` to parse manual note rows into a draft
   and convert the draft to a canonical `audio-transcription` score that can be
   practiced through the existing wait-mode `ScorePracticeSession` and saved to
@@ -609,7 +608,7 @@ Important areas:
   for renderers. Keep it framework-agnostic and independent from OSMD.
 - `src/engines/song-library/`: persist/reopen canonical scores through
   `PracticeStore.songs` and project stored scores into tempo-map-aware transport
-  playback patterns for `/music/songs`.
+  playback patterns for `/music/songs/[id]`.
 - `src/engines/jam/`: chord-progression jam sessions + target tones.
 - `src/engines/jazz/`: jazz-piano reference content (chord vocabulary,
   chord/scale map, voicing recipes — `realizeVoicing`, `realizeDominantVoicing`,

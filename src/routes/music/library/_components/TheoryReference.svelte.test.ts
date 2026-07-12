@@ -3,7 +3,7 @@ import { render } from "vitest-browser-svelte";
 
 import { SoundEngine } from "@repo/music-core/engines/sound";
 
-import Page from "./+page.svelte";
+import Page from "./TheoryReference.svelte";
 
 describe("/music/learn/theory/+page.svelte", () => {
   beforeEach(() => {

@@ -19,7 +19,7 @@ describe("daily routine", () => {
       {
         skillId: "harmony.seventh.dominant",
         skillName: "Dominant seventh",
-        href: "/music/learn/theory",
+        href: "/music/library?tab=reference",
       },
     ]);
 

@@ -9,7 +9,7 @@ describe("RoutineContinueAction", () => {
   test("links back to the runner for an active routine", () => {
     render(RoutineContinueAction, { routine: routineState("active") });
 
-    const link = document.querySelector<HTMLAnchorElement>('a[href="/music/routine"]');
+    const link = document.querySelector<HTMLAnchorElement>('a[href="/music"]');
     expect(link?.textContent).toContain("Continue routine");
     expect(document.body.textContent).toContain("Note Reading");
   });
