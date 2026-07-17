@@ -2,8 +2,9 @@ import type { SvelteKitPWAOptions } from "@vite-pwa/sveltekit";
 
 export const pwaOptions = {
   scope: "/music",
+  buildBase: "/",
   registerType: "autoUpdate",
-  includeAssets: ["favicon.svg"],
+  includeAssets: ["favicon.svg", "audio/music/piano/*.mp3"],
   kit: {
     includeVersionFile: true,
   },
@@ -32,8 +33,7 @@ export const pwaOptions = {
     ],
   },
   workbox: {
-    navigateFallback: "/music",
-    navigateFallbackAllowlist: [/^\/music(?:\/.*)?$/],
+    navigateFallback: undefined,
     cleanupOutdatedCaches: true,
     globIgnores: ["client/_app/immutable/assets/web back*.svg", "client/audio/**/*"],
     // The narrator's neural-TTS runtime (Kokoro/transformers, /pdf, opt-in) is a
