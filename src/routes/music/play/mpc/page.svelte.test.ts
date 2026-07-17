@@ -1,9 +1,23 @@
-import { afterEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { tick } from "svelte";
 import { render } from "vitest-browser-svelte";
 
+import { monotonicMs } from "@repo/music-core/domain";
+import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+import { ProgressEngine } from "@repo/music-core/engines/progress";
+import { SkillGraphStore } from "@repo/music-core/engines/skills";
+import { TechniqueSession } from "@repo/music-core/engines/technique-session";
+
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
+import { MusicRuntime } from "../../_runtime.svelte";
+
+beforeEach(() => {
+  vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+    status: "started",
+    downbeat: monotonicMs(1_000),
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -12,8 +26,58 @@ afterEach(() => {
 });
 
 describe("/music/play/mpc/+page.svelte", () => {
+  test("does not install session subscriptions when services resolve after teardown", async () => {
+    let resolveServices!: () => void;
+    vi.spyOn(SkillGraphStore.prototype, "seed").mockReturnValue(
+      new Promise((resolve) => {
+        resolveServices = resolve;
+      }),
+    );
+    vi.spyOn(AnalyticsEngine.prototype, "load").mockResolvedValue();
+    vi.spyOn(ProgressEngine.prototype, "load").mockResolvedValue();
+    const runtime = new MusicRuntime();
+    const subscribe = vi.spyOn(runtime.router, "subscribe");
+    const view = render(Page, { runtime });
+    const subscriptionCount = subscribe.mock.calls.length;
+
+    view.unmount();
+    resolveServices();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(subscribe).toHaveBeenCalledTimes(subscriptionCount);
+    runtime.dispose();
+  });
+
+  test("settles and locks setup before snapshotting a deferred context", async () => {
+    const runtime = new MusicRuntime();
+    let resolveContext!: (cleanup: () => void) => void;
+    let applyBpm: ((bpm: number) => void) | undefined;
+    vi.spyOn(runtime, "registerPracticeContext").mockImplementation((context) => {
+      applyBpm = context.onBpmChange;
+      return new Promise((resolve) => {
+        resolveContext = resolve;
+      });
+    });
+    const startMpcRudiment = vi.spyOn(TechniqueSession.prototype, "startMpcRudiment");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    button("Start rudiment")?.click();
+    await vi.waitFor(() => expect(applyBpm).toBeTypeOf("function"));
+    const setupLocked = select("Left pad")?.closest("fieldset")?.disabled;
+    applyBpm?.(120);
+    resolveContext(vi.fn());
+
+    await vi.waitFor(() => expect(startMpcRudiment).toHaveBeenCalledOnce());
+    expect(setupLocked).toBe(true);
+    expect(startMpcRudiment).toHaveBeenCalledWith(expect.objectContaining({ bpm: 120 }));
+    expect(window.location.search).toContain("bpm=120");
+  });
+
   test("completes an eight-hit run through the on-screen MPC grid", async () => {
-    render(Page);
+    const runtime = new MusicRuntime();
+    const register = vi.spyOn(runtime, "registerPracticeContext");
+    render(Page, { runtime });
 
     expect(document.querySelector("h1")?.textContent).toContain("MPC Rudiments");
     expect(document.querySelector('[aria-label="MPC pad grid"]')).not.toBeNull();
@@ -21,6 +85,10 @@ describe("/music/play/mpc/+page.svelte", () => {
 
     button("Start rudiment")?.click();
     await vi.waitFor(() => expect(button("Cancel rudiment")?.disabled).toBe(false));
+    expect(runtime.beginPerformance).toHaveBeenCalledOnce();
+    expect(register).toHaveBeenCalledWith(
+      expect.objectContaining({ variantKey: "v1:mpc:single-strokes", pinnedInstrument: "mpc" }),
+    );
     expect(document.querySelector("fieldset")?.disabled).toBe(true);
 
     for (const midi of [36, 38, 36, 38, 36, 38, 36, 38]) {
@@ -70,13 +138,14 @@ describe("/music/play/mpc/+page.svelte", () => {
     expect(select("Left pad")?.value).toBe("40");
     expect(select("Right pad")?.value).toBe("41");
     expect(button("16 hits")).toHaveAttribute("aria-pressed", "true");
-    expect(button("100 BPM")).toHaveAttribute("aria-pressed", "true");
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Tempo · 100 BPM"));
     await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
   });
 
   test("keeps setup changes in the shareable URL", async () => {
     setTestUrl("/music/play/mpc");
-    render(Page);
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
 
     select("Left pad")!.value = "44";
     select("Left pad")!.dispatchEvent(new Event("change", { bubbles: true }));
@@ -84,13 +153,36 @@ describe("/music/play/mpc/+page.svelte", () => {
     select("Right pad")!.dispatchEvent(new Event("change", { bubbles: true }));
     button("Double strokes")?.click();
     button("16 hits")?.click();
-    button("120 BPM")?.click();
+    await vi.waitFor(() => expect(window.location.search).toContain("hits=16"));
+    runtime.setPracticeVariantBpm(120, "v1:mpc:double-strokes");
 
     await vi.waitFor(() => expect(window.location.search).toContain("pattern=double-strokes"));
     await vi.waitFor(() => expect(window.location.search).toContain("left=44"));
     expect(window.location.search).toContain("right=45");
     expect(window.location.search).toContain("hits=16");
     expect(window.location.search).toContain("bpm=120");
+  });
+
+  test("pins MPC without persisting over the general instrument", async () => {
+    const records = new Map<string, { id: string; value: unknown }>([
+      ["music.settings", { id: "music.settings", value: { activeInstrument: "guitar" } }],
+    ]);
+    const runtime = new MusicRuntime();
+    await runtime.attachStorage({
+      get: async (id) => records.get(id),
+      put: async (record) => records.set(record.id, record),
+    });
+
+    const view = render(Page, { runtime });
+    await vi.waitFor(() => expect(runtime.activeInstrument).toBe("mpc"));
+    expect(runtime.router.state.activeInstrument).toBe("mpc");
+    expect(runtime.getMusicSettings()?.activeInstrument).toBe("guitar");
+
+    view.unmount();
+    await vi.waitFor(() => expect(runtime.activeInstrument).toBe("guitar"));
+    expect(runtime.router.state.activeInstrument).toBe("guitar");
+    expect(runtime.getMusicSettings()?.activeInstrument).toBe("guitar");
+    runtime.dispose();
   });
 
   test("starts a paradiddle rudiment from core pattern data", async () => {
@@ -128,8 +220,10 @@ describe("/music/play/mpc/+page.svelte", () => {
   });
 
   test("offers a slower retry after a completed rudiment", async () => {
-    render(Page);
-    button("100 BPM")?.click();
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(window.location.search).toContain("bpm=80"));
+    runtime.setPracticeVariantBpm(100, "v1:mpc:single-strokes");
     await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
 
     button("Start rudiment")?.click();
@@ -142,7 +236,7 @@ describe("/music/play/mpc/+page.svelte", () => {
     button("Slow down")?.click();
 
     await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
-    expect(button("80 BPM")).toHaveAttribute("aria-pressed", "true");
+    expect(document.body.textContent).toContain("Tempo · 80 BPM");
     expect(window.location.search).toContain("bpm=80");
   });
 });

@@ -54,6 +54,8 @@ export class SampleKitPlaybackController {
   #layersByMidi = new Map<number, ActiveSampleLayer[]>();
   #chokeGroupByMidi = new Map<number, number>();
   #padIdsByChokeGroup = new Map<number, string[]>();
+  #activationGeneration = 0;
+  #disposed = false;
 
   constructor(options: SampleKitPlaybackOptions) {
     this.#sound = options.sound;
@@ -63,6 +65,8 @@ export class SampleKitPlaybackController {
   }
 
   async activate(resolved: ResolvedSampleKit): Promise<ActiveSampleKit> {
+    if (this.#disposed) throw new Error("Sample kit activation was cancelled.");
+    const generation = ++this.#activationGeneration;
     const samplesById = new Map(resolved.samples.map((sample) => [sample.asset.id, sample]));
     const newUrls: string[] = [];
     const drumKit: DrumPadSample[] = [];
@@ -72,12 +76,12 @@ export class SampleKitPlaybackController {
     const padIdsByChokeGroup = new Map<number, string[]>();
     const pads: ActiveSamplePad[] = [];
 
-    const assignments = [...resolved.kit.assignments].sort(
-      (left, right) => left.midiNote - right.midiNote,
-    );
-    for (const assignment of assignments) {
-      const layers = await Promise.all(
-        velocityLayersForAssignment(assignment).map(async (layer, index) => {
+    try {
+      const assignments = [...resolved.kit.assignments].sort(
+        (left, right) => left.midiNote - right.midiNote,
+      );
+      for (const assignment of assignments) {
+        const layerFlights = velocityLayersForAssignment(assignment).map(async (layer, index) => {
           const padId =
             assignment.velocityLayers === undefined
               ? `pad-${assignment.midiNote}`
@@ -87,49 +91,62 @@ export class SampleKitPlaybackController {
 
           if (!resolvedSample || resolvedSample.status === "missing" || !resolvedSample.blob) {
             status = "missing";
-          } else if (await this.#canDecode(resolvedSample.blob)) {
-            const url = this.#createObjectURL(resolvedSample.blob);
-            newUrls.push(url);
-            drumKit.push({ padId, midiNote: assignment.midiNote, url });
-            status = "playable";
           } else {
-            status = "export-only";
+            const playable = await this.#canDecode(resolvedSample.blob);
+            this.#assertCurrent(generation);
+            if (playable) {
+              const url = this.#createObjectURL(resolvedSample.blob);
+              newUrls.push(url);
+              drumKit.push({ padId, midiNote: assignment.midiNote, url });
+              status = "playable";
+            } else {
+              status = "export-only";
+            }
           }
 
           return { ...layer, padId, status };
-        }),
-      );
-      const playable = layers.find((layer) => layer.status === "playable");
-      const padId = playable?.padId ?? `pad-${assignment.midiNote}`;
-      const status: ActiveSamplePad["status"] = layers.some((layer) => layer.status === "playable")
-        ? "playable"
-        : layers.some((layer) => layer.status === "export-only")
-          ? "export-only"
-          : "missing";
-      if (playable) padByMidi.set(assignment.midiNote, playable.padId);
-      layersByMidi.set(assignment.midiNote, layers);
-      if (assignment.chokeGroup !== undefined) {
-        chokeGroupByMidi.set(assignment.midiNote, assignment.chokeGroup);
-        const grouped = padIdsByChokeGroup.get(assignment.chokeGroup) ?? [];
-        grouped.push(
-          ...layers.filter((layer) => layer.status === "playable").map((layer) => layer.padId),
-        );
-        padIdsByChokeGroup.set(assignment.chokeGroup, grouped);
+        });
+        let layers: ActiveSampleLayer[];
+        try {
+          layers = await Promise.all(layerFlights);
+        } catch (error) {
+          await Promise.allSettled(layerFlights);
+          throw error;
+        }
+        this.#assertCurrent(generation);
+        const playable = layers.find((layer) => layer.status === "playable");
+        const padId = playable?.padId ?? `pad-${assignment.midiNote}`;
+        const status: ActiveSamplePad["status"] = layers.some(
+          (layer) => layer.status === "playable",
+        )
+          ? "playable"
+          : layers.some((layer) => layer.status === "export-only")
+            ? "export-only"
+            : "missing";
+        if (playable) padByMidi.set(assignment.midiNote, playable.padId);
+        layersByMidi.set(assignment.midiNote, layers);
+        if (assignment.chokeGroup !== undefined) {
+          chokeGroupByMidi.set(assignment.midiNote, assignment.chokeGroup);
+          const grouped = padIdsByChokeGroup.get(assignment.chokeGroup) ?? [];
+          grouped.push(
+            ...layers.filter((layer) => layer.status === "playable").map((layer) => layer.padId),
+          );
+          padIdsByChokeGroup.set(assignment.chokeGroup, grouped);
+        }
+
+        pads.push({
+          midiNote: assignment.midiNote,
+          padId,
+          sampleId: assignment.sampleId,
+          label: assignment.label,
+          status,
+          layers,
+          ...(assignment.chokeGroup === undefined ? {} : { chokeGroup: assignment.chokeGroup }),
+        });
       }
 
-      pads.push({
-        midiNote: assignment.midiNote,
-        padId,
-        sampleId: assignment.sampleId,
-        label: assignment.label,
-        status,
-        layers,
-        ...(assignment.chokeGroup === undefined ? {} : { chokeGroup: assignment.chokeGroup }),
-      });
-    }
-
-    try {
       await this.#sound.loadDrumKit(drumKit);
+      this.#assertCurrent(generation);
     } catch (error) {
       for (const url of newUrls) this.#revokeObjectURL(url);
       throw error;
@@ -177,12 +194,20 @@ export class SampleKitPlaybackController {
   }
 
   dispose(): void {
+    this.#disposed = true;
+    this.#activationGeneration += 1;
     for (const url of this.#urls) this.#revokeObjectURL(url);
     this.#urls = [];
     this.#padByMidi.clear();
     this.#layersByMidi.clear();
     this.#chokeGroupByMidi.clear();
     this.#padIdsByChokeGroup.clear();
+  }
+
+  #assertCurrent(generation: number): void {
+    if (this.#disposed || generation !== this.#activationGeneration) {
+      throw new Error("Sample kit activation was cancelled.");
+    }
   }
 }
 

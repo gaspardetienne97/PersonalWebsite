@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AEROPHONE_RANGE, aerophoneChart } from "@repo/music-core/engines/aerophone-fingering";
@@ -47,9 +47,9 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
-  const runtime = useMusicRuntime();
+  const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const chart = aerophoneChart();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
@@ -88,13 +88,12 @@
     value,
     label: value === "legato" ? "Legato" : "Staccato",
   }));
-  const tempoOptions = AEROPHONE_ARTICULATION_TEMPOS.map((value) => ({
-    value: String(value),
-    label: `${value} BPM`,
-  }));
   const initialConfig = normalizeAerophoneDrillConfig(
-    browser ? initialDrillSearch() : {},
+    browser ? initialDrillSearch(["bpm", "tempo"]) : {},
   );
+  const initialUrlBpm = browser
+    ? validBpm(new URLSearchParams(window.location.search).get("bpm"))
+    : undefined;
 
   let selected = $state(initialConfig.targetMidi);
   let live = $state(false);
@@ -106,14 +105,18 @@
   let intervalDirection = $state(initialConfig.direction);
   let ready = $state(false);
   let pending = $state(false);
+  let destroyed = false;
   let status = $state("Preparing your Aerophone practice history.");
   let breathLevel = $state(0);
-  let midiEnabled = $state(runtime.midi.state.enabled);
-  let midiStatus = $state(midiMessage());
+  let midiEnabled = $state(false);
+  let midiStatus = $state("");
   let session = $state<TechniqueSession | undefined>();
   let sessionState = $state<TechniqueSessionState | undefined>();
   let unsubscribeRouter: (() => void) | undefined;
   let unsubscribeSession: (() => void) | undefined;
+  let practiceContextCleanup: (() => void) | undefined;
+  let practiceContextRequest = 0;
+  let practiceContextQueue = Promise.resolve();
   let captured = false;
 
   const summary = $derived(sessionState?.summary);
@@ -201,9 +204,17 @@
     syncConfigUrl();
   });
 
-  const unsubscribeMidiState = runtime.midi.subscribeState(() => {
+  $effect(() => {
+    registerAerophoneContext(drillMode, articulationStyle, intervalDirection);
+  });
+
+  $effect(() => {
     midiEnabled = runtime.midi.state.enabled;
     midiStatus = midiMessage();
+    return runtime.midi.subscribeState(() => {
+      midiEnabled = runtime.midi.state.enabled;
+      midiStatus = midiMessage();
+    });
   });
 
   function select(midi: number, fromInput = false): void {
@@ -222,14 +233,21 @@
   async function initialize(): Promise<void> {
     try {
       await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
-      session = new TechniqueSession({
+      if (destroyed) return;
+      const nextSession = new TechniqueSession({
         router: runtime.router,
         services: { skills, analytics, progress },
       });
-      unsubscribeSession = session.subscribe((state) => {
+      if (destroyed) {
+        nextSession.dispose();
+        return;
+      }
+      session = nextSession;
+      unsubscribeSession = nextSession.subscribe((state) => {
         sessionState = state;
         status = state.error ?? "";
         if (state.summary && !captured) {
+          runtime.endPerformance();
           captured = true;
           const result = state.summary.results[0];
           const isArticulation = result?.prompt && "style" in result.prompt;
@@ -335,13 +353,13 @@
       if (config.direction === "down") params.set("direction", "down");
       else params.delete("direction");
       params.delete("style");
-      params.delete("bpm");
+      params.set("bpm", String(config.bpm));
     } else {
       params.set("duration", String(config.durationMs));
       params.delete("interval");
       params.delete("direction");
       params.delete("style");
-      params.delete("bpm");
+      params.set("bpm", String(config.bpm));
     }
     syncRouteQuery(`${url.pathname}?${params.toString()}${url.hash}`);
   }
@@ -354,6 +372,26 @@
     status = "";
 
     try {
+      await tick();
+      const contextRequest = practiceContextRequest;
+      await practiceContextQueue;
+      if (contextRequest !== practiceContextRequest) return;
+      runtime.endPerformance();
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (contextRequest === practiceContextRequest) status = runtime.audioMessage;
+        return;
+      }
+      if (contextRequest !== practiceContextRequest) return;
+      const clock = await runtime.beginPerformance();
+      if (contextRequest !== practiceContextRequest) {
+        if (clock.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (clock.status === "cancelled") return;
+      if (clock.status === "failed") {
+        status = clock.message;
+        return;
+      }
       if (drillMode === "articulation") {
         await session.startArticulation({
           targetMidi: selected,
@@ -362,6 +400,11 @@
           bpm: Number(articulationBpm),
           breathController: 2,
         });
+        if (contextRequest !== practiceContextRequest) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
         status = `Play ${midiToNote(selected)} ${articulationStyle}, eight times.`;
       } else if (drillMode === "swell") {
         await session.startSwell({
@@ -369,6 +412,11 @@
           durationMs: Number(durationMs),
           breathController: 2,
         });
+        if (contextRequest !== practiceContextRequest) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
         status = `Shape ${midiToNote(selected)} from soft to loud and back to soft.`;
       } else if (drillMode === "interval-landing") {
         if (runtime.audioEnabled) runtime.sound.startDrone(selected);
@@ -379,6 +427,12 @@
           holdMs: Number(durationMs),
           breathController: 2,
         });
+        if (contextRequest !== practiceContextRequest) {
+          runtime.endPerformance();
+          runtime.sound.stopDrone();
+          session.abandon();
+          return;
+        }
         status = `Land on ${intervalTargetLabel} ${intervalDirection === "down" ? "below" : "over"} the ${midiToNote(selected)} drone.`;
       } else {
         await session.startLongTone({
@@ -386,9 +440,15 @@
           holdMs: Number(durationMs),
           breathController: 2,
         });
+        if (contextRequest !== practiceContextRequest) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
         status = `Hold ${midiToNote(selected)} with steady breath until the timer completes.`;
       }
     } catch (error) {
+      runtime.endPerformance();
       status = message(error, "The Aerophone drill could not be started.");
     } finally {
       pending = false;
@@ -396,25 +456,69 @@
   }
 
   function cancelDrill(): void {
+    runtime.endPerformance();
     session?.abandon();
     runtime.sound.stopDrone();
     breathLevel = 0;
     status = "Drill cancelled. Choose a target and start again.";
   }
 
-  function slowDownArticulation(): void {
-    const current = normalizeAerophoneDrillConfig({
-      mode: "articulation",
-      target: selected,
-      style: articulationStyle,
-      bpm: articulationBpm,
-    }).bpm;
-    const slowerTempo =
-      [...AEROPHONE_ARTICULATION_TEMPOS].reverse().find((tempo) => tempo < current) ??
-      AEROPHONE_ARTICULATION_TEMPOS[0];
-    drillMode = "articulation";
-    articulationBpm = String(slowerTempo);
-    void startDrill();
+  function prepareArticulationBpm(nextBpm: number): void {
+    runtime.setPracticeVariantBpm(
+      nextBpm,
+      aerophoneVariantKey("articulation", articulationStyle, intervalDirection),
+    );
+    sessionState = undefined;
+    status = `Ready for ${articulationStyle} articulation at ${nextBpm} BPM.`;
+  }
+
+  function registerAerophoneContext(
+    mode: AerophoneDrillMode,
+    style: ArticulationStyle,
+    direction: "up" | "down",
+  ): void {
+    const request = ++practiceContextRequest;
+    practiceContextQueue = practiceContextQueue.then(async () => {
+      if (request !== practiceContextRequest) return;
+      const cleanup = await runtime.registerPracticeContext({
+        owner: "aerophone",
+        variantKey: aerophoneVariantKey(mode, style, direction),
+        defaultBpm: 90,
+        initialUrlBpm,
+        meter: { numerator: 4, denominator: 4 },
+        pinnedInstrument: "aerophone",
+        onBpmChange: (bpm) => {
+          if (articulationBpm !== String(bpm)) articulationBpm = String(bpm);
+        },
+      });
+      if (request !== practiceContextRequest) {
+        cleanup();
+        return;
+      }
+      practiceContextCleanup?.();
+      practiceContextCleanup = cleanup;
+    });
+  }
+
+  function aerophoneVariantKey(
+    mode: AerophoneDrillMode,
+    style: ArticulationStyle,
+    direction: "up" | "down",
+  ): string {
+    const variant = mode === "articulation" ? style : mode === "interval-landing" ? direction : "breath";
+    return `v1:aerophone:${mode}:${variant}:aerophone`;
+  }
+
+  function adjacentArticulationBpm(direction: -1 | 1): number {
+    const current = Number(articulationBpm);
+    return direction > 0
+      ? (AEROPHONE_ARTICULATION_TEMPOS.find((bpm) => bpm > current) ?? current)
+      : ([...AEROPHONE_ARTICULATION_TEMPOS].reverse().find((bpm) => bpm < current) ?? current);
+  }
+
+  function validBpm(value: string | null): number | undefined {
+    const bpm = Number(value);
+    return Number.isFinite(bpm) && bpm > 0 ? bpm : undefined;
   }
 
   function playAccepted(event: NoteEvent): void {
@@ -552,7 +656,6 @@
   }
 
   onMount(() => {
-    runtime.setActiveInstrument("aerophone");
     unsubscribeRouter = runtime.router.subscribe((event: NoteEvent) => {
       if (event.type === "noteOn") select(event.midiNote, true);
       if (event.type === "cc" && event.controller === 2) {
@@ -562,9 +665,12 @@
   });
 
   onDestroy(() => {
+    destroyed = true;
+    practiceContextRequest += 1;
+    practiceContextCleanup?.();
+    runtime.endPerformance();
     unsubscribeRouter?.();
     unsubscribeSession?.();
-    unsubscribeMidiState();
     runtime.sound.stopDrone();
     session?.dispose();
   });
@@ -681,12 +787,12 @@
                 onChange={(value) => (articulationStyle = value as ArticulationStyle)}
                 size="sm"
               />
-              <SegmentedControl
-                ariaLabel="Articulation tempo"
-                options={tempoOptions}
-                bind:value={articulationBpm}
-                size="sm"
-              />
+              <p
+                aria-label="Articulation tempo"
+                class="flex h-9 items-center rounded-md border px-3 text-sm"
+              >
+                {articulationBpm} BPM
+              </p>
             </div>
           {:else}
             <SegmentedControl
@@ -974,17 +1080,41 @@
                 </div>
               </div>
             {/if}
-            <AdaptiveRetryBar
-              onRetry={() => void startDrill()}
-              onSlower={completedArticulation ? slowDownArticulation : undefined}
-              retryLabel={completedArticulation
-                ? "Repeat articulation"
-                : completedInterval
+            {#if completedArticulation}
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  disabled={adjacentArticulationBpm(1) === Number(articulationBpm)}
+                  onclick={() => prepareArticulationBpm(adjacentArticulationBpm(1))}
+                >
+                  Increase to {adjacentArticulationBpm(1)} BPM
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onclick={() => prepareArticulationBpm(Number(articulationBpm))}
+                >
+                  Repeat at {articulationBpm} BPM
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={adjacentArticulationBpm(-1) === Number(articulationBpm)}
+                  onclick={() => prepareArticulationBpm(adjacentArticulationBpm(-1))}
+                >
+                  Slow to {adjacentArticulationBpm(-1)} BPM
+                </Button>
+              </div>
+            {:else}
+              <AdaptiveRetryBar
+                onRetry={() => void startDrill()}
+                retryLabel={completedInterval
                   ? "Repeat interval landing"
                   : completedSwell
                     ? "Repeat swell"
                     : "Repeat long tone"}
-            />
+              />
+            {/if}
           </div>
         {/if}
       </Card.Content>

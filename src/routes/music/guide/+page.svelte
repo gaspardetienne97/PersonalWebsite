@@ -30,7 +30,7 @@
     },
     {
       title: "Play through it",
-      body: "Answer the prompts — getting some wrong is how the app learns what to drill next. The transport bar at the bottom plays whatever is on screen and runs the metronome.",
+      body: "Answer the prompts — getting some wrong is how the app learns what to drill next. Use each screen’s Play or Pause control for previews; the floating controls set the instrument, metronome, tempo, and count-in.",
     },
     {
       title: "Finish & read your journal",
@@ -164,22 +164,26 @@
     </div>
   </section>
 
-  <!-- Transport bar + Connect -->
-  <section aria-label="Transport and devices" class="grid gap-4 sm:grid-cols-2">
+  <!-- Floating practice controls + Connect -->
+  <section aria-label="Practice controls and devices" class="grid gap-4 sm:grid-cols-2">
     <Card.Root>
       <Card.Header class="flex-row items-center gap-3 space-y-0">
         <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
           <Gauge class="size-5" aria-hidden="true" />
         </span>
-        <Card.Title>The transport bar</Card.Title>
+        <Card.Title>Floating practice controls</Card.Title>
       </Card.Header>
       <Card.Content class="text-sm text-muted-foreground">
         <p>
-          The bar pinned to the bottom is always live. <strong class="text-foreground">Play</strong>
-          previews whatever is on screen — a melody, a take, an imported file. Set the
+          The controls near the top stay available while you practice. Pick the instrument, set the
           <strong class="text-foreground">tempo</strong> and <strong class="text-foreground"
             >count-in</strong
-          >, toggle the metronome, and (with a MIDI device) pick which instrument it listens to.
+          >, or toggle the metronome. Previews keep their own <strong class="text-foreground"
+            >Play</strong
+          > and <strong class="text-foreground">Pause</strong> buttons, while playback sound and
+          volume live in <a href="/music/settings" class="font-semibold text-primary hover:underline"
+            >Settings</a
+          >.
         </p>
       </Card.Content>
     </Card.Root>

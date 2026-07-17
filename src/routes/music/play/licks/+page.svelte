@@ -1,9 +1,16 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import Play from "lucide-svelte/icons/play";
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
-  import { Capability, unixMs, type NoteEvent, type ScoringEvent } from "@repo/music-core/domain";
+  import {
+    Capability,
+    VIEWABLE_INSTRUMENTS,
+    unixMs,
+    type InstrumentId,
+    type NoteEvent,
+    type ScoringEvent,
+  } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     buildJazzSequenceCapture,
@@ -38,15 +45,22 @@
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
-  const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  let { runtime: runtimeProp }: { runtime?: MusicRuntime } = $props();
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
+  const runtime = runtimeProp ?? useMusicRuntime();
   const LICK_BPM = 150;
   const LICK_EXERCISE_ID = "jazz.lick.playback";
   const LICK_SKILL_IDS = ["harmony.ii-v-i"];
   const LICK_CAPABILITIES = [Capability.Harmony, Capability.Improvisation, Capability.Pitch];
   const LICK_DIFFICULTY = 0.6;
-  const initialConfig = normalizeJazzLickDrillConfig(
-    browser ? initialDrillSearch() : {},
-  );
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialConfig = normalizeJazzLickDrillConfig(initialSearch);
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
+  const initialInstrument = VIEWABLE_INSTRUMENTS.includes(
+    initialSearch.get("instrument") as InstrumentId,
+  )
+    ? (initialSearch.get("instrument") as InstrumentId)
+    : runtime.activeInstrument;
   // Baseline cutoff for the last-run comparison (see LastRunDelta).
   const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
@@ -64,6 +78,9 @@
 
   let category = $state<LickCategory>(initialConfig.category);
   let lickNumber = $state(initialConfig.lickNumber);
+  let instrument = $state<InstrumentId>(initialInstrument);
+  runtime.setActiveInstrument(initialInstrument);
+  let bpm = $state(LICK_BPM);
 
   const visibleLicks = $derived(JAZZ_LICKS.filter((l) => l.category === category));
   const lick = $derived(JAZZ_LICKS.find((l) => l.number === lickNumber) ?? visibleLicks[0]);
@@ -78,9 +95,48 @@
   let captured = false;
   let attemptStartedAt = unixMs(Date.now());
   let unsubscribe: (() => void) | undefined;
+  let previewGeneration = 0;
+  let attemptPending = false;
+  let attemptRequest = 0;
+  let practiceContextRequest = 0;
+  let practiceContextReady: Promise<boolean> = Promise.resolve(true);
+  const variantKey = $derived(`v1:licks:${instrument}:${lickNumber}:playback`);
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const key = variantKey;
+    const contextRequest = ++practiceContextRequest;
+    attemptRequest += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "licks",
+        variantKey: key,
+        defaultBpm: LICK_BPM,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        allowedInstruments: [...VIEWABLE_INSTRUMENTS],
+        onBpmChange: (next) => (bpm = next),
+        onInstrumentChange: (next) => (instrument = next),
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed || contextRequest !== practiceContextRequest) {
+          cleanup();
+          return false;
+        }
+        return true;
+      });
+    return () => {
+      disposed = true;
+      practiceContextRequest += 1;
+      attemptRequest += 1;
+      cleanup();
+    };
   });
 
   function selectCategory(next: LickCategory): void {
@@ -92,6 +148,9 @@
   }
 
   function reset(): void {
+    attemptRequest += 1;
+    cancelPreview();
+    runtime.endPerformance();
     unsubscribe?.();
     unsubscribe = undefined;
     phase = "idle";
@@ -115,38 +174,75 @@
     const params = url.searchParams;
     params.set("category", config.category);
     params.set("lick", String(config.lickNumber));
+    params.set("instrument", instrument);
+    params.set("bpm", String(bpm));
     syncRouteQuery(`${url.pathname}?${params.toString()}${url.hash}`);
   }
 
   async function playReference(): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
-    const secondsPerBeat = 60 / LICK_BPM;
-    for (const note of lickTimeline(phrase)) {
-      runtime.sound.playNote(
-        note.midi,
-        note.beats * secondsPerBeat * 0.96,
-        `+${note.offsetBeats * secondsPerBeat}`,
-        0.85,
-      );
+    const generation = ++previewGeneration;
+    runtime.sound.stopPattern();
+    if (!(await runtime.ensurePlaybackVoice())) {
+      if (generation === previewGeneration) status = runtime.audioMessage;
+      return;
+    }
+    if (generation !== previewGeneration) return;
+    const secondsPerBeat = 60 / bpm;
+    runtime.sound.playPattern(
+      lickTimeline(phrase).map((note) => ({
+        midiNotes: [note.midi],
+        offsetSeconds: note.offsetBeats * secondsPerBeat,
+        durationSeconds: note.beats * secondsPerBeat * 0.96,
+      })),
+      0.85,
+    );
+  }
+
+  function cancelPreview(): void {
+    previewGeneration += 1;
+    runtime.sound.stopPattern();
+  }
+
+  async function startAttempt(): Promise<void> {
+    if (attemptPending) return;
+    reset();
+    attemptPending = true;
+    try {
+      await tick();
+      const request = ++attemptRequest;
+      if (!(await practiceContextReady) || request !== attemptRequest) return;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (request === attemptRequest) status = runtime.audioMessage;
+        return;
+      }
+      if (request !== attemptRequest) return;
+      const performance = await runtime.beginPerformance();
+      if (request !== attemptRequest) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
+      attemptStartedAt = unixMs(Date.now());
+      phase = "listening";
+      status = "Play the lick…";
+      unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
+        if (phase !== "listening" || event.type !== "noteOn") return;
+        if (runtime.audioEnabled) {
+          runtime.sound.playNote(event.midiNote, 0.18, undefined, event.velocity);
+        }
+        played = [...played, event.midiNote];
+        if (played.length >= expectedMidi.length) void finish();
+      });
+    } finally {
+      attemptPending = false;
     }
   }
 
-  function startAttempt(): void {
-    reset();
-    attemptStartedAt = unixMs(Date.now());
-    phase = "listening";
-    status = "Play the lick…";
-    unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
-      if (phase !== "listening" || event.type !== "noteOn") return;
-      if (runtime.audioEnabled) {
-        runtime.sound.playNote(event.midiNote, 0.18, undefined, event.velocity);
-      }
-      played = [...played, event.midiNote];
-      if (played.length >= expectedMidi.length) void finish();
-    });
-  }
-
   async function finish(): Promise<void> {
+    runtime.endPerformance();
     unsubscribe?.();
     unsubscribe = undefined;
     const currentLick = lick;
@@ -175,7 +271,7 @@
         startedAt: attemptStartedAt,
         endedAt,
         difficulty: LICK_DIFFICULTY,
-        instrument: "piano",
+        instrument,
         params: {
           category,
           lickNumber: currentLick?.number ?? lickNumber,
@@ -187,7 +283,7 @@
       await runtime.recordPractice({
         id: sessionId,
         source: "drill",
-        instrument: "piano",
+        instrument,
         tags: ["jazz", "licks"],
         scoringEvents: [capture.event],
         runs: [capture.run],
@@ -214,7 +310,13 @@
     return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
   }
 
-  onDestroy(() => unsubscribe?.());
+  onDestroy(() => {
+    attemptRequest += 1;
+    practiceContextRequest += 1;
+    cancelPreview();
+    runtime.endPerformance();
+    unsubscribe?.();
+  });
 </script>
 
 <svelte:head>
@@ -308,7 +410,7 @@
               </p>
             </div>
             <LastRunDelta tags={["licks"]} accuracy={grade?.accuracy ?? 0} before={visitStartedAt} />
-            <AdaptiveRetryBar onRetry={startAttempt} retryLabel="Repeat lick" />
+            <AdaptiveRetryBar onRetry={() => void startAttempt()} retryLabel="Repeat lick" />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
             <NextUpSuggestion {skills} {analytics} currentPath="/music/play/licks" routine={runtime.dailyRoutine} />
           {/if}
@@ -321,10 +423,10 @@
             <Play aria-hidden="true" />
             Hear it
           </Button>
-          <Button type="button" onclick={startAttempt}>
+          <Button type="button" onclick={() => void startAttempt()}>
             {phase === "graded" ? "Try again" : "Play it back"}
           </Button>
-          <StartShortcut onStart={startAttempt} enabled={phase !== "listening"} />
+          <StartShortcut onStart={() => void startAttempt()} enabled={phase !== "listening"} />
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>
       </Card.Root>
@@ -337,7 +439,7 @@
           <Card.Title class="text-base">Call &amp; response</Card.Title>
         </Card.Header>
         <Card.Content class="space-y-2 text-sm text-muted-foreground">
-          <p>1. <strong class="text-foreground">Hear it</strong> — the line plays at {LICK_BPM} bpm.</p>
+          <p>1. <strong class="text-foreground">Hear it</strong> — the line plays at {bpm} bpm.</p>
           <p>2. <strong class="text-foreground">Play it back</strong> on the keys or your MIDI instrument.</p>
           <p>3. It's graded note-by-note (octave-lenient) the moment you finish the phrase.</p>
         </Card.Content>

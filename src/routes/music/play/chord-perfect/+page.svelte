@@ -1,11 +1,12 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
 
   import { monotonicMs, type NoteEvent, type ScoringEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     AudioPitchSource,
+    prepareMicClip,
     type AudioPitchState,
   } from "@repo/music-core/engines/audio-in";
   import {
@@ -18,7 +19,10 @@
     type ChordVerificationResult,
   } from "@repo/music-core/engines/chord-verification";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
-  import { runExerciseThroughPipeline } from "@repo/music-core/engines/exercise";
+  import {
+    commitPreparedExerciseOutcome,
+    prepareExerciseThroughPipeline,
+  } from "@repo/music-core/engines/exercise";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
@@ -57,7 +61,7 @@
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface ChordVerifierAudioSource {
     readonly state: AudioPitchState;
@@ -65,6 +69,11 @@
     stop(): Promise<void>;
     subscribeState(listener: (state: AudioPitchState) => void): () => void;
     subscribeEvents(listener: (event: NoteEvent) => void): () => void;
+  }
+
+  interface PreparedStrumCapture {
+    record(): Promise<number[]>;
+    dispose(): void;
   }
 
   interface ToneMapItem {
@@ -76,29 +85,46 @@
   const {
     audioSource = new AudioPitchSource(),
     audioSupported = AudioPitchSource.supported,
-    analyzeStrum = defaultAnalyzeStrum,
+    analyzeStrum,
+    prepareStrum: prepareStrumProp,
     changeDurationSeconds = 60,
+    runtime: runtimeProp,
   }: {
     audioSource?: ChordVerifierAudioSource;
     audioSupported?: boolean;
     /** Record a strum and return the detected MIDI notes. Injectable for tests. */
     analyzeStrum?: () => Promise<number[]>;
+    /** Prepare capture now, then record only after the shared downbeat. */
+    prepareStrum?: () => Promise<PreparedStrumCapture>;
     /** One-minute-changes clock length. Injectable for tests. */
     changeDurationSeconds?: number;
+    runtime?: MusicRuntime;
   } = $props();
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
+  const runtime = runtimeProp ?? useMusicRuntime();
+  // svelte-ignore state_referenced_locally -- injected capture ownership is fixed for a route mount
+  const prepareStrum =
+    prepareStrumProp ??
+    (analyzeStrum
+      ? async () => ({ record: analyzeStrum, dispose: () => undefined })
+      : defaultPrepareStrum);
 
   // ponytail: reuse the transcribe route's Basic Pitch adapter — one shared
   // polyphonic extractor, loaded only when a strum is actually analyzed.
-  async function defaultAnalyzeStrum(): Promise<number[]> {
-    const { recordMicClip } = await import("@repo/music-core/engines/audio-in");
-    const blob = await recordMicClip({ durationMs: 1300 });
-    const { extractBasicPitchNotes } = await import("../../transcribe/basic-pitch-extractor");
-    const file = new File([blob], "strum.webm", { type: blob.type || "audio/webm" });
-    const notes = await extractBasicPitchNotes(file);
-    return notes.map((note) => note.midiNote);
+  async function defaultPrepareStrum(): Promise<PreparedStrumCapture> {
+    const prepared = await prepareMicClip();
+    return {
+      async record() {
+        const blob = await prepared.record({ durationMs: 1300 });
+        const { extractBasicPitchNotes } = await import("../../transcribe/basic-pitch-extractor");
+        const file = new File([blob], "strum.webm", { type: blob.type || "audio/webm" });
+        const notes = await extractBasicPitchNotes(file);
+        return notes.map((note) => note.midiNote);
+      },
+      dispose: () => prepared.dispose(),
+    };
   }
 
-  const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -115,21 +141,25 @@
   ];
   const defaultInstrument: StringInstrumentId =
     runtime.activeInstrument === "ukulele" ? "ukulele" : "guitar";
-  const initialConfig = normalizeChordPerfectDrillConfig(
-    browser ? initialDrillSearch() : {},
-    defaultInstrument,
-  );
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialConfig = normalizeChordPerfectDrillConfig(initialSearch, defaultInstrument);
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
 
   let instrument = $state<StringInstrumentId>(initialConfig.instrument);
+  runtime.setActiveInstrument(initialConfig.instrument);
   let mode = $state<ChordPerfectMode>(initialConfig.mode);
   let shapeId = $state(initialConfig.shapeId);
   let toShapeId = $state(initialConfig.toShapeId);
   let repetitions = $state(initialConfig.repetitions);
   let timed = $state(initialConfig.timed);
-  let secondsLeft = $state<number | undefined>();
-  let countdownTimer: ReturnType<typeof setInterval> | undefined;
+  let bpm = $state(80);
+  let changeTimer: ReturnType<typeof setTimeout> | undefined;
   let ready = $state(false);
   let pending = $state(false);
+  let destroyed = false;
+  let verifierPending = false;
+  let routeGeneration = 0;
+  let practiceContextReady: Promise<void> = Promise.resolve();
   let captured = false;
   let status = $state("Preparing chord technique.");
   let midiEnabled = $state(runtime.midi.state.enabled);
@@ -228,10 +258,39 @@
       ? `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`
       : (runtime.midi.state.error ?? "MIDI permission has not been requested."),
   );
+  const variantKey = $derived(`v1:chord-perfect:${instrument}:${mode}`);
   void initialize();
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const key = variantKey;
+    routeGeneration += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "chord-perfect",
+        variantKey: key,
+        defaultBpm: 80,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        allowedInstruments: ["guitar", "ukulele"],
+        onBpmChange: (next) => (bpm = next),
+        onInstrumentChange: selectInstrument,
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed) cleanup();
+      });
+    return () => {
+      disposed = true;
+      routeGeneration += 1;
+      releasePreparedStrum();
+      cleanup();
+    };
   });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
@@ -242,16 +301,33 @@
     verifiedMidiNotes = [...verifiedMidiNotes, event.midiNote].slice(-24);
   });
 
+  $effect(() => {
+    if (!verifierActive || !verification.correct) return;
+    runtime.endPerformance();
+    verifierActive = false;
+    if (micVerifierActive) void stopMicVerifier();
+  });
+
   async function initialize(): Promise<void> {
     try {
       await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
-      session = new TechniqueSession({
+      if (destroyed) return;
+      const nextSession = new TechniqueSession({
         router: runtime.router,
         services: { skills, analytics, progress },
       });
-      unsubscribeSession = session.subscribe((state) => {
+      if (destroyed) {
+        nextSession.dispose();
+        return;
+      }
+      session = nextSession;
+      unsubscribeSession = nextSession.subscribe((state) => {
         sessionState = state;
         if (state.error) status = state.error;
+        if (state.summary) {
+          clearChangeTimer();
+          runtime.endPerformance();
+        }
         if (state.summary && !captured) {
           captured = true;
           const detail = state.summary.results[0]?.result.answer as
@@ -285,15 +361,18 @@
   }
 
   function selectInstrument(value: string): void {
+    routeGeneration += 1;
+    releasePreparedStrum();
     const config = normalizeChordPerfectDrillConfig({ mode, instrument: value });
     instrument = config.instrument;
     shapeId = config.shapeId;
     toShapeId = config.toShapeId;
     clearVerifier();
-    runtime.setActiveInstrument(instrument);
   }
 
   function selectMode(value: string): void {
+    routeGeneration += 1;
+    releasePreparedStrum();
     const config = normalizeChordPerfectDrillConfig({
       mode: value,
       instrument,
@@ -306,6 +385,8 @@
   }
 
   function selectShape(value: string): void {
+    routeGeneration += 1;
+    releasePreparedStrum();
     const config = normalizeChordPerfectDrillConfig({ mode, instrument, shape: value });
     shapeId = config.shapeId;
     toShapeId = config.toShapeId;
@@ -313,11 +394,15 @@
   }
 
   function selectToShape(value: string): void {
+    routeGeneration += 1;
+    releasePreparedStrum();
     const config = normalizeChordPerfectDrillConfig({ mode, instrument, shape: shapeId, to: value });
     toShapeId = config.toShapeId;
   }
 
   function selectRepetitions(value: string): void {
+    routeGeneration += 1;
+    releasePreparedStrum();
     repetitions = normalizeChordPerfectDrillConfig({ reps: value }).repetitions;
   }
 
@@ -331,6 +416,24 @@
     captured = false;
     status = "";
     try {
+      await tick();
+      const generation = routeGeneration;
+      await practiceContextReady;
+      if (generation !== routeGeneration) return;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === routeGeneration) status = runtime.audioMessage;
+        return;
+      }
+      if (generation !== routeGeneration) return;
+      const performance = await runtime.beginPerformance();
+      if (generation !== routeGeneration) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
       if (mode === "changes" && timed) {
         await session.startChordChange({
           tuning,
@@ -338,16 +441,33 @@
           toShape,
           durationSeconds: changeDurationSeconds,
         });
-        startCountdown();
+        if (generation !== routeGeneration) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
+        clearChangeTimer();
+        changeTimer = setTimeout(() => session?.finishNow(), changeDurationSeconds * 1_000);
         status = `Alternate ${shape.name} → ${toShape.name} — as many clean changes as you can.`;
       } else if (mode === "changes") {
         await session.startChordChange({ tuning, fromShape: shape, toShape, repetitions });
+        if (generation !== routeGeneration) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
         status = `Alternate ${shape.name} → ${toShape.name} cleanly, ${repetitions}×.`;
       } else {
         await session.startChordPerfect({ tuning, shape });
+        if (generation !== routeGeneration) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
         status = `Sound each string of ${shape.name}, low to high.`;
       }
     } catch (error) {
+      runtime.endPerformance();
       status = message(error, "The chord-perfect drill could not be started.");
     } finally {
       pending = false;
@@ -355,49 +475,106 @@
   }
 
   function cancel(): void {
-    stopCountdown();
+    clearChangeTimer();
+    runtime.endPerformance();
     session?.abandon();
     status = "Drill cancelled. You can start again.";
   }
 
-  function startCountdown(): void {
-    stopCountdown();
-    secondsLeft = changeDurationSeconds;
-    countdownTimer = setInterval(() => {
-      secondsLeft = Math.max(0, (secondsLeft ?? 0) - 1);
-      if (secondsLeft === 0) {
-        stopCountdown();
-        session?.finishNow();
+  function clearChangeTimer(): void {
+    if (changeTimer !== undefined) clearTimeout(changeTimer);
+    changeTimer = undefined;
+  }
+
+  async function startVerifier(): Promise<void> {
+    if (verifierPending) return;
+    verifierPending = true;
+    try {
+      await tick();
+      const generation = routeGeneration;
+      await practiceContextReady;
+      if (generation !== routeGeneration) return;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === routeGeneration) status = runtime.audioMessage;
+        return;
       }
-    }, 1_000);
-  }
-
-  function stopCountdown(): void {
-    if (countdownTimer !== undefined) clearInterval(countdownTimer);
-    countdownTimer = undefined;
-    secondsLeft = undefined;
-  }
-
-  function startVerifier(): void {
-    verifierActive = true;
-    verifiedMidiNotes = [];
+      if (generation !== routeGeneration) return;
+      const performance = await runtime.beginPerformance();
+      if (generation !== routeGeneration) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
+      verifierActive = true;
+      verifiedMidiNotes = [];
+    } finally {
+      verifierPending = false;
+    }
   }
 
   async function startMicVerifier(): Promise<void> {
-    verifierActive = true;
-    micVerifierActive = true;
-    verifiedMidiNotes = [];
-    await audioSource.start();
+    if (verifierPending) return;
+    verifierPending = true;
+    try {
+      await tick();
+      const generation = routeGeneration;
+      await practiceContextReady;
+      if (generation !== routeGeneration) return;
+      await audioSource.start();
+      if (generation !== routeGeneration) {
+        await resetMicVerifier();
+        return;
+      }
+      audioState = audioSource.state;
+      if (audioSource.state.status !== "running") {
+        status = audioSource.state.message ?? "Microphone capture could not start.";
+        await resetMicVerifier();
+        return;
+      }
+      const performance = await runtime.beginPerformance();
+      if (generation !== routeGeneration) {
+        await resetMicVerifier();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        await resetMicVerifier();
+        return;
+      }
+      if (audioSource.state.status !== "running") {
+        status = audioSource.state.message ?? "Microphone capture stopped before the downbeat.";
+        await resetMicVerifier();
+        return;
+      }
+      verifierActive = true;
+      micVerifierActive = true;
+      verifiedMidiNotes = [];
+    } catch (error) {
+      status = message(error, "The microphone verifier could not start.");
+      await resetMicVerifier();
+    } finally {
+      verifierPending = false;
+    }
+  }
+
+  async function resetMicVerifier(): Promise<void> {
+    runtime.endPerformance();
+    verifierActive = false;
+    micVerifierActive = false;
+    await audioSource.stop();
   }
 
   function stopVerifier(): void {
+    runtime.endPerformance();
     verifierActive = false;
     if (micVerifierActive) void stopMicVerifier();
   }
 
   async function stopMicVerifier(): Promise<void> {
-    micVerifierActive = false;
-    await audioSource.stop();
+    await resetMicVerifier();
   }
 
   function clearVerifier(): void {
@@ -420,6 +597,7 @@
     params.set("instrument", config.instrument);
     params.set("tuning", config.tuningId);
     params.set("shape", config.shapeId);
+    params.set("bpm", String(bpm));
     if (config.mode === "changes") {
       params.set("to", config.toShapeId);
       params.set("reps", String(config.repetitions));
@@ -449,47 +627,119 @@
       }
     | undefined
   >();
+  let preparedStrum: PreparedStrumCapture | undefined;
+
+  function releasePreparedStrum(): void {
+    const capture = preparedStrum;
+    preparedStrum = undefined;
+    capture?.dispose();
+  }
 
   // Buffered polyphonic identification: record one strum, analyze the whole
   // clip, then both name the chord and verify it against the selected shape.
   async function strumAndIdentify(): Promise<void> {
     if (strumBusy) return;
+    const generation = routeGeneration;
+    const config = {
+      instrument,
+      shape,
+      tuning,
+      expectedMidiNotes: [...shapeMidi],
+      ready,
+    };
+    // Invoke permission synchronously from the Start gesture; recording still
+    // waits for the shared downbeat below.
+    const captureFlight = prepareStrum();
     strumBusy = true;
     strumStatus = "Listening — strum the chord once.";
     strumCandidates = [];
     strumVerification = undefined;
     strumScore = undefined;
     try {
-      const midiNotes = await analyzeStrum();
-      strumPitchClasses = toPitchClasses(midiNotes);
-      strumCandidates = identifyChord(strumPitchClasses);
-      strumVerification = verifyChordTarget({
-        expectedMidiNotes: shapeMidi,
+      await tick();
+      const capture = await captureFlight;
+      if (generation !== routeGeneration) {
+        capture.dispose();
+        return;
+      }
+      preparedStrum = capture;
+      await practiceContextReady;
+      if (generation !== routeGeneration) return;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === routeGeneration) strumStatus = runtime.audioMessage;
+        return;
+      }
+      if (generation !== routeGeneration) return;
+      const performance = await runtime.beginPerformance();
+      if (generation !== routeGeneration) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        strumStatus = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
+      const midiNotes = await capture.record();
+      if (generation !== routeGeneration) {
+        runtime.endPerformance();
+        return;
+      }
+      const pitchClasses = toPitchClasses(midiNotes);
+      const candidates = identifyChord(pitchClasses);
+      const verification = verifyChordTarget({
+        expectedMidiNotes: config.expectedMidiNotes,
         observedMidiNotes: midiNotes,
       });
-      if (ready) {
-        const exercise = createOpenChordIdentificationExercise({ tuning, shape });
-        const outcome = await runExerciseThroughPipeline({
+      if (config.ready) {
+        const exercise = createOpenChordIdentificationExercise({
+          tuning: config.tuning,
+          shape: config.shape,
+        });
+        const prepared = prepareExerciseThroughPipeline({
           exercise,
           input: midiNotes.map((midiNote, index) => ({
             type: "noteOn" as const,
             midiNote,
             velocity: 1,
             source: "audio" as const,
-            instrument,
+            instrument: config.instrument,
             timestamp: monotonicMs(index * 10),
             clock: "performance" as const,
           })),
-          services: { skills, analytics, progress },
           sessionId: `open-chord-id-${Date.now()}`,
-          runId: `open-chord-id-${shape.id}-${Date.now()}`,
+          runId: `open-chord-id-${config.shape.id}-${Date.now()}`,
           context: {
             targetSkillIds: exercise.skillIds,
             difficulty: 0.45,
-            instrument,
+            instrument: config.instrument,
           },
         });
+        if (generation !== routeGeneration) {
+          runtime.endPerformance();
+          return;
+        }
+        const outcome = await commitPreparedExerciseOutcome(prepared, {
+          skills,
+          analytics,
+          progress,
+        });
+        if (generation !== routeGeneration) {
+          runtime.endPerformance();
+          return;
+        }
         const answer = outcome.result.answer as OpenChordIdentificationAnswer;
+        await runtime.recordPractice({
+          source: "drill",
+          instrument: config.instrument,
+          tags: ["technique", "open-chord-id", "chord-perfect", config.instrument],
+          scoringEvents: [outcome.event],
+          xpEarned: outcome.xp,
+          note: `${config.instrument === "guitar" ? "Guitar" : "Ukulele"} open chord ID · ${config.shape.name} · ${answer.detectedSymbol ?? "unclear"}`,
+        });
+        if (generation !== routeGeneration) {
+          runtime.endPerformance();
+          return;
+        }
         strumScore = {
           correct: outcome.result.correct,
           score: outcome.result.score,
@@ -498,21 +748,20 @@
           answer,
           feedback: outcome.result.feedback[0]?.message ?? "",
         };
-        void runtime.recordPractice({
-          source: "drill",
-          instrument,
-          tags: ["technique", "open-chord-id", "chord-perfect", instrument],
-          scoringEvents: [outcome.event],
-          xpEarned: outcome.xp,
-          note: `${instrument === "guitar" ? "Guitar" : "Ukulele"} open chord ID · ${shape.name} · ${answer.detectedSymbol ?? "unclear"}`,
-        });
       }
-      strumStatus = strumPitchClasses.length
+      strumPitchClasses = pitchClasses;
+      strumCandidates = candidates;
+      strumVerification = verification;
+      strumStatus = pitchClasses.length
         ? "Heard it."
         : "No clear pitches — try again closer to the mic.";
     } catch (error) {
-      strumStatus = message(error, "Could not analyze the strum.");
+      if (generation === routeGeneration) {
+        strumStatus = message(error, "Could not analyze the strum.");
+      }
     } finally {
+      runtime.endPerformance();
+      releasePreparedStrum();
       strumBusy = false;
     }
   }
@@ -564,7 +813,7 @@
   }
 
   function toneMap(result: ChordVerificationResult): ToneMapItem[] {
-    const expected = result.expectedPitchClasses.map((pitchClass) => ({
+    const expected: ToneMapItem[] = result.expectedPitchClasses.map((pitchClass) => ({
       pitchClass,
       label: pitchClassLabel(pitchClass),
       status: result.matchedPitchClasses.includes(pitchClass) ? "matched" : "missing",
@@ -589,11 +838,16 @@
   }
 
   onMount(() => {
-    runtime.setActiveInstrument(instrument);
     audioState = audioSource.state;
     unsubscribeAudioState = audioSource.subscribeState((next) => {
       audioState = next;
-      if (next.status !== "running" && next.status !== "requesting") micVerifierActive = false;
+      if (
+        micVerifierActive &&
+        next.status !== "running" &&
+        next.status !== "requesting"
+      ) {
+        void resetMicVerifier();
+      }
     });
     unsubscribeAudioEvents = audioSource.subscribeEvents((event) => {
       if (!micVerifierActive || event.type !== "noteOn") return;
@@ -602,7 +856,11 @@
   });
 
   onDestroy(() => {
-    stopCountdown();
+    destroyed = true;
+    routeGeneration += 1;
+    releasePreparedStrum();
+    clearChangeTimer();
+    runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
     unsubscribeVerifierInput();
@@ -664,8 +922,12 @@
             ariaLabel="Instrument"
             options={instrumentOptions}
             value={instrument}
-            onChange={selectInstrument}
+            onChange={(value) => {
+              selectInstrument(value);
+              runtime.setActiveInstrument(value as StringInstrumentId);
+            }}
           />
+          <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
           <div class="grid gap-2">
             <Label for="chord-shape">Chord</Label>
             <select
@@ -827,17 +1089,14 @@
                 <span class="font-medium">{changePrompt.label}</span>
                 {#if changePrompt.durationSeconds !== undefined}
                   <span class="tabular-nums text-muted-foreground" data-testid="change-clock">
-                    {secondsLeft ?? changePrompt.durationSeconds}s left
+                    {changePrompt.durationSeconds}s timed run
                   </span>
                 {:else}
                   <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
                 {/if}
               </div>
               {#if changePrompt.durationSeconds !== undefined}
-                <Progress
-                  value={changePrompt.durationSeconds - (secondsLeft ?? changePrompt.durationSeconds)}
-                  max={changePrompt.durationSeconds}
-                />
+                <p class="text-xs text-muted-foreground">Keep changing until the timed run ends.</p>
               {:else}
                 <Progress value={completedNotes} max={total} />
               {/if}
@@ -957,7 +1216,7 @@
           {#if verifierActive}
             <Button type="button" variant="outline" onclick={stopVerifier}>Stop verifier</Button>
           {:else}
-            <Button type="button" disabled={!ready} onclick={startVerifier}>Start verifier</Button>
+            <Button type="button" disabled={!ready} onclick={() => void startVerifier()}>Start verifier</Button>
           {/if}
           {#if micVerifierActive}
             <Button type="button" variant="outline" onclick={() => void stopMicVerifier()}>

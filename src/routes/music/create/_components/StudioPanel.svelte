@@ -97,20 +97,9 @@
   let restoreKitId: string | undefined;
   let stepTimer: ReturnType<typeof setInterval> | undefined;
   let routerUnsubscribe: (() => void) | undefined;
+  let playbackPending = false;
+  let playbackRequest = 0;
   const directoryExportAvailable = canExportToDirectory();
-
-  $effect(() => {
-    // Re-register when the grid or tempo changes; play() re-projects at call
-    // time so an activated kit (non-reactive pad state) routes its rows to drums.
-    void grid;
-    const durationSec = patternDurationSec();
-    runtime.setPlaybackSource({
-      label: "Studio boom-bap pattern",
-      durationSec,
-      play: () => playPattern(),
-      stop: () => stopPattern(),
-    });
-  });
 
   // Storage is attached by the parent layout from its own onMount, so react once
   // the shared SampleKitStore becomes available rather than reading it eagerly.
@@ -164,16 +153,37 @@
     projection = projectPattern(),
     durationSec = patternDurationSec(),
   ): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
-    await restoreActiveKit();
-    stopPattern();
-    runtime.sound.startDrumPatternLoop(projection.drums, durationSec, 0.9);
-    runtime.sound.startPatternLoop(projection.synth, durationSec, 0.9);
-    startStepIndicator(durationSec);
-    playing = true;
+    if (playbackPending) return;
+    const request = ++playbackRequest;
+    playbackPending = true;
+    try {
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (request === playbackRequest) {
+          patternStatus = runtime.audioMessage || "Audio could not be enabled.";
+        }
+        return;
+      }
+      if (request !== playbackRequest) return;
+      await restoreActiveKit();
+      if (request !== playbackRequest) return;
+      stopPattern(false);
+      runtime.sound.startDrumPatternLoop(projection.drums, durationSec, 0.9);
+      runtime.sound.startPatternLoop(projection.synth, durationSec, 0.9);
+      startStepIndicator(durationSec);
+      playing = true;
+      patternStatus = "Playing pattern.";
+    } catch (error) {
+      if (request === playbackRequest) {
+        stopPattern(false);
+        patternStatus = error instanceof Error ? error.message : "Pattern playback failed.";
+      }
+    } finally {
+      playbackPending = false;
+    }
   }
 
-  function stopPattern(): void {
+  function stopPattern(invalidate = true): void {
+    if (invalidate) playbackRequest += 1;
     runtime.sound.stopDrumPatternLoop();
     runtime.sound.stopPatternLoop();
     stopStepIndicator();
@@ -501,10 +511,10 @@
   }
 
   onDestroy(() => {
+    playbackRequest += 1;
     stopPattern();
     routerUnsubscribe?.();
     playbackController.dispose();
-    runtime.setPlaybackSource(undefined);
   });
 </script>
 
@@ -542,7 +552,7 @@
       {/if}
       <Button type="button" onclick={() => void togglePlay()}>
         {#if playing}
-          <Pause class="size-4" aria-hidden="true" />Stop
+          <Pause class="size-4" aria-hidden="true" />Pause
         {:else}
           <Play class="size-4" aria-hidden="true" />Play
         {/if}
@@ -554,7 +564,7 @@
     <Card.Header class="flex-row items-center justify-between gap-2">
       <Card.Description>Sequencer · Boom Bap</Card.Description>
       <div class="flex flex-wrap items-center justify-end gap-2">
-        <span class="text-xs text-muted-foreground">{patternStatus}</span>
+        <span class="text-xs text-muted-foreground" role="status" aria-live="polite">{patternStatus}</span>
         <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
           {STEPS} steps · 1 bar
         </span>

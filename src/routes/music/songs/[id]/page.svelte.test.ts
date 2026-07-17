@@ -1,11 +1,26 @@
-import { describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import { monotonicMs, type Score } from "@repo/music-core/domain";
+import { ScorePracticeSession } from "@repo/music-core/engines/score-practice";
 import type { SongRow } from "@repo/music-core/engines/store";
 
+import { setTestUrl } from "../../_components/test-url";
 import { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./+page.svelte";
+
+beforeEach(() => {
+  vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+    status: "started",
+    downbeat: monotonicMs(1_000),
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  setTestUrl("/");
+  document.body.replaceChildren();
+});
 
 describe("/music/songs/[id]/+page.svelte", () => {
   test("loads a score and completes wait-mode follow-along from shared input", async () => {
@@ -149,7 +164,7 @@ describe("/music/songs/[id]/+page.svelte", () => {
       get: vi.fn(async () => multiPartSongRow()),
     };
     const runtime = new MusicRuntime();
-    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
     const playPattern = vi.spyOn(runtime.sound, "playPattern");
 
     render(Page, { songId: "song-parts", runtime, library });
@@ -175,6 +190,9 @@ describe("/music/songs/[id]/+page.svelte", () => {
     expect(playPattern.mock.calls[0]?.[0]).toEqual([
       { midiNotes: [40], offsetSeconds: 0, durationSeconds: 2 },
     ]);
+    await vi.waitFor(() => expect(button("Pause preview")).not.toBeUndefined());
+    button("Pause preview")?.click();
+    await vi.waitFor(() => expect(button("Play preview")).not.toBeUndefined());
 
     button("Start practice")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play E2"));
@@ -239,20 +257,21 @@ describe("/music/songs/[id]/+page.svelte", () => {
       get: vi.fn(async () => songRow()),
     };
     const runtime = new MusicRuntime();
-    const runCountIn = vi
-      .spyOn(runtime, "runCountIn")
-      .mockImplementation(async () => monotonicMs(performance.now()));
-    const stopPracticeClock = vi.spyOn(runtime, "stopPracticeClock");
+    const register = vi.spyOn(runtime, "registerPracticeContext");
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance").mockResolvedValue({
+      status: "started",
+      downbeat: monotonicMs(performance.now()),
+    });
+    const endPerformance = vi.spyOn(runtime, "endPerformance");
     const recordPractice = vi.spyOn(runtime, "recordPractice").mockResolvedValue();
 
     render(Page, { songId: "song-1", runtime, library });
     await vi.waitFor(() => expect(document.body.textContent).toContain("Autumn Leaves"));
 
     button("Performance")?.click();
-    await vi.waitFor(() => expect(input("Practice BPM")).not.toBeUndefined());
-    input("Practice BPM")!.value = "240";
-    input("Practice BPM")!.dispatchEvent(new Event("input", { bubbles: true }));
-    button("Off")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("floating controls"));
+    runtime.setPracticeVariantBpm(240, "v1:song:song-1:full:performance");
+    runtime.setCountIn(0);
     await vi.waitFor(() => expect(button("2 takes")).not.toBeUndefined());
     button("2 takes")?.click();
     await vi.waitFor(() => expect(button("2 takes")?.getAttribute("aria-pressed")).toBe("true"));
@@ -262,8 +281,11 @@ describe("/music/songs/[id]/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Practice complete"), {
       timeout: 5_000,
     });
-    expect(runCountIn).toHaveBeenCalledTimes(2);
-    expect(stopPracticeClock).toHaveBeenCalled();
+    expect(beginPerformance).toHaveBeenCalledTimes(2);
+    expect(endPerformance).toHaveBeenCalled();
+    expect(register).toHaveBeenCalledWith(
+      expect.objectContaining({ variantKey: "v1:song:song-1:full:performance" }),
+    );
     expect(recordPractice).toHaveBeenCalledWith(
       expect.objectContaining({
         source: "song",
@@ -277,6 +299,47 @@ describe("/music/songs/[id]/+page.svelte", () => {
     expect(recordPractice.mock.calls[0]?.[0].runs).toHaveLength(2);
     runtime.dispose();
   }, 10_000);
+
+  test.each([
+    { numerator: 6, denominator: 8, halfDurationMs: 2_000, endDelayMs: 4_226 },
+    { numerator: 2, denominator: 2, halfDurationMs: 500, endDelayMs: 1_057 },
+    { numerator: 4, denominator: 4, halfDurationMs: 1_000, endDelayMs: 2_113 },
+  ])(
+    "converts $numerator/$denominator public BPM at the score-engine boundary",
+    async ({ numerator, denominator, halfDurationMs, endDelayMs }) => {
+      setTestUrl("/music/songs/song-1");
+      const library = { get: vi.fn(async () => songRow({ numerator, denominator })) };
+      const runtime = new MusicRuntime();
+      let downbeat = 0;
+      vi.spyOn(runtime, "beginPerformance").mockImplementation(async () => {
+        downbeat = performance.now();
+        return { status: "started", downbeat: monotonicMs(downbeat) };
+      });
+      const startExecution = vi.spyOn(ScorePracticeSession.prototype, "startExecution");
+
+      render(Page, { songId: "song-1", runtime, library });
+      await vi.waitFor(() => expect(document.body.textContent).toContain("Autumn Leaves"));
+      button("Performance")?.click();
+      await vi.waitFor(() => expect(button("Start practice")).not.toBeUndefined());
+      runtime.setCountIn(0);
+      const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+
+      button("Start practice")?.click();
+
+      await vi.waitFor(() =>
+        expect(startExecution.mock.calls.some(([value]) => Number(value) === downbeat)).toBe(true),
+      );
+      const callIndex = startExecution.mock.calls.findLastIndex(
+        ([value]) => Number(value) === downbeat,
+      );
+      const practice = startExecution.mock.contexts[callIndex] as ScorePracticeSession;
+      expect(practice.tick(monotonicMs(downbeat + halfDurationMs)).live?.progress).toBeCloseTo(0.5);
+      expect(
+        setTimeoutSpy.mock.calls.some(([, delay]) => Math.abs(Number(delay) - endDelayMs) < 150),
+      ).toBe(true);
+      runtime.dispose();
+    },
+  );
 });
 
 function button(label: string): HTMLButtonElement | undefined {
@@ -289,13 +352,13 @@ function input(label: string): HTMLInputElement | undefined {
   return document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`) ?? undefined;
 }
 
-function songRow(): SongRow {
+function songRow(timeSignature = { numerator: 4, denominator: 4 }): SongRow {
   return {
     id: "song-1",
     title: "Autumn Leaves",
     createdAt: 1_000,
     updatedAt: 2_000,
-    score: score(),
+    score: { ...score(), timeSignatures: [{ atBeat: 0, ...timeSignature }] },
   };
 }
 

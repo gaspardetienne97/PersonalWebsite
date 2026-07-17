@@ -1,5 +1,7 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import Pause from "lucide-svelte/icons/pause";
+  import Play from "lucide-svelte/icons/play";
   import Upload from "lucide-svelte/icons/upload";
 
   import {
@@ -14,6 +16,7 @@
     parseMusicXmlScore,
   } from "@repo/music-core/engines/score-import";
   import { SongLibrary } from "@repo/music-core/engines/song-library";
+  import { scoreToPattern, type SoundPatternStep } from "@repo/music-core/engines/sound";
   import {
     PracticeStore,
     type SongSource,
@@ -57,30 +60,15 @@
   let projection = $state("piano");
   let saving = $state(false);
   let savedSongId = $state<string | undefined>();
+  let previewPlaying = $state(false);
+  let previewTimer: ReturnType<typeof setTimeout> | undefined;
+  let previewGeneration = 0;
   let fileInput: HTMLInputElement;
 
   const roll = $derived(song ? pianoRoll(song, 600) : []);
   const rollBounds = $derived(computeBounds(roll));
 
-  // The transport Play button plays the imported file (first bars).
-  $effect(() => {
-    if (!song) {
-      runtime.setPlaybackSource(undefined);
-      return;
-    }
-    const steps = pianoRoll(song, 200).map((note) => ({
-      midiNotes: [note.midi],
-      offsetSeconds: note.time,
-      durationSeconds: Math.min(note.duration, 1),
-    }));
-    runtime.setPlaybackSource({
-      label: song.name,
-      durationSec: Math.min(song.durationSec, 20),
-      play: () => runtime.sound.playPattern(steps),
-    });
-  });
-
-  onDestroy(() => runtime.setPlaybackSource(undefined));
+  onDestroy(stopPreview);
 
   function computeBounds(notes: ImportedNote[]) {
     if (notes.length === 0) return { minMidi: 48, maxMidi: 84, duration: 1 };
@@ -94,6 +82,7 @@
   }
 
   async function importFile(file: File): Promise<void> {
+    stopPreview();
     status = `Parsing ${file.name}…`;
     try {
       const fallbackName = file.name.replace(/\.(midi?|musicxml|mxl|xml)$/i, "");
@@ -122,6 +111,64 @@
       musicXmlSource = "";
       status = error instanceof Error ? `Could not parse that file: ${error.message}` : "Import failed.";
     }
+  }
+
+  function previewPattern(): { steps: SoundPatternStep[]; durationSec: number } | undefined {
+    if (musicXmlScore) return scoreToPattern(musicXmlScore);
+    if (!song) return undefined;
+    const steps = pianoRoll(song, 200)
+      .filter((note) => note.time < 20)
+      .map((note) => ({
+        midiNotes: [note.midi],
+        offsetSeconds: note.time,
+        durationSeconds: Math.min(note.duration, 1),
+      }));
+    const durationSec = steps.reduce(
+      (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
+      0,
+    );
+    return { steps, durationSec };
+  }
+
+  async function togglePreview(): Promise<void> {
+    if (previewPlaying) {
+      stopPreview();
+      status = "Preview paused.";
+      return;
+    }
+    const pattern = previewPattern();
+    if (!pattern || pattern.steps.length === 0) return;
+    const generation = ++previewGeneration;
+    try {
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === previewGeneration) status = runtime.audioMessage || "Audio could not be enabled.";
+        return;
+      }
+      if (generation !== previewGeneration) return;
+      runtime.sound.playPattern(pattern.steps);
+      previewPlaying = true;
+      status = "Playing imported score preview.";
+      previewTimer = setTimeout(finishPreview, Math.max(300, pattern.durationSec * 1_000));
+    } catch (error) {
+      if (generation !== previewGeneration) return;
+      stopPreview();
+      status = error instanceof Error ? error.message : "Imported score preview failed.";
+    }
+  }
+
+  function finishPreview(): void {
+    runtime.sound.stopPattern();
+    previewTimer = undefined;
+    previewPlaying = false;
+    status = "Preview complete.";
+  }
+
+  function stopPreview(): void {
+    previewGeneration += 1;
+    if (previewTimer !== undefined) clearTimeout(previewTimer);
+    previewTimer = undefined;
+    runtime.sound.stopPattern();
+    previewPlaying = false;
   }
 
   function onFiles(files: FileList | null): void {
@@ -206,6 +253,13 @@
           <span class="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
             Analysis complete
           </span>
+          <Button size="sm" variant="outline" onclick={() => void togglePreview()}>
+            {#if previewPlaying}
+              <Pause class="size-4" aria-hidden="true" />Pause
+            {:else}
+              <Play class="size-4" aria-hidden="true" />Play
+            {/if}
+          </Button>
           <Button
             size="sm"
             disabled={!library?.saveScore || saving}
@@ -252,6 +306,13 @@
           <span class="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
             Analysis complete
           </span>
+          <Button size="sm" variant="outline" onclick={() => void togglePreview()}>
+            {#if previewPlaying}
+              <Pause class="size-4" aria-hidden="true" />Pause
+            {:else}
+              <Play class="size-4" aria-hidden="true" />Play
+            {/if}
+          </Button>
           <Button size="sm" disabled={!library || saving} onclick={saveToRepertoire}>
             {saving ? "Saving..." : "Save to repertoire"}
           </Button>

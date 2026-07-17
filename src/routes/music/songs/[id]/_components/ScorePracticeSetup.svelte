@@ -196,17 +196,8 @@
     <div class="grid gap-4 rounded-md border p-3">
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="grid gap-2">
-          <Label for="score-practice-bpm">Practice BPM</Label>
-          <Input
-            id="score-practice-bpm"
-            aria-label="Practice BPM"
-            type="number"
-            min={40}
-            max={240}
-            value={value.bpm}
-            oninput={(event) =>
-              update({ bpm: Number((event.currentTarget as HTMLInputElement).value) })}
-          />
+          <Label>Practice tempo</Label>
+          <p class="text-sm font-semibold tabular-nums">{value.bpm} BPM · floating controls</p>
         </div>
         <div class="grid gap-2">
           <Label for="score-strictness">Strictness</Label>
@@ -225,21 +216,6 @@
             <option value="strict">Strict</option>
           </select>
         </div>
-      </div>
-      <div class="grid gap-2">
-        <Label>Count in</Label>
-        <SegmentedControl
-          ariaLabel="Count in"
-          size="sm"
-          options={[
-            { value: "0", label: "Off" },
-            { value: "1", label: "1 bar" },
-            { value: "2", label: "2 bars" },
-          ]}
-          value={String(value.countInBars)}
-          onChange={(bars) =>
-            update({ countInBars: Number(bars) as ScorePracticeSetupValue["countInBars"] })}
-        />
       </div>
       <div class="grid gap-2">
         <Label>Takes</Label>

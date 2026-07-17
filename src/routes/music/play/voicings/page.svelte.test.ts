@@ -1,12 +1,20 @@
-import { afterEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import { unixMs } from "@repo/music-core/domain";
+import { monotonicMs, unixMs } from "@repo/music-core/domain";
 import { type DailyRoutineStep } from "@repo/music-core/engines/daily-routine";
 
 import { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
+
+beforeEach(() => {
+  vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
+  vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+    status: "started",
+    downbeat: monotonicMs(1_000),
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -15,6 +23,20 @@ afterEach(() => {
 });
 
 describe("/music/play/voicings/+page.svelte", () => {
+  test("keeps the engine stopped when playback voice activation fails", async () => {
+    const runtime = new MusicRuntime();
+    runtime.audioMessage = "Preferred voice unavailable.";
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    button("Start drill")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain("Play the voicing");
+  });
+
   test("renders the drill with an instrument toggle and a start button", async () => {
     render(Page);
 
@@ -54,7 +76,9 @@ describe("/music/play/voicings/+page.svelte", () => {
   });
 
   test("starts the altered dominant variant", async () => {
-    render(Page);
+    const runtime = new MusicRuntime();
+    const register = vi.spyOn(runtime, "registerPracticeContext");
+    render(Page, { runtime });
 
     await vi.waitFor(() =>
       expect(
@@ -74,6 +98,10 @@ describe("/music/play/voicings/+page.svelte", () => {
       ?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("G7b9"));
+    expect(runtime.beginPerformance).toHaveBeenCalledOnce();
+    expect(register).toHaveBeenCalledWith(
+      expect.objectContaining({ variantKey: "v1:voicings:piano:altered:A:lenient:auto" }),
+    );
   });
 
   test("restores setup from shareable query parameters", async () => {

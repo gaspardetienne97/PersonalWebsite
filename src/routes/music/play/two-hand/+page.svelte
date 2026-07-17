@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
@@ -41,23 +41,21 @@
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { suggestedFingerings } from "../../_components/piano-visual";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
-  const runtime = useMusicRuntime();
+  let { runtime: runtimeProp }: { runtime?: MusicRuntime } = $props();
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
+  const runtime = runtimeProp ?? useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
-  const initialConfig = normalizeTwoHandDrillConfig(
-    browser ? initialDrillSearch() : {},
-  );
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialConfig = normalizeTwoHandDrillConfig(initialSearch);
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
   const keyOptions = TWO_HAND_DRILL_TONICS.map((value) => ({
     value,
     label: value.replace(/\d+$/, ""),
-  }));
-  const tempoOptions = TWO_HAND_DRILL_TEMPOS.map((value) => ({
-    value: String(value),
-    label: `${value} BPM`,
   }));
   const patternOptions = TWO_HAND_DRILL_PATTERNS.map((pattern) => ({
     value: pattern.id,
@@ -75,6 +73,9 @@
   let dynamics = $state(initialConfig.dynamics);
   let ready = $state(false);
   let pending = $state(false);
+  let destroyed = false;
+  let routeGeneration = 0;
+  let practiceContextReady: Promise<void> = Promise.resolve();
   // Results are dismissible so the setup card stays reachable after a run.
   let resultsDismissed = $state(false);
   let captured = false;
@@ -136,6 +137,9 @@
       ? `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`
       : (runtime.midi.state.error ?? "MIDI permission has not been requested."),
   );
+  const variantKey = $derived(
+    `v1:two-hand:${patternKind}:${handMode}:${dynamics ? "dynamics" : "even"}`,
+  );
 
   // Branch swaps destroy the focused element (e.g. the Start button), dropping
   // focus to <body>. Move it to the freshly mounted stage/results heading on
@@ -148,6 +152,32 @@
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const key = variantKey;
+    routeGeneration += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "two-hand",
+        variantKey: key,
+        defaultBpm: 80,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        pinnedInstrument: "piano",
+        onBpmChange: (next) => (bpm = String(next)),
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed) cleanup();
+      });
+    return () => {
+      disposed = true;
+      routeGeneration += 1;
+      cleanup();
+    };
   });
 
   $effect(() => {
@@ -166,13 +196,20 @@
   async function initialize(): Promise<void> {
     try {
       await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
-      session = new TechniqueSession({
+      if (destroyed) return;
+      const nextSession = new TechniqueSession({
         router: runtime.router,
         services: { skills, analytics, progress },
       });
-      unsubscribeSession = session.subscribe((state) => {
+      if (destroyed) {
+        nextSession.dispose();
+        return;
+      }
+      session = nextSession;
+      unsubscribeSession = nextSession.subscribe((state) => {
         sessionState = state;
         if (state.error) status = state.error;
+        if (state.summary) runtime.endPerformance();
         if (state.summary && !captured) {
           captured = true;
           const detail = state.summary.results[0]?.result.answer as
@@ -201,26 +238,38 @@
     await runtime.midi.enable();
   }
 
-  async function start(
-    config: TwoHandDrillConfig = normalizeTwoHandDrillConfig({
-      tonic,
-      bpm,
-      pattern: patternKind,
-      hand: handMode,
-      dynamics,
-    }),
-  ): Promise<void> {
+  async function start(): Promise<void> {
     if (!ready || pending || !session) return;
     pending = true;
     captured = false;
     resultsDismissed = false;
-    tonic = config.tonic;
-    bpm = String(config.bpm);
-    patternKind = config.patternKind;
-    handMode = config.handMode;
-    dynamics = config.dynamics;
     status = "";
     try {
+      await tick();
+      const generation = routeGeneration;
+      await practiceContextReady;
+      if (generation !== routeGeneration) return;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === routeGeneration) status = runtime.audioMessage;
+        return;
+      }
+      if (generation !== routeGeneration) return;
+      const config = normalizeTwoHandDrillConfig({
+        tonic,
+        bpm,
+        pattern: patternKind,
+        hand: handMode,
+        dynamics,
+      });
+      const performance = await runtime.beginPerformance();
+      if (generation !== routeGeneration) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
       await session.startTwoHand({
         tonic: config.tonic,
         bpm: config.bpm,
@@ -229,8 +278,14 @@
         handMode: config.handMode,
         dynamics: config.dynamics,
       });
+      if (generation !== routeGeneration) {
+        runtime.endPerformance();
+        session.abandon();
+        return;
+      }
       status = `Playing ${display.patternLabel.toLowerCase()} · ${handModeLabel(config.handMode)}${config.dynamics && config.handMode === "both" ? " · melody louder" : ""}.`;
     } catch (error) {
+      runtime.endPerformance();
       status = message(error, "The two-hand drill could not be started.");
     } finally {
       pending = false;
@@ -242,9 +297,8 @@
     const nextBpm =
       [...TWO_HAND_DRILL_TEMPOS].reverse().find((tempo) => tempo < current) ??
       TWO_HAND_DRILL_TEMPOS[0];
-    void start(
-      normalizeTwoHandDrillConfig({ tonic, bpm: nextBpm, pattern: patternKind, hand: handMode, dynamics }),
-    );
+    runtime.setPracticeVariantBpm(nextBpm, variantKey);
+    void start();
   }
 
   function syncConfigUrl(): void {
@@ -268,6 +322,7 @@
   }
 
   function cancel(): void {
+    runtime.endPerformance();
     session?.abandon();
     status = "Drill cancelled. You can start again.";
   }
@@ -287,6 +342,9 @@
   }
 
   onDestroy(() => {
+    destroyed = true;
+    routeGeneration += 1;
+    runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
     session?.dispose();
@@ -441,7 +499,7 @@
             <span class="text-sm font-medium text-primary group-open:hidden">Edit setup</span>
             <span class="hidden text-sm font-medium text-primary group-open:inline">Hide setup</span>
           </summary>
-          <fieldset class="mt-4 grid gap-4 border-t pt-4">
+          <fieldset disabled={pending} class="mt-4 grid gap-4 border-t pt-4 disabled:opacity-70">
             <SegmentedControl ariaLabel="Pattern" options={patternOptions} bind:value={patternKind} />
             <SegmentedControl
               ariaLabel="Hand mode"
@@ -449,7 +507,7 @@
               bind:value={handMode}
             />
             <SegmentedControl ariaLabel="Key" options={keyOptions} bind:value={tonic} />
-            <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
+            <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
             {#if handMode === "both"}
               <SegmentedControl
                 size="sm"

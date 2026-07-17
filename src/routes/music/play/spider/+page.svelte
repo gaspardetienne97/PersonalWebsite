@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
@@ -55,7 +55,7 @@
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface SpiderAudioSource {
     readonly state: AudioPitchState;
@@ -68,12 +68,15 @@
   const {
     audioSource = new AudioPitchSource(),
     audioSupported = AudioPitchSource.supported,
+    runtime: runtimeProp,
   }: {
     audioSource?: SpiderAudioSource;
     audioSupported?: boolean;
+    runtime?: MusicRuntime;
   } = $props();
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
+  const runtime = runtimeProp ?? useMusicRuntime();
 
-  const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -82,26 +85,20 @@
     { value: "guitar", label: "Guitar" },
     { value: "ukulele", label: "Ukulele" },
   ];
-  const tempoOptions = SPIDER_DRILL_TEMPOS.map((value) => ({
-    value: String(value),
-    label: `${value} BPM`,
-  }));
   const modeOptions = [
     { value: "spider", label: "Spider" },
     { value: "note-finder", label: "Note Finder" },
   ];
   const defaultInstrument: StringInstrumentId =
     runtime.activeInstrument === "ukulele" ? "ukulele" : "guitar";
-  const initialConfig = normalizeSpiderDrillConfig(
-    browser ? initialDrillSearch() : {},
-    defaultInstrument,
-  );
-  const initialMode = normalizeStringTechniqueConfig(
-    browser ? initialDrillSearch() : {},
-  );
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialConfig = normalizeSpiderDrillConfig(initialSearch, defaultInstrument);
+  const initialMode = normalizeStringTechniqueConfig(initialSearch);
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
 
   let mode = $state<StringTechniqueMode>(initialMode.mode);
   let instrument = $state<StringInstrumentId>(initialConfig.instrument);
+  runtime.setActiveInstrument(initialConfig.instrument);
   let tuningId = $state(initialConfig.tuningId);
   let stringNumber = $state(initialConfig.stringNumber);
   let stringSpan = $state<StringSpiderSpan>(initialConfig.stringSpan);
@@ -111,6 +108,9 @@
   let bpm = $state(String(initialConfig.bpm));
   let ready = $state(false);
   let pending = $state(false);
+  let destroyed = false;
+  let routeGeneration = 0;
+  let practiceContextReady: Promise<void> = Promise.resolve();
   let captured = false;
   let status = $state("Preparing string technique.");
   let midiEnabled = $state(runtime.midi.state.enabled);
@@ -204,11 +204,41 @@
     }),
   );
   const normalizedMode = $derived(normalizeStringTechniqueConfig({ mode }));
+  const variantKey = $derived(
+    `v1:spider:${instrument}:${pattern}:${stringSpan}${crossing ? "-crossing" : ""}`,
+  );
 
   void initialize();
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const key = variantKey;
+    routeGeneration += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "spider",
+        variantKey: key,
+        defaultBpm: 80,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        allowedInstruments: ["guitar", "ukulele"],
+        onBpmChange: (next) => (bpm = String(next)),
+        onInstrumentChange: selectInstrument,
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed) cleanup();
+      });
+    return () => {
+      disposed = true;
+      routeGeneration += 1;
+      cleanup();
+    };
   });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
@@ -218,13 +248,20 @@
   async function initialize(): Promise<void> {
     try {
       await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
-      session = new TechniqueSession({
+      if (destroyed) return;
+      const nextSession = new TechniqueSession({
         router: runtime.router,
         services: { skills, analytics, progress },
       });
-      unsubscribeSession = session.subscribe((state) => {
+      if (destroyed) {
+        nextSession.dispose();
+        return;
+      }
+      session = nextSession;
+      unsubscribeSession = nextSession.subscribe((state) => {
         sessionState = state;
         if (state.error) status = state.error;
+        if (state.summary) runtime.endPerformance();
         if (state.summary && !captured) {
           captured = true;
           const completed = state.summary.results[0];
@@ -268,7 +305,6 @@
     stringSpan = config.stringSpan;
     pattern = config.pattern;
     bpm = String(config.bpm);
-    runtime.setActiveInstrument(instrument);
   }
 
   async function enableMidi(): Promise<void> {
@@ -285,11 +321,29 @@
 
   async function start(): Promise<void> {
     if (!ready || pending || !session) return;
-    const config = normalizedConfig;
     pending = true;
     captured = false;
     status = "";
     try {
+      await tick();
+      const generation = routeGeneration;
+      await practiceContextReady;
+      if (generation !== routeGeneration) return;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === routeGeneration) status = runtime.audioMessage;
+        return;
+      }
+      if (generation !== routeGeneration) return;
+      const config = normalizedConfig;
+      const performance = await runtime.beginPerformance();
+      if (generation !== routeGeneration) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
       const selectedTuning =
         curatedTunings(config.instrument).find((profile) => profile.id === config.tuningId) ??
         tuning;
@@ -300,6 +354,11 @@
           fretNumber: config.startFret,
           visibleFrets: 12,
         });
+        if (generation !== routeGeneration) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
         status = `Find ${nextPrompt.targetNote} on the fretboard.`;
       } else {
         await session.startSpider({
@@ -311,12 +370,18 @@
           stringSpan: config.stringSpan,
           crossing: config.crossing,
         });
+        if (generation !== routeGeneration) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
         const spanLabel =
           SPIDER_DRILL_SPANS.find((option) => option.value === config.stringSpan)?.label ??
           "the selected strings";
         status = `Play ${SPIDER_DRILL_PATTERNS.find((option) => option.value === config.pattern)?.label ?? "the pattern"} across ${spanLabel.toLowerCase()}${config.crossing && config.stringSpan !== "single" ? ", crossing strings on every note" : ""}.`;
       }
     } catch (error) {
+      runtime.endPerformance();
       status = message(error, "The string technique drill could not be started.");
     } finally {
       pending = false;
@@ -324,6 +389,7 @@
   }
 
   function cancel(): void {
+    runtime.endPerformance();
     session?.abandon();
     status = "Spider cancelled. You can start again.";
   }
@@ -333,7 +399,7 @@
     const slowerTempo =
       [...SPIDER_DRILL_TEMPOS].reverse().find((tempo) => tempo < current) ??
       SPIDER_DRILL_TEMPOS[0];
-    bpm = String(slowerTempo);
+    runtime.setPracticeVariantBpm(slowerTempo, variantKey);
     await start();
   }
 
@@ -365,7 +431,6 @@
   }
 
   onMount(() => {
-    runtime.setActiveInstrument(instrument);
     audioState = audioSource.state;
     unsubscribeAudioState = audioSource.subscribeState((state) => {
       audioState = state;
@@ -378,6 +443,9 @@
   });
 
   onDestroy(() => {
+    destroyed = true;
+    routeGeneration += 1;
+    runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
     unsubscribeAudioState?.();
@@ -441,7 +509,7 @@
 
         <Card.Content class="grid gap-6">
           <fieldset
-            disabled={sessionState?.status === "active"}
+            disabled={pending || sessionState?.status === "active"}
             class="grid gap-4 disabled:opacity-70"
           >
             <SegmentedControl
@@ -454,7 +522,10 @@
               ariaLabel="Instrument"
               options={instrumentOptions}
               value={instrument}
-              onChange={selectInstrument}
+              onChange={(value) => {
+                selectInstrument(value);
+                runtime.setActiveInstrument(value as StringInstrumentId);
+              }}
             />
 
             <div class="grid gap-4 sm:grid-cols-3">
@@ -541,7 +612,7 @@
               </div>
             {/if}
 
-            <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
+            <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
           </fieldset>
         </Card.Content>
 

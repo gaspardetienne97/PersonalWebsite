@@ -5,6 +5,7 @@ import { render } from "vitest-browser-svelte";
 
 import type { SongSource } from "@repo/music-core/engines/store";
 
+import type { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./ImportView.svelte";
 
 function midiFile(): File {
@@ -17,7 +18,32 @@ function midiFile(): File {
   return new File([midi.toArray()], "test.mid", { type: "audio/midi" });
 }
 
-describe("/music/import/+page.svelte", () => {
+function shortMidiFile(): File {
+  const midi = new Midi();
+  midi.header.setTempo(120);
+  midi.addTrack().addNote({ midi: 60, time: 0, duration: 0.01 });
+  return new File([midi.toArray()], "short.mid", { type: "audio/midi" });
+}
+
+function playbackRuntime(ensurePlaybackVoice = vi.fn(async () => true)) {
+  return {
+    audioMessage: "Audio unavailable.",
+    ensurePlaybackVoice,
+    sound: {
+      playPattern: vi.fn(),
+      stopPattern: vi.fn(),
+    },
+  } as unknown as MusicRuntime;
+}
+
+async function importMidi(file: File): Promise<void> {
+  const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+  Object.defineProperty(input, "files", { value: [file], configurable: true });
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  await vi.waitFor(() => expect(document.body.textContent).toContain("Analysis complete"));
+}
+
+describe("/music/library?tab=import", () => {
   test("renders the drop zone and header", () => {
     render(Page);
     expect(document.querySelector("h1")?.textContent).toContain("Import & Play-Along");
@@ -35,6 +61,62 @@ describe("/music/import/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Analysis complete"));
     expect(document.body.textContent).toContain("120 bpm");
     expect(document.body.textContent).toContain("Projection");
+  });
+
+  test("plays and pauses an imported score locally", async () => {
+    const runtime = playbackRuntime();
+    render(Page, { runtime });
+    await importMidi(midiFile());
+
+    const play = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Play",
+    );
+    play?.click();
+    await vi.waitFor(() => expect(runtime.sound.playPattern).toHaveBeenCalled());
+    await vi.waitFor(() => expect(play?.textContent).toContain("Pause"));
+
+    play?.click();
+    await vi.waitFor(() => expect(runtime.sound.stopPattern).toHaveBeenCalled());
+    expect(play?.textContent).toContain("Play");
+  });
+
+  test("returns to Play after natural completion and reports enablement failure", async () => {
+    const ensurePlaybackVoice = vi.fn(async () => true);
+    const runtime = playbackRuntime(ensurePlaybackVoice);
+    render(Page, { runtime });
+    await importMidi(shortMidiFile());
+    const play = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Play",
+    );
+    play?.click();
+    await vi.waitFor(() => expect(play?.textContent).toContain("Pause"));
+    await vi.waitFor(() => expect(play?.textContent).toContain("Play"), { timeout: 1_000 });
+    expect(document.body.textContent).toContain("Preview complete.");
+
+    ensurePlaybackVoice.mockResolvedValue(false);
+    play?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Audio unavailable."));
+    expect(play?.textContent).toContain("Play");
+  });
+
+  test("does not start a pending preview after teardown", async () => {
+    let resolveVoice!: (enabled: boolean) => void;
+    const ensurePlaybackVoice = vi.fn(
+      () => new Promise<boolean>((resolve) => (resolveVoice = resolve)),
+    );
+    const runtime = playbackRuntime(ensurePlaybackVoice);
+    const view = render(Page, { runtime });
+    await importMidi(midiFile());
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "Play")
+      ?.click();
+    await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalled());
+
+    view.unmount();
+    resolveVoice(true);
+    await Promise.resolve();
+    expect(runtime.sound.playPattern).not.toHaveBeenCalled();
+    expect(runtime.sound.stopPattern).toHaveBeenCalled();
   });
 
   test("saves an imported MIDI file to repertoire", async () => {

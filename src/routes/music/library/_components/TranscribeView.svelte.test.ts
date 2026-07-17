@@ -5,6 +5,38 @@ import type { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./TranscribeView.svelte";
 
 describe("/music/transcribe/+page.svelte", () => {
+  test("announces playback failures through a live region", async () => {
+    const runtime = {
+      activeInstrument: "piano",
+      audioMessage: "Transcription audio unavailable.",
+      router: { subscribe: vi.fn(() => vi.fn()), push: vi.fn() },
+      sound: { playPattern: vi.fn(), stopPattern: vi.fn() },
+      ensurePlaybackVoice: vi.fn(async () => false),
+    } as unknown as MusicRuntime;
+    render(Page, { runtime });
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.includes("Build transcription"))
+      ?.click();
+    await vi.waitFor(() =>
+      expect(
+        [...document.querySelectorAll<HTMLButtonElement>("button")].some(
+          (button) => button.textContent?.trim() === "Play",
+        ),
+      ).toBe(true),
+    );
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "Play")
+      ?.click();
+
+    await vi.waitFor(() =>
+      expect(
+        [...document.querySelectorAll('[role="status"][aria-live="polite"]')].some((region) =>
+          region.textContent?.includes("Transcription audio unavailable."),
+        ),
+      ).toBe(true),
+    );
+  });
+
   test("builds and saves a manual transcription score", async () => {
     const saveScore = vi.fn(async () => ({
       id: "song-transcription",
@@ -67,9 +99,10 @@ describe("/music/transcribe/+page.svelte", () => {
       },
       sound: {
         playPattern: vi.fn(),
+        stopPattern: vi.fn(),
       },
       enableAudio: vi.fn(async () => true),
-      setPlaybackSource: vi.fn(),
+      ensurePlaybackVoice: vi.fn(async () => true),
       media: {
         listTakes: vi.fn(async () => [
           {
@@ -126,8 +159,7 @@ describe("/music/transcribe/+page.svelte", () => {
     expect(document.body.textContent).toContain("100%");
   });
 
-  test("registers and previews the generated transcription through the shared player", async () => {
-    const playbackSources: Array<{ label: string; play: () => Promise<void> | void }> = [];
+  test("plays and pauses the generated transcription locally", async () => {
     const runtime = {
       activeInstrument: "piano",
       router: {
@@ -136,11 +168,10 @@ describe("/music/transcribe/+page.svelte", () => {
       },
       sound: {
         playPattern: vi.fn(),
+        stopPattern: vi.fn(),
       },
       enableAudio: vi.fn(async () => true),
-      setPlaybackSource: vi.fn((source) => {
-        if (source) playbackSources.push(source);
-      }),
+      ensurePlaybackVoice: vi.fn(async () => true),
     } as unknown as MusicRuntime;
     render(Page, { runtime });
 
@@ -149,16 +180,58 @@ describe("/music/transcribe/+page.svelte", () => {
     );
     build?.click();
 
-    await vi.waitFor(() => expect(playbackSources.at(-1)?.label).toBe("Voice memo transcription"));
-    await playbackSources.at(-1)!.play();
-    expect(runtime.sound.playPattern).toHaveBeenCalledWith(expect.any(Array));
-
-    const preview = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
-      button.textContent?.includes("Preview transcription"),
+    await vi.waitFor(() =>
+      expect(
+        [...document.querySelectorAll<HTMLButtonElement>("button")].some(
+          (button) => button.textContent?.trim() === "Play",
+        ),
+      ).toBe(true),
+    );
+    const preview = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Play",
     );
     preview?.click();
 
-    await vi.waitFor(() => expect(runtime.enableAudio).toHaveBeenCalled());
-    expect(runtime.sound.playPattern).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalled());
+    expect(runtime.sound.playPattern).toHaveBeenCalledWith(expect.any(Array));
+    await vi.waitFor(() => expect(preview?.textContent).toContain("Pause"));
+    preview?.click();
+    await vi.waitFor(() => expect(runtime.sound.stopPattern).toHaveBeenCalled());
+    expect(preview?.textContent).toContain("Play");
+  });
+
+  test("cancels a pending preview on teardown", async () => {
+    let resolveVoice!: (enabled: boolean) => void;
+    const ensurePlaybackVoice = vi.fn(
+      () => new Promise<boolean>((resolve) => (resolveVoice = resolve)),
+    );
+    const runtime = {
+      activeInstrument: "piano",
+      audioMessage: "Audio unavailable.",
+      router: { subscribe: vi.fn(() => vi.fn()), push: vi.fn() },
+      sound: { playPattern: vi.fn(), stopPattern: vi.fn() },
+      ensurePlaybackVoice,
+    } as unknown as MusicRuntime;
+    const view = render(Page, { runtime });
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.includes("Build transcription"))
+      ?.click();
+    await vi.waitFor(() =>
+      expect(
+        [...document.querySelectorAll<HTMLButtonElement>("button")].some(
+          (button) => button.textContent?.trim() === "Play",
+        ),
+      ).toBe(true),
+    );
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "Play")
+      ?.click();
+    await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalled());
+
+    view.unmount();
+    resolveVoice(true);
+    await Promise.resolve();
+    expect(runtime.sound.playPattern).not.toHaveBeenCalled();
+    expect(runtime.sound.stopPattern).toHaveBeenCalled();
   });
 });

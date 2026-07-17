@@ -1,6 +1,8 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { onDestroy, onMount } from "svelte";
+  import Pause from "lucide-svelte/icons/pause";
+  import Play from "lucide-svelte/icons/play";
   import Upload from "lucide-svelte/icons/upload";
 
   import { monotonicMs, type NoteEvent, type Score } from "@repo/music-core/domain";
@@ -62,6 +64,9 @@
   let practiceState = $state.raw<ScorePracticeState>();
   let finishingTrainer = false;
   let unsubscribeInput = () => undefined;
+  let previewPlaying = $state(false);
+  let previewTimer: ReturnType<typeof setTimeout> | undefined;
+  let previewGeneration = 0;
 
   const trainerProgress = $derived(practiceState?.progress ?? 0);
   const trainerRunning = $derived(practiceState?.status === "running");
@@ -82,22 +87,9 @@
     void loadSavedTakes();
   });
 
-  $effect(() => {
-    if (!score || score.notes.length === 0) {
-      runtime.setPlaybackSource(undefined);
-      return;
-    }
-    const pattern = scoreToPattern(score, { bpm });
-    runtime.setPlaybackSource({
-      label: `${title} transcription`,
-      durationSec: pattern.durationSec,
-      play: () => runtime.sound.playPattern(pattern.steps),
-    });
-  });
-
   onDestroy(() => {
     unsubscribeInput();
-    runtime.setPlaybackSource(undefined);
+    stopPreview();
   });
 
   function onAudioFile(files: FileList | null): void {
@@ -121,6 +113,7 @@
   }
 
   function buildTranscription(): void {
+    stopPreview();
     try {
       draft = parseManualTranscription(manual, {
         id: "manual-transcription",
@@ -147,6 +140,7 @@
   }
 
   async function extractNotes(): Promise<void> {
+    stopPreview();
     if (!audioFile) {
       status = "Attach an audio file before extracting notes.";
       return;
@@ -207,20 +201,51 @@
   }
 
   async function previewTranscription(): Promise<void> {
+    if (previewPlaying) {
+      stopPreview();
+      status = "Preview paused.";
+      return;
+    }
     if (!score || score.notes.length === 0) {
       status = "Build or extract a transcription before previewing it.";
       return;
     }
-    if (!(await runtime.enableAudio())) {
-      status = "Audio is not enabled.";
-      return;
+    const generation = ++previewGeneration;
+    try {
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === previewGeneration) status = runtime.audioMessage || "Audio could not be enabled.";
+        return;
+      }
+      if (generation !== previewGeneration) return;
+      const pattern = scoreToPattern(score, { bpm });
+      runtime.sound.playPattern(pattern.steps);
+      previewPlaying = true;
+      status = `Previewing ${score.notes.length} notes.`;
+      previewTimer = setTimeout(finishPreview, Math.max(300, pattern.durationSec * 1_000));
+    } catch (error) {
+      if (generation !== previewGeneration) return;
+      stopPreview();
+      status = error instanceof Error ? error.message : "Transcription preview failed.";
     }
-    const pattern = scoreToPattern(score, { bpm });
-    runtime.sound.playPattern(pattern.steps);
-    status = `Previewing ${score.notes.length} notes.`;
+  }
+
+  function finishPreview(): void {
+    runtime.sound.stopPattern();
+    previewTimer = undefined;
+    previewPlaying = false;
+    status = "Preview complete.";
+  }
+
+  function stopPreview(): void {
+    previewGeneration += 1;
+    if (previewTimer !== undefined) clearTimeout(previewTimer);
+    previewTimer = undefined;
+    runtime.sound.stopPattern();
+    previewPlaying = false;
   }
 
   function startTrainer(): void {
+    stopPreview();
     if (!score || score.notes.length === 0) {
       status = "Build a transcription with at least one note before practicing.";
       return;
@@ -399,7 +424,7 @@
       {/if}
 
       <Card.Root>
-        <Card.Header>
+        <Card.Header role="status" aria-live="polite">
           <Card.Description>Status</Card.Description>
           <Card.Title class="text-base">{status}</Card.Title>
         </Card.Header>
@@ -411,7 +436,11 @@
           </Card.Content>
           <Card.Footer>
             <Button type="button" variant="outline" onclick={() => void previewTranscription()}>
-              Preview transcription
+              {#if previewPlaying}
+                <Pause class="size-4" aria-hidden="true" />Pause
+              {:else}
+                <Play class="size-4" aria-hidden="true" />Play
+              {/if}
             </Button>
           </Card.Footer>
         {/if}

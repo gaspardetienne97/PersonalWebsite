@@ -19,6 +19,7 @@ function makeRuntime(): MusicRuntime {
     activeSource: "onscreen",
     audioEnabled: true,
     transportBpm: 96,
+    practiceBpm: 96,
     router: {
       subscribe: (listener: (typeof listeners)[number]) => {
         listeners.push(listener);
@@ -27,6 +28,7 @@ function makeRuntime(): MusicRuntime {
     },
     sound: {
       playNote: vi.fn(),
+      stopPattern: vi.fn(),
       startPatternLoop: vi.fn(),
       stopPatternLoop: vi.fn(),
       startDrumPatternLoop: vi.fn(),
@@ -35,9 +37,15 @@ function makeRuntime(): MusicRuntime {
       playDrum: vi.fn(),
     },
     enableAudio: vi.fn(async () => true),
+    ensurePlaybackVoice: vi.fn(async () => true),
+    beginPerformance: vi.fn(async () => ({ status: "started", downbeat: 0 })),
+    endPerformance: vi.fn(),
+    registerPracticeContext: vi.fn(async (context) => {
+      context.onBpmChange?.(96);
+      return () => undefined;
+    }),
     readLocalState: vi.fn(async () => undefined),
     writeLocalState: vi.fn(async () => undefined),
-    setPlaybackSource: vi.fn(),
     surfaceFor: vi.fn(() => "piano"),
     setInputSurface: vi.fn(async () => undefined),
     setActiveInstrument: vi.fn(),
@@ -59,7 +67,7 @@ describe("/music/create/+page.svelte", () => {
     button("Recorder")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Record any take"));
 
-    expect(window.location.search).toBe("?source=practice-lab-take&mode=recorder");
+    expect(window.location.search).toBe("?source=practice-lab-take&mode=recorder&bpm=96");
   });
 
   test("renders Studio as the default Create mode", () => {

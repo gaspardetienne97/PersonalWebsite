@@ -15,6 +15,53 @@ function cell(label: string): HTMLButtonElement | null {
 }
 
 describe("PianoRollPanel", () => {
+  test("keeps duplicate playback single-flight and cancels a late start on teardown", async () => {
+    let resolveVoice!: (enabled: boolean) => void;
+    const sound = {
+      startPatternLoop: vi.fn(),
+      stopPatternLoop: vi.fn(),
+    };
+    const runtime = {
+      transportBpm: 100,
+      media: undefined,
+      ensurePlaybackVoice: vi.fn(() => new Promise<boolean>((resolve) => (resolveVoice = resolve))),
+      audioMessage: "",
+      readLocalState: vi.fn(async () => undefined),
+      writeLocalState: vi.fn(async () => undefined),
+      sound,
+    };
+    const view = render(Panel, { runtime: runtime as unknown as MusicRuntime });
+
+    button("Play")?.click();
+    button("Play")?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
+    view.unmount();
+    resolveVoice(true);
+    await Promise.resolve();
+
+    expect(sound.startPatternLoop).not.toHaveBeenCalled();
+  });
+
+  test("announces playback failures through a live region", async () => {
+    const runtime = {
+      transportBpm: 100,
+      media: undefined,
+      audioMessage: "Piano roll audio unavailable.",
+      ensurePlaybackVoice: vi.fn(async () => false),
+      readLocalState: vi.fn(async () => undefined),
+      writeLocalState: vi.fn(async () => undefined),
+      sound: { startPatternLoop: vi.fn(), stopPatternLoop: vi.fn() },
+    };
+    render(Panel, { runtime: runtime as unknown as MusicRuntime });
+    button("Play")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="status"][aria-live="polite"]')?.textContent).toContain(
+        "Piano roll audio unavailable.",
+      ),
+    );
+  });
+
   test("renders the grid and the three tracks", () => {
     render(Panel);
     expect(document.body.textContent).toContain("Piano Roll");
@@ -57,7 +104,6 @@ describe("PianoRollPanel", () => {
           : undefined,
       ),
       writeLocalState: vi.fn(async () => undefined),
-      setPlaybackSource: vi.fn(),
       sound: {
         startPatternLoop: vi.fn(),
         stopPatternLoop: vi.fn(),
@@ -112,7 +158,6 @@ describe("PianoRollPanel", () => {
       writeLocalState: vi.fn(async (id: string, value: unknown) => {
         writes.push([id, value]);
       }),
-      setPlaybackSource: vi.fn(),
       sound: {
         startPatternLoop: vi.fn(),
         stopPatternLoop: vi.fn(),
@@ -197,7 +242,6 @@ describe("PianoRollPanel", () => {
       writeLocalState: vi.fn(async (id: string, value: unknown) => {
         writes.push([id, value]);
       }),
-      setPlaybackSource: vi.fn(),
       sound: {
         startPatternLoop: vi.fn(),
         stopPatternLoop: vi.fn(),
@@ -266,7 +310,6 @@ describe("PianoRollPanel", () => {
       writeLocalState: vi.fn(async (id: string, value: unknown) => {
         writes.push([id, value]);
       }),
-      setPlaybackSource: vi.fn(),
       sound: {
         startPatternLoop: vi.fn(),
         stopPatternLoop: vi.fn(),
@@ -333,7 +376,6 @@ describe("PianoRollPanel", () => {
       writeLocalState: vi.fn(async (id: string, value: unknown) => {
         writes.push([id, value]);
       }),
-      setPlaybackSource: vi.fn(),
       sound: {
         startPatternLoop: vi.fn(),
         stopPatternLoop: vi.fn(),
@@ -373,7 +415,6 @@ describe("PianoRollPanel", () => {
       writeLocalState: vi.fn(async (id: string, value: unknown) => {
         writes.push([id, value]);
       }),
-      setPlaybackSource: vi.fn(),
       sound: {
         startPatternLoop: vi.fn(),
         stopPatternLoop: vi.fn(),
@@ -411,7 +452,6 @@ describe("PianoRollPanel", () => {
       writeLocalState: vi.fn(async (id: string, value: unknown) => {
         writes.push([id, value]);
       }),
-      setPlaybackSource: vi.fn(),
       sound: {
         startPatternLoop: vi.fn(),
         stopPatternLoop: vi.fn(),
@@ -454,7 +494,6 @@ describe("PianoRollPanel", () => {
       enableAudio: vi.fn(async () => true),
       readLocalState: vi.fn(async () => undefined),
       writeLocalState: vi.fn(async () => undefined),
-      setPlaybackSource: vi.fn(),
       sound: {
         startPatternLoop: vi.fn(),
         stopPatternLoop: vi.fn(),
@@ -543,8 +582,7 @@ describe("PianoRollPanel", () => {
     clickSpy.mockRestore();
   });
 
-  test("registers a loop with the shared transport and plays audible voices", async () => {
-    const sources: Array<{ play: () => Promise<void> | void; stop?: () => void }> = [];
+  test("plays and pauses the seeded score locally", async () => {
     const sound = {
       startPatternLoop: vi.fn(),
       stopPatternLoop: vi.fn(),
@@ -553,24 +591,22 @@ describe("PianoRollPanel", () => {
       transportBpm: 100,
       media: undefined,
       enableAudio: vi.fn(async () => true),
+      ensurePlaybackVoice: vi.fn(async () => true),
+      audioMessage: "",
       readLocalState: vi.fn(async () => undefined),
       writeLocalState: vi.fn(async () => undefined),
-      setPlaybackSource: vi.fn((source) => {
-        if (source) sources.push(source);
-      }),
       sound,
     };
 
     render(Panel, { runtime: runtime as unknown as MusicRuntime });
-    await vi.waitFor(() => expect(sources).toHaveLength(1));
-
-    await sources.at(-1)!.play();
-    expect(runtime.enableAudio).toHaveBeenCalled();
+    button("Play")?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalled());
     const [steps, durationSec] = sound.startPatternLoop.mock.calls[0]!;
     expect(steps.length).toBeGreaterThan(0); // seeded arpeggio
     expect(durationSec).toBeGreaterThan(0);
 
-    sources.at(-1)!.stop?.();
-    expect(sound.stopPatternLoop).toHaveBeenCalled();
+    await vi.waitFor(() => expect(button("Pause")).not.toBeUndefined());
+    button("Pause")?.click();
+    await vi.waitFor(() => expect(sound.stopPatternLoop).toHaveBeenCalled());
   });
 });

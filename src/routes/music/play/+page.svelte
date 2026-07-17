@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
 
   import Circle from "lucide-svelte/icons/circle";
   import Drum from "lucide-svelte/icons/drum";
@@ -51,6 +51,7 @@
   import MusicToolCard from "../_components/MusicToolCard.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
+  import { syncRouteQuery } from "../_components/route-state";
   import SourceReadout from "../_components/SourceReadout.svelte";
   import { useMusicRuntime, type MusicRuntime, type PracticeCaptureEntry } from "../_runtime.svelte";
   import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
@@ -89,13 +90,32 @@
   let unsavedTake = $state<AudioTakeRecording | undefined>();
   let performanceVolume = $state(1);
   let backingReviewVolume = $state(0.75);
+  let micRequested = $state(false);
   let micArmed = $state(false);
+  let microphonePreparation: Promise<boolean> | undefined;
+  let microphonePreparationGeneration = 0;
+  let recordingPending = $state(false);
   let audioDevices = $state<MediaDeviceInfo[]>([]);
   let takeUrl = $state<string | undefined>();
+  let reviewAudio = $state<HTMLAudioElement | undefined>();
+  let playingAudioTakeId = $state<string | undefined>();
+  let reviewGeneration = 0;
+  let playingMidiTakeId = $state<string | undefined>();
+  let midiPlaybackGeneration = 0;
+  let midiPlaybackTimer: ReturnType<typeof setTimeout> | undefined;
+  let generatedPlaybackGeneration = 0;
+  let backingPending = false;
+  let practiceContextCleanup: (() => void) | undefined;
+  let practiceContextRequest = 0;
+  let practiceContextQueue = Promise.resolve();
+  const initialUrlBpm = browser
+    ? Number(new URLSearchParams(window.location.search).get("bpm")) || undefined
+    : undefined;
 
   const audioRecorder = new AudioTakeRecorder();
   const midiRecorder = new RecordingSession();
   let recorderState = $state(audioRecorder.state);
+  let backingPlayer: BrowserBackingPlayer | undefined;
   const backingEngine = new BackingTrackEngine(createBackingAdapter());
   let backingState = $state<BackingTrackState>(backingEngine.state);
 
@@ -104,7 +124,7 @@
   const sourceLabel = $derived(
     runtime.activeSource === "midi" ? "MIDI" : runtime.activeSource === "audio" ? "Audio" : "On-screen",
   );
-  const canChangeSetup = $derived(!recording && !saving);
+  const canChangeSetup = $derived(!recording && !recordingPending && !saving);
 
   const unsubscribeRouter = subscribeRouter();
   const unsubscribeBacking = backingEngine.subscribe((state) => {
@@ -112,6 +132,16 @@
   });
   const unsubscribeRecorder = audioRecorder.subscribe((state) => {
     recorderState = state;
+  });
+
+  $effect(() => {
+    const mediaVolume = runtime.mediaVolume;
+    backingPlayer?.syncMediaVolume();
+    if (reviewAudio) reviewAudio.volume = performanceVolume * mediaVolume;
+  });
+
+  $effect(() => {
+    registerRecordingContext(instrument, micRequested);
   });
 
   function initialInstrument(): InstrumentId {
@@ -140,13 +170,18 @@
   });
 
   onDestroy(() => {
+    microphonePreparationGeneration += 1;
+    invalidateBackingActivation();
+    practiceContextRequest += 1;
+    practiceContextCleanup?.();
+    runtime.endPerformance();
     unsubscribeRouter();
     unsubscribeBacking();
     unsubscribeRecorder();
     backingEngine.dispose();
+    stopMidiTake();
     void audioRecorder.dispose();
-    revokeTakeUrl();
-    runtime.setPlaybackSource(undefined);
+    stopTake();
   });
 
   async function loadMedia(): Promise<void> {
@@ -159,49 +194,88 @@
     mediaUsage = await runtime.media.usage();
   }
 
-  async function loadAudioDevices(): Promise<void> {
+  async function loadAudioDevices(
+    generation = microphonePreparationGeneration,
+  ): Promise<void> {
     try {
-      audioDevices = await audioRecorder.devices();
+      const devices = await audioRecorder.devices();
+      if (generation === microphonePreparationGeneration) audioDevices = devices;
     } catch {
-      audioDevices = [];
+      if (generation === microphonePreparationGeneration) audioDevices = [];
     }
   }
 
   async function startRecording(): Promise<void> {
-    if (recording || saving) return;
+    if (recording || recordingPending || saving) return;
+    recordingPending = true;
+    stopTake();
+    stopMidiTake();
     saveError = "";
     failedCapture = undefined;
     lastResult = undefined;
-    statusMessage = runtime.countInBars > 0 && runtime.audioEnabled ? "Counting in..." : "Recording.";
-    if (runtime.countInBars > 0 && runtime.audioEnabled) await runtime.runCountIn();
-    const boundary = boundaryNow();
-    startBoundary = boundary;
-    const id = `practice-lab-${boundary.wallClock}`;
-    const session = new FreePracticeSession({
-      id,
-      instrument,
-      startedAt: boundary.wallClock,
-      startedAtMonotonic: boundary.monotonic,
-    });
-    midiRecorder.start(Number(boundary.monotonic));
-    activeSession = session;
-    activeState = session.state;
-    runtime.setActiveInstrument(instrument);
-    recording = true;
-    statusMessage = "Recording.";
-
-    if (backingState.selection.kind !== "none") {
-      void backingEngine.play().catch((error) => {
-        saveError = error instanceof Error ? error.message : "Backing playback failed.";
-      });
-    }
-
-    if (micArmed) {
-      try {
-        audioRecorder.start({ id: `${id}-take`, startedAtMonotonic: Number(boundary.monotonic) });
-      } catch (error) {
-        saveError = error instanceof Error ? error.message : "Audio recorder could not start.";
+    try {
+      if (!(await requestedMicrophoneReady())) return;
+      await tick();
+      const contextRequest = practiceContextRequest;
+      await practiceContextQueue;
+      if (contextRequest !== practiceContextRequest) return;
+      runtime.endPerformance();
+      if (!(await runtime.ensurePlaybackVoice())) {
+        statusMessage = runtime.audioMessage || "Playback voice unavailable.";
+        return;
       }
+      if (contextRequest !== practiceContextRequest) return;
+
+      statusMessage = runtime.countInBars > 0 ? "Counting in..." : "Starting recording...";
+      const clock = await runtime.beginPerformance();
+      if (contextRequest !== practiceContextRequest) {
+        runtime.endPerformance();
+        return;
+      }
+      if (clock.status === "cancelled") {
+        statusMessage = "Ready for free practice.";
+        return;
+      }
+      if (clock.status === "failed") {
+        runtime.endPerformance();
+        statusMessage = clock.message;
+        return;
+      }
+
+      const boundary = { wallClock: unixMs(Date.now()), monotonic: clock.downbeat };
+      const id = `practice-lab-${boundary.wallClock}`;
+      try {
+        if (micArmed) {
+          audioRecorder.start({ id: `${id}-take`, startedAtMonotonic: Number(clock.downbeat) });
+        }
+        const session = new FreePracticeSession({
+          id,
+          instrument,
+          startedAt: boundary.wallClock,
+          startedAtMonotonic: clock.downbeat,
+        });
+        midiRecorder.start(Number(clock.downbeat));
+        startBoundary = boundary;
+        activeSession = session;
+        activeState = session.state;
+        recording = true;
+        statusMessage = "Recording.";
+      } catch (error) {
+        runtime.endPerformance();
+        invalidateBackingActivation();
+        backingEngine.pause();
+        if (audioRecorder.state.status === "recording") await audioRecorder.cancel();
+        statusMessage = error instanceof Error ? error.message : "Recording could not start.";
+        return;
+      }
+
+      if (backingState.selection.kind !== "none") {
+        void backingEngine.play().catch((error) => {
+          saveError = error instanceof Error ? error.message : "Backing playback failed.";
+        });
+      }
+    } finally {
+      recordingPending = false;
     }
   }
 
@@ -210,8 +284,10 @@
     const boundary = boundaryNow();
     if (!session || !recording || !startBoundary) return;
 
+    runtime.endPerformance();
     recording = false;
     saving = true;
+    invalidateBackingActivation();
     backingEngine.pause();
     let audioTake: AudioTakeRecording | undefined;
     try {
@@ -311,13 +387,51 @@
   }
 
   async function armMicrophone(deviceId?: string): Promise<void> {
-    try {
-      await audioRecorder.prepare(deviceId);
-      micArmed = true;
-      await loadAudioDevices();
-    } catch (error) {
-      saveError = error instanceof Error ? error.message : "Microphone could not be armed.";
+    if (!canChangeSetup) return;
+    const generation = ++microphonePreparationGeneration;
+    micRequested = true;
+    micArmed = false;
+    const preparation = (async () => {
+      try {
+        await audioRecorder.prepare(deviceId);
+        if (generation !== microphonePreparationGeneration || !micRequested) return false;
+        micArmed = true;
+        saveError = "";
+        void loadAudioDevices(generation);
+        return true;
+      } catch (error) {
+        if (generation === microphonePreparationGeneration) {
+          micRequested = false;
+          saveError = error instanceof Error ? error.message : "Microphone could not be armed.";
+        }
+        return false;
+      }
+    })();
+    microphonePreparation = preparation;
+    await preparation;
+    if (microphonePreparation === preparation) microphonePreparation = undefined;
+  }
+
+  async function disarmMicrophone(): Promise<void> {
+    if (!canChangeSetup) return;
+    microphonePreparationGeneration += 1;
+    micRequested = false;
+    micArmed = false;
+    await audioRecorder.cancel();
+  }
+
+  async function requestedMicrophoneReady(): Promise<boolean> {
+    while (micRequested && !micArmed) {
+      const preparation = microphonePreparation;
+      if (!preparation) {
+        saveError = "Microphone preparation did not complete.";
+        return false;
+      }
+      const ready = await preparation;
+      if (preparation !== microphonePreparation && micRequested) continue;
+      return ready && micRequested && micArmed;
     }
+    return !micRequested || micArmed;
   }
 
   async function importBacking(file: File): Promise<void> {
@@ -337,9 +451,50 @@
       };
       await runtime.media.saveBacking(row, file);
       await loadMedia();
+      invalidateBackingActivation();
       backingEngine.selectImported(row, { loop: true });
     } catch (error) {
       saveError = error instanceof Error ? error.message : "Backing track could not be imported.";
+    }
+  }
+
+  async function playBacking(): Promise<void> {
+    if (backingPending) return;
+    stopMidiTake();
+    stopTake();
+    const generation = generatedPlaybackGeneration;
+    backingPending = true;
+    saveError = "";
+    const selection = backingState.selection;
+    const selectionSnapshot = JSON.stringify(selection);
+    try {
+      const enabled =
+        selection.kind === "generated"
+          ? await runtime.ensurePlaybackVoice()
+          : await runtime.enableAudio();
+      if (!enabled) {
+        if (generation === generatedPlaybackGeneration) {
+          saveError = runtime.audioMessage || "Backing playback could not be enabled.";
+        }
+        return;
+      }
+      if (
+        generation !== generatedPlaybackGeneration ||
+        selectionSnapshot !== JSON.stringify(backingState.selection)
+      )
+        return;
+      await backingEngine.play();
+      if (
+        generation !== generatedPlaybackGeneration ||
+        selectionSnapshot !== JSON.stringify(backingState.selection)
+      )
+        backingEngine.stop();
+    } catch (error) {
+      if (generation === generatedPlaybackGeneration) {
+        saveError = error instanceof Error ? error.message : "Backing playback failed.";
+      }
+    } finally {
+      backingPending = false;
     }
   }
 
@@ -359,6 +514,10 @@
       };
       audio.src = url;
     });
+  }
+
+  function invalidateBackingActivation(): void {
+    generatedPlaybackGeneration += 1;
   }
 
   async function deleteBacking(track: ImportedBackingTrackRow): Promise<void> {
@@ -386,33 +545,93 @@
   }
 
   async function playTake(take: AudioTakeRow): Promise<void> {
-    if (!runtime.media) return;
-    const blob = await runtime.media.takeBlob(take.id);
-    if (!blob || !browser) return;
-    revokeTakeUrl();
-    takeUrl = URL.createObjectURL(blob);
-    const audio = new Audio(takeUrl);
-    audio.volume = performanceVolume;
-    await audio.play();
+    if (!runtime.media || !browser) return;
+    stopMidiTake();
+    stopTake();
+    const generation = reviewGeneration;
+    try {
+      if (!runtime.audioEnabled && !(await runtime.enableAudio())) {
+        saveError = runtime.audioMessage || "Audio could not be enabled.";
+        return;
+      }
+      const blob = await runtime.media.takeBlob(take.id);
+      if (generation !== reviewGeneration) return;
+      if (!blob) throw new Error("Practice take audio is unavailable.");
+      takeUrl = URL.createObjectURL(blob);
+      const audio = new Audio(takeUrl);
+      reviewAudio = audio;
+      playingAudioTakeId = take.id;
+      audio.volume = performanceVolume * runtime.mediaVolume;
+      audio.onended = () => finishTake(generation);
+      audio.onerror = () => failTake(generation, "Practice take playback failed.");
+      await audio.play();
+    } catch (error) {
+      if (generation !== reviewGeneration) return;
+      failTake(generation, error instanceof Error ? error.message : "Practice take playback failed.");
+    }
   }
 
-  async function playMidiTake(take: Take): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
+  async function toggleMidiTake(take: Take): Promise<void> {
+    if (playingMidiTakeId === take.id) {
+      stopMidiTake();
+      return;
+    }
+
+    invalidateBackingActivation();
+    backingEngine.pause();
+    stopTake();
+    stopMidiTake();
+    const generation = midiPlaybackGeneration;
+    saveError = "";
+    if (!(await runtime.ensurePlaybackVoice())) {
+      if (generation === midiPlaybackGeneration) {
+        saveError = runtime.audioMessage || "MIDI take playback could not be enabled.";
+      }
+      return;
+    }
+    if (generation !== midiPlaybackGeneration) return;
     const pattern = scoreToPattern(takeToScore(take, runtime.transportBpm), { bpm: runtime.transportBpm });
     runtime.sound.playPattern(pattern.steps);
+    playingMidiTakeId = take.id;
+    midiPlaybackTimer = setTimeout(
+      () => finishMidiTake(generation),
+      Math.max(0, pattern.durationSec * 1_000),
+    );
+  }
+
+  function stopMidiTake(): void {
+    midiPlaybackGeneration += 1;
+    if (midiPlaybackTimer) clearTimeout(midiPlaybackTimer);
+    midiPlaybackTimer = undefined;
+    runtime.sound.stopPattern();
+    playingMidiTakeId = undefined;
+  }
+
+  function finishMidiTake(generation: number): void {
+    if (generation !== midiPlaybackGeneration) return;
+    midiPlaybackTimer = undefined;
+    playingMidiTakeId = undefined;
+  }
+
+  function selectMidiTake(take: Take): void {
+    if (playingMidiTakeId !== take.id) stopMidiTake();
+    selectedMidiTake = take;
   }
 
   function deleteMidiTake(take: Take): void {
+    if (playingMidiTakeId === take.id) stopMidiTake();
     midiTakes = midiTakes.filter((candidate) => candidate.id !== take.id);
     selectedMidiTake = midiTakes[0];
   }
 
   function practiceMidiTake(take: Take): void {
+    stopMidiTake();
     selectedMidiTake = take;
     statusMessage = `Reviewing ${take.name}. Replay it, then record a cleaner pass.`;
   }
 
   async function openMidiTakeInPianoRoll(take: Take): Promise<void> {
+    stopMidiTake();
     try {
       await runtime.writeLocalState(PIANO_ROLL_PENDING_TAKE_IMPORT_ID, {
         take,
@@ -442,6 +661,27 @@
     takeUrl = undefined;
   }
 
+  function stopTake(): void {
+    reviewGeneration += 1;
+    reviewAudio?.pause();
+    reviewAudio = undefined;
+    playingAudioTakeId = undefined;
+    revokeTakeUrl();
+  }
+
+  function finishTake(generation: number): void {
+    if (generation !== reviewGeneration) return;
+    reviewAudio = undefined;
+    playingAudioTakeId = undefined;
+    revokeTakeUrl();
+  }
+
+  function failTake(generation: number, message: string): void {
+    if (generation !== reviewGeneration) return;
+    stopTake();
+    saveError = message;
+  }
+
   function defaultNavigateToCreate(href: string): void {
     if (browser) window.location.assign(href);
   }
@@ -462,6 +702,39 @@
     instrument = (event.currentTarget as HTMLSelectElement).value as InstrumentId;
     runtime.setActiveInstrument(instrument);
     surface = runtime.surfaceFor(instrument);
+  }
+
+  function registerRecordingContext(nextInstrument: InstrumentId, audio: boolean): void {
+    const request = ++practiceContextRequest;
+    practiceContextQueue = practiceContextQueue.then(async () => {
+      if (request !== practiceContextRequest) return;
+      const cleanup = await runtime.registerPracticeContext({
+        owner: "practice-lab-recording",
+        variantKey: `v1:recording:${nextInstrument}:${audio ? "midi-audio" : "midi"}`,
+        defaultBpm: 96,
+        initialUrlBpm,
+        meter: { numerator: 4, denominator: 4 },
+        allowedInstruments: ["piano", "guitar", "ukulele", "mpc", "aerophone"],
+        onBpmChange: syncPracticeBpm,
+        onInstrumentChange: (next) => {
+          instrument = next;
+          surface = runtime.surfaceFor(next);
+        },
+      });
+      if (request !== practiceContextRequest) {
+        cleanup();
+        return;
+      }
+      practiceContextCleanup?.();
+      practiceContextCleanup = cleanup;
+    });
+  }
+
+  function syncPracticeBpm(bpm: number): void {
+    if (!browser) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("bpm", String(bpm));
+    syncRouteQuery(`${url.pathname}${url.search}${url.hash}`);
   }
 
   function summary(result: FreePracticeResult): string {
@@ -505,15 +778,18 @@
 
   function createBackingAdapter(): BackingTrackPlaybackAdapter {
     if (browser) {
-      return new BrowserBackingPlayer({
+      backingPlayer = new BrowserBackingPlayer({
         sound: runtime.sound,
         loadBlob: (id) => runtime.media?.backingBlob(id) ?? Promise.resolve(undefined),
+        mediaVolume: () => runtime.mediaVolume,
         onImportedPositionChange: (positionMs) => backingEngine.updateImportedPosition(positionMs),
         onImportedEnded: () => backingEngine.markEnded(),
         onImportedError: (message) => {
           saveError = message;
+          backingEngine.stop();
         },
       });
+      return backingPlayer;
     }
     return {
       playGenerated: async () => {},
@@ -558,7 +834,7 @@
       <Button
         type="button"
         variant={recording ? "destructive" : "default"}
-        disabled={saving}
+        disabled={saving || recordingPending}
         onclick={() => (recording ? void stopRecording() : void startRecording())}
       >
         {#if recording}
@@ -572,10 +848,10 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <section id="practice-lab" class="grid gap-6" aria-label="Practice Lab workspace">
-    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-      <div class="grid gap-6">
-        <Card.Root>
+  <section id="practice-lab" class="grid min-w-0 gap-6" aria-label="Practice Lab workspace">
+    <div class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+      <div class="grid min-w-0 gap-6">
+        <Card.Root class="min-w-0">
           <Card.Header>
             <div class="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -632,10 +908,14 @@
         </Card.Root>
 
         {#if saveError}
-          <Card.Root class="border-destructive/30 bg-destructive/5">
+          <Card.Root
+            class="border-destructive/30 bg-destructive/5"
+            role="alert"
+            aria-live="assertive"
+          >
             <Card.Content class="flex flex-wrap items-center justify-between gap-3 py-4">
               <div>
-                <p class="text-sm font-semibold text-destructive">Save needs attention</p>
+                <p class="text-sm font-semibold text-destructive">Practice needs attention</p>
                 <p class="text-sm text-muted-foreground">{saveError}</p>
               </div>
               {#if failedCapture}
@@ -649,19 +929,34 @@
         {/if}
       </div>
 
-      <aside class="grid content-start gap-6">
+      <aside class="grid min-w-0 content-start gap-6">
         <BackingTrackPanel
           state={backingState}
           progressions={JAM_PROGRESSIONS}
           {importedTracks}
           usage={mediaUsage}
-          onSelectNone={() => backingEngine.selectNone()}
-          onSelectGenerated={(selection) => backingEngine.selectGenerated(selection)}
-          onSelectImported={(track, loop) => backingEngine.selectImported(track, { loop })}
+          onSelectNone={() => {
+            invalidateBackingActivation();
+            backingEngine.selectNone();
+          }}
+          onSelectGenerated={(selection) => {
+            invalidateBackingActivation();
+            backingEngine.selectGenerated(selection);
+          }}
+          onSelectImported={(track, loop) => {
+            invalidateBackingActivation();
+            backingEngine.selectImported({ ...track }, { loop });
+          }}
           onImport={importBacking}
-          onPlay={() => backingEngine.play()}
-          onPause={() => backingEngine.pause()}
-          onStop={() => backingEngine.stop()}
+          onPlay={playBacking}
+          onPause={() => {
+            invalidateBackingActivation();
+            backingEngine.pause();
+          }}
+          onStop={() => {
+            invalidateBackingActivation();
+            backingEngine.stop();
+          }}
           onSeek={(positionMs) => backingEngine.seek(positionMs)}
           onLoop={(loop) => backingEngine.setLoop(loop)}
           onVolume={(volume) => backingEngine.setVolume(volume)}
@@ -677,11 +972,13 @@
           {performanceVolume}
           backingVolume={backingReviewVolume}
           {unsavedTake}
+          playingTakeId={playingAudioTakeId}
           onArm={armMicrophone}
-          onDisarm={() => (micArmed = false)}
+          onDisarm={disarmMicrophone}
           onDevice={(deviceId) => void armMicrophone(deviceId)}
           onSelectTake={(take) => (selectedTake = take)}
           onPlayTake={playTake}
+          onPauseTake={() => stopTake()}
           onPerformanceVolume={(volume) => (performanceVolume = volume)}
           onBackingVolume={(volume) => {
             backingReviewVolume = volume;
@@ -694,10 +991,12 @@
         <MidiTakeReviewPanel
           takes={midiTakes}
           selectedTake={selectedMidiTake}
+          playingTakeId={playingMidiTakeId}
           description="Review MIDI and on-screen takes alongside your audio capture."
           emptyLabel="Recorded MIDI takes will appear here after free practice."
-          onSelectTake={(take) => (selectedMidiTake = take)}
-          onPlayTake={playMidiTake}
+          onSelectTake={selectMidiTake}
+          onPlayTake={toggleMidiTake}
+          onPauseTake={() => stopMidiTake()}
           onDeleteTake={deleteMidiTake}
           onPracticeTake={practiceMidiTake}
           onOpenInPianoRoll={openMidiTakeInPianoRoll}

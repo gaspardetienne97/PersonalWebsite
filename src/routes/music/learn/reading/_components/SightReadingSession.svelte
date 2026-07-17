@@ -21,6 +21,7 @@
     sessionState,
     router,
     tuning,
+    bpm,
     sessionXp,
     onAccepted,
     onStart,
@@ -30,9 +31,10 @@
     sessionState: ReadingSessionState;
     router: InputRouter;
     tuning?: TuningProfile;
+    bpm: number;
     sessionXp: number;
     onAccepted: (event: NoteEvent) => void;
-    onStart: () => Promise<number>;
+    onStart: () => Promise<number | undefined>;
     onFinish: () => Promise<void>;
     onAbandon: () => void;
   } = $props();
@@ -106,7 +108,8 @@
   );
 
   async function start(): Promise<void> {
-    startTimestampMs = await onStart();
+    const startedAt = await onStart();
+    if (startedAt !== undefined) startTimestampMs = startedAt;
   }
 
   function playExpected(midiNote: number): void {
@@ -138,7 +141,7 @@
         <div class="space-y-1">
           <Card.Description>
             {prompt.options.instrument === "piano" ? "Piano" : (tuning?.name ?? prompt.options.instrument)}
-            · {prompt.options.bpm} BPM · {prompt.options.keySignature} · {levelLabel} · {transposeLabel}
+            · {bpm} BPM · {prompt.options.keySignature} · {levelLabel} · {transposeLabel}
           </Card.Description>
           <Card.Title>Sight-reading phrase</Card.Title>
         </div>

@@ -56,19 +56,17 @@ function makeStudioRuntime(pads: number[]) {
     loadDrumKit: vi.fn(async () => undefined),
     playDrum: vi.fn(),
   };
-  const playbackSources: Array<{ play: () => Promise<void> | void; stop?: () => void }> = [];
   const listeners: Array<(event: { type: string; midiNote: number; velocity: number }) => void> =
     [];
   const routerUnsubscribe = vi.fn();
   const runtime = {
     audioEnabled: true,
+    audioMessage: "",
     transportBpm: 96,
     enableAudio: vi.fn(async () => true),
+    ensurePlaybackVoice: vi.fn(async () => true),
     readLocalState: vi.fn(async () => undefined),
     writeLocalState: vi.fn(async () => undefined),
-    setPlaybackSource: vi.fn((source?: { play: () => Promise<void> | void; stop?: () => void }) => {
-      if (source) playbackSources.push(source);
-    }),
     sound,
     sampleKits: fakeSampleKits(pads),
     router: {
@@ -84,7 +82,7 @@ function makeStudioRuntime(pads: number[]) {
     revokeObjectURL: () => undefined,
     canDecode: async () => true,
   });
-  return { runtime, sound, playback, playbackSources, listeners, routerUnsubscribe };
+  return { runtime, sound, playback, listeners, routerUnsubscribe };
 }
 
 function studioButton(label: string): HTMLButtonElement | undefined {
@@ -94,6 +92,75 @@ function studioButton(label: string): HTMLButtonElement | undefined {
 }
 
 describe("StudioPanel", () => {
+  test("keeps duplicate playback single-flight and cancels a late start on teardown", async () => {
+    const harness = makeStudioRuntime([]);
+    let resolveVoice!: (enabled: boolean) => void;
+    harness.runtime.ensurePlaybackVoice.mockReturnValue(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+    const view = render(Panel, {
+      runtime: harness.runtime as unknown as MusicRuntime,
+      playback: harness.playback,
+    });
+
+    studioButton("Play")?.click();
+    studioButton("Play")?.click();
+    await vi.waitFor(() => expect(harness.runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
+    view.unmount();
+    resolveVoice(true);
+    await Promise.resolve();
+
+    expect(harness.sound.startPatternLoop).not.toHaveBeenCalled();
+    expect(harness.sound.startDrumPatternLoop).not.toHaveBeenCalled();
+  });
+
+  test("does not create loops when a restored kit settles after teardown", async () => {
+    const harness = makeStudioRuntime([]);
+    harness.runtime.readLocalState.mockResolvedValue("k");
+    let resolveKit!: (
+      kit: Awaited<ReturnType<typeof harness.runtime.sampleKits.resolvePlayback>>,
+    ) => void;
+    harness.runtime.sampleKits.resolvePlayback = vi.fn(
+      () => new Promise((resolve) => (resolveKit = resolve)),
+    );
+    const view = render(Panel, {
+      runtime: harness.runtime as unknown as MusicRuntime,
+      playback: harness.playback,
+    });
+
+    await vi.waitFor(() => expect(harness.runtime.readLocalState).toHaveBeenCalled());
+    studioButton("Play")?.click();
+    await vi.waitFor(() => expect(harness.runtime.sampleKits.resolvePlayback).toHaveBeenCalled());
+    view.unmount();
+    resolveKit({
+      kit: { id: "k", name: "Kit", createdAt: 1, updatedAt: 1, samples: [], assignments: [] },
+      samples: [],
+    });
+    await Promise.resolve();
+
+    expect(harness.sound.startPatternLoop).not.toHaveBeenCalled();
+    expect(harness.sound.startDrumPatternLoop).not.toHaveBeenCalled();
+  });
+
+  test("announces playback failures through a live region", async () => {
+    const harness = makeStudioRuntime([]);
+    harness.runtime.audioMessage = "Studio audio unavailable.";
+    harness.runtime.ensurePlaybackVoice.mockResolvedValue(false);
+    render(Panel, {
+      runtime: harness.runtime as unknown as MusicRuntime,
+      playback: harness.playback,
+    });
+    studioButton("Play")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="status"][aria-live="polite"]')?.textContent).toContain(
+        "Studio audio unavailable.",
+      ),
+    );
+  });
+
   test("renders the sequencer grid and pad bank", () => {
     render(Panel);
     expect(document.body.textContent).toContain("Studio");
@@ -189,22 +256,15 @@ describe("StudioPanel", () => {
     expect(cell?.getAttribute("aria-pressed")).not.toBe(before);
   });
 
-  test("registers the sequencer pattern with the shared transport", async () => {
-    const playbackSources: Array<{
-      label: string;
-      play: () => Promise<void> | void;
-      stop?: () => void;
-    }> = [];
+  test("plays and pauses the sequencer pattern locally", async () => {
     const runtime = {
       audioEnabled: true,
-      playbackPlaying: false,
       transportBpm: 96,
       enableAudio: vi.fn(async () => true),
+      ensurePlaybackVoice: vi.fn(async () => true),
+      audioMessage: "",
       readLocalState: vi.fn(async () => undefined),
       writeLocalState: vi.fn(async () => undefined),
-      setPlaybackSource: vi.fn((source) => {
-        if (source) playbackSources.push(source);
-      }),
       sound: {
         playNote: vi.fn(),
         startPatternLoop: vi.fn(),
@@ -218,10 +278,9 @@ describe("StudioPanel", () => {
 
     render(Panel, { runtime: runtime as unknown as MusicRuntime });
 
-    await vi.waitFor(() => expect(playbackSources).toHaveLength(1));
-    await playbackSources[0]!.play();
-
-    expect(runtime.enableAudio).toHaveBeenCalled();
+    studioButton("Play")?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalled());
+    await vi.waitFor(() => expect(runtime.sound.startPatternLoop).toHaveBeenCalled());
     const [steps, durationSec] = runtime.sound.startPatternLoop.mock.calls[0]!;
     expect(steps).toEqual(
       expect.arrayContaining([
@@ -233,8 +292,9 @@ describe("StudioPanel", () => {
     );
     expect(durationSec).toBeGreaterThan(0);
 
-    playbackSources[0]!.stop?.();
-    expect(runtime.sound.stopPatternLoop).toHaveBeenCalled();
+    await vi.waitFor(() => expect(studioButton("Pause")).not.toBeUndefined());
+    studioButton("Pause")?.click();
+    await vi.waitFor(() => expect(runtime.sound.stopPatternLoop).toHaveBeenCalled());
   });
 
   test("loads and saves the Studio pattern through runtime local state", async () => {
@@ -244,12 +304,10 @@ describe("StudioPanel", () => {
     };
     const runtime = {
       audioEnabled: true,
-      playbackPlaying: false,
       transportBpm: 96,
       enableAudio: vi.fn(async () => true),
       readLocalState: vi.fn(async () => savedPattern),
       writeLocalState: vi.fn(async () => undefined),
-      setPlaybackSource: vi.fn(),
       sound: {
         playNote: vi.fn(),
         startPatternLoop: vi.fn(),
@@ -321,7 +379,8 @@ describe("StudioPanel", () => {
     studioButton("Activate kit")!.click();
     await vi.waitFor(() => expect(harness.sound.loadDrumKit).toHaveBeenCalled());
 
-    await harness.playbackSources[0]!.play();
+    studioButton("Play")?.click();
+    await vi.waitFor(() => expect(harness.sound.startPatternLoop).toHaveBeenCalled());
 
     expect(harness.sound.startDrumPatternLoop).toHaveBeenCalledWith(
       expect.arrayContaining([expect.objectContaining({ padIds: ["pad-36"], offsetSeconds: 0 })]),

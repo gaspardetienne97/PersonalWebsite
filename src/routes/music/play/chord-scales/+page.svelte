@@ -1,12 +1,14 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import Play from "lucide-svelte/icons/play";
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import {
     Capability,
+    VIEWABLE_INSTRUMENTS,
     unixMs,
     type ExerciseRunRecord,
+    type InstrumentId,
     type NoteEvent,
     type ScoringEvent,
   } from "@repo/music-core/domain";
@@ -48,7 +50,9 @@
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
-  const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  let { runtime: runtimeProp }: { runtime?: MusicRuntime } = $props();
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
+  const runtime = runtimeProp ?? useMusicRuntime();
   const SCALE_BPM = 132;
   const CHORD_SCALE_SKILL = "harmony.ii-v-i";
   const CHORD_SCALE_CAPABILITIES = [Capability.Harmony, Capability.Technique, Capability.Pitch];
@@ -103,11 +107,19 @@
     },
   ];
   const changesOptions = ALL_CHANGES.map((entry) => ({ value: entry.id, label: entry.label }));
-  const initialConfig = normalizeChordScaleDrillConfig(
-    browser ? initialDrillSearch() : {},
-  );
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialConfig = normalizeChordScaleDrillConfig(initialSearch);
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
+  const initialInstrument = VIEWABLE_INSTRUMENTS.includes(
+    initialSearch.get("instrument") as InstrumentId,
+  )
+    ? (initialSearch.get("instrument") as InstrumentId)
+    : runtime.activeInstrument;
 
   let changesId = $state<ChordScaleDrillChangesId>(initialConfig.changesId);
+  let instrument = $state<InstrumentId>(initialInstrument);
+  runtime.setActiveInstrument(initialInstrument);
+  let bpm = $state(SCALE_BPM);
   let chordIndex = $state(0);
   let phase = $state<"idle" | "listening" | "graded">("idle");
   let played = $state<number[]>([]);
@@ -117,6 +129,11 @@
   let captured = false;
   let attemptStartedAt = unixMs(Date.now());
   let unsubscribe: (() => void) | undefined;
+  let previewGeneration = 0;
+  let attemptPending = false;
+  let attemptRequest = 0;
+  let practiceContextRequest = 0;
+  let practiceContextReady: Promise<boolean> = Promise.resolve(true);
 
   const changes = $derived(ALL_CHANGES.find((entry) => entry.id === changesId) ?? ALL_CHANGES[0]);
   const chord = $derived(changes.chords[chordIndex]);
@@ -136,6 +153,7 @@
   const chartTones = $derived<TargetTone[]>(targetTones(normalizedChordSymbol(chord.symbol), chord.scaleLabel));
   const done = $derived(grades.length === changes.chords.length);
   const normalizedConfig = $derived(normalizeChordScaleDrillConfig({ changes: changesId }));
+  const variantKey = $derived(`v1:chord-scales:${instrument}:${changesId}`);
   const overall = $derived(
     grades.length === 0
       ? 0
@@ -146,7 +164,43 @@
     syncConfigUrl();
   });
 
+  $effect(() => {
+    const key = variantKey;
+    const contextRequest = ++practiceContextRequest;
+    attemptRequest += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "chord-scales",
+        variantKey: key,
+        defaultBpm: SCALE_BPM,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        allowedInstruments: [...VIEWABLE_INSTRUMENTS],
+        onBpmChange: (next) => (bpm = next),
+        onInstrumentChange: (next) => (instrument = next),
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed || contextRequest !== practiceContextRequest) {
+          cleanup();
+          return false;
+        }
+        return true;
+      });
+    return () => {
+      disposed = true;
+      practiceContextRequest += 1;
+      attemptRequest += 1;
+      cleanup();
+    };
+  });
+
   function reset(): void {
+    attemptRequest += 1;
+    cancelPreview();
+    runtime.endPerformance();
     unsubscribe?.();
     unsubscribe = undefined;
     chordIndex = 0;
@@ -174,32 +228,73 @@
   }
 
   async function hearScale(): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
-    const secondsPerBeat = 60 / SCALE_BPM;
-    scaleMidi.forEach((midi, step) => {
-      runtime.sound.playNote(midi, secondsPerBeat * 0.9, `+${step * secondsPerBeat * 0.5}`, 0.85);
-    });
+    const generation = ++previewGeneration;
+    runtime.sound.stopPattern();
+    if (!(await runtime.ensurePlaybackVoice())) {
+      if (generation === previewGeneration) status = runtime.audioMessage;
+      return;
+    }
+    if (generation !== previewGeneration) return;
+    const secondsPerBeat = 60 / bpm;
+    runtime.sound.playPattern(
+      scaleMidi.map((midi, step) => ({
+        midiNotes: [midi],
+        offsetSeconds: step * secondsPerBeat * 0.5,
+        durationSeconds: secondsPerBeat * 0.9,
+      })),
+      0.85,
+    );
   }
 
-  function startAttempt(): void {
+  function cancelPreview(): void {
+    previewGeneration += 1;
+    runtime.sound.stopPattern();
+  }
+
+  async function startAttempt(): Promise<void> {
+    if (attemptPending) return;
+    cancelPreview();
     unsubscribe?.();
-    if (completedChords.length === 0) attemptStartedAt = unixMs(Date.now());
-    phase = "listening";
-    played = [];
-    status = `Play ${chord.scaleLabel} over ${chord.symbol}…`;
-    unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
-      if (phase !== "listening" || event.type !== "noteOn") return;
-      if (runtime.audioEnabled) {
-        runtime.sound.playNote(event.midiNote, 0.16, undefined, event.velocity);
+    attemptPending = true;
+    try {
+      await tick();
+      const request = ++attemptRequest;
+      if (!(await practiceContextReady) || request !== attemptRequest) return;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (request === attemptRequest) status = runtime.audioMessage;
+        return;
       }
-      played = [...played, event.midiNote];
-      if (played.length >= scaleMidi.length) gradeChord();
-    });
+      if (request !== attemptRequest) return;
+      const performance = await runtime.beginPerformance();
+      if (request !== attemptRequest) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
+      if (completedChords.length === 0) attemptStartedAt = unixMs(Date.now());
+      phase = "listening";
+      played = [];
+      status = `Play ${chord.scaleLabel} over ${chord.symbol}…`;
+      unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
+        if (phase !== "listening" || event.type !== "noteOn") return;
+        if (runtime.audioEnabled) {
+          runtime.sound.playNote(event.midiNote, 0.16, undefined, event.velocity);
+        }
+        played = [...played, event.midiNote];
+        if (played.length >= scaleMidi.length) gradeChord();
+      });
+    } finally {
+      attemptPending = false;
+    }
   }
 
   function gradeChord(): void {
     unsubscribe?.();
     unsubscribe = undefined;
+    runtime.endPerformance();
     const currentChord = chord;
     const currentIndex = chordIndex;
     const expected = [...scaleMidi];
@@ -222,6 +317,7 @@
   }
 
   async function finish(completed = completedChords): Promise<void> {
+    runtime.endPerformance();
     if (!captured) {
       captured = true;
       const endedAt = unixMs(Date.now());
@@ -244,7 +340,7 @@
           startedAt: attemptStartedAt,
           endedAt,
           difficulty: CHORD_SCALE_DIFFICULTY,
-          instrument: "piano",
+          instrument,
           params: {
             changesId: changes.id,
             chordSymbol: item.change.symbol,
@@ -259,7 +355,7 @@
       await runtime.recordPractice({
         id: sessionId,
         source: "drill",
-        instrument: "piano",
+        instrument,
         tags: ["jazz", "chord-scales"],
         scoringEvents,
         runs,
@@ -283,7 +379,7 @@
       endedAt: unixMs(Date.now()),
       promptIds: runs.flatMap((run) => run.promptIds),
       targetSkillIds: [...new Set(runs.flatMap((run) => run.targetSkillIds))],
-      instrument: "piano",
+      instrument,
       difficulty: CHORD_SCALE_DIFFICULTY,
       params: { changesId: changes.id, chords: changes.chords.map((entry) => entry.symbol) },
     };
@@ -308,10 +404,18 @@
     const config = normalizedConfig;
     const params = new URLSearchParams(window.location.search);
     params.set("changes", config.changesId);
+    params.set("instrument", instrument);
+    params.set("bpm", String(bpm));
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
-  onDestroy(() => unsubscribe?.());
+  onDestroy(() => {
+    attemptRequest += 1;
+    practiceContextRequest += 1;
+    cancelPreview();
+    runtime.endPerformance();
+    unsubscribe?.();
+  });
 </script>
 
 <svelte:head>
@@ -391,8 +495,8 @@
               <Play aria-hidden="true" />
               Hear scale
             </Button>
-            <Button type="button" onclick={startAttempt}>Play it back</Button>
-            <StartShortcut onStart={startAttempt} enabled={phase !== "listening"} />
+            <Button type="button" onclick={() => void startAttempt()}>Play it back</Button>
+            <StartShortcut onStart={() => void startAttempt()} enabled={phase !== "listening"} />
           {/if}
           <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
         </Card.Footer>

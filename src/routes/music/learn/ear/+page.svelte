@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import { nowUnix, type NoteEvent } from "@repo/music-core/domain";
   import {
@@ -54,7 +54,7 @@
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
   import EarTrainingLanding from "./_components/EarTrainingLanding.svelte";
   import EarTrainingSessionRail from "./_components/EarTrainingSessionRail.svelte";
   import EarTrainingSessionView from "./_components/EarTrainingSessionView.svelte";
@@ -73,16 +73,17 @@
   }
 
   let {
+    runtime = useMusicRuntime(),
     audioSource = new AudioPitchSource(),
     audioSupported = AudioPitchSource.supported,
     library,
   }: {
+    runtime?: MusicRuntime;
     audioSource?: EarTrainingAudioSource;
     audioSupported?: boolean;
     library?: SongLibraryLike;
   } = $props();
 
-  const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -95,8 +96,11 @@
   registry.register(melodyDictationExercise);
   const scheduler = new ExerciseScheduler(registry, skills, analytics);
   const initialConfig = normalizeEarTrainingConfig(
-    browser ? initialDrillSearch() : {},
+    browser ? initialDrillSearch(["bpm", "tempo"]) : {},
   );
+  const initialUrlBpm = browser
+    ? validBpm(new URLSearchParams(window.location.search).get("bpm"))
+    : undefined;
 
   let ready = $state(false);
   let pending = $state(false);
@@ -105,11 +109,14 @@
   let feedbackMode = $state<EarTrainingFeedbackMode>(initialConfig.feedbackMode);
   let scaleDegreeSet = $state<ScaleDegreeSetId>(initialConfig.scaleDegreeSet);
   let scaleDegreeLabelMode = $state<ScaleDegreeLabelMode>(initialConfig.scaleDegreeLabelMode);
+  let practiceDrill = $state<EarTrainingDrill | "mixed">(initialConfig.drill);
+  let practiceAnswerMode = $state<EarTrainingAnswerMode>(initialConfig.answerMode);
+  let practiceLevel = $state<ScaleDegreeSetId>(initialConfig.scaleDegreeSet);
   let droneOn = $state(false);
   let lastFreePlayDegree = $state<ScaleDegreeFreePlayChoice | undefined>();
   let status = $state("Preparing your learning history.");
-  let midiEnabled = $state(runtime.midi.state.enabled);
-  let midiStatus = $state(midiMessage());
+  let midiEnabled = $state(false);
+  let midiStatus = $state("");
   let voiceState = $state<AudioPitchState>({ status: "idle" });
   let voiceStatus = $state("Voice mode starts the microphone for scale-degree sessions.");
   let reviewQueue = $state<RepertoireReviewItem[]>([]);
@@ -119,6 +126,13 @@
   let unsubscribeSession: (() => void) | undefined;
   let lastPlayedIndex = -1;
   let captured = false;
+  let answerReady = $state(false);
+  let answerGeneration = 0;
+  let promptPlaybackTimer: ReturnType<typeof setTimeout> | undefined;
+  let settlePromptPlayback: ((completed: boolean) => void) | undefined;
+  let practiceContextCleanup: (() => void) | undefined;
+  let practiceContextRequest = 0;
+  let practiceContextQueue = Promise.resolve();
   const freePlayTonicMidi = 60;
   const freePlayTonicName = "C";
   const freePlayChoices = $derived(
@@ -134,13 +148,21 @@
     }),
   );
 
-  const unsubscribeMidiState = runtime.midi.subscribeState(() => {
-    midiEnabled = runtime.midi.state.enabled;
-    midiStatus = midiMessage();
+  $effect(() => {
+    syncConfigUrl();
   });
 
   $effect(() => {
-    syncConfigUrl();
+    midiEnabled = runtime.midi.state.enabled;
+    midiStatus = midiMessage();
+    return runtime.midi.subscribeState(() => {
+      midiEnabled = runtime.midi.state.enabled;
+      midiStatus = midiMessage();
+    });
+  });
+
+  $effect(() => {
+    registerEarContext(practiceDrill, practiceAnswerMode, practiceLevel);
   });
 
   $effect(() => {
@@ -188,6 +210,7 @@
 
   function setAnswerMode(mode: EarTrainingAnswerMode): void {
     answerMode = normalizeEarTrainingConfig({ answer: mode }).answerMode;
+    practiceAnswerMode = answerMode;
   }
 
   function setFeedbackMode(mode: EarTrainingFeedbackMode): void {
@@ -196,6 +219,7 @@
 
   function setScaleDegreeSet(next: ScaleDegreeSetId): void {
     scaleDegreeSet = normalizeEarTrainingConfig({ level: next }).scaleDegreeSet;
+    practiceLevel = scaleDegreeSet;
     lastFreePlayDegree = undefined;
     void loadRepertoireTransfers();
   }
@@ -234,6 +258,9 @@
     if (drill !== "repertoire-transfer") {
       preferredDrill = drill;
     }
+    practiceDrill = drill;
+    practiceAnswerMode = sessionAnswerMode;
+    practiceLevel = overrides.scaleDegreeSet ?? scaleDegreeSet;
     if (sessionAnswerMode === "voice" && drill !== "scale-degree") {
       status = "Voice mode is only available for focused scale-degree sessions.";
       return;
@@ -242,20 +269,30 @@
     status = "";
 
     try {
-      if (!(await runtime.enableAudio())) {
-        status = runtime.audioMessage;
+      await tick();
+      const contextRequest = practiceContextRequest;
+      await practiceContextQueue;
+      if (contextRequest !== practiceContextRequest) return;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (contextRequest === practiceContextRequest) status = runtime.audioMessage;
         return;
       }
+      if (contextRequest !== practiceContextRequest) return;
 
       stopFreePlayDrone();
       if (sessionAnswerMode !== "voice") {
         await stopVoiceMic();
+        if (contextRequest !== practiceContextRequest) return;
       } else {
         if (!audioSupported) {
           status = "Microphone voice mode is not supported in this browser.";
           return;
         }
         await audioSource.start();
+        if (contextRequest !== practiceContextRequest) {
+          await stopVoiceMic();
+          return;
+        }
         if (audioSource.state.status === "denied" || audioSource.state.status === "error") {
           status = voiceMessage(audioSource.state);
           return;
@@ -285,11 +322,20 @@
           ...(overrides.length !== undefined ? { length: overrides.length } : {}),
           queueMode: drill === "mixed" ? "adaptive" : "balanced",
           scaleDegreeSet: overrides.scaleDegreeSet ?? scaleDegreeSet,
+          deferPerformanceAnswers: isPerformanceAnswer(sessionAnswerMode),
         },
       );
       unsubscribeSession = session.subscribe(handleSessionState);
       await session.start();
+      if (contextRequest !== practiceContextRequest) {
+        session.dispose();
+        unsubscribeSession?.();
+        session = undefined;
+        sessionState = undefined;
+        await stopVoiceMic();
+      }
     } catch (error) {
+      runtime.endPerformance();
       status = error instanceof Error ? error.message : "The session could not be started.";
     } finally {
       pending = false;
@@ -318,8 +364,20 @@
     sessionState = next;
     status = next.error ?? "";
     if (next.status === "active" && next.currentIndex !== lastPlayedIndex) {
+      runtime.sound.stopPattern();
+      runtime.endPerformance();
+      answerReady = false;
+      answerGeneration += 1;
+      cancelPromptPlaybackWait();
+      const generation = answerGeneration;
       lastPlayedIndex = next.currentIndex;
-      queueMicrotask(replayCurrent);
+      queueMicrotask(() => void startCurrentPrompt(generation));
+    }
+    if (next.status === "summary") {
+      answerGeneration += 1;
+      cancelPromptPlaybackWait();
+      runtime.sound.stopPattern();
+      runtime.endPerformance();
     }
     // Auto-capture the finished drill into the practice journal (once).
     if (next.status === "summary" && next.summary && !captured) {
@@ -341,9 +399,61 @@
     }
   }
 
+  async function startCurrentPrompt(generation: number): Promise<void> {
+    if (!session) return;
+    try {
+      const prompt = session.replay();
+      runtime.sound.playPattern(prompt.playback, playbackVelocity(prompt.drill));
+      if (!isPerformanceAnswer(sessionState?.options.answerMode)) {
+        answerReady = true;
+        return;
+      }
+      const durationMs =
+        prompt.playback.reduce(
+          (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
+          0,
+        ) * 1_000;
+      if (!(await waitForPromptPlayback(durationMs, generation))) return;
+      await practiceContextQueue;
+      if (generation !== answerGeneration) return;
+      const clock = await runtime.beginPerformance();
+      if (generation !== answerGeneration) {
+        if (clock.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (clock.status === "cancelled") return;
+      if (clock.status === "failed") {
+        session.abandon();
+        session.dispose();
+        unsubscribeSession?.();
+        session = undefined;
+        sessionState = undefined;
+        await stopVoiceMic();
+        status = clock.message;
+        return;
+      }
+      session.armCurrentAnswer();
+      answerReady = true;
+    } catch (error) {
+      runtime.endPerformance();
+      status = error instanceof Error ? error.message : "The prompt could not be started.";
+    }
+  }
+
   function replayCurrent(): void {
     if (!session) return;
     try {
+      if (isPerformanceAnswer(sessionState?.options.answerMode)) {
+        answerGeneration += 1;
+        answerReady = false;
+        cancelPromptPlaybackWait();
+        session.disarmCurrentAnswer();
+        runtime.endPerformance();
+        runtime.sound.stopPattern();
+        void startCurrentPrompt(answerGeneration);
+        return;
+      }
+      runtime.sound.stopPattern();
       const prompt = session.replay();
       runtime.sound.playPattern(prompt.playback, playbackVelocity(prompt.drill));
     } catch (error) {
@@ -353,6 +463,26 @@
 
   function playbackVelocity(drill: EarTrainingDrill): number {
     return drill === "interval" ? 1 : 0.8;
+  }
+
+  function waitForPromptPlayback(durationMs: number, generation: number): Promise<boolean> {
+    cancelPromptPlaybackWait();
+    if (durationMs <= 0) return Promise.resolve(generation === answerGeneration);
+    return new Promise((resolve) => {
+      settlePromptPlayback = resolve;
+      promptPlaybackTimer = setTimeout(() => {
+        promptPlaybackTimer = undefined;
+        settlePromptPlayback = undefined;
+        resolve(generation === answerGeneration);
+      }, durationMs);
+    });
+  }
+
+  function cancelPromptPlaybackWait(): void {
+    if (promptPlaybackTimer !== undefined) clearTimeout(promptPlaybackTimer);
+    promptPlaybackTimer = undefined;
+    settlePromptPlayback?.(false);
+    settlePromptPlayback = undefined;
   }
 
   async function answerChoice(token: string): Promise<void> {
@@ -382,7 +512,7 @@
       stopFreePlayDrone();
       return;
     }
-    if (!(await runtime.enableAudio())) {
+    if (!(await runtime.ensurePlaybackVoice())) {
       status = runtime.audioMessage;
       return;
     }
@@ -391,7 +521,7 @@
   }
 
   async function playFreePlayDegree(choice: ScaleDegreeFreePlayChoice): Promise<void> {
-    if (!(await runtime.enableAudio())) {
+    if (!(await runtime.ensurePlaybackVoice())) {
       status = runtime.audioMessage;
       return;
     }
@@ -400,7 +530,7 @@
   }
 
   async function playRepertoireTransfer(transfer: RepertoireEarTransfer): Promise<void> {
-    if (!(await runtime.enableAudio())) {
+    if (!(await runtime.ensurePlaybackVoice())) {
       status = runtime.audioMessage;
       return;
     }
@@ -414,6 +544,10 @@
   }
 
   function abandon(): void {
+    answerGeneration += 1;
+    cancelPromptPlaybackWait();
+    runtime.sound.stopPattern();
+    runtime.endPerformance();
     session?.abandon();
     unsubscribeSession?.();
     void stopVoiceMic();
@@ -449,6 +583,47 @@
     });
   }
 
+  function registerEarContext(
+    drill: EarTrainingDrill | "mixed",
+    mode: EarTrainingAnswerMode,
+    level: ScaleDegreeSetId,
+  ): void {
+    const request = ++practiceContextRequest;
+    practiceContextQueue = practiceContextQueue.then(async () => {
+      if (request !== practiceContextRequest) return;
+      const cleanup = await runtime.registerPracticeContext({
+        owner: "ear-training",
+        variantKey: `v1:ear:${drill}:${level}:${mode}`,
+        defaultBpm: 96,
+        initialUrlBpm,
+        meter: { numerator: 4, denominator: 4 },
+        onBpmChange: syncEarBpm,
+      });
+      if (request !== practiceContextRequest) {
+        cleanup();
+        return;
+      }
+      practiceContextCleanup?.();
+      practiceContextCleanup = cleanup;
+    });
+  }
+
+  function syncEarBpm(bpm: number): void {
+    if (!browser) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set("bpm", String(bpm));
+    syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
+  }
+
+  function isPerformanceAnswer(mode: EarTrainingAnswerMode | undefined): boolean {
+    return mode === "play-back" || mode === "voice";
+  }
+
+  function validBpm(value: string | null): number | undefined {
+    const bpm = Number(value);
+    return Number.isFinite(bpm) && bpm > 0 ? bpm : undefined;
+  }
+
   function syncConfigUrl(): void {
     const config = normalizedConfig;
     const params = new URLSearchParams(window.location.search);
@@ -467,8 +642,13 @@
   }
 
   onDestroy(() => {
+    answerGeneration += 1;
+    cancelPromptPlaybackWait();
+    runtime.sound.stopPattern();
+    practiceContextRequest += 1;
+    practiceContextCleanup?.();
+    runtime.endPerformance();
     unsubscribeSession?.();
-    unsubscribeMidiState();
     stopFreePlayDrone();
     void stopVoiceMic();
     session?.dispose();
@@ -547,6 +727,7 @@
           instrument={runtime.activeInstrument}
           surface={runtime.surfaceFor(runtime.activeInstrument)}
           {voiceStatus}
+          {answerReady}
           onReplay={replayCurrent}
           onPlayTonic={playTonic}
           onAnswer={answerChoice}

@@ -10,13 +10,15 @@
 
   let {
     summary,
+    bpm,
     onRepeat,
-    onSlower,
+    onTempo,
     onMissedGroups,
   }: {
     summary: Summary;
+    bpm: number;
     onRepeat: () => void;
-    onSlower?: () => void;
+    onTempo: (bpm: number) => void;
     onMissedGroups?: () => void;
   } = $props();
 
@@ -74,13 +76,24 @@
   </Card.Root>
 
   <div class="flex flex-wrap items-center gap-2">
-    <AdaptiveRetryBar
-      onRetry={onRepeat}
-      onSlower={hasSightReading(summary) ? onSlower : undefined}
-      onWeakItem={hasMissedSightReadingGroups(summary) ? onMissedGroups : undefined}
-      retryLabel="Repeat session"
-      weakItemLabel="Practice missed groups"
-    />
+    {#if hasSightReading(summary)}
+      <Button type="button" disabled={bpm >= 200} onclick={() => onTempo(Math.min(200, bpm + 10))}>
+        Increase to {Math.min(200, bpm + 10)} BPM
+      </Button>
+      <Button type="button" variant="outline" onclick={() => onTempo(bpm)}>
+        Repeat at {bpm} BPM
+      </Button>
+      <Button type="button" variant="outline" disabled={bpm <= 40} onclick={() => onTempo(Math.max(40, bpm - 10))}>
+        Slow to {Math.max(40, bpm - 10)} BPM
+      </Button>
+      {#if hasMissedSightReadingGroups(summary)}
+        <Button type="button" variant="outline" onclick={onMissedGroups}>
+          Practice missed groups
+        </Button>
+      {/if}
+    {:else}
+      <AdaptiveRetryBar onRetry={onRepeat} retryLabel="Repeat session" />
+    {/if}
     <Button href="/music" variant="ghost">Return to Practice</Button>
   </div>
 </section>

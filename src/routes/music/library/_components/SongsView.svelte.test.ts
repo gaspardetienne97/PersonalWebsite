@@ -14,7 +14,7 @@ describe("/music/songs/+page.svelte", () => {
       get: vi.fn(async (id: string) => songRow(id, "Autumn Leaves")),
     };
     const runtime = new MusicRuntime();
-    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
     const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
     const recordPractice = vi.spyOn(runtime, "recordPractice").mockResolvedValue();
 
@@ -30,6 +30,9 @@ describe("/music/songs/+page.svelte", () => {
     );
     play?.click();
     await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
+    await vi.waitFor(() => expect(play?.textContent).toContain("Pause preview"));
+    play?.click();
+    await vi.waitFor(() => expect(play?.textContent).toContain("Play preview"));
 
     const log = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
       button.textContent?.includes("Log practice"),

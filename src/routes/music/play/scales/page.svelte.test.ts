@@ -1,8 +1,23 @@
-import { afterEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
+
+import { monotonicMs } from "@repo/music-core/domain";
+import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+import { ProgressEngine } from "@repo/music-core/engines/progress";
+import { SkillGraphStore } from "@repo/music-core/engines/skills";
+import { TechniqueSession } from "@repo/music-core/engines/technique-session";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
+import { MusicRuntime } from "../../_runtime.svelte";
+
+beforeEach(() => {
+  vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
+  vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+    status: "started",
+    downbeat: monotonicMs(1_000),
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -11,12 +26,94 @@ afterEach(() => {
 });
 
 describe("/music/play/scales/+page.svelte", () => {
-  test("shows scale setup with MIDI and tempo controls", async () => {
+  test("does not install session subscriptions when services resolve after teardown", async () => {
+    let resolveServices!: () => void;
+    vi.spyOn(SkillGraphStore.prototype, "seed").mockReturnValue(
+      new Promise((resolve) => {
+        resolveServices = resolve;
+      }),
+    );
+    vi.spyOn(AnalyticsEngine.prototype, "load").mockResolvedValue();
+    vi.spyOn(ProgressEngine.prototype, "load").mockResolvedValue();
+    const runtime = new MusicRuntime();
+    const subscribe = vi.spyOn(runtime.router, "subscribe");
+    const view = render(Page, { runtime });
+    const subscriptionCount = subscribe.mock.calls.length;
+
+    view.unmount();
+    resolveServices();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(subscribe).toHaveBeenCalledTimes(subscriptionCount);
+    runtime.dispose();
+  });
+
+  test("waits for practice context registration before starting", async () => {
+    const runtime = new MusicRuntime();
+    let resolveContext!: (cleanup: () => void) => void;
+    vi.spyOn(runtime, "registerPracticeContext").mockReturnValue(
+      new Promise((resolve) => {
+        resolveContext = resolve;
+      }),
+    );
+    const ensurePlaybackVoice = vi.spyOn(runtime, "ensurePlaybackVoice");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    button("Start Scale")?.click();
+    await Promise.resolve();
+    expect(ensurePlaybackVoice).not.toHaveBeenCalled();
+
+    resolveContext(vi.fn());
+    await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
+    expect(runtime.beginPerformance).toHaveBeenCalledOnce();
+  });
+
+  test("keeps the engine stopped when playback voice activation fails", async () => {
+    const runtime = new MusicRuntime();
+    runtime.audioMessage = "Preferred voice unavailable.";
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    button("Start Scale")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+    expect(button("End run")).toBeUndefined();
+  });
+
+  test("settles and locks setup before snapshotting a deferred start", async () => {
+    const runtime = new MusicRuntime();
+    let resolveVoice!: (enabled: boolean) => void;
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockReturnValue(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+    const startScale = vi.spyOn(TechniqueSession.prototype, "startScale");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
+    const setupLocked = select("Tonic")?.closest("fieldset")?.disabled;
+    runtime.setPracticeVariantBpm(120, "v1:scales:piano:major:up:one-octave");
+    resolveVoice(true);
+
+    await vi.waitFor(() => expect(startScale).toHaveBeenCalledOnce());
+    expect(setupLocked).toBe(true);
+    expect(startScale).toHaveBeenCalledWith(expect.objectContaining({ bpm: 120 }));
+    expect(window.location.search).toContain("bpm=120");
+  });
+
+  test("shows scale setup with shared tempo readout", async () => {
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("Scales & Technique");
     expect(button("Enable MIDI")).not.toBeUndefined();
-    expect(input("Tempo")).not.toBeNull();
+    expect(input("Tempo")).toBeNull();
+    expect(document.body.textContent).toContain("100 BPM");
     await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
   });
 
@@ -49,12 +146,12 @@ describe("/music/play/scales/+page.svelte", () => {
     expect(select("Span")?.value).toBe("two-octave");
     expect(select("Motion")?.value).toBe("up-down");
     expect(button("Guitar")).toHaveAttribute("aria-pressed", "true");
-    expect(input("Tempo")?.value).toBe("90");
+    await vi.waitFor(() => expect(document.body.textContent).toContain("90 BPM"));
     await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
   });
 
   test("keeps setup changes in the shareable URL", async () => {
-    setTestUrl("/music/play/scales");
+    setTestUrl("/music/play/scales?bpm=90");
     render(Page);
 
     const scaleSelect = document.querySelector<HTMLSelectElement>("#scale-kind");
@@ -68,8 +165,6 @@ describe("/music/play/scales/+page.svelte", () => {
     select("Motion")!.value = "down";
     select("Motion")!.dispatchEvent(new Event("change", { bubbles: true }));
     button("Ukulele")?.click();
-    input("Tempo")!.value = "90";
-    input("Tempo")!.dispatchEvent(new Event("input", { bubbles: true }));
 
     await vi.waitFor(() => expect(window.location.search).toContain("scale=dorian"));
     expect(window.location.search).toContain("tonic=F4");
@@ -80,11 +175,20 @@ describe("/music/play/scales/+page.svelte", () => {
   });
 
   test("completes an on-screen C major scale with evenness feedback", async () => {
-    render(Page);
+    const runtime = new MusicRuntime();
+    const register = vi.spyOn(runtime, "registerPracticeContext");
+    render(Page, { runtime });
     await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
     button("Start Scale")?.click();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("C Major"));
+    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    expect(runtime.beginPerformance).toHaveBeenCalledOnce();
+    expect(register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variantKey: "v1:scales:piano:major:up:one-octave",
+        allowedInstruments: ["piano", "guitar", "ukulele", "aerophone"],
+      }),
+    );
     for (const note of ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]) {
       button(note)?.click();
     }
@@ -110,8 +214,8 @@ describe("/music/play/scales/+page.svelte", () => {
     expect(button("Slow down")).not.toBeUndefined();
     button("Slow down")?.click();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("90 BPM"));
-    expect(window.location.search).toContain("bpm=90");
+    await vi.waitFor(() => expect(document.body.textContent).toContain("80 BPM"));
+    expect(window.location.search).toContain("bpm=80");
   });
 });
 

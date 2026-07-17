@@ -2,6 +2,7 @@
   import { browser } from "$app/environment";
   import { onDestroy, onMount } from "svelte";
   import ListMusic from "lucide-svelte/icons/list-music";
+  import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
 
   import { scorePlaybackPattern, SongLibrary } from "@repo/music-core/engines/song-library";
@@ -34,6 +35,9 @@
   let status = $state("Loading repertoire.");
   let loading = $state(true);
   let practicing = $state(false);
+  let previewPlaying = $state(false);
+  let previewTimer: ReturnType<typeof setTimeout> | undefined;
+  let previewGeneration = 0;
 
   const selected = $derived(songs.find((song) => song.id === selectedId) ?? songs[0]);
   const selectedScore = $derived(selected?.score);
@@ -45,22 +49,11 @@
   });
 
   $effect(() => {
-    if (!selectedScore || !selected) {
-      runtime.setPlaybackSource(undefined);
-      return;
-    }
-    const pattern = scorePlaybackPattern(selectedScore);
-    runtime.setPlaybackSource({
-      label: selected.title,
-      durationSec: pattern.reduce(
-        (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
-        0,
-      ),
-      play: () => runtime.sound.playPattern(pattern),
-    });
+    void selectedId;
+    stopPreview();
   });
 
-  onDestroy(() => runtime.setPlaybackSource(undefined));
+  onDestroy(stopPreview);
 
   async function loadSongs(): Promise<void> {
     if (!library) {
@@ -90,9 +83,49 @@
   }
 
   async function playSelected(): Promise<void> {
-    if (!selectedScore) return;
-    if (!(await runtime.enableAudio())) return;
-    runtime.sound.playPattern(scorePlaybackPattern(selectedScore));
+    if (previewPlaying) {
+      stopPreview();
+      status = "Preview paused.";
+      return;
+    }
+    const score = selectedScore;
+    if (!score) return;
+    const generation = ++previewGeneration;
+    try {
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === previewGeneration) status = runtime.audioMessage || "Audio could not be enabled.";
+        return;
+      }
+      if (generation !== previewGeneration) return;
+      const pattern = scorePlaybackPattern(score);
+      const durationSec = pattern.reduce(
+        (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
+        0,
+      );
+      runtime.sound.playPattern(pattern);
+      previewPlaying = true;
+      status = `Playing ${selected?.title ?? "song"}.`;
+      previewTimer = setTimeout(finishPreview, Math.max(300, durationSec * 1_000));
+    } catch (error) {
+      if (generation !== previewGeneration) return;
+      stopPreview();
+      status = error instanceof Error ? error.message : "Song preview failed.";
+    }
+  }
+
+  function finishPreview(): void {
+    runtime.sound.stopPattern();
+    previewTimer = undefined;
+    previewPlaying = false;
+    status = "Preview complete.";
+  }
+
+  function stopPreview(): void {
+    previewGeneration += 1;
+    if (previewTimer !== undefined) clearTimeout(previewTimer);
+    previewTimer = undefined;
+    runtime.sound.stopPattern();
+    previewPlaying = false;
   }
 
   async function logPractice(): Promise<void> {
@@ -201,8 +234,11 @@
               Open Song Studio
             </Button>
             <Button onclick={playSelected}>
-              <Play class="size-4" aria-hidden="true" />
-              Play preview
+              {#if previewPlaying}
+                <Pause class="size-4" aria-hidden="true" />Pause preview
+              {:else}
+                <Play class="size-4" aria-hidden="true" />Play preview
+              {/if}
             </Button>
             <Button variant="outline" disabled={practicing} onclick={logPractice}>
               <ListMusic class="size-4" aria-hidden="true" />

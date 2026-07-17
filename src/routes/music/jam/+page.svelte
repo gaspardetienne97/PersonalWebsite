@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import Circle from "lucide-svelte/icons/circle";
+  import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
   import SkipForward from "lucide-svelte/icons/skip-forward";
 
@@ -28,7 +29,7 @@
   import { chordNotes, pitchClass } from "@repo/music-core/engines/theory";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
@@ -81,7 +82,14 @@
   let recordedCount = $state(0);
   let midiTakes = $state<Take[]>([]);
   let selectedMidiTake = $state<Take | undefined>();
+  let playbackError = $state("");
+  let playbackGeneration = 0;
+  let playingMidiTakeId = $state<string | undefined>();
+  let midiPlaybackGeneration = 0;
+  let midiPlaybackTimer: ReturnType<typeof setTimeout> | undefined;
+  let backingPending = false;
   const midiRecorder = new RecordingSession();
+  let backingPlayer: BrowserBackingPlayer | undefined;
   const backingEngine = new BackingTrackEngine(createBackingAdapter());
   let backingState = $state<BackingTrackState>(backingEngine.state);
   // Default backing is the bundled drum track that matches the progression feel.
@@ -133,8 +141,6 @@
     return () => unsubscribe();
   });
 
-  // The transport Play button uses the shared backing engine/player path.
-  // Drums mode plays the bundled MP3 (default); chords mode synths the changes.
   $effect(() => {
     if (transportInitialized) return;
     if (initialQueryHasTempo) runtime.setTransportBpm(initialConfig.bpm);
@@ -151,17 +157,12 @@
 
   $effect(() => {
     const config = normalizedConfig;
+    playbackGeneration += 1;
     if (backingMode === "drums") {
       backingEngine.selectBuiltin(
         { id: drumTrack.id, label: drumTrack.label, url: drumTrack.url, bpm: drumTrack.bpm },
         { loop: true },
       );
-      runtime.setPlaybackSource({
-        label: `${drumTrack.label} backing`,
-        durationSec: 0,
-        play: () => backingEngine.play(),
-        stop: () => backingEngine.stop(),
-      });
       return;
     }
     backingEngine.selectGenerated({
@@ -171,13 +172,11 @@
       loop: true,
       transpose: config.transpose,
     });
-    const durationSec = backingEngine.state.durationMs / 1_000;
-    runtime.setPlaybackSource({
-      label: `${progression.name} progression`,
-      durationSec,
-      play: () => backingEngine.play(),
-      stop: () => backingEngine.stop(),
-    });
+  });
+
+  $effect(() => {
+    void runtime.mediaVolume;
+    backingPlayer?.syncMediaVolume();
   });
 
   function selectStyle(id: string): void {
@@ -215,6 +214,7 @@
     config: ReturnType<typeof normalizeJamPracticeConfig>,
     options: { updateTempo: boolean },
   ): void {
+    stopMidiTake();
     progressionGroup = config.group;
     progressionId = config.progressionId;
     transposeSemitones = String(config.transpose);
@@ -249,14 +249,59 @@
   }
 
   async function playChord(): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
+    stopMidiTake();
+    await tick();
+    const generation = playbackGeneration;
+    playbackError = "";
+    if (!(await runtime.ensurePlaybackVoice())) {
+      if (generation === playbackGeneration) {
+        playbackError = runtime.audioMessage || "Chord preview could not be enabled.";
+      }
+      return;
+    }
+    if (generation !== playbackGeneration) return;
     const midi = chordNotes(current.symbol).map((name) => 48 + pitchClass(name));
     runtime.sound.playChord(midi, 1.2);
   }
 
   async function playBacking(): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
-    await backingEngine.play();
+    if (backingState.status === "playing") {
+      backingEngine.pause();
+      return;
+    }
+    if (backingPending) return;
+    stopMidiTake();
+    backingPending = true;
+    await tick();
+    const generation = playbackGeneration;
+    playbackError = "";
+    try {
+      const enabled =
+        backingState.selection.kind === "generated"
+          ? await runtime.ensurePlaybackVoice()
+          : await runtime.enableAudio();
+      if (!enabled) {
+        if (generation === playbackGeneration) {
+          playbackError = runtime.audioMessage || "Audio could not be enabled.";
+        }
+        return;
+      }
+      if (generation !== playbackGeneration) return;
+      await backingEngine.play();
+      if (generation !== playbackGeneration) backingEngine.stop();
+    } catch (error) {
+      if (generation === playbackGeneration) {
+        playbackError = error instanceof Error ? error.message : "Backing playback failed.";
+      }
+    } finally {
+      if (generation === playbackGeneration) backingPending = false;
+    }
+  }
+
+  function stopBacking(): void {
+    playbackGeneration += 1;
+    backingPending = false;
+    backingEngine.stop();
   }
 
   function playSolo(event: NoteEvent): void {
@@ -283,24 +328,68 @@
     }
   }
 
-  async function playMidiTake(take: Take): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
+  async function toggleMidiTake(take: Take): Promise<void> {
+    if (playingMidiTakeId === take.id) {
+      stopMidiTake();
+      return;
+    }
+
+    playbackGeneration += 1;
+    backingEngine.pause();
+    stopMidiTake();
+    await tick();
+    const generation = midiPlaybackGeneration;
+    playbackError = "";
+    if (!(await runtime.ensurePlaybackVoice())) {
+      if (generation === midiPlaybackGeneration) {
+        playbackError = runtime.audioMessage || "MIDI take playback could not be enabled.";
+      }
+      return;
+    }
+    if (generation !== midiPlaybackGeneration) return;
     const pattern = scoreToPattern(takeToScore(take, backingBpm), { bpm: backingBpm });
     runtime.sound.playPattern(pattern.steps);
+    playingMidiTakeId = take.id;
+    midiPlaybackTimer = setTimeout(
+      () => finishMidiTake(generation),
+      Math.max(0, pattern.durationSec * 1_000),
+    );
+  }
+
+  function stopMidiTake(): void {
+    midiPlaybackGeneration += 1;
+    if (midiPlaybackTimer) clearTimeout(midiPlaybackTimer);
+    midiPlaybackTimer = undefined;
+    runtime.sound.stopPattern?.();
+    playingMidiTakeId = undefined;
+  }
+
+  function finishMidiTake(generation: number): void {
+    if (generation !== midiPlaybackGeneration) return;
+    midiPlaybackTimer = undefined;
+    playingMidiTakeId = undefined;
+  }
+
+  function selectMidiTake(take: Take): void {
+    if (playingMidiTakeId !== take.id) stopMidiTake();
+    selectedMidiTake = take;
   }
 
   function deleteMidiTake(take: Take): void {
+    if (playingMidiTakeId === take.id) stopMidiTake();
     midiTakes = midiTakes.filter((candidate) => candidate.id !== take.id);
     selectedMidiTake = midiTakes[0];
   }
 
   function practiceMidiTake(take: Take): void {
+    stopMidiTake();
     selectedMidiTake = take;
     recording = false;
     recordedCount = take.notes.length;
   }
 
   async function openMidiTakeInPianoRoll(take: Take): Promise<void> {
+    stopMidiTake();
     await runtime.writeLocalState(PIANO_ROLL_PENDING_TAKE_IMPORT_ID, { take, bpm: backingBpm });
     await navigateToCreate("/music/create?mode=piano-roll&source=jam-chorus-take");
   }
@@ -324,19 +413,26 @@
   }
 
   onDestroy(() => {
+    playbackGeneration += 1;
+    stopMidiTake();
     unsubscribeBacking();
     backingEngine.dispose();
-    runtime.setPlaybackSource(undefined);
   });
 
   function createBackingAdapter(): BackingTrackPlaybackAdapter {
     if (browser) {
-      return new BrowserBackingPlayer({
+      backingPlayer = new BrowserBackingPlayer({
         sound: runtime.sound,
         loadBlob: () => Promise.resolve(undefined),
+        mediaVolume: () => runtime.mediaVolume,
         onImportedPositionChange: (positionMs) => backingEngine.updateImportedPosition(positionMs),
         onImportedEnded: () => backingEngine.markEnded(),
+        onImportedError: (message) => {
+          playbackError = message;
+          backingEngine.stop();
+        },
       });
+      return backingPlayer;
     }
     return {
       playGenerated: async () => {},
@@ -381,8 +477,10 @@
         emptyLabel="Recorded chorus takes will appear here."
         takes={midiTakes}
         selectedTake={selectedMidiTake}
-        onSelectTake={(take) => (selectedMidiTake = take)}
-        onPlayTake={playMidiTake}
+        playingTakeId={playingMidiTakeId}
+        onSelectTake={selectMidiTake}
+        onPlayTake={toggleMidiTake}
+        onPauseTake={() => stopMidiTake()}
         onDeleteTake={deleteMidiTake}
         onPracticeTake={practiceMidiTake}
         onOpenInPianoRoll={openMidiTakeInPianoRoll}
@@ -475,12 +573,21 @@
           </div>
           <div class="flex gap-2">
             <Button type="button" class="flex-1" onclick={() => void playBacking()}>
-              <Play class="size-4" aria-hidden="true" />Play backing
+              {#if backingState.status === "playing"}
+                <Pause class="size-4" aria-hidden="true" />Pause backing
+              {:else}
+                <Play class="size-4" aria-hidden="true" />Play backing
+              {/if}
             </Button>
-            <Button type="button" variant="outline" class="flex-1" onclick={() => backingEngine.stop()}>
+            <Button type="button" variant="outline" class="flex-1" onclick={stopBacking}>
               Stop
             </Button>
           </div>
+          {#if playbackError || backingState.message}
+            <p class="text-sm text-destructive" role="alert">
+              {playbackError || backingState.message}
+            </p>
+          {/if}
         </Card.Content>
       </Card.Root>
     </aside>

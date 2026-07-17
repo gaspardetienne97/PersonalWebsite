@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import type {
     MpcSingleStrokeAnswer,
@@ -39,9 +39,11 @@
   import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
-  const runtime = useMusicRuntime();
+  let { runtime: runtimeProp }: { runtime?: MusicRuntime } = $props();
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
+  const runtime = runtimeProp ?? useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -51,13 +53,9 @@
     { value: "8", label: "8 hits" },
     { value: "16", label: "16 hits" },
   ];
-  const tempoOptions = MPC_RUDIMENT_TEMPOS.map((tempo) => ({
-    value: String(tempo),
-    label: `${tempo} BPM`,
-  }));
-  const initialConfig = normalizeMpcRudimentConfig(
-    browser ? initialDrillSearch() : {},
-  );
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialConfig = normalizeMpcRudimentConfig(initialSearch);
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
 
   let leftPadMidi = $state(String(initialConfig.leftPadMidi));
   let rightPadMidi = $state(String(initialConfig.rightPadMidi));
@@ -66,6 +64,9 @@
   let bpm = $state(String(initialConfig.bpm));
   let ready = $state(false);
   let pending = $state(false);
+  let destroyed = false;
+  let routeGeneration = 0;
+  let practiceContextReady: Promise<void> = Promise.resolve();
   let captured = false;
   let status = $state("Preparing MPC practice.");
   let midiEnabled = $state(runtime.midi.state.enabled);
@@ -121,11 +122,38 @@
         normalizedConfig.hitCount,
       ),
   );
+  const variantKey = $derived(`v1:mpc:${patternId}`);
 
   void initialize();
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const key = variantKey;
+    routeGeneration += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "mpc",
+        variantKey: key,
+        defaultBpm: 80,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        pinnedInstrument: "mpc",
+        onBpmChange: (next) => (bpm = String(next)),
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed) cleanup();
+      });
+    return () => {
+      disposed = true;
+      routeGeneration += 1;
+      cleanup();
+    };
   });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
@@ -135,13 +163,20 @@
   async function initialize(): Promise<void> {
     try {
       await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
-      session = new TechniqueSession({
+      if (destroyed) return;
+      const nextSession = new TechniqueSession({
         router: runtime.router,
         services: { skills, analytics, progress },
       });
-      unsubscribeSession = session.subscribe((state) => {
+      if (destroyed) {
+        nextSession.dispose();
+        return;
+      }
+      session = nextSession;
+      unsubscribeSession = nextSession.subscribe((state) => {
         sessionState = state;
         if (state.error) status = state.error;
+        if (state.summary) runtime.endPerformance();
         if (state.summary && !captured) {
           captured = true;
           const completed = state.summary.results[0];
@@ -180,11 +215,24 @@
       return;
     }
 
-    const config = normalizedConfig;
     pending = true;
     captured = false;
     status = "";
     try {
+      await tick();
+      const generation = routeGeneration;
+      await practiceContextReady;
+      if (generation !== routeGeneration) return;
+      const config = normalizedConfig;
+      const performance = await runtime.beginPerformance();
+      if (generation !== routeGeneration) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
       await session.startMpcRudiment({
         patternId: config.patternId,
         leftPadMidi: config.leftPadMidi,
@@ -192,11 +240,17 @@
         hitCount: config.hitCount,
         bpm: config.bpm,
       });
+      if (generation !== routeGeneration) {
+        runtime.endPerformance();
+        session.abandon();
+        return;
+      }
       const patternLabel =
         MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === config.patternId)?.label ??
         "Single strokes";
       status = `Play ${patternLabel.toLowerCase()} on pads ${config.leftPadMidi} and ${config.rightPadMidi}.`;
     } catch (error) {
+      runtime.endPerformance();
       status = message(error, "The MPC rudiment could not be started.");
     } finally {
       pending = false;
@@ -204,6 +258,7 @@
   }
 
   function cancel(): void {
+    runtime.endPerformance();
     session?.abandon();
     status = "Rudiment cancelled. You can start again.";
   }
@@ -213,7 +268,7 @@
     const slowerTempo =
       [...MPC_RUDIMENT_TEMPOS].reverse().find((tempo) => tempo < current) ??
       MPC_RUDIMENT_TEMPOS[0];
-    bpm = String(slowerTempo);
+    runtime.setPracticeVariantBpm(slowerTempo, variantKey);
     await start();
   }
 
@@ -232,11 +287,10 @@
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
-  onMount(() => {
-    runtime.setActiveInstrument("mpc");
-  });
-
   onDestroy(() => {
+    destroyed = true;
+    routeGeneration += 1;
+    runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
     session?.dispose();
@@ -282,7 +336,7 @@
 
         <Card.Content class="grid gap-6">
           <fieldset
-            disabled={sessionState?.status === "active"}
+            disabled={pending || sessionState?.status === "active"}
             class="grid gap-4 disabled:opacity-70"
           >
             <SegmentedControl
@@ -326,7 +380,7 @@
                 options={hitCountOptions}
                 bind:value={hitCount}
               />
-              <SegmentedControl ariaLabel="Tempo" options={tempoOptions} bind:value={bpm} />
+              <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
             </div>
           </fieldset>
         </Card.Content>

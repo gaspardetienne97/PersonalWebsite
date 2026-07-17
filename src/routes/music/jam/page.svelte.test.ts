@@ -11,6 +11,8 @@ function createRuntimeStub() {
   const runtime = {
     activeSource: "screen",
     audioEnabled: true,
+    audioMessage: "",
+    mediaVolume: 1,
     transportBpm: 96,
     router: {
       subscribe: vi.fn((listener: (event: unknown) => void) => {
@@ -30,7 +32,6 @@ function createRuntimeStub() {
         for (const listener of subscribers) listener(event);
       }),
     },
-    setPlaybackSource: vi.fn(),
     setTransportBpm: vi.fn((value: number) => {
       runtime.transportBpm = value;
     }),
@@ -38,18 +39,29 @@ function createRuntimeStub() {
       playChord: vi.fn(),
       playNote: vi.fn(),
       playPattern: vi.fn(),
+      stopPattern: vi.fn(),
       startPatternLoop: vi.fn(),
       stopPatternLoop: vi.fn(),
     },
     enableAudio: vi.fn(async () => true),
+    ensurePlaybackVoice: vi.fn(async () => true),
     writeLocalState: vi.fn(async () => undefined),
   };
 
   return runtime;
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => {
+    resolve = next;
+  });
+  return { promise, resolve };
+}
+
 describe("/music/jam/+page.svelte", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     setTestUrl("/");
   });
 
@@ -79,21 +91,11 @@ describe("/music/jam/+page.svelte", () => {
   });
 
   test("defaults to a bundled drum-track backing and can switch to synth chords", async () => {
-    const playbackSources: Array<{
-      label: string;
-      play: () => Promise<void> | void;
-      stop?: () => void;
-    }> = [];
     const runtime = createRuntimeStub();
-    runtime.setPlaybackSource.mockImplementation((source) => {
-      if (source) playbackSources.push(source);
-    });
 
     render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
 
     // Default backing is a bundled drum track.
-    await vi.waitFor(() => expect(playbackSources.length).toBeGreaterThanOrEqual(1));
-    expect(playbackSources.at(-1)!.label).toMatch(/backing/i);
     expect(document.body.textContent).toContain("Drum track");
 
     // Switch to synth chords → generated progression playback.
@@ -102,14 +104,83 @@ describe("/music/jam/+page.svelte", () => {
     );
     synth?.click();
 
-    await vi.waitFor(() => expect(playbackSources.at(-1)!.label).toContain("progression"));
-    await playbackSources.at(-1)!.play();
-
-    expect(runtime.sound.startPatternLoop).toHaveBeenCalledWith(
-      expect.any(Array),
-      expect.any(Number),
+    const play = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+      button.textContent?.includes("Play backing"),
     );
+    play?.click();
+
+    await vi.waitFor(() =>
+      expect(runtime.sound.startPatternLoop).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Number),
+      ),
+    );
+    expect(play?.textContent).toContain("Pause backing");
+    play?.click();
+    await vi.waitFor(() => expect(runtime.sound.stopPatternLoop).toHaveBeenCalled());
     expect(runtime.sound.playPattern).not.toHaveBeenCalled();
+  });
+
+  test("Stop cancels deferred generated backing activation", async () => {
+    const runtime = createRuntimeStub();
+    const activation = deferred<boolean>();
+    runtime.ensurePlaybackVoice.mockImplementation(() => activation.promise);
+    render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
+
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "Synth chords")
+      ?.click();
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.includes("Play backing"))
+      ?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
+
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "Stop")
+      ?.click();
+    activation.resolve(true);
+    await vi.waitFor(() => expect(document.body.textContent).toContain("stopped"));
+
+    expect(runtime.sound.startPatternLoop).not.toHaveBeenCalled();
+  });
+
+  test("Stop cancels deferred builtin backing activation", async () => {
+    const runtime = createRuntimeStub();
+    const activation = deferred<boolean>();
+    runtime.enableAudio.mockImplementation(() => activation.promise);
+    const mediaPlay = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
+    render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
+
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.includes("Play backing"))
+      ?.click();
+    await vi.waitFor(() => expect(runtime.enableAudio).toHaveBeenCalledOnce());
+
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "Stop")
+      ?.click();
+    activation.resolve(true);
+    await vi.waitFor(() => expect(document.body.textContent).toContain("stopped"));
+
+    expect(mediaPlay).not.toHaveBeenCalled();
+  });
+
+  test("announces chord-preview activation failure and remains idle", async () => {
+    const runtime = createRuntimeStub();
+    runtime.audioMessage = "Playback voice unavailable.";
+    runtime.ensurePlaybackVoice.mockResolvedValue(false);
+    render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
+
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.includes("Play chord"))
+      ?.click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+        "Playback voice unavailable.",
+      ),
+    );
+    expect(runtime.sound.playChord).not.toHaveBeenCalled();
   });
 
   test("restores shareable jam query config", async () => {
@@ -174,6 +245,122 @@ describe("/music/jam/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Review chorus takes"));
     expect(document.body.textContent).toContain("ii–V–I chorus 1");
     expect(document.querySelectorAll("[data-density-bucket]")).toHaveLength(16);
+  });
+
+  test("owns chorus take playback through pause, completion, replacement, delete, other playback, and teardown", async () => {
+    const runtime = createRuntimeStub();
+    const view = render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
+
+    const record = () =>
+      [...document.querySelectorAll<HTMLButtonElement>("button")]
+        .find((candidate) => candidate.textContent?.includes("Record chorus"))
+        ?.click();
+    const stop = () =>
+      [...document.querySelectorAll<HTMLButtonElement>("button")]
+        .find((candidate) => candidate.textContent?.includes("Stop chorus"))
+        ?.click();
+
+    record();
+    runtime.router.noteOn(60);
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Recording · 1"));
+    stop();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Play ii–V–I chorus 1"]')).not.toBeNull(),
+    );
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Play ii–V–I chorus 1"]')?.click();
+    await vi.waitFor(() => expect(runtime.sound.playPattern).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Pause ii–V–I chorus 1"]')).not.toBeNull(),
+    );
+    document.querySelector<HTMLButtonElement>('[aria-label="Pause ii–V–I chorus 1"]')?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Play ii–V–I chorus 1"]')).not.toBeNull(),
+    );
+
+    vi.useFakeTimers();
+    document.querySelector<HTMLButtonElement>('[aria-label="Play ii–V–I chorus 1"]')?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(document.querySelector('[aria-label="Pause ii–V–I chorus 1"]')).not.toBeNull();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(document.querySelector('[aria-label="Play ii–V–I chorus 1"]')).not.toBeNull();
+    vi.useRealTimers();
+
+    record();
+    runtime.router.noteOn(64);
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Recording · 1"));
+    stop();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Play ii–V–I chorus 2"]')).not.toBeNull(),
+    );
+    document.querySelector<HTMLButtonElement>('[aria-label="Play ii–V–I chorus 2"]')?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Pause ii–V–I chorus 2"]')).not.toBeNull(),
+    );
+    document
+      .querySelector<HTMLButtonElement>('[aria-label="Select MIDI take ii–V–I chorus 1"]')
+      ?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Play ii–V–I chorus 1"]')).not.toBeNull(),
+    );
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Play ii–V–I chorus 1"]')?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Pause ii–V–I chorus 1"]')).not.toBeNull(),
+    );
+    document.querySelector<HTMLButtonElement>('[aria-label="Delete MIDI take"]')?.click();
+    await vi.waitFor(() => expect(runtime.sound.stopPattern).toHaveBeenCalled());
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Play ii–V–I chorus 2"]')?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Pause ii–V–I chorus 2"]')).not.toBeNull(),
+    );
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((candidate) => candidate.textContent?.trim() === "Synth chords")
+      ?.click();
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((candidate) => candidate.textContent?.includes("Play backing"))
+      ?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Play ii–V–I chorus 2"]')).not.toBeNull(),
+    );
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Play ii–V–I chorus 2"]')?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Pause ii–V–I chorus 2"]')).not.toBeNull(),
+    );
+    const stopsBeforeUnmount = runtime.sound.stopPattern.mock.calls.length;
+    view.unmount();
+    expect(runtime.sound.stopPattern.mock.calls.length).toBeGreaterThan(stopsBeforeUnmount);
+  });
+
+  test("announces chorus take activation failure and remains idle", async () => {
+    const runtime = createRuntimeStub();
+    runtime.audioMessage = "Playback voice unavailable.";
+    runtime.ensurePlaybackVoice.mockResolvedValue(false);
+    render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
+
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((candidate) => candidate.textContent?.includes("Record chorus"))
+      ?.click();
+    runtime.router.noteOn(60);
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Recording · 1"));
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((candidate) => candidate.textContent?.includes("Stop chorus"))
+      ?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Play ii–V–I chorus 1"]')).not.toBeNull(),
+    );
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Play ii–V–I chorus 1"]')?.click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+        "Playback voice unavailable.",
+      ),
+    );
+    expect(runtime.sound.playPattern).not.toHaveBeenCalled();
+    expect(document.querySelector('[aria-label="Pause ii–V–I chorus 1"]')).toBeNull();
   });
 
   test("sends a recorded chorus take to the Create piano roll", async () => {

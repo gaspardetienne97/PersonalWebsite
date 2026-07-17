@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
 
   import {
     createChordFollower,
@@ -27,7 +27,6 @@
   } from "@repo/music-core/engines/jam";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
-  import { Label } from "@repo/ui/label";
 
   import HudTile from "../../_components/HudTile.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -79,9 +78,9 @@
     value: String(value),
     label: value === 0 ? "0" : value > 0 ? `+${value}` : String(value),
   }));
-  const initialConfig = normalizeChordProgressionDrillConfig(
-    browser ? initialDrillSearch() : {},
-  );
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialConfig = normalizeChordProgressionDrillConfig(initialSearch);
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
 
   let progressionGroup = $state<JamProgressionGroup>(initialConfig.group);
   let progressionId = $state(initialConfig.progressionId);
@@ -120,9 +119,40 @@
       transpose: transposeSemitones,
     }),
   );
+  const variantKey = $derived(`v1:chord-progression:${progressionId}:follow`);
+  let routeGeneration = 0;
+  let captureGeneration = 0;
+  let onsetQueue: Promise<void> = Promise.resolve();
+  let practiceContextReady: Promise<void> = Promise.resolve();
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const key = variantKey;
+    const defaultBpm = baseProgression.defaultBpm ?? 100;
+    routeGeneration += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "chord-progression",
+        variantKey: key,
+        defaultBpm,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        onBpmChange: (next) => (bpm = next),
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed) cleanup();
+      });
+    return () => {
+      disposed = true;
+      routeGeneration += 1;
+      cleanup();
+    };
   });
 
   function selectGroup(value: string): void {
@@ -161,30 +191,85 @@
 
   async function start(): Promise<void> {
     if (running) return;
+    const capture = ++captureGeneration;
+    follower = undefined;
+    onsetQueue = Promise.resolve();
     running = true;
     captured = false;
     status = "Listening — strum each chord on the beat.";
     try {
-      const config = normalizedConfig;
-      const startAtMs = await runtime.runCountIn();
-      follower = createChordFollower(expected, { bpm: config.bpm, startAtMs });
-      followerState = follower.state();
-      unsubscribeAnalysis = audioSource.subscribeAnalysis(onAnalysis);
+      await tick();
+      const generation = routeGeneration;
+      await practiceContextReady;
+      if (!captureIsCurrent(capture, generation)) {
+        running = false;
+        return;
+      }
       await audioSource.start();
+      if (!captureIsCurrent(capture, generation)) {
+        await resetCapture(capture);
+        return;
+      }
+      audioState = audioSource.state;
+      if (audioSource.state.status !== "running") {
+        status = audioSource.state.message ?? "Microphone capture could not start.";
+        await resetCapture(capture);
+        return;
+      }
+      const config = normalizedConfig;
+      const performance = await runtime.beginPerformance();
+      if (!captureIsCurrent(capture, generation)) {
+        await resetCapture(capture);
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        await resetCapture(capture);
+        return;
+      }
+      if (audioSource.state.status !== "running") {
+        status = audioSource.state.message ?? "Microphone capture stopped before the downbeat.";
+        await resetCapture(capture);
+        return;
+      }
+      const startAtMs = performance.downbeat;
+      const nextFollower = createChordFollower(expected, { bpm: config.bpm, startAtMs });
+      if (!captureIsCurrent(capture, generation)) return;
+      follower = nextFollower;
+      followerState = nextFollower.state();
+      unsubscribeAnalysis = audioSource.subscribeAnalysis(onAnalysis);
     } catch (error) {
-      running = false;
-      status = message(error, "The chord-progression drill could not be started.");
+      if (capture === captureGeneration) {
+        status = message(error, "The chord-progression drill could not be started.");
+        await resetCapture(capture);
+      }
     }
   }
 
-  async function stop(): Promise<void> {
-    await finish();
+  async function resetCapture(expectedGeneration?: number): Promise<void> {
+    if (expectedGeneration !== undefined && expectedGeneration !== captureGeneration) return;
+    captureGeneration += 1;
+    runtime.endPerformance();
+    running = false;
+    unsubscribeAnalysis?.();
+    unsubscribeAnalysis = undefined;
+    follower = undefined;
+    onsetQueue = Promise.resolve();
+    await audioSource.stop();
   }
 
-  let onsetQueue: Promise<void> = Promise.resolve();
+  async function stop(): Promise<void> {
+    if (follower) await finish(follower, captureGeneration);
+    else {
+      await resetCapture();
+      status = "Drill stopped.";
+    }
+  }
 
-  async function onAnalysis(analysis: ChordAnalysis): Promise<void> {
-    if (!follower) return;
+  function onAnalysis(analysis: ChordAnalysis): void {
+    const activeFollower = follower;
+    const generation = captureGeneration;
+    if (!activeFollower) return;
     // Chroma is a weak observation: the follower honors source/confidence, so it
     // uses chroma for the detected readout only — it grades/times/advances from
     // onsets, so feeding chroma here can't false-advance with no strum.
@@ -195,17 +280,28 @@
         source: "chroma",
         atMs: analysis.timestamp,
       };
-      followerState = follower.accept(observation);
+      if (!followerIsCurrent(activeFollower, generation)) return;
+      followerState = activeFollower.accept(observation);
       detected = followerState.detectedPitchClasses;
       return;
     }
-    onsetQueue = onsetQueue.then(() => gradeOnset(analysis));
-    await onsetQueue;
+    onsetQueue = onsetQueue
+      .then(() => gradeOnset(analysis, activeFollower, generation))
+      .catch((error) => {
+        if (followerIsCurrent(activeFollower, generation)) {
+          status = message(error, "Chord analysis failed. Try the next strum.");
+        }
+      });
   }
 
-  async function gradeOnset(analysis: ChordAnalysis): Promise<void> {
-    if (!follower || !analysis.onsetWindow) return;
+  async function gradeOnset(
+    analysis: ChordAnalysis,
+    activeFollower: ChordFollowerRun,
+    generation: number,
+  ): Promise<void> {
+    if (!analysis.onsetWindow || !followerIsCurrent(activeFollower, generation)) return;
     const midi = await analyzeOnsetWindow(analysis.onsetWindow);
+    if (!followerIsCurrent(activeFollower, generation)) return;
     const pitchClasses = toPitchClasses(midi);
     detected = pitchClasses;
     const observation: ChordObservation = {
@@ -214,20 +310,27 @@
       source: "onset",
       atMs: analysis.timestamp,
     };
-    followerState = follower.accept(observation);
-    if (followerState.done) await finish();
+    followerState = activeFollower.accept(observation);
+    if (followerState.done) await finish(activeFollower, generation);
   }
 
-  async function finish(): Promise<void> {
-    if (!follower || captured) return;
+  async function finish(activeFollower: ChordFollowerRun, generation: number): Promise<void> {
+    if (!followerIsCurrent(activeFollower, generation) || captured) return;
+    const generationAtFinish = routeGeneration;
     captured = true;
     running = false;
-    const summary = follower.finish();
+    runtime.endPerformance();
+    const summary = activeFollower.finish();
     unsubscribeAnalysis?.();
     unsubscribeAnalysis = undefined;
     await audioSource.stop();
+    if (
+      !followerIsCurrent(activeFollower, generation) ||
+      generationAtFinish !== routeGeneration
+    )
+      return;
     status = `Progression complete — ${summary.correct}/${summary.total} chords matched.`;
-    void runtime.recordPractice({
+    await runtime.recordPractice({
       source: "drill",
       instrument: "guitar",
       tags: ["technique", "chord-changes"],
@@ -235,6 +338,14 @@
       xpEarned: Math.round(summary.score * 20),
       note: `Chord progression · ${summary.correct}/${summary.total} chords`,
     });
+  }
+
+  function captureIsCurrent(capture: number, route: number): boolean {
+    return capture === captureGeneration && route === routeGeneration;
+  }
+
+  function followerIsCurrent(activeFollower: ChordFollowerRun, generation: number): boolean {
+    return generation === captureGeneration && follower === activeFollower;
   }
 
   function message(error: unknown, fallback: string): string {
@@ -259,12 +370,21 @@
     audioState = audioSource.state;
     unsubscribeAudioState = audioSource.subscribeState((next) => {
       audioState = next;
+      if (running && next.status !== "running" && next.status !== "requesting") {
+        status = next.message ?? "Microphone capture stopped.";
+        void resetCapture();
+      }
     });
   });
 
   onDestroy(() => {
+    routeGeneration += 1;
+    captureGeneration += 1;
+    runtime.endPerformance();
     unsubscribeAnalysis?.();
     unsubscribeAudioState?.();
+    follower = undefined;
+    onsetQueue = Promise.resolve();
     void audioSource.stop();
   });
 </script>
@@ -315,17 +435,7 @@
               options={transposeOptions}
               bind:value={transposeSemitones}
             />
-            <div class="grid gap-2">
-              <Label for="tempo">Tempo</Label>
-              <input
-                id="tempo"
-                type="number"
-                min="40"
-                max="220"
-                bind:value={bpm}
-                class="h-9 w-32 rounded-md border bg-background px-3 text-sm"
-              />
-            </div>
+            <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
           </fieldset>
 
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">

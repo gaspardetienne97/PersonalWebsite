@@ -97,6 +97,8 @@
   let savedSongId = $state<string | undefined>();
   let storageLoaded = false; // plain, non-reactive (see recording route): wait for storage.
   let stepTimer: ReturnType<typeof setInterval> | undefined;
+  let playbackPending = false;
+  let playbackRequest = 0;
 
   function seededScore(): Score {
     // A one-bar C-major arpeggio in Lead so Play does something on first load.
@@ -164,17 +166,6 @@
     }),
   );
 
-  $effect(() => {
-    void score;
-    const durationSec = grid.beatCount * secondsPerBeat();
-    runtime.setPlaybackSource({
-      label: "Piano roll",
-      durationSec,
-      play: () => playScore(),
-      stop: () => stopScore(),
-    });
-  });
-
   // Storage attaches from the layout's onMount (after this page's), so load once
   // it's available rather than reading eagerly (which would silently no-op).
   $effect(() => {
@@ -187,8 +178,8 @@
   onMount(() => undefined);
 
   onDestroy(() => {
+    playbackRequest += 1;
     stopScore();
-    runtime.setPlaybackSource(undefined);
   });
 
   function toggleCell(midiNote: number, step: number): void {
@@ -360,17 +351,37 @@
   }
 
   async function playScore(): Promise<void> {
-    if (!(await runtime.enableAudio())) return;
-    stopScore();
-    const audible = withoutVoices(score, mutedVoiceIds);
-    const pattern = scoreToPattern(audible, { bpm: runtimeBpm() });
-    const durationSec = grid.beatCount * secondsPerBeat();
-    runtime.sound.startPatternLoop(pattern.steps, durationSec, 0.9);
-    startStepIndicator(durationSec);
-    playing = true;
+    if (playbackPending) return;
+    const request = ++playbackRequest;
+    playbackPending = true;
+    try {
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (request === playbackRequest) {
+          status = runtime.audioMessage || "Audio could not be enabled.";
+        }
+        return;
+      }
+      if (request !== playbackRequest) return;
+      stopScore(false);
+      const audible = withoutVoices(score, mutedVoiceIds);
+      const pattern = scoreToPattern(audible, { bpm: runtimeBpm() });
+      const durationSec = grid.beatCount * secondsPerBeat();
+      runtime.sound.startPatternLoop(pattern.steps, durationSec, 0.9);
+      startStepIndicator(durationSec);
+      playing = true;
+      status = "Playing piano roll.";
+    } catch (error) {
+      if (request === playbackRequest) {
+        stopScore(false);
+        status = error instanceof Error ? error.message : "Piano roll playback failed.";
+      }
+    } finally {
+      playbackPending = false;
+    }
   }
 
-  function stopScore(): void {
+  function stopScore(invalidate = true): void {
+    if (invalidate) playbackRequest += 1;
     runtime.sound.stopPatternLoop();
     stopStepIndicator();
     playing = false;
@@ -642,7 +653,7 @@
       {/if}
       <Button type="button" onclick={() => void togglePlay()}>
         {#if playing}
-          <Pause class="size-4" aria-hidden="true" />Stop
+          <Pause class="size-4" aria-hidden="true" />Pause
         {:else}
           <Play class="size-4" aria-hidden="true" />Play
         {/if}
@@ -813,7 +824,7 @@
         {/each}
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-xs text-muted-foreground">{status}</span>
+        <span class="text-xs text-muted-foreground" role="status" aria-live="polite">{status}</span>
         <div class="flex items-center gap-1" role="group" aria-label="Note length">
           {#each NOTE_LENGTHS as length (length.beats)}
             <button

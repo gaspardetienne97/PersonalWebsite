@@ -1,11 +1,12 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { page } from "$app/state";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
 
   import ArrowLeft from "lucide-svelte/icons/arrow-left";
   import Download from "lucide-svelte/icons/download";
   import ListMusic from "lucide-svelte/icons/list-music";
+  import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
 
   import {
@@ -52,6 +53,7 @@
   import ScoreFollowerStage from "../../_components/ScoreFollowerStage.svelte";
   import SegmentProgress from "../../_components/SegmentProgress.svelte";
   import StaffNotation from "../../_components/StaffNotation.svelte";
+  import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
   import ScorePracticeSetup from "./_components/ScorePracticeSetup.svelte";
   import ScorePracticeSummary from "./_components/ScorePracticeSummary.svelte";
@@ -70,6 +72,7 @@
     runtime?: MusicRuntime;
     library?: SongLibraryLike;
   } = $props();
+  const initialUrlBpm = browser ? Number(new URLSearchParams(window.location.search).get("bpm")) || undefined : undefined;
 
   let song = $state.raw<SongRow>();
   let loading = $state(true);
@@ -93,10 +96,15 @@
   let executionTimes: Array<{ startedAt: UnixMs; endedAt: UnixMs }> = [];
   let practiceStartedAt: UnixMs | undefined;
   let captureId = "";
-  let previousTransport: { bpm: number; countInBars: number } | undefined;
   let tickTimer: ReturnType<typeof setInterval> | undefined;
   let endTimer: ReturnType<typeof setTimeout> | undefined;
-  let unsubscribeInput = () => undefined;
+  let unsubscribeInput: () => void = () => undefined;
+  let previewPlaying = $state(false);
+  let previewTimer: ReturnType<typeof setTimeout> | undefined;
+  let previewGeneration = 0;
+  let practiceRequest = 0;
+  let practiceContextRequest = 0;
+  let practiceContextReady: Promise<boolean> = Promise.resolve(false);
 
   const sourceScore = $derived(song?.score);
   const voiceOptions = $derived.by(() => scoreVoiceOptions(sourceScore));
@@ -131,6 +139,14 @@
     }
   });
   const notation = $derived.by(() => notationProjection(score));
+  const scoreBeatDenominator = $derived.by(() => {
+    const denominator = score?.timeSignatures[0]?.denominator;
+    return denominator && [2, 4, 8, 16].includes(denominator) ? denominator : 4;
+  });
+  const performanceEngineBpm = $derived((setup.bpm * 4) / scoreBeatDenominator);
+  const practiceVariantKey = $derived(
+    song ? `v1:song:${song.id}:${selectionVariant(setup.selection)}:${setup.mode}` : undefined,
+  );
 
   // Tab view: guitar/ukulele projection of the (voice-filtered) canonical score.
   const TAB_TUNINGS = [...curatedTunings("guitar"), ...curatedTunings("ukulele")];
@@ -211,27 +227,53 @@
   });
 
   $effect(() => {
-    if (!song || !score) {
-      runtime.setPlaybackSource(undefined);
-      return;
-    }
-    const pattern = scorePlaybackPattern(score);
-    runtime.setPlaybackSource({
-      label: song.title,
-      durationSec: pattern.reduce(
-        (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
-        0,
-      ),
-      play: () => runtime.sound.playPattern(pattern),
-    });
+    const key = practiceVariantKey;
+    const currentScore = score;
+    if (!key || !currentScore) return;
+    const contextRequest = ++practiceContextRequest;
+    practiceRequest += 1;
+    const signature = currentScore.timeSignatures[0];
+    const denominator =
+      signature && [2, 4, 8, 16].includes(signature.denominator)
+        ? (signature.denominator as 2 | 4 | 8 | 16)
+        : 4;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "song-performance",
+        variantKey: key,
+        defaultBpm: Math.round(currentScore.tempoMap[0]?.bpm ?? 120),
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: signature?.numerator ?? 4, denominator },
+        onBpmChange: (bpm) => {
+          setup = { ...setup, bpm };
+          syncSongBpmUrl(bpm);
+        },
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed || contextRequest !== practiceContextRequest) {
+          cleanup();
+          return false;
+        }
+        return true;
+      });
+    return () => {
+      disposed = true;
+      practiceContextRequest += 1;
+      practiceRequest += 1;
+      cleanup();
+    };
   });
 
   onDestroy(() => {
+    practiceRequest += 1;
+    practiceContextRequest += 1;
     clearPracticeTimers();
-    runtime.stopPracticeClock();
-    restoreTransportPreferences();
+    runtime.endPerformance();
     unsubscribeInput();
-    runtime.setPlaybackSource(undefined);
+    stopPreview();
   });
 
   async function loadSong(): Promise<void> {
@@ -258,8 +300,49 @@
   }
 
   async function playPreview(): Promise<void> {
-    if (!score || !(await runtime.enableAudio())) return;
-    runtime.sound.playPattern(scorePlaybackPattern(score));
+    if (previewPlaying) {
+      stopPreview();
+      status = "Preview paused.";
+      return;
+    }
+    const currentScore = score;
+    if (!currentScore) return;
+    const generation = ++previewGeneration;
+    try {
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === previewGeneration) status = runtime.audioMessage || "Audio could not be enabled.";
+        return;
+      }
+      if (generation !== previewGeneration) return;
+      const pattern = scorePlaybackPattern(currentScore);
+      const durationSec = pattern.reduce(
+        (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
+        0,
+      );
+      runtime.sound.playPattern(pattern);
+      previewPlaying = true;
+      status = `Playing ${song?.title ?? "song"} preview.`;
+      previewTimer = setTimeout(finishPreview, Math.max(300, durationSec * 1_000));
+    } catch (error) {
+      if (generation !== previewGeneration) return;
+      stopPreview();
+      status = message(error, "Song preview failed.");
+    }
+  }
+
+  function finishPreview(): void {
+    runtime.sound.stopPattern();
+    previewTimer = undefined;
+    previewPlaying = false;
+    status = "Preview complete.";
+  }
+
+  function stopPreview(): void {
+    previewGeneration += 1;
+    if (previewTimer !== undefined) clearTimeout(previewTimer);
+    previewTimer = undefined;
+    runtime.sound.stopPattern();
+    previewPlaying = false;
   }
 
   function exportMidi(): void {
@@ -275,6 +358,27 @@
   function updateSetup(value: ScorePracticeSetupValue): void {
     setup = value;
     completed = false;
+  }
+
+  function selectionVariant(selection: ScorePracticeSetupValue["selection"]): string {
+    if (selection.kind === "full") return "full";
+    if (selection.kind === "sections") {
+      return `sections-${selection.order}-${[...selection.sectionIds].sort().join("+") || "none"}`;
+    }
+    return `custom-${selection.snap}-${selection.startBeat}-${selection.endBeat}`;
+  }
+
+  function syncSongBpmUrl(bpm: number): void {
+    if (!browser) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("bpm", String(bpm));
+    syncRouteQuery(`${url.pathname}?${url.searchParams.toString()}${url.hash}`);
+  }
+
+  function setResultTempo(bpm: number): void {
+    if (!practiceVariantKey) return;
+    runtime.setPracticeVariantBpm(bpm, practiceVariantKey);
+    status = `Next performance set to ${Math.round(bpm)} BPM.`;
   }
 
   function toggleVoiceOption(voiceIds: string[]): void {
@@ -299,19 +403,23 @@
   }
 
   async function startPractice(): Promise<void> {
+    stopPreview();
+    if (practicing) return;
+    let request = practiceRequest;
+    if (setup.mode === "performance") {
+      await tick();
+      request = ++practiceRequest;
+      if (!(await practiceContextReady) || request !== practiceRequest) return;
+    }
     const plan = planProjection.plan;
-    if (!plan || practicing) return;
+    if (!plan) return;
     practicePlan = plan;
     executionTimes = [];
     practiceStartedAt = unixMs(Date.now());
     captureId = `song-practice-${song?.id ?? "unknown"}-${practiceStartedAt}`;
-    previousTransport = {
-      bpm: runtime.transportBpm,
-      countInBars: runtime.countInBars,
-    };
     practiceSession = new ScorePracticeSession(plan, {
       mode: setup.mode,
-      bpm: setup.bpm,
+      bpm: setup.mode === "performance" ? performanceEngineBpm : setup.bpm,
       strictness: setup.strictness,
       totalTakes: setup.mode === "wait" ? 1 : setup.totalTakes,
     });
@@ -323,18 +431,26 @@
       status = "Follow the selected score. Timing is paused until you play the right notes.";
       return;
     }
-    await startCurrentPerformanceExecution();
+    await startCurrentPerformanceExecution(request);
   }
 
-  async function startCurrentPerformanceExecution(): Promise<void> {
+  async function startCurrentPerformanceExecution(request = practiceRequest): Promise<void> {
     if (!practiceSession || !practicing) return;
     clearPracticeTimers();
     practiceState = practiceSession.markCountingIn();
-    runtime.setTransportBpm(setup.bpm);
-    runtime.setCountIn(setup.countInBars);
-    status = setup.countInBars === 0 ? "Performance starting." : "Count in.";
+    status = runtime.countInBars === 0 ? "Performance starting." : "Count in.";
     try {
-      const downbeat = await runtime.runCountIn();
+      const performance = await runtime.beginPerformance();
+      if (request !== practiceRequest) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        practicing = false;
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
+      const downbeat = performance.downbeat;
       if (!practiceSession || !practicing) return;
       executionStartedAt = unixMs(Date.now());
       practiceState = practiceSession.startExecution(downbeat);
@@ -342,8 +458,7 @@
       schedulePerformanceExecution(downbeat);
     } catch (error) {
       practicing = false;
-      runtime.stopPracticeClock();
-      restoreTransportPreferences();
+      runtime.endPerformance();
       status = message(error, "Performance practice could not start.");
     }
   }
@@ -355,11 +470,11 @@
       if (!practiceSession) return;
       practiceState = practiceSession.tick(monotonicMs(performance.now()));
     }, 50);
-    const durationMs = beatToMs(execution.durationBeats, setup.bpm);
+    const durationMs = beatToMs(execution.durationBeats, performanceEngineBpm);
     const lastGroup = execution.groups.at(-1);
     const finalWindow = lastGroup
       ? timingWindowMs({
-          bpm: setup.bpm,
+          bpm: performanceEngineBpm,
           durationBeats: lastGroup.durationBeats,
           strictness: setup.strictness,
         })
@@ -374,7 +489,7 @@
   async function finishCurrentExecution(): Promise<void> {
     if (!song || !practiceSession || finishing) return;
     clearPracticeTimers();
-    if (setup.mode === "performance") runtime.stopPracticeClock();
+    if (setup.mode === "performance") runtime.endPerformance();
     if (executionStartedAt !== undefined) {
       executionTimes.push({ startedAt: executionStartedAt, endedAt: unixMs(Date.now()) });
       executionStartedAt = undefined;
@@ -396,7 +511,6 @@
     completed = true;
     const scorePercent = Math.round((practiceState.summary?.aggregateScore ?? 0) * 100);
     status = `Practice complete · ${scorePercent}% score.`;
-    restoreTransportPreferences();
     try {
       await runtime.recordPractice({
         id: captureId,
@@ -418,8 +532,7 @@
 
   function cancelPractice(): void {
     clearPracticeTimers();
-    runtime.stopPracticeClock();
-    restoreTransportPreferences();
+    runtime.endPerformance();
     practiceState = practiceSession?.cancel();
     practiceSession = undefined;
     practicing = false;
@@ -467,13 +580,6 @@
     if (endTimer !== undefined) clearTimeout(endTimer);
     tickTimer = undefined;
     endTimer = undefined;
-  }
-
-  function restoreTransportPreferences(): void {
-    if (!previousTransport) return;
-    runtime.setTransportBpm(previousTransport.bpm);
-    runtime.setCountIn(previousTransport.countInBars);
-    previousTransport = undefined;
   }
 
   function notationProjection(
@@ -710,8 +816,11 @@
           </Card.Content>
           <Card.Footer class="flex-wrap gap-2">
             <Button type="button" onclick={playPreview}>
-              <Play class="size-4" aria-hidden="true" />
-              Play preview
+              {#if previewPlaying}
+                <Pause class="size-4" aria-hidden="true" />Pause preview
+              {:else}
+                <Play class="size-4" aria-hidden="true" />Play preview
+              {/if}
             </Button>
             <Button
               type="button"
@@ -776,6 +885,19 @@
 
         {#if completed && practiceState?.summary}
           <ScorePracticeSummary summary={practiceState.summary} />
+          {#if setup.mode === "performance"}
+            <div class="flex flex-wrap gap-2">
+              <Button type="button" onclick={() => setResultTempo(setup.bpm + 8)}>
+                Increase to {setup.bpm + 8} BPM
+              </Button>
+              <Button type="button" variant="outline" onclick={() => setResultTempo(setup.bpm)}>
+                Repeat at {setup.bpm} BPM
+              </Button>
+              <Button type="button" variant="outline" onclick={() => setResultTempo(Math.max(20, setup.bpm - 8))}>
+                Slow to {Math.max(20, setup.bpm - 8)} BPM
+              </Button>
+            </div>
+          {/if}
         {/if}
       </div>
 

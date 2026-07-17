@@ -1,11 +1,20 @@
-import { afterEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import { scaleSemitones } from "@repo/music-core/exercises/scale-pattern";
+import { monotonicMs } from "@repo/music-core/domain";
 
 import Page from "./+page.svelte";
 import { pushTestUrl, setTestUrl } from "../../_components/test-url";
-import type { MusicRuntime } from "../../_runtime.svelte";
+import { MusicRuntime } from "../../_runtime.svelte";
+
+beforeEach(() => {
+  vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
+  vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+    status: "started",
+    downbeat: monotonicMs(1_000),
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -14,6 +23,82 @@ afterEach(() => {
 });
 
 describe("/music/play/chord-scales/+page.svelte", () => {
+  test("invalidates a pending attempt when the drill configuration changes", async () => {
+    const runtime = new MusicRuntime();
+    let resolveVoice!: (enabled: boolean) => void;
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockReturnValue(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance");
+    const subscribe = vi.spyOn(runtime.router, "subscribe");
+    render(Page, { runtime });
+
+    button("Play it back")?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
+    button("Minor ii-V-i")?.click();
+    resolveVoice(true);
+    await Promise.resolve();
+
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(subscribe).not.toHaveBeenCalled();
+  });
+
+  test("replaces previews and cancels delayed preview work on attempt start and teardown", async () => {
+    const runtime = new MusicRuntime();
+    let resolveFirst!: (enabled: boolean) => void;
+    const ensureVoice = vi
+      .spyOn(runtime, "ensurePlaybackVoice")
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          }),
+      )
+      .mockResolvedValue(true);
+    const playPattern = vi.spyOn(runtime.sound, "playPattern");
+    const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
+    const view = render(Page, { runtime });
+
+    button("Hear scale")?.click();
+    button("Hear scale")?.click();
+    await vi.waitFor(() => expect(playPattern).toHaveBeenCalledOnce());
+    resolveFirst(true);
+    await Promise.resolve();
+    expect(playPattern).toHaveBeenCalledOnce();
+
+    const stopsBeforeAttempt = stopPattern.mock.calls.length;
+    button("Play it back")?.click();
+    await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
+    expect(stopPattern.mock.calls.length).toBeGreaterThan(stopsBeforeAttempt);
+
+    let resolveNavigation!: (enabled: boolean) => void;
+    ensureVoice.mockImplementationOnce(
+      () => new Promise((resolve) => (resolveNavigation = resolve)),
+    );
+    button("Hear scale")?.click();
+    const stopsBeforeUnmount = stopPattern.mock.calls.length;
+    view.unmount();
+    resolveNavigation(true);
+    await Promise.resolve();
+    expect(playPattern).toHaveBeenCalledOnce();
+    expect(stopPattern.mock.calls.length).toBeGreaterThan(stopsBeforeUnmount);
+  });
+
+  test("keeps the attempt stopped when playback voice activation fails", async () => {
+    const runtime = new MusicRuntime();
+    runtime.audioMessage = "Preferred voice unavailable.";
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
+    render(Page, { runtime });
+
+    button("Play it back")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain("Play D Dorian over Dm7");
+  });
+
   test("renders the ii-V-I changes with each chord's go-to scale", async () => {
     render(Page);
 
@@ -93,6 +178,11 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     ];
 
     button("Play it back")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Play D Dorian"));
+    expect(harness.runtime.beginPerformance).toHaveBeenCalledOnce();
+    expect(harness.runtime.registerPracticeContext).toHaveBeenCalledWith(
+      expect.objectContaining({ variantKey: "v1:chord-scales:piano:major" }),
+    );
     for (const [index, midi] of scales[0]!.entries()) {
       harness.emit(midi, index * 100);
     }
@@ -117,6 +207,11 @@ describe("/music/play/chord-scales/+page.svelte", () => {
         ).toContain(symbols[scaleIndex]!),
       );
       button("Play it back")?.click();
+      await vi.waitFor(() =>
+        expect(document.body.textContent).toContain(
+          scaleIndex === 0 ? "Play G Mixolydian" : "Play C Major",
+        ),
+      );
       for (const [index, midi] of scale.entries()) {
         harness.emit(midi, index * 100);
       }
@@ -157,10 +252,13 @@ function makeRuntime() {
     | undefined;
   const runtime = {
     activeSource: "onscreen",
+    activeInstrument: "piano",
     audioEnabled: false,
+    audioMessage: "",
     dailyRoutine: undefined,
     enableAudio: vi.fn(async () => true),
-    sound: { playNote: vi.fn() },
+    ensurePlaybackVoice: vi.fn(async () => true),
+    sound: { playNote: vi.fn(), playPattern: vi.fn(), stopPattern: vi.fn() },
     router: {
       subscribe: vi.fn((next) => {
         listener = next;
@@ -169,6 +267,15 @@ function makeRuntime() {
       push: vi.fn(() => true),
     },
     recordPractice: vi.fn(async () => undefined),
+    setActiveInstrument: vi.fn(),
+    registerPracticeContext: vi.fn(
+      async (context: Parameters<MusicRuntime["registerPracticeContext"]>[0]) => {
+        context.onBpmChange?.(132);
+        return vi.fn();
+      },
+    ),
+    beginPerformance: vi.fn(async () => ({ status: "started", downbeat: monotonicMs(1_000) })),
+    endPerformance: vi.fn(),
   };
 
   return {

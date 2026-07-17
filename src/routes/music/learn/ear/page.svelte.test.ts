@@ -2,24 +2,33 @@ import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
+import { EarTrainingSession } from "@repo/music-core/engines/ear-training";
 import { SoundEngine } from "@repo/music-core/engines/sound";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
+import { MusicRuntime } from "../../_runtime.svelte";
 
 describe("/music/learn/ear/+page.svelte", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     setTestUrl("/");
     vi.spyOn(SoundEngine.prototype, "enable").mockImplementation(async function () {
       this.enabled = true;
       return { enabled: true, message: "Audio enabled." };
     });
+    vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+      status: "started",
+      downbeat: monotonicMs(0),
+    });
   });
 
   test("starts a mixed Practice session and advances the session rail", async () => {
+    const runtime = new MusicRuntime();
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance");
     const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern");
-    render(Page);
+    render(Page, { runtime });
 
     expect(document.querySelector("h1")?.textContent).toContain("Ear Training");
     expect(document.body.textContent).toContain("Interval");
@@ -43,6 +52,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     expect(document.querySelector('[data-testid="feedback"]')).not.toBeNull();
     expect(document.body.textContent).toContain("Session XP");
     expect(document.body.textContent).toContain("Streak");
+    expect(beginPerformance).not.toHaveBeenCalled();
   });
 
   test("supports Test and Play-back modes without immediate correctness", async () => {
@@ -63,7 +73,9 @@ describe("/music/learn/ear/+page.svelte", () => {
       button.textContent?.includes("Start Interval"),
     );
     await vi.waitFor(() => expect(interval?.disabled).toBe(false));
+    vi.useFakeTimers();
     interval?.click();
+    await vi.advanceTimersByTimeAsync(3_000);
 
     await vi.waitFor(() =>
       expect(
@@ -164,15 +176,231 @@ describe("/music/learn/ear/+page.svelte", () => {
       button.textContent?.includes("Start Scale Degree"),
     );
     await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
+    vi.useFakeTimers();
     scaleDegree?.click();
 
     await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalledOnce());
     await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
+    await vi.advanceTimersByTimeAsync(3_000);
     expect(document.body.textContent).toContain("Sing the answer");
 
     audioListener?.(audioNote(60));
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
+  });
+
+  test("plays a performance prompt before count-in and arms only after started", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    let resolve!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance").mockReturnValue(
+      new Promise((settle) => {
+        resolve = settle;
+      }),
+    );
+    const arm = vi.spyOn(EarTrainingSession.prototype, "armCurrentAnswer");
+    render(Page, { runtime });
+
+    button("Play-back")?.click();
+    const scaleDegree = button("Start Scale Degree");
+    await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
+    vi.useFakeTimers();
+    scaleDegree?.click();
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(playPattern).toHaveBeenCalled();
+    const pattern = playPattern.mock.calls[0]![0];
+    const durationMs =
+      pattern.reduce((end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds), 0) *
+      1_000;
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(arm).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("Input opens on the downbeat");
+
+    await vi.advanceTimersByTimeAsync(durationMs - 1);
+    expect(beginPerformance).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(beginPerformance).toHaveBeenCalledOnce();
+    resolve({ status: "started", downbeat: monotonicMs(1_234) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(arm).toHaveBeenCalledOnce();
+    expect(document.body.textContent).toContain("Play the answer");
+  });
+
+  test("restarts the full prompt wait when replayed before count-in", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance").mockResolvedValue({
+      status: "started",
+      downbeat: monotonicMs(1_234),
+    });
+    const arm = vi.spyOn(EarTrainingSession.prototype, "armCurrentAnswer");
+    const disarm = vi.spyOn(EarTrainingSession.prototype, "disarmCurrentAnswer");
+    render(Page, { runtime });
+
+    button("Play-back")?.click();
+    const scaleDegree = button("Start Scale Degree");
+    await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
+    vi.useFakeTimers();
+    scaleDegree?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const pattern = playPattern.mock.calls[0]![0];
+    const durationMs =
+      pattern.reduce((end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds), 0) *
+      1_000;
+    await vi.advanceTimersByTimeAsync(Math.floor(durationMs / 2));
+    stopPattern.mockClear();
+    button("Replay sound")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(disarm).toHaveBeenCalledOnce();
+    expect(stopPattern).toHaveBeenCalledOnce();
+    expect(arm).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("Input opens on the downbeat");
+    await vi.advanceTimersByTimeAsync(durationMs - 1);
+    expect(beginPerformance).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(beginPerformance).toHaveBeenCalledOnce();
+    expect(arm).toHaveBeenCalledOnce();
+    expect(document.body.textContent).toContain("Play the answer");
+  });
+
+  test("restarts the full performance gate when replayed during count-in", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
+    let resolveFirst!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
+    let resolveSecond!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
+    const beginPerformance = vi
+      .spyOn(runtime, "beginPerformance")
+      .mockReturnValueOnce(new Promise((resolve) => (resolveFirst = resolve)))
+      .mockReturnValueOnce(new Promise((resolve) => (resolveSecond = resolve)));
+    const arm = vi.spyOn(EarTrainingSession.prototype, "armCurrentAnswer");
+    const disarm = vi.spyOn(EarTrainingSession.prototype, "disarmCurrentAnswer");
+    render(Page, { runtime });
+
+    button("Play-back")?.click();
+    const scaleDegree = button("Start Scale Degree");
+    await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
+    vi.useFakeTimers();
+    scaleDegree?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    const pattern = playPattern.mock.calls[0]![0];
+    const durationMs =
+      pattern.reduce((end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds), 0) *
+      1_000;
+    await vi.advanceTimersByTimeAsync(durationMs);
+    expect(beginPerformance).toHaveBeenCalledOnce();
+
+    stopPattern.mockClear();
+    button("Replay sound")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(disarm).toHaveBeenCalledOnce();
+    expect(stopPattern).toHaveBeenCalledOnce();
+    expect(arm).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("Input opens on the downbeat");
+
+    resolveFirst({ status: "started", downbeat: monotonicMs(1_234) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(arm).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(durationMs);
+    expect(beginPerformance).toHaveBeenCalledTimes(2);
+    expect(arm).not.toHaveBeenCalled();
+    resolveSecond({ status: "started", downbeat: monotonicMs(2_468) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(arm).toHaveBeenCalledOnce();
+    expect(document.body.textContent).toContain("Play the answer");
+  });
+
+  test("cancels a stale performance prompt wait on abandon", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
+    const endPerformance = vi.spyOn(runtime, "endPerformance");
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance");
+    render(Page, { runtime });
+
+    button("Play-back")?.click();
+    const scaleDegree = button("Start Scale Degree");
+    await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
+    vi.useFakeTimers();
+    const clearTimer = vi.spyOn(globalThis, "clearTimeout");
+    scaleDegree?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(playPattern).toHaveBeenCalled();
+
+    stopPattern.mockClear();
+    endPerformance.mockClear();
+    button("End session")?.click();
+    expect(clearTimer).toHaveBeenCalled();
+    expect(stopPattern).toHaveBeenCalledOnce();
+    expect(endPerformance).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(beginPerformance).not.toHaveBeenCalled();
+  });
+
+  test.each(["choice", "listen"] as const)(
+    "keeps %s replay immediate and stops audio on result replacement",
+    async (mode) => {
+      const runtime = new MusicRuntime();
+      const beginPerformance = vi.spyOn(runtime, "beginPerformance");
+      const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+      const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
+      const view = render(Page, { runtime });
+
+      if (mode === "listen") button("Pocket")?.click();
+      const mixed = button("Mixed Session");
+      await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
+      mixed?.click();
+      await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
+
+      playPattern.mockClear();
+      stopPattern.mockClear();
+      button("Replay sound")?.click();
+      await vi.waitFor(() => expect(playPattern).toHaveBeenCalledOnce());
+      expect(stopPattern).toHaveBeenCalledOnce();
+      expect(beginPerformance).not.toHaveBeenCalled();
+
+      stopPattern.mockClear();
+      if (mode === "listen") button("I heard it")?.click();
+      else answerChoiceButton()?.click();
+      await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
+      expect(stopPattern).toHaveBeenCalled();
+      expect(beginPerformance).not.toHaveBeenCalled();
+      view.unmount();
+    },
+  );
+
+  test("settles prompt playback and stops the clock and audio on teardown", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
+    const endPerformance = vi.spyOn(runtime, "endPerformance");
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance");
+    const view = render(Page, { runtime });
+
+    button("Play-back")?.click();
+    const scaleDegree = button("Start Scale Degree");
+    await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
+    vi.useFakeTimers();
+    scaleDegree?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(playPattern).toHaveBeenCalled();
+
+    stopPattern.mockClear();
+    endPerformance.mockClear();
+    view.unmount();
+    expect(stopPattern).toHaveBeenCalledOnce();
+    expect(endPerformance).toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(beginPerformance).not.toHaveBeenCalled();
   });
 
   test("starts melody dictation in play-back mode and advances from on-screen notes", async () => {
@@ -193,7 +421,9 @@ describe("/music/learn/ear/+page.svelte", () => {
       (button) => button.textContent?.trim() === "Start Melody Dictation",
     );
     await vi.waitFor(() => expect(melody?.disabled).toBe(false));
+    vi.useFakeTimers();
     melody?.click();
+    await vi.advanceTimersByTimeAsync(3_000);
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play back the phrase"));
     await vi.waitFor(() =>
@@ -473,9 +703,11 @@ describe("/music/learn/ear/+page.svelte", () => {
     });
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Repertoire transfer"));
+    vi.useFakeTimers();
     [...document.querySelectorAll("button")]
       .find((button) => button.textContent?.trim() === "Practice transfer")
       ?.click();
+    await vi.advanceTimersByTimeAsync(3_000);
 
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("Play back the saved-song phrase"),
@@ -513,9 +745,11 @@ describe("/music/learn/ear/+page.svelte", () => {
     });
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Repertoire transfer"));
+    vi.useFakeTimers();
     [...document.querySelectorAll("button")]
       .find((button) => button.textContent?.trim() === "Practice transfer")
       ?.click();
+    await vi.advanceTimersByTimeAsync(3_000);
 
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("Play back the saved-song phrase"),
@@ -560,9 +794,11 @@ describe("/music/learn/ear/+page.svelte", () => {
     });
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Repertoire review plan"));
+    vi.useFakeTimers();
     [...document.querySelectorAll("button")]
       .find((button) => button.textContent?.trim() === "Practice review plan")
       ?.click();
+    await vi.advanceTimersByTimeAsync(3_000);
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("1 / 2"));
     for (const noteName of ["C4", "D4", "E4", "G4"]) {
@@ -571,6 +807,7 @@ describe("/music/learn/ear/+page.svelte", () => {
         ?.click();
     }
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 2"));
+    await vi.advanceTimersByTimeAsync(3_000);
     for (const noteName of ["C4", "D4", "E4", "G4"]) {
       [...document.querySelectorAll("button")]
         .find((button) => button.textContent === noteName)

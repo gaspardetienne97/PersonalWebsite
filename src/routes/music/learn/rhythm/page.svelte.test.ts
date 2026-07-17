@@ -1,23 +1,35 @@
-import { afterEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
+
+import { monotonicMs } from "@repo/music-core/domain";
+import { RhythmSession } from "@repo/music-core/engines/rhythm-session";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
 import { MusicRuntime } from "../../_runtime.svelte";
 
+beforeEach(() => {
+  vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
+  vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+    status: "started",
+    downbeat: monotonicMs(0),
+  });
+});
+
 afterEach(() => {
+  vi.restoreAllMocks();
   setTestUrl("/");
   document.body.replaceChildren();
 });
 
 describe("/music/learn/rhythm/+page.svelte", () => {
-  test("shows pulse setup with MIDI, microphone, and tap-tempo controls", async () => {
+  test("shows pulse setup with MIDI, microphone, and shared tempo readout", async () => {
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("Rhythm Trainer");
     expect(button("Enable MIDI")).not.toBeUndefined();
     expect(button("Start microphone")).not.toBeUndefined();
-    expect(button("Tap tempo")).not.toBeUndefined();
+    expect(bpmReadout()?.textContent).toContain("100 BPM");
     await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
   });
 
@@ -31,28 +43,70 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Progress"));
   });
 
+  test("starts the rhythm engine only after the shared downbeat", async () => {
+    const runtime = new MusicRuntime();
+    let resolve!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
+    vi.spyOn(runtime, "beginPerformance").mockReturnValue(
+      new Promise((settle) => {
+        resolve = settle;
+      }),
+    );
+    const start = vi.spyOn(RhythmSession.prototype, "start").mockResolvedValue({} as never);
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
+    button("Start Rhythm")?.click();
+    await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
+    expect(start).not.toHaveBeenCalled();
+
+    resolve({ status: "started", downbeat: monotonicMs(1_234) });
+    await vi.waitFor(() =>
+      expect(start).toHaveBeenCalledWith(expect.objectContaining({ startTimestampMs: 1_234 })),
+    );
+  });
+
+  test("keeps rhythm setup when playback voice activation fails", async () => {
+    const runtime = new MusicRuntime();
+    runtime.audioMessage = "Playback voice unavailable.";
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance");
+    const start = vi.spyOn(RhythmSession.prototype, "start");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
+    button("Start Rhythm")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Playback voice unavailable."),
+    );
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(start).not.toHaveBeenCalled();
+    expect(button("Start Rhythm")).not.toBeUndefined();
+  });
+
   test("restores setup from shareable query parameters", async () => {
     setTestUrl("/music/learn/rhythm?mode=read-and-tap&bpm=72&beats=6&pattern=eighth-rests");
     render(Page);
 
     expect(button("Read & tap")).toHaveAttribute("aria-pressed", "true");
     expect(select("Pattern")?.value).toBe("eighth-rests");
-    expect(input("BPM")?.value).toBe("72");
+    expect(bpmReadout()?.textContent).toContain("72 BPM");
     expect(input("Beats")?.value).toBe("6");
     await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
   });
 
   test("keeps setup changes in the shareable URL", async () => {
     setTestUrl("/music/learn/rhythm");
-    render(Page);
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
 
     select("Pattern")!.value = "triplets";
     select("Pattern")!.dispatchEvent(new Event("change", { bubbles: true }));
-    input("BPM")!.value = "88";
-    input("BPM")!.dispatchEvent(new Event("input", { bubbles: true }));
     input("Beats")!.value = "8";
     input("Beats")!.dispatchEvent(new Event("input", { bubbles: true }));
     button("Read & tap")?.click();
+    await vi.waitFor(() => expect(runtime.practiceBpm).toBe(100));
+    runtime.setPracticeVariantBpm(88, "v1:rhythm:read-and-tap:triplets");
 
     await vi.waitFor(() => expect(window.location.search).toContain("bpm=88"));
     expect(window.location.search).toContain("pattern=triplets");
@@ -68,8 +122,8 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     expect(select("Pattern")?.value).toBe("eighth-rests");
     button("Start Rhythm")?.click();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Eighth-note rests"));
-    expect(button("Tap beat")).not.toBeUndefined();
+    await vi.waitFor(() => expect(button("Tap beat")).not.toBeUndefined());
+    expect(document.body.textContent).toContain("Eighth-note rests");
   });
 
   test("starts read-and-tap with a visible rhythm target", async () => {
@@ -87,35 +141,37 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     expect(button("Tap rhythm")).not.toBeUndefined();
   });
 
-  test("gap-click schedules audible clicks for the on bar only", async () => {
+  test("gap-click gates the on bar, silences the off bar, and resets from absolute beat", async () => {
     setTestUrl("/music/learn/rhythm?pattern=gap-click-1-on-1-off&bpm=120");
     const runtime = new MusicRuntime();
-    runtime.audioEnabled = true;
-    vi.spyOn(runtime.sound, "playCountIn").mockReturnValue({
-      startAudioSeconds: 0,
-      delayMs: 2_000,
+    runtime.countInBars = 1;
+    let gate: Parameters<MusicRuntime["registerPracticeContext"]>[0]["shouldPlayMetronome"];
+    vi.spyOn(runtime, "registerPracticeContext").mockImplementation(async (context) => {
+      gate = context.shouldPlayMetronome;
+      return () => {};
     });
-    const click = vi.spyOn(runtime.sound, "playMetronomeClick").mockImplementation(() => {});
     render(Page, { runtime });
 
     await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
-    button("Start Rhythm")?.click();
-
-    // Focus mode engages while the run is active.
-    await vi.waitFor(() => expect(runtime.drillFocus).toBe(true));
-
-    // 2 bars at 120 BPM starting 2s in: bar 0 clicks (accent on beat 1),
-    // bar 1 (beats at 4s+) stays silent — that's the gap.
-    await vi.waitFor(() => expect(click).toHaveBeenCalledTimes(4));
-    expect(click.mock.calls.map(([atSeconds]) => atSeconds)).toEqual([2, 2.5, 3, 3.5]);
-    expect(click.mock.calls.map(([, accented]) => accented)).toEqual([true, false, false, false]);
+    await vi.waitFor(() => expect(gate).toBeTypeOf("function"));
+    const event = {
+      kind: "beat" as const,
+      atSeconds: 0,
+      atMonotonicMs: monotonicMs(0),
+      beat: 0,
+      subdivision: 0,
+      accented: true,
+      countingIn: false,
+    };
+    expect(gate?.({ ...event, absoluteBeat: 4 })).toBe(true);
+    expect(gate?.({ ...event, absoluteBeat: 8 })).toBe(false);
+    expect(gate?.({ ...event, absoluteBeat: 4 })).toBe(true);
     runtime.dispose();
   });
 
   test("offers a slower retry after a completed pulse run", async () => {
+    setTestUrl("/music/learn/rhythm?bpm=100&beats=2");
     render(Page);
-    input("BPM")!.value = "100";
-    input("BPM")!.dispatchEvent(new Event("input", { bubbles: true }));
     input("Beats")!.value = "2";
     input("Beats")!.dispatchEvent(new Event("input", { bubbles: true }));
 
@@ -125,10 +181,10 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     button("Tap beat")?.click();
     button("Tap beat")?.click();
 
-    await vi.waitFor(() => expect(button("Slow down")).not.toBeUndefined());
-    button("Slow down")?.click();
+    await vi.waitFor(() => expect(button("Slow to 90 BPM")).not.toBeUndefined());
+    button("Slow to 90 BPM")?.click();
 
-    await vi.waitFor(() => expect(input("BPM")?.value).toBe("90"));
+    await vi.waitFor(() => expect(bpmReadout()?.textContent).toContain("90 BPM"));
     expect(input("Beats")?.value).toBe("2");
     expect(document.body.textContent).toContain("Ready for a rhythm session.");
   });
@@ -144,6 +200,10 @@ function input(label: string): HTMLInputElement | undefined {
   return [...document.querySelectorAll<HTMLInputElement>("input")].find(
     (candidate) => candidate.getAttribute("aria-label") === label,
   );
+}
+
+function bpmReadout(): HTMLElement | null {
+  return document.querySelector('[aria-label="BPM"]');
 }
 
 function select(label: string): HTMLSelectElement | undefined {

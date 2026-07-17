@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import Check from "lucide-svelte/icons/check";
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import { unixMs,
     INSTRUMENT_LABELS,
@@ -47,19 +47,22 @@
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
-  const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  let { runtime: runtimeProp }: { runtime?: MusicRuntime } = $props();
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
+  const runtime = runtimeProp ?? useMusicRuntime();
   // Baseline cutoff for the last-run comparison (see LastRunDelta).
   const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
-  const hasInstrumentQuery = browser
-    ? initialDrillSearch().has("instrument")
-    : false;
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const hasInstrumentQuery = initialSearch.has("instrument");
   const initialConfig = normalizeVoicingDrillConfig(
-    browser ? initialDrillSearch() : {},
+    initialSearch,
+    hasInstrumentQuery ? "piano" : runtime.activeInstrument,
   );
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
   const variantLabels: Record<DrillVariant, string> = {
     major: "Rootless ii-V-I",
     minor: "Minor ii-V-i",
@@ -67,6 +70,7 @@
   };
 
   let instrument = $state<InstrumentId>(initialConfig.instrument);
+  runtime.setActiveInstrument(initialConfig.instrument);
   let variant = $state<DrillVariant>(initialConfig.variant);
   let startPosition = $state<RootlessPosition>(initialConfig.startPosition);
   // Grading: lenient (any note played, beginner/on-screen) vs held-together
@@ -74,12 +78,15 @@
   // soon as the target is matched, so no manual "Check" is needed.
   let strict = $state(initialConfig.strict);
   let autoAdvance = $state(initialConfig.autoAdvance);
+  let bpm = $state(96);
 
   let ready = $state(false);
   let session = $state<VoicingDrillSession | undefined>();
   let drillState = $state<VoicingDrillState | undefined>();
   let status = $state("Loading your harmony progress…");
   let pending = $state(false);
+  let routeGeneration = 0;
+  let practiceContextReady: Promise<void> = Promise.resolve();
   let liveTick = $state(0);
   let captured = false;
   let unsubscribeSession: (() => void) | undefined;
@@ -100,6 +107,9 @@
       advance: autoAdvance ? "auto" : "manual",
     }),
   );
+  const variantKey = $derived(
+    `v1:voicings:${instrument}:${variant}:${startPosition}:${strict ? "held" : "lenient"}:${autoAdvance ? "auto" : "manual"}`,
+  );
 
   void initialize();
 
@@ -108,10 +118,30 @@
   });
 
   $effect(() => {
-    if (hasInstrumentQuery || session) return;
-    instrument = VIEWABLE_INSTRUMENTS.includes(runtime.activeInstrument)
-      ? runtime.activeInstrument
-      : "piano";
+    const key = variantKey;
+    routeGeneration += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "voicings",
+        variantKey: key,
+        defaultBpm: 96,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        allowedInstruments: [...VIEWABLE_INSTRUMENTS],
+        onBpmChange: (next) => (bpm = next),
+        onInstrumentChange: (next) => (instrument = next),
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed) cleanup();
+      });
+    return () => {
+      disposed = true;
+      routeGeneration += 1;
+      cleanup();
+    };
   });
 
   // Recompute live progress as input arrives during an active chord, and
@@ -138,38 +168,74 @@
     status = "Pick an instrument and start the ii-V-I drill.";
   }
 
-  function startDrill(): void {
+  async function startDrill(): Promise<void> {
     if (!ready || pending) return;
-    const config = normalizedConfig;
-    unsubscribeSession?.();
-    session?.dispose();
-    captured = false;
-    session = new VoicingDrillSession({
-      router: runtime.router,
-      services: { skills, analytics, progress },
-      instrument: config.instrument,
-      variant: config.variant,
-      startPosition: config.startPosition,
-      strict: config.strict,
-    });
-    unsubscribeSession = session.subscribe((next) => {
-      drillState = next;
-      if (next.status === "summary" && !captured) {
-        captured = true;
-        void runtime.recordPractice({
-          source: "drill",
-          instrument: config.instrument,
-          tags: ["jazz", "voicings", "ii-v-i"],
-          scoringEvents: next.results.map((result) => result.event),
-          xpEarned: next.xp,
-          note: `${variantLabel} · ${Math.round(next.accuracy * 100)}% across ${next.total} chords`,
-        });
-      }
-    });
-    session.start();
-    status = autoAdvance
-      ? "Play the voicing — it advances on its own."
-      : "Play the voicing, then press Check.";
+    pending = true;
+    await tick();
+    const generation = routeGeneration;
+    await practiceContextReady;
+    if (generation !== routeGeneration) {
+      pending = false;
+      return;
+    }
+    if (!(await runtime.ensurePlaybackVoice())) {
+      pending = false;
+      if (generation === routeGeneration) status = runtime.audioMessage;
+      return;
+    }
+    if (generation !== routeGeneration) {
+      pending = false;
+      return;
+    }
+    const performance = await runtime.beginPerformance();
+    if (generation !== routeGeneration) {
+      if (performance.status === "started") runtime.endPerformance();
+      pending = false;
+      return;
+    }
+    if (performance.status !== "started") {
+      pending = false;
+      status = performance.status === "failed" ? performance.message : "Start cancelled.";
+      return;
+    }
+    try {
+      const config = normalizedConfig;
+      unsubscribeSession?.();
+      session?.dispose();
+      captured = false;
+      session = new VoicingDrillSession({
+        router: runtime.router,
+        services: { skills, analytics, progress },
+        instrument: config.instrument,
+        variant: config.variant,
+        startPosition: config.startPosition,
+        strict: config.strict,
+      });
+      unsubscribeSession = session.subscribe((next) => {
+        drillState = next;
+        if (next.status === "summary") runtime.endPerformance();
+        if (next.status === "summary" && !captured) {
+          captured = true;
+          void runtime.recordPractice({
+            source: "drill",
+            instrument: config.instrument,
+            tags: ["jazz", "voicings", "ii-v-i"],
+            scoringEvents: next.results.map((result) => result.event),
+            xpEarned: next.xp,
+            note: `${variantLabel} · ${Math.round(next.accuracy * 100)}% across ${next.total} chords`,
+          });
+        }
+      });
+      session.start();
+      status = autoAdvance
+        ? "Play the voicing — it advances on its own."
+        : "Play the voicing, then press Check.";
+    } catch (error) {
+      runtime.endPerformance();
+      status = error instanceof Error ? error.message : "The voicing drill could not start.";
+    } finally {
+      pending = false;
+    }
   }
 
   async function check(): Promise<void> {
@@ -206,10 +272,13 @@
     params.set("start", config.startPosition);
     params.set("strict", config.strict ? "held" : "lenient");
     params.set("advance", config.autoAdvance ? "auto" : "manual");
+    params.set("bpm", String(bpm));
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
   onDestroy(() => {
+    routeGeneration += 1;
+    runtime.endPerformance();
     unsubscribeSession?.();
     session?.dispose();
   });
@@ -255,7 +324,10 @@
               ariaLabel="Instrument"
               options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
               value={instrument}
-              onChange={(v) => (instrument = v as InstrumentId)}
+              onChange={(v) => {
+                instrument = v as InstrumentId;
+                runtime.setActiveInstrument(instrument);
+              }}
             />
             <SegmentedControl
               size="sm"
@@ -350,7 +422,7 @@
               </p>
             </div>
             <LastRunDelta tags={["voicings"]} accuracy={drillState.accuracy} before={visitStartedAt} />
-            <AdaptiveRetryBar onRetry={startDrill} retryLabel="Repeat voicings" />
+            <AdaptiveRetryBar onRetry={() => void startDrill()} retryLabel="Repeat voicings" />
             <RoutineContinueAction routine={runtime.dailyRoutine} />
             <NextUpSuggestion {skills} {analytics} currentPath="/music/play/voicings" routine={runtime.dailyRoutine} />
           {/if}
@@ -367,10 +439,10 @@
 
         <Card.Footer class="flex-wrap gap-3">
           {#if !drillState || drillState.status === "idle" || drillState.status === "summary"}
-            <Button type="button" disabled={!ready || pending} onclick={startDrill}>
+            <Button type="button" disabled={!ready || pending} onclick={() => void startDrill()}>
               {drillState?.status === "summary" ? "Restart drill" : "Start drill"}
             </Button>
-            <StartShortcut onStart={startDrill} />
+            <StartShortcut onStart={() => void startDrill()} />
           {:else if autoAdvance}
             <Button type="button" variant="outline" disabled={pending} onclick={check}>
               Skip chord

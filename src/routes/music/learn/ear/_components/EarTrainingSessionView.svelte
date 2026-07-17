@@ -49,6 +49,7 @@
     instrument = "piano",
     surface = "keyboard",
     voiceStatus,
+    answerReady = true,
     onReplay,
     onPlayTonic,
     onAnswer,
@@ -60,6 +61,7 @@
     instrument?: InstrumentId;
     surface?: InputSurfaceId;
     voiceStatus?: string;
+    answerReady?: boolean;
     onReplay: () => void;
     onPlayTonic?: (midiNote: number) => void;
     onAnswer: (token: string) => void;
@@ -264,6 +266,14 @@
         {/each}
       </div>
     {/if}
+  {:else if
+    prompt &&
+    (state.options.answerMode === "play-back" || state.options.answerMode === "voice") &&
+    !answerReady}
+    <div class="rounded-2xl border bg-card p-5 text-center">
+      <p class="text-lg font-semibold">Get ready</p>
+      <p class="text-sm text-muted-foreground">Listen to the count-in. Input opens on the downbeat.</p>
+    </div>
   {:else if prompt && state.options.answerMode === "voice"}
     <div class="rounded-2xl border bg-card p-5">
       <div class="grid gap-2 text-center">

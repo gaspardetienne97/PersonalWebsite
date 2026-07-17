@@ -1,10 +1,22 @@
-import { afterEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
+import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+import { ProgressEngine } from "@repo/music-core/engines/progress";
+import { SkillGraphStore } from "@repo/music-core/engines/skills";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
+import { MusicRuntime } from "../../_runtime.svelte";
+
+beforeEach(() => {
+  vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
+  vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+    status: "started",
+    downbeat: monotonicMs(1_000),
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -13,6 +25,276 @@ afterEach(() => {
 });
 
 describe("/music/play/chord-perfect/+page.svelte", () => {
+  test("does not install session subscriptions when services resolve after teardown", async () => {
+    let resolveServices!: () => void;
+    vi.spyOn(SkillGraphStore.prototype, "seed").mockReturnValue(
+      new Promise((resolve) => {
+        resolveServices = resolve;
+      }),
+    );
+    vi.spyOn(AnalyticsEngine.prototype, "load").mockResolvedValue();
+    vi.spyOn(ProgressEngine.prototype, "load").mockResolvedValue();
+    const runtime = new MusicRuntime();
+    const subscribe = vi.spyOn(runtime.router, "subscribe");
+    const view = render(Page, { runtime });
+    const subscriptionCount = subscribe.mock.calls.length;
+
+    view.unmount();
+    resolveServices();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(subscribe).toHaveBeenCalledTimes(subscriptionCount);
+    runtime.dispose();
+  });
+
+  test("prepares capture from Start but waits for practice context before recording", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    let resolveContext!: (cleanup: () => void) => void;
+    vi.spyOn(runtime, "registerPracticeContext").mockReturnValue(
+      new Promise((resolve) => {
+        resolveContext = resolve;
+      }),
+    );
+    const ensurePlaybackVoice = vi.spyOn(runtime, "ensurePlaybackVoice");
+    const record = vi.fn(async () => [60, 64, 67]);
+    const prepareStrum = vi.fn(async () => ({ record, dispose: vi.fn() }));
+    render(Page, { runtime, prepareStrum, audioSupported: true });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+    await Promise.resolve();
+    expect(prepareStrum).toHaveBeenCalledOnce();
+    expect(ensurePlaybackVoice).not.toHaveBeenCalled();
+    expect(record).not.toHaveBeenCalled();
+
+    resolveContext(vi.fn());
+    await vi.waitFor(() => expect(record).toHaveBeenCalledOnce());
+  });
+
+  test("prepares buffered capture before count-in and records on the shared downbeat", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    let resolvePrepare!: (capture: { record(): Promise<number[]>; dispose(): void }) => void;
+    let resolveDownbeat!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
+    const record = vi.fn(async () => [60, 64, 67]);
+    const dispose = vi.fn();
+    const prepareStrum = vi.fn(
+      () =>
+        new Promise<{ record(): Promise<number[]>; dispose(): void }>((resolve) => {
+          resolvePrepare = resolve;
+        }),
+    );
+    vi.spyOn(runtime, "beginPerformance").mockReturnValue(
+      new Promise((resolve) => {
+        resolveDownbeat = resolve;
+      }),
+    );
+    render(Page, { runtime, prepareStrum, audioSupported: true });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(prepareStrum).toHaveBeenCalledOnce());
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+    expect(record).not.toHaveBeenCalled();
+
+    resolvePrepare({ record, dispose });
+    await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
+    expect(record).not.toHaveBeenCalled();
+
+    resolveDownbeat({ status: "started", downbeat: monotonicMs(2_000) });
+    await vi.waitFor(() => expect(record).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce());
+  });
+
+  test("releases prepared strum capture when count-in is cancelled", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "beginPerformance").mockResolvedValue({ status: "cancelled" });
+    const record = vi.fn(async () => [60, 64, 67]);
+    const dispose = vi.fn();
+    const prepareStrum = vi.fn(async () => ({ record, dispose }));
+    render(Page, { runtime, prepareStrum, audioSupported: true });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+
+    await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce());
+    expect(record).not.toHaveBeenCalled();
+  });
+
+  test("does not start the clock when buffered capture permission is denied", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    const recordPractice = vi.spyOn(runtime, "recordPractice");
+    const prepareStrum = vi.fn(async () => {
+      throw new Error("Microphone access denied.");
+    });
+    render(Page, { runtime, prepareStrum, audioSupported: true });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Microphone access denied."),
+    );
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+    expect(recordPractice).not.toHaveBeenCalled();
+  });
+
+  test("releases prepared strum capture when configuration is replaced during count-in", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    let resolveDownbeat!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
+    vi.spyOn(runtime, "beginPerformance").mockReturnValue(
+      new Promise((resolve) => {
+        resolveDownbeat = resolve;
+      }),
+    );
+    const record = vi.fn(async () => [60, 64, 67]);
+    const dispose = vi.fn();
+    render(Page, {
+      runtime,
+      prepareStrum: vi.fn(async () => ({ record, dispose })),
+      audioSupported: true,
+    });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
+    const chord = select("Chord")!;
+    chord.value = "guitar.g-major";
+    chord.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce());
+    resolveDownbeat({ status: "started", downbeat: monotonicMs(2_000) });
+    await Promise.resolve();
+    expect(record).not.toHaveBeenCalled();
+  });
+
+  test("releases prepared strum capture when the route tears down during count-in", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "beginPerformance").mockReturnValue(new Promise(() => {}));
+    const record = vi.fn(async () => [60, 64, 67]);
+    const dispose = vi.fn();
+    const view = render(Page, {
+      runtime,
+      prepareStrum: vi.fn(async () => ({ record, dispose })),
+      audioSupported: true,
+    });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
+    view.unmount();
+
+    expect(dispose).toHaveBeenCalledOnce();
+    expect(record).not.toHaveBeenCalled();
+  });
+
+  test("does not grade or persist when strum analysis settles after teardown", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    const recordPractice = vi.spyOn(runtime, "recordPractice");
+    const endPerformance = vi.spyOn(runtime, "endPerformance");
+    let resolveAnalysis!: (notes: number[]) => void;
+    const analyzeStrum = vi.fn(
+      () =>
+        new Promise<number[]>((resolve) => {
+          resolveAnalysis = resolve;
+        }),
+    );
+    const view = render(Page, { runtime, analyzeStrum, audioSupported: true });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(analyzeStrum).toHaveBeenCalledOnce());
+    view.unmount();
+    const endCallsAfterUnmount = endPerformance.mock.calls.length;
+    resolveAnalysis([60, 64, 67]);
+    await vi.waitFor(() =>
+      expect(endPerformance.mock.calls.length).toBeGreaterThan(endCallsAfterUnmount),
+    );
+
+    expect(recordPractice).not.toHaveBeenCalled();
+  });
+
+  test("does not grade a strum against replacement configuration", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    const recordPractice = vi.spyOn(runtime, "recordPractice");
+    const skillIngest = vi.spyOn(SkillGraphStore.prototype, "ingest");
+    const analyticsIngest = vi.spyOn(AnalyticsEngine.prototype, "ingest");
+    const progressIngest = vi.spyOn(ProgressEngine.prototype, "ingest");
+    let resolveAnalysis!: (notes: number[]) => void;
+    const analyzeStrum = vi.fn(
+      () =>
+        new Promise<number[]>((resolve) => {
+          resolveAnalysis = resolve;
+        }),
+    );
+    render(Page, { runtime, analyzeStrum, audioSupported: true });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(analyzeStrum).toHaveBeenCalledOnce());
+    const chord = select("Chord")!;
+    chord.value = "guitar.g-major";
+    chord.dispatchEvent(new Event("change", { bubbles: true }));
+    resolveAnalysis([60, 64, 67]);
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+
+    expect(recordPractice).not.toHaveBeenCalled();
+    expect(skillIngest).not.toHaveBeenCalled();
+    expect(analyticsIngest).not.toHaveBeenCalled();
+    expect(progressIngest).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain("Detected tones: C, E, G");
+  });
+
+  test("does not publish or persist a stale pipeline result", async () => {
+    setTestUrl("/music/play/chord-perfect?mode=strum");
+    const runtime = new MusicRuntime();
+    const recordPractice = vi.spyOn(runtime, "recordPractice");
+    let resolveProgress!: (xp: number) => void;
+    vi.spyOn(ProgressEngine.prototype, "ingest").mockReturnValue(
+      new Promise((resolve) => {
+        resolveProgress = resolve;
+      }),
+    );
+    render(Page, {
+      runtime,
+      analyzeStrum: vi.fn(async () => [60, 64, 67]),
+      audioSupported: true,
+    });
+
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(ProgressEngine.prototype.ingest).toHaveBeenCalled());
+    const chord = select("Chord")!;
+    chord.value = "guitar.g-major";
+    chord.dispatchEvent(new Event("change", { bubbles: true }));
+    resolveProgress(5);
+    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+
+    expect(recordPractice).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain("Open chord ID scored");
+  });
+
+  test("keeps the engine stopped when playback voice activation fails", async () => {
+    const runtime = new MusicRuntime();
+    runtime.audioMessage = "Preferred voice unavailable.";
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    button("Start drill")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+    expect(button("Cancel drill")).toBeUndefined();
+  });
+
   test("separates chord-perfect workflows into one primary mode at a time", async () => {
     render(Page);
 
@@ -54,7 +336,9 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
   });
 
   test("completes a guitar C major chord-perfect check on the fretboard", async () => {
-    render(Page);
+    const runtime = new MusicRuntime();
+    const register = vi.spyOn(runtime, "registerPracticeContext");
+    render(Page, { runtime });
 
     expect(document.querySelector("h1")?.textContent).toContain("Chord-Perfect");
     expect(button("Guitar")).toHaveAttribute("aria-pressed", "true");
@@ -62,6 +346,13 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     button("Start drill")?.click();
     await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+    expect(runtime.beginPerformance).toHaveBeenCalledOnce();
+    expect(register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variantKey: "v1:chord-perfect:guitar:build",
+        allowedInstruments: ["guitar", "ukulele"],
+      }),
+    );
 
     // C major [0,1,0,2,3,x]: voiced strings sounded low → high.
     for (const [stringNumber, fret] of [
@@ -87,6 +378,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     button("Pick strings cleanly")?.click();
     await vi.waitFor(() => expect(button("Start verifier")?.disabled).toBe(false));
     button("Start verifier")?.click();
+    await vi.waitFor(() => expect(button("Stop verifier")).not.toBeUndefined());
 
     for (const [stringNumber, fret] of [
       [5, 3],
@@ -109,6 +401,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     button("Pick strings cleanly")?.click();
     await vi.waitFor(() => expect(button("Start verifier")?.disabled).toBe(false));
     button("Start verifier")?.click();
+    await vi.waitFor(() => expect(button("Stop verifier")).not.toBeUndefined());
 
     fretButton(5, 3)?.click();
 
@@ -125,7 +418,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
   test("verifies target chord tones from microphone pitch events", async () => {
     let audioListener: ((event: NoteOnEvent) => void) | undefined;
     const audioSource = {
-      state: { status: "idle" as const },
+      state: { status: "running" as const },
       start: vi.fn(async () => {}),
       stop: vi.fn(async () => {}),
       subscribeState: vi.fn(() => vi.fn()),
@@ -150,6 +443,30 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       expect(document.body.textContent).toContain("Target complete");
       expect(document.body.textContent).toContain("100%");
     });
+  });
+
+  test("keeps microphone verification in setup when capture errors", async () => {
+    const audioSource = {
+      state: { status: "error" as const, message: "Worklet setup failed." },
+      start: vi.fn(async () => {}),
+      stop: vi.fn(async () => {}),
+      subscribeState: vi.fn(() => vi.fn()),
+      subscribeEvents: vi.fn(() => vi.fn()),
+    };
+    const runtime = new MusicRuntime();
+    const endPerformance = vi.spyOn(runtime, "endPerformance");
+    render(Page, { audioSource, audioSupported: true, runtime });
+
+    await vi.waitFor(() => expect(button("Pick strings cleanly")).not.toBeUndefined());
+    button("Pick strings cleanly")?.click();
+    await vi.waitFor(() => expect(button("Start mic verifier")?.disabled).toBe(false));
+    button("Start mic verifier")?.click();
+
+    await vi.waitFor(() => expect(audioSource.stop).toHaveBeenCalled());
+    expect(document.body.textContent).toContain("Worklet setup failed.");
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+    expect(endPerformance).toHaveBeenCalled();
+    expect(button("Stop mic verifier")).toBeUndefined();
   });
 
   test("identifies a strummed chord and verifies it against the target shape", async () => {
@@ -251,7 +568,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     await vi.waitFor(() => {
       expect(button("Cancel changes")).not.toBeUndefined();
       expect(document.querySelector('[data-testid="change-clock"]')?.textContent).toContain(
-        "1s left",
+        "1s timed run",
       );
     });
 

@@ -1,12 +1,9 @@
 <script lang="ts">
-  import { browser } from "$app/environment";
-
   import {
-    DEFAULT_MUSIC_SETTINGS,
-    MusicSettingsStore,
+    PLAYBACK_SOUND_IDS,
+    PLAYBACK_SOUND_LABELS,
     type MusicSettings,
   } from "@repo/music-core/engines/settings";
-  import { PracticeStore } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Input } from "@repo/ui/input";
@@ -17,45 +14,50 @@
   import { useMusicRuntime } from "../_runtime.svelte";
 
   const runtime = useMusicRuntime();
-  const store = browser ? new PracticeStore() : undefined;
-  const settingsStore = new MusicSettingsStore(store?.settings);
 
-  let settings = $state<MusicSettings>({ ...DEFAULT_MUSIC_SETTINGS });
-  let ready = $state(false);
-  let status = $state("Loading settings.");
+  let settings = $state(runtime.getMusicSettings());
+  let ready = $state(runtime.settingsReady);
+  let status = $state(runtime.settingsReady ? "Settings loaded." : "Loading settings.");
 
-  void initialize();
-
-  async function initialize(): Promise<void> {
-    try {
-      settings = await settingsStore.load();
+  $effect(() => {
+    if (runtime.settingsReady && !ready) {
+      settings = runtime.getMusicSettings();
       ready = true;
       status = "Settings loaded.";
-    } catch (error) {
-      status = error instanceof Error ? error.message : "Settings could not be loaded.";
     }
-  }
+  });
 
   async function patch(next: Partial<MusicSettings>): Promise<void> {
     if (!ready) return;
     try {
-      settings = await settingsStore.update(next);
+      await runtime.updateMusicSettings(next);
+      settings = runtime.getMusicSettings();
       status = "Saved.";
     } catch (error) {
       status = error instanceof Error ? error.message : "Settings could not be saved.";
     }
   }
+
+  async function testAudio(): Promise<void> {
+    status = "Testing audio…";
+    status = (await runtime.testAudio()) ? "Audio is ready." : runtime.audioMessage;
+  }
 </script>
 
 <svelte:head>
   <title>Settings | Practice OS</title>
-  <meta name="description" content="Audio, MIDI, latency, and appearance preferences for the Music app." />
+  <meta name="description" content="Audio, MIDI, latency calibration, and appearance preferences for the Music app." />
 </svelte:head>
 
 <PracticeScreen>
   <PracticeScreenHeader title="Settings" subtitle="Audio, MIDI, latency calibration, and appearance." />
 
   <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+  {#if runtime.settingsError}
+    <p class="text-sm text-destructive" role="alert">
+      Changes are not saved: {runtime.settingsError}
+    </p>
+  {/if}
 
   <div class="grid gap-6">
     <!-- Audio & MIDI -->
@@ -64,15 +66,26 @@
         <Card.Title>Audio &amp; MIDI</Card.Title>
       </Card.Header>
       <Card.Content class="grid gap-5">
+        <div class="flex flex-wrap items-center gap-3">
+          <Button type="button" disabled={runtime.audioPending || runtime.playbackVoicePending} onclick={testAudio}>
+            {runtime.audioEnabled ? "Test audio" : "Enable/Test audio"}
+          </Button>
+          <span class="text-sm text-muted-foreground" aria-live="polite">{runtime.audioMessage}</span>
+        </div>
+
+        {#if runtime.playbackFallback}
+          <p class="text-sm text-warn" role="status">{runtime.playbackFallback}</p>
+        {/if}
+
         <div class="grid gap-2 sm:max-w-sm">
-          <Label for="audio-input">Audio input</Label>
+          <Label for="audio-input-label">Audio input label</Label>
           <Input
-            id="audio-input"
-            aria-label="Audio input"
-            value={settings.audioInputLabel}
+            id="audio-input-label"
+            aria-label="Audio input label"
+            value={settings?.audioInputLabel ?? ""}
             oninput={(event) => patch({ audioInputLabel: event.currentTarget.value })}
           />
-          <p class="text-xs text-muted-foreground">Disable processing for accurate pitch detection.</p>
+          <p class="text-xs text-muted-foreground">Display label for your chosen audio input.</p>
         </div>
 
         <label class="flex items-center justify-between gap-4">
@@ -84,7 +97,7 @@
             type="checkbox"
             class="size-5 accent-primary"
             aria-label="Echo cancellation"
-            checked={settings.echoCancellation}
+            checked={settings?.echoCancellation ?? false}
             onchange={(event) => patch({ echoCancellation: event.currentTarget.checked })}
           />
         </label>
@@ -104,17 +117,83 @@
         </div>
 
         <div class="grid gap-2 sm:max-w-sm">
-          <Label for="sound-set">Default sound set</Label>
-          <Input
-            id="sound-set"
-            aria-label="Default sound set"
-            value={settings.defaultSoundSet}
-            oninput={(event) => patch({ defaultSoundSet: event.currentTarget.value })}
-          />
-          <p class="text-xs text-muted-foreground">Used for prompt playback.</p>
+          <Label for="playback-sound">Playback sound</Label>
+          <select
+            id="playback-sound"
+            class="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Playback sound"
+            value={settings?.preferredPlaybackSound ?? "salamander-piano"}
+            onchange={(event) => patch({ preferredPlaybackSound: event.currentTarget.value })}
+          >
+            {#each PLAYBACK_SOUND_IDS as sound}
+              <option value={sound}>{PLAYBACK_SOUND_LABELS[sound]}</option>
+            {/each}
+          </select>
+          <p class="text-xs text-muted-foreground">
+            Used for prompts and generated notes. Effective this session: {PLAYBACK_SOUND_LABELS[runtime.effectivePlaybackSound]}.
+          </p>
         </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+          <label class="grid gap-2 text-sm font-medium">
+            Playback &amp; drill sounds
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={settings?.playbackLevel ?? 0.8}
+              oninput={(event) => patch({ playbackLevel: Number(event.currentTarget.value) })}
+            />
+          </label>
+          <label class="grid gap-2 text-sm font-medium">
+            Metronome
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={settings?.metronomeLevel ?? 0.7}
+              oninput={(event) => patch({ metronomeLevel: Number(event.currentTarget.value) })}
+            />
+          </label>
+          <label class="grid gap-2 text-sm font-medium">
+            Master volume
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={settings?.masterLevel ?? 1}
+              oninput={(event) => patch({ masterLevel: Number(event.currentTarget.value) })}
+            />
+          </label>
+        </div>
+
+        <label class="flex items-center justify-between gap-4">
+          <span>
+            <span class="block font-medium">Mute all audio</span>
+            <span class="text-xs text-muted-foreground">Keeps the volume slider values unchanged.</span>
+          </span>
+          <input
+            type="checkbox"
+            class="size-5 accent-primary"
+            aria-label="Mute all audio"
+            checked={settings?.muted ?? false}
+            onchange={(event) => patch({ muted: event.currentTarget.checked })}
+          />
+        </label>
+
+        <p class="text-xs text-muted-foreground">
+          Sampled Piano uses the
+          <a class="underline" href="https://github.com/sfzinstruments/SalamanderGrandPiano" target="_blank" rel="noreferrer">Salamander Grand Piano</a>
+          by Alexander Holm, licensed
+          <a class="underline" href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a>.
+        </p>
       </Card.Content>
     </Card.Root>
+
+
 
     <!-- Latency -->
     <Card.Root>
@@ -131,7 +210,7 @@
             id="audio-offset"
             aria-label="Audio offset"
             type="number"
-            value={settings.audioOffsetMs}
+            value={settings?.audioOffsetMs ?? 0}
             oninput={(event) => patch({ audioOffsetMs: Number(event.currentTarget.value) })}
           />
         </div>
@@ -141,7 +220,7 @@
             id="midi-offset"
             aria-label="MIDI offset"
             type="number"
-            value={settings.midiOffsetMs}
+            value={settings?.midiOffsetMs ?? 0}
             oninput={(event) => patch({ midiOffsetMs: Number(event.currentTarget.value) })}
           />
         </div>
@@ -164,7 +243,7 @@
             type="checkbox"
             class="size-5 accent-primary"
             aria-label="Reduce motion"
-            checked={settings.reduceMotion}
+            checked={settings?.reduceMotion ?? false}
             onchange={(event) => patch({ reduceMotion: event.currentTarget.checked })}
           />
         </label>
@@ -177,7 +256,7 @@
             type="checkbox"
             class="size-5 accent-primary"
             aria-label="Instrument color coding"
-            checked={settings.instrumentColorCoding}
+            checked={settings?.instrumentColorCoding ?? true}
             onchange={(event) => patch({ instrumentColorCoding: event.currentTarget.checked })}
           />
         </label>

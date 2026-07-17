@@ -30,6 +30,14 @@ function asset(id: string) {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((settle) => {
+    resolve = settle;
+  });
+  return { promise, resolve };
+}
+
 function resolvedKit(entries: Entry[]): ResolvedSampleKit {
   return {
     kit: {
@@ -121,6 +129,66 @@ describe("SampleKitPlaybackController", () => {
     // the failed load revoked only its own new url; the prior kit stays active
     expect(revoked).toEqual(["blob:2"]);
     expect(controller.playMidi(36, 0.8)).toBe(true);
+  });
+
+  test("keeps only the latest activation when drum loads resolve in reverse order", async () => {
+    const firstLoad = deferred<void>();
+    const secondLoad = deferred<void>();
+    const sound = {
+      loadDrumKit: vi
+        .fn()
+        .mockReturnValueOnce(firstLoad.promise)
+        .mockReturnValueOnce(secondLoad.promise),
+      playDrum: vi.fn(),
+      stopDrum: vi.fn(),
+    };
+    const revoked: string[] = [];
+    let counter = 0;
+    const controller = new SampleKitPlaybackController({
+      sound,
+      createObjectURL: () => `blob:${(counter += 1)}`,
+      revokeObjectURL: (url) => revoked.push(url),
+      canDecode: async () => true,
+    });
+
+    const first = controller.activate(resolvedKit([available(36, "kick", "kick")]));
+    await vi.waitFor(() => expect(sound.loadDrumKit).toHaveBeenCalledTimes(1));
+    const second = controller.activate(resolvedKit([available(38, "snare", "snare")]));
+    await vi.waitFor(() => expect(sound.loadDrumKit).toHaveBeenCalledTimes(2));
+
+    secondLoad.resolve();
+    await second;
+    firstLoad.resolve();
+    await expect(first).rejects.toThrow(/cancelled/i);
+
+    expect(revoked).toEqual(["blob:1"]);
+    expect(controller.playMidi(36, 0.8)).toBe(false);
+    expect(controller.playMidi(38, 0.8)).toBe(true);
+  });
+
+  test("revokes staged urls when disposal wins a pending activation", async () => {
+    const loading = deferred<void>();
+    const sound = {
+      loadDrumKit: vi.fn(() => loading.promise),
+      playDrum: vi.fn(),
+      stopDrum: vi.fn(),
+    };
+    const revoked: string[] = [];
+    const controller = new SampleKitPlaybackController({
+      sound,
+      createObjectURL: () => "blob:staged",
+      revokeObjectURL: (url) => revoked.push(url),
+      canDecode: async () => true,
+    });
+
+    const activation = controller.activate(resolvedKit([available(36, "kick", "kick")]));
+    await vi.waitFor(() => expect(sound.loadDrumKit).toHaveBeenCalledOnce());
+    controller.dispose();
+    loading.resolve();
+    await expect(activation).rejects.toThrow(/cancelled/i);
+
+    expect(revoked).toEqual(["blob:staged"]);
+    expect(controller.playMidi(36, 0.8)).toBe(false);
   });
 
   test("loads velocity layers and chooses the layer from hit velocity", async () => {

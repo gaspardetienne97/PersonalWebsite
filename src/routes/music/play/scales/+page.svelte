@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
@@ -27,7 +27,6 @@
   } from "@repo/music-core/exercises/scale-pattern";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
-  import { Input } from "@repo/ui/input";
   import { Label } from "@repo/ui/label";
   import { Progress } from "@repo/ui/progress";
 
@@ -52,18 +51,20 @@
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
-  const runtime = useMusicRuntime();
+  let { runtime: runtimeProp }: { runtime?: MusicRuntime } = $props();
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
+  const runtime = runtimeProp ?? useMusicRuntime();
   // Baseline cutoff for the last-run comparison (see LastRunDelta).
   const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
-  const initialConfig = normalizeScaleDrillConfig(
-    browser ? initialDrillSearch() : {},
-  );
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialConfig = normalizeScaleDrillConfig(initialSearch);
+  const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
 
   // Which scale to practice. The drill is technical (play it evenly, unlock
   // faster tempos); jazz/modal scales make it double as jazz vocabulary.
@@ -117,9 +118,14 @@
     scalePatternSemitones(scale, span, motion).map((semitones) => noteToMidi(tonic) + semitones),
   );
   let scaleInstrument = $state<InstrumentId>(initialConfig.instrument);
+  runtime.setActiveInstrument(initialConfig.instrument);
 
   let ready = $state(false);
   let pending = $state(false);
+  let destroyed = false;
+  let startRequest = 0;
+  let practiceContextRequest = 0;
+  let practiceContextReady: Promise<boolean> = Promise.resolve(true);
   let status = $state("Preparing your technique history.");
   let tempo = $state(initialConfig.bpm);
   let session = $state<TechniqueSession | undefined>();
@@ -162,6 +168,7 @@
   const normalizedConfig = $derived(
     normalizeScaleDrillConfig({ scale, tonic, instrument: scaleInstrument, bpm: tempo, motion, span }),
   );
+  const variantKey = $derived(`v1:scales:${scaleInstrument}:${scale}:${motion}:${span}`);
 
   // Branch swaps destroy the focused element (e.g. the Start button), dropping
   // focus to <body>. Move it to the freshly mounted stage/results heading on
@@ -174,6 +181,39 @@
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const key = variantKey;
+    const contextRequest = ++practiceContextRequest;
+    startRequest += 1;
+    let disposed = false;
+    let cleanup: () => void = () => undefined;
+    practiceContextReady = runtime
+      .registerPracticeContext({
+        owner: "scales",
+        variantKey: key,
+        defaultBpm: 100,
+        ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
+        meter: { numerator: 4, denominator: 4 },
+        allowedInstruments: [...VIEWABLE_INSTRUMENTS],
+        onBpmChange: (bpm) => (tempo = bpm),
+        onInstrumentChange: (next) => (scaleInstrument = next),
+      })
+      .then((nextCleanup) => {
+        cleanup = nextCleanup;
+        if (disposed || contextRequest !== practiceContextRequest) {
+          cleanup();
+          return false;
+        }
+        return true;
+      });
+    return () => {
+      disposed = true;
+      practiceContextRequest += 1;
+      startRequest += 1;
+      cleanup();
+    };
   });
 
   $effect(() => {
@@ -193,14 +233,20 @@
   async function initialize(): Promise<void> {
     try {
       await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
-      session = new TechniqueSession({
+      if (destroyed) return;
+      const nextSession = new TechniqueSession({
         router: runtime.router,
         services: { skills, analytics, progress },
       });
-      unsubscribeSession = session.subscribe((state) => {
+      if (destroyed) {
+        nextSession.dispose();
+        return;
+      }
+      session = nextSession;
+      unsubscribeSession = nextSession.subscribe((state) => {
         sessionState = state;
         status = state.error ?? "";
-        if (state.summary) tempo = state.nextTargetBpm;
+        if (state.summary) runtime.endPerformance();
         // Auto-capture the finished scale run into the journal (once).
         if (state.summary && !captured) {
           captured = true;
@@ -238,8 +284,25 @@
     status = "";
 
     try {
+      await tick();
+      const request = ++startRequest;
+      if (!(await practiceContextReady) || request !== startRequest) return;
       captured = false;
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (request === startRequest) status = runtime.audioMessage;
+        return;
+      }
+      if (request !== startRequest) return;
       const config = normalizedConfig;
+      const performance = await runtime.beginPerformance();
+      if (request !== startRequest) {
+        if (performance.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (performance.status !== "started") {
+        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+        return;
+      }
       await session.startScale({
         tonic: config.tonic,
         scale: config.scale,
@@ -247,8 +310,14 @@
         motion: config.motion,
         span: config.span,
       });
+      if (request !== startRequest) {
+        runtime.endPerformance();
+        session.abandon();
+        return;
+      }
       status = `Play the ${tonicLabel} ${scaleLabel} ${spanLabel.toLowerCase()} ${motionLabel.toLowerCase()} evenly.`;
     } catch (error) {
+      runtime.endPerformance();
       status = message(error, "The scale session could not be started.");
     } finally {
       pending = false;
@@ -261,13 +330,25 @@
   }
 
   async function slowDown(): Promise<void> {
-    tempo = normalizeScaleDrillConfig({
+    const next = normalizeScaleDrillConfig({
       scale,
       tonic,
       instrument: scaleInstrument,
       bpm: tempo - 10,
     }).bpm;
+    runtime.setPracticeVariantBpm(next, variantKey);
     await startScale();
+  }
+
+  async function increaseTempo(): Promise<void> {
+    runtime.setPracticeVariantBpm(summary?.nextTargetBpm ?? tempo, variantKey);
+    await startScale();
+  }
+
+  function cancel(): void {
+    startRequest += 1;
+    runtime.endPerformance();
+    session?.abandon();
   }
 
   function syncConfigUrl(): void {
@@ -287,6 +368,10 @@
   }
 
   onDestroy(() => {
+    destroyed = true;
+    startRequest += 1;
+    practiceContextRequest += 1;
+    runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
     session?.dispose();
@@ -336,7 +421,7 @@
       <Card.Footer class="flex-wrap gap-3">
         <LastRunDelta tags={["scales"]} accuracy={meanPartialCredit(summary.results.map((result) => result.event))} before={visitStartedAt} />
         <AdaptiveRetryBar
-          onRetry={startScale}
+          onRetry={increaseTempo}
           onSlower={slowDown}
           retryLabel="Practice next tempo"
         />
@@ -384,7 +469,7 @@
             { label: "Input", value: runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
           ]}
         >
-          <Button type="button" variant="outline" onclick={() => session?.abandon()}>End run</Button>
+          <Button type="button" variant="outline" onclick={cancel}>End run</Button>
         </DrillProgressRail>
       {/snippet}
     </PracticeDrillShell>
@@ -414,7 +499,10 @@
               <span class="text-sm font-medium text-primary group-open:hidden">Edit setup</span>
               <span class="hidden text-sm font-medium text-primary group-open:inline">Hide setup</span>
             </summary>
-            <div class="mt-4 grid gap-5 border-t pt-4">
+            <fieldset
+              disabled={pending || sessionState?.status === "active"}
+              class="mt-4 grid gap-5 border-t pt-4 disabled:opacity-70"
+            >
             <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
               <Label for="scale-kind">Scale</Label>
@@ -485,22 +573,13 @@
           </div>
 
           <div class="grid max-w-xs gap-2">
-            <Label for="scale-tempo">Tempo</Label>
-            <Input
-              id="scale-tempo"
-              aria-label="Tempo"
-              type="number"
-              min="60"
-              max={sessionState?.highestUnlockedBpm ?? 100}
-              step="10"
-              bind:value={tempo}
-              disabled={sessionState?.status === "active"}
-            />
+            <Label>Tempo</Label>
+            <p class="text-sm font-semibold tabular-nums">{tempo} BPM</p>
             <p class="text-xs text-muted-foreground">
               Current unlocked target: {currentTempo} BPM
             </p>
           </div>
-            </div>
+            </fieldset>
           </details>
 
         </Card.Content>
@@ -548,13 +627,18 @@
                 <Card.Description>Reference</Card.Description>
                 <Card.Title>{tonicLabel} {scaleLabel} on {INSTRUMENT_LABELS[scaleInstrument]}</Card.Title>
               </div>
-              <SegmentedControl
-                size="sm"
-                ariaLabel="Scale instrument"
-                options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
-                value={scaleInstrument}
-                onChange={(v) => (scaleInstrument = v as InstrumentId)}
-              />
+              <fieldset disabled={pending || sessionState?.status === "active"}>
+                <SegmentedControl
+                  size="sm"
+                  ariaLabel="Scale instrument"
+                  options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
+                  value={scaleInstrument}
+                  onChange={(v) => {
+                    scaleInstrument = v as InstrumentId;
+                    runtime.setActiveInstrument(scaleInstrument);
+                  }}
+                />
+              </fieldset>
             </div>
           </Card.Header>
           <Card.Content class="min-w-0 overflow-x-auto">

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
 
   import Drum from "lucide-svelte/icons/drum";
 
@@ -16,6 +16,7 @@
     RhythmPatternId,
     RhythmPatternPrompt,
   } from "@repo/music-core/exercises/rhythm-pattern";
+  import { rhythmPatternDefinition } from "@repo/music-core/exercises/rhythm-pattern";
   import {
     AudioPitchSource,
     type AudioPitchState,
@@ -24,7 +25,6 @@
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { rhythmHudProjection } from "@repo/music-core/engines/projection";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
-  import type { CountInSchedule } from "@repo/music-core/engines/sound";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -32,7 +32,6 @@
   import { Label } from "@repo/ui/label";
   import { Progress } from "@repo/ui/progress";
 
-  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
@@ -62,8 +61,11 @@
   const progress = new ProgressEngine(store);
   const microphone = new AudioPitchSource();
   const initialConfig = browser
-    ? normalizeRhythmDrillConfig(initialDrillSearch())
+    ? normalizeRhythmDrillConfig(initialDrillSearch(["bpm", "tempo"]))
     : RHYTHM_DRILL_DEFAULT_CONFIG;
+  const initialUrlBpm = browser
+    ? validBpm(new URLSearchParams(window.location.search).get("bpm"))
+    : undefined;
   // Mode changes the *display* only (whether the notation target is shown);
   // both modes grade the same pattern. Labels say so.
   const modeOptions = [
@@ -78,7 +80,6 @@
   let bpm = $state(initialConfig.bpm);
   let beats = $state(initialConfig.beats);
   let pattern = $state<RhythmPatternId>(initialConfig.pattern);
-  let tapTempoMarks = $state<number[]>([]);
   let session = $state<RhythmSession | undefined>();
   let sessionState = $state<RhythmSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
@@ -88,6 +89,9 @@
   let microphoneState = $state<AudioPitchState>(microphone.state);
   let microphoneStatus = $state("Start the microphone to score acoustic note attacks.");
   let microphoneAcceptAfterMs = Number.POSITIVE_INFINITY;
+  let practiceContextCleanup: (() => void) | undefined;
+  let practiceContextRequest = 0;
+  let practiceContextQueue = Promise.resolve();
   let captured = false;
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
@@ -114,6 +118,10 @@
   $effect(() => {
     if (!browser) return;
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    registerRhythmContext(mode, pattern);
   });
 
   $effect(() => {
@@ -178,6 +186,26 @@
     status = "";
 
     try {
+      await tick();
+      const contextRequest = practiceContextRequest;
+      await practiceContextQueue;
+      if (contextRequest !== practiceContextRequest) return;
+      runtime.endPerformance();
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (contextRequest === practiceContextRequest) status = runtime.audioMessage;
+        return;
+      }
+      if (contextRequest !== practiceContextRequest) return;
+      const clock = await runtime.beginPerformance();
+      if (contextRequest !== practiceContextRequest) {
+        if (clock.status === "started") runtime.endPerformance();
+        return;
+      }
+      if (clock.status === "cancelled") return;
+      if (clock.status === "failed") {
+        status = clock.message;
+        return;
+      }
       session?.dispose();
       unsubscribeSession?.();
       captured = false;
@@ -191,6 +219,7 @@
         status = state.error ?? "";
         // Auto-capture the finished pulse session into the journal (once).
         if (state.summary && !captured) {
+          runtime.endPerformance();
           captured = true;
           void runtime.recordPractice({
             source: "drill",
@@ -202,51 +231,26 @@
         }
       });
 
-      const countIn = runtime.audioEnabled
-        ? runtime.sound.playCountIn({ bpm, beats: 4, beatsPerMeasure: 4 })
-        : undefined;
-      const delayMs = countIn?.delayMs ?? 1_000;
-      const startTimestampMs = performance.now() + delayMs;
+      const startTimestampMs = Number(clock.downbeat);
       microphoneAcceptAfterMs = startTimestampMs;
-      const startedPrompt = await session.start({
+      await session.start({
         bpm,
         beats,
         pattern,
         mode,
         startTimestampMs,
       });
-      scheduleDrillClicks(startedPrompt, countIn);
-      status =
-        delayMs > 0
-          ? `Count in, then ${mode === "read-and-tap" ? "read and tap" : "tap"} ${patternLabel}.`
-          : `${mode === "read-and-tap" ? "Read and tap" : "Tap"} ${patternLabel}.`;
+      if (contextRequest !== practiceContextRequest) {
+        runtime.endPerformance();
+        session.abandon();
+        return;
+      }
+      status = `${mode === "read-and-tap" ? "Read and tap" : "Tap"} ${patternLabel}.`;
     } catch (error) {
+      runtime.endPerformance();
       status = message(error, "The rhythm session could not be started.");
     } finally {
       pending = false;
-    }
-  }
-
-  // Gap-click support: patterns with a clickSchedule get an audible metronome
-  // during the drill itself, but only on their "on" bars — the point of the
-  // drill is keeping time through the silent bars.
-  function scheduleDrillClicks(
-    startedPrompt: Awaited<ReturnType<RhythmSession["start"]>>,
-    countIn: CountInSchedule | undefined,
-  ): void {
-    if (!countIn) return;
-    if (!("clickSchedule" in startedPrompt) || !startedPrompt.clickSchedule) return;
-    const beatSeconds = 60 / startedPrompt.bpm;
-    const drillStartSeconds = countIn.startAudioSeconds + countIn.delayMs / 1_000;
-    for (const entry of startedPrompt.clickSchedule) {
-      if (!entry.audible) continue;
-      for (let beat = 0; beat < startedPrompt.meter.beats; beat += 1) {
-        const absoluteBeat = entry.bar * startedPrompt.meter.beats + beat;
-        runtime.sound.playMetronomeClick(
-          drillStartSeconds + absoluteBeat * beatSeconds,
-          beat === 0,
-        );
-      }
     }
   }
 
@@ -255,29 +259,59 @@
     if (runtime.audioEnabled) runtime.sound.playNote(event.midiNote, 0.08, undefined, 0.5);
   }
 
-  function tapTempo(): void {
-    const now = performance.now();
-    const marks = [...tapTempoMarks.filter((mark) => now - mark <= 3_000), now].slice(-5);
-    tapTempoMarks = marks;
-    if (marks.length < 2) {
-      status = "Tap tempo again to estimate BPM.";
-      return;
-    }
-
-    const intervals = marks.slice(1).map((mark, index) => mark - marks[index]!);
-    const average = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
-    bpm = Math.min(220, Math.max(40, Math.round(60_000 / average)));
-    status = `Tap tempo set to ${bpm} BPM.`;
-  }
-
   function repeat(): void {
     sessionState = undefined;
     status = "Ready for a rhythm session.";
   }
 
-  function slowDown(): void {
-    bpm = normalizeRhythmDrillConfig({ bpm: bpm - 10, beats, pattern, mode }).bpm;
+  function prepareBpm(nextBpm: number): void {
+    runtime.setPracticeVariantBpm(nextBpm, rhythmVariantKey(mode, pattern));
     repeat();
+  }
+
+  function registerRhythmContext(nextMode: RhythmDrillMode, nextPattern: RhythmPatternId): void {
+    const request = ++practiceContextRequest;
+    const definition = rhythmPatternDefinition(nextPattern);
+    practiceContextQueue = practiceContextQueue.then(async () => {
+      if (request !== practiceContextRequest) return;
+      const cleanup = await runtime.registerPracticeContext({
+        owner: "rhythm",
+        variantKey: rhythmVariantKey(nextMode, nextPattern),
+        defaultBpm: RHYTHM_DRILL_DEFAULT_CONFIG.bpm,
+        initialUrlBpm,
+        meter: {
+          numerator: definition.meter.beats,
+          denominator: definition.meter.beatUnit as 2 | 4 | 8 | 16,
+        },
+        onBpmChange: (nextBpm) => {
+          if (bpm !== nextBpm) bpm = nextBpm;
+        },
+        shouldPlayMetronome: (event) => {
+          const schedule = definition.clickSchedule;
+          if (!schedule || schedule.length === 0) return true;
+          const performanceBeat =
+            event.absoluteBeat - runtime.countInBars * definition.meter.beats;
+          if (performanceBeat < 0) return true;
+          const bar = Math.floor(performanceBeat / definition.meter.beats);
+          return schedule[bar % schedule.length]?.audible ?? true;
+        },
+      });
+      if (request !== practiceContextRequest) {
+        cleanup();
+        return;
+      }
+      practiceContextCleanup?.();
+      practiceContextCleanup = cleanup;
+    });
+  }
+
+  function rhythmVariantKey(nextMode: RhythmDrillMode, nextPattern: RhythmPatternId): string {
+    return `v1:rhythm:${nextMode}:${nextPattern}`;
+  }
+
+  function validBpm(value: string | null): number | undefined {
+    const nextBpm = Number(value);
+    return Number.isFinite(nextBpm) && nextBpm > 0 ? nextBpm : undefined;
   }
 
   function syncConfigUrl(): void {
@@ -299,6 +333,9 @@
   }
 
   onDestroy(() => {
+    practiceContextRequest += 1;
+    practiceContextCleanup?.();
+    runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMicrophoneState();
     unsubscribeOnsets();
@@ -369,7 +406,7 @@
             bind:value={mode}
           />
 
-          <div class="grid gap-5 sm:grid-cols-4">
+          <div class="grid gap-5 sm:grid-cols-3">
             <div class="grid gap-2">
               <Label for="rhythm-pattern">Pattern</Label>
               <select
@@ -384,16 +421,10 @@
               </select>
             </div>
             <div class="grid gap-2">
-              <Label for="rhythm-bpm">BPM</Label>
-              <Input
-                id="rhythm-bpm"
-                aria-label="BPM"
-                type="number"
-                min="40"
-                max="220"
-                step="1"
-                bind:value={bpm}
-              />
+              <span class="text-sm font-medium">BPM</span>
+              <p aria-label="BPM" class="flex h-10 items-center rounded-md border px-3 text-sm">
+                {bpm} BPM
+              </p>
             </div>
             <div class="grid gap-2">
               <Label for="rhythm-beats">Beats</Label>
@@ -406,9 +437,6 @@
                 step="1"
                 bind:value={beats}
               />
-            </div>
-            <div class="grid content-end gap-2">
-              <Button type="button" variant="outline" onclick={tapTempo}>Tap tempo</Button>
             </div>
           </div>
         </Card.Content>
@@ -534,7 +562,15 @@
         </Card.Content>
         <Card.Footer class="flex-wrap gap-3">
           <LastRunDelta tags={["rhythm"]} accuracy={meanPartialCredit((runSummary?.results ?? []).map((result) => result.event))} before={visitStartedAt} />
-          <AdaptiveRetryBar onRetry={repeat} onSlower={slowDown} retryLabel="Try again" />
+          <Button type="button" disabled={bpm >= 220} onclick={() => prepareBpm(Math.min(220, bpm + 10))}>
+            Increase to {Math.min(220, bpm + 10)} BPM
+          </Button>
+          <Button type="button" variant="outline" onclick={() => prepareBpm(bpm)}>
+            Repeat at {bpm} BPM
+          </Button>
+          <Button type="button" variant="outline" disabled={bpm <= 40} onclick={() => prepareBpm(Math.max(40, bpm - 10))}>
+            Slow to {Math.max(40, bpm - 10)} BPM
+          </Button>
           <RoutineContinueAction routine={runtime.dailyRoutine} />
           <NextUpSuggestion {skills} {analytics} currentPath="/music/learn/rhythm" routine={runtime.dailyRoutine} />
         </Card.Footer>

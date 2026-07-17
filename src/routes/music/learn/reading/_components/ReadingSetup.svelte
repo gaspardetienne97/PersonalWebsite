@@ -136,17 +136,10 @@
           </div>
 
           <div class="grid gap-2">
-            <Label for="reading-tempo">Tempo</Label>
-            <Input
-              id="reading-tempo"
-              aria-label="Tempo"
-              type="number"
-              min="40"
-              max="200"
-              step="1"
-              value={value.bpm}
-              onchange={(event) => patch({ bpm: Number(event.currentTarget.value) })}
-            />
+            <span class="text-sm font-medium">Tempo</span>
+            <p aria-label="Tempo" class="flex h-10 items-center rounded-md border px-3 text-sm">
+              {value.bpm} BPM
+            </p>
           </div>
 
           <div class="grid gap-2">

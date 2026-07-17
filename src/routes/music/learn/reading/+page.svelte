@@ -1,11 +1,14 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy } from "svelte";
+  import Pause from "lucide-svelte/icons/pause";
+  import Play from "lucide-svelte/icons/play";
+  import { onDestroy, tick } from "svelte";
 
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     normalizeReadingDrillConfig,
+    READING_DRILL_DEFAULT_CONFIG,
     ReadingSession,
     type ReadingSessionState,
   } from "@repo/music-core/engines/reading-session";
@@ -15,13 +18,14 @@
   import { PracticeStore } from "@repo/music-core/engines/store";
   import { curatedTunings, type TuningProfile } from "@repo/music-core/engines/tunings";
   import { CustomTuningStore } from "@repo/music-core/engines/tunings/store";
+  import { Button } from "@repo/ui/button";
 
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
-  import { useMusicRuntime } from "../../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
   import FlashcardSession from "./_components/FlashcardSession.svelte";
   import ReadingSetup, {
     type ReadingSetupValue,
@@ -29,15 +33,18 @@
   import ReadingSummary from "./_components/ReadingSummary.svelte";
   import SightReadingSession from "./_components/SightReadingSession.svelte";
 
-  const runtime = useMusicRuntime();
+  const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
   const tuningStore = store ? new CustomTuningStore(store.settings) : undefined;
   const initialConfig = normalizeReadingDrillConfig(
-    browser ? initialDrillSearch() : {},
+    browser ? initialDrillSearch(["bpm", "tempo"]) : {},
   );
+  const initialUrlBpm = browser
+    ? validBpm(new URLSearchParams(window.location.search).get("bpm"))
+    : undefined;
 
   let ready = $state(false);
   let pending = $state(false);
@@ -47,9 +54,19 @@
   let session = $state<ReadingSession | undefined>();
   let sessionState = $state<ReadingSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
-  let midiEnabled = $state(runtime.midi.state.enabled);
-  let midiStatus = $state(midiMessage());
+  let midiEnabled = $state(false);
+  let midiStatus = $state("");
   let sessionXp = $state(0);
+  let previewPlaying = $state(false);
+  let previewMessage = $state("");
+  let previewTimer: ReturnType<typeof setTimeout> | undefined;
+  let previewGeneration = 0;
+  let practiceContextCleanup: (() => void) | undefined;
+  let practiceContextRequest = 0;
+  let practiceContextQueue = Promise.resolve();
+  let performanceRequest = 0;
+  let performancePending = false;
+  let sessionRequest = 0;
   let captured = false;
 
   const availableTunings = $derived(
@@ -64,33 +81,51 @@
     availableTunings.find(({ id }) => id === setup.tuningId) ?? availableTunings[0],
   );
   const normalizedSetup = $derived(normalizeReadingDrillConfig(setup));
-
-  // The transport Play button previews the on-screen sight-reading melody.
-  $effect(() => {
+  const previewScore = $derived.by(() => {
     const prompt = sessionState?.currentPrompt;
-    const score = prompt && "score" in prompt ? prompt.score : undefined;
-    if (!score) {
-      runtime.setPlaybackSource(undefined);
-      return;
-    }
-    const { steps, durationSec } = scoreToPattern(score, { bpm: setup.bpm });
-    runtime.setPlaybackSource({
-      label: "sight-reading melody",
-      durationSec,
-      play: () => runtime.sound.playPattern(steps),
-    });
+    return prompt && "score" in prompt ? prompt.score : undefined;
   });
 
   $effect(() => {
     syncConfigUrl();
   });
 
-  void initialize();
+  $effect(() => {
+    registerReadingContext(normalizedSetup);
+  });
 
-  const unsubscribeMidiState = runtime.midi.subscribeState(() => {
+  $effect(() => {
+    const config = normalizedSetup;
+    const prompt = sessionState?.currentPrompt;
+    if (
+      !session ||
+      sessionState?.status !== "sight-reading" ||
+      sessionState.countIn !== "ready" ||
+      !prompt ||
+      !("score" in prompt)
+    )
+      return;
+    const bpm = readingEngineBpm(config);
+    const timeSignature = readingTimeSignature(config);
+    if (
+      prompt.options.bpm === bpm &&
+      prompt.options.timeSignature.numerator === timeSignature.numerator &&
+      prompt.options.timeSignature.denominator === timeSignature.denominator
+    )
+      return;
+    session.retimePreparedSightReading({ bpm, timeSignature });
+  });
+
+  $effect(() => {
     midiEnabled = runtime.midi.state.enabled;
     midiStatus = midiMessage();
+    return runtime.midi.subscribeState(() => {
+      midiEnabled = runtime.midi.state.enabled;
+      midiStatus = midiMessage();
+    });
   });
+
+  void initialize();
 
   async function initialize(): Promise<void> {
     try {
@@ -108,9 +143,13 @@
     }
   }
 
-  function updateSetup(next: ReadingSetupValue): void {
+  function updateSetup(next: ReadingSetupValue, invalidatePending = true): void {
+    if (invalidatePending) sessionRequest += 1;
     const normalized = normalizeReadingDrillConfig(next);
     setup = normalized;
+    if (runtime.activeInstrument !== normalized.instrument) {
+      runtime.setActiveInstrument(normalized.instrument);
+    }
     if (normalized.instrument !== "piano" && !normalized.tuningId) {
       setup = { ...normalized, tuningId: availableTunings[0]?.id };
     }
@@ -118,10 +157,16 @@
 
   async function start(): Promise<void> {
     if (!ready || pending) return;
+    const request = ++sessionRequest;
     pending = true;
+    stopPreview();
     status = "";
 
     try {
+      await settleReadingContext();
+      if (request !== sessionRequest) return;
+      const config = normalizedSetup;
+      const tuning = activeTuning;
       session?.dispose();
       unsubscribeSession?.();
       captured = false;
@@ -130,35 +175,31 @@
         services: { skills, analytics, progress },
       });
       unsubscribeSession = session.subscribe(handleSessionState);
-      runtime.router.setActiveInstrument(setup.instrument);
-      if (setup.activity === "flashcards") {
+      if (config.activity === "flashcards") {
         await session.startFlashcards({
-          instrument: setup.instrument,
-          ...(activeTuning === undefined ? {} : { tuning: activeTuning }),
-          clefs: setup.clefs,
-          keys: [setup.keySignature],
-          range: setup.range,
-          promptKind: setup.promptKind,
-          answerMode: setup.answerMode,
+          instrument: config.instrument,
+          ...(tuning === undefined ? {} : { tuning }),
+          clefs: config.clefs,
+          keys: [config.keySignature],
+          range: config.range,
+          promptKind: config.promptKind,
+          answerMode: config.answerMode,
           length: 10,
         });
       } else {
         await session.prepareSightReading({
-          instrument: setup.instrument,
-          ...(activeTuning === undefined ? {} : { tuning: activeTuning }),
-          keySignature: setup.keySignature,
-          clefs: setup.clefs,
-          measures: setup.measures,
-          bpm: setup.bpm,
-          timeSignature:
-            setup.meter === "compound"
-              ? { numerator: 6, denominator: 8 }
-              : { numerator: 4, denominator: 4 },
-          mode: setup.mode,
-          strictness: setup.strictness,
-          difficulty: setup.difficulty,
-          readingLevel: setup.readingLevel,
-          transposeSemitones: setup.transposeSemitones,
+          instrument: config.instrument,
+          ...(tuning === undefined ? {} : { tuning }),
+          keySignature: config.keySignature,
+          clefs: config.clefs,
+          measures: config.measures,
+          bpm: readingEngineBpm(config),
+          timeSignature: readingTimeSignature(config),
+          mode: config.mode,
+          strictness: config.strictness,
+          difficulty: config.difficulty,
+          readingLevel: config.readingLevel,
+          transposeSemitones: config.transposeSemitones,
         });
       }
     } catch (error) {
@@ -180,6 +221,8 @@
   }
 
   function handleSessionState(next: ReadingSessionState): void {
+    if (next.status !== "sight-reading") stopPreview();
+    if (next.status === "summary" || next.status === "abandoned") runtime.endPerformance();
     sessionState = next;
     sessionXp = next.results.reduce((total, result) => total + result.xp, 0);
     status = next.error ?? "";
@@ -214,18 +257,45 @@
     }
   }
 
-  async function startSightReading(): Promise<number> {
-    const delayMs =
-      runtime.audioEnabled && setup.mode === "performance"
-        ? runtime.sound.playCountIn({
-            bpm: setup.bpm,
-            beats: setup.meter === "compound" ? 6 : 4,
-            beatsPerMeasure: setup.meter === "compound" ? 3 : 4,
-          }).delayMs
-        : 0;
-    const startTimestampMs = performance.now() + delayMs;
-    await session?.startSightReading(startTimestampMs);
-    return startTimestampMs;
+  async function startSightReading(): Promise<number | undefined> {
+    if (performancePending) return undefined;
+    performancePending = true;
+    stopPreview();
+    try {
+      await tick();
+      const request = ++performanceRequest;
+      await settleReadingContext();
+      if (request !== performanceRequest) return undefined;
+      if (setup.mode !== "performance") {
+        const now = performance.now();
+        await session?.startSightReading(now);
+        return request === performanceRequest ? now : undefined;
+      }
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (request === performanceRequest) status = runtime.audioMessage;
+        return undefined;
+      }
+      if (request !== performanceRequest) return undefined;
+      const result = await runtime.beginPerformance();
+      if (request !== performanceRequest) {
+        if (result.status === "started") runtime.endPerformance();
+        return undefined;
+      }
+      if (result.status === "cancelled") return undefined;
+      if (result.status === "failed") {
+        status = result.message;
+        return undefined;
+      }
+      await session?.startSightReading(Number(result.downbeat));
+      if (request !== performanceRequest) {
+        runtime.endPerformance();
+        session?.abandon();
+        return undefined;
+      }
+      return Number(result.downbeat);
+    } finally {
+      performancePending = false;
+    }
   }
 
   async function finishSightReading(): Promise<void> {
@@ -233,31 +303,79 @@
       await session?.finishSightReading();
     } catch (error) {
       status = message(error, "The sight-reading result could not be saved.");
+    } finally {
+      runtime.endPerformance();
     }
   }
 
   function abandon(): void {
+    performanceRequest += 1;
+    stopPreview();
+    runtime.endPerformance();
     session?.abandon();
     unsubscribeSession?.();
     session = undefined;
     sessionState = undefined;
-    runtime.router.setActiveInstrument();
     status = "Session ended without saving incomplete prompts.";
   }
 
   function repeat(): void {
+    stopPreview();
     sessionState = undefined;
     void start();
   }
 
-  function slowDown(): void {
-    setup = normalizeReadingDrillConfig({
-      ...setup,
-      activity: "sight-reading",
-      bpm: setup.bpm - 10,
+  function practiceAtBpm(bpm: number): void {
+    runtime.setPracticeVariantBpm(bpm, readingVariantKey(normalizedSetup));
+    repeat();
+  }
+
+  function registerReadingContext(config: ReadingSetupValue): void {
+    performanceRequest += 1;
+    const request = ++practiceContextRequest;
+    practiceContextQueue = practiceContextQueue.then(async () => {
+      if (request !== practiceContextRequest) return;
+      const cleanup = await runtime.registerPracticeContext({
+        owner: "reading",
+        variantKey: readingVariantKey(config),
+        defaultBpm: READING_DRILL_DEFAULT_CONFIG.bpm,
+        initialUrlBpm,
+        meter:
+          config.meter === "compound"
+            ? { numerator: 6, denominator: 8 }
+            : { numerator: 4, denominator: 4 },
+        allowedInstruments: ["piano", "guitar", "ukulele"],
+        onBpmChange: (bpm) => {
+          if (setup.bpm !== bpm) updateSetup({ ...setup, bpm }, false);
+        },
+        onInstrumentChange: (instrument) => {
+          if (
+            (instrument === "piano" || instrument === "guitar" || instrument === "ukulele") &&
+            setup.instrument !== instrument
+          ) {
+            updateSetup({ ...setup, instrument }, false);
+          }
+        },
+      });
+      if (request !== practiceContextRequest) {
+        cleanup();
+        return;
+      }
+      if (runtime.activeInstrument !== config.instrument) {
+        runtime.setActiveInstrument(config.instrument);
+      }
+      practiceContextCleanup?.();
+      practiceContextCleanup = cleanup;
     });
-    sessionState = undefined;
-    void start();
+  }
+
+  function readingVariantKey(config: ReadingSetupValue): string {
+    return `v1:reading:${config.activity}:${config.instrument}:${config.readingLevel}:${config.meter}:${config.answerMode}:${config.mode}`;
+  }
+
+  function validBpm(value: string | null): number | undefined {
+    const bpm = Number(value);
+    return Number.isFinite(bpm) && bpm > 0 ? bpm : undefined;
   }
 
   function practiceMissedGroups(): void {
@@ -266,7 +384,6 @@
       return;
     }
     captured = false;
-    runtime.router.setActiveInstrument(setup.instrument);
   }
 
   async function saveTuning(profile: TuningProfile): Promise<void> {
@@ -300,6 +417,70 @@
     return error instanceof Error ? error.message : fallback;
   }
 
+  function readingEngineBpm(config: ReadingSetupValue): number {
+    return (config.bpm * 4) / (config.meter === "compound" ? 8 : 4);
+  }
+
+  function readingTimeSignature(
+    config: ReadingSetupValue,
+  ): { numerator: number; denominator: number } {
+    return config.meter === "compound"
+      ? { numerator: 6, denominator: 8 }
+      : { numerator: 4, denominator: 4 };
+  }
+
+  async function settleReadingContext(): Promise<void> {
+    while (true) {
+      await tick();
+      const request = practiceContextRequest;
+      const queue = practiceContextQueue;
+      await queue;
+      await tick();
+      if (request === practiceContextRequest && queue === practiceContextQueue) return;
+    }
+  }
+
+  async function togglePreview(): Promise<void> {
+    if (previewPlaying) {
+      stopPreview();
+      previewMessage = "Preview paused.";
+      return;
+    }
+    if (!previewScore) return;
+    const generation = ++previewGeneration;
+    try {
+      if (!(await runtime.ensurePlaybackVoice())) {
+        if (generation === previewGeneration) previewMessage = runtime.audioMessage || "Audio could not be enabled.";
+        return;
+      }
+      if (generation !== previewGeneration) return;
+      const pattern = scoreToPattern(previewScore, { bpm: readingEngineBpm(setup) });
+      runtime.sound.playPattern(pattern.steps);
+      previewPlaying = true;
+      previewMessage = "Playing sight-reading preview.";
+      previewTimer = setTimeout(finishPreview, Math.max(300, pattern.durationSec * 1_000));
+    } catch (error) {
+      if (generation !== previewGeneration) return;
+      stopPreview();
+      previewMessage = message(error, "Sight-reading preview failed.");
+    }
+  }
+
+  function finishPreview(): void {
+    runtime.sound.stopPattern();
+    previewTimer = undefined;
+    previewPlaying = false;
+    previewMessage = "Preview complete.";
+  }
+
+  function stopPreview(): void {
+    previewGeneration += 1;
+    if (previewTimer !== undefined) clearTimeout(previewTimer);
+    previewTimer = undefined;
+    runtime.sound.stopPattern();
+    previewPlaying = false;
+  }
+
   function syncConfigUrl(): void {
     const config = normalizedSetup;
     const url = new URL(window.location.href);
@@ -328,11 +509,14 @@
   }
 
   onDestroy(() => {
+    performanceRequest += 1;
+    sessionRequest += 1;
+    practiceContextRequest += 1;
+    practiceContextCleanup?.();
+    runtime.endPerformance();
     unsubscribeSession?.();
-    unsubscribeMidiState();
     session?.dispose();
-    runtime.router.setActiveInstrument();
-    runtime.setPlaybackSource(undefined);
+    stopPreview();
   });
 </script>
 
@@ -377,16 +561,35 @@
   {:else if sessionState.status === "summary" && sessionState.summary}
     <ReadingSummary
       summary={sessionState.summary}
+      bpm={setup.bpm}
       onRepeat={repeat}
-      onSlower={setup.activity === "sight-reading" ? slowDown : undefined}
+      onTempo={practiceAtBpm}
       onMissedGroups={practiceMissedGroups}
     />
     <RoutineContinueAction routine={runtime.dailyRoutine} />
   {:else if sessionState.status === "sight-reading" && session}
+    {#if status}
+      <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+    {/if}
+    {#if previewScore}
+      <div class="flex flex-wrap items-center gap-3 rounded-lg border bg-card px-4 py-3">
+        <Button type="button" size="sm" variant="outline" onclick={() => void togglePreview()}>
+          {#if previewPlaying}
+            <Pause class="size-4" aria-hidden="true" />Pause
+          {:else}
+            <Play class="size-4" aria-hidden="true" />Play
+          {/if}
+        </Button>
+        {#if previewMessage}
+          <p class="text-sm text-muted-foreground" aria-live="polite">{previewMessage}</p>
+        {/if}
+      </div>
+    {/if}
     <SightReadingSession
       sessionState={sessionState}
       router={runtime.router}
       tuning={activeTuning}
+      bpm={setup.bpm}
       {sessionXp}
       onAccepted={playAccepted}
       onStart={startSightReading}

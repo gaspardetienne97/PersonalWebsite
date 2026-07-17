@@ -1,8 +1,23 @@
-import { afterEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
+
+import { monotonicMs } from "@repo/music-core/domain";
+import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+import { ProgressEngine } from "@repo/music-core/engines/progress";
+import { SkillGraphStore } from "@repo/music-core/engines/skills";
+import { TechniqueSession } from "@repo/music-core/engines/technique-session";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
+import { MusicRuntime } from "../../_runtime.svelte";
+
+beforeEach(() => {
+  vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
+  vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
+    status: "started",
+    downbeat: monotonicMs(0),
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -11,6 +26,28 @@ afterEach(() => {
 });
 
 describe("/music/learn/aerophone/+page.svelte", () => {
+  test("does not install session subscriptions when services resolve after teardown", async () => {
+    let resolveServices!: () => void;
+    vi.spyOn(SkillGraphStore.prototype, "seed").mockReturnValue(
+      new Promise((resolve) => {
+        resolveServices = resolve;
+      }),
+    );
+    vi.spyOn(AnalyticsEngine.prototype, "load").mockResolvedValue();
+    vi.spyOn(ProgressEngine.prototype, "load").mockResolvedValue();
+    const runtime = new MusicRuntime();
+    const subscribe = vi.spyOn(runtime.router, "subscribe");
+    const view = render(Page, { runtime });
+    const subscriptionCount = subscribe.mock.calls.length;
+
+    view.unmount();
+    resolveServices();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(subscribe).toHaveBeenCalledTimes(subscriptionCount);
+    runtime.dispose();
+  });
+
   test("shows the CC2 long-tone trainer for the selected fingering", async () => {
     render(Page);
 
@@ -33,6 +70,47 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       expect(document.body.textContent).toContain("Dynamic Swell Trainer");
       expect(button("Start dynamic swell")).not.toBeUndefined();
     });
+  });
+
+  test("starts the Aerophone engine only after the shared downbeat", async () => {
+    const runtime = new MusicRuntime();
+    let resolve!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
+    vi.spyOn(runtime, "beginPerformance").mockReturnValue(
+      new Promise((settle) => {
+        resolve = settle;
+      }),
+    );
+    const startLongTone = vi
+      .spyOn(TechniqueSession.prototype, "startLongTone")
+      .mockResolvedValue({} as never);
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    button("Start long tone")?.click();
+    await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
+    expect(startLongTone).not.toHaveBeenCalled();
+
+    resolve({ status: "started", downbeat: monotonicMs(1_234) });
+    await vi.waitFor(() => expect(startLongTone).toHaveBeenCalledOnce());
+  });
+
+  test("keeps Aerophone setup when playback voice activation fails", async () => {
+    const runtime = new MusicRuntime();
+    runtime.audioMessage = "Playback voice unavailable.";
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
+    const beginPerformance = vi.spyOn(runtime, "beginPerformance");
+    const startLongTone = vi.spyOn(TechniqueSession.prototype, "startLongTone");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    button("Start long tone")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Playback voice unavailable."),
+    );
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(startLongTone).not.toHaveBeenCalled();
+    expect(button("Start long tone")).not.toBeUndefined();
   });
 
   test("runs the articulation drill from the unified Aerophone surface", async () => {
@@ -58,8 +136,8 @@ describe("/music/learn/aerophone/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Articulation complete");
-      expect(button("Repeat articulation")).not.toBeUndefined();
-      expect(button("Slow down")).not.toBeUndefined();
+      expect(button("Repeat at 90 BPM")).not.toBeUndefined();
+      expect(button("Slow to 70 BPM")).not.toBeUndefined();
       expect(document.body.textContent).toContain("Summary dimensions");
       expect(document.body.textContent).toContain("Pitch");
       expect(document.body.textContent).toContain("Breath");
@@ -67,9 +145,9 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       expect(document.body.textContent).toContain("Duration");
     });
 
-    button("Slow down")?.click();
+    button("Slow to 70 BPM")?.click();
     await vi.waitFor(() => {
-      expect(button("Cancel articulation drill")).not.toBeUndefined();
+      expect(button("Start articulation drill")).not.toBeUndefined();
       expect(new URLSearchParams(window.location.search).get("bpm")).toBe("70");
     });
   });
@@ -119,7 +197,9 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       expect(document.body.textContent).toContain("Articulation Trainer");
       expect(document.body.textContent).toContain("Target A4");
       expect(button("Legato")).toHaveAttribute("aria-pressed", "true");
-      expect(button("110 BPM")).toHaveAttribute("aria-pressed", "true");
+      expect(document.querySelector('[aria-label="Articulation tempo"]')?.textContent).toContain(
+        "110 BPM",
+      );
     });
 
     button("Long tone")?.click();
