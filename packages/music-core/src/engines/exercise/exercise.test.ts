@@ -14,9 +14,11 @@ import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills";
 
 import {
+  commitPreparedExerciseOutcome,
   ExerciseRegistry,
   ExerciseRunHost,
   ExerciseScheduler,
+  prepareExerciseThroughPipeline,
   runExerciseThroughPipeline,
 } from "./index";
 import { intervalRecognitionExercise } from "@repo/music-core/exercises/interval-recognition";
@@ -99,6 +101,37 @@ describe("music-core/exercise", () => {
 
     expect(outcome.event.correct).toBe(true);
     expect(skills.getMastery("pitch.interval.m6").mastery).toBeGreaterThan(0);
+    expect(progress.state.xp).toBeGreaterThan(0);
+  });
+
+  test("prepares a result without mutating stores until it is committed", async () => {
+    const skills = new SkillGraphStore();
+    await skills.seed(seedCoreSkills());
+    const analytics = new AnalyticsEngine();
+    const progress = new ProgressEngine();
+    const prepared = prepareExerciseThroughPipeline({
+      exercise: intervalRecognitionExercise,
+      input: [
+        choiceAnswerEvent(
+          "m6",
+          intervalRecognitionExercise
+            .generate({ targetSkillIds: ["pitch.interval.m6"], difficulty: 0.6 })
+            .payload.choices.map(({ token }) => token),
+        ),
+      ],
+      sessionId: "session-prepare",
+      runId: "run-prepare",
+      context: { targetSkillIds: ["pitch.interval.m6"], difficulty: 0.6 },
+      now: () => 1_700_000_000_000,
+    });
+
+    expect(skills.getMastery("pitch.interval.m6").observations).toBe(0);
+    expect(analytics.getStats("pitch.interval.m6")).toBeUndefined();
+    expect(progress.state.xp).toBe(0);
+
+    await commitPreparedExerciseOutcome(prepared, { skills, analytics, progress });
+    expect(skills.getMastery("pitch.interval.m6").observations).toBe(1);
+    expect(analytics.getStats("pitch.interval.m6")?.attempts).toBe(1);
     expect(progress.state.xp).toBeGreaterThan(0);
   });
 
@@ -221,6 +254,32 @@ describe("music-core/exercise", () => {
     expect(skills.getMastery("rhythm.quarter-pulse").mastery).toBeGreaterThan(0);
     expect(analytics.getStats("rhythm.quarter-pulse")?.attempts).toBe(1);
     expect(outcome.xp).toBeGreaterThan(0);
+    host.dispose();
+  });
+
+  test("keeps routed input out of an unarmed run until input is enabled", async () => {
+    const router = new InputRouter({ now: () => 0 });
+    const skills = new SkillGraphStore();
+    await skills.seed(seedCoreSkills());
+    const host = new ExerciseRunHost(router, {
+      skills,
+      analytics: new AnalyticsEngine(),
+      progress: new ProgressEngine(),
+    });
+
+    host.start({
+      exercise: createRhythmPulseExercise({ bpm: 120, beats: 2 }),
+      sessionId: "session-1",
+      runId: "run-1",
+      inputEnabled: false,
+      context: { targetSkillIds: ["rhythm.quarter-pulse"], difficulty: 0.7 },
+    });
+    router.noteOn(36, "onscreen", "mpc");
+    expect(host.liveState?.progress).toBe(0);
+
+    host.setInputEnabled(true);
+    router.noteOn(36, "onscreen", "mpc");
+    expect(host.liveState?.progress).toBe(0.5);
     host.dispose();
   });
 

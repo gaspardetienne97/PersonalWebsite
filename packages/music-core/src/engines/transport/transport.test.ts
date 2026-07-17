@@ -47,12 +47,12 @@ describe("music-core/transport", () => {
 
   test("emits sample-accurate beat and subdivision events from the audio clock", () => {
     const mock = createClockMock();
-    const clicks: Array<{ atSeconds: number; accented: boolean }> = [];
+    const clicks: TransportEvent[] = [];
     const events: TransportEvent[] = [];
     const transport = new TransportEngine(mock.clock, {
       bpm: 120,
       quantizationGrid: "8n",
-      onMetronomeClick: (atSeconds, accented) => clicks.push({ atSeconds, accented }),
+      onMetronomeClick: (event) => clicks.push(event),
     });
     transport.subscribe((event) => events.push(event));
 
@@ -68,7 +68,8 @@ describe("music-core/transport", () => {
       "subdivision",
       "beat",
     ]);
-    expect(clicks).toEqual([
+    expect(events.map((event) => event.absoluteBeat)).toEqual([0, 0, 1, 1, 2]);
+    expect(clicks.map(({ atSeconds, accented }) => ({ atSeconds, accented }))).toEqual([
       { atSeconds: 10, accented: true },
       { atSeconds: 10.5, accented: false },
       { atSeconds: 11, accented: false },
@@ -125,5 +126,54 @@ describe("music-core/transport", () => {
     expect(mock.clock.clear).toHaveBeenCalledWith(7);
     expect(mock.clock.stop).toHaveBeenCalledOnce();
     expect(transport.state.running).toBe(false);
+  });
+
+  test.each([
+    { meter: "4/4", numerator: 4, denominator: 4, interval: "4n", toneBpm: 120 },
+    { meter: "3/4", numerator: 3, denominator: 4, interval: "4n", toneBpm: 120 },
+    { meter: "2/2", numerator: 2, denominator: 2, interval: "2n", toneBpm: 240 },
+    { meter: "6/8", numerator: 6, denominator: 8, interval: "8n", toneBpm: 60 },
+  ] as const)("uses literal denominator-note pulses in $meter", (meter) => {
+    const mock = createClockMock();
+    const events: TransportEvent[] = [];
+    const clicks: TransportEvent[] = [];
+    const transport = new TransportEngine(mock.clock, {
+      bpm: 120,
+      numerator: meter.numerator,
+      denominator: meter.denominator,
+      countInBars: 1,
+      quantizationGrid: meter.interval,
+      onMetronomeClick: (event) => clicks.push(event),
+    });
+    transport.subscribe((event) => events.push(event));
+
+    transport.start();
+    for (let pulse = 0; pulse <= meter.numerator; pulse += 1) mock.tick(pulse * 0.5);
+
+    expect(mock.clock.bpm.value).toBe(meter.toneBpm);
+    expect(mock.clock.scheduleRepeat).toHaveBeenCalledWith(expect.any(Function), meter.interval, 0);
+    expect(events.map(({ beat }) => beat)).toEqual([
+      ...Array.from({ length: meter.numerator }, (_, beat) => beat),
+      0,
+    ]);
+    expect(events.map(({ countingIn }) => countingIn)).toEqual([
+      ...Array.from({ length: meter.numerator }, () => true),
+      false,
+    ]);
+    expect(clicks).toEqual(events);
+  });
+
+  test("ignores callbacks that arrive after stop", () => {
+    const mock = createClockMock();
+    const events: TransportEvent[] = [];
+    const transport = new TransportEngine(mock.clock);
+    transport.subscribe((event) => events.push(event));
+
+    transport.start();
+    mock.tick(0);
+    transport.stop();
+    mock.tick(0.5);
+
+    expect(events).toHaveLength(1);
   });
 });

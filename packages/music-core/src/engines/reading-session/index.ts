@@ -407,6 +407,35 @@ export class ReadingSession {
     this.#notify();
   }
 
+  retimePreparedSightReading(timing: Pick<SightReadingOptions, "bpm" | "timeSignature">): void {
+    this.#assertUsable();
+    const prompt = this.#currentPrompt;
+    const options = this.#sightReadingOptions;
+    if (
+      this.#status !== "sight-reading" ||
+      this.#countIn !== "ready" ||
+      !isSightReadingPrompt(prompt) ||
+      !options
+    ) {
+      throw new Error("No prepared sight-reading session");
+    }
+
+    const nextOptions = { ...options, ...timing };
+    const score: Score = {
+      ...prompt.score,
+      tempoMap: [{ ...prompt.score.tempoMap[0], atBeat: 0, bpm: timing.bpm }],
+      timeSignatures: [{ atBeat: 0, ...timing.timeSignature }],
+    };
+    this.#sightReadingOptions = nextOptions;
+    this.#currentPrompt = {
+      ...prompt,
+      score,
+      notation: notationView(score),
+      options: nextOptions,
+    };
+    this.#notify();
+  }
+
   async finishSightReading(): Promise<void> {
     this.#assertUsable();
     if (this.#status !== "sight-reading" || !isSightReadingPrompt(this.#currentPrompt)) {

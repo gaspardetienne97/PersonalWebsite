@@ -35,6 +35,87 @@ function createAdapter(): BackingTrackPlaybackAdapter {
 }
 
 describe("music-core/backing-track", () => {
+  test("does not resume imported playback after selection replacement", async () => {
+    const adapter = createAdapter();
+    let resolveLoad!: (durationMs: number) => void;
+    vi.mocked(adapter.loadImported).mockReturnValue(
+      new Promise((resolve) => {
+        resolveLoad = resolve;
+      }),
+    );
+    const engine = new BackingTrackEngine(adapter);
+
+    engine.selectImported(backing());
+    const play = engine.play();
+    engine.selectBuiltin({ id: "next", label: "Next", url: "/next.mp3" });
+    resolveLoad(45_000);
+    await play;
+
+    expect(adapter.playImported).not.toHaveBeenCalled();
+    expect(engine.state).toMatchObject({ status: "idle", selection: { kind: "builtin" } });
+  });
+
+  test("does not resume imported playback after stop or disposal", async () => {
+    for (const invalidate of ["stop", "dispose"] as const) {
+      const adapter = createAdapter();
+      let resolveLoad!: (durationMs: number) => void;
+      vi.mocked(adapter.loadImported).mockReturnValue(
+        new Promise((resolve) => {
+          resolveLoad = resolve;
+        }),
+      );
+      const engine = new BackingTrackEngine(adapter);
+
+      engine.selectImported(backing());
+      const play = engine.play();
+      engine[invalidate]();
+      resolveLoad(45_000);
+      await play;
+
+      expect(adapter.playImported).not.toHaveBeenCalled();
+      expect(engine.state.status).toBe("stopped");
+    }
+  });
+
+  test("does not resume imported playback after pause", async () => {
+    const adapter = createAdapter();
+    let resolveLoad!: (durationMs: number) => void;
+    vi.mocked(adapter.loadImported).mockReturnValue(
+      new Promise((resolve) => {
+        resolveLoad = resolve;
+      }),
+    );
+    const engine = new BackingTrackEngine(adapter);
+
+    engine.selectImported(backing());
+    const play = engine.play();
+    engine.pause();
+    resolveLoad(45_000);
+    await play;
+
+    expect(adapter.playImported).not.toHaveBeenCalled();
+    expect(engine.state.status).toBe("paused");
+  });
+
+  test("does not publish playing when generated playback settles after stop", async () => {
+    const adapter = createAdapter();
+    let resolvePlay!: () => void;
+    vi.mocked(adapter.playGenerated).mockReturnValue(
+      new Promise((resolve) => {
+        resolvePlay = resolve;
+      }),
+    );
+    const engine = new BackingTrackEngine(adapter);
+
+    engine.selectGenerated({ kind: "generated", progressionId: "ii-v-i", bpm: 96, loop: true });
+    const play = engine.play();
+    engine.stop();
+    resolvePlay();
+    await play;
+
+    expect(engine.state.status).toBe("stopped");
+  });
+
   test("plays and stops a generated progression through the adapter", async () => {
     const adapter = createAdapter();
     const engine = new BackingTrackEngine(adapter);
@@ -52,6 +133,50 @@ describe("music-core/backing-track", () => {
     expect(adapter.stopGenerated).toHaveBeenCalled();
     expect(engine.state.status).toBe("stopped");
     expect(engine.state.positionMs).toBe(0);
+  });
+
+  test("completes non-loop generated playback at its projected duration", async () => {
+    vi.useFakeTimers();
+    try {
+      const adapter = createAdapter();
+      const engine = new BackingTrackEngine(adapter);
+
+      engine.selectGenerated({ kind: "generated", progressionId: "ii-v-i", bpm: 96, loop: false });
+      await engine.play();
+
+      await vi.advanceTimersByTimeAsync(19_999);
+      expect(engine.state.status).toBe("playing");
+      await vi.advanceTimersByTimeAsync(1);
+      expect(engine.state).toMatchObject({ status: "stopped", positionMs: 20_000 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("cancels generated completion on pause, stop, replacement, and disposal", async () => {
+    vi.useFakeTimers();
+    try {
+      for (const exit of ["pause", "stop", "replace", "dispose"] as const) {
+        const adapter = createAdapter();
+        const engine = new BackingTrackEngine(adapter);
+        engine.selectGenerated({
+          kind: "generated",
+          progressionId: "ii-v-i",
+          bpm: 96,
+          loop: false,
+        });
+        await engine.play();
+
+        if (exit === "replace") engine.selectImported(backing());
+        else engine[exit]();
+        const stateAfterExit = engine.state;
+        await vi.advanceTimersByTimeAsync(20_000);
+
+        expect(engine.state).toEqual(stateAfterExit);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("plays a built-in (static URL) backing track via the audio path", async () => {

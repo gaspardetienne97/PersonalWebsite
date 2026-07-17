@@ -4,6 +4,14 @@ import type { Score } from "@repo/music-core/domain";
 
 import { SoundEngine, scoreToPattern, type ToneSoundModule } from "./index";
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((settle) => {
+    resolve = settle;
+  });
+  return { promise, resolve };
+}
+
 function makeScore(overrides: Partial<Score> = {}): Score {
   return {
     id: "s1",
@@ -43,7 +51,7 @@ describe("scoreToPattern", () => {
   });
 });
 
-function createToneMock() {
+function createToneMock(options: { onGainCreated?: () => void } = {}) {
   const synthTrigger = vi.fn();
   const metronomeTrigger = vi.fn();
   const samplerTrigger = vi.fn();
@@ -52,13 +60,17 @@ function createToneMock() {
   const start = vi.fn(async () => undefined);
   const loaded = vi.fn(async () => undefined);
   const dispose = vi.fn();
+  const releaseAll = vi.fn();
 
   class DestinationNode {
+    destination: unknown;
+
     toDestination() {
       return this;
     }
 
-    connect() {
+    connect(destination: unknown) {
+      this.destination = destination;
       return this;
     }
 
@@ -72,32 +84,75 @@ function createToneMock() {
   class GainNode extends DestinationNode {
     gain: { value: number };
     isMaster = false;
+    disposeSpy = vi.fn();
 
     constructor(value = 1) {
       super();
       this.gain = { value };
       gains.push(this);
+      options.onGainCreated?.();
     }
 
     toDestination() {
       this.isMaster = true;
       return this;
     }
+
+    dispose() {
+      this.disposeSpy();
+      dispose();
+    }
   }
+
+  const polySynthInstances: PolySynth[] = [];
 
   class PolySynth extends DestinationNode {
     triggerAttackRelease = synthTrigger;
     triggerAttack = droneAttack;
     triggerRelease = droneRelease;
+    releaseAll = releaseAll;
+    disposeSpy = vi.fn();
+
+    constructor(..._args: unknown[]) {
+      super();
+      polySynthInstances.push(this);
+    }
+
+    dispose() {
+      this.disposeSpy();
+      dispose();
+    }
   }
+
+  const synthInstances: Synth[] = [];
 
   class Synth extends DestinationNode {
     triggerAttackRelease = metronomeTrigger;
+
+    constructor(..._args: unknown[]) {
+      super();
+      synthInstances.push(this);
+    }
   }
 
   class Sampler extends DestinationNode {
     triggerAttackRelease = samplerTrigger;
+    releaseAll = releaseAll;
+    disposeSpy = vi.fn();
+
+    dispose() {
+      this.disposeSpy();
+      dispose();
+    }
   }
+
+  const samplerInstances: Sampler[] = [];
+  const SamplerConstructor = class extends Sampler {
+    constructor(..._args: unknown[]) {
+      super();
+      samplerInstances.push(this);
+    }
+  };
 
   interface MockPlayer {
     start: ReturnType<typeof vi.fn>;
@@ -141,7 +196,7 @@ function createToneMock() {
     gainToDb: (gain: number) => gain,
     PolySynth,
     Synth,
-    Sampler,
+    Sampler: SamplerConstructor,
     Players,
     Gain: GainNode,
   } as unknown as ToneSoundModule;
@@ -156,10 +211,16 @@ function createToneMock() {
     droneAttack,
     droneRelease,
     dispose,
+    releaseAll,
     playersInstances,
+    samplerInstances,
+    polySynthInstances,
+    synthInstances,
+    gains,
     playerFor: (padId: string) => playersInstances.at(-1)!.player(padId),
     masterGain: () => gains.find((gain) => gain.isMaster),
-    metronomeGain: () => gains.find((gain) => !gain.isMaster),
+    playbackGain: () => gains.filter((gain) => !gain.isMaster)[0],
+    metronomeGain: () => gains.filter((gain) => !gain.isMaster)[1],
     droneGain: () => gains.filter((gain) => !gain.isMaster).at(-1),
   };
 }
@@ -182,6 +243,68 @@ describe("music-core/sound", () => {
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["C4", "E4", "G4"], 0.5, 2, 0.8);
   });
 
+  test("coalesces concurrent enable calls into one Tone load and start", async () => {
+    const mock = createToneMock();
+    const loading = deferred<ToneSoundModule>();
+    const starting = deferred<undefined>();
+    mock.start.mockReturnValueOnce(starting.promise);
+    const loader = vi.fn(() => loading.promise);
+    const sound = new SoundEngine(loader);
+
+    const first = sound.enable();
+    const second = sound.enable();
+
+    expect(first).toBe(second);
+    expect(loader).toHaveBeenCalledOnce();
+    loading.resolve(mock.tone);
+    await Promise.resolve();
+    expect(mock.start).toHaveBeenCalledOnce();
+
+    starting.resolve(undefined);
+    await expect(first).resolves.toEqual({ enabled: true, message: "Audio enabled." });
+    await expect(second).resolves.toEqual({ enabled: true, message: "Audio enabled." });
+    expect(mock.gains).toHaveLength(3);
+  });
+
+  test("does not create or publish a graph when disposed during deferred audio start", async () => {
+    const mock = createToneMock();
+    const starting = deferred<undefined>();
+    mock.start.mockReturnValueOnce(starting.promise);
+    const sound = new SoundEngine(async () => mock.tone);
+
+    const enabling = sound.enable();
+    await Promise.resolve();
+    sound.dispose();
+    starting.resolve(undefined);
+
+    await expect(enabling).resolves.toEqual({
+      enabled: false,
+      message: "Audio enablement was cancelled.",
+    });
+    expect(sound.enabled).toBe(false);
+    expect(mock.gains).toHaveLength(0);
+  });
+
+  test("disposes locally created nodes when graph creation is invalidated", async () => {
+    let sound!: SoundEngine;
+    let invalidate = false;
+    const mock = createToneMock({
+      onGainCreated: () => {
+        if (invalidate) sound.dispose();
+      },
+    });
+    sound = new SoundEngine(async () => mock.tone);
+    invalidate = true;
+
+    await expect(sound.enable()).resolves.toEqual({
+      enabled: false,
+      message: "Audio enablement was cancelled.",
+    });
+    expect(sound.enabled).toBe(false);
+    expect(mock.gains).toHaveLength(1);
+    expect(mock.gains[0]!.disposeSpy).toHaveBeenCalledOnce();
+  });
+
   test("loads Tone.Sampler and Tone.Players assets", async () => {
     const mock = createToneMock();
     const sound = new SoundEngine(async () => mock.tone);
@@ -199,6 +322,85 @@ describe("music-core/sound", () => {
 
     expect(mock.loaded).toHaveBeenCalledTimes(2);
     expect(mock.playerFor("kick").start).toHaveBeenCalledWith(3);
+  });
+
+  test("routes synth, sampler, drums, and drone through playback while clicks use metronome", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    expect(mock.polySynthInstances[0]!.destination).toBe(mock.playbackGain());
+    expect(mock.synthInstances[0]!.destination).toBe(mock.metronomeGain());
+    await sound.loadSampler({ C4: "/samples/piano.mp3" });
+    expect(mock.samplerInstances[0]!.destination).toBe(mock.playbackGain());
+    await sound.loadDrumKit([{ padId: "kick", midiNote: 36, url: "/samples/kick.mp3" }]);
+    expect(mock.playersInstances[0]!.destination).toBe(mock.playbackGain());
+    sound.startDrone(60);
+    expect(mock.droneGain()?.destination).toBe(mock.playbackGain());
+  });
+
+  test("keeps the working sampler until its replacement loads", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+    await sound.loadSampler({ C4: "/samples/first.mp3" });
+    const first = mock.samplerInstances[0]!;
+
+    mock.loaded.mockRejectedValueOnce(new Error("decode failed"));
+    await expect(sound.loadSampler({ C4: "/samples/bad.mp3" })).rejects.toThrow("decode failed");
+
+    expect(first.disposeSpy).not.toHaveBeenCalled();
+    expect(mock.samplerInstances[1]!.disposeSpy).toHaveBeenCalledOnce();
+    sound.playNote(60);
+    expect(mock.samplerTrigger).toHaveBeenCalledWith("C4", 0.18, undefined, 0.8);
+
+    await sound.loadSampler({ C4: "/samples/replacement.mp3" });
+    expect(first.disposeSpy).toHaveBeenCalledOnce();
+  });
+
+  test("does not activate a sampler that finishes after a synth selection", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+    const loading = deferred<undefined>();
+    mock.loaded.mockReturnValueOnce(loading.promise);
+
+    const sampler = sound.loadSampler({ C4: "/samples/piano.mp3" });
+    sound.setPlaybackSound("warm-synth");
+    loading.resolve(undefined);
+
+    await expect(sampler).resolves.toBe(false);
+    expect(sound.playbackSound).toBe("warm-synth");
+    expect(mock.samplerInstances[0]!.disposeSpy).toHaveBeenCalledOnce();
+  });
+
+  test("does not activate a sampler that finishes after disposal", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+    const loading = deferred<undefined>();
+    mock.loaded.mockReturnValueOnce(loading.promise);
+
+    const sampler = sound.loadSampler({ C4: "/samples/piano.mp3" });
+    sound.dispose();
+    loading.resolve(undefined);
+
+    await expect(sampler).resolves.toBe(false);
+    expect(mock.samplerInstances[0]!.disposeSpy).toHaveBeenCalledOnce();
+    expect(sound.enabled).toBe(false);
+  });
+
+  test("selecting a synth disposes an active sampler", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+    await sound.loadSampler({ C4: "/samples/piano.mp3" });
+    const sampler = mock.samplerInstances[0]!;
+
+    sound.setPlaybackSound("e-piano");
+
+    expect(sound.playbackSound).toBe("e-piano");
+    expect(sampler.disposeSpy).toHaveBeenCalledOnce();
   });
 
   test("loads pad IDs, applies velocity, and disposes replaced players", async () => {
@@ -235,6 +437,47 @@ describe("music-core/sound", () => {
     expect(firstPlayers.disposeSpy).not.toHaveBeenCalled();
     sound.playDrum("pad-36", 1, 0.8);
     expect(firstPlayers.player("pad-36").start).toHaveBeenCalledWith(1);
+  });
+
+  test("publishes only the latest drum kit when loads resolve in reverse order", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+    const firstLoad = deferred<undefined>();
+    const secondLoad = deferred<undefined>();
+    mock.loaded.mockReturnValueOnce(firstLoad.promise).mockReturnValueOnce(secondLoad.promise);
+
+    const first = sound.loadDrumKit([{ padId: "pad-36", midiNote: 36, url: "blob:kick" }]);
+    const second = sound.loadDrumKit([{ padId: "pad-38", midiNote: 38, url: "blob:snare" }]);
+    const firstPlayers = mock.playersInstances[0]!;
+    const secondPlayers = mock.playersInstances[1]!;
+
+    secondLoad.resolve(undefined);
+    await second;
+    firstLoad.resolve(undefined);
+    await first;
+    sound.playDrum("pad-38", 1, 0.8);
+
+    expect(firstPlayers.disposeSpy).toHaveBeenCalledOnce();
+    expect(secondPlayers.disposeSpy).not.toHaveBeenCalled();
+    expect(secondPlayers.player("pad-38").start).toHaveBeenCalledWith(1);
+  });
+
+  test("disposes drum players that finish loading after engine disposal", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+    const loading = deferred<undefined>();
+    mock.loaded.mockReturnValueOnce(loading.promise);
+
+    const load = sound.loadDrumKit([{ padId: "pad-36", midiNote: 36, url: "blob:kick" }]);
+    const players = mock.playersInstances[0]!;
+    sound.dispose();
+    loading.resolve(undefined);
+    await load;
+
+    expect(players.disposeSpy).toHaveBeenCalledOnce();
+    expect(sound.enabled).toBe(false);
   });
 
   test("schedules one drum-loop start time per step and replaces the prior timer", async () => {
@@ -317,11 +560,45 @@ describe("music-core/sound", () => {
     await sound.enable();
 
     sound.playPattern([{ midiNotes: [60], offsetSeconds: 0, durationSeconds: 2 }]);
+    const firstPatternVoice = mock.polySynthInstances.at(-1)!;
     sound.playPattern([{ midiNotes: [67], offsetSeconds: 0, durationSeconds: 1 }]);
 
-    expect(mock.dispose).toHaveBeenCalledTimes(1);
+    expect(mock.releaseAll).toHaveBeenCalledOnce();
+    expect(firstPatternVoice.disposeSpy).toHaveBeenCalledOnce();
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(1, ["C4"], 2, 10, 0.8);
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["G4"], 1, 10, 0.8);
+  });
+
+  test("stop releases active notes and disposes the synth to cancel future events", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+
+    sound.playPattern([
+      { midiNotes: [60], offsetSeconds: 0, durationSeconds: 2 },
+      { midiNotes: [64], offsetSeconds: 5, durationSeconds: 2 },
+    ]);
+    const patternVoice = mock.polySynthInstances.at(-1)!;
+    sound.stopPattern();
+
+    expect(mock.releaseAll).toHaveBeenCalledOnce();
+    expect(patternVoice.disposeSpy).toHaveBeenCalledOnce();
+  });
+
+  test("patterns use the sampled effective voice and cancel its scheduled sources", async () => {
+    const mock = createToneMock();
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+    await sound.loadSampler({ C4: "/samples/piano.mp3" });
+
+    sound.playPattern([
+      { midiNotes: [60], offsetSeconds: 0, durationSeconds: 1 },
+      { midiNotes: [64], offsetSeconds: 1, durationSeconds: 1 },
+    ]);
+    expect(mock.samplerTrigger).toHaveBeenCalledTimes(2);
+    sound.stopPattern();
+
+    expect(mock.releaseAll).toHaveBeenCalled();
   });
 
   test("starts and stops a generated pattern loop", async () => {
@@ -380,17 +657,21 @@ describe("music-core/sound", () => {
     expect(() => sound.startPatternLoop([], Number.POSITIVE_INFINITY)).toThrow(/duration/i);
   });
 
-  test("master mute toggles output and metronome blend sets its own gain", async () => {
+  test("keeps playback and metronome buses independent beneath master", async () => {
     const mock = createToneMock();
     const sound = new SoundEngine(async () => mock.tone);
     await sound.enable();
 
     expect(mock.masterGain()?.gain.value).toBe(1);
+    sound.setPlaybackLevel(0.4);
+    expect(mock.playbackGain()?.gain.value).toBe(0.4);
     sound.setMasterMuted(true);
     expect(sound.muted).toBe(true);
     expect(mock.masterGain()?.gain.value).toBe(0);
     sound.setMasterMuted(false);
     expect(mock.masterGain()?.gain.value).toBe(1);
+    sound.setMasterVolume(0.6);
+    expect(mock.masterGain()?.gain.value).toBe(0.6);
 
     sound.setMetronomeLevel(0.3);
     expect(sound.metronomeLevel).toBe(0.3);
@@ -402,7 +683,7 @@ describe("music-core/sound", () => {
     const sound = new SoundEngine(async () => mock.tone);
     await sound.enable();
 
-    expect(sound.instrument).toBe("Synth");
+    expect(sound.instrument).toBe("Warm Synth");
     sound.setInstrument("Saw");
     expect(sound.instrument).toBe("Saw");
     sound.setInstrument("does-not-exist");

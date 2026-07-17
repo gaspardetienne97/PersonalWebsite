@@ -63,6 +63,7 @@ export interface EarTrainingSessionOptions {
   queueMode?: "adaptive" | "balanced";
   scaleDegreeSet?: ScaleDegreeSetId;
   scaleDegreeLabelMode?: ScaleDegreeLabelMode;
+  deferPerformanceAnswers?: boolean;
 }
 
 export type EarTrainingConfigDrill = Exclude<EarTrainingDrill, "repertoire-transfer"> | "mixed";
@@ -286,6 +287,16 @@ export class EarTrainingSession {
     return this.#currentPrompt;
   }
 
+  armCurrentAnswer(): void {
+    if (this.#status !== "active" || !this.#currentPrompt) return;
+    this.#host.setInputEnabled(true);
+  }
+
+  disarmCurrentAnswer(): void {
+    if (this.#status !== "active" || !this.#currentPrompt) return;
+    this.#host.setInputEnabled(false);
+  }
+
   async answerChoice(token: string): Promise<void> {
     this.#assertUsable();
     if (this.options.answerMode !== "choice") {
@@ -355,6 +366,10 @@ export class EarTrainingSession {
       sessionId: this.#sessionId,
       runId: `${this.#sessionId}-${this.#currentIndex + 1}`,
       inputs: inputsForAnswerMode(this.options.answerMode, item.drill),
+      inputEnabled: !(
+        this.options.deferPerformanceAnswers &&
+        (this.options.answerMode === "play-back" || this.options.answerMode === "voice")
+      ),
       context: {
         targetSkillIds: item.targetSkillIds,
         difficulty: item.difficulty,

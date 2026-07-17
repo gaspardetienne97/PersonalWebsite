@@ -56,6 +56,14 @@ class FakeRecorder {
   }
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((settle) => {
+    resolve = settle;
+  });
+  return { promise, resolve };
+}
+
 function createHarness(
   overrides: Partial<AudioTakeRecorderOptions> & {
     getUserMedia?: ReturnType<typeof vi.fn>;
@@ -186,6 +194,42 @@ describe("AudioTakeRecorder", () => {
     expect(recorders[0]!.stop).toHaveBeenCalled();
     expect(stream.tracks.every((track) => track.stop.mock.calls.length === 1)).toBe(true);
     expect(recorder.state.status).toBe("idle");
+  });
+
+  test("stops every late permission track and stays idle after cancellation", async () => {
+    const permission = deferred<MediaStream>();
+    const { recorder, stream } = createHarness({
+      getUserMedia: vi.fn(() => permission.promise),
+    });
+
+    const prepare = recorder.prepare();
+    await vi.waitFor(() => expect(recorder.state.status).toBe("requesting"));
+    await recorder.cancel();
+    permission.resolve(stream as unknown as MediaStream);
+    await prepare;
+
+    expect(stream.tracks.every((track) => track.stop.mock.calls.length === 1)).toBe(true);
+    expect(recorder.state.status).toBe("idle");
+  });
+
+  test("stops every late permission track and publishes no ready state after disposal", async () => {
+    const permission = deferred<MediaStream>();
+    const { recorder, stream } = createHarness({
+      getUserMedia: vi.fn(() => permission.promise),
+    });
+    const states: string[] = [];
+    recorder.subscribe((state) => states.push(state.status));
+
+    const prepare = recorder.prepare();
+    await vi.waitFor(() => expect(recorder.state.status).toBe("requesting"));
+    await recorder.dispose();
+    permission.resolve(stream as unknown as MediaStream);
+    await prepare;
+
+    expect(stream.tracks.every((track) => track.stop.mock.calls.length === 1)).toBe(true);
+    expect(recorder.state.status).toBe("idle");
+    expect(states.at(-1)).toBe("idle");
+    expect(states).not.toContain("ready");
   });
 
   test("stops automatically at max duration", async () => {

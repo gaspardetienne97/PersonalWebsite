@@ -5,6 +5,7 @@ import type { SoundEngine } from "@repo/music-core/engines/sound";
 import type { ImportedBackingTrackRow } from "@repo/music-core/engines/store";
 
 import { BrowserBackingPlayer } from "./browser-player";
+import { BackingTrackEngine } from "./index";
 
 class FakeAudio {
   src = "";
@@ -31,6 +32,10 @@ class FakeAudio {
     for (const listener of this.#listeners.get(type) ?? []) listener();
   }
 
+  listeners(type: string): Array<() => void> {
+    return [...(this.#listeners.get(type) ?? [])];
+  }
+
   listenerCount(type: string): number {
     return this.#listeners.get(type)?.size ?? 0;
   }
@@ -53,10 +58,65 @@ function createSound(): SoundEngine {
     startPatternLoop: vi.fn(),
     stopPatternLoop: vi.fn(),
     playPattern: vi.fn(),
+    stopPattern: vi.fn(),
   } as unknown as SoundEngine;
 }
 
 describe("BrowserBackingPlayer", () => {
+  test("does not replace the imported source when blob loading settles after disposal", async () => {
+    const audio = new FakeAudio();
+    let resolveBlob!: (blob: Blob) => void;
+    const createObjectURL = vi.fn(() => "blob:late");
+    const player = new BrowserBackingPlayer({
+      sound: createSound(),
+      loadBlob: vi.fn(
+        () =>
+          new Promise<Blob | undefined>((resolve) => {
+            resolveBlob = resolve;
+          }),
+      ),
+      audio: audio as unknown as HTMLAudioElement,
+      createObjectURL,
+      revokeObjectURL: vi.fn(),
+    });
+
+    const load = player.loadImported(backing());
+    player.dispose();
+    resolveBlob(new Blob(["late"], { type: "audio/wav" }));
+    await load;
+
+    expect(createObjectURL).not.toHaveBeenCalled();
+    expect(audio.src).toBe("");
+  });
+
+  test("does not replace the imported source when selection changes during blob loading", async () => {
+    const audio = new FakeAudio();
+    let resolveBlob!: (blob: Blob) => void;
+    const createObjectURL = vi.fn(() => "blob:late");
+    const player = new BrowserBackingPlayer({
+      sound: createSound(),
+      loadBlob: vi.fn(
+        () =>
+          new Promise<Blob | undefined>((resolve) => {
+            resolveBlob = resolve;
+          }),
+      ),
+      audio: audio as unknown as HTMLAudioElement,
+      createObjectURL,
+      revokeObjectURL: vi.fn(),
+    });
+    const engine = new BackingTrackEngine(player);
+
+    engine.selectImported(backing());
+    const play = engine.play();
+    engine.selectBuiltin({ id: "next", label: "Next", url: "/next.mp3" });
+    resolveBlob(new Blob(["late"], { type: "audio/wav" }));
+    await play;
+
+    expect(createObjectURL).not.toHaveBeenCalled();
+    expect(audio.src).toBe("");
+  });
+
   test("plays generated progressions through SoundEngine loops", async () => {
     const sound = createSound();
     const player = new BrowserBackingPlayer({
@@ -115,10 +175,12 @@ describe("BrowserBackingPlayer", () => {
 
   test("forwards imported transport controls to the audio element", async () => {
     const audio = new FakeAudio();
+    let mediaVolume = 0.5;
     const player = new BrowserBackingPlayer({
       sound: createSound(),
       loadBlob: vi.fn(),
       audio: audio as unknown as HTMLAudioElement,
+      mediaVolume: () => mediaVolume,
     });
 
     await player.playImported();
@@ -130,12 +192,37 @@ describe("BrowserBackingPlayer", () => {
 
     expect(audio.play).toHaveBeenCalledOnce();
     expect(audio.currentTime).toBe(0);
-    expect(audio.volume).toBe(0.4);
+    expect(audio.volume).toBe(0.2);
     expect(audio.loop).toBe(true);
     expect(audio.pause).toHaveBeenCalledTimes(2);
+
+    mediaVolume = 0.25;
+    player.syncMediaVolume();
+    expect(audio.volume).toBe(0.1);
   });
 
-  test("reports audio events through callbacks and removes listeners on dispose", () => {
+  test("reapplies runtime media volume when replacing a source", async () => {
+    const audio = new FakeAudio();
+    let mediaVolume = 0.8;
+    const player = new BrowserBackingPlayer({
+      sound: createSound(),
+      loadBlob: vi.fn(async () => new Blob(["audio"])),
+      audio: audio as unknown as HTMLAudioElement,
+      createObjectURL: vi.fn().mockReturnValueOnce("blob:first").mockReturnValueOnce("blob:second"),
+      revokeObjectURL: vi.fn(),
+      mediaVolume: () => mediaVolume,
+    });
+
+    player.setImportedVolume(0.5);
+    await player.loadImported(backing({ id: "first" }));
+    expect(audio.volume).toBe(0.4);
+
+    mediaVolume = 0.2;
+    await player.loadImported(backing({ id: "second" }));
+    expect(audio.volume).toBe(0.1);
+  });
+
+  test("reports active audio events through callbacks and removes listeners on dispose", async () => {
     const audio = new FakeAudio();
     const onImportedPositionChange = vi.fn();
     const onImportedEnded = vi.fn();
@@ -148,6 +235,8 @@ describe("BrowserBackingPlayer", () => {
       onImportedEnded,
       onImportedError,
     });
+    await player.loadBuiltin({ id: "builtin", label: "Builtin", url: "/builtin.mp3" });
+    await player.playImported();
 
     audio.currentTime = 1.25;
     audio.dispatch("timeupdate");
@@ -162,6 +251,120 @@ describe("BrowserBackingPlayer", () => {
     expect(audio.listenerCount("timeupdate")).toBe(0);
     expect(audio.listenerCount("ended")).toBe(0);
     expect(audio.listenerCount("error")).toBe(0);
+  });
+
+  test("ignores stale imported events after generated playback replaces the source", async () => {
+    const audio = new FakeAudio();
+    const onImportedError = vi.fn();
+    let engine: BackingTrackEngine;
+    const player = new BrowserBackingPlayer({
+      sound: createSound(),
+      loadBlob: vi.fn(async () => new Blob(["audio"])),
+      audio: audio as unknown as HTMLAudioElement,
+      createObjectURL: vi.fn(() => "blob:backing"),
+      revokeObjectURL: vi.fn(),
+      onImportedPositionChange: (positionMs) => engine.updateImportedPosition(positionMs),
+      onImportedEnded: () => engine.markEnded(),
+      onImportedError: (message) => {
+        onImportedError(message);
+        engine.stop();
+      },
+    });
+    engine = new BackingTrackEngine(player);
+
+    engine.selectImported(backing());
+    await engine.play();
+    engine.selectGenerated({ kind: "generated", progressionId: "ii-v-i", bpm: 96, loop: true });
+    await engine.play();
+
+    audio.currentTime = 7.5;
+    audio.dispatch("timeupdate");
+    audio.dispatch("ended");
+    audio.dispatch("error");
+
+    expect(engine.state).toMatchObject({
+      status: "playing",
+      positionMs: 0,
+      selection: { kind: "generated" },
+    });
+    expect(onImportedError).not.toHaveBeenCalled();
+  });
+
+  test("ignores queued events from a replaced imported source", async () => {
+    const audio = new FakeAudio();
+    const onImportedPositionChange = vi.fn();
+    const onImportedEnded = vi.fn();
+    const onImportedError = vi.fn();
+    const player = new BrowserBackingPlayer({
+      sound: createSound(),
+      loadBlob: vi.fn(async (id) => new Blob([id])),
+      audio: audio as unknown as HTMLAudioElement,
+      createObjectURL: vi.fn().mockReturnValueOnce("blob:first").mockReturnValueOnce("blob:second"),
+      revokeObjectURL: vi.fn(),
+      onImportedPositionChange,
+      onImportedEnded,
+      onImportedError,
+    });
+
+    await player.loadImported(backing({ id: "first" }));
+    await player.playImported();
+    const staleListeners = ["timeupdate", "ended", "error"].map(
+      (type) => audio.listeners(type)[0]!,
+    );
+
+    await player.loadImported(backing({ id: "second" }));
+    await player.playImported();
+    audio.currentTime = 4;
+    for (const listener of staleListeners) listener();
+
+    expect(onImportedPositionChange).not.toHaveBeenCalled();
+    expect(onImportedEnded).not.toHaveBeenCalled();
+    expect(onImportedError).not.toHaveBeenCalled();
+
+    audio.dispatch("timeupdate");
+    audio.dispatch("ended");
+    audio.dispatch("error");
+    expect(onImportedPositionChange).toHaveBeenCalledWith(4_000);
+    expect(onImportedEnded).toHaveBeenCalledOnce();
+    expect(onImportedError).toHaveBeenCalledOnce();
+  });
+
+  test("ignores queued imported events after a builtin source replaces it", async () => {
+    const audio = new FakeAudio();
+    const onImportedPositionChange = vi.fn();
+    const onImportedEnded = vi.fn();
+    const onImportedError = vi.fn();
+    const player = new BrowserBackingPlayer({
+      sound: createSound(),
+      loadBlob: vi.fn(async () => new Blob(["first"])),
+      audio: audio as unknown as HTMLAudioElement,
+      createObjectURL: vi.fn(() => "blob:first"),
+      revokeObjectURL: vi.fn(),
+      onImportedPositionChange,
+      onImportedEnded,
+      onImportedError,
+    });
+
+    await player.loadImported(backing({ id: "first" }));
+    await player.playImported();
+    const staleListeners = ["timeupdate", "ended", "error"].map(
+      (type) => audio.listeners(type)[0]!,
+    );
+
+    await player.loadBuiltin({ id: "builtin", label: "Builtin", url: "/builtin.mp3" });
+    await player.playImported();
+    for (const listener of staleListeners) listener();
+
+    expect(onImportedPositionChange).not.toHaveBeenCalled();
+    expect(onImportedEnded).not.toHaveBeenCalled();
+    expect(onImportedError).not.toHaveBeenCalled();
+
+    audio.dispatch("timeupdate");
+    audio.dispatch("ended");
+    audio.dispatch("error");
+    expect(onImportedPositionChange).toHaveBeenCalledOnce();
+    expect(onImportedEnded).toHaveBeenCalledOnce();
+    expect(onImportedError).toHaveBeenCalledOnce();
   });
 
   test("throws when imported backing audio is missing", async () => {

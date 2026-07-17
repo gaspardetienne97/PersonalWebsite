@@ -71,6 +71,9 @@ export class BackingTrackEngine {
   readonly #adapter: BackingTrackPlaybackAdapter;
   readonly #subscribers = new Set<BackingTrackSubscriber>();
   #state: BackingTrackState = DEFAULT_STATE;
+  #playGeneration = 0;
+  #completionTimer: ReturnType<typeof setTimeout> | undefined;
+  #disposed = false;
 
   constructor(adapter: BackingTrackPlaybackAdapter) {
     this.#adapter = adapter;
@@ -87,6 +90,7 @@ export class BackingTrackEngine {
   }
 
   selectNone(): void {
+    if (this.#disposed) return;
     this.stop();
     this.#setState({
       selection: { kind: "none" },
@@ -98,6 +102,7 @@ export class BackingTrackEngine {
   }
 
   selectGenerated(selection: Extract<BackingSelection, { kind: "generated" }>): void {
+    if (this.#disposed) return;
     this.stop();
     this.#setState({
       selection: { ...selection },
@@ -109,6 +114,7 @@ export class BackingTrackEngine {
   }
 
   selectImported(track: ImportedBackingTrackRow, options: { loop?: boolean } = {}): void {
+    if (this.#disposed) return;
     this.stop();
     this.#setState({
       selection: { kind: "imported", track: structuredClone(track), loop: options.loop === true },
@@ -120,6 +126,7 @@ export class BackingTrackEngine {
   }
 
   selectBuiltin(track: BuiltinBackingTrack, options: { loop?: boolean } = {}): void {
+    if (this.#disposed) return;
     this.stop();
     this.#setState({
       selection: { kind: "builtin", track: { ...track }, loop: options.loop !== false },
@@ -131,6 +138,9 @@ export class BackingTrackEngine {
   }
 
   async play(): Promise<void> {
+    if (this.#disposed) return;
+    this.#clearCompletion();
+    const generation = ++this.#playGeneration;
     const selection = this.#state.selection;
     if (selection.kind === "none") return;
 
@@ -138,10 +148,12 @@ export class BackingTrackEngine {
     try {
       if (selection.kind === "generated") {
         await this.#adapter.playGenerated(selection);
+        if (!this.#isCurrentPlay(generation)) return;
         this.#setState({
           status: "playing",
           durationMs: Math.round(projectGenerated(selection).durationSec * 1_000),
         });
+        if (!selection.loop) this.#scheduleCompletion(generation, this.#state.durationMs);
         return;
       }
 
@@ -149,9 +161,11 @@ export class BackingTrackEngine {
         selection.kind === "builtin"
           ? await this.#adapter.loadBuiltin(selection.track)
           : await this.#adapter.loadImported(selection.track);
+      if (!this.#isCurrentPlay(generation)) return;
       this.#adapter.setImportedLoop(selection.loop);
       this.#adapter.setImportedVolume(this.#state.volume);
       await this.#adapter.playImported();
+      if (!this.#isCurrentPlay(generation)) return;
       this.#setState({
         status: "playing",
         durationMs: normalizeDuration(
@@ -160,6 +174,7 @@ export class BackingTrackEngine {
         ),
       });
     } catch (error) {
+      if (!this.#isCurrentPlay(generation)) return;
       this.#setState({
         status: "error",
         message: error instanceof Error ? error.message : "Backing track playback failed.",
@@ -169,6 +184,8 @@ export class BackingTrackEngine {
   }
 
   pause(): void {
+    this.#playGeneration += 1;
+    this.#clearCompletion();
     const selection = this.#state.selection;
     if (selection.kind === "generated") {
       this.#adapter.stopGenerated();
@@ -182,6 +199,9 @@ export class BackingTrackEngine {
   }
 
   stop(): void {
+    this.#playGeneration += 1;
+    this.#clearCompletion();
+    if (this.#disposed) return;
     const selection = this.#state.selection;
     if (selection.kind === "generated") this.#adapter.stopGenerated();
     if (isAudioSelection(selection)) this.#adapter.stopImported();
@@ -218,13 +238,35 @@ export class BackingTrackEngine {
   }
 
   markEnded(): void {
+    this.#clearCompletion();
     this.#setState({ status: "stopped", positionMs: this.#state.durationMs });
   }
 
   dispose(): void {
+    if (this.#disposed) return;
     this.stop();
+    this.#disposed = true;
     this.#adapter.dispose();
     this.#subscribers.clear();
+  }
+
+  #isCurrentPlay(generation: number): boolean {
+    return !this.#disposed && generation === this.#playGeneration;
+  }
+
+  #scheduleCompletion(generation: number, durationMs: number): void {
+    this.#completionTimer = setTimeout(() => {
+      this.#completionTimer = undefined;
+      if (!this.#isCurrentPlay(generation)) return;
+      this.#adapter.stopGenerated();
+      this.#setState({ status: "stopped", positionMs: durationMs });
+    }, durationMs);
+  }
+
+  #clearCompletion(): void {
+    if (this.#completionTimer === undefined) return;
+    clearTimeout(this.#completionTimer);
+    this.#completionTimer = undefined;
   }
 
   #setState(patch: Partial<BackingTrackState>): void {

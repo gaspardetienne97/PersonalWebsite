@@ -43,7 +43,13 @@ export {
   type AudioPitchSourceOptions,
 } from "./capture";
 
-export { recordMicClip, micClipSupported, type RecordMicClipOptions } from "./record-clip";
+export {
+  micClipSupported,
+  prepareMicClip,
+  recordMicClip,
+  type PreparedMicClip,
+  type RecordMicClipOptions,
+} from "./record-clip";
 
 export { computeChroma, chromaToPitchClasses, type ChromaOptions } from "./chroma";
 

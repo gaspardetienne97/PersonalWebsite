@@ -1,4 +1,6 @@
-export type QuantizationGrid = "4n" | "8n" | "16n" | "32n";
+import { monotonicMs, type MonotonicMs } from "@repo/music-core/domain";
+
+export type QuantizationGrid = "2n" | "4n" | "8n" | "16n" | "32n";
 export type TransportPosition = number | string;
 
 export interface TransportState {
@@ -26,6 +28,7 @@ export interface TransportEvent {
   atSeconds: number;
   atMonotonicMs: MonotonicMs;
   beat: number;
+  absoluteBeat: number;
   subdivision: number;
   accented: boolean;
   countingIn: boolean;
@@ -53,7 +56,7 @@ export interface TransportEngineOptions {
   denominator?: number;
   countInBars?: number;
   quantizationGrid?: QuantizationGrid;
-  onMetronomeClick?: (atSeconds: number, accented: boolean) => void;
+  onMetronomeClick?: (event: TransportEvent) => void;
   audioNowSeconds?: () => number;
   monotonicNowMs?: () => MonotonicMs;
 }
@@ -99,11 +102,12 @@ export class TransportEngine {
 
   #clock: ToneTransportClock;
   #listeners = new Set<TransportListener>();
-  #onMetronomeClick: ((atSeconds: number, accented: boolean) => void) | undefined;
+  #onMetronomeClick: ((event: TransportEvent) => void) | undefined;
   #audioNowSeconds: () => number;
   #monotonicNowMs: () => MonotonicMs;
   #scheduledEventId: number | undefined;
   #subdivisionIndex = 0;
+  #generation = 0;
 
   constructor(clock: ToneTransportClock, options: TransportEngineOptions = {}) {
     this.#clock = clock;
@@ -124,7 +128,7 @@ export class TransportEngine {
   setBpm(bpm: number): void {
     if (!Number.isFinite(bpm) || bpm <= 0) throw new Error(`Invalid BPM: ${bpm}`);
     this.state.bpm = bpm;
-    this.#clock.bpm.value = bpm;
+    this.#applyBpmToClock();
   }
 
   setTimeSignature(numerator: number, denominator: number): void {
@@ -137,6 +141,7 @@ export class TransportEngine {
     this.state.numerator = numerator;
     this.state.denominator = denominator;
     this.#clock.timeSignature = [numerator, denominator];
+    this.#applyBpmToClock();
   }
 
   setCountInBars(bars: number): void {
@@ -167,8 +172,11 @@ export class TransportEngine {
   start(): void {
     if (this.state.running) return;
     this.#subdivisionIndex = 0;
+    const generation = ++this.#generation;
     this.#scheduledEventId = this.#clock.scheduleRepeat(
-      (atSeconds) => this.#emitTick(atSeconds),
+      (atSeconds) => {
+        if (this.state.running && this.#generation === generation) this.#emitTick(atSeconds);
+      },
       this.state.quantizationGrid,
       0,
     );
@@ -177,6 +185,7 @@ export class TransportEngine {
   }
 
   stop(): void {
+    this.#generation += 1;
     if (this.#scheduledEventId !== undefined) {
       this.#clock.clear(this.#scheduledEventId);
       this.#scheduledEventId = undefined;
@@ -187,11 +196,15 @@ export class TransportEngine {
   }
 
   #applyStateToClock(): void {
-    this.#clock.bpm.value = this.state.bpm;
+    this.#applyBpmToClock();
     this.#clock.timeSignature = [this.state.numerator, this.state.denominator];
     this.#clock.loop = this.state.loop.enabled;
     this.#clock.loopStart = this.state.loop.start;
     this.#clock.loopEnd = this.state.loop.end;
+  }
+
+  #applyBpmToClock(): void {
+    this.#clock.bpm.value = (this.state.bpm * 4) / this.state.denominator;
   }
 
   #emitTick(atSeconds: number): void {
@@ -210,13 +223,14 @@ export class TransportEngine {
         this.#monotonicNowMs() + (atSeconds - this.#audioNowSeconds()) * 1_000,
       ),
       beat,
+      absoluteBeat,
       subdivision,
       accented,
       countingIn: absoluteBeat < this.state.countInBars * this.state.numerator,
     };
 
     this.lastEvent = event;
-    if (event.kind === "beat") this.#onMetronomeClick?.(atSeconds, accented);
+    if (event.kind === "beat") this.#onMetronomeClick?.(event);
     this.#listeners.forEach((listener) => listener(event));
     this.#subdivisionIndex += 1;
   }
@@ -237,4 +251,3 @@ function gridSubdivisionsPerBeat(grid: QuantizationGrid, denominator: number): n
   const gridDenominator = Number.parseInt(grid, 10);
   return Math.max(1, gridDenominator / denominator);
 }
-import { monotonicMs, type MonotonicMs } from "@repo/music-core/domain";

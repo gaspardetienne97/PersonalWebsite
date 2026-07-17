@@ -16,6 +16,11 @@ export interface RecordMicClipOptions {
   getStream?: () => Promise<MediaStream>;
 }
 
+export interface PreparedMicClip {
+  record(options?: Pick<RecordMicClipOptions, "durationMs" | "mimeType">): Promise<Blob>;
+  dispose(): void;
+}
+
 export function micClipSupported(): boolean {
   return (
     typeof navigator !== "undefined" &&
@@ -25,7 +30,17 @@ export function micClipSupported(): boolean {
 }
 
 export async function recordMicClip(options: RecordMicClipOptions = {}): Promise<Blob> {
-  const durationMs = Math.max(200, Math.floor(options.durationMs ?? 1200));
+  const prepared = await prepareMicClip(options);
+  try {
+    return await prepared.record(options);
+  } finally {
+    prepared.dispose();
+  }
+}
+
+export async function prepareMicClip(
+  options: Pick<RecordMicClipOptions, "getStream"> = {},
+): Promise<PreparedMicClip> {
   if (!options.getStream && !micClipSupported()) {
     throw new Error("Microphone recording is not supported here.");
   }
@@ -36,28 +51,48 @@ export async function recordMicClip(options: RecordMicClipOptions = {}): Promise
         audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false },
       }));
 
-  try {
-    const mimeType = options.mimeType ?? pickMimeType();
-    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) chunks.push(event.data);
-    };
+  let disposed = false;
+  let activeRecorder: MediaRecorder | undefined;
+  let stopTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const stopped = new Promise<void>((resolve, reject) => {
-      recorder.onstop = () => resolve();
-      recorder.onerror = () => reject(new Error("Microphone recording failed."));
-    });
+  return {
+    async record(recordOptions = {}) {
+      if (disposed) throw new Error("Prepared microphone capture has been released.");
+      const durationMs = Math.max(200, Math.floor(recordOptions.durationMs ?? 1200));
+      const mimeType = recordOptions.mimeType ?? pickMimeType();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      activeRecorder = recorder;
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
 
-    recorder.start();
-    await delay(durationMs);
-    if (recorder.state !== "inactive") recorder.stop();
-    await stopped;
+      const stopped = new Promise<void>((resolve, reject) => {
+        recorder.onstop = () => resolve();
+        recorder.onerror = () => reject(new Error("Microphone recording failed."));
+      });
 
-    return new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" });
-  } finally {
-    stream.getTracks().forEach((track) => track.stop());
-  }
+      recorder.start();
+      stopTimer = setTimeout(() => {
+        if (recorder.state !== "inactive") recorder.stop();
+      }, durationMs);
+      await stopped;
+      if (stopTimer !== undefined) clearTimeout(stopTimer);
+      stopTimer = undefined;
+      activeRecorder = undefined;
+      if (disposed) throw new Error("Prepared microphone capture was cancelled.");
+
+      return new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" });
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      if (stopTimer !== undefined) clearTimeout(stopTimer);
+      stopTimer = undefined;
+      if (activeRecorder?.state !== "inactive") activeRecorder?.stop();
+      stream.getTracks().forEach((track) => track.stop());
+    },
+  };
 }
 
 function pickMimeType(): string | undefined {
@@ -71,8 +106,4 @@ function pickMimeType(): string | undefined {
     if (MediaRecorder.isTypeSupported(type)) return type;
   }
   return undefined;
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

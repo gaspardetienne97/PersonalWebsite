@@ -1,4 +1,5 @@
 import type { Score } from "@repo/music-core/domain";
+import type { PlaybackSoundId } from "@repo/music-core/engines/settings";
 import { midiToNote } from "@repo/music-core/engines/theory";
 
 type ToneTime = number | string;
@@ -13,6 +14,7 @@ interface ToneInstrument {
   /** Sustain notes until release — used for the intonation drone. */
   triggerAttack(notes: string | string[] | number, time?: ToneTime, velocity?: number): unknown;
   triggerRelease(notes?: string | string[] | number, time?: ToneTime): unknown;
+  releaseAll?(time?: ToneTime): unknown;
   toDestination(): ToneInstrument;
   connect(destination: unknown): ToneInstrument;
   dispose(): unknown;
@@ -85,6 +87,10 @@ const loadTone: ToneLoader = async () => (await import("tone")) as unknown as To
 
 /** Selectable playback timbres — built from oscillator + envelope (no samples). */
 export const SOUND_PRESETS: Record<string, Record<string, unknown>> = {
+  "Warm Synth": {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.03, decay: 0.25, sustain: 0.35, release: 1.4 },
+  },
   Synth: {
     oscillator: { type: "triangle" },
     envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 0.8 },
@@ -104,6 +110,20 @@ export const SOUND_PRESETS: Record<string, Record<string, unknown>> = {
 };
 
 export const SOUND_PRESET_NAMES: string[] = Object.keys(SOUND_PRESETS);
+
+type SynthPlaybackSoundId = Exclude<PlaybackSoundId, "salamander-piano">;
+
+const SOUND_ID_TO_PRESET: Record<SynthPlaybackSoundId, string> = {
+  "warm-synth": "Warm Synth",
+  synth: "Synth",
+  "e-piano": "E-Piano",
+  square: "Square",
+  saw: "Saw",
+};
+
+const PRESET_TO_SOUND_ID = Object.fromEntries(
+  Object.entries(SOUND_ID_TO_PRESET).map(([id, name]) => [name, id]),
+) as Record<string, SynthPlaybackSoundId>;
 
 /**
  * Sustained drone voices for the Intonation trainer. `intervals` are semitone
@@ -169,23 +189,32 @@ export function scoreToPattern(score: Score, options: { bpm?: number } = {}): Sc
 export class SoundEngine {
   #tone: ToneSoundModule | undefined;
   #synth: ToneInstrument | undefined;
-  #patternSynth: ToneInstrument | undefined;
+  #patternVoice: ToneInstrument | undefined;
   #sampler: ToneInstrument | undefined;
   #players: TonePlayers | undefined;
   #metronome: ToneInstrument | undefined;
   #drone: ToneInstrument | undefined;
   #master: ToneGain | undefined;
+  #playbackGain: ToneGain | undefined;
   #metronomeGain: ToneGain | undefined;
   #droneGain: ToneGain | undefined;
   #masterLevel = 1;
+  #playbackLevel = 0.8;
   #metronomeLevel = 0.7;
   #droneLevel = 0.5;
   #droneTimbre = DRONE_TIMBRE_NAMES[0]!;
   #droneNote: number | undefined;
-  #instrumentName = SOUND_PRESET_NAMES[0]!;
+  #instrumentName = SOUND_ID_TO_PRESET["warm-synth"];
+  #playbackSound: PlaybackSoundId = "warm-synth";
+  #voiceGeneration = 0;
+  #drumKitGeneration = 0;
+  #patternVoiceDisposable = false;
   #patternLoopTimer: ReturnType<typeof setTimeout> | undefined;
   #drumPatternLoopTimer: ReturnType<typeof setTimeout> | undefined;
   #loadTone: ToneLoader;
+  #enablePromise: Promise<AudioGateState> | undefined;
+  #generation = 0;
+  #disposed = false;
   enabled = false;
   muted = false;
 
@@ -193,25 +222,92 @@ export class SoundEngine {
     this.#loadTone = loader;
   }
 
-  async enable(): Promise<AudioGateState> {
-    if (this.enabled) return { enabled: true, message: "Audio enabled." };
+  enable(): Promise<AudioGateState> {
+    if (this.enabled) return Promise.resolve({ enabled: true, message: "Audio enabled." });
+    if (this.#disposed) return Promise.resolve(this.#cancelledEnableState());
+    if (this.#enablePromise) return this.#enablePromise;
 
-    this.#tone = await this.#loadTone();
-    await this.#tone.start();
-    // master -> destination; metronome -> metronomeGain -> master; instruments -> master.
-    this.#master = new this.#tone.Gain(this.muted ? 0 : this.#masterLevel).toDestination();
-    this.#metronomeGain = new this.#tone.Gain(this.#metronomeLevel).connect(this.#master);
-    this.#synth = new this.#tone.PolySynth(
-      this.#tone.Synth,
-      SOUND_PRESETS[this.#instrumentName],
-    ).connect(this.#master);
-    this.#metronome = new this.#tone.Synth({
-      oscillator: { type: "triangle" },
-      envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.02 },
-    }).connect(this.#metronomeGain);
+    const pending = this.#enable(this.#generation);
+    this.#enablePromise = pending;
+    const clear = () => {
+      if (this.#enablePromise === pending) this.#enablePromise = undefined;
+    };
+    void pending.then(clear, clear);
+    return pending;
+  }
+
+  async #enable(generation: number): Promise<AudioGateState> {
+    const tone = await this.#loadTone();
+    if (this.#enableIsStale(generation)) return this.#cancelledEnableState();
+
+    await tone.start();
+    if (this.#enableIsStale(generation)) return this.#cancelledEnableState();
+
+    let master: ToneGain | undefined;
+    let playbackGain: ToneGain | undefined;
+    let metronomeGain: ToneGain | undefined;
+    let synth: ToneInstrument | undefined;
+    let metronome: ToneInstrument | undefined;
+    const cleanup = () => {
+      metronome?.dispose();
+      synth?.dispose();
+      metronomeGain?.dispose();
+      playbackGain?.dispose();
+      master?.dispose();
+    };
+
+    try {
+      master = new tone.Gain(this.muted ? 0 : this.#masterLevel).toDestination();
+      if (this.#enableIsStale(generation)) {
+        cleanup();
+        return this.#cancelledEnableState();
+      }
+      playbackGain = new tone.Gain(this.#playbackLevel).connect(master);
+      if (this.#enableIsStale(generation)) {
+        cleanup();
+        return this.#cancelledEnableState();
+      }
+      metronomeGain = new tone.Gain(this.#metronomeLevel).connect(master);
+      if (this.#enableIsStale(generation)) {
+        cleanup();
+        return this.#cancelledEnableState();
+      }
+      synth = new tone.PolySynth(tone.Synth, SOUND_PRESETS[this.#instrumentName]).connect(
+        playbackGain,
+      );
+      if (this.#enableIsStale(generation)) {
+        cleanup();
+        return this.#cancelledEnableState();
+      }
+      metronome = new tone.Synth({
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.02 },
+      }).connect(metronomeGain);
+      if (this.#enableIsStale(generation)) {
+        cleanup();
+        return this.#cancelledEnableState();
+      }
+    } catch (error) {
+      cleanup();
+      throw error;
+    }
+
+    this.#tone = tone;
+    this.#master = master;
+    this.#playbackGain = playbackGain;
+    this.#metronomeGain = metronomeGain;
+    this.#synth = synth;
+    this.#metronome = metronome;
     this.enabled = true;
-
     return { enabled: true, message: "Audio enabled." };
+  }
+
+  #enableIsStale(generation: number): boolean {
+    return this.#disposed || generation !== this.#generation;
+  }
+
+  #cancelledEnableState(): AudioGateState {
+    return { enabled: false, message: "Audio enablement was cancelled." };
   }
 
   /** Master mute — toggles all audio output. */
@@ -223,6 +319,15 @@ export class SoundEngine {
   setMasterVolume(volume: number): void {
     this.#masterLevel = clampVelocity(volume);
     if (this.#master && !this.muted) this.#master.gain.value = this.#masterLevel;
+  }
+
+  setPlaybackLevel(level: number): void {
+    this.#playbackLevel = clampVelocity(level);
+    if (this.#playbackGain) this.#playbackGain.gain.value = this.#playbackLevel;
+  }
+
+  get playbackLevel(): number {
+    return this.#playbackLevel;
   }
 
   /** Metronome blend — its own level, independent of playback. */
@@ -239,16 +344,31 @@ export class SoundEngine {
     return this.#instrumentName;
   }
 
-  /** Choose the timbre the synth plays MIDI as. Rebuilds the voice live. */
-  setInstrument(name: string): void {
-    if (!(name in SOUND_PRESETS)) return;
+  get playbackSound(): PlaybackSoundId {
+    return this.#playbackSound;
+  }
+
+  /** Activate a synth voice and make any in-flight sampler load stale. */
+  setPlaybackSound(sound: SynthPlaybackSoundId): void {
+    const name = SOUND_ID_TO_PRESET[sound];
+    this.#voiceGeneration += 1;
+    this.stopPattern();
+    this.#sampler?.dispose();
+    this.#sampler = undefined;
+    this.#playbackSound = sound;
     this.#instrumentName = name;
-    if (this.#tone && this.#master) {
+    if (this.#tone && this.#playbackGain) {
       this.#synth?.dispose();
       this.#synth = new this.#tone.PolySynth(this.#tone.Synth, SOUND_PRESETS[name]).connect(
-        this.#master,
+        this.#playbackGain,
       );
     }
+  }
+
+  /** Choose the timbre the synth plays MIDI as. Rebuilds the voice live. */
+  setInstrument(name: string): void {
+    const sound = PRESET_TO_SOUND_ID[name];
+    if (sound) this.setPlaybackSound(sound);
   }
 
   playNote(midiNote: number, duration: ToneTime = 0.18, time?: ToneTime, velocity = 0.8): void {
@@ -272,21 +392,32 @@ export class SoundEngine {
   }
 
   playPattern(steps: SoundPatternStep[], velocity = 0.8): void {
-    if (!this.enabled || !this.#tone || !this.#master) return;
-    this.#patternSynth?.dispose();
-    this.#patternSynth = new this.#tone.PolySynth(
-      this.#tone.Synth,
-      SOUND_PRESETS[this.#instrumentName],
-    ).connect(this.#master);
+    if (!this.enabled || !this.#tone || !this.#instrument) return;
+    this.stopPattern();
+    const voice =
+      this.#sampler ??
+      new this.#tone.PolySynth(this.#tone.Synth, SOUND_PRESETS[this.#instrumentName]).connect(
+        this.#playbackGain,
+      );
+    this.#patternVoice = voice;
+    this.#patternVoiceDisposable = voice !== this.#sampler;
     const startAt = this.#tone.now();
     for (const step of steps) {
-      this.#patternSynth.triggerAttackRelease(
+      voice.triggerAttackRelease(
         step.midiNotes.map((note) => midiToNote(note)),
         step.durationSeconds,
         startAt + step.offsetSeconds,
         clampVelocity(velocity),
       );
     }
+  }
+
+  stopPattern(): void {
+    const voice = this.#patternVoice;
+    voice?.releaseAll?.();
+    if (this.#patternVoiceDisposable) voice?.dispose();
+    this.#patternVoice = undefined;
+    this.#patternVoiceDisposable = false;
   }
 
   startPatternLoop(steps: SoundPatternStep[], durationSec: number, velocity = 0.8): void {
@@ -309,31 +440,53 @@ export class SoundEngine {
       clearTimeout(this.#patternLoopTimer);
       this.#patternLoopTimer = undefined;
     }
+    this.stopPattern();
   }
 
-  async loadSampler(samples: Record<string, string>): Promise<void> {
+  async loadSampler(samples: Record<string, string>): Promise<boolean> {
     const tone = this.#requireTone();
-    this.#sampler?.dispose();
-    const sampler = new tone.Sampler({ urls: samples });
-    this.#sampler = this.#master ? sampler.connect(this.#master) : sampler.toDestination();
-    await tone.loaded();
-  }
-
-  async loadDrumKit(samples: DrumPadSample[]): Promise<void> {
-    const tone = this.#requireTone();
-    // Build the replacement before disposing the working kit, so a failed
-    // decode/load leaves the previous players intact.
-    const previous = this.#players;
-    const next = new tone.Players(
-      Object.fromEntries(samples.map(({ padId, url }) => [padId, url])),
-    );
-    const connected = this.#master ? next.connect(this.#master) : next.toDestination();
+    const generation = ++this.#voiceGeneration;
+    const next = new tone.Sampler({ urls: samples });
+    const connected = this.#playbackGain ? next.connect(this.#playbackGain) : next.toDestination();
     try {
       await tone.loaded();
     } catch (error) {
       connected.dispose();
       throw error;
     }
+    if (generation !== this.#voiceGeneration) {
+      connected.dispose();
+      return false;
+    }
+    const previous = this.#sampler;
+    this.stopPattern();
+    this.#sampler = connected;
+    this.#playbackSound = "salamander-piano";
+    previous?.dispose();
+    return true;
+  }
+
+  async loadDrumKit(samples: DrumPadSample[]): Promise<void> {
+    const tone = this.#requireTone();
+    const generation = ++this.#drumKitGeneration;
+    // Build the replacement before disposing the working kit, so a failed
+    // decode/load leaves the previous players intact.
+    const next = new tone.Players(
+      Object.fromEntries(samples.map(({ padId, url }) => [padId, url])),
+    );
+    const connected = this.#playbackGain ? next.connect(this.#playbackGain) : next.toDestination();
+    try {
+      await tone.loaded();
+    } catch (error) {
+      connected.dispose();
+      if (this.#disposed || generation !== this.#drumKitGeneration) return;
+      throw error;
+    }
+    if (this.#disposed || generation !== this.#drumKitGeneration) {
+      connected.dispose();
+      return;
+    }
+    const previous = this.#players;
     this.#players = connected;
     previous?.dispose();
   }
@@ -398,7 +551,7 @@ export class SoundEngine {
 
   /** Start (or move) a sustained tonic drone at `midiNote`. No-op until enabled. */
   startDrone(midiNote: number): void {
-    if (!this.enabled || !this.#tone || !this.#master) return;
+    if (!this.enabled || !this.#tone || !this.#playbackGain) return;
     this.#ensureDroneVoice();
     if (this.#droneNote !== undefined) {
       this.#drone?.triggerRelease(this.#droneNotesFor(this.#droneNote));
@@ -420,7 +573,7 @@ export class SoundEngine {
     // Release with the *current* timbre's intervals before switching.
     if (note !== undefined) this.#drone?.triggerRelease(this.#droneNotesFor(note));
     this.#droneTimbre = name;
-    if (note !== undefined && this.#tone && this.#master) {
+    if (note !== undefined && this.#tone && this.#playbackGain) {
       this.#drone?.dispose();
       this.#drone = undefined;
       const voice = this.#ensureDroneVoice();
@@ -441,9 +594,9 @@ export class SoundEngine {
   }
 
   #ensureDroneVoice(): ToneInstrument | undefined {
-    if (!this.#tone || !this.#master) return undefined;
+    if (!this.#tone || !this.#playbackGain) return undefined;
     if (!this.#droneGain) {
-      this.#droneGain = new this.#tone.Gain(this.#droneLevel).connect(this.#master);
+      this.#droneGain = new this.#tone.Gain(this.#droneLevel).connect(this.#playbackGain);
     }
     if (!this.#drone) {
       this.#drone = new this.#tone.PolySynth(
@@ -489,27 +642,33 @@ export class SoundEngine {
   }
 
   dispose(): void {
+    this.#disposed = true;
+    this.#generation += 1;
+    this.#voiceGeneration += 1;
+    this.#drumKitGeneration += 1;
     this.stopPatternLoop();
     this.stopDrumPatternLoop();
     this.#synth?.dispose();
-    this.#patternSynth?.dispose();
     this.#sampler?.dispose();
     this.#players?.dispose();
     this.#metronome?.dispose();
     this.#drone?.dispose();
     this.#metronomeGain?.dispose();
+    this.#playbackGain?.dispose();
     this.#droneGain?.dispose();
     this.#master?.dispose();
     this.#synth = undefined;
-    this.#patternSynth = undefined;
+    this.#patternVoice = undefined;
     this.#sampler = undefined;
     this.#players = undefined;
     this.#metronome = undefined;
     this.#drone = undefined;
     this.#metronomeGain = undefined;
+    this.#playbackGain = undefined;
     this.#droneGain = undefined;
     this.#droneNote = undefined;
     this.#master = undefined;
+    this.#tone = undefined;
     this.enabled = false;
   }
 

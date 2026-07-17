@@ -238,6 +238,39 @@ describe("ReadingSession", () => {
     session.dispose();
   });
 
+  test("retimes a prepared sight-reading prompt without replacing its notation content", async () => {
+    const dependencies = await setup();
+    const session = new ReadingSession(dependencies);
+
+    await session.prepareSightReading(sightReadingOptions());
+    const prepared = session.state.currentPrompt as SightReadingPrompt;
+    const notes = structuredClone(prepared.score.notes);
+
+    session.retimePreparedSightReading({
+      bpm: 70,
+      timeSignature: { numerator: 6, denominator: 8 },
+    });
+
+    const retimed = session.state.currentPrompt as SightReadingPrompt;
+    expect(retimed.score.notes).toEqual(notes);
+    expect(retimed.options).toMatchObject({
+      bpm: 70,
+      timeSignature: { numerator: 6, denominator: 8 },
+    });
+    expect(retimed.score.tempoMap).toEqual([{ atBeat: 0, bpm: 70 }]);
+    expect(retimed.score.timeSignatures).toEqual([{ atBeat: 0, numerator: 6, denominator: 8 }]);
+
+    await session.startSightReading(monotonicMs(1_000));
+    for (const group of retimed.groups) {
+      for (const midiNote of group.midiNotes) {
+        dependencies.router.push(noteOn(midiNote, 1_000 + beatToMs(group.startBeat, 70)));
+      }
+    }
+    await session.finishSightReading();
+    expect(session.state.results[0]?.result).toMatchObject({ correct: true, score: 1 });
+    session.dispose();
+  });
+
   test("preserves a completed sight-reading result for persistence retry", async () => {
     const dependencies = await setup();
     vi.spyOn(dependencies.services.analytics, "ingest").mockRejectedValueOnce(

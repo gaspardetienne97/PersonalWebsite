@@ -57,6 +57,13 @@ export interface RunExerciseArgs {
 export async function runExerciseThroughPipeline(
   args: RunExerciseArgs,
 ): Promise<{ event: ScoringEvent; xp: number; result: ExerciseResult }> {
+  const prepared = prepareExerciseThroughPipeline(args);
+  return commitPreparedExerciseOutcome(prepared, args.services);
+}
+
+export function prepareExerciseThroughPipeline(
+  args: Omit<RunExerciseArgs, "services">,
+): PreparedExerciseOutcome {
   const context = exerciseContext(args.exercise, args.context);
   const prompt = args.exercise.generate(context);
   const run = args.exercise.createRun(prompt, context);
@@ -72,7 +79,7 @@ export async function runExerciseThroughPipeline(
     now: args.now,
     makeId: args.makeId,
   });
-  return persistPreparedOutcome(prepared, args.services);
+  return prepared;
 }
 
 export interface ScheduledExercise {
@@ -225,6 +232,7 @@ export interface StartExerciseRunArgs {
   sessionId: string;
   runId: string;
   inputs?: InputSource[];
+  inputEnabled?: boolean;
   context?: Partial<ExerciseContext>;
 }
 
@@ -246,6 +254,7 @@ interface ActiveExerciseRun {
 
 export class ExerciseRunHost {
   #active?: ActiveExerciseRun;
+  #inputEnabled = true;
   #unsubscribe: () => void;
 
   constructor(
@@ -254,7 +263,7 @@ export class ExerciseRunHost {
     private readonly options: ExerciseRunHostOptions = {},
   ) {
     this.#unsubscribe = router.subscribe((event) => {
-      if (this.#active?.inputs.includes(event.source)) {
+      if (this.#inputEnabled && this.#active?.inputs.includes(event.source)) {
         this.#active.run.accept(event);
       }
     });
@@ -288,7 +297,12 @@ export class ExerciseRunHost {
       sessionId: args.sessionId,
       runId: args.runId,
     };
+    this.#inputEnabled = args.inputEnabled ?? true;
     return prompt;
+  }
+
+  setInputEnabled(enabled: boolean): void {
+    this.#inputEnabled = enabled;
   }
 
   async finish(finishContext: ExerciseFinishContext = { reason: "completed" }) {
@@ -322,7 +336,7 @@ interface PrepareExerciseRunArgs extends Omit<ActiveExerciseRun, "inputs" | "pre
   makeId?: () => string;
 }
 
-interface PreparedExerciseOutcome {
+export interface PreparedExerciseOutcome {
   event: ScoringEvent;
   result: ExerciseResult;
 }
@@ -351,6 +365,13 @@ async function persistPreparedOutcome(
   await services.analytics.ingest(prepared.event);
   const xp = await services.progress.ingest(prepared.event, services.skills);
   return { ...prepared, xp };
+}
+
+export function commitPreparedExerciseOutcome(
+  prepared: PreparedExerciseOutcome,
+  services: PipelineServices,
+): Promise<{ event: ScoringEvent; xp: number; result: ExerciseResult }> {
+  return persistPreparedOutcome(prepared, services);
 }
 
 function exerciseContext(

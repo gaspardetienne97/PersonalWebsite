@@ -334,6 +334,53 @@ describe("EarTrainingSession", () => {
     session.dispose();
   });
 
+  test("does not score a deferred performance answer until it is armed", async () => {
+    const dependencies = await setup();
+    const session = new EarTrainingSession(dependencies, {
+      drill: "scale-degree",
+      answerMode: "play-back",
+      feedbackMode: "practice",
+      length: 1,
+      deferPerformanceAnswers: true,
+    });
+    const prompt = (await session.start()) as ScaleDegreeRecognitionPrompt;
+    session.replay();
+
+    dependencies.router.noteOn(prompt.tonicMidi + prompt.semitones, "midi");
+    expect(session.state.status).toBe("active");
+    expect(session.state.results).toHaveLength(0);
+
+    session.armCurrentAnswer();
+    dependencies.router.noteOn(prompt.tonicMidi + prompt.semitones, "midi");
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.results[0]?.result.correct).toBe(true);
+    session.dispose();
+  });
+
+  test("disarms an armed performance answer while its prompt is replayed", async () => {
+    const dependencies = await setup();
+    const session = new EarTrainingSession(dependencies, {
+      drill: "scale-degree",
+      answerMode: "play-back",
+      feedbackMode: "practice",
+      length: 1,
+      deferPerformanceAnswers: true,
+    });
+    const prompt = (await session.start()) as ScaleDegreeRecognitionPrompt;
+    session.replay();
+    session.armCurrentAnswer();
+    session.disarmCurrentAnswer();
+
+    dependencies.router.noteOn(prompt.tonicMidi + prompt.semitones, "midi");
+    expect(session.state.status).toBe("active");
+    expect(session.state.results).toHaveLength(0);
+
+    session.armCurrentAnswer();
+    dependencies.router.noteOn(prompt.tonicMidi + prompt.semitones, "midi");
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    session.dispose();
+  });
+
   test("publishes state after a microphone voice answer completes", async () => {
     const dependencies = await setup();
     const session = new EarTrainingSession(dependencies, {

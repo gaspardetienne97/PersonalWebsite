@@ -58,6 +58,8 @@ export class AudioTakeRecorder {
   #stopResolve: ((recording: AudioTakeRecording) => void) | undefined;
   #stopReject: ((error: unknown) => void) | undefined;
   #canceling = false;
+  #prepareGeneration = 0;
+  #disposed = false;
 
   constructor(options: AudioTakeRecorderOptions = {}) {
     const recorderFactory =
@@ -85,8 +87,11 @@ export class AudioTakeRecorder {
   }
 
   async prepare(deviceId?: string): Promise<void> {
+    if (this.#disposed) throw new Error("Audio recorder has been disposed.");
     this.#assertSupported();
+    const generation = ++this.#prepareGeneration;
     await this.#stopStream();
+    if (!this.#isCurrentPrepare(generation)) return;
     this.#setState({
       status: "requesting",
       deviceId,
@@ -96,9 +101,14 @@ export class AudioTakeRecorder {
     });
 
     try {
-      this.#stream = await this.#mediaDevices!.getUserMedia({
+      const stream = await this.#mediaDevices!.getUserMedia({
         audio: audioConstraints(deviceId),
       });
+      if (!this.#isCurrentPrepare(generation)) {
+        stopStreamTracks(stream);
+        return;
+      }
+      this.#stream = stream;
       this.#setState({
         status: "ready",
         deviceId,
@@ -106,6 +116,7 @@ export class AudioTakeRecorder {
         elapsedMs: 0,
       });
     } catch (error) {
+      if (!this.#isCurrentPrepare(generation)) return;
       const denied = error instanceof DOMException && error.name === "NotAllowedError";
       this.#setState({
         status: denied ? "denied" : "error",
@@ -183,6 +194,7 @@ export class AudioTakeRecorder {
   }
 
   async cancel(): Promise<void> {
+    this.#prepareGeneration += 1;
     this.#canceling = true;
     this.#clearMaxDurationTimer();
     if (this.#recorder && this.#recorder.state !== "inactive") {
@@ -202,8 +214,13 @@ export class AudioTakeRecorder {
   }
 
   async dispose(): Promise<void> {
+    this.#disposed = true;
     await this.cancel();
     this.#subscribers.clear();
+  }
+
+  #isCurrentPrepare(generation: number): boolean {
+    return !this.#disposed && generation === this.#prepareGeneration;
   }
 
   #assertSupported(): void {
@@ -268,7 +285,7 @@ export class AudioTakeRecorder {
 
   async #stopStream(): Promise<void> {
     if (!this.#stream) return;
-    for (const track of this.#stream.getTracks()) track.stop();
+    stopStreamTracks(this.#stream);
     this.#stream = undefined;
   }
 
@@ -283,6 +300,10 @@ export class AudioTakeRecorder {
     this.#state = { ...this.#state, ...patch };
     for (const subscriber of this.#subscribers) subscriber(this.state);
   }
+}
+
+function stopStreamTracks(stream: MediaStream): void {
+  for (const track of stream.getTracks()) track.stop();
 }
 
 function audioConstraints(deviceId: string | undefined): MediaTrackConstraints {
