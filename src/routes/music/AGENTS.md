@@ -92,20 +92,19 @@ This file provides guidance for agents working on the Music app under
 ### Route App
 
 - `src/routes/music/+layout.svelte` creates the shared `MusicRuntime`, registers
-  the PWA, renders `MusicNavigation`, and docks the persistent
-  `MusicTransportBar` at the bottom of every screen.
+  the PWA, renders `MusicNavigation`, and keeps `FloatingPracticeControls`
+  sticky above the route content, including during drill focus.
 - `src/routes/music/_runtime.svelte.ts` owns the shared runtime (`MusicRuntime`):
   - `InputRouter`, `MidiEngine`, `SoundEngine`
   - audio enable state and cleanup
   - active instrument + reactive input source/confidence
-  - the shared metronome (`transportBpm`, `metronomeRunning`, `toggleMetronome`,
-    `setCountIn`) that drives the transport bar
-  - master audio: `masterMuted`/`toggleMute`, `metronomeLevel`/`setMetronomeLevel`
-    (blend), synth presets (`instrument`/`instruments`/`setInstrument`)
-  - a **PlaybackController**: routes register a `PlaybackSource`
-    (`setPlaybackSource`) so the transport Play button plays whatever is on
-    screen (jam progression, imported MIDI, selected take, sight-reading melody),
-    falling back to the metronome when none is registered (`togglePlayback`)
+  - one `MusicSettingsStore` for the active instrument, exact-variant BPM,
+    count-in, continued metronome preference, playback sound, levels, and mute
+  - the shared practice clock (`practicePhase`, `activeBeat`,
+    `registerPracticeContext`, `beginPerformance`, `endPerformance`) used by
+    counted-in drills
+  - the standalone metronome preview (`metronomeRunning`, `toggleMetronome`)
+    and persisted continued-click preference (`metronomeEnabled`)
   - MIDI instrument/channel selection from Connect: `attachStorage`,
     `reloadMidiInstruments`, `midiInstruments`, `activeChannel`,
     `setActiveMidiInstrument` (pins both instrument and channel)
@@ -115,21 +114,24 @@ This file provides guidance for agents working on the Music app under
 - The Practice OS shell uses **per-page headers**, not a global status bar.
   `PracticeScreen` + `PracticeScreenHeader` wrap each route: a big `h1`,
   subtitle, and right-aligned controls (a `SegmentedControl` and/or a
-  `SourceReadout` input pill). There is no `MusicTopbar`; XP/streak/level live on
-  the `/music` dashboard, and input/source lives in each page header.
-- `src/routes/music/_components/MusicTransportBar.svelte` is the persistent
-  transport. It is presentational (all state/handlers are passed from
-  `+layout.svelte` off `MusicRuntime`): a metronome toggle (custom
-  `MetronomeIcon` — lucide has no metronome glyph), tempo presets popover + BPM
-  slider (BPM applies live while running), configurable count-in,
-  context-aware Play (plays the registered `PlaybackSource` or falls back to the
-  metronome), master mute, metronome blend slider, selectable synth presets, a
-  live input readout, a MIDI instrument/channel "Listen to" picker sourced from
-  Connect preferences, and the audio enable gate.
-- **Locked shell:** the layout pins the chrome and scrolls only content. The
-  desktop sidebar is `sticky` under the 48px site header
-  (`top-12 h-[calc(100dvh-3rem)] self-start`) and the transport bar is
-  `sticky bottom-0`. Preserve this when touching layout.
+  `SourceReadout` input pill). `MusicTopBar` is shell chrome for search and
+  navigation, not the route heading; XP/streak/level live on the `/music`
+  dashboard, and input/source lives in each page header.
+- `src/routes/music/_components/FloatingPracticeControls.svelte` is the
+  presentational four-control capsule. `+layout.svelte` passes runtime state and
+  handlers for instrument, metronome, BPM, and count-in. Instrument, BPM, and
+  count-in lock during count-in/running; the metronome remains available. Keep
+  all four controls visible and named at mobile widths. Idle metronome pressed
+  state reflects audible `metronomeRunning`; active-run state reflects the
+  persisted `metronomeEnabled` preference.
+- Preview playback is local to its owning route/component. Give each preview a
+  nearby Play/Pause or Stop control, call `runtime.ensurePlaybackVoice()` before
+  generated sound, and stop route-owned playback on teardown/navigation.
+- Audio enable/test, playback sound, playback/metronome/master levels, and mute
+  are owned by `/music/settings`; do not put them back in the floating capsule.
+- **Locked shell:** keep the floating capsule sticky below normal chrome and at
+  the top during drill focus. Preserve min-width constraints and footer flow
+  when touching layout; do not move practice controls into or fix the footer.
 - `src/routes/music/_components/OnScreenKeyboard.svelte` is the fallback input
   surface and should push normalized `NoteEvent`s through the shared router. It
   renders a real piano via **piano-chart** (SVG) for the visual, with a
@@ -204,7 +206,7 @@ This file provides guidance for agents working on the Music app under
   mixed session demo.
 - `/music/connect`: device profiles — name MIDI devices, assign instruments, and
   pick the preferred input source per instrument (`DeviceProfileStore`). The
-  transport bar's MIDI instrument/channel picker reads these preferences.
+  shared input router reads these preferences.
 - `/music`: entry point for practice tools; learning drills and the guided
   **Jazz Path** are surfaced from the Practice hub.
 - `/music/learn/path`: the ordered, instrument-aware jazz lesson path. Each step
@@ -269,8 +271,8 @@ This file provides guidance for agents working on the Music app under
   full planned session through the schedule helper. Keep ranking and decay in the
   engine; do not create route-local grading, scale-degree parsing, or microphone
   capture.
-- `/music/learn/reading`: note flashcards and generated sight-reading. Registers
-  a transport `PlaybackSource` so Play previews the on-screen melody. The guitar/
+- `/music/learn/reading`: note flashcards and generated sight-reading. Its local
+  Play/Pause control previews the on-screen melody. The guitar/
   ukulele sight-reading session has an opt-in **Show/Hide tab** reveal
   (`projectScoreToFretboard` + `TabNotation`), hidden by default so it doesn't
   short-circuit reading the staff. Piano sight-reading uses
@@ -437,7 +439,9 @@ This file provides guidance for agents working on the Music app under
   future piano-roll polish.
 - `/music/create?mode=recorder`: take list, waveform, compare, and self-review.
 - `/music/track`: practice journal and routine/session tracking.
-- `/music/settings`: app settings over `PracticeStore.settings`.
+- `/music/settings`: the runtime-owned Music settings surface. It owns audio
+  enable/test, playback sound, playback/metronome/master levels, mute, latency,
+  MIDI, and appearance settings through the single `MusicSettingsStore`.
 - `/music/progress`: dashboard, skill tree, weak spots, achievements, streaks,
   practice-next picks, and personal daily challenges. Challenge cards must come
   from `@repo/music-core/engines/challenges`; keep them non-competitive unless
@@ -460,9 +464,9 @@ This file provides guidance for agents working on the Music app under
   That core adapter owns default cleanup: confidence/duration filtering,
   chronological sorting, and nearby same-pitch fragment merging. Keep those
   heuristics in `@repo/music-core`, not in route code.
-  Generated-score playback must stay on the shared transport/audio path by
-  registering `scoreToPattern(score)` with `MusicRuntime.setPlaybackSource()`;
-  do not add a route-local player. Keep route input wired through
+  Generated-score playback must use the shared `SoundEngine` through local
+  Play/Pause controls and `scoreToPattern(score)`; do not add another playback
+  engine. Keep route input wired through
   `MusicRuntime.router` so MIDI, on-screen, and extractor-backed flows use the
   same score follower. Real-audio extraction quality still needs manual browser
   validation and threshold tuning.
@@ -570,11 +574,11 @@ Important areas:
   and owns aggregate take/section summaries. VexFlow/OSMD geometry, count-in
   audio, timers, persistence calls, and Svelte lifecycle do not belong in this
   engine.
-- Song Studio performance timing starts from the monotonic downbeat returned by
-  `MusicRuntime.runCountIn()`. Always stop it through
-  `runtime.stopPracticeClock()` on completion, cancellation, errors, and route
-  teardown; do not derive scoring timestamps from wall-clock time or duplicate
-  transport instances.
+- Song Studio registers its exact practice context, then starts performance
+  timing from the monotonic downbeat returned by `MusicRuntime.beginPerformance()`.
+  Always call `runtime.endPerformance()` on completion, cancellation, errors,
+  and route teardown; do not derive scoring timestamps from wall-clock time or
+  duplicate transport instances.
 - `SoundEngine.playPattern()` has replacement semantics: each invocation
   cancels the previous scheduled pattern through its dedicated playback synth.
   Preserve this when changing score previews, exercise replay, transport
@@ -752,8 +756,8 @@ before commit or completion.
 - The skill tree renders the full seeded graph so rhythm and other later-sorted
   skills are visible.
 - XP/streak/level render on the `/music` dashboard from persisted progress; the
-  active input source shows in each page header's `SourceReadout`. The persistent
-  `MusicTransportBar` drives the shared metronome.
+  active input source shows in each page header's `SourceReadout`. The floating
+  practice controls drive the shared practice clock and metronome.
 - MIDI was previously fixed so hardware note events advance reading exercises.
   Preserve that path when refactoring reading or input code.
 - The practice journal stores sessions and notes locally. It is intentionally

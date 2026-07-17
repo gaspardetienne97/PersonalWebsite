@@ -2,13 +2,10 @@ import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { get } from "svelte/store";
 
-// BRITTLE: both constants match SvelteKit's *internal* message text. If a
-// SvelteKit upgrade rewords its router warning/error, the matching silently
-// stops and the fallback/suppression becomes a no-op — re-check these strings
-// when bumping @sveltejs/kit.
+// BRITTLE: this matches SvelteKit's internal warning text. Re-check it when
+// bumping @sveltejs/kit.
 const ROUTER_HISTORY_WARNING =
   "Avoid using `history.pushState(...)` and `history.replaceState(...)`";
-const ROUTER_NOT_READY = "before router is initialized";
 
 const DRILL_CONFIG_STORAGE_PREFIX = "music:drill-config:";
 
@@ -32,15 +29,26 @@ export function syncRouteQuery(href: string): void {
  * when present (shared links stay exact), otherwise the last setup this drill
  * synced via `syncRouteQuery`. The sync effect then writes the restored
  * config back into the URL, so a restored visit is immediately shareable.
+ *
+ * Pass `exclude` to filter out params that should not be restored from
+ * localStorage (e.g. `bpm` / `tempo` for routes using shared practice BPM).
  */
-export function initialDrillSearch(): URLSearchParams {
+export function initialDrillSearch(exclude?: string[]): URLSearchParams {
   const current = new URLSearchParams(window.location.search);
-  if ([...current.keys()].length > 0) return current;
+  if ([...current.keys()].length > 0) {
+    return current;
+  }
   try {
     const stored = window.localStorage.getItem(
       `${DRILL_CONFIG_STORAGE_PREFIX}${window.location.pathname}`,
     );
-    if (stored) return new URLSearchParams(stored);
+    if (stored) {
+      const params = new URLSearchParams(stored);
+      if (exclude) {
+        for (const p of exclude) params.delete(p);
+      }
+      return params;
+    }
   } catch {
     // Storage unavailable (private mode, quota) — fall through to defaults.
   }
@@ -77,10 +85,7 @@ function rememberDrillSearch(href: string): void {
 export function replaceRouteState(href: string, state: App.PageState): void {
   try {
     replaceState(href, state);
-  } catch (error) {
-    if (!(error instanceof Error) || !error.message.includes(ROUTER_NOT_READY)) {
-      throw error;
-    }
+  } catch {
     suppressRouterHistoryWarning(() => window.history.replaceState(state, "", href));
   }
 }

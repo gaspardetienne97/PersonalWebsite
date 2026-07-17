@@ -47,4 +47,26 @@ describe("drill config persistence", () => {
     expect([...initialDrillSearch().keys()]).toEqual([]);
     clearStoredDrillSearches();
   });
+
+  test("initialDrillSearch excludes specified params from remembered query", () => {
+    setTestUrl("/music/play/licks");
+    syncRouteQuery("/music/play/licks?bpm=120&lick=7&tempo=80");
+
+    setTestUrl("/music/play/licks");
+    const filtered = initialDrillSearch(["bpm", "tempo"]);
+    expect(filtered.get("bpm")).toBeNull();
+    expect(filtered.get("tempo")).toBeNull();
+    expect(filtered.get("lick")).toBe("7");
+
+    clearStoredDrillSearches();
+  });
+
+  test("explicit URL params survive initialDrillSearch exclusion", () => {
+    setTestUrl("/music/play/licks?bpm=140&lick=3");
+    const result = initialDrillSearch(["bpm"]);
+    // Exclusion does not apply to explicit URL params
+    expect(result.get("bpm")).toBe("140");
+    expect(result.get("lick")).toBe("3");
+    clearStoredDrillSearches();
+  });
 });

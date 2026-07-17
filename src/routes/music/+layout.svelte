@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { afterNavigate } from "$app/navigation";
   import { page } from "$app/stores";
   import { onDestroy, onMount } from "svelte";
   import { pwaInfo } from "virtual:pwa-info";
@@ -8,9 +9,9 @@
   import { Toaster } from "@repo/ui/sonner";
 
   import CommandPalette from "./_components/CommandPalette.svelte";
+  import FloatingPracticeControls from "./_components/FloatingPracticeControls.svelte";
   import MusicNavigation from "./_components/MusicNavigation.svelte";
   import MusicTopBar from "./_components/MusicTopBar.svelte";
-  import MusicTransportBar from "./_components/MusicTransportBar.svelte";
   import { createMusicRuntime } from "./_runtime.svelte";
 
   let { children } = $props();
@@ -18,19 +19,21 @@
   const webManifest = pwaInfo?.webManifest.linkTag;
   const currentPath = $derived($page.url?.pathname ?? "/music");
   const runtime = createMusicRuntime();
+  const store = browser ? new PracticeStore() : undefined;
+  const storageReady = store ? runtime.attachStorage(store.settings) : Promise.resolve();
+  let practiceNavigationActivation = 0;
 
-  const inputSourceLabel = $derived(
-    runtime.activeSource === "midi"
-      ? "MIDI"
-      : runtime.activeSource === "audio"
-        ? "Audio"
-        : "On-screen",
-  );
+  afterNavigate((navigation) => {
+    if (navigation.type === "enter") return;
+    runtime.activatePracticeNavigation(
+      ++practiceNavigationActivation,
+      Number(navigation.to?.url.searchParams.get("bpm")) || undefined,
+    );
+  });
 
   onMount(async () => {
-    if (browser) {
-      const store = new PracticeStore();
-      await runtime.attachStorage(store.settings);
+    if (store) {
+      await storageReady;
       runtime.attachJournal(store);
       runtime.attachMedia(store);
     }
@@ -62,45 +65,56 @@
   {/if}
 </svelte:head>
 
-<div class="flex min-h-screen bg-background text-foreground">
+<div class="flex h-full bg-background text-foreground" data-music-shell>
   {#if !runtime.drillFocus}
     <MusicNavigation {currentPath} />
   {/if}
-  <div class="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+  <div class="flex min-w-0 flex-1 flex-col">
     {#if !runtime.drillFocus}
       <MusicTopBar onSearch={() => (paletteOpen = true)} />
     {/if}
+    <div
+      class="pointer-events-none sticky {runtime.drillFocus
+        ? 'top-0'
+        : 'top-[5.75rem]'} z-30 flex justify-center px-2 py-2"
+      data-practice-controls-row
+    >
+      <div class="pointer-events-auto">
+        <FloatingPracticeControls
+          instrument={runtime.activeInstrument}
+          instruments={runtime.practiceInstrumentOptions}
+          instrumentPinned={runtime.practiceInstrumentPinned}
+          bpm={runtime.practiceBpm}
+          countInBars={runtime.countInBars}
+          metronomeEnabled={runtime.metronomeEnabled}
+          metronomeRunning={runtime.metronomeRunning}
+          performancePending={runtime.performancePending}
+          phase={runtime.practicePhase}
+          activeBeat={runtime.activeBeat}
+          beatsPerBar={runtime.practiceMeter.numerator}
+          onInstrument={(instrument) => runtime.setActiveInstrument(instrument)}
+          onToggleMetronome={() => runtime.toggleMetronome()}
+          onBpm={(bpm) => runtime.setPracticeBpm(bpm)}
+          onCountIn={(bars) => runtime.setCountIn(bars)}
+        />
+      </div>
+    </div>
     <div class="flex-1">
       {@render children()}
     </div>
-    <MusicTransportBar
-      bpm={runtime.transportBpm}
-      onBpm={(value) => runtime.setTransportBpm(value)}
-      running={runtime.playbackSource ? runtime.playbackPlaying : runtime.metronomeRunning}
-      onToggle={() => runtime.togglePlayback()}
-      playContext={runtime.playbackSource?.label}
-      metronomeRunning={runtime.metronomeRunning}
-      onToggleMetronome={() => runtime.toggleMetronome()}
-      audioEnabled={runtime.audioEnabled}
-      audioPending={runtime.audioPending}
-      onEnableAudio={() => runtime.enableAudio()}
-      countInBars={runtime.countInBars}
-      onCountIn={(bars) => runtime.setCountIn(bars)}
-      muted={runtime.masterMuted}
-      onToggleMute={() => runtime.toggleMute()}
-      metronomeLevel={runtime.metronomeLevel}
-      onMetronomeLevel={(level) => runtime.setMetronomeLevel(level)}
-      instrument={runtime.instrument}
-      instruments={runtime.instruments}
-      onInstrument={(name) => runtime.setInstrument(name)}
-      inputSource={inputSourceLabel}
-      midiActive={runtime.activeSource === "midi"}
-      midiInstruments={runtime.midiInstruments}
-      activeInstrument={runtime.activeInstrument}
-      onSelectMidiInstrument={(instrument, channel) =>
-        runtime.setActiveMidiInstrument(instrument, channel)}
-    />
   </div>
   <CommandPalette bind:open={paletteOpen} />
   <Toaster position="bottom-center" richColors closeButton />
 </div>
+
+<style>
+  @media (width < 48rem) {
+    :global(.app:has([data-music-shell])) {
+      padding-bottom: 53px;
+    }
+
+    :global(.drill-focus .app:has([data-music-shell])) {
+      padding-bottom: 0;
+    }
+  }
+</style>

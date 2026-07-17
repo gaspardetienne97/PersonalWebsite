@@ -29,39 +29,87 @@ import { createMediaLibrary, type MediaLibrary } from "@repo/music-core/engines/
 import { MidiEngine } from "@repo/music-core/engines/midi";
 import { SampleKitStore } from "@repo/music-core/engines/sample-kit";
 import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
-import { SOUND_PRESET_NAMES, SoundEngine } from "@repo/music-core/engines/sound";
+import {
+  MusicSettingsStore,
+  PLAYBACK_SOUND_IDS,
+  PLAYBACK_SOUND_LABELS,
+  updateTempoByVariant,
+  lookupTempoByVariant,
+  type MusicSettings,
+  type PlaybackSoundId,
+} from "@repo/music-core/engines/settings";
+import { SoundEngine } from "@repo/music-core/engines/sound";
 import { deleteBinary, getBinary, putBinary } from "@repo/music-core/engines/store";
 import type { PracticeStore } from "@repo/music-core/engines/store";
 import {
   createToneTransportEngine,
+  type QuantizationGrid,
   type TransportEngine,
+  type TransportEvent,
   type TransportEngineOptions,
 } from "@repo/music-core/engines/transport";
 
-const MUSIC_RUNTIME = Symbol("music-runtime");
+export const MUSIC_RUNTIME = Symbol("music-runtime");
 
-/**
- * A screen's "now playing" content. Routes register one so the transport bar's
- * Play button plays whatever is on screen (a take, a melody, a MIDI file, a
- * progression). `play` is a one-shot preview; `durationSec` resets the button.
- */
-export interface PlaybackSource {
-  label: string;
-  durationSec: number;
-  play: () => void | Promise<void>;
-  stop?: () => void;
-}
+const SALAMANDER_PIANO_SAMPLES = {
+  C1: "/audio/music/piano/C1v8.mp3",
+  C2: "/audio/music/piano/C2v8.mp3",
+  C3: "/audio/music/piano/C3v8.mp3",
+  C4: "/audio/music/piano/C4v8.mp3",
+  C5: "/audio/music/piano/C5v8.mp3",
+  C6: "/audio/music/piano/C6v8.mp3",
+  C7: "/audio/music/piano/C7v8.mp3",
+  C8: "/audio/music/piano/C8v8.mp3",
+};
 
-/** A MIDI-preferred instrument (from Connect) the transport bar can listen to. */
+/** A MIDI-preferred instrument (from Connect) the shared input router can listen to. */
 export interface MidiInstrumentOption {
   instrument: InstrumentId;
   channel?: number;
   label: string;
 }
 
+export interface PracticeMeter {
+  numerator: number;
+  denominator: 2 | 4 | 8 | 16;
+}
+
+/**
+ * Context registered by the active route so shared controls stay synchronized.
+ * Only the current owner may update or clear.
+ */
+export interface PracticeContext {
+  owner: string;
+  variantKey: string;
+  defaultBpm: number;
+  initialUrlBpm?: number;
+  meter?: PracticeMeter;
+  allowedInstruments?: InstrumentId[];
+  pinnedInstrument?: InstrumentId;
+  onBpmChange?: (bpm: number) => void;
+  onInstrumentChange?: (instrument: InstrumentId) => void;
+  shouldPlayMetronome?: (event: TransportEvent) => boolean;
+}
+
 export interface MusicRuntimeOptions {
   createTransport?: (options: TransportEngineOptions) => Promise<TransportEngine>;
   monotonicNowMs?: () => MonotonicMs;
+}
+
+export type PracticePhase = "idle" | "count-in" | "running";
+
+export type BeginPerformanceResult =
+  | { status: "started"; downbeat: MonotonicMs }
+  | { status: "cancelled" }
+  | { status: "failed"; message: string };
+
+interface PendingPerformance {
+  generation: number;
+  owner: string | undefined;
+  promise: Promise<BeginPerformanceResult>;
+  resolve: (result: BeginPerformanceResult) => void;
+  unsubscribe?: () => void;
+  settled: boolean;
 }
 
 /**
@@ -104,20 +152,34 @@ export class MusicRuntime {
    */
   drillFocus = $state(false);
 
-  /** Shared metronome state driving the persistent transport bar. */
+  /** Shared metronome state driving the floating practice controls. */
   transportBpm = $state(96);
   metronomeRunning = $state(false);
   activeBeat = $state(-1);
-  countInBars = $state(1);
   masterMuted = $state(false);
+  masterLevel = $state(1);
+  playbackLevel = $state(0.8);
   metronomeLevel = $state(0.7);
-  instrument = $state(SOUND_PRESET_NAMES[0]!);
-  readonly instruments = SOUND_PRESET_NAMES;
+  preferredPlaybackSound = $state<PlaybackSoundId>("salamander-piano");
+  effectivePlaybackSound = $state<PlaybackSoundId>("warm-synth");
+  playbackFallback = $state<string | undefined>();
+  playbackVoicePending = $state(false);
+  instrument = $state(PLAYBACK_SOUND_LABELS["salamander-piano"]);
+  readonly instruments = PLAYBACK_SOUND_IDS.map((sound) => PLAYBACK_SOUND_LABELS[sound]);
 
-  /** The current screen's playback source (drives the transport Play button). */
-  playbackSource = $state<PlaybackSource | undefined>();
-  playbackPlaying = $state(false);
-  #playbackResetTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Practice-context state owned by the active route. */
+  countInBars = $state(1);
+  practiceBpm = $state(96);
+  metronomeEnabled = $state(true);
+  practicePhase = $state<PracticePhase>("idle");
+  performancePending = $state(false);
+  settingsReady = $state(false);
+  #practiceContext: PracticeContext | undefined;
+  #settingsStore: MusicSettingsStore | undefined;
+  #contextGen = 0;
+  #contextRequestGen = 0;
+  #contextOwner: string | undefined;
+  settingsError = $state<string | undefined>();
 
   /** MIDI-preferred instruments from Connect + the active channel filter. */
   midiInstruments = $state<MidiInstrumentOption[]>([]);
@@ -136,8 +198,17 @@ export class MusicRuntime {
   #captureSeq = 0;
 
   #transport?: TransportEngine;
+  #transportFlight?: Promise<TransportEngine | undefined>;
+  #transportGeneration = 0;
+  #disposed = false;
   #unsubscribeTransport?: () => void;
   #enablePromise?: Promise<boolean>;
+  #playbackVoiceFlight?: { sound: PlaybackSoundId; promise: Promise<boolean> };
+  #performanceGeneration = 0;
+  #performanceFlight?: Promise<BeginPerformanceResult>;
+  #pendingPerformance?: PendingPerformance;
+  #practiceNavigationActivation = 0;
+  #pendingPracticeNavigation?: { bpm: number | undefined };
   #unsubscribeMidi = this.midi.subscribe((event) => {
     this.router.push(event);
   });
@@ -159,8 +230,19 @@ export class MusicRuntime {
   }
 
   setActiveInstrument(instrument: InstrumentId): void {
+    const ctx = this.#practiceContext;
+    if (ctx?.pinnedInstrument) {
+      this.activeInstrument = ctx.pinnedInstrument;
+      this.router.setActiveInstrument(ctx.pinnedInstrument);
+      return;
+    }
+    if (ctx?.allowedInstruments && !ctx.allowedInstruments.includes(instrument)) {
+      instrument = ctx.allowedInstruments[0] ?? instrument;
+    }
     this.activeInstrument = instrument;
     this.router.setActiveInstrument(instrument);
+    ctx?.onInstrumentChange?.(instrument);
+    this.#persistSettings({ activeInstrument: instrument });
   }
 
   setActiveChannel(channel?: number): void {
@@ -182,6 +264,21 @@ export class MusicRuntime {
       repository: settings,
       binaries: { put: putBinary, get: getBinary, delete: deleteBinary },
     });
+    this.#settingsStore = new MusicSettingsStore(settings);
+    let loaded: MusicSettings;
+    try {
+      loaded = await this.#settingsStore.load();
+    } catch (error) {
+      if (!this.#settingsStore.loaded) throw error;
+      loaded = this.#settingsStore.get();
+      this.settingsError = error instanceof Error ? error.message : "Settings persist failed";
+    }
+    this.#applyAudioSettings(loaded);
+    this.metronomeEnabled = loaded.metronomeEnabled;
+    this.countInBars = loaded.countInBars;
+    this.activeInstrument = loaded.activeInstrument;
+    this.router.setActiveInstrument(loaded.activeInstrument);
+    this.settingsReady = true;
     await this.reloadMidiInstruments();
   }
 
@@ -293,7 +390,11 @@ export class MusicRuntime {
       if (source !== "midi") continue;
       const id = instrument as InstrumentId;
       const profile = state.profiles.find((entry) => entry.instrument === id);
-      options.push({ instrument: id, channel: profile?.channel, label: INSTRUMENT_LABELS[id] });
+      options.push({
+        instrument: id,
+        channel: profile?.channel,
+        label: INSTRUMENT_LABELS[id],
+      });
     }
     this.midiInstruments = options;
     this.inputSurfaces = state.surfaces;
@@ -321,132 +422,490 @@ export class MusicRuntime {
   }
 
   setCountIn(bars: number): void {
-    this.countInBars = Math.max(0, Math.round(bars));
+    this.countInBars = bars >= 2 ? 2 : bars >= 1 ? 1 : 0;
     this.#transport?.setCountInBars(this.countInBars);
+    this.#persistSettings({ countInBars: this.countInBars as 0 | 1 | 2 });
   }
 
   toggleMute(): void {
     this.masterMuted = !this.masterMuted;
     this.sound.setMasterMuted(this.masterMuted);
+    this.#persistSettings({ muted: this.masterMuted });
   }
 
   setMetronomeLevel(level: number): void {
     this.metronomeLevel = Math.min(1, Math.max(0, level));
     this.sound.setMetronomeLevel(this.metronomeLevel);
+    this.#persistSettings({ metronomeLevel: this.metronomeLevel });
   }
 
   setInstrument(name: string): void {
+    const sound = PLAYBACK_SOUND_IDS.find((id) => PLAYBACK_SOUND_LABELS[id] === name);
+    if (!sound) return;
     this.instrument = name;
-    this.sound.setInstrument(name);
-  }
-
-  /** Routes register their on-screen content; call with undefined to clear. */
-  setPlaybackSource(source?: PlaybackSource): void {
-    this.#clearPlaybackTimer();
-    if (this.playbackPlaying) {
-      this.playbackSource?.stop?.();
-      this.playbackPlaying = false;
-    }
-    this.playbackSource = source;
-  }
-
-  /** Transport Play: play the screen's content, or fall back to the metronome. */
-  async togglePlayback(): Promise<void> {
-    const source = this.playbackSource;
-    if (!source) {
-      await this.toggleMetronome();
+    if (this.#settingsStore) {
+      void this.updateMusicSettings({ preferredPlaybackSound: sound }).catch((error: unknown) => {
+        this.settingsError = error instanceof Error ? error.message : "Settings persist failed";
+      });
       return;
     }
-    if (this.playbackPlaying) {
-      source.stop?.();
-      this.playbackPlaying = false;
-      this.#clearPlaybackTimer();
-      return;
+    this.preferredPlaybackSound = sound;
+    if (sound !== "salamander-piano") {
+      this.sound.setPlaybackSound(sound);
+      this.effectivePlaybackSound = sound;
+      this.playbackFallback = undefined;
+    } else if (this.audioEnabled) {
+      void this.ensurePlaybackVoice();
     }
-    if (!this.audioEnabled && !(await this.enableAudio())) return;
-    await source.play();
-    this.playbackPlaying = true;
-    this.#playbackResetTimer = setTimeout(
-      () => {
-        this.playbackPlaying = false;
-      },
-      Math.max(300, Math.round(source.durationSec * 1000)),
-    );
   }
 
-  #clearPlaybackTimer(): void {
-    if (this.#playbackResetTimer !== undefined) {
-      clearTimeout(this.#playbackResetTimer);
-      this.#playbackResetTimer = undefined;
-    }
+  get mediaVolume(): number {
+    return this.masterMuted ? 0 : this.playbackLevel * this.masterLevel;
+  }
+
+  /** Unlock audio and activate the persisted playback voice, falling back safely. */
+  ensurePlaybackVoice(): Promise<boolean> {
+    const preferred = this.preferredPlaybackSound;
+    if (this.#playbackVoiceFlight?.sound === preferred) return this.#playbackVoiceFlight.promise;
+    this.playbackVoicePending = true;
+    const promise = this.#ensurePlaybackVoice(preferred).finally(() => {
+      if (this.#playbackVoiceFlight?.promise === promise) {
+        this.#playbackVoiceFlight = undefined;
+        this.playbackVoicePending = false;
+      }
+    });
+    this.#playbackVoiceFlight = { sound: preferred, promise };
+    return promise;
+  }
+
+  async testAudio(): Promise<boolean> {
+    if (!(await this.ensurePlaybackVoice())) return false;
+    this.sound.playChord([60, 64, 67], 0.5);
+    return true;
   }
 
   async toggleMetronome(): Promise<void> {
-    const enabled = await this.enableAudio();
-    if (!enabled) return;
-    const transport = await this.#ensureTransport();
+    if (this.practicePhase === "idle") {
+      if (this.metronomeRunning) {
+        this.metronomeEnabled = false;
+        this.#persistSettings({ metronomeEnabled: false });
+        this.#stopTransport();
+        return;
+      }
+      if (!this.metronomeEnabled) {
+        this.metronomeEnabled = true;
+        this.#persistSettings({ metronomeEnabled: true });
+      }
+    } else {
+      this.metronomeEnabled = !this.metronomeEnabled;
+      this.#persistSettings({ metronomeEnabled: this.metronomeEnabled });
+    }
 
-    if (transport.state.running) {
-      transport.stop();
-      this.metronomeRunning = false;
-      this.activeBeat = -1;
+    if (this.practicePhase === "count-in") return;
+    if (this.practicePhase === "running" && !this.metronomeEnabled) return;
+
+    if (!this.metronomeEnabled) {
+      this.#stopTransport();
       return;
     }
 
-    transport.setBpm(this.transportBpm);
-    transport.setCountInBars(this.countInBars);
+    if (!(await this.enableAudio())) return;
+    const transport = await this.#ensureTransport();
+    if (!transport) return;
+    if (!this.metronomeEnabled || this.practicePhase === "count-in") return;
+    if (transport.state.running) return;
+    this.#configureTransport(transport, 0);
     transport.start();
     this.metronomeRunning = true;
   }
 
-  async runCountIn(): Promise<MonotonicMs> {
-    if (!(await this.enableAudio())) throw new Error(this.audioMessage);
-    const transport = await this.#ensureTransport();
-    transport.setBpm(this.transportBpm);
-    transport.setCountInBars(this.countInBars);
-    if (this.countInBars === 0) {
-      transport.start();
-      this.metronomeRunning = true;
-      return this.#monotonicNowMs();
-    }
+  beginPerformance(): Promise<BeginPerformanceResult> {
+    if (this.#performanceFlight) return this.#performanceFlight;
+    if (this.practicePhase !== "idle") return Promise.resolve({ status: "cancelled" });
 
-    return new Promise<MonotonicMs>((resolve) => {
-      const unsubscribe = transport.subscribe((event) => {
-        if (event.kind === "beat" && !event.countingIn) {
-          unsubscribe();
-          resolve(event.atMonotonicMs);
-        }
-      });
-      transport.start();
-      this.metronomeRunning = true;
+    let resolve!: (result: BeginPerformanceResult) => void;
+    const promise = new Promise<BeginPerformanceResult>((settle) => {
+      resolve = settle;
     });
+    const pending: PendingPerformance = {
+      generation: this.#performanceGeneration,
+      owner: this.#contextOwner,
+      promise,
+      resolve,
+      settled: false,
+    };
+    this.#pendingPerformance = pending;
+    this.#performanceFlight = promise;
+    this.performancePending = true;
+    void this.#beginPerformance(pending);
+    return promise;
   }
 
-  stopPracticeClock(): void {
+  endPerformance(): void {
+    this.#performanceGeneration += 1;
+    const pending = this.#pendingPerformance;
+    pending?.unsubscribe?.();
+    if (pending) pending.unsubscribe = undefined;
+    if (pending) this.#settlePerformance(pending, { status: "cancelled" });
+    this.performancePending = false;
+    this.#stopTransport();
+    this.practicePhase = "idle";
+  }
+
+  /**
+   * Register the active route's practice context. Returns an idempotent cleanup
+   * function. Only the current owner may update or clear.
+   */
+  async registerPracticeContext(context: PracticeContext): Promise<() => void> {
+    const requestGen = ++this.#contextRequestGen;
+    await this.#settingsStore?.ready;
+    if (requestGen !== this.#contextRequestGen) return () => {};
+    this.endPerformance();
+    const isActivation = this.#contextOwner !== context.owner;
+    this.#contextOwner = context.owner;
+    const myGen = ++this.#contextGen;
+    this.#practiceContext = context;
+    const reconciled = this.#reconcileInstrument(context);
+    if (reconciled !== this.activeInstrument) {
+      if (context.pinnedInstrument) {
+        this.activeInstrument = reconciled;
+        this.router.setActiveInstrument(reconciled);
+      } else {
+        this.setActiveInstrument(reconciled);
+      }
+    }
+    const pendingNavigation = this.#pendingPracticeNavigation;
+    this.#pendingPracticeNavigation = undefined;
+    const bpm = this.resolvePracticeBpm(
+      pendingNavigation ? pendingNavigation.bpm : isActivation ? context.initialUrlBpm : undefined,
+      context.variantKey,
+      context.defaultBpm,
+    );
+    this.practiceBpm = bpm;
+    this.setTransportBpm(bpm);
+    context.onBpmChange?.(bpm);
+    return () => {
+      if (this.#contextGen !== myGen) return;
+      this.endPerformance();
+      this.#practiceContext = undefined;
+      this.#contextOwner = undefined;
+      if (this.#settingsStore?.loaded) {
+        const restored = this.#settingsStore.get().activeInstrument;
+        if (restored !== this.activeInstrument) {
+          this.activeInstrument = restored;
+          this.router.setActiveInstrument(restored);
+        }
+      }
+    };
+  }
+
+  /**
+   * Resolve the practice BPM using URL precedence, then persisted variant,
+   * then pedagogical default.
+   */
+  resolvePracticeBpm(urlBpm: number | undefined, variantKey: string, defaultBpm: number): number {
+    if (urlBpm !== undefined && Number.isFinite(urlBpm) && urlBpm > 0) {
+      const clamped = Math.round(Math.max(20, Math.min(300, urlBpm)));
+      const map = this.#settingsStore?.get().tempoByVariant ?? {};
+      const nextMap = updateTempoByVariant(map, variantKey, clamped);
+      this.#persistSettings({ tempoByVariant: nextMap }, "Tempo persist failed");
+      return clamped;
+    }
+    const map = this.#settingsStore?.get().tempoByVariant ?? {};
+    const stored = lookupTempoByVariant(map, variantKey);
+    if (stored !== undefined) return stored;
+    return defaultBpm;
+  }
+
+  /**
+   * Store a BPM for the given variant key and notify the active context's
+   * onBpmChange callback.
+   */
+  setPracticeVariantBpm(bpm: number, variantKey: string): void {
+    const clamped = Math.round(Math.max(20, Math.min(300, bpm)));
+    const map = this.#settingsStore?.get().tempoByVariant ?? {};
+    const nextMap = updateTempoByVariant(map, variantKey, clamped);
+    this.#persistSettings({ tempoByVariant: nextMap }, "Tempo persist failed");
+    this.practiceBpm = clamped;
+    this.setTransportBpm(clamped);
+    this.#practiceContext?.onBpmChange?.(clamped);
+  }
+
+  /** Update the active exact variant, or the standalone metronome when browsing. */
+  setPracticeBpm(bpm: number): void {
+    this.setPracticeVariantBpm(bpm, this.#practiceContext?.variantKey ?? "v1:metronome");
+  }
+
+  /** Apply a BPM from one external same-component navigation or history entry. */
+  activatePracticeNavigation(activation: number, bpm: number | undefined): void {
+    if (activation <= this.#practiceNavigationActivation) return;
+    this.#practiceNavigationActivation = activation;
+    if (!this.#practiceContext) {
+      this.#pendingPracticeNavigation = { bpm };
+      return;
+    }
+    if (bpm === undefined || !Number.isFinite(bpm) || bpm <= 0) return;
+    const clamped = Math.round(Math.max(20, Math.min(300, bpm)));
+    if (this.practiceBpm === clamped) return;
+    this.setPracticeVariantBpm(bpm, this.#practiceContext.variantKey);
+  }
+
+  get practiceInstrumentPinned(): boolean {
+    return this.#practiceContext?.pinnedInstrument !== undefined;
+  }
+
+  get practiceInstrumentOptions(): InstrumentId[] {
+    const context = this.#practiceContext;
+    if (context?.pinnedInstrument) return [context.pinnedInstrument];
+    return context?.allowedInstruments ?? (Object.keys(INSTRUMENT_LABELS) as InstrumentId[]);
+  }
+
+  get practiceMeter(): PracticeMeter {
+    return this.#practiceContext?.meter ?? { numerator: 4, denominator: 4 };
+  }
+
+  /** Read current settings from the runtime-owned store. */
+  getMusicSettings(): MusicSettings | undefined {
+    return this.#settingsStore?.get();
+  }
+
+  /** Write a settings patch through the runtime-owned store. */
+  async updateMusicSettings(patch: Partial<MusicSettings>): Promise<void> {
+    if (!this.#settingsStore) return;
+    const persistence = this.#settingsStore.update(patch);
+    const next = this.#settingsStore.get();
+    this.#applyAudioSettings(next);
+    if (patch.metronomeEnabled !== undefined) this.metronomeEnabled = next.metronomeEnabled;
+    if (patch.countInBars !== undefined) this.countInBars = next.countInBars;
+    if (patch.activeInstrument !== undefined) {
+      this.activeInstrument = next.activeInstrument;
+      this.router.setActiveInstrument(next.activeInstrument);
+    }
+    const playbackVoice =
+      patch.preferredPlaybackSound !== undefined && this.audioEnabled
+        ? this.ensurePlaybackVoice()
+        : undefined;
+    let persistenceError: unknown;
+    try {
+      await persistence;
+      this.settingsError = undefined;
+    } catch (error) {
+      persistenceError = error;
+      this.settingsError = error instanceof Error ? error.message : "Settings persist failed";
+    }
+    await playbackVoice;
+    if (persistenceError !== undefined) throw persistenceError;
+  }
+
+  #applyAudioSettings(settings: MusicSettings): void {
+    const preferredChanged = settings.preferredPlaybackSound !== this.preferredPlaybackSound;
+    this.preferredPlaybackSound = settings.preferredPlaybackSound;
+    this.instrument = PLAYBACK_SOUND_LABELS[settings.preferredPlaybackSound];
+    this.playbackLevel = settings.playbackLevel;
+    this.metronomeLevel = settings.metronomeLevel;
+    this.masterLevel = settings.masterLevel;
+    this.masterMuted = settings.muted;
+    this.sound.setPlaybackLevel(this.playbackLevel);
+    this.sound.setMetronomeLevel(this.metronomeLevel);
+    this.sound.setMasterVolume(this.masterLevel);
+    this.sound.setMasterMuted(this.masterMuted);
+    if (settings.preferredPlaybackSound !== "salamander-piano") {
+      if (preferredChanged || this.sound.playbackSound !== settings.preferredPlaybackSound) {
+        this.sound.setPlaybackSound(settings.preferredPlaybackSound);
+      }
+      this.effectivePlaybackSound = settings.preferredPlaybackSound;
+      this.playbackFallback = undefined;
+    } else if (preferredChanged && this.effectivePlaybackSound !== "salamander-piano") {
+      this.sound.setPlaybackSound("warm-synth");
+      this.effectivePlaybackSound = "warm-synth";
+    }
+  }
+
+  #persistSettings(patch: Partial<MusicSettings>, fallback = "Settings persist failed"): void {
+    const store = this.#settingsStore;
+    if (!store) return;
+    void store
+      .update(patch)
+      .then(() => {
+        this.settingsError = undefined;
+      })
+      .catch((error: unknown) => {
+        this.settingsError = error instanceof Error ? error.message : fallback;
+      });
+  }
+
+  async #ensurePlaybackVoice(preferred: PlaybackSoundId): Promise<boolean> {
+    if (!(await this.enableAudio())) return false;
+    if (preferred !== this.preferredPlaybackSound) return true;
+    if (preferred !== "salamander-piano") {
+      if (this.sound.playbackSound !== preferred) this.sound.setPlaybackSound(preferred);
+      this.instrument = PLAYBACK_SOUND_LABELS[preferred];
+      this.effectivePlaybackSound = preferred;
+      this.playbackFallback = undefined;
+      return true;
+    }
+    if (this.effectivePlaybackSound === "salamander-piano") return true;
+    try {
+      const activated = await this.sound.loadSampler(SALAMANDER_PIANO_SAMPLES);
+      if (activated && preferred === this.preferredPlaybackSound) {
+        this.effectivePlaybackSound = "salamander-piano";
+        this.instrument = PLAYBACK_SOUND_LABELS["salamander-piano"];
+        this.playbackFallback = undefined;
+      }
+    } catch {
+      if (preferred === this.preferredPlaybackSound) {
+        this.sound.setPlaybackSound("warm-synth");
+        this.effectivePlaybackSound = "warm-synth";
+        this.instrument = PLAYBACK_SOUND_LABELS["warm-synth"];
+        this.playbackFallback = "Sampled Piano could not load. Using Warm Synth for this session.";
+      }
+    }
+    return true;
+  }
+
+  /** Ensure the active instrument respects pinned/allowed context. */
+  #reconcileInstrument(ctx: PracticeContext): InstrumentId {
+    if (ctx.pinnedInstrument) return ctx.pinnedInstrument;
+    const current = this.activeInstrument;
+    if (ctx.allowedInstruments) {
+      if (ctx.allowedInstruments.includes(current)) return current;
+      return ctx.allowedInstruments[0] ?? current;
+    }
+    return current;
+  }
+
+  async #beginPerformance(pending: PendingPerformance): Promise<void> {
+    try {
+      if (!(await this.enableAudio())) {
+        if (this.#isCurrentPerformance(pending)) {
+          this.practicePhase = "idle";
+          this.#settlePerformance(pending, { status: "failed", message: this.audioMessage });
+        }
+        return;
+      }
+      if (!this.#isCurrentPerformance(pending)) return;
+
+      const transport = await this.#ensureTransport();
+      if (!transport || !this.#isCurrentPerformance(pending)) return;
+
+      if (transport.state.running) transport.stop();
+      this.metronomeRunning = false;
+      this.#configureTransport(transport);
+
+      if (this.countInBars === 0 && !this.metronomeEnabled) {
+        this.practicePhase = "running";
+        this.#settlePerformance(pending, {
+          status: "started",
+          downbeat: this.#monotonicNowMs(),
+        });
+        return;
+      }
+
+      pending.unsubscribe = transport.subscribe((event) => {
+        if (event.kind !== "beat" || event.countingIn || event.beat !== 0) return;
+        if (!this.#isCurrentPerformance(pending)) return;
+
+        pending.unsubscribe?.();
+        pending.unsubscribe = undefined;
+        this.practicePhase = "running";
+        this.#settlePerformance(pending, {
+          status: "started",
+          downbeat: event.atMonotonicMs,
+        });
+        if (!this.metronomeEnabled) this.#stopTransport();
+      });
+      this.practicePhase = this.countInBars > 0 ? "count-in" : "running";
+      transport.start();
+      this.metronomeRunning = true;
+    } catch (error) {
+      if (!this.#isCurrentPerformance(pending)) return;
+      this.practicePhase = "idle";
+      this.#settlePerformance(pending, {
+        status: "failed",
+        message: error instanceof Error ? error.message : "Practice clock could not start.",
+      });
+      this.#stopTransport();
+    }
+  }
+
+  #isCurrentPerformance(pending: PendingPerformance): boolean {
+    return (
+      !pending.settled &&
+      pending.generation === this.#performanceGeneration &&
+      pending.owner === this.#contextOwner
+    );
+  }
+
+  #settlePerformance(pending: PendingPerformance, result: BeginPerformanceResult): void {
+    if (pending.settled) return;
+    pending.unsubscribe?.();
+    pending.unsubscribe = undefined;
+    pending.settled = true;
+    if (this.#pendingPerformance === pending) {
+      this.#pendingPerformance = undefined;
+      this.performancePending = false;
+    }
+    if (this.#performanceFlight === pending.promise) this.#performanceFlight = undefined;
+    pending.resolve(result);
+  }
+
+  #configureTransport(transport: TransportEngine, countInBars = this.countInBars): void {
+    const meter = this.#practiceContext?.meter ?? { numerator: 4, denominator: 4 as const };
+    transport.setTimeSignature(meter.numerator, meter.denominator);
+    transport.setQuantizationGrid(`${meter.denominator}n` as QuantizationGrid);
+    transport.setBpm(this.transportBpm);
+    transport.setCountInBars(countInBars);
+  }
+
+  #stopTransport(): void {
     if (this.#transport?.state.running) this.#transport.stop();
     this.metronomeRunning = false;
     this.activeBeat = -1;
   }
 
-  async #ensureTransport(): Promise<TransportEngine> {
+  async #ensureTransport(): Promise<TransportEngine | undefined> {
     if (this.#transport) return this.#transport;
-    this.#transport = await this.#createTransport({
+    if (this.#disposed) return Promise.resolve(undefined);
+    if (this.#transportFlight) return this.#transportFlight;
+
+    const generation = this.#transportGeneration;
+    const flight = this.#createTransport({
       bpm: this.transportBpm,
       countInBars: this.countInBars,
-      onMetronomeClick: (atSeconds, accented) => this.sound.playMetronomeClick(atSeconds, accented),
+      onMetronomeClick: (event: TransportEvent) => {
+        if (
+          event.countingIn ||
+          (this.metronomeEnabled && (this.#practiceContext?.shouldPlayMetronome?.(event) ?? true))
+        ) {
+          this.sound.playMetronomeClick(event.atSeconds, event.accented);
+        }
+      },
+    }).then((transport) => {
+      if (this.#disposed || generation !== this.#transportGeneration) {
+        transport.stop();
+        return undefined;
+      }
+      this.#transport = transport;
+      this.#unsubscribeTransport = transport.subscribe((event) => {
+        if (event.kind === "beat") this.activeBeat = event.beat;
+      });
+      return transport;
     });
-    this.#unsubscribeTransport = this.#transport.subscribe((event) => {
-      if (event.kind === "beat") this.activeBeat = event.beat;
-    });
-    return this.#transport;
+    this.#transportFlight = flight;
+    const clear = () => {
+      if (this.#transportFlight === flight) this.#transportFlight = undefined;
+    };
+    void flight.then(clear, clear);
+    return flight;
   }
 
   dispose(): void {
-    this.#clearPlaybackTimer();
+    this.#disposed = true;
+    this.#transportGeneration += 1;
+    this.endPerformance();
     this.#unsubscribeMidi();
     this.#unsubscribeRouterState();
     this.#unsubscribeTransport?.();
-    if (this.#transport?.state.running) this.#transport.stop();
     void this.midi.disable();
     this.sound.dispose();
   }

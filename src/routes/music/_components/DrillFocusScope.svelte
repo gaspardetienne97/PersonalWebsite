@@ -3,7 +3,7 @@
 
   // Marks a drill run as the screen's focus. While `active`, the music layout
   // hides the sidebar/topbar and the site header/footer so the stage owns the
-  // viewport (the transport bar stays — drills use it mid-run). Renders
+  // viewport (the floating practice controls stay — drills use them mid-run). Renders
   // nothing; the flag clears automatically when the run ends or the page
   // unmounts mid-run.
   let {

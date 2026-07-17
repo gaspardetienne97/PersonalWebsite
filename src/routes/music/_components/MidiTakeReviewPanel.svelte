@@ -1,6 +1,7 @@
 <script lang="ts">
   import Download from "lucide-svelte/icons/download";
   import Music2 from "lucide-svelte/icons/music-2";
+  import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
   import RotateCcw from "lucide-svelte/icons/rotate-ccw";
   import Trash2 from "lucide-svelte/icons/trash-2";
@@ -16,8 +17,10 @@
     title = "MIDI takes",
     description = "Review note density, range, and duration from MIDI or on-screen takes.",
     emptyLabel = "Recorded MIDI takes will appear here.",
+    playingTakeId,
     onSelectTake,
     onPlayTake,
+    onPauseTake,
     onDownloadTake,
     onDeleteTake,
     onPracticeTake,
@@ -28,8 +31,10 @@
     title?: string;
     description?: string;
     emptyLabel?: string;
+    playingTakeId?: string;
     onSelectTake?: (take: Take) => void;
     onPlayTake?: (take: Take) => void | Promise<void>;
+    onPauseTake?: (take: Take) => void | Promise<void>;
     onDownloadTake?: (take: Take) => void | Promise<void>;
     onDeleteTake?: (take: Take) => void | Promise<void>;
     onPracticeTake?: (take: Take) => void | Promise<void>;
@@ -56,7 +61,7 @@
   }
 </script>
 
-<Card.Root class="overflow-hidden">
+<Card.Root class="min-w-0 overflow-hidden">
   <Card.Header>
     <div class="flex items-start justify-between gap-4">
       <div>
@@ -137,9 +142,24 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <Button type="button" size="sm" disabled={!selected} onclick={() => selected && void onPlayTake?.(selected)}>
-          <Play class="size-4" aria-hidden="true" />
-          Play take
+        <Button
+          type="button"
+          size="sm"
+          disabled={!selected}
+          aria-label={selected
+            ? `${playingTakeId === selected.id ? "Pause" : "Play"} ${selected.name}`
+            : "Play MIDI take"}
+          onclick={() =>
+            selected &&
+            void (playingTakeId === selected.id ? onPauseTake?.(selected) : onPlayTake?.(selected))}
+        >
+          {#if selected && playingTakeId === selected.id}
+            <Pause class="size-4" aria-hidden="true" />
+            Pause take
+          {:else}
+            <Play class="size-4" aria-hidden="true" />
+            Play take
+          {/if}
         </Button>
         <Button
           type="button"
