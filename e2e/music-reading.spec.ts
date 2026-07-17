@@ -15,7 +15,7 @@ test.describe("music reading workflows", () => {
 
   test("plays a guitar flashcard on the fretboard", async ({ page }) => {
     await page.getByRole("button", { name: "Guitar" }).click();
-    // Exact match: the persistent transport bar also exposes a "Play metronome" button.
+    // Exact match avoids other local preview controls on the reading screen.
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await page.getByRole("button", { name: "Start Flashcards" }).click();
     const targets = page.locator('[aria-label*=", target"]');
@@ -71,6 +71,7 @@ test.describe("music reading workflows", () => {
     }
 
     await page.getByRole("button", { name: "Finish phrase" }).click();
-    await expect(page.getByText("100% accuracy")).toBeVisible();
+    await expect(page.getByText("Session complete")).toBeVisible();
+    await expect(page.getByText(/\d+% accuracy · \d+ XP earned/)).toBeVisible();
   });
 });

@@ -11,7 +11,7 @@ test.describe("music import & play-along", () => {
   // (named `import { Midi }` is not resolvable under server ESM). The page must
   // render server-side.
   test("renders the import screen without a server error", async ({ page }) => {
-    const response = await page.goto("/music/import");
+    const response = await page.goto("/music/library?tab=import");
     expect(response?.status()).toBe(200);
 
     await expect(page.getByRole("heading", { name: "Import & Play-Along" })).toBeVisible();
@@ -27,7 +27,7 @@ test.describe("music import & play-along", () => {
       track.addNote({ midi: note, time: index * 0.5, duration: 0.5 }),
     );
 
-    await page.goto("/music/import");
+    await page.goto("/music/library?tab=import");
     await page.setInputFiles('input[type="file"]', {
       name: "autumn-test.mid",
       mimeType: "audio/midi",
@@ -55,10 +55,10 @@ test.describe("music import & play-along", () => {
     await expect(page.getByRole("heading", { name: "Practice complete" })).toBeVisible();
 
     await page.getByRole("button", { name: "Performance" }).click();
-    await page.getByLabel("Practice BPM").fill("240");
-    await page
-      .locator('fieldset [role="group"][aria-label="Count in"] > button', { hasText: "Off" })
-      .click();
+    await page.locator('[data-practice-control="bpm"]').click();
+    await page.getByLabel("Tempo in beats per minute").fill("220");
+    await page.locator('[data-practice-control="count-in"]').click();
+    await page.getByRole("button", { name: "Off", exact: true }).click();
     await page
       .locator('fieldset [role="group"][aria-label="Takes"] > button', { hasText: "2 takes" })
       .click();
@@ -75,7 +75,7 @@ test.describe("music import & play-along", () => {
   });
 
   test("imports MusicXML and renders it with OSMD in Song Studio", async ({ page }) => {
-    await page.goto("/music/import");
+    await page.goto("/music/library?tab=import");
     await page.setInputFiles('input[type="file"]', {
       name: "xml-study.musicxml",
       mimeType: "application/vnd.recordare.musicxml+xml",
@@ -114,7 +114,7 @@ test.describe("music import & play-along", () => {
     );
     archive.file("scores/study.musicxml", MUSIC_XML);
 
-    await page.goto("/music/import");
+    await page.goto("/music/library?tab=import");
     await page.setInputFiles('input[type="file"]', {
       name: "compressed-study.mxl",
       mimeType: "application/vnd.recordare.musicxml",
@@ -131,7 +131,7 @@ test.describe("music import & play-along", () => {
   });
 
   test("selects one MusicXML part for preview and practice", async ({ page }) => {
-    await page.goto("/music/import");
+    await page.goto("/music/library?tab=import");
     await page.setInputFiles('input[type="file"]', {
       name: "two-parts.musicxml",
       mimeType: "application/vnd.recordare.musicxml+xml",

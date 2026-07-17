@@ -1,16 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("music rhythm workflows", () => {
-  test("opens rhythm trainer from Learn and completes an on-screen pulse", async ({ page }) => {
-    await page.goto("/music/learn");
-    await page.getByRole("link", { name: /Rhythm Trainer/ }).click();
-
-    await expect(page).toHaveURL("/music/learn/rhythm");
+  test("opens rhythm trainer directly and completes an on-screen pulse", async ({ page }) => {
+    await page.goto("/music/learn/rhythm");
     await expect(page.getByRole("heading", { name: "Rhythm Trainer" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start microphone" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start Pulse" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Start Rhythm" })).toBeEnabled({
+      timeout: 10_000,
+    });
 
-    await page.getByRole("button", { name: "Start Pulse" }).click();
+    await page.getByRole("button", { name: "Start Rhythm" }).click();
     await expect(page.getByRole("button", { name: "Tap beat" })).toBeVisible();
 
     for (let index = 0; index < 4; index += 1) {

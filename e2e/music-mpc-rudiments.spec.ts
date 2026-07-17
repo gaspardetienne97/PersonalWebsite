@@ -5,11 +5,12 @@ test.describe("music MPC rudiment workflows", () => {
     await page.goto("/music/play");
     await page.locator('section[aria-label="Play tools"] a[href="/music/play/mpc"]').click();
 
-    await expect(page).toHaveURL("/music/play/mpc");
+    await expect(page).toHaveURL(/\/music\/play\/mpc(?:\?|$)/);
     await expect(page.getByRole("heading", { name: "MPC Rudiments" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start rudiment" })).toBeEnabled();
 
     await page.getByRole("button", { name: "Start rudiment" }).click();
+    await expect(page.getByRole("button", { name: "Cancel rudiment" })).toBeVisible();
     const pads = [36, 38, 36, 38, 36, 38, 36, 38];
     for (const [index, midi] of pads.entries()) {
       if (index > 0) await page.waitForTimeout(375);
@@ -17,7 +18,7 @@ test.describe("music MPC rudiment workflows", () => {
     }
 
     await expect(page.getByText("Rudiment complete")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Repeat rudiment" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Repeat rudiment" }).first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await page.waitForTimeout(500);
