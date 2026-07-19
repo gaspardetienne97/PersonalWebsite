@@ -22,6 +22,22 @@ import type { Component } from "svelte";
 
 export type DrillSkill = "Ear" | "Reading" | "Rhythm" | "Harmony" | "Technique" | "Play";
 
+// Card cover-band hue keys — one per /music theme token family registered in
+// app.css (skill-* and instr-*). Typed so a typo at a call site is a check
+// error instead of a silently blank gradient band.
+export type Hue =
+  | "ear"
+  | "rhythm"
+  | "harmony"
+  | "reading"
+  | "technique"
+  | "piano"
+  | "guitar"
+  | "ukulele"
+  | "aerophone"
+  | "mpc"
+  | "voice";
+
 export const DRILL_SKILLS: DrillSkill[] = [
   "Ear",
   "Reading",

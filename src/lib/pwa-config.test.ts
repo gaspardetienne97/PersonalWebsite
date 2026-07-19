@@ -25,5 +25,6 @@ describe("PWA configuration", () => {
     );
     expect(pwaOptions?.includeAssets).toContain("audio/music/piano/*.mp3");
     expect(pwaOptions?.workbox?.globIgnores).toContain("client/audio/**/*");
+    expect(pwaOptions?.workbox?.globIgnores).toContain("client/images/music/covers/**/*");
   });
 });

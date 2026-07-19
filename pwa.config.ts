@@ -35,7 +35,12 @@ export const pwaOptions = {
   workbox: {
     navigateFallback: undefined,
     cleanupOutdatedCaches: true,
-    globIgnores: ["client/_app/immutable/assets/web back*.svg", "client/audio/**/*"],
+    globIgnores: [
+      "client/_app/immutable/assets/web back*.svg",
+      "client/audio/**/*",
+      // AI cover art is served at runtime, not precached (mirrors the audio ignore).
+      "client/images/music/covers/**/*",
+    ],
     // The narrator's neural-TTS runtime (Kokoro/transformers, /pdf, opt-in) is a
     // single lazy ~2.2 MB chunk. It's consolidated via `advancedChunks` in
     // vite.config; raise the precache ceiling so the SW build doesn't fail on it.
