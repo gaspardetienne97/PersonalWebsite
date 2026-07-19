@@ -57,6 +57,23 @@ describe("FloatingPracticeControls", () => {
     expect(onToggleMetronome).toHaveBeenCalledOnce();
   });
 
+  test("glows the metronome control only while the transport is live", async () => {
+    const view = render(FloatingPracticeControls, defaults);
+    const metronome = () =>
+      document.querySelector<HTMLButtonElement>('[data-practice-control="metronome"]');
+
+    expect(metronome()?.classList.contains("shadow-glow")).toBe(false);
+
+    await view.rerender({ ...defaults, metronomeRunning: true });
+    expect(metronome()?.classList.contains("shadow-glow")).toBe(true);
+
+    await view.rerender({ ...defaults, phase: "count-in", metronomeRunning: false });
+    expect(metronome()?.classList.contains("shadow-glow")).toBe(true);
+
+    await view.rerender({ ...defaults, phase: "idle", metronomeRunning: false });
+    expect(metronome()?.classList.contains("shadow-glow")).toBe(false);
+  });
+
   test("closes an open BPM popover and returns focus when a run locks controls", async () => {
     const view = render(FloatingPracticeControls, defaults);
     const bpm = document.querySelector<HTMLButtonElement>('[data-practice-control="bpm"]');

@@ -57,6 +57,9 @@
 
   const controlsLocked = $derived(performancePending || phase !== "idle");
   const metronomePressed = $derived(phase === "idle" ? metronomeRunning : metronomeEnabled);
+  // Glow marks a live transport only (running/count-in phase, or the metronome
+  // ticking while idle) — never at rest.
+  const transportLive = $derived(phase !== "idle" || metronomeRunning);
   const instrumentLocked = $derived(controlsLocked || instrumentPinned);
   const countInLabel = $derived(
     countInBars === 0 ? "Off" : `${countInBars} ${countInBars === 1 ? "bar" : "bars"}`,
@@ -131,7 +134,7 @@
     aria-label={metronomePressed ? "Turn metronome off" : "Turn metronome on"}
     aria-pressed={metronomePressed}
     onclick={onToggleMetronome}
-    class="h-9 shrink-0 rounded-full px-2 sm:px-3"
+    class="h-9 shrink-0 rounded-full px-2 sm:px-3 {transportLive ? 'shadow-glow' : ''}"
   >
     <MetronomeIcon class="size-4" />
     <span class="hidden sm:inline">Metronome</span>

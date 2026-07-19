@@ -65,7 +65,12 @@
   {/if}
 </svelte:head>
 
-<div class="flex h-full bg-background text-foreground" data-music-shell>
+<div
+  class="flex h-full bg-background text-foreground"
+  data-music-shell
+  data-app="music"
+  data-instr={runtime.activeInstrument}
+>
   {#if !runtime.drillFocus}
     <MusicNavigation {currentPath} />
   {/if}

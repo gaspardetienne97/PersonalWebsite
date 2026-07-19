@@ -67,6 +67,16 @@
   --instr-mpc: oklch(0.63 0.22 12);
   --instr-voice: oklch(0.7 0.14 162);
   --instr: var(--instr-piano);
+  /* Skill-area identity hues — parallel to --instr-*: icons/tags/rings/card
+     tints, never data or state. Harmony sits at magenta, deliberately shifted
+     off the practice-accent/piano/aerophone violets. Mid-lightness so they read
+     as accents/fills in both themes (like --instr-*); consumers pick AA-safe
+     on-surface pairings when text sits on them. */
+  --skill-ear: oklch(0.7 0.16 150);
+  --skill-rhythm: oklch(0.66 0.2 12);
+  --skill-harmony: oklch(0.62 0.25 330);
+  --skill-reading: oklch(0.62 0.17 250);
+  --skill-technique: oklch(0.75 0.16 75);
 }
 
 .dark {
@@ -177,6 +187,14 @@
   --color-instr-aerophone: var(--instr-aerophone);
   --color-instr-mpc: var(--instr-mpc);
   --color-instr-voice: var(--instr-voice);
+  --color-skill-ear: var(--skill-ear);
+  --color-skill-rhythm: var(--skill-rhythm);
+  --color-skill-harmony: var(--skill-harmony);
+  --color-skill-reading: var(--skill-reading);
+  --color-skill-technique: var(--skill-technique);
+  /* Glow utility (shadow-glow). The runtime value (--shadow-glow-value) is set
+     only inside the /music scope, so shadow-glow is inert elsewhere. */
+  --shadow-glow: var(--shadow-glow-value);
 }
 
 /* Per-instrument accent override: set data-instr on a PracticeStage subtree to retint --instr. */
@@ -197,6 +215,56 @@
 }
 [data-instr="voice"] {
   --instr: var(--instr-voice);
+}
+
+/* /music theme identities (Studio Light + Neon Arcade). Scope = the music tree
+   (data-app="music" on the layout root) plus body-mounted bits-ui/sonner portals
+   (popovers, dialogs, selects, tooltips, toasts), which mount as leaf body
+   children. The second arm excludes any body child that *contains* the site .app
+   chrome (the SvelteKit wrapper `body > div > .app`, not `body > .app`), so the
+   global Header/Footer keep site colors (user decision) while portals — which
+   never contain .app — still retint. Both arms fire only while the music shell is
+   mounted, so / and /pdf are untouched. */
+[data-app="music"],
+body:has([data-app="music"]) > :not(:has(.app)) {
+  /* Studio Light: current light palette with a violet accent, glow, ambient. */
+  --primary: oklch(0.52 0.2 277);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.52 0.2 277);
+  --shadow-glow-value: 0 0 24px oklch(0.62 0.2 290 / 35%);
+  --ambient: radial-gradient(
+    80% 50% at 70% -10%,
+    color-mix(in oklch, var(--instr) 8%, transparent),
+    transparent
+  );
+}
+.dark [data-app="music"],
+.dark body:has([data-app="music"]) > :not(:has(.app)) {
+  /* Neon Arcade: near-black blue canvas, elevated bordered cards, violet primary
+     tuned to AA (0.58L → 4.5:1 with white text), brighter decorative glow. */
+  --background: oklch(0.16 0.03 265);
+  --card: oklch(0.2 0.035 265);
+  --popover: oklch(0.2 0.035 265);
+  --border: oklch(1 0 0 / 8%);
+  --primary: oklch(0.58 0.2 290);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.58 0.2 290);
+  --stage: oklch(0.17 0.025 265);
+  --stage-2: oklch(0.22 0.03 265);
+  --shadow-glow-value: 0 0 24px oklch(0.72 0.2 290 / 45%);
+  --ambient: radial-gradient(
+    80% 50% at 70% -10%,
+    color-mix(in oklch, var(--instr) 16%, transparent),
+    transparent
+  );
+}
+
+/* Ambient tint lives on the music canvas only (the layout root carries
+   data-app); portals inherit the vars above but not this background-image, so
+   only the page gets the tint. Unsupported browsers render no tint (decoration
+   only). */
+[data-app="music"] {
+  background-image: var(--ambient);
 }
 
 @layer base {

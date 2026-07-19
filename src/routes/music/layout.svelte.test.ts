@@ -52,6 +52,17 @@ describe("/music/+layout.svelte", () => {
     expect(document.querySelector("[data-music-shell]")).toBeNull();
   });
 
+  test("marks the shell root with the music scope and the active instrument", () => {
+    const children = createRawSnippet(() => ({ render: () => "<div>Child route</div>" }));
+    const view = render(Layout, { children });
+
+    const shell = document.querySelector("[data-music-shell]");
+    expect(shell?.getAttribute("data-app")).toBe("music");
+    expect(shell?.getAttribute("data-instr")).toBe("piano");
+
+    view.unmount();
+  });
+
   test("forwards external same-component and popstate BPM activations", () => {
     navigationHooks.after.length = 0;
     const activate = vi
