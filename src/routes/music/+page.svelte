@@ -9,7 +9,40 @@
   import PracticeScreenHeader from "./_components/PracticeScreenHeader.svelte";
   import SegmentedControl from "./_components/SegmentedControl.svelte";
   import TodayPlan from "./_components/TodayPlan.svelte";
-  import { DRILLS, DRILL_SKILLS, PATHS } from "./_components/musicCatalog";
+  import { DRILLS, DRILL_SKILLS, PATHS, type DrillSkill, type Hue } from "./_components/musicCatalog";
+
+  // Card cover-band hue per skill (Play has no skill hue → piano identity).
+  const SKILL_HUE: Record<DrillSkill, Hue> = {
+    Ear: "ear",
+    Reading: "reading",
+    Rhythm: "rhythm",
+    Harmony: "harmony",
+    Technique: "technique",
+    Play: "piano",
+  };
+
+  // Cover art per drill href (static/images/music/covers, runtime-served, not
+  // precached). Cards without an entry keep the hue-gradient fallback band.
+  const COVER_SLUG: Record<string, string> = {
+    "/music/learn/ear": "ear",
+    "/music/learn/reading": "reading",
+    "/music/learn/rhythm": "rhythm",
+    "/music/play/scales": "scales",
+    "/music/play/spider": "spider",
+    "/music/play/two-hand": "two-hand",
+    "/music/play/mpc": "mpc",
+    "/music/learn/aerophone": "aerophone",
+    "/music/learn/aerophone?mode=articulation": "articulation",
+    "/music/play/chord-perfect": "chord-perfect",
+    "/music/play/chord-progression": "chord-progression",
+    "/music/play/voicings": "voicings",
+    "/music/play/licks": "licks",
+    "/music/play/chord-scales": "chord-scales",
+    "/music/play": "play",
+    "/music/jam": "jam",
+  };
+  const coverSrc = (href: string) =>
+    COVER_SLUG[href] ? `/images/music/covers/${COVER_SLUG[href]}.webp` : undefined;
 
   // String-typed so they bind to SegmentedControl's `value: string`.
   let tab = $state("today");
@@ -106,6 +139,8 @@
             meta={drill.meta}
             action={drill.action}
             icon={drill.icon}
+            hue={SKILL_HUE[drill.skill]}
+            coverSrc={coverSrc(drill.href)}
           />
         {/each}
       </section>
@@ -121,6 +156,7 @@
           meta={path.meta}
           action={path.action}
           icon={path.icon}
+          hue="reading"
         />
       {/each}
     </section>
