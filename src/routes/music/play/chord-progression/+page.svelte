@@ -7,6 +7,8 @@
     expectedChordsFromProgression,
     type ChordFollowerRun,
     type ChordFollowerState,
+    type ChordFollowerSummary,
+    type ChordGrade,
     type ChordObservation,
   } from "@repo/music-core/engines/chord-follower";
   import { toPitchClasses } from "@repo/music-core/engines/chord-id";
@@ -28,7 +30,9 @@
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
@@ -89,6 +93,8 @@
   let followerState = $state<ChordFollowerState | undefined>();
   let detected = $state<number[]>([]);
   let running = $state(false);
+  let startPending = $state(false);
+  let sourceTeardownPending = $state(false);
   let status = $state("Pick a progression, then start strumming on the beat.");
   let follower: ChordFollowerRun | undefined;
   let unsubscribeAnalysis: (() => void) | undefined;
@@ -125,8 +131,41 @@
   let onsetQueue: Promise<void> = Promise.resolve();
   let practiceContextReady: Promise<void> = Promise.resolve();
 
+  // The settled run summary (finish() output). It is set only when a run ends
+  // via Stop; `resultsDismissed` (set by "Change setup") lets the route leave
+  // the summary phase without starting a new run. Both reset on every start.
+  let summary = $state<ChordFollowerSummary | undefined>();
+  let finishError = $state<string | undefined>();
+  let resultsDismissed = $state(false);
+  // Route-computed shell phase. The shell renders exactly this phase and never
+  // transitions; setup is hidden during the run and while showing results.
+  const phase = $derived<"summary" | "stage" | "setup">(
+    summary && !resultsDismissed ? "summary" : running ? "stage" : "setup",
+  );
+  // Persistent live region announces phase swaps, which remount the visible text.
+  const liveAnnouncement = $derived(
+    phase === "summary" && summary ? (finishError ?? status) : status,
+  );
+
+  // Branch swaps drop focus to <body>; move it to the freshly mounted stage or
+  // results heading on each transition, but never on initial mount.
+  let activeHeading = $state<HTMLElement | null>(null);
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let setupHeading = $state<HTMLElement | null>(null);
+  let previousPhase: "summary" | "stage" | "setup" | undefined;
+
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const current = phase;
+    const previous = previousPhase;
+    previousPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "stage") activeHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupHeading?.focus({ preventScroll: false });
   });
 
   $effect(() => {
@@ -171,38 +210,54 @@
     transposeSemitones = String(config.transpose);
   }
 
-  function chordGrade(index: number) {
-    return followerState?.grades[index];
-  }
-
-  function chordBadge(index: number): string {
-    const grade = chordGrade(index);
+  function gradeBadge(grade: ChordGrade | undefined): string {
     if (!grade) return "pending";
     if (!grade.matched) return "missed";
     return grade.timingBand === "in-time" ? "matched in-time" : "matched off-time";
   }
 
-  function badgeTone(index: number): "default" | "good" | "accent" {
-    const badge = chordBadge(index);
+  function gradeTone(grade: ChordGrade | undefined): "default" | "good" | "accent" {
+    const badge = gradeBadge(grade);
     if (badge === "matched in-time") return "good";
     if (badge === "matched off-time") return "accent";
     return "default";
   }
 
+  function chordBadge(index: number): string {
+    return gradeBadge(followerState?.grades[index]);
+  }
+
+  function badgeTone(index: number): "default" | "good" | "accent" {
+    return gradeTone(followerState?.grades[index]);
+  }
+
+  // Leave the summary phase for setup without starting a run. Mirrors scales'
+  // route-owned Change setup; the summary is retained but hidden.
+  function changeSetup(): void {
+    resultsDismissed = true;
+    followerState = undefined;
+    detected = [];
+    status = "Setup ready — choose a progression, then start.";
+  }
+
   async function start(): Promise<void> {
-    if (running) return;
+    if (running || startPending || sourceTeardownPending) return;
     const capture = ++captureGeneration;
     follower = undefined;
     onsetQueue = Promise.resolve();
-    running = true;
+    startPending = true;
     captured = false;
-    status = "Listening — strum each chord on the beat.";
+    summary = undefined;
+    finishError = undefined;
+    resultsDismissed = false;
+    followerState = undefined;
+    detected = [];
+    status = "Requesting microphone access…";
     try {
       await tick();
       const generation = routeGeneration;
       await practiceContextReady;
       if (!captureIsCurrent(capture, generation)) {
-        running = false;
         return;
       }
       await audioSource.start();
@@ -238,6 +293,9 @@
       follower = nextFollower;
       followerState = nextFollower.state();
       unsubscribeAnalysis = audioSource.subscribeAnalysis(onAnalysis);
+      startPending = false;
+      running = true;
+      status = "Listening — strum each chord on the beat.";
     } catch (error) {
       if (capture === captureGeneration) {
         status = message(error, "The chord-progression drill could not be started.");
@@ -251,6 +309,7 @@
     captureGeneration += 1;
     runtime.endPerformance();
     running = false;
+    startPending = false;
     unsubscribeAnalysis?.();
     unsubscribeAnalysis = undefined;
     follower = undefined;
@@ -261,8 +320,8 @@
   async function stop(): Promise<void> {
     if (follower) await finish(follower, captureGeneration);
     else {
-      await resetCapture();
       status = "Drill stopped.";
+      await resetCapture();
     }
   }
 
@@ -316,28 +375,38 @@
 
   async function finish(activeFollower: ChordFollowerRun, generation: number): Promise<void> {
     if (!followerIsCurrent(activeFollower, generation) || captured) return;
-    const generationAtFinish = routeGeneration;
     captured = true;
     running = false;
+    startPending = false;
     runtime.endPerformance();
-    const summary = activeFollower.finish();
+    const finishSummary = activeFollower.finish();
+    // Set state in the same synchronous block as running=false so the phase
+    // flips straight from stage to summary with no setup flash.
+    summary = finishSummary;
+    finishError = undefined;
+    status = `Progression complete — ${finishSummary.correct}/${finishSummary.total} chords matched.`;
     unsubscribeAnalysis?.();
     unsubscribeAnalysis = undefined;
-    await audioSource.stop();
-    if (
-      !followerIsCurrent(activeFollower, generation) ||
-      generationAtFinish !== routeGeneration
-    )
-      return;
-    status = `Progression complete — ${summary.correct}/${summary.total} chords matched.`;
-    await runtime.recordPractice({
-      source: "drill",
-      instrument: "guitar",
-      tags: ["technique", "chord-changes"],
-      scoringEvents: [],
-      xpEarned: Math.round(summary.score * 20),
-      note: `Chord progression · ${summary.correct}/${summary.total} chords`,
-    });
+    sourceTeardownPending = true;
+    try {
+      const results = await Promise.allSettled([
+        audioSource.stop(),
+        runtime.recordPractice({
+          source: "drill",
+          instrument: "guitar",
+          tags: ["technique", "chord-changes"],
+          scoringEvents: [],
+          xpEarned: Math.round(finishSummary.score * 20),
+          note: `Chord progression · ${finishSummary.correct}/${finishSummary.total} chords`,
+        }),
+      ]);
+      const rejected = results.find((result) => result.status === "rejected");
+      if (rejected && phase === "summary") {
+        finishError = message(rejected.reason, "The completed run could not be finalized.");
+      }
+    } finally {
+      sourceTeardownPending = false;
+    }
   }
 
   function captureIsCurrent(capture: number, route: number): boolean {
@@ -403,69 +472,147 @@
     subtitle="Strum a known progression on the beat — the chord follower grades each change for correctness and timing."
   />
 
-  <section class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <div class="min-w-0 space-y-4">
-      <ProgressionChartStage progression={progression} currentIndex={currentIndex} tones={chartTones} />
+  <!-- Persistent live region: mounted outside the phase branches so transitions announce. -->
+  <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
-      <Card.Root class="min-w-0">
-        <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <Card.Description>Known progression</Card.Description>
-            <Card.Title>{progression.name}</Card.Title>
-            <Card.Description>{progression.key} · {progression.style}</Card.Description>
-          </div>
-        </Card.Header>
-
-        <Card.Content class="grid gap-6">
-          <fieldset disabled={running} class="grid gap-4 disabled:opacity-70">
-            <SegmentedControl
-              ariaLabel="Group"
-              options={groupOptions}
-              value={progressionGroup}
-              onChange={selectGroup}
-            />
-            <SegmentedControl
-              ariaLabel="Progression"
-              options={filteredProgressionOptions.length > 0 ? filteredProgressionOptions : progressionOptions}
-              value={progressionId}
-              onChange={selectProgression}
-            />
-            <SegmentedControl
-              ariaLabel="Transpose"
-              options={transposeOptions}
-              bind:value={transposeSemitones}
-            />
-            <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
-          </fieldset>
-
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <HudTile label="Chord" value={currentIndex} unit={`/${expected.length}`} />
-            <HudTile
-              label="Matched"
-              value={followerState?.grades.filter((grade) => grade.matched).length ?? 0}
-              unit={`/${expected.length}`}
-              tone="good"
-            />
-            <HudTile label="Tempo" value={bpm} unit="bpm" tone="accent" />
-          </div>
-
-          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-          {#if audioState.status === "denied" || audioState.status === "error"}
-            <p class="text-destructive">{audioState.message}</p>
-          {/if}
-        </Card.Content>
-
-        <Card.Footer class="flex-wrap gap-3">
-          {#if running}
-            <Button type="button" variant="outline" onclick={() => void stop()}>Stop</Button>
-          {:else}
-            <Button type="button" onclick={() => void start()}>Start</Button>
-          {/if}
-        </Card.Footer>
-      </Card.Root>
+  {#if startPending}
+    <div class="flex justify-end">
+      <Button type="button" variant="outline" onclick={() => void stop()}>Stop</Button>
     </div>
+  {/if}
 
-    <aside class="grid content-start gap-4">
+  {#snippet summaryPhase()}
+    <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
+      {#snippet heading()}
+        <Card.Description>Progression complete</Card.Description>
+        <Card.Title>{summary?.correct ?? 0} of {summary?.total ?? 0} chords matched</Card.Title>
+      {/snippet}
+      {#snippet children()}
+        <p class="text-sm text-muted-foreground">
+          Score: {Math.round((summary?.score ?? 0) * 100)}%
+        </p>
+        {#if finishError}
+          <p class="text-sm text-destructive">{finishError}</p>
+        {/if}
+        <div class="grid gap-2 text-sm">
+          {#each expected as chord, i (i)}
+            <div class="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+              <span class="font-semibold">{chord.symbol}</span>
+              <HudTile
+                label="Grade"
+                value={gradeBadge(summary?.grades[i])}
+                tone={gradeTone(summary?.grades[i])}
+                class="px-2 py-1"
+              />
+            </div>
+          {/each}
+        </div>
+      {/snippet}
+      {#snippet actions()}
+        <Button type="button" disabled={sourceTeardownPending} onclick={() => void start()}>Repeat</Button>
+      {/snippet}
+    </DrillSummaryCard>
+  {/snippet}
+
+  <PracticeDrillShell
+    {phase}
+    startPending={startPending || sourceTeardownPending}
+    summary={summaryPhase}
+  >
+    {#snippet setup()}
+      <section class="grid min-w-0 gap-6">
+        <ProgressionChartStage {progression} {currentIndex} tones={chartTones} />
+
+        <Card.Root class="min-w-0">
+          <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <Card.Description>Known progression</Card.Description>
+              <Card.Title
+                bind:ref={setupHeading}
+                tabindex="-1"
+                data-testid="chord-progression-setup-heading"
+              >
+                {progression.name}
+              </Card.Title>
+              <Card.Description>{progression.key} · {progression.style}</Card.Description>
+            </div>
+          </Card.Header>
+
+          <Card.Content class="grid gap-6">
+            <div class="grid gap-4">
+              <SegmentedControl
+                ariaLabel="Group"
+                options={groupOptions}
+                value={progressionGroup}
+                onChange={selectGroup}
+              />
+              <SegmentedControl
+                ariaLabel="Progression"
+                options={filteredProgressionOptions.length > 0 ? filteredProgressionOptions : progressionOptions}
+                value={progressionId}
+                onChange={selectProgression}
+              />
+              <SegmentedControl
+                ariaLabel="Transpose"
+                options={transposeOptions}
+                bind:value={transposeSemitones}
+              />
+              <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
+            </div>
+
+            <p class="text-sm text-muted-foreground">{status}</p>
+            {#if audioState.status === "denied" || audioState.status === "error"}
+              <p class="text-destructive">{audioState.message}</p>
+            {/if}
+          </Card.Content>
+
+          <Card.Footer class="flex-wrap gap-3">
+            <Button type="button" onclick={() => void start()}>Start</Button>
+          </Card.Footer>
+        </Card.Root>
+      </section>
+    {/snippet}
+
+    {#snippet stage()}
+      <div class="grid gap-4">
+        <div>
+          <p class="eyebrow">Now playing · {progression.name}</p>
+          <h2
+            class="text-2xl font-bold tracking-tight"
+            tabindex="-1"
+            bind:this={activeHeading}
+            data-testid="chord-progression-stage-heading"
+          >
+            {progression.name}
+          </h2>
+          <p class="text-sm text-muted-foreground">{progression.key} · {progression.style}</p>
+        </div>
+
+        <ProgressionChartStage {progression} {currentIndex} tones={chartTones} />
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <HudTile label="Chord" value={currentIndex} unit={`/${expected.length}`} />
+          <HudTile
+            label="Matched"
+            value={followerState?.grades.filter((grade) => grade.matched).length ?? 0}
+            unit={`/${expected.length}`}
+            tone="good"
+          />
+          <HudTile label="Tempo" value={bpm} unit="bpm" tone="accent" />
+        </div>
+
+        <p class="text-sm text-muted-foreground">{status}</p>
+        {#if audioState.status === "denied" || audioState.status === "error"}
+          <p class="text-destructive">{audioState.message}</p>
+        {/if}
+      </div>
+    {/snippet}
+
+    {#snippet stageAction()}
+      <Button type="button" variant="outline" onclick={() => void stop()}>Stop</Button>
+    {/snippet}
+
+    {#snippet rail()}
       <Card.Root>
         <Card.Header>
           <Card.Description>Progression grades</Card.Description>
@@ -490,6 +637,6 @@
           {detectedLabels}
         </Card.Content>
       </Card.Root>
-    </aside>
-  </section>
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>

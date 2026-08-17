@@ -55,6 +55,48 @@ describe("/music/learn/ear/+page.svelte", () => {
     expect(beginPerformance).not.toHaveBeenCalled();
   });
 
+  test("keeps setup locked during preflight, then renders only the active stage", async () => {
+    const runtime = new MusicRuntime();
+    let resolveVoice!: (enabled: boolean) => void;
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockReturnValue(
+      new Promise((resolve) => (resolveVoice = resolve)),
+    );
+    render(Page, { runtime });
+
+    const mixed = button("Start Mixed Session");
+    await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
+    mixed?.click();
+
+    await vi.waitFor(() => expect(mixed?.closest("fieldset")?.disabled).toBe(true));
+    expect(button("End session")).toBeUndefined();
+    expect(document.querySelector('[data-testid="ear-phase-announcement"]')?.textContent).toContain(
+      "Starting",
+    );
+
+    resolveVoice(true);
+    await vi.waitFor(() => expect(button("End session")).not.toBeUndefined());
+    expect(button("Start Mixed Session")).toBeUndefined();
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Ear training session");
+  });
+
+  test("returns from the active stage to setup through the standard end action", async () => {
+    render(Page);
+
+    const mixed = button("Start Mixed Session");
+    await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
+    mixed?.click();
+    await vi.waitFor(() => expect(button("End session")).not.toBeUndefined());
+
+    button("End session")?.click();
+
+    await vi.waitFor(() => expect(button("Start Mixed Session")).not.toBeUndefined());
+    expect(button("End session")).toBeUndefined();
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Ear training setup");
+    expect(document.querySelector('[data-testid="ear-phase-announcement"]')?.textContent).toContain(
+      "Session ended",
+    );
+  });
+
   test("supports Test and Play-back modes without immediate correctness", async () => {
     render(Page);
     const testMode = [...document.querySelectorAll("button")].find(
@@ -864,6 +906,17 @@ describe("/music/learn/ear/+page.svelte", () => {
     expect(document.body.textContent).toContain("Recent results");
     expect(document.body.textContent).toContain("Retry mistakes");
     expect(document.body.textContent).toContain("Repeat session");
+    expect(document.body.textContent).toContain("Change setup");
+    expect(document.activeElement?.textContent).toContain("Session complete");
+    expect(document.querySelector('[data-testid="ear-phase-announcement"]')?.textContent).toContain(
+      "Session complete",
+    );
+
+    button("Change setup")?.click();
+
+    await vi.waitFor(() => expect(button("Start Mixed Session")).not.toBeUndefined());
+    expect(document.body.textContent).not.toContain("Recent results");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Ear training setup");
   });
 });
 

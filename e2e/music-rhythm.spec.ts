@@ -16,7 +16,7 @@ test.describe("music rhythm workflows", () => {
       await page.getByRole("button", { name: "Tap beat" }).click();
     }
 
-    await expect(page.getByText("Pulse complete")).toBeVisible();
+    await expect(page.getByText("Pulse complete", { exact: true })).toBeVisible();
     // The summary now surfaces timing via the meter + readout tiles.
     await expect(page.getByText("Signed offset")).toBeVisible();
   });

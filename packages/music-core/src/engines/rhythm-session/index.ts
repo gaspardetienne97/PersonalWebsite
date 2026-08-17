@@ -208,11 +208,12 @@ export class RhythmSession {
     await this.#completion;
   }
 
-  abandon(): void {
-    if (this.#disposed || this.#status === "summary") return;
+  abandon(): boolean {
+    if (this.#disposed || this.#status === "summary" || this.#finishing) return false;
     this.#status = "abandoned";
     this.#currentPrompt = undefined;
     this.#notify();
+    return true;
   }
 
   dispose(): void {

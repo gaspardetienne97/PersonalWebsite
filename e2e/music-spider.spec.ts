@@ -17,7 +17,7 @@ test.describe("music string spider", () => {
       await page.keyboard.press("Enter");
     }
 
-    await expect(page.getByText("Spider complete")).toBeVisible();
+    await expect(page.getByText("Spider complete", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Repeat spider" }).first()).toBeVisible();
   });
 

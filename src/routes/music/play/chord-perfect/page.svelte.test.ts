@@ -592,7 +592,146 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       { timeout: 5_000 },
     );
   });
+
+  test("hides setup configuration and moves Cancel into the stage during an active run", async () => {
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    // Setup configuration is reachable before the run.
+    expect(select("Chord")).not.toBeUndefined();
+    expect(button("Build shape")).not.toBeUndefined();
+    expect(button("Cancel drill")).toBeUndefined();
+
+    button("Start drill")?.click();
+
+    await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+    // The stage owns the page: setup config recedes, cancel lives in the stage.
+    expect(select("Chord")).toBeUndefined();
+    expect(button("Build shape")).toBeUndefined();
+    expect(button("Start drill")).toBeUndefined();
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-testid="chord-perfect-stage-heading"]'),
+    );
+
+    button("Cancel drill")?.click();
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-testid="chord-perfect-setup-heading"]'),
+    );
+  });
+
+  test("dismisses stale results while a deferred retry activation fails", async () => {
+    const runtime = new MusicRuntime();
+    runtime.audioMessage = "Preferred voice unavailable.";
+    render(Page, { runtime });
+    await completeBuildDrill();
+
+    let resolveVoice!: (enabled: boolean) => void;
+    const ensurePlaybackVoice = vi.mocked(runtime.ensurePlaybackVoice);
+    ensurePlaybackVoice.mockClear();
+    ensurePlaybackVoice.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+
+    button("Repeat chord")?.click();
+    await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(button("Starting...")?.disabled).toBe(true));
+    expect(document.body.textContent).not.toContain("Chord-perfect check");
+    expect(document.body.textContent).toContain("Starting chord-perfect drill.");
+    expect(button("Change setup")).toBeUndefined();
+
+    resolveVoice(false);
+    await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
+    expect(document.body.textContent).not.toContain("Chord-perfect check");
+    expect(button("Start drill")?.disabled).toBe(false);
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      runtime.audioMessage,
+    );
+  });
+
+  test("keeps Change setup authoritative when it races retry preflight", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await completeBuildDrill();
+
+    const beginPerformance = vi.mocked(runtime.beginPerformance);
+    beginPerformance.mockClear();
+    button("Repeat chord")?.click();
+    button("Change setup")?.click();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(button("Cancel drill")).toBeUndefined();
+    expect(button("Start drill")?.disabled).toBe(false);
+    expect(document.body.textContent).not.toContain("Chord-perfect check");
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Setup ready",
+    );
+  });
+
+  test("returns from the summary to setup via Change setup", async () => {
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    button("Start drill")?.click();
+    await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+
+    for (const [stringNumber, fret] of [
+      [5, 3],
+      [4, 2],
+      [3, 0],
+      [2, 1],
+      [1, 0],
+    ]) {
+      fretButton(stringNumber, fret)?.click();
+    }
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Chord-perfect check");
+      expect(button("Change setup")).not.toBeUndefined();
+    });
+    // The consolidated summary frame replaces the setup while it is shown.
+    expect(select("Chord")).toBeUndefined();
+    expect(fretButton(5, 3)).toBeUndefined();
+    expect(document.activeElement?.textContent).toContain("strings clean");
+    expect(document.querySelectorAll("p.sr-only[aria-live='polite']")).toHaveLength(1);
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Chord-perfect results ready",
+    );
+
+    button("Change setup")?.click();
+
+    await vi.waitFor(() => {
+      expect(select("Chord")).not.toBeUndefined();
+      expect(button("Start drill")).not.toBeUndefined();
+      expect(button("Repeat chord")).toBeUndefined();
+    });
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-testid="chord-perfect-setup-heading"]'),
+    );
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Setup ready",
+    );
+  });
 });
+
+async function completeBuildDrill(): Promise<void> {
+  await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+  button("Start drill")?.click();
+  await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+  for (const [stringNumber, fret] of [
+    [5, 3],
+    [4, 2],
+    [3, 0],
+    [2, 1],
+    [1, 0],
+  ]) {
+    fretButton(stringNumber, fret)?.click();
+  }
+  await vi.waitFor(() => expect(button("Repeat chord")).not.toBeUndefined());
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(

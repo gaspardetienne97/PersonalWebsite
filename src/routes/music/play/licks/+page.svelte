@@ -32,11 +32,15 @@
   import { Progress } from "@repo/ui/progress";
 
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -88,15 +92,35 @@
   const expectedMidi = $derived(phrase.map(([midi]) => midi));
   const phraseNotes = $derived(expectedMidi.map((midi) => midiToNote(midi, true)).join("  "));
 
-  let phase = $state<"idle" | "listening" | "graded">("idle");
+  // The drill's own state machine. Maps 1:1 onto the shell's phase anatomy:
+  // idle → setup, listening → stage, graded → summary.
+  let runPhase = $state<"idle" | "listening" | "graded">("idle");
+  const shellPhase = $derived<"setup" | "stage" | "summary">(
+    runPhase === "graded" ? "summary" : runPhase === "listening" ? "stage" : "setup",
+  );
   let played = $state<number[]>([]);
   let grade = $state<LickGrade | undefined>();
   let status = $state("Pick a lick, hear it, then play it back.");
+  // Announced by the persistent live region: branch swaps remount the visible
+  // status text, so screen readers would otherwise miss the transitions.
+  const liveAnnouncement = $derived(
+    runPhase === "graded" && grade
+      ? `Lick graded. ${grade.matched} of ${grade.total} notes, ${Math.round(grade.accuracy * 100)} percent.`
+      : status,
+  );
+  // Branch swaps destroy the focused element, dropping focus to <body>. Move it
+  // to the freshly mounted stage/results heading on each transition — but not on
+  // initial mount, so page load doesn't steal focus.
+  let stageHeading = $state<HTMLHeadingElement | null>(null);
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let setupHeading = $state<HTMLElement | null>(null);
+  let previousShellPhase: "setup" | "stage" | "summary" | undefined;
   let captured = false;
   let attemptStartedAt = unixMs(Date.now());
   let unsubscribe: (() => void) | undefined;
   let previewGeneration = 0;
-  let attemptPending = false;
+  // Reactive: drives the shell's setup lock (`startPending`) during preflight.
+  let attemptPending = $state(false);
   let attemptRequest = 0;
   let practiceContextRequest = 0;
   let practiceContextReady: Promise<boolean> = Promise.resolve(true);
@@ -104,6 +128,16 @@
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const current = shellPhase;
+    const previous = previousShellPhase;
+    previousShellPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "stage") stageHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupHeading?.focus({ preventScroll: false });
   });
 
   $effect(() => {
@@ -153,10 +187,18 @@
     runtime.endPerformance();
     unsubscribe?.();
     unsubscribe = undefined;
-    phase = "idle";
+    runPhase = "idle";
     played = [];
     grade = undefined;
     captured = false;
+  }
+
+  // Leave the graded summary for setup without starting a new run. Route-owned,
+  // mirroring the shell reference: the shell renders the phase but never
+  // transitions it.
+  function changeSetup(): void {
+    reset();
+    status = "Pick a lick, hear it, then play it back.";
   }
 
   function selectLick(next: number): void {
@@ -226,10 +268,10 @@
         return;
       }
       attemptStartedAt = unixMs(Date.now());
-      phase = "listening";
+      runPhase = "listening";
       status = "Play the lick…";
       unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
-        if (phase !== "listening" || event.type !== "noteOn") return;
+        if (runPhase !== "listening" || event.type !== "noteOn") return;
         if (runtime.audioEnabled) {
           runtime.sound.playNote(event.midiNote, 0.18, undefined, event.velocity);
         }
@@ -242,15 +284,17 @@
   }
 
   async function finish(): Promise<void> {
+    const request = attemptRequest;
     runtime.endPerformance();
     unsubscribe?.();
     unsubscribe = undefined;
     const currentLick = lick;
+    const completedInstrument = instrument;
     const expected = [...expectedMidi];
     const response = [...played];
     const result = gradeLickSequence(expected, response);
     grade = result;
-    phase = "graded";
+    runPhase = "graded";
     if (!captured) {
       captured = true;
       const endedAt = unixMs(Date.now());
@@ -271,7 +315,7 @@
         startedAt: attemptStartedAt,
         endedAt,
         difficulty: LICK_DIFFICULTY,
-        instrument,
+        instrument: completedInstrument,
         params: {
           category,
           lickNumber: currentLick?.number ?? lickNumber,
@@ -279,11 +323,13 @@
         },
       });
       const xp = await ingestScoringEvents([capture.event]);
-      status = `${result.matched}/${result.total} notes · ${Math.round(result.accuracy * 100)}% · +${xp} XP`;
+      if (request === attemptRequest) {
+        status = `${result.matched}/${result.total} notes · ${Math.round(result.accuracy * 100)}% · +${xp} XP`;
+      }
       await runtime.recordPractice({
         id: sessionId,
         source: "drill",
-        instrument,
+        instrument: completedInstrument,
         tags: ["jazz", "licks"],
         scoringEvents: [capture.event],
         runs: [capture.run],
@@ -341,126 +387,179 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <DrillFocusScope active={phase === "listening"} {runtime} />
+  <DrillFocusScope active={runPhase === "listening"} {runtime} />
 
-  <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-    <div class="min-w-0 space-y-4">
-      <Card.Root>
-        <Card.Header class="gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <Card.Description>Drill</Card.Description>
-            <Card.Title>Lick #{lick?.number} · {lick?.progression.join(" ")}</Card.Title>
-          </div>
-          <SegmentedControl
-            size="sm"
-            ariaLabel="Lick category"
-            options={lickCategories}
-            value={category}
-            onChange={(value) => selectCategory(value as LickCategory)}
-          />
-        </Card.Header>
+  <!-- Persistent live region: mounted outside the branches so transitions announce. -->
+  <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
-        <Card.Content class="space-y-5">
-          <div class="flex flex-wrap gap-1.5" role="group" aria-label="Pick a lick">
-            {#each visibleLicks as entry (entry.number)}
-              <button
-                type="button"
-                aria-pressed={entry.number === lickNumber}
-                onclick={() => selectLick(entry.number)}
-                class="size-8 rounded-md border text-sm font-semibold tabular-nums transition-colors {entry.number ===
-                lickNumber
-                  ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
-                  : 'text-muted-foreground hover:bg-muted'}"
-              >
-                {entry.number}
-              </button>
-            {/each}
-          </div>
+  {#snippet summaryPhase()}
+    <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
+      {#snippet heading()}
+        <Card.Description>Lick #{lick?.number} · {lick?.progression.join(" ")}</Card.Description>
+        <Card.Title>
+          {grade?.matched ?? 0} / {grade?.total ?? 0} notes · {Math.round((grade?.accuracy ?? 0) * 100)}%
+        </Card.Title>
+      {/snippet}
+      {#snippet children()}
+        <p class="text-sm text-muted-foreground">
+          Play the reference again and match the line note-for-note.
+        </p>
+        <div class="space-y-2 rounded-lg border bg-muted/30 p-4">
+          <p class="eyebrow">The line</p>
+          <p class="font-mono text-sm tabular-nums">{phraseNotes}</p>
+        </div>
+      {/snippet}
+      {#snippet actions()}
+        <AdaptiveRetryBar onRetry={() => void startAttempt()} retryLabel="Repeat lick" />
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta tags={["licks"]} accuracy={grade?.accuracy ?? 0} before={visitStartedAt} />
+      {/snippet}
+      {#snippet routineContinue()}
+        <RoutineContinueAction routine={runtime.dailyRoutine} />
+      {/snippet}
+      {#snippet nextUp()}
+        <NextUpSuggestion {skills} {analytics} currentPath="/music/play/licks" routine={runtime.dailyRoutine} />
+      {/snippet}
+    </DrillSummaryCard>
+  {/snippet}
 
-          <div class="space-y-2 rounded-lg border bg-muted/30 p-4">
-            <p class="eyebrow">The line</p>
-            <p class="font-mono text-sm tabular-nums">{phraseNotes}</p>
-            {#if lick?.tip}
-              <p class="text-sm text-muted-foreground">{lick.tip}</p>
-            {/if}
-            <div class="flex flex-wrap gap-1.5 pt-1">
-              {#each lick?.scales ?? [] as scale (scale)}
-                <Badge variant="outline">{scale}</Badge>
-              {/each}
-            </div>
-          </div>
-
-          {#if phase !== "idle"}
-            <div class="space-y-1.5">
-              <div class="flex justify-between text-xs text-muted-foreground">
-                <span>{phase === "listening" ? "Notes played" : "Result"}</span>
-                <span class="tabular-nums">{played.length} / {expectedMidi.length}</span>
+  <PracticeDrillShell phase={shellPhase} startPending={attemptPending} summary={summaryPhase}>
+    {#snippet setup()}
+      <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div class="min-w-0 space-y-4">
+          <Card.Root>
+            <Card.Header class="gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <Card.Description>Drill</Card.Description>
+                <Card.Title bind:ref={setupHeading} tabindex="-1" data-testid="licks-setup-heading">
+                  Lick #{lick?.number} · {lick?.progression.join(" ")}
+                </Card.Title>
               </div>
-              <Progress value={Math.min(played.length, expectedMidi.length)} max={expectedMidi.length} />
-            </div>
-          {/if}
+              <SegmentedControl
+                size="sm"
+                ariaLabel="Lick category"
+                options={lickCategories}
+                value={category}
+                onChange={(value) => selectCategory(value as LickCategory)}
+              />
+            </Card.Header>
 
-          {#if phase === "graded" && grade}
-            <div class="rounded-md border border-practice-accent/30 bg-practice-accent/5 p-4">
-              <p class="font-semibold">
-                {grade.matched} / {grade.total} notes · {Math.round(grade.accuracy * 100)}%
-              </p>
-              <p class="text-sm text-muted-foreground">
-                Play the reference again and match the line note-for-note.
-              </p>
-            </div>
-            <LastRunDelta tags={["licks"]} accuracy={grade?.accuracy ?? 0} before={visitStartedAt} />
-            <AdaptiveRetryBar onRetry={() => void startAttempt()} retryLabel="Repeat lick" />
-            <RoutineContinueAction routine={runtime.dailyRoutine} />
-            <NextUpSuggestion {skills} {analytics} currentPath="/music/play/licks" routine={runtime.dailyRoutine} />
-          {/if}
+            <Card.Content class="space-y-5">
+              <div class="flex flex-wrap gap-1.5" role="group" aria-label="Pick a lick">
+                {#each visibleLicks as entry (entry.number)}
+                  <button
+                    type="button"
+                    aria-pressed={entry.number === lickNumber}
+                    onclick={() => selectLick(entry.number)}
+                    class="size-8 rounded-md border text-sm font-semibold tabular-nums transition-colors {entry.number ===
+                    lickNumber
+                      ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
+                      : 'text-muted-foreground hover:bg-muted'}"
+                  >
+                    {entry.number}
+                  </button>
+                {/each}
+              </div>
 
+              <div class="space-y-2 rounded-lg border bg-muted/30 p-4">
+                <p class="eyebrow">The line</p>
+                <p class="font-mono text-sm tabular-nums">{phraseNotes}</p>
+                {#if lick?.tip}
+                  <p class="text-sm text-muted-foreground">{lick.tip}</p>
+                {/if}
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                  {#each lick?.scales ?? [] as scale (scale)}
+                    <Badge variant="outline">{scale}</Badge>
+                  {/each}
+                </div>
+              </div>
+            </Card.Content>
+
+            <Card.Footer class="flex-wrap gap-3">
+              <Button type="button" variant="outline" onclick={playReference}>
+                <Play aria-hidden="true" />
+                Hear it
+              </Button>
+              <Button type="button" onclick={() => void startAttempt()}>Play it back</Button>
+              <StartShortcut onStart={() => void startAttempt()} enabled={runPhase !== "listening"} />
+              <p class="text-sm text-muted-foreground">{status}</p>
+            </Card.Footer>
+          </Card.Root>
+        </div>
+
+        <aside class="grid content-start gap-4">
+          <Card.Root>
+            <Card.Header>
+              <Card.Description>How it works</Card.Description>
+              <Card.Title class="text-base">Call &amp; response</Card.Title>
+            </Card.Header>
+            <Card.Content class="space-y-2 text-sm text-muted-foreground">
+              <p>1. <strong class="text-foreground">Hear it</strong> — the line plays at {bpm} bpm.</p>
+              <p>2. <strong class="text-foreground">Play it back</strong> on the keys or your MIDI instrument.</p>
+              <p>3. It's graded note-by-note (octave-lenient) the moment you finish the phrase.</p>
+            </Card.Content>
+          </Card.Root>
+
+          <Card.Root>
+            <Card.Header>
+              <Card.Description>Last attempt</Card.Description>
+              <Card.Title>{grade ? `${Math.round(grade.accuracy * 100)}%` : "—"}</Card.Title>
+            </Card.Header>
+            <Card.Content class="grid gap-1 text-sm">
+              <div class="flex justify-between">
+                <span class="text-muted-foreground">Notes matched</span>
+                <span class="font-medium tabular-nums">{grade ? `${grade.matched} / ${grade.total}` : "—"}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-muted-foreground">Skill</span>
+                <span class="font-medium">Jazz vocabulary</span>
+              </div>
+            </Card.Content>
+          </Card.Root>
+        </aside>
+      </section>
+    {/snippet}
+
+    {#snippet stage()}
+      <PracticeStage instrument={instrument} class="grid gap-5 p-5 sm:p-6">
+        <div>
+          <p class="eyebrow">Call &amp; response · Lick #{lick?.number}</p>
+          <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={stageHeading}>
+            Play the line back
+          </h2>
+          <p class="mt-1 font-mono text-sm tabular-nums text-stage-muted">{phraseNotes}</p>
+        </div>
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs text-stage-muted">
+            <span>Notes played</span>
+            <span class="tabular-nums">{played.length} / {expectedMidi.length}</span>
+          </div>
+          <Progress value={Math.min(played.length, expectedMidi.length)} max={expectedMidi.length} />
+        </div>
+        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-4">
           <OnScreenKeyboard router={runtime.router} />
-        </Card.Content>
-
-        <Card.Footer class="flex-wrap gap-3">
-          <Button type="button" variant="outline" onclick={playReference}>
-            <Play aria-hidden="true" />
-            Hear it
-          </Button>
-          <Button type="button" onclick={() => void startAttempt()}>
-            {phase === "graded" ? "Try again" : "Play it back"}
-          </Button>
-          <StartShortcut onStart={() => void startAttempt()} enabled={phase !== "listening"} />
-          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-        </Card.Footer>
-      </Card.Root>
-    </div>
-
-    <aside class="grid content-start gap-4">
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>How it works</Card.Description>
-          <Card.Title class="text-base">Call &amp; response</Card.Title>
-        </Card.Header>
-        <Card.Content class="space-y-2 text-sm text-muted-foreground">
-          <p>1. <strong class="text-foreground">Hear it</strong> — the line plays at {bpm} bpm.</p>
-          <p>2. <strong class="text-foreground">Play it back</strong> on the keys or your MIDI instrument.</p>
-          <p>3. It's graded note-by-note (octave-lenient) the moment you finish the phrase.</p>
-        </Card.Content>
-      </Card.Root>
-
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Last attempt</Card.Description>
-          <Card.Title>{grade ? `${Math.round(grade.accuracy * 100)}%` : "—"}</Card.Title>
-        </Card.Header>
-        <Card.Content class="grid gap-1 text-sm">
-          <div class="flex justify-between">
-            <span class="text-muted-foreground">Notes matched</span>
-            <span class="font-medium tabular-nums">{grade ? `${grade.matched} / ${grade.total}` : "—"}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-muted-foreground">Skill</span>
-            <span class="font-medium">Jazz vocabulary</span>
-          </div>
-        </Card.Content>
-      </Card.Root>
-    </aside>
-  </section>
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
+    {/snippet}
+    {#snippet stageAction()}
+      <Button type="button" variant="outline" onclick={playReference}>
+        <Play aria-hidden="true" />
+        Hear it
+      </Button>
+      <Button type="button" variant="outline" onclick={reset}>Cancel</Button>
+    {/snippet}
+    {#snippet rail()}
+      <DrillProgressRail
+        title="Live run"
+        items={[
+          { label: "Lick", value: `#${lick?.number}` },
+          { label: "Progression", value: lick?.progression.join(" ") ?? "—" },
+          { label: "Notes", value: `${played.length} / ${expectedMidi.length}` },
+          { label: "Input", value: runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
+        ]}
+      />
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>

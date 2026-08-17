@@ -180,6 +180,36 @@ describe("RhythmSession", () => {
     expect(session.state.status).toBe("summary");
     session.dispose();
   });
+
+  test("does not report abandonment after completion persistence starts", async () => {
+    const dependencies = await setup();
+    let markPersistenceStarted!: () => void;
+    let releasePersistence!: () => void;
+    const persistenceStarted = new Promise<void>((resolve) => (markPersistenceStarted = resolve));
+    const persistenceGate = new Promise<void>((resolve) => (releasePersistence = resolve));
+    const ingest = dependencies.services.analytics.ingest.bind(dependencies.services.analytics);
+    vi.spyOn(dependencies.services.analytics, "ingest").mockImplementation(async (event) => {
+      markPersistenceStarted();
+      await persistenceGate;
+      await ingest(event);
+    });
+    const session = new RhythmSession(dependencies);
+
+    await session.start({ bpm: 120, beats: 1, startTimestampMs: 1_000 });
+    dependencies.router.push(tap(1_000));
+    await persistenceStarted;
+
+    const abandoned = session.abandon();
+    const stateAfterCancel = session.state;
+    releasePersistence();
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+
+    expect(abandoned).toBe(false);
+    expect(stateAfterCancel.status).toBe("active");
+    expect(session.state.summary).toMatchObject({ total: 1 });
+    expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
+    session.dispose();
+  });
 });
 
 async function setup() {

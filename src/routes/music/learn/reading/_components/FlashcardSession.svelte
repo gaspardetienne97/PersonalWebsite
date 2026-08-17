@@ -52,15 +52,18 @@
   );
 </script>
 
-<PracticeDrillShell>
+<PracticeDrillShell phase="stage">
+  {#snippet stageAction()}
+    <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
+  {/snippet}
+
   {#snippet stage()}
     <Card.Root class="min-w-0">
-      <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+      <Card.Header>
         <div class="space-y-1">
           <Card.Description>{prompt?.keySignature ?? "Reading flashcard"}</Card.Description>
           <Card.Title>Read, then {answerMode === "choice" ? "name" : "play"} the notes</Card.Title>
         </div>
-        <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
       </Card.Header>
       <Card.Content class="grid min-w-0 gap-6">
         {#if view}
@@ -72,7 +75,7 @@
             class="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6"
             aria-label="Answer choices"
           >
-            {#each prompt.choices as choice}
+            {#each prompt.choices as choice (choice)}
               <Button type="button" variant="outline" class="min-h-11" onclick={() => onChoice(choice)}>
                 {choice}
               </Button>

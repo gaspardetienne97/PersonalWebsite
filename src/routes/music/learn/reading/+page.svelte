@@ -20,6 +20,8 @@
   import { CustomTuningStore } from "@repo/music-core/engines/tunings/store";
   import { Button } from "@repo/ui/button";
 
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -85,6 +87,29 @@
     const prompt = sessionState?.currentPrompt;
     return prompt && "score" in prompt ? prompt.score : undefined;
   });
+  const summary = $derived(
+    sessionState?.status === "summary" ? sessionState.summary : undefined,
+  );
+  const phase = $derived<"setup" | "stage" | "summary">(
+    summary
+      ? "summary"
+      : sessionState?.status === "flashcard" || sessionState?.status === "sight-reading"
+        ? "stage"
+        : "setup",
+  );
+  const liveAnnouncement = $derived(
+    phase === "summary" && summary
+      ? `Reading results ready. ${summary.correct} of ${summary.total} correct.`
+      : phase === "stage"
+        ? status || "Reading session started."
+        : pending
+          ? "Starting reading session."
+          : status || "Reading setup.",
+  );
+  let setupHeading = $state<HTMLElement | null>(null);
+  let stageHeading = $state<HTMLElement | null>(null);
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let previousPhase: "setup" | "stage" | "summary" | undefined;
 
   $effect(() => {
     syncConfigUrl();
@@ -92,6 +117,16 @@
 
   $effect(() => {
     registerReadingContext(normalizedSetup);
+  });
+
+  $effect(() => {
+    const current = phase;
+    const previous = previousPhase;
+    previousPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "stage") stageHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupHeading?.focus({ preventScroll: false });
   });
 
   $effect(() => {
@@ -144,7 +179,7 @@
   }
 
   function updateSetup(next: ReadingSetupValue, invalidatePending = true): void {
-    if (invalidatePending) sessionRequest += 1;
+    if (invalidatePending || (pending && session)) sessionRequest += 1;
     const normalized = normalizeReadingDrillConfig(next);
     setup = normalized;
     if (runtime.activeInstrument !== normalized.instrument) {
@@ -202,8 +237,22 @@
           transposeSemitones: config.transposeSemitones,
         });
       }
+      if (request !== sessionRequest) {
+        unsubscribeSession?.();
+        unsubscribeSession = undefined;
+        session?.dispose();
+        session = undefined;
+        sessionState = undefined;
+      }
     } catch (error) {
-      status = message(error, "The reading session could not be started.");
+      unsubscribeSession?.();
+      unsubscribeSession = undefined;
+      session?.dispose();
+      session = undefined;
+      sessionState = undefined;
+      if (request === sessionRequest) {
+        status = message(error, "The reading session could not be started.");
+      }
     } finally {
       pending = false;
     }
@@ -323,6 +372,17 @@
     stopPreview();
     sessionState = undefined;
     void start();
+  }
+
+  function changeSetup(): void {
+    performanceRequest += 1;
+    stopPreview();
+    runtime.endPerformance();
+    unsubscribeSession?.();
+    session?.dispose();
+    session = undefined;
+    sessionState = undefined;
+    status = "Adjust your reading setup.";
   }
 
   function practiceAtBpm(bpm: number): void {
@@ -542,70 +602,104 @@
     {/snippet}
   </PracticeScreenHeader>
 
+  <p class="sr-only" aria-live="polite" data-testid="reading-phase-announcement">
+    {liveAnnouncement}
+  </p>
 
-  {#if !sessionState}
-    <ReadingSetup
-      value={setup}
-      tunings={availableTunings}
-      {ready}
-      {pending}
-      {status}
-      {midiEnabled}
-      {midiStatus}
-      onChange={updateSetup}
-      onStart={start}
-      onEnableMidi={enableMidi}
-      onSaveTuning={saveTuning}
-      onDeleteTuning={deleteTuning}
-    />
-  {:else if sessionState.status === "summary" && sessionState.summary}
-    <ReadingSummary
-      summary={sessionState.summary}
-      bpm={setup.bpm}
-      onRepeat={repeat}
-      onTempo={practiceAtBpm}
-      onMissedGroups={practiceMissedGroups}
-    />
-    <RoutineContinueAction routine={runtime.dailyRoutine} />
-  {:else if sessionState.status === "sight-reading" && session}
-    {#if status}
-      <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+  {#snippet summaryPhase()}
+    {#if summary}
+      <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
+        {#snippet heading()}
+          <h2 class="text-3xl font-bold tracking-tight">Reading results</h2>
+        {/snippet}
+        {#snippet children()}
+          <div>
+            <ReadingSummary
+              {summary}
+              bpm={setup.bpm}
+              onRepeat={repeat}
+              onTempo={practiceAtBpm}
+              onMissedGroups={practiceMissedGroups}
+            />
+          </div>
+        {/snippet}
+        {#snippet routineContinue()}
+          <RoutineContinueAction routine={runtime.dailyRoutine} />
+        {/snippet}
+      </DrillSummaryCard>
     {/if}
-    {#if previewScore}
-      <div class="flex flex-wrap items-center gap-3 rounded-lg border bg-card px-4 py-3">
-        <Button type="button" size="sm" variant="outline" onclick={() => void togglePreview()}>
-          {#if previewPlaying}
-            <Pause class="size-4" aria-hidden="true" />Pause
-          {:else}
-            <Play class="size-4" aria-hidden="true" />Play
-          {/if}
-        </Button>
-        {#if previewMessage}
-          <p class="text-sm text-muted-foreground" aria-live="polite">{previewMessage}</p>
+  {/snippet}
+
+  {#snippet setupPhase()}
+    <div tabindex="-1" aria-label="Reading setup" bind:this={setupHeading}>
+      <ReadingSetup
+        value={setup}
+        tunings={availableTunings}
+        {ready}
+        {pending}
+        {status}
+        {midiEnabled}
+        {midiStatus}
+        onChange={updateSetup}
+        onStart={start}
+        onEnableMidi={enableMidi}
+        onSaveTuning={saveTuning}
+        onDeleteTuning={deleteTuning}
+      />
+    </div>
+  {/snippet}
+
+  {#snippet stagePhase()}
+    <div tabindex="-1" aria-label="Reading session" bind:this={stageHeading} class="grid gap-4">
+      {#if status}
+        <p class="text-sm text-muted-foreground">{status}</p>
+      {/if}
+      {#if sessionState?.status === "sight-reading" && session}
+        {#if previewScore}
+          <div class="flex flex-wrap items-center gap-3 rounded-lg border bg-card px-4 py-3">
+            <Button type="button" size="sm" variant="outline" onclick={() => void togglePreview()}>
+              {#if previewPlaying}
+                <Pause class="size-4" aria-hidden="true" />Pause
+              {:else}
+                <Play class="size-4" aria-hidden="true" />Play
+              {/if}
+            </Button>
+            {#if previewMessage}
+              <p class="text-sm text-muted-foreground" aria-live="polite">{previewMessage}</p>
+            {/if}
+          </div>
         {/if}
-      </div>
-    {/if}
-    <SightReadingSession
-      sessionState={sessionState}
-      router={runtime.router}
-      tuning={activeTuning}
-      bpm={setup.bpm}
-      {sessionXp}
-      onAccepted={playAccepted}
-      onStart={startSightReading}
-      onFinish={finishSightReading}
-      onAbandon={abandon}
-    />
-  {:else}
-    <FlashcardSession
-      state={sessionState}
-      answerMode={setup.answerMode}
-      tuning={activeTuning}
-      router={runtime.router}
-      {sessionXp}
-      onChoice={answerChoice}
-      onAccepted={playAccepted}
-      onAbandon={abandon}
-    />
-  {/if}
+        <SightReadingSession
+          sessionState={sessionState}
+          router={runtime.router}
+          tuning={activeTuning}
+          bpm={setup.bpm}
+          {sessionXp}
+          onAccepted={playAccepted}
+          onStart={startSightReading}
+          onFinish={finishSightReading}
+          onAbandon={abandon}
+        />
+      {:else if sessionState}
+        <FlashcardSession
+          state={sessionState}
+          answerMode={setup.answerMode}
+          tuning={activeTuning}
+          router={runtime.router}
+          {sessionXp}
+          onChoice={answerChoice}
+          onAccepted={playAccepted}
+          onAbandon={abandon}
+        />
+      {/if}
+    </div>
+  {/snippet}
+
+  <PracticeDrillShell
+    {phase}
+    startPending={pending}
+    setup={setupPhase}
+    stage={stagePhase}
+    summary={summaryPhase}
+  />
 </PracticeScreen>

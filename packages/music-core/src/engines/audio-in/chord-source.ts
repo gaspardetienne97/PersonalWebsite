@@ -44,11 +44,26 @@ async function loadPitchWorklet(context: AudioContext): Promise<void> {
   }
 }
 
+async function disposeCapture(
+  node?: AudioWorkletNode,
+  source?: MediaStreamAudioSourceNode,
+  stream?: MediaStream,
+  context?: AudioContext,
+): Promise<void> {
+  node?.port.close();
+  node?.disconnect();
+  source?.disconnect();
+  stream?.getTracks().forEach((track) => track.stop());
+  if (context && context.state !== "closed") await context.close();
+}
+
 export class ChordAudioSource {
   #context?: AudioContext;
   #stream?: MediaStream;
   #node?: AudioWorkletNode;
   #source?: MediaStreamAudioSourceNode;
+  #generation = 0;
+  #stopTask?: Promise<void>;
 
   #state: AudioPitchState = { status: "idle" };
   #onsetDetector: OnsetDetector;
@@ -76,33 +91,52 @@ export class ChordAudioSource {
   }
 
   async start(): Promise<void> {
+    if (this.#stopTask) await this.#stopTask;
     if (this.#state.status === "running" || this.#state.status === "requesting") return;
     if (!ChordAudioSource.supported) {
       this.#setState({ status: "error", message: "Audio input is not supported here." });
       return;
     }
+    const generation = ++this.#generation;
     this.#setState({ status: "requesting" });
     this.#onsetDetector.reset();
+    let stream: MediaStream | undefined;
+    let context: AudioContext | undefined;
+    let source: MediaStreamAudioSourceNode | undefined;
+    let node: AudioWorkletNode | undefined;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false },
       });
-      this.#stream = stream;
-      const context = new AudioContext();
-      this.#context = context;
+      if (generation !== this.#generation) {
+        await disposeCapture(undefined, undefined, stream);
+        return;
+      }
+      const activeContext = new AudioContext();
+      context = activeContext;
       // Ring holds a little more than one window so an onset can look back.
-      this.#ring = new FrameRing(Math.ceil((this.#windowMs / 1000) * context.sampleRate * 1.5));
-      await loadPitchWorklet(context);
-      const source = context.createMediaStreamSource(stream);
-      const node = new AudioWorkletNode(context, "pitch-worklet");
+      this.#ring = new FrameRing(
+        Math.ceil((this.#windowMs / 1000) * activeContext.sampleRate * 1.5),
+      );
+      await loadPitchWorklet(activeContext);
+      if (generation !== this.#generation) {
+        await disposeCapture(undefined, undefined, stream, context);
+        return;
+      }
+      source = activeContext.createMediaStreamSource(stream);
+      node = new AudioWorkletNode(activeContext, "pitch-worklet");
       node.port.onmessage = (event: MessageEvent<Float32Array>) => {
-        this.#onFrame(event.data, context.sampleRate);
+        this.#onFrame(event.data, activeContext.sampleRate);
       };
       source.connect(node);
+      this.#stream = stream;
+      this.#context = context;
       this.#source = source;
       this.#node = node;
       this.#setState({ status: "running" });
     } catch (err) {
+      await disposeCapture(node, source, stream, context);
+      if (generation !== this.#generation) return;
       const denied = err instanceof DOMException && err.name === "NotAllowedError";
       this.#setState({
         status: denied ? "denied" : "error",
@@ -112,22 +146,34 @@ export class ChordAudioSource {
             ? err.message
             : "Could not start audio input.",
       });
-      await this.stop();
     }
   }
 
   async stop(): Promise<void> {
-    this.#node?.port.close();
-    this.#node?.disconnect();
-    this.#source?.disconnect();
-    this.#stream?.getTracks().forEach((track) => track.stop());
-    if (this.#context && this.#context.state !== "closed") await this.#context.close();
+    this.#generation += 1;
+    const node = this.#node;
+    const source = this.#source;
+    const stream = this.#stream;
+    const context = this.#context;
     this.#node = undefined;
     this.#source = undefined;
     this.#stream = undefined;
     this.#context = undefined;
     this.#onsetDetector.reset();
-    if (this.#state.status === "running") this.#setState({ status: "idle" });
+    if (this.#state.status === "running" || this.#state.status === "requesting") {
+      this.#setState({ status: "idle" });
+    }
+    const previousStop = this.#stopTask;
+    const stopTask = (async () => {
+      await previousStop;
+      await disposeCapture(node, source, stream, context);
+    })();
+    this.#stopTask = stopTask;
+    try {
+      await stopTask;
+    } finally {
+      if (this.#stopTask === stopTask) this.#stopTask = undefined;
+    }
   }
 
   subscribeAnalysis(listener: AnalysisListener): () => void {

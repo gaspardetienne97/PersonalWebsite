@@ -27,6 +27,7 @@
   import { Progress } from "@repo/ui/progress";
 
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
@@ -75,6 +76,7 @@
   let pending = $state(false);
   let destroyed = false;
   let routeGeneration = 0;
+  let startRequest = 0;
   let practiceContextReady: Promise<void> = Promise.resolve();
   // Results are dismissible so the setup card stays reachable after a run.
   let resultsDismissed = $state(false);
@@ -113,24 +115,47 @@
   const playedNotes = $derived(Math.round((sessionState?.live?.progress ?? 0) * totalNotes));
 
   const summary = $derived(sessionState?.summary);
-  const answer = $derived(
-    summary?.results[0]?.result.answer as TwoHandIndependenceAnswer | undefined,
-  );
-  // The three top-level branches below (results / active / setup) as one value,
-  // so focus management and announcements key off actual branch swaps.
-  const phase = $derived<"results" | "active" | "setup">(
+  const result = $derived(summary?.results[0]?.result);
+  const answer = $derived(result?.answer as TwoHandIndependenceAnswer | undefined);
+  // Route-owned phase: the shell renders it but never transitions it.
+  const phase = $derived<"summary" | "stage" | "setup">(
     summary && answer && !resultsDismissed
-      ? "results"
+      ? "summary"
       : sessionState?.status === "active"
-        ? "active"
+        ? "stage"
         : "setup",
   );
   // Announced by the persistent live region; branch swaps remount the visible
   // status text, so screen readers would otherwise miss the transitions.
+  const resultHeadline = $derived.by(() => {
+    if (!answer) return "Drill complete.";
+    const left = Math.round(answer.leftAccuracy * 100);
+    const right = Math.round(answer.rightAccuracy * 100);
+    if (handMode === "left") {
+      return `Left-hand note accuracy: ${left}%.`;
+    }
+    if (handMode === "right") {
+      return `Right-hand note accuracy: ${right}%.`;
+    }
+    if (answer.leftAccuracy > answer.rightAccuracy) {
+      return `Left-hand note accuracy was higher: ${left}% vs ${right}%.`;
+    }
+    if (answer.rightAccuracy > answer.leftAccuracy) {
+      return `Right-hand note accuracy was higher: ${right}% vs ${left}%.`;
+    }
+    return `Both hands matched on note accuracy: ${left}%.`;
+  });
+  const resultDetail = $derived(
+    answer
+      ? `${handMode === "left" ? `Left-hand note accuracy ${Math.round(answer.leftAccuracy * 100)}%` : handMode === "right" ? `Right-hand note accuracy ${Math.round(answer.rightAccuracy * 100)}%` : `Left-hand note accuracy ${Math.round(answer.leftAccuracy * 100)}% · Right-hand note accuracy ${Math.round(answer.rightAccuracy * 100)}%`} · Mean spacing error: ${Math.round(answer.meanEvennessErrorMs)} ms${
+          answer.dynamicsContrast === undefined
+            ? ""
+            : ` · MIDI velocity contrast ${answer.dynamicsContrast >= 0 ? "+" : ""}${answer.dynamicsContrast.toFixed(2)} (melody − accompaniment)`
+        }`
+      : "",
+  );
   const liveAnnouncement = $derived(
-    summary && answer
-      ? `Drill complete. LH ${Math.round(answer.leftAccuracy * 100)}% · RH ${Math.round(answer.rightAccuracy * 100)}%.`
-      : status,
+    phase === "summary" && answer ? `Drill complete. ${resultHeadline}` : status,
   );
   const midiStatus = $derived(
     midiEnabled
@@ -145,8 +170,9 @@
   // focus to <body>. Move it to the freshly mounted stage/results heading on
   // each transition — but not on initial mount, so page load doesn't steal focus.
   let activeHeading = $state<HTMLHeadingElement | null>(null);
-  let resultsHeading = $state<HTMLHeadingElement | null>(null);
-  let previousPhase: "results" | "active" | "setup" | undefined;
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let setupSummary = $state<HTMLElement | null>(null);
+  let previousPhase: "summary" | "stage" | "setup" | undefined;
 
   void initialize();
 
@@ -185,8 +211,9 @@
     const previous = previousPhase;
     previousPhase = current;
     if (previous === undefined || previous === current) return;
-    if (current === "active") activeHeading?.focus({ preventScroll: false });
-    else if (current === "results") resultsHeading?.focus({ preventScroll: false });
+    if (current === "stage") activeHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupSummary?.focus({ preventScroll: false });
   });
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
@@ -240,20 +267,22 @@
 
   async function start(): Promise<void> {
     if (!ready || pending || !session) return;
+    const request = ++startRequest;
+    const generation = routeGeneration;
+    resultsDismissed = true;
     pending = true;
-    captured = false;
-    resultsDismissed = false;
     status = "";
     try {
       await tick();
-      const generation = routeGeneration;
+      if (request !== startRequest || generation !== routeGeneration) return;
       await practiceContextReady;
-      if (generation !== routeGeneration) return;
-      if (!(await runtime.ensurePlaybackVoice())) {
-        if (generation === routeGeneration) status = runtime.audioMessage;
+      if (request !== startRequest || generation !== routeGeneration) return;
+      const voiceReady = await runtime.ensurePlaybackVoice();
+      if (request !== startRequest || generation !== routeGeneration) return;
+      if (!voiceReady) {
+        status = runtime.audioMessage;
         return;
       }
-      if (generation !== routeGeneration) return;
       const config = normalizeTwoHandDrillConfig({
         tonic,
         bpm,
@@ -262,7 +291,7 @@
         dynamics,
       });
       const performance = await runtime.beginPerformance();
-      if (generation !== routeGeneration) {
+      if (request !== startRequest || generation !== routeGeneration) {
         if (performance.status === "started") runtime.endPerformance();
         return;
       }
@@ -270,6 +299,7 @@
         status = performance.status === "failed" ? performance.message : "Start cancelled.";
         return;
       }
+      captured = false;
       await session.startTwoHand({
         tonic: config.tonic,
         bpm: config.bpm,
@@ -278,14 +308,17 @@
         handMode: config.handMode,
         dynamics: config.dynamics,
       });
-      if (generation !== routeGeneration) {
+      if (request !== startRequest || generation !== routeGeneration) {
         runtime.endPerformance();
         session.abandon();
         return;
       }
+      resultsDismissed = false;
       status = `Playing ${display.patternLabel.toLowerCase()} · ${handModeLabel(config.handMode)}${config.dynamics && config.handMode === "both" ? " · melody louder" : ""}.`;
     } catch (error) {
       runtime.endPerformance();
+      session.abandon();
+      if (request !== startRequest || generation !== routeGeneration) return;
       status = message(error, "The two-hand drill could not be started.");
     } finally {
       pending = false;
@@ -322,9 +355,16 @@
   }
 
   function cancel(): void {
+    startRequest += 1;
     runtime.endPerformance();
     session?.abandon();
     status = "Drill cancelled. You can start again.";
+  }
+
+  function changeSetup(): void {
+    startRequest += 1;
+    status = "Setup ready. Change the drill settings or start again.";
+    resultsDismissed = true;
   }
 
   function playAccepted(event: NoteEvent): void {
@@ -343,6 +383,7 @@
 
   onDestroy(() => {
     destroyed = true;
+    startRequest += 1;
     routeGeneration += 1;
     runtime.endPerformance();
     unsubscribeSession?.();
@@ -378,186 +419,183 @@
   <!-- Persistent live region: mounted outside the branches so transitions announce. -->
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
-  {#if summary && answer && !resultsDismissed}
-    <Card.Root class="overflow-hidden">
-      <Card.Content class="grid gap-6 p-6 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.2fr)]">
-        <div class="grid min-h-64 place-items-center rounded-xl border border-success/30 bg-success/10 p-6 text-center">
-          <div>
-            <p class="eyebrow">Two-hand score</p>
-            <p class="text-7xl font-bold leading-none tabular-nums text-success">
-              {Math.round(((answer.leftAccuracy + answer.rightAccuracy) / 2) * 100)}
-            </p>
-            <p class="mt-3 text-sm text-muted-foreground">+{summary.xp} XP earned</p>
-          </div>
-        </div>
-        <div class="grid content-start gap-5">
-          <div>
-            <p class="eyebrow">What happened</p>
-            <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={resultsHeading}>
-              {answer.leftAccuracy >= answer.rightAccuracy
-                ? "Left hand held. Give the right-hand line another pass."
-                : "Right hand stayed clear. Rebuild the left-hand pulse."}
-            </h2>
-          </div>
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <HudTile label="Left hand" value={Math.round(answer.leftAccuracy * 100)} unit="%" tone="good" />
-            <HudTile label="Right hand" value={Math.round(answer.rightAccuracy * 100)} unit="%" tone="accent" />
-            <HudTile label="Evenness" value={Math.round(answer.meanEvennessErrorMs)} unit="ms" />
-            <HudTile label="Tempo" value={bpm} unit="BPM" />
-          </div>
-          <SessionFeedback
-            kind={summary.correct === summary.total ? "correct" : "wrong"}
-            message="Drill complete"
-            detail={`LH ${Math.round(answer.leftAccuracy * 100)}% · RH ${Math.round(answer.rightAccuracy * 100)}% · ${Math.round(answer.meanEvennessErrorMs)}ms evenness${
-              answer.dynamicsContrast === undefined
-                ? ""
-                : ` · melody ${answer.dynamicsContrast > 0 ? "+" : ""}${Math.round(answer.dynamicsContrast * 100)}% louder`
-            }`}
-            xp={summary.xp}
-          />
-          <div class="flex flex-wrap items-center gap-2">
-            <AdaptiveRetryBar onRetry={() => void start()} onSlower={slowDown} retryLabel="Repeat drill" />
-            <Button type="button" variant="ghost" onclick={() => (resultsDismissed = true)}>
-              Change setup
-            </Button>
-          </div>
-        </div>
-      </Card.Content>
-    </Card.Root>
-  {:else if sessionState?.status === "active"}
-    <PracticeDrillShell>
-      {#snippet stage()}
-        <PracticeStage instrument="piano" class="grid gap-5 p-5 sm:p-6">
-          <div class="flex flex-wrap items-start justify-between gap-3">
+  {#snippet summaryPhase()}
+    <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
+      {#snippet heading()}
+        <Card.Description>What happened</Card.Description>
+        <Card.Title level={2} class="font-bold">{resultHeadline}</Card.Title>
+      {/snippet}
+      {#snippet children()}
+        <div class="grid gap-6 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.2fr)]">
+          <div class="grid min-h-64 place-items-center rounded-xl border p-6 text-center {result?.correct ? 'border-success/30 bg-success/10' : 'bg-muted/30'}">
             <div>
-              <p class="eyebrow">Focus mode · {display.patternLabel}</p>
-              <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={activeHeading}>
-                Hold the pulse under the line.
-              </h2>
+              <p class="eyebrow">Two-hand score</p>
+              <p class="text-7xl font-bold leading-none tabular-nums {result?.correct ? 'text-success' : 'text-foreground'}">
+                {Math.round((result?.score ?? 0) * 100)}
+              </p>
+              <p class="mt-3 text-sm text-muted-foreground">+{summary?.xp ?? 0} XP earned</p>
             </div>
-            <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <HudTile label="Notes" value={Math.min(totalNotes, playedNotes)} unit={`/${totalNotes}`} tone="accent" />
-            <HudTile label="Tempo" value={bpm} unit="BPM" />
+          <div class="grid content-start gap-5">
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {#if answer && handMode !== "right"}
+                <HudTile label="Left note accuracy" value={Math.round(answer.leftAccuracy * 100)} unit="%" tone={answer.leftAccuracy >= 0.9 ? "good" : "default"} />
+              {/if}
+              {#if answer && handMode !== "left"}
+                <HudTile label="Right note accuracy" value={Math.round(answer.rightAccuracy * 100)} unit="%" tone={answer.rightAccuracy >= 0.9 ? "good" : "default"} />
+              {/if}
+              <HudTile label="Mean spacing error" value={Math.round(answer?.meanEvennessErrorMs ?? 0)} unit="ms" />
+              <HudTile label="Tempo" value={bpm} unit="BPM" />
+            </div>
+            <SessionFeedback
+              kind={summary?.correct === summary?.total ? "correct" : "wrong"}
+              message="Drill complete"
+              detail={resultDetail}
+              xp={summary?.xp ?? 0}
+            />
+          </div>
+        </div>
+      {/snippet}
+      {#snippet actions()}
+        <AdaptiveRetryBar onRetry={() => void start()} onSlower={slowDown} retryLabel="Repeat drill" />
+      {/snippet}
+    </DrillSummaryCard>
+  {/snippet}
+
+  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+    {#snippet setup()}
+      <section class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <Card.Root class="min-w-0">
+          <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <Card.Description>Hand independence · {bpm} BPM</Card.Description>
+              <Card.Title>{display.patternLabel}</Card.Title>
+            </div>
+            <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+            </Button>
+          </Card.Header>
+
+          <Card.Content class="grid gap-6">
+            <details class="group rounded-xl border bg-muted/20 p-3">
+              <summary bind:this={setupSummary} class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <span>
+                  <span class="block text-sm font-semibold">Remembered setup</span>
+                  <span class="text-xs text-muted-foreground">
+                    {tonic.replace(/\d+$/, "")} · {handModeLabel(handMode)} · {bpm} BPM{dynamics && handMode === "both" ? " · Melody louder" : ""}
+                  </span>
+                </span>
+                <span class="text-sm font-medium text-primary group-open:hidden">Edit setup</span>
+                <span class="hidden text-sm font-medium text-primary group-open:inline">Hide setup</span>
+              </summary>
+              <fieldset disabled={pending} class="mt-4 grid gap-4 border-t pt-4 disabled:opacity-70">
+                <SegmentedControl ariaLabel="Pattern" options={patternOptions} bind:value={patternKind} />
+                <SegmentedControl
+                  ariaLabel="Hand mode"
+                  options={handModeOptions}
+                  bind:value={handMode}
+                />
+                <SegmentedControl ariaLabel="Key" options={keyOptions} bind:value={tonic} />
+                <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
+                {#if handMode === "both"}
+                  <SegmentedControl
+                    size="sm"
+                    ariaLabel="Dynamics"
+                    options={[
+                      { value: "even", label: "Even touch" },
+                      { value: "melody", label: "Melody louder" },
+                    ]}
+                    value={dynamics ? "melody" : "even"}
+                    onChange={(value) => (dynamics = value === "melody")}
+                  />
+                {/if}
+              </fieldset>
+            </details>
+          </Card.Content>
+
+          <Card.Footer class="flex-wrap gap-3">
+            <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
+              {pending ? "Starting..." : "Start drill"}
+            </Button>
+            <StartShortcut onStart={() => void start()} />
+            <p class="text-sm text-muted-foreground">{status}</p>
+          </Card.Footer>
+        </Card.Root>
+
+        <PracticeStage instrument="piano" class="grid min-w-0 gap-4 p-5">
+          <div>
+            <p class="eyebrow">Ready stage</p>
+            <h2 class="text-xl font-bold">Piano keys</h2>
+            <p class="text-sm text-stage-muted">{midiStatus}</p>
           </div>
           <div class="grid gap-2">
-            <div class="flex items-center justify-between gap-3 text-sm text-stage-muted">
-              <span>{activePrompt?.label}</span>
-              <span class="tabular-nums">{Math.min(totalNotes, playedNotes)}/{totalNotes}</span>
-            </div>
-            <Progress value={Math.min(totalNotes, playedNotes)} max={totalNotes} />
+            <span class="text-xs font-medium text-stage-muted">Left hand</span>
+            <OnScreenKeyboard
+              router={runtime.router}
+              notes={leftKeys}
+              suggestedFingerings={leftFingerings}
+              onAccepted={playAccepted}
+            />
           </div>
-          <div class="grid min-w-0 gap-5">
-            <div class="grid gap-2">
-              <span class="text-xs font-semibold uppercase tracking-wide text-stage-muted">Left hand · pulse</span>
-              <OnScreenKeyboard router={runtime.router} notes={leftKeys} suggestedFingerings={leftFingerings} onAccepted={playAccepted} />
-            </div>
-            <div class="grid gap-2">
-              <span class="text-xs font-semibold uppercase tracking-wide text-stage-muted">Right hand · line</span>
-              <OnScreenKeyboard router={runtime.router} notes={rightKeys} suggestedFingerings={rightFingerings} onAccepted={playAccepted} />
-            </div>
+          <div class="grid gap-2">
+            <span class="text-xs font-medium text-stage-muted">Right hand</span>
+            <OnScreenKeyboard
+              router={runtime.router}
+              notes={rightKeys}
+              suggestedFingerings={rightFingerings}
+              onAccepted={playAccepted}
+            />
           </div>
         </PracticeStage>
-      {/snippet}
-      {#snippet rail()}
-        <DrillProgressRail
-          title="Live run"
-          items={[
-            { label: "Pattern", value: display.patternLabel },
-            { label: "Hands", value: handModeLabel(handMode) },
-            { label: "Tempo", value: `${bpm} BPM` },
-            { label: "Input", value: runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
-          ]}
-        >
-          <p class="text-xs text-muted-foreground">{status}</p>
-        </DrillProgressRail>
-      {/snippet}
-    </PracticeDrillShell>
-  {:else}
-  <section class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <Card.Root class="min-w-0">
-      <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+      </section>
+    {/snippet}
+
+    {#snippet stage()}
+      <PracticeStage instrument="piano" class="grid gap-5 p-5 sm:p-6">
         <div>
-          <Card.Description>Hand independence · {bpm} BPM</Card.Description>
-          <Card.Title>{display.patternLabel}</Card.Title>
+          <p class="eyebrow">Focus mode · {display.patternLabel}</p>
+          <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={activeHeading}>
+            Hold the pulse under the line.
+          </h2>
         </div>
-        <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-          {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-        </Button>
-      </Card.Header>
-
-      <Card.Content class="grid gap-6">
-        <details class="group rounded-xl border bg-muted/20 p-3">
-          <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <span>
-              <span class="block text-sm font-semibold">Remembered setup</span>
-              <span class="text-xs text-muted-foreground">
-                {tonic.replace(/\d+$/, "")} · {handModeLabel(handMode)} · {bpm} BPM{dynamics && handMode === "both" ? " · Melody louder" : ""}
-              </span>
-            </span>
-            <span class="text-sm font-medium text-primary group-open:hidden">Edit setup</span>
-            <span class="hidden text-sm font-medium text-primary group-open:inline">Hide setup</span>
-          </summary>
-          <fieldset disabled={pending} class="mt-4 grid gap-4 border-t pt-4 disabled:opacity-70">
-            <SegmentedControl ariaLabel="Pattern" options={patternOptions} bind:value={patternKind} />
-            <SegmentedControl
-              ariaLabel="Hand mode"
-              options={handModeOptions}
-              bind:value={handMode}
-            />
-            <SegmentedControl ariaLabel="Key" options={keyOptions} bind:value={tonic} />
-            <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
-            {#if handMode === "both"}
-              <SegmentedControl
-                size="sm"
-                ariaLabel="Dynamics"
-                options={[
-                  { value: "even", label: "Even touch" },
-                  { value: "melody", label: "Melody louder" },
-                ]}
-                value={dynamics ? "melody" : "even"}
-                onChange={(value) => (dynamics = value === "melody")}
-              />
-            {/if}
-          </fieldset>
-        </details>
-      </Card.Content>
-
-      <Card.Footer class="flex-wrap gap-3">
-        <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
-          {pending ? "Starting..." : "Start drill"}
-        </Button>
-        <StartShortcut onStart={() => void start()} />
-        <p class="text-sm text-muted-foreground">{status}</p>
-      </Card.Footer>
-    </Card.Root>
-
-    <PracticeStage instrument="piano" class="grid min-w-0 gap-4 p-5">
-      <div>
-        <p class="eyebrow">Ready stage</p>
-        <h2 class="text-xl font-bold">Piano keys</h2>
-        <p class="text-sm text-stage-muted">{midiStatus}</p>
-      </div>
-        <div class="grid gap-2">
-          <span class="text-xs font-medium text-stage-muted">Left hand</span>
-          <OnScreenKeyboard
-            router={runtime.router}
-            notes={leftKeys}
-            suggestedFingerings={leftFingerings}
-            onAccepted={playAccepted}
-          />
+        <div class="grid grid-cols-2 gap-3">
+          <HudTile label="Notes" value={Math.min(totalNotes, playedNotes)} unit={`/${totalNotes}`} tone="accent" />
+          <HudTile label="Tempo" value={bpm} unit="BPM" />
         </div>
         <div class="grid gap-2">
-          <span class="text-xs font-medium text-stage-muted">Right hand</span>
-          <OnScreenKeyboard
-            router={runtime.router}
-            notes={rightKeys}
-            suggestedFingerings={rightFingerings}
-            onAccepted={playAccepted}
-          />
+          <div class="flex items-center justify-between gap-3 text-sm text-stage-muted">
+            <span>{activePrompt?.label}</span>
+            <span class="tabular-nums">{Math.min(totalNotes, playedNotes)}/{totalNotes}</span>
+          </div>
+          <Progress value={Math.min(totalNotes, playedNotes)} max={totalNotes} />
         </div>
-    </PracticeStage>
-  </section>
-  {/if}
+        <div class="grid min-w-0 gap-5">
+          <div class="grid gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-stage-muted">Left hand · pulse</span>
+            <OnScreenKeyboard router={runtime.router} notes={leftKeys} suggestedFingerings={leftFingerings} onAccepted={playAccepted} />
+          </div>
+          <div class="grid gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-stage-muted">Right hand · line</span>
+            <OnScreenKeyboard router={runtime.router} notes={rightKeys} suggestedFingerings={rightFingerings} onAccepted={playAccepted} />
+          </div>
+        </div>
+      </PracticeStage>
+    {/snippet}
+    {#snippet stageAction()}
+      <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
+    {/snippet}
+    {#snippet rail()}
+      <DrillProgressRail
+        title="Live run"
+        items={[
+          { label: "Pattern", value: display.patternLabel },
+          { label: "Hands", value: handModeLabel(handMode) },
+          { label: "Tempo", value: `${bpm} BPM` },
+          { label: "Input", value: runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
+        ]}
+      >
+        <p class="text-xs text-muted-foreground">{status}</p>
+      </DrillProgressRail>
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>

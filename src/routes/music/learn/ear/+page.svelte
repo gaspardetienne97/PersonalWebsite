@@ -48,6 +48,7 @@
     type ScaleDegreeSetId,
   } from "@repo/music-core/exercises/scale-degree-recognition";
 
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
@@ -126,6 +127,7 @@
   let unsubscribeSession: (() => void) | undefined;
   let lastPlayedIndex = -1;
   let captured = false;
+  let resultsDismissed = $state(false);
   let answerReady = $state(false);
   let answerGeneration = 0;
   let promptPlaybackTimer: ReturnType<typeof setTimeout> | undefined;
@@ -147,6 +149,27 @@
       labels: scaleDegreeLabelMode,
     }),
   );
+  const summary = $derived(sessionState?.status === "summary" ? sessionState.summary : undefined);
+  const phase = $derived<"summary" | "stage" | "setup">(
+    summary && !resultsDismissed
+      ? "summary"
+      : sessionState?.status === "active"
+        ? "stage"
+        : "setup",
+  );
+  const liveAnnouncement = $derived(
+    phase === "summary" && summary
+      ? `Session complete. ${summary.correct} of ${summary.total} correct.`
+      : phase === "stage"
+        ? status || "Ear training session started."
+        : pending
+          ? "Starting ear training session."
+          : status || "Ear training setup.",
+  );
+  let setupHeading = $state<HTMLElement | null>(null);
+  let stageHeading = $state<HTMLElement | null>(null);
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let previousPhase: "summary" | "stage" | "setup" | undefined;
 
   $effect(() => {
     syncConfigUrl();
@@ -163,6 +186,16 @@
 
   $effect(() => {
     registerEarContext(practiceDrill, practiceAnswerMode, practiceLevel);
+  });
+
+  $effect(() => {
+    const current = phase;
+    const previous = previousPhase;
+    previousPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "stage") stageHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupHeading?.focus({ preventScroll: false });
   });
 
   $effect(() => {
@@ -333,6 +366,8 @@
         session = undefined;
         sessionState = undefined;
         await stopVoiceMic();
+      } else {
+        resultsDismissed = false;
       }
     } catch (error) {
       runtime.endPerformance();
@@ -556,6 +591,11 @@
     status = "Session ended without saving incomplete prompts.";
   }
 
+  function changeSetup(): void {
+    resultsDismissed = true;
+    status = "Adjust your ear training setup.";
+  }
+
   function repeatSession(): void {
     const drill = sessionState?.options.drill ?? "mixed";
     sessionState = undefined;
@@ -677,67 +717,101 @@
     {/snippet}
   </PracticeScreenHeader>
 
+  <p class="sr-only" aria-live="polite" data-testid="ear-phase-announcement">
+    {liveAnnouncement}
+  </p>
+
   {#if status}
-    <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+    <p class="text-sm text-muted-foreground">{status}</p>
   {/if}
 
-  {#if !sessionState}
-    <EarTrainingLanding
-      {ready}
-      {pending}
-      {answerMode}
-      {feedbackMode}
-      {scaleDegreeSet}
-      {scaleDegreeLabelMode}
-      tonicName={freePlayTonicName}
-      {droneOn}
-      freePlayChoices={freePlayChoices}
-      lastFreePlayDegree={lastFreePlayDegree}
-      {reviewQueue}
-      {reviewPlan}
-      {midiEnabled}
-      {midiStatus}
-      {audioSupported}
-      {voiceStatus}
-      onAnswerMode={setAnswerMode}
-      onFeedbackMode={setFeedbackMode}
-      onScaleDegreeSet={setScaleDegreeSet}
-      onScaleDegreeLabelMode={setScaleDegreeLabelMode}
-      onToggleDrone={toggleFreePlayDrone}
-      onPlayFreePlayDegree={playFreePlayDegree}
-      onPlayRepertoireTransfer={playRepertoireTransfer}
-      onStartRepertoireTransfer={startRepertoireTransfer}
-      onStartRepertoireReviewPlan={startRepertoireReviewPlan}
-      onEnableMidi={enableMidi}
-      onStart={startSession}
-    />
-  {:else if sessionState.status === "summary" && sessionState.summary}
-    <EarTrainingSummary
-      summary={sessionState.summary}
-      onRepeat={repeatSession}
-      onRetry={retryMistakes}
-    />
-    <RoutineContinueAction routine={runtime.dailyRoutine} />
-  {:else}
-    <PracticeDrillShell>
-      {#snippet stage()}
-        <EarTrainingSessionView
-          state={sessionState}
-          router={runtime.router}
-          instrument={runtime.activeInstrument}
-          surface={runtime.surfaceFor(runtime.activeInstrument)}
+  {#snippet summaryPhase()}
+    {#if summary}
+      <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
+        {#snippet heading()}
+          <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+            Session complete
+          </p>
+          <h2 class="text-3xl font-bold tracking-tight">
+            {summary.correct} of {summary.total} correct
+          </h2>
+          <p class="text-muted-foreground">
+            {Math.round(summary.accuracy * 100)}% accuracy · {summary.xp} XP earned
+          </p>
+        {/snippet}
+        {#snippet children()}
+          <div class="[&>section>header]:hidden">
+            <EarTrainingSummary
+              {summary}
+              onRepeat={repeatSession}
+              onRetry={retryMistakes}
+            />
+          </div>
+        {/snippet}
+        {#snippet routineContinue()}
+          <RoutineContinueAction routine={runtime.dailyRoutine} />
+        {/snippet}
+      </DrillSummaryCard>
+    {/if}
+  {/snippet}
+
+  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+    {#snippet setup()}
+      <div tabindex="-1" aria-label="Ear training setup" bind:this={setupHeading}>
+        <EarTrainingLanding
+          {ready}
+          {pending}
+          {answerMode}
+          {feedbackMode}
+          {scaleDegreeSet}
+          {scaleDegreeLabelMode}
+          tonicName={freePlayTonicName}
+          {droneOn}
+          freePlayChoices={freePlayChoices}
+          lastFreePlayDegree={lastFreePlayDegree}
+          {reviewQueue}
+          {reviewPlan}
+          {midiEnabled}
+          {midiStatus}
+          {audioSupported}
           {voiceStatus}
-          {answerReady}
-          onReplay={replayCurrent}
-          onPlayTonic={playTonic}
-          onAnswer={answerChoice}
-          onAccepted={playAccepted}
-          onAbandon={abandon}
+          onAnswerMode={setAnswerMode}
+          onFeedbackMode={setFeedbackMode}
+          onScaleDegreeSet={setScaleDegreeSet}
+          onScaleDegreeLabelMode={setScaleDegreeLabelMode}
+          onToggleDrone={toggleFreePlayDrone}
+          onPlayFreePlayDegree={playFreePlayDegree}
+          onPlayRepertoireTransfer={playRepertoireTransfer}
+          onStartRepertoireTransfer={startRepertoireTransfer}
+          onStartRepertoireReviewPlan={startRepertoireReviewPlan}
+          onEnableMidi={enableMidi}
+          onStart={startSession}
         />
-      {/snippet}
-      {#snippet rail()}
+      </div>
+    {/snippet}
+    {#snippet stage()}
+      {#if sessionState}
+        <div tabindex="-1" aria-label="Ear training session" bind:this={stageHeading}>
+          <EarTrainingSessionView
+            state={sessionState}
+            router={runtime.router}
+            instrument={runtime.activeInstrument}
+            surface={runtime.surfaceFor(runtime.activeInstrument)}
+            {voiceStatus}
+            {answerReady}
+            onReplay={replayCurrent}
+            onPlayTonic={playTonic}
+            onAnswer={answerChoice}
+            onAccepted={playAccepted}
+            onAbandon={abandon}
+          />
+        </div>
+      {/if}
+    {/snippet}
+    {#snippet rail()}
+      {#if sessionState}
         <EarTrainingSessionRail state={sessionState} streak={progress.state.streakDays} />
-      {/snippet}
-    </PracticeDrillShell>
-  {/if}
+      {/if}
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>

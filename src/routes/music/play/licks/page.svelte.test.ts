@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/tes
 import { render } from "vitest-browser-svelte";
 
 import { LICK_PHRASES } from "@repo/music-core/engines/jazz";
-import { monotonicMs } from "@repo/music-core/domain";
+import { monotonicMs, type InstrumentId } from "@repo/music-core/domain";
+import { SkillGraphStore } from "@repo/music-core/engines/skills";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
@@ -198,6 +199,53 @@ describe("/music/play/licks/+page.svelte", () => {
     });
   });
 
+  test("hides setup during the play stage and moves run controls into the stage", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+
+    // Setup phase exposes the config surface.
+    expect(document.querySelector('[aria-label="Lick category"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="Pick a lick"]')).not.toBeNull();
+
+    button("Play it back")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
+
+    // Setup is hidden while playing; the lick picker and category selector are gone.
+    expect(document.querySelector('[aria-label="Lick category"]')).toBeNull();
+    expect(document.querySelector('[aria-label="Pick a lick"]')).toBeNull();
+    // Run controls live on the stage now that setup is hidden.
+    expect(button("Cancel")).not.toBeUndefined();
+    expect(button("Hear it")).not.toBeUndefined();
+
+    button("Cancel")?.click();
+    await vi.waitFor(() =>
+      expect(document.activeElement).toBe(
+        document.querySelector('[data-testid="licks-setup-heading"]'),
+      ),
+    );
+  });
+
+  test("returns to setup from the graded summary via Change setup", async () => {
+    const harness = makeRuntime();
+    render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
+
+    button("Play it back")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
+    const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
+    for (const [index, midi] of expected.entries()) harness.emit(midi, index * 100);
+
+    await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+    button("Change setup")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Lick category"]')).not.toBeNull(),
+    );
+    expect(button("Change setup")).toBeUndefined();
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-testid="licks-setup-heading"]'),
+    );
+  });
+
   test("uses the shared retry bar after a graded lick", async () => {
     const harness = makeRuntime();
     render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
@@ -213,6 +261,38 @@ describe("/music/play/licks/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
     expect(button("Repeat lick")).toBeUndefined();
   });
+
+  test("keeps a retry authoritative when the prior completion settles late", async () => {
+    let releaseIngest!: () => void;
+    const ingest = vi.spyOn(SkillGraphStore.prototype, "ingest").mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseIngest = resolve;
+        }),
+    );
+    const harness = makeRuntime();
+    render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
+
+    button("Play it back")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
+    const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
+    for (const [index, midi] of expected.entries()) harness.emit(midi, index * 100);
+
+    await vi.waitFor(() => expect(ingest).toHaveBeenCalledOnce());
+    button("Repeat lick")?.click();
+    await vi.waitFor(() => expect(button("Cancel")).not.toBeUndefined());
+    button("Cancel")?.click();
+    harness.changeInstrument("guitar");
+
+    releaseIngest();
+    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce());
+    const entry = harness.runtime.recordPractice.mock.calls[0]![0];
+    expect(entry.instrument).toBe("piano");
+    expect(entry.runs[0]?.instrument).toBe(entry.instrument);
+    expect(entry.scoringEvents[0]?.runId).toBe(entry.runs[0]?.id);
+    expect(document.body.textContent).toContain("Play the lick…");
+    expect(document.body.textContent).not.toContain("notes · 100% · +");
+  });
 });
 
 function button(label: string): HTMLButtonElement | undefined {
@@ -225,6 +305,7 @@ function makeRuntime() {
   let listener:
     | ((event: { type: "noteOn"; midiNote: number; velocity: number; timestamp: number }) => void)
     | undefined;
+  let onInstrumentChange: ((instrument: InstrumentId) => void) | undefined;
   const runtime = {
     activeSource: "onscreen",
     activeInstrument: "piano",
@@ -245,6 +326,7 @@ function makeRuntime() {
     setActiveInstrument: vi.fn(),
     registerPracticeContext: vi.fn(
       async (context: Parameters<MusicRuntime["registerPracticeContext"]>[0]) => {
+        onInstrumentChange = context.onInstrumentChange;
         context.onBpmChange?.(150);
         return vi.fn();
       },
@@ -257,6 +339,9 @@ function makeRuntime() {
     runtime,
     emit(midiNote: number, timestamp: number) {
       listener?.({ type: "noteOn", midiNote, velocity: 1, timestamp });
+    },
+    changeInstrument(instrument: InstrumentId) {
+      onInstrumentChange?.(instrument);
     },
   };
 }

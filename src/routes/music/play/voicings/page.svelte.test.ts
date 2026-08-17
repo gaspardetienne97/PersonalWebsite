@@ -35,6 +35,34 @@ describe("/music/play/voicings/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(runtime.beginPerformance).not.toHaveBeenCalled();
     expect(document.body.textContent).not.toContain("Play the voicing");
+    expect(button("Start drill")?.disabled).toBe(false);
+    expect(button("Cancel drill")).toBeUndefined();
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      runtime.audioMessage,
+    );
+  });
+
+  test("keeps setup visible and locked while start preflight settles", async () => {
+    const runtime = new MusicRuntime();
+    let resolveVoice!: (enabled: boolean) => void;
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockReturnValue(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    button("Start drill")?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
+
+    expect(button("Piano")?.closest("fieldset")?.disabled).toBe(true);
+    expect(button("Start drill")?.disabled).toBe(true);
+    expect(button("Cancel drill")).toBeUndefined();
+
+    resolveVoice(false);
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    expect(button("Piano")?.closest("fieldset")?.disabled).toBe(false);
   });
 
   test("renders the drill with an instrument toggle and a start button", async () => {
@@ -100,7 +128,9 @@ describe("/music/play/voicings/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("G7b9"));
     expect(runtime.beginPerformance).toHaveBeenCalledOnce();
     expect(register).toHaveBeenCalledWith(
-      expect.objectContaining({ variantKey: "v1:voicings:piano:altered:A:lenient:auto" }),
+      expect.objectContaining({
+        variantKey: "v1:voicings:piano:altered:A:lenient:auto",
+      }),
     );
   });
 
@@ -170,6 +200,20 @@ describe("/music/play/voicings/+page.svelte", () => {
     }
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("View routine summary"));
+    expect(button("Change setup")).not.toBeUndefined();
+    expect(document.activeElement?.textContent).toContain("Drill complete");
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Voicing results ready",
+    );
+
+    button("Change setup")?.click();
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    expect(button("Change setup")).toBeUndefined();
+    expect(document.body.textContent).not.toContain("Drill complete");
+    expect(document.activeElement?.textContent).toContain("Rootless ii-V-I");
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Setup ready",
+    );
     runtime.dispose();
   });
 
@@ -188,7 +232,11 @@ describe("/music/play/voicings/+page.svelte", () => {
           candidate.textContent?.includes("Check chord"),
       );
 
-    await vi.waitFor(() => expect(advanceButton()).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+    expect(button("Piano")).toBeUndefined();
+    expect(document.activeElement?.textContent).toContain("Dm7");
+    expect(button("Cancel drill")?.closest('[data-surface="stage"]')).toBeNull();
+    expect(advanceButton()).not.toBeUndefined();
     for (let index = 0; index < 36; index += 1) {
       advanceButton()?.click();
       if (index === 35) {
@@ -200,8 +248,82 @@ describe("/music/play/voicings/+page.svelte", () => {
 
     await vi.waitFor(() => expect(button("Repeat voicings")).not.toBeUndefined());
     button("Repeat voicings")?.click();
-    await vi.waitFor(() => expect(advanceButton()).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
     expect(document.body.textContent).toContain("1 / 36");
+    runtime.dispose();
+  });
+
+  test("dismisses stale results while a deferred retry activation fails", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    render(Page, { runtime });
+    await completeDrill();
+
+    runtime.audioMessage = "Preferred voice unavailable.";
+    let resolveVoice!: (enabled: boolean) => void;
+    const ensurePlaybackVoice = vi.mocked(runtime.ensurePlaybackVoice);
+    ensurePlaybackVoice.mockClear();
+    ensurePlaybackVoice.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+
+    button("Repeat voicings")?.click();
+    await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
+    expect(document.body.textContent).not.toContain("Drill complete");
+    expect(button("Start drill")?.disabled).toBe(true);
+    expect(button("Change setup")).toBeUndefined();
+
+    resolveVoice(false);
+    await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
+    expect(document.body.textContent).not.toContain("Drill complete");
+    expect(button("Start drill")?.disabled).toBe(false);
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      runtime.audioMessage,
+    );
+    runtime.dispose();
+  });
+
+  test("keeps Change setup authoritative when it races retry preflight", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    render(Page, { runtime });
+    await completeDrill();
+
+    const beginPerformance = vi.mocked(runtime.beginPerformance);
+    beginPerformance.mockClear();
+    button("Repeat voicings")?.click();
+    button("Change setup")?.click();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(button("Cancel drill")).toBeUndefined();
+    expect(button("Start drill")?.disabled).toBe(false);
+    expect(document.body.textContent).not.toContain("Drill complete");
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Setup ready",
+    );
+    runtime.dispose();
+  });
+
+  test("cancels an active run and returns focus to setup", async () => {
+    const runtime = new MusicRuntime();
+    const endPerformance = vi.spyOn(runtime, "endPerformance");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    button("Start drill")?.click();
+    await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+    button("Cancel drill")?.click();
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    expect(button("Cancel drill")).toBeUndefined();
+    expect(document.activeElement?.textContent).toContain("Rootless ii-V-I");
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Drill cancelled",
+    );
+    expect(endPerformance).toHaveBeenCalled();
     runtime.dispose();
   });
 });
@@ -210,6 +332,21 @@ function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (candidate) => candidate.textContent?.trim() === label,
   );
+}
+
+async function completeDrill(): Promise<void> {
+  await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+  button("Start drill")?.click();
+
+  const advance = () => button("Skip chord") ?? button("Check chord");
+  await vi.waitFor(() => expect(advance()).not.toBeUndefined());
+  for (let index = 0; index < 36; index += 1) {
+    advance()?.click();
+    if (index < 35) {
+      await vi.waitFor(() => expect(document.body.textContent).toContain(`${index + 2} / 36`));
+    }
+  }
+  await vi.waitFor(() => expect(button("Repeat voicings")).not.toBeUndefined());
 }
 
 function routineStep(): DailyRoutineStep {

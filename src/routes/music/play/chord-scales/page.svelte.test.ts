@@ -3,6 +3,7 @@ import { render } from "vitest-browser-svelte";
 
 import { scaleSemitones } from "@repo/music-core/exercises/scale-pattern";
 import { monotonicMs } from "@repo/music-core/domain";
+import { SkillGraphStore } from "@repo/music-core/engines/skills";
 
 import Page from "./+page.svelte";
 import { pushTestUrl, setTestUrl } from "../../_components/test-url";
@@ -23,7 +24,35 @@ afterEach(() => {
 });
 
 describe("/music/play/chord-scales/+page.svelte", () => {
-  test("invalidates a pending attempt when the drill configuration changes", async () => {
+  test("gates hear/play controls behind the setup → stage phases", async () => {
+    render(Page);
+
+    // Setup phase: only the Start affordance, no run controls.
+    expect(button("Start drill")).not.toBeUndefined();
+    expect(button("Play it back")).toBeUndefined();
+    expect(button("End run")).toBeUndefined();
+
+    button("Start drill")?.click();
+    await Promise.resolve();
+
+    // Stage phase: setup is hidden during play; run controls appear.
+    expect(button("Play it back")).not.toBeUndefined();
+    expect(button("Hear scale")).not.toBeUndefined();
+    expect(button("End run")).not.toBeUndefined();
+    expect(document.querySelector('[aria-label="Changes"]')).toBeNull();
+    expect(button("Start drill")).toBeUndefined();
+
+    // End run returns to setup.
+    button("End run")?.click();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute("role")).toBe("heading");
+      expect(document.activeElement?.textContent).toContain("Major ii-V-I");
+    });
+    expect(button("Start drill")).not.toBeUndefined();
+    expect(button("Play it back")).toBeUndefined();
+  });
+
+  test("invalidates a pending attempt when the run is ended", async () => {
     const runtime = new MusicRuntime();
     let resolveVoice!: (enabled: boolean) => void;
     vi.spyOn(runtime, "ensurePlaybackVoice").mockReturnValue(
@@ -35,9 +64,11 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     const subscribe = vi.spyOn(runtime.router, "subscribe");
     render(Page, { runtime });
 
+    button("Start drill")?.click();
+    await Promise.resolve();
     button("Play it back")?.click();
     await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
-    button("Minor ii-V-i")?.click();
+    button("End run")?.click();
     resolveVoice(true);
     await Promise.resolve();
 
@@ -60,6 +91,9 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     const playPattern = vi.spyOn(runtime.sound, "playPattern");
     const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
     const view = render(Page, { runtime });
+
+    button("Start drill")?.click();
+    await Promise.resolve();
 
     button("Hear scale")?.click();
     button("Hear scale")?.click();
@@ -92,6 +126,8 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
     render(Page, { runtime });
 
+    button("Start drill")?.click();
+    await Promise.resolve();
     button("Play it back")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
@@ -99,18 +135,24 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     expect(document.body.textContent).not.toContain("Play D Dorian over Dm7");
   });
 
-  test("renders the ii-V-I changes with each chord's go-to scale", async () => {
+  test("previews the ii-V-I changes and each chord's go-to scale in setup", async () => {
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("Chord-Scale Drill");
 
-    const body = document.body.textContent ?? "";
     // Major ii-V-I is the default: Dm7 (Dorian), G7 (Mixolydian), Cmaj7 (Major).
-    expect(body).toContain("Dm7");
-    expect(body).toContain("D Dorian");
-    expect(body).toContain("G Mixolydian");
-    expect(body).toContain("C Major");
+    const setup = document.body.textContent ?? "";
+    expect(setup).toContain("Dm7");
+    expect(setup).toContain("D Dorian");
+    expect(setup).toContain("G Mixolydian");
+    expect(setup).toContain("C Major");
+    expect(button("Start drill")).not.toBeUndefined();
+    expect(button("Play it back")).toBeUndefined();
 
+    button("Start drill")?.click();
+    await Promise.resolve();
+
+    // The stage owns the live progression chart and the hear/play controls.
     expect(
       document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
     ).toContain("Dm7");
@@ -177,6 +219,8 @@ describe("/music/play/chord-scales/+page.svelte", () => {
       scaleSemitones("major").map((semitones) => 60 + semitones),
     ];
 
+    button("Start drill")?.click();
+    await Promise.resolve();
     button("Play it back")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play D Dorian"));
     expect(harness.runtime.beginPerformance).toHaveBeenCalledOnce();
@@ -238,6 +282,98 @@ describe("/music/play/chord-scales/+page.svelte", () => {
       targetSkillIds: expect.arrayContaining(["harmony.ii-v-i"]),
     });
   });
+
+  test("keeps a differently configured retry authoritative while the prior completion persists", async () => {
+    let releaseIngest!: () => void;
+    const ingest = vi.spyOn(SkillGraphStore.prototype, "ingest").mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseIngest = resolve;
+        }),
+    );
+    const harness = makeRuntime();
+    render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
+
+    await completeMajorRun(harness);
+    await vi.waitFor(() => expect(ingest).toHaveBeenCalledOnce());
+
+    button("Practice again")?.click();
+    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    harness.changeInstrument("guitar");
+    await vi.waitFor(() =>
+      expect(harness.runtime.registerPracticeContext).toHaveBeenLastCalledWith(
+        expect.objectContaining({ variantKey: "v1:chord-scales:guitar:major" }),
+      ),
+    );
+    button("Play it back")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Play D Dorian over Dm7"));
+
+    releaseIngest();
+    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce());
+
+    expect(document.body.textContent).toContain("Play D Dorian over Dm7");
+    expect(document.body.textContent).not.toContain("Done —");
+    expect(harness.runtime.recordPractice.mock.calls[0]![0]).toMatchObject({
+      instrument: "piano",
+      note: "Major ii-V-I chord-scales · 100%",
+      scoringEvents: [
+        expect.objectContaining({ exerciseId: "jazz.chord-scale.major" }),
+        expect.objectContaining({ exerciseId: "jazz.chord-scale.major" }),
+        expect.objectContaining({ exerciseId: "jazz.chord-scale.major" }),
+      ],
+      runs: [
+        expect.objectContaining({
+          exerciseId: "jazz.chord-scale.major",
+          instrument: "piano",
+          params: expect.objectContaining({ changesId: "major" }),
+        }),
+      ],
+    });
+  });
+
+  test("keeps a changed setup authoritative while the prior completion persists", async () => {
+    let releaseIngest!: () => void;
+    const ingest = vi.spyOn(SkillGraphStore.prototype, "ingest").mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseIngest = resolve;
+        }),
+    );
+    const harness = makeRuntime();
+    render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
+
+    await completeMajorRun(harness);
+    await vi.waitFor(() => expect(ingest).toHaveBeenCalledOnce());
+
+    button("Change setup")?.click();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.getAttribute("role")).toBe("heading");
+      expect(document.activeElement?.textContent).toContain("Major ii-V-I");
+    });
+    button("Minor ii-V-i")?.click();
+    button("Start drill")?.click();
+    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    button("Play it back")?.click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Play D Locrian over Dm7♭5"),
+    );
+
+    releaseIngest();
+    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce());
+
+    expect(document.body.textContent).toContain("Play D Locrian over Dm7♭5");
+    expect(document.body.textContent).not.toContain("Done —");
+    expect(harness.runtime.recordPractice.mock.calls[0]![0]).toMatchObject({
+      instrument: "piano",
+      note: "Major ii-V-I chord-scales · 100%",
+      runs: [
+        expect.objectContaining({
+          exerciseId: "jazz.chord-scale.major",
+          params: expect.objectContaining({ changesId: "major" }),
+        }),
+      ],
+    });
+  });
 });
 
 function button(label: string): HTMLButtonElement | undefined {
@@ -246,10 +382,35 @@ function button(label: string): HTMLButtonElement | undefined {
   );
 }
 
+async function completeMajorRun(harness: ReturnType<typeof makeRuntime>): Promise<void> {
+  const scales = [
+    scaleSemitones("dorian").map((semitones) => 62 + semitones),
+    scaleSemitones("mixolydian").map((semitones) => 67 + semitones),
+    scaleSemitones("major").map((semitones) => 60 + semitones),
+  ];
+
+  button("Start drill")?.click();
+  for (const [scaleIndex, scale] of scales.entries()) {
+    await vi.waitFor(() => expect(button("Play it back")).not.toBeUndefined());
+    button("Play it back")?.click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        scaleIndex === 0
+          ? "Play D Dorian"
+          : scaleIndex === 1
+            ? "Play G Mixolydian"
+            : "Play C Major",
+      ),
+    );
+    for (const [index, midi] of scale.entries()) harness.emit(midi, index * 100);
+  }
+}
+
 function makeRuntime() {
   let listener:
     | ((event: { type: "noteOn"; midiNote: number; velocity: number; timestamp: number }) => void)
     | undefined;
+  let practiceContext: Parameters<MusicRuntime["registerPracticeContext"]>[0] | undefined;
   const runtime = {
     activeSource: "onscreen",
     activeInstrument: "piano",
@@ -270,6 +431,7 @@ function makeRuntime() {
     setActiveInstrument: vi.fn(),
     registerPracticeContext: vi.fn(
       async (context: Parameters<MusicRuntime["registerPracticeContext"]>[0]) => {
+        practiceContext = context;
         context.onBpmChange?.(132);
         return vi.fn();
       },
@@ -282,6 +444,9 @@ function makeRuntime() {
     runtime,
     emit(midiNote: number, timestamp: number) {
       listener?.({ type: "noteOn", midiNote, velocity: 1, timestamp });
+    },
+    changeInstrument(instrument: "piano" | "guitar") {
+      practiceContext?.onInstrumentChange?.(instrument);
     },
   };
 }

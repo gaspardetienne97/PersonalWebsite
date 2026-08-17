@@ -62,6 +62,61 @@ describe("/music/play/spider/+page.svelte", () => {
     expect(button("Cancel spider")).toBeUndefined();
   });
 
+  test("dismisses stale results while a deferred retry activation fails", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await completeSpider();
+
+    runtime.audioMessage = "Preferred voice unavailable.";
+    let resolveVoice!: (enabled: boolean) => void;
+    const ensurePlaybackVoice = vi.mocked(runtime.ensurePlaybackVoice);
+    ensurePlaybackVoice.mockClear();
+    ensurePlaybackVoice.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+
+    button("Repeat spider")?.click();
+    await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
+    expect(document.body.textContent).not.toContain("Spider complete");
+    expect(button("Starting...")?.disabled).toBe(true);
+    expect(select("Starting fret")?.matches(":disabled")).toBe(true);
+    expect(button("Change setup")).toBeUndefined();
+
+    resolveVoice(false);
+    await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
+    expect(document.body.textContent).not.toContain("Spider complete");
+    expect(button("Start spider")?.disabled).toBe(false);
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      runtime.audioMessage,
+    );
+  });
+
+  test("keeps Change setup authoritative when it races retry preflight", async () => {
+    const runtime = new MusicRuntime();
+    const beginPerformance = vi.mocked(runtime.beginPerformance);
+    const startSpider = vi.spyOn(TechniqueSession.prototype, "startSpider");
+    render(Page, { runtime });
+    await completeSpider();
+    beginPerformance.mockClear();
+    startSpider.mockClear();
+
+    const changeSetup = button("Change setup");
+    button("Repeat spider")?.click();
+    changeSetup?.click();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(startSpider).not.toHaveBeenCalled();
+    expect(button("Cancel spider")).toBeUndefined();
+    expect(button("Start spider")?.disabled).toBe(false);
+    expect(document.body.textContent).not.toContain("Spider complete");
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Setup ready",
+    );
+  });
+
   test("starts from the settled tempo while excluded setup stays locked during preflight", async () => {
     const runtime = new MusicRuntime();
     let resolveVoice!: (enabled: boolean) => void;
@@ -84,7 +139,7 @@ describe("/music/play/spider/+page.svelte", () => {
     await vi.waitFor(() => expect(startSpider).toHaveBeenCalledOnce());
     expect(startSpider).toHaveBeenCalledWith(expect.objectContaining({ startFret: 5, bpm: 120 }));
     expect(runtime.practiceBpm).toBe(120);
-    expect(select("Starting fret")?.value).toBe("5");
+    expect(select("Starting fret")).toBeUndefined();
     expect(window.location.search).toContain("fret=5");
     expect(window.location.search).toContain("bpm=120");
   });
@@ -99,7 +154,11 @@ describe("/music/play/spider/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
 
     button("Start spider")?.click();
-    await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+    await vi.waitFor(() => {
+      expect(button("Cancel spider")).not.toBeUndefined();
+      expect(select("Starting fret")).toBeUndefined();
+      expect(document.activeElement?.textContent).toContain("Guitar string 6");
+    });
     expect(runtime.beginPerformance).toHaveBeenCalledOnce();
     expect(register).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -115,7 +174,42 @@ describe("/music/play/spider/+page.svelte", () => {
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Spider complete");
       expect(button("Repeat spider")).not.toBeUndefined();
+      expect(button("Change setup")).not.toBeUndefined();
+      expect(document.activeElement?.textContent).toContain("Spider complete");
     });
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Spider complete",
+    );
+
+    button("Change setup")?.click();
+    await vi.waitFor(() => {
+      expect(button("Start spider")).not.toBeUndefined();
+      expect(select("Starting fret")).not.toBeUndefined();
+      expect(document.activeElement?.textContent).toContain("Pattern permutations across strings");
+    });
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Setup ready",
+    );
+  });
+
+  test("returns focus and announces when an active spider is cancelled", async () => {
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+    button("Start spider")?.click();
+    await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+    expect(select("Starting fret")).toBeUndefined();
+
+    button("Cancel spider")?.click();
+
+    await vi.waitFor(() => {
+      expect(button("Start spider")).not.toBeUndefined();
+      expect(select("Starting fret")).not.toBeUndefined();
+      expect(document.activeElement?.textContent).toContain("Pattern permutations across strings");
+    });
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Spider cancelled",
+    );
   });
 
   test("restores setup from shareable query parameters", async () => {
@@ -296,7 +390,8 @@ describe("/music/play/spider/+page.svelte", () => {
     button("Slow down")?.click();
 
     await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
-    expect(document.body.textContent).toContain("Tempo · 80 BPM");
+    expect(document.body.textContent).toMatch(/Tempo\s*80\s*BPM/);
+    expect(select("Starting fret")).toBeUndefined();
     expect(window.location.search).toContain("bpm=80");
   });
 });
@@ -317,6 +412,14 @@ function select(label: string): HTMLSelectElement | undefined {
   return [...document.querySelectorAll<HTMLSelectElement>("select")].find(
     (candidate) => candidate.getAttribute("aria-label") === label,
   );
+}
+
+async function completeSpider(): Promise<void> {
+  await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+  button("Start spider")?.click();
+  await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+  for (const fret of [5, 6, 7, 8]) fretButton(6, fret)?.click();
+  await vi.waitFor(() => expect(button("Repeat spider")).not.toBeUndefined());
 }
 
 function createAudioSource() {

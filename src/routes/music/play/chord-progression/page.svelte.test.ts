@@ -336,6 +336,44 @@ test("does not start the clock when teardown wins pending microphone setup", asy
   expect(audioSource.subscribeAnalysis).not.toHaveBeenCalled();
 });
 
+test("keeps setup pending and stops an unresolved microphone start", async () => {
+  let state = { status: "requesting" as const } as { status: "requesting" } | { status: "running" };
+  let resolveCapture!: () => void;
+  const audioSource = {
+    get state() {
+      return state;
+    },
+    start: vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveCapture = resolve;
+        }),
+    ),
+    stop: vi.fn(async () => {}),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn(() => () => {}),
+  };
+  const runtime = new MusicRuntime();
+  render(Page, { audioSource, runtime });
+
+  button("Start")?.click();
+  await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalledOnce());
+
+  expect(button("Blues")).not.toBeUndefined();
+  expect(button("Stop")).not.toBeUndefined();
+  expect(runtime.beginPerformance).not.toHaveBeenCalled();
+
+  button("Stop")?.click();
+  await vi.waitFor(() => expect(audioSource.stop).toHaveBeenCalled());
+  state = { status: "running" };
+  resolveCapture();
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(runtime.beginPerformance).not.toHaveBeenCalled();
+  expect(button("Start")).not.toBeUndefined();
+  expect(button("Stop")).toBeUndefined();
+});
+
 test("does not grade a stale onset into a restarted follower", async () => {
   const callbacks: Array<
     (analysis: {
@@ -375,7 +413,11 @@ test("does not grade a stale onset into a restarted follower", async () => {
     onsetWindow: new Float32Array(8),
   });
   await vi.waitFor(() => expect(analyzeOnsetWindow).toHaveBeenCalledOnce());
+  // Stop settles the run into the summary phase; Change setup returns to setup
+  // where Start reappears for the restart.
   button("Stop")?.click();
+  await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+  button("Change setup")?.click();
   await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
   recordPractice.mockClear();
   button("Start")?.click();
@@ -435,7 +477,7 @@ test("recovers the onset queue after an analyzer rejection", async () => {
   await vi.waitFor(() => expect(analyzeOnsetWindow).toHaveBeenCalledTimes(2));
 });
 
-test("does not publish or persist finish work after teardown wins source stop", async () => {
+test("persists a completed snapshot and blocks Repeat until source stop settles", async () => {
   let resolveStop!: () => void;
   const audioSource = {
     state: { status: "running" as const },
@@ -451,17 +493,304 @@ test("does not publish or persist finish work after teardown wins source stop", 
   };
   const runtime = new MusicRuntime();
   const recordPractice = vi.spyOn(runtime, "recordPractice").mockResolvedValue();
-  const view = render(Page, { audioSource, runtime });
+  render(Page, { audioSource, runtime });
 
   button("Start")?.click();
   await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
   button("Stop")?.click();
   await vi.waitFor(() => expect(audioSource.stop).toHaveBeenCalled());
-  view.unmount();
-  resolveStop();
-  await new Promise((resolve) => setTimeout(resolve, 0));
 
-  expect(recordPractice).not.toHaveBeenCalled();
+  const repeat = button("Repeat");
+  expect(repeat).not.toBeUndefined();
+  expect(repeat).toBeDisabled();
+  repeat?.click();
+  expect(audioSource.start).toHaveBeenCalledOnce();
+  await vi.waitFor(() => expect(recordPractice).toHaveBeenCalledOnce());
+  expect(recordPractice).toHaveBeenCalledWith(
+    expect.objectContaining({
+      source: "drill",
+      note: expect.stringContaining("Chord progression"),
+    }),
+  );
+
+  resolveStop();
+  await vi.waitFor(() => expect(button("Repeat")).not.toBeDisabled());
+  button("Repeat")?.click();
+
+  await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalledTimes(2));
+  expect(recordPractice).toHaveBeenCalledOnce();
+});
+
+test("releases setup after deferred finish when configuration authority changes", async () => {
+  let resolveStop!: () => void;
+  const audioSource = {
+    state: { status: "running" as const },
+    start: vi.fn(async () => {}),
+    stop: vi
+      .fn<() => Promise<void>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveStop = resolve;
+          }),
+      )
+      .mockResolvedValue(undefined),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn(() => () => {}),
+  };
+  const runtime = new MusicRuntime();
+  vi.spyOn(runtime, "recordPractice").mockResolvedValue();
+  render(Page, { audioSource, runtime });
+
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  button("Stop")?.click();
+  await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+  button("Change setup")?.click();
+
+  await vi.waitFor(() => expect(button("Blues")).not.toBeUndefined());
+  const setupFieldset = button("Blues")?.closest("fieldset");
+  if (setupFieldset) setupFieldset.disabled = false;
+  button("Blues")?.click();
+  if (setupFieldset) setupFieldset.disabled = true;
+  await vi.waitFor(() => expect(window.location.search).toContain("group=blues"));
+  expect(button("Start")).toBeDisabled();
+
+  resolveStop();
+
+  await vi.waitFor(() => expect(button("Start")).not.toBeDisabled());
+  expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain("Setup ready");
+  button("Start")?.click();
+  await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalledTimes(2));
+});
+
+test("waits for journal settlement and unlocks after source stop rejects", async () => {
+  let rejectStop!: (error: Error) => void;
+  let resolveRecord!: () => void;
+  const audioSource = {
+    state: { status: "running" as const },
+    start: vi.fn(async () => {}),
+    stop: vi
+      .fn<() => Promise<void>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((_, reject) => {
+            rejectStop = reject;
+          }),
+      )
+      .mockResolvedValue(undefined),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn(() => () => {}),
+  };
+  const runtime = new MusicRuntime();
+  const recordPractice = vi.spyOn(runtime, "recordPractice").mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        resolveRecord = resolve;
+      }),
+  );
+  render(Page, { audioSource, runtime });
+
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  button("Stop")?.click();
+  await vi.waitFor(() => expect(recordPractice).toHaveBeenCalledOnce());
+
+  rejectStop(new Error("Audio close failed."));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(button("Repeat")).toBeDisabled();
+
+  resolveRecord();
+  await vi.waitFor(() => expect(button("Repeat")).not.toBeDisabled());
+  expect(document.body.textContent).toContain("Audio close failed.");
+
+  button("Change setup")?.click();
+  await vi.waitFor(() => expect(button("Start")).not.toBeDisabled());
+  expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain("Setup ready");
+  button("Start")?.click();
+  await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalledTimes(2));
+});
+
+test("waits for source stop and preserves newer setup status when journal rejects", async () => {
+  let resolveStop!: () => void;
+  let rejectRecord!: (error: Error) => void;
+  const audioSource = {
+    state: { status: "running" as const },
+    start: vi.fn(async () => {}),
+    stop: vi
+      .fn<() => Promise<void>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveStop = resolve;
+          }),
+      )
+      .mockResolvedValue(undefined),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn(() => () => {}),
+  };
+  const runtime = new MusicRuntime();
+  vi.spyOn(runtime, "recordPractice").mockImplementationOnce(
+    () =>
+      new Promise<void>((_, reject) => {
+        rejectRecord = reject;
+      }),
+  );
+  render(Page, { audioSource, runtime });
+
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  button("Stop")?.click();
+  await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+  button("Change setup")?.click();
+  await vi.waitFor(() => expect(button("Start")).toBeDisabled());
+
+  rejectRecord(new Error("Journal write failed."));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(button("Start")).toBeDisabled();
+
+  resolveStop();
+  await vi.waitFor(() => expect(button("Start")).not.toBeDisabled());
+  expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain("Setup ready");
+  expect(document.querySelector('[aria-live="polite"]')?.textContent).not.toContain(
+    "Journal write failed.",
+  );
+  button("Start")?.click();
+  await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalledTimes(2));
+});
+
+test("hides setup and surfaces Stop in the stage action while the run is active", async () => {
+  const audioSource = {
+    state: { status: "running" as const },
+    start: vi.fn(async () => {}),
+    stop: vi.fn(async () => {}),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn(() => () => {}),
+  };
+  const runtime = new MusicRuntime();
+  render(Page, { audioSource, runtime });
+
+  // Setup phase: a group control and Start are present, Stop is not.
+  expect(button("Start")).not.toBeUndefined();
+  expect(button("Blues")).not.toBeUndefined();
+  expect(button("Stop")).toBeUndefined();
+
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  // Stage phase: setup is hidden.
+  expect(button("Start")).toBeUndefined();
+  expect(button("Blues")).toBeUndefined();
+});
+
+test("settles the run into the summary phase on Stop and returns to setup", async () => {
+  let analysisCb:
+    | ((a: {
+        chroma: Float32Array;
+        timestamp: number;
+        onset: boolean;
+        onsetWindow?: Float32Array;
+      }) => void)
+    | undefined;
+  const audioSource = {
+    state: { status: "running" as const },
+    start: vi.fn(async () => {}),
+    stop: vi.fn(async () => {}),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn((cb: typeof analysisCb) => {
+      analysisCb = cb;
+      return () => {};
+    }),
+  };
+  const expected = expectedChordsFromProgression(JAM_PROGRESSIONS[0]!);
+  let call = 0;
+  const analyzeOnsetWindow = vi.fn(async () => {
+    const chord = expected[Math.min(call++, expected.length - 1)]!;
+    return chord.pitchClasses.map((pc) => 60 + pc);
+  });
+  const runtime = new MusicRuntime();
+  render(Page, { audioSource, analyzeOnsetWindow, runtime });
+
+  button("Start")?.click();
+  await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalled());
+  // Grade a couple of chords, then stop — Stop finalizes the run (finish()).
+  for (let i = 0; i < 2; i++) {
+    analysisCb?.({
+      chroma: new Float32Array(12),
+      timestamp: 1000 + i,
+      onset: true,
+      onsetWindow: new Float32Array(8),
+    });
+    await vi.waitFor(() => expect(analyzeOnsetWindow).toHaveBeenCalledTimes(i + 1));
+  }
+  button("Stop")?.click();
+
+  // Summary phase: results are shown, setup and stage controls are hidden.
+  await vi.waitFor(() => expect(document.body.textContent).toContain("chords matched"));
+  expect(button("Change setup")).not.toBeUndefined();
+  expect(button("Start")).toBeUndefined();
+  expect(button("Stop")).toBeUndefined();
+
+  // Change setup returns to the setup phase.
+  button("Change setup")?.click();
+  await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+});
+
+test("moves focus through stage, summary, and back to setup", async () => {
+  const audioSource = {
+    state: { status: "running" as const },
+    start: vi.fn(async () => {}),
+    stop: vi.fn(async () => {}),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn(() => () => {}),
+  };
+  render(Page, { audioSource });
+
+  button("Start")?.click();
+  await vi.waitFor(() =>
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-testid="chord-progression-stage-heading"]'),
+    ),
+  );
+
+  button("Stop")?.click();
+  await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+  await vi.waitFor(() => {
+    const summaryLabel = [...document.querySelectorAll("p")].find(
+      (element) => element.textContent?.trim() === "Progression complete",
+    );
+    expect(document.activeElement).toBe(summaryLabel?.parentElement);
+  });
+
+  button("Change setup")?.click();
+  await vi.waitFor(() =>
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-testid="chord-progression-setup-heading"]'),
+    ),
+  );
+});
+
+test("keeps one persistent phase-truthful live announcement after Change setup", async () => {
+  const audioSource = {
+    state: { status: "running" as const },
+    start: vi.fn(async () => {}),
+    stop: vi.fn(async () => {}),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn(() => () => {}),
+  };
+  render(Page, { audioSource });
+  const liveRegion = document.querySelector('[aria-live="polite"]');
+
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  button("Stop")?.click();
+  await vi.waitFor(() => expect(liveRegion?.textContent).toContain("Progression complete"));
+
+  button("Change setup")?.click();
+  await vi.waitFor(() => expect(liveRegion?.textContent).toContain("Setup ready"));
+
+  expect(liveRegion?.isConnected).toBe(true);
+  expect(liveRegion?.textContent).not.toContain("Progression complete");
+  expect(document.querySelectorAll('[aria-live="polite"]')).toHaveLength(1);
 });
 
 test("restores progression drill setup from shareable query parameters", async () => {

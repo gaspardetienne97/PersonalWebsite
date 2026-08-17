@@ -36,6 +36,7 @@
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
   import { meanPartialCredit } from "@repo/music-core/engines/sessions";
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -112,6 +113,19 @@
           ? "Microphone"
           : "On-screen",
   );
+  const phase = $derived<"setup" | "stage" | "summary">(
+    runSummary ? "summary" : sessionState?.status === "active" ? "stage" : "setup",
+  );
+  const liveAnnouncement = $derived(
+    phase === "summary" && runSummary
+      ? `Pulse complete. ${Math.round(runSummary.accuracy * 100)}% accuracy · ${runSummary.xp} XP.`
+      : status,
+  );
+
+  let activeHeading = $state<HTMLHeadingElement | null>(null);
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let setupHeading = $state<HTMLDivElement | null>(null);
+  let previousPhase: "setup" | "stage" | "summary" | undefined;
 
   void initialize();
 
@@ -122,6 +136,16 @@
 
   $effect(() => {
     registerRhythmContext(mode, pattern);
+  });
+
+  $effect(() => {
+    const current = phase;
+    const previous = previousPhase;
+    previousPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "stage") activeHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupHeading?.focus({ preventScroll: false });
   });
 
   $effect(() => {
@@ -264,6 +288,15 @@
     status = "Ready for a rhythm session.";
   }
 
+  function cancel(): void {
+    if (!session?.abandon()) {
+      status = "Finishing rhythm result.";
+      return;
+    }
+    runtime.endPerformance();
+    status = "Rhythm cancelled. You can start again.";
+  }
+
   function prepareBpm(nextBpm: number): void {
     runtime.setPracticeVariantBpm(nextBpm, rhythmVariantKey(mode, pattern));
     repeat();
@@ -370,30 +403,113 @@
 
   <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
-  <PracticeDrillShell complete={!!runSummary}>
+  <p class="sr-only" aria-live="polite" data-testid="rhythm-live-announcement">
+    {liveAnnouncement}
+  </p>
+
+  {#snippet inputActions()}
+    <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+      {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+    </Button>
+    <Button
+      type="button"
+      variant="outline"
+      disabled={!AudioPitchSource.supported || microphoneState.status === "requesting"}
+      onclick={toggleMicrophone}
+    >
+      {microphoneState.status === "running"
+        ? "Stop microphone"
+        : microphoneState.status === "requesting"
+          ? "Starting microphone..."
+          : "Start microphone"}
+    </Button>
+  {/snippet}
+
+  {#snippet summaryPhase()}
+    <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={repeat}>
+      {#snippet heading()}
+        <Card.Description>Pulse complete</Card.Description>
+        <Card.Title>
+          {Math.round((runSummary?.accuracy ?? 0) * 100)}% accuracy · {runSummary?.xp ?? 0} XP
+        </Card.Title>
+      {/snippet}
+      {#snippet children()}
+        <div class="grid gap-4 text-sm text-muted-foreground">
+          <TimingMeter offsetMs={hud?.offsetMs ?? 0} />
+          <div class="grid grid-cols-3 gap-2">
+            <div class="rounded-lg border p-3 text-center">
+              <span class="block text-xl font-bold tabular-nums text-foreground"
+                >{hud?.accuracyPct ?? 0}%</span
+              >
+              <small>Accuracy</small>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <span class="block text-xl font-bold tabular-nums text-foreground"
+                >{hud?.offsetMs ?? 0}<small>ms</small></span
+              >
+              <small>Signed offset</small>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <span class="block text-xl font-bold tabular-nums text-foreground"
+                >±{hud?.avgAbsOffsetMs ?? 0}<small>ms</small></span
+              >
+              <small>Avg offset</small>
+            </div>
+          </div>
+          <p>{runSummary?.results[0]?.result.feedback[0]?.message}</p>
+        </div>
+      {/snippet}
+      {#snippet actions()}
+        <Button
+          type="button"
+          disabled={bpm >= 220}
+          onclick={() => prepareBpm(Math.min(220, bpm + 10))}
+        >
+          Increase to {Math.min(220, bpm + 10)} BPM
+        </Button>
+        <Button type="button" variant="outline" onclick={() => prepareBpm(bpm)}>
+          Repeat at {bpm} BPM
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={bpm <= 40}
+          onclick={() => prepareBpm(Math.max(40, bpm - 10))}
+        >
+          Slow to {Math.max(40, bpm - 10)} BPM
+        </Button>
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta
+          tags={["rhythm"]}
+          accuracy={meanPartialCredit((runSummary?.results ?? []).map((result) => result.event))}
+          before={visitStartedAt}
+        />
+      {/snippet}
+      {#snippet routineContinue()}
+        <RoutineContinueAction routine={runtime.dailyRoutine} />
+      {/snippet}
+      {#snippet nextUp()}
+        <NextUpSuggestion
+          {skills}
+          {analytics}
+          currentPath="/music/learn/rhythm"
+          routine={runtime.dailyRoutine}
+        />
+      {/snippet}
+    </DrillSummaryCard>
+  {/snippet}
+
+  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
     {#snippet setup()}
       <Card.Root>
         <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
           <div class="space-y-1">
             <Card.Description>Pattern practice</Card.Description>
-            <Card.Title>{patternLabel}</Card.Title>
+            <Card.Title bind:ref={setupHeading} tabindex="-1">{patternLabel}</Card.Title>
           </div>
           <div class="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!AudioPitchSource.supported || microphoneState.status === "requesting"}
-              onclick={toggleMicrophone}
-            >
-              {microphoneState.status === "running"
-                ? "Stop microphone"
-                : microphoneState.status === "requesting"
-                  ? "Starting microphone..."
-                  : "Start microphone"}
-            </Button>
+            {@render inputActions()}
           </div>
         </Card.Header>
         <Card.Content class="grid gap-6">
@@ -448,72 +564,80 @@
           >
             {pending ? "Starting..." : "Start Rhythm"}
           </Button>
-            <StartShortcut onStart={() => void startPulse()} />
-          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+          <StartShortcut onStart={() => void startPulse()} />
+          <p class="text-sm text-muted-foreground">{status}</p>
         </Card.Footer>
       </Card.Root>
     {/snippet}
 
     {#snippet stage()}
-      {#if sessionState?.status === "active"}
-        <PracticeStage class="grid gap-4 p-5">
-          <div class="flex items-center justify-between gap-3">
-            <p class="text-sm font-medium">Progress</p>
-            <p class="text-sm text-stage-muted">{liveProgress}%</p>
-          </div>
-          <!-- beat visualizer -->
-          <div class="flex justify-center gap-3" aria-hidden="true">
-            {#each Array.from({ length: beats }, (_, i) => i) as beatIndex (beatIndex)}
-              <div
-                class="grid size-11 place-items-center rounded-full border text-sm font-bold tabular-nums transition-colors {beatIndex ===
-                activeBeatIndex
-                  ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
-                  : 'border-stage-line text-stage-muted'}"
-              >
-                {beatIndex + 1}
-              </div>
-            {/each}
-          </div>
-          <Progress value={liveProgress} max={100} />
-            <div class="grid grid-cols-2 gap-2 text-center">
-            <div class="rounded-lg border border-stage-line p-2">
-              <span class="block text-lg font-bold tabular-nums">{hud?.runningScorePct ?? 0}%</span>
-              <small class="text-stage-muted">Running score</small>
-            </div>
-            <div class="rounded-lg border border-stage-line p-2">
-              <span class="block text-lg font-bold tabular-nums">{liveProgress}%</span>
-              <small class="text-stage-muted">Through pattern</small>
-            </div>
-          </div>
-          <p class="text-center text-sm font-medium text-stage-muted">{patternLabel}</p>
-          {#if mode === "read-and-tap" && activePatternEvents.length > 0}
+      <PracticeStage class="grid gap-4 p-5">
+        <div class="text-center">
+          <p class="eyebrow">Focus mode · {modeLabel}</p>
+          <h2 tabindex="-1" bind:this={activeHeading} class="text-2xl font-bold tracking-tight">
+            {patternLabel}
+          </h2>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-medium">Progress</p>
+          <p class="text-sm text-stage-muted">{liveProgress}%</p>
+        </div>
+        <!-- beat visualizer -->
+        <div class="flex justify-center gap-3" aria-hidden="true">
+          {#each Array.from({ length: beats }, (_, i) => i) as beatIndex (beatIndex)}
             <div
-              aria-label="Rhythm pattern target"
-              class="grid gap-2 rounded-lg border border-stage-line bg-stage-2/70 p-3"
+              class="grid size-11 place-items-center rounded-full border text-sm font-bold tabular-nums transition-colors {beatIndex ===
+              activeBeatIndex
+                ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
+                : 'border-stage-line text-stage-muted'}"
             >
-              <div class="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-wide text-stage-muted">
-                <span>{modeLabel}</span>
-                <span>{patternLabel}</span>
-              </div>
-              <div class="grid grid-cols-4 gap-2">
-                {#each activePatternEvents as event (event.id)}
-                  <div
-                    class="grid min-h-12 place-items-center rounded-md border text-sm font-bold tabular-nums {event.accent ===
-                    'accent'
-                      ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
-                      : 'border-stage-line bg-background/70 text-foreground'}"
-                  >
-                    {event.beat + 1}
-                  </div>
-                {/each}
-              </div>
+              {beatIndex + 1}
             </div>
-          {/if}
-          <Button type="button" size="lg" data-testid="tap-beat" onclick={tapBeat}>
-            {mode === "read-and-tap" ? "Tap rhythm" : "Tap beat"}
-          </Button>
-        </PracticeStage>
-      {/if}
+          {/each}
+        </div>
+        <Progress value={liveProgress} max={100} />
+        <div class="grid grid-cols-2 gap-2 text-center">
+          <div class="rounded-lg border border-stage-line p-2">
+            <span class="block text-lg font-bold tabular-nums">{hud?.runningScorePct ?? 0}%</span>
+            <small class="text-stage-muted">Running score</small>
+          </div>
+          <div class="rounded-lg border border-stage-line p-2">
+            <span class="block text-lg font-bold tabular-nums">{liveProgress}%</span>
+            <small class="text-stage-muted">Through pattern</small>
+          </div>
+        </div>
+        {#if mode === "read-and-tap" && activePatternEvents.length > 0}
+          <div
+            aria-label="Rhythm pattern target"
+            class="grid gap-2 rounded-lg border border-stage-line bg-stage-2/70 p-3"
+          >
+            <div class="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-wide text-stage-muted">
+              <span>{modeLabel}</span>
+              <span>{patternLabel}</span>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+              {#each activePatternEvents as event (event.id)}
+                <div
+                  class="grid min-h-12 place-items-center rounded-md border text-sm font-bold tabular-nums {event.accent ===
+                  'accent'
+                    ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
+                    : 'border-stage-line bg-background/70 text-foreground'}"
+                >
+                  {event.beat + 1}
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+        <Button type="button" size="lg" data-testid="tap-beat" onclick={tapBeat}>
+          {mode === "read-and-tap" ? "Tap rhythm" : "Tap beat"}
+        </Button>
+      </PracticeStage>
+    {/snippet}
+
+    {#snippet stageAction()}
+      {@render inputActions()}
+      <Button type="button" variant="outline" onclick={cancel}>Cancel rhythm</Button>
     {/snippet}
 
     {#snippet rail()}
@@ -526,55 +650,6 @@
           { label: "Streak", value: `${progress.state.streakDays} days` },
         ]}
       />
-    {/snippet}
-
-    {#snippet summary()}
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Pulse complete</Card.Description>
-          <Card.Title>
-            {Math.round((runSummary?.accuracy ?? 0) * 100)}% accuracy · {runSummary?.xp ?? 0} XP
-          </Card.Title>
-        </Card.Header>
-        <Card.Content class="grid gap-4 text-sm text-muted-foreground">
-          <TimingMeter offsetMs={hud?.offsetMs ?? 0} />
-          <div class="grid grid-cols-3 gap-2">
-            <div class="rounded-lg border p-3 text-center">
-              <span class="block text-xl font-bold tabular-nums text-foreground"
-                >{hud?.accuracyPct ?? 0}%</span
-              >
-              <small>Accuracy</small>
-            </div>
-            <div class="rounded-lg border p-3 text-center">
-              <span class="block text-xl font-bold tabular-nums text-foreground"
-                >{hud?.offsetMs ?? 0}<small>ms</small></span
-              >
-              <small>Signed offset</small>
-            </div>
-            <div class="rounded-lg border p-3 text-center">
-              <span class="block text-xl font-bold tabular-nums text-foreground"
-                >±{hud?.avgAbsOffsetMs ?? 0}<small>ms</small></span
-              >
-              <small>Avg offset</small>
-            </div>
-          </div>
-          <p>{runSummary?.results[0]?.result.feedback[0]?.message}</p>
-        </Card.Content>
-        <Card.Footer class="flex-wrap gap-3">
-          <LastRunDelta tags={["rhythm"]} accuracy={meanPartialCredit((runSummary?.results ?? []).map((result) => result.event))} before={visitStartedAt} />
-          <Button type="button" disabled={bpm >= 220} onclick={() => prepareBpm(Math.min(220, bpm + 10))}>
-            Increase to {Math.min(220, bpm + 10)} BPM
-          </Button>
-          <Button type="button" variant="outline" onclick={() => prepareBpm(bpm)}>
-            Repeat at {bpm} BPM
-          </Button>
-          <Button type="button" variant="outline" disabled={bpm <= 40} onclick={() => prepareBpm(Math.max(40, bpm - 10))}>
-            Slow to {Math.max(40, bpm - 10)} BPM
-          </Button>
-          <RoutineContinueAction routine={runtime.dailyRoutine} />
-          <NextUpSuggestion {skills} {analytics} currentPath="/music/learn/rhythm" routine={runtime.dailyRoutine} />
-        </Card.Footer>
-      </Card.Root>
     {/snippet}
   </PracticeDrillShell>
 </PracticeScreen>

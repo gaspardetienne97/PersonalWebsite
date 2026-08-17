@@ -52,8 +52,11 @@
 
   import FretboardInput from "../../learn/reading/_components/FretboardInput.svelte";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
@@ -159,6 +162,7 @@
   let destroyed = false;
   let verifierPending = false;
   let routeGeneration = 0;
+  let startRequest = 0;
   let practiceContextReady: Promise<void> = Promise.resolve();
   let captured = false;
   let status = $state("Preparing chord technique.");
@@ -215,6 +219,30 @@
   const changeAnswer = $derived(
     summary?.results[0]?.result.answer as ChordChangeAnswer | undefined,
   );
+  // Set true while setup or start preflight owns the view. A successful current
+  // activation clears it after the old summary can no longer resurface.
+  let resultsDismissed = $state(false);
+  // The shell phase, computed from route state. Only the graded build/changes
+  // drills have a summary; pick (verifier) and strum (identify) stay in setup.
+  const phase = $derived<"setup" | "stage" | "summary">(
+    summary && (mode === "build" || mode === "changes") && !resultsDismissed
+      ? "summary"
+      : sessionState?.status === "active" || verifierActive
+        ? "stage"
+        : "setup",
+  );
+  const liveAnnouncement = $derived(
+    phase === "summary"
+      ? mode === "build"
+        ? `Chord-perfect results ready. ${Math.round((answer?.pitchAccuracy ?? 0) * 100)}% strings clean.`
+        : `Chord-change results ready. ${changeAnswer?.cleanChanges ?? 0} clean changes.`
+      : status,
+  );
+  // Route keeps focus authority across every keyed phase swap.
+  let setupHeading = $state<HTMLElement | null>(null);
+  let stageHeading = $state<HTMLHeadingElement | null>(null);
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let previousPhase: "setup" | "stage" | "summary" | undefined;
   const shapeMidi = $derived(chordShapeMidiNotes(tuning, shape));
   const transitionMidi = $derived([
     ...new Set([...shapeMidi, ...chordShapeMidiNotes(tuning, toShape)]),
@@ -306,6 +334,16 @@
     runtime.endPerformance();
     verifierActive = false;
     if (micVerifierActive) void stopMicVerifier();
+  });
+
+  $effect(() => {
+    const current = phase;
+    const previous = previousPhase;
+    previousPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "stage") stageHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupHeading?.focus({ preventScroll: false });
   });
 
   async function initialize(): Promise<void> {
@@ -412,21 +450,25 @@
 
   async function start(): Promise<void> {
     if (!ready || pending || !session) return;
+    const request = ++startRequest;
     pending = true;
     captured = false;
-    status = "";
+    resultsDismissed = true;
+    status = "Starting chord-perfect drill.";
     try {
       await tick();
       const generation = routeGeneration;
       await practiceContextReady;
-      if (generation !== routeGeneration) return;
+      if (request !== startRequest || generation !== routeGeneration) return;
       if (!(await runtime.ensurePlaybackVoice())) {
-        if (generation === routeGeneration) status = runtime.audioMessage;
+        if (request === startRequest && generation === routeGeneration) {
+          status = runtime.audioMessage;
+        }
         return;
       }
-      if (generation !== routeGeneration) return;
+      if (request !== startRequest || generation !== routeGeneration) return;
       const performance = await runtime.beginPerformance();
-      if (generation !== routeGeneration) {
+      if (request !== startRequest || generation !== routeGeneration) {
         if (performance.status === "started") runtime.endPerformance();
         return;
       }
@@ -441,7 +483,7 @@
           toShape,
           durationSeconds: changeDurationSeconds,
         });
-        if (generation !== routeGeneration) {
+        if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
           session.abandon();
           return;
@@ -451,7 +493,7 @@
         status = `Alternate ${shape.name} → ${toShape.name} — as many clean changes as you can.`;
       } else if (mode === "changes") {
         await session.startChordChange({ tuning, fromShape: shape, toShape, repetitions });
-        if (generation !== routeGeneration) {
+        if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
           session.abandon();
           return;
@@ -459,26 +501,42 @@
         status = `Alternate ${shape.name} → ${toShape.name} cleanly, ${repetitions}×.`;
       } else {
         await session.startChordPerfect({ tuning, shape });
-        if (generation !== routeGeneration) {
+        if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
           session.abandon();
           return;
         }
         status = `Sound each string of ${shape.name}, low to high.`;
       }
+      resultsDismissed = false;
     } catch (error) {
-      runtime.endPerformance();
-      status = message(error, "The chord-perfect drill could not be started.");
+      if (request === startRequest) {
+        runtime.endPerformance();
+        status = message(error, "The chord-perfect drill could not be started.");
+      }
     } finally {
-      pending = false;
+      if (request === startRequest) pending = false;
     }
   }
 
   function cancel(): void {
+    startRequest += 1;
+    pending = false;
+    resultsDismissed = true;
     clearChangeTimer();
     runtime.endPerformance();
     session?.abandon();
     status = "Drill cancelled. You can start again.";
+  }
+
+  // Leave the summary phase for setup. abandon() no-ops once a run has settled
+  // into its summary, so returning to setup is a route-owned view decision.
+  function changeSetup(): void {
+    startRequest += 1;
+    pending = false;
+    runtime.endPerformance();
+    status = "Setup ready. Change the chord settings or start again.";
+    resultsDismissed = true;
   }
 
   function clearChangeTimer(): void {
@@ -857,6 +915,7 @@
 
   onDestroy(() => {
     destroyed = true;
+    startRequest += 1;
     routeGeneration += 1;
     releasePreparedStrum();
     clearChangeTimer();
@@ -895,383 +954,453 @@
 
   <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
-  <section class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <Card.Root class="min-w-0">
-      <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <Card.Description>{modeCopy.description}</Card.Description>
-          <Card.Title>{modeCopy.title}</Card.Title>
-          <Card.Description>{modeCopy.detail}</Card.Description>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <SegmentedControl
-            ariaLabel="Chord-perfect workflow"
-            options={modeOptions}
-            value={mode}
-            onChange={selectMode}
-          />
-          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-          </Button>
-        </div>
-      </Card.Header>
+  <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
-      <Card.Content class="grid gap-6">
-        <fieldset disabled={sessionState?.status === "active"} class="grid gap-4 disabled:opacity-70">
-          <SegmentedControl
-            ariaLabel="Instrument"
-            options={instrumentOptions}
-            value={instrument}
-            onChange={(value) => {
-              selectInstrument(value);
-              runtime.setActiveInstrument(value as StringInstrumentId);
-            }}
-          />
-          <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
-          <div class="grid gap-2">
-            <Label for="chord-shape">Chord</Label>
-            <select
-              id="chord-shape"
-              aria-label="Chord"
-              bind:value={shapeId}
-              onchange={(event) => selectShape(event.currentTarget.value)}
-              class="h-9 rounded-md border bg-background px-3 text-sm"
-            >
-              {#each shapes as entry (entry.id)}
-                <option value={entry.id}>{entry.name}</option>
-              {/each}
-            </select>
-          </div>
-          {#if mode === "changes"}
-            <div class="grid gap-2">
-              <Label for="target-chord-shape">To chord</Label>
-              <select
-                id="target-chord-shape"
-                aria-label="To chord"
-                bind:value={toShapeId}
-                class="h-9 rounded-md border bg-background px-3 text-sm"
-                onchange={(event) => selectToShape(event.currentTarget.value)}
-              >
-                {#each transitionShapes as entry (entry.id)}
-                  <option value={entry.id}>{entry.name}</option>
-                {/each}
-              </select>
-            </div>
-            <div class="grid gap-2">
-              <Label id="change-format-label">Format</Label>
-              <SegmentedControl
-                size="sm"
-                ariaLabel="Format"
-                options={[
-                  { value: "reps", label: "Reps" },
-                  { value: "timed", label: "One-minute" },
-                ]}
-                value={timed ? "timed" : "reps"}
-                onChange={(value) => (timed = value === "timed")}
-              />
-            </div>
-            {#if !timed}
-              <div class="grid gap-2">
-                <Label id="change-repetitions-label">Repetitions</Label>
-                <SegmentedControl
-                  size="sm"
-                  ariaLabel="Repetitions"
-                  options={CHORD_CHANGE_REPETITION_OPTIONS.map((count) => ({
-                    value: String(count),
-                    label: `${count}×`,
-                  }))}
-                  value={String(repetitions)}
-                  onChange={selectRepetitions}
-                />
-              </div>
-            {/if}
-          {/if}
-        </fieldset>
+  <!-- Shared run content: HUD + the mode-specific body, minus the graded
+       summaries (those are consolidated into DrillSummaryCard). Rendered in
+       both setup (as a live preview) and stage (as the play surface). -->
+  {#snippet hudTiles()}
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <HudTile label="Strings" value={completedNotes} unit={`/${total || "—"}`} />
+      <HudTile
+        label="Clean"
+        value={Math.round((sessionState?.live?.runningScore ?? 0) * 100)}
+        unit="%"
+        tone="good"
+      />
+      <HudTile
+        label="Chord"
+        value={mode === "changes" ? `${shape.name} to ${toShape.name}` : shape.name}
+        tone="accent"
+      />
+    </div>
+  {/snippet}
 
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <HudTile label="Strings" value={completedNotes} unit={`/${total || "—"}`} />
-          <HudTile
-            label="Clean"
-            value={Math.round((sessionState?.live?.runningScore ?? 0) * 100)}
-            unit="%"
-            tone="good"
-          />
-          <HudTile
-            label="Chord"
-            value={mode === "changes" ? `${shape.name} to ${toShape.name}` : shape.name}
-            tone="accent"
-          />
-        </div>
-
+  {#snippet modeContent()}
+    {#if mode === "build"}
+      {#if prompt}
         <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-          <div>
-            <p class="text-sm font-medium">Suggested fingering</p>
-            <p class="text-xs text-muted-foreground">Low string to high string</p>
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <span class="font-medium">{prompt.label}</span>
+            <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
           </div>
-          <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {#each shapeGuide as string (string.key)}
-              <div class="rounded-md border bg-background px-3 py-2 text-sm">
-                <div class="flex items-center justify-between gap-3">
-                  <span class="font-medium">String {string.stringNumber}</span>
-                  {#if string.fret === null}
-                    <span class="text-muted-foreground">Muted</span>
-                  {:else if string.fret === 0}
-                    <span class="text-muted-foreground">Open</span>
-                  {:else}
-                    <span>Fret {string.fret}</span>
-                  {/if}
-                </div>
-                {#if string.finger !== null}
-                  <p class="text-xs text-muted-foreground">Finger {string.finger}</p>
-                {/if}
-              </div>
+          <Progress value={completedNotes} max={total} />
+          <p class="text-sm text-muted-foreground">{status}</p>
+        </div>
+      {/if}
+    {:else if mode === "pick"}
+      <div class="grid gap-4 rounded-lg border bg-muted/30 p-4">
+        {#if verifierActive || verifiedMidiNotes.length > 0}
+          <SessionFeedback
+            kind={verification.correct ? "correct" : "wrong"}
+            message="Target chord tones"
+            detail={verifierFeedbackDetail}
+          />
+        {/if}
+        <div class="grid gap-2 text-sm">
+          <p class="font-medium">Tone map</p>
+          <div class="flex flex-wrap gap-2">
+            {#each verifierToneMap as tone (`${tone.pitchClass}-${tone.status}`)}
+              <span
+                class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status ===
+                'matched'
+                  ? 'border-success/30 bg-success/10 text-success'
+                  : tone.status === 'extra'
+                    ? 'border-warn/30 bg-warn/10 text-warn'
+                    : 'border-muted-foreground/25 bg-background text-muted-foreground'}"
+              >
+                {tone.label} {tone.status}
+              </span>
             {/each}
           </div>
+          <p class="text-muted-foreground">Observed: {observedToneLabels}</p>
+          <p class="text-muted-foreground">Missing: {missingToneLabels}</p>
         </div>
-
-        {#if mode === "build"}
-          {#if prompt}
-            <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-              <div class="flex items-center justify-between gap-3 text-sm">
-                <span class="font-medium">{prompt.label}</span>
-                <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
-              </div>
-              <Progress value={completedNotes} max={total} />
-              <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-            </div>
-          {/if}
-
-          {#if summary && answer}
-            <SessionFeedback
-              kind={summary.correct === summary.total ? "correct" : "wrong"}
-              message="Chord-perfect check"
-              detail={`${Math.round(answer.pitchAccuracy * 100)}% of strings rang clean`}
-              xp={summary.xp}
-            />
-            <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat chord" />
-          {/if}
-        {:else if mode === "pick"}
-          <div class="grid gap-4 rounded-lg border bg-muted/30 p-4">
-            {#if verifierActive || verifiedMidiNotes.length > 0}
-              <SessionFeedback
-                kind={verification.correct ? "correct" : "wrong"}
-                message="Target chord tones"
-                detail={verifierFeedbackDetail}
-              />
-            {/if}
-            <div class="grid gap-2 text-sm">
-              <p class="font-medium">Tone map</p>
-              <div class="flex flex-wrap gap-2">
-                {#each verifierToneMap as tone (`${tone.pitchClass}-${tone.status}`)}
-                  <span
-                    class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status ===
-                    'matched'
-                      ? 'border-success/30 bg-success/10 text-success'
-                      : tone.status === 'extra'
-                        ? 'border-warn/30 bg-warn/10 text-warn'
-                        : 'border-muted-foreground/25 bg-background text-muted-foreground'}"
-                  >
-                    {tone.label} {tone.status}
-                  </span>
-                {/each}
-              </div>
-              <p class="text-muted-foreground">Observed: {observedToneLabels}</p>
-              <p class="text-muted-foreground">Missing: {missingToneLabels}</p>
-            </div>
-            {#if audioState.status === "denied" || audioState.status === "error"}
-              <p class="text-destructive">{audioState.message}</p>
-            {/if}
-          </div>
-        {:else if mode === "changes"}
-          {#if changePrompt}
-            <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-              <div class="flex items-center justify-between gap-3 text-sm">
-                <span class="font-medium">{changePrompt.label}</span>
-                {#if changePrompt.durationSeconds !== undefined}
-                  <span class="tabular-nums text-muted-foreground" data-testid="change-clock">
-                    {changePrompt.durationSeconds}s timed run
-                  </span>
-                {:else}
-                  <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
-                {/if}
-              </div>
-              {#if changePrompt.durationSeconds !== undefined}
-                <p class="text-xs text-muted-foreground">Keep changing until the timed run ends.</p>
-              {:else}
-                <Progress value={completedNotes} max={total} />
-              {/if}
-              <div class="flex flex-wrap gap-2 text-xs font-medium">
-                {#each changePrompt.targets as target (target.index)}
-                  <span
-                    class="rounded-full border px-2.5 py-1 {target.index ===
-                    Math.floor(completedNotes / Math.max(1, target.midiNotes.length))
-                      ? 'border-primary/30 bg-primary/10 text-primary'
-                      : 'bg-background text-muted-foreground'}"
-                  >
-                    {target.label}
-                  </span>
-                {/each}
-              </div>
-              <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-            </div>
-          {:else}
-            <div class="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
-              <p class="font-medium">{shape.name} to {toShape.name}</p>
-              <p class="text-muted-foreground">Start changes, play the first chord, then switch.</p>
-            </div>
-          {/if}
-
-          {#if summary && changeAnswer}
-            <SessionFeedback
-              kind={summary.correct === summary.total ? "correct" : "wrong"}
-              message="Chord changes complete"
-              detail={changeAnswer.changesPerMinute === undefined
-                ? `${changeAnswer.cleanChanges}/${changeAnswer.completedChanges || changePrompt?.targets.length || 0} targets clean${
-                    changeAnswer.firstChangeLatencyMs === undefined
-                      ? ""
-                      : ` · first change ${(changeAnswer.firstChangeLatencyMs / 1000).toFixed(1)}s`
-                  }`
-                : `${changeAnswer.changesPerMinute} clean changes/min · ${changeAnswer.cleanChanges}/${changeAnswer.completedChanges} strums clean`}
-              xp={summary.xp}
-            />
-            <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat changes" />
-          {/if}
-        {:else}
-          <div class="grid gap-4 rounded-lg border bg-muted/30 p-4 text-sm">
-            {#if strumCandidates.length}
-              <div class="flex flex-wrap items-baseline gap-2">
-                <span class="text-2xl font-semibold">{strumCandidates[0]!.symbol}</span>
-                <span class="text-muted-foreground">
-                  {Math.round(strumCandidates[0]!.confidence * 100)}% match
-                </span>
-              </div>
-              {#if strumCandidates.length > 1}
-                <p class="text-xs text-muted-foreground">
-                  Other readings:
-                  {strumCandidates
-                    .slice(1, 3)
-                    .map(
-                      (candidate) =>
-                        `${candidate.symbol} (${Math.round(candidate.confidence * 100)}%)`,
-                    )
-                    .join(", ")}
-                </p>
-              {/if}
-            {/if}
-            <p class="text-muted-foreground">Detected tones: {strumDetectedLabels}</p>
-            {#if strumVerification}
-              <div class="grid gap-2">
-                <p class="font-medium">Tone map</p>
-                <div class="flex flex-wrap gap-2">
-                  {#each strumToneMap as tone (`${tone.pitchClass}-${tone.status}`)}
-                    <span
-                      class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status ===
-                      'matched'
-                        ? 'border-success/30 bg-success/10 text-success'
-                        : tone.status === 'extra'
-                          ? 'border-warn/30 bg-warn/10 text-warn'
-                          : 'border-muted-foreground/25 bg-background text-muted-foreground'}"
-                    >
-                      {tone.label} {tone.status}
-                    </span>
-                  {/each}
-                </div>
-              </div>
-              <p class="text-muted-foreground">
-                vs {shape.name}: {strumVerification.correct
-                  ? "matches the target"
-                  : `${Math.round(strumVerification.coverage * 100)}% of the target`}
-              </p>
-            {/if}
-            {#if strumScore}
-              <SessionFeedback
-                kind={strumScore.correct ? "correct" : "wrong"}
-                message="Open chord ID scored"
-                detail={`${strumScore.feedback} · ${Math.round(strumScore.score * 100)}% credit`}
-                xp={strumScore.xp}
-              />
-            {/if}
-            {#if strumStatus}
-              <p class="text-muted-foreground" aria-live="polite">{strumStatus}</p>
-            {/if}
-            {#if audioState.status === "denied" || audioState.status === "error"}
-              <p class="text-destructive">{audioState.message}</p>
-            {/if}
-          </div>
+        {#if audioState.status === "denied" || audioState.status === "error"}
+          <p class="text-destructive">{audioState.message}</p>
         {/if}
-      </Card.Content>
-
-      <Card.Footer class="flex-wrap gap-3">
-        {#if mode === "build"}
-          {#if sessionState?.status === "active"}
-            <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
-          {:else if !summary}
-            <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
-              {pending ? "Starting..." : "Start drill"}
-            </Button>
-            <StartShortcut onStart={() => void start()} />
+      </div>
+    {:else if mode === "changes"}
+      {#if changePrompt}
+        <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <span class="font-medium">{changePrompt.label}</span>
+            {#if changePrompt.durationSeconds !== undefined}
+              <span class="tabular-nums text-muted-foreground" data-testid="change-clock">
+                {changePrompt.durationSeconds}s timed run
+              </span>
+            {:else}
+              <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
+            {/if}
+          </div>
+          {#if changePrompt.durationSeconds !== undefined}
+            <p class="text-xs text-muted-foreground">Keep changing until the timed run ends.</p>
+          {:else}
+            <Progress value={completedNotes} max={total} />
           {/if}
-          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+          <div class="flex flex-wrap gap-2 text-xs font-medium">
+            {#each changePrompt.targets as target (target.index)}
+              <span
+                class="rounded-full border px-2.5 py-1 {target.index ===
+                Math.floor(completedNotes / Math.max(1, target.midiNotes.length))
+                  ? 'border-primary/30 bg-primary/10 text-primary'
+                  : 'bg-background text-muted-foreground'}"
+              >
+                {target.label}
+              </span>
+            {/each}
+          </div>
+          <p class="text-sm text-muted-foreground">{status}</p>
+        </div>
+      {:else}
+        <div class="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
+          <p class="font-medium">{shape.name} to {toShape.name}</p>
+          <p class="text-muted-foreground">Start changes, play the first chord, then switch.</p>
+        </div>
+      {/if}
+    {:else}
+      <div class="grid gap-4 rounded-lg border bg-muted/30 p-4 text-sm">
+        {#if strumCandidates.length}
+          <div class="flex flex-wrap items-baseline gap-2">
+            <span class="text-2xl font-semibold">{strumCandidates[0]!.symbol}</span>
+            <span class="text-muted-foreground">
+              {Math.round(strumCandidates[0]!.confidence * 100)}% match
+            </span>
+          </div>
+          {#if strumCandidates.length > 1}
+            <p class="text-xs text-muted-foreground">
+              Other readings:
+              {strumCandidates
+                .slice(1, 3)
+                .map(
+                  (candidate) => `${candidate.symbol} (${Math.round(candidate.confidence * 100)}%)`,
+                )
+                .join(", ")}
+            </p>
+          {/if}
+        {/if}
+        <p class="text-muted-foreground">Detected tones: {strumDetectedLabels}</p>
+        {#if strumVerification}
+          <div class="grid gap-2">
+            <p class="font-medium">Tone map</p>
+            <div class="flex flex-wrap gap-2">
+              {#each strumToneMap as tone (`${tone.pitchClass}-${tone.status}`)}
+                <span
+                  class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status ===
+                  'matched'
+                    ? 'border-success/30 bg-success/10 text-success'
+                    : tone.status === 'extra'
+                      ? 'border-warn/30 bg-warn/10 text-warn'
+                      : 'border-muted-foreground/25 bg-background text-muted-foreground'}"
+                >
+                  {tone.label} {tone.status}
+                </span>
+              {/each}
+            </div>
+          </div>
+          <p class="text-muted-foreground">
+            vs {shape.name}: {strumVerification.correct
+              ? "matches the target"
+              : `${Math.round(strumVerification.coverage * 100)}% of the target`}
+          </p>
+        {/if}
+        {#if strumScore}
+          <SessionFeedback
+            kind={strumScore.correct ? "correct" : "wrong"}
+            message="Open chord ID scored"
+            detail={`${strumScore.feedback} · ${Math.round(strumScore.score * 100)}% credit`}
+            xp={strumScore.xp}
+          />
+        {/if}
+        {#if strumStatus}
+          <p class="text-muted-foreground">{strumStatus}</p>
+        {/if}
+        {#if audioState.status === "denied" || audioState.status === "error"}
+          <p class="text-destructive">{audioState.message}</p>
+        {/if}
+      </div>
+    {/if}
+  {/snippet}
+
+  <!-- Consolidated results frame: the build and changes summaries share one
+       DrillSummaryCard (route keeps focus authority via headingRef). -->
+  {#snippet summaryCard()}
+    <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
+      {#snippet heading()}
+        {#if mode === "build"}
+          <Card.Description>Chord-Perfect</Card.Description>
+          <Card.Title>{Math.round((answer?.pitchAccuracy ?? 0) * 100)}% strings clean</Card.Title>
+        {:else}
+          <Card.Description>Chord changes</Card.Description>
+          <Card.Title>{shape.name} to {toShape.name}</Card.Title>
+        {/if}
+      {/snippet}
+      {#snippet children()}
+        {#if mode === "build"}
+          <SessionFeedback
+            kind={summary && summary.correct === summary.total ? "correct" : "wrong"}
+            message="Chord-perfect check"
+            detail={`${Math.round((answer?.pitchAccuracy ?? 0) * 100)}% of strings rang clean`}
+            xp={summary?.xp ?? 0}
+          />
+        {:else}
+          <SessionFeedback
+            kind={summary && summary.correct === summary.total ? "correct" : "wrong"}
+            message="Chord changes complete"
+            detail={changeAnswer?.changesPerMinute === undefined
+              ? `${changeAnswer?.cleanChanges}/${changeAnswer?.completedChanges || changePrompt?.targets.length || 0} targets clean${
+                  changeAnswer?.firstChangeLatencyMs === undefined
+                    ? ""
+                    : ` · first change ${(changeAnswer.firstChangeLatencyMs / 1000).toFixed(1)}s`
+                }`
+              : `${changeAnswer.changesPerMinute} clean changes/min · ${changeAnswer.cleanChanges}/${changeAnswer.completedChanges} strums clean`}
+            xp={summary?.xp ?? 0}
+          />
+        {/if}
+      {/snippet}
+      {#snippet actions()}
+        {#if mode === "build"}
+          <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat chord" />
+        {:else}
+          <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat changes" />
+        {/if}
+      {/snippet}
+    </DrillSummaryCard>
+  {/snippet}
+
+  <section
+    class={phase === "summary"
+      ? "grid min-w-0 gap-6"
+      : "grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]"}
+  >
+    <PracticeDrillShell {phase} startPending={pending} summary={summaryCard}>
+      {#snippet setup()}
+        <Card.Root class="min-w-0">
+          <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <Card.Description>{modeCopy.description}</Card.Description>
+              <Card.Title
+                bind:ref={setupHeading}
+                tabindex="-1"
+                data-testid="chord-perfect-setup-heading"
+              >
+                {modeCopy.title}
+              </Card.Title>
+              <Card.Description>{modeCopy.detail}</Card.Description>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <SegmentedControl
+                ariaLabel="Chord-perfect workflow"
+                options={modeOptions}
+                value={mode}
+                onChange={selectMode}
+              />
+              <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+                {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+              </Button>
+            </div>
+          </Card.Header>
+
+          <Card.Content class="grid gap-6">
+            <fieldset
+              disabled={sessionState?.status === "active"}
+              class="grid gap-4 disabled:opacity-70"
+            >
+              <SegmentedControl
+                ariaLabel="Instrument"
+                options={instrumentOptions}
+                value={instrument}
+                onChange={(value) => {
+                  selectInstrument(value);
+                  runtime.setActiveInstrument(value as StringInstrumentId);
+                }}
+              />
+              <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
+              <div class="grid gap-2">
+                <Label for="chord-shape">Chord</Label>
+                <select
+                  id="chord-shape"
+                  aria-label="Chord"
+                  bind:value={shapeId}
+                  onchange={(event) => selectShape(event.currentTarget.value)}
+                  class="h-9 rounded-md border bg-background px-3 text-sm"
+                >
+                  {#each shapes as entry (entry.id)}
+                    <option value={entry.id}>{entry.name}</option>
+                  {/each}
+                </select>
+              </div>
+              {#if mode === "changes"}
+                <div class="grid gap-2">
+                  <Label for="target-chord-shape">To chord</Label>
+                  <select
+                    id="target-chord-shape"
+                    aria-label="To chord"
+                    bind:value={toShapeId}
+                    class="h-9 rounded-md border bg-background px-3 text-sm"
+                    onchange={(event) => selectToShape(event.currentTarget.value)}
+                  >
+                    {#each transitionShapes as entry (entry.id)}
+                      <option value={entry.id}>{entry.name}</option>
+                    {/each}
+                  </select>
+                </div>
+                <div class="grid gap-2">
+                  <Label id="change-format-label">Format</Label>
+                  <SegmentedControl
+                    size="sm"
+                    ariaLabel="Format"
+                    options={[
+                      { value: "reps", label: "Reps" },
+                      { value: "timed", label: "One-minute" },
+                    ]}
+                    value={timed ? "timed" : "reps"}
+                    onChange={(value) => (timed = value === "timed")}
+                  />
+                </div>
+                {#if !timed}
+                  <div class="grid gap-2">
+                    <Label id="change-repetitions-label">Repetitions</Label>
+                    <SegmentedControl
+                      size="sm"
+                      ariaLabel="Repetitions"
+                      options={CHORD_CHANGE_REPETITION_OPTIONS.map((count) => ({
+                        value: String(count),
+                        label: `${count}×`,
+                      }))}
+                      value={String(repetitions)}
+                      onChange={selectRepetitions}
+                    />
+                  </div>
+                {/if}
+              {/if}
+            </fieldset>
+
+            {@render hudTiles()}
+
+            <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+              <div>
+                <p class="text-sm font-medium">Suggested fingering</p>
+                <p class="text-xs text-muted-foreground">Low string to high string</p>
+              </div>
+              <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {#each shapeGuide as string (string.key)}
+                  <div class="rounded-md border bg-background px-3 py-2 text-sm">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="font-medium">String {string.stringNumber}</span>
+                      {#if string.fret === null}
+                        <span class="text-muted-foreground">Muted</span>
+                      {:else if string.fret === 0}
+                        <span class="text-muted-foreground">Open</span>
+                      {:else}
+                        <span>Fret {string.fret}</span>
+                      {/if}
+                    </div>
+                    {#if string.finger !== null}
+                      <p class="text-xs text-muted-foreground">Finger {string.finger}</p>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </div>
+
+            {@render modeContent()}
+          </Card.Content>
+
+          <Card.Footer class="flex-wrap gap-3">
+            {#if mode === "build"}
+              <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
+                {pending ? "Starting..." : "Start drill"}
+              </Button>
+              <StartShortcut onStart={() => void start()} />
+              <p class="text-sm text-muted-foreground">{status}</p>
+            {:else if mode === "pick"}
+              <Button type="button" disabled={!ready} onclick={() => void startVerifier()}>
+                Start verifier
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!ready || !audioSupported || audioState.status === "requesting"}
+                onclick={() => void startMicVerifier()}
+              >
+                {audioState.status === "requesting" ? "Starting mic..." : "Start mic verifier"}
+              </Button>
+              <Button type="button" variant="ghost" onclick={clearVerifier}>Reset</Button>
+            {:else if mode === "changes"}
+              <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
+                {pending ? "Starting..." : "Start changes"}
+              </Button>
+              <p class="text-sm text-muted-foreground">{status}</p>
+            {:else}
+              <Button
+                type="button"
+                disabled={!ready || !audioSupported || strumBusy}
+                onclick={() => void strumAndIdentify()}
+              >
+                {strumBusy ? "Listening..." : "Strum & identify"}
+              </Button>
+            {/if}
+          </Card.Footer>
+        </Card.Root>
+      {/snippet}
+
+      {#snippet stage()}
+        <PracticeStage {instrument} class="grid gap-5 p-5 sm:p-6">
+          <div>
+            <p class="eyebrow">Focus mode · {modeCopy.description}</p>
+            <h2
+              class="text-2xl font-bold tracking-tight"
+              tabindex="-1"
+              bind:this={stageHeading}
+              data-testid="chord-perfect-stage-heading"
+            >
+              {modeCopy.title}
+            </h2>
+          </div>
+          {@render hudTiles()}
+          {@render modeContent()}
+        </PracticeStage>
+      {/snippet}
+
+      {#snippet stageAction()}
+        {#if mode === "build" && sessionState?.status === "active"}
+          <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
+        {:else if mode === "changes" && sessionState?.status === "active"}
+          <Button type="button" variant="outline" onclick={cancel}>Cancel changes</Button>
         {:else if mode === "pick"}
           {#if verifierActive}
             <Button type="button" variant="outline" onclick={stopVerifier}>Stop verifier</Button>
-          {:else}
-            <Button type="button" disabled={!ready} onclick={() => void startVerifier()}>Start verifier</Button>
           {/if}
           {#if micVerifierActive}
             <Button type="button" variant="outline" onclick={() => void stopMicVerifier()}>
               Stop mic verifier
             </Button>
-          {:else}
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={!ready || !audioSupported || audioState.status === "requesting"}
-              onclick={() => void startMicVerifier()}
-            >
-              {audioState.status === "requesting" ? "Starting mic..." : "Start mic verifier"}
-            </Button>
           {/if}
-          <Button type="button" variant="ghost" onclick={clearVerifier}>Reset</Button>
-        {:else if mode === "changes"}
-          {#if sessionState?.status === "active"}
-            <Button type="button" variant="outline" onclick={cancel}>Cancel changes</Button>
-          {:else if !summary}
-            <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
-              {pending ? "Starting..." : "Start changes"}
-            </Button>
-          {/if}
-          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-        {:else}
-          <Button
-            type="button"
-            disabled={!ready || !audioSupported || strumBusy}
-            onclick={() => void strumAndIdentify()}
-          >
-            {strumBusy ? "Listening..." : "Strum & identify"}
-          </Button>
         {/if}
-      </Card.Footer>
-    </Card.Root>
+      {/snippet}
+    </PracticeDrillShell>
 
-    <aside class="grid content-start gap-4">
-      <Card.Root class="min-w-0">
-        <Card.Header>
-          <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</Card.Title>
-          <Card.Description>{midiStatus}</Card.Description>
-        </Card.Header>
-        <Card.Content class="min-w-0 overflow-hidden">
-          <FretboardInput
-            {tuning}
-            router={runtime.router}
-            targetMidiNotes={targetMidi}
-            activeMidiNotes={nextMidi === undefined ? [] : [nextMidi]}
-            correctMidiNotes={correctMidi}
-            visibleFrets={5}
-            onAccepted={playAccepted}
-          />
-        </Card.Content>
-      </Card.Root>
-    </aside>
+    {#if phase !== "summary"}
+      <aside class="grid content-start gap-4">
+        <Card.Root class="min-w-0">
+          <Card.Header>
+            <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</Card.Title>
+            <Card.Description>{midiStatus}</Card.Description>
+          </Card.Header>
+          <Card.Content class="min-w-0 overflow-hidden">
+            <FretboardInput
+              {tuning}
+              router={runtime.router}
+              targetMidiNotes={targetMidi}
+              activeMidiNotes={nextMidi === undefined ? [] : [nextMidi]}
+              correctMidiNotes={correctMidi}
+              visibleFrets={5}
+              onAccepted={playAccepted}
+            />
+          </Card.Content>
+        </Card.Root>
+      </aside>
+    {/if}
   </section>
 </PracticeScreen>

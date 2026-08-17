@@ -124,6 +124,17 @@ This file provides guidance for agents working on the Music app under
   all four controls visible and named at mobile widths. Idle metronome pressed
   state reflects audible `metronomeRunning`; active-run state reflects the
   persisted `metronomeEnabled` preference.
+- Structured drills must use `PracticeDrillShell` with the route-driven
+  `setup` → `stage` → `summary` anatomy. Setup is the only phase that renders
+  setup controls; `startPending` disables them only while start preflight
+  settles, never for the whole run. Stage renders the stage, feedback, and rail;
+  put the route-owned mid-run Cancel/abandon action in `stageAction`, which the
+  shell places above the stage column. Summary renders a `DrillSummaryCard` as
+  the consistent results frame; the route supplies its heading, body, actions,
+  Change setup handler, and optional routine/next-up content. The shell and card
+  are presentation-only: routes continue to own phase derivation, start/stop/
+  count-in, settled setup, scoring, focus moves, and persistent live-region
+  announcements.
 - Preview playback is local to its owning route/component. Give each preview a
   nearby Play/Pause or Stop control, call `runtime.ensurePlaybackVoice()` before
   generated sound, and stop route-owned playback on teardown/navigation.

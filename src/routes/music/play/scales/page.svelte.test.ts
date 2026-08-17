@@ -197,6 +197,171 @@ describe("/music/play/scales/+page.svelte", () => {
     expect(document.body.textContent).toContain("Evenness error:");
     expect(button("Practice next tempo")).not.toBeUndefined();
     expect(button("Slow down")).not.toBeUndefined();
+
+    button("Change setup")?.click();
+    await vi.waitFor(() => {
+      expect(button("Start Scale")).not.toBeUndefined();
+      expect(document.activeElement).toBe(
+        [...document.querySelectorAll("summary")].find((element) =>
+          element.textContent?.includes("Remembered setup"),
+        ),
+      );
+    });
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Setup ready",
+    );
+  });
+
+  test("returns focus and announces when an active run ends", async () => {
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    button("End run")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.activeElement).toBe(
+        [...document.querySelectorAll("summary")].find((element) =>
+          element.textContent?.includes("Remembered setup"),
+        ),
+      ),
+    );
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Run ended",
+    );
+  });
+
+  test("keeps dismissed results hidden when restart activation fails", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    for (const note of ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]) {
+      button(note)?.click();
+    }
+    await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+    button("Change setup")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.activeElement).toBe(
+        [...document.querySelectorAll("summary")].find((element) =>
+          element.textContent?.includes("Remembered setup"),
+        ),
+      ),
+    );
+    const setupSummary = document.activeElement;
+    runtime.audioMessage = "Preferred voice unavailable.";
+    let resolveVoice!: (enabled: boolean) => void;
+    const ensurePlaybackVoice = vi.mocked(runtime.ensurePlaybackVoice);
+    ensurePlaybackVoice.mockClear();
+    ensurePlaybackVoice.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+
+    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
+    expect(button("Starting...")).not.toBeUndefined();
+    expect(document.body.textContent).not.toContain("Scale complete");
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).not.toContain(
+      "Scale complete",
+    );
+    expect(document.activeElement).toBe(setupSummary);
+
+    resolveVoice(false);
+    await vi.waitFor(() =>
+      expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+        runtime.audioMessage,
+      ),
+    );
+    expect(button("Start Scale")).not.toBeUndefined();
+    expect(document.body.textContent).not.toContain("Scale complete");
+    expect(document.activeElement).toBe(setupSummary);
+  });
+
+  test("dismisses stale results while a deferred retry activation fails", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await completeScale();
+
+    runtime.audioMessage = "Preferred voice unavailable.";
+    let resolveVoice!: (enabled: boolean) => void;
+    const ensurePlaybackVoice = vi.mocked(runtime.ensurePlaybackVoice);
+    ensurePlaybackVoice.mockClear();
+    ensurePlaybackVoice.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+
+    button("Practice next tempo")?.click();
+    await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
+    expect(document.body.textContent).not.toContain("Scale complete");
+    expect(button("Starting...")?.disabled).toBe(true);
+    expect(button("Change setup")).toBeUndefined();
+
+    resolveVoice(false);
+    await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
+    expect(document.body.textContent).not.toContain("Scale complete");
+    expect(button("Start Scale")?.disabled).toBe(false);
+  });
+
+  test("keeps Change setup authoritative when it races retry preflight", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await completeScale();
+
+    const beginPerformance = vi.mocked(runtime.beginPerformance);
+    beginPerformance.mockClear();
+    button("Practice next tempo")?.click();
+    button("Change setup")?.click();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(button("End run")).toBeUndefined();
+    expect(button("Start Scale")?.disabled).toBe(false);
+    expect(document.body.textContent).not.toContain("Scale complete");
+    expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
+      "Setup ready",
+    );
+  });
+
+  test("cleans a stale performance when deferred session start rejects", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await completeScale();
+
+    let rejectStart!: (reason?: unknown) => void;
+    const startScale = vi.spyOn(TechniqueSession.prototype, "startScale").mockReturnValueOnce(
+      new Promise((_, reject) => {
+        rejectStart = reject;
+      }),
+    );
+    const changeSetup = button("Change setup");
+    button("Practice next tempo")?.click();
+    await vi.waitFor(() => expect(startScale).toHaveBeenCalledOnce());
+    const endPerformance = vi.spyOn(runtime, "endPerformance");
+    const abandon = vi.spyOn(TechniqueSession.prototype, "abandon");
+
+    document.body.append(changeSetup!);
+    changeSetup?.click();
+    changeSetup?.remove();
+    expect(button("Starting...")?.disabled).toBe(true);
+    rejectStart(new Error("Deferred session start failed."));
+
+    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    expect(endPerformance).toHaveBeenCalledOnce();
+    expect(abandon).toHaveBeenCalledOnce();
+    expect(document.body.textContent).toContain("Setup ready.");
+    expect(document.body.textContent).not.toContain("Deferred session start failed.");
+
+    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    expect(startScale).toHaveBeenCalledTimes(2);
   });
 
   test("offers a slower retry after a completed scale run", async () => {
@@ -218,6 +383,16 @@ describe("/music/play/scales/+page.svelte", () => {
     expect(window.location.search).toContain("bpm=80");
   });
 });
+
+async function completeScale(): Promise<void> {
+  await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+  button("Start Scale")?.click();
+  await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+  for (const note of ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]) {
+    button(note)?.click();
+  }
+  await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(

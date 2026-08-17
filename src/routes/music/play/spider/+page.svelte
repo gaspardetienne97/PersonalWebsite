@@ -45,6 +45,7 @@
     type FrettedSequenceStep,
   } from "../../_components/FrettedSequenceStage.svelte";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -110,6 +111,7 @@
   let pending = $state(false);
   let destroyed = false;
   let routeGeneration = 0;
+  let startRequest = 0;
   let practiceContextReady: Promise<void> = Promise.resolve();
   let captured = false;
   let status = $state("Preparing string technique.");
@@ -117,6 +119,7 @@
   let audioState = $state<AudioPitchState>({ status: "idle" });
   let session = $state<TechniqueSession | undefined>();
   let sessionState = $state<TechniqueSessionState | undefined>();
+  let resultsDismissed = $state(false);
   let unsubscribeSession: (() => void) | undefined;
   let unsubscribeAudioState: (() => void) | undefined;
   let unsubscribeAudioEvents: (() => void) | undefined;
@@ -139,6 +142,15 @@
   const result = $derived(summary?.results[0]);
   const answer = $derived(result?.result.answer as StringSpiderAnswer | undefined);
   const noteFinderAnswer = $derived(result?.result.answer as FretboardNoteFinderAnswer | undefined);
+  const phase = $derived<"setup" | "stage" | "summary">(
+    pending
+      ? "setup"
+      : summary && !resultsDismissed
+        ? "summary"
+        : sessionState?.status === "active"
+          ? "stage"
+          : "setup",
+  );
   const targetNoteCount = $derived(prompt?.midiNotes.length ?? (noteFinderPrompt ? 1 : 4));
   const completedNotes = $derived(
     Math.min(targetNoteCount, Math.round((sessionState?.live?.progress ?? 0) * targetNoteCount)),
@@ -204,14 +216,36 @@
     }),
   );
   const normalizedMode = $derived(normalizeStringTechniqueConfig({ mode }));
+  const liveAnnouncement = $derived(
+    phase === "summary"
+      ? normalizedMode.mode === "note-finder"
+        ? `Note found. ${summary?.xp ?? 0} XP.`
+        : `Spider complete. ${Math.round((answer?.pitchAccuracy ?? 0) * 100)}% notes · ${Math.round(answer?.meanTimingErrorMs ?? 0)}ms mean timing error.`
+      : status,
+  );
   const variantKey = $derived(
     `v1:spider:${instrument}:${pattern}:${stringSpan}${crossing ? "-crossing" : ""}`,
   );
+
+  let activeHeading = $state<HTMLHeadingElement | null>(null);
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let setupHeading = $state<HTMLDivElement | null>(null);
+  let previousPhase: "setup" | "stage" | "summary" | undefined;
 
   void initialize();
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const current = phase;
+    const previous = previousPhase;
+    previousPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "stage") activeHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupHeading?.focus({ preventScroll: false });
   });
 
   $effect(() => {
@@ -321,22 +355,27 @@
 
   async function start(): Promise<void> {
     if (!ready || pending || !session) return;
+    const request = ++startRequest;
+    resultsDismissed = true;
     pending = true;
-    captured = false;
     status = "";
+    let generation = routeGeneration;
     try {
       await tick();
-      const generation = routeGeneration;
+      if (request !== startRequest) return;
+      generation = routeGeneration;
       await practiceContextReady;
-      if (generation !== routeGeneration) return;
-      if (!(await runtime.ensurePlaybackVoice())) {
-        if (generation === routeGeneration) status = runtime.audioMessage;
+      if (request !== startRequest || generation !== routeGeneration) return;
+      const voiceReady = await runtime.ensurePlaybackVoice();
+      if (request !== startRequest || generation !== routeGeneration) return;
+      if (!voiceReady) {
+        status = runtime.audioMessage;
         return;
       }
-      if (generation !== routeGeneration) return;
       const config = normalizedConfig;
+      const exerciseMode = normalizedMode.mode;
       const performance = await runtime.beginPerformance();
-      if (generation !== routeGeneration) {
+      if (request !== startRequest || generation !== routeGeneration) {
         if (performance.status === "started") runtime.endPerformance();
         return;
       }
@@ -347,14 +386,14 @@
       const selectedTuning =
         curatedTunings(config.instrument).find((profile) => profile.id === config.tuningId) ??
         tuning;
-      if (normalizedMode.mode === "note-finder") {
+      if (exerciseMode === "note-finder") {
         const nextPrompt = await session.startFretboardNoteFinder({
           tuning: selectedTuning,
           stringNumber: config.stringNumber,
           fretNumber: config.startFret,
           visibleFrets: 12,
         });
-        if (generation !== routeGeneration) {
+        if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
           session.abandon();
           return;
@@ -370,7 +409,7 @@
           stringSpan: config.stringSpan,
           crossing: config.crossing,
         });
-        if (generation !== routeGeneration) {
+        if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
           session.abandon();
           return;
@@ -380,18 +419,29 @@
           "the selected strings";
         status = `Play ${SPIDER_DRILL_PATTERNS.find((option) => option.value === config.pattern)?.label ?? "the pattern"} across ${spanLabel.toLowerCase()}${config.crossing && config.stringSpan !== "single" ? ", crossing strings on every note" : ""}.`;
       }
+      captured = false;
+      resultsDismissed = false;
     } catch (error) {
       runtime.endPerformance();
-      status = message(error, "The string technique drill could not be started.");
+      if (request === startRequest && generation === routeGeneration) {
+        status = message(error, "The string technique drill could not be started.");
+      }
     } finally {
       pending = false;
     }
   }
 
   function cancel(): void {
+    startRequest += 1;
     runtime.endPerformance();
     session?.abandon();
     status = "Spider cancelled. You can start again.";
+  }
+
+  function changeSetup(): void {
+    startRequest += 1;
+    status = "Setup ready. Change the string technique settings or start again.";
+    resultsDismissed = true;
   }
 
   async function slowDown(): Promise<void> {
@@ -445,6 +495,7 @@
   onDestroy(() => {
     destroyed = true;
     routeGeneration += 1;
+    startRequest += 1;
     runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
@@ -480,13 +531,52 @@
 
   <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
-  <PracticeDrillShell>
+  <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
+
+  {#snippet summaryPhase()}
+    <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
+      {#snippet heading()}
+        <Card.Description>
+          {normalizedMode.mode === "note-finder" ? "Note found" : "Spider complete"}
+        </Card.Description>
+        <Card.Title>{summary?.xp ?? 0} XP</Card.Title>
+      {/snippet}
+      {#snippet children()}
+        {#if normalizedMode.mode === "note-finder" && noteFinderAnswer}
+          <SessionFeedback
+            kind={summary && summary.correct === summary.total ? "correct" : "wrong"}
+            message="Note found"
+            detail={`Target ${noteFinderAnswer.targetMidi}${noteFinderAnswer.playedMidiNote === undefined ? "" : ` · played ${noteFinderAnswer.playedMidiNote}`}`}
+            xp={summary?.xp ?? 0}
+          />
+        {:else if answer}
+          <SessionFeedback
+            kind={summary && summary.correct === summary.total ? "correct" : "wrong"}
+            message="Spider complete"
+            detail={`${Math.round(answer.pitchAccuracy * 100)}% notes · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error`}
+            xp={summary?.xp ?? 0}
+          />
+        {/if}
+      {/snippet}
+      {#snippet actions()}
+        {#if normalizedMode.mode === "note-finder"}
+          <AdaptiveRetryBar onRetry={start} retryLabel="Repeat note finder" />
+        {:else}
+          <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Repeat spider" />
+        {/if}
+      {/snippet}
+    </DrillSummaryCard>
+  {/snippet}
+
+  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
     {#snippet setup()}
       <Card.Root class="min-w-0">
         <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <Card.Description>Chromatic fretting</Card.Description>
-            <Card.Title>Pattern permutations across strings</Card.Title>
+            <Card.Title bind:ref={setupHeading} tabindex="-1">
+              Pattern permutations across strings
+            </Card.Title>
           </div>
           <div class="flex flex-wrap items-center gap-3">
             <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
@@ -508,10 +598,11 @@
         </Card.Header>
 
         <Card.Content class="grid gap-6">
-          <fieldset
-            disabled={pending || sessionState?.status === "active"}
-            class="grid gap-4 disabled:opacity-70"
-          >
+          <div class="grid gap-1 text-xs text-muted-foreground">
+            <p>{midiStatus}</p>
+            <p>{microphoneStatus}</p>
+          </div>
+          <fieldset class="grid gap-4">
             <SegmentedControl
               ariaLabel="Exercise"
               options={modeOptions}
@@ -563,7 +654,7 @@
                   bind:value={stringNumber}
                   class="h-9 rounded-md border bg-background px-3 text-sm"
                 >
-                  {#each tuning.openStrings as _, index}
+                  {#each tuning.openStrings as _, index (index)}
                     <option value={index + 1}>String {index + 1}</option>
                   {/each}
                 </select>
@@ -589,7 +680,7 @@
                   bind:value={startFret}
                   class="h-9 rounded-md border bg-background px-3 text-sm"
                 >
-                  {#each Array.from({ length: Math.min(10, tuning.fretCount - 2) }, (_, fret) => fret) as fret}
+                  {#each Array.from({ length: Math.min(10, tuning.fretCount - 2) }, (_, fret) => fret) as fret (fret)}
                     <option value={fret}>Fret {fret}</option>
                   {/each}
                 </select>
@@ -617,28 +708,25 @@
         </Card.Content>
 
         <Card.Footer class="flex-wrap gap-3">
-          {#if sessionState?.status === "active"}
-            <Button type="button" variant="outline" onclick={cancel}>Cancel spider</Button>
-          {:else}
-            <Button type="button" disabled={!ready || pending} onclick={start}>
-              {pending
-                ? "Starting..."
-                : normalizedMode.mode === "note-finder"
-                  ? summary
-                    ? "Repeat note finder"
-                    : "Start note finder"
-                  : summary
-                    ? "Repeat spider"
-                    : "Start spider"}
-            </Button>
-            <StartShortcut onStart={() => void start()} />
-          {/if}
-          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+          <Button type="button" disabled={!ready || pending} onclick={start}>
+            {pending
+              ? "Starting..."
+              : normalizedMode.mode === "note-finder"
+                ? "Start note finder"
+                : "Start spider"}
+          </Button>
+          <StartShortcut onStart={() => void start()} />
+          <p class="text-sm text-muted-foreground">{status}</p>
         </Card.Footer>
       </Card.Root>
     {/snippet}
 
     {#snippet stage()}
+      <h2 class="sr-only" tabindex="-1" bind:this={activeHeading}>
+        {prompt?.label ??
+          noteFinderPrompt?.label ??
+          `${instrument === "guitar" ? "Guitar" : "Ukulele"} string ${stringNumber}`}
+      </h2>
       <FrettedSequenceStage
         {instrument}
         label={prompt?.label ??
@@ -656,28 +744,8 @@
       />
     {/snippet}
 
-    {#snippet feedback()}
-      {#if summary && normalizedMode.mode === "note-finder" && noteFinderAnswer}
-        <div class="grid gap-3">
-          <SessionFeedback
-            kind={summary.correct === summary.total ? "correct" : "wrong"}
-            message="Note found"
-            detail={`Target ${noteFinderAnswer.targetMidi}${noteFinderAnswer.playedMidiNote === undefined ? "" : ` · played ${noteFinderAnswer.playedMidiNote}`}`}
-            xp={summary.xp}
-          />
-          <AdaptiveRetryBar onRetry={start} retryLabel="Repeat note finder" />
-        </div>
-      {:else if summary && answer}
-        <div class="grid gap-3">
-          <SessionFeedback
-            kind={summary.correct === summary.total ? "correct" : "wrong"}
-            message="Spider complete"
-            detail={`${Math.round(answer.pitchAccuracy * 100)}% notes · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error`}
-            xp={summary.xp}
-          />
-          <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Repeat spider" />
-        </div>
-      {/if}
+    {#snippet stageAction()}
+      <Button type="button" variant="outline" onclick={cancel}>Cancel spider</Button>
     {/snippet}
 
     {#snippet rail()}

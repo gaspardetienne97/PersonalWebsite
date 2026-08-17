@@ -27,6 +27,7 @@
   import { Progress } from "@repo/ui/progress";
 
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import { MPC_PAD_MIDI } from "../../_components/MpcPadGrid.svelte";
   import PadRudimentStage from "../../_components/PadRudimentStage.svelte";
@@ -66,12 +67,14 @@
   let pending = $state(false);
   let destroyed = false;
   let routeGeneration = 0;
+  let startRequest = 0;
   let practiceContextReady: Promise<void> = Promise.resolve();
   let captured = false;
   let status = $state("Preparing MPC practice.");
   let midiEnabled = $state(runtime.midi.state.enabled);
   let session = $state<TechniqueSession | undefined>();
   let sessionState = $state<TechniqueSessionState | undefined>();
+  let resultsDismissed = $state(false);
   let unsubscribeSession: (() => void) | undefined;
 
   const prompt = $derived(
@@ -82,6 +85,13 @@
   const summary = $derived(sessionState?.summary);
   const result = $derived(summary?.results[0]);
   const answer = $derived(result?.result.answer as MpcSingleStrokeAnswer | undefined);
+  const phase = $derived<"setup" | "stage" | "summary">(
+    summary && !resultsDismissed
+      ? "summary"
+      : sessionState?.status === "active"
+        ? "stage"
+        : "setup",
+  );
   const totalHits = $derived(prompt?.hitCount ?? Number(hitCount));
   const completedHits = $derived(
     Math.min(totalHits, Math.round((sessionState?.live?.progress ?? 0) * totalHits)),
@@ -123,11 +133,31 @@
       ),
   );
   const variantKey = $derived(`v1:mpc:${patternId}`);
+  const liveAnnouncement = $derived(
+    phase === "summary"
+      ? `MPC results ready. ${Math.round((result?.result.score ?? 0) * 100)}% total · ${summary?.xp ?? 0} XP.`
+      : status,
+  );
+
+  let activeHeading = $state<HTMLHeadingElement | null>(null);
+  let resultsHeading = $state<HTMLElement | null>(null);
+  let setupHeading = $state<HTMLDivElement | null>(null);
+  let previousPhase: "setup" | "stage" | "summary" | undefined;
 
   void initialize();
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  $effect(() => {
+    const current = phase;
+    const previous = previousPhase;
+    previousPhase = current;
+    if (previous === undefined || previous === current) return;
+    if (current === "stage") activeHeading?.focus({ preventScroll: false });
+    else if (current === "summary") resultsHeading?.focus({ preventScroll: false });
+    else setupHeading?.focus({ preventScroll: false });
   });
 
   $effect(() => {
@@ -215,17 +245,21 @@
       return;
     }
 
+    const request = ++startRequest;
+    resultsDismissed = true;
     pending = true;
     captured = false;
     status = "";
+    let generation = routeGeneration;
     try {
       await tick();
-      const generation = routeGeneration;
+      generation = routeGeneration;
+      if (request !== startRequest) return;
       await practiceContextReady;
-      if (generation !== routeGeneration) return;
+      if (request !== startRequest || generation !== routeGeneration) return;
       const config = normalizedConfig;
       const performance = await runtime.beginPerformance();
-      if (generation !== routeGeneration) {
+      if (request !== startRequest || generation !== routeGeneration) {
         if (performance.status === "started") runtime.endPerformance();
         return;
       }
@@ -240,7 +274,7 @@
         hitCount: config.hitCount,
         bpm: config.bpm,
       });
-      if (generation !== routeGeneration) {
+      if (request !== startRequest || generation !== routeGeneration) {
         runtime.endPerformance();
         session.abandon();
         return;
@@ -248,9 +282,11 @@
       const patternLabel =
         MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === config.patternId)?.label ??
         "Single strokes";
+      resultsDismissed = false;
       status = `Play ${patternLabel.toLowerCase()} on pads ${config.leftPadMidi} and ${config.rightPadMidi}.`;
     } catch (error) {
       runtime.endPerformance();
+      if (request !== startRequest || generation !== routeGeneration) return;
       status = message(error, "The MPC rudiment could not be started.");
     } finally {
       pending = false;
@@ -258,9 +294,16 @@
   }
 
   function cancel(): void {
+    startRequest += 1;
     runtime.endPerformance();
     session?.abandon();
     status = "Rudiment cancelled. You can start again.";
+  }
+
+  function changeSetup(): void {
+    startRequest += 1;
+    status = "Setup ready. Change the rudiment settings or start again.";
+    resultsDismissed = true;
   }
 
   async function slowDown(): Promise<void> {
@@ -290,6 +333,7 @@
   onDestroy(() => {
     destroyed = true;
     routeGeneration += 1;
+    startRequest += 1;
     runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
@@ -321,13 +365,41 @@
 
   <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
-  <PracticeDrillShell>
+  <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
+
+  {#snippet summaryPhase()}
+    <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
+      {#snippet heading()}
+        <Card.Description>MPC result</Card.Description>
+        <Card.Title>
+          Rudiment complete · {Math.round((result?.result.score ?? 0) * 100)}% total · {summary?.xp ?? 0} XP
+        </Card.Title>
+      {/snippet}
+      {#snippet children()}
+        {#if answer}
+          <SessionFeedback
+            kind={summary?.correct === summary?.total ? "correct" : "wrong"}
+            message="Performance scored"
+            detail={`${Math.round((result?.result.score ?? 0) * 100)}% total · ${Math.round(answer.padAccuracy * 100)}% pad accuracy · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error · ${Math.round(answer.velocityConsistency * 100)}% velocity consistency`}
+            xp={summary?.xp ?? 0}
+          />
+        {/if}
+      {/snippet}
+      {#snippet actions()}
+        <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Repeat rudiment" />
+      {/snippet}
+    </DrillSummaryCard>
+  {/snippet}
+
+  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
     {#snippet setup()}
       <Card.Root>
         <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <Card.Description>Pad rudiment</Card.Description>
-            <Card.Title>{MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === patternId)?.label ?? "Single strokes"}</Card.Title>
+            <Card.Title bind:ref={setupHeading} tabindex="-1">
+              {MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === patternId)?.label ?? "Single strokes"}
+            </Card.Title>
           </div>
           <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
             {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
@@ -335,10 +407,7 @@
         </Card.Header>
 
         <Card.Content class="grid gap-6">
-          <fieldset
-            disabled={pending || sessionState?.status === "active"}
-            class="grid gap-4 disabled:opacity-70"
-          >
+          <div class="grid gap-4">
             <SegmentedControl
               ariaLabel="Rudiment pattern"
               options={MPC_RUDIMENT_PATTERN_OPTIONS}
@@ -354,7 +423,7 @@
                   bind:value={leftPadMidi}
                   class="h-9 rounded-md border bg-background px-3 text-sm"
                 >
-                  {#each padOptions as midi}
+                  {#each padOptions as midi (midi)}
                     <option value={String(midi)}>Pad {midi}</option>
                   {/each}
                 </select>
@@ -367,7 +436,7 @@
                   bind:value={rightPadMidi}
                   class="h-9 rounded-md border bg-background px-3 text-sm"
                 >
-                  {#each padOptions as midi}
+                  {#each padOptions as midi (midi)}
                     <option value={String(midi)}>Pad {midi}</option>
                   {/each}
                 </select>
@@ -382,24 +451,23 @@
               />
               <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
             </div>
-          </fieldset>
+          </div>
         </Card.Content>
 
         <Card.Footer class="flex-wrap gap-3">
-          {#if sessionState?.status === "active"}
-            <Button type="button" variant="outline" onclick={cancel}>Cancel rudiment</Button>
-          {:else}
-            <Button type="button" disabled={!ready || pending} onclick={start}>
-              {pending ? "Starting..." : summary ? "Repeat rudiment" : "Start rudiment"}
-            </Button>
-            <StartShortcut onStart={() => void start()} />
-          {/if}
-          <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
+          <Button type="button" disabled={!ready || pending} onclick={start}>
+            {pending ? "Starting..." : "Start rudiment"}
+          </Button>
+          <StartShortcut onStart={() => void start()} />
+          <p class="text-sm text-muted-foreground">{status}</p>
         </Card.Footer>
       </Card.Root>
     {/snippet}
 
     {#snippet stage()}
+      <h2 class="sr-only" tabindex="-1" bind:this={activeHeading}>
+        {MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === patternId)?.label ?? "Single strokes"}
+      </h2>
       <PadRudimentStage
         router={runtime.router}
         targetSequence={stageTargetSequence}
@@ -409,18 +477,8 @@
       />
     {/snippet}
 
-    {#snippet feedback()}
-      {#if summary && answer}
-        <div class="grid gap-3">
-          <SessionFeedback
-            kind={summary.correct === summary.total ? "correct" : "wrong"}
-            message="Rudiment complete"
-            detail={`${Math.round((result?.result.score ?? 0) * 100)}% total · ${Math.round(answer.padAccuracy * 100)}% pad accuracy · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error · ${Math.round(answer.velocityConsistency * 100)}% velocity consistency`}
-            xp={summary.xp}
-          />
-          <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Repeat rudiment" />
-        </div>
-      {/if}
+    {#snippet stageAction()}
+      <Button type="button" variant="outline" onclick={cancel}>Cancel rudiment</Button>
     {/snippet}
 
     {#snippet rail()}
@@ -439,7 +497,7 @@
             </span>
           </div>
           <Progress value={completedHits} max={prompt.hitCount} />
-          <p class="text-sm text-muted-foreground" aria-live="polite">
+          <p class="text-sm text-muted-foreground">
             {sessionState?.live?.feedback[0]?.message ?? status}
           </p>
         </div>

@@ -134,10 +134,14 @@
 </script>
 
 {#if prompt}
-  <PracticeDrillShell>
+  <PracticeDrillShell phase="stage">
+    {#snippet stageAction()}
+      <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
+    {/snippet}
+
     {#snippet stage()}
     <Card.Root class="min-w-0">
-      <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+      <Card.Header>
         <div class="space-y-1">
           <Card.Description>
             {prompt.options.instrument === "piano" ? "Piano" : (tuning?.name ?? prompt.options.instrument)}
@@ -145,7 +149,6 @@
           </Card.Description>
           <Card.Title>Sight-reading phrase</Card.Title>
         </div>
-        <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
       </Card.Header>
       <Card.Content class="grid min-w-0 gap-6">
         {#if !started}

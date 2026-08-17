@@ -74,22 +74,27 @@ describe("/music/play/mpc/+page.svelte", () => {
     expect(window.location.search).toContain("bpm=120");
   });
 
-  test("completes an eight-hit run through the on-screen MPC grid", async () => {
+  test("moves from setup to the cancellable stage and summary, then restores setup", async () => {
     const runtime = new MusicRuntime();
     const register = vi.spyOn(runtime, "registerPracticeContext");
     render(Page, { runtime });
 
     expect(document.querySelector("h1")?.textContent).toContain("MPC Rudiments");
-    expect(document.querySelector('[aria-label="MPC pad grid"]')).not.toBeNull();
+    expect(select("Left pad")).not.toBeUndefined();
     await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
 
     button("Start rudiment")?.click();
     await vi.waitFor(() => expect(button("Cancel rudiment")?.disabled).toBe(false));
     expect(runtime.beginPerformance).toHaveBeenCalledOnce();
     expect(register).toHaveBeenCalledWith(
-      expect.objectContaining({ variantKey: "v1:mpc:single-strokes", pinnedInstrument: "mpc" }),
+      expect.objectContaining({
+        variantKey: "v1:mpc:single-strokes",
+        pinnedInstrument: "mpc",
+      }),
     );
-    expect(document.querySelector("fieldset")?.disabled).toBe(true);
+    expect(select("Left pad")).toBeUndefined();
+    expect(document.querySelector('[aria-label="MPC pad grid"]')).not.toBeNull();
+    expect(document.activeElement?.textContent).toContain("Single strokes");
 
     for (const midi of [36, 38, 36, 38, 36, 38, 36, 38]) {
       pad(midi)?.click();
@@ -98,7 +103,18 @@ describe("/music/play/mpc/+page.svelte", () => {
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Rudiment complete");
       expect(button("Repeat rudiment")).not.toBeUndefined();
+      expect(button("Change setup")).not.toBeUndefined();
+      expect(document.activeElement?.textContent).toContain("Rudiment complete");
     });
+    expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain(
+      "MPC results ready",
+    );
+
+    button("Change setup")?.click();
+    await vi.waitFor(() => expect(select("Left pad")).not.toBeUndefined());
+    expect(button("Cancel rudiment")).toBeUndefined();
+    expect(button("Change setup")).toBeUndefined();
+    expect(document.activeElement?.textContent).toContain("Single strokes");
   });
 
   test("rejects identical left and right pads", async () => {
@@ -236,10 +252,119 @@ describe("/music/play/mpc/+page.svelte", () => {
     button("Slow down")?.click();
 
     await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
-    expect(document.body.textContent).toContain("Tempo · 80 BPM");
+    expect(select("Left pad")).toBeUndefined();
+    expect(document.body.textContent).toContain("80BPM");
     expect(window.location.search).toContain("bpm=80");
   });
+
+  test("dismisses stale results while a deferred retry activation fails", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await completeRudiment();
+
+    const beginPerformance = vi.mocked(runtime.beginPerformance);
+    beginPerformance.mockClear();
+    let resolveActivation!: (result: Awaited<ReturnType<typeof runtime.beginPerformance>>) => void;
+    beginPerformance.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveActivation = resolve;
+      }),
+    );
+
+    button("Repeat rudiment")?.click();
+
+    await vi.waitFor(() => expect(beginPerformance).toHaveBeenCalledOnce());
+    expect(document.body.textContent).not.toContain("Rudiment complete");
+    expect(button("Starting...")?.disabled).toBe(true);
+    expect(button("Change setup")).toBeUndefined();
+
+    resolveActivation({ status: "failed", message: "MPC transport unavailable." });
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("MPC transport unavailable."),
+    );
+    expect(document.body.textContent).not.toContain("Rudiment complete");
+    expect(button("Start rudiment")?.disabled).toBe(false);
+    expect(button("Cancel rudiment")).toBeUndefined();
+    expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain(
+      "MPC transport unavailable.",
+    );
+  });
+
+  test("keeps Change setup authoritative when it races retry preflight", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await completeRudiment();
+
+    const beginPerformance = vi.mocked(runtime.beginPerformance);
+    beginPerformance.mockClear();
+    button("Repeat rudiment")?.click();
+    button("Change setup")?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(beginPerformance).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain("Rudiment complete");
+    expect(button("Start rudiment")?.disabled).toBe(false);
+    expect(button("Cancel rudiment")).toBeUndefined();
+    expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain("Setup ready.");
+  });
+
+  test("keeps a stale activation pending until it settles before allowing a fresh start", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await completeRudiment();
+
+    const changeSetup = button("Change setup");
+    if (!changeSetup) throw new Error("Change setup button not found");
+    const eventSymbol = Object.getOwnPropertySymbols(changeSetup).find(
+      (symbol) => String(symbol) === "Symbol(events)",
+    );
+    const invokeChangeSetup = eventSymbol
+      ? (Reflect.get(changeSetup, eventSymbol)?.click as EventListener | undefined)
+      : undefined;
+    if (!invokeChangeSetup) throw new Error("Change setup handler not found");
+    const beginPerformance = vi.mocked(runtime.beginPerformance);
+    const endPerformance = vi.spyOn(runtime, "endPerformance");
+    beginPerformance.mockClear();
+    endPerformance.mockClear();
+    let resolveActivation!: (result: Awaited<ReturnType<typeof runtime.beginPerformance>>) => void;
+    beginPerformance.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveActivation = resolve;
+      }),
+    );
+
+    button("Repeat rudiment")?.click();
+    await vi.waitFor(() => expect(beginPerformance).toHaveBeenCalledOnce());
+    invokeChangeSetup.call(changeSetup, new MouseEvent("click"));
+    await tick();
+
+    expect(button("Starting...")?.disabled).toBe(true);
+    expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain("Setup ready.");
+    button("Starting...")?.click();
+    expect(beginPerformance).toHaveBeenCalledOnce();
+
+    resolveActivation({ status: "started", downbeat: monotonicMs(2_000) });
+    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    expect(endPerformance).toHaveBeenCalledOnce();
+
+    endPerformance.mockClear();
+    button("Start rudiment")?.click();
+    await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
+    expect(beginPerformance).toHaveBeenCalledTimes(2);
+    expect(endPerformance).not.toHaveBeenCalled();
+  });
 });
+
+async function completeRudiment(): Promise<void> {
+  await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+  button("Start rudiment")?.click();
+  await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
+  for (const midi of [36, 38, 36, 38, 36, 38, 36, 38]) {
+    pad(midi)?.click();
+  }
+  await vi.waitFor(() => expect(button("Repeat rudiment")).not.toBeUndefined());
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
