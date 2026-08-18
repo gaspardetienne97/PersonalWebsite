@@ -59,6 +59,12 @@
   /* Single fixed practice accent (focus/target/progress on the stage). */
   --practice-accent: oklch(0.52 0.2 277);
   --practice-accent-foreground: oklch(0.99 0 0);
+  /* Piano keys. Deliberately theme-stable (no .dark override): a physical
+     keyboard's ivory/ebony does not invert when the app theme does, so the
+     shared PianoSurface reads as a piano in both themes. */
+  --piano-key: oklch(0.97 0.004 258);
+  --piano-key-line: oklch(0.84 0.012 258);
+  --piano-key-black: oklch(0.26 0.02 265);
   /* Instrument identity hues — badges/switcher/now-playing/accent-line only, never data. */
   --instr-piano: oklch(0.55 0.2 277);
   --instr-guitar: oklch(0.72 0.16 70);
@@ -180,6 +186,9 @@
   --color-stage-line: var(--stage-line);
   --color-practice-accent: var(--practice-accent);
   --color-practice-accent-foreground: var(--practice-accent-foreground);
+  --color-piano-key: var(--piano-key);
+  --color-piano-key-line: var(--piano-key-line);
+  --color-piano-key-black: var(--piano-key-black);
   --color-instr: var(--instr);
   --color-instr-piano: var(--instr-piano);
   --color-instr-guitar: var(--instr-guitar);

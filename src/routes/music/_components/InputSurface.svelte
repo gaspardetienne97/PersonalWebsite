@@ -6,7 +6,7 @@
 
   import FretboardInput from "../learn/reading/_components/FretboardInput.svelte";
   import MpcPadGrid from "./MpcPadGrid.svelte";
-  import OnScreenKeyboard from "./OnScreenKeyboard.svelte";
+  import PianoSurface from "./piano/PianoSurface.svelte";
   import PracticeStage from "./PracticeStage.svelte";
   import SegmentedControl from "./SegmentedControl.svelte";
 
@@ -45,7 +45,7 @@
 
   <PracticeStage {instrument} class="overflow-x-auto p-4">
     {#if surface === "keyboard"}
-      <OnScreenKeyboard {router} {instrument} {notes} {onAccepted} />
+      <PianoSurface {router} {instrument} {notes} {onAccepted} />
     {:else if surface === "guitar" && guitarTuning}
       <FretboardInput {router} tuning={guitarTuning} {onAccepted} />
     {:else if surface === "ukulele" && ukuleleTuning}
