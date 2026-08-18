@@ -18,6 +18,19 @@ const note = (
   ...(instrument ? { instrument } : {}),
 });
 
+const release = (
+  source: NoteEvent["source"],
+  midiNote: number,
+  instrument?: InstrumentId,
+): NoteEvent => ({
+  type: "noteOff",
+  midiNote,
+  source,
+  timestamp: monotonicMs(0),
+  clock: "performance",
+  ...(instrument ? { instrument } : {}),
+});
+
 describe("music-core/input-router", () => {
   test("filters MIDI to the active channel", () => {
     const router = new InputRouter();
@@ -72,6 +85,52 @@ describe("music-core/input-router", () => {
 
     expect(router.push(note("midi", 64, "piano"))).toBe(true);
     expect(router.activeSource).toBe("midi");
+  });
+
+  test("a stale MIDI release neither reactivates MIDI nor refreshes its window", () => {
+    let now = 0;
+    const router = new InputRouter({ now: () => now, midiActivityWindowMs: 500 });
+    const states: InputRouterState[] = [];
+    const streamed: NoteEvent[] = [];
+    router.subscribeState((state) => states.push({ ...state }));
+    router.subscribe((event) => streamed.push(event));
+
+    expect(router.push(note("midi", 64, "piano"))).toBe(true);
+
+    now = 501;
+    expect(router.push(note("onscreen", 67, "piano"))).toBe(true);
+
+    // The key that was pressed before the window expired is finally released.
+    expect(router.push(release("midi", 64, "piano"))).toBe(true);
+    expect(router.activeSource).toBe("onscreen");
+    expect(router.confidence).toBe(0.8);
+
+    // ...and it did not re-arm the recent-MIDI window against the next attack.
+    expect(router.push(note("onscreen", 69, "piano"))).toBe(true);
+    expect(router.activeSource).toBe("onscreen");
+    expect(states.at(-1)).toMatchObject({ activeSource: "onscreen", confidence: 0.8 });
+    expect(streamed.map((event) => [event.source, event.type])).toEqual([
+      ["midi", "noteOn"],
+      ["onscreen", "noteOn"],
+      ["midi", "noteOff"],
+      ["onscreen", "noteOn"],
+    ]);
+  });
+
+  test("delivers non-MIDI releases during recent MIDI activity", () => {
+    let now = 0;
+    const router = new InputRouter({ now: () => now, midiActivityWindowMs: 1_000 });
+
+    expect(router.push(note("onscreen", 60, "piano"))).toBe(true);
+    now = 100;
+    expect(router.push(note("midi", 64, "piano"))).toBe(true);
+
+    now = 200;
+    expect(router.push(note("onscreen", 67, "piano"))).toBe(false);
+    // The owning source can always let go of what it is holding.
+    expect(router.push(release("onscreen", 60, "piano"))).toBe(true);
+    expect(router.activeSource).toBe("midi");
+    expect(router.confidence).toBe(1);
   });
 
   test("emits active-source state and always forwards click answers", () => {

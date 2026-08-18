@@ -79,7 +79,9 @@ export class InputRouter {
     const previous = this.state;
     this.#events.push(event);
 
-    if (event.source !== "click") {
+    // A release never activates a source: a stale MIDI noteOff must not steal
+    // the visible source back from an already accepted on-screen owner.
+    if (event.source !== "click" && event.type !== "noteOff") {
       this.#activeSource = event.source;
       this.#confidence = confidenceFor(event.source, event.confidence);
     }
@@ -135,11 +137,16 @@ export class InputRouter {
         return false;
       }
 
-      this.#lastMidiActivity.set(event.instrument ?? "generic", this.#now());
+      // Only attacks/evidence refresh the arbitration window; releases are
+      // delivered but leave recency untouched.
+      if (event.type !== "noteOff") {
+        this.#lastMidiActivity.set(event.instrument ?? "generic", this.#now());
+      }
       return true;
     }
 
-    return !this.#hasRecentMidi();
+    // A paired release is always deliverable so the owning source can let go.
+    return event.type === "noteOff" || !this.#hasRecentMidi();
   }
 
   #hasRecentMidi(): boolean {

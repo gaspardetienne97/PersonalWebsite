@@ -1,6 +1,7 @@
 import type {
   ExerciseLiveState,
   ExerciseRun,
+  InputSource,
   NoteEvent,
   NoteOnEvent,
   Score,
@@ -104,20 +105,38 @@ export function timingWindowMs(input: {
 }
 
 function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
+  /**
+   * One input source owns each wait-mode chord. `held` only ever gains notes
+   * from `heldSource`'s own `noteOn`s and is cleared whenever ownership changes
+   * or the group advances, so membership *is* the "fresh attack since this
+   * group became current" record - no separate fresh-attack set is needed.
+   * ponytail: one set, invariant-backed; split it only if held ever gains a
+   * note without an attack (e.g. a sustain-pedal or snapshot-seeded hold).
+   */
   const held = new Set<number>();
   const wrong = new Set<number>();
   const input: NoteEvent[] = [];
   const playedMidiNotes: number[] = [];
+  let heldSource: InputSource | undefined;
   let currentGroupIndex = 0;
 
   function currentGroup(): ExpectedNoteGroup | undefined {
     return groups[currentGroupIndex];
   }
 
+  function clearHold(): void {
+    heldSource = undefined;
+    held.clear();
+  }
+
   function advanceIfComplete(): void {
-    const group = currentGroup();
-    if (!group) return;
-    if (group.midiNotes.every((midiNote) => held.has(midiNote))) currentGroupIndex += 1;
+    const expected = currentGroup()?.midiNotes;
+    if (!expected) return;
+    if (held.size !== expected.length) return;
+    if (!expected.every((midiNote) => held.has(midiNote))) return;
+
+    clearHold();
+    currentGroupIndex += 1;
   }
 
   return {
@@ -125,11 +144,18 @@ function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
       if (event.type === "noteOn" || event.type === "noteOff") input.push(event);
 
       if (event.type === "noteOff") {
+        // An inactive source can never erase the owner's hold.
+        if (event.source !== heldSource) return;
         held.delete(event.midiNote);
+        advanceIfComplete();
         return;
       }
 
       if (event.type !== "noteOn") return;
+
+      // A foreign attack takes over: the prior source's hold is dropped first.
+      if (heldSource !== undefined && event.source !== heldSource) clearHold();
+      heldSource = event.source;
 
       playedMidiNotes.push(event.midiNote);
       held.add(event.midiNote);

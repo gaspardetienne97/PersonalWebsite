@@ -1,8 +1,14 @@
 import { describe, expect, test } from "vitest";
 
-import { monotonicMs, type NoteEvent, type Score } from "@repo/music-core/domain";
+import { monotonicMs, type InputSource, type NoteEvent, type Score } from "@repo/music-core/domain";
 
-import { beatToMs, createScoreFollower, expectedGroups, timingWindowMs } from "./index";
+import {
+  beatToMs,
+  createScoreFollower,
+  expectedGroups,
+  timingWindowMs,
+  type ExpectedNoteGroup,
+} from "./index";
 
 describe("music-core/score-follower", () => {
   test("groups simultaneous score notes into expected note groups", () => {
@@ -32,11 +38,12 @@ describe("music-core/score-follower", () => {
     });
 
     run.accept(noteOn(64));
+    // Advancing clears the hold, so the next group starts from a clean slate.
     expect(run.getLiveState()).toMatchObject({
       progress: 1 / groups.length,
       currentGroupIndex: 1,
       expectedMidiNotes: [62],
-      heldMidiNotes: [48, 60, 64],
+      heldMidiNotes: [],
     });
   });
 
@@ -78,6 +85,67 @@ describe("music-core/score-follower", () => {
       heldMidiNotes: [],
       wrongMidiNotes: [],
     });
+  });
+
+  test("wait mode waits for an extra note to be released before advancing", () => {
+    const run = waitRun([group(0, [60, 64]), group(1, [65])]);
+
+    run.accept(noteOn(67));
+    run.accept(noteOn(60));
+    run.accept(noteOn(64));
+    expect(run.getLiveState()).toMatchObject({
+      currentGroupIndex: 0,
+      heldMidiNotes: [60, 64, 67],
+      wrongMidiNotes: [67],
+    });
+
+    // Releasing the extra completes the chord within the same group.
+    run.accept(noteOff(67));
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 1, heldMidiNotes: [] });
+  });
+
+  test("wait mode never advances a later group from released leftovers", () => {
+    const run = waitRun([group(0, [60, 62]), group(1, [60])]);
+
+    run.accept(noteOn(60));
+    run.accept(noteOn(62));
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 1 });
+
+    // 60 is still physically down; its release must not complete group 1.
+    run.accept(noteOff(62));
+    run.accept(noteOff(60));
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 1, heldMidiNotes: [] });
+
+    run.accept(noteOn(60));
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 2 });
+  });
+
+  test("wait mode requires a fresh attack for a repeated group", () => {
+    const run = waitRun([group(0, [60]), group(1, [60])]);
+
+    run.accept(noteOn(60));
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 1, heldMidiNotes: [] });
+
+    run.accept(noteOn(60));
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 2 });
+  });
+
+  test("wait mode drops the prior source's hold when another source takes over", () => {
+    const run = waitRun([group(0, [60, 64])]);
+
+    run.accept(noteOn(60, 0, "onscreen"));
+    expect(run.getLiveState()).toMatchObject({ heldMidiNotes: [60] });
+
+    // MIDI takes over: the on-screen hold is gone, so 64 alone cannot complete.
+    run.accept(noteOn(64, 0, "midi"));
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 0, heldMidiNotes: [64] });
+
+    // ...and the abandoned on-screen release cannot erase the owner's hold.
+    run.accept(noteOff(64, 0, "onscreen"));
+    expect(run.getLiveState()).toMatchObject({ heldMidiNotes: [64] });
+
+    run.accept(noteOn(60, 0, "midi"));
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 1 });
   });
 
   test("adapts timing windows to tempo, note value, and strictness", () => {
@@ -199,22 +267,36 @@ describe("music-core/score-follower", () => {
   });
 });
 
-function noteOn(midiNote: number, timestamp = 0): NoteEvent {
+function waitRun(groups: ExpectedNoteGroup[]) {
+  return createScoreFollower(groups, { mode: "wait", bpm: 90, strictness: "normal" });
+}
+
+function group(index: number, midiNotes: number[]): ExpectedNoteGroup {
+  return {
+    id: `group:${index}`,
+    startBeat: index,
+    durationBeats: 1,
+    midiNotes,
+    sourceNoteIndexes: midiNotes.map((_, offset) => index * 10 + offset),
+  };
+}
+
+function noteOn(midiNote: number, timestamp = 0, source: InputSource = "midi"): NoteEvent {
   return {
     type: "noteOn",
     midiNote,
     velocity: 1,
-    source: "midi",
+    source,
     timestamp: monotonicMs(timestamp),
     clock: "performance",
   };
 }
 
-function noteOff(midiNote: number, timestamp = 0): NoteEvent {
+function noteOff(midiNote: number, timestamp = 0, source: InputSource = "midi"): NoteEvent {
   return {
     type: "noteOff",
     midiNote,
-    source: "midi",
+    source,
     timestamp: monotonicMs(timestamp),
     clock: "performance",
   };
