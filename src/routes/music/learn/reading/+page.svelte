@@ -27,6 +27,8 @@
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
+  import type { PianoHand } from "../../_components/piano/PianoSurface.svelte";
+  import { scoreTimelineNotes, scoreWithoutHands } from "../../_components/piano/piano-timeline";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
   import FlashcardSession from "./_components/FlashcardSession.svelte";
   import ReadingSetup, {
@@ -63,6 +65,10 @@
   let previewMessage = $state("");
   let previewTimer: ReturnType<typeof setTimeout> | undefined;
   let previewGeneration = 0;
+  let previewPositionBeat = $state(0);
+  let previewFrame: number | undefined;
+  let mutedHands = $state<PianoHand[]>([]);
+  let stageView = $state<"staff" | "waterfall">("staff");
   let practiceContextCleanup: (() => void) | undefined;
   let practiceContextRequest = 0;
   let practiceContextQueue = Promise.resolve();
@@ -87,6 +93,18 @@
     const prompt = sessionState?.currentPrompt;
     return prompt && "score" in prompt ? prompt.score : undefined;
   });
+  const previewTimeline = $derived(previewScore ? scoreTimelineNotes(previewScore) : []);
+  // Staff and waterfall are alternative views of the same phrase, never both.
+  const stageWaterfall = $derived(
+    stageView === "waterfall"
+      ? {
+          notes: previewTimeline,
+          positionBeat: previewPositionBeat,
+          mutedHands,
+          onMutedHandsChange: requestMutedHands,
+        }
+      : undefined,
+  );
   const summary = $derived(
     sessionState?.status === "summary" ? sessionState.summary : undefined,
   );
@@ -506,7 +524,12 @@
       previewMessage = "Preview paused.";
       return;
     }
+    await startPreview();
+  }
+
+  async function startPreview(): Promise<void> {
     if (!previewScore) return;
+    const bpm = readingEngineBpm(setup);
     const generation = ++previewGeneration;
     try {
       if (!(await runtime.ensurePlaybackVoice())) {
@@ -514,11 +537,13 @@
         return;
       }
       if (generation !== previewGeneration) return;
-      const pattern = scoreToPattern(previewScore, { bpm: readingEngineBpm(setup) });
-      runtime.sound.playPattern(pattern.steps);
+      const pattern = scoreToPattern(scoreWithoutHands(previewScore, mutedHands), { bpm });
+      const epoch = runtime.sound.playPattern(pattern.steps);
       previewPlaying = true;
       previewMessage = "Playing sight-reading preview.";
       previewTimer = setTimeout(finishPreview, Math.max(300, pattern.durationSec * 1_000));
+      // Reading previews are one fixed tempo, so elapsed time is linear in beats.
+      if (epoch) startPositionLoop(generation, epoch.startedAt, bpm);
     } catch (error) {
       if (generation !== previewGeneration) return;
       stopPreview();
@@ -526,10 +551,18 @@
     }
   }
 
+  function startPositionLoop(generation: number, startedAt: number, bpm: number): void {
+    const step = () => {
+      if (generation !== previewGeneration) return;
+      const elapsedSeconds = Math.max(0, (performance.now() - startedAt) / 1_000);
+      previewPositionBeat = (elapsedSeconds * bpm) / 60;
+      previewFrame = requestAnimationFrame(step);
+    };
+    step();
+  }
+
   function finishPreview(): void {
-    runtime.sound.stopPattern();
-    previewTimer = undefined;
-    previewPlaying = false;
+    stopPreview();
     previewMessage = "Preview complete.";
   }
 
@@ -537,8 +570,19 @@
     previewGeneration += 1;
     if (previewTimer !== undefined) clearTimeout(previewTimer);
     previewTimer = undefined;
+    if (previewFrame !== undefined) cancelAnimationFrame(previewFrame);
+    previewFrame = undefined;
+    previewPositionBeat = 0;
     runtime.sound.stopPattern();
     previewPlaying = false;
+  }
+
+  /** The surface asks; the route reschedules and hands back the new truth. */
+  function requestMutedHands(hands: PianoHand[]): void {
+    mutedHands = hands;
+    if (!previewPlaying) return;
+    stopPreview();
+    void startPreview();
   }
 
   function syncConfigUrl(): void {
@@ -664,6 +708,28 @@
                 <Play class="size-4" aria-hidden="true" />Play
               {/if}
             </Button>
+            {#if setup.instrument === "piano"}
+              <div class="flex flex-wrap gap-2" role="group" aria-label="Stage view">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={stageView === "staff" ? "secondary" : "outline"}
+                  aria-pressed={stageView === "staff"}
+                  onclick={() => (stageView = "staff")}
+                >
+                  Staff
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={stageView === "waterfall" ? "secondary" : "outline"}
+                  aria-pressed={stageView === "waterfall"}
+                  onclick={() => (stageView = "waterfall")}
+                >
+                  Waterfall
+                </Button>
+              </div>
+            {/if}
             {#if previewMessage}
               <p class="text-sm text-muted-foreground" aria-live="polite">{previewMessage}</p>
             {/if}
@@ -674,6 +740,8 @@
           router={runtime.router}
           tuning={activeTuning}
           bpm={setup.bpm}
+          {stageView}
+          waterfall={stageWaterfall}
           {sessionXp}
           onAccepted={playAccepted}
           onStart={startSightReading}

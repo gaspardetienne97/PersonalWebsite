@@ -30,7 +30,7 @@ describe("/music/learn/reading/+page.svelte", () => {
       const prepareSightReading = vi.spyOn(ReadingSession.prototype, "prepareSightReading");
       const playPattern = vi
         .spyOn(SoundEngine.prototype, "playPattern")
-        .mockImplementation(() => {});
+        .mockImplementation(() => undefined);
       render(Page);
 
       await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
@@ -498,7 +498,9 @@ describe("/music/learn/reading/+page.svelte", () => {
     const ensurePlaybackVoice = vi
       .spyOn(MusicRuntime.prototype, "ensurePlaybackVoice")
       .mockResolvedValue(true);
-    const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern").mockImplementation(() => {});
+    const playPattern = vi
+      .spyOn(SoundEngine.prototype, "playPattern")
+      .mockImplementation(() => undefined);
     const stopPattern = vi.spyOn(SoundEngine.prototype, "stopPattern").mockImplementation(() => {});
     const view = render(Page);
 
@@ -520,6 +522,51 @@ describe("/music/learn/reading/+page.svelte", () => {
     stopPattern.mockClear();
     view.unmount();
     expect(stopPattern).toHaveBeenCalled();
+  });
+
+  test("swaps the staff for a waterfall driven by the preview epoch", async () => {
+    vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
+    const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern").mockImplementation(() => ({
+      clock: "performance",
+      startedAt: monotonicMs(performance.now()),
+    }));
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    button("Sight-Reading")?.click();
+    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
+    button("Start Sight-Reading")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
+
+    button("Waterfall")?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Waterfall"]')).not.toBeNull(),
+    );
+    // Alternative views of the same phrase, never both at once.
+    expect(document.querySelector('[aria-label="Staff notation"]')).toBeNull();
+
+    button("Play")?.click();
+    await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('[data-testid="waterfall-note"]').length).toBeGreaterThan(0),
+    );
+
+    // Muting a hand reschedules playback and reports the authoritative state.
+    document.querySelector<HTMLButtonElement>('[data-testid="mute-right"]')?.click();
+    await vi.waitFor(() => expect(playPattern).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() =>
+      expect(
+        document
+          .querySelector<HTMLButtonElement>('[data-testid="mute-right"]')
+          ?.getAttribute("aria-pressed"),
+      ).toBe("true"),
+    );
+
+    button("Staff")?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"]')).not.toBeNull(),
+    );
+    expect(document.querySelector('[data-testid="piano-waterfall"]')).toBeNull();
   });
 
   test("restores setup from shareable query parameters", async () => {

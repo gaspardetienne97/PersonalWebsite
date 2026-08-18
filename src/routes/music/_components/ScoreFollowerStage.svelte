@@ -12,6 +12,7 @@
   import StaffNotation from "./StaffNotation.svelte";
   import TabNotation from "./TabNotation.svelte";
   import PianoSurface, { type PianoHand, type PianoHighlight } from "./piano/PianoSurface.svelte";
+  import type { PianoTimelineNote } from "./piano/piano-timeline";
   import type { NotationRangeHighlight } from "./notation-selection";
   import { projectScoreToPiano } from "@repo/music-core/engines/projection";
 
@@ -31,6 +32,8 @@
     tabProjection,
     showTab = false,
     waitGroupKey,
+    stageView = "staff",
+    waterfall,
     onShowTabChange,
     onExpectedNoteSelected,
     onAccepted,
@@ -54,6 +57,15 @@
      * mode passes it; it opts the piano surface into takeover/reset behaviour.
      */
     waitGroupKey?: string;
+    /** Staff and waterfall are alternative views the route picks between. */
+    stageView?: "staff" | "waterfall";
+    /** Route-owned playback position and hand mute for the waterfall view. */
+    waterfall?: {
+      notes: readonly PianoTimelineNote[];
+      positionBeat: number;
+      mutedHands: PianoHand[];
+      onMutedHandsChange: (hands: PianoHand[]) => void;
+    };
     onShowTabChange?: (showTab: boolean) => void;
     onExpectedNoteSelected?: (midiNote: number) => void;
     onAccepted?: (event: NoteEvent) => void;
@@ -122,17 +134,34 @@
     return highlights;
   });
 
+  // The waterfall replaces the staff; when the input surface is live it becomes
+  // a layer on that one keyboard rather than a second one.
+  const waterfallView = $derived(stageView === "waterfall" && instrument === "piano" && waterfall);
+
   function toggleTab(): void {
     onShowTabChange?.(!showTab);
   }
 </script>
 
 <div class="grid min-w-0 gap-6">
-  <StaffNotation
-    {view}
-    activeEventIds={currentNotationEventIds}
-    highlightedRanges={currentNotationHighlights}
-  />
+  {#if waterfallView}
+    {#if !inputEnabled}
+      <PianoSurface
+        label="Waterfall"
+        notes={pianoMaterial}
+        timelineNotes={waterfallView.notes}
+        positionBeat={waterfallView.positionBeat}
+        mutedHands={waterfallView.mutedHands}
+        onMutedHandsChange={waterfallView.onMutedHandsChange}
+      />
+    {/if}
+  {:else}
+    <StaffNotation
+      {view}
+      activeEventIds={currentNotationEventIds}
+      highlightedRanges={currentNotationHighlights}
+    />
+  {/if}
 
   {#if tuning && tabProjection}
     <div class="grid gap-2">
@@ -195,6 +224,10 @@
           {router}
           {waitGroupKey}
           {onAccepted}
+          timelineNotes={waterfallView ? waterfallView.notes : undefined}
+          positionBeat={waterfallView ? waterfallView.positionBeat : undefined}
+          mutedHands={waterfallView ? waterfallView.mutedHands : undefined}
+          onMutedHandsChange={waterfallView ? waterfallView.onMutedHandsChange : undefined}
         />
       {:else if tuning}
         <FretboardInput

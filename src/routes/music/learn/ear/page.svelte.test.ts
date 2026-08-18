@@ -234,7 +234,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("plays a performance prompt before count-in and arms only after started", async () => {
     const runtime = new MusicRuntime();
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
-    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => undefined);
     let resolve!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
     const beginPerformance = vi.spyOn(runtime, "beginPerformance").mockReturnValue(
       new Promise((settle) => {
@@ -273,7 +273,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("restarts the full prompt wait when replayed before count-in", async () => {
     const runtime = new MusicRuntime();
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
-    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => undefined);
     const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
     const beginPerformance = vi.spyOn(runtime, "beginPerformance").mockResolvedValue({
       status: "started",
@@ -314,7 +314,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("restarts the full performance gate when replayed during count-in", async () => {
     const runtime = new MusicRuntime();
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
-    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => undefined);
     const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
     let resolveFirst!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
     let resolveSecond!: (result: Awaited<ReturnType<MusicRuntime["beginPerformance"]>>) => void;
@@ -362,7 +362,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("cancels a stale performance prompt wait on abandon", async () => {
     const runtime = new MusicRuntime();
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
-    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => undefined);
     const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
     const endPerformance = vi.spyOn(runtime, "endPerformance");
     const beginPerformance = vi.spyOn(runtime, "beginPerformance");
@@ -392,7 +392,9 @@ describe("/music/learn/ear/+page.svelte", () => {
     async (mode) => {
       const runtime = new MusicRuntime();
       const beginPerformance = vi.spyOn(runtime, "beginPerformance");
-      const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+      const playPattern = vi
+        .spyOn(runtime.sound, "playPattern")
+        .mockImplementation(() => undefined);
       const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
       const view = render(Page, { runtime });
 
@@ -422,7 +424,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("settles prompt playback and stops the clock and audio on teardown", async () => {
     const runtime = new MusicRuntime();
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
-    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => undefined);
     const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
     const endPerformance = vi.spyOn(runtime, "endPerformance");
     const beginPerformance = vi.spyOn(runtime, "beginPerformance");

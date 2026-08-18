@@ -51,7 +51,9 @@ describe("scoreToPattern", () => {
   });
 });
 
-function createToneMock(options: { onGainCreated?: () => void } = {}) {
+function createToneMock(
+  options: { onGainCreated?: () => void; now?: () => number; immediate?: () => number } = {},
+) {
   const synthTrigger = vi.fn();
   const metronomeTrigger = vi.fn();
   const samplerTrigger = vi.fn();
@@ -192,7 +194,10 @@ function createToneMock(options: { onGainCreated?: () => void } = {}) {
   const tone = {
     start,
     loaded,
-    now: () => 10,
+    now: options.now ?? (() => 10),
+    // Tone schedules at now() = immediate() + look-ahead; the default mock has
+    // no look-ahead, so existing scheduling expectations are unchanged.
+    immediate: options.immediate ?? (() => 10),
     gainToDb: (gain: number) => gain,
     PolySynth,
     Synth,
@@ -552,6 +557,38 @@ describe("music-core/sound", () => {
 
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(1, ["C4", "E4", "G4"], 0.6, 10, 0.8);
     expect(mock.synthTrigger).toHaveBeenNthCalledWith(2, ["B4"], 0.5, 10.8, 0.8);
+  });
+
+  test("reports the scheduled start on the performance clock, look-ahead included", async () => {
+    // Three independent clocks: audio time, Tone's look-ahead, and performance.
+    let audioSeconds = 4.2;
+    const lookAheadSeconds = 0.13;
+    const mock = createToneMock({
+      immediate: () => audioSeconds,
+      now: () => audioSeconds + lookAheadSeconds,
+    });
+    const sound = new SoundEngine(async () => mock.tone);
+    const performanceNow = vi.spyOn(performance, "now").mockReturnValue(9_000);
+
+    expect(
+      sound.playPattern([{ midiNotes: [60], offsetSeconds: 0, durationSeconds: 1 }]),
+    ).toBeUndefined();
+
+    await sound.enable();
+    const epoch = sound.playPattern([{ midiNotes: [60], offsetSeconds: 0, durationSeconds: 1 }]);
+
+    expect(epoch).toEqual({ clock: "performance", startedAt: 9_130 });
+    // The audio schedule itself is untouched by the projection.
+    expect(mock.synthTrigger).toHaveBeenLastCalledWith(["C4"], 1, 4.33, 0.8);
+
+    // A later call re-samples both clocks rather than reusing the first epoch.
+    audioSeconds = 6.2;
+    performanceNow.mockReturnValue(11_000);
+    expect(sound.playPattern([{ midiNotes: [62], offsetSeconds: 0, durationSeconds: 1 }])).toEqual({
+      clock: "performance",
+      startedAt: 11_130,
+    });
+    performanceNow.mockRestore();
   });
 
   test("replaces scheduled pattern playback instead of overlapping it", async () => {

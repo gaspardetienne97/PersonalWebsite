@@ -1,12 +1,16 @@
 <script lang="ts" module>
+  import type { PianoHand, PianoTimelineNote } from "./piano-timeline";
+
   /** Layer types stay colocated with the only component that renders them. */
-  export type PianoHand = "left" | "right";
+  export type { PianoHand, PianoTimelineNote };
 
   export type PianoHighlightRole =
     | "target"
     | "active"
     | "correct"
     | "wrong"
+    /** Sounding right now under the route's playback position. */
+    | "sounding"
     | "upcoming"
     | "locate";
 
@@ -27,6 +31,9 @@
     | "target"
     | "target-left"
     | "target-right"
+    | "sounding"
+    | "sounding-left"
+    | "sounding-right"
     | "upcoming"
     | "locate"
     | PianoToneRole
@@ -39,6 +46,9 @@
     target: "target",
     "target-left": "target, left hand",
     "target-right": "target, right hand",
+    sounding: "sounding",
+    "sounding-left": "sounding, left hand",
+    "sounding-right": "sounding, right hand",
     upcoming: "upcoming",
     locate: "locate",
     chord: "chord tone",
@@ -46,6 +56,11 @@
     avoid: "avoid",
     neutral: "",
   };
+
+  /** How far ahead the waterfall lane looks, in beats. One bar of 4/4. */
+  const LOOKAHEAD_BEATS = 4;
+
+  const HANDS: PianoHand[] = ["left", "right"];
 </script>
 
 <script lang="ts">
@@ -60,6 +75,7 @@
     MIN_WHITE_KEY_PX,
     keyPercent,
     minKeyboardWidthPx,
+    noteLane,
     pianoGeometry,
     toMidiNote,
     type PianoKey,
@@ -91,6 +107,10 @@
     pointerMode = "hold",
     onAccepted,
     waitGroupKey,
+    timelineNotes,
+    positionBeat,
+    mutedHands = [],
+    onMutedHandsChange,
     label = "On-screen keyboard",
     class: cls = "",
   }: {
@@ -114,6 +134,16 @@
      * wait-mode takeover/reset; omit it to keep ordinary holder lifetime.
      */
     waitGroupKey?: string;
+    /** Score notes for the waterfall lane and playback highlights. */
+    timelineNotes?: readonly PianoTimelineNote[];
+    /**
+     * The route's authoritative playback position, in score beats. The surface
+     * only reads it: it never starts, stops, or advances playback.
+     */
+    positionBeat?: number;
+    /** Authoritative muted hands; the surface only requests changes to them. */
+    mutedHands?: readonly PianoHand[];
+    onMutedHandsChange?: (hands: PianoHand[]) => void;
     label?: string;
     class?: string;
   } = $props();
@@ -167,12 +197,89 @@
       .sort((left, right) => left.midiNote - right.midiNote),
   );
 
+  // ── Waterfall + playback layer ────────────────────────────────────────────
+  // Everything here is read-only motion: positions come from the route's
+  // `positionBeat`, and nothing feeds back into playback or grading.
+
+  let reducedMotion = $state(false);
+  $effect(() => {
+    const query = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (!query) return;
+    reducedMotion = query.matches;
+    const onChange = (event: MediaQueryListEvent) => (reducedMotion = event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  });
+
+  const timeline = $derived(timelineNotes ?? []);
+  /** Reduced motion drops the scrolling lane; the highlights below carry on. */
+  const showWaterfall = $derived(
+    timeline.length > 0 && positionBeat !== undefined && !reducedMotion,
+  );
+
+  const fallingNotes = $derived.by(() => {
+    const position = positionBeat;
+    if (position === undefined) return [];
+    return timeline.flatMap((note, index) => {
+      const lane = noteLane(geometry, note.midiNote);
+      if (!lane) return [];
+      const startAhead = note.startBeat - position;
+      const endAhead = startAhead + note.durationBeats;
+      if (endAhead <= 0 || startAhead >= LOOKAHEAD_BEATS) return [];
+      const box = keyPercent(geometry, lane);
+      // A note's distance from the keys *is* its height in the lane, so it
+      // lands on its own key exactly when `startBeat - positionBeat` hits 0.
+      const bottom = (Math.max(0, startAhead) / LOOKAHEAD_BEATS) * 100;
+      const top = (Math.min(LOOKAHEAD_BEATS, endAhead) / LOOKAHEAD_BEATS) * 100;
+      return [
+        {
+          id: `${index}:${note.midiNote}`,
+          note,
+          left: box.left,
+          width: box.width,
+          bottom,
+          height: Math.max(1, top - bottom),
+        },
+      ];
+    });
+  });
+
+  /** Keys light as the score sounds, with the next bar's notes hinted. */
+  const playbackHighlights = $derived.by(() => {
+    const position = positionBeat;
+    const lit: Record<number, PianoHighlight> = {};
+    if (position === undefined) return lit;
+    for (const note of timeline) {
+      const startAhead = note.startBeat - position;
+      if (startAhead > 0 && startAhead < LOOKAHEAD_BEATS) {
+        lit[note.midiNote] = { role: "upcoming", ...(note.hand ? { hand: note.hand } : {}) };
+      }
+    }
+    for (const note of timeline) {
+      const startAhead = note.startBeat - position;
+      if (startAhead <= 0 && startAhead + note.durationBeats > 0) {
+        lit[note.midiNote] = { role: "sounding", ...(note.hand ? { hand: note.hand } : {}) };
+      }
+    }
+    return lit;
+  });
+
+  function requestMuteToggle(hand: PianoHand): void {
+    const next = mutedHands.includes(hand)
+      ? mutedHands.filter((candidate) => candidate !== hand)
+      : [...mutedHands, hand];
+    onMutedHandsChange?.([...next]);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+
   function highlightFor(midiNote: number): PianoHighlight | undefined {
-    const highlight = highlights?.[midiNote];
+    // Input and target state is the route's word; playback only fills the gaps.
+    const highlight = highlights?.[midiNote] ?? playbackHighlights[midiNote];
     return typeof highlight === "string" ? { role: highlight } : highlight;
   }
 
-  /** wrong/correct > active > target/hand > upcoming/locate > tone role > neutral. */
+  /** wrong/correct > active > target/hand > sounding > upcoming/locate > tone role > neutral. */
   function keyState(midiNote: number): PianoKeyState {
     const highlight = highlightFor(midiNote);
     if (highlight?.role === "wrong") return "wrong";
@@ -184,6 +291,13 @@
         : highlight.hand === "right"
           ? "target-right"
           : "target";
+    }
+    if (highlight?.role === "sounding") {
+      return highlight.hand === "left"
+        ? "sounding-left"
+        : highlight.hand === "right"
+          ? "sounding-right"
+          : "sounding";
     }
     if (highlight?.role === "upcoming") return "upcoming";
     if (highlight?.role === "locate") return "locate";
@@ -231,6 +345,14 @@
         return "bg-chart-4/70 ring-1 ring-inset ring-chart-4";
       case "target-right":
         return "bg-chart-2/70 ring-1 ring-inset ring-chart-2";
+      // Playing keys sit a shade stronger than their target/upcoming forms so
+      // "sounding now" reads at a glance without a new hue.
+      case "sounding":
+        return "bg-practice-accent/70 ring-2 ring-inset ring-practice-accent";
+      case "sounding-left":
+        return "bg-chart-4 ring-2 ring-inset ring-chart-4";
+      case "sounding-right":
+        return "bg-chart-2 ring-2 ring-inset ring-chart-2";
       case "upcoming":
         return "bg-info/25";
       case "locate":
@@ -350,6 +472,42 @@
 
 <div role="group" aria-label={label} class={cn("grid min-w-0 gap-2", cls)}>
   <div class="min-w-0 overflow-x-auto">
+    {#if showWaterfall}
+      <!--
+        One scroll container, one min-width: the lane can never drift sideways
+        from the keys it falls onto. Notes are decoration - what they mean is
+        said by each key's own state and name.
+      -->
+      <div
+        data-testid="piano-waterfall"
+        aria-hidden="true"
+        class="relative h-32 overflow-hidden rounded-t-md bg-stage-2 sm:h-40"
+        style:min-width={`${minKeyboardWidthPx(geometry)}px`}
+      >
+        {#each fallingNotes as fall (fall.id)}
+          <span
+            data-testid="waterfall-note"
+            data-note={fall.note.midiNote}
+            data-hand={fall.note.hand}
+            data-muted={fall.note.hand !== undefined && mutedHands.includes(fall.note.hand)
+              ? "true"
+              : undefined}
+            class={cn(
+              "absolute rounded-sm",
+              // Fill vs outline, not hue alone, separates the hands.
+              fall.note.hand === "left"
+                ? "border-2 border-chart-4 bg-chart-4/50"
+                : "bg-chart-2 opacity-90",
+              fall.note.hand !== undefined && mutedHands.includes(fall.note.hand) && "opacity-40",
+            )}
+            style:left={`${fall.left}%`}
+            style:width={`${fall.width}%`}
+            style:bottom={`${fall.bottom}%`}
+            style:height={`${fall.height}%`}
+          ></span>
+        {/each}
+      </div>
+    {/if}
     <div
       class="relative grid touch-none select-none"
       style:grid-template-columns={`repeat(${geometry.whiteCount}, minmax(${MIN_WHITE_KEY_PX}px, 1fr))`}
@@ -381,6 +539,31 @@
 
   {#if !playable}
     <p class="sr-only" data-testid="piano-summary">{staticSummary}</p>
+  {/if}
+
+  {#if onMutedHandsChange}
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Hand mute">
+      {#each HANDS as hand (hand)}
+        {@const muted = mutedHands.includes(hand)}
+        <button
+          type="button"
+          data-testid={`mute-${hand}`}
+          aria-pressed={muted}
+          class={cn(
+            "flex items-center gap-2 rounded border border-stage-line px-2 py-1 text-xs font-semibold text-stage-foreground hover:bg-stage-2",
+            muted && "opacity-60",
+          )}
+          onclick={() => requestMuteToggle(hand)}
+        >
+          <span
+            class={cn("size-2 rounded-full", hand === "left" ? "bg-chart-4" : "bg-chart-2")}
+            aria-hidden="true"
+          ></span>
+          {muted ? "Unmute" : "Mute"}
+          {hand} hand
+        </button>
+      {/each}
+    </div>
   {/if}
 
   {#if latchedNotes.size > 0}

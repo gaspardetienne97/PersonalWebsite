@@ -13,6 +13,7 @@
     monotonicMs,
     unixMs,
     type ExerciseRunRecord,
+    type Score,
     type UnixMs,
   } from "@repo/music-core/domain";
   import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
@@ -37,7 +38,11 @@
     type ExpectedNoteGroup,
     timingWindowMs,
   } from "@repo/music-core/engines/score-follower";
-  import { scorePlaybackPattern, SongLibrary } from "@repo/music-core/engines/song-library";
+  import {
+    beatAtSeconds,
+    scorePlaybackPattern,
+    SongLibrary,
+  } from "@repo/music-core/engines/song-library";
   import { PracticeStore, type SongRow } from "@repo/music-core/engines/store";
   import { midiToNote } from "@repo/music-core/engines/theory";
   import { Badge } from "@repo/ui/badge";
@@ -53,6 +58,8 @@
   import ScoreFollowerStage from "../../_components/ScoreFollowerStage.svelte";
   import SegmentProgress from "../../_components/SegmentProgress.svelte";
   import StaffNotation from "../../_components/StaffNotation.svelte";
+  import PianoSurface, { type PianoHand } from "../../_components/piano/PianoSurface.svelte";
+  import { scoreTimelineNotes, scoreWithoutHands } from "../../_components/piano/piano-timeline";
   import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
   import ScorePracticeSetup from "./_components/ScorePracticeSetup.svelte";
@@ -102,6 +109,9 @@
   let previewPlaying = $state(false);
   let previewTimer: ReturnType<typeof setTimeout> | undefined;
   let previewGeneration = 0;
+  let previewPositionBeat = $state(0);
+  let previewFrame: number | undefined;
+  let mutedHands = $state<PianoHand[]>([]);
   let practiceRequest = 0;
   let practiceContextRequest = 0;
   let practiceContextReady: Promise<boolean> = Promise.resolve(false);
@@ -150,7 +160,7 @@
 
   // Tab view: guitar/ukulele projection of the (voice-filtered) canonical score.
   const TAB_TUNINGS = [...curatedTunings("guitar"), ...curatedTunings("ukulele")];
-  let notationMode = $state<"staff" | "tab" | "fingering">("staff");
+  let notationMode = $state<"staff" | "tab" | "fingering" | "waterfall">("staff");
   let tabTuningId = $state(TAB_TUNINGS[0]!.id);
   const tabTuning = $derived(TAB_TUNINGS.find(({ id }) => id === tabTuningId) ?? TAB_TUNINGS[0]!);
   const tabProjection = $derived(score ? projectScoreToFretboard(score, tabTuning) : undefined);
@@ -160,6 +170,14 @@
   const selectionEditing = $derived(setup.selection.kind === "custom" && !practicing);
   const showTab = $derived(notationMode === "tab");
   const showFingering = $derived(notationMode === "fingering" && !selectionEditing);
+  // Staff and waterfall are alternative views of the same score, never both.
+  const showWaterfall = $derived(notationMode === "waterfall" && !selectionEditing);
+  const previewTimeline = $derived(score ? scoreTimelineNotes(score) : []);
+  const previewMaterial = $derived(
+    Array.from(new Set(score?.notes.map(({ midiNote }) => midiNote) ?? [])).sort(
+      (left, right) => left - right,
+    ),
+  );
 
   const live = $derived(practiceState?.live);
   const progressPercent = $derived(Math.round((live?.progress ?? 0) * 100));
@@ -305,6 +323,10 @@
       status = "Preview paused.";
       return;
     }
+    await startPreview();
+  }
+
+  async function startPreview(): Promise<void> {
     const currentScore = score;
     if (!currentScore) return;
     const generation = ++previewGeneration;
@@ -314,15 +336,18 @@
         return;
       }
       if (generation !== previewGeneration) return;
-      const pattern = scorePlaybackPattern(currentScore);
+      const pattern = scorePlaybackPattern(scoreWithoutHands(currentScore, mutedHands));
       const durationSec = pattern.reduce(
         (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
         0,
       );
-      runtime.sound.playPattern(pattern);
+      const epoch = runtime.sound.playPattern(pattern);
       previewPlaying = true;
       status = `Playing ${song?.title ?? "song"} preview.`;
       previewTimer = setTimeout(finishPreview, Math.max(300, durationSec * 1_000));
+      // No epoch means playback never started; the waterfall then has no
+      // position to show rather than a made-up one.
+      if (epoch) startPositionLoop(generation, epoch.startedAt, currentScore.tempoMap);
     } catch (error) {
       if (generation !== previewGeneration) return;
       stopPreview();
@@ -330,10 +355,25 @@
     }
   }
 
+  /**
+   * The playback epoch is the only clock: elapsed performance-clock time goes
+   * through the same tempo map that scheduled the audio.
+   */
+  function startPositionLoop(
+    generation: number,
+    startedAt: number,
+    tempoMap: Score["tempoMap"],
+  ): void {
+    const step = () => {
+      if (generation !== previewGeneration) return;
+      previewPositionBeat = beatAtSeconds((performance.now() - startedAt) / 1_000, tempoMap);
+      previewFrame = requestAnimationFrame(step);
+    };
+    step();
+  }
+
   function finishPreview(): void {
-    runtime.sound.stopPattern();
-    previewTimer = undefined;
-    previewPlaying = false;
+    stopPreview();
     status = "Preview complete.";
   }
 
@@ -341,8 +381,19 @@
     previewGeneration += 1;
     if (previewTimer !== undefined) clearTimeout(previewTimer);
     previewTimer = undefined;
+    if (previewFrame !== undefined) cancelAnimationFrame(previewFrame);
+    previewFrame = undefined;
+    previewPositionBeat = 0;
     runtime.sound.stopPattern();
     previewPlaying = false;
+  }
+
+  /** The surface asks; the route reschedules and hands back the new truth. */
+  function requestMutedHands(hands: PianoHand[]): void {
+    mutedHands = hands;
+    if (!previewPlaying) return;
+    stopPreview();
+    void startPreview();
   }
 
   function exportMidi(): void {
@@ -746,6 +797,16 @@
               >
                 Fingering
               </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={showWaterfall ? "secondary" : "outline"}
+                aria-pressed={showWaterfall}
+                disabled={selectionEditing}
+                onclick={() => (notationMode = "waterfall")}
+              >
+                Waterfall
+              </Button>
               {#if showTab}
                 <select
                   class="h-9 rounded-md border bg-background px-2 text-sm"
@@ -762,7 +823,16 @@
                 </span>
               {/if}
             </div>
-            {#if showTab && tabProjection && notation.view}
+            {#if showWaterfall}
+              <PianoSurface
+                label="Waterfall"
+                notes={previewMaterial}
+                timelineNotes={previewTimeline}
+                positionBeat={previewPositionBeat}
+                {mutedHands}
+                onMutedHandsChange={requestMutedHands}
+              />
+            {:else if showTab && tabProjection && notation.view}
               <TabNotation
                 view={notation.view}
                 projection={tabProjection}

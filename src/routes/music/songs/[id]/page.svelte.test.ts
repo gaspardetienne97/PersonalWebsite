@@ -200,6 +200,58 @@ describe("/music/songs/[id]/+page.svelte", () => {
     runtime.dispose();
   });
 
+  test("drives the waterfall from the returned preview epoch and reschedules on hand mute", async () => {
+    const library = { get: vi.fn(async () => twoHandSongRow()) };
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+    // Two beats of playback have already elapsed when the epoch is reported.
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => ({
+      clock: "performance",
+      startedAt: monotonicMs(performance.now() - 1_000),
+    }));
+
+    render(Page, { songId: "song-1", runtime, library });
+    await vi.waitFor(() => expect(button("Waterfall")).not.toBeUndefined());
+    button("Waterfall")?.click();
+
+    // Staff and waterfall are alternatives, never both.
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Waterfall"]')).not.toBeNull(),
+    );
+    expect(document.querySelector('[aria-label="Staff notation"]')).toBeNull();
+    // Parked at beat 0, the note five beats out is still beyond the lane.
+    expect(waterfallNotes()).toEqual(["48", "72"]);
+
+    button("Play preview")?.click();
+    await vi.waitFor(() => expect(playPattern).toHaveBeenCalledOnce());
+    // At ~beat 2 the later note has come into view: the position is the epoch's.
+    await vi.waitFor(() => expect(waterfallNotes()).toEqual(["48", "72", "79"]));
+
+    document.querySelector<HTMLButtonElement>('[data-testid="mute-left"]')?.click();
+    await vi.waitFor(() => expect(playPattern).toHaveBeenCalledTimes(2));
+    expect(playPattern.mock.calls[1]?.[0]).toEqual([
+      { midiNotes: [72], offsetSeconds: 0, durationSeconds: 2 },
+      { midiNotes: [79], offsetSeconds: 2.5, durationSeconds: 0.5 },
+    ]);
+    await vi.waitFor(() =>
+      expect(
+        document
+          .querySelector<HTMLButtonElement>('[data-testid="mute-left"]')
+          ?.getAttribute("aria-pressed"),
+      ).toBe("true"),
+    );
+    // The muted hand stays visible to read, marked as muted rather than gone.
+    expect(
+      document.querySelector<HTMLElement>('[data-testid="waterfall-note"][data-note="48"]')?.dataset
+        .muted,
+    ).toBe("true");
+
+    // Pausing invalidates the epoch, so the position stops advancing.
+    button("Pause preview")?.click();
+    await vi.waitFor(() => expect(waterfallNotes()).toEqual(["48", "72"]));
+    runtime.dispose();
+  });
+
   test("selects multiple sections and completes the resolved wait-mode queue", async () => {
     const library = {
       get: vi.fn(async () => songRow()),
@@ -346,6 +398,30 @@ function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (candidate) => candidate.textContent?.trim() === label,
   );
+}
+
+function waterfallNotes(): string[] {
+  return [...document.querySelectorAll<HTMLElement>('[data-testid="waterfall-note"]')]
+    .map((element) => element.dataset.note ?? "")
+    .sort();
+}
+
+function twoHandSongRow(): SongRow {
+  return {
+    ...songRow(),
+    score: {
+      ...score(),
+      voices: [
+        { id: "melody", name: "Melody", role: "melody" },
+        { id: "bass", name: "Bass", role: "bass" },
+      ],
+      notes: [
+        { midiNote: 72, startBeat: 0, durationBeats: 4, velocity: 0.8, voiceId: "melody" },
+        { midiNote: 48, startBeat: 0, durationBeats: 4, velocity: 0.8, voiceId: "bass" },
+        { midiNote: 79, startBeat: 5, durationBeats: 1, velocity: 0.8, voiceId: "melody" },
+      ],
+    },
+  };
 }
 
 function input(label: string): HTMLInputElement | undefined {

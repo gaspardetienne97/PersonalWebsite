@@ -1,4 +1,5 @@
-import type { Score } from "@repo/music-core/domain";
+import type { MonotonicMs, Score } from "@repo/music-core/domain";
+import { monotonicMs } from "@repo/music-core/domain";
 import type { PlaybackSoundId } from "@repo/music-core/engines/settings";
 import { midiToNote } from "@repo/music-core/engines/theory";
 
@@ -45,7 +46,10 @@ type ToneConstructor<T> = new (...args: unknown[]) => T;
 export interface ToneSoundModule {
   start(): Promise<void>;
   loaded(): Promise<void>;
+  /** Scheduling time: raw audio clock plus Tone's look-ahead. */
   now(): number;
+  /** Raw audio-context time, with no look-ahead added. */
+  immediate(): number;
   gainToDb(gain: number): number;
   Synth: ToneConstructor<ToneInstrument>;
   PolySynth: ToneConstructor<ToneInstrument>;
@@ -164,6 +168,16 @@ export const DRONE_TIMBRE_NAMES: string[] = Object.keys(DRONE_TIMBRES);
 export interface ScorePattern {
   steps: SoundPatternStep[];
   durationSec: number;
+}
+
+/**
+ * When a scheduled pattern's first beat lands, expressed on the same clock a
+ * route reads with `performance.now()`. Routes compare it directly; they never
+ * see audio time, and playback keeps its own schedule regardless.
+ */
+export interface PatternPlaybackEpoch {
+  clock: "performance";
+  startedAt: MonotonicMs;
 }
 
 /**
@@ -391,8 +405,14 @@ export class SoundEngine {
     );
   }
 
-  playPattern(steps: SoundPatternStep[], velocity = 0.8): void {
-    if (!this.enabled || !this.#tone || !this.#instrument) return;
+  /**
+   * Schedule a pattern and report when its first beat lands on the performance
+   * clock, or `undefined` when playback is unavailable. The three samples are
+   * taken in the same call so the look-ahead `now()` adds to `immediate()` can
+   * be projected onto the caller's clock without mixing units or epochs.
+   */
+  playPattern(steps: SoundPatternStep[], velocity = 0.8): PatternPlaybackEpoch | undefined {
+    if (!this.enabled || !this.#tone || !this.#instrument) return undefined;
     this.stopPattern();
     const voice =
       this.#sampler ??
@@ -401,6 +421,8 @@ export class SoundEngine {
       );
     this.#patternVoice = voice;
     this.#patternVoiceDisposable = voice !== this.#sampler;
+    const performanceSample = performance.now();
+    const immediateAudio = this.#tone.immediate();
     const startAt = this.#tone.now();
     for (const step of steps) {
       voice.triggerAttackRelease(
@@ -410,6 +432,10 @@ export class SoundEngine {
         clampVelocity(velocity),
       );
     }
+    return {
+      clock: "performance",
+      startedAt: monotonicMs(performanceSample + (startAt - immediateAudio) * 1_000),
+    };
   }
 
   stopPattern(): void {
