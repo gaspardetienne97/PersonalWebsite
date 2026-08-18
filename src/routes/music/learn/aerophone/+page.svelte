@@ -42,7 +42,6 @@
   import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
-  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
@@ -50,6 +49,7 @@
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
+  import AerophoneInput from "./_components/AerophoneInput.svelte";
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const chart = aerophoneChart();
@@ -1198,7 +1198,12 @@
                 Articulation grading reads note length and breath (CC2), so a wind controller
                 scores it fully. On-screen taps complete the pitch dimension only.
               </p>
-              <OnScreenKeyboard router={runtime.router} instrument="aerophone" notes={[targetLabel]} onAccepted={playAccepted} />
+              <AerophoneInput
+                router={runtime.router}
+                {targetMidi}
+                currentMidi={live ? selected : undefined}
+                onAccepted={playAccepted}
+              />
             </div>
           {/if}
 

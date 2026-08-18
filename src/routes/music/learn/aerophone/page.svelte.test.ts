@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import { monotonicMs } from "@repo/music-core/domain";
+import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
 import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore } from "@repo/music-core/engines/skills";
@@ -224,7 +224,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     expect(button("Long tone")).toBeUndefined();
     expect(document.activeElement?.textContent).toContain("Articulation Trainer");
 
-    for (let index = 0; index < 8; index += 1) keyboardKey("G4")?.click();
+    for (let index = 0; index < 8; index += 1) fingeringKey("G4")?.click();
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Articulation complete");
@@ -250,6 +250,79 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     });
   });
 
+  /**
+   * The on-screen surface is attack-only on purpose: articulation is graded
+   * from noteOn/noteOff pairs, so routing releases would start grading
+   * mouse-hold time. Taps must still read as unassessable articulation.
+   */
+  test("an on-screen articulation run scores no articulation and routes no releases", async () => {
+    const runtime = new MusicRuntime();
+    const routed: NoteEvent[] = [];
+    runtime.router.subscribe((event) => routed.push(event));
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    button("Articulation")?.click();
+    await vi.waitFor(() => expect(button("Start articulation drill")).not.toBeUndefined());
+    button("Start articulation drill")?.click();
+    await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
+
+    for (let index = 0; index < 8; index += 1) fingeringKey("G4")?.click();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Articulation complete"));
+    expect(document.body.textContent).toContain(
+      "No sustained notes — use a wind controller for articulation.",
+    );
+    expect(dimension("Articulation")).toBe("0%");
+    expect(dimension("Pitch")).toBe("100%");
+    // Every attack landed; not one release did.
+    expect(attacks(routed)).toEqual(Array.from({ length: 8 }, () => 67));
+    expect(routed.filter((event) => event.type === "noteOff")).toHaveLength(0);
+    runtime.dispose();
+  });
+
+  test("QWERTY still attacks from the articulation target's octave", async () => {
+    const runtime = new MusicRuntime();
+    const routed: NoteEvent[] = [];
+    runtime.router.subscribe((event) => routed.push(event));
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    button("Articulation")?.click();
+    await vi.waitFor(() => expect(button("Start articulation drill")).not.toBeUndefined());
+    button("Start articulation drill")?.click();
+    await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
+
+    // Focus order: stage entry focuses the trainer heading, and the one named
+    // fingering control follows it in document order.
+    expect(fingeringKey("G4")?.getAttribute("aria-label")).toBe("Play G4, target fingering");
+    expect(document.activeElement).toBe(document.querySelector("h2"));
+    expect(
+      [
+        ...document.querySelectorAll<HTMLElement>(
+          'h2, [aria-label="Aerophone fingering input"] button',
+        ),
+      ].map((element) => element.dataset.note ?? element.tagName),
+    ).toEqual(["H2", "G4"]);
+
+    // `A` is the G4 target's own C, as the previous keyboard anchored it.
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "a", bubbles: true }));
+
+    expect(attacks(routed)).toEqual([60]);
+    expect(routed.filter((event) => event.type === "noteOff")).toHaveLength(0);
+    await vi.waitFor(() => {
+      // One attack advanced the run, and the fingering it played is on screen.
+      expect(document.body.textContent).toContain("1/8");
+      expect(
+        document
+          .querySelector('[data-testid="aerophone-last-played"]')
+          ?.querySelector('svg[aria-label="C4 Aerophone fingering"]'),
+      ).not.toBeNull();
+    });
+    runtime.dispose();
+  });
+
   test("returns from the summary to focused setup with Change setup", async () => {
     render(Page);
 
@@ -259,7 +332,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     button("Start articulation drill")?.click();
     await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
 
-    for (let index = 0; index < 8; index += 1) keyboardKey("G4")?.click();
+    for (let index = 0; index < 8; index += 1) fingeringKey("G4")?.click();
 
     await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
     button("Change setup")?.click();
@@ -437,10 +510,23 @@ async function completeLongTone(runtime: MusicRuntime): Promise<void> {
   await vi.waitFor(() => expect(button("Repeat long tone")).not.toBeUndefined());
 }
 
-function keyboardKey(label: string): HTMLButtonElement | undefined {
-  return [
-    ...document.querySelectorAll<HTMLButtonElement>('[aria-label="On-screen keyboard"] button'),
-  ].find((candidate) => candidate.textContent?.trim() === label);
+function fingeringKey(note: string): HTMLButtonElement | undefined {
+  return (
+    document.querySelector<HTMLButtonElement>(
+      `[aria-label="Aerophone fingering input"] button[data-note="${note}"]`,
+    ) ?? undefined
+  );
+}
+
+/** The rendered value of one Summary dimensions tile. */
+function dimension(label: string): string | undefined {
+  return [...document.querySelectorAll('[aria-label="Summary dimensions"] div')]
+    .find((tile) => tile.firstElementChild?.textContent?.trim() === label)
+    ?.children[1]?.textContent?.trim();
+}
+
+function attacks(events: NoteEvent[]): number[] {
+  return events.filter((event) => event.type === "noteOn").map((event) => event.midiNote);
 }
 
 function buttonByLabel(label: string): HTMLButtonElement | undefined {
