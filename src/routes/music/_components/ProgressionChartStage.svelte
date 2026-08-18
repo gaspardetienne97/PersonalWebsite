@@ -3,6 +3,7 @@
   import type { JamProgression, TargetTone, ToneRole } from "@repo/music-core/engines/jam";
   import { cn } from "@repo/ui/utils";
 
+  import PianoSurface from "./piano/PianoSurface.svelte";
   import PracticeStage from "./PracticeStage.svelte";
 
   let {
@@ -17,22 +18,8 @@
     instrument?: InstrumentId;
   } = $props();
 
-  const WHITE = [
-    { pc: 0, label: "C" },
-    { pc: 2, label: "D" },
-    { pc: 4, label: "E" },
-    { pc: 5, label: "F" },
-    { pc: 7, label: "G" },
-    { pc: 9, label: "A" },
-    { pc: 11, label: "B" },
-  ];
-  const BLACK = [
-    { pc: 1, left: 10 },
-    { pc: 3, left: 24 },
-    { pc: 6, left: 52 },
-    { pc: 8, left: 66 },
-    { pc: 10, left: 80 },
-  ];
+  /** The strip is a pitch-class reference, so one octave from C4 stands in. */
+  const STRIP_LOW_MIDI = 60;
 
   const current = $derived(progression.chords[currentIndex] ?? progression.chords[0]!);
   const nextIndex = $derived((currentIndex + 1) % progression.chords.length);
@@ -42,21 +29,11 @@
     return tones.find((tone) => tone.pitchClass === pc)?.role ?? "avoid";
   }
 
-  function keyClasses(role: ToneRole, black = false): string {
-    if (role === "chord") {
-      return black
-        ? "border-primary bg-primary text-primary-foreground"
-        : "border-primary bg-primary text-primary-foreground";
-    }
-    if (role === "scale") {
-      return black
-        ? "border-primary/40 bg-primary/55 text-primary-foreground"
-        : "border-primary/40 bg-primary/20 text-primary";
-    }
-    return black
-      ? "border-foreground/20 bg-foreground"
-      : "border-stage-line bg-background text-muted-foreground";
-  }
+  const toneRoles = $derived(
+    Object.fromEntries(
+      Array.from({ length: 12 }, (_, pc) => [STRIP_LOW_MIDI + pc, roleFor(pc)] as const),
+    ),
+  );
 
   function cellState(index: number): "current" | "next" | "upcoming" {
     if (index === currentIndex) return "current";
@@ -119,35 +96,22 @@
       <p class="eyebrow">Target tones · {current.symbol} / {current.scale}</p>
       <div class="flex flex-wrap items-center gap-3 text-xs text-stage-muted">
         <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-primary"></span>Chord tones</span>
-        <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-primary/30"></span>Scale tones</span>
+        <span class="flex items-center gap-1.5"
+          ><span class="size-3 rounded-full bg-primary/25 ring-1 ring-inset ring-primary"></span>Scale tones</span
+        >
         <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-muted"></span>Avoid</span>
       </div>
     </div>
 
-    <div class="relative mx-auto h-32 w-full max-w-md select-none" aria-label="Target-tone keyboard">
-      <div class="flex h-full gap-1">
-        {#each WHITE as key (key.pc)}
-          {@const role = roleFor(key.pc)}
-          <div
-            data-tone-role={role}
-            class={cn(
-              "flex flex-1 items-end justify-center rounded-b-md border pb-2 text-xs font-semibold",
-              keyClasses(role),
-            )}
-          >
-            {key.label}
-          </div>
-        {/each}
-      </div>
-      {#each BLACK as key (key.pc)}
-        {@const role = roleFor(key.pc)}
-        <div
-          data-tone-role={role}
-          class={cn("absolute top-0 h-20 w-[9%] rounded-b-md border", keyClasses(role, true))}
-          style:left={`${key.left}%`}
-          aria-hidden="true"
-        ></div>
-      {/each}
+    <div class="mx-auto w-full max-w-md">
+      <PianoSurface
+        lowMidi={STRIP_LOW_MIDI}
+        highMidi={STRIP_LOW_MIDI + 11}
+        {toneRoles}
+        noteNames="all"
+        interactive={false}
+        label={`Target-tone keyboard · ${current.symbol}`}
+      />
     </div>
   </div>
 </PracticeStage>

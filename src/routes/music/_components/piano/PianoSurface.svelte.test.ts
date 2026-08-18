@@ -104,6 +104,34 @@ describe("PianoSurface keys", () => {
     expect(key("C4").tagName).toBe("DIV");
     expect(key("C4").getAttribute("aria-hidden")).toBe("true");
   });
+
+  test("a static diagram says its highlights, hands and tone roles once, in text", async () => {
+    render(PianoSurface, {
+      lowMidi: 60,
+      highMidi: 71,
+      interactive: false,
+      label: "Piano voicing",
+      highlights: {
+        60: { role: "target", hand: "left" },
+        64: { role: "target", hand: "right" },
+      },
+      fingerings: { 60: 5 },
+      toneRoles: { 62: "scale", 61: "avoid" },
+    });
+    await tick();
+
+    const summaries = document.querySelectorAll('[data-testid="piano-summary"]');
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]?.textContent).toBe(
+      "C4, target, left hand, finger 5; C#4, avoid; D4, scale tone; E4, target, right hand",
+    );
+    // Meaning survives without colour: the roles are attributes and text too.
+    expect(key("C4").dataset.state).toBe("target-left");
+    expect(key("E4").dataset.state).toBe("target-right");
+    expect(key("D4").getAttribute("data-tone-role")).toBe("scale");
+    // ...and no key, marker, or summary is focusable.
+    expect(document.querySelectorAll("button, [tabindex], [disabled]")).toHaveLength(0);
+  });
 });
 
 describe("PianoSurface input", () => {

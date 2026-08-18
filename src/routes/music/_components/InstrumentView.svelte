@@ -1,12 +1,11 @@
 <script lang="ts">
   import type { InstrumentId } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
-  import { midiToNote } from "@repo/music-core/engines/theory";
   import { curatedTunings } from "@repo/music-core/engines/tunings";
 
   import FretboardInput from "../learn/reading/_components/FretboardInput.svelte";
-  import PianoKeyboard from "../learn/theory/_components/PianoKeyboard.svelte";
   import AerophoneFingering from "./AerophoneFingering.svelte";
+  import PianoSurface from "./piano/PianoSurface.svelte";
   import PracticeStage from "./PracticeStage.svelte";
 
   let {
@@ -30,7 +29,9 @@
       .sort((a, b) => a - b),
   );
 
-  const noteNames = $derived(midi.map((m) => midiToNote(m, true)));
+  const pianoHighlights = $derived(
+    Object.fromEntries(midi.map((m) => [m, "target" as const])),
+  );
   const tuning = $derived(
     instrument === "guitar" || instrument === "ukulele"
       ? curatedTunings(instrument)[0]
@@ -48,7 +49,13 @@
       {/each}
     </div>
   {:else}
-    <!-- Piano (and any pitched fallback). -->
-    <PianoKeyboard notes={noteNames} />
+    <!-- Piano (and any pitched fallback): a static diagram, not an input. -->
+    <PianoSurface
+      notes={midi}
+      highlights={pianoHighlights}
+      noteNames="c"
+      interactive={false}
+      label="Piano voicing"
+    />
   {/if}
 </PracticeStage>

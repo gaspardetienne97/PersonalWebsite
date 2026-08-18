@@ -187,6 +187,21 @@
       .join(", ");
   }
 
+  /**
+   * A static diagram exposes no key controls, so everything its colours say
+   * lives in this one summary: each non-neutral key with its state, hand, tone
+   * role, and fingering. It replaces per-key tab stops, it does not add any.
+   */
+  const staticSummary = $derived.by(() => {
+    if (playable) return "";
+    const named = geometry.keys
+      .map((key) => ({ key, state: keyState(key.midiNote) }))
+      .filter(({ state }) => state !== "neutral")
+      .map(({ key, state }) => accessibleName(key, state));
+    // Semicolons keep "C4, chord tone" from running into the next key.
+    return named.length > 0 ? named.join("; ") : "No highlighted notes";
+  });
+
   function nameVisible(key: PianoKey): boolean {
     if (noteNames === "all") return true;
     return noteNames === "c" && key.midiNote % 12 === 0;
@@ -213,7 +228,8 @@
       case "chord":
         return "bg-primary text-primary-foreground";
       case "scale":
-        return "bg-primary/25";
+        // Outlined, not just a paler fill, so chord/scale/avoid differ in form.
+        return "bg-primary/25 ring-1 ring-inset ring-primary";
       case "avoid":
       case "neutral":
         return "";
@@ -289,6 +305,7 @@
       type="button"
       data-note={key.name}
       data-state={state}
+      data-tone-role={toneRoles?.[key.midiNote]}
       aria-label={accessibleName(key, state)}
       aria-pressed={heldNotes.has(key.midiNote)}
       class={keyClass(key, state)}
@@ -310,6 +327,7 @@
     <div
       data-note={key.name}
       data-state={state}
+      data-tone-role={toneRoles?.[key.midiNote]}
       aria-hidden="true"
       class={keyClass(key, state)}
       style:left={key.kind === "black" ? `${box.left}%` : undefined}
@@ -350,6 +368,10 @@
       {/each}
     </div>
   </div>
+
+  {#if !playable}
+    <p class="sr-only" data-testid="piano-summary">{staticSummary}</p>
+  {/if}
 
   {#if latchedNotes.size > 0}
     <div>
