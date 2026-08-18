@@ -36,7 +36,7 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
-  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PianoSurface from "../../_components/piano/PianoSurface.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -638,7 +638,7 @@
               <Progress value={Math.min(played.length, scaleMidi.length)} max={scaleMidi.length} />
             </div>
           {/if}
-          <OnScreenKeyboard router={runtime.router} />
+          <PianoSurface router={runtime.router} />
         </Card.Content>
         <Card.Footer class="flex-wrap gap-3">
           <Button type="button" variant="outline" onclick={hearScale}>

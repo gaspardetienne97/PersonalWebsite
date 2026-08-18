@@ -134,6 +134,57 @@ describe("piano input holder registry", () => {
   });
 });
 
+describe("piano input click-to-latch opt-in", () => {
+  function latchSetup() {
+    let now = 0;
+    const router = new InputRouter({ now: () => now });
+    const routed: NoteEvent[] = [];
+    router.subscribe((event) => routed.push(event));
+    const input = new PianoInput({
+      router: () => router,
+      pointerMode: () => "latch",
+      now: () => now,
+    });
+    return { input, routed };
+  }
+
+  test("pointer activation toggles the latch instead of pressing", () => {
+    const { input, routed } = latchSetup();
+
+    input.press(60, "pointer", 1);
+    input.release("pointer", 1); // the pointer up is not a release here
+    input.press(64, "pointer", 2);
+    input.release("pointer", 2);
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOn:64"]);
+    expect([...input.latchedNotes]).toEqual([60, 64]);
+
+    input.press(60, "pointer", 3); // clicking a held key releases it
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOn:64", "noteOff:60"]);
+
+    input.clearLatches();
+    expect(input.heldNotes.size).toBe(0);
+  });
+
+  test("a bare click latches too, so a synthesised click can build a chord", () => {
+    const { input, routed } = latchSetup();
+
+    input.tap(60);
+    input.tap(64);
+
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOn:64"]);
+    expect([...input.heldNotes]).toEqual([60, 64]);
+  });
+
+  test("QWERTY keeps press-and-hold semantics on a latch surface", () => {
+    const { input, routed } = latchSetup();
+
+    input.press(60, "qwerty", "KeyA");
+    input.release("qwerty", "KeyA");
+
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOff:60"]);
+  });
+});
+
 describe("piano input wait-mode opt-in", () => {
   test("a wait group change clears local holders without routing synthetic offs", () => {
     const { input, routed } = setup();

@@ -40,7 +40,7 @@
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
   import { meanPartialCredit } from "@repo/music-core/engines/sessions";
-  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PianoSurface, { type PianoHighlightRole } from "../../_components/piano/PianoSurface.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -144,6 +144,13 @@
       ? (sessionState.currentPrompt as ScalePatternPrompt)
       : undefined,
   );
+  // The prompt's notes were the old keyboard's highlight; on the shared surface
+  // the range material and the highlight layer are separate props.
+  const scaleHighlights = $derived.by(() => {
+    const highlights: Record<number, PianoHighlightRole> = {};
+    for (const label of activePrompt?.noteLabels ?? []) highlights[noteToMidi(label)] = "target";
+    return highlights;
+  });
   const summary = $derived(sessionState?.summary);
   // Set true by "Change setup" to leave the summary phase without a new run
   // (abandon() no-ops in the summary state, so this is route-owned; mirrors
@@ -665,9 +672,10 @@
         </div>
         <Progress value={liveProgress} max={100} />
         <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-4">
-          <OnScreenKeyboard
+          <PianoSurface
             router={runtime.router}
             notes={activePrompt?.noteLabels ?? []}
+            highlights={scaleHighlights}
             onAccepted={playAccepted}
           />
         </div>

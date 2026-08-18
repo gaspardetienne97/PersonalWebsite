@@ -3,6 +3,8 @@ import { render } from "vitest-browser-svelte";
 
 import { monotonicMs, unixMs } from "@repo/music-core/domain";
 import { type DailyRoutineStep } from "@repo/music-core/engines/daily-routine";
+import { midiToNote } from "@repo/music-core/engines/theory";
+import { buildVoicingDrillTargets } from "@repo/music-core/engines/voicing-drill-session";
 
 import { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./+page.svelte";
@@ -307,6 +309,26 @@ describe("/music/play/voicings/+page.svelte", () => {
     runtime.dispose();
   });
 
+  test("completes a held chord from sequential mouse clicks (click-to-latch)", async () => {
+    setTestUrl("/music/play/voicings?strict=held&advance=manual");
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    button("Start drill")?.click();
+    await vi.waitFor(() => expect(button("Check chord")).not.toBeUndefined());
+
+    // Grading is by pitch class, so play each expected one in the shown octave.
+    const [target] = buildVoicingDrillTargets("piano", { strict: true });
+    for (const pitchClass of target.expectedPitchClasses) {
+      const note = midiToNote(48 + pitchClass);
+      document.querySelector<HTMLButtonElement>(`button[data-note="${note}"]`)?.click();
+    }
+
+    // Each click latches, so the notes are held together and the chord fills.
+    await vi.waitFor(() => expect(notesMatched()).toBe("100%"));
+  });
+
   test("cancels an active run and returns focus to setup", async () => {
     const runtime = new MusicRuntime();
     const endPerformance = vi.spyOn(runtime, "endPerformance");
@@ -347,6 +369,14 @@ async function completeDrill(): Promise<void> {
     }
   }
   await vi.waitFor(() => expect(button("Repeat voicings")).not.toBeUndefined());
+}
+
+/** The live "Notes matched" readout next to its label. */
+function notesMatched(): string | undefined {
+  const label = [...document.querySelectorAll("span")].find(
+    (span) => span.textContent?.trim() === "Notes matched",
+  );
+  return label?.nextElementSibling?.textContent?.trim();
 }
 
 function routineStep(): DailyRoutineStep {

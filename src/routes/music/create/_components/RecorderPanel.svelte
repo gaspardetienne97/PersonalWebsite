@@ -28,7 +28,7 @@
   import * as Card from "@repo/ui/card";
 
   import AudioTakePanel from "../../_components/AudioTakePanel.svelte";
-  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PianoSurface from "../../_components/piano/PianoSurface.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
@@ -661,7 +661,7 @@
       <Card.Root>
         <Card.Header><Card.Description>Play to record</Card.Description></Card.Header>
         <Card.Content>
-          <OnScreenKeyboard router={runtime.router} onAccepted={playTake} />
+          <PianoSurface router={runtime.router} onAccepted={playTake} />
         </Card.Content>
       </Card.Root>
     </div>

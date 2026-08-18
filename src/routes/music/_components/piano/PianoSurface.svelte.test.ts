@@ -32,6 +32,13 @@ function pointer(type: "pointerdown" | "pointerup", target: Element, pointerId: 
   target.dispatchEvent(new PointerEvent(type, { pointerId, bubbles: true }));
 }
 
+/** A full mouse click: the pointer pair the browser sends, then the click. */
+function mouseClick(note: string, pointerId: number): void {
+  pointer("pointerdown", key(note), pointerId);
+  pointer("pointerup", key(note), pointerId);
+  key(note).click();
+}
+
 function windowKey(type: "keydown" | "keyup", init: KeyboardEventInit): void {
   window.dispatchEvent(new KeyboardEvent(type, { bubbles: true, ...init }));
 }
@@ -213,6 +220,32 @@ describe("PianoSurface input", () => {
 
     expect(routed).toHaveLength(0);
     field.remove();
+  });
+
+  test("pointerMode=latch builds a chord from sequential clicks, cleared on demand", async () => {
+    const { router, routed } = setup();
+    render(PianoSurface, { router, notes: ["C4", "E4", "G4"], pointerMode: "latch" });
+    await tick();
+
+    // One mouse can hold only one key, so each click latches instead.
+    mouseClick("C4", 1);
+    mouseClick("E4", 2);
+    mouseClick("G4", 3);
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOn:64", "noteOn:67"]);
+
+    await tick();
+    expect(key("C4").getAttribute("aria-pressed")).toBe("true");
+
+    // Clicking a latched key again releases just that one.
+    mouseClick("E4", 4);
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOn:64", "noteOn:67", "noteOff:64"]);
+
+    await tick();
+    const clear = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Clear held notes",
+    );
+    clear?.click();
+    expect(pairs(routed).slice(4)).toEqual(["noteOff:60", "noteOff:67"]);
   });
 
   test("a wait-mode surface drops its latch when a foreign attack is accepted", async () => {

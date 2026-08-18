@@ -64,7 +64,13 @@
     toMidiNote,
     type PianoKey,
   } from "./piano-geometry";
-  import { PianoInput, QWERTY_SEMITONES, isTypingTarget, qwertyBaseMidi } from "./piano-input";
+  import {
+    PianoInput,
+    QWERTY_SEMITONES,
+    isTypingTarget,
+    qwertyBaseMidi,
+    type PianoPointerMode,
+  } from "./piano-input";
 
   /**
    * The shared piano surface: one keyboard visual whose layers (highlights,
@@ -82,6 +88,7 @@
     router,
     instrument = "piano",
     interactive = true,
+    pointerMode = "hold",
     onAccepted,
     waitGroupKey,
     label = "On-screen keyboard",
@@ -99,6 +106,8 @@
     router?: InputRouter;
     instrument?: InstrumentId;
     interactive?: boolean;
+    /** `latch` makes a pointer click toggle the held note instead of pressing. */
+    pointerMode?: PianoPointerMode;
     onAccepted?: (event: NoteEvent) => void;
     /**
      * The follower group id + generation. Providing it opts this instance into
@@ -124,6 +133,7 @@
   const input = new PianoInput({
     router: () => router,
     instrument: () => instrument,
+    pointerMode: () => pointerMode,
     onAccepted: (event) => onAccepted?.(event),
     onChange: (held) => {
       heldNotes = new Set(held);

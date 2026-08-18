@@ -57,10 +57,18 @@ export function qwertyBaseMidi(midiNotes: readonly number[]): number {
  */
 export type PianoHolderKind = "pointer" | "qwerty" | "latch" | "tap";
 
+/**
+ * What a pointer activation means. `hold` is press-and-hold (the default);
+ * `latch` toggles the latch holder instead, so a one-button mouse can still
+ * build a chord on a surface graded on held notes (strict Voicings).
+ */
+export type PianoPointerMode = "hold" | "latch";
+
 export interface PianoInputOptions {
   /** Read live, so a surface can hand its router in later or not at all. */
   router: () => InputRouter | undefined;
   instrument?: () => InstrumentId | undefined;
+  pointerMode?: () => PianoPointerMode | undefined;
   onAccepted?: (event: NoteEvent) => void;
   onChange?: (held: ReadonlySet<number>) => void;
   now?: () => number;
@@ -104,6 +112,10 @@ export class PianoInput {
    * first attack rolls the holder back so a later press can retry.
    */
   press(midiNote: number, kind: PianoHolderKind, id: string | number = midiNote): boolean {
+    if (kind === "pointer" && this.#options.pointerMode?.() === "latch") {
+      this.toggleLatch(midiNote);
+      return true;
+    }
     const holderKey = holderKeyFor(kind, id);
     if (this.#holderNotes.has(holderKey)) return true;
 
@@ -145,6 +157,12 @@ export class PianoInput {
 
   /** One momentary press+release, for activations with no key-up of their own. */
   tap(midiNote: number): void {
+    // A latch surface has no momentary press: a bare click means the same as a
+    // pointer one there, otherwise a synthesised click could not build a chord.
+    if (this.#options.pointerMode?.() === "latch") {
+      this.toggleLatch(midiNote);
+      return;
+    }
     if (this.press(midiNote, "tap", midiNote)) this.release("tap", midiNote);
   }
 

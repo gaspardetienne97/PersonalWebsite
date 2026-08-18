@@ -34,7 +34,7 @@
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
-  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PianoSurface from "../../_components/piano/PianoSurface.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
@@ -538,7 +538,7 @@
           <Progress value={Math.min(played.length, expectedMidi.length)} max={expectedMidi.length} />
         </div>
         <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-4">
-          <OnScreenKeyboard router={runtime.router} />
+          <PianoSurface router={runtime.router} />
         </div>
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>

@@ -37,7 +37,7 @@
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import InstrumentView from "../../_components/InstrumentView.svelte";
-  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PianoSurface from "../../_components/piano/PianoSurface.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
@@ -576,7 +576,7 @@
         </div>
 
         <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-4">
-          <OnScreenKeyboard router={runtime.router} onAccepted={playInput} />
+          <PianoSurface router={runtime.router} pointerMode="latch" onAccepted={playInput} />
         </div>
 
         <div class="flex flex-wrap items-center gap-3">

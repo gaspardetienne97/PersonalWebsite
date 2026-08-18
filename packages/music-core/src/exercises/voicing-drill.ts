@@ -17,6 +17,7 @@ import {
   type ExerciseDefinition,
   type ExerciseResult,
   type ExerciseRun,
+  type InputSource,
   type NoteEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
@@ -135,16 +136,26 @@ function gradeCumulative(
  * together. Replays the noteOn/noteOff stream and tracks the currently-held
  * set, so taps that never overlap don't count as a chord. Monotonic (keeps the
  * best moment), so progress only rises.
+ *
+ * The held set is per input source (on-screen, MIDI, audio) and graded on the
+ * union: a `noteOff` only releases the source that sent it, so letting go of a
+ * doubled pitch on one device cannot erase another device's live hold.
+ * ponytail: coarse source, not per-device — two MIDI keyboards still share a set.
  */
 function gradeHeld(expected: number[], input: NoteEvent[]): { matched: number; actual: number[] } {
-  const held = new Set<number>();
+  const heldBySource = new Map<InputSource, Set<number>>();
   let bestMatched = 0;
   let bestActual: number[] = [];
   for (const event of input) {
+    let held = heldBySource.get(event.source);
+    if (held === undefined) {
+      held = new Set<number>();
+      heldBySource.set(event.source, held);
+    }
     if (event.type === "noteOn") held.add(event.midiNote);
     else if (event.type === "noteOff") held.delete(event.midiNote);
     else continue;
-    const heldPcs = new Set([...held].map(pc12));
+    const heldPcs = new Set([...heldBySource.values()].flatMap((notes) => [...notes].map(pc12)));
     const matched = expected.filter((pc) => heldPcs.has(pc)).length;
     if (matched >= bestMatched) {
       bestMatched = matched;

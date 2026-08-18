@@ -21,7 +21,10 @@ const noteOff = (midiNote: number): NoteEvent => ({
   clock: "performance",
 });
 
-const ctx: ExerciseContext = { targetSkillIds: ["harmony.ii-v-i"], difficulty: 0.5 };
+const ctx: ExerciseContext = {
+  targetSkillIds: ["harmony.ii-v-i"],
+  difficulty: 0.5,
+};
 
 // Dm7 rootless A = F A C E → pitch classes {5, 9, 0, 4}.
 const chordTarget: VoicingTarget = {
@@ -70,6 +73,36 @@ describe("voicing drill — held (strict) chord mode", () => {
     expect(r.getLiveState().progress).toBeCloseTo(3 / 4);
     r.accept(noteOff(65)); // release one — best overlap should not drop
     expect(r.getLiveState().progress).toBeCloseTo(3 / 4);
+  });
+
+  test("a doubled pitch stays held until every source releases it", () => {
+    const midiOn = { ...noteOn(65), source: "midi" as const };
+    const midiOff = { ...noteOff(65), source: "midi" as const };
+    const exercise = createVoicingDrillExercise(heldTarget);
+    const r = exercise.createRun(exercise.generate(ctx), ctx);
+
+    // F on both the on-screen keyboard and MIDI, then A and C on-screen only.
+    [noteOn(65), midiOn, noteOn(69), noteOn(72)].forEach((event) => r.accept(event));
+    r.accept(midiOff); // MIDI lets go of F; the on-screen hold survives
+    r.accept(noteOn(76)); // E completes the chord — F must still count
+    expect(r.getLiveState().progress).toBe(1);
+    expect(r.finish().correct).toBe(true);
+  });
+
+  test("a release from one source still releases that source's own hold", () => {
+    const midi = (event: NoteEvent): NoteEvent => ({
+      ...event,
+      source: "midi",
+    });
+    // F, A, C on MIDI; F released before E arrives, so only three ever overlap.
+    const result = run(
+      [midi(noteOn(65)), midi(noteOn(69)), midi(noteOn(72))].concat(
+        midi(noteOff(65)),
+        midi(noteOn(76)),
+      ),
+    );
+    expect(result.correct).toBe(false);
+    expect(result.score).toBeCloseTo(3 / 4);
   });
 });
 

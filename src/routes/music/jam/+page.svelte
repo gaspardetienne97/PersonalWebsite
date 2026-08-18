@@ -37,7 +37,7 @@
   import ProgressionChartStage from "../_components/ProgressionChartStage.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
-  import OnScreenKeyboard from "../_components/OnScreenKeyboard.svelte";
+  import PianoSurface from "../_components/piano/PianoSurface.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
@@ -500,7 +500,7 @@
           </div>
         </Card.Header>
         <Card.Content>
-          <OnScreenKeyboard router={runtime.router} onAccepted={playSolo} />
+          <PianoSurface router={runtime.router} onAccepted={playSolo} />
         </Card.Content>
       </Card.Root>
     </div>
