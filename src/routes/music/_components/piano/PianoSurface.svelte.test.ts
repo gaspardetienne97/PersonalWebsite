@@ -1,11 +1,12 @@
 import { tick } from "svelte";
-import { afterEach, describe, expect, test } from "vite-plus/test";
+import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import type { NoteEvent } from "@repo/music-core/domain";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 
 import PianoSurface from "./PianoSurface.svelte";
+import { keyPercent, noteLane, pianoGeometry } from "./piano-geometry";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -131,6 +132,135 @@ describe("PianoSurface keys", () => {
     expect(key("D4").getAttribute("data-tone-role")).toBe("scale");
     // ...and no key, marker, or summary is focusable.
     expect(document.querySelectorAll("button, [tabindex], [disabled]")).toHaveLength(0);
+  });
+});
+
+describe("PianoSurface waterfall", () => {
+  const timelineNotes = [
+    { midiNote: 60, startBeat: 0, durationBeats: 1, hand: "left" as const },
+    { midiNote: 64, startBeat: 2, durationBeats: 1, hand: "right" as const },
+    { midiNote: 67, startBeat: 8, durationBeats: 1, hand: "right" as const },
+  ];
+
+  function fallen(): Array<{ note: string; bottom: string; height: string; hand?: string }> {
+    return [...document.querySelectorAll<HTMLElement>('[data-testid="waterfall-note"]')].map(
+      (element) => ({
+        note: element.dataset.note ?? "",
+        bottom: element.style.bottom,
+        height: element.style.height,
+        hand: element.dataset.hand,
+      }),
+    );
+  }
+
+  test("positions falling notes from startBeat minus positionBeat", async () => {
+    render(PianoSurface, { notes: [60, 67], timelineNotes, positionBeat: 0 });
+    await tick();
+
+    // A 4-beat lane: beat 2 sits halfway up, beat 8 is out of view entirely.
+    expect(fallen()).toEqual([
+      { note: "60", bottom: "0%", height: "25%", hand: "left" },
+      { note: "64", bottom: "50%", height: "25%", hand: "right" },
+    ]);
+    // A note lands exactly on its own key: the lane *is* the key's box.
+    const geometry = pianoGeometry({ notes: [60, 67] });
+    const box = keyPercent(geometry, noteLane(geometry, 60)!);
+    const lane = document.querySelector<HTMLElement>('[data-testid="waterfall-note"]');
+    expect(lane?.style.left).toBe(`${box.left}%`);
+    expect(lane?.style.width).toBe(`${box.width}%`);
+  });
+
+  test("advancing the position moves notes down and lights the keys they reach", async () => {
+    const surface = render(PianoSurface, { notes: [60, 67], timelineNotes, positionBeat: 0 });
+    await tick();
+    expect(key("C4").dataset.state).toBe("sounding-left");
+    expect(key("E4").dataset.state).toBe("upcoming");
+    expect(key("G4").dataset.state).toBe("neutral");
+
+    surface.rerender({ notes: [60, 67], timelineNotes, positionBeat: 2 });
+    await tick();
+
+    expect(fallen()).toEqual([{ note: "64", bottom: "0%", height: "25%", hand: "right" }]);
+    expect(key("C4").dataset.state).toBe("neutral");
+    expect(key("E4").dataset.state).toBe("sounding-right");
+    // Hand and playback state are said in text, not only in colour.
+    expect(document.querySelector('[data-testid="piano-summary"]')?.textContent).toBe(
+      "E4, sounding, right hand",
+    );
+  });
+
+  test("input and target state outrank playback highlights", async () => {
+    const { router } = setup();
+    render(PianoSurface, {
+      router,
+      notes: [60, 67],
+      timelineNotes,
+      positionBeat: 0,
+      highlights: { 60: "wrong" },
+    });
+    await tick();
+
+    expect(key("C4").dataset.state).toBe("wrong");
+  });
+
+  test("reduced motion drops the lane and keeps the static note highlights", async () => {
+    const listeners: Array<() => void> = [];
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query.includes("reduced-motion"),
+      addEventListener: (_: string, listener: () => void) => listeners.push(listener),
+      removeEventListener: () => undefined,
+    }));
+
+    render(PianoSurface, { notes: [60, 67], timelineNotes, positionBeat: 0 });
+    await tick();
+
+    expect(document.querySelector('[data-testid="piano-waterfall"]')).toBeNull();
+    expect(fallen()).toEqual([]);
+    expect(key("C4").dataset.state).toBe("sounding-left");
+    expect(key("E4").dataset.state).toBe("upcoming");
+    expect(document.querySelector('[data-testid="piano-summary"]')?.textContent).toBe(
+      "C4, sounding, left hand; E4, upcoming",
+    );
+    vi.unstubAllGlobals();
+  });
+
+  test("hand mute asks the route and renders the authoritative answer", async () => {
+    const requested: string[][] = [];
+    const surface = render(PianoSurface, {
+      notes: [60, 67],
+      timelineNotes,
+      positionBeat: 0,
+      mutedHands: [],
+      onMutedHandsChange: (hands) => requested.push(hands),
+    });
+    await tick();
+
+    const left = document.querySelector<HTMLButtonElement>('[data-testid="mute-left"]');
+    expect(left?.getAttribute("aria-pressed")).toBe("false");
+    left?.click();
+
+    // The surface only requests: nothing changes until the route says so.
+    expect(requested).toEqual([["left"]]);
+    await tick();
+    expect(left?.getAttribute("aria-pressed")).toBe("false");
+
+    surface.rerender({
+      notes: [60, 67],
+      timelineNotes,
+      positionBeat: 0,
+      mutedHands: ["left"],
+      onMutedHandsChange: (hands: string[]) => requested.push(hands),
+    });
+    await tick();
+
+    expect(
+      document
+        .querySelector<HTMLButtonElement>('[data-testid="mute-left"]')
+        ?.getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      document.querySelector<HTMLElement>('[data-testid="waterfall-note"]')?.dataset.muted,
+    ).toBe("true");
   });
 });
 

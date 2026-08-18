@@ -4,7 +4,7 @@ import { unixMs } from "@repo/music-core/domain";
 import { scoreFromImportedSong } from "@repo/music-core/engines/score-import";
 import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 
-import { SongLibrary, scorePlaybackPattern } from "./index";
+import { SongLibrary, beatAtSeconds, scorePlaybackPattern, secondsAtBeat } from "./index";
 
 const databases: PracticeDatabase[] = [];
 
@@ -76,6 +76,25 @@ describe("SongLibrary", () => {
       { midiNotes: [60], offsetSeconds: 0, durationSeconds: 1 },
       { midiNotes: [67], offsetSeconds: 2, durationSeconds: 2 },
     ]);
+  });
+
+  test("beatAtSeconds inverts the scheduler's projection across a tempo marker", () => {
+    const tempoMap = [
+      { atBeat: 0, bpm: 120 },
+      { atBeat: 4, bpm: 60 },
+    ];
+
+    // Same seconds the pattern scheduler used, back to the same beats.
+    for (const beat of [0, 1, 3.5, 4, 6, 9.25]) {
+      expect(beatAtSeconds(secondsAtBeat(beat, tempoMap), tempoMap)).toBeCloseTo(beat, 9);
+    }
+    // 0.5 s/beat before the marker, 1 s/beat after it.
+    expect(beatAtSeconds(1, tempoMap)).toBeCloseTo(2, 9);
+    expect(beatAtSeconds(2, tempoMap)).toBeCloseTo(4, 9);
+    expect(beatAtSeconds(3.5, tempoMap)).toBeCloseTo(5.5, 9);
+    // A position sampled before the scheduled start never runs backwards.
+    expect(beatAtSeconds(-0.75, tempoMap)).toBe(0);
+    expect(beatAtSeconds(0, [])).toBe(0);
   });
 
   test("persists a canonical score with its original MusicXML source", async () => {

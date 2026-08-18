@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { ComponentProps } from "svelte";
+
   import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
   import {
@@ -23,6 +25,8 @@
     tuning,
     bpm,
     sessionXp,
+    stageView = "staff",
+    waterfall,
     onAccepted,
     onStart,
     onFinish,
@@ -33,6 +37,9 @@
     tuning?: TuningProfile;
     bpm: number;
     sessionXp: number;
+    /** The route picks the stage view; both are the same score. */
+    stageView?: ComponentProps<typeof ScoreFollowerStage>["stageView"];
+    waterfall?: ComponentProps<typeof ScoreFollowerStage>["waterfall"];
     onAccepted: (event: NoteEvent) => void;
     onStart: () => Promise<number | undefined>;
     onFinish: () => Promise<void>;
@@ -154,6 +161,8 @@
             {tuning}
             {tabProjection}
             {showTab}
+            {stageView}
+            {waterfall}
             onShowTabChange={(value) => (showTab = value)}
             router={router}
             inputEnabled={false}
@@ -172,6 +181,8 @@
             {tuning}
             {tabProjection}
             {showTab}
+            {stageView}
+            {waterfall}
             onShowTabChange={(value) => (showTab = value)}
             router={router}
             activeMidiNotes={live?.heldMidiNotes ?? []}

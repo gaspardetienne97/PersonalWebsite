@@ -15,7 +15,7 @@ describe("/music/songs/+page.svelte", () => {
     };
     const runtime = new MusicRuntime();
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
-    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => {});
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => undefined);
     const recordPractice = vi.spyOn(runtime, "recordPractice").mockResolvedValue();
 
     render(Page, { runtime, library });

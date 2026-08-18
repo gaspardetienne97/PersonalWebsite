@@ -69,7 +69,8 @@ export function scorePlaybackPattern(score: Score): SoundPatternStep[] {
     });
 }
 
-function secondsAtBeat(beat: number, tempoMap: Score["tempoMap"]): number {
+/** Canonical beat -> seconds projection; the pattern scheduler's only clock. */
+export function secondsAtBeat(beat: number, tempoMap: Score["tempoMap"]): number {
   const markers = [...tempoMap].sort((left, right) => left.atBeat - right.atBeat);
   let currentBeat = 0;
   let bpm = markers[0]?.bpm ?? 120;
@@ -88,6 +89,36 @@ function secondsAtBeat(beat: number, tempoMap: Score["tempoMap"]): number {
   }
 
   return seconds + ((beat - currentBeat) * 60) / bpm;
+}
+
+/**
+ * Piecewise inverse of {@link secondsAtBeat}: elapsed preview seconds -> beat.
+ * Elapsed time is clamped at zero, so a position read before the scheduled
+ * start reports beat 0 rather than running backwards.
+ *
+ * Note: this assumes the preview started at score beat 0. A section-scoped
+ * preview must add its section's start beat to the result.
+ */
+export function beatAtSeconds(elapsedSeconds: number, tempoMap: Score["tempoMap"]): number {
+  const markers = [...tempoMap].sort((left, right) => left.atBeat - right.atBeat);
+  const target = Math.max(0, elapsedSeconds);
+  let currentBeat = 0;
+  let bpm = markers[0]?.bpm ?? 120;
+  let seconds = 0;
+
+  for (const marker of markers) {
+    if (marker.atBeat <= currentBeat) {
+      bpm = marker.bpm;
+      continue;
+    }
+    const segmentSeconds = ((marker.atBeat - currentBeat) * 60) / bpm;
+    if (target <= seconds + segmentSeconds) break;
+    seconds += segmentSeconds;
+    currentBeat = marker.atBeat;
+    bpm = marker.bpm;
+  }
+
+  return currentBeat + ((target - seconds) * bpm) / 60;
 }
 
 function round(value: number): number {
