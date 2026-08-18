@@ -12,7 +12,7 @@
   import SegmentProgress from "../../../_components/SegmentProgress.svelte";
   import SourceReadout from "../../../_components/SourceReadout.svelte";
   import FretboardInput from "./FretboardInput.svelte";
-  import PianoInput from "./PianoInput.svelte";
+  import PianoSurface, { type PianoHighlight } from "../../../_components/piano/PianoSurface.svelte";
   import StaffNotation from "../../../_components/StaffNotation.svelte";
 
   let {
@@ -37,19 +37,11 @@
 
   const prompt = $derived(state.currentPrompt as NoteReadingPrompt | undefined);
   const view = $derived(prompt ? notationView(prompt.score) : undefined);
-  const pianoNotes = $derived(
-    prompt
-      ? Array.from(
-          {
-            length:
-              Math.min(96, Math.max(...prompt.midiNotes) + 12) -
-              Math.max(24, Math.min(...prompt.midiNotes) - 12) +
-              1,
-          },
-          (_, index) => Math.max(24, Math.min(...prompt.midiNotes) - 12) + index,
-        )
-      : [],
-  );
+  const pianoHighlights = $derived.by(() => {
+    const highlights: Record<number, PianoHighlight> = {};
+    for (const midiNote of prompt?.midiNotes ?? []) highlights[midiNote] = { role: "target" };
+    return highlights;
+  });
 </script>
 
 <PracticeDrillShell phase="stage">
@@ -82,7 +74,13 @@
             {/each}
           </div>
         {:else if prompt?.instrument === "piano"}
-          <PianoInput midiNotes={pianoNotes} targetMidiNotes={prompt.midiNotes} {router} {onAccepted} />
+          <PianoSurface
+            label="Piano input"
+            notes={prompt.midiNotes}
+            highlights={pianoHighlights}
+            {router}
+            {onAccepted}
+          />
         {:else if prompt && tuning}
           <FretboardInput
             {tuning}

@@ -30,7 +30,7 @@
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import HudTile from "../../_components/HudTile.svelte";
-  import OnScreenKeyboard from "../../_components/OnScreenKeyboard.svelte";
+  import PianoSurface, { type PianoHighlight } from "../../_components/piano/PianoSurface.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
@@ -107,10 +107,25 @@
     }).payload,
   );
   const display = $derived(activePrompt ?? previewPrompt);
-  const leftKeys = $derived([...new Set(display.leftNoteLabels)]);
-  const rightKeys = $derived([...new Set(display.rightNoteLabels)]);
-  const leftFingerings = $derived(suggestedFingerings(display.leftMidiNotes, "left"));
-  const rightFingerings = $derived(suggestedFingerings(display.rightMidiNotes, "right"));
+  // One keyboard, hand-tagged: two surfaces would mean two QWERTY listeners and
+  // two router events per press.
+  const handNotes = $derived([
+    ...new Set([...display.leftMidiNotes, ...display.rightMidiNotes]),
+  ]);
+  const handHighlights = $derived.by(() => {
+    const highlights: Record<number, PianoHighlight> = {};
+    for (const midiNote of display.rightMidiNotes) {
+      highlights[midiNote] = { role: "target", hand: "right" };
+    }
+    for (const midiNote of display.leftMidiNotes) {
+      highlights[midiNote] = { role: "target", hand: "left" };
+    }
+    return highlights;
+  });
+  const handFingerings = $derived({
+    ...suggestedFingerings(display.rightMidiNotes, "right"),
+    ...suggestedFingerings(display.leftMidiNotes, "left"),
+  });
   const totalNotes = $derived(display.leftMidiNotes.length + display.rightMidiNotes.length);
   const playedNotes = $derived(Math.round((sessionState?.live?.progress ?? 0) * totalNotes));
 
@@ -400,6 +415,18 @@
   />
 </svelte:head>
 
+<!-- Hand colour key: the surface names each hand per key, this labels the hue. -->
+{#snippet handLegend()}
+  <p class="flex flex-wrap items-center gap-3 text-xs font-medium text-stage-muted">
+    <span class="flex items-center gap-1.5">
+      <span class="size-3 rounded-sm bg-chart-4" aria-hidden="true"></span>Left hand · pulse
+    </span>
+    <span class="flex items-center gap-1.5">
+      <span class="size-3 rounded-sm bg-chart-2" aria-hidden="true"></span>Right hand · line
+    </span>
+  </p>
+{/snippet}
+
 <PracticeScreen>
   <PracticeScreenHeader
     title="Two-Hand Independence"
@@ -529,20 +556,12 @@
             <p class="text-sm text-stage-muted">{midiStatus}</p>
           </div>
           <div class="grid gap-2">
-            <span class="text-xs font-medium text-stage-muted">Left hand</span>
-            <OnScreenKeyboard
+            {@render handLegend()}
+            <PianoSurface
               router={runtime.router}
-              notes={leftKeys}
-              suggestedFingerings={leftFingerings}
-              onAccepted={playAccepted}
-            />
-          </div>
-          <div class="grid gap-2">
-            <span class="text-xs font-medium text-stage-muted">Right hand</span>
-            <OnScreenKeyboard
-              router={runtime.router}
-              notes={rightKeys}
-              suggestedFingerings={rightFingerings}
+              notes={handNotes}
+              highlights={handHighlights}
+              fingerings={handFingerings}
               onAccepted={playAccepted}
             />
           </div>
@@ -569,15 +588,15 @@
           </div>
           <Progress value={Math.min(totalNotes, playedNotes)} max={totalNotes} />
         </div>
-        <div class="grid min-w-0 gap-5">
-          <div class="grid gap-2">
-            <span class="text-xs font-semibold uppercase tracking-wide text-stage-muted">Left hand · pulse</span>
-            <OnScreenKeyboard router={runtime.router} notes={leftKeys} suggestedFingerings={leftFingerings} onAccepted={playAccepted} />
-          </div>
-          <div class="grid gap-2">
-            <span class="text-xs font-semibold uppercase tracking-wide text-stage-muted">Right hand · line</span>
-            <OnScreenKeyboard router={runtime.router} notes={rightKeys} suggestedFingerings={rightFingerings} onAccepted={playAccepted} />
-          </div>
+        <div class="grid min-w-0 gap-2">
+          {@render handLegend()}
+          <PianoSurface
+            router={runtime.router}
+            notes={handNotes}
+            highlights={handHighlights}
+            fingerings={handFingerings}
+            onAccepted={playAccepted}
+          />
         </div>
       </PracticeStage>
     {/snippet}

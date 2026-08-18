@@ -83,20 +83,13 @@
       ),
     };
   });
-  const pianoNotes = $derived(
-    prompt
-      ? Array.from(
-          {
-            length:
-              Math.min(96, Math.max(...prompt.score.notes.map(({ midiNote }) => midiNote)) + 12) -
-              Math.max(24, Math.min(...prompt.score.notes.map(({ midiNote }) => midiNote)) - 12) +
-              1,
-          },
-          (_, index) =>
-            Math.max(24, Math.min(...prompt.score.notes.map(({ midiNote }) => midiNote)) - 12) +
-            index,
-        )
-      : [],
+  // Wait mode is follower-driven, so the on-screen surface must drop its local
+  // holds whenever the follower moves on. The session index is the generation:
+  // a fresh phrase restarts at group 0 and still counts as a change.
+  const waitGroupKey = $derived(
+    mode === "wait"
+      ? `${sessionState.currentIndex}:${currentGroup?.id ?? live?.currentGroupIndex ?? 0}`
+      : undefined,
   );
   let startTimestampMs = $state(0);
 
@@ -183,8 +176,8 @@
             router={router}
             activeMidiNotes={live?.heldMidiNotes ?? []}
             wrongMidiNotes={live?.wrongMidiNotes ?? []}
-            {pianoNotes}
             {pianoHandHint}
+            {waitGroupKey}
             suggestedFingerings={pianoFingerings}
             onExpectedNoteSelected={playExpected}
             {onAccepted}

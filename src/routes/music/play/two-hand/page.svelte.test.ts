@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import { monotonicMs } from "@repo/music-core/domain";
+import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
 import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore } from "@repo/music-core/engines/skills";
@@ -95,9 +95,12 @@ describe("/music/play/two-hand/+page.svelte", () => {
     render(Page, { runtime });
 
     expect(document.querySelector("h1")?.textContent).toContain("Two-Hand Independence");
+    // One hand-tagged surface, not one keyboard per hand.
     await vi.waitFor(() =>
-      expect(document.querySelectorAll('[aria-label="On-screen keyboard"] svg').length).toBe(2),
+      expect(document.querySelectorAll('[aria-label="On-screen keyboard"]').length).toBe(1),
     );
+    expect(button("C2")?.getAttribute("data-state")).toBe("target-left");
+    expect(button("C4")?.getAttribute("data-state")).toBe("target-right");
     expect(document.querySelector('[data-testid="finger-36"]')?.textContent).toBe("5");
     expect(document.querySelector('[data-testid="finger-60"]')?.textContent).toBe("1");
     await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
@@ -122,6 +125,30 @@ describe("/music/play/two-hand/+page.svelte", () => {
       expect(document.body.textContent).toContain("Drill complete");
       expect(button("Repeat drill")).not.toBeUndefined();
     });
+  });
+
+  test("emits exactly one router event per QWERTY press", async () => {
+    const runtime = new MusicRuntime();
+    const events: NoteEvent[] = [];
+    runtime.router.subscribe((event) => events.push(event));
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("C2")).not.toBeUndefined());
+    // `A` is the QWERTY map's C, anchored on the lowest rendered note (C2).
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a", code: "KeyA", bubbles: true }));
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: "noteOn",
+      midiNote: 36,
+      source: "onscreen",
+    });
+
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "a", code: "KeyA", bubbles: true }));
+
+    expect(events).toHaveLength(2);
+    expect(events[1]).toMatchObject({ type: "noteOff", midiNote: 36 });
+    runtime.dispose();
   });
 
   test.each([

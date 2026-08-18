@@ -28,8 +28,7 @@ describe("ScoreFollowerStage", () => {
       router: new InputRouter(),
       inputEnabled: true,
       activeMidiNotes: [],
-      wrongMidiNotes: [],
-      pianoNotes: [60, 62, 64],
+      wrongMidiNotes: [60],
       pianoHandHint: "Right hand",
       suggestedFingerings: { 62: 2 },
       onExpectedNoteSelected,
@@ -48,12 +47,20 @@ describe("ScoreFollowerStage", () => {
       "Right hand",
     );
     expect(document.querySelector("[data-testid='finger-62']")).not.toBeNull();
+    // The shared surface carries the hand from projectScoreToPiano, and wrong
+    // notes still outrank the target highlight.
+    expect(pianoKey("D4")?.getAttribute("data-state")).toBe("target-right");
+    expect(pianoKey("C4")?.getAttribute("data-state")).toBe("wrong");
 
     document.querySelector<HTMLButtonElement>("[data-testid='score-expected-note']")?.click();
 
     expect(onExpectedNoteSelected).toHaveBeenCalledWith(62);
   });
 });
+
+function pianoKey(name: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`[aria-label="Piano input"] [data-note="${name}"]`);
+}
 
 function scoreFixture(): Score {
   return {

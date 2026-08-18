@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { InstrumentId, NoteEvent, Score } from "@repo/music-core/domain";
+  import type { InstrumentId, InstrumentProjection, NoteEvent, Score } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
   import type { NotationView } from "@repo/music-core/engines/notation";
   import type { ExpectedNoteGroup } from "@repo/music-core/engines/score-follower";
@@ -9,11 +9,11 @@
   import { cn } from "@repo/ui/utils";
 
   import FretboardInput from "../learn/reading/_components/FretboardInput.svelte";
-  import PianoInput from "../learn/reading/_components/PianoInput.svelte";
   import StaffNotation from "./StaffNotation.svelte";
   import TabNotation from "./TabNotation.svelte";
+  import PianoSurface, { type PianoHand, type PianoHighlight } from "./piano/PianoSurface.svelte";
   import type { NotationRangeHighlight } from "./notation-selection";
-  import type { InstrumentProjection } from "@repo/music-core/engines/projection";
+  import { projectScoreToPiano } from "@repo/music-core/engines/projection";
 
   let {
     score,
@@ -25,12 +25,12 @@
     inputEnabled = true,
     activeMidiNotes = [],
     wrongMidiNotes = [],
-    pianoNotes = [],
     pianoHandHint,
     suggestedFingerings,
     tuning,
     tabProjection,
     showTab = false,
+    waitGroupKey,
     onShowTabChange,
     onExpectedNoteSelected,
     onAccepted,
@@ -44,12 +44,16 @@
     inputEnabled?: boolean;
     activeMidiNotes?: number[];
     wrongMidiNotes?: number[];
-    pianoNotes?: number[];
     pianoHandHint?: string;
     suggestedFingerings?: Record<number, number>;
     tuning?: TuningProfile;
     tabProjection?: InstrumentProjection;
     showTab?: boolean;
+    /**
+     * The follower's current group id + generation. Only a route running wait
+     * mode passes it; it opts the piano surface into takeover/reset behaviour.
+     */
+    waitGroupKey?: string;
     onShowTabChange?: (showTab: boolean) => void;
     onExpectedNoteSelected?: (midiNote: number) => void;
     onAccepted?: (event: NoteEvent) => void;
@@ -88,13 +92,35 @@
       },
     ];
   });
-  const resolvedPianoNotes = $derived(
-    pianoNotes.length > 0
-      ? pianoNotes
-      : Array.from(new Set(score.notes.map(({ midiNote }) => midiNote))).sort(
-          (left, right) => left - right,
-        ),
+  // The score's own notes are the piano material; the surface derives the
+  // visible range from them. `projectScoreToPiano` stays the only hand authority.
+  const pianoProjection = $derived(instrument === "piano" ? projectScoreToPiano(score) : undefined);
+  const pianoMaterial = $derived(
+    Array.from(new Set(score.notes.map(({ midiNote }) => midiNote))).sort(
+      (left, right) => left - right,
+    ),
   );
+  const targetHands = $derived.by(() => {
+    const hands = new Map<number, PianoHand>();
+    if (!currentGroup || !pianoProjection) return hands;
+    for (const note of pianoProjection.notes) {
+      if (note.hand && currentGroup.sourceNoteIndexes.includes(note.sourceIndex)) {
+        hands.set(note.midiNote, note.hand);
+      }
+    }
+    return hands;
+  });
+  // Last write wins, so the order is the precedence: wrong > active > target.
+  const pianoHighlights = $derived.by(() => {
+    const highlights: Record<number, PianoHighlight> = {};
+    for (const midiNote of targetNotes) {
+      const hand = targetHands.get(midiNote);
+      highlights[midiNote] = { role: "target", ...(hand ? { hand } : {}) };
+    }
+    for (const midiNote of activeMidiNotes) highlights[midiNote] = { role: "active" };
+    for (const midiNote of wrongMidiNotes) highlights[midiNote] = { role: "wrong" };
+    return highlights;
+  });
 
   function toggleTab(): void {
     onShowTabChange?.(!showTab);
@@ -161,13 +187,13 @@
       </div>
 
       {#if instrument === "piano"}
-        <PianoInput
-          midiNotes={resolvedPianoNotes}
-          targetMidiNotes={targetNotes}
-          {activeMidiNotes}
-          {wrongMidiNotes}
-          {suggestedFingerings}
+        <PianoSurface
+          label="Piano input"
+          notes={pianoMaterial}
+          highlights={pianoHighlights}
+          fingerings={suggestedFingerings}
           {router}
+          {waitGroupKey}
           {onAccepted}
         />
       {:else if tuning}
