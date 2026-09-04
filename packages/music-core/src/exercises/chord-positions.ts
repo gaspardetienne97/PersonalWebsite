@@ -140,7 +140,7 @@ function fretKey(frets: (number | null)[]): string {
 }
 
 function* combinations(perString: (number | null)[][]): Generator<(number | null)[]> {
-  const current: (number | null)[] = new Array(perString.length).fill(null);
+  const current: (number | null)[] = Array.from({ length: perString.length }, () => null);
   function* walk(index: number): Generator<(number | null)[]> {
     if (index === perString.length) {
       yield [...current];
