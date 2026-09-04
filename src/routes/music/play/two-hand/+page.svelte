@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import { onDestroy, tick } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import { unixMs, type NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
@@ -30,6 +30,8 @@
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PianoSurface, { type PianoHighlight } from "../../_components/piano/PianoSurface.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -52,6 +54,8 @@
   const progress = new ProgressEngine(store);
   const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
   const initialConfig = normalizeTwoHandDrillConfig(initialSearch);
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
   const keyOptions = TWO_HAND_DRILL_TONICS.map((value) => ({
     value,
@@ -80,7 +84,7 @@
   // Results are dismissible so the setup card stays reachable after a run.
   let resultsDismissed = $state(false);
   let captured = false;
-  let status = $state("Preparing piano technique.");
+  let status = $state("Loading your technique history.");
   let midiEnabled = $state(runtime.midi.state.enabled);
   let session = $state<TechniqueSession | undefined>();
   let sessionState = $state<TechniqueSessionState | undefined>();
@@ -186,6 +190,9 @@
   let activeHeading = $state<HTMLHeadingElement | null>(null);
   let resultsHeading = $state<HTMLElement | null>(null);
   let setupSummary = $state<HTMLElement | null>(null);
+  const setupSummaryText = $derived(
+    `${display.patternLabel} · ${tonic.replace(/\d+$/, "")} · ${handModeLabel(handMode)} · ${bpm} BPM${dynamics && handMode === "both" ? " · Melody louder" : ""}`,
+  );
   let previousPhase: "summary" | "stage" | "setup" | undefined;
 
   void initialize();
@@ -269,7 +276,7 @@
         }
       });
       ready = true;
-      status = "Hold the left-hand pulse while the right hand runs the line.";
+      status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "Piano technique could not be prepared.");
     }
@@ -372,12 +379,12 @@
     startRequest += 1;
     runtime.endPerformance();
     session?.abandon();
-    status = "Drill cancelled. You can start again.";
+    status = "Drill cancelled. Setup ready.";
   }
 
   function changeSetup(): void {
     startRequest += 1;
-    status = "Setup ready. Change the drill settings or start again.";
+    status = "Setup ready.";
     resultsDismissed = true;
   }
 
@@ -416,190 +423,177 @@
 
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Two-Hand Independence"
-    subtitle="Keep the left hand steady on each beat while the right hand runs a faster scale line."
-  >
+  <PracticeScreenHeader title="Two-Hand Independence" compact>
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI · piano" : "On-screen keys"}
+        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
         live={sessionState?.status === "active"}
       />
     {/snippet}
   </PracticeScreenHeader>
 
-
   <!-- Persistent live region: mounted outside the branches so transitions announce. -->
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
+
+  {#snippet keyboard()}
+    <PianoSurface
+      router={runtime.router}
+      notes={handNotes}
+      highlights={handHighlights}
+      fingerings={handFingerings}
+      onAccepted={playAccepted}
+    />
+  {/snippet}
+
+  {#snippet setupSummaryLine()}
+    {setupSummaryText}
+  {/snippet}
 
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>What happened</Card.Description>
+        <Card.Description>{display.patternLabel} · {handModeLabel(handMode)} · {bpm} BPM</Card.Description>
         <Card.Title level={2} class="font-bold">{resultHeadline}</Card.Title>
       {/snippet}
-      {#snippet children()}
-        <div class="grid gap-6 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.2fr)]">
-          <div class="grid min-h-64 place-items-center rounded-xl border p-6 text-center {result?.correct ? 'border-success/30 bg-success/10' : 'bg-muted/30'}">
-            <div>
-              <p class="eyebrow">Two-hand score</p>
-              <p class="text-7xl font-bold leading-none tabular-nums {result?.correct ? 'text-success' : 'text-foreground'}">
-                {Math.round((result?.score ?? 0) * 100)}
-              </p>
-              <p class="mt-3 text-sm text-muted-foreground">+{summary?.xp ?? 0} XP earned</p>
-            </div>
-          </div>
-          <div class="grid content-start gap-5">
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {#if answer && handMode !== "right"}
-                <HudTile label="Left note accuracy" value={Math.round(answer.leftAccuracy * 100)} unit="%" tone={answer.leftAccuracy >= 0.9 ? "good" : "default"} />
-              {/if}
-              {#if answer && handMode !== "left"}
-                <HudTile label="Right note accuracy" value={Math.round(answer.rightAccuracy * 100)} unit="%" tone={answer.rightAccuracy >= 0.9 ? "good" : "default"} />
-              {/if}
-              <HudTile label="Mean spacing error" value={Math.round(answer?.meanEvennessErrorMs ?? 0)} unit="ms" />
-              <HudTile label="Tempo" value={bpm} unit="BPM" />
-            </div>
-            <SessionFeedback
-              kind={summary?.correct === summary?.total ? "correct" : "wrong"}
-              message="Drill complete"
-              detail={resultDetail}
-              xp={summary?.xp ?? 0}
-            />
-          </div>
+      {#snippet metric()}
+        <div>
+          <p class="eyebrow">Two-hand score</p>
+          <p
+            class="text-6xl font-bold leading-none tracking-tight tabular-nums {result?.correct
+              ? 'text-success'
+              : 'text-foreground'}"
+          >
+            {Math.round((result?.score ?? 0) * 100)}
+          </p>
         </div>
       {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta tags={["two-hand"]} accuracy={result?.score ?? 0} before={visitStartedAt} />
+      {/snippet}
+      {#snippet children()}
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {#if answer && handMode !== "right"}
+            <HudTile size="sm" label="Left note accuracy" value={Math.round(answer.leftAccuracy * 100)} unit="%" tone={answer.leftAccuracy >= 0.9 ? "good" : "default"} />
+          {/if}
+          {#if answer && handMode !== "left"}
+            <HudTile size="sm" label="Right note accuracy" value={Math.round(answer.rightAccuracy * 100)} unit="%" tone={answer.rightAccuracy >= 0.9 ? "good" : "default"} />
+          {/if}
+          <HudTile size="sm" label="Mean spacing error" value={Math.round(answer?.meanEvennessErrorMs ?? 0)} unit="ms" />
+          <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+        </div>
+        <SessionFeedback
+          kind={summary?.correct === summary?.total ? "correct" : "wrong"}
+          message="Drill complete"
+          detail={resultDetail}
+        />
+        <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · Technique · Two-hand independence</p>
+      {/snippet}
       {#snippet actions()}
-        <AdaptiveRetryBar onRetry={() => void start()} onSlower={slowDown} retryLabel="Repeat drill" />
+        <AdaptiveRetryBar onRetry={() => void start()} onSlower={slowDown} retryLabel="Again" />
+        <StartShortcut onStart={() => void start()} />
+      {/snippet}
+      {#snippet nextUp()}
+        <NextUpSuggestion {skills} {analytics} currentPath="/music/play/two-hand" routine={runtime.dailyRoutine} />
       {/snippet}
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
-      <section class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <Card.Root class="min-w-0">
-          <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <Card.Description>Hand independence · {bpm} BPM</Card.Description>
-              <Card.Title>{display.patternLabel}</Card.Title>
-            </div>
-            <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-            </Button>
-          </Card.Header>
-
-          <Card.Content class="grid gap-6">
-            <details class="group rounded-xl border bg-muted/20 p-3">
-              <summary bind:this={setupSummary} class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <span>
-                  <span class="block text-sm font-semibold">Remembered setup</span>
-                  <span class="text-xs text-muted-foreground">
-                    {tonic.replace(/\d+$/, "")} · {handModeLabel(handMode)} · {bpm} BPM{dynamics && handMode === "both" ? " · Melody louder" : ""}
-                  </span>
-                </span>
-                <span class="text-sm font-medium text-primary group-open:hidden">Edit setup</span>
-                <span class="hidden text-sm font-medium text-primary group-open:inline">Hide setup</span>
-              </summary>
-              <fieldset disabled={pending} class="mt-4 grid gap-4 border-t pt-4 disabled:opacity-70">
-                <SegmentedControl ariaLabel="Pattern" options={patternOptions} bind:value={patternKind} />
-                <SegmentedControl
-                  ariaLabel="Hand mode"
-                  options={handModeOptions}
-                  bind:value={handMode}
-                />
-                <SegmentedControl ariaLabel="Key" options={keyOptions} bind:value={tonic} />
-                <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
-                {#if handMode === "both"}
-                  <SegmentedControl
-                    size="sm"
-                    ariaLabel="Dynamics"
-                    options={[
-                      { value: "even", label: "Even touch" },
-                      { value: "melody", label: "Melody louder" },
-                    ]}
-                    value={dynamics ? "melody" : "even"}
-                    onChange={(value) => (dynamics = value === "melody")}
-                  />
-                {/if}
-              </fieldset>
-            </details>
-          </Card.Content>
-
-          <Card.Footer class="flex-wrap gap-3">
-            <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
-              {pending ? "Starting..." : "Start drill"}
-            </Button>
-            <StartShortcut onStart={() => void start()} />
-            <p class="text-sm text-muted-foreground">{status}</p>
-          </Card.Footer>
-        </Card.Root>
-
-        <PracticeStage instrument="piano" class="grid min-w-0 gap-4 p-5">
-          <div>
-            <p class="eyebrow">Ready stage</p>
-            <h2 class="text-xl font-bold">Piano keys</h2>
-            <p class="text-sm text-stage-muted">{midiStatus}</p>
-          </div>
-          <div class="grid gap-2">
-            <PianoSurface
-              router={runtime.router}
-              notes={handNotes}
-              highlights={handHighlights}
-              fingerings={handFingerings}
-              onAccepted={playAccepted}
-            />
-          </div>
-        </PracticeStage>
-      </section>
+      <div class="grid gap-4 rounded-lg border bg-card p-4">
+        <SegmentedControl ariaLabel="Pattern" options={patternOptions} bind:value={patternKind} />
+        <SegmentedControl ariaLabel="Hand mode" options={handModeOptions} bind:value={handMode} />
+        <SegmentedControl ariaLabel="Key" options={keyOptions} bind:value={tonic} />
+        {#if handMode === "both"}
+          <SegmentedControl
+            size="sm"
+            ariaLabel="Dynamics"
+            options={[
+              { value: "even", label: "Even touch" },
+              { value: "melody", label: "Melody louder" },
+            ]}
+            value={dynamics ? "melody" : "even"}
+            onChange={(value) => (dynamics = value === "melody")}
+          />
+        {/if}
+        <p class="text-xs text-muted-foreground">
+          Tempo and count-in live in the practice controls above: {bpm} BPM.
+        </p>
+      </div>
     {/snippet}
 
-    {#snippet stage()}
-      <PracticeStage instrument="piano" class="grid gap-5 p-5 sm:p-6">
-        <div>
-          <p class="eyebrow">Focus mode · {display.patternLabel}</p>
-          <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={activeHeading}>
-            Hold the pulse under the line.
-          </h2>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <HudTile label="Notes" value={Math.min(totalNotes, playedNotes)} unit={`/${totalNotes}`} tone="accent" />
-          <HudTile label="Tempo" value={bpm} unit="BPM" />
-        </div>
-        <div class="grid gap-2">
-          <div class="flex items-center justify-between gap-3 text-sm text-stage-muted">
-            <span>{activePrompt?.label}</span>
-            <span class="tabular-nums">{Math.min(totalNotes, playedNotes)}/{totalNotes}</span>
+    {#snippet readyStage()}
+      <PracticeStage instrument="piano" class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · {handModeLabel(handMode)}</p>
+            <h2
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="two-hand-ready-heading"
+              bind:this={setupSummary}
+            >
+              {display.patternLabel}
+            </h2>
+            <p class="text-sm text-stage-muted">
+              Left hand holds the pulse, right hand runs the line. Play anything to warm up.
+            </p>
           </div>
-          <Progress value={Math.min(totalNotes, playedNotes)} max={totalNotes} />
+          <div class="flex flex-wrap items-center gap-3">
+            <Button type="button" size="lg" disabled={!ready || pending} onclick={() => void start()}>
+              {pending ? "Starting..." : "Start"}
+            </Button>
+            <StartShortcut onStart={() => void start()} />
+          </div>
         </div>
-        <div class="grid min-w-0 gap-2">
-          <PianoSurface
-            router={runtime.router}
-            notes={handNotes}
-            highlights={handHighlights}
-            fingerings={handFingerings}
-            onAccepted={playAccepted}
-          />
+        {@render keyboard()}
+        <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-stage-muted">
+          <span>{status}</span>
+          <span class="flex items-center gap-3">
+            <span>{midiStatus}</span>
+            <Button type="button" size="sm" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+            </Button>
+          </span>
         </div>
       </PracticeStage>
     {/snippet}
+
+    {#snippet stage()}
+      <PracticeStage instrument="piano" class="grid gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">{display.patternLabel} · {handModeLabel(handMode)}</p>
+            <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
+              Hold the pulse under the line.
+            </h2>
+          </div>
+          <span class="text-sm text-stage-muted tabular-nums">
+            {Math.min(totalNotes, playedNotes)} / {totalNotes}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <HudTile size="sm" label="Notes" value={Math.min(totalNotes, playedNotes)} unit={`/${totalNotes}`} tone="accent" />
+          <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+        </div>
+        <Progress value={Math.min(totalNotes, playedNotes)} max={totalNotes} />
+        {@render keyboard()}
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
+    {/snippet}
     {#snippet stageAction()}
-      <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
+      <Button type="button" variant="outline" onclick={cancel}>Stop</Button>
     {/snippet}
     {#snippet rail()}
       <DrillProgressRail
-        title="Live run"
         items={[
           { label: "Pattern", value: display.patternLabel },
           { label: "Hands", value: handModeLabel(handMode) },
           { label: "Tempo", value: `${bpm} BPM` },
           { label: "Input", value: runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
         ]}
-      >
-        <p class="text-xs text-muted-foreground">{status}</p>
-      </DrillProgressRail>
+      />
     {/snippet}
   </PracticeDrillShell>
 </PracticeScreen>
