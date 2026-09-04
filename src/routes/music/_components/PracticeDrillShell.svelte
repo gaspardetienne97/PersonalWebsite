@@ -3,10 +3,17 @@
 
   import { cn } from "@repo/ui/utils";
 
+  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import DrillFocusScope from "./DrillFocusScope.svelte";
+
   // Shared layout for the route-driven setup → stage → summary anatomy.
-  // Layout only — routes own phase changes, lifecycle, scoring and focus.
+  // Layout only — routes own phase changes, lifecycle, scoring and heading
+  // focus. The one runtime flag the shell sets is focus mode: while the phase
+  // is "stage" the chrome yields to the drill, the same way on every route.
   let {
     phase,
+    runtime: runtimeProp,
+    focus = true,
     startPending = false,
     setup,
     stage,
@@ -19,6 +26,10 @@
   }: {
     /** Route-computed phase. The shell renders exactly this phase. */
     phase: "setup" | "stage" | "summary";
+    /** Shared runtime for focus mode; resolved from context when omitted. */
+    runtime?: MusicRuntime;
+    /** A shell nested inside another shell's stage passes false. */
+    focus?: boolean;
     /** Renders the setup region disabled while a start settles (preflight only). */
     startPending?: boolean;
     setup?: Snippet;
@@ -31,7 +42,14 @@
     children?: Snippet;
     class?: string;
   } = $props();
+
+  // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a shell mount
+  const runtime = runtimeProp ?? useMusicRuntime();
 </script>
+
+{#if focus}
+  <DrillFocusScope active={phase === "stage"} {runtime} />
+{/if}
 
 <!-- #key replays the shared entrance and rebinds route-owned focus refs on phase changes. -->
 {#key phase}

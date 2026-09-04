@@ -1,7 +1,8 @@
-import { describe, expect, test } from "vite-plus/test";
+import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 import { createRawSnippet } from "svelte";
 
+import { MusicRuntime } from "../_runtime.svelte";
 import PracticeDrillShell from "./PracticeDrillShell.svelte";
 import shellSource from "./PracticeDrillShell.svelte?raw";
 
@@ -79,5 +80,32 @@ describe("PracticeDrillShell phase-only contract", () => {
 
     const fieldset = document.querySelector("fieldset");
     expect(fieldset?.disabled ?? false).toBe(false);
+  });
+
+  test("owns focus mode: the stage phase marks the run as the screen's focus", async () => {
+    const runtime = new MusicRuntime();
+    const shell = render(PracticeDrillShell, {
+      phase: "stage",
+      runtime,
+      stage: region("STAGE REGION"),
+    });
+    await vi.waitFor(() => expect(runtime.drillFocus).toBe(true));
+
+    shell.rerender({ phase: "summary", runtime, summary: region("SUMMARY REGION") });
+    await vi.waitFor(() => expect(runtime.drillFocus).toBe(false));
+    runtime.dispose();
+  });
+
+  test("a nested shell can opt out of focus ownership", async () => {
+    const runtime = new MusicRuntime();
+    render(PracticeDrillShell, {
+      phase: "stage",
+      runtime,
+      focus: false,
+      stage: region("STAGE REGION"),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(runtime.drillFocus).toBe(false);
+    runtime.dispose();
   });
 });

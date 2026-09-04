@@ -44,7 +44,6 @@
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
-  import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -521,7 +520,6 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <DrillFocusScope active={step === "listening"} {runtime} />
 
   <!-- Persistent live region: mounted outside the phase branches so transitions announce. -->
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>

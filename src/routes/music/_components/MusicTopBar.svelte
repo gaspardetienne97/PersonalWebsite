@@ -8,7 +8,9 @@
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { PracticeStore } from "@repo/music-core/engines/store";
 
-  let { onSearch }: { onSearch: () => void } = $props();
+  import { cn } from "@repo/ui/utils";
+
+  let { onSearch, class: cls = "" }: { onSearch: () => void; class?: string } = $props();
 
   let xp = $state(0);
   let streak = $state(0);
@@ -31,7 +33,10 @@
 </script>
 
 <div
-  class="sticky top-12 z-30 flex h-11 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur"
+  class={cn(
+    "sticky top-12 z-30 flex h-11 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur",
+    cls,
+  )}
 >
   <button
     type="button"

@@ -137,7 +137,7 @@
 </script>
 
 {#if prompt}
-  <PracticeDrillShell phase="stage">
+  <PracticeDrillShell phase="stage" focus={false}>
     {#snippet stageAction()}
       <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
     {/snippet}

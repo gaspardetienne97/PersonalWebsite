@@ -184,6 +184,19 @@ test("local playback stops on navigation", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
 });
 
+test("music top bar yields to the drill on phone-width drill routes", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/music");
+  await expect(page.getByRole("button", { name: /Search/ })).toBeVisible();
+
+  await page.goto("/music/play/scales");
+  await expect(page.getByRole("heading", { name: "Scales & Technique" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Search/ })).toBeHidden();
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.getByRole("button", { name: /Search/ })).toBeVisible();
+});
+
 test("music app shell uses bottom navigation on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/music");

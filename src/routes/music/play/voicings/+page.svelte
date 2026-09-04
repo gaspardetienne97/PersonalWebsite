@@ -42,7 +42,6 @@
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import PracticeStage from "../../_components/PracticeStage.svelte";
-  import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
@@ -358,7 +357,6 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <DrillFocusScope active={drillState?.status === "active"} {runtime} />
 
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 

@@ -41,7 +41,6 @@
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
-  import DrillFocusScope from "../../_components/DrillFocusScope.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import PracticeStage from "../../_components/PracticeStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
@@ -401,7 +400,6 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <DrillFocusScope active={sessionState?.status === "active"} {runtime} />
 
   <p class="sr-only" aria-live="polite" data-testid="rhythm-live-announcement">
     {liveAnnouncement}

@@ -18,6 +18,9 @@
   let paletteOpen = $state(false);
   const webManifest = pwaInfo?.webManifest.linkTag;
   const currentPath = $derived($page.url?.pathname ?? "/music");
+  // Drill routes: on a phone the search + streak bar gives its row back to
+  // the drill; streak and XP still live on Practice home and Progress.
+  const drillRoute = $derived(/^\/music\/(?:play|learn)\/.|^\/music\/jam$/.test(currentPath));
   const runtime = createMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
   const storageReady = store ? runtime.attachStorage(store.settings) : Promise.resolve();
@@ -76,12 +79,14 @@
   {/if}
   <div class="flex min-w-0 flex-1 flex-col">
     {#if !runtime.drillFocus}
-      <MusicTopBar onSearch={() => (paletteOpen = true)} />
+      <MusicTopBar class={drillRoute ? "hidden lg:flex" : ""} onSearch={() => (paletteOpen = true)} />
     {/if}
     <div
       class="pointer-events-none sticky {runtime.drillFocus
         ? 'top-0'
-        : 'top-[5.75rem]'} z-30 flex justify-center px-2 py-2"
+        : drillRoute
+          ? 'top-12 lg:top-[5.75rem]'
+          : 'top-[5.75rem]'} z-30 flex justify-center px-2 py-2"
       data-practice-controls-row
     >
       <div class="pointer-events-auto">
