@@ -1,70 +1,35 @@
 <script lang="ts">
-  import type { EarTrainingDrill } from "@repo/music-core/exercises/ear-training";
   import type {
-    ScaleDegreeFreePlayChoice,
-    ScaleDegreeSetId,
-  } from "@repo/music-core/exercises/scale-degree-recognition";
-  import {
-    EAR_TRAINING_LEARNING_PATH,
-    type RepertoireEarTransfer,
-    type RepertoireReviewItem,
-    type RepertoireReviewPlan,
+    RepertoireEarTransfer,
+    RepertoireReviewItem,
+    RepertoireReviewPlan,
   } from "@repo/music-core/engines/ear-training";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
-  import EarTrainingFreePlay from "./EarTrainingFreePlay.svelte";
-
-  // Warmup, repertoire review and the learning path: content under the ready
-  // stage. Session controls live in EarTrainingSetup; Start on the route's stage.
+  // The repertoire-transfer drill's ready-stage content: the ranked review
+  // queue from saved songs and the sequenced review plan. Start on the stage
+  // runs the plan; each phrase also has its own Practice button.
   let {
     ready,
     pending,
-    scaleDegreeSet,
-    tonicName,
-    droneOn,
-    freePlayChoices,
-    lastFreePlayDegree,
     reviewQueue,
     reviewPlan,
-    onToggleDrone,
-    onPlayFreePlayDegree,
     onPlayRepertoireTransfer,
     onStartRepertoireTransfer,
     onStartRepertoireReviewPlan,
-    onStart,
   }: {
     ready: boolean;
     pending: boolean;
-    scaleDegreeSet: ScaleDegreeSetId;
-    tonicName: string;
-    droneOn: boolean;
-    freePlayChoices: ScaleDegreeFreePlayChoice[];
-    lastFreePlayDegree?: ScaleDegreeFreePlayChoice;
     reviewQueue: RepertoireReviewItem[];
     reviewPlan?: RepertoireReviewPlan;
-    onToggleDrone: () => void;
-    onPlayFreePlayDegree: (choice: ScaleDegreeFreePlayChoice) => void;
     onPlayRepertoireTransfer: (transfer: RepertoireEarTransfer) => void;
     onStartRepertoireTransfer: (transfer: RepertoireEarTransfer) => void;
     onStartRepertoireReviewPlan: () => void;
-    onStart: (drill: EarTrainingDrill | "mixed") => void;
   } = $props();
 </script>
 
-<section class="grid gap-6">
-  <EarTrainingFreePlay
-    {tonicName}
-    {droneOn}
-    {scaleDegreeSet}
-    choices={freePlayChoices}
-    lastDegree={lastFreePlayDegree}
-    disabled={!ready || pending}
-    onToggleDrone={onToggleDrone}
-    onPlayDegree={onPlayFreePlayDegree}
-  />
-
-  {#if reviewQueue.length}
+{#if reviewQueue.length}
     <Card.Root>
       <Card.Header>
         <Card.Description>Repertoire transfer</Card.Description>
@@ -142,39 +107,17 @@
         {/each}
       </Card.Content>
     </Card.Root>
-  {/if}
-
+{:else}
   <Card.Root>
     <Card.Header>
-      <Card.Description>Learning path</Card.Description>
-      <Card.Title class="text-base">Tonic first, labels second</Card.Title>
+      <Card.Description>Repertoire transfer</Card.Description>
+      <Card.Title>No saved songs yet</Card.Title>
       <Card.Description>
-        Establish home, recognize degrees, produce them, then add intervals and chord qualities
-        as vocabulary.
+        Save a song in the Library and its melody phrases appear here as scale-degree prompts.
       </Card.Description>
     </Card.Header>
-    <Card.Content class="grid gap-3">
-      {#each EAR_TRAINING_LEARNING_PATH.slice(0, 4) as stage (stage.id)}
-        <div class="grid gap-2 rounded-md border p-3 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:items-center">
-          <div class="text-sm font-semibold text-muted-foreground">{stage.order}</div>
-          <div class="space-y-1">
-            <p class="font-medium">{stage.title}</p>
-            <p class="text-sm text-muted-foreground">{stage.goal}</p>
-          </div>
-          {#if stage.recommendedDrill}
-            <Button
-              type="button"
-              size="sm"
-              variant={stage.currentSupport === "planned" ? "ghost" : "outline"}
-              disabled={!ready || pending || stage.currentSupport === "planned"}
-              onclick={() => onStart(stage.recommendedDrill)}
-            >
-              {stage.currentSupport === "planned" ? "Planned" : "Practice"}
-            </Button>
-          {/if}
-        </div>
-      {/each}
+    <Card.Content>
+      <Button href="/music/library?tab=songs" variant="outline">Open the Library</Button>
     </Card.Content>
   </Card.Root>
-
-</section>
+{/if}

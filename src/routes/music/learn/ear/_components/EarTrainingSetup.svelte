@@ -15,6 +15,9 @@
   // The session controls only. The route collapses them behind the shell's
   // setup summary line; Start lives on the ready stage.
   let {
+    answerModes = ["choice", "play-back", "listen", "voice"],
+    showLevel = true,
+    showLabels = true,
     answerMode,
     feedbackMode,
     scaleDegreeSet,
@@ -29,6 +32,10 @@
     onScaleDegreeLabelMode,
     onEnableMidi,
   }: {
+    /** Answer modes this drill supports; others are not offered. */
+    answerModes?: EarTrainingAnswerMode[];
+    showLevel?: boolean;
+    showLabels?: boolean;
     answerMode: EarTrainingAnswerMode;
     feedbackMode: EarTrainingFeedbackMode;
     scaleDegreeSet: ScaleDegreeSetId;
@@ -63,7 +70,7 @@
     <div class="space-y-2">
       <p class="text-sm font-medium">Answer</p>
       <div class="flex flex-wrap gap-1 rounded-lg border bg-muted/60 p-1" role="group" aria-label="Answer mode">
-        {#each ["choice", "play-back", "listen", "voice"] as mode (mode)}
+        {#each answerModes as mode (mode)}
           <button
             type="button"
             aria-pressed={answerMode === mode}
@@ -85,6 +92,7 @@
       </div>
       <p class="text-xs text-muted-foreground">{voiceStatus}</p>
     </div>
+    {#if showLabels}
     <div class="space-y-2">
       <p class="text-sm font-medium">Scale-degree answer labels</p>
       <SegmentedControl
@@ -98,6 +106,7 @@
         onChange={(mode) => onScaleDegreeLabelMode(mode as ScaleDegreeLabelMode)}
       />
     </div>
+    {/if}
     <div class="flex flex-wrap items-center gap-3 self-end">
       <Button type="button" size="sm" variant="outline" disabled={midiEnabled} onclick={onEnableMidi}>
         {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
@@ -105,6 +114,7 @@
       <p class="text-xs text-muted-foreground">{midiStatus}</p>
     </div>
   </div>
+  {#if showLevel}
   <div class="space-y-2">
     <p class="text-sm font-medium">Scale-degree level</p>
     <div class="grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6" role="group" aria-label="Scale-degree level">
@@ -128,4 +138,5 @@
       Scale-degree sessions and mixed review use the selected degree set.
     </p>
   </div>
+  {/if}
 </div>

@@ -17,7 +17,8 @@ const mandatoryDrills = [
   { name: "chord scales", sources: ["./play/chord-scales/+page.svelte"] },
   { name: "licks", sources: ["./play/licks/+page.svelte"] },
   { name: "aerophone articulation", sources: ["./learn/aerophone/+page.svelte"] },
-  { name: "ear training", sources: ["./learn/ear/+page.svelte"] },
+  // Every /music/learn/ear/<slug> route mounts this one drill component.
+  { name: "ear training", sources: ["./learn/ear/_components/EarTrainingDrillRoute.svelte"] },
   { name: "rhythm", sources: ["./learn/rhythm/+page.svelte"] },
   // Reading's session components render inside the route's shell stage; they
   // no longer mount a nested shell of their own.
@@ -31,8 +32,25 @@ const singleStatusLiveOwnerRoutes = [
   "./play/spider/+page.svelte",
 ] as const;
 
+const earDrillRoutes = [
+  "./learn/ear/mixed/+page.svelte",
+  "./learn/ear/intervals/+page.svelte",
+  "./learn/ear/chord-qualities/+page.svelte",
+  "./learn/ear/cadences/+page.svelte",
+  "./learn/ear/scale-degrees/+page.svelte",
+  "./learn/ear/melody-dictation/+page.svelte",
+  "./learn/ear/repertoire-transfer/+page.svelte",
+] as const;
+
 // Intentionally excluded: Jam (/music/jam) and Practice Lab (/music/play) are freeform surfaces.
 describe("mandatory drill shell convergence", () => {
+  test.each(earDrillRoutes)("%s mounts the shared ear drill component", (path) => {
+    const source = routeSources[path];
+    expect(source, `${path} must exist`).toBeTypeOf("string");
+    expect(source).toMatch(/<EarTrainingDrillRoute\b/);
+    expect(source).not.toMatch(/<PracticeDrillShell\b/);
+  });
+
   test.each(mandatoryDrills)("$name mounts the phase shell and summary frame", ({ sources }) => {
     const drillSources = sources.map((path) => {
       const source = routeSources[path];
