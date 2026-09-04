@@ -59,8 +59,9 @@ describe("/music/play/scales/+page.svelte", () => {
     const ensurePlaybackVoice = vi.spyOn(runtime, "ensurePlaybackVoice");
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
-    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
     await Promise.resolve();
     expect(ensurePlaybackVoice).not.toHaveBeenCalled();
 
@@ -75,12 +76,13 @@ describe("/music/play/scales/+page.svelte", () => {
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
-    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(runtime.beginPerformance).not.toHaveBeenCalled();
-    expect(button("End run")).toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
   });
 
   test("settles and locks setup before snapshotting a deferred start", async () => {
@@ -94,8 +96,9 @@ describe("/music/play/scales/+page.svelte", () => {
     const startScale = vi.spyOn(TechniqueSession.prototype, "startScale");
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
-    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
     await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
     const setupLocked = select("Tonic")?.closest("fieldset")?.disabled;
     runtime.setPracticeVariantBpm(120, "v1:scales:piano:major:up:one-octave");
@@ -114,11 +117,13 @@ describe("/music/play/scales/+page.svelte", () => {
     expect(button("Enable MIDI")).not.toBeUndefined();
     expect(input("Tempo")).toBeNull();
     expect(document.body.textContent).toContain("100 BPM");
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
   });
 
   test("offers a scale selector with modes and jazz scales", async () => {
     render(Page);
+    await openSetup();
     const scaleSelect = document.querySelector<HTMLSelectElement>("#scale-kind");
     expect(scaleSelect).not.toBeNull();
     const values = [...(scaleSelect?.options ?? [])].map((option) => option.value);
@@ -141,18 +146,21 @@ describe("/music/play/scales/+page.svelte", () => {
 
     render(Page);
 
+    await openSetup();
     expect(document.querySelector<HTMLSelectElement>("#scale-kind")?.value).toBe("blues");
     expect(select("Tonic")?.value).toBe("Eb4");
     expect(select("Span")?.value).toBe("two-octave");
     expect(select("Motion")?.value).toBe("up-down");
     expect(button("Guitar")).toHaveAttribute("aria-pressed", "true");
     await vi.waitFor(() => expect(document.body.textContent).toContain("90 BPM"));
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
   });
 
   test("keeps setup changes in the shareable URL", async () => {
     setTestUrl("/music/play/scales?bpm=90");
     render(Page);
+    await openSetup();
 
     const scaleSelect = document.querySelector<HTMLSelectElement>("#scale-kind");
     if (!scaleSelect) throw new Error("Scale selector not found");
@@ -178,10 +186,11 @@ describe("/music/play/scales/+page.svelte", () => {
     const runtime = new MusicRuntime();
     const register = vi.spyOn(runtime, "registerPracticeContext");
     render(Page, { runtime });
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
-    button("Start Scale")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
 
-    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(runtime.beginPerformance).toHaveBeenCalledOnce();
     expect(register).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -200,11 +209,9 @@ describe("/music/play/scales/+page.svelte", () => {
 
     button("Change setup")?.click();
     await vi.waitFor(() => {
-      expect(button("Start Scale")).not.toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
       expect(document.activeElement).toBe(
-        [...document.querySelectorAll("summary")].find((element) =>
-          element.textContent?.includes("Remembered setup"),
-        ),
+        document.querySelector('[data-testid="scales-ready-heading"]'),
       );
     });
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
@@ -215,16 +222,15 @@ describe("/music/play/scales/+page.svelte", () => {
   test("returns focus and announces when an active run ends", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
-    button("Start Scale")?.click();
-    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
-    button("End run")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    button("Stop")?.click();
 
     await vi.waitFor(() =>
       expect(document.activeElement).toBe(
-        [...document.querySelectorAll("summary")].find((element) =>
-          element.textContent?.includes("Remembered setup"),
-        ),
+        document.querySelector('[data-testid="scales-ready-heading"]'),
       ),
     );
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
@@ -236,9 +242,10 @@ describe("/music/play/scales/+page.svelte", () => {
     const runtime = new MusicRuntime();
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
-    button("Start Scale")?.click();
-    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     for (const note of ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]) {
       button(note)?.click();
     }
@@ -247,9 +254,7 @@ describe("/music/play/scales/+page.svelte", () => {
 
     await vi.waitFor(() =>
       expect(document.activeElement).toBe(
-        [...document.querySelectorAll("summary")].find((element) =>
-          element.textContent?.includes("Remembered setup"),
-        ),
+        document.querySelector('[data-testid="scales-ready-heading"]'),
       ),
     );
     const setupSummary = document.activeElement;
@@ -263,7 +268,7 @@ describe("/music/play/scales/+page.svelte", () => {
       }),
     );
 
-    button("Start Scale")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
     expect(button("Starting...")).not.toBeUndefined();
     expect(document.body.textContent).not.toContain("Scale complete");
@@ -278,7 +283,7 @@ describe("/music/play/scales/+page.svelte", () => {
         runtime.audioMessage,
       ),
     );
-    expect(button("Start Scale")).not.toBeUndefined();
+    expect(button("Start")).not.toBeUndefined();
     expect(document.body.textContent).not.toContain("Scale complete");
     expect(document.activeElement).toBe(setupSummary);
   });
@@ -307,7 +312,7 @@ describe("/music/play/scales/+page.svelte", () => {
     resolveVoice(false);
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(document.body.textContent).not.toContain("Scale complete");
-    expect(button("Start Scale")?.disabled).toBe(false);
+    expect(button("Start")?.disabled).toBe(false);
   });
 
   test("keeps Change setup authoritative when it races retry preflight", async () => {
@@ -322,8 +327,8 @@ describe("/music/play/scales/+page.svelte", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(beginPerformance).not.toHaveBeenCalled();
-    expect(button("End run")).toBeUndefined();
-    expect(button("Start Scale")?.disabled).toBe(false);
+    expect(button("Stop")).toBeUndefined();
+    expect(button("Start")?.disabled).toBe(false);
     expect(document.body.textContent).not.toContain("Scale complete");
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       "Setup ready",
@@ -353,24 +358,27 @@ describe("/music/play/scales/+page.svelte", () => {
     expect(button("Starting...")?.disabled).toBe(true);
     rejectStart(new Error("Deferred session start failed."));
 
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     expect(endPerformance).toHaveBeenCalledOnce();
     expect(abandon).toHaveBeenCalledOnce();
     expect(document.body.textContent).toContain("Setup ready.");
     expect(document.body.textContent).not.toContain("Deferred session start failed.");
 
-    button("Start Scale")?.click();
-    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(startScale).toHaveBeenCalledTimes(2);
   });
 
   test("offers a slower retry after a completed scale run", async () => {
     setTestUrl("/music/play/scales?bpm=90");
     render(Page);
-    await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
 
-    button("Start Scale")?.click();
-    await vi.waitFor(() => expect(button("C4")).not.toBeUndefined());
+    button("Start")?.click();
+    // The ready stage already has a live keyboard, so wait for the run itself.
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     for (const note of ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]) {
       button(note)?.click();
     }
@@ -385,9 +393,10 @@ describe("/music/play/scales/+page.svelte", () => {
 });
 
 async function completeScale(): Promise<void> {
-  await vi.waitFor(() => expect(button("Start Scale")?.disabled).toBe(false));
-  button("Start Scale")?.click();
-  await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  await openSetup();
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
   for (const note of ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]) {
     button(note)?.click();
   }
@@ -408,4 +417,12 @@ function select(label: string): HTMLSelectElement | undefined {
   return [...document.querySelectorAll<HTMLSelectElement>("select")].find(
     (candidate) => candidate.getAttribute("aria-label") === label,
   );
+}
+
+/** Setup is collapsed behind its summary line; open it before touching controls. */
+async function openSetup(): Promise<void> {
+  if (button("Hide setup")) return;
+  await vi.waitFor(() => expect(button("Edit setup")).not.toBeUndefined());
+  button("Edit setup")?.click();
+  await vi.waitFor(() => expect(document.querySelector("#scale-kind")).not.toBeNull());
 }

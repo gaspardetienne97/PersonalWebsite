@@ -7,9 +7,9 @@ test.describe("music technique workflows", () => {
 
     await expect(page).toHaveURL(/\/music\/play\/scales(?:\?|$)/);
     await expect(page.getByRole("heading", { name: "Scales & Technique" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start Scale" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
 
-    await page.getByRole("button", { name: "Start Scale" }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "C major · one octave · ascending" }),
     ).toBeVisible();
@@ -20,7 +20,7 @@ test.describe("music technique workflows", () => {
       await page.waitForTimeout(600);
     }
 
-    await expect(page.getByText("Scale complete", { exact: true })).toBeVisible();
-    await expect(page.getByText("Next target: 110 BPM")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Scale complete" })).toBeVisible();
+    await expect(page.getByText(/next target 110 BPM/)).toBeVisible();
   });
 });

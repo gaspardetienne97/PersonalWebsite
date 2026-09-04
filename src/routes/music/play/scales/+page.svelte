@@ -187,6 +187,12 @@
   let activeHeading = $state<HTMLHeadingElement | null>(null);
   let resultsHeading = $state<HTMLElement | null>(null);
   let setupSummary = $state<HTMLElement | null>(null);
+  const setupSummaryText = $derived(
+    `${tonicLabel} ${scaleLabel} · ${motionLabel} · ${spanLabel} · ${tempo} BPM · ${INSTRUMENT_LABELS[scaleInstrument]}`,
+  );
+  const readyHighlights = $derived(
+    Object.fromEntries(referenceMidi.map((midi) => [midi, "target" as const])),
+  );
   let previousPhase: "summary" | "stage" | "setup" | undefined;
 
   void initialize();
@@ -274,7 +280,7 @@
         }
       });
       ready = true;
-      status = "Ready for scale practice.";
+      status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "Technique history could not be loaded.");
     }
@@ -376,7 +382,7 @@
   // into its summary, so returning to setup is a route-owned view decision.
   function changeSetup(): void {
     startRequest += 1;
-    status = "Setup ready. Change the scale settings or start again.";
+    status = "Setup ready.";
     resultsDismissed = true;
   }
 
@@ -416,70 +422,78 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Scales & Technique"
-    subtitle="Clean at tempo unlocks the next. Note accuracy and evenness, scored per rep."
-  >
+  <PracticeScreenHeader title="Scales & Technique" compact>
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? `MIDI · ${INSTRUMENT_LABELS[scaleInstrument]}` : "On-screen"}
+        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
   </PracticeScreenHeader>
 
-
   <!-- Persistent live region: mounted outside the branches so transitions announce. -->
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
+
+  {#snippet setupSummaryLine()}
+    {setupSummaryText}
+  {/snippet}
 
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>Scale complete</Card.Description>
-        <Card.Title>
-          {Math.round((summary?.noteAccuracy ?? 0) * 100)}% notes · {summary?.xp ?? 0} XP
-        </Card.Title>
+        <Card.Description>{tonicLabel} {scaleLabel} · {motionLabel} · {activePrompt?.bpm ?? tempo} BPM</Card.Description>
+        <Card.Title>Scale complete</Card.Title>
       {/snippet}
-      {#snippet children()}
-        <div class="grid gap-2 text-sm text-muted-foreground">
-          <p>Evenness error: {Math.round(summary?.meanEvennessErrorMs ?? 0)}ms average.</p>
-          <p>Next target: {summary?.nextTargetBpm} BPM</p>
-          <p>{summary?.results[0]?.result.feedback[0]?.message}</p>
-        </div>
-        <!-- The summary owns the tempo decision: the ladder lives here, never on
-             setup or the stage. -->
-        <div class="grid gap-2" aria-label="Tempo ladder">
-          <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tempo ladder</p>
-          {#each tempoLadder as rung (rung.bpm)}
-            <div
-              class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm
-                {rung.status === 'target'
-                ? 'border-primary bg-primary text-primary-foreground'
-                : rung.status === 'unlocked'
-                  ? 'border-primary/30 bg-primary/10 text-primary'
-                  : 'text-muted-foreground'}"
-            >
-              <span class="font-semibold tabular-nums">{rung.bpm} BPM</span>
-              <span class="text-xs uppercase tracking-wide">
-                {rung.status === "target" ? "Next" : rung.status === "unlocked" ? "Unlocked" : "Locked"}
-              </span>
-            </div>
-          {/each}
-        </div>
-      {/snippet}
-      {#snippet actions()}
-        <AdaptiveRetryBar
-          onRetry={increaseTempo}
-          onSlower={slowDown}
-          retryLabel="Practice next tempo"
-        />
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {Math.round((summary?.noteAccuracy ?? 0) * 100)}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only"> notes clean</span>
+        </p>
       {/snippet}
       {#snippet lastRunDelta()}
         <LastRunDelta
           tags={["scales"]}
           accuracy={meanPartialCredit((summary?.results ?? []).map((result) => result.event))}
           before={visitStartedAt}
+        />
+      {/snippet}
+      {#snippet children()}
+        <p class="text-sm text-muted-foreground">
+          Evenness error: {Math.round(summary?.meanEvennessErrorMs ?? 0)}ms average · next target
+          {summary?.nextTargetBpm} BPM.
+          {summary?.results[0]?.result.feedback[0]?.message ?? ""}
+        </p>
+        <!-- The summary owns the tempo decision: the ladder lives here, never on
+             setup or the stage. Target = practice accent, unlocked = success. -->
+        <div class="grid gap-2" role="group" aria-label="Tempo ladder">
+          <p class="eyebrow">Tempo ladder</p>
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {#each tempoLadder as rung (rung.bpm)}
+              <div
+                class="rounded-lg border px-3 py-2 text-center text-sm {rung.status === 'target'
+                  ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
+                  : rung.status === 'unlocked'
+                    ? 'border-success/40 bg-success/10 text-success'
+                    : 'text-muted-foreground'}"
+              >
+                <span class="block font-semibold tabular-nums">{rung.bpm}</span>
+                <span class="text-[10px] font-semibold uppercase tracking-wide">
+                  {rung.status === "target" ? "Next" : rung.status === "unlocked" ? "Unlocked" : "Locked"}
+                </span>
+              </div>
+            {/each}
+          </div>
+        </div>
+        <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · Technique · {scaleLabel}</p>
+      {/snippet}
+      {#snippet actions()}
+        <AdaptiveRetryBar
+          onRetry={increaseTempo}
+          onSlower={slowDown}
+          retryLabel="Practice next tempo"
         />
       {/snippet}
       {#snippet routineContinue()}
@@ -491,185 +505,164 @@
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
-      <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
-        <Card.Root>
-          <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-            <div class="space-y-1">
-              <Card.Description>Scale practice</Card.Description>
-              <Card.Title>{tonicLabel} {scaleLabel}</Card.Title>
-            </div>
-            <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-            </Button>
-          </Card.Header>
-          <Card.Content class="grid gap-6">
-            <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
+      <div class="grid gap-5 rounded-lg border bg-card p-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-2">
+            <Label for="scale-kind">Scale</Label>
+            <select
+              id="scale-kind"
+              aria-label="Scale"
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              bind:value={scale}
+            >
+              <optgroup label="Modes">
+                {#each SCALE_OPTIONS.filter((option) => !option.jazz) as option (option.value)}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
+              <optgroup label="Jazz / modal">
+                {#each SCALE_OPTIONS.filter((option) => option.jazz) as option (option.value)}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
+            </select>
+          </div>
+          <div class="grid gap-2">
+            <Label for="scale-tonic">Tonic</Label>
+            <select
+              id="scale-tonic"
+              aria-label="Tonic"
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              bind:value={tonic}
+            >
+              {#each SCALE_DRILL_TONICS as note (note)}
+                <option value={note}>{note.replace(/\d+$/, "")}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="grid gap-2">
+            <Label for="scale-span">Span</Label>
+            <select
+              id="scale-span"
+              aria-label="Span"
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              bind:value={span}
+            >
+              {#each SPAN_OPTIONS as option (option.value)}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="grid gap-2">
+            <Label for="scale-motion">Motion</Label>
+            <select
+              id="scale-motion"
+              aria-label="Motion"
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              bind:value={motion}
+            >
+              {#each MOTION_OPTIONS as option (option.value)}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+        <div class="grid gap-2">
+          <Label>Instrument</Label>
+          <SegmentedControl
+            size="sm"
+            ariaLabel="Scale instrument"
+            options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
+            value={scaleInstrument}
+            onChange={(v) => {
+              scaleInstrument = v as InstrumentId;
+              runtime.setActiveInstrument(scaleInstrument);
+            }}
+          />
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Tempo lives in the practice controls above: {tempo} BPM. Unlocked target {currentTempo} BPM.
+        </p>
+      </div>
+    {/snippet}
 
-            <details class="group rounded-xl border bg-muted/20 p-3">
-              <summary bind:this={setupSummary} class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <span>
-                  <span class="block text-sm font-semibold">Remembered setup</span>
-                  <span class="text-xs text-muted-foreground">
-                    {tonicLabel} {scaleLabel} · {motionLabel} · {spanLabel} · {tempo} BPM
-                  </span>
-                </span>
-                <span class="text-sm font-medium text-primary group-open:hidden">Edit setup</span>
-                <span class="hidden text-sm font-medium text-primary group-open:inline">Hide setup</span>
-              </summary>
-              <fieldset
-                disabled={pending || sessionState?.status === "active"}
-                class="mt-4 grid gap-5 border-t pt-4 disabled:opacity-70"
-              >
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div class="grid gap-2">
-                    <Label for="scale-kind">Scale</Label>
-                    <select
-                      id="scale-kind"
-                      aria-label="Scale"
-                      class="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      bind:value={scale}
-                      disabled={sessionState?.status === "active"}
-                    >
-                      <optgroup label="Modes">
-                        {#each SCALE_OPTIONS.filter((option) => !option.jazz) as option (option.value)}
-                          <option value={option.value}>{option.label}</option>
-                        {/each}
-                      </optgroup>
-                      <optgroup label="Jazz / modal">
-                        {#each SCALE_OPTIONS.filter((option) => option.jazz) as option (option.value)}
-                          <option value={option.value}>{option.label}</option>
-                        {/each}
-                      </optgroup>
-                    </select>
-                  </div>
-
-                  <div class="grid gap-2">
-                    <Label for="scale-tonic">Tonic</Label>
-                    <select
-                      id="scale-tonic"
-                      aria-label="Tonic"
-                      class="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      bind:value={tonic}
-                      disabled={sessionState?.status === "active"}
-                    >
-                      {#each SCALE_DRILL_TONICS as note (note)}
-                        <option value={note}>{note.replace(/\d+$/, "")}</option>
-                      {/each}
-                    </select>
-                  </div>
-
-                  <div class="grid gap-2">
-                    <Label for="scale-span">Span</Label>
-                    <select
-                      id="scale-span"
-                      aria-label="Span"
-                      class="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      bind:value={span}
-                      disabled={sessionState?.status === "active"}
-                    >
-                      {#each SPAN_OPTIONS as option (option.value)}
-                        <option value={option.value}>{option.label}</option>
-                      {/each}
-                    </select>
-                  </div>
-
-                  <div class="grid gap-2">
-                    <Label for="scale-motion">Motion</Label>
-                    <select
-                      id="scale-motion"
-                      aria-label="Motion"
-                      class="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      bind:value={motion}
-                      disabled={sessionState?.status === "active"}
-                    >
-                      {#each MOTION_OPTIONS as option (option.value)}
-                        <option value={option.value}>{option.label}</option>
-                      {/each}
-                    </select>
-                  </div>
-                </div>
-
-                <div class="grid max-w-xs gap-2">
-                  <Label>Tempo</Label>
-                  <p class="text-sm font-semibold tabular-nums">{tempo} BPM</p>
-                  <p class="text-xs text-muted-foreground">
-                    Current unlocked target: {currentTempo} BPM
-                  </p>
-                </div>
-              </fieldset>
-            </details>
-          </Card.Content>
-          <Card.Footer class="flex-wrap gap-3">
+    {#snippet readyStage()}
+      <PracticeStage instrument={scaleInstrument} class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · {motionLabel} · {spanLabel}</p>
+            <h2
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="scales-ready-heading"
+              bind:this={setupSummary}
+            >
+              {tonicLabel} {scaleLabel}
+            </h2>
+            <p class="text-sm text-stage-muted">
+              {tempo} BPM. A clean run at tempo unlocks the next rung.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
             <Button
               type="button"
+              size="lg"
               disabled={!ready || pending || sessionState?.status === "active"}
               onclick={startScale}
             >
-              {pending ? "Starting..." : "Start Scale"}
+              {pending ? "Starting..." : "Start"}
             </Button>
             <StartShortcut onStart={() => void startScale()} />
-            <p class="text-sm text-muted-foreground">{status}</p>
-          </Card.Footer>
-        </Card.Root>
-
-        <aside class="grid min-w-0 content-start gap-4">
-          <Card.Root class="min-w-0">
-            <Card.Header class="gap-2">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <Card.Description>Reference</Card.Description>
-                  <Card.Title>{tonicLabel} {scaleLabel} on {INSTRUMENT_LABELS[scaleInstrument]}</Card.Title>
-                </div>
-                <fieldset disabled={pending || sessionState?.status === "active"}>
-                  <SegmentedControl
-                    size="sm"
-                    ariaLabel="Scale instrument"
-                    options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
-                    value={scaleInstrument}
-                    onChange={(v) => {
-                      scaleInstrument = v as InstrumentId;
-                      runtime.setActiveInstrument(scaleInstrument);
-                    }}
-                  />
-                </fieldset>
-              </div>
-            </Card.Header>
-            <Card.Content class="min-w-0 overflow-x-auto">
-              <InstrumentView midi={referenceMidi} instrument={scaleInstrument} router={runtime.router} />
-            </Card.Content>
-          </Card.Root>
-
-          <Card.Root class="min-w-0">
-            <Card.Header>
-              <Card.Description>Streak</Card.Description>
-              <Card.Title>{progress.state.streakDays} days</Card.Title>
-            </Card.Header>
-          </Card.Root>
-        </aside>
-      </section>
+          </div>
+        </div>
+        {#if scaleInstrument === "piano"}
+          <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+            <PianoSurface
+              router={runtime.router}
+              notes={referenceMidi}
+              highlights={readyHighlights}
+              noteNames="c"
+              onAccepted={playAccepted}
+            />
+          </div>
+        {:else}
+          <div class="min-w-0 overflow-x-auto rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+            <InstrumentView midi={referenceMidi} instrument={scaleInstrument} router={runtime.router} />
+          </div>
+        {/if}
+        <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-stage-muted">
+          <span>{status}</span>
+          <span class="flex items-center gap-3">
+            <span>{midiStatus}</span>
+            <Button type="button" size="sm" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+            </Button>
+          </span>
+        </div>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stage()}
-      <PracticeStage instrument={scaleInstrument} class="grid gap-5 p-5 sm:p-6">
-        <div>
-          <p class="eyebrow">Focus mode · {motionLabel}</p>
-          <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={activeHeading}>
-            {activePrompt?.label}
-          </h2>
-          <p class="text-sm text-stage-muted">
-            {activePrompt?.bpm} BPM · Follow the scale cleanly before adding speed.
-          </p>
+      <PracticeStage instrument={scaleInstrument} class="grid gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">{motionLabel} · {spanLabel}</p>
+            <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
+              {activePrompt?.label}
+            </h2>
+          </div>
+          <span class="text-sm text-stage-muted tabular-nums">{activePrompt?.bpm} BPM</span>
         </div>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <HudTile label="Progress" value={liveProgress} unit="%" tone="accent" />
-          <HudTile label="Notes" value={activePrompt?.noteLabels.length ?? 0} />
-          <HudTile label="Tempo" value={activePrompt?.bpm ?? currentTempo} unit="BPM" />
-          <HudTile label="Span" value={spanLabel} />
+          <HudTile size="sm" label="Progress" value={liveProgress} unit="%" tone="accent" />
+          <HudTile size="sm" label="Notes" value={activePrompt?.noteLabels.length ?? 0} />
+          <HudTile size="sm" label="Tempo" value={activePrompt?.bpm ?? currentTempo} unit="BPM" />
+          <HudTile size="sm" label="Span" value={spanLabel} />
         </div>
         <Progress value={liveProgress} max={100} />
-        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-4">
+        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <PianoSurface
             router={runtime.router}
             notes={activePrompt?.noteLabels ?? []}
@@ -681,11 +674,10 @@
       </PracticeStage>
     {/snippet}
     {#snippet stageAction()}
-      <Button type="button" variant="outline" onclick={cancel}>End run</Button>
+      <Button type="button" variant="outline" onclick={cancel}>Stop</Button>
     {/snippet}
     {#snippet rail()}
       <DrillProgressRail
-        title="Live run"
         items={[
           { label: "Scale", value: `${tonicLabel} ${scaleLabel}` },
           { label: "Motion", value: motionLabel },
