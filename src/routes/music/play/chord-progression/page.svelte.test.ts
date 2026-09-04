@@ -22,6 +22,13 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+// Transpose and the tempo note sit behind "Edit setup" on the ready stage;
+// group, progression and input pickers stay on the stage.
+async function openSetup(): Promise<void> {
+  if (!button("Hide setup")) button("Edit setup")?.click();
+  await vi.waitFor(() => expect(document.querySelector('[aria-label="Transpose"]')).not.toBeNull());
+}
+
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (b) => b.textContent?.trim() === label,
@@ -500,7 +507,7 @@ test("persists a completed snapshot and blocks Repeat until source stop settles"
   button("Stop")?.click();
   await vi.waitFor(() => expect(audioSource.stop).toHaveBeenCalled());
 
-  const repeat = button("Repeat");
+  const repeat = button("Again");
   expect(repeat).not.toBeUndefined();
   expect(repeat).toBeDisabled();
   repeat?.click();
@@ -514,8 +521,8 @@ test("persists a completed snapshot and blocks Repeat until source stop settles"
   );
 
   resolveStop();
-  await vi.waitFor(() => expect(button("Repeat")).not.toBeDisabled());
-  button("Repeat")?.click();
+  await vi.waitFor(() => expect(button("Again")).not.toBeDisabled());
+  button("Again")?.click();
 
   await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalledTimes(2));
   expect(recordPractice).toHaveBeenCalledOnce();
@@ -598,10 +605,10 @@ test("waits for journal settlement and unlocks after source stop rejects", async
 
   rejectStop(new Error("Audio close failed."));
   await new Promise((resolve) => setTimeout(resolve, 0));
-  expect(button("Repeat")).toBeDisabled();
+  expect(button("Again")).toBeDisabled();
 
   resolveRecord();
-  await vi.waitFor(() => expect(button("Repeat")).not.toBeDisabled());
+  await vi.waitFor(() => expect(button("Again")).not.toBeDisabled());
   expect(document.body.textContent).toContain("Audio close failed.");
 
   button("Change setup")?.click();
@@ -755,8 +762,9 @@ test("moves focus through stage, summary, and back to setup", async () => {
   button("Stop")?.click();
   await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
   await vi.waitFor(() => {
-    const summaryLabel = [...document.querySelectorAll("p")].find(
-      (element) => element.textContent?.trim() === "Progression complete",
+    // The card's description ("0 of 4 chords matched"), not the live region sentence.
+    const summaryLabel = [...document.querySelectorAll("p")].find((element) =>
+      /^\d+ of \d+ chords matched$/.test(element.textContent?.trim() ?? ""),
     );
     expect(document.activeElement).toBe(summaryLabel?.parentElement);
   });
@@ -802,6 +810,7 @@ test("restores progression drill setup from shareable query parameters", async (
 
   expect(document.body.textContent).toContain("Minor ii–V–i");
   expect(document.body.textContent).toContain("D minor");
+  await openSetup();
   expect(document.body.textContent).toContain("Em7b5");
   await vi.waitFor(() => expect(document.body.textContent).toContain("Tempo · 112 BPM"));
   expect(
@@ -815,6 +824,7 @@ test("keeps progression drill setup changes in the shareable URL", async () => {
 
   button("Blues")?.click();
   button("12-bar blues")?.click();
+  await openSetup();
   button("+2")?.click();
   await vi.waitFor(() => expect(window.location.search).toContain("progression=blues"));
   runtime.setPracticeVariantBpm(140, "v1:chord-progression:blues:follow");

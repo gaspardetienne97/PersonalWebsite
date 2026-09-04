@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import { onDestroy, onMount, tick } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import { unixMs, type NoteEvent } from "@repo/music-core/domain";
   import {
     createChordFollower,
     expectedChordsFromProgression,
@@ -34,12 +34,16 @@
 
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import PianoSurface, { type PianoHighlightRole } from "../../_components/piano/PianoSurface.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
-  import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
+  import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
@@ -98,7 +102,7 @@
   let running = $state(false);
   let startPending = $state(false);
   let sourceTeardownPending = $state(false);
-  let status = $state("Pick a progression, then start strumming on the beat.");
+  let status = $state("Ready. Press Start, or Space.");
   let follower: ChordFollowerRun | undefined;
   let unsubscribeAnalysis: (() => void) | undefined;
   let unsubscribeAudioState: (() => void) | undefined;
@@ -161,6 +165,11 @@
     }),
   );
   const variantKey = $derived(`v1:chord-progression:${progressionId}:follow`);
+  const transposeLabel = $derived(
+    Number(transposeSemitones) > 0 ? `+${transposeSemitones}` : String(Number(transposeSemitones)),
+  );
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   let routeGeneration = 0;
   let captureGeneration = 0;
   let onsetQueue: Promise<void> = Promise.resolve();
@@ -272,7 +281,7 @@
     resultsDismissed = true;
     followerState = undefined;
     detected = [];
-    status = "Setup ready — choose a progression, then start.";
+    status = "Setup ready. Choose a progression, then press Start.";
   }
 
   async function start(): Promise<void> {
@@ -544,54 +553,106 @@
   <title>Chord Progression | Practice OS</title>
   <meta
     name="description"
-    content="Strum a known chord progression in time — chroma + onset-confirmed Basic Pitch grade each chord change for correctness and timing."
+    content="Play a known chord progression in time, on the microphone, MIDI or the on-screen keys. Each change is graded for correctness and timing."
   />
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Chord Progression"
-    subtitle="Strum a known progression on the beat — the chord follower grades each change for correctness and timing."
-  />
+  <PracticeScreenHeader title="Chord Progression" compact>
+    {#snippet controls()}
+      <SourceReadout
+        label="Input"
+        device={inputMode === "microphone" ? "Microphone" : runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        live={running}
+      />
+    {/snippet}
+  </PracticeScreenHeader>
 
   <!-- Persistent live region: mounted outside the phase branches so transitions announce. -->
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
-  {#if startPending}
-    <div class="flex justify-end">
-      <Button type="button" variant="outline" onclick={() => void stop()}>Stop</Button>
+  {#snippet setupSummaryLine()}
+    {progression.name} · {progression.key} · {progression.style} · Transpose {transposeLabel} · {bpm} BPM
+  {/snippet}
+
+  <!-- The chord chart: one strip for the ready stage (first chord current), the run
+       (current + next, grades as they land) and the results (every grade). -->
+  {#snippet chordStrip(current: number, grades: ChordGrade[] | undefined)}
+    <ol class="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label={`${progression.name} chord chart`}>
+      {#each expected as chord, index (`${chord.symbol}-${index}`)}
+        {@const state = index === current ? "current" : index === current + 1 ? "next" : "upcoming"}
+        {@const badge = gradeBadge(grades?.[index])}
+        <li
+          data-testid={`progression-cell-${index}`}
+          data-state={state}
+          class={[
+            "grid gap-0.5 rounded-lg border p-2.5 text-center text-sm sm:p-3",
+            state === "current" && "border-practice-accent bg-practice-accent/15 ring-1 ring-practice-accent/30",
+            state === "next" && "border-dashed border-stage-line bg-stage-2",
+            state === "upcoming" && "border-stage-line bg-stage-2/60",
+          ]}
+        >
+          <span class="text-base font-bold sm:text-lg">{chord.symbol}</span>
+          <span class="text-xs text-stage-muted">
+            {progression.chords[index]?.roman ?? ""}{state === "current" ? " · now" : state === "next" ? " · next" : ""}
+          </span>
+          <span
+            class={[
+              "text-[0.6875rem] font-medium",
+              badge === "matched in-time" && "text-success",
+              badge === "matched off-time" && "text-warn",
+              badge === "missed" && "text-destructive",
+              badge === "pending" && "text-stage-muted",
+            ]}
+          >
+            {badge}
+          </span>
+        </li>
+      {/each}
+    </ol>
+  {/snippet}
+
+  {#snippet toneLegend()}
+    <div class="flex flex-wrap items-center gap-3 text-xs text-stage-muted">
+      <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-primary"></span>Chord tones</span>
+      <span class="flex items-center gap-1.5">
+        <span class="size-3 rounded-full bg-primary/25 ring-1 ring-inset ring-primary"></span>Scale tones
+      </span>
+      <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-muted"></span>Avoid</span>
     </div>
-  {/if}
+  {/snippet}
 
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>Progression complete</Card.Description>
-        <Card.Title>{summary?.correct ?? 0} of {summary?.total ?? 0} chords matched</Card.Title>
+        <Card.Description>{summary?.correct ?? 0} of {summary?.total ?? 0} chords matched</Card.Description>
+        <Card.Title>Progression complete</Card.Title>
+      {/snippet}
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {Math.round((summary?.score ?? 0) * 100)}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only"> score</span>
+        </p>
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta tags={["technique", "chord-changes"]} accuracy={summary?.score ?? 0} before={visitStartedAt} />
       {/snippet}
       {#snippet children()}
-        <p class="text-sm text-muted-foreground">
-          Score: {Math.round((summary?.score ?? 0) * 100)}%
-        </p>
         {#if finishError}
           <p class="text-sm text-destructive">{finishError}</p>
         {/if}
-        <div class="grid gap-2 text-sm">
-          {#each expected as chord, i (i)}
-            <div class="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
-              <span class="font-semibold">{chord.symbol}</span>
-              <HudTile
-                label="Grade"
-                value={gradeBadge(summary?.grades[i])}
-                tone={gradeTone(summary?.grades[i])}
-                class="px-2 py-1"
-              />
-            </div>
-          {/each}
+        {@render chordStrip(-1, summary?.grades)}
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <HudTile size="sm" label="Matched" value={summary?.correct ?? 0} unit={`/${summary?.total ?? 0}`} />
+          <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+          <HudTile size="sm" label="Input" value={inputMode === "microphone" ? "Microphone" : "Keys"} />
         </div>
+        <p class="text-xs text-muted-foreground">+{Math.round((summary?.score ?? 0) * 20)} XP · Technique</p>
       {/snippet}
       {#snippet actions()}
-        <Button type="button" disabled={sourceTeardownPending} onclick={() => void start()}>Repeat</Button>
+        <Button type="button" disabled={sourceTeardownPending} onclick={() => void start()}>Again</Button>
       {/snippet}
     </DrillSummaryCard>
   {/snippet}
@@ -599,116 +660,136 @@
   <PracticeDrillShell
     {phase}
     startPending={startPending || sourceTeardownPending}
+    setupSummary={setupSummaryLine}
     summary={summaryPhase}
   >
     {#snippet setup()}
-      <section class="grid min-w-0 gap-6">
-        <ProgressionChartStage {progression} {currentIndex} tones={chartTones} />
+      <div class="grid min-w-0 gap-3 rounded-lg border bg-card p-4">
+        <div class="grid gap-2">
+          <span class="text-sm font-medium">Transpose</span>
+          <SegmentedControl ariaLabel="Transpose" options={transposeOptions} bind:value={transposeSemitones} size="sm" />
+        </div>
+        <p class="text-sm tabular-nums text-muted-foreground">Tempo · {bpm} BPM (practice controls above)</p>
+      </div>
+    {/snippet}
 
-        <Card.Root class="min-w-0">
-          <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <Card.Description>Known progression</Card.Description>
-              <Card.Title
-                bind:ref={setupHeading}
-                tabindex="-1"
-                data-testid="chord-progression-setup-heading"
-              >
-                {progression.name}
-              </Card.Title>
-              <Card.Description>{progression.key} · {progression.style}</Card.Description>
+    {#snippet readyStage()}
+      <PracticeStage class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · Known progression</p>
+            <div
+              role="heading"
+              aria-level="2"
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="chord-progression-setup-heading"
+              bind:this={setupHeading}
+            >
+              {progression.name}
             </div>
-          </Card.Header>
-
-          <Card.Content class="grid gap-6">
-            <div class="grid gap-4">
-              <SegmentedControl
-                ariaLabel="Group"
-                options={groupOptions}
-                value={progressionGroup}
-                onChange={selectGroup}
-              />
-              <SegmentedControl
-                ariaLabel="Progression"
-                options={filteredProgressionOptions.length > 0 ? filteredProgressionOptions : progressionOptions}
-                value={progressionId}
-                onChange={selectProgression}
-              />
-              <SegmentedControl
-                ariaLabel="Transpose"
-                options={transposeOptions}
-                bind:value={transposeSemitones}
-              />
-              <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
-              <SegmentedControl
-                ariaLabel="Input"
-                options={[
-                  { value: "microphone", label: "Microphone" },
-                  { value: "keys", label: "MIDI or on-screen keys" },
-                ]}
-                bind:value={inputMode}
-              />
-            </div>
-
-            <p class="text-sm text-muted-foreground">{status}</p>
-            {#if audioState.status === "denied" || audioState.status === "error"}
-              <p class="text-destructive">{audioState.message}</p>
+            <p class="text-sm text-stage-muted">
+              {progression.key} · {progression.style}. First chord
+              <span data-testid="progression-current-symbol">{currentChord.symbol}</span>; play each change on the beat.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            {#if startPending}
+              <Button type="button" variant="outline" onclick={() => void stop()}>Stop</Button>
             {/if}
-          </Card.Content>
-
-          <Card.Footer class="flex-wrap gap-3">
-            <Button type="button" onclick={() => void start()}>Start</Button>
-          </Card.Footer>
-        </Card.Root>
-      </section>
+            <Button
+              type="button"
+              size="lg"
+              disabled={startPending || sourceTeardownPending}
+              onclick={() => void start()}
+            >
+              {startPending ? "Starting..." : "Start"}
+            </Button>
+            <StartShortcut onStart={() => void start()} enabled={!startPending && !sourceTeardownPending} />
+          </div>
+        </div>
+        <!-- Which progression and which input are the drill; the fieldset mirrors the shell's start lock. -->
+        <fieldset class="grid min-w-0 gap-3 border-0 p-0" disabled={startPending || sourceTeardownPending}>
+          <div class="flex flex-wrap gap-3">
+            <SegmentedControl ariaLabel="Group" options={groupOptions} value={progressionGroup} onChange={selectGroup} />
+            <SegmentedControl
+              ariaLabel="Input"
+              options={[
+                { value: "microphone", label: "Microphone" },
+                { value: "keys", label: "MIDI or on-screen keys" },
+              ]}
+              bind:value={inputMode}
+            />
+          </div>
+          <SegmentedControl
+            ariaLabel="Progression"
+            options={filteredProgressionOptions.length > 0 ? filteredProgressionOptions : progressionOptions}
+            value={progressionId}
+            onChange={selectProgression}
+          />
+        </fieldset>
+        {@render chordStrip(0, undefined)}
+        <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="eyebrow">First up · {currentChord.symbol} / {currentChord.scale}</p>
+            {@render toneLegend()}
+          </div>
+          <PianoSurface lowMidi={48} highMidi={84} notes={currentChordMidi} toneRoles={keyToneRoles} highlights={keyTargets} interactive={false} noteNames="c" />
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+        {#if audioState.status === "denied" || audioState.status === "error"}
+          <p class="text-sm text-destructive">{audioState.message}</p>
+        {/if}
+      </PracticeStage>
     {/snippet}
 
     {#snippet stage()}
-      <div class="grid gap-4">
-        <div>
-          <p class="eyebrow">Now playing · {progression.name}</p>
-          <h2
-            class="text-2xl font-bold tracking-tight"
-            tabindex="-1"
-            bind:this={activeHeading}
-            data-testid="chord-progression-stage-heading"
-          >
-            {progression.name}
-          </h2>
-          <p class="text-sm text-muted-foreground">{progression.key} · {progression.style}</p>
+      <PracticeStage class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">
+              Now playing · {progression.chords[currentIndex]?.roman ?? ""} ·
+              <span data-testid="progression-current-symbol">{currentChord.symbol}</span>
+            </p>
+            <h2
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              bind:this={activeHeading}
+              data-testid="chord-progression-stage-heading"
+            >
+              {progression.name}
+            </h2>
+            <p class="text-sm text-stage-muted">{progression.key} · {progression.style}</p>
+          </div>
+          <span class="text-sm tabular-nums text-stage-muted">{currentIndex} / {expected.length} chords</span>
         </div>
-
-        <ProgressionChartStage {progression} {currentIndex} tones={chartTones} />
-
-        {#if inputMode === "keys"}
-          <div class="min-w-0 rounded-xl border bg-muted/30 p-3 sm:p-4">
+        {@render chordStrip(currentIndex, followerState?.grades)}
+        <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="eyebrow">Target tones · {currentChord.symbol} / {currentChord.scale}</p>
+            {@render toneLegend()}
+          </div>
+          {#if inputMode === "keys"}
             <PianoSurface
               router={runtime.router}
+              lowMidi={48}
+              highMidi={84}
               notes={currentChordMidi}
               toneRoles={keyToneRoles}
               highlights={keyTargets}
               waitGroupKey={`chord-${currentIndex}-${chordFlushes}`}
               noteNames="c"
             />
-          </div>
-        {/if}
-
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <HudTile label="Chord" value={currentIndex} unit={`/${expected.length}`} />
-          <HudTile
-            label="Matched"
-            value={followerState?.grades.filter((grade) => grade.matched).length ?? 0}
-            unit={`/${expected.length}`}
-            tone="good"
-          />
-          <HudTile label="Tempo" value={bpm} unit="bpm" tone="accent" />
+          {:else}
+            <PianoSurface lowMidi={48} highMidi={84} notes={currentChordMidi} toneRoles={keyToneRoles} highlights={keyTargets} interactive={false} noteNames="c" />
+          {/if}
+          <p class="text-sm text-stage-muted">Detected tones: {detectedLabels}</p>
         </div>
-
-        <p class="text-sm text-muted-foreground">{status}</p>
+        <p class="text-sm text-stage-muted">{status}</p>
         {#if audioState.status === "denied" || audioState.status === "error"}
-          <p class="text-destructive">{audioState.message}</p>
+          <p class="text-sm text-destructive">{audioState.message}</p>
         {/if}
-      </div>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stageAction()}
@@ -716,30 +797,17 @@
     {/snippet}
 
     {#snippet rail()}
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Progression grades</Card.Description>
-          <Card.Title class="text-base">Chord-by-chord grading</Card.Title>
-        </Card.Header>
-        <Card.Content class="grid gap-2 text-sm">
-          {#each expected as chord, i (i)}
-            <div class="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
-              <span class="font-semibold">{chord.symbol}</span>
-              <HudTile label="Grade" value={chordBadge(i)} tone={badgeTone(i)} class="px-2 py-1" />
-            </div>
-          {/each}
-        </Card.Content>
-      </Card.Root>
-
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Live detection</Card.Description>
-          <Card.Title class="text-base">Detected tones</Card.Title>
-        </Card.Header>
-        <Card.Content class="text-sm text-muted-foreground">
-          {detectedLabels}
-        </Card.Content>
-      </Card.Root>
+      <DrillProgressRail
+        items={[
+          { label: "Chord", value: `${currentIndex} / ${expected.length}` },
+          {
+            label: "Matched",
+            value: `${followerState?.grades.filter((grade) => grade.matched).length ?? 0} / ${expected.length}`,
+          },
+          { label: "Tempo", value: `${bpm} BPM` },
+          { label: "Input", value: inputMode === "microphone" ? "Microphone" : runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
+        ]}
+      />
     {/snippet}
   </PracticeDrillShell>
 </PracticeScreen>
