@@ -104,7 +104,7 @@
     router,
     instrument = "piano",
     interactive = true,
-    pointerMode = "hold",
+    pointerMode = "auto",
     onAccepted,
     waitGroupKey,
     timelineNotes,
@@ -126,8 +126,14 @@
     router?: InputRouter;
     instrument?: InstrumentId;
     interactive?: boolean;
-    /** `latch` makes a pointer click toggle the held note instead of pressing. */
-    pointerMode?: PianoPointerMode;
+    /**
+     * `hold` is press-and-hold, `latch` makes a click toggle the held note, and
+     * `auto` (default) latches only while a wait-mode group (`waitGroupKey`)
+     * asks for more than one note at once: one mouse can hold one key, so a
+     * chord target is otherwise unplayable on screen. Sequence drills, which
+     * light every upcoming note as a target, keep press-and-hold.
+     */
+    pointerMode?: PianoPointerMode | "auto";
     onAccepted?: (event: NoteEvent) => void;
     /**
      * The follower group id + generation. Providing it opts this instance into
@@ -154,6 +160,18 @@
   // one octave into the view (C4 for the default range), as before.
   const baseMidi = $derived(qwertyBaseMidi(material.length > 0 ? material : [geometry.lowMidi + 12]));
   const playable = $derived(interactive && router !== undefined);
+  const targetCount = $derived(
+    Object.values(highlights ?? {}).filter((highlight) =>
+      (typeof highlight === "string" ? highlight : highlight.role) === "target",
+    ).length,
+  );
+  const resolvedPointerMode = $derived<PianoPointerMode>(
+    pointerMode === "auto"
+      ? waitGroupKey !== undefined && targetCount > 1
+        ? "latch"
+        : "hold"
+      : pointerMode,
+  );
 
   let heldNotes = $state<ReadonlySet<number>>(new Set());
   let latchedNotes = $state<ReadonlySet<number>>(new Set());
@@ -163,7 +181,7 @@
   const input = new PianoInput({
     router: () => router,
     instrument: () => instrument,
-    pointerMode: () => pointerMode,
+    pointerMode: () => resolvedPointerMode,
     onAccepted: (event) => onAccepted?.(event),
     onChange: (held) => {
       heldNotes = new Set(held);
@@ -617,7 +635,16 @@
   {/if}
 
   {#if latchedNotes.size > 0}
-    <div>
+    <!-- Latched notes stay down with no finger on them, so the surface says
+         what it is holding and offers the release in the same breath. -->
+    <div
+      data-testid="piano-holding"
+      class="flex flex-wrap items-center gap-2 text-xs font-semibold text-stage-foreground"
+    >
+      <span class="inline-flex items-center gap-1.5 rounded border border-stage-line bg-stage-2 px-2 py-1">
+        <span class="size-2 rounded-full bg-practice-accent" aria-hidden="true"></span>
+        Holding {[...latchedNotes].sort((a, b) => a - b).map((midiNote) => geometry.keys.find((key) => key.midiNote === midiNote)?.name ?? String(midiNote)).join(" ")}
+      </span>
       <button
         type="button"
         class="rounded border border-stage-line px-2 py-1 text-xs font-semibold text-stage-foreground hover:bg-stage-2"

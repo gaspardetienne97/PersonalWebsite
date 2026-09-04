@@ -56,6 +56,29 @@ describe("ScoreFollowerStage", () => {
 
     expect(onExpectedNoteSelected).toHaveBeenCalledWith(62);
   });
+
+  test("names a repeated note that needs a fresh attack", async () => {
+    const score = scoreFixture();
+    const groups = expectedGroups(score);
+    // Fake a repeat: the current group asks for the same note as the last one.
+    const repeated = [groups[0]!, { ...groups[1]!, midiNotes: [...groups[0]!.midiNotes] }];
+
+    render(ScoreFollowerStage, {
+      score,
+      view: notationView(score),
+      groups: repeated,
+      currentGroupIndex: 1,
+      instrument: "piano",
+      router: new InputRouter(),
+      inputEnabled: true,
+    });
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="score-repeat-hint"]')).not.toBeNull(),
+    );
+    expect(document.querySelector('[data-testid="score-repeat-hint"]')?.textContent).toContain(
+      "Play C4 again",
+    );
+  });
 });
 
 function pianoKey(name: string): HTMLElement | null {

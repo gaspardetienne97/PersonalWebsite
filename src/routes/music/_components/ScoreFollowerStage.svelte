@@ -76,6 +76,13 @@
 
   const currentGroup = $derived(groups[currentGroupIndex]);
   const targetNotes = $derived(currentGroup?.midiNotes ?? []);
+  // Wait mode needs a fresh attack for a note the previous group also had (a
+  // repeated note is re-struck on a real piano too); the stage says so instead
+  // of leaving a still-held key to look ignored.
+  const repeatedNotes = $derived.by(() => {
+    const previous = groups[currentGroupIndex - 1]?.midiNotes ?? [];
+    return targetNotes.filter((midiNote) => previous.includes(midiNote));
+  });
   const currentNotationEventIds = $derived.by(() => {
     if (!currentGroup) return [];
     const currentNotes = currentGroup.sourceNoteIndexes
@@ -202,6 +209,12 @@
               data-testid="score-hand-hint"
             >
               {pianoHandHint}
+            </p>
+          {/if}
+          {#if repeatedNotes.length > 0}
+            <p class="mt-1 text-xs text-muted-foreground" data-testid="score-repeat-hint">
+              Play {repeatedNotes.map((midiNote) => midiToNote(midiNote)).join(", ")} again: a
+              repeated note needs a fresh attack.
             </p>
           {/if}
         </div>

@@ -402,6 +402,69 @@ describe("PianoSurface input", () => {
     field.remove();
   });
 
+  test("a wait-mode chord target latches pointer clicks by default and says what is held", async () => {
+    const { router, routed } = setup();
+    render(PianoSurface, {
+      router,
+      notes: ["C4", "E4", "G4"],
+      waitGroupKey: "group-3:1",
+      highlights: { 60: "target", 64: "target" },
+    });
+    await tick();
+
+    // Two target notes, one mouse: the click latches instead of releasing.
+    mouseClick("C4", 1);
+    expect(pairs(routed)).toEqual(["noteOn:60"]);
+    await tick();
+    expect(key("C4").getAttribute("aria-pressed")).toBe("true");
+    const chip = () => document.querySelector('[data-testid="piano-holding"]');
+    expect(chip()?.textContent).toContain("Holding");
+    expect(chip()?.textContent).toContain("C4");
+
+    mouseClick("E4", 2);
+    await tick();
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOn:64"]);
+    expect(chip()?.textContent).toContain("E4");
+
+    const clear = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Clear held notes",
+    );
+    clear?.click();
+    await tick();
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOn:64", "noteOff:60", "noteOff:64"]);
+    expect(chip()).toBeNull();
+  });
+
+  test("a single-note wait group and a sequence drill keep press-and-hold", async () => {
+    const { router, routed } = setup();
+    const single = render(PianoSurface, {
+      router,
+      notes: ["C4", "E4"],
+      waitGroupKey: "group-0:1",
+      highlights: { 60: "target" },
+    });
+    await tick();
+
+    pointer("pointerdown", key("C4"), 1);
+    pointer("pointerup", key("C4"), 1);
+    expect(pairs(routed)).toEqual(["noteOn:60", "noteOff:60"]);
+    await tick();
+    expect(document.querySelector('[data-testid="piano-holding"]')).toBeNull();
+    single.unmount();
+
+    // Many lit targets without a wait group is a sequence, not a chord.
+    routed.length = 0;
+    render(PianoSurface, {
+      router,
+      notes: ["C4", "E4", "G4"],
+      highlights: { 60: "target", 64: "target", 67: "target" },
+    });
+    await tick();
+    pointer("pointerdown", key("E4"), 2);
+    pointer("pointerup", key("E4"), 2);
+    expect(pairs(routed)).toEqual(["noteOn:64", "noteOff:64"]);
+  });
+
   test("pointerMode=latch builds a chord from sequential clicks, cleared on demand", async () => {
     const { router, routed } = setup();
     render(PianoSurface, { router, notes: ["C4", "E4", "G4"], pointerMode: "latch" });
