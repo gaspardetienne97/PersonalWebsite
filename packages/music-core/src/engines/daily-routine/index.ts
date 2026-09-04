@@ -57,8 +57,8 @@ export interface DailyRoutineState {
 const DEFAULT_STEPS: DailyRoutineStep[] = [
   {
     id: "ear",
-    label: "Ear Training",
-    href: "/music/learn/ear",
+    label: "Ear training review",
+    href: "/music/learn/ear/mixed",
     description: "Recognition and weak-spot review.",
   },
   {
@@ -222,6 +222,12 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
+/**
+ * The route family a link belongs to. Every ear drill (`/music/learn/ear/<slug>`)
+ * shares one family so a per-drill recommendation still binds to the routine's
+ * single ear step.
+ */
 function hrefRouteKey(href: string): string {
-  return href.split(/[?#]/, 1)[0] ?? href;
+  const path = href.split(/[?#]/, 1)[0] ?? href;
+  return path.startsWith("/music/learn/ear/") ? "/music/learn/ear" : path;
 }

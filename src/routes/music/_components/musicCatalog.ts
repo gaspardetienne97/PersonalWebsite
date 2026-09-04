@@ -20,6 +20,8 @@ import WandSparkles from "lucide-svelte/icons/wand-sparkles";
 import Wind from "lucide-svelte/icons/wind";
 import type { Component } from "svelte";
 
+import { EAR_TRAINING_DRILLS, earTrainingDrillHref } from "@repo/music-core/engines/ear-training";
+
 export type DrillSkill = "Ear" | "Reading" | "Rhythm" | "Harmony" | "Technique" | "Play";
 
 // Card cover-band hue keys — one per /music theme token family registered in
@@ -66,17 +68,19 @@ export interface DrillItem extends CatalogItem {
 
 /** Every practice drill, surfaced in Practice ▸ Drills (filterable by skill + instrument). */
 export const DRILLS: DrillItem[] = [
-  {
-    href: "/music/learn/ear",
-    title: "Ear Training",
-    description:
-      "Intervals, chord qualities, and functional scale degrees in focused or mixed sessions.",
-    skill: "Ear",
-    instruments: [],
-    meta: "Listening",
-    action: "Start ear practice",
-    icon: Ear,
-  },
+  // Every ear drill is its own card; the Ear Training Path (PATHS) orders them.
+  ...EAR_TRAINING_DRILLS.map(
+    (drill): DrillItem => ({
+      href: earTrainingDrillHref(drill.slug),
+      title: drill.title,
+      description: drill.description,
+      skill: "Ear",
+      instruments: [],
+      meta: "Listening",
+      action: `Start ${drill.title.toLowerCase()}`,
+      icon: Ear,
+    }),
+  ),
   {
     href: "/music/learn/reading",
     title: "Note Reading",
@@ -251,7 +255,7 @@ export const PATHS: CatalogItem[] = [
     href: "/music/learn/ear",
     title: "Ear Training Path",
     description:
-      "A staged listening curriculum: tonic awareness, scale degrees, dictation, intervals, and chord qualities. Opens the same ear-training surface used for focused drills.",
+      "Six steps: anchor the tonic, map the degrees, sing or play them back, transfer into melodies, add chromatic colour, then attach harmony and interval labels. Each step opens one ear drill with its setup.",
     meta: "Listening",
     action: "Open ear path",
     icon: Ear,

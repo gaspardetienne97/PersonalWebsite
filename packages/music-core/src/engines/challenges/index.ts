@@ -1,3 +1,4 @@
+import { earTrainingHrefForSkill } from "@repo/music-core/engines/ear-training";
 import type { PracticeSession, UnixMs } from "@repo/music-core/domain";
 import type { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import type { ProgressState } from "@repo/music-core/engines/progress";
@@ -159,11 +160,11 @@ function countSkillEvents(sessions: PracticeSession[], skillId: string): number 
 }
 
 function hrefForSkill(skillId: string): string {
+  const earHref = earTrainingHrefForSkill(skillId);
+  if (earHref) return earHref;
   if (skillId.startsWith("reading.")) return "/music/learn/reading";
   if (skillId.startsWith("rhythm.")) return "/music/learn/rhythm";
   if (skillId.startsWith("technique.")) return "/music/play/scales";
-  if (skillId.startsWith("harmony.")) return "/music/library?tab=reference";
-  if (skillId.startsWith("pitch.")) return "/music/learn/ear";
   return "/music";
 }
 

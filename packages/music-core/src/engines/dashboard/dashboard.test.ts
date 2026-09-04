@@ -48,10 +48,10 @@ describe("dashboard projections", () => {
     expect(view.todayGoalProgress).toBe((weakXp + strongXp) / 100);
     expect(view.streakDays).toBe(1);
     expect(view.recentInstruments).toEqual(["piano", "guitar"]);
-    expect(view.continuePractice.href).toBe("/music/learn/ear");
+    expect(view.continuePractice.href).toBe("/music/learn/ear/intervals");
     expect(view.dailyChallenge.skillId).toBe("pitch.interval.m6");
     expect(view.todaysRoutine.map((item) => item.href)).toEqual([
-      "/music/learn/ear",
+      "/music/learn/ear/mixed",
       "/music/learn/reading",
       "/music/play/scales",
     ]);
@@ -78,7 +78,7 @@ describe("dashboard projections", () => {
     expect(dominant).toMatchObject({
       id: "harmony.seventh.dominant",
       weakSpot: true,
-      practiceHref: "/music/learn/ear",
+      practiceHref: "/music/learn/ear/chord-qualities",
     });
     expect(view.relationships).toContainEqual({
       from: "harmony.seventh.dominant",

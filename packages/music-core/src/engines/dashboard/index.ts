@@ -1,4 +1,8 @@
 import {
+  earTrainingDrillHref,
+  earTrainingHrefForSkill,
+} from "@repo/music-core/engines/ear-training";
+import {
   SkillRelationKind,
   type Capability,
   type InstrumentId,
@@ -118,8 +122,8 @@ export function buildDashboardView(args: BuildDashboardViewArgs): DashboardView 
     dailyChallenge,
     todaysRoutine: [
       {
-        label: "Ear Training",
-        href: "/music/learn/ear",
+        label: "Ear training review",
+        href: earTrainingDrillHref("mixed"),
         description: "Recognition and weak-spot review.",
       },
       {
@@ -219,9 +223,8 @@ function actionForSkill(skillId: string, label: string): DashboardAction {
 }
 
 function hrefForSkill(skillId: string): string {
-  if (skillId === "ear.cadences" || skillId.startsWith("ear.cadences.")) {
-    return "/music/learn/ear?drill=cadence";
-  }
+  const earHref = earTrainingHrefForSkill(skillId);
+  if (earHref) return earHref;
   if (skillId === "intonation.interval-landing") {
     return "/music/learn/aerophone?mode=interval-landing";
   }
@@ -259,7 +262,6 @@ function hrefForSkill(skillId: string): string {
   }
   if (skillId.startsWith("technique.piano")) return "/music/play/two-hand";
   if (skillId.startsWith("technique.")) return "/music/play/scales";
-  if (skillId.startsWith("harmony.") || skillId.startsWith("pitch.")) return "/music/learn/ear";
   return "/music";
 }
 

@@ -57,7 +57,7 @@ describe("challenge projections", () => {
       skillId: "pitch.interval.m6",
       progress: 1,
       target: 3,
-      href: "/music/learn/ear",
+      href: "/music/learn/ear/intervals",
     });
     expect(board.daily[2]).toMatchObject({ progress: 2, target: 2, complete: true });
     expect(board.weeklySummary).toMatchObject({

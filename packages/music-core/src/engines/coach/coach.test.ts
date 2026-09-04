@@ -25,7 +25,8 @@ describe("buildPracticeCoachView", () => {
 
     expect(view.focus?.skillId).toBe("harmony.seventh.dominant");
     expect(view.headline).toContain("Dominant 7th");
-    expect(view.routine[0]?.href).toBe("/music/learn/ear");
+    // The weak seventh chord binds to the routine's ear step as its drill deep link.
+    expect(view.routine[0]?.href).toBe("/music/learn/ear/chord-qualities");
     expect(view.insights.join(" ")).toContain("0% accuracy");
   });
 
@@ -43,7 +44,7 @@ describe("buildPracticeCoachView", () => {
     expect(view.focus).toBeUndefined();
     expect(view.headline).toBe("Build a balanced routine");
     expect(view.routine.map((step) => step.href)).toEqual([
-      "/music/learn/ear",
+      "/music/learn/ear/mixed",
       "/music/learn/reading",
       "/music/learn/rhythm",
       "/music/play/scales",

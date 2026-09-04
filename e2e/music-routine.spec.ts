@@ -8,8 +8,8 @@ test.describe("music daily routine", () => {
 
     // Decision 7: Start routine navigates to the first step.
     // The drill appends its own config to the query, so match the prefix only.
-    await expect(page).toHaveURL(/\/music\/learn\/ear\?routine=1/);
-    await expect(page.getByRole("heading", { name: "Ear Training" })).toBeVisible();
+    await expect(page).toHaveURL(/\/music\/learn\/ear\/mixed\?routine=1/);
+    await expect(page.getByRole("heading", { name: "Ear training review" })).toBeVisible();
 
     // Back on Today (client-side, so the in-memory routine survives) the card
     // shows the current step with one Continue button.
@@ -18,7 +18,7 @@ test.describe("music daily routine", () => {
     await expect(page.getByText("Up first")).toBeVisible();
     await expect(page.getByRole("link", { name: "Continue routine" })).toHaveAttribute(
       "href",
-      "/music/learn/ear?routine=1",
+      "/music/learn/ear/mixed?routine=1",
     );
   });
 });

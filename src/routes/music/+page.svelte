@@ -27,6 +27,13 @@
   // precached). Cards without an entry keep the hue-gradient fallback band.
   const COVER_SLUG: Record<string, string> = {
     "/music/learn/ear": "ear",
+    "/music/learn/ear/mixed": "ear",
+    "/music/learn/ear/intervals": "ear",
+    "/music/learn/ear/chord-qualities": "ear",
+    "/music/learn/ear/cadences": "ear",
+    "/music/learn/ear/scale-degrees": "ear",
+    "/music/learn/ear/melody-dictation": "ear",
+    "/music/learn/ear/repertoire-transfer": "ear",
     "/music/learn/reading": "reading",
     "/music/learn/rhythm": "rhythm",
     "/music/play/scales": "scales",

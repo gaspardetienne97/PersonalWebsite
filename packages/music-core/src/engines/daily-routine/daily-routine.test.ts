@@ -14,7 +14,7 @@ describe("daily routine", () => {
       {
         skillId: "pitch.interval.m6",
         skillName: "Minor sixth",
-        href: "/music/learn/ear",
+        href: "/music/learn/ear/intervals",
       },
       {
         skillId: "harmony.seventh.dominant",
@@ -23,9 +23,10 @@ describe("daily routine", () => {
       },
     ]);
 
+    // A per-drill ear link binds to the single ear step.
     expect(plan.map((step) => step.href)).toEqual([
       "/music/learn/rhythm",
-      "/music/learn/ear",
+      "/music/learn/ear/intervals",
       "/music/learn/reading",
       "/music/play/scales",
     ]);
@@ -76,7 +77,7 @@ describe("daily routine", () => {
     expect(plan.map((step) => step.href)).toEqual([
       "/music/play/mpc?pattern=paradiddle",
       "/music/learn/rhythm?pattern=gap-click-1-on-1-off",
-      "/music/learn/ear",
+      "/music/learn/ear/mixed",
       "/music/learn/reading",
       "/music/play/scales",
     ]);

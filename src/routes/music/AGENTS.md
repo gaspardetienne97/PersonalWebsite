@@ -222,14 +222,20 @@ This file provides guidance for agents working on the Music app under
   shared input router reads these preferences.
 - `/music`: entry point for practice tools; learning drills and the guided
   **Jazz Path** are surfaced from the Practice hub.
-- `/music/learn/path`: the ordered, instrument-aware jazz lesson path. Each step
-  deep-links into a real tool (ear → chord library → scales → the graded ii-V-I
-  drill → jam); per-step status/mastery is derived from the live skill graph
-  (`SkillGraphStore.getMastery`), so doing the graded drill visibly advances the
-  voicing steps. Projection: `buildJazzLessonPath({ mastery, instrument })` in
-  `@repo/music-core/engines/jazz` (pure; polyphonic lessons annotate the
-  Aerophone arpeggio fallback). The jazz reference page links here via "Open
-  tracked path".
+- Learning paths: every drill is its own route; a path only orders them. One
+  engine, `buildLearningPath(steps, { mastery, instrument })` in
+  `@repo/music-core/engines/learning-path`, projects a step list (href with the
+  drill's setup, `skillIds`, `kind` drill/review/reference, `links`) into
+  status, mean mastery, done count and the `next` step; one screen,
+  `LearningPathScreen`, renders every path. Path definitions live in music-core
+  (`EAR_TRAINING_LEARNING_PATH_DEFINITION`, `JAZZ_CURRICULUM`); never
+  hand-write ear query strings, build them with `earTrainingDrillHref`.
+- `/music/learn/path`: the ordered, instrument-aware Jazz Path (ten steps:
+  intervals → chord symbols → extensions → chord-scales → shell voicings → the
+  graded ii-V-I drill → altered voicings → licks → improv → repertoire).
+  Reference steps stay in the list with `kind: "reference"` and link the drill
+  that practises them. Projection: `buildJazzPath` / `buildJazzLessonPath` in
+  `@repo/music-core/engines/jazz`, wrappers over the learning-path engine.
 - `/music/learn/aerophone`: the unified Aerophone technique surface: fingering
   visualizer, long-tone breath drill, dynamic-swell drill, and graded
   staccato/legato articulation mode. It uses
@@ -240,15 +246,24 @@ This file provides guidance for agents working on the Music app under
   `technique.aerophone(.articulation)`. The Learn hub links here directly;
   per-note fingering caveats still belong in deferred hardware verification
   until checked on the physical unit.
-- `/music/learn/ear`: interval/chord/scale-degree ear training. Mixed sessions
-  use `EarTrainingSession` with `queueMode:"adaptive"` so scheduler
+- `/music/learn/ear`: the Ear Training Path page (six steps, each opening one
+  ear drill with its setup). Legacy links (`?drill=cadence&answer=listen`,
+  `?routine=1`) are redirected client-side through `legacyEarTrainingHref`.
+- `/music/learn/ear/<slug>`: one route per ear drill (`intervals`,
+  `chord-qualities`, `cadences`, `scale-degrees`, `melody-dictation`,
+  `repertoire-transfer`, and `mixed`, titled "Ear training review"). Every
+  route mounts `EarTrainingDrillRoute` with its `EarTrainingDrillDefinition`
+  from `EAR_TRAINING_DRILLS`; the definition decides the session drill, the
+  answer modes offered, and whether the level and label controls apply. Journal
+  tags are `["ear", <drill>]`, so the daily routine's ear step (`mixed`)
+  completes by tag and per-drill history stays intact. Mixed review uses
+  `EarTrainingSession` with `queueMode:"adaptive"` so scheduler
   weakness/review/new priorities are preserved while rotating drill types to
-  avoid back-to-back repeats. Focused sessions should keep balanced cycling.
-  Keep the curriculum spine tonic-first and scale-degree-first: anchor tonic,
-  build diatonic degrees, sing/play targets, transfer into melodies, add
-  chromatic color, then attach harmony/interval vocabulary. The route may
-  present the path, but ordering belongs in the
-  `@repo/music-core/engines/ear-training` curriculum projection. Scale-degree
+  avoid back-to-back repeats; focused drills keep balanced cycling. Keep the
+  curriculum spine tonic-first and scale-degree-first: ordering belongs in the
+  `@repo/music-core/engines/ear-training` curriculum projection. Deep links
+  into ear drills from dashboards, challenges and the routine go through
+  `earTrainingHrefForSkill` / `earTrainingDrillHref`. Scale-degree
   level metadata belongs with `scale-degree-recognition` in `@repo/music-core`;
   route controls should consume `SCALE_DEGREE_SETS` and pass `scaleDegreeSet`
   into `EarTrainingSession` instead of duplicating degree lists. Chromatic color

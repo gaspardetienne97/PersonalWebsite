@@ -36,7 +36,7 @@ describe("/music/+page.svelte (Practice hub)", () => {
     for (const tab of ["Today", "Drills", "Paths"]) {
       expect(document.body.textContent).toContain(tab);
     }
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Ear Training"));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Ear training review"));
     expect(document.body.textContent).toContain("Adaptive plan");
     expect(document.body.textContent).toContain("Why this plan");
     expect(document.body.textContent).toContain("Start routine");
