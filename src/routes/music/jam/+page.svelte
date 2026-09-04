@@ -66,10 +66,22 @@
   const {
     runtime = useMusicRuntime(),
     navigateToCreate = defaultNavigateToCreate,
+    now = () => performance.now(),
   }: {
     runtime?: MusicRuntime;
     navigateToCreate?: (href: string) => void | Promise<void>;
+    /** Wall clock for the transport-driven chart. Injectable for tests. */
+    now?: () => number;
   } = $props();
+
+  /** One chorus of solo notes, classified against the chord that was current when each landed. */
+  interface ChorusReport {
+    chorus: number;
+    notes: number;
+    chordPct: number;
+    scalePct: number;
+    outsidePct: number;
+  }
 
   let baseProgression = $state<JamProgression>(initialProgression);
   let progressionGroup = $state<JamProgressionGroup>(initialConfig.group);
@@ -97,6 +109,14 @@
   let drumTrackId = $state(initialConfig.drumTrackId);
   let backingBpm = $state(initialConfig.bpm);
   let transportInitialized = false;
+  // Transport-driven chart: while the backing plays, the current chord follows the
+  // elapsed beats (paused time excluded) instead of the Next chord button.
+  let playStartedAt: number | undefined;
+  let pausedOffsetMs = 0;
+  let transportTimer: ReturnType<typeof setInterval> | undefined;
+  let chorusCount = 0;
+  let chorusTally = { chord: 0, scale: 0, outside: 0 };
+  let chorusReports = $state<ChorusReport[]>([]);
   const drumTrack = $derived(drumTracks.find((t) => t.id === drumTrackId) ?? drumTracks[0]!);
   const progression = $derived(transposeProgression(baseProgression, Number(transposeSemitones)));
   const progressionOptions = $derived(
@@ -123,6 +143,12 @@
   const next = $derived(
     progression.chords[(currentIndex + 1) % progression.chords.length] ?? progression.chords[0]!,
   );
+  const chordBeats = $derived(progression.chords.map((chord) => (chord.bars ?? 1) * 4));
+  const progressionBeats = $derived(chordBeats.reduce((sum, beats) => sum + beats, 0));
+  // Bundled drum tracks run at their own tempo; generated chords follow the transport.
+  const effectiveBpm = $derived(
+    backingState.selection.kind === "builtin" ? backingState.selection.track.bpm || backingBpm : backingBpm,
+  );
   const sourceLabel = $derived(
     runtime.activeSource === "midi" ? "MIDI" : runtime.activeSource === "audio" ? "Audio" : "On-screen",
   );
@@ -133,13 +159,83 @@
 
   $effect(() => {
     const unsubscribe = runtime.router.subscribe((event) => {
-      if (!recording || event.type !== "noteOn") return;
+      if (event.type !== "noteOn") return;
+      if (backingState.status === "playing") tallySoloNote(event.midiNote);
+      if (!recording) return;
       session.record(event);
       midiRecorder.capture(event);
       recordedCount = session.recorded().length;
     });
     return () => unsubscribe();
   });
+
+  $effect(() => {
+    const status = backingState.status;
+    if (status === "playing") {
+      if (playStartedAt === undefined) playStartedAt = now() - pausedOffsetMs;
+      if (transportTimer === undefined) transportTimer = setInterval(followTransport, 100);
+      followTransport();
+      return;
+    }
+    if (transportTimer !== undefined) clearInterval(transportTimer);
+    transportTimer = undefined;
+    if (status === "paused") {
+      if (playStartedAt !== undefined) pausedOffsetMs = now() - playStartedAt;
+      playStartedAt = undefined;
+      return;
+    }
+    // stopped / idle / error / loading: back to the top of the form.
+    playStartedAt = undefined;
+    pausedOffsetMs = 0;
+    chorusCount = 0;
+    chorusTally = { chord: 0, scale: 0, outside: 0 };
+    if (session.index !== 0) {
+      session.reset();
+      refresh();
+    }
+  });
+
+  function followTransport(): void {
+    if (playStartedAt === undefined || progressionBeats === 0) return;
+    const beats = ((now() - playStartedAt) / (60_000 / effectiveBpm));
+    const chorus = Math.floor(beats / progressionBeats);
+    while (chorusCount < chorus) {
+      chorusCount += 1;
+      finishChorus(chorusCount);
+    }
+    let within = beats - chorus * progressionBeats;
+    let index = 0;
+    while (index < chordBeats.length - 1 && within >= chordBeats[index]!) {
+      within -= chordBeats[index]!;
+      index += 1;
+    }
+    if (session.index === index) return;
+    while (session.index !== index) session.advance();
+    refresh();
+  }
+
+  function tallySoloNote(midiNote: number): void {
+    const role = tones.find((tone) => tone.pitchClass === midiNote % 12)?.role;
+    if (role === "chord") chorusTally.chord += 1;
+    else if (role === "scale") chorusTally.scale += 1;
+    else chorusTally.outside += 1;
+  }
+
+  function finishChorus(chorus: number): void {
+    const notes = chorusTally.chord + chorusTally.scale + chorusTally.outside;
+    const pct = (count: number) => (notes === 0 ? 0 : Math.round((count / notes) * 100));
+    chorusReports = [
+      {
+        chorus,
+        notes,
+        chordPct: pct(chorusTally.chord),
+        scalePct: pct(chorusTally.scale),
+        outsidePct: pct(chorusTally.outside),
+      },
+      ...chorusReports,
+    ].slice(0, 8);
+    chorusTally = { chord: 0, scale: 0, outside: 0 };
+  }
 
   $effect(() => {
     if (transportInitialized) return;
@@ -414,6 +510,7 @@
 
   onDestroy(() => {
     playbackGeneration += 1;
+    if (transportTimer !== undefined) clearInterval(transportTimer);
     stopMidiTake();
     unsubscribeBacking();
     backingEngine.dispose();
@@ -486,6 +583,27 @@
         onOpenInPianoRoll={openMidiTakeInPianoRoll}
       />
 
+      {#if chorusReports.length > 0}
+        <Card.Root>
+          <Card.Header>
+            <Card.Description>Chorus tone report</Card.Description>
+            <Card.Title class="text-base">How your solo sat on the changes</Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <ol class="grid gap-2 text-sm" aria-label="Chorus tone report">
+              {#each chorusReports as report (report.chorus)}
+                <li class="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                  <span class="font-medium">Chorus {report.chorus} · {report.notes} notes</span>
+                  <span class="tabular-nums text-muted-foreground">
+                    {report.chordPct}% chord tones · {report.scalePct}% scale · {report.outsidePct}% outside
+                  </span>
+                </li>
+              {/each}
+            </ol>
+          </Card.Content>
+        </Card.Root>
+      {/if}
+
       <!-- Solo input -->
       <Card.Root>
         <Card.Header class="flex-row items-center justify-between gap-2">
@@ -494,7 +612,13 @@
             <Button type="button" variant="secondary" size="sm" onclick={playChord}>
               <Play class="size-4" aria-hidden="true" />Play chord
             </Button>
-            <Button type="button" variant="outline" size="sm" onclick={advance}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={backingState.status === "playing"}
+              onclick={advance}
+            >
               <SkipForward class="size-4" aria-hidden="true" />Next chord
             </Button>
           </div>

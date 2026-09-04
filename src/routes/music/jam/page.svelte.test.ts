@@ -78,6 +78,66 @@ describe("/music/jam/+page.svelte", () => {
     ).not.toBeNull();
   });
 
+  test("the chart follows the backing transport while it plays, and resets on Stop", async () => {
+    const runtime = createRuntimeStub();
+    const clock = { value: 10_000 };
+    render(Page, {
+      props: { runtime: runtime as unknown as MusicRuntime, now: () => clock.value },
+    });
+    const symbol = () =>
+      document.querySelector('[data-testid="progression-current-symbol"]')?.textContent?.trim();
+    const click = (label: string) =>
+      [...document.querySelectorAll<HTMLButtonElement>("button")]
+        .find((button) => button.textContent?.includes(label))
+        ?.click();
+
+    click("Synth chords");
+    click("Play backing");
+    await vi.waitFor(() => expect(runtime.sound.startPatternLoop).toHaveBeenCalled());
+    expect(symbol()).toBe("Dm7");
+    // Next chord is the transport's job while the backing plays.
+    const nextChord = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+      button.textContent?.includes("Next chord"),
+    );
+    expect(nextChord?.disabled).toBe(true);
+
+    // ii–V–I holds each chord for two bars (8 beats). At 96 BPM that is 5 s.
+    clock.value += 5_100;
+    await vi.waitFor(() => expect(symbol()).toBe("G7"));
+    clock.value += 5_000;
+    await vi.waitFor(() => expect(symbol()).toBe("Cmaj7"));
+
+    click("Stop");
+    await vi.waitFor(() => expect(symbol()).toBe("Dm7"));
+  });
+
+  test("reports chord-tone accuracy for each completed chorus", async () => {
+    const runtime = createRuntimeStub();
+    const clock = { value: 10_000 };
+    render(Page, {
+      props: { runtime: runtime as unknown as MusicRuntime, now: () => clock.value },
+    });
+    const click = (label: string) =>
+      [...document.querySelectorAll<HTMLButtonElement>("button")]
+        .find((button) => button.textContent?.includes(label))
+        ?.click();
+
+    click("Synth chords");
+    click("Play backing");
+    await vi.waitFor(() => expect(runtime.sound.startPatternLoop).toHaveBeenCalled());
+
+    // Over Dm7: D and F are chord tones, E is a scale tone, C# is outside.
+    runtime.router.noteOn(62);
+    runtime.router.noteOn(65);
+    runtime.router.noteOn(64);
+    runtime.router.noteOn(61);
+
+    // A full chorus of four two-bar chords at 96 BPM is 20 s.
+    clock.value += 20_100;
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Chorus 1 · 4 notes"));
+    expect(document.body.textContent).toContain("50% chord tones · 25% scale · 25% outside");
+  });
+
   test("advances to the next chord", async () => {
     render(Page);
     const nextChord = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
