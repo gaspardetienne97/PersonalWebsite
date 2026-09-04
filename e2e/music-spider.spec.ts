@@ -9,8 +9,8 @@ test.describe("music string spider", () => {
       .click();
 
     await expect(page.getByRole("heading", { name: "String Independence" })).toBeVisible();
-    await page.getByRole("button", { name: "Start spider" }).click();
-    await expect(page.getByRole("button", { name: "Cancel spider" })).toBeVisible();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
 
     for (const fret of [5, 6, 7, 8]) {
       await page.getByRole("button", { name: new RegExp(`String 6 fret ${fret},`) }).focus();
@@ -18,7 +18,7 @@ test.describe("music string spider", () => {
     }
 
     await expect(page.getByText("Spider complete", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Repeat spider" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Again" }).first()).toBeVisible();
   });
 
   test("keeps the fretboard inside the mobile viewport", async ({ page }) => {

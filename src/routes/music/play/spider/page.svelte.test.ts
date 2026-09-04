@@ -54,12 +54,12 @@ describe("/music/play/spider/+page.svelte", () => {
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
-    button("Start spider")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(runtime.beginPerformance).not.toHaveBeenCalled();
-    expect(button("Cancel spider")).toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
   });
 
   test("dismisses stale results while a deferred retry activation fails", async () => {
@@ -77,17 +77,18 @@ describe("/music/play/spider/+page.svelte", () => {
       }),
     );
 
-    button("Repeat spider")?.click();
+    button("Again")?.click();
     await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
     expect(document.body.textContent).not.toContain("Spider complete");
     expect(button("Starting...")?.disabled).toBe(true);
-    expect(select("Starting fret")?.matches(":disabled")).toBe(true);
+    // Setup is collapsed while pending; the exercise picker carries the same lock.
+    expect(button("Spider")?.matches(":disabled")).toBe(true);
     expect(button("Change setup")).toBeUndefined();
 
     resolveVoice(false);
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(document.body.textContent).not.toContain("Spider complete");
-    expect(button("Start spider")?.disabled).toBe(false);
+    expect(button("Start")?.disabled).toBe(false);
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       runtime.audioMessage,
     );
@@ -103,14 +104,14 @@ describe("/music/play/spider/+page.svelte", () => {
     startSpider.mockClear();
 
     const changeSetup = button("Change setup");
-    button("Repeat spider")?.click();
+    button("Again")?.click();
     changeSetup?.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(beginPerformance).not.toHaveBeenCalled();
     expect(startSpider).not.toHaveBeenCalled();
-    expect(button("Cancel spider")).toBeUndefined();
-    expect(button("Start spider")?.disabled).toBe(false);
+    expect(button("Stop")).toBeUndefined();
+    expect(button("Start")?.disabled).toBe(false);
     expect(document.body.textContent).not.toContain("Spider complete");
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       "Setup ready",
@@ -128,12 +129,13 @@ describe("/music/play/spider/+page.svelte", () => {
     const startSpider = vi.spyOn(TechniqueSession.prototype, "startSpider");
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
-    button("Start spider")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
 
     runtime.setPracticeVariantBpm(120, "v1:spider:guitar:ascending-1234:single");
-    expect(select("Starting fret")?.matches(":disabled")).toBe(true);
+    // Setup is collapsed while pending; the exercise picker carries the same lock.
+    expect(button("Spider")?.matches(":disabled")).toBe(true);
     resolveVoice(true);
 
     await vi.waitFor(() => expect(startSpider).toHaveBeenCalledOnce());
@@ -151,11 +153,11 @@ describe("/music/play/spider/+page.svelte", () => {
 
     expect(document.querySelector("h1")?.textContent).toContain("String Independence");
     expect(button("Guitar")).toHaveAttribute("aria-pressed", "true");
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
-    button("Start spider")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => {
-      expect(button("Cancel spider")).not.toBeUndefined();
+      expect(button("Stop")).not.toBeUndefined();
       expect(select("Starting fret")).toBeUndefined();
       expect(document.activeElement?.textContent).toContain("Guitar string 6");
     });
@@ -173,7 +175,7 @@ describe("/music/play/spider/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Spider complete");
-      expect(button("Repeat spider")).not.toBeUndefined();
+      expect(button("Again")).not.toBeUndefined();
       expect(button("Change setup")).not.toBeUndefined();
       expect(document.activeElement?.textContent).toContain("Spider complete");
     });
@@ -183,8 +185,8 @@ describe("/music/play/spider/+page.svelte", () => {
 
     button("Change setup")?.click();
     await vi.waitFor(() => {
-      expect(button("Start spider")).not.toBeUndefined();
-      expect(select("Starting fret")).not.toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
+      expect(button("Edit setup")).not.toBeUndefined();
       expect(document.activeElement?.textContent).toContain("Pattern permutations across strings");
     });
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
@@ -195,16 +197,16 @@ describe("/music/play/spider/+page.svelte", () => {
   test("returns focus and announces when an active spider is cancelled", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
-    button("Start spider")?.click();
-    await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(select("Starting fret")).toBeUndefined();
 
-    button("Cancel spider")?.click();
+    button("Stop")?.click();
 
     await vi.waitFor(() => {
-      expect(button("Start spider")).not.toBeUndefined();
-      expect(select("Starting fret")).not.toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
+      expect(button("Edit setup")).not.toBeUndefined();
       expect(document.activeElement?.textContent).toContain("Pattern permutations across strings");
     });
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
@@ -220,13 +222,15 @@ describe("/music/play/spider/+page.svelte", () => {
     render(Page);
 
     expect(button("Ukulele")).toHaveAttribute("aria-pressed", "true");
+    await openSetup();
     expect(select("Pattern")?.value).toBe("inside-out-1324");
     expect(select("Tuning")?.value).toBe("ukulele.low-g");
     expect(select("String")?.value).toBe("4");
+    await openSetup();
     expect(select("String span")?.value).toBe("adjacent-2");
     expect(select("Starting fret")?.value).toBe("7");
     await vi.waitFor(() => expect(document.body.textContent).toContain("Tempo · 100 BPM"));
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
   });
 
   test("keeps setup changes in the shareable URL", async () => {
@@ -236,6 +240,7 @@ describe("/music/play/spider/+page.svelte", () => {
 
     button("Ukulele")?.click();
     await vi.waitFor(() => expect(window.location.search).toContain("instrument=ukulele"));
+    await openSetup();
     select("Pattern")!.value = "outside-in-1423";
     select("Pattern")!.dispatchEvent(new Event("change", { bubbles: true }));
     select("String")!.value = "3";
@@ -259,15 +264,15 @@ describe("/music/play/spider/+page.svelte", () => {
     render(Page);
 
     expect(button("Note Finder")).toHaveAttribute("aria-pressed", "true");
-    await vi.waitFor(() => expect(button("Start note finder")?.disabled).toBe(false));
-    button("Start note finder")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Find A2"));
     fretButton(6, 5)?.click();
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Note found");
-      expect(button("Repeat note finder")).not.toBeUndefined();
+      expect(button("Again")).not.toBeUndefined();
     });
     expect(window.location.search).toContain("mode=note-finder");
   });
@@ -275,11 +280,12 @@ describe("/music/play/spider/+page.svelte", () => {
   test("completes a selected spider permutation on the fretboard", async () => {
     setTestUrl("/music/play/spider?pattern=outside-in-1423");
     render(Page);
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
+    await openSetup();
     expect(select("Pattern")?.value).toBe("outside-in-1423");
-    button("Start spider")?.click();
-    await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     for (const fret of [5, 8, 6, 7]) {
       fretButton(6, fret)?.click();
@@ -291,10 +297,11 @@ describe("/music/play/spider/+page.svelte", () => {
   test("completes a multi-string spider pattern on the fretboard", async () => {
     setTestUrl("/music/play/spider?span=adjacent-2");
     render(Page);
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
+    await openSetup();
     expect(select("String span")?.value).toBe("adjacent-2");
-    button("Start spider")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("strings 6-5"));
 
     for (const [stringNumber, fret] of [
@@ -316,10 +323,11 @@ describe("/music/play/spider/+page.svelte", () => {
   test("completes a string-crossing spider that alternates strings per note", async () => {
     setTestUrl("/music/play/spider?span=adjacent-2&crossing=1");
     render(Page);
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
+    await openSetup();
     expect(button("Crossing")).toHaveAttribute("aria-pressed", "true");
-    button("Start spider")?.click();
+    button("Start")?.click();
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("crossing strings on every note"),
     );
@@ -361,10 +369,10 @@ describe("/music/play/spider/+page.svelte", () => {
 
     await vi.waitFor(() => expect(button("Start microphone")?.disabled).toBe(false));
     button("Start microphone")?.click();
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
-    button("Start spider")?.click();
-    await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     for (const midiNote of [45, 46, 47, 48]) {
       audioSource.emit(audioNote(midiNote));
@@ -378,9 +386,9 @@ describe("/music/play/spider/+page.svelte", () => {
     render(Page, { runtime });
     await vi.waitFor(() => expect(window.location.search).toContain("bpm=80"));
     runtime.setPracticeVariantBpm(100, "v1:spider:guitar:ascending-1234:single");
-    await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
-    button("Start spider")?.click();
-    await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     for (const fret of [5, 6, 7, 8]) {
       fretButton(6, fret)?.click();
@@ -389,12 +397,19 @@ describe("/music/play/spider/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Slow down")).not.toBeUndefined());
     button("Slow down")?.click();
 
-    await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(document.body.textContent).toMatch(/Tempo\s*80\s*BPM/);
     expect(select("Starting fret")).toBeUndefined();
     expect(window.location.search).toContain("bpm=80");
   });
 });
+
+// Pattern, tuning, string, span, fret and string order sit behind "Edit setup"
+// on the ready stage; exercise and instrument pickers stay on the stage.
+async function openSetup(): Promise<void> {
+  if (!button("Hide setup")) button("Edit setup")?.click();
+  await vi.waitFor(() => expect(select("Pattern")).not.toBeUndefined());
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
@@ -415,11 +430,11 @@ function select(label: string): HTMLSelectElement | undefined {
 }
 
 async function completeSpider(): Promise<void> {
-  await vi.waitFor(() => expect(button("Start spider")?.disabled).toBe(false));
-  button("Start spider")?.click();
-  await vi.waitFor(() => expect(button("Cancel spider")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
   for (const fret of [5, 6, 7, 8]) fretButton(6, fret)?.click();
-  await vi.waitFor(() => expect(button("Repeat spider")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Again")).not.toBeUndefined());
 }
 
 function createAudioSource() {

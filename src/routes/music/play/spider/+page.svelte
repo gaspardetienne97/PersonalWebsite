@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import { onDestroy, onMount, tick } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import { unixMs, type NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     AudioPitchSource,
@@ -47,12 +47,14 @@
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
-  import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
@@ -77,6 +79,8 @@
   // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
   const runtime = runtimeProp ?? useMusicRuntime();
 
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -215,6 +219,13 @@
     }),
   );
   const normalizedMode = $derived(normalizeStringTechniqueConfig({ mode }));
+  const instrumentLabel = $derived(instrument === "guitar" ? "Guitar" : "Ukulele");
+  const patternLabel = $derived(
+    SPIDER_DRILL_PATTERNS.find((option) => option.value === pattern)?.label ?? "Pattern",
+  );
+  const spanLabel = $derived(
+    SPIDER_DRILL_SPANS.find((option) => option.value === stringSpan)?.label ?? "One string",
+  );
   const liveAnnouncement = $derived(
     phase === "summary"
       ? normalizedMode.mode === "note-finder"
@@ -315,7 +326,7 @@
         }
       });
       ready = true;
-      status = "Ready for string independence practice.";
+      status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "String technique could not be prepared.");
     }
@@ -514,10 +525,7 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="String Independence"
-    subtitle="Build fretting-hand independence with clean chromatic pattern permutations."
-  >
+  <PracticeScreenHeader title="String Independence" compact>
     {#snippet controls()}
       <SourceReadout
         label="Input"
@@ -528,207 +536,246 @@
     {/snippet}
   </PracticeScreenHeader>
 
-
+  <!-- The one live region for this route; the MIDI and microphone lines are visible text only. -->
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
+  {#snippet inputActions()}
+    <Button type="button" variant="outline" disabled={midiEnabled || pending} onclick={enableMidi}>
+      {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+    </Button>
+    <Button
+      type="button"
+      variant="outline"
+      disabled={pending || !audioSupported || audioState.status === "requesting"}
+      onclick={toggleMicrophone}
+    >
+      {#if audioState.status === "running" || audioState.status === "requesting"}
+        Stop microphone
+      {:else}
+        Start microphone
+      {/if}
+    </Button>
+  {/snippet}
+
+  {#snippet setupSummaryLine()}
+    {#if normalizedMode.mode === "note-finder"}
+      Note Finder · {instrumentLabel} · {tuning.name} · {bpm} BPM
+    {:else}
+      {patternLabel} · {instrumentLabel} · String {stringNumber} · {spanLabel} · Fret {startFret} · {bpm} BPM
+    {/if}
+  {/snippet}
+
   {#snippet summaryPhase()}
+    {@const noteFinder = normalizedMode.mode === "note-finder"}
+    {@const primaryPct = noteFinder
+      ? Math.round(((summary?.correct ?? 0) / Math.max(1, summary?.total ?? 1)) * 100)
+      : Math.round((answer?.pitchAccuracy ?? 0) * 100)}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
         <Card.Description>
-          {normalizedMode.mode === "note-finder" ? "Note found" : "Spider complete"}
+          {noteFinder ? `Note Finder · ${instrumentLabel}` : `${patternLabel} · ${instrumentLabel} · ${spanLabel}`}
         </Card.Description>
-        <Card.Title>{summary?.xp ?? 0} XP</Card.Title>
+        <Card.Title>{noteFinder ? "Note found" : "Spider complete"}</Card.Title>
+      {/snippet}
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {primaryPct}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only"> {noteFinder ? "found" : "of notes matched"}</span>
+        </p>
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta
+          tags={["technique", noteFinder ? "note-finder" : "spider"]}
+          accuracy={primaryPct / 100}
+          before={visitStartedAt}
+        />
       {/snippet}
       {#snippet children()}
-        {#if normalizedMode.mode === "note-finder" && noteFinderAnswer}
-          <SessionFeedback
-            kind={summary && summary.correct === summary.total ? "correct" : "wrong"}
-            message="Note found"
-            detail={`Target ${noteFinderAnswer.targetMidi}${noteFinderAnswer.playedMidiNote === undefined ? "" : ` · played ${noteFinderAnswer.playedMidiNote}`}`}
-            xp={summary?.xp ?? 0}
-          />
-        {:else if answer}
-          <SessionFeedback
-            kind={summary && summary.correct === summary.total ? "correct" : "wrong"}
-            message="Spider complete"
-            detail={`${Math.round(answer.pitchAccuracy * 100)}% notes · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error`}
-            xp={summary?.xp ?? 0}
-          />
-        {/if}
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {#if noteFinder && noteFinderAnswer}
+            <HudTile size="sm" label="Target" value={noteFinderAnswer.targetMidi} unit="midi" />
+            <HudTile size="sm" label="Played" value={noteFinderAnswer.playedMidiNote ?? "none"} />
+          {:else if answer}
+            <HudTile size="sm" label="Notes" value={Math.round(answer.pitchAccuracy * 100)} unit="%" />
+            <HudTile size="sm" label="Timing error" value={Math.round(answer.meanTimingErrorMs)} unit="ms" />
+            <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+          {/if}
+          <HudTile size="sm" label="Input" value={inputDevice} />
+        </div>
+        <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · Technique</p>
       {/snippet}
       {#snippet actions()}
-        {#if normalizedMode.mode === "note-finder"}
-          <AdaptiveRetryBar onRetry={start} retryLabel="Repeat note finder" />
+        {#if noteFinder}
+          <AdaptiveRetryBar onRetry={start} retryLabel="Again" />
         {:else}
-          <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Repeat spider" />
+          <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Again" />
         {/if}
+      {/snippet}
+      {#snippet nextUp()}
+        <NextUpSuggestion {skills} {analytics} currentPath="/music/play/spider" routine={runtime.dailyRoutine} />
       {/snippet}
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
-      <Card.Root class="min-w-0">
-        <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
+      <div class="grid min-w-0 gap-4 rounded-lg border bg-card p-4">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="grid gap-2">
+            <Label for="spider-pattern">Pattern</Label>
+            <select
+              id="spider-pattern"
+              aria-label="Pattern"
+              bind:value={pattern}
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each SPIDER_DRILL_PATTERNS as option (option.value)}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="grid gap-2">
+            <Label for="spider-tuning">Tuning</Label>
+            <select
+              id="spider-tuning"
+              aria-label="Tuning"
+              bind:value={tuningId}
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each tunings as profile (profile.id)}
+                <option value={profile.id}>{profile.name}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="grid gap-2">
+            <Label for="spider-string">String</Label>
+            <select
+              id="spider-string"
+              aria-label="String"
+              bind:value={stringNumber}
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each tuning.openStrings as _, index (index)}
+                <option value={index + 1}>String {index + 1}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="grid gap-2">
+            <Label for="spider-span">String span</Label>
+            <select
+              id="spider-span"
+              aria-label="String span"
+              bind:value={stringSpan}
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each SPIDER_DRILL_SPANS as option (option.value)}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="grid gap-2">
+            <Label for="spider-fret">Starting fret</Label>
+            <select
+              id="spider-fret"
+              aria-label="Starting fret"
+              bind:value={startFret}
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each Array.from({ length: Math.min(10, tuning.fretCount - 2) }, (_, fret) => fret) as fret (fret)}
+                <option value={fret}>Fret {fret}</option>
+              {/each}
+            </select>
+          </div>
+          {#if stringSpan !== "single"}
+            <div class="grid gap-2">
+              <span class="text-sm font-medium">String order</span>
+              <SegmentedControl
+                size="sm"
+                ariaLabel="String order"
+                options={[
+                  { value: "blocks", label: "By string" },
+                  { value: "crossing", label: "Crossing" },
+                ]}
+                value={crossing ? "crossing" : "blocks"}
+                onChange={(value) => (crossing = value === "crossing")}
+              />
+            </div>
+          {/if}
+        </div>
+        <p class="text-sm tabular-nums text-muted-foreground">Tempo · {bpm} BPM (practice controls above)</p>
+      </div>
+    {/snippet}
+
+    {#snippet readyStage()}
+      <PracticeStage {instrument} class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <Card.Description>Chromatic fretting</Card.Description>
-            <Card.Title bind:ref={setupHeading} tabindex="-1">
-              Pattern permutations across strings
-            </Card.Title>
+            <p class="eyebrow">Ready · Chromatic fretting</p>
+            <div
+              role="heading"
+              aria-level="2"
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="spider-ready-heading"
+              bind:this={setupHeading}
+            >
+              {normalizedMode.mode === "note-finder"
+                ? "Find the note on the fretboard"
+                : "Pattern permutations across strings"}
+            </div>
+            <p class="text-sm text-stage-muted">
+              {normalizedMode.mode === "note-finder"
+                ? "One note name at a time: find it anywhere on the neck."
+                : `${patternLabel} from fret ${startFret} on ${spanLabel.toLowerCase()}, one clean note per beat.`}
+            </p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+            <Button type="button" size="lg" disabled={!ready || pending} onclick={start}>
+              {pending ? "Starting..." : "Start"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!audioSupported || audioState.status === "requesting"}
-              onclick={toggleMicrophone}
-            >
-              {#if audioState.status === "running" || audioState.status === "requesting"}
-                Stop microphone
-              {:else}
-                Start microphone
-              {/if}
-            </Button>
+            <StartShortcut onStart={() => void start()} enabled={ready && !pending} />
           </div>
-        </Card.Header>
-
-        <Card.Content class="grid gap-6">
-          <div class="grid gap-1 text-xs text-muted-foreground">
-            <p>{midiStatus}</p>
-            <p>{microphoneStatus}</p>
+        </div>
+        <!-- Exercise and instrument are what you drill, so they stay on the stage; the
+             fieldset mirrors the shell's start lock. -->
+        <fieldset class="flex min-w-0 flex-wrap gap-3 border-0 p-0" disabled={pending}>
+          <SegmentedControl ariaLabel="Exercise" options={modeOptions} bind:value={mode} />
+          <SegmentedControl
+            ariaLabel="Instrument"
+            options={instrumentOptions}
+            value={instrument}
+            onChange={(value) => {
+              selectInstrument(value);
+              runtime.setActiveInstrument(value as StringInstrumentId);
+            }}
+          />
+        </fieldset>
+        <div class="grid gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+          <div class="flex flex-wrap gap-2">
+            {@render inputActions()}
           </div>
-          <fieldset class="grid gap-4">
-            <SegmentedControl
-              ariaLabel="Exercise"
-              options={modeOptions}
-              bind:value={mode}
-            />
-
-            <SegmentedControl
-              ariaLabel="Instrument"
-              options={instrumentOptions}
-              value={instrument}
-              onChange={(value) => {
-                selectInstrument(value);
-                runtime.setActiveInstrument(value as StringInstrumentId);
-              }}
-            />
-
-            <div class="grid gap-4 sm:grid-cols-3">
-              <div class="grid gap-2">
-                <Label for="spider-pattern">Pattern</Label>
-                <select
-                  id="spider-pattern"
-                  aria-label="Pattern"
-                  bind:value={pattern}
-                  class="h-9 rounded-md border bg-background px-3 text-sm"
-                >
-                  {#each SPIDER_DRILL_PATTERNS as option (option.value)}
-                    <option value={option.value}>{option.label}</option>
-                  {/each}
-                </select>
-              </div>
-              <div class="grid gap-2">
-                <Label for="spider-tuning">Tuning</Label>
-                <select
-                  id="spider-tuning"
-                  aria-label="Tuning"
-                  bind:value={tuningId}
-                  class="h-9 rounded-md border bg-background px-3 text-sm"
-                >
-                  {#each tunings as profile (profile.id)}
-                    <option value={profile.id}>{profile.name}</option>
-                  {/each}
-                </select>
-              </div>
-              <div class="grid gap-2">
-                <Label for="spider-string">String</Label>
-                <select
-                  id="spider-string"
-                  aria-label="String"
-                  bind:value={stringNumber}
-                  class="h-9 rounded-md border bg-background px-3 text-sm"
-                >
-                  {#each tuning.openStrings as _, index (index)}
-                    <option value={index + 1}>String {index + 1}</option>
-                  {/each}
-                </select>
-              </div>
-              <div class="grid gap-2">
-                <Label for="spider-span">String span</Label>
-                <select
-                  id="spider-span"
-                  aria-label="String span"
-                  bind:value={stringSpan}
-                  class="h-9 rounded-md border bg-background px-3 text-sm"
-                >
-                  {#each SPIDER_DRILL_SPANS as option (option.value)}
-                    <option value={option.value}>{option.label}</option>
-                  {/each}
-                </select>
-              </div>
-              <div class="grid gap-2">
-                <Label for="spider-fret">Starting fret</Label>
-                <select
-                  id="spider-fret"
-                  aria-label="Starting fret"
-                  bind:value={startFret}
-                  class="h-9 rounded-md border bg-background px-3 text-sm"
-                >
-                  {#each Array.from({ length: Math.min(10, tuning.fretCount - 2) }, (_, fret) => fret) as fret (fret)}
-                    <option value={fret}>Fret {fret}</option>
-                  {/each}
-                </select>
-              </div>
-            </div>
-
-            {#if stringSpan !== "single"}
-              <div class="grid gap-2">
-                <Label id="spider-order-label">String order</Label>
-                <SegmentedControl
-                  size="sm"
-                  ariaLabel="String order"
-                  options={[
-                    { value: "blocks", label: "By string" },
-                    { value: "crossing", label: "Crossing" },
-                  ]}
-                  value={crossing ? "crossing" : "blocks"}
-                  onChange={(value) => (crossing = value === "crossing")}
-                />
-              </div>
-            {/if}
-
-            <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
-          </fieldset>
-        </Card.Content>
-
-        <Card.Footer class="flex-wrap gap-3">
-          <Button type="button" disabled={!ready || pending} onclick={start}>
-            {pending
-              ? "Starting..."
-              : normalizedMode.mode === "note-finder"
-                ? "Start note finder"
-                : "Start spider"}
-          </Button>
-          <StartShortcut onStart={() => void start()} />
-          <p class="text-sm text-muted-foreground">{status}</p>
-        </Card.Footer>
-      </Card.Root>
+          <p class="text-sm text-stage-muted">{midiStatus}</p>
+          <p class="text-sm text-stage-muted">{microphoneStatus}</p>
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stage()}
-      <h2 class="sr-only" tabindex="-1" bind:this={activeHeading}>
-        {prompt?.label ??
-          noteFinderPrompt?.label ??
-          `${instrument === "guitar" ? "Guitar" : "Ukulele"} string ${stringNumber}`}
-      </h2>
+      <div class="flex flex-wrap items-start justify-between gap-3 px-1">
+        <div>
+          <p class="eyebrow">{instrumentLabel} · {bpm} BPM</p>
+          <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
+            {prompt?.label ?? noteFinderPrompt?.label ?? `${instrumentLabel} string ${stringNumber}`}
+          </h2>
+        </div>
+        <span class="text-sm tabular-nums text-muted-foreground">{completedNotes} / {targetNoteCount} notes</span>
+      </div>
       <FrettedSequenceStage
         {instrument}
-        label={prompt?.label ??
-          `${instrument === "guitar" ? "Guitar" : "Ukulele"} string ${stringNumber}`}
+        label={prompt?.label ?? `${instrumentLabel} string ${stringNumber}`}
         {tuning}
         router={runtime.router}
         steps={sequenceSteps}
@@ -740,37 +787,35 @@
         showActiveTarget={normalizedMode.mode !== "note-finder"}
         onAccepted={playAccepted}
       />
+      {#if prompt || noteFinderPrompt}
+        <div class="grid gap-2 px-1">
+          <Progress value={completedNotes} max={targetNoteCount} />
+          <p class="text-sm text-muted-foreground">{status}</p>
+        </div>
+      {/if}
     {/snippet}
 
     {#snippet stageAction()}
-      <Button type="button" variant="outline" onclick={cancel}>Cancel spider</Button>
+      {@render inputActions()}
+      <Button type="button" variant="outline" onclick={cancel}>Stop</Button>
     {/snippet}
 
     {#snippet rail()}
-      <div class="grid grid-cols-2 gap-3">
-        <HudTile label="Next" value={nextPositionLabel} tone="accent" />
-        <HudTile label="Notes" value={completedNotes} unit={`/${targetNoteCount}`} />
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <HudTile size="sm" label="Next" value={nextPositionLabel} tone="accent" />
+        <HudTile size="sm" label="Notes" value={completedNotes} unit={`/${targetNoteCount}`} />
         <HudTile
+          size="sm"
           label="Quality"
           value={Math.round((sessionState?.live?.runningScore ?? 0) * 100)}
           unit="%"
           tone="good"
         />
-        <HudTile label="Tempo" value={bpm} unit="BPM" />
+        <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+        <HudTile size="sm" label="Input" value={inputDevice} />
       </div>
-      {#if prompt || noteFinderPrompt}
-        <div class="grid gap-3 rounded-lg border bg-card p-4">
-          <div class="flex items-center justify-between gap-3 text-sm">
-            <span class="font-medium">{prompt?.label ?? noteFinderPrompt?.label}</span>
-            <span class="tabular-nums text-muted-foreground">
-              {completedNotes}/{targetNoteCount}
-            </span>
-          </div>
-          <Progress value={completedNotes} max={targetNoteCount} />
-        </div>
-      {/if}
-      <p class="text-xs text-muted-foreground" aria-live="polite">{midiStatus}</p>
-      <p class="text-xs text-muted-foreground" aria-live="polite">{microphoneStatus}</p>
+      <p class="text-xs text-muted-foreground">{midiStatus}</p>
+      <p class="text-xs text-muted-foreground">{microphoneStatus}</p>
     {/snippet}
   </PracticeDrillShell>
 </PracticeScreen>
