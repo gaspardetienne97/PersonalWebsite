@@ -4,6 +4,7 @@ import { curatedTunings } from "@repo/music-core/engines/tunings";
 
 import {
   filterScoreVoices,
+  fretWindowAround,
   projectFretboard,
   projectPiano,
   projectPlayableGroup,
@@ -249,5 +250,20 @@ describe("music-core/projection", () => {
     expect(projection.options).toMatchObject({ instrument: "aerophone" });
     expect(projection.notes.map((note) => note.midiNote)).toEqual([67, 62]);
     expect(projection.notes.map((note) => note.startBeat)).toEqual([0, 1]);
+  });
+});
+
+describe("fretWindowAround", () => {
+  test("adds one fret of context on each side and keeps a minimum width", () => {
+    expect(fretWindowAround([5, 6, 7, 8], 22)).toEqual({ start: 4, end: 9 });
+    expect(fretWindowAround([0, 1, 2, 3], 22)).toEqual({ start: 0, end: 4 });
+    expect(fretWindowAround([12], 15)).toEqual({ start: 11, end: 15 });
+    expect(fretWindowAround([3, 5], 22)).toEqual({ start: 2, end: 6 });
+  });
+
+  test("falls back to the nut when nothing is played and clamps to the instrument", () => {
+    expect(fretWindowAround([], 22)).toEqual({ start: 0, end: 4 });
+    expect(fretWindowAround([21, 22], 22)).toEqual({ start: 18, end: 22 });
+    expect(fretWindowAround([2], 3, { minWidth: 8 })).toEqual({ start: 0, end: 3 });
   });
 });

@@ -247,3 +247,41 @@ function compareGroups(left: PlayableFretboardGroup, right: PlayableFretboardGro
   const rightTotal = right.positions.reduce((total, { fret }) => total + fret, 0);
   return leftTotal - rightTotal || left.span - right.span;
 }
+
+export interface FretWindow {
+  /** Absolute fret numbers, inclusive. */
+  start: number;
+  end: number;
+}
+
+export interface FretWindowOptions {
+  /** Frets of context on each side of the played frets. */
+  context?: number;
+  /** Widen narrow windows to at least this many frets. */
+  minWidth?: number;
+}
+
+/**
+ * The stretch of neck worth showing for a set of frets: the frets in play plus
+ * one of context on each side, never narrower than `minWidth`, clamped to the
+ * instrument. Empty input gives the first frets from the nut.
+ */
+export function fretWindowAround(
+  frets: readonly number[],
+  fretCount: number,
+  options: FretWindowOptions = {},
+): FretWindow {
+  const context = options.context ?? 1;
+  const minWidth = Math.max(1, options.minWidth ?? 5);
+  const last = Math.max(0, Math.trunc(fretCount));
+  const valid = frets.filter((f) => Number.isFinite(f) && f >= 0 && f <= last);
+  let start = valid.length ? Math.max(0, Math.min(...valid) - context) : 0;
+  let end = valid.length
+    ? Math.min(last, Math.max(...valid) + context)
+    : Math.min(last, minWidth - 1);
+  while (end - start + 1 < minWidth && (end < last || start > 0)) {
+    if (end < last) end += 1;
+    else start -= 1;
+  }
+  return { start, end };
+}
