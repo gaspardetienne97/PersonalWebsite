@@ -2,6 +2,7 @@
   import { browser } from "$app/environment";
   import { onDestroy, onMount, tick } from "svelte";
 
+  import type { NoteEvent } from "@repo/music-core/domain";
   import {
     createChordFollower,
     expectedChordsFromProgression,
@@ -26,6 +27,7 @@
     transposeProgression,
     type JamProgressionGroup,
     type TargetTone,
+    type ToneRole,
   } from "@repo/music-core/engines/jam";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
@@ -33,6 +35,7 @@
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
+  import PianoSurface, { type PianoHighlightRole } from "../../_components/piano/PianoSurface.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
@@ -101,6 +104,21 @@
   let unsubscribeAudioState: (() => void) | undefined;
   let audioState = $state<AudioPitchState>({ status: "idle" });
   let captured = false;
+  // Input path (decision 10): the microphone strums through Basic Pitch, or MIDI /
+  // on-screen keys through the shared router. Keys is the default when a MIDI
+  // device is already the active source, so a pianist lands on a usable drill.
+  let inputMode = $state<"microphone" | "keys">(runtime.activeSource === "midi" ? "keys" : "microphone");
+  let unsubscribeNotes: (() => void) | undefined;
+  // Notes currently sounding on the keys path; a chord is the set held ~150 ms
+  // after the last attack, so a MIDI chord (attacks a few ms apart) and an
+  // on-screen latched chord (clicks a second apart) both arrive as one observation.
+  const sounding = new Set<number>();
+  let chordTimer: ReturnType<typeof setTimeout> | undefined;
+  let chordStartMs: number | undefined;
+  const CHORD_WINDOW_MS = 150;
+  // Bumped after every flushed chord so the on-screen keyboard drops its latched
+  // notes (wait-group reset) and the next chord starts from an empty hand.
+  let chordFlushes = $state(0);
 
   const baseProgression = $derived(
     JAM_PROGRESSIONS.find((entry) => entry.id === progressionId) ?? JAM_PROGRESSIONS[0]!,
@@ -117,6 +135,23 @@
   const currentChord = $derived(progression.chords[currentIndex] ?? progression.chords[0]!);
   const chartTones = $derived<TargetTone[]>(targetTones(currentChord.symbol, currentChord.scale));
   const detectedLabels = $derived(detected.map(pitchClassLabel).join(", ") || "None yet");
+  // One keyboard carries the tone roles of the current chord (by pitch class) and
+  // lights its chord tones as targets around middle C; on the keys path it is live.
+  const KEY_RANGE = Array.from({ length: 37 }, (_, i) => 48 + i);
+  const keyToneRoles = $derived(
+    Object.fromEntries(
+      KEY_RANGE.map((midi) => [
+        midi,
+        chartTones.find((tone) => tone.pitchClass === midi % 12)?.role ?? ("avoid" as ToneRole),
+      ]),
+    ) as Record<number, ToneRole>,
+  );
+  const currentChordMidi = $derived(
+    (expected[currentIndex]?.pitchClasses ?? []).map((pc) => 60 + pc).sort((a, b) => a - b),
+  );
+  const keyTargets = $derived<Record<number, PianoHighlightRole>>(
+    Object.fromEntries(currentChordMidi.map((midi) => [midi, "target"])),
+  );
   const normalizedConfig = $derived(
     normalizeChordProgressionDrillConfig({
       group: progressionGroup,
@@ -252,7 +287,8 @@
     resultsDismissed = false;
     followerState = undefined;
     detected = [];
-    status = "Requesting microphone access…";
+    const useMicrophone = inputMode === "microphone";
+    status = useMicrophone ? "Requesting microphone access." : "Starting.";
     try {
       await tick();
       const generation = routeGeneration;
@@ -260,16 +296,18 @@
       if (!captureIsCurrent(capture, generation)) {
         return;
       }
-      await audioSource.start();
-      if (!captureIsCurrent(capture, generation)) {
-        await resetCapture(capture);
-        return;
-      }
-      audioState = audioSource.state;
-      if (audioSource.state.status !== "running") {
-        status = audioSource.state.message ?? "Microphone capture could not start.";
-        await resetCapture(capture);
-        return;
+      if (useMicrophone) {
+        await audioSource.start();
+        if (!captureIsCurrent(capture, generation)) {
+          await resetCapture(capture);
+          return;
+        }
+        audioState = audioSource.state;
+        if (audioSource.state.status !== "running") {
+          status = audioSource.state.message ?? "Microphone capture could not start.";
+          await resetCapture(capture);
+          return;
+        }
       }
       const config = normalizedConfig;
       const performance = await runtime.beginPerformance();
@@ -282,7 +320,7 @@
         await resetCapture(capture);
         return;
       }
-      if (audioSource.state.status !== "running") {
+      if (useMicrophone && audioSource.state.status !== "running") {
         status = audioSource.state.message ?? "Microphone capture stopped before the downbeat.";
         await resetCapture(capture);
         return;
@@ -292,10 +330,13 @@
       if (!captureIsCurrent(capture, generation)) return;
       follower = nextFollower;
       followerState = nextFollower.state();
-      unsubscribeAnalysis = audioSource.subscribeAnalysis(onAnalysis);
+      if (useMicrophone) unsubscribeAnalysis = audioSource.subscribeAnalysis(onAnalysis);
+      else unsubscribeNotes = runtime.router.subscribe(onNoteEvent);
       startPending = false;
       running = true;
-      status = "Listening — strum each chord on the beat.";
+      status = useMicrophone
+        ? "Listening. Strum each chord on the beat."
+        : "Listening. Play each chord on the beat.";
     } catch (error) {
       if (capture === captureGeneration) {
         status = message(error, "The chord-progression drill could not be started.");
@@ -312,9 +353,48 @@
     startPending = false;
     unsubscribeAnalysis?.();
     unsubscribeAnalysis = undefined;
+    stopNotes();
     follower = undefined;
     onsetQueue = Promise.resolve();
     await audioSource.stop();
+  }
+
+  function stopNotes(): void {
+    unsubscribeNotes?.();
+    unsubscribeNotes = undefined;
+    if (chordTimer !== undefined) clearTimeout(chordTimer);
+    chordTimer = undefined;
+    chordStartMs = undefined;
+    sounding.clear();
+  }
+
+  // Keys path: collect attacks into one chord observation per window.
+  function onNoteEvent(event: NoteEvent): void {
+    if (!follower) return;
+    if (event.type === "noteOff") {
+      sounding.delete(event.midiNote);
+      return;
+    }
+    if (event.type !== "noteOn") return;
+    sounding.add(event.midiNote);
+    if (chordStartMs === undefined) chordStartMs = event.timestamp;
+    if (chordTimer !== undefined) clearTimeout(chordTimer);
+    const activeFollower = follower;
+    const generation = captureGeneration;
+    chordTimer = setTimeout(() => flushChord(activeFollower, generation), CHORD_WINDOW_MS);
+  }
+
+  function flushChord(activeFollower: ChordFollowerRun, generation: number): void {
+    chordTimer = undefined;
+    const atMs = chordStartMs;
+    chordStartMs = undefined;
+    if (atMs === undefined || !followerIsCurrent(activeFollower, generation)) return;
+    const pitchClasses = toPitchClasses([...sounding]);
+    if (pitchClasses.length === 0) return;
+    detected = pitchClasses;
+    followerState = activeFollower.accept({ pitchClasses, confidence: 0.9, source: "onset", atMs });
+    sounding.clear();
+    chordFlushes += 1;
   }
 
   async function stop(): Promise<void> {
@@ -384,9 +464,10 @@
     // flips straight from stage to summary with no setup flash.
     summary = finishSummary;
     finishError = undefined;
-    status = `Progression complete — ${finishSummary.correct}/${finishSummary.total} chords matched.`;
+    status = `Progression complete. ${finishSummary.correct}/${finishSummary.total} chords matched.`;
     unsubscribeAnalysis?.();
     unsubscribeAnalysis = undefined;
+    stopNotes();
     sourceTeardownPending = true;
     try {
       const results = await Promise.allSettled([
@@ -452,6 +533,7 @@
     runtime.endPerformance();
     unsubscribeAnalysis?.();
     unsubscribeAudioState?.();
+    stopNotes();
     follower = undefined;
     onsetQueue = Promise.resolve();
     void audioSource.stop();
@@ -558,6 +640,14 @@
                 bind:value={transposeSemitones}
               />
               <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
+              <SegmentedControl
+                ariaLabel="Input"
+                options={[
+                  { value: "microphone", label: "Microphone" },
+                  { value: "keys", label: "MIDI or on-screen keys" },
+                ]}
+                bind:value={inputMode}
+              />
             </div>
 
             <p class="text-sm text-muted-foreground">{status}</p>
@@ -589,6 +679,19 @@
         </div>
 
         <ProgressionChartStage {progression} {currentIndex} tones={chartTones} />
+
+        {#if inputMode === "keys"}
+          <div class="min-w-0 rounded-xl border bg-muted/30 p-3 sm:p-4">
+            <PianoSurface
+              router={runtime.router}
+              notes={currentChordMidi}
+              toneRoles={keyToneRoles}
+              highlights={keyTargets}
+              waitGroupKey={`chord-${currentIndex}-${chordFlushes}`}
+              noteNames="c"
+            />
+          </div>
+        {/if}
 
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <HudTile label="Chord" value={currentIndex} unit={`/${expected.length}`} />

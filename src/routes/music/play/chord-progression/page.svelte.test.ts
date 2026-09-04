@@ -827,3 +827,58 @@ test("keeps progression drill setup changes in the shareable URL", async () => {
     expect(params.get("transpose")).toBe("2");
   });
 });
+
+test("grades a played progression from MIDI note events without touching the microphone", async () => {
+  const audioSource = {
+    state: { status: "idle" as const },
+    start: vi.fn(async () => {}),
+    stop: vi.fn(async () => {}),
+    subscribeState: vi.fn(() => () => {}),
+    subscribeAnalysis: vi.fn(() => () => {}),
+  };
+  const expected = expectedChordsFromProgression(JAM_PROGRESSIONS[0]!);
+  const runtime = new MusicRuntime();
+  vi.spyOn(runtime, "recordPractice").mockResolvedValue();
+  render(Page, { audioSource, runtime });
+
+  button("MIDI or on-screen keys")?.click();
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  expect(audioSource.start).not.toHaveBeenCalled();
+  expect(audioSource.subscribeAnalysis).not.toHaveBeenCalled();
+  // The keyboard is live and lights the current chord's tones as targets.
+  expect(document.querySelectorAll('[data-state="target"]').length).toBe(
+    expected[0]!.pitchClasses.length,
+  );
+
+  // Two chords, each as near-simultaneous MIDI attacks; the 150 ms window folds
+  // each set into one onset-strength observation.
+  for (const chord of expected.slice(0, 2)) {
+    for (const pc of chord.pitchClasses) runtime.router.noteOn(60 + pc, "midi", "piano");
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    for (const pc of chord.pitchClasses) {
+      runtime.router.push({
+        type: "noteOff",
+        source: "midi",
+        instrument: "piano",
+        midiNote: 60 + pc,
+        timestamp: monotonicMs(2_000),
+        clock: "midi",
+      });
+    }
+  }
+
+  await vi.waitFor(() =>
+    expect(
+      document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
+    ).toContain(expected[1]!.symbol),
+  );
+  expect(
+    document.querySelector('[data-testid="progression-cell-1"]')?.getAttribute("data-state"),
+  ).toBe("current");
+
+  button("Stop")?.click();
+  // Both played chords match; timing bands depend on the mocked downbeat clock,
+  // so only the match count is asserted here.
+  await vi.waitFor(() => expect(document.body.textContent).toContain("2 of 4 chords matched"));
+});
