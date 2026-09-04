@@ -8,9 +8,8 @@
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
-  import PracticeDrillShell from "../../../_components/PracticeDrillShell.svelte";
+  import HudTile from "../../../_components/HudTile.svelte";
   import SegmentProgress from "../../../_components/SegmentProgress.svelte";
-  import SourceReadout from "../../../_components/SourceReadout.svelte";
   import FretboardInput from "./FretboardInput.svelte";
   import PianoSurface, { type PianoHighlight } from "../../../_components/piano/PianoSurface.svelte";
   import StaffNotation from "../../../_components/StaffNotation.svelte";
@@ -23,7 +22,6 @@
     sessionXp,
     onChoice,
     onAccepted,
-    onAbandon,
   }: {
     state: ReadingSessionState;
     answerMode: ReadingAnswerMode;
@@ -32,7 +30,6 @@
     sessionXp: number;
     onChoice: (choice: string) => void;
     onAccepted: (event: NoteEvent) => void;
-    onAbandon: () => void;
   } = $props();
 
   const prompt = $derived(state.currentPrompt as NoteReadingPrompt | undefined);
@@ -44,12 +41,7 @@
   });
 </script>
 
-<PracticeDrillShell phase="stage" focus={false}>
-  {#snippet stageAction()}
-    <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
-  {/snippet}
-
-  {#snippet stage()}
+<div class="grid min-w-0 gap-4">
     <Card.Root class="min-w-0">
       <Card.Header>
         <div class="space-y-1">
@@ -98,26 +90,8 @@
         {/if}
       </Card.Content>
     </Card.Root>
-  {/snippet}
-
-  {#snippet rail()}
-    <Card.Root>
-      <Card.Header>
-        <Card.Description>Progress</Card.Description>
-      </Card.Header>
-      <Card.Content class="grid gap-4">
-        <SegmentProgress current={state.currentIndex + 1} total={state.total} label="Set" />
-        <SourceReadout
-          label="Answer by"
-          device={`${answerMode === "choice" ? "Naming" : "Playing"} · ${prompt?.instrument ?? "piano"}`}
-        />
-      </Card.Content>
-    </Card.Root>
-    <Card.Root>
-      <Card.Header>
-        <Card.Description>Session XP</Card.Description>
-        <Card.Title>{sessionXp}</Card.Title>
-      </Card.Header>
-    </Card.Root>
-  {/snippet}
-</PracticeDrillShell>
+  <div class="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+    <SegmentProgress current={state.currentIndex + 1} total={state.total} label="Set" />
+    <HudTile size="sm" label="Session XP" value={sessionXp} />
+  </div>
+</div>

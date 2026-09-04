@@ -35,9 +35,6 @@
   let {
     value,
     tunings,
-    ready,
-    pending,
-    status,
     midiEnabled,
     midiStatus,
     onChange,
@@ -48,13 +45,9 @@
   }: {
     value: ReadingSetupValue;
     tunings: TuningProfile[];
-    ready: boolean;
-    pending: boolean;
-    status: string;
     midiEnabled: boolean;
     midiStatus: string;
     onChange: (value: ReadingSetupValue) => void;
-    onStart: () => void;
     onEnableMidi: () => void;
     onSaveTuning: (profile: TuningProfile) => void;
     onDeleteTuning: (id: string) => void;
@@ -84,8 +77,8 @@
   <Card.Root>
     <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
       <div class="space-y-1">
-        <Card.Description>Reading activity</Card.Description>
-        <Card.Title>Choose a focused session</Card.Title>
+        <Card.Description>Activity</Card.Description>
+        <Card.Title class="text-base">Flashcards or sight-reading</Card.Title>
       </div>
       <div class="grid grid-cols-2 rounded-md border p-1" aria-label="Reading activity">
         <Button
@@ -334,19 +327,5 @@
         </div>
       </div>
     </Card.Content>
-    <Card.Footer class="flex-wrap gap-3">
-      <Button
-        type="button"
-        disabled={!ready || pending}
-        onclick={onStart}
-      >
-        {pending
-          ? "Starting..."
-          : value.activity === "flashcards"
-            ? "Start Flashcards"
-            : "Start Sight-Reading"}
-      </Button>
-      <p class="text-sm text-muted-foreground" aria-live="polite">{status}</p>
-    </Card.Footer>
   </Card.Root>
 </section>

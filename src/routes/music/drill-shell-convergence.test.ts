@@ -19,14 +19,9 @@ const mandatoryDrills = [
   { name: "aerophone articulation", sources: ["./learn/aerophone/+page.svelte"] },
   { name: "ear training", sources: ["./learn/ear/+page.svelte"] },
   { name: "rhythm", sources: ["./learn/rhythm/+page.svelte"] },
-  {
-    name: "reading",
-    sources: [
-      "./learn/reading/+page.svelte",
-      "./learn/reading/_components/FlashcardSession.svelte",
-      "./learn/reading/_components/SightReadingSession.svelte",
-    ],
-  },
+  // Reading's session components render inside the route's shell stage; they
+  // no longer mount a nested shell of their own.
+  { name: "reading", sources: ["./learn/reading/+page.svelte"] },
 ] as const;
 
 const singleStatusLiveOwnerRoutes = [

@@ -33,9 +33,10 @@ describe("/music/learn/reading/+page.svelte", () => {
         .mockImplementation(() => undefined);
       render(Page);
 
-      await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
-      button("Start Sight-Reading")?.click();
-      await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
+      await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+      await openSetup();
+      button("Start")?.click();
+      await vi.waitFor(() => expect(document.body.textContent).toContain("Phrase ready"));
 
       expect(prepareSightReading).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -69,11 +70,13 @@ describe("/music/learn/reading/+page.svelte", () => {
     const startSightReading = vi.spyOn(ReadingSession.prototype, "startSightReading");
     const view = render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Assess")?.click();
-    button("Start Sight-Reading")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(button("Start count-in")).not.toBeUndefined());
     button("Start count-in")?.click();
     await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
@@ -107,14 +110,14 @@ describe("/music/learn/reading/+page.svelte", () => {
       const prepareSightReading = vi.spyOn(ReadingSession.prototype, "prepareSightReading");
       render(Page, { runtime });
 
-      await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
-      button("Start Sight-Reading")?.click();
+      await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+      await openSetup();
+      button("Start")?.click();
       await Promise.resolve();
       expect(prepareSightReading).not.toHaveBeenCalled();
-      const lockedSetup = button("Starting...")?.closest("fieldset");
-      expect(lockedSetup).toBeInstanceOf(HTMLFieldSetElement);
-      expect(lockedSetup).toHaveAttribute("disabled");
-      expect(document.body.textContent).toContain("Choose a focused session");
+      expect(button("Starting...")?.disabled).toBe(true);
+      expect(document.querySelector("fieldset")).toHaveAttribute("disabled");
+      expect(button("Edit setup") ?? button("Hide setup")).not.toBeUndefined();
 
       const variantKey = `v1:reading:sight-reading:piano:level-1:${meter}:choice:wait`;
       resolveSettings({
@@ -122,7 +125,7 @@ describe("/music/learn/reading/+page.svelte", () => {
         value: { activeInstrument: "piano", tempoByVariant: { [variantKey]: 120 } },
       });
       await attaching;
-      await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
+      await vi.waitFor(() => expect(document.body.textContent).toContain("Phrase ready"));
       expect(prepareSightReading).toHaveBeenCalledWith(
         expect.objectContaining({ bpm: hydratedEngineBpm }),
       );
@@ -153,11 +156,12 @@ describe("/music/learn/reading/+page.svelte", () => {
     render(Page, { runtime });
 
     expect(document.querySelector("h1")?.textContent).toContain("Note Reading");
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     expect(document.body.textContent).toContain("Flashcards");
     expect(document.body.textContent).toContain("Sight-Reading");
     expect(button("Enable MIDI")).not.toBeUndefined();
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    button("Start Flashcards")?.click();
+    button("Start")?.click();
     expect(beginPerformance).not.toHaveBeenCalled();
   });
 
@@ -168,15 +172,16 @@ describe("/music/learn/reading/+page.svelte", () => {
     const dispose = vi.spyOn(ReadingSession.prototype, "dispose");
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    button("Start Flashcards")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
 
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("Flashcard preparation failed."),
     );
-    expect(document.body.textContent).toContain("Choose a focused session");
-    expect(button("Start Flashcards")).toBeEnabled();
-    expect(button("End session")).toBeUndefined();
+    expect(button("Edit setup") ?? button("Hide setup")).not.toBeUndefined();
+    expect(button("Start")).toBeEnabled();
+    expect(button("Stop")).toBeUndefined();
     expect(dispose).toHaveBeenCalledOnce();
     expect(document.querySelector('[data-testid="reading-phase-announcement"]')).toHaveTextContent(
       "Flashcard preparation failed.",
@@ -197,20 +202,22 @@ describe("/music/learn/reading/+page.svelte", () => {
       });
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    button("Start Flashcards")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
     await vi.waitFor(() => expect(startFlashcards).toHaveBeenCalledOnce());
 
-    expect(document.body.textContent).toContain("Choose a focused session");
-    expect(button("Starting...")?.closest("fieldset")).toHaveAttribute("disabled");
-    expect(button("End session")).toBeUndefined();
+    expect(button("Edit setup") ?? button("Hide setup")).not.toBeUndefined();
+    expect(button("Starting...")?.disabled).toBe(true);
+    expect(document.querySelector("fieldset")).toHaveAttribute("disabled");
+    expect(button("Stop")).toBeUndefined();
     expect(document.querySelector('[aria-label="Answer choices"]')).toBeNull();
 
     resolvePreparation();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("1 / 10"));
-    expect(document.body.textContent).not.toContain("Choose a focused session");
-    expect(button("End session")).not.toBeUndefined();
+    expect(button("Edit setup") ?? button("Hide setup")).toBeUndefined();
+    expect(button("Stop")).not.toBeUndefined();
     expect(document.querySelector('[aria-label="Answer choices"]')).not.toBeNull();
   });
 
@@ -228,23 +235,26 @@ describe("/music/learn/reading/+page.svelte", () => {
       });
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
-    button("Start Sight-Reading")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
     await vi.waitFor(() => expect(prepareSightReading).toHaveBeenCalledOnce());
 
-    expect(document.body.textContent).toContain("Choose a focused session");
-    expect(button("Starting...")?.closest("fieldset")).toHaveAttribute("disabled");
-    expect(button("End session")).toBeUndefined();
-    expect(button("Start count-in")).toBeUndefined();
+    expect(button("Edit setup") ?? button("Hide setup")).not.toBeUndefined();
+    expect(button("Starting...")?.disabled).toBe(true);
+    expect(document.querySelector("fieldset")).toHaveAttribute("disabled");
+    expect(button("Stop")).toBeUndefined();
+    expect(document.body.textContent).not.toContain("Phrase ready");
 
     resolvePreparation();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
-    expect(document.body.textContent).not.toContain("Choose a focused session");
-    expect(button("End session")).not.toBeUndefined();
-    expect(button("Start count-in")).not.toBeUndefined();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Phrase ready"));
+    expect(button("Edit setup") ?? button("Hide setup")).toBeUndefined();
+    expect(button("Stop")).not.toBeUndefined();
+    expect(button("Start")).not.toBeUndefined();
   });
 
   test("discards superseded flashcard preparation and restarts with the new instrument", async () => {
@@ -263,8 +273,9 @@ describe("/music/learn/reading/+page.svelte", () => {
     const runtime = new MusicRuntime();
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    button("Start Flashcards")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
     await vi.waitFor(() => expect(startFlashcards).toHaveBeenCalledOnce());
     expect(startFlashcards).toHaveBeenLastCalledWith(
       expect.objectContaining({ instrument: "piano" }),
@@ -274,12 +285,13 @@ describe("/music/learn/reading/+page.svelte", () => {
     await vi.waitFor(() => expect(window.location.search).toContain("instrument=guitar"));
     resolvePreparation();
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    expect(document.body.textContent).toContain("Choose a focused session");
-    expect(button("End session")).toBeUndefined();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    expect(button("Edit setup") ?? button("Hide setup")).not.toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
     expect(dispose).toHaveBeenCalledOnce();
 
-    button("Start Flashcards")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(startFlashcards).toHaveBeenCalledTimes(2));
     expect(startFlashcards).toHaveBeenLastCalledWith(
@@ -312,25 +324,27 @@ describe("/music/learn/reading/+page.svelte", () => {
     const runtime = new MusicRuntime();
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    button("Start Flashcards")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
     await vi.waitFor(() => expect(startFlashcards).toHaveBeenCalledOnce());
 
     runtime.setActiveInstrument("guitar");
     await vi.waitFor(() => expect(window.location.search).toContain("instrument=guitar"));
     rejectPreparation(new Error("Old preparation failed."));
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     expect(button("Guitar")).toHaveAttribute("aria-pressed", "true");
     expect(document.body.textContent).not.toContain("Old preparation failed.");
     expect(document.querySelector('[data-testid="reading-phase-announcement"]')).toHaveTextContent(
       "Reading setup.",
     );
-    expect(button("End session")).toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
     expect(unsubscribe).toHaveBeenCalledOnce();
     expect(dispose).toHaveBeenCalledOnce();
 
-    button("Start Flashcards")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(startFlashcards).toHaveBeenCalledTimes(2));
     expect(startFlashcards).toHaveBeenLastCalledWith(
@@ -361,10 +375,12 @@ describe("/music/learn/reading/+page.svelte", () => {
     const beginPerformance = vi.spyOn(runtime, "beginPerformance");
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
-    button("Start Sight-Reading")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
     await vi.waitFor(() => expect(prepareSightReading).toHaveBeenCalledOnce());
     expect(prepareSightReading).toHaveBeenLastCalledWith(expect.objectContaining({ bpm: 90 }));
 
@@ -372,38 +388,42 @@ describe("/music/learn/reading/+page.svelte", () => {
     await vi.waitFor(() => expect(window.location.search).toContain("bpm=120"));
     resolvePreparation();
 
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
-    expect(document.body.textContent).toContain("Choose a focused session");
-    expect(button("End session")).toBeUndefined();
-    expect(button("Start count-in")).toBeUndefined();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    expect(button("Edit setup") ?? button("Hide setup")).not.toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
+    expect(document.body.textContent).not.toContain("Phrase ready");
     expect(startSightReading).not.toHaveBeenCalled();
     expect(beginPerformance).not.toHaveBeenCalled();
     expect(dispose).toHaveBeenCalledOnce();
 
-    button("Start Sight-Reading")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(prepareSightReading).toHaveBeenCalledTimes(2));
     expect(prepareSightReading).toHaveBeenLastCalledWith(expect.objectContaining({ bpm: 120 }));
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Phrase ready"));
   });
 
   test("moves flashcards into the shell stage with the standard end action and phase handoff", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    button("Start Flashcards")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("1 / 10"));
-    expect(document.body.textContent).not.toContain("Choose a focused session");
-    expect(button("End session")?.closest(".bg-card")).toBeNull();
+    expect(button("Edit setup") ?? button("Hide setup")).toBeUndefined();
+    expect(button("Stop")?.closest(".bg-card")).toBeNull();
     expect(document.activeElement).toHaveAttribute("aria-label", "Reading session");
     expect(document.querySelector('[data-testid="reading-phase-announcement"]')).toHaveTextContent(
       "Reading session started.",
     );
 
-    button("End session")?.click();
+    button("Stop")?.click();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Choose a focused session"));
+    await vi.waitFor(() =>
+      expect(button("Edit setup") ?? button("Hide setup")).not.toBeUndefined(),
+    );
     expect(document.activeElement).toHaveAttribute("aria-label", "Reading setup");
     expect(document.querySelector('[data-testid="reading-phase-announcement"]')).toHaveTextContent(
       "Session ended without saving incomplete prompts.",
@@ -414,8 +434,9 @@ describe("/music/learn/reading/+page.svelte", () => {
     const startFlashcards = vi.spyOn(ReadingSession.prototype, "startFlashcards");
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    button("Start Flashcards")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
     await vi.waitFor(() => expect(startFlashcards).toHaveBeenCalledOnce());
 
     const readingSession = startFlashcards.mock.contexts[0] as ReadingSession;
@@ -425,8 +446,8 @@ describe("/music/learn/reading/+page.svelte", () => {
       await readingSession.answerChoice(prompt.choices[0]!);
     }
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
-    expect(button("Repeat session")).not.toBeUndefined();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Reading results"));
+    expect(button("Again")).not.toBeUndefined();
     expect(link("Return to Practice")).not.toBeUndefined();
     expect(button("Change setup")).not.toBeUndefined();
     expect(document.activeElement).toHaveTextContent("Reading results");
@@ -436,7 +457,9 @@ describe("/music/learn/reading/+page.svelte", () => {
 
     button("Change setup")?.click();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Choose a focused session"));
+    await vi.waitFor(() =>
+      expect(button("Edit setup") ?? button("Hide setup")).not.toBeUndefined(),
+    );
     expect(document.body.textContent).not.toContain("Recent results");
     expect(document.activeElement).toHaveAttribute("aria-label", "Reading setup");
   });
@@ -454,12 +477,14 @@ describe("/music/learn/reading/+page.svelte", () => {
       .mockResolvedValue(undefined);
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Assess")?.click();
     await vi.waitFor(() => expect(button("Assess")).toHaveAttribute("aria-pressed", "true"));
-    button("Start Sight-Reading")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(button("Start count-in")).not.toBeUndefined());
     button("Start count-in")?.click();
 
@@ -477,12 +502,14 @@ describe("/music/learn/reading/+page.svelte", () => {
     const startSightReading = vi.spyOn(ReadingSession.prototype, "startSightReading");
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Assess")?.click();
     await vi.waitFor(() => expect(button("Assess")).toHaveAttribute("aria-pressed", "true"));
-    button("Start Sight-Reading")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(button("Start count-in")).not.toBeUndefined());
     button("Start count-in")?.click();
 
@@ -504,11 +531,13 @@ describe("/music/learn/reading/+page.svelte", () => {
     const stopPattern = vi.spyOn(SoundEngine.prototype, "stopPattern").mockImplementation(() => {});
     const view = render(Page);
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
-    button("Start Sight-Reading")?.click();
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Phrase ready"));
     stopPattern.mockClear();
 
     button("Play")?.click();
@@ -532,11 +561,13 @@ describe("/music/learn/reading/+page.svelte", () => {
     }));
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
-    button("Start Sight-Reading")?.click();
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Phrase ready"));
 
     button("Waterfall")?.click();
     await vi.waitFor(() =>
@@ -576,7 +607,8 @@ describe("/music/learn/reading/+page.svelte", () => {
 
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     expect(button("Sight-Reading")?.getAttribute("aria-pressed")).toBe("true");
     expect(button("Guitar")?.getAttribute("aria-pressed")).toBe("true");
     expect(button("Play")?.getAttribute("aria-pressed")).toBe("true");
@@ -596,7 +628,8 @@ describe("/music/learn/reading/+page.svelte", () => {
     const runtime = new MusicRuntime();
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
     button("Ukulele")?.click();
     button("Play")?.click();
@@ -655,6 +688,7 @@ describe("/music/learn/reading/+page.svelte", () => {
       expect.objectContaining({ variantKey: expect.stringContaining(":guitar:") }),
     );
 
+    await openSetup();
     button("Ukulele")?.click();
 
     await vi.waitFor(() => expect(runtime.activeInstrument).toBe("ukulele"));
@@ -669,8 +703,9 @@ describe("/music/learn/reading/+page.svelte", () => {
 
   test("advances piano choice and guitar play flashcards", async () => {
     const { unmount } = render(Page);
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
-    button("Start Flashcards")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("1 / 10"));
     document.querySelector<HTMLButtonElement>('[aria-label="Answer choices"] button')?.click();
@@ -680,12 +715,13 @@ describe("/music/learn/reading/+page.svelte", () => {
     unmount();
 
     render(Page);
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Guitar")?.click();
     await vi.waitFor(() => expect(button("Standard")).not.toBeNull());
     button("Play")?.click();
     await vi.waitFor(() => expect(button("Play")?.getAttribute("aria-pressed")).toBe("true"));
-    button("Start Flashcards")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() =>
       expect(document.querySelector<HTMLButtonElement>('[aria-label*=", target"]')).not.toBeNull(),
@@ -696,7 +732,8 @@ describe("/music/learn/reading/+page.svelte", () => {
 
   test("persists and deletes a custom tuning across remounts", async () => {
     const first = render(Page);
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Guitar")?.click();
     await vi.waitFor(() => expect(button("New custom tuning")).not.toBeNull());
     button("New custom tuning")?.click();
@@ -708,7 +745,8 @@ describe("/music/learn/reading/+page.svelte", () => {
     first.unmount();
 
     render(Page);
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Guitar")?.click();
     await vi.waitFor(() => expect(button("Edit Route Test Tuning")).not.toBeNull());
     button("Edit Route Test Tuning")?.click();
@@ -721,14 +759,17 @@ describe("/music/learn/reading/+page.svelte", () => {
 
   test("completes wait-mode piano sight reading from on-screen expected notes", async () => {
     render(Page);
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Learn")?.click();
-    button("Start Sight-Reading")?.click();
+    button("Start")?.click();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
-    button("Start count-in")?.click();
+    // Wait mode has no count-in, so the ready phrase says Start.
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Phrase ready"));
+    button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Expected notes"));
     expect(document.querySelector('[data-testid="score-hand-hint"]')?.textContent).toContain(
       "Right hand",
@@ -759,18 +800,19 @@ describe("/music/learn/reading/+page.svelte", () => {
       downbeat: monotonicMs(1_000),
     });
     render(Page);
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
     await vi.waitFor(() => expect(document.querySelector('[aria-label="Tempo"]')).not.toBeNull());
     button("Guitar")?.click();
     button("Assess")?.click();
     button("Strict")?.click();
     button("Compound")?.click();
-    button("Start Sight-Reading")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
-    expect(document.body.textContent).not.toContain("Choose a focused session");
-    expect(button("End session")?.closest(".bg-card")).toBeNull();
+    expect(button("Edit setup") ?? button("Hide setup")).toBeUndefined();
+    expect(button("Stop")?.closest(".bg-card")).toBeNull();
     expect(document.body.textContent).toContain("Standard");
     expect(document.body.textContent).toContain("120 BPM");
     expect(document.body.textContent).toContain("Strict timing");
@@ -793,11 +835,13 @@ describe("/music/learn/reading/+page.svelte", () => {
       downbeat: monotonicMs(1_000),
     });
     render(Page);
-    await vi.waitFor(() => expect(button("Start Flashcards")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Sight-Reading")?.click();
-    await vi.waitFor(() => expect(button("Start Sight-Reading")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
     button("Assess")?.click();
-    button("Start Sight-Reading")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Count-in ready"));
     button("Start count-in")?.click();
@@ -835,4 +879,12 @@ function setInput(element: HTMLInputElement, value: string): void {
   element.value = value;
   element.dispatchEvent(new Event("input", { bubbles: true }));
   element.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+/** Setup is collapsed behind its summary line; open it before touching controls. */
+async function openSetup(): Promise<void> {
+  if (button("Hide setup")) return;
+  await vi.waitFor(() => expect(button("Edit setup")).not.toBeUndefined());
+  button("Edit setup")?.click();
+  await vi.waitFor(() => expect(button("Flashcards")).not.toBeUndefined());
 }

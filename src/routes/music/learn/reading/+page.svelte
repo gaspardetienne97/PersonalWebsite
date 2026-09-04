@@ -4,7 +4,8 @@
   import Play from "lucide-svelte/icons/play";
   import { onDestroy, tick } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import { INSTRUMENT_LABELS, unixMs, type NoteEvent } from "@repo/music-core/domain";
+  import { READING_LEVELS } from "@repo/music-core/exercises/sight-reading";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     ChordAudioSource,
@@ -25,8 +26,14 @@
   import { curatedTunings, type TuningProfile } from "@repo/music-core/engines/tunings";
   import { CustomTuningStore } from "@repo/music-core/engines/tunings/store";
   import { Button } from "@repo/ui/button";
+  import * as Card from "@repo/ui/card";
 
+  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import MicrophoneGatePanel from "../../_components/MicrophoneGatePanel.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -41,7 +48,10 @@
   import ReadingSetup, {
     type ReadingSetupValue,
   } from "./_components/ReadingSetup.svelte";
-  import ReadingSummary from "./_components/ReadingSummary.svelte";
+  import ReadingSummary, {
+    hasMissedSightReadingGroups,
+    hasSightReading,
+  } from "./_components/ReadingSummary.svelte";
   import SightReadingSession from "./_components/SightReadingSession.svelte";
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
@@ -117,6 +127,31 @@
     availableTunings.find(({ id }) => id === setup.tuningId) ?? availableTunings[0],
   );
   const normalizedSetup = $derived(normalizeReadingDrillConfig(setup));
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
+  const activityLabel = $derived(setup.activity === "flashcards" ? "Flashcards" : "Sight-reading");
+  const levelLabel = $derived(
+    READING_LEVELS.find((level) => level.id === setup.readingLevel)?.label ?? setup.readingLevel,
+  );
+  const setupSummaryText = $derived(
+    [
+      activityLabel,
+      INSTRUMENT_LABELS[setup.instrument],
+      setup.instrument === "piano" ? undefined : activeTuning?.name,
+      setup.keySignature,
+      setup.activity === "sight-reading" ? levelLabel : undefined,
+      setup.activity === "sight-reading" ? `${setup.bpm} BPM` : undefined,
+      setup.activity === "sight-reading"
+        ? setup.mode === "wait"
+          ? "Learn"
+          : "Assess"
+        : setup.answerMode === "choice"
+          ? "Name the notes"
+          : "Play the notes",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  );
   const previewScore = $derived.by(() => {
     const prompt = sessionState?.currentPrompt;
     return prompt && "score" in prompt ? prompt.score : undefined;
@@ -246,7 +281,7 @@
       ]);
       customTunings = savedTunings;
       ready = true;
-      status = "Ready for a ten-prompt session.";
+      status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "Reading history could not be loaded.");
     }
@@ -461,7 +496,7 @@
     session?.dispose();
     session = undefined;
     sessionState = undefined;
-    status = "Adjust your reading setup.";
+    status = "Setup ready.";
   }
 
   function practiceAtBpm(bpm: number): void {
@@ -695,14 +730,11 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Note Reading"
-    subtitle="Read it, locate it, play it — closing the loop from page to instrument."
-  >
+  <PracticeScreenHeader title="Note Reading" compact>
     {#snippet controls()}
       <SourceReadout
-        label="Answer by"
-        device={`Playing · ${setup.instrument}`}
+        label="Input"
+        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
@@ -716,53 +748,147 @@
     {#if summary}
       <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
         {#snippet heading()}
-          <h2 class="text-3xl font-bold tracking-tight">Reading results</h2>
+          <Card.Description>{summary.correct} of {summary.total} correct</Card.Description>
+          <Card.Title>Reading results</Card.Title>
+        {/snippet}
+        {#snippet metric()}
+          <p class="flex items-baseline">
+            <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+              {Math.round(summary.accuracy * 100)}<span class="text-3xl text-muted-foreground">%</span>
+            </span>
+            <span class="sr-only"> accuracy</span>
+          </p>
+        {/snippet}
+        {#snippet lastRunDelta()}
+          <LastRunDelta
+            tags={["reading", setup.activity]}
+            accuracy={summary.accuracy}
+            before={visitStartedAt}
+          />
         {/snippet}
         {#snippet children()}
-          <div>
-            <ReadingSummary
-              {summary}
-              bpm={setup.bpm}
-              onRepeat={repeat}
-              onTempo={practiceAtBpm}
-              onMissedGroups={practiceMissedGroups}
-            />
-          </div>
+          <ReadingSummary {summary} />
+        {/snippet}
+        {#snippet actions()}
+          {#if hasSightReading(summary)}
+            <Button type="button" onclick={() => practiceAtBpm(setup.bpm)}>Again</Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={setup.bpm <= 40}
+              onclick={() => practiceAtBpm(Math.max(40, setup.bpm - 10))}
+            >
+              Slow to {Math.max(40, setup.bpm - 10)} BPM
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={setup.bpm >= 200}
+              onclick={() => practiceAtBpm(Math.min(200, setup.bpm + 10))}
+            >
+              Faster · {Math.min(200, setup.bpm + 10)} BPM
+            </Button>
+            {#if hasMissedSightReadingGroups(summary)}
+              <Button type="button" variant="outline" onclick={practiceMissedGroups}>
+                Practice missed groups
+              </Button>
+            {/if}
+          {:else}
+            <AdaptiveRetryBar onRetry={repeat} retryLabel="Again" />
+          {/if}
+          <Button href="/music" variant="ghost">Return to Practice</Button>
         {/snippet}
         {#snippet routineContinue()}
           <RoutineContinueAction routine={runtime.dailyRoutine} />
+        {/snippet}
+        {#snippet nextUp()}
+          <NextUpSuggestion
+            {skills}
+            {analytics}
+            currentPath="/music/learn/reading"
+            routine={runtime.dailyRoutine}
+          />
         {/snippet}
       </DrillSummaryCard>
     {/if}
   {/snippet}
 
+  {#snippet setupSummary()}
+    {setupSummaryText}
+  {/snippet}
+
   {#snippet setupPhase()}
+    <ReadingSetup
+      value={setup}
+      tunings={availableTunings}
+      {midiEnabled}
+      {midiStatus}
+      onChange={updateSetup}
+      onEnableMidi={enableMidi}
+      onSaveTuning={saveTuning}
+      onDeleteTuning={deleteTuning}
+    />
+  {/snippet}
+
+  {#snippet readyStage()}
     <div tabindex="-1" aria-label="Reading setup" bind:this={setupHeading}>
-      <ReadingSetup
-        value={setup}
-        tunings={availableTunings}
-        {ready}
-        {pending}
-        {status}
-        {midiEnabled}
-        {midiStatus}
-        onChange={updateSetup}
-        onStart={start}
-        onEnableMidi={enableMidi}
-        onSaveTuning={saveTuning}
-        onDeleteTuning={deleteTuning}
-      />
+      <PracticeStage instrument={setup.instrument} class="grid gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · {activityLabel}</p>
+            <h2 class="text-xl font-semibold tracking-tight">
+              {setup.activity === "sight-reading"
+                ? `${setup.keySignature} · ${levelLabel} · ${setup.bpm} BPM`
+                : `${setup.keySignature} · ${setup.answerMode === "choice" ? "name the notes" : "play the notes"}`}
+            </h2>
+            <p class="text-sm text-stage-muted">
+              {setup.activity === "sight-reading"
+                ? "Ten prompts. The phrase shows first, with a preview you can hear."
+                : "Ten cards. Read the staff, then answer."}
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button type="button" size="lg" disabled={!ready || pending} onclick={() => void start()}>
+              {pending ? "Starting..." : "Start"}
+            </Button>
+            <StartShortcut onStart={() => void start()} enabled={!pending} />
+          </div>
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
     </div>
   {/snippet}
 
+  {#snippet microphonePanel()}
+    {#if setup.instrument === "piano" && microphone}
+      <MicrophoneGatePanel
+        state={microphoneState}
+        supported={ChordAudioSource.supported}
+        onStart={startMicrophone}
+        onStop={stopMicrophone}
+      />
+    {/if}
+  {/snippet}
+
+  {#snippet stageActionRow()}
+    {#if sessionState}
+      <Button type="button" variant="ghost" onclick={abandon}>Stop</Button>
+    {/if}
+  {/snippet}
+
   {#snippet stagePhase()}
-    <div tabindex="-1" aria-label="Reading session" bind:this={stageHeading} class="grid gap-4">
+    <div
+      tabindex="-1"
+      aria-label="Reading session"
+      bind:this={stageHeading}
+      class="grid gap-4"
+    >
       {#if status}
         <p class="text-sm text-muted-foreground">{status}</p>
       {/if}
       {#if sessionState?.status === "sight-reading" && session}
         {#if previewScore}
-          <div class="flex flex-wrap items-center gap-3 rounded-lg border bg-card px-4 py-3">
+          <div class="flex flex-wrap items-center gap-3">
             <Button type="button" size="sm" variant="outline" onclick={() => void togglePreview()}>
               {#if previewPlaying}
                 <Pause class="size-4" aria-hidden="true" />Pause
@@ -793,17 +919,9 @@
               </div>
             {/if}
             {#if previewMessage}
-              <p class="text-sm text-muted-foreground" aria-live="polite">{previewMessage}</p>
+              <p class="text-sm text-muted-foreground">{previewMessage}</p>
             {/if}
           </div>
-        {/if}
-        {#if setup.instrument === "piano" && microphone}
-          <MicrophoneGatePanel
-            state={microphoneState}
-            supported={ChordAudioSource.supported}
-            onStart={startMicrophone}
-            onStop={stopMicrophone}
-          />
         {/if}
         <SightReadingSession
           sessionState={sessionState}
@@ -814,10 +932,10 @@
           waterfall={stageWaterfall}
           observedMidiNotes={microphoneState.observed}
           {sessionXp}
+          microphone={microphonePanel}
           onAccepted={playAccepted}
           onStart={startSightReading}
           onFinish={finishSightReading}
-          onAbandon={abandon}
         />
       {:else if sessionState}
         <FlashcardSession
@@ -828,7 +946,6 @@
           {sessionXp}
           onChoice={answerChoice}
           onAccepted={playAccepted}
-          onAbandon={abandon}
         />
       {/if}
     </div>
@@ -837,8 +954,11 @@
   <PracticeDrillShell
     {phase}
     startPending={pending}
+    {setupSummary}
     setup={setupPhase}
+    {readyStage}
     stage={stagePhase}
+    stageAction={stageActionRow}
     summary={summaryPhase}
   />
 </PracticeScreen>

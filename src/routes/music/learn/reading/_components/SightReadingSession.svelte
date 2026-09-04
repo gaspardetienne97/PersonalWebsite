@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ComponentProps } from "svelte";
+  import type { ComponentProps, Snippet } from "svelte";
 
   import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
@@ -13,9 +13,8 @@
   import type { SightReadingPrompt } from "@repo/music-core/exercises/sight-reading";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
-  import { Progress } from "@repo/ui/progress";
 
-  import PracticeDrillShell from "../../../_components/PracticeDrillShell.svelte";
+  import HudTile from "../../../_components/HudTile.svelte";
   import ScoreFollowerStage from "../../../_components/ScoreFollowerStage.svelte";
   import { suggestedFingerings } from "../../../_components/piano/piano-fingering";
 
@@ -28,10 +27,10 @@
     stageView = "staff",
     waterfall,
     observedMidiNotes = [],
+    microphone,
     onAccepted,
     onStart,
     onFinish,
-    onAbandon,
   }: {
     sessionState: ReadingSessionState;
     router: InputRouter;
@@ -43,10 +42,11 @@
     waterfall?: ComponentProps<typeof ScoreFollowerStage>["waterfall"];
     /** Microphone-gate hint notes; display only, never advancing. */
     observedMidiNotes?: number[];
+    /** The route's microphone control, shown right under the keyboard it tints. */
+    microphone?: Snippet;
     onAccepted: (event: NoteEvent) => void;
     onStart: () => Promise<number | undefined>;
     onFinish: () => Promise<void>;
-    onAbandon: () => void;
   } = $props();
 
   const prompt = $derived(sessionState.currentPrompt as SightReadingPrompt | undefined);
@@ -58,6 +58,14 @@
   const mode = $derived(prompt?.options.mode ?? "wait");
   const canFinish = $derived(complete || (started && mode === "performance"));
   const levelLabel = $derived(prompt?.readingLevel?.label ?? "Custom level");
+  const timingValue = $derived.by(() => {
+    if (mode !== "performance") return "No timing score";
+    if (live?.timingErrorMs === undefined) {
+      const strictness = prompt?.options.strictness ?? "normal";
+      return `${strictness[0]!.toUpperCase()}${strictness.slice(1)} timing`;
+    }
+    return live.timingErrorMs < 0 ? `${Math.abs(live.timingErrorMs)}ms early` : `${live.timingErrorMs}ms late`;
+  });
   const transposeLabel = $derived.by(() => {
     const semitones = prompt?.transposeSemitones ?? 0;
     return semitones === 0 ? "written pitch" : `${semitones > 0 ? "+" : ""}${semitones} st`;
@@ -137,12 +145,7 @@
 </script>
 
 {#if prompt}
-  <PracticeDrillShell phase="stage" focus={false}>
-    {#snippet stageAction()}
-      <Button type="button" variant="ghost" onclick={onAbandon}>End session</Button>
-    {/snippet}
-
-    {#snippet stage()}
+  <div class="grid min-w-0 gap-4">
     <Card.Root class="min-w-0">
       <Card.Header>
         <div class="space-y-1">
@@ -170,9 +173,14 @@
             router={router}
             inputEnabled={false}
           />
+          <!-- Wait mode has no count-in, so the button says what it does. -->
           <div class="flex flex-wrap items-center gap-3 rounded-md border bg-muted px-4 py-3">
-            <span class="text-sm font-medium">Count-in ready</span>
-            <Button type="button" onclick={start}>Start count-in</Button>
+            <span class="text-sm font-medium">
+              {mode === "performance" ? "Count-in ready" : "Phrase ready"}
+            </span>
+            <Button type="button" onclick={start}>
+              {mode === "performance" ? "Start count-in" : "Start"}
+            </Button>
           </div>
         {:else}
           <ScoreFollowerStage
@@ -197,6 +205,7 @@
             onExpectedNoteSelected={playExpected}
             {onAccepted}
           />
+          {#if microphone}{@render microphone()}{/if}
         {/if}
 
         {#if sessionState.error}
@@ -206,42 +215,18 @@
         {/if}
       </Card.Content>
     </Card.Root>
-    {/snippet}
 
-    {#snippet rail()}
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>{mode === "performance" ? "Assess mode" : "Learn mode"}</Card.Description>
-          <Card.Title>{Math.round(progress * 100)}%</Card.Title>
-        </Card.Header>
-        <Card.Content>
-          <Progress value={progress} max={1} />
-        </Card.Content>
-      </Card.Root>
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Timing feedback</Card.Description>
-          <Card.Title>
-            {mode === "performance"
-              ? `${prompt.options.strictness[0]!.toUpperCase() + prompt.options.strictness.slice(1)} timing`
-              : "No timing score"}
-          </Card.Title>
-          <Card.Description>
-            {live?.timingErrorMs === undefined
-              ? "Play the current group."
-              : live.timingErrorMs < 0
-                ? `${Math.abs(live.timingErrorMs)}ms early`
-                : `${live.timingErrorMs}ms late`}
-          </Card.Description>
-        </Card.Header>
-      </Card.Root>
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Session XP</Card.Description>
-          <Card.Title>{sessionXp}</Card.Title>
-        </Card.Header>
-      </Card.Root>
-      <Button type="button" disabled={!canFinish} onclick={onFinish}>Finish phrase</Button>
-    {/snippet}
-  </PracticeDrillShell>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HudTile
+        size="sm"
+        label={mode === "performance" ? "Assess mode" : "Learn mode"}
+        value={`${Math.round(progress * 100)}%`}
+      />
+      <HudTile size="sm" label="Timing feedback" value={timingValue} />
+      <HudTile size="sm" label="Session XP" value={sessionXp} />
+      <Button type="button" class="h-full min-h-11 self-stretch" disabled={!canFinish} onclick={onFinish}>
+        Finish phrase
+      </Button>
+    </div>
+  </div>
 {/if}
