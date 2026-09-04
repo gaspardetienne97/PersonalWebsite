@@ -67,7 +67,7 @@
               ? "border-success/40"
               : ""}
         >
-          <Card.Header class="flex-row items-start gap-4">
+          <Card.Header class="flex-row flex-wrap items-start gap-4">
             <div
               class="flex size-10 shrink-0 items-center justify-center rounded-full border text-sm font-bold
                 {step.status === 'done'
@@ -127,7 +127,7 @@
               <Button
                 href={step.href}
                 variant={isNext ? "default" : "outline"}
-                class="shrink-0 self-center"
+                class="shrink-0 self-center max-sm:basis-full"
               >
                 {step.kind === "reference" ? "Open" : "Practice"}
               </Button>

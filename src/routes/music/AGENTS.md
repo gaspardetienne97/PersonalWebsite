@@ -713,7 +713,11 @@ If you add a new engine or public exercise, update
   and `text-primary-foreground`.
 - Do not copy the Claude Design handoff colors/fonts directly into route code.
   Port the structure and UX. **Chrome** (sidebar, page, cards, primary actions,
-  text) is driven by the site theme tokens. Same fonts as the site — no second
+  text) is driven by the site theme tokens. Type: body copy stays in the site's
+  system sans; **one display face** (Outfit, self-hosted through `@fontsource`,
+  registered as `--font-display` and used only under `/music` via
+  `font-display`) for route titles, stage headings, card titles and result
+  numbers; Fira Mono (`--font-mono`, `font-mono`) for live readouts. No other
   font family.
 - **Practice-canvas palette (scoped, allowed).** The Music app defines a small
   scoped palette used *only* inside `PracticeStage` (the interactive
@@ -726,12 +730,31 @@ If you add a new engine or public exercise, update
     text on the stage (use a tinted fill + a tested `--instr-*-foreground`).
   - `--success/--warn/--info/--destructive` — data/judgment only (mastery, tuner,
     timing). Never collide with instrument hue.
+  - `--degree-1 … --degree-7` (with `b2`, `b3`, `s4`, `b6`, `b7`) and
+    `--tone-chord/--tone-scale/--tone-avoid` — **musical colour**, fixed in both
+    themes: the same degree looks the same on an answer button, a key or a
+    dictation slot. Never a verdict; correctness stays on the semantic tokens
+    and is always paired with a ring, a glyph or a sentence. Text on them uses
+    `--degree-foreground` / `--tone-foreground`.
+  - `--fretboard/--fretboard-fret` — the neck drawn as material (board and fret
+    wire); `--stage-shadow/--stage-grain` — the stage as a hardware panel.
+  - `src/app-tokens.contrast.test.ts` asserts every text-on-surface pair above
+    at 4.5:1 in both themes; a token change that fails it is a token change to
+    fix, not a test to loosen.
   These live as tokens in `src/app.css` (registered in `@theme inline`); use the
   Tailwind utilities (`bg-stage`, `text-stage-foreground`, `ring-practice-accent`,
   `bg-instr`). Do not use stage/instr tokens outside `PracticeStage`.
 - Still forbidden: hardcoded hex in components (except documented `themeColor()`
-  fallbacks for third-party canvas libs), restyling chrome per-page, or a second
-  font family.
+  fallbacks for third-party canvas libs), restyling chrome per-page, or a font
+  family beyond the three above. Cards use hue plates (`MusicToolCard` +
+  `HueMotif`), not cover images.
+- Fretted drills show a **fret window**, not the whole neck: `FretboardInput`
+  takes `fretWindow` (absolute frets, from `fretWindowAround` in
+  `@repo/music-core/engines/projection`) and `dotLabels` (finger numbers); the
+  screen-reader grid keeps absolute `String n fret f, note` labels. Chord drills
+  show **one chord position** at a time from `chordPositionsFor` in
+  `@repo/music-core/exercises/chord-positions` (position 0 is the curated
+  shape, ids unchanged) with a `PositionStepper`.
 - Keep card radii and spacing aligned with the existing shadcn Svelte
   components.
 - Route pages own their semantic `h1`. Shared chrome should use non-heading

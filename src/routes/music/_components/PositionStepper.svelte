@@ -43,7 +43,7 @@
     >
       <ChevronLeft class="size-4" aria-hidden="true" />
     </Button>
-    <span class="min-w-40 px-2 text-sm tabular-nums" aria-live="polite">
+    <span class="min-w-40 px-2 text-sm tabular-nums">
       <span class="font-semibold">Position {index + 1} of {count}</span>
       {#if detail}<span class="text-muted-foreground"> · {detail}</span>{/if}
     </span>
