@@ -96,15 +96,12 @@
   <title>Practice | Practice OS</title>
   <meta
     name="description"
-    content="Your practice home — today's plan, every drill, and guided paths in one place."
+    content="Your practice home: today's plan, every drill, and guided paths in one place."
   />
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Practice"
-    subtitle="Your practice home — start today's plan, pick a drill, or follow a guided path."
-  />
+  <PracticeScreenHeader title="Practice" subtitle="Today's plan, every drill, and the guided paths." />
 
   <div class="mb-6">
     <SegmentedControl options={tabOptions} bind:value={tab} ariaLabel="Practice view" />
@@ -141,7 +138,7 @@
       </Empty>
     {:else}
       <section
-        class="reveal-up grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+        class="reveal-up grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3"
         aria-label="Practice drills"
       >
         {#each filteredDrills as drill (drill.href)}

@@ -56,9 +56,10 @@
 <Card.Root class={cn("overflow-hidden", className)}>
   <a
     {href}
-    class="group flex h-full min-h-56 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+    class="group flex h-full flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:min-h-56"
   >
-    <div class="aspect-video w-full overflow-hidden" data-testid="music-tool-card-band">
+    <!-- The cover band is a desktop flourish; on the phone the card is a compact row. -->
+    <div class="hidden aspect-video w-full overflow-hidden md:block" data-testid="music-tool-card-band">
       {#if coverSrc && coverSrc !== failedSrc}
         <img
           src={coverSrc}
@@ -73,9 +74,7 @@
       {/if}
     </div>
 
-    <div
-      class="grid flex-1 gap-6 p-6 transition-colors group-hover:bg-accent/50"
-    >
+    <div class="grid flex-1 gap-3 p-4 transition-colors group-hover:bg-accent/50 md:gap-6 md:p-6">
     <div class="flex items-start justify-between gap-4">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
         <Badge variant="outline">{eyebrow}</Badge>
@@ -93,7 +92,7 @@
     <div class="flex items-start gap-4">
       {#if icon}
         {@const Icon = icon}
-        <span class="rounded-md border bg-muted p-3 text-foreground">
+        <span class="rounded-md border bg-muted p-2.5 text-foreground md:p-3">
           <Icon class="size-5" aria-hidden="true" />
         </span>
       {/if}
@@ -103,7 +102,7 @@
       </div>
     </div>
 
-      <p class="mt-auto text-sm font-medium text-muted-foreground group-hover:text-foreground">
+      <p class="mt-auto hidden text-sm font-medium text-muted-foreground group-hover:text-foreground md:block">
         {action}
       </p>
     </div>
