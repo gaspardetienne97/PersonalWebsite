@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 describe("FrettedSequenceStage", () => {
-  test("renders a fretted target path and routes on-screen fret input", () => {
+  test("lights the target path on the fretboard and routes on-screen fret input", () => {
     const tuning = curatedTunings("guitar")[0]!;
     const router = new InputRouter({ now: () => 24 });
     const events: NoteEvent[] = [];
@@ -35,21 +35,11 @@ describe("FrettedSequenceStage", () => {
       visibleFrets: 12,
     });
 
-    expect(document.querySelector("[data-testid='fretted-sequence-label']")?.textContent).toContain(
-      "Guitar string 6",
-    );
-    expect(document.querySelector("[data-testid='fretted-sequence-step-s6-f5']")).toHaveAttribute(
-      "data-state",
-      "complete",
-    );
-    expect(document.querySelector("[data-testid='fretted-sequence-step-s6-f7']")).toHaveAttribute(
-      "aria-current",
-      "step",
-    );
-    expect(document.querySelector("[data-testid='fretted-sequence-step-s6-f8']")).toHaveAttribute(
-      "data-state",
-      "upcoming",
-    );
+    // Only the fretboard: completed notes, the current note and upcoming targets are its dots.
+    expect(document.querySelector("[data-testid='fretted-sequence-step-s6-f5']")).toBeNull();
+    expect(document.querySelector('[aria-label="String 6 fret 5, A2, correct"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="String 6 fret 7, B2, active"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="String 6 fret 8, C3, target"]')).not.toBeNull();
 
     document.querySelector<HTMLButtonElement>('[aria-label^="String 6 fret 7,"]')?.click();
     expect(events.at(-1)).toMatchObject({

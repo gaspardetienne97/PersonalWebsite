@@ -160,6 +160,15 @@
     Math.min(targetNoteCount, Math.round((sessionState?.live?.progress ?? 0) * targetNoteCount)),
   );
   const currentPosition = $derived(prompt?.positions[completedNotes]);
+  // Finger numbers on the dots: finger 1 sits on the start fret.
+  const fingerLabels = $derived.by(() => {
+    if (!prompt) return undefined;
+    const labels: Record<number, string> = {};
+    for (const position of prompt.positions) {
+      labels[position.midiNote] = String(position.fretNumber - prompt.startFret + 1);
+    }
+    return labels;
+  });
   // Spider plays inside a fret window: the frets in play plus one of context.
   // Note finder keeps the whole neck (that is the point of the drill).
   const spiderWindow = $derived(
@@ -642,9 +651,16 @@
               bind:value={pattern}
               class="h-9 rounded-md border border-input bg-background px-3 text-sm"
             >
-              {#each SPIDER_DRILL_PATTERNS as option (option.value)}
-                <option value={option.value}>{option.label}</option>
-              {/each}
+              <optgroup label="Classic spiders">
+                {#each SPIDER_DRILL_PATTERNS.filter((option) => option.group === "classic") as option (option.value)}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
+              <optgroup label="All finger orders">
+                {#each SPIDER_DRILL_PATTERNS.filter((option) => option.group === "permutation") as option (option.value)}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
             </select>
           </div>
           <div class="grid gap-2">
@@ -798,6 +814,7 @@
         visibleFrets={12}
         visibleStrings={prompt?.stringNumbers ?? [stringNumber]}
         fretWindow={spiderWindow}
+        dotLabels={fingerLabels}
         showTargetNotes={normalizedMode.mode !== "note-finder"}
         showActiveTarget={normalizedMode.mode !== "note-finder"}
         onAccepted={playAccepted}

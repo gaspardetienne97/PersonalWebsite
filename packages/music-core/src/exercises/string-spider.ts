@@ -55,26 +55,70 @@ export interface StringSpiderAnswer {
   meanTimingErrorMs: number;
 }
 
+/** The four classic patterns keep their historical ids (exercise ids and saved
+ *  history depend on them); the other twenty finger orders are `perm-<order>`. */
 export type StringPatternKind =
   | "ascending-1234"
   | "descending-4321"
   | "inside-out-1324"
-  | "outside-in-1423";
+  | "outside-in-1423"
+  | `perm-${number}`;
 
 export type StringSpiderSpan = "single" | "adjacent-2" | "adjacent-3" | "all";
 
 export interface StringSpiderPattern {
   id: StringPatternKind;
   label: string;
+  /** Finger 1 sits on the start fret; offsets are frets above it, in playing order. */
   fretOffsets: number[];
+  /** Classic spiders first in a picker; every other finger order under "All orders". */
+  group: "classic" | "permutation";
 }
 
-export const STRING_SPIDER_PATTERNS: StringSpiderPattern[] = [
-  { id: "ascending-1234", label: "1-2-3-4 ascending", fretOffsets: [0, 1, 2, 3] },
-  { id: "descending-4321", label: "4-3-2-1 descending", fretOffsets: [3, 2, 1, 0] },
-  { id: "inside-out-1324", label: "1-3-2-4 inside-out", fretOffsets: [0, 2, 1, 3] },
-  { id: "outside-in-1423", label: "1-4-2-3 outside-in", fretOffsets: [0, 3, 1, 2] },
+// An array, not a record: integer-like object keys would reorder themselves.
+const CLASSIC_SPIDERS: { order: string; id: StringPatternKind; label: string }[] = [
+  { order: "1234", id: "ascending-1234", label: "1-2-3-4 ascending" },
+  { order: "4321", id: "descending-4321", label: "4-3-2-1 descending" },
+  { order: "1324", id: "inside-out-1324", label: "1-3-2-4 inside-out" },
+  { order: "1423", id: "outside-in-1423", label: "1-4-2-3 outside-in" },
 ];
+
+function fingerOrders(): number[][] {
+  const orders: number[][] = [];
+  const walk = (prefix: number[], rest: number[]) => {
+    if (rest.length === 0) {
+      orders.push(prefix);
+      return;
+    }
+    rest.forEach((finger, index) =>
+      walk(
+        [...prefix, finger],
+        rest.filter((_, i) => i !== index),
+      ),
+    );
+  };
+  walk([], [1, 2, 3, 4]);
+  return orders;
+}
+
+/** Every finger order of 1-2-3-4: the four classic spiders first, then the other twenty. */
+export const STRING_SPIDER_PATTERNS: StringSpiderPattern[] = fingerOrders()
+  .map((order): StringSpiderPattern => {
+    const key = order.join("");
+    const classic = CLASSIC_SPIDERS.find((entry) => entry.order === key);
+    return {
+      id: classic?.id ?? (`perm-${key}` as StringPatternKind),
+      label: classic?.label ?? order.join("-"),
+      fretOffsets: order.map((finger) => finger - 1),
+      group: classic ? "classic" : "permutation",
+    };
+  })
+  .sort((a, b) => classicRank(a) - classicRank(b));
+
+function classicRank(pattern: StringSpiderPattern): number {
+  const index = CLASSIC_SPIDERS.findIndex((classic) => classic.id === pattern.id);
+  return index === -1 ? CLASSIC_SPIDERS.length : index;
+}
 
 export const STRING_SPIDER_SPANS: { id: StringSpiderSpan; label: string }[] = [
   { id: "single", label: "Single string" },

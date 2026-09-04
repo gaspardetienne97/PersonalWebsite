@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
 import { curatedTunings } from "@repo/music-core/engines/tunings";
 
-import { createStringSpiderExercise } from "./string-spider";
+import { createStringSpiderExercise, STRING_SPIDER_PATTERNS } from "./string-spider";
 
 describe("createStringSpiderExercise", () => {
   test("builds a guitar 1-2-3-4 pattern from the selected string and fret", () => {
@@ -236,3 +236,24 @@ function note(midiNote: number, atMs: number, instrument: "guitar" | "ukulele"):
     clock: "performance",
   };
 }
+
+describe("STRING_SPIDER_PATTERNS", () => {
+  test("covers every finger order of 1-2-3-4 with the classic ids kept", () => {
+    expect(STRING_SPIDER_PATTERNS).toHaveLength(24);
+    expect(new Set(STRING_SPIDER_PATTERNS.map((p) => p.id)).size).toBe(24);
+    expect(STRING_SPIDER_PATTERNS.slice(0, 4).map((p) => p.id)).toEqual([
+      "ascending-1234",
+      "descending-4321",
+      "inside-out-1324",
+      "outside-in-1423",
+    ]);
+    for (const pattern of STRING_SPIDER_PATTERNS) {
+      expect([...pattern.fretOffsets].sort()).toEqual([0, 1, 2, 3]);
+    }
+    expect(STRING_SPIDER_PATTERNS.find((p) => p.id === "perm-2143")).toMatchObject({
+      label: "2-1-4-3",
+      fretOffsets: [1, 0, 3, 2],
+      group: "permutation",
+    });
+  });
+});

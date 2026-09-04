@@ -406,6 +406,7 @@ export const SPIDER_DRILL_TEMPOS = [60, 80, 100, 120] as const;
 export const SPIDER_DRILL_PATTERNS = STRING_SPIDER_PATTERNS.map((pattern) => ({
   value: pattern.id,
   label: pattern.label,
+  group: pattern.group,
 }));
 export const SPIDER_DRILL_SPANS = STRING_SPIDER_SPANS.map((span) => ({
   value: span.id,
