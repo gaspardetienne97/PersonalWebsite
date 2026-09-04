@@ -154,6 +154,9 @@ describe("/music/play/spider/+page.svelte", () => {
     expect(document.querySelector("h1")?.textContent).toContain("String Independence");
     expect(button("Guitar")).toHaveAttribute("aria-pressed", "true");
     await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.querySelector('[data-testid="spider-fret-range"]')?.textContent).toContain(
+      "Frets 4 to 9 shown",
+    );
 
     button("Start")?.click();
     await vi.waitFor(() => {
@@ -168,6 +171,17 @@ describe("/music/play/spider/+page.svelte", () => {
         allowedInstruments: ["guitar", "ukulele"],
       }),
     );
+
+    // The stage shows the fret window around the pattern, with real fret numbers.
+    expect(fretButton(6, 4)).not.toBeUndefined();
+    expect(fretButton(6, 9)).not.toBeUndefined();
+    expect(fretButton(6, 0)).toBeUndefined();
+    expect(fretButton(6, 10)).toBeUndefined();
+    expect(
+      document
+        .querySelector('[data-testid="fret-window-strip"] [role="img"]')
+        ?.getAttribute("aria-label"),
+    ).toBe("Frets 4 to 9 of 22");
 
     for (const fret of [5, 6, 7, 8]) {
       fretButton(6, fret)?.click();

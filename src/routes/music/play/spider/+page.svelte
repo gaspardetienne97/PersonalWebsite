@@ -26,6 +26,7 @@
     type StringInstrumentId,
     type TuningProfile,
   } from "@repo/music-core/engines/tunings";
+  import { fretWindowAround } from "@repo/music-core/engines/projection";
   import type {
     FretboardNoteFinderAnswer,
     FretboardNoteFinderPrompt,
@@ -159,6 +160,16 @@
     Math.min(targetNoteCount, Math.round((sessionState?.live?.progress ?? 0) * targetNoteCount)),
   );
   const currentPosition = $derived(prompt?.positions[completedNotes]);
+  // Spider plays inside a fret window: the frets in play plus one of context.
+  // Note finder keeps the whole neck (that is the point of the drill).
+  const spiderWindow = $derived(
+    normalizedMode.mode === "note-finder"
+      ? undefined
+      : fretWindowAround(
+          prompt ? prompt.positions.map((position) => position.fretNumber) : [startFret, startFret + 3],
+          tuning.fretCount,
+        ),
+  );
   const nextPositionLabel = $derived(
     noteFinderPrompt
       ? noteFinderPrompt.targetNote
@@ -729,6 +740,9 @@
               {normalizedMode.mode === "note-finder"
                 ? "One note name at a time: find it anywhere on the neck."
                 : `${patternLabel} from fret ${startFret} on ${spanLabel.toLowerCase()}, one clean note per beat.`}
+              {#if spiderWindow}
+                <span data-testid="spider-fret-range"> Frets {spiderWindow.start} to {spiderWindow.end} shown.</span>
+              {/if}
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
@@ -783,6 +797,7 @@
         currentIndex={completedNotes}
         visibleFrets={12}
         visibleStrings={prompt?.stringNumbers ?? [stringNumber]}
+        fretWindow={spiderWindow}
         showTargetNotes={normalizedMode.mode !== "note-finder"}
         showActiveTarget={normalizedMode.mode !== "note-finder"}
         onAccepted={playAccepted}

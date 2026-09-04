@@ -9,6 +9,7 @@ test.describe("music string spider", () => {
       .click();
 
     await expect(page.getByRole("heading", { name: "String Independence" })).toBeVisible();
+    await expect(page.getByTestId("spider-fret-range")).toContainText("Frets 4 to 9 shown");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
 
