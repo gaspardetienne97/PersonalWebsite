@@ -415,17 +415,6 @@
   />
 </svelte:head>
 
-<!-- Hand colour key: the surface names each hand per key, this labels the hue. -->
-{#snippet handLegend()}
-  <p class="flex flex-wrap items-center gap-3 text-xs font-medium text-stage-muted">
-    <span class="flex items-center gap-1.5">
-      <span class="size-3 rounded-sm bg-chart-4" aria-hidden="true"></span>Left hand · pulse
-    </span>
-    <span class="flex items-center gap-1.5">
-      <span class="size-3 rounded-sm bg-chart-2" aria-hidden="true"></span>Right hand · line
-    </span>
-  </p>
-{/snippet}
 
 <PracticeScreen>
   <PracticeScreenHeader
@@ -556,7 +545,6 @@
             <p class="text-sm text-stage-muted">{midiStatus}</p>
           </div>
           <div class="grid gap-2">
-            {@render handLegend()}
             <PianoSurface
               router={runtime.router}
               notes={handNotes}
@@ -589,7 +577,6 @@
           <Progress value={Math.min(totalNotes, playedNotes)} max={totalNotes} />
         </div>
         <div class="grid min-w-0 gap-2">
-          {@render handLegend()}
           <PianoSurface
             router={runtime.router}
             notes={handNotes}

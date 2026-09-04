@@ -197,6 +197,25 @@
       .sort((left, right) => left.midiNote - right.midiNote),
   );
 
+  /** Hand of each rendered key, from route highlights or playback. */
+  const handMarkers = $derived(
+    geometry.keys.flatMap((key) => {
+      const hand = highlightFor(key.midiNote)?.hand;
+      return hand ? [{ key, hand }] : [];
+    }),
+  );
+  /** Any hand in view earns the legend; the swatches repeat the key forms. */
+  const showHandLegend = $derived(
+    handMarkers.length > 0 || timeline.some((note) => note.hand !== undefined),
+  );
+
+  function handSwatchClass(hand: PianoHand): string {
+    return cn(
+      "inline-block size-3 shrink-0 rounded-sm",
+      hand === "left" ? "ring-2 ring-inset ring-hand-left bg-hand-left/20" : "bg-hand-right",
+    );
+  }
+
   // ── Waterfall + playback layer ────────────────────────────────────────────
   // Everything here is read-only motion: positions come from the route's
   // `positionBeat`, and nothing feeds back into playback or grading.
@@ -341,18 +360,20 @@
         return "bg-practice-accent text-practice-accent-foreground";
       case "target":
         return "bg-practice-accent/45 ring-1 ring-inset ring-practice-accent";
+      // Hands differ in form as well as hue: left is an outlined ring over a
+      // light tint, right is a solid fill. Both carry an L / R glyph below.
       case "target-left":
-        return "bg-chart-4/70 ring-1 ring-inset ring-chart-4";
+        return "bg-hand-left/20 ring-[3px] ring-inset ring-hand-left";
       case "target-right":
-        return "bg-chart-2/70 ring-1 ring-inset ring-chart-2";
+        return "bg-hand-right/75 ring-1 ring-inset ring-hand-right text-hand-right-foreground";
       // Playing keys sit a shade stronger than their target/upcoming forms so
       // "sounding now" reads at a glance without a new hue.
       case "sounding":
         return "bg-practice-accent/70 ring-2 ring-inset ring-practice-accent";
       case "sounding-left":
-        return "bg-chart-4 ring-2 ring-inset ring-chart-4";
+        return "bg-hand-left/45 ring-[3px] ring-inset ring-hand-left";
       case "sounding-right":
-        return "bg-chart-2 ring-2 ring-inset ring-chart-2";
+        return "bg-hand-right ring-2 ring-inset ring-hand-right text-hand-right-foreground";
       case "upcoming":
         return "bg-info/25";
       case "locate":
@@ -496,8 +517,8 @@
               "absolute rounded-sm",
               // Fill vs outline, not hue alone, separates the hands.
               fall.note.hand === "left"
-                ? "border-2 border-chart-4 bg-chart-4/50"
-                : "bg-chart-2 opacity-90",
+                ? "border-2 border-hand-left bg-hand-left/40"
+                : "bg-hand-right opacity-90",
               fall.note.hand !== undefined && mutedHands.includes(fall.note.hand) && "opacity-40",
             )}
             style:left={`${fall.left}%`}
@@ -518,6 +539,24 @@
       {/each}
       {#each geometry.blackKeys as key (key.midiNote)}
         {@render pianoKeyView(key)}
+      {/each}
+      {#each handMarkers as marker (marker.key.midiNote)}
+        {@const box = keyPercent(geometry, marker.key)}
+        <span
+          data-testid={`hand-marker-${marker.key.midiNote}`}
+          class={cn(
+            "pointer-events-none absolute z-20 grid size-4 place-items-center rounded-full text-[10px] font-bold leading-none",
+            marker.hand === "left"
+              ? "bg-hand-left text-hand-left-foreground"
+              : "bg-hand-right-foreground text-hand-right ring-1 ring-inset ring-hand-right",
+            marker.key.kind === "white" ? "bottom-12" : "top-7",
+          )}
+          style:left={`${box.left + box.width / 2}%`}
+          style:transform="translateX(-50%)"
+          aria-hidden="true"
+        >
+          {marker.hand === "left" ? "L" : "R"}
+        </span>
       {/each}
       {#each fingerMarkers as marker (marker.midiNote)}
         {@const box = keyPercent(geometry, marker.key)}
@@ -541,6 +580,20 @@
     <p class="sr-only" data-testid="piano-summary">{staticSummary}</p>
   {/if}
 
+  {#if showHandLegend}
+    <p
+      data-testid="piano-hand-legend"
+      class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-stage-muted"
+    >
+      <span class="flex items-center gap-1.5">
+        <span class={handSwatchClass("left")} aria-hidden="true"></span>Left hand, outlined L
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span class={handSwatchClass("right")} aria-hidden="true"></span>Right hand, filled R
+      </span>
+    </p>
+  {/if}
+
   {#if onMutedHandsChange}
     <div class="flex flex-wrap gap-2" role="group" aria-label="Hand mute">
       {#each HANDS as hand (hand)}
@@ -555,10 +608,7 @@
           )}
           onclick={() => requestMuteToggle(hand)}
         >
-          <span
-            class={cn("size-2 rounded-full", hand === "left" ? "bg-chart-4" : "bg-chart-2")}
-            aria-hidden="true"
-          ></span>
+          <span class={handSwatchClass(hand)} aria-hidden="true"></span>
           {muted ? "Unmute" : "Mute"}
           {hand} hand
         </button>

@@ -142,6 +142,56 @@ describe("PianoSurface keys", () => {
   });
 });
 
+describe("PianoSurface hands", () => {
+  test("hand targets carry a form marker and a legend, not hue alone", async () => {
+    render(PianoSurface, {
+      lowMidi: 60,
+      highMidi: 71,
+      interactive: false,
+      highlights: {
+        60: { role: "target", hand: "left" },
+        64: { role: "target", hand: "right" },
+        67: "target",
+      },
+    });
+    await tick();
+
+    // Left = outlined ring, right = solid fill, both from the hand tokens.
+    expect(key("C4").className).toContain("ring-hand-left");
+    expect(key("E4").className).toContain("bg-hand-right");
+    expect(key("G4").className).not.toMatch(/hand-/);
+    // An L / R glyph sits on every hand-tagged key; a plain target has none.
+    expect(document.querySelector('[data-testid="hand-marker-60"]')?.textContent).toBe("L");
+    expect(document.querySelector('[data-testid="hand-marker-64"]')?.textContent).toBe("R");
+    expect(document.querySelector('[data-testid="hand-marker-67"]')).toBeNull();
+    // The surface owns the legend, so no route needs to draw its own.
+    const legend = document.querySelector('[data-testid="piano-hand-legend"]');
+    expect(legend?.textContent).toContain("Left hand");
+    expect(legend?.textContent).toContain("Right hand");
+    // Markers and legend add no tab stops to a static diagram.
+    expect(document.querySelectorAll("button, [tabindex], [disabled]")).toHaveLength(0);
+  });
+
+  test("a surface without hand data shows no legend or markers", async () => {
+    render(PianoSurface, { notes: ["C4"], highlights: { 60: "target" }, interactive: false });
+    await tick();
+
+    expect(document.querySelector('[data-testid="piano-hand-legend"]')).toBeNull();
+    expect(document.querySelector('[data-testid^="hand-marker-"]')).toBeNull();
+  });
+
+  test("the surface never colours hands from the chart palette", () => {
+    // Chart tokens swap hue between light and dark; hands must not.
+    const sources = import.meta.glob("./PianoSurface.svelte", {
+      query: "?raw",
+      eager: true,
+    }) as Record<string, { default: string }>;
+    const source = Object.values(sources)[0]?.default ?? "";
+    expect(source.length).toBeGreaterThan(0);
+    expect(source).not.toMatch(/chart-\d/);
+  });
+});
+
 describe("PianoSurface waterfall", () => {
   const timelineNotes = [
     { midiNote: 60, startBeat: 0, durationBeats: 1, hand: "left" as const },

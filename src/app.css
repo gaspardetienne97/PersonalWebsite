@@ -65,6 +65,15 @@
   --piano-key: oklch(0.97 0.004 258);
   --piano-key-line: oklch(0.84 0.012 258);
   --piano-key-black: oklch(0.26 0.02 265);
+  /* Hands on the shared piano surface. Theme-stable like the keys, and kept
+     off every judgement hue (success 152, warn 75, info 250, destructive 27)
+     and off the violet practice accent, so a hand never reads as a verdict.
+     Hue is never the only carrier: left renders outlined with an L glyph,
+     right filled with an R glyph (see PianoSurface). */
+  --hand-left: oklch(0.6 0.11 195);
+  --hand-left-foreground: oklch(0.99 0 0);
+  --hand-right: oklch(0.6 0.18 350);
+  --hand-right-foreground: oklch(0.99 0 0);
   /* Instrument identity hues — badges/switcher/now-playing/accent-line only, never data. */
   --instr-piano: oklch(0.55 0.2 277);
   --instr-guitar: oklch(0.72 0.16 70);
@@ -134,6 +143,11 @@
   --stage-line: oklch(0.3 0.03 265);
   --practice-accent: oklch(0.62 0.2 290);
   --practice-accent-foreground: oklch(0.99 0 0);
+  /* Hands lift a little on charcoal; foregrounds flip to dark for AA on the fill. */
+  --hand-left: oklch(0.72 0.11 195);
+  --hand-left-foreground: oklch(0.18 0.03 195);
+  --hand-right: oklch(0.72 0.16 350);
+  --hand-right-foreground: oklch(0.18 0.04 350);
   /* Instrument hues stay constant across themes (mid-lightness reads on both). */
 }
 
@@ -189,6 +203,10 @@
   --color-piano-key: var(--piano-key);
   --color-piano-key-line: var(--piano-key-line);
   --color-piano-key-black: var(--piano-key-black);
+  --color-hand-left: var(--hand-left);
+  --color-hand-left-foreground: var(--hand-left-foreground);
+  --color-hand-right: var(--hand-right);
+  --color-hand-right-foreground: var(--hand-right-foreground);
   --color-instr: var(--instr);
   --color-instr-piano: var(--instr-piano);
   --color-instr-guitar: var(--instr-guitar);
