@@ -7,6 +7,8 @@ import {
 } from "@repo/music-core/domain";
 import { midiToNote } from "@repo/music-core/engines/theory";
 
+import { pitchCents, recent } from "./aerophone-traces";
+
 export interface AerophoneLongTonePrompt {
   label: string;
   targetMidi: number;
@@ -56,12 +58,16 @@ function longToneRun(prompt: AerophoneLongTonePrompt): ExerciseRun<AerophoneLong
   let firstBreathAt: number | undefined;
   let lastBreathAt: number | undefined;
   let playedMidi: number | undefined;
+  const pitchTrace: number[] = [];
 
   return {
     accept(event) {
-      if (event.type === "noteOn" && playedMidi === undefined) {
-        playedMidi = event.midiNote;
-        input.push(event);
+      if (event.type === "noteOn") {
+        pitchTrace.push(pitchCents(event, prompt.targetMidi));
+        if (playedMidi === undefined) {
+          playedMidi = event.midiNote;
+          input.push(event);
+        }
         return;
       }
       if (event.type !== "cc" || event.controller !== prompt.breathController) return;
@@ -77,6 +83,8 @@ function longToneRun(prompt: AerophoneLongTonePrompt): ExerciseRun<AerophoneLong
       return {
         progress,
         runningScore: steadiness,
+        breathTrace: recent(breathValues),
+        pitchTrace: recent(pitchTrace),
         feedback:
           breathValues.length < 2
             ? []

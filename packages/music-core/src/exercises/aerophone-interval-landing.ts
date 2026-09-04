@@ -7,6 +7,8 @@ import {
 } from "@repo/music-core/domain";
 import { midiToNote } from "@repo/music-core/engines/theory";
 
+import { pitchCents, recent } from "./aerophone-traces";
+
 export type AerophoneIntervalLandingId = "P4" | "P5" | "P8" | "M3" | "m3";
 
 /** Landing direction relative to the drone: ascending (default) or descending. */
@@ -99,14 +101,16 @@ function intervalLandingRun(
   let firstBreathAt: number | undefined;
   let lastBreathAt: number | undefined;
   let playedMidi: number | undefined;
+  const pitchTrace: number[] = [];
 
   return {
     accept(event) {
       if (event.type === "noteOn") {
-        // Grade the note the player SETTLES on, not the first attack — wind
+        // Grade the note the player SETTLES on, not the first attack: wind
         // attacks commonly flub (a brief mis-finger, then the correction), and
         // locking to the first noteOn permanently misgraded the whole hold.
         playedMidi = event.midiNote;
+        pitchTrace.push(pitchCents(event, prompt.targetMidi));
         input.push(event);
         return;
       }
@@ -125,6 +129,8 @@ function intervalLandingRun(
       return {
         progress,
         runningScore,
+        breathTrace: recent(breathValues),
+        pitchTrace: recent(pitchTrace),
         feedback:
           playedMidi === undefined
             ? []

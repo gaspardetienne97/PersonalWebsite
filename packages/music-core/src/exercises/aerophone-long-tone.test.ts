@@ -31,6 +31,10 @@ describe("createAerophoneLongToneExercise", () => {
     expect(run.getLiveState()).toMatchObject({
       progress: 1,
       runningScore: expect.any(Number),
+      // Live traces for the stage: breath samples (the wrong controller is
+      // excluded) and one pitch offset per attack, in cents.
+      breathTrace: [0.7, 0.72, 0.69, 0.71],
+      pitchTrace: [0],
     });
 
     const result = run.finish();
@@ -78,6 +82,32 @@ describe("createAerophoneLongToneExercise", () => {
       actualMidi: 65,
     });
     expect(result.score).toBeLessThan(0.8);
+  });
+
+  test("traces pitch offsets in cents from detected frequency, or whole semitones from MIDI", () => {
+    const exercise = createAerophoneLongToneExercise({ targetMidi: 69, holdMs: 1_000 });
+    const prompt = exercise.generate({
+      targetSkillIds: exercise.skillIds,
+      difficulty: 0.5,
+      instrument: "aerophone",
+    });
+    const run = exercise.createRun(prompt, {
+      targetSkillIds: exercise.skillIds,
+      difficulty: 0.5,
+      instrument: "aerophone",
+    });
+
+    // A4 is 440 Hz; 445 Hz is about +19.6 cents. A later MIDI attack a semitone
+    // low reads as -100 even though the graded note stays the first attack.
+    run.accept({ ...note(69, 0), frequencyHz: 445 });
+    run.accept(note(68, 500));
+
+    const live = run.getLiveState();
+    expect(live.pitchTrace).toHaveLength(2);
+    expect(live.pitchTrace?.[0]).toBeCloseTo(19.56, 1);
+    expect(live.pitchTrace?.[1]).toBe(-100);
+    expect(live.breathTrace).toEqual([]);
+    expect(run.finish().answer?.playedMidi).toBe(69);
   });
 });
 

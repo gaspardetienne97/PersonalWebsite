@@ -20,6 +20,7 @@ import {
   type ScoringMetric,
 } from "@repo/music-core/domain";
 import { midiToNote } from "@repo/music-core/engines/theory";
+import { pitchCents, recent } from "./aerophone-traces";
 
 export type ArticulationStyle = "staccato" | "legato";
 
@@ -99,11 +100,13 @@ function articulationRun(
   const soundingMs: number[] = [];
   const openByMidi = new Map<number, number>();
   const breathValues: number[] = [];
+  const pitchTrace: number[] = [];
 
   return {
     accept(event) {
       if (event.type === "noteOn") {
         input.push(event);
+        pitchTrace.push(pitchCents(event, prompt.targetMidi));
         onsets.push({ midi: event.midiNote, at: Number(event.timestamp) });
         openByMidi.set(event.midiNote, Number(event.timestamp));
         return;
@@ -124,7 +127,13 @@ function articulationRun(
     },
     getLiveState() {
       const progress = Math.min(1, onsets.length / prompt.count);
-      return { progress, runningScore: progress, feedback: [] };
+      return {
+        progress,
+        runningScore: progress,
+        breathTrace: recent(breathValues),
+        pitchTrace: recent(pitchTrace),
+        feedback: [],
+      };
     },
     finish() {
       return grade(prompt, input, onsets, soundingMs, breathValues);

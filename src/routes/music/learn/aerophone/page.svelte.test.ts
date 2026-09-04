@@ -344,6 +344,55 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     expect(document.activeElement?.textContent).toContain("Articulation Trainer");
   });
 
+  test("draws the live breath and pitch traces from the session during a long tone", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+
+    // Before any input the lanes exist but carry no line.
+    expect(document.querySelector('[data-testid="breath-trace"] polyline')).toBeNull();
+
+    runtime.router.push({
+      type: "noteOn",
+      source: "midi",
+      instrument: "aerophone",
+      midiNote: 68,
+      velocity: 1,
+      channel: 1,
+      timestamp: monotonicMs(0),
+      clock: "midi",
+    });
+    for (const [timestamp, value] of [
+      [0, 0.4],
+      [400, 0.6],
+      [800, 0.7],
+    ] as const) {
+      runtime.router.push({
+        type: "cc",
+        source: "midi",
+        instrument: "aerophone",
+        controller: 2,
+        value,
+        channel: 1,
+        timestamp: monotonicMs(timestamp),
+        clock: "midi",
+      });
+    }
+
+    // Three breath samples draw a polyline; the attack a semitone above G4 reads
+    // as +100 cents on the meter.
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-testid="breath-trace"] polyline')?.getAttribute("points"),
+      ).toBeTruthy(),
+    );
+    expect(
+      document.querySelector('[role="img"][aria-label^="Intonation:"]')?.getAttribute("aria-label"),
+    ).toBe("Intonation: 100 cents (sharp)");
+  });
+
   test("switches the central technique stage by Aerophone drill mode", async () => {
     render(Page);
 

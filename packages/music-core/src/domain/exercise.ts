@@ -82,6 +82,17 @@ export interface ExerciseLiveState {
   runningScore: number;
   /** Transient feedback to surface right now (e.g. "behind the beat"). */
   feedback: FeedbackItem[];
+  /**
+   * Recent breath-controller samples, 0-1, oldest first (about the last 64).
+   * Streaming wind exercises fill this so a stage can draw the envelope live.
+   */
+  breathTrace?: number[];
+  /**
+   * Recent pitch offsets from the exercise target in cents, oldest first, one
+   * per attack. MIDI attacks are whole semitones (multiples of 100); audio
+   * attacks with a detected frequency carry the real offset.
+   */
+  pitchTrace?: number[];
 }
 
 /** Why a run ended - recorded for journaling and analytics. */

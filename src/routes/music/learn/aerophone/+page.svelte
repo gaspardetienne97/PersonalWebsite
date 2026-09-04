@@ -7,6 +7,7 @@
   import { unixMs, type NoteEvent } from "@repo/music-core/domain";
   import { AEROPHONE_RANGE, aerophoneChart } from "@repo/music-core/engines/aerophone-fingering";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+  import { intonationZone } from "@repo/music-core/engines/audio-in";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
@@ -45,6 +46,8 @@
   import PracticeStage from "../../_components/PracticeStage.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
+  import CentsMeter from "../../_components/CentsMeter.svelte";
+  import PitchTrace from "../../_components/PitchTrace.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
@@ -163,6 +166,18 @@
   );
   const activePrompt = $derived(longTonePrompt ?? swellPrompt ?? articulationPrompt ?? intervalPrompt);
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
+  // Live traces from the session: breath samples (0-1) and pitch offsets in cents.
+  const breathTrace = $derived<number[]>(sessionState?.live?.breathTrace ?? []);
+  const pitchTrace = $derived<number[]>(sessionState?.live?.pitchTrace ?? []);
+  const lastCents = $derived(pitchTrace.at(-1) ?? 0);
+  const PITCH_TOLERANCE_CENTS = 15;
+  const breathPoints = $derived(
+    breathTrace.length < 2
+      ? ""
+      : breathTrace
+          .map((value, index) => `${((index / (breathTrace.length - 1)) * 600).toFixed(1)},${(76 - Math.max(0, Math.min(1, value)) * 72).toFixed(1)}`)
+          .join(" "),
+  );
   const liveControl = $derived(Math.round((sessionState?.live?.runningScore ?? 0) * 100));
   const targetMidi = $derived(activePrompt?.targetMidi ?? selected);
   const targetLabel = $derived(midiToNote(targetMidi));
@@ -859,6 +874,34 @@
     </div>
   {/snippet}
 
+  <!-- Live breath envelope from the session (about the last 64 CC2 samples). -->
+  {#snippet breathTraceLane()}
+    <svg
+      viewBox="0 0 600 80"
+      preserveAspectRatio="none"
+      class="h-16 w-full"
+      aria-hidden="true"
+      data-testid="breath-trace"
+    >
+      <line x1="0" y1="76" x2="600" y2="76" class="stroke-stage-line" stroke-width="1" />
+      {#if breathPoints}
+        <polyline points={breathPoints} fill="none" class="stroke-success" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      {/if}
+    </svg>
+  {/snippet}
+
+  {#snippet pitchLane()}
+    <div class="grid gap-2" data-testid="pitch-trace">
+      <CentsMeter
+        cents={lastCents}
+        zone={intonationZone(lastCents, PITCH_TOLERANCE_CENTS)}
+        toleranceCents={PITCH_TOLERANCE_CENTS}
+        active={pitchTrace.length > 0}
+      />
+      <PitchTrace trace={pitchTrace} toleranceCents={PITCH_TOLERANCE_CENTS} class="h-14" />
+    </div>
+  {/snippet}
+
   {#snippet summaryPhase()}
     {@const completedResult = summary?.results[0]}
     {@const completedArticulation = completedResult?.prompt && "style" in completedResult.prompt}
@@ -1121,6 +1164,11 @@
                     <span class="text-lg font-semibold">{intervalTargetLabel}</span>
                   </div>
                 </div>
+                <div class="grid gap-1">
+                  <span class="text-xs text-stage-muted">Pitch against {intervalTargetLabel}</span>
+                  {@render pitchLane()}
+                </div>
+                {@render breathTraceLane()}
               {:else if drillMode === "swell"}
                 <div>
                   <p class="eyebrow">Swell envelope</p>
@@ -1139,7 +1187,12 @@
                     <span>Actual CC2 envelope</span>
                     <span class="tabular-nums">{breathLevel}% live</span>
                   </div>
+                  {@render breathTraceLane()}
                   <Progress value={breathLevel} max={100} />
+                </div>
+                <div class="grid gap-1">
+                  <span class="text-xs text-stage-muted">Pitch against {targetLabel}</span>
+                  {@render pitchLane()}
                 </div>
               {:else if drillMode === "articulation"}
                 <div class="flex flex-wrap items-start justify-between gap-3">
@@ -1167,15 +1220,19 @@
                   <span>Breath starts</span>
                   <span>{articulationStyle === "staccato" ? "Detached attacks" : "Connected airflow"}</span>
                 </div>
+                {@render breathTraceLane()}
               {:else}
                 <div>
                   <p class="eyebrow">Long-tone stage</p>
                   <h3 class="text-base font-semibold">Pitch lane</h3>
                 </div>
                 <div class="grid gap-3 sm:grid-cols-3">
-                  <div class="grid gap-1 rounded-lg border border-stage-line bg-background/60 p-3">
-                    <span class="eyebrow">Pitch lane</span>
-                    <span class="text-lg font-semibold">{targetLabel}</span>
+                  <div class="grid gap-2 rounded-lg border border-stage-line bg-background/60 p-3 sm:col-span-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="eyebrow">Pitch lane</span>
+                      <span class="text-lg font-semibold">{targetLabel}</span>
+                    </div>
+                    {@render pitchLane()}
                   </div>
                   <div class="grid gap-2 rounded-lg border border-stage-line bg-background/60 p-3">
                     <div class="flex items-center justify-between gap-2">
@@ -1183,8 +1240,9 @@
                       <span class="text-xs tabular-nums text-stage-muted">{breathLevel}%</span>
                     </div>
                     <Progress value={breathLevel} max={100} />
+                    {@render breathTraceLane()}
                   </div>
-                  <div class="grid gap-2 rounded-lg border border-stage-line bg-background/60 p-3">
+                  <div class="grid gap-2 rounded-lg border border-stage-line bg-background/60 p-3 sm:col-span-3">
                     <div class="flex items-center justify-between gap-2">
                       <span class="eyebrow">Hold timer</span>
                       <span class="text-xs tabular-nums text-stage-muted">{liveProgress}%</span>
