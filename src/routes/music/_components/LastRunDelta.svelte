@@ -48,7 +48,7 @@
 {#if loaded}
   <p class="text-sm tabular-nums" data-testid="last-run-delta">
     {#if baseline === undefined}
-      <span class="text-muted-foreground">First logged run — the next one compares here.</span>
+      <span class="text-muted-foreground">First logged run. The next one compares here.</span>
     {:else if deltaPct > 0}
       <span class="font-medium text-success">▲ +{deltaPct}%</span>
       <span class="text-muted-foreground">

@@ -26,7 +26,6 @@
     VoicingDrillSession,
     type VoicingDrillState,
   } from "@repo/music-core/engines/voicing-drill-session";
-  import { Badge } from "@repo/ui/badge";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
@@ -128,6 +127,37 @@
       : status,
   );
 
+  const firstTarget = $derived(preview[0]?.chords[0]);
+  const setupSummaryText = $derived(
+    [
+      variantLabel,
+      INSTRUMENT_LABELS[instrument],
+      variant === "major" ? (startPosition === "A" ? "A-B-A" : "B-A-B") : undefined,
+      mono ? undefined : strict ? "Held" : "Lenient",
+      autoAdvance ? "Auto" : "Manual",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  );
+  /** Target keys lit on the one input keyboard (piano and Aerophone fallback). */
+  const targetHighlights = $derived(
+    Object.fromEntries((drillState?.current?.displayMidi ?? []).map((midi) => [midi, "target" as const])),
+  );
+  const readyHighlights = $derived(
+    Object.fromEntries(
+      (firstTarget ? [...(firstTarget.bassMidi === undefined ? [] : [firstTarget.bassMidi]), ...firstTarget.midi] : []).map(
+        (midi) => [midi, "target" as const],
+      ),
+    ),
+  );
+  const chordStrip = $derived(
+    (summary?.results ?? []).map((result) => ({
+      symbol: result.target.symbol,
+      correct: result.correct,
+      score: Math.round(result.score * 100),
+    })),
+  );
+
   let activeHeading = $state<HTMLHeadingElement | null>(null);
   let resultsHeading = $state<HTMLElement | null>(null);
   let setupHeading = $state<HTMLHeadingElement | null>(null);
@@ -197,7 +227,7 @@
   async function initialize(): Promise<void> {
     await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
     ready = true;
-    status = "Pick an instrument and start the ii-V-I drill.";
+    status = "Ready. Press Start, or Space.";
   }
 
   async function startDrill(): Promise<void> {
@@ -263,8 +293,8 @@
       session.start();
       resultsDismissed = false;
       status = autoAdvance
-        ? "Play the voicing — it advances on its own."
-        : "Play the voicing, then press Check.";
+        ? "Play the voicing. It advances on its own."
+        : "Play the voicing, then press Check chord.";
     } catch (error) {
       runtime.endPerformance();
       status = error instanceof Error ? error.message : "The voicing drill could not start.";
@@ -307,7 +337,7 @@
 
   function changeSetup(): void {
     startRequest += 1;
-    status = "Setup ready. Change the voicing settings or start again.";
+    status = "Setup ready.";
     resultsDismissed = true;
   }
 
@@ -344,19 +374,15 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="ii-V-I Voicing Drill"
-    subtitle="Play rootless, minor, and altered dominant voicings through all 12 keys. Graded on your instrument — XP feeds the ii-V-I skill."
-  >
+  <PracticeScreenHeader title="ii-V-I Voicing Drill" compact>
     {#snippet controls()}
       <SourceReadout
-        label="Playing on"
+        label="Input"
         device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
   </PracticeScreenHeader>
-
 
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
@@ -366,18 +392,18 @@
         <Card.Description>Reference</Card.Description>
         <Card.Title class="text-base">Drill preview</Card.Title>
       </Card.Header>
-      <Card.Content class="grid max-h-[28rem] gap-2 overflow-y-auto pr-1 text-sm">
+      <Card.Content class="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
         {#each preview as step (step.key)}
           <div class="rounded-md border px-3 py-2">
             <div class="mb-1 flex items-center justify-between gap-2">
               <span class="font-semibold">{step.key} {variant === "minor" ? "minor" : "major"}</span>
-              <Badge variant="outline">{step.chords.length} chords</Badge>
+              <span class="text-xs text-muted-foreground">{step.chords.length} chords</span>
             </div>
             <div class="grid gap-1">
               {#each step.chords as chord (chord.symbol)}
                 <div class="flex items-baseline justify-between gap-2">
                   <span class="font-medium">{chord.symbol}</span>
-                  <span class="text-right text-xs text-muted-foreground">
+                  <span class="text-right text-xs text-muted-foreground tabular-nums">
                     {previewNotes(chord.midi, chord.bassMidi)}
                   </span>
                 </div>
@@ -389,17 +415,44 @@
     </Card.Root>
   {/snippet}
 
+  {#snippet targetView(midi: number[], highlights: Record<number, "target">, ready: boolean)}
+    {#if instrument === "piano"}
+      <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+        <PianoSurface
+          router={runtime.router}
+          notes={midi}
+          {highlights}
+          noteNames="c"
+          pointerMode={ready ? "auto" : "latch"}
+          onAccepted={playInput}
+        />
+      </div>
+    {:else}
+      <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+        <InstrumentView {midi} {instrument} router={runtime.router} />
+        {#if mono}
+          <PianoSurface router={runtime.router} notes={midi} {highlights} noteNames="c" onAccepted={playInput} />
+        {/if}
+      </div>
+    {/if}
+  {/snippet}
+
+  {#snippet setupSummary()}
+    {setupSummaryText}
+  {/snippet}
+
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>Voicing result</Card.Description>
-        <Card.Title>
-          Drill complete · {Math.round((summary?.accuracy ?? 0) * 100)}% accuracy · +{summary?.xp ?? 0} XP
-        </Card.Title>
+        <Card.Description>{variantLabel} · all 12 keys</Card.Description>
+        <Card.Title>Drill complete</Card.Title>
       {/snippet}
-      {#snippet children()}
-        <p class="text-sm text-muted-foreground">
-          {summary?.total ?? 0} chords completed across all 12 keys.
+      {#snippet metric()}
+        <p class="flex items-baseline gap-1">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {Math.round((summary?.accuracy ?? 0) * 100)}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only">accuracy</span>
         </p>
       {/snippet}
       {#snippet lastRunDelta()}
@@ -409,11 +462,28 @@
           before={visitStartedAt}
         />
       {/snippet}
+      {#snippet children()}
+        <div class="grid gap-2">
+          <p class="eyebrow">Per chord</p>
+          <ul class="grid grid-cols-3 gap-1 sm:grid-cols-6 lg:grid-cols-9" aria-label="Chord results">
+            {#each chordStrip as chord, index (index)}
+              <li
+                class="rounded-md px-2 py-1.5 text-center text-xs font-semibold tabular-nums {chord.correct
+                  ? 'bg-success/15 text-success'
+                  : 'bg-warn/15 text-warn'}"
+              >
+                {chord.symbol}
+                <span class="sr-only">{chord.correct ? "clean" : `${chord.score}%`}</span>
+              </li>
+            {/each}
+          </ul>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          {summary?.total ?? 0} chords · +{summary?.xp ?? 0} XP · Harmony · ii-V-I
+        </p>
+      {/snippet}
       {#snippet actions()}
-        <AdaptiveRetryBar onRetry={() => void startDrill()} retryLabel="Repeat voicings" />
-        <Button type="button" variant="outline" disabled={pending} onclick={() => void startDrill()}>
-          Restart drill
-        </Button>
+        <AdaptiveRetryBar onRetry={() => void startDrill()} retryLabel="Again" />
         <StartShortcut onStart={() => void startDrill()} />
       {/snippet}
       {#snippet routineContinue()}
@@ -430,151 +500,124 @@
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+  <PracticeDrillShell {phase} startPending={pending} {setupSummary} summary={summaryPhase}>
     {#snippet setup()}
-      <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <Card.Root class="self-start">
-          <Card.Header class="gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <Card.Description>Drill</Card.Description>
-              <Card.Title bind:ref={setupHeading} tabindex="-1">
-                {variantLabel} · all 12 keys
-              </Card.Title>
-            </div>
-          </Card.Header>
+      <div class="grid gap-3 rounded-lg border bg-card p-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <SegmentedControl
+            size="sm"
+            ariaLabel="Instrument"
+            options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
+            value={instrument}
+            onChange={(v) => {
+              instrument = v as InstrumentId;
+              runtime.setActiveInstrument(instrument);
+            }}
+          />
+          <SegmentedControl
+            size="sm"
+            ariaLabel="Drill variant"
+            options={[
+              { value: "major", label: "Major" },
+              { value: "minor", label: "Minor" },
+              { value: "altered", label: "Altered V7" },
+            ]}
+            value={variant}
+            onChange={(v) => (variant = v as DrillVariant)}
+          />
+          {#if variant === "major"}
+            <SegmentedControl
+              size="sm"
+              ariaLabel="Start position"
+              options={[
+                { value: "A", label: "A-B-A" },
+                { value: "B", label: "B-A-B" },
+              ]}
+              value={startPosition}
+              onChange={(v) => (startPosition = v as RootlessPosition)}
+            />
+          {/if}
+          {#if !mono}
+            <SegmentedControl
+              size="sm"
+              ariaLabel="Grading"
+              options={[
+                { value: "lenient", label: "Lenient" },
+                { value: "held", label: "Held" },
+              ]}
+              value={strict ? "held" : "lenient"}
+              onChange={(v) => (strict = v === "held")}
+            />
+          {/if}
+          <SegmentedControl
+            size="sm"
+            ariaLabel="Advance"
+            options={[
+              { value: "auto", label: "Auto" },
+              { value: "manual", label: "Manual" },
+            ]}
+            value={autoAdvance ? "auto" : "manual"}
+            onChange={(v) => (autoAdvance = v === "auto")}
+          />
+        </div>
+        {#if mono}
+          <p class="text-xs text-muted-foreground">
+            The Aerophone is monophonic: play each voicing as an ascending arpeggio.
+          </p>
+        {/if}
+      </div>
+    {/snippet}
 
-          <Card.Content class="grid gap-5">
-            <div class="flex flex-wrap items-center gap-2">
-              <SegmentedControl
-                size="sm"
-                ariaLabel="Instrument"
-                options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
-                value={instrument}
-                onChange={(v) => {
-                  instrument = v as InstrumentId;
-                  runtime.setActiveInstrument(instrument);
-                }}
-              />
-              <SegmentedControl
-                size="sm"
-                ariaLabel="Drill variant"
-                options={[
-                  { value: "major", label: "Major" },
-                  { value: "minor", label: "Minor" },
-                  { value: "altered", label: "Altered V7" },
-                ]}
-                value={variant}
-                onChange={(v) => (variant = v as DrillVariant)}
-              />
-              {#if variant === "major"}
-                <SegmentedControl
-                  size="sm"
-                  ariaLabel="Start position"
-                  options={[
-                    { value: "A", label: "A-B-A" },
-                    { value: "B", label: "B-A-B" },
-                  ]}
-                  value={startPosition}
-                  onChange={(v) => (startPosition = v as RootlessPosition)}
-                />
-              {/if}
-              {#if !mono}
-                <SegmentedControl
-                  size="sm"
-                  ariaLabel="Grading"
-                  options={[
-                    { value: "lenient", label: "Lenient" },
-                    { value: "held", label: "Held" },
-                  ]}
-                  value={strict ? "held" : "lenient"}
-                  onChange={(v) => (strict = v === "held")}
-                />
-              {/if}
-              <SegmentedControl
-                size="sm"
-                ariaLabel="Advance"
-                options={[
-                  { value: "auto", label: "Auto" },
-                  { value: "manual", label: "Manual" },
-                ]}
-                value={autoAdvance ? "auto" : "manual"}
-                onChange={(v) => (autoAdvance = v === "auto")}
-              />
-            </div>
-
-            {#if mono}
-              <p class="text-xs text-muted-foreground">
-                The Aerophone is monophonic — play each voicing as an ascending arpeggio.
-              </p>
-            {/if}
-          </Card.Content>
-
-          <Card.Footer class="flex-wrap gap-3">
-            <Button type="button" disabled={!ready || pending} onclick={() => void startDrill()}>
-              Start drill
+    {#snippet readyStage()}
+      <PracticeStage {instrument} class="grid gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · first chord {firstTarget?.symbol ?? ""}</p>
+            <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={setupHeading}>
+              {variantLabel} · all 12 keys
+            </h2>
+            <p class="text-sm text-stage-muted">
+              {mono ? "Play each voicing as an ascending arpeggio." : "Play anything to warm up. Nothing is graded until you start."}
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button type="button" size="lg" disabled={!ready || pending} onclick={() => void startDrill()}>
+              Start
             </Button>
             <StartShortcut onStart={() => void startDrill()} />
-            <p class="text-sm text-muted-foreground">{status}</p>
-          </Card.Footer>
-        </Card.Root>
-
-        <aside class="grid content-start gap-4">
-          {@render drillReference()}
-          <DrillProgressRail
-            title="0 / 36 chords"
-            items={[
-              { label: "Accuracy", value: "0%" },
-              { label: "XP earned", value: 0 },
-              { label: "Skill", value: "ii-V-I (Harmony)" },
-            ]}
-          />
-        </aside>
-      </section>
+          </div>
+        </div>
+        {@render targetView(
+          firstTarget ? [...(firstTarget.bassMidi === undefined ? [] : [firstTarget.bassMidi]), ...firstTarget.midi] : [60, 72],
+          readyHighlights,
+          true,
+        )}
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
+      {@render drillReference()}
     {/snippet}
 
     {#snippet stage()}
-      <PracticeStage instrument={instrument} class="grid gap-5 p-5 sm:p-6">
-        <div class="flex items-start justify-between gap-3">
+      <PracticeStage {instrument} class="grid gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="eyebrow">Focus mode · {variantLabel}</p>
-            <h2
-              class="text-2xl font-bold tracking-tight"
-              tabindex="-1"
-              bind:this={activeHeading}
-            >
+            <p class="eyebrow">{variantLabel} · {mono ? "arpeggio" : "chord"}</p>
+            <h2 class="text-3xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
               {drillState?.current?.symbol}
             </h2>
           </div>
-          <div class="flex items-center gap-2">
-            <Badge variant="secondary">{mono ? "arpeggio" : "chord"}</Badge>
-            <span class="text-sm text-stage-muted tabular-nums">
-              {(drillState?.index ?? 0) + 1} / {drillState?.total ?? 36}
-            </span>
-          </div>
+          <span class="text-sm text-stage-muted tabular-nums">
+            {(drillState?.index ?? 0) + 1} / {drillState?.total ?? 36}
+          </span>
         </div>
 
-        {#if drillState?.current?.displayMidi}
-          <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-4">
-            <p class="text-xs font-semibold uppercase tracking-widest text-stage-muted">
-              Target voicing
-            </p>
-            <InstrumentView
-              midi={drillState.current.displayMidi}
-              {instrument}
-              router={runtime.router}
-            />
-          </div>
-        {/if}
+        {@render targetView(drillState?.current?.displayMidi ?? [], targetHighlights, false)}
 
         <div class="space-y-1.5">
           <div class="flex justify-between text-xs text-stage-muted">
             <span>Notes matched</span><span>{live}%</span>
           </div>
           <Progress value={live} max={100} />
-        </div>
-
-        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-4">
-          <PianoSurface router={runtime.router} pointerMode="latch" onAccepted={playInput} />
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -594,19 +637,15 @@
     {/snippet}
 
     {#snippet stageAction()}
-      <Button type="button" variant="outline" disabled={pending} onclick={cancel}>
-        Cancel drill
-      </Button>
+      <Button type="button" variant="outline" disabled={pending} onclick={cancel}>Stop</Button>
     {/snippet}
 
     {#snippet rail()}
-      {@render drillReference()}
       <DrillProgressRail
-        title={`${drillState?.results.length ?? 0} / ${drillState?.total ?? 36} chords`}
         items={[
+          { label: "Chord", value: `${(drillState?.index ?? 0) + 1} / ${drillState?.total ?? 36}` },
           { label: "Accuracy", value: `${Math.round((drillState?.accuracy ?? 0) * 100)}%` },
-          { label: "XP earned", value: drillState?.xp ?? 0 },
-          { label: "Skill", value: "ii-V-I (Harmony)" },
+          { label: "Skill", value: "ii-V-I" },
         ]}
       />
     {/snippet}
