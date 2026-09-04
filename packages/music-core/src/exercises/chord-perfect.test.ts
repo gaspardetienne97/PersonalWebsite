@@ -192,6 +192,8 @@ describe("createChordPerfectExercise", () => {
       toShapeId: "ukulele.c-major",
       repetitions: 4,
       timed: false,
+      position: 0,
+      toPosition: 0,
     });
 
     expect(
@@ -204,6 +206,8 @@ describe("createChordPerfectExercise", () => {
       toShapeId: "guitar.g-major",
       repetitions: 4,
       timed: false,
+      position: 0,
+      toPosition: 0,
     });
 
     expect(
@@ -220,6 +224,8 @@ describe("createChordPerfectExercise", () => {
       toShapeId: "ukulele.f-major",
       repetitions: 4,
       timed: false,
+      position: 0,
+      toPosition: 0,
     });
 
     expect(
@@ -236,6 +242,19 @@ describe("createChordPerfectExercise", () => {
       toShapeId: "guitar.g-major",
       repetitions: 2,
       timed: false,
+      position: 0,
+      toPosition: 0,
+    });
+
+    // Chord positions round-trip as whole numbers; nonsense falls back to the curated shape.
+    expect(
+      normalizeChordPerfectDrillConfig(
+        new URLSearchParams("shape=guitar.c-major&position=2&toPosition=1"),
+      ),
+    ).toMatchObject({ position: 2, toPosition: 1 });
+    expect(normalizeChordPerfectDrillConfig({ position: -1, toPosition: "abc" })).toMatchObject({
+      position: 0,
+      toPosition: 0,
     });
 
     // One-minute-changes format restores from the shareable timed flag.

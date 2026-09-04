@@ -375,6 +375,47 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     });
   });
 
+  test("steps through chord positions inside one fret window", async () => {
+    render(Page);
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+
+    // Position 0 is the curated open shape on the first frets.
+    expect(document.body.textContent).toContain("Position 1 of");
+    expect(document.body.textContent).toContain("Open position");
+    expect(fretButton(5, 0)).not.toBeUndefined();
+
+    iconButton("Next position")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Position 2 of"));
+    expect(document.body.textContent).toContain("Barre at fret 3");
+    expect(document.querySelector('[data-testid="chord-barre"]')?.textContent).toContain("fret 3");
+    await vi.waitFor(() =>
+      expect(new URLSearchParams(window.location.search).get("position")).toBe("1"),
+    );
+
+    // Only the window around the barre voicing (frets 2 to 6) is on the board.
+    expect(fretButton(5, 2)).not.toBeUndefined();
+    expect(fretButton(5, 6)).not.toBeUndefined();
+    expect(fretButton(5, 0)).toBeUndefined();
+    expect(fretButton(5, 7)).toBeUndefined();
+
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    // C major barre [3,5,5,5,3,x]: voiced strings low → high.
+    for (const [stringNumber, fret] of [
+      [5, 3],
+      [4, 5],
+      [3, 5],
+      [2, 5],
+      [1, 3],
+    ]) {
+      fretButton(stringNumber, fret)?.click();
+    }
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("Chord-perfect check");
+      expect(button("Again")).not.toBeUndefined();
+    });
+  });
+
   test("verifies target chord tones from accumulated fretboard input", async () => {
     render(Page);
 
@@ -749,6 +790,12 @@ async function openSetup(): Promise<void> {
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (candidate) => candidate.textContent?.trim() === label,
+  );
+}
+
+function iconButton(label: string): HTMLButtonElement | undefined {
+  return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+    (candidate) => candidate.getAttribute("aria-label") === label,
   );
 }
 

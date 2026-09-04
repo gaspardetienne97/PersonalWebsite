@@ -51,6 +51,9 @@
   import { Progress } from "@repo/ui/progress";
 
   import FretboardInput from "../../learn/reading/_components/FretboardInput.svelte";
+  import PositionStepper from "../../_components/PositionStepper.svelte";
+  import { fretWindowAround } from "@repo/music-core/engines/projection";
+  import { chordPositionAt, chordPositionsFor, type ChordPosition } from "@repo/music-core/exercises/chord-positions";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
@@ -153,6 +156,8 @@
   let mode = $state<ChordPerfectMode>(initialConfig.mode);
   let shapeId = $state(initialConfig.shapeId);
   let toShapeId = $state(initialConfig.toShapeId);
+  let position = $state(initialConfig.position);
+  let toPosition = $state(initialConfig.toPosition);
   let repetitions = $state(initialConfig.repetitions);
   let timed = $state(initialConfig.timed);
   let bpm = $state(80);
@@ -186,20 +191,53 @@
       transitionShapes[0] ??
       shape,
   );
-  const shapeGuide = $derived(
-    shape.frets
-      .map((fret, index) => ({
-        key: `${shape.id}-${index}`,
-        stringNumber: index + 1,
-        fret,
-        finger: shape.fingers[index] ?? null,
-      }))
-      .reverse(),
-  );
   const tuning = $derived(
     curatedTunings(instrument).find((entry) => entry.id === shape.tuningId) ??
       curatedTunings(instrument)[0]!,
   );
+  // One chord position at a time: the curated shape plus the engine's barre and
+  // closed voicings up the neck. Positions are ChordShapes, so the session,
+  // fingering guide and fretboard all read the active one.
+  const positions = $derived(chordPositionsFor(shape, tuning));
+  const activePosition = $derived(chordPositionAt(shape, tuning, position));
+  const toPositions = $derived(chordPositionsFor(toShape, tuning));
+  const activeToPosition = $derived(chordPositionAt(toShape, tuning, toPosition));
+  const shapeGuide = $derived(
+    activePosition.frets
+      .map((fret, index) => ({
+        key: `${activePosition.id}-${index}`,
+        stringNumber: index + 1,
+        fret,
+        finger: activePosition.fingers[index] ?? null,
+      }))
+      .reverse(),
+  );
+  const positionDetail = (entry: ChordPosition) =>
+    `${entry.positionLabel} · frets ${entry.fretWindow.start} to ${entry.fretWindow.end}`;
+  // The board shows the frets of the position(s) in play plus one of context.
+  const fretWindow = $derived(
+    fretWindowAround(
+      [
+        ...activePosition.frets,
+        ...(mode === "changes" ? activeToPosition.frets : []),
+      ].filter((fret): fret is number => fret !== null),
+      tuning.fretCount,
+    ),
+  );
+  // Finger numbers on the target dots (open strings keep the note name).
+  const dotLabels = $derived.by(() => {
+    const labels: Record<number, string> = {};
+    const add = (entry: ChordPosition) =>
+      entry.frets.forEach((fret, index) => {
+        const finger = entry.fingers[index];
+        if (fret !== null && fret > 0 && finger !== null && finger !== undefined) {
+          labels[tuning.openStrings[index]! + fret] ??= String(finger);
+        }
+      });
+    if (mode === "changes") add(activeToPosition);
+    add(activePosition);
+    return labels;
+  });
   const prompt = $derived(
     sessionState?.currentPrompt &&
       "shapeId" in sessionState.currentPrompt &&
@@ -243,9 +281,9 @@
   let stageHeading = $state<HTMLHeadingElement | null>(null);
   let resultsHeading = $state<HTMLElement | null>(null);
   let previousPhase: "setup" | "stage" | "summary" | undefined;
-  const shapeMidi = $derived(chordShapeMidiNotes(tuning, shape));
+  const shapeMidi = $derived(chordShapeMidiNotes(tuning, activePosition));
   const transitionMidi = $derived([
-    ...new Set([...shapeMidi, ...chordShapeMidiNotes(tuning, toShape)]),
+    ...new Set([...shapeMidi, ...chordShapeMidiNotes(tuning, activeToPosition)]),
   ]);
   const changeMidiNotes = $derived(
     changePrompt?.targets.flatMap((target) => target.midiNotes) ?? [],
@@ -408,6 +446,8 @@
     instrument = config.instrument;
     shapeId = config.shapeId;
     toShapeId = config.toShapeId;
+    position = 0;
+    toPosition = 0;
     clearVerifier();
   }
 
@@ -431,7 +471,22 @@
     const config = normalizeChordPerfectDrillConfig({ mode, instrument, shape: value });
     shapeId = config.shapeId;
     toShapeId = config.toShapeId;
+    position = 0;
+    toPosition = 0;
     clearVerifier();
+  }
+
+  function selectPosition(index: number): void {
+    routeGeneration += 1;
+    releasePreparedStrum();
+    position = Math.max(0, Math.min(positions.length - 1, index));
+    clearVerifier();
+  }
+
+  function selectToPosition(index: number): void {
+    routeGeneration += 1;
+    releasePreparedStrum();
+    toPosition = Math.max(0, Math.min(toPositions.length - 1, index));
   }
 
   function selectToShape(value: string): void {
@@ -439,6 +494,7 @@
     releasePreparedStrum();
     const config = normalizeChordPerfectDrillConfig({ mode, instrument, shape: shapeId, to: value });
     toShapeId = config.toShapeId;
+    toPosition = 0;
   }
 
   function selectRepetitions(value: string): void {
@@ -482,8 +538,8 @@
       if (mode === "changes" && timed) {
         await session.startChordChange({
           tuning,
-          fromShape: shape,
-          toShape,
+          fromShape: activePosition,
+          toShape: activeToPosition,
           durationSeconds: changeDurationSeconds,
         });
         if (request !== startRequest || generation !== routeGeneration) {
@@ -495,7 +551,12 @@
         changeTimer = setTimeout(() => session?.finishNow(), changeDurationSeconds * 1_000);
         status = `Alternate ${shape.name} to ${toShape.name}: as many clean changes as you can.`;
       } else if (mode === "changes") {
-        await session.startChordChange({ tuning, fromShape: shape, toShape, repetitions });
+        await session.startChordChange({
+          tuning,
+          fromShape: activePosition,
+          toShape: activeToPosition,
+          repetitions,
+        });
         if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
           session.abandon();
@@ -503,7 +564,7 @@
         }
         status = `Alternate ${shape.name} to ${toShape.name} cleanly, ${repetitions}×.`;
       } else {
-        await session.startChordPerfect({ tuning, shape });
+        await session.startChordPerfect({ tuning, shape: activePosition });
         if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
           session.abandon();
@@ -651,6 +712,8 @@
       to: toShapeId,
       reps: repetitions,
       timed,
+      position,
+      toPosition,
     });
     const url = new URL(window.location.href);
     const params = url.searchParams;
@@ -659,13 +722,18 @@
     params.set("tuning", config.tuningId);
     params.set("shape", config.shapeId);
     params.set("bpm", String(bpm));
+    if (config.position > 0) params.set("position", String(config.position));
+    else params.delete("position");
     if (config.mode === "changes") {
       params.set("to", config.toShapeId);
+      if (config.toPosition > 0) params.set("toPosition", String(config.toPosition));
+      else params.delete("toPosition");
       params.set("reps", String(config.repetitions));
       if (config.timed) params.set("timed", "1");
       else params.delete("timed");
     } else {
       params.delete("to");
+      params.delete("toPosition");
       params.delete("reps");
       params.delete("timed");
     }
@@ -955,7 +1023,7 @@
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
   {#snippet setupSummaryLine()}
-    {modeCopy.title} · {instrumentLabel} · {shape.name}{mode === "changes" ? ` to ${toShape.name} · ${timed ? "One-minute" : `${repetitions}×`}` : ""} · {bpm} BPM
+    {modeCopy.title} · {instrumentLabel} · {shape.name}{mode === "changes" ? ` to ${toShape.name} · ${timed ? "One-minute" : `${repetitions}×`}` : ""} · {activePosition.positionLabel} · {bpm} BPM
   {/snippet}
 
   <!-- Chord pickers: the chord is the drill, so they stay on the ready stage. -->
@@ -975,6 +1043,12 @@
           {/each}
         </select>
       </div>
+      <PositionStepper
+        index={position}
+        count={positions.length}
+        detail={positionDetail(activePosition)}
+        onChange={selectPosition}
+      />
       {#if mode === "changes"}
         <div class="grid gap-2">
           <Label for="target-chord-shape">To chord</Label>
@@ -990,6 +1064,13 @@
             {/each}
           </select>
         </div>
+        <PositionStepper
+          label="To position"
+          index={toPosition}
+          count={toPositions.length}
+          detail={positionDetail(activeToPosition)}
+          onChange={selectToPosition}
+        />
       {/if}
     </div>
   {/snippet}
@@ -998,8 +1079,14 @@
     <div class="grid gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <p class="text-sm font-medium">Suggested fingering</p>
-        <p class="text-xs text-stage-muted">Low string to high string</p>
+        <p class="text-xs text-stage-muted">{activePosition.positionLabel} · low string to high string</p>
       </div>
+      {#if activePosition.barre}
+        <p class="text-sm" data-testid="chord-barre">
+          Barre: finger 1 across strings {activePosition.barre.fromString} to {activePosition.barre.toString}
+          at fret {activePosition.barre.fret}.
+        </p>
+      {/if}
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {#each shapeGuide as string (string.key)}
           <div class="rounded-md border border-stage-line bg-background/60 px-3 py-2 text-sm">
@@ -1032,7 +1119,9 @@
         targetMidiNotes={targetMidi}
         activeMidiNotes={nextMidi === undefined ? [] : [nextMidi]}
         correctMidiNotes={correctMidi}
-        visibleFrets={5}
+        visibleFrets={tuning.fretCount}
+        {fretWindow}
+        {dotLabels}
         onAccepted={playAccepted}
       />
     </div>
@@ -1048,7 +1137,7 @@
         unit="%"
         tone="good"
       />
-      <HudTile size="sm" label="Chord" value={mode === "changes" ? `${shape.name} to ${toShape.name}` : shape.name} tone="accent" />
+      <HudTile size="sm" label="Chord" value={mode === "changes" ? `${shape.name} to ${toShape.name}` : `${shape.name} · ${activePosition.positionLabel}`} tone="accent" />
       <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
     </div>
   {/snippet}

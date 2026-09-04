@@ -56,6 +56,9 @@ export interface ChordPerfectDrillConfig {
   repetitions: number;
   /** Change-trainer timed format: one-minute changes instead of fixed reps. */
   timed: boolean;
+  /** Index into `chordPositionsFor(shape)`; 0 is the curated shape. Clamped by the route. */
+  position: number;
+  toPosition: number;
 }
 
 export interface ChordPerfectDrillConfigSource {
@@ -73,6 +76,8 @@ export interface ChordPerfectDrillConfigSource {
   reps?: unknown;
   repetitions?: unknown;
   timed?: unknown;
+  position?: unknown;
+  toPosition?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -172,6 +177,8 @@ export const CHORD_PERFECT_DRILL_DEFAULT_CONFIG: ChordPerfectDrillConfig = {
   toShapeId: "guitar.g-major",
   repetitions: 4,
   timed: false,
+  position: 0,
+  toPosition: 0,
 };
 
 export const CHORD_CHANGE_REPETITION_OPTIONS = [1, 2, 4, 8] as const;
@@ -230,7 +237,16 @@ export function normalizeChordPerfectDrillConfig(
         readChordPerfectConfigValue(source, "repetitions"),
     ),
     timed: normalizeTimedFlag(readChordPerfectConfigValue(source, "timed")),
+    position: normalizePositionIndex(readChordPerfectConfigValue(source, "position")),
+    toPosition: normalizePositionIndex(readChordPerfectConfigValue(source, "toPosition")),
   };
+}
+
+/** A non-negative whole number; the route clamps it to the positions that exist. */
+function normalizePositionIndex(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return Math.trunc(parsed);
 }
 
 function normalizeTimedFlag(value: unknown): boolean {
