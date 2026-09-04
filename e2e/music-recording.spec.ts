@@ -2,7 +2,8 @@ import { expect, test } from "@playwright/test";
 
 test.describe("music recording & self-review", () => {
   test("renders the take list and compare panel", async ({ page }) => {
-    const response = await page.goto("/music/recording");
+    // Recording is the "recorder" mode of the unified Create workspace.
+    const response = await page.goto("/music/create?mode=recorder");
     expect(response?.status()).toBe(200);
 
     await expect(page.getByRole("heading", { name: "Recording & Self-Review" })).toBeVisible();

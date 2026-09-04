@@ -329,6 +329,28 @@ describe("music-core/sound", () => {
     expect(mock.playerFor("kick").start).toHaveBeenCalledWith(3);
   });
 
+  test("nudges a same-time retrigger of one pad strictly after its previous start", async () => {
+    // Tone.Player throws "Start time must be strictly greater than previous start
+    // time" when one pad is started twice at the same audio time. A pad audition
+    // and the pattern loop can both resolve to the same now() under load.
+    const mock = createToneMock({ now: () => 10 });
+    const sound = new SoundEngine(async () => mock.tone);
+    await sound.enable();
+    await sound.loadDrumKit([
+      { padId: "kick", midiNote: 36, url: "/samples/kick.wav" },
+      { padId: "snare", midiNote: 38, url: "/samples/snare.wav" },
+    ]);
+
+    sound.playDrum("kick"); // audition: resolves to now() = 10
+    sound.playDrum("kick", 10); // pattern step 0 scheduled at the same time
+    sound.playDrum("snare", 10); // another pad at that time is untouched
+
+    const kickStarts = mock.playerFor("kick").start.mock.calls.map(([time]) => time as number);
+    expect(kickStarts[0]).toBe(10);
+    expect(kickStarts[1]).toBeGreaterThan(10);
+    expect(mock.playerFor("snare").start).toHaveBeenCalledWith(10);
+  });
+
   test("routes synth, sampler, drums, and drone through playback while clicks use metronome", async () => {
     const mock = createToneMock();
     const sound = new SoundEngine(async () => mock.tone);

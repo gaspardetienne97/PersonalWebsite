@@ -5,6 +5,9 @@ import { midiToNote } from "@repo/music-core/engines/theory";
 
 type ToneTime = number | string;
 
+/** Forward nudge for a same-time pad retrigger (see {@link SoundEngine.playDrum}). */
+const DRUM_RETRIGGER_NUDGE_SEC = 0.001;
+
 interface ToneInstrument {
   triggerAttackRelease(
     notes: string | string[] | number,
@@ -206,6 +209,8 @@ export class SoundEngine {
   #patternVoice: ToneInstrument | undefined;
   #sampler: ToneInstrument | undefined;
   #players: TonePlayers | undefined;
+  /** Last scheduled start per pad; Tone.Player rejects a start that is not strictly later. */
+  #lastDrumStart = new Map<string, number>();
   #metronome: ToneInstrument | undefined;
   #drone: ToneInstrument | undefined;
   #master: ToneGain | undefined;
@@ -514,6 +519,7 @@ export class SoundEngine {
     }
     const previous = this.#players;
     this.#players = connected;
+    this.#lastDrumStart.clear();
     previous?.dispose();
   }
 
@@ -521,7 +527,16 @@ export class SoundEngine {
     if (!this.enabled || !this.#tone || !this.#players) return;
     const player = this.#players.player(padId);
     player.volume.value = this.#tone.gainToDb(clampVelocity(velocity));
-    player.start(time);
+    let at = time ?? this.#tone.now();
+    if (typeof at === "number") {
+      // A pad audition and the pattern loop can resolve to the same now() under
+      // load; Tone throws "Start time must be strictly greater than previous start
+      // time". Nudge the collision forward by an inaudible millisecond.
+      const last = this.#lastDrumStart.get(padId);
+      if (last !== undefined && at <= last) at = last + DRUM_RETRIGGER_NUDGE_SEC;
+      this.#lastDrumStart.set(padId, at);
+    }
+    player.start(at);
   }
 
   stopDrum(padId: string, time?: ToneTime): void {

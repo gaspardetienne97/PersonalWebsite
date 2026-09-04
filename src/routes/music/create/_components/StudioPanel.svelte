@@ -518,7 +518,8 @@
   });
 </script>
 
-<div class="grid gap-6">
+<!-- minmax(0,1fr): let the track shrink below the 640px step grid so its overflow-x-auto scroller engages on phones. -->
+<div class="grid grid-cols-[minmax(0,1fr)] gap-6">
   <section class="flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 sm:flex-row sm:items-start">
     <div>
       <h2 class="text-xl font-semibold tracking-tight">Studio</h2>
