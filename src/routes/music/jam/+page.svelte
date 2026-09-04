@@ -22,7 +22,8 @@
     type JamProgression,
     type JamProgressionGroup,
     type TargetTone,
-  } from "@repo/music-core/engines/jam";
+    type ToneRole,
+} from "@repo/music-core/engines/jam";
   import { JAZZ_BACKING_TRACKS } from "@repo/music-core/engines/jazz";
   import { RecordingSession, takeToScore, type Take } from "@repo/music-core/engines/recording";
   import { scoreToPattern } from "@repo/music-core/engines/sound";
@@ -34,10 +35,11 @@
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import MidiTakeReviewPanel from "../_components/MidiTakeReviewPanel.svelte";
-  import ProgressionChartStage from "../_components/ProgressionChartStage.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
   import PianoSurface from "../_components/piano/PianoSurface.svelte";
+  import HudTile from "../_components/HudTile.svelte";
+  import PracticeStage from "../_components/PracticeStage.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
@@ -114,7 +116,8 @@
   let playStartedAt: number | undefined;
   let pausedOffsetMs = 0;
   let transportTimer: ReturnType<typeof setInterval> | undefined;
-  let chorusCount = 0;
+  let chorusCount = $state(0);
+  let setupOpen = $state(false);
   let chorusTally = { chord: 0, scale: 0, outside: 0 };
   let chorusReports = $state<ChorusReport[]>([]);
   const drumTrack = $derived(drumTracks.find((t) => t.id === drumTrackId) ?? drumTracks[0]!);
@@ -148,6 +151,19 @@
   // Bundled drum tracks run at their own tempo; generated chords follow the transport.
   const effectiveBpm = $derived(
     backingState.selection.kind === "builtin" ? backingState.selection.track.bpm || backingBpm : backingBpm,
+  );
+  const transposeLabel = $derived(
+    Number(transposeSemitones) > 0 ? `+${transposeSemitones}` : String(Number(transposeSemitones)),
+  );
+  // One keyboard carries the current chord's tone roles by pitch class over three octaves.
+  const KEY_RANGE = Array.from({ length: 37 }, (_, i) => 48 + i);
+  const keyToneRoles = $derived(
+    Object.fromEntries(
+      KEY_RANGE.map((midi) => [
+        midi,
+        tones.find((tone) => tone.pitchClass === midi % 12)?.role ?? ("avoid" as ToneRole),
+      ]),
+    ) as Record<number, ToneRole>,
   );
   const sourceLabel = $derived(
     runtime.activeSource === "midi" ? "MIDI" : runtime.activeSource === "audio" ? "Audio" : "On-screen",
@@ -552,12 +568,9 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Jam / Improv"
-    subtitle="Backing changes play the progression — target tones light up on your instrument."
-  >
+  <PracticeScreenHeader title="Jam / Improv" compact>
     {#snippet controls()}
-      <SourceReadout label="Soloing on" device={sourceLabel} live={runtime.activeSource === "midi"} />
+      <SourceReadout label="Input" device={sourceLabel} live={runtime.activeSource === "midi"} />
       <Button type="button" variant={recording ? "default" : "outline"} onclick={toggleRecording}>
         <Circle class="size-4 {recording ? 'fill-current text-destructive' : ''}" aria-hidden="true" />
         {recording ? `Stop chorus · Recording · ${recordedCount}` : "Record chorus"}
@@ -565,155 +578,195 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-    <div class="grid gap-6">
-      <ProgressionChartStage {progression} {currentIndex} {tones} />
-      <MidiTakeReviewPanel
-        title="Review chorus takes"
-        description="Compare recorded chorus ideas against the current progression."
-        emptyLabel="Recorded chorus takes will appear here."
-        takes={midiTakes}
-        selectedTake={selectedMidiTake}
-        playingTakeId={playingMidiTakeId}
-        onSelectTake={selectMidiTake}
-        onPlayTake={toggleMidiTake}
-        onPauseTake={() => stopMidiTake()}
-        onDeleteTake={deleteMidiTake}
-        onPracticeTake={practiceMidiTake}
-        onOpenInPianoRoll={openMidiTakeInPianoRoll}
-      />
-
-      {#if chorusReports.length > 0}
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Chorus tone report</Card.Description>
-            <Card.Title class="text-base">How your solo sat on the changes</Card.Title>
-          </Card.Header>
-          <Card.Content>
-            <ol class="grid gap-2 text-sm" aria-label="Chorus tone report">
-              {#each chorusReports as report (report.chorus)}
-                <li class="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2">
-                  <span class="font-medium">Chorus {report.chorus} · {report.notes} notes</span>
-                  <span class="tabular-nums text-muted-foreground">
-                    {report.chordPct}% chord tones · {report.scalePct}% scale · {report.outsidePct}% outside
-                  </span>
-                </li>
-              {/each}
-            </ol>
-          </Card.Content>
-        </Card.Root>
-      {/if}
-
-      <!-- Solo input -->
-      <Card.Root>
-        <Card.Header class="flex-row items-center justify-between gap-2">
-          <Card.Description>Play your solo</Card.Description>
-          <div class="flex gap-2">
-            <Button type="button" variant="secondary" size="sm" onclick={playChord}>
-              <Play class="size-4" aria-hidden="true" />Play chord
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={backingState.status === "playing"}
-              onclick={advance}
-            >
-              <SkipForward class="size-4" aria-hidden="true" />Next chord
-            </Button>
-          </div>
-        </Card.Header>
-        <Card.Content>
-          <PianoSurface router={runtime.router} onAccepted={playSolo} />
-        </Card.Content>
-      </Card.Root>
+  <!-- Setup summary + the pickers that are the jam itself (group, progression, backing source);
+       transpose and the drum track sit behind Edit setup, like the drill shell. -->
+  <section class="grid min-w-0 gap-3 rounded-lg border bg-card p-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <p class="text-sm">
+        <span class="eyebrow mr-2">Setup</span>
+        {progression.name} · {progression.key} · {backingMode === "drums" ? "Drum track" : "Synth chords"} ·
+        Transpose {transposeLabel} · {backingBpm} BPM
+      </p>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        aria-expanded={setupOpen}
+        aria-controls="jam-setup"
+        onclick={() => (setupOpen = !setupOpen)}
+      >
+        {setupOpen ? "Hide setup" : "Edit setup"}
+      </Button>
     </div>
-
-    <!-- Backing controls -->
-    <aside class="grid min-w-0 content-start gap-4">
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Backing track</Card.Description>
-          <Card.Title>Style</Card.Title>
-        </Card.Header>
-        <Card.Content class="grid gap-3">
-          <SegmentedControl
-            class="w-full"
-            ariaLabel="Group"
-            options={groupOptions}
-            value={progressionGroup}
-            onChange={selectGroup}
-          />
-          <SegmentedControl
-            class="w-full"
-            ariaLabel="Progression"
-            options={progressionOptions}
-            value={progressionId}
-            onChange={selectStyle}
-          />
-          <SegmentedControl
-            class="w-full"
-            ariaLabel="Transpose"
-            options={transposeOptions}
-            value={transposeSemitones}
-            onChange={selectTranspose}
-          />
-
+    <div class="flex flex-wrap gap-3">
+      <SegmentedControl ariaLabel="Group" options={groupOptions} value={progressionGroup} onChange={selectGroup} />
+      <SegmentedControl
+        size="sm"
+        ariaLabel="Backing source"
+        options={[
+          { value: "drums", label: "Drum track" },
+          { value: "chords", label: "Synth chords" },
+        ]}
+        value={backingMode}
+        onChange={selectBackingMode}
+      />
+    </div>
+    <SegmentedControl ariaLabel="Progression" options={progressionOptions} value={progressionId} onChange={selectStyle} />
+    {#if setupOpen}
+      <div id="jam-setup" class="grid gap-3 border-t pt-3">
+        <div class="grid gap-2">
+          <span class="text-sm font-medium">Transpose</span>
+          <SegmentedControl size="sm" ariaLabel="Transpose" options={transposeOptions} value={transposeSemitones} onChange={selectTranspose} />
+        </div>
+        {#if backingMode === "drums"}
           <div class="grid gap-2">
-            <span
-              class="eyebrow"
-            >Backing source</span>
-            <SegmentedControl
-              class="w-full"
-              size="sm"
-              options={[
-                { value: "drums", label: "Drum track" },
-                { value: "chords", label: "Synth chords" },
-              ]}
-              value={backingMode}
-              onChange={selectBackingMode}
-            />
-            {#if backingMode === "drums"}
-              <select
-                bind:value={drumTrackId}
-                aria-label="Drum backing track"
-                class="h-9 rounded-md border bg-background px-3 text-sm"
-              >
-                {#each drumTracks as track (track.id)}
-                  <option value={track.id}>{track.label}</option>
-                {/each}
-              </select>
-              {#if drumTrack.songs.length}
-                <p class="text-xs text-muted-foreground">For: {drumTrack.songs.join(", ")}</p>
-              {/if}
+            <label class="text-sm font-medium" for="jam-drum-track">Drum track</label>
+            <select
+              id="jam-drum-track"
+              bind:value={drumTrackId}
+              aria-label="Drum backing track"
+              class="h-9 max-w-md rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each drumTracks as track (track.id)}
+                <option value={track.id}>{track.label}</option>
+              {/each}
+            </select>
+            {#if drumTrack.songs.length}
+              <p class="text-xs text-muted-foreground">For: {drumTrack.songs.join(", ")}</p>
             {/if}
           </div>
-
-          <div class="grid gap-1 text-sm">
-            <div class="flex justify-between"><span class="text-muted-foreground">Key</span><span class="font-medium">{progression.key}</span></div>
-            <div class="flex justify-between"><span class="text-muted-foreground">Next</span><span class="font-medium">{next.symbol}</span></div>
-            <div class="flex justify-between"><span class="text-muted-foreground">Backing</span><span class="font-medium capitalize">{backingState.status}</span></div>
-            <div class="flex justify-between"><span class="text-muted-foreground">Recorded</span><span class="font-medium tabular-nums">{recordedCount} notes</span></div>
-          </div>
-          <div class="flex gap-2">
-            <Button type="button" class="flex-1" onclick={() => void playBacking()}>
-              {#if backingState.status === "playing"}
-                <Pause class="size-4" aria-hidden="true" />Pause backing
-              {:else}
-                <Play class="size-4" aria-hidden="true" />Play backing
-              {/if}
-            </Button>
-            <Button type="button" variant="outline" class="flex-1" onclick={stopBacking}>
-              Stop
-            </Button>
-          </div>
-          {#if playbackError || backingState.message}
-            <p class="text-sm text-destructive" role="alert">
-              {playbackError || backingState.message}
-            </p>
-          {/if}
-        </Card.Content>
-      </Card.Root>
-    </aside>
+        {/if}
+        <p class="text-xs text-muted-foreground">Tempo lives in the practice controls above: {backingBpm} BPM.</p>
+      </div>
+    {/if}
   </section>
+
+  <PracticeStage class="grid min-w-0 gap-4 p-4 sm:p-6">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="text-xs font-semibold tracking-wide text-stage-muted">
+          Now playing · {current.roman} in {progression.key} ·
+          <span data-testid="progression-current-symbol">{current.symbol}</span>
+        </p>
+        <h2 class="text-xl font-semibold tracking-tight">{progression.name}</h2>
+        <p class="text-sm text-stage-muted">
+          {current.scale} · next {next.symbol}
+          {#if backingState.status === "playing"}· chorus {chorusCount + 1}{/if}
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" onclick={playChord}>
+          <Play class="size-4" aria-hidden="true" />Play chord
+        </Button>
+        <Button type="button" variant="outline" disabled={backingState.status === "playing"} onclick={advance}>
+          <SkipForward class="size-4" aria-hidden="true" />Next chord
+        </Button>
+        <Button type="button" onclick={() => void playBacking()}>
+          {#if backingState.status === "playing"}
+            <Pause class="size-4" aria-hidden="true" />Pause backing
+          {:else}
+            <Play class="size-4" aria-hidden="true" />Play backing
+          {/if}
+        </Button>
+        <Button type="button" variant="outline" onclick={stopBacking}>Stop</Button>
+      </div>
+    </div>
+
+    <ol class="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label={`${progression.name} chord chart`}>
+      {#each progression.chords as chord, index (`${chord.symbol}-${index}`)}
+        {@const state =
+          index === currentIndex
+            ? "current"
+            : index === (currentIndex + 1) % progression.chords.length
+              ? "next"
+              : "upcoming"}
+        <li
+          data-testid={`progression-cell-${index}`}
+          data-state={state}
+          class={[
+            "grid gap-0.5 rounded-lg border p-2.5 text-center text-sm sm:p-3",
+            state === "current" && "border-practice-accent bg-practice-accent/15 ring-1 ring-practice-accent/30",
+            state === "next" && "border-dashed border-stage-line bg-stage-2",
+            state === "upcoming" && "border-stage-line bg-stage-2/60",
+          ]}
+        >
+          <span class="text-base font-bold sm:text-lg">{chord.symbol}</span>
+          <span class="text-xs text-stage-muted">
+            {chord.roman}{state === "current" ? " · now" : state === "next" ? " · next" : ""}
+          </span>
+          <span class="text-[0.6875rem] font-medium text-stage-muted">{chord.scale} · {chord.bars} bars</span>
+        </li>
+      {/each}
+    </ol>
+
+    <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-xs font-semibold tracking-wide text-stage-muted">Target tones · {current.symbol} / {current.scale}</p>
+        <div class="flex flex-wrap items-center gap-3 text-xs text-stage-muted">
+          <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-primary"></span>Chord tones</span>
+          <span class="flex items-center gap-1.5">
+            <span class="size-3 rounded-full bg-primary/25 ring-1 ring-inset ring-primary"></span>Scale tones
+          </span>
+          <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-muted"></span>Avoid</span>
+        </div>
+      </div>
+      <PianoSurface
+        router={runtime.router}
+        lowMidi={48}
+        highMidi={84}
+        toneRoles={keyToneRoles}
+        noteNames="c"
+        onAccepted={playSolo}
+      />
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HudTile size="sm" label="Backing" value={backingState.status} />
+      <HudTile size="sm" label="Tempo" value={effectiveBpm} unit="BPM" />
+      <HudTile size="sm" label="Recorded" value={recordedCount} unit="notes" />
+      <HudTile size="sm" label="Chorus" value={backingState.status === "playing" ? chorusCount + 1 : "idle"} />
+    </div>
+
+    {#if playbackError || backingState.message}
+      <p class="text-sm text-destructive" role="alert">
+        {playbackError || backingState.message}
+      </p>
+    {/if}
+  </PracticeStage>
+
+  {#if chorusReports.length > 0}
+    <Card.Root>
+      <Card.Header>
+        <Card.Description>Chorus tone report</Card.Description>
+        <Card.Title class="text-base">How your solo sat on the changes</Card.Title>
+      </Card.Header>
+      <Card.Content>
+        <ol class="grid gap-2 text-sm" aria-label="Chorus tone report">
+          {#each chorusReports as report (report.chorus)}
+            <li class="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2">
+              <span class="font-medium">Chorus {report.chorus} · {report.notes} notes</span>
+              <span class="tabular-nums text-muted-foreground">
+                {report.chordPct}% chord tones · {report.scalePct}% scale · {report.outsidePct}% outside
+              </span>
+            </li>
+          {/each}
+        </ol>
+      </Card.Content>
+    </Card.Root>
+  {/if}
+
+  <MidiTakeReviewPanel
+    title="Review chorus takes"
+    description="Compare recorded chorus ideas against the current progression."
+    emptyLabel="Recorded chorus takes will appear here."
+    takes={midiTakes}
+    selectedTake={selectedMidiTake}
+    playingTakeId={playingMidiTakeId}
+    onSelectTake={selectMidiTake}
+    onPlayTake={toggleMidiTake}
+    onPauseTake={() => stopMidiTake()}
+    onDeleteTake={deleteMidiTake}
+    onPracticeTake={practiceMidiTake}
+    onOpenInPianoRoll={openMidiTakeInPianoRoll}
+  />
 </PracticeScreen>

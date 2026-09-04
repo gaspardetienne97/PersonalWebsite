@@ -51,6 +51,16 @@ function createRuntimeStub() {
   return runtime;
 }
 
+// Transpose and the drum-track select sit behind "Edit setup"; group, progression
+// and backing source stay visible.
+async function openSetup(): Promise<void> {
+  const toggle = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+    (button) => button.textContent?.trim() === "Edit setup",
+  );
+  toggle?.click();
+  await vi.waitFor(() => expect(document.querySelector('[aria-label="Transpose"]')).not.toBeNull());
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((next) => {
@@ -253,6 +263,7 @@ describe("/music/jam/+page.svelte", () => {
     expect(document.body.textContent).toContain("12-bar blues");
     expect(document.body.textContent).toContain("D7");
     expect(document.body.textContent).toContain("Synth chords");
+    await openSetup();
     expect(
       document.querySelector('[aria-label="Transpose"] button[aria-pressed="true"]')?.textContent,
     ).toContain("+2");
@@ -262,6 +273,7 @@ describe("/music/jam/+page.svelte", () => {
     setTestUrl("/music/jam");
     const runtime = createRuntimeStub();
     render(Page, { props: { runtime: runtime as unknown as MusicRuntime } });
+    await openSetup();
 
     [...document.querySelectorAll<HTMLButtonElement>("button")]
       .find((button) => button.textContent?.trim() === "Modal")

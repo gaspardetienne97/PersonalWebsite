@@ -17,6 +17,7 @@ test.describe("music jam / improv", () => {
     await page.goto("/music/jam");
 
     await expect(page.getByRole("heading", { name: "Jam / Improv" })).toBeVisible();
+    await page.getByRole("button", { name: "Edit setup" }).click();
     await expect(page.getByRole("group", { name: "Transpose" })).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
