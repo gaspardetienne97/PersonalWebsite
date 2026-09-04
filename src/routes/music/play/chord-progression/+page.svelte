@@ -731,7 +731,7 @@
         {@render chordStrip(0, undefined)}
         <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="eyebrow">First up · {currentChord.symbol} / {currentChord.scale}</p>
+            <p class="text-xs font-semibold tracking-wide text-stage-muted">First up · {currentChord.symbol} / {currentChord.scale}</p>
             {@render toneLegend()}
           </div>
           <PianoSurface lowMidi={48} highMidi={84} notes={currentChordMidi} toneRoles={keyToneRoles} highlights={keyTargets} interactive={false} noteNames="c" />
@@ -747,7 +747,7 @@
       <PracticeStage class="grid min-w-0 gap-4 p-4 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="eyebrow">
+            <p class="text-xs font-semibold tracking-wide text-stage-muted">
               Now playing · {progression.chords[currentIndex]?.roman ?? ""} ·
               <span data-testid="progression-current-symbol">{currentChord.symbol}</span>
             </p>
@@ -766,7 +766,7 @@
         {@render chordStrip(currentIndex, followerState?.grades)}
         <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="eyebrow">Target tones · {currentChord.symbol} / {currentChord.scale}</p>
+            <p class="text-xs font-semibold tracking-wide text-stage-muted">Target tones · {currentChord.symbol} / {currentChord.scale}</p>
             {@render toneLegend()}
           </div>
           {#if inputMode === "keys"}

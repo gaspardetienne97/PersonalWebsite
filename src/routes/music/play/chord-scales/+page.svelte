@@ -652,7 +652,7 @@
         {@render chordStrip(-1)}
         <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="eyebrow">First up · {chord.symbol} / {chord.scaleLabel}</p>
+            <p class="text-xs font-semibold tracking-wide text-stage-muted">First up · {chord.symbol} / {chord.scaleLabel}</p>
             {@render toneLegend()}
           </div>
           <PianoSurface router={runtime.router} notes={scaleMidi} {toneRoles} noteNames="c" />
@@ -665,7 +665,7 @@
       <PracticeStage {instrument} class="grid min-w-0 gap-4 p-4 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="eyebrow">
+            <p class="text-xs font-semibold tracking-wide text-stage-muted">
               Now playing · {romanFor(changes.id, chordIndex)} ·
               <span data-testid="progression-current-symbol">{chord.symbol}</span>
             </p>
@@ -694,7 +694,7 @@
         {/if}
         <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="eyebrow">Target tones · {chord.symbol} / {chord.scaleLabel}</p>
+            <p class="text-xs font-semibold tracking-wide text-stage-muted">Target tones · {chord.symbol} / {chord.scaleLabel}</p>
             {@render toneLegend()}
           </div>
           <PianoSurface router={runtime.router} notes={scaleMidi} {toneRoles} highlights={nextTarget} noteNames="c" />
