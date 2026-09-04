@@ -96,9 +96,6 @@ catalogs:
     opensheetmusicdisplay:
       specifier: ^2.0.0
       version: 2.0.0
-    piano-chart:
-      specifier: ^1.5.0
-      version: 1.5.0
     playwright:
       specifier: ^1.58.2
       version: 1.60.0
@@ -231,9 +228,6 @@ importers:
       opensheetmusicdisplay:
         specifier: 'catalog:'
         version: 2.0.0
-      piano-chart:
-        specifier: 'catalog:'
-        version: 1.5.0
       postgres:
         specifier: 'catalog:'
         version: 3.4.9
@@ -5180,9 +5174,6 @@ packages:
 
   phonemizer@1.2.1:
     resolution: {integrity: sha512-v0KJ4mi2T4Q7eJQ0W15Xd4G9k4kICSXE8bpDeJ8jisL4RyJhNWsweKTOi88QXFc4r4LZlz5jVL5lCHhkpdT71A==}
-
-  piano-chart@1.5.0:
-    resolution: {integrity: sha512-w/z/8spXPzH50v/FcmG5eMWp6EZ/5mBLinM2mgRxHzUhPkBcKEJHnmOZdJpT8sBQJ4XfVdMo4qXdSUJV7tIvuw==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -10530,10 +10521,6 @@ snapshots:
       '@napi-rs/canvas': 0.1.100
 
   phonemizer@1.2.1: {}
-
-  piano-chart@1.5.0:
-    dependencies:
-      '@svgdotjs/svg.js': 3.0.16
 
   picocolors@1.1.1: {}
 

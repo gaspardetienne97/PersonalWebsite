@@ -143,18 +143,20 @@ This file provides guidance for agents working on the Music app under
 - **Locked shell:** keep the floating capsule sticky below normal chrome and at
   the top during drill focus. Preserve min-width constraints and footer flow
   when touching layout; do not move practice controls into or fix the footer.
-- `src/routes/music/_components/OnScreenKeyboard.svelte` is the fallback input
-  surface and should push normalized `NoteEvent`s through the shared router. It
-  renders a real piano via **piano-chart** (SVG) for the visual, with a
-  screen-reader/keyboard-accessible `<button>` layer (also the deterministic
-  test surface — page tests click those by note label). `FretboardInput` follows
-  the same dual-layer pattern over **fretboard.js**. Both read theme tokens as
-  complete `oklch()` colors (NOT HSL triples) and load the lib via dynamic
-  `import()` in `onMount` to stay SSR-safe.
+- `src/routes/music/_components/piano/PianoSurface.svelte` is the **only**
+  piano visual and fallback input surface (the legacy `OnScreenKeyboard`,
+  reading `PianoInput`, theory `PianoKeyboard`, and the `piano-chart` dependency
+  are gone; `piano/legacy-visuals.gate.test.ts` fails the suite if any come
+  back). It renders its own key geometry (`piano/piano-geometry.ts`) with an
+  accessible `<button>` per key (also the deterministic test surface — page
+  tests click those by note label) and pushes normalized `NoteEvent`s through
+  the shared router. `FretboardInput` uses a dual-layer pattern over
+  **fretboard.js**: theme tokens as complete `oklch()` colors (NOT HSL
+  triples), lib loaded via dynamic `import()` in `onMount` to stay SSR-safe.
 - `src/routes/music/_components/InstrumentView.svelte` is the **shared
   instrument-agnostic display**: given a pitch set (MIDI) + an `InstrumentId`, it
   renders the right view by reusing the existing components — piano →
-  `PianoKeyboard`, guitar/ukulele → `FretboardInput` (chord/scale tones lit on
+  `PianoSurface`, guitar/ukulele → `FretboardInput` (chord/scale tones lit on
   the neck; tap to hear), aerophone → arpeggiated `AerophoneFingering` (a
   monophonic instrument can't play a chord, so the pitch set degrades to an
   arpeggio). Use this anywhere a chord/scale/voicing is shown so views stay
@@ -389,8 +391,8 @@ This file provides guidance for agents working on the Music app under
   mic→chroma→onset→Basic-Pitch→follower path wires up and renders cleanly.
 - `/music/play/two-hand`: graded piano two-hand independence drill. The left
   hand holds a steady root pulse (one note per beat) while the right hand runs a
-  faster scale line (two notes per beat). MIDI and two on-screen `OnScreenKeyboard`s
-  (left/right) feed `TechniqueSession.startTwoHand()`; each hand is graded
+  faster scale line (two notes per beat). MIDI and the on-screen `PianoSurface`
+  (left/right hands highlighted) feed `TechniqueSession.startTwoHand()`; each hand is graded
   independently by register (a split midi) on pitch order + timing evenness,
   awards XP/mastery to `technique.piano(.two-hand-independence)`, and records a
   tagged drill journal entry.

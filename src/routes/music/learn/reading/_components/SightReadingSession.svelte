@@ -17,7 +17,7 @@
 
   import PracticeDrillShell from "../../../_components/PracticeDrillShell.svelte";
   import ScoreFollowerStage from "../../../_components/ScoreFollowerStage.svelte";
-  import { suggestedFingerings } from "../../../_components/piano-visual";
+  import { suggestedFingerings } from "../../../_components/piano/piano-fingering";
 
   let {
     sessionState,
