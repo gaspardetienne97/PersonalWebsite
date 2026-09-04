@@ -5,11 +5,11 @@ test.describe("music rhythm workflows", () => {
     await page.goto("/music/learn/rhythm");
     await expect(page.getByRole("heading", { name: "Rhythm Trainer" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start microphone" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start Rhythm" })).toBeEnabled({
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled({
       timeout: 10_000,
     });
 
-    await page.getByRole("button", { name: "Start Rhythm" }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("button", { name: "Tap beat" })).toBeVisible();
 
     for (let index = 0; index < 4; index += 1) {

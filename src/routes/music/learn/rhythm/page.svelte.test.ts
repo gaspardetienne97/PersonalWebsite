@@ -31,17 +31,17 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     expect(button("Enable MIDI")).not.toBeUndefined();
     expect(button("Start microphone")).not.toBeUndefined();
     expect(bpmReadout()?.textContent).toContain("100 BPM");
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
   });
 
   test("starts a pulse run and accepts on-screen taps", async () => {
     render(Page);
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
-    button("Start Rhythm")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(button("Tap beat")).not.toBeUndefined());
-    expect(button("Start Rhythm")).toBeUndefined();
-    expect(button("Cancel rhythm")).not.toBeUndefined();
+    expect(button("Start")).toBeUndefined();
+    expect(button("Stop")).not.toBeUndefined();
     expect(button("Enable MIDI")).not.toBeUndefined();
     expect(button("Start microphone")).not.toBeUndefined();
     expect(document.activeElement?.textContent).toContain("Quarter-note pulse");
@@ -52,14 +52,14 @@ describe("/music/learn/rhythm/+page.svelte", () => {
 
   test("cancels from the stage action and returns focus to setup", async () => {
     render(Page);
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
-    button("Start Rhythm")?.click();
-    await vi.waitFor(() => expect(button("Cancel rhythm")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
-    button("Cancel rhythm")?.click();
+    button("Stop")?.click();
 
-    await vi.waitFor(() => expect(button("Start Rhythm")).not.toBeUndefined());
-    expect(button("Cancel rhythm")).toBeUndefined();
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    expect(button("Stop")).toBeUndefined();
     expect(document.activeElement?.textContent).toContain("Quarter-note pulse");
     expect(liveAnnouncement()?.textContent).toContain("Rhythm cancelled");
   });
@@ -78,19 +78,19 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     });
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
-    button("Start Rhythm")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(button("Tap beat")).not.toBeUndefined());
     button("Tap beat")?.click();
     button("Tap beat")?.click();
     await persistenceStarted;
 
-    button("Cancel rhythm")?.click();
+    button("Stop")?.click();
     await vi.waitFor(() =>
       expect(liveAnnouncement()?.textContent).toMatch(/Finishing rhythm result|Rhythm cancelled/),
     );
     const announcementAfterCancel = liveAnnouncement()?.textContent;
-    const returnedToSetup = button("Start Rhythm") !== undefined;
+    const returnedToSetup = button("Start") !== undefined;
     releasePersistence();
     await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
 
@@ -110,8 +110,8 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     const start = vi.spyOn(RhythmSession.prototype, "start").mockResolvedValue({} as never);
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
-    button("Start Rhythm")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
     expect(start).not.toHaveBeenCalled();
     expect(button("Starting...")?.disabled).toBe(true);
@@ -131,26 +131,27 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     const start = vi.spyOn(RhythmSession.prototype, "start");
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
-    button("Start Rhythm")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("Playback voice unavailable."),
     );
     expect(beginPerformance).not.toHaveBeenCalled();
     expect(start).not.toHaveBeenCalled();
-    expect(button("Start Rhythm")).not.toBeUndefined();
+    expect(button("Start")).not.toBeUndefined();
   });
 
   test("restores setup from shareable query parameters", async () => {
     setTestUrl("/music/learn/rhythm?mode=read-and-tap&bpm=72&beats=6&pattern=eighth-rests");
     render(Page);
 
+    await openSetup();
     expect(button("Read & tap")).toHaveAttribute("aria-pressed", "true");
     expect(select("Pattern")?.value).toBe("eighth-rests");
     expect(bpmReadout()?.textContent).toContain("72 BPM");
     expect(input("Beats")?.value).toBe("6");
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
   });
 
   test("keeps setup changes in the shareable URL", async () => {
@@ -158,15 +159,20 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     const runtime = new MusicRuntime();
     render(Page, { runtime });
 
+    await openSetup();
+
     select("Pattern")!.value = "triplets";
     select("Pattern")!.dispatchEvent(new Event("change", { bubbles: true }));
     input("Beats")!.value = "8";
     input("Beats")!.dispatchEvent(new Event("input", { bubbles: true }));
     button("Read & tap")?.click();
-    await vi.waitFor(() => expect(runtime.practiceBpm).toBe(100));
-    runtime.setPracticeVariantBpm(88, "v1:rhythm:read-and-tap:triplets");
-
-    await vi.waitFor(() => expect(window.location.search).toContain("bpm=88"));
+    // The variant context re-registers asynchronously after the mode and pattern
+    // change; the tempo only reaches the URL once that context is active, so
+    // keep setting it until it lands rather than racing the registration.
+    await vi.waitFor(() => {
+      runtime.setPracticeVariantBpm(88, "v1:rhythm:read-and-tap:triplets");
+      expect(window.location.search).toContain("bpm=88");
+    });
     expect(window.location.search).toContain("pattern=triplets");
     expect(window.location.search).toContain("beats=8");
     expect(window.location.search).toContain("mode=read-and-tap");
@@ -175,10 +181,12 @@ describe("/music/learn/rhythm/+page.svelte", () => {
   test("starts a selected rhythm pattern", async () => {
     setTestUrl("/music/learn/rhythm?pattern=eighth-rests");
     render(Page);
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+
+    await openSetup();
 
     expect(select("Pattern")?.value).toBe("eighth-rests");
-    button("Start Rhythm")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(button("Tap beat")).not.toBeUndefined());
     expect(document.body.textContent).toContain("Eighth-note rests");
@@ -187,10 +195,11 @@ describe("/music/learn/rhythm/+page.svelte", () => {
   test("starts read-and-tap with a visible rhythm target", async () => {
     setTestUrl("/music/learn/rhythm?mode=read-and-tap");
     render(Page);
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
+    await openSetup();
     expect(button("Read & tap")).toHaveAttribute("aria-pressed", "true");
-    button("Start Rhythm")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Read & tap");
@@ -210,7 +219,7 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     });
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     await vi.waitFor(() => expect(gate).toBeTypeOf("function"));
     const event = {
       kind: "beat" as const,
@@ -230,11 +239,12 @@ describe("/music/learn/rhythm/+page.svelte", () => {
   test("offers a slower retry after a completed pulse run", async () => {
     setTestUrl("/music/learn/rhythm?bpm=100&beats=2");
     render(Page);
+    await openSetup();
     input("Beats")!.value = "2";
     input("Beats")!.dispatchEvent(new Event("input", { bubbles: true }));
 
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
-    button("Start Rhythm")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(button("Tap beat")).not.toBeUndefined());
     button("Tap beat")?.click();
     button("Tap beat")?.click();
@@ -244,15 +254,15 @@ describe("/music/learn/rhythm/+page.svelte", () => {
 
     await vi.waitFor(() => expect(bpmReadout()?.textContent).toContain("90 BPM"));
     expect(input("Beats")?.value).toBe("2");
-    expect(document.body.textContent).toContain("Ready for a rhythm session.");
+    expect(document.body.textContent).toContain("Ready. Press Start, or Space.");
   });
 
   test("shows the standard summary actions and changes back to setup", async () => {
     setTestUrl("/music/learn/rhythm?bpm=100&beats=2");
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start Rhythm")?.disabled).toBe(false));
-    button("Start Rhythm")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(button("Tap beat")).not.toBeUndefined());
     button("Tap beat")?.click();
     button("Tap beat")?.click();
@@ -261,17 +271,24 @@ describe("/music/learn/rhythm/+page.svelte", () => {
     expect(button("Increase to 110 BPM")).not.toBeUndefined();
     expect(button("Repeat at 100 BPM")).not.toBeUndefined();
     expect(button("Slow to 90 BPM")).not.toBeUndefined();
-    expect(button("Start Rhythm")).toBeUndefined();
+    expect(button("Start")).toBeUndefined();
     expect(document.activeElement?.textContent).toContain("Pulse complete");
     expect(liveAnnouncement()?.textContent).toContain("Pulse complete");
 
     button("Change setup")?.click();
 
-    await vi.waitFor(() => expect(button("Start Rhythm")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
     expect(document.activeElement?.textContent).toContain("Quarter-note pulse");
-    expect(liveAnnouncement()?.textContent).toContain("Ready for a rhythm session");
+    expect(liveAnnouncement()?.textContent).toContain("Ready. Press Start, or Space.");
   });
 });
+
+// Setup is collapsed behind "Edit setup" on the ready stage; open it before
+// touching the mode, pattern or beats controls.
+async function openSetup(): Promise<void> {
+  if (!button("Hide setup")) button("Edit setup")?.click();
+  await vi.waitFor(() => expect(select("Pattern")).not.toBeUndefined());
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(

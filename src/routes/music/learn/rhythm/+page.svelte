@@ -47,6 +47,7 @@
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import TimingMeter from "../../_components/TimingMeter.svelte";
+  import HudTile from "../../_components/HudTile.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
@@ -178,7 +179,7 @@
     try {
       await Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
       ready = true;
-      status = "Ready for a pulse session.";
+      status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "Rhythm history could not be loaded.");
     }
@@ -284,7 +285,7 @@
 
   function repeat(): void {
     sessionState = undefined;
-    status = "Ready for a rhythm session.";
+    status = "Ready. Press Start, or Space.";
   }
 
   function cancel(): void {
@@ -385,10 +386,7 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Rhythm Trainer"
-    subtitle="Lock your timing against the grid — feedback in milliseconds, ahead or behind."
-  >
+  <PracticeScreenHeader title="Rhythm Trainer" compact>
     {#snippet controls()}
       <SourceReadout
         label="Input"
@@ -400,19 +398,19 @@
     {/snippet}
   </PracticeScreenHeader>
 
-
+  <!-- The one live region for this route; the MIDI and microphone lines below are visible text only. -->
   <p class="sr-only" aria-live="polite" data-testid="rhythm-live-announcement">
     {liveAnnouncement}
   </p>
 
   {#snippet inputActions()}
-    <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+    <Button type="button" variant="outline" disabled={midiEnabled || pending} onclick={enableMidi}>
       {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
     </Button>
     <Button
       type="button"
       variant="outline"
-      disabled={!AudioPitchSource.supported || microphoneState.status === "requesting"}
+      disabled={pending || !AudioPitchSource.supported || microphoneState.status === "requesting"}
       onclick={toggleMicrophone}
     >
       {microphoneState.status === "running"
@@ -423,39 +421,43 @@
     </Button>
   {/snippet}
 
+  {#snippet setupSummaryLine()}
+    {patternLabel} · {modeLabel} · {beats} beats · {bpm} BPM
+  {/snippet}
+
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={repeat}>
       {#snippet heading()}
-        <Card.Description>Pulse complete</Card.Description>
-        <Card.Title>
-          {Math.round((runSummary?.accuracy ?? 0) * 100)}% accuracy · {runSummary?.xp ?? 0} XP
-        </Card.Title>
+        <Card.Description>{patternLabel} · {bpm} BPM</Card.Description>
+        <Card.Title>Pulse complete</Card.Title>
+      {/snippet}
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {Math.round((runSummary?.accuracy ?? 0) * 100)}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only"> accuracy</span>
+        </p>
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta
+          tags={["rhythm"]}
+          accuracy={meanPartialCredit((runSummary?.results ?? []).map((result) => result.event))}
+          before={visitStartedAt}
+        />
       {/snippet}
       {#snippet children()}
-        <div class="grid gap-4 text-sm text-muted-foreground">
-          <TimingMeter offsetMs={hud?.offsetMs ?? 0} />
-          <div class="grid grid-cols-3 gap-2">
-            <div class="rounded-lg border p-3 text-center">
-              <span class="block text-xl font-bold tabular-nums text-foreground"
-                >{hud?.accuracyPct ?? 0}%</span
-              >
-              <small>Accuracy</small>
-            </div>
-            <div class="rounded-lg border p-3 text-center">
-              <span class="block text-xl font-bold tabular-nums text-foreground"
-                >{hud?.offsetMs ?? 0}<small>ms</small></span
-              >
-              <small>Signed offset</small>
-            </div>
-            <div class="rounded-lg border p-3 text-center">
-              <span class="block text-xl font-bold tabular-nums text-foreground"
-                >±{hud?.avgAbsOffsetMs ?? 0}<small>ms</small></span
-              >
-              <small>Avg offset</small>
-            </div>
-          </div>
-          <p>{runSummary?.results[0]?.result.feedback[0]?.message}</p>
+        <TimingMeter offsetMs={hud?.offsetMs ?? 0} />
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <HudTile size="sm" label="Signed offset" value={hud?.offsetMs ?? 0} unit="ms" />
+          <HudTile size="sm" label="Avg offset" value={`±${hud?.avgAbsOffsetMs ?? 0}`} unit="ms" />
+          <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+          <HudTile size="sm" label="Input" value={sourceLabel} />
         </div>
+        {#if runSummary?.results[0]?.result.feedback[0]?.message}
+          <p class="text-sm text-muted-foreground">{runSummary.results[0].result.feedback[0].message}</p>
+        {/if}
+        <p class="text-xs text-muted-foreground">+{runSummary?.xp ?? 0} XP · Rhythm</p>
       {/snippet}
       {#snippet actions()}
         <Button
@@ -477,13 +479,6 @@
           Slow to {Math.max(40, bpm - 10)} BPM
         </Button>
       {/snippet}
-      {#snippet lastRunDelta()}
-        <LastRunDelta
-          tags={["rhythm"]}
-          accuracy={meanPartialCredit((runSummary?.results ?? []).map((result) => result.event))}
-          before={visitStartedAt}
-        />
-      {/snippet}
       {#snippet routineContinue()}
         <RoutineContinueAction routine={runtime.dailyRoutine} />
       {/snippet}
@@ -498,93 +493,114 @@
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
-      <Card.Root>
-        <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-          <div class="space-y-1">
-            <Card.Description>Pattern practice</Card.Description>
-            <Card.Title bind:ref={setupHeading} tabindex="-1">{patternLabel}</Card.Title>
+      <div class="grid gap-5 rounded-lg border bg-card p-4">
+        <SegmentedControl ariaLabel="Rhythm mode" options={modeOptions} bind:value={mode} />
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div class="grid gap-2">
+            <Label for="rhythm-pattern">Pattern</Label>
+            <select
+              id="rhythm-pattern"
+              aria-label="Pattern"
+              bind:value={pattern}
+              class="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each RHYTHM_DRILL_PATTERNS as option (option.value)}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
           </div>
+          <div class="grid gap-2">
+            <Label for="rhythm-beats">Beats</Label>
+            <Input
+              id="rhythm-beats"
+              aria-label="Beats"
+              type="number"
+              min="2"
+              max="16"
+              step="1"
+              bind:value={beats}
+            />
+          </div>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Tempo lives in the practice controls above: {bpm} BPM. Both modes grade the same pattern; Read &amp; tap
+          also shows it.
+        </p>
+      </div>
+    {/snippet}
+
+    {#snippet readyStage()}
+      <PracticeStage class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · {modeLabel}</p>
+            <div
+              role="heading"
+              aria-level="2"
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="rhythm-ready-heading"
+              bind:this={setupHeading}
+            >
+              {patternLabel}
+            </div>
+            <p class="text-sm text-stage-muted">
+              Tap with the grid. Every hit is scored in milliseconds, ahead or behind the beat.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <p aria-label="BPM" class="rounded-full border border-stage-line px-3 py-1 text-sm tabular-nums">
+              {bpm} BPM
+            </p>
+            <Button
+              type="button"
+              size="lg"
+              disabled={!ready || pending || sessionState?.status === "active"}
+              onclick={startPulse}
+            >
+              {pending ? "Starting..." : "Start"}
+            </Button>
+            <StartShortcut onStart={() => void startPulse()} />
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2 sm:gap-3" aria-hidden="true">
+          {#each Array.from({ length: beats }, (_, i) => i) as beatIndex (beatIndex)}
+            <div
+              class="grid size-9 place-items-center rounded-full border border-stage-line text-sm font-bold tabular-nums text-stage-muted sm:size-11"
+            >
+              {beatIndex + 1}
+            </div>
+          {/each}
+        </div>
+        <div class="grid gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex flex-wrap gap-2">
             {@render inputActions()}
           </div>
-        </Card.Header>
-        <Card.Content class="grid gap-6">
-          <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
-          <p class="text-sm text-muted-foreground" aria-live="polite">{microphoneStatus}</p>
-
-          <SegmentedControl
-            ariaLabel="Rhythm mode"
-            options={modeOptions}
-            bind:value={mode}
-          />
-
-          <div class="grid gap-5 sm:grid-cols-3">
-            <div class="grid gap-2">
-              <Label for="rhythm-pattern">Pattern</Label>
-              <select
-                id="rhythm-pattern"
-                aria-label="Pattern"
-                bind:value={pattern}
-                class="h-10 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                {#each RHYTHM_DRILL_PATTERNS as option (option.value)}
-                  <option value={option.value}>{option.label}</option>
-                {/each}
-              </select>
-            </div>
-            <div class="grid gap-2">
-              <span class="text-sm font-medium">BPM</span>
-              <p aria-label="BPM" class="flex h-10 items-center rounded-md border px-3 text-sm">
-                {bpm} BPM
-              </p>
-            </div>
-            <div class="grid gap-2">
-              <Label for="rhythm-beats">Beats</Label>
-              <Input
-                id="rhythm-beats"
-                aria-label="Beats"
-                type="number"
-                min="2"
-                max="16"
-                step="1"
-                bind:value={beats}
-              />
-            </div>
-          </div>
-        </Card.Content>
-        <Card.Footer class="flex-wrap gap-3">
-          <Button
-            type="button"
-            disabled={!ready || pending || sessionState?.status === "active"}
-            onclick={startPulse}
-          >
-            {pending ? "Starting..." : "Start Rhythm"}
-          </Button>
-          <StartShortcut onStart={() => void startPulse()} />
-          <p class="text-sm text-muted-foreground">{status}</p>
-        </Card.Footer>
-      </Card.Root>
+          <p class="text-sm text-stage-muted">{midiStatus}</p>
+          <p class="text-sm text-stage-muted">{microphoneStatus}</p>
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stage()}
-      <PracticeStage class="grid gap-4 p-5">
-        <div class="text-center">
-          <p class="eyebrow">Focus mode · {modeLabel}</p>
-          <h2 tabindex="-1" bind:this={activeHeading} class="text-2xl font-bold tracking-tight">
-            {patternLabel}
-          </h2>
-        </div>
-        <div class="flex items-center justify-between gap-3">
-          <p class="text-sm font-medium">Progress</p>
-          <p class="text-sm text-stage-muted">{liveProgress}%</p>
+      <PracticeStage class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">{modeLabel} · {bpm} BPM</p>
+            <h2 tabindex="-1" bind:this={activeHeading} class="text-xl font-semibold tracking-tight">
+              {patternLabel}
+            </h2>
+          </div>
+          <span class="text-sm text-stage-muted tabular-nums">Progress {liveProgress}%</span>
         </div>
         <!-- beat visualizer -->
-        <div class="flex flex-wrap justify-center gap-3" aria-hidden="true">
+        <div class="flex flex-wrap justify-center gap-2 sm:gap-3" aria-hidden="true">
           {#each Array.from({ length: beats }, (_, i) => i) as beatIndex (beatIndex)}
             <div
-              class="grid size-11 place-items-center rounded-full border text-sm font-bold tabular-nums transition-colors {beatIndex ===
+              class="grid size-9 place-items-center rounded-full border text-sm font-bold tabular-nums transition-colors sm:size-11 {beatIndex ===
               activeBeatIndex
                 ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
                 : 'border-stage-line text-stage-muted'}"
@@ -594,15 +610,12 @@
           {/each}
         </div>
         <Progress value={liveProgress} max={100} />
-        <div class="grid grid-cols-2 gap-2 text-center">
-          <div class="rounded-lg border border-stage-line p-2">
-            <span class="block text-lg font-bold tabular-nums">{hud?.runningScorePct ?? 0}%</span>
-            <small class="text-stage-muted">Running score</small>
-          </div>
-          <div class="rounded-lg border border-stage-line p-2">
-            <span class="block text-lg font-bold tabular-nums">{liveProgress}%</span>
-            <small class="text-stage-muted">Through pattern</small>
-          </div>
+        <!-- Live timing: the same meter the results show, fed by the running HUD projection. -->
+        <TimingMeter offsetMs={hud?.offsetMs ?? 0} />
+        <div class="grid grid-cols-3 gap-3">
+          <HudTile size="sm" label="Running score" value={hud?.runningScorePct ?? 0} unit="%" />
+          <HudTile size="sm" label="Offset" value={hud?.offsetMs ?? 0} unit="ms" />
+          <HudTile size="sm" label="Through pattern" value={liveProgress} unit="%" />
         </div>
         {#if mode === "read-and-tap" && activePatternEvents.length > 0}
           <div
@@ -613,7 +626,7 @@
               <span>{modeLabel}</span>
               <span>{patternLabel}</span>
             </div>
-            <div class="grid grid-cols-4 gap-2">
+            <div class="grid grid-cols-4 gap-2 sm:grid-cols-8">
               {#each activePatternEvents as event (event.id)}
                 <div
                   class="grid min-h-12 place-items-center rounded-md border text-sm font-bold tabular-nums {event.accent ===
@@ -627,25 +640,25 @@
             </div>
           </div>
         {/if}
-        <Button type="button" size="lg" data-testid="tap-beat" onclick={tapBeat}>
+        <Button type="button" size="lg" class="w-full sm:w-auto sm:justify-self-center sm:px-12" data-testid="tap-beat" onclick={tapBeat}>
           {mode === "read-and-tap" ? "Tap rhythm" : "Tap beat"}
         </Button>
+        <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
     {/snippet}
 
     {#snippet stageAction()}
       {@render inputActions()}
-      <Button type="button" variant="outline" onclick={cancel}>Cancel rhythm</Button>
+      <Button type="button" variant="outline" onclick={cancel}>Stop</Button>
     {/snippet}
 
     {#snippet rail()}
       <DrillProgressRail
-        title="This session"
         items={[
           { label: "Target", value: `${bpm} BPM` },
           { label: "Mode", value: modeLabel },
           { label: "Pattern", value: patternLabel },
-          { label: "Streak", value: `${progress.state.streakDays} days` },
+          { label: "Input", value: sourceLabel },
         ]}
       />
     {/snippet}
