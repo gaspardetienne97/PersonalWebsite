@@ -4,7 +4,7 @@
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import { onDestroy, onMount, tick } from "svelte";
 
-  import type { NoteEvent } from "@repo/music-core/domain";
+  import { unixMs, type NoteEvent } from "@repo/music-core/domain";
   import { AEROPHONE_RANGE, aerophoneChart } from "@repo/music-core/engines/aerophone-fingering";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
@@ -39,6 +39,11 @@
   import { Progress } from "@repo/ui/progress";
 
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
@@ -53,6 +58,8 @@
 
   const { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
   const chart = aerophoneChart();
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -189,26 +196,28 @@
     if (drillMode === "articulation") return "Articulation";
     return drillMode === "swell" ? "Shape" : "Steadiness";
   });
-  const startLabel = $derived.by(() => {
-    if (drillMode === "interval-landing") return "Start interval landing";
-    if (drillMode === "articulation") return "Start articulation drill";
-    return drillMode === "swell" ? "Start dynamic swell" : "Start long tone";
-  });
-  const cancelLabel = $derived(
-    drillMode === "interval-landing"
-      ? "Cancel interval landing"
-      : drillMode === "articulation"
-      ? "Cancel articulation drill"
-      : drillMode === "swell"
-        ? "Cancel dynamic swell"
-        : "Cancel long tone",
-  );
   const swellEnvelopeBars = [24, 56, 92, 56, 24];
   const articulationSteps = $derived(
     Array.from({ length: articulationPrompt?.count ?? 8 }, (_, index) => index + 1),
   );
   const articulationTargetPercent = $derived(articulationStyle === "staccato" ? 35 : 95);
-  const liveBreathWidth = $derived(`width: ${breathLevel}%`);
+  const trainerBlurb = $derived.by(() => {
+    if (drillMode === "interval-landing") return "Hold the drone note, then land the interval cleanly.";
+    if (drillMode === "articulation") return "Tongue each attack on the beat; note length and breath are graded.";
+    return drillMode === "swell"
+      ? "Shape one note from soft to loud and back with breath alone."
+      : "Hold one note with steady breath until the timer completes.";
+  });
+  const setupDetail = $derived.by(() => {
+    if (drillMode === "interval-landing")
+      return `${intervalDefinition?.label ?? "Perfect fifth"} ${intervalDirection} · ${Number(durationMs) / 1000}s`;
+    if (drillMode === "articulation")
+      return `${articulationStyle === "staccato" ? "Staccato" : "Legato"} · ${articulationBpm} BPM`;
+    return `${Number(durationMs) / 1000}s hold`;
+  });
+  const stageBadge = $derived(
+    drillMode === "articulation" ? `${articulationTargetPercent}% beat target` : `${Number(durationMs) / 1000}s hold`,
+  );
   const liveAnnouncement = $derived(
     summary && !resultsDismissed ? `${trainerTitle} complete. ${summary.xp} XP.` : status,
   );
@@ -314,7 +323,7 @@
         }
       });
       ready = true;
-      status = "Ready for Aerophone breath practice.";
+      status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "Aerophone practice history could not be loaded.");
     }
@@ -789,14 +798,11 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Aerophone Technique"
-    subtitle="Build breath support, tongue clean articulations, and review sax-mode fingerings across the instrument."
-  >
+  <PracticeScreenHeader title="Aerophone Technique" compact>
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI · Aerophone" : "Waiting for Aerophone"}
+        device={runtime.activeSource === "midi" ? "Aerophone" : "Waiting for Aerophone"}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
@@ -804,59 +810,119 @@
 
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
+  {#snippet setupSummaryLine()}
+    {trainerTitle} · Target {targetLabel} · {setupDetail}
+  {/snippet}
+
+  <!-- The target block: fingering, note stepper and the live/preview chip. Shared by
+       the ready stage and the run (read-only there). -->
+  {#snippet targetBlock(size: number, stepping: boolean)}
+    <div class="grid justify-items-center gap-3">
+      <div class="flex items-center gap-3">
+        {#if stepping}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Previous note"
+            disabled={selected <= AEROPHONE_RANGE.lowestMidi}
+            onclick={() => step(-1)}
+          >
+            <ChevronLeft class="size-4" aria-hidden="true" />
+          </Button>
+        {/if}
+        <div class="text-center">
+          <p class="text-2xl font-bold tracking-tight tabular-nums">{targetLabel}</p>
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold {live
+              ? 'bg-success/15 text-success'
+              : 'bg-stage-2 text-stage-muted'}"
+          >
+            <span class="size-1.5 rounded-full {live ? 'bg-success' : 'bg-stage-muted/50'}"></span>
+            {live ? "Live" : "Preview"}
+          </span>
+        </div>
+        {#if stepping}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Next note"
+            disabled={selected >= AEROPHONE_RANGE.highestMidi}
+            onclick={() => step(1)}
+          >
+            <ChevronRight class="size-4" aria-hidden="true" />
+          </Button>
+        {/if}
+      </div>
+      <AerophoneFingering midi={targetMidi} {size} />
+    </div>
+  {/snippet}
+
   {#snippet summaryPhase()}
     {@const completedResult = summary?.results[0]}
     {@const completedArticulation = completedResult?.prompt && "style" in completedResult.prompt}
     {@const completedSwell = completedResult?.prompt && "durationMs" in completedResult.prompt}
     {@const completedInterval = completedResult?.prompt && "interval" in completedResult.prompt}
+    {@const completedKind = completedInterval
+      ? "Interval landing"
+      : completedArticulation
+        ? "Articulation"
+        : completedSwell
+          ? "Dynamic swell"
+          : "Long tone"}
+    {@const primaryPct = completedInterval
+      ? Math.round((completedResult?.result.score ?? 0) * 100)
+      : completedArticulation
+        ? Math.round((articulationAnswer?.articulationScore ?? 0) * 100)
+        : completedSwell
+          ? Math.round((completedResult?.result.score ?? 0) * 100)
+          : Math.round((summary?.breathSteadiness ?? 0) * 100)}
+    {@const primaryName = completedInterval
+      ? "landing"
+      : completedArticulation
+        ? "articulation"
+        : completedSwell
+          ? "control"
+          : "breath steadiness"}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>
-          {completedInterval
-            ? "Interval landing"
-            : completedArticulation
-              ? "Articulation"
-              : completedSwell
-                ? "Dynamic swell"
-                : "Long tone"} complete
-        </Card.Description>
-        <Card.Title>{summary?.xp ?? 0} XP</Card.Title>
+        <Card.Description>{trainerTitle} · Target {targetLabel}</Card.Description>
+        <Card.Title>{completedKind} complete</Card.Title>
+      {/snippet}
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {primaryPct}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only"> {primaryName}</span>
+        </p>
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta tags={["aerophone"]} accuracy={primaryPct / 100} before={visitStartedAt} />
       {/snippet}
       {#snippet children()}
         <p class="text-sm text-muted-foreground">
-          {completedInterval
-            ? Math.round((completedResult?.result.score ?? 0) * 100)
-            : completedArticulation
-              ? Math.round((articulationAnswer?.articulationScore ?? 0) * 100)
-              : completedSwell
-                ? Math.round((completedResult?.result.score ?? 0) * 100)
-                : Math.round((summary?.breathSteadiness ?? 0) * 100)}%
-          {completedInterval
-            ? "landing"
-            : completedArticulation
-              ? "articulation"
-              : completedSwell
-                ? "control"
-                : "breath steadiness"} ·
-          {Math.round((summary?.noteAccuracy ?? 0) * 100)}% pitch accuracy
+          {primaryPct}% {primaryName} · {Math.round((summary?.noteAccuracy ?? 0) * 100)}% pitch accuracy
         </p>
-        <p class="text-sm text-muted-foreground">
-          {completedResult?.result.feedback[0]?.message}
-        </p>
+        {#if completedResult?.result.feedback[0]?.message}
+          <p class="text-sm text-muted-foreground">{completedResult.result.feedback[0].message}</p>
+        {/if}
         {#if summaryDimensions.length > 0}
           <div class="grid gap-2" aria-label="Summary dimensions">
-            <p class="text-xs font-semibold uppercase text-muted-foreground">Summary dimensions</p>
-            <div class="grid gap-2 sm:grid-cols-4">
+            <p class="eyebrow">Summary dimensions</p>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {#each summaryDimensions as dimension (dimension.label)}
-                <div class="grid gap-1 rounded-md border bg-background/70 p-3">
-                  <span class="text-xs font-medium text-muted-foreground">{dimension.label}</span>
-                  <span class="text-lg font-semibold tabular-nums">{dimension.value}</span>
+                <div class="grid gap-0.5 rounded-lg border bg-card p-3">
+                  <span class="eyebrow">{dimension.label}</span>
+                  <span class="text-2xl font-bold leading-none tracking-tight tabular-nums">{dimension.value}</span>
                   <span class="text-xs text-muted-foreground">{dimension.detail}</span>
                 </div>
               {/each}
             </div>
           </div>
         {/if}
+        <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · Aerophone</p>
       {/snippet}
       {#snippet actions()}
         {#if completedArticulation}
@@ -883,349 +949,315 @@
             Slow to {adjacentArticulationBpm(-1)} BPM
           </Button>
         {:else}
-          <AdaptiveRetryBar
-            onRetry={() => void startDrill()}
-            retryLabel={completedInterval
-              ? "Repeat interval landing"
-              : completedSwell
-                ? "Repeat swell"
-                : "Repeat long tone"}
-          />
+          <AdaptiveRetryBar onRetry={() => void startDrill()} retryLabel="Again" />
         {/if}
+      {/snippet}
+      {#snippet nextUp()}
+        <NextUpSuggestion {skills} {analytics} currentPath="/music/learn/aerophone" routine={runtime.dailyRoutine} />
       {/snippet}
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
-      <div class="grid gap-6">
-        <section class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-          <Card.Root>
-            <Card.Content class="flex flex-col items-center gap-4 py-6">
-              <div class="flex items-center gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label="Previous note"
-                  disabled={selected <= AEROPHONE_RANGE.lowestMidi}
-                  onclick={() => step(-1)}
-                >
-                  <ChevronLeft class="size-4" aria-hidden="true" />
-                </Button>
-                <span
-                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold {live
-                    ? 'bg-success/15 text-success'
-                    : 'bg-muted text-muted-foreground'}"
-                >
-                  <span class="size-1.5 rounded-full {live ? 'bg-success' : 'bg-muted-foreground/50'}"></span>
-                  {live ? "Live" : "Preview"}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label="Next note"
-                  disabled={selected >= AEROPHONE_RANGE.highestMidi}
-                  onclick={() => step(1)}
-                >
-                  <ChevronRight class="size-4" aria-hidden="true" />
-                </Button>
-              </div>
-              <AerophoneFingering midi={selected} size={170} />
-            </Card.Content>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-              <div class="space-y-1 outline-none" tabindex="-1" bind:this={setupHeading}>
-                <Card.Description>Breath CC2 · MIDI</Card.Description>
-                <Card.Title>{trainerTitle}</Card.Title>
-              </div>
-              <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-                {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-              </Button>
-            </Card.Header>
-            <Card.Content class="grid gap-6">
-              <SegmentedControl
-                ariaLabel="Aerophone drill"
-                options={drillModes}
-                value={drillMode}
-                onChange={selectDrillMode}
-              />
-
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p class="text-sm font-medium">Target {targetLabel}</p>
-                  {#if drillMode === "interval-landing"}
-                    <p class="text-xs text-muted-foreground">Landing {intervalTargetLabel}</p>
-                  {/if}
-                  <p class="text-xs text-muted-foreground" aria-live="polite">{midiStatus}</p>
-                </div>
-                {#if drillMode === "interval-landing"}
-                  <div class="flex min-w-0 flex-wrap items-center gap-2">
-                    <SegmentedControl ariaLabel="Landing interval" options={intervalOptions} bind:value={intervalKind} size="sm" />
-                    <SegmentedControl
-                      ariaLabel="Landing direction"
-                      options={[{ value: "up", label: "Up" }, { value: "down", label: "Down" }]}
-                      bind:value={intervalDirection}
-                      size="sm"
-                    />
-                    <SegmentedControl ariaLabel="Drill duration" options={durationOptions} bind:value={durationMs} size="sm" />
-                  </div>
-                {:else if drillMode === "articulation"}
-                  <div class="flex min-w-0 flex-wrap items-center gap-2">
-                    <SegmentedControl
-                      ariaLabel="Articulation style"
-                      options={styleOptions}
-                      value={articulationStyle}
-                      onChange={(value) => (articulationStyle = value as ArticulationStyle)}
-                      size="sm"
-                    />
-                    <p aria-label="Articulation tempo" class="flex h-9 items-center rounded-md border px-3 text-sm">
-                      {articulationBpm} BPM
-                    </p>
-                  </div>
-                {:else}
-                  <SegmentedControl ariaLabel="Drill duration" options={durationOptions} bind:value={durationMs} size="sm" />
-                {/if}
-              </div>
-            </Card.Content>
-            <Card.Footer class="flex-wrap gap-3">
-              <Button type="button" disabled={!ready || pending} onclick={startDrill}>
-                {pending ? "Starting..." : startLabel}
-              </Button>
-              <p class="text-sm text-muted-foreground">{status}</p>
-            </Card.Footer>
-          </Card.Root>
-        </section>
-
-        <Card.Root>
-          <Card.Header>
-            <Card.Title>Fingering chart</Card.Title>
-            <Card.Description>
-              {midiToNote(AEROPHONE_RANGE.lowestMidi)} – {midiToNote(AEROPHONE_RANGE.highestMidi)}.
-              Tap a note to focus it or set the next long-tone target.
-            </Card.Description>
-          </Card.Header>
-          <Card.Content>
-            <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-7">
-              {#each chart as fingering (fingering.midi)}
-                <button
-                  type="button"
-                  aria-label={`${midiToNote(fingering.midi)} fingering`}
-                  aria-pressed={fingering.midi === selected}
-                  onclick={() => {
-                    select(fingering.midi);
-                    if (runtime.audioEnabled) runtime.sound.playNote(fingering.midi, 0.4);
-                  }}
-                  class="flex flex-col items-center rounded-xl border p-1.5 transition-colors hover:bg-muted/60 {fingering.midi === selected
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border'}"
-                >
-                  <AerophoneFingering midi={fingering.midi} size={84} />
-                </button>
-              {/each}
-            </div>
-          </Card.Content>
-        </Card.Root>
+      <div class="grid gap-4 rounded-lg border bg-card p-4">
+        {#if drillMode === "interval-landing"}
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <SegmentedControl ariaLabel="Landing interval" options={intervalOptions} bind:value={intervalKind} size="sm" />
+            <SegmentedControl
+              ariaLabel="Landing direction"
+              options={[{ value: "up", label: "Up" }, { value: "down", label: "Down" }]}
+              bind:value={intervalDirection}
+              size="sm"
+            />
+            <SegmentedControl ariaLabel="Drill duration" options={durationOptions} bind:value={durationMs} size="sm" />
+          </div>
+          <p class="text-xs text-muted-foreground">Landing {intervalTargetLabel} against the {targetLabel} drone.</p>
+        {:else if drillMode === "articulation"}
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <SegmentedControl
+              ariaLabel="Articulation style"
+              options={styleOptions}
+              value={articulationStyle}
+              onChange={(value) => (articulationStyle = value as ArticulationStyle)}
+              size="sm"
+            />
+            <p aria-label="Articulation tempo" class="flex h-9 items-center rounded-md border px-3 text-sm tabular-nums">
+              {articulationBpm} BPM
+            </p>
+          </div>
+          <p class="text-xs text-muted-foreground">Tempo lives in the practice controls above.</p>
+        {:else}
+          <SegmentedControl ariaLabel="Drill duration" options={durationOptions} bind:value={durationMs} size="sm" />
+        {/if}
+        <div class="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+          </Button>
+          <p class="text-xs text-muted-foreground">{midiStatus}</p>
+        </div>
       </div>
     {/snippet}
 
-    {#snippet stage()}
+    {#snippet readyStage()}
+      <PracticeStage instrument="aerophone" class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · Breath CC2 · MIDI</p>
+            <div
+              role="heading"
+              aria-level="2"
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="aerophone-ready-heading"
+              bind:this={setupHeading}
+            >
+              {trainerTitle}
+            </div>
+            <p class="text-sm text-stage-muted">{trainerBlurb}</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button type="button" size="lg" disabled={!ready || pending} onclick={startDrill}>
+              {pending ? "Starting..." : "Start"}
+            </Button>
+            <StartShortcut onStart={() => void startDrill()} enabled={ready && !pending} />
+          </div>
+        </div>
+        <!-- Which trainer is the point of the route, so the picker stays on the ready stage;
+             the fieldset mirrors the shell's setup lock while a start is pending. -->
+        <fieldset class="min-w-0 border-0 p-0" disabled={pending}>
+          <SegmentedControl ariaLabel="Aerophone drill" options={drillModes} value={drillMode} onChange={selectDrillMode} />
+        </fieldset>
+        <div class="grid gap-4 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:p-4">
+          {@render targetBlock(110, true)}
+          <div class="grid gap-1 text-sm">
+            <p class="font-medium">Target {targetLabel}</p>
+            {#if drillMode === "interval-landing"}
+              <p class="text-stage-muted">Landing {intervalTargetLabel}</p>
+            {/if}
+            <p class="text-stage-muted">{setupDetail}</p>
+            <p class="text-xs text-stage-muted">Pick a note in the chart below, or step with the arrows.</p>
+          </div>
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
+
       <Card.Root>
         <Card.Header>
-          <Card.Description>Breath CC2 · MIDI</Card.Description>
-          <h2 class="text-2xl font-bold tracking-tight outline-none" tabindex="-1" bind:this={activeHeading}>
-            {trainerTitle}
-          </h2>
-          <Card.Description>Target {targetLabel}</Card.Description>
+          <Card.Title>Fingering chart</Card.Title>
+          <Card.Description>
+            {midiToNote(AEROPHONE_RANGE.lowestMidi)} to {midiToNote(AEROPHONE_RANGE.highestMidi)}. Tap a note to
+            make it the target.
+          </Card.Description>
         </Card.Header>
-        <Card.Content class="grid gap-6">
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <HudTile label="Target" value={targetLabel} tone="accent" />
-            <HudTile label="Breath" value={breathLevel} unit="%" />
-            {#if drillMode === "interval-landing"}
-              <HudTile label="Drone" value={targetLabel} />
-              <HudTile label="Landing" value={intervalTargetLabel} tone="good" />
-            {:else if drillMode === "articulation"}
-              <HudTile label="Notes" value={completedNotes} unit={`/${articulationPrompt?.count ?? 8}`} tone="good" />
-              <HudTile label="Style" value={articulationStyle === "staccato" ? "Staccato" : "Legato"} />
-            {:else}
-              <HudTile label={controlLabel} value={liveControl} unit="%" tone="good" />
-              <HudTile label="Hold" value={liveProgress} unit="%" />
-            {/if}
+        <Card.Content>
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-7">
+            {#each chart as fingering (fingering.midi)}
+              <button
+                type="button"
+                aria-label={`${midiToNote(fingering.midi)} fingering`}
+                aria-pressed={fingering.midi === selected}
+                onclick={() => {
+                  select(fingering.midi);
+                  if (runtime.audioEnabled) runtime.sound.playNote(fingering.midi, 0.4);
+                }}
+                class="flex flex-col items-center rounded-xl border p-1.5 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {fingering.midi ===
+                selected
+                  ? 'border-practice-accent bg-practice-accent/10 ring-1 ring-practice-accent/40'
+                  : 'border-border'}"
+              >
+                <!-- The button label already names the note; the figure is decoration here. -->
+                <span aria-hidden="true" class="contents"><AerophoneFingering midi={fingering.midi} size={84} /></span>
+              </button>
+            {/each}
           </div>
+        </Card.Content>
+      </Card.Root>
+    {/snippet}
 
-          <div class="grid gap-4 rounded-lg border bg-muted/20 p-4" aria-label="Aerophone technique stage">
-            {#if drillMode === "interval-landing"}
-              <div class="flex items-start justify-between gap-3">
+    {#snippet stage()}
+      <PracticeStage instrument="aerophone" class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Breath CC2 · MIDI · Target {targetLabel}</p>
+            <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
+              {trainerTitle}
+            </h2>
+          </div>
+          <span class="rounded-full border border-stage-line px-2.5 py-0.5 text-xs text-stage-muted">{stageBadge}</span>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_11rem] lg:items-start">
+          <div class="grid min-w-0 gap-4">
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <HudTile size="sm" label="Target" value={targetLabel} tone="accent" />
+              <HudTile size="sm" label="Breath" value={breathLevel} unit="%" />
+              {#if drillMode === "interval-landing"}
+                <HudTile size="sm" label="Drone" value={targetLabel} />
+                <HudTile size="sm" label="Landing" value={intervalTargetLabel} tone="good" />
+              {:else if drillMode === "articulation"}
+                <HudTile size="sm" label="Notes" value={completedNotes} unit={`/${articulationPrompt?.count ?? 8}`} tone="good" />
+                <HudTile size="sm" label="Style" value={articulationStyle === "staccato" ? "Staccato" : "Legato"} />
+              {:else}
+                <HudTile size="sm" label={controlLabel} value={liveControl} unit="%" tone="good" />
+                <HudTile size="sm" label="Hold" value={liveProgress} unit="%" />
+              {/if}
+            </div>
+
+            <div class="grid gap-4 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4" aria-label="Aerophone technique stage">
+              {#if drillMode === "interval-landing"}
                 <div>
-                  <p class="text-xs font-semibold uppercase text-muted-foreground">Drone interval lane</p>
+                  <p class="eyebrow">Drone interval lane</p>
                   <h3 class="text-base font-semibold">Land the interval against the drone</h3>
                 </div>
-                <span class="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground">{Number(durationMs) / 1000}s hold</span>
-              </div>
-              <div class="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                <div class="grid gap-2 rounded-md border bg-background p-3">
-                  <span class="text-xs font-semibold text-muted-foreground">Drone</span>
-                  <span class="text-lg font-semibold">{targetLabel}</span>
+                <div class="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                  <div class="grid gap-1 rounded-lg border border-stage-line bg-background/60 p-3">
+                    <span class="eyebrow">Drone</span>
+                    <span class="text-lg font-semibold">{targetLabel}</span>
+                  </div>
+                  <div class="text-center text-xs font-semibold uppercase tracking-wide text-stage-muted">{intervalDefinition?.label ?? "Perfect fifth"}</div>
+                  <div class="grid gap-1 rounded-lg border border-stage-line bg-background/60 p-3">
+                    <span class="eyebrow">Landing</span>
+                    <span class="text-lg font-semibold">{intervalTargetLabel}</span>
+                  </div>
                 </div>
-                <div class="text-center text-xs font-semibold uppercase text-muted-foreground">{intervalDefinition?.label ?? "Perfect fifth"}</div>
-                <div class="grid gap-2 rounded-md border bg-background p-3">
-                  <span class="text-xs font-semibold text-muted-foreground">Landing</span>
-                  <span class="text-lg font-semibold">{intervalTargetLabel}</span>
-                </div>
-              </div>
-              <div class="grid gap-1">
-                <div class="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Live breath pressure</span>
-                  <span class="tabular-nums">{breathLevel}%</span>
-                </div>
-                <div class="h-2 overflow-hidden rounded-full bg-background"><div class="h-full rounded-full bg-success" style={liveBreathWidth}></div></div>
-              </div>
-            {:else if drillMode === "swell"}
-              <div class="flex items-start justify-between gap-3">
+              {:else if drillMode === "swell"}
                 <div>
-                  <p class="text-xs font-semibold uppercase text-muted-foreground">Swell envelope</p>
+                  <p class="eyebrow">Swell envelope</p>
                   <h3 class="text-base font-semibold">Target CC2 envelope</h3>
                 </div>
-                <span class="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground">{Number(durationMs) / 1000}s</span>
-              </div>
-              <div class="grid gap-3">
-                <div class="grid h-28 grid-cols-5 items-end gap-2" aria-label="Target CC2 envelope">
+                <div class="grid h-24 grid-cols-5 items-end gap-2">
                   {#each swellEnvelopeBars as level, index (index)}
                     <div class="flex h-full flex-col justify-end gap-1">
-                      <div class="rounded-t-md bg-primary/80" style={`height: ${level}%`} aria-hidden="true"></div>
-                      <span class="text-center text-[10px] font-medium text-muted-foreground">{index === 2 ? "Peak" : index < 2 ? "Rise" : "Fall"}</span>
+                      <div class="rounded-t-md bg-practice-accent/70" style={`height: ${level}%`} aria-hidden="true"></div>
+                      <span class="text-center text-xs font-medium text-stage-muted">{index === 2 ? "Peak" : index < 2 ? "Rise" : "Fall"}</span>
                     </div>
                   {/each}
                 </div>
-                <div class="grid gap-1" aria-label="Actual CC2 envelope">
-                  <div class="flex items-center justify-between text-xs text-muted-foreground">
+                <div class="grid gap-1">
+                  <div class="flex items-center justify-between text-xs text-stage-muted">
                     <span>Actual CC2 envelope</span>
                     <span class="tabular-nums">{breathLevel}% live</span>
                   </div>
-                  <div class="h-2 overflow-hidden rounded-full bg-background"><div class="h-full rounded-full bg-success" style={liveBreathWidth}></div></div>
+                  <Progress value={breathLevel} max={100} />
                 </div>
-              </div>
-            {:else if drillMode === "articulation"}
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-xs font-semibold uppercase text-muted-foreground">Articulation attack grid</p>
-                  <h3 class="text-base font-semibold">Duration markers</h3>
+              {:else if drillMode === "articulation"}
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p class="eyebrow">Articulation attack grid</p>
+                    <h3 class="text-base font-semibold">Duration markers</h3>
+                  </div>
+                  <span class="rounded-full border border-stage-line px-2 py-0.5 text-xs text-stage-muted">{articulationTargetPercent}% beat target</span>
                 </div>
-                <span class="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground">{articulationTargetPercent}% beat target</span>
-              </div>
-              <div class="grid gap-3">
                 <div class="grid gap-2" style={`grid-template-columns: repeat(${articulationSteps.length}, minmax(0, 1fr));`}>
                   {#each articulationSteps as step (step)}
                     <div class="grid gap-1">
-                      <div class="h-12 rounded-md border bg-background p-1">
-                        <div class="h-full rounded bg-primary/75" style={`width: ${articulationTargetPercent}%`} aria-hidden="true"></div>
+                      <div class="h-10 rounded-md border border-stage-line bg-background/60 p-1">
+                        <div
+                          class="h-full rounded {step <= completedNotes ? 'bg-success' : 'bg-practice-accent/60'}"
+                          style={`width: ${articulationTargetPercent}%`}
+                          aria-hidden="true"
+                        ></div>
                       </div>
-                      <span class="text-center text-[10px] font-medium text-muted-foreground">{step}</span>
+                      <span class="text-center text-xs font-medium text-stage-muted">{step}</span>
                     </div>
                   {/each}
                 </div>
-                <div class="grid gap-1" aria-label="Breath starts">
-                  <div class="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Breath starts</span>
-                    <span>{articulationStyle === "staccato" ? "Detached attacks" : "Connected airflow"}</span>
-                  </div>
-                  <div class="h-2 overflow-hidden rounded-full bg-background"><div class="h-full rounded-full bg-success" style={liveBreathWidth}></div></div>
+                <div class="flex items-center justify-between text-xs text-stage-muted">
+                  <span>Breath starts</span>
+                  <span>{articulationStyle === "staccato" ? "Detached attacks" : "Connected airflow"}</span>
                 </div>
-              </div>
-            {:else}
-              <div class="flex items-start justify-between gap-3">
+              {:else}
                 <div>
-                  <p class="text-xs font-semibold uppercase text-muted-foreground">Long-tone stage</p>
+                  <p class="eyebrow">Long-tone stage</p>
                   <h3 class="text-base font-semibold">Pitch lane</h3>
                 </div>
-                <span class="rounded-full border bg-background px-2 py-0.5 text-xs text-muted-foreground">{Number(durationMs) / 1000}s hold</span>
-              </div>
-              <div class="grid gap-3 sm:grid-cols-3">
-                <div class="grid gap-2 rounded-md border bg-background p-3">
-                  <span class="text-xs font-semibold text-muted-foreground">Pitch lane</span>
-                  <span class="text-lg font-semibold">{targetLabel}</span>
-                </div>
-                <div class="grid gap-2 rounded-md border bg-background p-3">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs font-semibold text-muted-foreground">Breath steadiness</span>
-                    <span class="text-xs tabular-nums text-muted-foreground">{breathLevel}%</span>
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <div class="grid gap-1 rounded-lg border border-stage-line bg-background/60 p-3">
+                    <span class="eyebrow">Pitch lane</span>
+                    <span class="text-lg font-semibold">{targetLabel}</span>
                   </div>
-                  <div class="h-2 overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-success" style={liveBreathWidth}></div></div>
-                </div>
-                <div class="grid gap-2 rounded-md border bg-background p-3">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs font-semibold text-muted-foreground">Hold timer</span>
-                    <span class="text-xs tabular-nums text-muted-foreground">{liveProgress}%</span>
+                  <div class="grid gap-2 rounded-lg border border-stage-line bg-background/60 p-3">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="eyebrow">Breath steadiness</span>
+                      <span class="text-xs tabular-nums text-stage-muted">{breathLevel}%</span>
+                    </div>
+                    <Progress value={breathLevel} max={100} />
                   </div>
-                  <Progress value={liveProgress} max={100} />
+                  <div class="grid gap-2 rounded-lg border border-stage-line bg-background/60 p-3">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="eyebrow">Hold timer</span>
+                      <span class="text-xs tabular-nums text-stage-muted">{liveProgress}%</span>
+                    </div>
+                    <Progress value={liveProgress} max={100} />
+                  </div>
                 </div>
+              {/if}
+
+              {#if activePrompt}
+                <div class="grid gap-2 border-t border-stage-line pt-3">
+                  <div class="flex items-center justify-between gap-3 text-sm">
+                    <span class="font-medium">{activePrompt.label}</span>
+                    <span class="tabular-nums text-stage-muted">
+                      {#if articulationPrompt}{completedNotes}/{articulationPrompt.count}{:else}{liveProgress}%{/if}
+                    </span>
+                  </div>
+                  {#if articulationPrompt}<Progress value={completedNotes} max={articulationPrompt.count} />{:else}<Progress value={liveProgress} max={100} />{/if}
+                  {#if swellPrompt}
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+                      <span class="rounded-md border border-stage-line bg-background/60 px-2 py-1.5">Soft</span>
+                      <span class="rounded-md border border-practice-accent bg-practice-accent/15 px-2 py-1.5">Loud</span>
+                      <span class="rounded-md border border-stage-line bg-background/60 px-2 py-1.5">Soft</span>
+                    </div>
+                  {/if}
+                  <!-- One breath meter for every mode: the live CC2 level. -->
+                  <div class="flex items-center justify-between text-xs text-stage-muted">
+                    <span>Live breath pressure</span><span class="tabular-nums">{breathLevel}%</span>
+                  </div>
+                  <Progress value={breathLevel} max={100} />
+                </div>
+              {/if}
+            </div>
+
+            {#if drillMode === "articulation"}
+              <div class="grid gap-3 rounded-xl border border-dashed border-stage-line p-3">
+                <p class="text-xs text-stage-muted">
+                  Articulation grading reads note length and breath (CC2), so a wind controller scores it fully.
+                  On-screen taps complete the pitch dimension only.
+                </p>
+                <AerophoneInput
+                  router={runtime.router}
+                  {targetMidi}
+                  currentMidi={live ? selected : undefined}
+                  onAccepted={playAccepted}
+                />
               </div>
             {/if}
           </div>
 
-          {#if activePrompt}
-            <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-              <div class="flex items-center justify-between gap-3 text-sm">
-                <span class="font-medium">{activePrompt.label}</span>
-                <span class="tabular-nums text-muted-foreground">
-                  {#if articulationPrompt}{completedNotes}/{articulationPrompt.count}{:else}{liveProgress}%{/if}
-                </span>
-              </div>
-              {#if articulationPrompt}<Progress value={completedNotes} max={articulationPrompt.count} />{:else}<Progress value={liveProgress} max={100} />{/if}
-              {#if swellPrompt}
-                <div class="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
-                  <span class="rounded-md border bg-background px-2 py-1.5">Soft</span>
-                  <span class="rounded-md border bg-primary/10 px-2 py-1.5 text-primary">Loud</span>
-                  <span class="rounded-md border bg-background px-2 py-1.5">Soft</span>
-                </div>
-              {/if}
-              <div class="grid gap-2">
-                <div class="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Live breath pressure</span><span class="tabular-nums">{breathLevel}%</span>
-                </div>
-                <Progress value={breathLevel} max={100} />
-              </div>
-            </div>
-          {/if}
+          <div class="grid gap-1 rounded-xl border border-stage-line bg-stage-2/70 p-3">
+            <p class="eyebrow text-center">Current fingering</p>
+            {@render targetBlock(120, false)}
+          </div>
+        </div>
 
-          {#if drillMode === "articulation"}
-            <div class="grid gap-3 rounded-md border border-dashed bg-muted/20 p-3">
-              <p class="text-xs text-muted-foreground">
-                Articulation grading reads note length and breath (CC2), so a wind controller
-                scores it fully. On-screen taps complete the pitch dimension only.
-              </p>
-              <AerophoneInput
-                router={runtime.router}
-                {targetMidi}
-                currentMidi={live ? selected : undefined}
-                onAccepted={playAccepted}
-              />
-            </div>
-          {/if}
-
-          <p class="text-sm text-muted-foreground">{status}</p>
-        </Card.Content>
-      </Card.Root>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stageAction()}
-      <Button type="button" variant="outline" onclick={cancelDrill}>{cancelLabel}</Button>
+      <Button type="button" variant="outline" onclick={cancelDrill}>Stop</Button>
     {/snippet}
 
     {#snippet rail()}
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Current fingering</Card.Description>
-          <Card.Title>{targetLabel}</Card.Title>
-        </Card.Header>
-        <Card.Content class="flex justify-center py-6">
-          <AerophoneFingering midi={targetMidi} size={170} />
-        </Card.Content>
-      </Card.Root>
+      <DrillProgressRail
+        items={[
+          { label: "Trainer", value: drillModes.find((option) => option.value === drillMode)?.label ?? trainerTitle },
+          { label: "Target", value: targetLabel },
+          { label: "Setup", value: setupDetail },
+          { label: "Input", value: runtime.activeSource === "midi" ? "Aerophone" : "Waiting" },
+        ]}
+      />
     {/snippet}
   </PracticeDrillShell>
 </PracticeScreen>

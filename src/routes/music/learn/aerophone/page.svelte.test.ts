@@ -58,19 +58,19 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     expect(button("Dynamic swell")).not.toBeUndefined();
     expect(button("Articulation")).not.toBeUndefined();
     expect(button("Interval landing")).not.toBeUndefined();
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
-    button("Start long tone")?.click();
-    await vi.waitFor(() => expect(button("Cancel long tone")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")?.disabled).toBe(false));
     expect(button("Dynamic swell")).toBeUndefined();
     expect(document.body.textContent).not.toContain("Fingering chart");
-    button("Cancel long tone")?.click();
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    button("Stop")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
     button("Dynamic swell")?.click();
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Dynamic Swell Trainer");
-      expect(button("Start dynamic swell")).not.toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
     });
   });
 
@@ -87,8 +87,8 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       .mockResolvedValue({} as never);
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
-    button("Start long tone")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
     expect(startLongTone).not.toHaveBeenCalled();
     expect(button("Starting...")).not.toBeUndefined();
@@ -106,15 +106,15 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     const startLongTone = vi.spyOn(TechniqueSession.prototype, "startLongTone");
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
-    button("Start long tone")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("Playback voice unavailable."),
     );
     expect(beginPerformance).not.toHaveBeenCalled();
     expect(startLongTone).not.toHaveBeenCalled();
-    expect(button("Start long tone")).not.toBeUndefined();
+    expect(button("Start")).not.toBeUndefined();
   });
 
   test("dismisses stale long-tone results while deferred retry activation fails", async () => {
@@ -132,7 +132,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       }),
     );
 
-    button("Repeat long tone")?.click();
+    button("Again")?.click();
     await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
     expect(document.body.textContent).not.toContain("Long tone complete");
     expect(button("Starting...")?.disabled).toBe(true);
@@ -141,7 +141,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     resolveVoice(false);
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(document.body.textContent).not.toContain("Long tone complete");
-    expect(button("Start long tone")?.disabled).toBe(false);
+    expect(button("Start")?.disabled).toBe(false);
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       runtime.audioMessage,
     );
@@ -155,13 +155,13 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     const ensurePlaybackVoice = vi.mocked(runtime.ensurePlaybackVoice);
     ensurePlaybackVoice.mockClear();
     const changeSetup = button("Change setup");
-    button("Repeat long tone")?.click();
+    button("Again")?.click();
     changeSetup?.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(ensurePlaybackVoice).not.toHaveBeenCalled();
-    expect(button("Cancel long tone")).toBeUndefined();
-    expect(button("Start long tone")?.disabled).toBe(false);
+    expect(button("Stop")).toBeUndefined();
+    expect(button("Start")?.disabled).toBe(false);
     expect(document.body.textContent).not.toContain("Long tone complete");
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       "Drill setup ready",
@@ -180,7 +180,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       }),
     );
     const changeSetup = button("Change setup");
-    button("Repeat long tone")?.click();
+    button("Again")?.click();
     await vi.waitFor(() => expect(startLongTone).toHaveBeenCalledOnce());
     const endPerformance = vi.spyOn(runtime, "endPerformance");
     const stopDrone = vi.spyOn(runtime.sound, "stopDrone");
@@ -191,36 +191,37 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     expect(button("Starting...")?.disabled).toBe(true);
     rejectStart(new Error("Deferred session start failed."));
 
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     expect(endPerformance).toHaveBeenCalledOnce();
     expect(stopDrone).toHaveBeenCalledOnce();
     expect(document.body.textContent).toContain("Drill setup ready.");
     expect(document.body.textContent).not.toContain("Deferred session start failed.");
 
-    button("Start long tone")?.click();
-    await vi.waitFor(() => expect(button("Cancel long tone")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(startLongTone).toHaveBeenCalledTimes(2);
   });
 
   test("runs the articulation drill from the unified Aerophone surface", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     button("Articulation")?.click();
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Articulation Trainer");
-      expect(button("Start articulation drill")).not.toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
     });
 
+    await openSetup();
     const styles = [...document.querySelectorAll('[aria-label="Articulation style"] button')].map(
       (candidate) => candidate.textContent?.trim(),
     );
     expect(styles).toEqual(["Staccato", "Legato"]);
 
-    button("Start articulation drill")?.click();
-    await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
-    expect(button("Start articulation drill")).toBeUndefined();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(button("Start")).toBeUndefined();
     expect(button("Long tone")).toBeUndefined();
     expect(document.activeElement?.textContent).toContain("Articulation Trainer");
 
@@ -237,7 +238,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       expect(document.body.textContent).toContain("Duration");
       expect(button("Change setup")).not.toBeUndefined();
     });
-    expect(button("Cancel articulation drill")).toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
     expect(document.activeElement?.textContent).toContain("Articulation complete");
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       "Articulation Trainer complete",
@@ -245,7 +246,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
 
     button("Slow to 70 BPM")?.click();
     await vi.waitFor(() => {
-      expect(button("Start articulation drill")).not.toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
       expect(new URLSearchParams(window.location.search).get("bpm")).toBe("70");
     });
   });
@@ -261,11 +262,11 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     runtime.router.subscribe((event) => routed.push(event));
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     button("Articulation")?.click();
-    await vi.waitFor(() => expect(button("Start articulation drill")).not.toBeUndefined());
-    button("Start articulation drill")?.click();
-    await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     for (let index = 0; index < 8; index += 1) fingeringKey("G4")?.click();
 
@@ -287,11 +288,11 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     runtime.router.subscribe((event) => routed.push(event));
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     button("Articulation")?.click();
-    await vi.waitFor(() => expect(button("Start articulation drill")).not.toBeUndefined());
-    button("Start articulation drill")?.click();
-    await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     // Focus order: stage entry focuses the trainer heading, and the one named
     // fingering control follows it in document order.
@@ -326,18 +327,18 @@ describe("/music/learn/aerophone/+page.svelte", () => {
   test("returns from the summary to focused setup with Change setup", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     button("Articulation")?.click();
-    await vi.waitFor(() => expect(button("Start articulation drill")).not.toBeUndefined());
-    button("Start articulation drill")?.click();
-    await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     for (let index = 0; index < 8; index += 1) fingeringKey("G4")?.click();
 
     await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
     button("Change setup")?.click();
 
-    await vi.waitFor(() => expect(button("Start articulation drill")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
     expect(button("Change setup")).toBeUndefined();
     expect(document.body.textContent).not.toContain("Summary dimensions");
     expect(document.activeElement?.textContent).toContain("Articulation Trainer");
@@ -346,50 +347,52 @@ describe("/music/learn/aerophone/+page.svelte", () => {
   test("switches the central technique stage by Aerophone drill mode", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
-    button("Start long tone")?.click();
-    await vi.waitFor(() => expect(button("Cancel long tone")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(document.body.textContent).toContain("Long-tone stage");
     expect(document.body.textContent).toContain("Pitch lane");
     expect(document.body.textContent).toContain("Breath steadiness");
     expect(document.body.textContent).toContain("Hold timer");
-    button("Cancel long tone")?.click();
+    button("Stop")?.click();
     await vi.waitFor(() => expect(button("Dynamic swell")).not.toBeUndefined());
 
     button("Dynamic swell")?.click();
-    await vi.waitFor(() => expect(button("Start dynamic swell")).not.toBeUndefined());
-    button("Start dynamic swell")?.click();
-    await vi.waitFor(() => expect(button("Cancel dynamic swell")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Swell envelope");
       expect(document.body.textContent).toContain("Target CC2 envelope");
       expect(document.body.textContent).toContain("Actual CC2 envelope");
     });
-    button("Cancel dynamic swell")?.click();
+    button("Stop")?.click();
     await vi.waitFor(() => expect(button("Articulation")).not.toBeUndefined());
 
     button("Articulation")?.click();
-    await vi.waitFor(() => expect(button("Start articulation drill")).not.toBeUndefined());
-    button("Start articulation drill")?.click();
-    await vi.waitFor(() => expect(button("Cancel articulation drill")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Articulation attack grid");
       expect(document.body.textContent).toContain("Duration markers");
       expect(document.body.textContent).toContain("Breath starts");
       expect(document.body.textContent).toContain("35% beat target");
     });
-    button("Cancel articulation drill")?.click();
+    button("Stop")?.click();
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    await openSetup();
     await vi.waitFor(() => expect(button("Legato")).not.toBeUndefined());
     button("Legato")?.click();
     await vi.waitFor(() => expect(button("Legato")).toHaveAttribute("aria-pressed", "true"));
-    button("Start articulation drill")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("95% beat target"));
-    button("Cancel articulation drill")?.click();
+    button("Stop")?.click();
     await vi.waitFor(() => expect(button("Interval landing")).not.toBeUndefined());
 
     button("Interval landing")?.click();
-    await vi.waitFor(() => expect(button("Start interval landing")).not.toBeUndefined());
-    button("Start interval landing")?.click();
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    button("Start")?.click();
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Drone interval lane");
       expect(document.body.textContent).toContain("Drone");
@@ -401,6 +404,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     setTestUrl("/music/learn/aerophone?mode=articulation&target=69&style=legato&bpm=110");
     render(Page);
 
+    await openSetup();
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Articulation Trainer");
       expect(document.body.textContent).toContain("Target A4");
@@ -418,6 +422,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
       expect(params.get("duration")).toBe("5000");
     });
 
+    await openSetup();
     button("8 sec")?.click();
     buttonByLabel("Next note")?.click();
 
@@ -432,16 +437,17 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     setTestUrl("/music/learn/aerophone?mode=interval-landing&target=60&interval=P5&duration=3000");
     render(Page);
 
+    await openSetup();
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Interval Landing Trainer");
       expect(document.body.textContent).toContain("Target C4");
       expect(button("Perfect fifth")).toHaveAttribute("aria-pressed", "true");
-      expect(button("Start interval landing")?.disabled).toBe(false);
+      expect(button("Start")?.disabled).toBe(false);
     });
 
-    button("Start interval landing")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => {
-      expect(button("Cancel interval landing")).not.toBeUndefined();
+      expect(button("Stop")).not.toBeUndefined();
       expect(document.body.textContent).toContain("Land on G4 over the C4 drone");
     });
   });
@@ -452,19 +458,27 @@ describe("/music/learn/aerophone/+page.svelte", () => {
     );
     render(Page);
 
+    await openSetup();
     await vi.waitFor(() => {
       expect(button("Down")).toHaveAttribute("aria-pressed", "true");
       // The landing HUD shows the target below the drone.
       expect(document.body.textContent).toContain("F3");
-      expect(button("Start interval landing")?.disabled).toBe(false);
+      expect(button("Start")?.disabled).toBe(false);
     });
 
-    button("Start interval landing")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Land on F3 below the C4 drone");
     });
   });
 });
+
+// Per-mode options (duration, interval, style) sit behind "Edit setup" on the
+// ready stage; the drill picker itself stays on the stage.
+async function openSetup(): Promise<void> {
+  if (!button("Hide setup")) button("Edit setup")?.click();
+  await vi.waitFor(() => expect(button("Hide setup")).not.toBeUndefined());
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
@@ -473,9 +487,9 @@ function button(label: string): HTMLButtonElement | undefined {
 }
 
 async function completeLongTone(runtime: MusicRuntime): Promise<void> {
-  await vi.waitFor(() => expect(button("Start long tone")?.disabled).toBe(false));
-  button("Start long tone")?.click();
-  await vi.waitFor(() => expect(button("Cancel long tone")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
   runtime.router.push({
     type: "noteOn",
@@ -507,7 +521,7 @@ async function completeLongTone(runtime: MusicRuntime): Promise<void> {
     });
   }
 
-  await vi.waitFor(() => expect(button("Repeat long tone")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Again")).not.toBeUndefined());
 }
 
 function fingeringKey(note: string): HTMLButtonElement | undefined {

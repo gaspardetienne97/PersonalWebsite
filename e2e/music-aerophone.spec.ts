@@ -7,14 +7,14 @@ test.describe("music Aerophone technique workflows", () => {
     await expect(page.getByRole("heading", { name: "Aerophone Technique" })).toBeVisible();
     await page.getByRole("button", { name: "Dynamic swell" }).click();
     await expect(page.getByRole("heading", { name: "Dynamic Swell Trainer" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start dynamic swell" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
 
-    await page.getByRole("button", { name: "Start dynamic swell" }).click();
-    await expect(page.getByRole("button", { name: "Cancel dynamic swell" })).toBeEnabled();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Stop" })).toBeEnabled();
     await expect(page.getByText("Soft", { exact: true })).toHaveCount(2);
 
-    await page.getByRole("button", { name: "Cancel dynamic swell" }).click();
-    await expect(page.getByRole("button", { name: "Start dynamic swell" })).toBeEnabled();
+    await page.getByRole("button", { name: "Stop" }).click();
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
   });
 
   test("fits the fingering chart at a mobile viewport", async ({ page }) => {
