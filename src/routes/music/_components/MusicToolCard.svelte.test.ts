@@ -27,49 +27,16 @@ describe("MusicToolCard", () => {
     expect(link?.querySelector('[data-testid="music-tool-card-action"]')).not.toBeNull();
   });
 
-  test("renders a token-gradient band from the hue prop when no cover is provided", () => {
+  test("renders a hue plate with a motif from the hue prop", () => {
     render(MusicToolCard, { ...base, hue: "ear" });
 
     const band = document.querySelector('[data-testid="music-tool-card-band"]');
     expect(band).not.toBeNull();
     // The band lives inside the link, above the text body.
     expect(band?.closest('a[href="/music/learn/rhythm"]')).not.toBeNull();
-    // No cover image; the fallback is a token gradient driven by the hue prop.
+    // A token gradient driven by the hue prop, with the hue's motif drawn on it.
     expect(band?.querySelector("img")).toBeNull();
     expect(band?.querySelector("[aria-hidden]")?.className).toContain("from-skill-ear");
-  });
-
-  test("renders a full-bleed cover image when coverSrc is provided", () => {
-    render(MusicToolCard, {
-      ...base,
-      hue: "ear",
-      coverSrc: "/images/music/covers/rhythm.webp",
-    });
-
-    const band = document.querySelector('[data-testid="music-tool-card-band"]');
-    const img = band?.querySelector<HTMLImageElement>("img");
-    expect(img).not.toBeNull();
-    expect(img?.getAttribute("src")).toBe("/images/music/covers/rhythm.webp");
-    expect(img?.className).toContain("object-cover");
-    // Decorative: empty alt keeps the link's accessible name from its text.
-    expect(img?.getAttribute("alt")).toBe("");
-  });
-
-  test("falls back to the hue gradient when the cover image fails to load", async () => {
-    render(MusicToolCard, {
-      ...base,
-      hue: "ear",
-      coverSrc: "/images/music/covers/does-not-exist.webp",
-    });
-
-    const band = document.querySelector('[data-testid="music-tool-card-band"]');
-    const img = band?.querySelector<HTMLImageElement>("img");
-    expect(img).not.toBeNull();
-
-    img?.dispatchEvent(new Event("error"));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(band?.querySelector("img")).toBeNull();
-    expect(band?.querySelector("[aria-hidden]")?.className).toContain("from-skill-ear");
+    expect(band?.querySelector("svg")).not.toBeNull();
   });
 });

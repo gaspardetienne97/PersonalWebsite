@@ -85,7 +85,7 @@
             </div>
             <div class="min-w-0 flex-1 space-y-1.5">
               <div class="flex flex-wrap items-center gap-2">
-                <Card.Title class="text-lg">{step.title}</Card.Title>
+                <Card.Title class="font-display text-lg">{step.title}</Card.Title>
                 <Badge variant={statusBadge(step.status)}>{statusLabel(step.status)}</Badge>
                 {#if isNext}
                   <Badge variant="secondary" class="text-primary">Continue here</Badge>

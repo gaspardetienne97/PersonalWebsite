@@ -6,6 +6,7 @@
   import * as Card from "@repo/ui/card";
   import { cn } from "@repo/ui/utils";
 
+  import HueMotif from "./HueMotif.svelte";
   import type { Hue } from "./musicCatalog";
 
   // Literal class strings so Tailwind's scanner emits the gradient stops; no
@@ -33,7 +34,6 @@
     action,
     icon,
     hue = "piano",
-    coverSrc,
     class: className,
   }: {
     href: string;
@@ -44,13 +44,8 @@
     action: string;
     icon?: Component;
     hue?: Hue;
-    coverSrc?: string;
     class?: string;
   } = $props();
-
-  // A cover that fails to load falls back to the hue gradient instead of a
-  // broken image. Keyed to the failing src so a changed coverSrc retries.
-  let failedSrc = $state<string | null>(null);
 </script>
 
 <Card.Root class={cn("overflow-hidden", className)}>
@@ -58,20 +53,11 @@
     {href}
     class="group flex h-full flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:min-h-56"
   >
-    <!-- The cover band is a desktop flourish; on the phone the card is a compact row. -->
-    <div class="hidden aspect-video w-full overflow-hidden md:block" data-testid="music-tool-card-band">
-      {#if coverSrc && coverSrc !== failedSrc}
-        <img
-          src={coverSrc}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          class="size-full object-cover"
-          onerror={() => (failedSrc = coverSrc ?? null)}
-        />
-      {:else}
-        <div class="size-full bg-linear-to-br {HUE_BAND[hue]}" aria-hidden="true"></div>
-      {/if}
+    <!-- Hue plate: the skill or instrument hue with its motif. A desktop flourish; on the phone the card is a compact row. -->
+    <div class="hidden aspect-[5/2] w-full overflow-hidden md:block" data-testid="music-tool-card-band">
+      <div class="relative size-full bg-linear-to-br text-white {HUE_BAND[hue]}" aria-hidden="true">
+        <HueMotif {hue} class="absolute inset-0 size-full" />
+      </div>
     </div>
 
     <div class="grid flex-1 gap-3 p-4 transition-colors group-hover:bg-accent/50 md:gap-6 md:p-6">
@@ -97,7 +83,7 @@
         </span>
       {/if}
       <div class="min-w-0 space-y-2">
-        <Card.Title>{title}</Card.Title>
+        <Card.Title class="font-display">{title}</Card.Title>
         <Card.Description>{description}</Card.Description>
       </div>
     </div>

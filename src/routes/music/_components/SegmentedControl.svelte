@@ -36,7 +36,7 @@
       class="rounded-md font-semibold transition-colors {size === 'sm'
         ? 'px-3 py-1 text-xs'
         : 'px-3.5 py-1.5 text-sm'} {value === option.value
-        ? 'bg-background text-foreground shadow-sm'
+        ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
         : 'text-muted-foreground hover:text-foreground'}"
     >
       {option.label}

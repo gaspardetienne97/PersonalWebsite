@@ -23,35 +23,6 @@
     Play: "piano",
   };
 
-  // Cover art per drill href (static/images/music/covers, runtime-served, not
-  // precached). Cards without an entry keep the hue-gradient fallback band.
-  const COVER_SLUG: Record<string, string> = {
-    "/music/learn/ear": "ear",
-    "/music/learn/ear/mixed": "ear",
-    "/music/learn/ear/intervals": "ear",
-    "/music/learn/ear/chord-qualities": "ear",
-    "/music/learn/ear/cadences": "ear",
-    "/music/learn/ear/scale-degrees": "ear",
-    "/music/learn/ear/melody-dictation": "ear",
-    "/music/learn/ear/repertoire-transfer": "ear",
-    "/music/learn/reading": "reading",
-    "/music/learn/rhythm": "rhythm",
-    "/music/play/scales": "scales",
-    "/music/play/spider": "spider",
-    "/music/play/two-hand": "two-hand",
-    "/music/play/mpc": "mpc",
-    "/music/learn/aerophone": "aerophone",
-    "/music/learn/aerophone?mode=articulation": "articulation",
-    "/music/play/chord-perfect": "chord-perfect",
-    "/music/play/chord-progression": "chord-progression",
-    "/music/play/voicings": "voicings",
-    "/music/play/licks": "licks",
-    "/music/play/chord-scales": "chord-scales",
-    "/music/play": "play",
-    "/music/jam": "jam",
-  };
-  const coverSrc = (href: string) =>
-    COVER_SLUG[href] ? `/images/music/covers/${COVER_SLUG[href]}.webp` : undefined;
 
   const TABS = ["today", "drills", "paths"] as const;
   // The tab lives in the URL (?tab=drills) so a bookmark or a back gesture lands
@@ -158,7 +129,6 @@
             action={drill.action}
             icon={drill.icon}
             hue={SKILL_HUE[drill.skill]}
-            coverSrc={coverSrc(drill.href)}
           />
         {/each}
       </section>

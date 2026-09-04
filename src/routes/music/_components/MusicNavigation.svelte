@@ -5,10 +5,11 @@
   import Gauge from "lucide-svelte/icons/gauge";
   import Grid3x3 from "lucide-svelte/icons/grid-3x3";
   import Library from "lucide-svelte/icons/library";
-  import Music from "lucide-svelte/icons/music";
-  import Play from "lucide-svelte/icons/play";
+    import Play from "lucide-svelte/icons/play";
   import Plug from "lucide-svelte/icons/plug";
   import Settings from "lucide-svelte/icons/settings";
+
+  import PracticeOsMark from "./PracticeOsMark.svelte";
 
   import { cn } from "@repo/ui/utils";
 
@@ -79,8 +80,8 @@
   class="sticky top-12 hidden h-full max-h-[calc(100dvh-3rem)] w-60 shrink-0 flex-col self-start border-r bg-sidebar text-sidebar-foreground md:flex"
 >
   <div class="flex flex-col gap-0.5 border-b p-4">
-    <span class="flex items-center gap-2 text-base font-bold tracking-tight">
-      <Music class="size-4 text-primary" aria-hidden="true" />
+    <span class="flex items-center gap-2 font-display text-base font-bold tracking-tight">
+      <PracticeOsMark />
       Practice OS
     </span>
     <span class="eyebrow">cross-instrument</span>
@@ -94,11 +95,15 @@
           href={item.href}
           aria-current={isActive(item) ? "page" : undefined}
           class={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70",
+            "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70",
             "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             isActive(item) && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
           )}
         >
+          {#if isActive(item)}
+            <!-- Active marker in the instrument hue (identity only). -->
+            <span class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-instr" aria-hidden="true"></span>
+          {/if}
           <Icon class="size-4 shrink-0" aria-hidden="true" />
           <span class="truncate">{item.label}</span>
         </a>
@@ -137,7 +142,7 @@
       aria-current={isActive(item) ? "page" : undefined}
       class={cn(
         "grid min-w-0 justify-items-center gap-1 px-1 py-2 text-xs text-muted-foreground",
-        isActive(item) && "font-medium text-foreground",
+        isActive(item) && "font-medium text-foreground shadow-[inset_0_2px_0_var(--instr)]",
       )}
     >
       <Icon class="size-4" aria-hidden="true" />

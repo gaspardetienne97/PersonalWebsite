@@ -1015,7 +1015,6 @@
       action="Start scale practice"
       icon={SlidersHorizontal}
       hue="technique"
-      coverSrc="/images/music/covers/scales.webp"
     />
     <MusicToolCard
       href="/music/play/mpc"
@@ -1026,7 +1025,6 @@
       action="Start pad practice"
       icon={Drum}
       hue="mpc"
-      coverSrc="/images/music/covers/mpc.webp"
     />
     <MusicToolCard
       href="/music/play/spider"
@@ -1037,7 +1035,6 @@
       action="Start spider practice"
       icon={SlidersHorizontal}
       hue="guitar"
-      coverSrc="/images/music/covers/spider.webp"
     />
     <MusicToolCard
       href="/music/play/chord-perfect"
@@ -1048,7 +1045,6 @@
       action="Start chord-perfect"
       icon={Guitar}
       hue="harmony"
-      coverSrc="/images/music/covers/chord-perfect.webp"
     />
     <MusicToolCard
       href="/music/play/two-hand"
@@ -1059,7 +1055,6 @@
       action="Start independence drill"
       icon={Hand}
       hue="piano"
-      coverSrc="/images/music/covers/two-hand.webp"
     />
     <MusicToolCard
       href="/music/learn/aerophone?mode=articulation"
@@ -1070,7 +1065,6 @@
       action="Start articulation drill"
       icon={Wind}
       hue="aerophone"
-      coverSrc="/images/music/covers/articulation.webp"
     />
     <MusicToolCard
       href="/music/tuner"
