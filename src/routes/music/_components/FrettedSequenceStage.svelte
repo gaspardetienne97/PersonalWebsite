@@ -9,6 +9,7 @@
 <script lang="ts">
   import type { NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
+  import type { FretWindow } from "@repo/music-core/engines/projection";
   import { midiToNote } from "@repo/music-core/engines/theory";
   import type {
     StringInstrumentId,
@@ -29,6 +30,7 @@
     currentIndex = 0,
     visibleFrets = 12,
     visibleStrings,
+    fretWindow,
     showTargetNotes = true,
     showActiveTarget = true,
     wrongMidiNotes = [],
@@ -43,6 +45,8 @@
     currentIndex?: number;
     visibleFrets?: number;
     visibleStrings?: number[];
+    /** Show only this stretch of the neck; see FretboardInput. */
+    fretWindow?: FretWindow;
     showTargetNotes?: boolean;
     showActiveTarget?: boolean;
     wrongMidiNotes?: number[];
@@ -102,6 +106,7 @@
     {wrongMidiNotes}
     {visibleFrets}
     {visibleStrings}
+    {fretWindow}
     {onAccepted}
   />
 </PracticeStage>

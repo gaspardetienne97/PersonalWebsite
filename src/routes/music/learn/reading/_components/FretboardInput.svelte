@@ -3,6 +3,7 @@
 
   import type { NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
+  import type { FretWindow } from "@repo/music-core/engines/projection";
   import { midiToNote } from "@repo/music-core/engines/theory";
   import type { TuningProfile } from "@repo/music-core/engines/tunings";
   import { cn } from "@repo/ui/utils";
@@ -17,6 +18,8 @@
     router,
     visibleFrets = 12,
     visibleStrings,
+    fretWindow,
+    dotLabels,
     onAccepted,
   }: {
     tuning: TuningProfile;
@@ -27,6 +30,14 @@
     router: InputRouter;
     visibleFrets?: number;
     visibleStrings?: number[];
+    /**
+     * Show only this stretch of the neck (absolute frets, inclusive). The board
+     * keeps real fret numbers, the screen-reader grid keeps absolute labels, and
+     * a neck strip shows where the window sits. Without it, frets 0..visibleFrets.
+     */
+    fretWindow?: FretWindow;
+    /** Text on a highlighted dot per MIDI note (finger numbers); defaults to the note name. */
+    dotLabels?: Record<number, string>;
     onAccepted?: (event: NoteEvent) => void;
   } = $props();
 
@@ -35,6 +46,20 @@
   type FretboardConstructor = new (options?: Record<string, unknown>) => FretboardType;
 
   const fretCount = $derived(Math.min(tuning.fretCount, Math.max(0, visibleFrets)));
+  // Absolute window on the neck. fretboard.js counts frets from its own nut, so
+  // the board is built `boardFretCount` frets wide and every fret we draw or
+  // read back is shifted by `fretOffset` (0 when the window starts at the nut).
+  const clampFret = (fret: number) => Math.min(tuning.fretCount, Math.max(0, Math.round(fret)));
+  const windowStart = $derived(fretWindow ? clampFret(fretWindow.start) : 0);
+  const windowEnd = $derived(
+    fretWindow ? Math.max(windowStart, clampFret(fretWindow.end)) : fretCount,
+  );
+  const fretOffset = $derived(windowStart === 0 ? 0 : windowStart - 1);
+  const boardFretCount = $derived(Math.max(1, windowEnd - fretOffset));
+  const windowFrets = $derived(
+    Array.from({ length: windowEnd - windowStart + 1 }, (_, i) => windowStart + i),
+  );
+  const INLAY_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21];
   const strings = $derived(
     tuning.openStrings
       .map((openMidi, index) => ({ openMidi, stringNumber: index + 1 }))
@@ -91,20 +116,28 @@
   }
 
   function noteLabel(midiNote: number): string {
-    return midiToNote(midiNote).replace(/\d+$/, "");
+    return dotLabels?.[midiNote] ?? midiToNote(midiNote).replace(/\d+$/, "");
+  }
+
+  /** fretboard.js numbers frets from its own nut; rewrite them to the real neck. */
+  function relabelFretNumbers(): void {
+    if (!visual || fretOffset === 0) return;
+    visual.querySelectorAll(".fret-numbers text").forEach((node, index) => {
+      node.textContent = String(index + 1 + fretOffset);
+    });
   }
 
   /** One dot per highlighted position across the visible strings/frets. */
   function highlightDots(): FretDot[] {
     const dots: FretDot[] = [];
     for (const { openMidi } of strings) {
-      for (let fret = 0; fret <= fretCount; fret++) {
+      for (const fret of windowFrets) {
         const midiNote = openMidi + fret;
         const s = fretState(midiNote);
         if (s) {
           dots.push({
             string: fbStringFor(openMidi),
-            fret,
+            fret: fret - fretOffset,
             color: stateColor(s),
             label: noteLabel(midiNote),
             state: s,
@@ -133,11 +166,13 @@
     if (!Fretboard || !visual) return;
 
     const openMidiByString = [...fbOpenMidi];
+    const offset = fretOffset;
+    const firstFret = windowStart;
     const board = new Fretboard({
       el: visual,
       tuning: fbTuning,
       stringCount: fbTuning.length,
-      fretCount,
+      fretCount: boardFretCount,
       height: 180,
       dotSize: 26,
       dotTextSize: 11,
@@ -145,15 +180,19 @@
       dotStrokeColor: themeColor("--border", "#555"),
       stringColor: themeColor("--muted-foreground", "#888"),
       fretColor: themeColor("--muted-foreground", "#888"),
-      nutColor: themeColor("--foreground", "#fff"),
+      // A real nut only when the window starts at fret 0; otherwise a thin fret-coloured edge.
+      nutColor: offset === 0 ? themeColor("--foreground", "#fff") : themeColor("--muted-foreground", "#888"),
+      nutWidth: offset === 0 ? 7 : 2,
       middleFretColor: themeColor("--muted-foreground", "#888"),
       fretNumbersColor: themeColor("--muted-foreground", "#888"),
       showFretNumbers: true,
     });
     board.render();
+    relabelFretNumbers();
     board.on("click", (position: Position) => {
       const openMidi = openMidiByString[position.string - 1];
-      if (openMidi !== undefined) play(openMidi + position.fret);
+      const fret = position.fret + offset;
+      if (openMidi !== undefined && fret >= firstFret) play(openMidi + fret);
     });
     fretboard = board;
 
@@ -193,15 +232,52 @@
   class="w-full max-w-full min-w-0 overflow-x-auto rounded-md border bg-stage/70 p-3 shadow-inner"
 ></div>
 
+{#if fretWindow}
+  <!-- Where the window sits on the whole neck. -->
+  <div class="mt-2 grid gap-1" data-testid="fret-window-strip">
+    <div
+      class="grid h-2.5 gap-px"
+      style={`grid-template-columns: repeat(${tuning.fretCount + 1}, minmax(0, 1fr));`}
+      role="img"
+      aria-label={`Frets ${windowStart} to ${windowEnd} of ${tuning.fretCount}`}
+    >
+      {#each Array.from({ length: tuning.fretCount + 1 }, (_, fret) => fret) as fret (fret)}
+        {@const inWindow = fret >= windowStart && fret <= windowEnd}
+        <span
+          data-fret={fret}
+          data-in-window={inWindow ? "true" : undefined}
+          class={cn(
+            "relative rounded-[2px]",
+            inWindow ? "bg-practice-accent" : "bg-stage-2 ring-1 ring-inset ring-stage-line/60",
+          )}
+        >
+          {#if INLAY_FRETS.includes(fret)}
+            <span
+              class={cn(
+                "absolute left-1/2 top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full",
+                inWindow ? "bg-practice-accent-foreground" : "bg-stage-muted",
+              )}
+              aria-hidden="true"
+            ></span>
+          {/if}
+        </span>
+      {/each}
+    </div>
+    <p class="text-xs text-muted-foreground tabular-nums" aria-hidden="true">
+      Frets {windowStart} to {windowEnd} of {tuning.fretCount}
+    </p>
+  </div>
+{/if}
+
 <!-- Accessible/keyboard layer: real per-fret buttons, screen-reader friendly. -->
 <div
   class="sr-only grid gap-1"
-  style={`grid-template-columns: 3rem repeat(${fretCount + 1}, minmax(2.5rem, 1fr));`}
+  style={`grid-template-columns: 3rem repeat(${windowFrets.length}, minmax(2.5rem, 1fr));`}
   role="group"
   aria-label={`${tuning.name} fretboard input`}
 >
   <span></span>
-  {#each Array.from({ length: fretCount + 1 }, (_, fret) => fret) as fret (fret)}
+  {#each windowFrets as fret (fret)}
     <span class="text-center text-xs text-muted-foreground">{fret}</span>
   {/each}
 
@@ -209,7 +285,7 @@
     <span class="flex items-center justify-center text-xs font-medium text-muted-foreground">
       {stringNumber}
     </span>
-    {#each Array.from({ length: fretCount + 1 }, (_, fret) => fret) as fret (fret)}
+    {#each windowFrets as fret (fret)}
       {@const midiNote = openMidi + fret}
       {@const note = midiToNote(midiNote)}
       {@const noteState = fretState(midiNote)}
