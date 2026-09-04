@@ -3,6 +3,8 @@
 
   import { cn } from "@repo/ui/utils";
 
+  import HudTile from "./HudTile.svelte";
+
   // The drill progress rail: compact labelled stats (current rep, remaining,
   // weak spot, next target, average offset, …) for the side column. Data-driven
   // so the same component serves the prompt / sequence / timing / intonation
@@ -31,17 +33,13 @@
   {#if title}
     <p class="eyebrow">{title}</p>
   {/if}
-  {#each items as item (item.label)}
-    <div class="flex items-baseline justify-between gap-3 rounded-lg border bg-card px-4 py-3">
-      <span class="text-sm text-muted-foreground">{item.label}</span>
-      <span class="text-right">
-        <span class="text-lg font-bold leading-none tabular-nums">{item.value}</span>
-        {#if item.hint}
-          <span class="mt-0.5 block text-xs text-muted-foreground">{item.hint}</span>
-        {/if}
-      </span>
+  {#if items.length > 0}
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {#each items as item (item.label)}
+        <HudTile size="sm" label={item.label} value={item.value} unit={item.hint} />
+      {/each}
     </div>
-  {/each}
+  {/if}
   {#if children}
     {@render children()}
   {/if}

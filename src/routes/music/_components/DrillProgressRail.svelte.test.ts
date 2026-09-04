@@ -26,4 +26,16 @@ describe("DrillProgressRail", () => {
     // Nothing to assert beyond not throwing; the container renders empty.
     expect(document.querySelector("div")).not.toBeNull();
   });
+  test("renders each item as a compact stat tile", () => {
+    render(DrillProgressRail, {
+      items: [
+        { label: "Rep", value: "3 / 10" },
+        { label: "Avg offset", value: 12, hint: "ms" },
+      ],
+    });
+    const tiles = document.querySelectorAll('[data-hud-tile="sm"]');
+    expect(tiles).toHaveLength(2);
+    expect(tiles[1]?.textContent).toContain("Avg offset");
+    expect(tiles[1]?.textContent).toContain("12");
+  });
 });

@@ -108,4 +108,47 @@ describe("PracticeDrillShell phase-only contract", () => {
     expect(runtime.drillFocus).toBe(false);
     runtime.dispose();
   });
+  test("setup with a summary line collapses the controls behind Edit setup and keeps the ready stage visible", async () => {
+    render(PracticeDrillShell, {
+      phase: "setup",
+      setupSummary: region("D DORIAN · 100 BPM"),
+      setup: region("SETUP CONTROLS"),
+      readyStage: region("READY STAGE"),
+    });
+
+    expect(document.body.textContent).toContain("D DORIAN · 100 BPM");
+    expect(document.body.textContent).toContain("READY STAGE");
+    expect(document.body.textContent).not.toContain("SETUP CONTROLS");
+
+    const toggle = [...document.querySelectorAll("button")].find((b) =>
+      /Edit setup/.test(b.textContent ?? ""),
+    );
+    expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+    toggle?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(toggle?.getAttribute("aria-expanded")).toBe("true");
+    expect(document.body.textContent).toContain("SETUP CONTROLS");
+    // The controls region is what the toggle controls.
+    const controlsId = toggle?.getAttribute("aria-controls");
+    expect(controlsId).toBeTruthy();
+    expect(document.getElementById(controlsId!)?.textContent).toContain("SETUP CONTROLS");
+  });
+
+  test("the rail renders under the stage, not beside it", () => {
+    render(PracticeDrillShell, {
+      phase: "stage",
+      focus: false,
+      stage: region("STAGE REGION"),
+      rail: region("RAIL REGION"),
+    });
+    const stage = [...document.querySelectorAll("div")].find(
+      (d) => d.textContent === "STAGE REGION",
+    );
+    const rail = [...document.querySelectorAll("div")].find((d) => d.textContent === "RAIL REGION");
+    expect(stage && rail).toBeTruthy();
+    // DOM order is reading order: stage first, then the rail below it.
+    expect(stage!.compareDocumentPosition(rail!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // No two-column grid wraps them any more.
+    expect(document.querySelector('[class*="lg:grid-cols-[minmax(0,1fr)_18rem]"]')).toBeNull();
+  });
 });

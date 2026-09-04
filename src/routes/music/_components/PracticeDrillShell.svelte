@@ -16,6 +16,8 @@
     focus = true,
     startPending = false,
     setup,
+    setupSummary,
+    readyStage,
     stage,
     feedback,
     rail,
@@ -33,6 +35,13 @@
     /** Renders the setup region disabled while a start settles (preflight only). */
     startPending?: boolean;
     setup?: Snippet;
+    /**
+     * One-line summary of the remembered setup. When given, the setup controls
+     * collapse behind an "Edit setup" toggle and the ready stage shows first.
+     */
+    setupSummary?: Snippet;
+    /** The stage in its ready state (target visible, Start on it), shown under setup. */
+    readyStage?: Snippet;
     stage?: Snippet;
     feedback?: Snippet;
     rail?: Snippet;
@@ -45,6 +54,10 @@
 
   // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a shell mount
   const runtime = runtimeProp ?? useMusicRuntime();
+
+  // Disclosure state for the collapsed setup; the route still owns the values.
+  let setupOpen = $state(false);
+  const setupControlsId = `drill-setup-${Math.random().toString(36).slice(2, 8)}`;
 </script>
 
 {#if focus}
@@ -59,23 +72,48 @@
         {#if summary}{@render summary()}{/if}
       </div>
     {:else if phase === "stage"}
-      <div class={cn("grid gap-6", rail ? "lg:grid-cols-[minmax(0,1fr)_18rem]" : "", cls)}>
-        <div class="min-w-0 space-y-4">
-          {#if stageAction}
-            <div class="flex flex-wrap items-center justify-end gap-2">{@render stageAction()}</div>
-          {/if}
-          {#if stage}{@render stage()}{/if}
-          {#if feedback}{@render feedback()}{/if}
-          {#if children}{@render children()}{/if}
-        </div>
+      <!-- One column: the stage keeps the full width, stats follow underneath. -->
+      <div class={cn("min-w-0 space-y-4", cls)}>
+        {#if stageAction}
+          <div class="flex flex-wrap items-center justify-end gap-2">{@render stageAction()}</div>
+        {/if}
+        {#if stage}{@render stage()}{/if}
+        {#if feedback}{@render feedback()}{/if}
+        {#if children}{@render children()}{/if}
         {#if rail}
-          <aside class="grid content-start gap-4">{@render rail()}</aside>
+          <section class="grid gap-4" aria-label="Run details">{@render rail()}</section>
         {/if}
       </div>
     {:else}
-      <fieldset disabled={startPending} class={cn("m-0 min-w-0 border-0 p-0 disabled:opacity-70", cls)}>
-        {#if setup}{@render setup()}{/if}
-      </fieldset>
+      <div class={cn("min-w-0 space-y-4", cls)}>
+        {#if setupSummary}
+          <div
+            class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-card px-4 py-2.5 text-sm"
+          >
+            <span class="eyebrow">Setup</span>
+            <div class="min-w-0 font-medium">{@render setupSummary()}</div>
+            <button
+              type="button"
+              class="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-expanded={setupOpen}
+              aria-controls={setupControlsId}
+              onclick={() => (setupOpen = !setupOpen)}
+            >
+              {setupOpen ? "Hide setup" : "Edit setup"}
+            </button>
+          </div>
+        {/if}
+        {#if !setupSummary || setupOpen}
+          <fieldset
+            id={setupControlsId}
+            disabled={startPending}
+            class="m-0 min-w-0 border-0 p-0 disabled:opacity-70"
+          >
+            {#if setup}{@render setup()}{/if}
+          </fieldset>
+        {/if}
+        {#if readyStage}{@render readyStage()}{/if}
+      </div>
     {/if}
   </div>
 {/key}

@@ -16,6 +16,7 @@
     heading,
     headingRef = $bindable(null),
     children,
+    metric,
     actions,
     onChangeSetup,
     changeSetupLabel = "Change setup",
@@ -30,6 +31,8 @@
     headingRef?: HTMLElement | null;
     /** The whole body — grade rows, session review, per-hand grid, tempo ladder, etc. */
     children: Snippet;
+    /** The drill's primary number, rendered large before the body with the delta beside it. */
+    metric?: Snippet;
     /** Footer action row (retry bar, tempo buttons, Repeat). */
     actions?: Snippet;
     /** Route-owned handler; renders the consistent "Change setup" action when present. */
@@ -42,8 +45,10 @@
     class?: string;
   } = $props();
 
+  // With a metric the delta sits beside it; otherwise it keeps its footer spot.
+  const deltaInFooter = $derived(Boolean(lastRunDelta) && !metric);
   const hasFooter = $derived(
-    Boolean(actions) || Boolean(onChangeSetup) || Boolean(lastRunDelta) || Boolean(routineContinue) || Boolean(nextUp),
+    Boolean(actions) || Boolean(onChangeSetup) || deltaInFooter || Boolean(routineContinue) || Boolean(nextUp),
   );
 </script>
 
@@ -56,11 +61,17 @@
     </div>
   </Card.Header>
   <Card.Content class="grid gap-4">
+    {#if metric}
+      <div data-testid="summary-metric" class="flex flex-wrap items-end gap-x-6 gap-y-2">
+        {@render metric()}
+        {#if lastRunDelta}{@render lastRunDelta()}{/if}
+      </div>
+    {/if}
     {@render children()}
   </Card.Content>
   {#if hasFooter}
     <Card.Footer class="flex-wrap gap-3">
-      {#if lastRunDelta}{@render lastRunDelta()}{/if}
+      {#if deltaInFooter && lastRunDelta}{@render lastRunDelta()}{/if}
       {#if actions}{@render actions()}{/if}
       {#if onChangeSetup}
         <Button type="button" variant="ghost" onclick={onChangeSetup}>{changeSetupLabel}</Button>

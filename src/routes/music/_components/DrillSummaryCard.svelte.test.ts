@@ -80,4 +80,20 @@ describe("DrillSummaryCard frame", () => {
     );
     expect(button).toBeUndefined();
   });
+  test("leads with the metric and puts the last-run delta beside it", () => {
+    render(DrillSummaryCard, {
+      heading,
+      metric: region("92%"),
+      lastRunDelta: region("UP 4% VS LAST RUN"),
+      children: region("BODY CONTENT"),
+    });
+
+    const metric = document.querySelector('[data-testid="summary-metric"]');
+    expect(metric?.textContent).toContain("92%");
+    expect(metric?.textContent).toContain("UP 4% VS LAST RUN");
+    const body = [...document.querySelectorAll("div")].find(
+      (d) => d.textContent === "BODY CONTENT",
+    );
+    expect(metric!.compareDocumentPosition(body!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
