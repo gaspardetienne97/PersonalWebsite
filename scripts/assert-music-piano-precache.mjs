@@ -19,7 +19,17 @@ for (const sample of samples) {
 if (serviceWorker.includes("audio/jazz/")) {
   throw new Error("Jazz audio must remain excluded from the service-worker precache.");
 }
+// Microphone-gate PCM fixtures are test-only: never shipped, never precached.
+if (/\.pcm\b|__fixtures__/.test(serviceWorker)) {
+  throw new Error("Detector PCM fixtures must remain excluded from the service-worker precache.");
+}
+const shippedPcm = (await readdir("build/client", { recursive: true })).filter((file) =>
+  file.endsWith(".pcm"),
+);
+if (shippedPcm.length > 0) {
+  throw new Error(`Detector PCM fixtures leaked into the client build: ${shippedPcm.join(", ")}`);
+}
 
 console.log(
-  `Verified ${samples.length} precached piano samples (${totalBytes} bytes); jazz excluded.`,
+  `Verified ${samples.length} precached piano samples (${totalBytes} bytes); jazz and PCM fixtures excluded.`,
 );

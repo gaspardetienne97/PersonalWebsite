@@ -83,6 +83,7 @@ export default defineConfig(({ isSsrBuild }) => ({
       "lucide-svelte/icons/headphones",
       "lucide-svelte/icons/list",
       "lucide-svelte/icons/mic",
+      "lucide-svelte/icons/mic-off",
       "lucide-svelte/icons/pause",
       "lucide-svelte/icons/plus",
       "lucide-svelte/icons/quote",

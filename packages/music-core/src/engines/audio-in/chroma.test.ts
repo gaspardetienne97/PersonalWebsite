@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { chromaToPitchClasses, computeChroma } from "./chroma";
+import {
+  chromaFromNoteEnergies,
+  chromaToPitchClasses,
+  computeChroma,
+  computeNoteEnergies,
+  noteEnergy,
+} from "./chroma";
 
 const SAMPLE_RATE = 44_100;
 const SIZE = 2048;
@@ -38,6 +44,28 @@ describe("computeChroma", () => {
     expect([...computeChroma(new Float32Array(SIZE), { sampleRate: SAMPLE_RATE })]).toEqual(
       Array.from({ length: 12 }, () => 0),
     );
+  });
+});
+
+describe("computeNoteEnergies", () => {
+  test("one scan feeds both chroma and the gate: folding the bank is byte-identical chroma", () => {
+    const frame = tone([261.63, 329.63, 392.0]);
+    const bank = computeNoteEnergies(frame, { sampleRate: SAMPLE_RATE });
+    expect(bank.minMidi).toBe(40);
+    expect(bank.maxMidi).toBe(88);
+    expect(bank.energies).toHaveLength(49);
+    expect([...chromaFromNoteEnergies(bank)]).toEqual([
+      ...computeChroma(frame, { sampleRate: SAMPLE_RATE }),
+    ]);
+  });
+
+  test("peaks at the played MIDI note and reads zero outside the band", () => {
+    const bank = computeNoteEnergies(tone([440]), { sampleRate: SAMPLE_RATE });
+    const loudest = [...bank.energies].indexOf(Math.max(...bank.energies)) + bank.minMidi;
+    expect(loudest).toBe(69);
+    expect(noteEnergy(bank, 39)).toBe(0);
+    expect(noteEnergy(bank, 89)).toBe(0);
+    expect(noteEnergy(bank, 69)).toBe(bank.energies[29]);
   });
 });
 

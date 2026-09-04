@@ -26,6 +26,7 @@
     inputEnabled = true,
     activeMidiNotes = [],
     wrongMidiNotes = [],
+    observedMidiNotes = [],
     pianoHandHint,
     suggestedFingerings,
     tuning,
@@ -47,6 +48,8 @@
     inputEnabled?: boolean;
     activeMidiNotes?: number[];
     wrongMidiNotes?: number[];
+    /** What the microphone gate hears. Display only; it never advances. */
+    observedMidiNotes?: number[];
     pianoHandHint?: string;
     suggestedFingerings?: Record<number, number>;
     tuning?: TuningProfile;
@@ -122,9 +125,11 @@
     }
     return hands;
   });
-  // Last write wins, so the order is the precedence: wrong > active > target.
+  // Last write wins, so the order is the precedence: wrong > active > target >
+  // heard. A microphone hint never outranks real state.
   const pianoHighlights = $derived.by(() => {
     const highlights: Record<number, PianoHighlight> = {};
+    for (const midiNote of observedMidiNotes) highlights[midiNote] = { role: "locate" };
     for (const midiNote of targetNotes) {
       const hand = targetHands.get(midiNote);
       highlights[midiNote] = { role: "target", ...(hand ? { hand } : {}) };

@@ -16,6 +16,11 @@
     type Score,
     type UnixMs,
   } from "@repo/music-core/domain";
+  import {
+    ChordAudioSource,
+    GateSession,
+    type GateSessionState,
+  } from "@repo/music-core/engines/audio-in";
   import { scoreToMidiBlob } from "@repo/music-core/engines/midi-export";
   import { notationView, type NotationView } from "@repo/music-core/engines/notation";
   import {
@@ -53,6 +58,7 @@
   import MusicXmlScore from "../../_components/MusicXmlScore.svelte";
   import TabNotation from "../../_components/TabNotation.svelte";
   import AerophoneFingering from "../../_components/AerophoneFingering.svelte";
+  import MicrophoneGatePanel from "../../_components/MicrophoneGatePanel.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import ScoreFollowerStage from "../../_components/ScoreFollowerStage.svelte";
@@ -115,6 +121,27 @@
   let practiceRequest = 0;
   let practiceContextRequest = 0;
   let practiceContextReady: Promise<boolean> = Promise.resolve(false);
+  // Microphone wait gate, hint-only (no acceptance report is passed). Its
+  // events, if it ever earns them, ride the one route-owned router subscription
+  // above into ScorePracticeSession.accept() like any other source.
+  const microphone = browser
+    ? new GateSession({
+        router: { push: (event) => runtime.router.push(event) },
+        createSource: () => new ChordAudioSource(),
+        instrument: "piano",
+      })
+    : undefined;
+  let microphoneState = $state<GateSessionState>(
+    microphone?.state ?? {
+      status: "idle",
+      message: "",
+      observed: [],
+      reason: "listening",
+      hintOnly: true,
+      hintReason: "not-listening",
+    },
+  );
+  let microphoneTargetKey = "";
 
   const sourceScore = $derived(song?.score);
   const voiceOptions = $derived.by(() => scoreVoiceOptions(sourceScore));
@@ -285,6 +312,22 @@
     };
   });
 
+  $effect(() => microphone?.subscribe((next) => (microphoneState = next)));
+
+  // Retarget on every group change (take, segment, and index form the key), so
+  // identical consecutive groups still land the gate unarmed.
+  $effect(() => {
+    if (!microphone) return;
+    const state = practiceState;
+    const active = practicing && stageInstrument === "piano" && state?.status === "running";
+    const key = active
+      ? `${state?.take}:${state?.currentSegmentId ?? ""}:${state?.live?.currentGroupIndex ?? 0}`
+      : "";
+    if (key === microphoneTargetKey) return;
+    microphoneTargetKey = key;
+    microphone.setTarget(active ? (state?.live?.expectedMidiNotes ?? []) : []);
+  });
+
   onDestroy(() => {
     practiceRequest += 1;
     practiceContextRequest += 1;
@@ -292,7 +335,16 @@
     runtime.endPerformance();
     unsubscribeInput();
     stopPreview();
+    microphone?.dispose();
   });
+
+  function startMicrophone(): void {
+    void microphone?.start();
+  }
+
+  function stopMicrophone(): void {
+    void microphone?.stop();
+  }
 
   async function loadSong(): Promise<void> {
     if (!library || !songId) {
@@ -560,6 +612,7 @@
     finishing = true;
     practicing = false;
     completed = true;
+    stopMicrophone();
     const scorePercent = Math.round((practiceState.summary?.aggregateScore ?? 0) * 100);
     status = `Practice complete · ${scorePercent}% score.`;
     try {
@@ -583,6 +636,7 @@
 
   function cancelPractice(): void {
     clearPracticeTimers();
+    stopMicrophone();
     runtime.endPerformance();
     practiceState = practiceSession?.cancel();
     practiceSession = undefined;
@@ -932,6 +986,14 @@
                 label="Score"
               />
               <Progress value={progressPercent} max={100} />
+              {#if stageInstrument === "piano" && microphone}
+                <MicrophoneGatePanel
+                  state={microphoneState}
+                  supported={ChordAudioSource.supported}
+                  onStart={startMicrophone}
+                  onStop={stopMicrophone}
+                />
+              {/if}
               {#if notation.view}
                 <ScoreFollowerStage
                   score={score}
@@ -942,6 +1004,7 @@
                   router={runtime.router}
                   activeMidiNotes={live?.heldMidiNotes ?? []}
                   wrongMidiNotes={live?.wrongMidiNotes ?? []}
+                  observedMidiNotes={microphoneState.observed}
                   tuning={stageTuning}
                   tabProjection={stageTabProjection}
                   showTab={stageInstrument !== "piano"}

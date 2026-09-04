@@ -27,6 +27,7 @@
     sessionXp,
     stageView = "staff",
     waterfall,
+    observedMidiNotes = [],
     onAccepted,
     onStart,
     onFinish,
@@ -40,6 +41,8 @@
     /** The route picks the stage view; both are the same score. */
     stageView?: ComponentProps<typeof ScoreFollowerStage>["stageView"];
     waterfall?: ComponentProps<typeof ScoreFollowerStage>["waterfall"];
+    /** Microphone-gate hint notes; display only, never advancing. */
+    observedMidiNotes?: number[];
     onAccepted: (event: NoteEvent) => void;
     onStart: () => Promise<number | undefined>;
     onFinish: () => Promise<void>;
@@ -187,6 +190,7 @@
             router={router}
             activeMidiNotes={live?.heldMidiNotes ?? []}
             wrongMidiNotes={live?.wrongMidiNotes ?? []}
+            {observedMidiNotes}
             {pianoHandHint}
             {waitGroupKey}
             suggestedFingerings={pianoFingerings}

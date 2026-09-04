@@ -5,6 +5,10 @@
  * frequencies across a few octaves and folds them into 12 pitch classes. This
  * avoids adding an FFT dependency and stays a pure, testable function (the
  * streaming glue lives in Phase 2). Normalized so the strongest class is 1.
+ *
+ * The per-note scan is `computeNoteEnergies`; chroma is one fold of that bank.
+ * There is exactly one Goertzel scan per frame, and the note gate reads the
+ * same published bank rather than rescanning it.
  */
 
 export interface ChromaOptions {
@@ -15,20 +19,48 @@ export interface ChromaOptions {
   maxMidi?: number;
 }
 
-export function computeChroma(frame: Float32Array, options: ChromaOptions): Float32Array {
+/** Goertzel power per probed MIDI note, indexed by `midi - minMidi`. */
+export interface NoteEnergyBank {
+  minMidi: number;
+  maxMidi: number;
+  energies: Float32Array;
+}
+
+export function computeNoteEnergies(frame: Float32Array, options: ChromaOptions): NoteEnergyBank {
   const minMidi = options.minMidi ?? 40;
   const maxMidi = options.maxMidi ?? 88;
-  const chroma = new Float32Array(12);
+  const energies = new Float32Array(Math.max(0, maxMidi - minMidi + 1));
 
   for (let midi = minMidi; midi <= maxMidi; midi++) {
     const frequency = 440 * 2 ** ((midi - 69) / 12);
-    chroma[midi % 12]! += goertzelPower(frame, frequency, options.sampleRate);
+    energies[midi - minMidi] = goertzelPower(frame, frequency, options.sampleRate);
+  }
+
+  return { minMidi, maxMidi, energies };
+}
+
+/** Bank energy at `midi`, or 0 outside the probed range. */
+export function noteEnergy(bank: NoteEnergyBank, midi: number): number {
+  if (midi < bank.minMidi || midi > bank.maxMidi) return 0;
+  return bank.energies[midi - bank.minMidi] ?? 0;
+}
+
+/** Folds a note-energy bank into the 12 pitch classes, peak-normalized. */
+export function chromaFromNoteEnergies(bank: NoteEnergyBank): Float32Array {
+  const chroma = new Float32Array(12);
+
+  for (let midi = bank.minMidi; midi <= bank.maxMidi; midi++) {
+    chroma[midi % 12]! += bank.energies[midi - bank.minMidi]!;
   }
 
   let max = 0;
   for (const value of chroma) if (value > max) max = value;
   if (max > 0) for (let i = 0; i < 12; i++) chroma[i]! /= max;
   return chroma;
+}
+
+export function computeChroma(frame: Float32Array, options: ChromaOptions): Float32Array {
+  return chromaFromNoteEnergies(computeNoteEnergies(frame, options));
 }
 
 /** Pitch classes whose normalized chroma energy clears `threshold` (ascending). */

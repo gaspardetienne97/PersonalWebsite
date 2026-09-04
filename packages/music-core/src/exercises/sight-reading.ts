@@ -124,7 +124,7 @@ export function createSightReadingExercise({
     name: "Generated Sight Reading",
     capabilities: [Capability.Reading],
     skillIds: sightReadingSkills(options),
-    inputs: ["midi", "onscreen"],
+    inputs: ["midi", "onscreen", "audio"],
     streaming: true,
     generate: () => {
       const score = generateScore(options, random);

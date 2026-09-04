@@ -51,7 +51,55 @@ export {
   type RecordMicClipOptions,
 } from "./record-clip";
 
-export { computeChroma, chromaToPitchClasses, type ChromaOptions } from "./chroma";
+export {
+  computeChroma,
+  chromaFromNoteEnergies,
+  chromaToPitchClasses,
+  computeNoteEnergies,
+  noteEnergy,
+  type ChromaOptions,
+  type NoteEnergyBank,
+} from "./chroma";
+
+export {
+  GATE_MAX_MIDI,
+  GATE_MIN_MIDI,
+  NoteGate,
+  type NoteGateFrame,
+  type NoteGateOptions,
+  type NoteGateReason,
+  type NoteGateResult,
+} from "./note-gate";
+
+export {
+  evaluateGateAcceptance,
+  gateAcceptanceAdvertises,
+  gateMaterialFor,
+  GATE_ACCEPTANCE_MANIFEST_VERSION,
+  GATE_ACCEPTED_P95_LIMIT_MS,
+  GATE_ADVANCE_LIMIT_MS,
+  GATE_DYNAMICS,
+  GATE_MATERIAL_STRATA,
+  GATE_REGISTER_STRATA,
+  type GateAcceptanceInput,
+  type GateAcceptanceReport,
+  type GateDynamic,
+  type GateMaterialId,
+  type GatePhysicalAttempt,
+  type GateRegisterId,
+  type GateStratumReport,
+  type GateTrial,
+} from "./gate-acceptance";
+
+export {
+  GateSession,
+  MICROPHONE_HINT_MESSAGE,
+  type GateCaptureSource,
+  type GateEventSink,
+  type GateHintReason,
+  type GateSessionOptions,
+  type GateSessionState,
+} from "./gate-session";
 
 export { resampleLinear } from "./resample";
 

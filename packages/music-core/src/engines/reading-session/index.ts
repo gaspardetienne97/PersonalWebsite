@@ -396,7 +396,7 @@ export class ReadingSession {
       exercise,
       sessionId: this.#sessionId,
       runId: `${this.#sessionId}-sight-reading`,
-      inputs: ["midi", "onscreen"],
+      inputs: ["midi", "onscreen", "audio"],
       context: {
         targetSkillIds: [item.targetSkillId],
         difficulty: item.difficulty,

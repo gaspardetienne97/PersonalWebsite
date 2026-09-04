@@ -7,6 +7,12 @@
   import type { NoteEvent } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
+    ChordAudioSource,
+    GateSession,
+    type GateSessionState,
+  } from "@repo/music-core/engines/audio-in";
+  import type { ScoreFollowerLiveState } from "@repo/music-core/engines/score-follower";
+  import {
     normalizeReadingDrillConfig,
     READING_DRILL_DEFAULT_CONFIG,
     ReadingSession,
@@ -21,6 +27,7 @@
   import { Button } from "@repo/ui/button";
 
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
+  import MicrophoneGatePanel from "../../_components/MicrophoneGatePanel.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
@@ -76,6 +83,27 @@
   let performancePending = false;
   let sessionRequest = 0;
   let captured = false;
+  // Microphone wait gate. Ships hint-only: no acceptance report is passed, so
+  // it lights what it hears and never pushes advancing events. Permission is
+  // only ever requested from the panel's explicit button.
+  const microphone = browser
+    ? new GateSession({
+        router: { push: (event) => runtime.router.push(event) },
+        createSource: () => new ChordAudioSource(),
+        instrument: "piano",
+      })
+    : undefined;
+  let microphoneState = $state<GateSessionState>(
+    microphone?.state ?? {
+      status: "idle",
+      message: "",
+      observed: [],
+      reason: "listening",
+      hintOnly: true,
+      hintReason: "not-listening",
+    },
+  );
+  let microphoneTargetKey = "";
 
   const availableTunings = $derived(
     setup.instrument === "piano"
@@ -178,7 +206,35 @@
     });
   });
 
+  $effect(() => microphone?.subscribe((next) => (microphoneState = next)));
+
+  // Retarget the gate on every follower group change, including identical-note
+  // groups (the session index and group id form the key). Retargeting lands
+  // unarmed, so a chord sustained across the change cannot advance.
+  $effect(() => {
+    if (!microphone) return;
+    const state = sessionState;
+    const prompt = state?.currentPrompt;
+    const groups = prompt && "groups" in prompt ? prompt.groups : undefined;
+    const active = state?.status === "sight-reading" && setup.instrument === "piano";
+    const group = active
+      ? groups?.[(state?.live as ScoreFollowerLiveState | undefined)?.currentGroupIndex ?? 0]
+      : undefined;
+    const key = group ? `${state?.currentIndex}:${group.id}` : "";
+    if (key === microphoneTargetKey) return;
+    microphoneTargetKey = key;
+    microphone.setTarget(group?.midiNotes ?? []);
+  });
+
   void initialize();
+
+  function startMicrophone(): void {
+    void microphone?.start();
+  }
+
+  function stopMicrophone(): void {
+    void microphone?.stop();
+  }
 
   async function initialize(): Promise<void> {
     try {
@@ -288,7 +344,10 @@
   }
 
   function handleSessionState(next: ReadingSessionState): void {
-    if (next.status !== "sight-reading") stopPreview();
+    if (next.status !== "sight-reading") {
+      stopPreview();
+      stopMicrophone();
+    }
     if (next.status === "summary" || next.status === "abandoned") runtime.endPerformance();
     sessionState = next;
     sessionXp = next.results.reduce((total, result) => total + result.xp, 0);
@@ -378,6 +437,7 @@
   function abandon(): void {
     performanceRequest += 1;
     stopPreview();
+    stopMicrophone();
     runtime.endPerformance();
     session?.abandon();
     unsubscribeSession?.();
@@ -395,6 +455,7 @@
   function changeSetup(): void {
     performanceRequest += 1;
     stopPreview();
+    stopMicrophone();
     runtime.endPerformance();
     unsubscribeSession?.();
     session?.dispose();
@@ -621,6 +682,7 @@
     unsubscribeSession?.();
     session?.dispose();
     stopPreview();
+    microphone?.dispose();
   });
 </script>
 
@@ -735,6 +797,14 @@
             {/if}
           </div>
         {/if}
+        {#if setup.instrument === "piano" && microphone}
+          <MicrophoneGatePanel
+            state={microphoneState}
+            supported={ChordAudioSource.supported}
+            onStart={startMicrophone}
+            onStop={stopMicrophone}
+          />
+        {/if}
         <SightReadingSession
           sessionState={sessionState}
           router={runtime.router}
@@ -742,6 +812,7 @@
           bpm={setup.bpm}
           {stageView}
           waterfall={stageWaterfall}
+          observedMidiNotes={microphoneState.observed}
           {sessionXp}
           onAccepted={playAccepted}
           onStart={startSightReading}

@@ -10,9 +10,9 @@
 import type { MonotonicMs } from "@repo/music-core/domain";
 
 import type { AudioPitchState } from "./capture";
-import { computeChroma } from "./chroma";
+import { chromaFromNoteEnergies, computeNoteEnergies, type NoteEnergyBank } from "./chroma";
 import { FrameRing } from "./frame-ring";
-import { OnsetDetector, type OnsetDetectOptions } from "./onset-detect";
+import { frameRms, OnsetDetector, type OnsetDetectOptions } from "./onset-detect";
 import pitchWorkletSource from "./pitch-worklet.js?raw";
 import { resampleLinear } from "./resample";
 
@@ -23,6 +23,10 @@ export interface ChordAnalysis {
   timestamp: number;
   onset: boolean;
   onsetWindow?: Float32Array;
+  /** The one per-frame Goertzel scan chroma was folded from. */
+  noteEnergies: NoteEnergyBank;
+  rms: number;
+  sampleRate: number;
 }
 
 export interface ChordAudioSourceOptions {
@@ -191,7 +195,8 @@ export class ChordAudioSource {
     if (this.#analysisListeners.size === 0) return;
     this.#ring.push(frame);
     const timestamp = (globalThis.performance?.now() ?? 0) as MonotonicMs;
-    const chroma = computeChroma(frame, { sampleRate });
+    const noteEnergies = computeNoteEnergies(frame, { sampleRate });
+    const chroma = chromaFromNoteEnergies(noteEnergies);
     const detection = this.#onsetDetector.process(frame, timestamp);
     const onset = detection !== undefined;
     let onsetWindow: Float32Array | undefined;
@@ -205,6 +210,9 @@ export class ChordAudioSource {
       timestamp,
       onset,
       ...(onsetWindow ? { onsetWindow } : {}),
+      noteEnergies,
+      rms: frameRms(frame),
+      sampleRate,
     };
     for (const listener of this.#analysisListeners) listener(analysis);
   }
