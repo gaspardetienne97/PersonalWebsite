@@ -59,7 +59,8 @@
   {/if}
 
   {#if supported && listening}
-    <p class="text-sm text-muted-foreground" aria-live="polite" data-testid="microphone-detected">
+    <!-- Visible only: a per-detection announcement would talk over the route's own live region. -->
+    <p class="text-sm text-muted-foreground" data-testid="microphone-detected">
       {detected ? `Detected: ${detected}` : "Listening."}
     </p>
   {/if}

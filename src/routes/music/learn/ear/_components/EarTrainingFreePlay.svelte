@@ -72,7 +72,7 @@
     </div>
 
     {#if lastDegree}
-      <p class="text-sm text-muted-foreground" aria-live="polite">
+      <p class="text-sm text-muted-foreground">
         Last explored: {lastDegree.label}.
       </p>
     {/if}

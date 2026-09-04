@@ -103,7 +103,7 @@
     </Card.Header>
     <Card.Content class="grid gap-6">
       <div class="flex flex-col gap-3 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-sm text-muted-foreground" aria-live="polite">{midiStatus}</p>
+        <p class="text-sm text-muted-foreground">{midiStatus}</p>
         <Button type="button" variant="outline" disabled={midiEnabled} onclick={onEnableMidi}>
           {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
         </Button>

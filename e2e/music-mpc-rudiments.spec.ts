@@ -10,7 +10,8 @@ test.describe("music MPC rudiment workflows", () => {
     await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
 
     await page.getByRole("button", { name: "Start", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+    // The stage appears after the transport count-in; allow for it under load.
+    await expect(page.getByRole("button", { name: "Stop" })).toBeVisible({ timeout: 15_000 });
     const pads = [36, 38, 36, 38, 36, 38, 36, 38];
     for (const [index, midi] of pads.entries()) {
       if (index > 0) await page.waitForTimeout(375);

@@ -16,9 +16,8 @@
   } = $props();
 </script>
 
+<!-- Not a live region: the route's one announcer reports the phase change this block sits in. -->
 <div
-  role="status"
-  aria-live="polite"
   class="flex items-center gap-4 rounded-xl border p-4
     {kind === 'correct'
     ? 'border-success/25 bg-success/10 text-success'
