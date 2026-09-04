@@ -1212,7 +1212,8 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     summary:
       "Every jazz technique is an interval pattern. Learn all ascending intervals first — set a 30–60 day deadline.",
     resources: ["JT1"],
-    href: "/music/learn/ear",
+    href: "/music/learn/ear/intervals",
+    skillId: "pitch.intervals",
   },
   {
     id: "chord-symbols",
@@ -1221,7 +1222,9 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     summary:
       "maj7, m7, 7, mMaj7, m7b5, dim7, 6/9 and the slash chords — what each means and its role in a ii-V-I.",
     resources: ["JT2"],
+    kind: "reference",
     href: "/music/learn/jazz",
+    links: [{ label: "Hear the qualities", href: "/music/learn/ear/chord-qualities" }],
     skillId: "harmony.sevenths",
   },
   {
@@ -1231,7 +1234,9 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     summary:
       "Build the 9th, 11th, 13th (and b9 #9 #11 b13) from the major scale above any chord root.",
     resources: ["JT3"],
+    kind: "reference",
     href: "/music/learn/jazz",
+    links: [{ label: "Hear the qualities", href: "/music/learn/ear/chord-qualities" }],
     skillId: "harmony.sevenths",
   },
   {
@@ -1241,7 +1246,12 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     summary:
       "Pick one go-to scale per chord type (lydian over maj7, dorian over m7, mixolydian/altered over V7).",
     resources: ["JT4"],
-    href: "/music/learn/jazz",
+    href: "/music/play/chord-scales?changes=major",
+    links: [
+      { label: "Minor ii-V-i", href: "/music/play/chord-scales?changes=minor" },
+      { label: "Theory", href: "/music/learn/jazz" },
+    ],
+    skillId: "harmony.ii-v-i",
   },
   {
     id: "shell-voicings",
@@ -1249,7 +1259,9 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     title: "Shell voicings",
     summary: "Play the guide tones (1 3 7). The fastest way to comp through a tune.",
     resources: ["JT8"],
+    kind: "reference",
     href: "/music/learn/jazz",
+    links: [{ label: "Rootless voicings drill", href: "/music/play/voicings" }],
     applies: "polyphonic",
   },
   {
@@ -1270,13 +1282,26 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     summary:
       "Rootless voicings with V7b9 and V7 altered, plus upper-structure triads for richer dominant colour.",
     resources: ["JT10", "JT11", "JT12"],
-    href: "/music/learn/jazz",
+    href: "/music/play/voicings?variant=altered",
+    links: [{ label: "Theory", href: "/music/learn/jazz" }],
     skillId: "harmony.ii-v-i",
     applies: "polyphonic",
   },
   {
-    id: "improv",
+    id: "licks",
     order: 8,
+    title: "Play the licks over ii-V-I",
+    summary:
+      "Hear a transcribed line, play it back over the changes, then take it through the keys.",
+    resources: ["JT5"],
+    href: "/music/play/licks?category=major-ii-V-I",
+    links: [{ label: "Minor ii-V-i licks", href: "/music/play/licks?category=minor-ii-V-i" }],
+    skillId: "harmony.ii-v-i",
+    applies: "pitched",
+  },
+  {
+    id: "improv",
+    order: 9,
     title: "Improvise over ii-V-I",
     summary:
       "Chord tones + approach patterns + bebop/altered/diminished scales. Work the 29 licks.",
@@ -1286,7 +1311,7 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
   },
   {
     id: "repertoire",
-    order: 9,
+    order: 10,
     title: "Learn repertoire from a Real Book",
     summary:
       "Apply everything to standards. Practice with the swing / ballad / bossa backing tracks.",

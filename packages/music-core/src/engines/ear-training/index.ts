@@ -33,10 +33,25 @@ export {
   currentEarTrainingLearningPath,
   EAR_TRAINING_CAPABILITIES,
   EAR_TRAINING_LEARNING_PATH,
+  EAR_TRAINING_LEARNING_PATH_DEFINITION,
   type EarTrainingCapability,
   type EarTrainingCapabilityStatus,
   type EarTrainingLearningPathStage,
 } from "./curriculum";
+export {
+  clampEarAnswerMode,
+  EAR_TRAINING_DRILLS,
+  EAR_TRAINING_PATH_HREF,
+  earTrainingDrillBySlug,
+  earTrainingDrillForDrill,
+  earTrainingDrillHref,
+  earTrainingHrefForSkill,
+  legacyEarTrainingHref,
+  scaleDegreeSkillIds,
+  type EarTrainingDrillDefinition,
+  type EarTrainingDrillSlug,
+  type EarTrainingHrefOptions,
+} from "./drills";
 export {
   buildRepertoireEarTransfers,
   buildRepertoireReviewPlan,
@@ -610,7 +625,7 @@ function readEarConfigValue(source: EarTrainingConfigSource, keys: string[]): st
   return undefined;
 }
 
-function drillForExercise(exerciseId: string): EarTrainingDrill | undefined {
+export function drillForExercise(exerciseId: string): EarTrainingDrill | undefined {
   if (exerciseId === "ear.interval-recognition") return "interval";
   if (exerciseId === "ear.chord-quality-recognition") return "chord-quality";
   if (exerciseId === "ear.cadence-recognition") return "cadence";
@@ -620,7 +635,7 @@ function drillForExercise(exerciseId: string): EarTrainingDrill | undefined {
   return undefined;
 }
 
-function drillEligibleForAnswerMode(
+export function drillEligibleForAnswerMode(
   drill: EarTrainingDrill,
   answerMode: EarTrainingAnswerMode,
 ): boolean {

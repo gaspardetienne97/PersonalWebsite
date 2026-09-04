@@ -5,6 +5,8 @@ import {
   currentEarTrainingLearningPath,
   EAR_TRAINING_CAPABILITIES,
   EAR_TRAINING_LEARNING_PATH,
+  EAR_TRAINING_LEARNING_PATH_DEFINITION,
+  earTrainingDrillBySlug,
 } from "./index";
 
 describe("ear-training curriculum", () => {
@@ -58,6 +60,26 @@ describe("ear-training curriculum", () => {
     expect(
       EAR_TRAINING_LEARNING_PATH.find(({ id }) => id === "melody-transfer")?.practiceMode,
     ).toContain("repertoire");
+  });
+
+  test("every stage links a known drill route with skills behind it", () => {
+    for (const stage of EAR_TRAINING_LEARNING_PATH) {
+      expect(stage.href).toMatch(/^\/music\/learn\/ear\/[a-z-]+/);
+      expect(
+        earTrainingDrillBySlug(new URL(stage.href!, "http://x").pathname.split("/").at(-1)),
+      ).toBeDefined();
+      expect(stage.skillIds?.length).toBeGreaterThan(0);
+      expect(stage.summary.length).toBeGreaterThan(0);
+      expect(stage.detail.length).toBeGreaterThan(0);
+    }
+    expect(EAR_TRAINING_LEARNING_PATH[0]?.href).toBe(
+      "/music/learn/ear/scale-degrees?answer=listen&level=anchor",
+    );
+    expect(EAR_TRAINING_LEARNING_PATH.at(-1)).toMatchObject({
+      kind: "review",
+      href: "/music/learn/ear/mixed",
+    });
+    expect(EAR_TRAINING_LEARNING_PATH_DEFINITION.steps).toBe(EAR_TRAINING_LEARNING_PATH);
   });
 
   test("returns defensive copies for route projections", () => {

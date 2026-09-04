@@ -167,10 +167,27 @@ describe("jazz lesson path", () => {
       mastery: (id) => (id === "harmony.ii-v-i" ? 0.8 : id === "harmony.sevenths" ? 0.2 : 0),
     });
 
-    expect(path.map((s) => s.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(path.map((s) => s.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     expect(path.find((s) => s.id === "rootless-voicings")?.status).toBe("done"); // 0.8 ≥ 0.66
     expect(path.find((s) => s.id === "chord-symbols")?.status).toBe("in-progress"); // 0.2
-    expect(path.find((s) => s.id === "intervals")?.status).toBe("todo"); // no skill
+    expect(path.find((s) => s.id === "intervals")?.status).toBe("todo"); // pitch.intervals at 0
+    expect(path.find((s) => s.id === "chord-symbols")?.kind).toBe("reference");
+  });
+
+  it("links every drill step to the drill that practises it, with its setup", async () => {
+    const { buildJazzPath } = await import("./index");
+    const path = buildJazzPath({ mastery: (id) => (id === "pitch.intervals" ? 1 : 0) });
+    const href = (id: string) => path.steps.find((s) => s.id === id)?.href;
+    expect(href("intervals")).toBe("/music/learn/ear/intervals");
+    expect(href("chord-scales")).toBe("/music/play/chord-scales?changes=major");
+    expect(href("licks")).toBe("/music/play/licks?category=major-ii-V-I");
+    expect(href("altered-voicings")).toBe("/music/play/voicings?variant=altered");
+    expect(path.steps.find((s) => s.id === "chord-symbols")?.links?.[0]?.href).toBe(
+      "/music/learn/ear/chord-qualities",
+    );
+    // Continue skips the finished intervals step and the skill-less reference steps.
+    expect(path.next?.id).toBe("chord-symbols");
+    expect(path.done).toBe(1);
   });
 
   it("annotates polyphonic lessons on a monophonic instrument", async () => {
