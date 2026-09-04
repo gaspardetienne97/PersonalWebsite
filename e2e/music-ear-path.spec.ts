@@ -14,7 +14,9 @@ test.describe("ear training path and drills", () => {
     await steps.first().getByRole("link", { name: "Practice" }).click();
     await expect(page).toHaveURL(/\/music\/learn\/ear\/scale-degrees\?answer=listen&level=anchor/);
     await expect(page.getByRole("heading", { name: "Scale degrees" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start" })).toBeEnabled({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled({
+      timeout: 15_000,
+    });
   });
 
   test("legacy single-route links redirect onto the drill route", async ({ page }) => {
