@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@fontsource/fira-mono";
+@import "@fontsource-variable/outfit";
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 @plugin 'tailwindcss-animate';
@@ -42,10 +43,10 @@
 
   /* Semantic data colors — meaning, not chrome. Tuned darker in light mode so
      they read as text/fills on light surfaces; `--destructive` is the error tone. */
-  --success: oklch(0.55 0.14 152);
+  --success: oklch(0.52 0.14 152);
   --success-foreground: oklch(0.985 0.01 150);
   --warn: oklch(0.62 0.15 75);
-  --warn-foreground: oklch(0.99 0.01 90);
+  --warn-foreground: oklch(0.22 0.05 75);
   --info: oklch(0.55 0.15 250);
   --info-foreground: oklch(0.985 0.01 250);
 
@@ -54,7 +55,7 @@
   --stage: oklch(0.94 0.006 256);
   --stage-2: oklch(0.9 0.008 256);
   --stage-foreground: oklch(0.2 0.03 264);
-  --stage-muted: oklch(0.5 0.02 258);
+  --stage-muted: oklch(0.48 0.02 258);
   --stage-line: oklch(0.86 0.01 256);
   /* Single fixed practice accent (focus/target/progress on the stage). */
   --practice-accent: oklch(0.52 0.2 277);
@@ -70,9 +71,9 @@
      and off the violet practice accent, so a hand never reads as a verdict.
      Hue is never the only carrier: left renders outlined with an L glyph,
      right filled with an R glyph (see PianoSurface). */
-  --hand-left: oklch(0.6 0.11 195);
+  --hand-left: oklch(0.5 0.11 195);
   --hand-left-foreground: oklch(0.99 0 0);
-  --hand-right: oklch(0.6 0.18 350);
+  --hand-right: oklch(0.52 0.18 350);
   --hand-right-foreground: oklch(0.99 0 0);
   /* Instrument identity hues — badges/switcher/now-playing/accent-line only, never data. */
   --instr-piano: oklch(0.55 0.2 277);
@@ -92,6 +93,36 @@
   --skill-harmony: oklch(0.62 0.25 330);
   --skill-reading: oklch(0.62 0.17 250);
   --skill-technique: oklch(0.75 0.16 75);
+  /* Musical colour (round 4): one fixed colour per scale degree and per tone
+     role, the same in both themes, so a degree looks the same on the answer
+     wheel, the keyboard and a dictation slot. Judgement never rides on these:
+     correctness is a ring, a glyph or a sentence. Text on them uses the fixed
+     dark ink below (checked by app-tokens.contrast.test.ts). */
+  --degree-1: oklch(0.78 0.11 290);
+  --degree-b2: oklch(0.78 0.11 320);
+  --degree-2: oklch(0.78 0.12 350);
+  --degree-b3: oklch(0.78 0.12 20);
+  --degree-3: oklch(0.8 0.12 50);
+  --degree-4: oklch(0.82 0.13 80);
+  --degree-s4: oklch(0.82 0.13 110);
+  --degree-5: oklch(0.8 0.13 140);
+  --degree-b6: oklch(0.8 0.11 170);
+  --degree-6: oklch(0.8 0.1 200);
+  --degree-b7: oklch(0.78 0.1 230);
+  --degree-7: oklch(0.78 0.1 260);
+  --degree-foreground: oklch(0.18 0.02 60);
+  --tone-chord: oklch(0.8 0.12 290);
+  --tone-scale: oklch(0.82 0.1 185);
+  --tone-avoid: oklch(0.82 0.1 40);
+  --tone-foreground: oklch(0.18 0.02 60);
+  /* The fretted neck drawn as material: board wood and fret wire. */
+  --fretboard: oklch(0.64 0.07 62);
+  --fretboard-fret: oklch(0.88 0.01 80);
+  /* Stage as hardware: inset panel shadow and the grain layer's strength. */
+  --stage-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 55%), inset 0 -1px 0 oklch(0 0 0 / 8%),
+    0 18px 40px -28px oklch(0 0 0 / 45%);
+  --stage-grain: 0.05;
 }
 
 .dark {
@@ -149,6 +180,12 @@
   --hand-right: oklch(0.72 0.16 350);
   --hand-right-foreground: oklch(0.18 0.04 350);
   /* Instrument hues stay constant across themes (mid-lightness reads on both). */
+  --fretboard: oklch(0.38 0.05 55);
+  --fretboard-fret: oklch(0.74 0.01 80);
+  --stage-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 8%), inset 0 -1px 0 oklch(0 0 0 / 35%),
+    0 18px 40px -24px oklch(0 0 0 / 70%);
+  --stage-grain: 0.09;
 }
 
 @theme inline {
@@ -222,6 +259,33 @@
   /* Glow utility (shadow-glow). The runtime value (--shadow-glow-value) is set
      only inside the /music scope, so shadow-glow is inert elsewhere. */
   --shadow-glow: var(--shadow-glow-value);
+  --shadow-stage: var(--stage-shadow);
+  /* Type: one display face for titles, stage headings, card titles and result
+     numbers (Outfit, self-hosted through @fontsource, used only under /music
+     via `font-display`); Fira Mono for live readouts. Body stays system sans. */
+  --font-display:
+    "Outfit Variable", "Avenir Next", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Fira Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --color-degree-1: var(--degree-1);
+  --color-degree-b2: var(--degree-b2);
+  --color-degree-2: var(--degree-2);
+  --color-degree-b3: var(--degree-b3);
+  --color-degree-3: var(--degree-3);
+  --color-degree-4: var(--degree-4);
+  --color-degree-s4: var(--degree-s4);
+  --color-degree-5: var(--degree-5);
+  --color-degree-b6: var(--degree-b6);
+  --color-degree-6: var(--degree-6);
+  --color-degree-b7: var(--degree-b7);
+  --color-degree-7: var(--degree-7);
+  --color-degree-foreground: var(--degree-foreground);
+  --color-tone-chord: var(--tone-chord);
+  --color-tone-scale: var(--tone-scale);
+  --color-tone-avoid: var(--tone-avoid);
+  --color-tone-foreground: var(--tone-foreground);
+  --color-fretboard: var(--fretboard);
+  --color-fretboard-fret: var(--fretboard-fret);
+  --color-instr: var(--instr);
 }
 
 /* Per-instrument accent override: set data-instr on a PracticeStage subtree to retint --instr. */
@@ -261,7 +325,7 @@ body:has([data-app="music"]) > :not(:has(.app)) {
   --shadow-glow-value: 0 0 24px oklch(0.62 0.2 290 / 35%);
   --ambient: radial-gradient(
     80% 50% at 70% -10%,
-    color-mix(in oklch, var(--instr) 8%, transparent),
+    color-mix(in oklch, var(--instr) 10%, transparent),
     transparent
   );
 }
@@ -278,10 +342,12 @@ body:has([data-app="music"]) > :not(:has(.app)) {
   --ring: oklch(0.58 0.2 290);
   --stage: oklch(0.17 0.025 265);
   --stage-2: oklch(0.22 0.03 265);
+  --practice-accent: oklch(0.7 0.18 290);
+  --practice-accent-foreground: oklch(0.14 0.03 290);
   --shadow-glow-value: 0 0 24px oklch(0.72 0.2 290 / 45%);
   --ambient: radial-gradient(
     80% 50% at 70% -10%,
-    color-mix(in oklch, var(--instr) 16%, transparent),
+    color-mix(in oklch, var(--instr) 18%, transparent),
     transparent
   );
 }
@@ -322,7 +388,55 @@ body:has([data-app="music"]) > :not(:has(.app)) {
 }
 
 @utility reveal-up {
-  animation: reveal-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: reveal-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stage as hardware: a grain layer over the panel (strength from --stage-grain,
+   which the dark theme raises). Multiplied in, so it never lightens a surface. */
+@utility stage-grain {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--stage-grain);
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+}
+
+/* Hit feedback: a 200 ms bloom ring on the key, pad, fret dot or needle that
+   just scored. Colour comes from the semantic token; the ring is the second
+   carrier next to the fill, the glyph and the live text. */
+@keyframes hit-bloom {
+  from {
+    box-shadow: 0 0 0 0 var(--hit-color);
+  }
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+@utility hit-correct {
+  --hit-color: color-mix(in oklab, var(--success) 60%, transparent);
+  animation: hit-bloom 0.2s ease-out both;
+}
+@utility hit-wrong {
+  --hit-color: color-mix(in oklab, var(--destructive) 60%, transparent);
+  animation: hit-bloom 0.2s ease-out both;
+}
+@utility hit-accent {
+  --hit-color: color-mix(in oklab, var(--practice-accent) 60%, transparent);
+  animation: hit-bloom 0.2s ease-out both;
+}
+/* A small status LED: lit when live, dim otherwise. */
+@utility led {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--led-color, var(--muted-foreground));
+  box-shadow: 0 0 0 3px
+    color-mix(in oklab, var(--led-color, var(--muted-foreground)) 22%, transparent);
 }
 
 /* Focus mode: while a drill run is active (html.drill-focus, set by the music

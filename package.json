@@ -25,6 +25,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@fontsource-variable/outfit": "catalog:",
     "@fontsource/fira-mono": "catalog:",
     "@inlang/paraglide-js": "catalog:",
     "@moonwave99/fretboard.js": "catalog:",
