@@ -44,7 +44,7 @@ describe("/music/transcribe/+page.svelte", () => {
     }));
     render(Page, { library: { saveScore } });
 
-    expect(document.querySelector("h1")?.textContent).toContain("Transcription Trainer");
+    expect(document.querySelector("h2")?.textContent).toContain("Transcription Trainer");
     const textarea = document.querySelector<HTMLTextAreaElement>("textarea")!;
     textarea.value = "C4 0 1\nE4 1 1";
     textarea.dispatchEvent(new Event("input", { bubbles: true }));

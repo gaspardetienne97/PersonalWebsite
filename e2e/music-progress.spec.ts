@@ -8,6 +8,8 @@ test.describe("music progress workflows", () => {
     await expect(page.getByText("Today's XP", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Practice next" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Mastery rings" })).toBeVisible();
+    // The mastery grid shows eight skills until expanded.
+    await page.getByRole("button", { name: /^Show all \d+ skills$/ }).click();
     await expect(page.getByText("Quarter-Note Pulse")).toBeVisible();
     await expect(page.getByText("Weak spots", { exact: true })).toBeVisible();
     await expect(page.getByText("Streak calendar", { exact: true })).toBeVisible();

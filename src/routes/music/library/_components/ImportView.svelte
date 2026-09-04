@@ -210,7 +210,7 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
+  <PracticeScreenHeader level={2} compact
     title="Import & Play-Along"
     subtitle="Import MIDI or MusicXML locally, then save the canonical score to your repertoire."
   />

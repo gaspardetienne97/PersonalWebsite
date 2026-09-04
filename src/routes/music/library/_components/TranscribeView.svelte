@@ -310,7 +310,7 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
+  <PracticeScreenHeader level={2} compact
     title="Transcription Trainer"
     subtitle="Extract notes locally from an audio file, edit or enter them manually, then practice and save a canonical transcription score."
   />

@@ -274,13 +274,14 @@
     <Card.Root>
       <Card.Content class="py-5">
         {#if liveEvents.length === 0}
-          <p class="text-sm text-muted-foreground" aria-live="polite">
+          <p class="text-sm text-muted-foreground">
             {midiEnabled
               ? "Waiting for a MIDI message. Play a note to confirm the connection."
               : "Enable MIDI, then play a note to see live messages here."}
           </p>
         {:else}
-          <ol class="grid gap-1 font-mono text-xs text-muted-foreground" aria-live="polite">
+          <!-- Not a live region: announcing every MIDI message would talk over the page status. -->
+          <ol class="grid gap-1 font-mono text-xs text-muted-foreground">
             {#each liveEvents as entry (entry.id)}
               <li class="rounded-md border px-3 py-2">{describeEvent(entry.event)}</li>
             {/each}

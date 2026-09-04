@@ -109,7 +109,7 @@
 </svelte:head>
 
   <PracticeScreen>
-    <PracticeScreenHeader
+    <PracticeScreenHeader level={2} compact
     title="Chord & Scale Reference"
     subtitle="Every chord and scale, voiced for every instrument."
   />

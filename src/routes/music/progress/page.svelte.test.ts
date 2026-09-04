@@ -11,6 +11,17 @@ describe("/music/progress/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Today's XP"));
     expect(document.body.textContent).toContain("Practice next");
     expect(document.body.textContent).toContain("Skill Tree");
+    // The mastery grid shows eight skills until expanded.
+    await vi.waitFor(() =>
+      expect(
+        [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+          button.textContent?.trim().startsWith("Show all"),
+        ),
+      ).not.toBeUndefined(),
+    );
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim().startsWith("Show all"))
+      ?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Quarter-Note Pulse"));
   });
 

@@ -70,7 +70,7 @@
           <Button type="button" disabled={runtime.audioPending || runtime.playbackVoicePending} onclick={testAudio}>
             {runtime.audioEnabled ? "Test audio" : "Enable/Test audio"}
           </Button>
-          <span class="text-sm text-muted-foreground" aria-live="polite">{runtime.audioMessage}</span>
+          <span class="text-sm text-muted-foreground">{runtime.audioMessage}</span>
         </div>
 
         {#if runtime.playbackFallback}

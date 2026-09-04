@@ -156,7 +156,7 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
+  <PracticeScreenHeader level={2} compact
     title="Song Library"
     subtitle="Saved repertoire from imported MIDI files. Reopen, replay, and log song practice."
   />

@@ -46,7 +46,7 @@ async function importMidi(file: File): Promise<void> {
 describe("/music/library?tab=import", () => {
   test("renders the drop zone and header", () => {
     render(Page);
-    expect(document.querySelector("h1")?.textContent).toContain("Import & Play-Along");
+    expect(document.querySelector("h2")?.textContent).toContain("Import & Play-Along");
     expect(document.body.textContent).toContain("Drop a MIDI file");
     expect(document.querySelector('input[type="file"]')).not.toBeNull();
   });

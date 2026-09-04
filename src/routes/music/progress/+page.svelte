@@ -25,6 +25,8 @@
   import ProgressRing from "../_components/ProgressRing.svelte";
   import SkillRing from "../_components/SkillRing.svelte";
   import SkillTreeGraph from "../_components/SkillTreeGraph.svelte";
+
+  let showAllNodes = $state(false);
   import WeekDots from "../_components/WeekDots.svelte";
 
   const store = browser ? new PracticeStore() : undefined;
@@ -231,9 +233,11 @@
             <Card.Title>Mastery rings</Card.Title>
           </Card.Header>
           <Card.Content class="grid gap-4">
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {#each skillTree.nodes as node (node.id)}
-                <div class="grid gap-2 rounded-md border p-3">
+            <!-- Compact two-up on the phone, with the long tail behind Show all: the full
+                 node list ran to a 15,000 px page at 375 px. -->
+            <div class="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
+              {#each showAllNodes ? skillTree.nodes : skillTree.nodes.slice(0, 8) as node (node.id)}
+                <div class="grid gap-2 rounded-md border p-2.5 sm:p-3">
                   <div class="flex items-start justify-between gap-3">
                     <div>
                       <p class="text-sm font-medium">{node.name}</p>
@@ -259,6 +263,18 @@
                 </div>
               {/each}
             </div>
+            {#if skillTree.nodes.length > 8}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="justify-self-start"
+                aria-expanded={showAllNodes}
+                onclick={() => (showAllNodes = !showAllNodes)}
+              >
+                {showAllNodes ? "Show fewer" : `Show all ${skillTree.nodes.length} skills`}
+              </Button>
+            {/if}
           </Card.Content>
         </Card.Root>
       </div>
