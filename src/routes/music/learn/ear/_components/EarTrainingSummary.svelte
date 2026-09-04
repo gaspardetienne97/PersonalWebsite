@@ -1,15 +1,14 @@
 <script lang="ts">
   import type { EarTrainingSummary as Summary } from "@repo/music-core/engines/ear-training";
   import { intensityStep } from "@repo/music-core/engines/semantic-color";
-  import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+
+  import HudTile from "../../../_components/HudTile.svelte";
   import PhraseResultFeedback from "./PhraseResultFeedback.svelte";
 
-  let {
-    summary,
-    onRepeat,
-    onRetry,
-  }: { summary: Summary; onRepeat: () => void; onRetry: () => void } = $props();
+  // Results body only: the frame, metric, delta and actions belong to the
+  // route's DrillSummaryCard.
+  let { summary }: { summary: Summary } = $props();
 
   // Confusion intensity → a sequential heatmap over the error token.
   const maxConfusion = $derived(
@@ -19,30 +18,21 @@
 </script>
 
 <section class="grid gap-6">
-  <header class="space-y-2">
-    <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">Session complete</p>
-    <h2 class="text-3xl font-bold tracking-tight">
-      {summary.correct} of {summary.total} correct
-    </h2>
-    <p class="text-muted-foreground">
-      {Math.round(summary.accuracy * 100)}% accuracy · {summary.xp} XP earned
-    </p>
-  </header>
-
-  <section class="grid gap-4 sm:grid-cols-3" aria-label="Accuracy by drill">
+  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Accuracy by drill">
     {#each Object.entries(summary.byDrill) as [drill, result] (drill)}
-      <Card.Root>
-        <Card.Header>
-          <Card.Description class="capitalize">{drill.replace("-", " ")}</Card.Description>
-          <Card.Title>{Math.round(result.accuracy * 100)}%</Card.Title>
-        </Card.Header>
-      </Card.Root>
+      <HudTile
+        size="sm"
+        label={drill.replace("-", " ")}
+        value={Math.round(result.accuracy * 100)}
+        unit="%"
+        tone={result.accuracy >= 0.9 ? "good" : "default"}
+      />
     {/each}
-  </section>
+  </div>
 
   <Card.Root>
     <Card.Header>
-      <Card.Title>Recent results</Card.Title>
+      <Card.Title class="text-base">Recent results</Card.Title>
       <Card.Description>Your latest prompts from this session.</Card.Description>
     </Card.Header>
     <Card.Content>
@@ -51,7 +41,7 @@
           <li class="grid gap-3 rounded-md border px-3 py-2">
             <div class="flex items-center justify-between gap-3">
               <span class="truncate">{item.prompt.answerLabel}</span>
-              <span class={item.result.correct ? "text-foreground" : "text-muted-foreground"}>
+              <span class={item.result.correct ? "font-medium text-success" : "font-medium text-warn"}>
                 {item.result.correct ? "Correct" : "Review"}
               </span>
             </div>
@@ -67,7 +57,7 @@
   {#if summary.confusions.length > 0}
     <Card.Root>
       <Card.Header>
-        <Card.Title>Review next</Card.Title>
+        <Card.Title class="text-base">Review next</Card.Title>
         <Card.Description>Sounds that were substituted during this session.</Card.Description>
       </Card.Header>
       <Card.Content>
@@ -83,12 +73,5 @@
       </Card.Content>
     </Card.Root>
   {/if}
-
-  <div class="flex flex-wrap gap-2">
-    {#if summary.confusions.length > 0}
-      <Button type="button" onclick={onRetry}>Retry mistakes</Button>
-    {/if}
-    <Button type="button" variant="outline" onclick={onRepeat}>Repeat session</Button>
-    <Button href="/music" variant="ghost">Return to Practice</Button>
-  </div>
+  <p class="text-xs text-muted-foreground">{summary.total} prompts · +{summary.xp} XP · Ear</p>
 </section>

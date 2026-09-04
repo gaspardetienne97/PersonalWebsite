@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import { onDestroy, tick } from "svelte";
 
-  import { nowUnix, type NoteEvent } from "@repo/music-core/domain";
+  import { nowUnix, unixMs, type NoteEvent } from "@repo/music-core/domain";
   import {
     AudioPitchSource,
     type AudioPitchState,
@@ -41,6 +41,7 @@
   import { intervalRecognitionExercise } from "@repo/music-core/exercises/interval-recognition";
   import { melodyDictationExercise } from "@repo/music-core/exercises/melody-dictation";
   import {
+    SCALE_DEGREE_SETS,
     scaleDegreeFreePlayChoices,
     scaleDegreeRecognitionExercise,
     type ScaleDegreeLabelMode,
@@ -48,7 +49,13 @@
     type ScaleDegreeSetId,
   } from "@repo/music-core/exercises/scale-degree-recognition";
 
+  import { Button } from "@repo/ui/button";
+  import * as Card from "@repo/ui/card";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
+  import StartShortcut from "../../_components/StartShortcut.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
@@ -57,6 +64,7 @@
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
   import EarTrainingLanding from "./_components/EarTrainingLanding.svelte";
+  import EarTrainingSetup from "./_components/EarTrainingSetup.svelte";
   import EarTrainingSessionRail from "./_components/EarTrainingSessionRail.svelte";
   import EarTrainingSessionView from "./_components/EarTrainingSessionView.svelte";
   import EarTrainingSummary from "./_components/EarTrainingSummary.svelte";
@@ -115,7 +123,9 @@
   let practiceLevel = $state<ScaleDegreeSetId>(initialConfig.scaleDegreeSet);
   let droneOn = $state(false);
   let lastFreePlayDegree = $state<ScaleDegreeFreePlayChoice | undefined>();
-  let status = $state("Preparing your learning history.");
+  let status = $state("Loading your ear-training history.");
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   let midiEnabled = $state(false);
   let midiStatus = $state("");
   let voiceState = $state<AudioPitchState>({ status: "idle" });
@@ -150,6 +160,33 @@
     }),
   );
   const summary = $derived(sessionState?.status === "summary" ? sessionState.summary : undefined);
+  const answerModeLabel = $derived(
+    { choice: "Choice", "play-back": "Play-back", listen: "Pocket", voice: "Voice" }[answerMode],
+  );
+  const setupSummaryText = $derived(
+    [
+      feedbackMode === "practice" ? "Practice" : "Test",
+      answerModeLabel,
+      scaleDegreeLabelMode === "solfege" ? "Solfege labels" : "Degree labels",
+      SCALE_DEGREE_SETS.find((set) => set.id === scaleDegreeSet)?.title ?? scaleDegreeSet,
+    ].join(" · "),
+  );
+  const focusedDrills: { drill: EarTrainingDrill; title: string; description: string }[] = [
+    { drill: "interval", title: "Interval", description: "Ascending, descending, harmonic." },
+    { drill: "chord-quality", title: "Chord Quality", description: "Triads and seventh chords." },
+    { drill: "cadence", title: "Cadence", description: "Authentic, plagal, half, deceptive." },
+    { drill: "scale-degree", title: "Scale Degree", description: "Functional degrees, major and minor." },
+    { drill: "melody-dictation", title: "Melody Dictation", description: "Hear a short phrase, play it back." },
+  ];
+  function focusedDisabled(drill: EarTrainingDrill): boolean {
+    return (
+      !ready ||
+      pending ||
+      (answerMode === "voice" && drill !== "scale-degree") ||
+      (answerMode === "play-back" && drill === "cadence") ||
+      ((answerMode === "choice" || answerMode === "listen") && drill === "melody-dictation")
+    );
+  }
   const phase = $derived<"summary" | "stage" | "setup">(
     summary && !resultsDismissed
       ? "summary"
@@ -221,7 +258,7 @@
     .then(() => loadRepertoireTransfers())
     .then(() => {
       ready = true;
-      status = "Ready for a ten-prompt session.";
+      status = "Ready. Press Start, or Space.";
     })
     .catch((error) => {
       status = error instanceof Error ? error.message : "Learning history could not be loaded.";
@@ -593,7 +630,7 @@
 
   function changeSetup(): void {
     resultsDismissed = true;
-    status = "Adjust your ear training setup.";
+    status = "Setup ready.";
   }
 
   function repeatSession(): void {
@@ -704,13 +741,10 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Ear Training"
-    subtitle="Focus mode — build reliable recognition through short sessions and mixed review."
-  >
+  <PracticeScreenHeader title="Ear Training" compact>
     {#snippet controls()}
       <SourceReadout
-        label="Active input"
+        label="Input"
         device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
         live={runtime.activeSource === "midi"}
       />
@@ -721,77 +755,160 @@
     {liveAnnouncement}
   </p>
 
-  {#if status}
-    <p class="text-sm text-muted-foreground">{status}</p>
-  {/if}
-
   {#snippet summaryPhase()}
     {#if summary}
       <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
         {#snippet heading()}
-          <p class="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-            Session complete
-          </p>
-          <h2 class="text-3xl font-bold tracking-tight">
-            {summary.correct} of {summary.total} correct
-          </h2>
-          <p class="text-muted-foreground">
-            {Math.round(summary.accuracy * 100)}% accuracy · {summary.xp} XP earned
+          <Card.Description>{summary.correct} of {summary.total} correct</Card.Description>
+          <Card.Title>Session complete</Card.Title>
+        {/snippet}
+        {#snippet metric()}
+          <p class="flex items-baseline">
+            <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+              {Math.round(summary.accuracy * 100)}<span class="text-3xl text-muted-foreground">%</span>
+            </span>
+            <span class="sr-only"> accuracy</span>
           </p>
         {/snippet}
+        {#snippet lastRunDelta()}
+          <LastRunDelta tags={["ear"]} accuracy={summary.accuracy} before={visitStartedAt} />
+        {/snippet}
         {#snippet children()}
-          <div class="[&>section>header]:hidden">
-            <EarTrainingSummary
-              {summary}
-              onRepeat={repeatSession}
-              onRetry={retryMistakes}
-            />
-          </div>
+          <EarTrainingSummary {summary} />
+        {/snippet}
+        {#snippet actions()}
+          {#if summary.confusions.length > 0}
+            <Button type="button" onclick={retryMistakes}>Retry mistakes</Button>
+            <Button type="button" variant="outline" onclick={repeatSession}>Again</Button>
+          {:else}
+            <Button type="button" onclick={repeatSession}>Again</Button>
+          {/if}
+          <Button href="/music" variant="ghost">Return to Practice</Button>
         {/snippet}
         {#snippet routineContinue()}
           <RoutineContinueAction routine={runtime.dailyRoutine} />
+        {/snippet}
+        {#snippet nextUp()}
+          <NextUpSuggestion
+            {skills}
+            {analytics}
+            currentPath="/music/learn/ear"
+            routine={runtime.dailyRoutine}
+          />
         {/snippet}
       </DrillSummaryCard>
     {/if}
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
-    {#snippet setup()}
-      <div tabindex="-1" aria-label="Ear training setup" bind:this={setupHeading}>
-        <EarTrainingLanding
-          {ready}
-          {pending}
-          {answerMode}
-          {feedbackMode}
-          {scaleDegreeSet}
-          {scaleDegreeLabelMode}
-          tonicName={freePlayTonicName}
-          {droneOn}
-          freePlayChoices={freePlayChoices}
-          lastFreePlayDegree={lastFreePlayDegree}
-          {reviewQueue}
-          {reviewPlan}
-          {midiEnabled}
-          {midiStatus}
-          {audioSupported}
-          {voiceStatus}
-          onAnswerMode={setAnswerMode}
-          onFeedbackMode={setFeedbackMode}
-          onScaleDegreeSet={setScaleDegreeSet}
-          onScaleDegreeLabelMode={setScaleDegreeLabelMode}
-          onToggleDrone={toggleFreePlayDrone}
-          onPlayFreePlayDegree={playFreePlayDegree}
-          onPlayRepertoireTransfer={playRepertoireTransfer}
-          onStartRepertoireTransfer={startRepertoireTransfer}
-          onStartRepertoireReviewPlan={startRepertoireReviewPlan}
-          onEnableMidi={enableMidi}
-          onStart={startSession}
-        />
-      </div>
-    {/snippet}
+  {#snippet setupSummary()}
+    {setupSummaryText}
+  {/snippet}
+
+  {#snippet setupPhase()}
+    <EarTrainingSetup
+      {answerMode}
+      {feedbackMode}
+      {scaleDegreeSet}
+      {scaleDegreeLabelMode}
+      {midiEnabled}
+      {midiStatus}
+      {audioSupported}
+      {voiceStatus}
+      onAnswerMode={setAnswerMode}
+      onFeedbackMode={setFeedbackMode}
+      onScaleDegreeSet={setScaleDegreeSet}
+      onScaleDegreeLabelMode={setScaleDegreeLabelMode}
+      onEnableMidi={enableMidi}
+    />
+  {/snippet}
+
+  {#snippet readyStage()}
+    <div tabindex="-1" aria-label="Ear training setup" bind:this={setupHeading} class="grid gap-6">
+      <PracticeStage instrument={runtime.activeInstrument} class="grid gap-5 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · Adaptive mix</p>
+            <h2 class="text-xl font-semibold tracking-tight">Mixed session</h2>
+            <p class="text-sm text-stage-muted">
+              Ten prompts across intervals, chord qualities, scale degrees and cadences, weighted
+              to your weak spots.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              size="lg"
+              disabled={!ready || pending || answerMode === "voice"}
+              onclick={() => void startSession("mixed")}
+            >
+              {pending ? "Starting session" : "Start"}
+            </Button>
+            <StartShortcut
+              onStart={() => void startSession("mixed")}
+              enabled={ready && !pending && answerMode !== "voice"}
+            />
+          </div>
+        </div>
+        <div class="grid gap-2">
+          <p class="eyebrow">Focused drills</p>
+          <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5" aria-label="Focused ear training">
+            {#each focusedDrills as item (item.drill)}
+              <Button
+                type="button"
+                variant="outline"
+                class="h-auto whitespace-normal px-3 py-2"
+                title={item.description}
+                disabled={focusedDisabled(item.drill)}
+                onclick={() => void startSession(item.drill)}
+              >
+                Start {item.title}
+              </Button>
+            {/each}
+          </div>
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
+      <EarTrainingLanding
+        {ready}
+        {pending}
+        {scaleDegreeSet}
+        tonicName={freePlayTonicName}
+        {droneOn}
+        freePlayChoices={freePlayChoices}
+        lastFreePlayDegree={lastFreePlayDegree}
+        {reviewQueue}
+        {reviewPlan}
+        onToggleDrone={toggleFreePlayDrone}
+        onPlayFreePlayDegree={playFreePlayDegree}
+        onPlayRepertoireTransfer={playRepertoireTransfer}
+        onStartRepertoireTransfer={startRepertoireTransfer}
+        onStartRepertoireReviewPlan={startRepertoireReviewPlan}
+        onStart={startSession}
+      />
+    </div>
+  {/snippet}
+
+  {#snippet stageActionRow()}
+    {#if sessionState}
+      <Button type="button" variant="ghost" onclick={abandon}>Stop</Button>
+    {/if}
+  {/snippet}
+
+  <PracticeDrillShell
+    {phase}
+    startPending={pending}
+    {setupSummary}
+    setup={setupPhase}
+    {readyStage}
+    stageAction={stageActionRow}
+    summary={summaryPhase}
+  >
     {#snippet stage()}
       {#if sessionState}
-        <div tabindex="-1" aria-label="Ear training session" bind:this={stageHeading}>
+        <div tabindex="-1" aria-label="Ear training session" bind:this={stageHeading} class="grid gap-4">
+          {#if status}
+            <p class="text-sm text-muted-foreground">{status}</p>
+          {/if}
           <EarTrainingSessionView
             state={sessionState}
             router={runtime.router}
@@ -803,7 +920,6 @@
             onPlayTonic={playTonic}
             onAnswer={answerChoice}
             onAccepted={playAccepted}
-            onAbandon={abandon}
           />
         </div>
       {/if}

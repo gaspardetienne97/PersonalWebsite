@@ -29,6 +29,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     const beginPerformance = vi.spyOn(runtime, "beginPerformance");
     const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern");
     render(Page, { runtime });
+    await openSetup();
 
     expect(document.querySelector("h1")?.textContent).toContain("Ear Training");
     expect(document.body.textContent).toContain("Interval");
@@ -37,9 +38,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     expect(document.body.textContent).toContain("Cadence");
     expect(document.body.textContent).toContain("Adaptive mix");
 
-    const mixed = [...document.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Mixed Session"),
-    );
+    const mixed = button("Start");
     await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
     mixed?.click();
 
@@ -62,35 +61,37 @@ describe("/music/learn/ear/+page.svelte", () => {
       new Promise((resolve) => (resolveVoice = resolve)),
     );
     render(Page, { runtime });
+    await openSetup();
 
-    const mixed = button("Start Mixed Session");
+    const mixed = button("Start");
     await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
     mixed?.click();
 
-    await vi.waitFor(() => expect(mixed?.closest("fieldset")?.disabled).toBe(true));
-    expect(button("End session")).toBeUndefined();
+    await vi.waitFor(() => expect(mixed?.disabled).toBe(true));
+    expect(button("Stop")).toBeUndefined();
     expect(document.querySelector('[data-testid="ear-phase-announcement"]')?.textContent).toContain(
       "Starting",
     );
 
     resolveVoice(true);
-    await vi.waitFor(() => expect(button("End session")).not.toBeUndefined());
-    expect(button("Start Mixed Session")).toBeUndefined();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(button("Start")).toBeUndefined();
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Ear training session");
   });
 
   test("returns from the active stage to setup through the standard end action", async () => {
     render(Page);
+    await openSetup();
 
-    const mixed = button("Start Mixed Session");
+    const mixed = button("Start");
     await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
     mixed?.click();
-    await vi.waitFor(() => expect(button("End session")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
-    button("End session")?.click();
+    button("Stop")?.click();
 
-    await vi.waitFor(() => expect(button("Start Mixed Session")).not.toBeUndefined());
-    expect(button("End session")).toBeUndefined();
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
+    expect(button("Stop")).toBeUndefined();
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Ear training setup");
     expect(document.querySelector('[data-testid="ear-phase-announcement"]')?.textContent).toContain(
       "Session ended",
@@ -99,6 +100,7 @@ describe("/music/learn/ear/+page.svelte", () => {
 
   test("supports Test and Play-back modes without immediate correctness", async () => {
     render(Page);
+    await openSetup();
     const testMode = [...document.querySelectorAll("button")].find(
       (button) => button.textContent?.trim() === "Test",
     );
@@ -133,6 +135,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("plays interval prompts louder than the default pattern level", async () => {
     const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern");
     render(Page);
+    await openSetup();
 
     const interval = [...document.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Start Interval"),
@@ -147,6 +150,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("starts cadence recognition and advances from a choice answer", async () => {
     const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern");
     render(Page);
+    await openSetup();
 
     const cadence = [...document.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Start Cadence"),
@@ -164,6 +168,7 @@ describe("/music/learn/ear/+page.svelte", () => {
 
   test("starts Pocket mode and advances from listening self-assessment", async () => {
     render(Page);
+    await openSetup();
 
     const pocket = [...document.querySelectorAll("button")].find(
       (button) => button.textContent?.trim() === "Pocket",
@@ -171,9 +176,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     pocket?.click();
     await vi.waitFor(() => expect(pocket?.getAttribute("aria-pressed")).toBe("true"));
 
-    const mixed = [...document.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Mixed Session"),
-    );
+    const mixed = button("Start");
     await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
     mixed?.click();
 
@@ -202,6 +205,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     };
     const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern");
     render(Page, { audioSource, audioSupported: true });
+    await openSetup();
 
     [...document.querySelectorAll("button")]
       .find((button) => button.textContent?.trim() === "Voice")
@@ -244,6 +248,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     const arm = vi.spyOn(EarTrainingSession.prototype, "armCurrentAnswer");
     render(Page, { runtime });
 
+    await openSetup();
     button("Play-back")?.click();
     const scaleDegree = button("Start Scale Degree");
     await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
@@ -282,6 +287,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     const arm = vi.spyOn(EarTrainingSession.prototype, "armCurrentAnswer");
     const disarm = vi.spyOn(EarTrainingSession.prototype, "disarmCurrentAnswer");
     render(Page, { runtime });
+    await openSetup();
 
     button("Play-back")?.click();
     const scaleDegree = button("Start Scale Degree");
@@ -325,6 +331,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     const arm = vi.spyOn(EarTrainingSession.prototype, "armCurrentAnswer");
     const disarm = vi.spyOn(EarTrainingSession.prototype, "disarmCurrentAnswer");
     render(Page, { runtime });
+    await openSetup();
 
     button("Play-back")?.click();
     const scaleDegree = button("Start Scale Degree");
@@ -367,6 +374,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     const endPerformance = vi.spyOn(runtime, "endPerformance");
     const beginPerformance = vi.spyOn(runtime, "beginPerformance");
     render(Page, { runtime });
+    await openSetup();
 
     button("Play-back")?.click();
     const scaleDegree = button("Start Scale Degree");
@@ -379,7 +387,7 @@ describe("/music/learn/ear/+page.svelte", () => {
 
     stopPattern.mockClear();
     endPerformance.mockClear();
-    button("End session")?.click();
+    button("Stop")?.click();
     expect(clearTimer).toHaveBeenCalled();
     expect(stopPattern).toHaveBeenCalledOnce();
     expect(endPerformance).toHaveBeenCalledOnce();
@@ -397,9 +405,13 @@ describe("/music/learn/ear/+page.svelte", () => {
         .mockImplementation(() => undefined);
       const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
       const view = render(Page, { runtime });
+      await openSetup();
 
-      if (mode === "listen") button("Pocket")?.click();
-      const mixed = button("Mixed Session");
+      if (mode === "listen") {
+        await openSetup();
+        button("Pocket")?.click();
+      }
+      const mixed = button("Start");
       await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
       mixed?.click();
       await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
@@ -429,6 +441,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     const endPerformance = vi.spyOn(runtime, "endPerformance");
     const beginPerformance = vi.spyOn(runtime, "beginPerformance");
     const view = render(Page, { runtime });
+    await openSetup();
 
     button("Play-back")?.click();
     const scaleDegree = button("Start Scale Degree");
@@ -449,6 +462,7 @@ describe("/music/learn/ear/+page.svelte", () => {
 
   test("starts melody dictation in play-back mode and advances from on-screen notes", async () => {
     render(Page);
+    await openSetup();
 
     [...document.querySelectorAll("button")]
       .find((button) => button.textContent?.trim() === "Play-back")
@@ -520,6 +534,7 @@ describe("/music/learn/ear/+page.svelte", () => {
 
   test("uses the selected scale-degree level for focused sessions", async () => {
     render(Page);
+    await openSetup();
 
     const majorPentachord = [...document.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Major pentachord"),
@@ -550,6 +565,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("can run focused scale-degree recognition as functional solfege", async () => {
     render(Page);
 
+    await openSetup();
     button("Solfege")?.click();
     await vi.waitFor(() => expect(button("Solfege")).toHaveAttribute("aria-pressed", "true"));
 
@@ -575,6 +591,7 @@ describe("/music/learn/ear/+page.svelte", () => {
 
     render(Page);
 
+    await openSetup();
     await vi.waitFor(() => expect(button("Play-back")?.getAttribute("aria-pressed")).toBe("true"));
     expect(button("Test")).toHaveAttribute("aria-pressed", "true");
     expect(button("Chromatic color")).toHaveAttribute("aria-pressed", "true");
@@ -586,6 +603,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     setTestUrl("/music/learn/ear");
     render(Page);
 
+    await openSetup();
     button("Pocket")?.click();
     button("Test")?.click();
     button("Major pentachord")?.click();
@@ -607,6 +625,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     const stopDrone = vi.spyOn(SoundEngine.prototype, "stopDrone");
     const playPattern = vi.spyOn(SoundEngine.prototype, "playPattern");
     render(Page);
+    await openSetup();
 
     const startDroneButton = [...document.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Start drone"),
@@ -865,6 +884,7 @@ describe("/music/learn/ear/+page.svelte", () => {
   test("stops the free-play drone before starting a scored session", async () => {
     const stopDrone = vi.spyOn(SoundEngine.prototype, "stopDrone");
     render(Page);
+    await openSetup();
 
     const startDroneButton = [...document.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Start drone"),
@@ -880,9 +900,7 @@ describe("/music/learn/ear/+page.svelte", () => {
       ).toBe(true),
     );
 
-    const mixed = [...document.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Mixed Session"),
-    );
+    const mixed = button("Start");
     mixed?.click();
 
     await vi.waitFor(() => expect(stopDrone).toHaveBeenCalled());
@@ -890,9 +908,8 @@ describe("/music/learn/ear/+page.svelte", () => {
 
   test("renders recent results and retry actions in the summary", async () => {
     render(Page);
-    const mixed = [...document.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Mixed Session"),
-    );
+    await openSetup();
+    const mixed = button("Start");
     await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
     mixed?.click();
 
@@ -907,7 +924,7 @@ describe("/music/learn/ear/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
     expect(document.body.textContent).toContain("Recent results");
     expect(document.body.textContent).toContain("Retry mistakes");
-    expect(document.body.textContent).toContain("Repeat session");
+    expect(button("Again")).not.toBeUndefined();
     expect(document.body.textContent).toContain("Change setup");
     expect(document.activeElement?.textContent).toContain("Session complete");
     expect(document.querySelector('[data-testid="ear-phase-announcement"]')?.textContent).toContain(
@@ -916,7 +933,7 @@ describe("/music/learn/ear/+page.svelte", () => {
 
     button("Change setup")?.click();
 
-    await vi.waitFor(() => expect(button("Start Mixed Session")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")).not.toBeUndefined());
     expect(document.body.textContent).not.toContain("Recent results");
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Ear training setup");
   });
@@ -967,4 +984,14 @@ function repertoireScore() {
     sections: [],
     markers: [],
   };
+}
+
+/** Setup is collapsed behind its summary line; open it before touching controls. */
+async function openSetup(): Promise<void> {
+  if (button("Hide setup")) return;
+  await vi.waitFor(() => expect(button("Edit setup")).not.toBeUndefined());
+  button("Edit setup")?.click();
+  await vi.waitFor(() =>
+    expect(document.querySelector('[aria-label="Feedback mode"]')).not.toBeNull(),
+  );
 }
