@@ -28,6 +28,7 @@
     "./engines/intonation-session": "./src/engines/intonation-session/index.ts",
     "./engines/jam": "./src/engines/jam/index.ts",
     "./engines/jazz": "./src/engines/jazz/index.ts",
+    "./engines/learning-path": "./src/engines/learning-path/index.ts",
     "./engines/library": "./src/engines/library/index.ts",
     "./engines/media-library": "./src/engines/media-library/index.ts",
     "./engines/midi": "./src/engines/midi/index.ts",

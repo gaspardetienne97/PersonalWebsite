@@ -11,7 +11,6 @@
 
 import {
   Capability,
-  degradesToArpeggio,
   type ContentApplicability,
   type ExerciseRunRecord,
   type InstrumentId,
@@ -19,6 +18,14 @@ import {
   type ScoringMetric,
   type UnixMs,
 } from "@repo/music-core/domain";
+import {
+  buildLearningPath,
+  type LearningPath,
+  type LearningPathOptions,
+  type LearningPathStep,
+  type LearningPathStepDefinition,
+  type LearningPathStepStatus,
+} from "@repo/music-core/engines/learning-path";
 import { noteToMidi } from "@repo/music-core/engines/theory";
 
 // ---------------------------------------------------------------------------
@@ -1181,7 +1188,7 @@ export const JAZZ_REPERTOIRE: RepertoireSong[] = [
 // Curriculum (the ordered learning path — JT2 p2 philosophy + the whole pack)
 // ---------------------------------------------------------------------------
 
-export interface CurriculumLesson {
+export interface CurriculumLesson extends LearningPathStepDefinition {
   id: string;
   order: number;
   title: string;
@@ -2030,24 +2037,15 @@ export function gradeLickSequence(expectedMidi: number[], playedMidi: number[]):
 // the active instrument. Threads the existing tools into one path.
 // ---------------------------------------------------------------------------
 
-export type LessonStatus = "todo" | "in-progress" | "done";
+export type LessonStatus = LearningPathStepStatus;
 
-export interface LessonPathStep extends CurriculumLesson {
-  applies: ContentApplicability;
-  /** 0-1 mastery of the mapped skill (0 when no skill maps / not started). */
-  mastery: number;
-  status: LessonStatus;
-  /** Instrument-specific note, e.g. how a voicing lesson adapts on Aerophone. */
-  instrumentNote?: string;
-}
-
-const DONE_THRESHOLD = 0.66;
+export type LessonPathStep = LearningPathStep<CurriculumLesson>;
 
 /**
  * Project the jazz curriculum into a progress-aware, instrument-aware path.
- * Applicability + skill tags live on the lesson items; pass `mastery(skillId)`
- * (e.g. `SkillGraphStore.getMastery(id).mastery`) so the engine stays free of
- * storage concerns.
+ * A thin wrapper over the shared learning-path engine: lessons map their single
+ * `skillId` onto the engine's `skillIds`. Pass `mastery(skillId)` (e.g.
+ * `SkillGraphStore.getMastery(id).mastery`) so the engine stays free of storage.
  */
 export function buildJazzLessonPath(
   opts: {
@@ -2055,23 +2053,16 @@ export function buildJazzLessonPath(
     instrument?: InstrumentId;
   } = {},
 ): LessonPathStep[] {
-  return [...JAZZ_CURRICULUM]
-    .sort((a, b) => a.order - b.order)
-    .map((lesson) => {
-      const applies = lesson.applies ?? "all";
-      const mastery = lesson.skillId && opts.mastery ? opts.mastery(lesson.skillId) : 0;
-      const status: LessonStatus =
-        mastery >= DONE_THRESHOLD ? "done" : mastery > 0 ? "in-progress" : "todo";
+  return buildJazzPath(opts).steps;
+}
 
-      return {
-        ...lesson,
-        applies,
-        mastery,
-        status,
-        instrumentNote:
-          opts.instrument && degradesToArpeggio(applies, opts.instrument)
-            ? "On a monophonic instrument these voicings are played as arpeggios."
-            : undefined,
-      };
-    });
+/** The Jazz Path with its done count and Continue target. */
+export function buildJazzPath(opts: LearningPathOptions = {}): LearningPath<CurriculumLesson> {
+  return buildLearningPath(
+    JAZZ_CURRICULUM.map((lesson) => ({
+      ...lesson,
+      ...(lesson.skillId ? { skillIds: [lesson.skillId] } : {}),
+    })),
+    opts,
+  );
 }
