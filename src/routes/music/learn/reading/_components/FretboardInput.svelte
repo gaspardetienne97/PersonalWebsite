@@ -105,14 +105,15 @@
     if (s === "wrong") return themeColor("--destructive", "#ef4444");
     if (s === "correct") return themeColor("--success", "#22c55e");
     if (s === "active") return themeColor("--practice-accent", "#7c5cff");
-    return themeColor("--warn", "#d97706");
+    // Targets are the chord or pattern itself: ink, not amber (amber means "needs work").
+    return themeColor("--stage-foreground", "#111111");
   }
 
   function stateTextColor(s: FretState): string {
     if (s === "wrong") return themeColor("--background", "#ffffff");
     if (s === "correct") return themeColor("--success-foreground", "#052e16");
     if (s === "active") return themeColor("--practice-accent-foreground", "#ffffff");
-    return themeColor("--warn-foreground", "#422006");
+    return themeColor("--stage", "#ffffff");
   }
 
   function noteLabel(midiNote: number): string {
@@ -177,14 +178,17 @@
       dotSize: 26,
       dotTextSize: 11,
       dotText: (dot: FretDot) => dot.label,
-      dotStrokeColor: themeColor("--border", "#555"),
-      stringColor: themeColor("--muted-foreground", "#888"),
-      fretColor: themeColor("--muted-foreground", "#888"),
+      // The neck as material: wood from --fretboard (on the wrapper), light fret
+      // wire and strings, real fret numbers in the readout face.
+      font: "Fira Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
+      dotStrokeColor: "oklch(0 0 0 / 0.25)",
+      stringColor: themeColor("--fretboard-fret", "#ddd"),
+      fretColor: themeColor("--fretboard-fret", "#ddd"),
       // A real nut only when the window starts at fret 0; otherwise a thin fret-coloured edge.
       nutColor: offset === 0 ? themeColor("--foreground", "#fff") : themeColor("--muted-foreground", "#888"),
       nutWidth: offset === 0 ? 7 : 2,
-      middleFretColor: themeColor("--muted-foreground", "#888"),
-      fretNumbersColor: themeColor("--muted-foreground", "#888"),
+      middleFretColor: themeColor("--fretboard-fret", "#ddd"),
+      fretNumbersColor: themeColor("--stage-foreground", "#111"),
       showFretNumbers: true,
     });
     board.render();
@@ -229,7 +233,7 @@
 <div
   bind:this={visual}
   aria-hidden="true"
-  class="w-full max-w-full min-w-0 overflow-x-auto rounded-md border bg-stage/70 p-3 shadow-inner"
+  class="w-full max-w-full min-w-0 overflow-x-auto rounded-lg border border-stage-line bg-fretboard p-2 shadow-inner"
 ></div>
 
 {#if fretWindow}

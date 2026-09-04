@@ -62,7 +62,7 @@
   </Card.Header>
   <Card.Content class="grid gap-4">
     {#if metric}
-      <div data-testid="summary-metric" class="flex flex-wrap items-end gap-x-6 gap-y-2">
+      <div data-testid="summary-metric" class="flex flex-wrap items-end gap-x-6 gap-y-2 font-display tracking-tight">
         {@render metric()}
         {#if lastRunDelta}{@render lastRunDelta()}{/if}
       </div>

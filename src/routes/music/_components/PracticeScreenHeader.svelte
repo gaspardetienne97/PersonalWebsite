@@ -24,10 +24,16 @@
   <div class="min-w-0 flex-1">
     <svelte:element
       this={level === 2 ? "h2" : "h1"}
-      class={compact ? "text-2xl font-semibold tracking-tight" : "text-3xl font-bold tracking-tight"}
+      class={compact
+        ? "font-display text-2xl font-semibold tracking-tight"
+        : "font-display text-3xl font-semibold tracking-tight sm:text-4xl"}
     >
       {title}
     </svelte:element>
+    {#if level === 1}
+      <!-- Instrument hue underline: identity, never data. -->
+      <span class="mt-1.5 block h-0.5 w-10 rounded-full bg-instr" aria-hidden="true"></span>
+    {/if}
     {#if subtitle && !compact}
       <p class="mt-1 text-muted-foreground">{subtitle}</p>
     {/if}

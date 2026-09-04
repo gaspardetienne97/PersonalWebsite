@@ -33,7 +33,7 @@
     {#if icon}{@render icon()}{/if}
     {label}
   </span>
-  <span class="{size === 'sm' ? 'text-lg' : 'text-2xl'} font-bold leading-none tabular-nums {valueClass}">
+  <span class="{size === 'sm' ? 'text-lg' : 'text-2xl'} font-mono font-bold leading-none tabular-nums {valueClass}">
     {value}{#if unit}<span class="ml-0.5 text-sm font-semibold text-muted-foreground">{unit}</span>{/if}
   </span>
 </div>

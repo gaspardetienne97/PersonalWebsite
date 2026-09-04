@@ -371,9 +371,9 @@
   function stateClass(state: PianoKeyState): string {
     switch (state) {
       case "wrong":
-        return "bg-destructive text-destructive-foreground";
+        return "bg-destructive text-destructive-foreground hit-wrong";
       case "correct":
-        return "bg-success text-success-foreground";
+        return "bg-success text-success-foreground hit-correct";
       case "active":
         return "bg-practice-accent text-practice-accent-foreground";
       case "target":
@@ -410,9 +410,14 @@
   function keyClass(key: PianoKey, state: PianoKeyState): string {
     return cn(
       "relative grid items-end justify-center border border-piano-key-line pb-1 text-[10px] font-semibold leading-none transition-colors",
+      // Keys read as keys: a top-to-bottom shade and a bottom lip on the white
+      // keys, an edge highlight on the black ones. State fills replace the shade.
       key.kind === "white"
-        ? "h-28 rounded-b-md bg-piano-key text-piano-key-black sm:h-32"
-        : "absolute top-0 z-10 h-[62%] rounded-b-sm border-piano-key-black bg-piano-key-black text-piano-key",
+        ? "h-28 rounded-b-md bg-piano-key text-piano-key-black shadow-[inset_0_-4px_0_var(--piano-key-line)] sm:h-32"
+        : "absolute top-0 z-10 h-[62%] rounded-b-sm border-piano-key-black bg-piano-key-black text-piano-key shadow-[inset_0_-5px_0_oklch(0_0_0/40%),inset_1px_0_0_oklch(1_0_0/15%)]",
+      key.kind === "white" &&
+        state === "neutral" &&
+        "bg-linear-to-b from-piano-key to-[color-mix(in_oklab,var(--piano-key)_93%,black)]",
       playable && "cursor-pointer",
       playable &&
         "focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-practice-accent focus-visible:ring-offset-1",
