@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { goto } from "$app/navigation";
 
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { buildPracticeCoachView, type PracticeCoachView } from "@repo/music-core/engines/coach";
@@ -13,13 +14,17 @@
   import * as Card from "@repo/ui/card";
   import Check from "lucide-svelte/icons/check";
   import Circle from "lucide-svelte/icons/circle";
-  import Clock3 from "lucide-svelte/icons/clock-3";
   import Play from "lucide-svelte/icons/play";
   import Sparkles from "lucide-svelte/icons/sparkles";
 
   import { useMusicRuntime } from "../_runtime.svelte";
   import ProgressRing from "./ProgressRing.svelte";
   import SegmentProgress from "./SegmentProgress.svelte";
+
+  // Decision 7: Start routine navigates to the first step instead of only setting
+  // state on Today. Injectable so the component test can observe the navigation.
+  let { navigate = (href: string) => goto(href) }: { navigate?: (href: string) => void | Promise<void> } =
+    $props();
 
   const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
@@ -63,7 +68,9 @@
 
   function startRoutine(): void {
     if (plan.length === 0) return;
-    runtime.startDailyRoutine(plan);
+    const state = runtime.startDailyRoutine(plan);
+    const step = state.currentStep ?? plan[0];
+    if (step) void navigate(routineHref(step));
   }
 
   function restartRoutine(): void {
@@ -140,7 +147,7 @@
             {#if routine.currentStep}
               <Button href={routineHref(routine.currentStep)}>
                 <Play class="size-4" aria-hidden="true" />
-                Start {routine.currentStep.label}
+                Continue routine
               </Button>
             {/if}
           </Card.Footer>
@@ -160,10 +167,6 @@
                 "A focused pass through the drills that target your weakest spots."}
             </Card.Description>
           </Card.Header>
-          <Card.Content class="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock3 class="size-4" aria-hidden="true" />
-            Results are logged only after the full routine is complete.
-          </Card.Content>
           <Card.Footer class="flex flex-wrap items-center gap-3">
             <Button disabled={!ready} onclick={startRoutine}>
               <Play class="size-4" aria-hidden="true" />

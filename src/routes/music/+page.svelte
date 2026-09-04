@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import FlaskConical from "lucide-svelte/icons/flask-conical";
 
   import { Button } from "@repo/ui/button";
@@ -10,6 +11,7 @@
   import SegmentedControl from "./_components/SegmentedControl.svelte";
   import TodayPlan from "./_components/TodayPlan.svelte";
   import { DRILLS, DRILL_SKILLS, PATHS, type DrillSkill, type Hue } from "./_components/musicCatalog";
+  import { syncRouteQuery } from "./_components/route-state";
 
   // Card cover-band hue per skill (Play has no skill hue → piano identity).
   const SKILL_HUE: Record<DrillSkill, Hue> = {
@@ -44,8 +46,20 @@
   const coverSrc = (href: string) =>
     COVER_SLUG[href] ? `/images/music/covers/${COVER_SLUG[href]}.webp` : undefined;
 
-  // String-typed so they bind to SegmentedControl's `value: string`.
-  let tab = $state("today");
+  const TABS = ["today", "drills", "paths"] as const;
+  // The tab lives in the URL (?tab=drills) so a bookmark or a back gesture lands
+  // on the same view. String-typed so it binds to SegmentedControl's `value: string`.
+  const initialTab = browser ? new URLSearchParams(window.location.search).get("tab") : null;
+  let tab = $state<string>(
+    TABS.includes(initialTab as (typeof TABS)[number]) ? (initialTab as string) : "today",
+  );
+  $effect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (tab === "today") params.delete("tab");
+    else params.set("tab", tab);
+    const query = params.toString();
+    syncRouteQuery(`${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  });
   let skillFilter = $state("All");
   let tagFilter = $state("All");
 

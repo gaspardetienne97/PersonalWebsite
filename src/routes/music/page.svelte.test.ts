@@ -1,9 +1,34 @@
-import { describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "./_components/test-url";
 
 describe("/music/+page.svelte (Practice hub)", () => {
+  afterEach(() => {
+    setTestUrl("/");
+    document.body.replaceChildren();
+  });
+
+  it("reads the tab from the URL and writes it back", async () => {
+    setTestUrl("/music?tab=drills");
+    render(Page);
+
+    expect(document.querySelector('[aria-label="Practice drills"]')).not.toBeNull();
+
+    const pathsTab = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Paths",
+    );
+    pathsTab?.click();
+    await vi.waitFor(() => expect(window.location.search).toContain("tab=paths"));
+
+    const todayTab = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Today",
+    );
+    todayTab?.click();
+    await vi.waitFor(() => expect(window.location.search).not.toContain("tab="));
+  });
+
   it("renders the Practice hub with Today/Drills/Paths and today's plan", async () => {
     render(Page);
 
