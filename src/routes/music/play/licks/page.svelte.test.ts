@@ -36,8 +36,8 @@ describe("/music/play/licks/+page.svelte", () => {
     const subscribe = vi.spyOn(runtime.router, "subscribe");
     const view = render(Page, { runtime });
 
-    button("Play it back")?.click();
-    button("Play it back")?.click();
+    button("Start")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
     view.unmount();
     resolveVoice(true);
@@ -71,7 +71,7 @@ describe("/music/play/licks/+page.svelte", () => {
     expect(playPattern).toHaveBeenCalledOnce();
 
     const stopsBeforeAttempt = stopPattern.mock.calls.length;
-    button("Play it back")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
     expect(stopPattern.mock.calls.length).toBeGreaterThan(stopsBeforeAttempt);
 
@@ -94,11 +94,11 @@ describe("/music/play/licks/+page.svelte", () => {
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
     render(Page, { runtime });
 
-    button("Play it back")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(runtime.beginPerformance).not.toHaveBeenCalled();
-    expect(document.body.textContent).not.toContain("Play the lick…");
+    expect(document.body.textContent).not.toContain("Play the lick.");
   });
 
   test("renders the licks drill with category + lick selectors and play controls", async () => {
@@ -109,6 +109,7 @@ describe("/music/play/licks/+page.svelte", () => {
 
     expect(document.querySelector("h1")?.textContent).toContain("Jazz Licks Drill");
 
+    await openSetup();
     const categories = [...document.querySelectorAll('[aria-label="Lick category"] button')].map(
       (button) => button.textContent?.trim(),
     );
@@ -120,12 +121,12 @@ describe("/music/play/licks/+page.svelte", () => {
 
     const actions = [...document.querySelectorAll("button")].map((b) => b.textContent?.trim());
     expect(actions).toContain("Hear it");
-    expect(actions).toContain("Play it back");
+    expect(actions).toContain("Start");
 
     button("Hear it")?.click();
     await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
     expect(runtime.beginPerformance).not.toHaveBeenCalled();
-    button("Play it back")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
     expect(register).toHaveBeenCalledWith(
       expect.objectContaining({ variantKey: "v1:licks:piano:1:playback" }),
@@ -158,6 +159,7 @@ describe("/music/play/licks/+page.svelte", () => {
     render(Page);
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Lick #26"));
+    await openSetup();
     expect(
       document.querySelector('[aria-label="Lick category"] button[aria-pressed="true"]')
         ?.textContent,
@@ -176,7 +178,7 @@ describe("/music/play/licks/+page.svelte", () => {
     const harness = makeRuntime();
     render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
 
-    button("Play it back")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
     const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
     for (const [index, midi] of expected.entries()) {
@@ -203,21 +205,23 @@ describe("/music/play/licks/+page.svelte", () => {
     const runtime = new MusicRuntime();
     render(Page, { runtime });
 
-    // Setup phase exposes the config surface.
+    // Setup phase exposes the lick picker on the ready stage and the category
+    // control behind Edit setup.
+    await openSetup();
     expect(document.querySelector('[aria-label="Lick category"]')).not.toBeNull();
     expect(document.querySelector('[aria-label="Pick a lick"]')).not.toBeNull();
 
-    button("Play it back")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
 
     // Setup is hidden while playing; the lick picker and category selector are gone.
     expect(document.querySelector('[aria-label="Lick category"]')).toBeNull();
     expect(document.querySelector('[aria-label="Pick a lick"]')).toBeNull();
     // Run controls live on the stage now that setup is hidden.
-    expect(button("Cancel")).not.toBeUndefined();
+    expect(button("Stop")).not.toBeUndefined();
     expect(button("Hear it")).not.toBeUndefined();
 
-    button("Cancel")?.click();
+    button("Stop")?.click();
     await vi.waitFor(() =>
       expect(document.activeElement).toBe(
         document.querySelector('[data-testid="licks-setup-heading"]'),
@@ -229,7 +233,7 @@ describe("/music/play/licks/+page.svelte", () => {
     const harness = makeRuntime();
     render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
 
-    button("Play it back")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
     const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
     for (const [index, midi] of expected.entries()) harness.emit(midi, index * 100);
@@ -238,7 +242,7 @@ describe("/music/play/licks/+page.svelte", () => {
     button("Change setup")?.click();
 
     await vi.waitFor(() =>
-      expect(document.querySelector('[aria-label="Lick category"]')).not.toBeNull(),
+      expect(document.querySelector('[aria-label="Pick a lick"]')).not.toBeNull(),
     );
     expect(button("Change setup")).toBeUndefined();
     expect(document.activeElement).toBe(
@@ -250,16 +254,16 @@ describe("/music/play/licks/+page.svelte", () => {
     const harness = makeRuntime();
     render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
 
-    button("Play it back")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
     const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
     for (const [index, midi] of expected.entries()) harness.emit(midi, index * 100);
 
-    await vi.waitFor(() => expect(button("Repeat lick")).not.toBeUndefined());
-    button("Repeat lick")?.click();
+    await vi.waitFor(() => expect(button("Again")).not.toBeUndefined());
+    button("Again")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
-    expect(button("Repeat lick")).toBeUndefined();
+    expect(button("Again")).toBeUndefined();
   });
 
   test("keeps a retry authoritative when the prior completion settles late", async () => {
@@ -273,15 +277,15 @@ describe("/music/play/licks/+page.svelte", () => {
     const harness = makeRuntime();
     render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
 
-    button("Play it back")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
     const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
     for (const [index, midi] of expected.entries()) harness.emit(midi, index * 100);
 
     await vi.waitFor(() => expect(ingest).toHaveBeenCalledOnce());
-    button("Repeat lick")?.click();
-    await vi.waitFor(() => expect(button("Cancel")).not.toBeUndefined());
-    button("Cancel")?.click();
+    button("Again")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    button("Stop")?.click();
     harness.changeInstrument("guitar");
 
     releaseIngest();
@@ -290,7 +294,7 @@ describe("/music/play/licks/+page.svelte", () => {
     expect(entry.instrument).toBe("piano");
     expect(entry.runs[0]?.instrument).toBe(entry.instrument);
     expect(entry.scoringEvents[0]?.runId).toBe(entry.runs[0]?.id);
-    expect(document.body.textContent).toContain("Play the lick…");
+    expect(document.body.textContent).toContain("Play the lick.");
     expect(document.body.textContent).not.toContain("notes · 100% · +");
   });
 });
@@ -344,4 +348,14 @@ function makeRuntime() {
       onInstrumentChange?.(instrument);
     },
   };
+}
+
+/** Setup is collapsed behind its summary line; open it before touching the category control. */
+async function openSetup(): Promise<void> {
+  if (button("Hide setup")) return;
+  await vi.waitFor(() => expect(button("Edit setup")).not.toBeUndefined());
+  button("Edit setup")?.click();
+  await vi.waitFor(() =>
+    expect(document.querySelector('[aria-label="Lick category"]')).not.toBeNull(),
+  );
 }

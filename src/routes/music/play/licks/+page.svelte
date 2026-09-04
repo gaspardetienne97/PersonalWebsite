@@ -35,6 +35,7 @@
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import PianoSurface from "../../_components/piano/PianoSurface.svelte";
+  import HudTile from "../../_components/HudTile.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
@@ -98,8 +99,15 @@
     runPhase === "graded" ? "summary" : runPhase === "listening" ? "stage" : "setup",
   );
   let played = $state<number[]>([]);
+  /** The next expected note, lit on the keyboard during the run. */
+  const nextTarget = $derived<Record<number, "target">>(
+    expectedMidi[played.length] === undefined ? {} : { [expectedMidi[played.length]!]: "target" },
+  );
+  const readyHighlights = $derived(
+    Object.fromEntries(expectedMidi.map((midi) => [midi, "target" as const])),
+  );
   let grade = $state<LickGrade | undefined>();
-  let status = $state("Pick a lick, hear it, then play it back.");
+  let status = $state("Ready. Hear it, then press Start.");
   // Announced by the persistent live region: branch swaps remount the visible
   // status text, so screen readers would otherwise miss the transitions.
   const liveAnnouncement = $derived(
@@ -177,7 +185,7 @@
     category = config.category;
     lickNumber = config.lickNumber;
     reset();
-    status = "Pick a lick, hear it, then play it back.";
+    status = "Ready. Hear it, then press Start.";
   }
 
   function reset(): void {
@@ -197,7 +205,7 @@
   // transitions it.
   function changeSetup(): void {
     reset();
-    status = "Pick a lick, hear it, then play it back.";
+    status = "Ready. Hear it, then press Start.";
   }
 
   function selectLick(next: number): void {
@@ -205,7 +213,7 @@
     category = config.category;
     lickNumber = config.lickNumber;
     reset();
-    status = "Pick a lick, hear it, then play it back.";
+    status = "Ready. Hear it, then press Start.";
   }
 
   function syncConfigUrl(): void {
@@ -268,7 +276,7 @@
       }
       attemptStartedAt = unixMs(Date.now());
       runPhase = "listening";
-      status = "Play the lick…";
+      status = "Play the lick.";
       unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
         if (runPhase !== "listening" || event.type !== "noteOn") return;
         if (runtime.audioEnabled) {
@@ -373,45 +381,74 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Jazz Licks Drill"
-    subtitle="Hear a transcribed line, then play it back. Graded note-by-note against the phrase; XP feeds your jazz vocabulary."
-  >
+  <PracticeScreenHeader title="Jazz Licks Drill" compact>
     {#snippet controls()}
       <SourceReadout
-        label="Playing on"
+        label="Input"
         device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
   </PracticeScreenHeader>
 
-
   <!-- Persistent live region: mounted outside the branches so transitions announce. -->
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
+
+  {#snippet setupSummaryLine()}
+    Lick #{lick?.number} · {lick?.progression.join(" ")} · {lickCategories.find((c) => c.value === category)?.label ?? category} · {bpm} BPM
+  {/snippet}
+
+  {#snippet lickLine()}
+    <div class="grid gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+      <p class="eyebrow">The line</p>
+      <p class="font-mono text-sm tabular-nums">{phraseNotes}</p>
+      {#if lick?.tip}
+        <p class="text-sm text-stage-muted">{lick.tip}</p>
+      {/if}
+      {#if lick?.scales?.length}
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          {#each lick.scales as scale (scale)}
+            <Badge variant="outline">{scale}</Badge>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/snippet}
 
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
         <Card.Description>Lick #{lick?.number} · {lick?.progression.join(" ")}</Card.Description>
-        <Card.Title>
-          {grade?.matched ?? 0} / {grade?.total ?? 0} notes · {Math.round((grade?.accuracy ?? 0) * 100)}%
-        </Card.Title>
+        <Card.Title>Lick complete</Card.Title>
       {/snippet}
-      {#snippet children()}
-        <p class="text-sm text-muted-foreground">
-          Play the reference again and match the line note-for-note.
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {Math.round((grade?.accuracy ?? 0) * 100)}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only"> of notes matched</span>
         </p>
-        <div class="space-y-2 rounded-lg border bg-muted/30 p-4">
-          <p class="eyebrow">The line</p>
-          <p class="font-mono text-sm tabular-nums">{phraseNotes}</p>
-        </div>
-      {/snippet}
-      {#snippet actions()}
-        <AdaptiveRetryBar onRetry={() => void startAttempt()} retryLabel="Repeat lick" />
       {/snippet}
       {#snippet lastRunDelta()}
         <LastRunDelta tags={["licks"]} accuracy={grade?.accuracy ?? 0} before={visitStartedAt} />
+      {/snippet}
+      {#snippet children()}
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <HudTile size="sm" label="Notes matched" value={`${grade?.matched ?? 0} / ${grade?.total ?? 0}`} />
+          <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+        </div>
+        <div class="space-y-1 rounded-lg border bg-muted/30 p-4">
+          <p class="eyebrow">The line</p>
+          <p class="font-mono text-sm tabular-nums">{phraseNotes}</p>
+        </div>
+        <p class="text-xs text-muted-foreground">Harmony · Jazz vocabulary</p>
+      {/snippet}
+      {#snippet actions()}
+        <AdaptiveRetryBar onRetry={() => void startAttempt()} retryLabel="Again" />
+        <Button type="button" variant="outline" onclick={playReference}>
+          <Play aria-hidden="true" />
+          Hear it
+        </Button>
       {/snippet}
       {#snippet routineContinue()}
         <RoutineContinueAction routine={runtime.dailyRoutine} />
@@ -422,121 +459,91 @@
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell phase={shellPhase} startPending={attemptPending} summary={summaryPhase}>
+  <PracticeDrillShell phase={shellPhase} startPending={attemptPending} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
-      <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div class="min-w-0 space-y-4">
-          <Card.Root>
-            <Card.Header class="gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <Card.Description>Drill</Card.Description>
-                <Card.Title bind:ref={setupHeading} tabindex="-1" data-testid="licks-setup-heading">
-                  Lick #{lick?.number} · {lick?.progression.join(" ")}
-                </Card.Title>
-              </div>
-              <SegmentedControl
-                size="sm"
-                ariaLabel="Lick category"
-                options={lickCategories}
-                value={category}
-                onChange={(value) => selectCategory(value as LickCategory)}
-              />
-            </Card.Header>
+      <div class="grid gap-3 rounded-lg border bg-card p-4">
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Lick category"
+          options={lickCategories}
+          value={category}
+          onChange={(value) => selectCategory(value as LickCategory)}
+        />
+        <p class="text-xs text-muted-foreground">
+          Tempo lives in the practice controls above: {bpm} BPM.
+        </p>
+      </div>
+    {/snippet}
 
-            <Card.Content class="space-y-5">
-              <div class="flex flex-wrap gap-1.5" role="group" aria-label="Pick a lick">
-                {#each visibleLicks as entry (entry.number)}
-                  <button
-                    type="button"
-                    aria-pressed={entry.number === lickNumber}
-                    onclick={() => selectLick(entry.number)}
-                    class="size-8 rounded-md border text-sm font-semibold tabular-nums transition-colors {entry.number ===
-                    lickNumber
-                      ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
-                      : 'text-muted-foreground hover:bg-muted'}"
-                  >
-                    {entry.number}
-                  </button>
-                {/each}
-              </div>
-
-              <div class="space-y-2 rounded-lg border bg-muted/30 p-4">
-                <p class="eyebrow">The line</p>
-                <p class="font-mono text-sm tabular-nums">{phraseNotes}</p>
-                {#if lick?.tip}
-                  <p class="text-sm text-muted-foreground">{lick.tip}</p>
-                {/if}
-                <div class="flex flex-wrap gap-1.5 pt-1">
-                  {#each lick?.scales ?? [] as scale (scale)}
-                    <Badge variant="outline">{scale}</Badge>
-                  {/each}
-                </div>
-              </div>
-            </Card.Content>
-
-            <Card.Footer class="flex-wrap gap-3">
-              <Button type="button" variant="outline" onclick={playReference}>
-                <Play aria-hidden="true" />
-                Hear it
-              </Button>
-              <Button type="button" onclick={() => void startAttempt()}>Play it back</Button>
-              <StartShortcut onStart={() => void startAttempt()} enabled={runPhase !== "listening"} />
-              <p class="text-sm text-muted-foreground">{status}</p>
-            </Card.Footer>
-          </Card.Root>
+    {#snippet readyStage()}
+      <PracticeStage {instrument} class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · call and response</p>
+            <h2
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="licks-setup-heading"
+              bind:this={setupHeading}
+            >
+              Lick #{lick?.number} · {lick?.progression.join(" ")}
+            </h2>
+            <p class="text-sm text-stage-muted">Hear the line at {bpm} BPM, then play it back note for note.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onclick={playReference}>
+              <Play aria-hidden="true" />
+              Hear it
+            </Button>
+            <Button type="button" size="lg" onclick={() => void startAttempt()}>Start</Button>
+            <StartShortcut onStart={() => void startAttempt()} enabled={runPhase !== "listening"} />
+          </div>
         </div>
-
-        <aside class="grid content-start gap-4">
-          <Card.Root>
-            <Card.Header>
-              <Card.Description>How it works</Card.Description>
-              <Card.Title class="text-base">Call &amp; response</Card.Title>
-            </Card.Header>
-            <Card.Content class="space-y-2 text-sm text-muted-foreground">
-              <p>1. <strong class="text-foreground">Hear it</strong> — the line plays at {bpm} bpm.</p>
-              <p>2. <strong class="text-foreground">Play it back</strong> on the keys or your MIDI instrument.</p>
-              <p>3. It's graded note-by-note (octave-lenient) the moment you finish the phrase.</p>
-            </Card.Content>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Header>
-              <Card.Description>Last attempt</Card.Description>
-              <Card.Title>{grade ? `${Math.round(grade.accuracy * 100)}%` : "—"}</Card.Title>
-            </Card.Header>
-            <Card.Content class="grid gap-1 text-sm">
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">Notes matched</span>
-                <span class="font-medium tabular-nums">{grade ? `${grade.matched} / ${grade.total}` : "—"}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">Skill</span>
-                <span class="font-medium">Jazz vocabulary</span>
-              </div>
-            </Card.Content>
-          </Card.Root>
-        </aside>
-      </section>
+        <div class="grid gap-2">
+          <p class="eyebrow">Pick a lick</p>
+          <div class="flex flex-wrap gap-1.5" role="group" aria-label="Pick a lick">
+            {#each visibleLicks as entry (entry.number)}
+              <button
+                type="button"
+                aria-pressed={entry.number === lickNumber}
+                onclick={() => selectLick(entry.number)}
+                class="size-9 rounded-md border border-stage-line text-sm font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-practice-accent {entry.number ===
+                lickNumber
+                  ? 'border-practice-accent bg-practice-accent text-practice-accent-foreground'
+                  : 'text-stage-muted hover:bg-stage-2'}"
+              >
+                {entry.number}
+              </button>
+            {/each}
+          </div>
+        </div>
+        {@render lickLine()}
+        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+          <PianoSurface router={runtime.router} notes={expectedMidi} highlights={readyHighlights} noteNames="c" />
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stage()}
-      <PracticeStage instrument={instrument} class="grid gap-5 p-5 sm:p-6">
-        <div>
-          <p class="eyebrow">Call &amp; response · Lick #{lick?.number}</p>
-          <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={stageHeading}>
-            Play the line back
-          </h2>
-          <p class="mt-1 font-mono text-sm tabular-nums text-stage-muted">{phraseNotes}</p>
-        </div>
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs text-stage-muted">
-            <span>Notes played</span>
-            <span class="tabular-nums">{played.length} / {expectedMidi.length}</span>
+      <PracticeStage {instrument} class="grid gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Lick #{lick?.number} · {lick?.progression.join(" ")}</p>
+            <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={stageHeading}>
+              Play the line back
+            </h2>
+            <p class="mt-1 font-mono text-sm tabular-nums text-stage-muted">{phraseNotes}</p>
           </div>
-          <Progress value={Math.min(played.length, expectedMidi.length)} max={expectedMidi.length} />
+          <span class="text-sm text-stage-muted tabular-nums">{played.length} / {expectedMidi.length}</span>
         </div>
-        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-4">
-          <PianoSurface router={runtime.router} />
+        <div class="grid grid-cols-2 gap-3">
+          <HudTile size="sm" label="Notes played" value={`${played.length} / ${expectedMidi.length}`} />
+          <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+        </div>
+        <Progress value={Math.min(played.length, expectedMidi.length)} max={expectedMidi.length} />
+        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+          <PianoSurface router={runtime.router} notes={expectedMidi} highlights={nextTarget} noteNames="c" />
         </div>
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
@@ -546,14 +553,13 @@
         <Play aria-hidden="true" />
         Hear it
       </Button>
-      <Button type="button" variant="outline" onclick={reset}>Cancel</Button>
+      <Button type="button" variant="outline" onclick={reset}>Stop</Button>
     {/snippet}
     {#snippet rail()}
       <DrillProgressRail
-        title="Live run"
         items={[
           { label: "Lick", value: `#${lick?.number}` },
-          { label: "Progression", value: lick?.progression.join(" ") ?? "—" },
+          { label: "Progression", value: lick?.progression.join(" ") ?? "" },
           { label: "Notes", value: `${played.length} / ${expectedMidi.length}` },
           { label: "Input", value: runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
         ]}
