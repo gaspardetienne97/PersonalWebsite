@@ -20,11 +20,7 @@
     type ChordScaleDrillChangesId,
     type LickGrade,
   } from "@repo/music-core/engines/jazz";
-  import {
-    targetTones,
-    type JamProgression,
-    type TargetTone,
-  } from "@repo/music-core/engines/jam";
+  import { targetTones, type TargetTone, type ToneRole } from "@repo/music-core/engines/jam";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
@@ -36,7 +32,9 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
-  import PianoSurface from "../../_components/piano/PianoSurface.svelte";
+  import PianoSurface, { type PianoHighlightRole } from "../../_components/piano/PianoSurface.svelte";
+  import HudTile from "../../_components/HudTile.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -45,7 +43,6 @@
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
-  import ProgressionChartStage from "../../_components/ProgressionChartStage.svelte";
   import RoutineContinueAction from "../../_components/RoutineContinueAction.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
@@ -67,7 +64,7 @@
   const progress = new ProgressEngine(store);
   const servicesReady = Promise.all([skills.seed(seedCoreSkills()), analytics.load(), progress.load()]);
 
-  // The go-to scale for each chord as a ii-V-I moves — the relationship the Jazz
+  // The go-to scale for each chord as a ii-V-I moves: the relationship the Jazz
   // Guide teaches as reference, here drilled by ear and hand. Roots in C; scale
   // kinds reuse the J5 scale set so notes come straight from scaleSemitones().
   interface Change {
@@ -132,7 +129,7 @@
   let played = $state<number[]>([]);
   let grades = $state<LickGrade[]>([]);
   let completedChords = $state<CompletedChord[]>([]);
-  let status = $state("Hear the scale for each chord, then play it back.");
+  let status = $state("Ready. Press Start, or Space.");
   let captured = false;
   let attemptStartedAt = unixMs(Date.now());
   let unsubscribe: (() => void) | undefined;
@@ -145,19 +142,24 @@
   const changes = $derived(ALL_CHANGES.find((entry) => entry.id === changesId) ?? ALL_CHANGES[0]);
   const chord = $derived(changes.chords[chordIndex]);
   const scaleMidi = $derived(scaleSemitones(chord.scale).map((semitones) => chord.rootMidi + semitones));
-  const progressionView = $derived<JamProgression>({
-    id: `chord-scale-${changes.id}`,
-    name: changes.label,
-    key: changes.id === "minor" ? "C minor" : "C major",
-    style: "jazz",
-    chords: changes.chords.map((entry, index) => ({
-      symbol: entry.symbol,
-      roman: romanFor(changes.id, index),
-      scale: entry.scaleLabel,
-      bars: 1,
-    })),
-  });
   const chartTones = $derived<TargetTone[]>(targetTones(normalizedChordSymbol(chord.symbol), chord.scaleLabel));
+  // One keyboard carries both layers: tone roles by pitch class across the
+  // range the scale needs, and the next expected note as the target while listening.
+  const KEY_RANGE = Array.from({ length: 61 }, (_, i) => 36 + i);
+  const toneRoles = $derived(
+    Object.fromEntries(
+      KEY_RANGE.map((midi) => [
+        midi,
+        chartTones.find((tone) => tone.pitchClass === midi % 12)?.role ?? ("avoid" as ToneRole),
+      ]),
+    ) as Record<number, ToneRole>,
+  );
+  const nextTarget = $derived<Record<number, PianoHighlightRole>>(
+    step === "listening" && scaleMidi[played.length] !== undefined
+      ? { [scaleMidi[played.length]!]: "target" }
+      : {},
+  );
+  const chordSymbols = $derived(changes.chords.map((entry) => entry.symbol).join(" "));
   const done = $derived(grades.length === changes.chords.length);
   const normalizedConfig = $derived(normalizeChordScaleDrillConfig({ changes: changesId }));
   const variantKey = $derived(`v1:chord-scales:${instrument}:${changesId}`);
@@ -247,7 +249,7 @@
     grades = [];
     completedChords = [];
     captured = false;
-    status = "Hear the scale for each chord, then play it back.";
+    status = "Ready. Press Start, or Space.";
   }
 
   function selectChanges(id: string): void {
@@ -329,7 +331,7 @@
       if (completedChords.length === 0) attemptStartedAt = unixMs(Date.now());
       step = "listening";
       played = [];
-      status = `Play ${chord.scaleLabel} over ${chord.symbol}…`;
+      status = `Play ${chord.scaleLabel} over ${chord.symbol}.`;
       unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
         if (step !== "listening" || event.type !== "noteOn") return;
         if (runtime.audioEnabled) {
@@ -361,7 +363,7 @@
     if (chordIndex < changes.chords.length - 1) {
       step = "idle";
       chordIndex += 1;
-      status = `${Math.round(grade.accuracy * 100)}% — next chord: ${changes.chords[chordIndex].symbol}.`;
+      status = `${Math.round(grade.accuracy * 100)}% on ${currentChord.symbol}, next chord: ${changes.chords[chordIndex].symbol}.`;
     } else {
       step = "graded";
       void finish(nextCompleted);
@@ -427,14 +429,14 @@
       };
       const xp = await ingestScoringEvents(scoringEvents);
       if (request === attemptRequest) {
-        status = `Done — ${completedOverall}% across ${completedChanges.chords.length} chords · +${xp} XP.`;
+        status = `Done. ${completedOverall}% across ${completedChanges.chords.length} chords, +${xp} XP.`;
       }
       await runtime.recordPractice({
         ...journal,
         xpEarned: xp,
       });
     } else {
-      status = `Done — ${overall}% across ${changes.chords.length} chords.`;
+      status = `Done. ${overall}% across ${changes.chords.length} chords.`;
     }
   }
 
@@ -502,38 +504,87 @@
   <title>Chord-Scale Drill | Practice OS</title>
   <meta
     name="description"
-    content="Play the go-to scale for each chord as a ii-V-I moves — Dorian, Mixolydian, Ionian — graded note-by-note."
+    content="Play the go-to scale for each chord as a ii-V-I moves: Dorian, Mixolydian, Ionian, graded note-by-note."
   />
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Chord-Scale Drill"
-    subtitle="As the ii-V-I moves, play the go-to scale for each chord. Graded note-by-note; XP feeds your jazz vocabulary."
-  >
+  <PracticeScreenHeader title="Chord-Scale Drill" compact>
     {#snippet controls()}
       <SourceReadout
-        label="Playing on"
+        label="Input"
         device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
   </PracticeScreenHeader>
 
-
   <!-- Persistent live region: mounted outside the phase branches so transitions announce. -->
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
+
+  {#snippet setupSummaryLine()}
+    {changes.label} · {chordSymbols} · {bpm} BPM
+  {/snippet}
+
+  <!-- The chord chart: the same strip on the ready stage (nothing current yet), during
+       the run (current + next) and in results (all graded). -->
+  {#snippet chordStrip(current: number)}
+    <ol class="grid grid-cols-3 gap-2" aria-label={`${changes.label} chord chart`}>
+      {#each changes.chords as change, index (change.symbol)}
+        {@const state =
+          index === current ? "current" : current >= 0 && index === current + 1 ? "next" : "upcoming"}
+        <li
+          data-testid={`progression-cell-${index}`}
+          data-state={state}
+          class={[
+            "grid gap-0.5 rounded-lg border p-2.5 text-center text-sm sm:p-3",
+            state === "current" && "border-practice-accent bg-practice-accent/15 ring-1 ring-practice-accent/30",
+            state === "next" && "border-dashed border-stage-line bg-stage-2",
+            state === "upcoming" && "border-stage-line bg-stage-2/60",
+          ]}
+        >
+          <span class="text-base font-bold sm:text-lg">{change.symbol}</span>
+          <span class="text-xs text-stage-muted">
+            {romanFor(changes.id, index)}{state === "current" ? " · now" : state === "next" ? " · next" : ""}
+          </span>
+          <span class="text-[0.6875rem] font-medium text-stage-muted">{change.scaleLabel}</span>
+        </li>
+      {/each}
+    </ol>
+  {/snippet}
+
+  {#snippet toneLegend()}
+    <div class="flex flex-wrap items-center gap-3 text-xs text-stage-muted">
+      <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-primary"></span>Chord tones</span>
+      <span class="flex items-center gap-1.5">
+        <span class="size-3 rounded-full bg-primary/25 ring-1 ring-inset ring-primary"></span>Scale tones
+      </span>
+      <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-muted"></span>Avoid</span>
+    </div>
+  {/snippet}
 
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={returnToSetup}>
       {#snippet heading()}
-        <Card.Description>Chord-scales complete</Card.Description>
-        <Card.Title>{overall}% across {changes.chords.length} chords</Card.Title>
+        <Card.Description>{changes.label} · {chordSymbols}</Card.Description>
+        <Card.Title>Chord-scales complete</Card.Title>
+      {/snippet}
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {overall}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only"> across {changes.chords.length} chords</span>
+        </p>
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta tags={["chord-scales"]} accuracy={overall / 100} before={visitStartedAt} />
       {/snippet}
       {#snippet children()}
-        <p class="text-sm text-muted-foreground">
-          Hear each scale again and match it note-for-note over its chord.
-        </p>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <HudTile size="sm" label="Chords graded" value={`${grades.length} / ${changes.chords.length}`} />
+          <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+        </div>
         <div class="grid gap-2">
           {#each completedChords as item (item.index)}
             <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
@@ -544,12 +595,10 @@
             </div>
           {/each}
         </div>
+        <p class="text-xs text-muted-foreground">Harmony · Jazz vocabulary</p>
       {/snippet}
       {#snippet actions()}
-        <Button type="button" onclick={beginRun}>Practice again</Button>
-      {/snippet}
-      {#snippet lastRunDelta()}
-        <LastRunDelta tags={["chord-scales"]} accuracy={overall / 100} before={visitStartedAt} />
+        <Button type="button" onclick={beginRun}>Again</Button>
       {/snippet}
       {#snippet routineContinue()}
         <RoutineContinueAction routine={runtime.dailyRoutine} />
@@ -560,108 +609,112 @@
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} summary={summaryPhase}>
+  <PracticeDrillShell {phase} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
-      <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <Card.Root>
-          <Card.Header class="gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <Card.Description>Changes</Card.Description>
-              <Card.Title bind:ref={setupHeading} tabindex="-1">{changes.label}</Card.Title>
+      <div class="grid gap-3 rounded-lg border bg-card p-4">
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Changes"
+          options={changesOptions}
+          value={changesId}
+          onChange={selectChanges}
+        />
+        <p class="text-xs text-muted-foreground">
+          Tempo lives in the practice controls above: {bpm} BPM.
+        </p>
+      </div>
+    {/snippet}
+
+    {#snippet readyStage()}
+      <PracticeStage {instrument} class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · chord to scale</p>
+            <div
+              role="heading"
+              aria-level="2"
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="chord-scales-ready-heading"
+              bind:this={setupHeading}
+            >
+              {changes.label}
             </div>
-            <SegmentedControl
-              size="sm"
-              ariaLabel="Changes"
-              options={changesOptions}
-              value={changesId}
-              onChange={selectChanges}
-            />
-          </Card.Header>
-          <Card.Content class="grid gap-4">
-            <p class="text-sm text-muted-foreground">
+            <p class="text-sm text-stage-muted">
               Every chord implies a scale. Hear the go-to scale, then play it back over each chord.
             </p>
-            <div class="grid gap-2">
-              {#each changes.chords as change, index (change.symbol)}
-                <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
-                  <span class="font-semibold">{romanFor(changes.id, index)} · {change.symbol}</span>
-                  <span class="text-muted-foreground">{change.scaleLabel}</span>
-                </div>
-              {/each}
-            </div>
-          </Card.Content>
-          <Card.Footer class="flex-wrap gap-3">
-            <Button type="button" onclick={beginRun}>Start drill</Button>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button type="button" size="lg" onclick={beginRun}>Start</Button>
             <StartShortcut onStart={beginRun} />
-            <p class="text-sm text-muted-foreground">{status}</p>
-          </Card.Footer>
-        </Card.Root>
-
-        <aside class="grid content-start gap-4">
-          <Card.Root>
-            <Card.Header>
-              <Card.Description>Why this drill</Card.Description>
-              <Card.Title class="text-base">Chord → scale</Card.Title>
-            </Card.Header>
-            <Card.Content class="space-y-2 text-sm text-muted-foreground">
-              <p>Every chord implies a scale. Internalising which scale fits which chord is the core of jazz improv.</p>
-              <p>Hear the go-to scale, then play it back over each chord of the progression.</p>
-            </Card.Content>
-          </Card.Root>
-        </aside>
-      </section>
+          </div>
+        </div>
+        {@render chordStrip(-1)}
+        <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="eyebrow">First up · {chord.symbol} / {chord.scaleLabel}</p>
+            {@render toneLegend()}
+          </div>
+          <PianoSurface router={runtime.router} notes={scaleMidi} {toneRoles} noteNames="c" />
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stage()}
-      <ProgressionChartStage
-        progression={progressionView}
-        currentIndex={chordIndex}
-        tones={chartTones}
-        {instrument}
-      />
-      <Card.Root>
-        <Card.Content class="space-y-5 pt-6">
+      <PracticeStage {instrument} class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="eyebrow">Now playing</p>
-            <h2 class="text-2xl font-bold tracking-tight" tabindex="-1" bind:this={activeHeading}>
+            <p class="eyebrow">
+              Now playing · {romanFor(changes.id, chordIndex)} ·
+              <span data-testid="progression-current-symbol">{chord.symbol}</span>
+            </p>
+            <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
               {chord.scaleLabel} over {chord.symbol}
             </h2>
           </div>
-          {#if step === "listening"}
-            <div class="space-y-1.5">
-              <div class="flex justify-between text-xs text-muted-foreground">
-                <span>Notes played</span>
-                <span class="tabular-nums">{played.length} / {scaleMidi.length}</span>
-              </div>
-              <Progress value={Math.min(played.length, scaleMidi.length)} max={scaleMidi.length} />
-            </div>
-          {/if}
-          <PianoSurface router={runtime.router} />
-        </Card.Content>
-        <Card.Footer class="flex-wrap gap-3">
-          <Button type="button" variant="outline" onclick={hearScale}>
-            <Play aria-hidden="true" />
-            Hear scale
-          </Button>
-          <Button type="button" onclick={() => void startAttempt()}>Play it back</Button>
-          <StartShortcut onStart={() => void startAttempt()} enabled={step !== "listening"} />
-          <p class="text-sm text-muted-foreground">{status}</p>
-        </Card.Footer>
-      </Card.Root>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onclick={hearScale}>
+              <Play aria-hidden="true" />
+              Hear scale
+            </Button>
+            <Button type="button" onclick={() => void startAttempt()} disabled={step === "listening"}>
+              Play it back
+            </Button>
+            <StartShortcut onStart={() => void startAttempt()} enabled={step !== "listening"} />
+          </div>
+        </div>
+        {@render chordStrip(chordIndex)}
+        <div class="grid grid-cols-2 gap-3">
+          <HudTile size="sm" label="Notes played" value={`${played.length} / ${scaleMidi.length}`} />
+          <HudTile size="sm" label="Graded" value={`${grades.length} / ${changes.chords.length}`} />
+        </div>
+        {#if step === "listening"}
+          <Progress value={Math.min(played.length, scaleMidi.length)} max={scaleMidi.length} />
+        {/if}
+        <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="eyebrow">Target tones · {chord.symbol} / {chord.scaleLabel}</p>
+            {@render toneLegend()}
+          </div>
+          <PianoSurface router={runtime.router} notes={scaleMidi} {toneRoles} highlights={nextTarget} noteNames="c" />
+        </div>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stageAction()}
-      <Button type="button" variant="outline" onclick={returnToSetup}>End run</Button>
+      <Button type="button" variant="outline" onclick={returnToSetup}>Stop</Button>
     {/snippet}
 
     {#snippet rail()}
       <DrillProgressRail
-        title="Live run"
         items={[
           { label: "Changes", value: changes.label },
           { label: "Chord", value: chord.symbol },
           { label: "Graded", value: `${grades.length} / ${changes.chords.length}` },
-          { label: "Overall", value: grades.length > 0 ? `${overall}%` : "—" },
+          { label: "Overall", value: grades.length > 0 ? `${overall}%` : "0%" },
+          { label: "Input", value: runtime.activeSource === "midi" ? "MIDI" : "On-screen" },
         ]}
       />
     {/snippet}

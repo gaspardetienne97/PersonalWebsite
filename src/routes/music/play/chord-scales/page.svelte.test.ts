@@ -27,28 +27,28 @@ describe("/music/play/chord-scales/+page.svelte", () => {
   test("gates hear/play controls behind the setup → stage phases", async () => {
     render(Page);
 
-    // Setup phase: only the Start affordance, no run controls.
-    expect(button("Start drill")).not.toBeUndefined();
+    // Ready stage: only the Start affordance, no run controls.
+    expect(button("Start")).not.toBeUndefined();
     expect(button("Play it back")).toBeUndefined();
-    expect(button("End run")).toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
 
-    button("Start drill")?.click();
+    button("Start")?.click();
     await Promise.resolve();
 
-    // Stage phase: setup is hidden during play; run controls appear.
+    // Stage: setup stays hidden during play; run controls appear.
     expect(button("Play it back")).not.toBeUndefined();
     expect(button("Hear scale")).not.toBeUndefined();
-    expect(button("End run")).not.toBeUndefined();
+    expect(button("Stop")).not.toBeUndefined();
     expect(document.querySelector('[aria-label="Changes"]')).toBeNull();
-    expect(button("Start drill")).toBeUndefined();
+    expect(button("Start")).toBeUndefined();
 
-    // End run returns to setup.
-    button("End run")?.click();
+    // Stop returns to the ready stage.
+    button("Stop")?.click();
     await vi.waitFor(() => {
       expect(document.activeElement?.getAttribute("role")).toBe("heading");
       expect(document.activeElement?.textContent).toContain("Major ii-V-I");
     });
-    expect(button("Start drill")).not.toBeUndefined();
+    expect(button("Start")).not.toBeUndefined();
     expect(button("Play it back")).toBeUndefined();
   });
 
@@ -64,11 +64,11 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     const subscribe = vi.spyOn(runtime.router, "subscribe");
     render(Page, { runtime });
 
-    button("Start drill")?.click();
+    button("Start")?.click();
     await Promise.resolve();
     button("Play it back")?.click();
     await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
-    button("End run")?.click();
+    button("Stop")?.click();
     resolveVoice(true);
     await Promise.resolve();
 
@@ -92,7 +92,7 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
     const view = render(Page, { runtime });
 
-    button("Start drill")?.click();
+    button("Start")?.click();
     await Promise.resolve();
 
     button("Hear scale")?.click();
@@ -126,7 +126,7 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
     render(Page, { runtime });
 
-    button("Start drill")?.click();
+    button("Start")?.click();
     await Promise.resolve();
     button("Play it back")?.click();
 
@@ -146,10 +146,10 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     expect(setup).toContain("D Dorian");
     expect(setup).toContain("G Mixolydian");
     expect(setup).toContain("C Major");
-    expect(button("Start drill")).not.toBeUndefined();
+    expect(button("Start")).not.toBeUndefined();
     expect(button("Play it back")).toBeUndefined();
 
-    button("Start drill")?.click();
+    button("Start")?.click();
     await Promise.resolve();
 
     // The stage owns the live progression chart and the hear/play controls.
@@ -172,6 +172,7 @@ describe("/music/play/chord-scales/+page.svelte", () => {
 
   test("switching to minor changes swaps in the altered/locrian scales", async () => {
     render(Page);
+    await openSetup();
 
     const minor = [...document.querySelectorAll('[aria-label="Changes"] button')].find(
       (button) => button.textContent?.trim() === "Minor ii-V-i",
@@ -197,6 +198,7 @@ describe("/music/play/chord-scales/+page.svelte", () => {
 
   test("keeps chord-scale setup changes in the shareable URL", async () => {
     render(Page);
+    await openSetup();
 
     const minor = [...document.querySelectorAll('[aria-label="Changes"] button')].find(
       (button) => button.textContent?.trim() === "Minor ii-V-i",
@@ -219,7 +221,7 @@ describe("/music/play/chord-scales/+page.svelte", () => {
       scaleSemitones("major").map((semitones) => 60 + semitones),
     ];
 
-    button("Start drill")?.click();
+    button("Start")?.click();
     await Promise.resolve();
     button("Play it back")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play D Dorian"));
@@ -297,8 +299,8 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     await completeMajorRun(harness);
     await vi.waitFor(() => expect(ingest).toHaveBeenCalledOnce());
 
-    button("Practice again")?.click();
-    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    button("Again")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     harness.changeInstrument("guitar");
     await vi.waitFor(() =>
       expect(harness.runtime.registerPracticeContext).toHaveBeenLastCalledWith(
@@ -350,9 +352,10 @@ describe("/music/play/chord-scales/+page.svelte", () => {
       expect(document.activeElement?.getAttribute("role")).toBe("heading");
       expect(document.activeElement?.textContent).toContain("Major ii-V-I");
     });
+    await openSetup();
     button("Minor ii-V-i")?.click();
-    button("Start drill")?.click();
-    await vi.waitFor(() => expect(button("End run")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     button("Play it back")?.click();
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("Play D Locrian over Dm7♭5"),
@@ -376,6 +379,13 @@ describe("/music/play/chord-scales/+page.svelte", () => {
   });
 });
 
+// Setup is collapsed behind "Edit setup" on the ready stage; open it before
+// touching the Changes control.
+async function openSetup(): Promise<void> {
+  if (!button("Hide setup")) button("Edit setup")?.click();
+  await vi.waitFor(() => expect(document.querySelector('[aria-label="Changes"]')).not.toBeNull());
+}
+
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (candidate) => candidate.textContent?.trim() === label,
@@ -389,7 +399,7 @@ async function completeMajorRun(harness: ReturnType<typeof makeRuntime>): Promis
     scaleSemitones("major").map((semitones) => 60 + semitones),
   ];
 
-  button("Start drill")?.click();
+  button("Start")?.click();
   for (const [scaleIndex, scale] of scales.entries()) {
     await vi.waitFor(() => expect(button("Play it back")).not.toBeUndefined());
     button("Play it back")?.click();
