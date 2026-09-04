@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import { onDestroy, onMount, tick } from "svelte";
 
-  import { monotonicMs, type NoteEvent, type ScoringEvent } from "@repo/music-core/domain";
+  import { monotonicMs, type NoteEvent, type ScoringEvent, unixMs } from "@repo/music-core/domain";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     AudioPitchSource,
@@ -54,13 +54,14 @@
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeStage from "../../_components/PracticeStage.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
-  import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
@@ -286,6 +287,9 @@
       : (runtime.midi.state.error ?? "MIDI permission has not been requested."),
   );
   const variantKey = $derived(`v1:chord-perfect:${instrument}:${mode}`);
+  const instrumentLabel = $derived(instrument === "guitar" ? "Guitar" : "Ukulele");
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   void initialize();
 
   $effect(() => {
@@ -391,7 +395,7 @@
         }
       });
       ready = true;
-      status = "Fret the shape, then sound each string from low to high.";
+      status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "Chord technique could not be prepared.");
     }
@@ -489,7 +493,7 @@
         }
         clearChangeTimer();
         changeTimer = setTimeout(() => session?.finishNow(), changeDurationSeconds * 1_000);
-        status = `Alternate ${shape.name} → ${toShape.name} — as many clean changes as you can.`;
+        status = `Alternate ${shape.name} to ${toShape.name}: as many clean changes as you can.`;
       } else if (mode === "changes") {
         await session.startChordChange({ tuning, fromShape: shape, toShape, repetitions });
         if (request !== startRequest || generation !== routeGeneration) {
@@ -497,7 +501,7 @@
           session.abandon();
           return;
         }
-        status = `Alternate ${shape.name} → ${toShape.name} cleanly, ${repetitions}×.`;
+        status = `Alternate ${shape.name} to ${toShape.name} cleanly, ${repetitions}×.`;
       } else {
         await session.startChordPerfect({ tuning, shape });
         if (request !== startRequest || generation !== routeGeneration) {
@@ -938,101 +942,178 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Chord-Perfect"
-    subtitle="Fret a chord shape, then sound each string from low to high — every voiced string graded for a clean ring."
-  >
+  <PracticeScreenHeader title="Chord-Perfect" compact>
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? `MIDI · ${instrument}` : "On-screen fretboard"}
-        live={sessionState?.status === "active"}
+        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        live={sessionState?.status === "active" || verifierActive || micVerifierActive}
       />
     {/snippet}
   </PracticeScreenHeader>
 
-
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
-  <!-- Shared run content: HUD + the mode-specific body, minus the graded
-       summaries (those are consolidated into DrillSummaryCard). Rendered in
-       both setup (as a live preview) and stage (as the play surface). -->
+  {#snippet setupSummaryLine()}
+    {modeCopy.title} · {instrumentLabel} · {shape.name}{mode === "changes" ? ` to ${toShape.name} · ${timed ? "One-minute" : `${repetitions}×`}` : ""} · {bpm} BPM
+  {/snippet}
+
+  <!-- Chord pickers: the chord is the drill, so they stay on the ready stage. -->
+  {#snippet chordPickers()}
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div class="grid gap-2">
+        <Label for="chord-shape">Chord</Label>
+        <select
+          id="chord-shape"
+          aria-label="Chord"
+          bind:value={shapeId}
+          onchange={(event) => selectShape(event.currentTarget.value)}
+          class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          {#each shapes as entry (entry.id)}
+            <option value={entry.id}>{entry.name}</option>
+          {/each}
+        </select>
+      </div>
+      {#if mode === "changes"}
+        <div class="grid gap-2">
+          <Label for="target-chord-shape">To chord</Label>
+          <select
+            id="target-chord-shape"
+            aria-label="To chord"
+            bind:value={toShapeId}
+            class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            onchange={(event) => selectToShape(event.currentTarget.value)}
+          >
+            {#each transitionShapes as entry (entry.id)}
+              <option value={entry.id}>{entry.name}</option>
+            {/each}
+          </select>
+        </div>
+      {/if}
+    </div>
+  {/snippet}
+
+  {#snippet fingeringGuide()}
+    <div class="grid gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <p class="text-sm font-medium">Suggested fingering</p>
+        <p class="text-xs text-stage-muted">Low string to high string</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {#each shapeGuide as string (string.key)}
+          <div class="rounded-md border border-stage-line bg-background/60 px-3 py-2 text-sm">
+            <div class="flex items-center justify-between gap-3">
+              <span class="font-medium">String {string.stringNumber}</span>
+              {#if string.fret === null}
+                <span class="text-stage-muted">Muted</span>
+              {:else if string.fret === 0}
+                <span class="text-stage-muted">Open</span>
+              {:else}
+                <span>Fret {string.fret}</span>
+              {/if}
+            </div>
+            {#if string.finger !== null}
+              <p class="text-xs text-stage-muted">Finger {string.finger}</p>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/snippet}
+
+  <!-- One instrument surface: the fretboard lives inside the stage, not in an aside. -->
+  {#snippet fretboard()}
+    <div class="min-w-0 overflow-hidden rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+      <p class="mb-2 text-xs text-stage-muted">{instrumentLabel} fretboard · {midiStatus}</p>
+      <FretboardInput
+        {tuning}
+        router={runtime.router}
+        targetMidiNotes={targetMidi}
+        activeMidiNotes={nextMidi === undefined ? [] : [nextMidi]}
+        correctMidiNotes={correctMidi}
+        visibleFrets={5}
+        onAccepted={playAccepted}
+      />
+    </div>
+  {/snippet}
+
   {#snippet hudTiles()}
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <HudTile label="Strings" value={completedNotes} unit={`/${total || "—"}`} />
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HudTile size="sm" label="Strings" value={completedNotes} unit={`/${total || "0"}`} />
       <HudTile
+        size="sm"
         label="Clean"
         value={Math.round((sessionState?.live?.runningScore ?? 0) * 100)}
         unit="%"
         tone="good"
       />
-      <HudTile
-        label="Chord"
-        value={mode === "changes" ? `${shape.name} to ${toShape.name}` : shape.name}
-        tone="accent"
-      />
+      <HudTile size="sm" label="Chord" value={mode === "changes" ? `${shape.name} to ${toShape.name}` : shape.name} tone="accent" />
+      <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
     </div>
   {/snippet}
 
+  {#snippet toneChips(items: ToneMapItem[])}
+    <div class="flex flex-wrap gap-2">
+      {#each items as tone (`${tone.pitchClass}-${tone.status}`)}
+        <span
+          class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status === 'matched'
+            ? 'border-success/30 bg-success/10 text-success'
+            : tone.status === 'extra'
+              ? 'border-warn/30 bg-warn/10 text-warn'
+              : 'border-stage-line bg-background/60 text-stage-muted'}"
+        >
+          {tone.label} {tone.status}
+        </span>
+      {/each}
+    </div>
+  {/snippet}
+
+  <!-- Mode-specific body, minus the graded summaries (those live in DrillSummaryCard).
+       Rendered on the ready stage for the verifier and strum modes (they have no run
+       phase of their own) and on the stage during a run. -->
   {#snippet modeContent()}
     {#if mode === "build"}
       {#if prompt}
-        <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+        <div class="grid gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex items-center justify-between gap-3 text-sm">
             <span class="font-medium">{prompt.label}</span>
-            <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
+            <span class="tabular-nums text-stage-muted">{completedNotes}/{total}</span>
           </div>
           <Progress value={completedNotes} max={total} />
-          <p class="text-sm text-muted-foreground">{status}</p>
         </div>
       {/if}
     {:else if mode === "pick"}
-      <div class="grid gap-4 rounded-lg border bg-muted/30 p-4">
-        {#if verifierActive || verifiedMidiNotes.length > 0}
-          <SessionFeedback
-            kind={verification.correct ? "correct" : "wrong"}
-            message="Target chord tones"
-            detail={verifierFeedbackDetail}
-          />
-        {/if}
-        <div class="grid gap-2 text-sm">
-          <p class="font-medium">Tone map</p>
-          <div class="flex flex-wrap gap-2">
-            {#each verifierToneMap as tone (`${tone.pitchClass}-${tone.status}`)}
-              <span
-                class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status ===
-                'matched'
-                  ? 'border-success/30 bg-success/10 text-success'
-                  : tone.status === 'extra'
-                    ? 'border-warn/30 bg-warn/10 text-warn'
-                    : 'border-muted-foreground/25 bg-background text-muted-foreground'}"
-              >
-                {tone.label} {tone.status}
-              </span>
-            {/each}
+      <div class="grid gap-3 rounded-xl border border-stage-line bg-stage-2/70 p-3 text-sm sm:p-4">
+        {#if verifierActive || micVerifierActive || verifiedMidiNotes.length > 0}
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <p class="font-medium {verification.correct ? 'text-success' : ''}">Target chord tones</p>
+            <p class="text-stage-muted">{verifierFeedbackDetail}</p>
           </div>
-          <p class="text-muted-foreground">Observed: {observedToneLabels}</p>
-          <p class="text-muted-foreground">Missing: {missingToneLabels}</p>
-        </div>
+        {/if}
+        <p class="font-medium">Tone map</p>
+        {@render toneChips(verifierToneMap)}
+        <p class="text-stage-muted">Observed: {observedToneLabels}</p>
+        <p class="text-stage-muted">Missing: {missingToneLabels}</p>
         {#if audioState.status === "denied" || audioState.status === "error"}
           <p class="text-destructive">{audioState.message}</p>
         {/if}
       </div>
     {:else if mode === "changes"}
       {#if changePrompt}
-        <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+        <div class="grid gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex items-center justify-between gap-3 text-sm">
             <span class="font-medium">{changePrompt.label}</span>
             {#if changePrompt.durationSeconds !== undefined}
-              <span class="tabular-nums text-muted-foreground" data-testid="change-clock">
+              <span class="tabular-nums text-stage-muted" data-testid="change-clock">
                 {changePrompt.durationSeconds}s timed run
               </span>
             {:else}
-              <span class="tabular-nums text-muted-foreground">{completedNotes}/{total}</span>
+              <span class="tabular-nums text-stage-muted">{completedNotes}/{total}</span>
             {/if}
           </div>
           {#if changePrompt.durationSeconds !== undefined}
-            <p class="text-xs text-muted-foreground">Keep changing until the timed run ends.</p>
+            <p class="text-xs text-stage-muted">Keep changing until the timed run ends.</p>
           {:else}
             <Progress value={completedNotes} max={total} />
           {/if}
@@ -1041,77 +1122,51 @@
               <span
                 class="rounded-full border px-2.5 py-1 {target.index ===
                 Math.floor(completedNotes / Math.max(1, target.midiNotes.length))
-                  ? 'border-primary/30 bg-primary/10 text-primary'
-                  : 'bg-background text-muted-foreground'}"
+                  ? 'border-practice-accent bg-practice-accent/15 text-foreground'
+                  : 'border-stage-line bg-background/60 text-stage-muted'}"
               >
                 {target.label}
               </span>
             {/each}
           </div>
-          <p class="text-sm text-muted-foreground">{status}</p>
-        </div>
-      {:else}
-        <div class="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
-          <p class="font-medium">{shape.name} to {toShape.name}</p>
-          <p class="text-muted-foreground">Start changes, play the first chord, then switch.</p>
         </div>
       {/if}
     {:else}
-      <div class="grid gap-4 rounded-lg border bg-muted/30 p-4 text-sm">
+      <div class="grid gap-3 rounded-xl border border-stage-line bg-stage-2/70 p-3 text-sm sm:p-4">
         {#if strumCandidates.length}
           <div class="flex flex-wrap items-baseline gap-2">
             <span class="text-2xl font-semibold">{strumCandidates[0]!.symbol}</span>
-            <span class="text-muted-foreground">
-              {Math.round(strumCandidates[0]!.confidence * 100)}% match
-            </span>
+            <span class="text-stage-muted">{Math.round(strumCandidates[0]!.confidence * 100)}% match</span>
           </div>
           {#if strumCandidates.length > 1}
-            <p class="text-xs text-muted-foreground">
+            <p class="text-xs text-stage-muted">
               Other readings:
               {strumCandidates
                 .slice(1, 3)
-                .map(
-                  (candidate) => `${candidate.symbol} (${Math.round(candidate.confidence * 100)}%)`,
-                )
+                .map((candidate) => `${candidate.symbol} (${Math.round(candidate.confidence * 100)}%)`)
                 .join(", ")}
             </p>
           {/if}
         {/if}
-        <p class="text-muted-foreground">Detected tones: {strumDetectedLabels}</p>
+        <p class="text-stage-muted">Detected tones: {strumDetectedLabels}</p>
         {#if strumVerification}
-          <div class="grid gap-2">
-            <p class="font-medium">Tone map</p>
-            <div class="flex flex-wrap gap-2">
-              {#each strumToneMap as tone (`${tone.pitchClass}-${tone.status}`)}
-                <span
-                  class="rounded-full border px-2.5 py-1 text-xs font-medium {tone.status ===
-                  'matched'
-                    ? 'border-success/30 bg-success/10 text-success'
-                    : tone.status === 'extra'
-                      ? 'border-warn/30 bg-warn/10 text-warn'
-                      : 'border-muted-foreground/25 bg-background text-muted-foreground'}"
-                >
-                  {tone.label} {tone.status}
-                </span>
-              {/each}
-            </div>
-          </div>
-          <p class="text-muted-foreground">
+          <p class="font-medium">Tone map</p>
+          {@render toneChips(strumToneMap)}
+          <p class="text-stage-muted">
             vs {shape.name}: {strumVerification.correct
               ? "matches the target"
               : `${Math.round(strumVerification.coverage * 100)}% of the target`}
           </p>
         {/if}
         {#if strumScore}
-          <SessionFeedback
-            kind={strumScore.correct ? "correct" : "wrong"}
-            message="Open chord ID scored"
-            detail={`${strumScore.feedback} · ${Math.round(strumScore.score * 100)}% credit`}
-            xp={strumScore.xp}
-          />
+          <div class="grid gap-1 rounded-lg border {strumScore.correct ? 'border-success/30' : 'border-stage-line'} bg-background/60 p-3">
+            <p class="font-medium">Open chord ID scored</p>
+            <p class="text-stage-muted">{strumScore.feedback} · {Math.round(strumScore.score * 100)}% credit</p>
+            <p class="text-xs text-stage-muted">+{strumScore.xp} XP</p>
+          </div>
         {/if}
         {#if strumStatus}
-          <p class="text-muted-foreground">{strumStatus}</p>
+          <p class="text-stage-muted">{strumStatus}</p>
         {/if}
         {#if audioState.status === "denied" || audioState.status === "error"}
           <p class="text-destructive">{audioState.message}</p>
@@ -1120,235 +1175,214 @@
     {/if}
   {/snippet}
 
+  {#snippet modeActions()}
+    {#if mode === "build"}
+      <Button type="button" size="lg" disabled={!ready || pending} onclick={() => void start()}>
+        {pending ? "Starting..." : "Start"}
+      </Button>
+      <StartShortcut onStart={() => void start()} enabled={ready && !pending} />
+    {:else if mode === "pick"}
+      <Button type="button" size="lg" disabled={!ready} onclick={() => void startVerifier()}>Start</Button>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={!ready || !audioSupported || audioState.status === "requesting"}
+        onclick={() => void startMicVerifier()}
+      >
+        {audioState.status === "requesting" ? "Starting..." : "Start with microphone"}
+      </Button>
+      <Button type="button" variant="ghost" onclick={clearVerifier}>Reset</Button>
+    {:else if mode === "changes"}
+      <Button type="button" size="lg" disabled={!ready || pending} onclick={() => void start()}>
+        {pending ? "Starting..." : "Start"}
+      </Button>
+      <StartShortcut onStart={() => void start()} enabled={ready && !pending} />
+    {:else}
+      <Button
+        type="button"
+        size="lg"
+        disabled={!ready || !audioSupported || strumBusy}
+        onclick={() => void strumAndIdentify()}
+      >
+        {strumBusy ? "Listening..." : "Start"}
+      </Button>
+    {/if}
+  {/snippet}
+
   <!-- Consolidated results frame: the build and changes summaries share one
        DrillSummaryCard (route keeps focus authority via headingRef). -->
   {#snippet summaryCard()}
+    {@const buildPct = Math.round((answer?.pitchAccuracy ?? 0) * 100)}
+    {@const changePct =
+      changeAnswer && changeAnswer.completedChanges > 0
+        ? Math.round((changeAnswer.cleanChanges / changeAnswer.completedChanges) * 100)
+        : 0}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
         {#if mode === "build"}
-          <Card.Description>Chord-Perfect</Card.Description>
-          <Card.Title>{Math.round((answer?.pitchAccuracy ?? 0) * 100)}% strings clean</Card.Title>
+          <Card.Description>{shape.name} · {buildPct}% strings clean</Card.Description>
+          <Card.Title>Chord-perfect check</Card.Title>
         {:else}
-          <Card.Description>Chord changes</Card.Description>
-          <Card.Title>{shape.name} to {toShape.name}</Card.Title>
+          <Card.Description>{shape.name} to {toShape.name}</Card.Description>
+          <Card.Title>Chord changes complete</Card.Title>
         {/if}
+      {/snippet}
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          {#if mode === "build"}
+            <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+              {buildPct}<span class="text-3xl text-muted-foreground">%</span>
+            </span>
+            <span class="sr-only"> of strings rang clean</span>
+          {:else if changeAnswer?.changesPerMinute !== undefined}
+            <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+              {changeAnswer.changesPerMinute}
+            </span>
+            <span class="ml-2 text-lg text-muted-foreground">clean changes/min</span>
+          {:else}
+            <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+              {changePct}<span class="text-3xl text-muted-foreground">%</span>
+            </span>
+            <span class="sr-only"> of changes clean</span>
+          {/if}
+        </p>
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta
+          tags={["technique", mode === "build" ? "chord-perfect" : "chord-changes"]}
+          accuracy={mode === "build" ? (answer?.pitchAccuracy ?? 0) : changePct / 100}
+          before={visitStartedAt}
+        />
       {/snippet}
       {#snippet children()}
         {#if mode === "build"}
-          <SessionFeedback
-            kind={summary && summary.correct === summary.total ? "correct" : "wrong"}
-            message="Chord-perfect check"
-            detail={`${Math.round((answer?.pitchAccuracy ?? 0) * 100)}% of strings rang clean`}
-            xp={summary?.xp ?? 0}
-          />
+          <p class="text-sm text-muted-foreground">{buildPct}% of strings rang clean.</p>
         {:else}
-          <SessionFeedback
-            kind={summary && summary.correct === summary.total ? "correct" : "wrong"}
-            message="Chord changes complete"
-            detail={changeAnswer?.changesPerMinute === undefined
-              ? `${changeAnswer?.cleanChanges}/${changeAnswer?.completedChanges || changePrompt?.targets.length || 0} targets clean${
+          <p class="text-sm text-muted-foreground">
+            {changeAnswer?.changesPerMinute === undefined
+              ? `${changeAnswer?.cleanChanges ?? 0}/${changeAnswer?.completedChanges || changePrompt?.targets.length || 0} targets clean${
                   changeAnswer?.firstChangeLatencyMs === undefined
                     ? ""
                     : ` · first change ${(changeAnswer.firstChangeLatencyMs / 1000).toFixed(1)}s`
                 }`
               : `${changeAnswer.changesPerMinute} clean changes/min · ${changeAnswer.cleanChanges}/${changeAnswer.completedChanges} strums clean`}
-            xp={summary?.xp ?? 0}
-          />
+          </p>
         {/if}
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <HudTile size="sm" label="Chord" value={mode === "changes" ? `${shape.name} to ${toShape.name}` : shape.name} />
+          <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+          <HudTile size="sm" label="Input" value={runtime.activeSource === "midi" ? "MIDI" : "On-screen"} />
+        </div>
+        <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · Technique</p>
       {/snippet}
       {#snippet actions()}
-        {#if mode === "build"}
-          <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat chord" />
-        {:else}
-          <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Repeat changes" />
-        {/if}
+        <AdaptiveRetryBar onRetry={() => void start()} retryLabel="Again" />
+      {/snippet}
+      {#snippet nextUp()}
+        <NextUpSuggestion {skills} {analytics} currentPath="/music/play/chord-perfect" routine={runtime.dailyRoutine} />
       {/snippet}
     </DrillSummaryCard>
   {/snippet}
 
-  <section
-    class={phase === "summary"
-      ? "grid min-w-0 gap-6"
-      : "grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]"}
-  >
-    <PracticeDrillShell {phase} startPending={pending} summary={summaryCard}>
-      {#snippet setup()}
-        <Card.Root class="min-w-0">
-          <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <Card.Description>{modeCopy.description}</Card.Description>
-              <Card.Title
-                bind:ref={setupHeading}
-                tabindex="-1"
-                data-testid="chord-perfect-setup-heading"
-              >
-                {modeCopy.title}
-              </Card.Title>
-              <Card.Description>{modeCopy.detail}</Card.Description>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
+  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryCard}>
+    {#snippet setup()}
+      <div class="grid min-w-0 gap-4 rounded-lg border bg-card p-4">
+        {#if mode === "changes"}
+          <div class="flex flex-wrap gap-4">
+            <div class="grid gap-2">
+              <span class="text-sm font-medium">Format</span>
               <SegmentedControl
-                ariaLabel="Chord-perfect workflow"
-                options={modeOptions}
-                value={mode}
-                onChange={selectMode}
+                size="sm"
+                ariaLabel="Format"
+                options={[
+                  { value: "reps", label: "Reps" },
+                  { value: "timed", label: "One-minute" },
+                ]}
+                value={timed ? "timed" : "reps"}
+                onChange={(value) => (timed = value === "timed")}
               />
-              <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-                {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-              </Button>
             </div>
-          </Card.Header>
-
-          <Card.Content class="grid gap-6">
-            <fieldset
-              disabled={sessionState?.status === "active"}
-              class="grid gap-4 disabled:opacity-70"
-            >
-              <SegmentedControl
-                ariaLabel="Instrument"
-                options={instrumentOptions}
-                value={instrument}
-                onChange={(value) => {
-                  selectInstrument(value);
-                  runtime.setActiveInstrument(value as StringInstrumentId);
-                }}
-              />
-              <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
+            {#if !timed}
               <div class="grid gap-2">
-                <Label for="chord-shape">Chord</Label>
-                <select
-                  id="chord-shape"
-                  aria-label="Chord"
-                  bind:value={shapeId}
-                  onchange={(event) => selectShape(event.currentTarget.value)}
-                  class="h-9 rounded-md border bg-background px-3 text-sm"
-                >
-                  {#each shapes as entry (entry.id)}
-                    <option value={entry.id}>{entry.name}</option>
-                  {/each}
-                </select>
+                <span class="text-sm font-medium">Repetitions</span>
+                <SegmentedControl
+                  size="sm"
+                  ariaLabel="Repetitions"
+                  options={CHORD_CHANGE_REPETITION_OPTIONS.map((count) => ({
+                    value: String(count),
+                    label: `${count}×`,
+                  }))}
+                  value={String(repetitions)}
+                  onChange={selectRepetitions}
+                />
               </div>
-              {#if mode === "changes"}
-                <div class="grid gap-2">
-                  <Label for="target-chord-shape">To chord</Label>
-                  <select
-                    id="target-chord-shape"
-                    aria-label="To chord"
-                    bind:value={toShapeId}
-                    class="h-9 rounded-md border bg-background px-3 text-sm"
-                    onchange={(event) => selectToShape(event.currentTarget.value)}
-                  >
-                    {#each transitionShapes as entry (entry.id)}
-                      <option value={entry.id}>{entry.name}</option>
-                    {/each}
-                  </select>
-                </div>
-                <div class="grid gap-2">
-                  <Label id="change-format-label">Format</Label>
-                  <SegmentedControl
-                    size="sm"
-                    ariaLabel="Format"
-                    options={[
-                      { value: "reps", label: "Reps" },
-                      { value: "timed", label: "One-minute" },
-                    ]}
-                    value={timed ? "timed" : "reps"}
-                    onChange={(value) => (timed = value === "timed")}
-                  />
-                </div>
-                {#if !timed}
-                  <div class="grid gap-2">
-                    <Label id="change-repetitions-label">Repetitions</Label>
-                    <SegmentedControl
-                      size="sm"
-                      ariaLabel="Repetitions"
-                      options={CHORD_CHANGE_REPETITION_OPTIONS.map((count) => ({
-                        value: String(count),
-                        label: `${count}×`,
-                      }))}
-                      value={String(repetitions)}
-                      onChange={selectRepetitions}
-                    />
-                  </div>
-                {/if}
-              {/if}
-            </fieldset>
-
-            {@render hudTiles()}
-
-            <div class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-              <div>
-                <p class="text-sm font-medium">Suggested fingering</p>
-                <p class="text-xs text-muted-foreground">Low string to high string</p>
-              </div>
-              <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {#each shapeGuide as string (string.key)}
-                  <div class="rounded-md border bg-background px-3 py-2 text-sm">
-                    <div class="flex items-center justify-between gap-3">
-                      <span class="font-medium">String {string.stringNumber}</span>
-                      {#if string.fret === null}
-                        <span class="text-muted-foreground">Muted</span>
-                      {:else if string.fret === 0}
-                        <span class="text-muted-foreground">Open</span>
-                      {:else}
-                        <span>Fret {string.fret}</span>
-                      {/if}
-                    </div>
-                    {#if string.finger !== null}
-                      <p class="text-xs text-muted-foreground">Finger {string.finger}</p>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            </div>
-
-            {@render modeContent()}
-          </Card.Content>
-
-          <Card.Footer class="flex-wrap gap-3">
-            {#if mode === "build"}
-              <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
-                {pending ? "Starting..." : "Start drill"}
-              </Button>
-              <StartShortcut onStart={() => void start()} />
-              <p class="text-sm text-muted-foreground">{status}</p>
-            {:else if mode === "pick"}
-              <Button type="button" disabled={!ready} onclick={() => void startVerifier()}>
-                Start verifier
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={!ready || !audioSupported || audioState.status === "requesting"}
-                onclick={() => void startMicVerifier()}
-              >
-                {audioState.status === "requesting" ? "Starting mic..." : "Start mic verifier"}
-              </Button>
-              <Button type="button" variant="ghost" onclick={clearVerifier}>Reset</Button>
-            {:else if mode === "changes"}
-              <Button type="button" disabled={!ready || pending} onclick={() => void start()}>
-                {pending ? "Starting..." : "Start changes"}
-              </Button>
-              <p class="text-sm text-muted-foreground">{status}</p>
-            {:else}
-              <Button
-                type="button"
-                disabled={!ready || !audioSupported || strumBusy}
-                onclick={() => void strumAndIdentify()}
-              >
-                {strumBusy ? "Listening..." : "Strum & identify"}
-              </Button>
             {/if}
-          </Card.Footer>
-        </Card.Root>
-      {/snippet}
+          </div>
+        {/if}
+        <p class="text-sm tabular-nums text-muted-foreground">Tempo · {bpm} BPM (practice controls above)</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
+            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
+          </Button>
+          <p class="text-xs text-muted-foreground">{midiStatus}</p>
+        </div>
+      </div>
+    {/snippet}
 
-      {#snippet stage()}
-        <PracticeStage {instrument} class="grid gap-5 p-5 sm:p-6">
+    {#snippet readyStage()}
+      <PracticeStage {instrument} class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="eyebrow">Focus mode · {modeCopy.description}</p>
+            <p class="eyebrow">Ready · {modeCopy.description}</p>
+            <div
+              role="heading"
+              aria-level="2"
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="chord-perfect-setup-heading"
+              bind:this={setupHeading}
+            >
+              {modeCopy.title}
+            </div>
+            <p class="text-sm text-stage-muted">{modeCopy.detail}</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            {@render modeActions()}
+          </div>
+        </div>
+        <!-- Which workflow, which instrument and which chord are the drill; the fieldset
+             mirrors the shell's start lock. -->
+        <fieldset class="grid min-w-0 gap-3 border-0 p-0" disabled={pending}>
+          <div class="flex flex-wrap gap-3">
+            <SegmentedControl ariaLabel="Chord-perfect workflow" options={modeOptions} value={mode} onChange={selectMode} />
+            <SegmentedControl
+              ariaLabel="Instrument"
+              options={instrumentOptions}
+              value={instrument}
+              onChange={(value) => {
+                selectInstrument(value);
+                runtime.setActiveInstrument(value as StringInstrumentId);
+              }}
+            />
+          </div>
+          {@render chordPickers()}
+        </fieldset>
+        {@render fingeringGuide()}
+        {#if mode === "pick" || mode === "strum" || (mode === "changes" && !changePrompt)}
+          {@render modeContent()}
+        {/if}
+        {@render fretboard()}
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
+    {/snippet}
+
+    {#snippet stage()}
+      <PracticeStage {instrument} class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">{modeCopy.description} · {instrumentLabel}</p>
             <h2
-              class="text-2xl font-bold tracking-tight"
+              class="text-xl font-semibold tracking-tight"
               tabindex="-1"
               bind:this={stageHeading}
               data-testid="chord-perfect-stage-heading"
@@ -1356,49 +1390,27 @@
               {modeCopy.title}
             </h2>
           </div>
-          {@render hudTiles()}
-          {@render modeContent()}
-        </PracticeStage>
-      {/snippet}
+        </div>
+        {@render hudTiles()}
+        {@render modeContent()}
+        {@render fretboard()}
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
+    {/snippet}
 
-      {#snippet stageAction()}
-        {#if mode === "build" && sessionState?.status === "active"}
-          <Button type="button" variant="outline" onclick={cancel}>Cancel drill</Button>
-        {:else if mode === "changes" && sessionState?.status === "active"}
-          <Button type="button" variant="outline" onclick={cancel}>Cancel changes</Button>
-        {:else if mode === "pick"}
-          {#if verifierActive}
-            <Button type="button" variant="outline" onclick={stopVerifier}>Stop verifier</Button>
-          {/if}
-          {#if micVerifierActive}
-            <Button type="button" variant="outline" onclick={() => void stopMicVerifier()}>
-              Stop mic verifier
-            </Button>
-          {/if}
+    {#snippet stageAction()}
+      {#if mode === "build" && sessionState?.status === "active"}
+        <Button type="button" variant="outline" onclick={cancel}>Stop</Button>
+      {:else if mode === "changes" && sessionState?.status === "active"}
+        <Button type="button" variant="outline" onclick={cancel}>Stop</Button>
+      {:else if mode === "pick"}
+        {#if verifierActive}
+          <Button type="button" variant="outline" onclick={stopVerifier}>Stop</Button>
         {/if}
-      {/snippet}
-    </PracticeDrillShell>
-
-    {#if phase !== "summary"}
-      <aside class="grid content-start gap-4">
-        <Card.Root class="min-w-0">
-          <Card.Header>
-            <Card.Title>{instrument === "guitar" ? "Guitar" : "Ukulele"} fretboard</Card.Title>
-            <Card.Description>{midiStatus}</Card.Description>
-          </Card.Header>
-          <Card.Content class="min-w-0 overflow-hidden">
-            <FretboardInput
-              {tuning}
-              router={runtime.router}
-              targetMidiNotes={targetMidi}
-              activeMidiNotes={nextMidi === undefined ? [] : [nextMidi]}
-              correctMidiNotes={correctMidi}
-              visibleFrets={5}
-              onAccepted={playAccepted}
-            />
-          </Card.Content>
-        </Card.Root>
-      </aside>
-    {/if}
-  </section>
+        {#if micVerifierActive}
+          <Button type="button" variant="outline" onclick={() => void stopMicVerifier()}>Stop microphone</Button>
+        {/if}
+      {/if}
+    {/snippet}
+  </PracticeDrillShell>
 </PracticeScreen>

@@ -61,8 +61,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     const prepareStrum = vi.fn(async () => ({ record, dispose: vi.fn() }));
     render(Page, { runtime, prepareStrum, audioSupported: true });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await Promise.resolve();
     expect(prepareStrum).toHaveBeenCalledOnce();
     expect(ensurePlaybackVoice).not.toHaveBeenCalled();
@@ -92,8 +92,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     );
     render(Page, { runtime, prepareStrum, audioSupported: true });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(prepareStrum).toHaveBeenCalledOnce());
     expect(runtime.beginPerformance).not.toHaveBeenCalled();
     expect(record).not.toHaveBeenCalled();
@@ -116,8 +116,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     const prepareStrum = vi.fn(async () => ({ record, dispose }));
     render(Page, { runtime, prepareStrum, audioSupported: true });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce());
     expect(record).not.toHaveBeenCalled();
@@ -132,8 +132,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     });
     render(Page, { runtime, prepareStrum, audioSupported: true });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("Microphone access denied."),
@@ -159,8 +159,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       audioSupported: true,
     });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
     const chord = select("Chord")!;
     chord.value = "guitar.g-major";
@@ -184,8 +184,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       audioSupported: true,
     });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
     view.unmount();
 
@@ -207,8 +207,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     );
     const view = render(Page, { runtime, analyzeStrum, audioSupported: true });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(analyzeStrum).toHaveBeenCalledOnce());
     view.unmount();
     const endCallsAfterUnmount = endPerformance.mock.calls.length;
@@ -236,14 +236,14 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     );
     render(Page, { runtime, analyzeStrum, audioSupported: true });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(analyzeStrum).toHaveBeenCalledOnce());
     const chord = select("Chord")!;
     chord.value = "guitar.g-major";
     chord.dispatchEvent(new Event("change", { bubbles: true }));
     resolveAnalysis([60, 64, 67]);
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
     expect(recordPractice).not.toHaveBeenCalled();
     expect(skillIngest).not.toHaveBeenCalled();
@@ -268,14 +268,14 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       audioSupported: true,
     });
 
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
     await vi.waitFor(() => expect(ProgressEngine.prototype.ingest).toHaveBeenCalled());
     const chord = select("Chord")!;
     chord.value = "guitar.g-major";
     chord.dispatchEvent(new Event("change", { bubbles: true }));
     resolveProgress(5);
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
     expect(recordPractice).not.toHaveBeenCalled();
     expect(document.body.textContent).not.toContain("Open chord ID scored");
@@ -287,43 +287,47 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(false);
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
-    button("Start drill")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(runtime.beginPerformance).not.toHaveBeenCalled();
-    expect(button("Cancel drill")).toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
   });
 
   test("separates chord-perfect workflows into one primary mode at a time", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
+    // Every workflow starts with one "Start"; only the verifier adds a microphone
+    // start and a Reset, and only the build drill shows the Space hint.
     expect(button("Build shape")).toHaveAttribute("aria-pressed", "true");
-    expect(button("Start drill")).not.toBeUndefined();
-    expect(button("Start verifier")).toBeUndefined();
-    expect(button("Strum & identify")).toBeUndefined();
+    expect(button("Start")).not.toBeUndefined();
+    expect(button("Start with microphone")).toBeUndefined();
+    expect(button("Reset")).toBeUndefined();
 
     button("Pick strings cleanly")?.click();
     await vi.waitFor(() => {
       expect(button("Pick strings cleanly")).toHaveAttribute("aria-pressed", "true");
-      expect(button("Start verifier")).not.toBeUndefined();
-      expect(button("Start drill")).toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
+      expect(button("Start with microphone")).not.toBeUndefined();
+      expect(button("Reset")).not.toBeUndefined();
     });
 
     button("Strum and identify")?.click();
     await vi.waitFor(() => {
       expect(button("Strum and identify")).toHaveAttribute("aria-pressed", "true");
-      expect(button("Strum & identify")).not.toBeUndefined();
-      expect(button("Start verifier")).toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
+      expect(button("Start with microphone")).toBeUndefined();
+      expect(button("Reset")).toBeUndefined();
     });
   });
 
   test("shows suggested fingers plus open and muted strings for the selected shape", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
     expect(document.body.textContent).toContain("Suggested fingering");
     expect(document.body.textContent).toContain("String 5");
@@ -342,10 +346,10 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     expect(document.querySelector("h1")?.textContent).toContain("Chord-Perfect");
     expect(button("Guitar")).toHaveAttribute("aria-pressed", "true");
-    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
-    button("Start drill")?.click();
-    await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(runtime.beginPerformance).toHaveBeenCalledOnce();
     expect(register).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -367,7 +371,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Chord-perfect check");
-      expect(button("Repeat chord")).not.toBeUndefined();
+      expect(button("Again")).not.toBeUndefined();
     });
   });
 
@@ -376,9 +380,9 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => expect(button("Pick strings cleanly")).not.toBeUndefined());
     button("Pick strings cleanly")?.click();
-    await vi.waitFor(() => expect(button("Start verifier")?.disabled).toBe(false));
-    button("Start verifier")?.click();
-    await vi.waitFor(() => expect(button("Stop verifier")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     for (const [stringNumber, fret] of [
       [5, 3],
@@ -399,9 +403,9 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => expect(button("Pick strings cleanly")).not.toBeUndefined());
     button("Pick strings cleanly")?.click();
-    await vi.waitFor(() => expect(button("Start verifier")?.disabled).toBe(false));
-    button("Start verifier")?.click();
-    await vi.waitFor(() => expect(button("Stop verifier")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     fretButton(5, 3)?.click();
 
@@ -431,8 +435,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => expect(button("Pick strings cleanly")).not.toBeUndefined());
     button("Pick strings cleanly")?.click();
-    await vi.waitFor(() => expect(button("Start mic verifier")?.disabled).toBe(false));
-    button("Start mic verifier")?.click();
+    await vi.waitFor(() => expect(button("Start with microphone")?.disabled).toBe(false));
+    button("Start with microphone")?.click();
 
     await vi.waitFor(() => expect(audioSource.start).toHaveBeenCalledOnce());
     for (const midiNote of [60, 64, 67]) {
@@ -459,14 +463,14 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => expect(button("Pick strings cleanly")).not.toBeUndefined());
     button("Pick strings cleanly")?.click();
-    await vi.waitFor(() => expect(button("Start mic verifier")?.disabled).toBe(false));
-    button("Start mic verifier")?.click();
+    await vi.waitFor(() => expect(button("Start with microphone")?.disabled).toBe(false));
+    button("Start with microphone")?.click();
 
     await vi.waitFor(() => expect(audioSource.stop).toHaveBeenCalled());
     expect(document.body.textContent).toContain("Worklet setup failed.");
     expect(runtime.beginPerformance).not.toHaveBeenCalled();
     expect(endPerformance).toHaveBeenCalled();
-    expect(button("Stop mic verifier")).toBeUndefined();
+    expect(button("Stop microphone")).toBeUndefined();
   });
 
   test("identifies a strummed chord and verifies it against the target shape", async () => {
@@ -475,8 +479,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => expect(button("Strum and identify")).not.toBeUndefined());
     button("Strum and identify")?.click();
-    await vi.waitFor(() => expect(button("Strum & identify")?.disabled).toBe(false));
-    button("Strum & identify")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
 
     await vi.waitFor(() => expect(analyzeStrum).toHaveBeenCalledOnce());
     await vi.waitFor(() => {
@@ -519,16 +523,17 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(button("Change trainer")).toHaveAttribute("aria-pressed", "true");
-      expect(button("Start changes")?.disabled).toBe(false);
+      expect(button("Start")?.disabled).toBe(false);
     });
     expect(select("Chord")?.value).toBe("guitar.c-major");
     expect(select("To chord")?.value).toBe("guitar.g-major");
     // The shareable reps param restores into the repetitions control.
+    await openSetup();
     expect(button("1×")).toHaveAttribute("aria-pressed", "true");
     expect(document.body.textContent).toContain("C major to G major");
 
-    button("Start changes")?.click();
-    await vi.waitFor(() => expect(button("Cancel changes")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     for (const [stringNumber, fret] of [
       [5, 3],
@@ -548,7 +553,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Chord changes complete");
-      expect(button("Repeat changes")).not.toBeUndefined();
+      expect(button("Again")).not.toBeUndefined();
     });
   });
   test("runs one-minute changes on a clock and reports changes per minute", async () => {
@@ -557,16 +562,17 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     );
     render(Page, { changeDurationSeconds: 1 });
 
+    await openSetup();
     await vi.waitFor(() => {
       expect(button("One-minute")).toHaveAttribute("aria-pressed", "true");
-      expect(button("Start changes")?.disabled).toBe(false);
+      expect(button("Start")?.disabled).toBe(false);
     });
     // The reps selector yields to the clock in timed format.
     expect(button("1×")).toBeUndefined();
 
-    button("Start changes")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => {
-      expect(button("Cancel changes")).not.toBeUndefined();
+      expect(button("Stop")).not.toBeUndefined();
       expect(document.querySelector('[data-testid="change-clock"]')?.textContent).toContain(
         "1s timed run",
       );
@@ -587,7 +593,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     await vi.waitFor(
       () => {
         expect(document.body.textContent).toContain("clean changes/min");
-        expect(button("Repeat changes")).not.toBeUndefined();
+        expect(button("Again")).not.toBeUndefined();
       },
       { timeout: 5_000 },
     );
@@ -596,25 +602,25 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
   test("hides setup configuration and moves Cancel into the stage during an active run", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     // Setup configuration is reachable before the run.
     expect(select("Chord")).not.toBeUndefined();
     expect(button("Build shape")).not.toBeUndefined();
-    expect(button("Cancel drill")).toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
 
-    button("Start drill")?.click();
+    button("Start")?.click();
 
-    await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     // The stage owns the page: setup config recedes, cancel lives in the stage.
     expect(select("Chord")).toBeUndefined();
     expect(button("Build shape")).toBeUndefined();
-    expect(button("Start drill")).toBeUndefined();
+    expect(button("Start")).toBeUndefined();
     expect(document.activeElement).toBe(
       document.querySelector('[data-testid="chord-perfect-stage-heading"]'),
     );
 
-    button("Cancel drill")?.click();
-    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
+    button("Stop")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     expect(document.activeElement).toBe(
       document.querySelector('[data-testid="chord-perfect-setup-heading"]'),
     );
@@ -635,7 +641,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       }),
     );
 
-    button("Repeat chord")?.click();
+    button("Again")?.click();
     await vi.waitFor(() => expect(ensurePlaybackVoice).toHaveBeenCalledOnce());
     await vi.waitFor(() => expect(button("Starting...")?.disabled).toBe(true));
     expect(document.body.textContent).not.toContain("Chord-perfect check");
@@ -645,7 +651,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     resolveVoice(false);
     await vi.waitFor(() => expect(document.body.textContent).toContain(runtime.audioMessage));
     expect(document.body.textContent).not.toContain("Chord-perfect check");
-    expect(button("Start drill")?.disabled).toBe(false);
+    expect(button("Start")?.disabled).toBe(false);
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       runtime.audioMessage,
     );
@@ -658,13 +664,13 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     const beginPerformance = vi.mocked(runtime.beginPerformance);
     beginPerformance.mockClear();
-    button("Repeat chord")?.click();
+    button("Again")?.click();
     button("Change setup")?.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(beginPerformance).not.toHaveBeenCalled();
-    expect(button("Cancel drill")).toBeUndefined();
-    expect(button("Start drill")?.disabled).toBe(false);
+    expect(button("Stop")).toBeUndefined();
+    expect(button("Start")?.disabled).toBe(false);
     expect(document.body.textContent).not.toContain("Chord-perfect check");
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       "Setup ready",
@@ -674,9 +680,9 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
   test("returns from the summary to setup via Change setup", async () => {
     render(Page);
 
-    await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
-    button("Start drill")?.click();
-    await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
 
     for (const [stringNumber, fret] of [
       [5, 3],
@@ -705,8 +711,8 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(select("Chord")).not.toBeUndefined();
-      expect(button("Start drill")).not.toBeUndefined();
-      expect(button("Repeat chord")).toBeUndefined();
+      expect(button("Start")).not.toBeUndefined();
+      expect(button("Again")).toBeUndefined();
     });
     expect(document.activeElement).toBe(
       document.querySelector('[data-testid="chord-perfect-setup-heading"]'),
@@ -718,9 +724,9 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 });
 
 async function completeBuildDrill(): Promise<void> {
-  await vi.waitFor(() => expect(button("Start drill")?.disabled).toBe(false));
-  button("Start drill")?.click();
-  await vi.waitFor(() => expect(button("Cancel drill")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
   for (const [stringNumber, fret] of [
     [5, 3],
     [4, 2],
@@ -730,7 +736,14 @@ async function completeBuildDrill(): Promise<void> {
   ]) {
     fretButton(stringNumber, fret)?.click();
   }
-  await vi.waitFor(() => expect(button("Repeat chord")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Again")).not.toBeUndefined());
+}
+
+// Format, repetitions and MIDI sit behind "Edit setup" on the ready stage; the
+// workflow, instrument and chord pickers stay on the stage.
+async function openSetup(): Promise<void> {
+  if (!button("Hide setup")) button("Edit setup")?.click();
+  await vi.waitFor(() => expect(button("Hide setup")).not.toBeUndefined());
 }
 
 function button(label: string): HTMLButtonElement | undefined {
