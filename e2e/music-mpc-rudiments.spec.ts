@@ -7,18 +7,18 @@ test.describe("music MPC rudiment workflows", () => {
 
     await expect(page).toHaveURL(/\/music\/play\/mpc(?:\?|$)/);
     await expect(page.getByRole("heading", { name: "MPC Rudiments" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start rudiment" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
 
-    await page.getByRole("button", { name: "Start rudiment" }).click();
-    await expect(page.getByRole("button", { name: "Cancel rudiment" })).toBeVisible();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
     const pads = [36, 38, 36, 38, 36, 38, 36, 38];
     for (const [index, midi] of pads.entries()) {
       if (index > 0) await page.waitForTimeout(375);
       await page.getByRole("button", { name: `Pad ${midi}`, exact: true }).click();
     }
 
-    await expect(page.getByText("Rudiment complete")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Repeat rudiment" }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Rudiment complete" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Again" }).first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await page.waitForTimeout(500);

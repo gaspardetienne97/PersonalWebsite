@@ -2,6 +2,8 @@
   import { browser } from "$app/environment";
   import { onDestroy, tick } from "svelte";
 
+  import { unixMs } from "@repo/music-core/domain";
+
   import type {
     MpcSingleStrokeAnswer,
     MpcSingleStrokePrompt,
@@ -29,6 +31,9 @@
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
+  import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import { MPC_PAD_MIDI } from "../../_components/MpcPadGrid.svelte";
   import PadRudimentStage from "../../_components/PadRudimentStage.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
@@ -36,7 +41,6 @@
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
   import StartShortcut from "../../_components/StartShortcut.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
-  import SessionFeedback from "../../_components/SessionFeedback.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
   import { initialDrillSearch, syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
@@ -45,6 +49,8 @@
   // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
   const runtime = runtimeProp ?? useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
+  // Baseline cutoff for the last-run comparison (see LastRunDelta).
+  const visitStartedAt = unixMs(Date.now());
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
@@ -132,9 +138,12 @@
       ),
   );
   const variantKey = $derived(`v1:mpc:${patternId}`);
+  const patternLabel = $derived(
+    MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === patternId)?.label ?? "Single strokes",
+  );
   const liveAnnouncement = $derived(
     phase === "summary"
-      ? `MPC results ready. ${Math.round((result?.result.score ?? 0) * 100)}% total · ${summary?.xp ?? 0} XP.`
+      ? `Rudiment complete. ${Math.round((result?.result.score ?? 0) * 100)}% total, ${summary?.xp ?? 0} XP.`
       : status,
   );
 
@@ -227,7 +236,7 @@
         }
       });
       ready = true;
-      status = "Ready for pad rudiments.";
+      status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "MPC practice could not be prepared.");
     }
@@ -349,123 +358,147 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="MPC Rudiments"
-    subtitle="Build even pad rudiments on hardware MIDI or the on-screen Bank A grid."
-  >
+  <PracticeScreenHeader title="MPC Rudiments" compact>
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI · MPC" : "On-screen pads"}
+        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
         live={sessionState?.status === "active"}
       />
     {/snippet}
   </PracticeScreenHeader>
 
-
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
+
+  {#snippet setupSummaryLine()}
+    {patternLabel} · Pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi} · {normalizedConfig.hitCount} hits · {bpm} BPM
+  {/snippet}
 
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>MPC result</Card.Description>
-        <Card.Title>
-          Rudiment complete · {Math.round((result?.result.score ?? 0) * 100)}% total · {summary?.xp ?? 0} XP
-        </Card.Title>
+        <Card.Description>{patternLabel} · Pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi}</Card.Description>
+        <Card.Title>Rudiment complete</Card.Title>
+      {/snippet}
+      {#snippet metric()}
+        <p class="flex items-baseline">
+          <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
+            {Math.round((result?.result.score ?? 0) * 100)}<span class="text-3xl text-muted-foreground">%</span>
+          </span>
+          <span class="sr-only"> total</span>
+        </p>
+      {/snippet}
+      {#snippet lastRunDelta()}
+        <LastRunDelta tags={["mpc"]} accuracy={result?.result.score ?? 0} before={visitStartedAt} />
       {/snippet}
       {#snippet children()}
         {#if answer}
-          <SessionFeedback
-            kind={summary?.correct === summary?.total ? "correct" : "wrong"}
-            message="Performance scored"
-            detail={`${Math.round((result?.result.score ?? 0) * 100)}% total · ${Math.round(answer.padAccuracy * 100)}% pad accuracy · ${Math.round(answer.meanTimingErrorMs)}ms mean timing error · ${Math.round(answer.velocityConsistency * 100)}% velocity consistency`}
-            xp={summary?.xp ?? 0}
-          />
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <HudTile size="sm" label="Pad accuracy" value={Math.round(answer.padAccuracy * 100)} unit="%" />
+            <HudTile size="sm" label="Timing error" value={Math.round(answer.meanTimingErrorMs)} unit="ms" />
+            <HudTile size="sm" label="Velocity" value={Math.round(answer.velocityConsistency * 100)} unit="%" />
+            <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+          </div>
         {/if}
+        <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · MPC</p>
       {/snippet}
       {#snippet actions()}
-        <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Repeat rudiment" />
+        <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Again" />
+      {/snippet}
+      {#snippet nextUp()}
+        <NextUpSuggestion {skills} {analytics} currentPath="/music/play/mpc" routine={runtime.dailyRoutine} />
       {/snippet}
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} summary={summaryPhase}>
+  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
-      <Card.Root>
-        <Card.Header class="gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <Card.Description>Pad rudiment</Card.Description>
-            <Card.Title bind:ref={setupHeading} tabindex="-1">
-              {MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === patternId)?.label ?? "Single strokes"}
-            </Card.Title>
+      <div class="grid gap-4 rounded-lg border bg-card p-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-2">
+            <Label for="mpc-left-pad">Left pad</Label>
+            <select
+              id="mpc-left-pad"
+              aria-label="Left pad"
+              bind:value={leftPadMidi}
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each padOptions as midi (midi)}
+                <option value={String(midi)}>Pad {midi}</option>
+              {/each}
+            </select>
           </div>
+          <div class="grid gap-2">
+            <Label for="mpc-right-pad">Right pad</Label>
+            <select
+              id="mpc-right-pad"
+              aria-label="Right pad"
+              bind:value={rightPadMidi}
+              class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {#each padOptions as midi (midi)}
+                <option value={String(midi)}>Pad {midi}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <SegmentedControl ariaLabel="Hit count" options={hitCountOptions} bind:value={hitCount} size="sm" />
+          <p class="text-sm tabular-nums text-muted-foreground">Tempo · {bpm} BPM (practice controls above)</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
           <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
             {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
           </Button>
-        </Card.Header>
+          <p class="text-xs text-muted-foreground">{midiStatus}</p>
+        </div>
+      </div>
+    {/snippet}
 
-        <Card.Content class="grid gap-6">
-          <div class="grid gap-4">
-            <SegmentedControl
-              ariaLabel="Rudiment pattern"
-              options={MPC_RUDIMENT_PATTERN_OPTIONS}
-              bind:value={patternId}
-            />
-
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="grid gap-2">
-                <Label for="mpc-left-pad">Left pad</Label>
-                <select
-                  id="mpc-left-pad"
-                  aria-label="Left pad"
-                  bind:value={leftPadMidi}
-                  class="h-9 rounded-md border bg-background px-3 text-sm"
-                >
-                  {#each padOptions as midi (midi)}
-                    <option value={String(midi)}>Pad {midi}</option>
-                  {/each}
-                </select>
-              </div>
-              <div class="grid gap-2">
-                <Label for="mpc-right-pad">Right pad</Label>
-                <select
-                  id="mpc-right-pad"
-                  aria-label="Right pad"
-                  bind:value={rightPadMidi}
-                  class="h-9 rounded-md border bg-background px-3 text-sm"
-                >
-                  {#each padOptions as midi (midi)}
-                    <option value={String(midi)}>Pad {midi}</option>
-                  {/each}
-                </select>
-              </div>
+    {#snippet readyStage()}
+      <PracticeStage instrument="mpc" class="grid min-w-0 gap-4 p-4 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Ready · Bank A pads</p>
+            <div
+              role="heading"
+              aria-level="2"
+              class="text-xl font-semibold tracking-tight"
+              tabindex="-1"
+              data-testid="mpc-ready-heading"
+              bind:this={setupHeading}
+            >
+              {patternLabel}
             </div>
-
-            <div class="flex flex-wrap gap-3">
-              <SegmentedControl
-                ariaLabel="Hit count"
-                options={hitCountOptions}
-                bind:value={hitCount}
-              />
-              <p class="text-sm font-semibold tabular-nums">Tempo · {bpm} BPM</p>
-            </div>
+            <p class="text-sm text-stage-muted">
+              Alternate pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi} for {normalizedConfig.hitCount}
+              hits; order, timing and velocity are graded.
+            </p>
           </div>
-        </Card.Content>
-
-        <Card.Footer class="flex-wrap gap-3">
-          <Button type="button" disabled={!ready || pending} onclick={start}>
-            {pending ? "Starting..." : "Start rudiment"}
-          </Button>
-          <StartShortcut onStart={() => void start()} />
-          <p class="text-sm text-muted-foreground">{status}</p>
-        </Card.Footer>
-      </Card.Root>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button type="button" size="lg" disabled={!ready || pending} onclick={start}>
+              {pending ? "Starting..." : "Start"}
+            </Button>
+            <StartShortcut onStart={() => void start()} enabled={ready && !pending} />
+          </div>
+        </div>
+        <!-- The pattern is what you drill, so it stays on the stage; the fieldset mirrors the shell's start lock. -->
+        <fieldset class="min-w-0 border-0 p-0" disabled={pending}>
+          <SegmentedControl ariaLabel="Rudiment pattern" options={MPC_RUDIMENT_PATTERN_OPTIONS} bind:value={patternId} />
+        </fieldset>
+        <p class="text-sm text-stage-muted">{status}</p>
+      </PracticeStage>
     {/snippet}
 
     {#snippet stage()}
-      <h2 class="sr-only" tabindex="-1" bind:this={activeHeading}>
-        {MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === patternId)?.label ?? "Single strokes"}
-      </h2>
+      <div class="flex flex-wrap items-start justify-between gap-3 px-1">
+        <div>
+          <p class="eyebrow">Bank A pads · {bpm} BPM</p>
+          <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
+            {patternLabel}
+          </h2>
+        </div>
+      </div>
       <PadRudimentStage
         router={runtime.router}
         targetSequence={stageTargetSequence}
@@ -473,26 +506,11 @@
         completedHits={completedHits}
         bpm={normalizedConfig.bpm}
       />
-    {/snippet}
-
-    {#snippet stageAction()}
-      <Button type="button" variant="outline" onclick={cancel}>Cancel rudiment</Button>
-    {/snippet}
-
-    {#snippet rail()}
-      <div class="grid grid-cols-2 gap-3">
-        <HudTile label="Next pad" value={nextPad ?? leftPadMidi} tone="accent" />
-        <HudTile label="Hits" value={completedHits} unit={`/${totalHits}`} />
-        <HudTile label="Quality" value={runningScore} unit="%" tone="good" />
-        <HudTile label="Tempo" value={bpm} unit="BPM" />
-      </div>
       {#if prompt}
-        <div class="grid gap-3 rounded-lg border bg-card p-4">
+        <div class="grid gap-2 px-1">
           <div class="flex items-center justify-between gap-3 text-sm">
             <span class="font-medium">{prompt.label}</span>
-            <span class="tabular-nums text-muted-foreground">
-              {completedHits}/{prompt.hitCount}
-            </span>
+            <span class="tabular-nums text-muted-foreground">{completedHits}/{prompt.hitCount}</span>
           </div>
           <Progress value={completedHits} max={prompt.hitCount} />
           <p class="text-sm text-muted-foreground">
@@ -500,7 +518,21 @@
           </p>
         </div>
       {/if}
-      <p class="text-xs text-muted-foreground" aria-live="polite">{midiStatus}</p>
+    {/snippet}
+
+    {#snippet stageAction()}
+      <Button type="button" variant="outline" onclick={cancel}>Stop</Button>
+    {/snippet}
+
+    {#snippet rail()}
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <HudTile size="sm" label="Next pad" value={nextPad ?? leftPadMidi} tone="accent" />
+        <HudTile size="sm" label="Hits" value={completedHits} unit={`/${totalHits}`} />
+        <HudTile size="sm" label="Quality" value={runningScore} unit="%" tone="good" />
+        <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
+        <HudTile size="sm" label="Input" value={runtime.activeSource === "midi" ? "MIDI" : "On-screen"} />
+      </div>
+      <p class="text-xs text-muted-foreground">{midiStatus}</p>
     {/snippet}
   </PracticeDrillShell>
 </PracticeScreen>

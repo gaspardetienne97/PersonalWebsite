@@ -61,8 +61,10 @@ describe("/music/play/mpc/+page.svelte", () => {
     const startMpcRudiment = vi.spyOn(TechniqueSession.prototype, "startMpcRudiment");
     render(Page, { runtime });
 
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
-    button("Start rudiment")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    // The setup controls sit behind Edit setup; open them so the lock is observable.
+    await openSetup();
+    button("Start")?.click();
     await vi.waitFor(() => expect(applyBpm).toBeTypeOf("function"));
     const setupLocked = select("Left pad")?.closest("fieldset")?.disabled;
     applyBpm?.(120);
@@ -80,11 +82,12 @@ describe("/music/play/mpc/+page.svelte", () => {
     render(Page, { runtime });
 
     expect(document.querySelector("h1")?.textContent).toContain("MPC Rudiments");
+    await openSetup();
     expect(select("Left pad")).not.toBeUndefined();
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
-    button("Start rudiment")?.click();
-    await vi.waitFor(() => expect(button("Cancel rudiment")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")?.disabled).toBe(false));
     expect(runtime.beginPerformance).toHaveBeenCalledOnce();
     expect(register).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -102,25 +105,26 @@ describe("/music/play/mpc/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Rudiment complete");
-      expect(button("Repeat rudiment")).not.toBeUndefined();
+      expect(button("Again")).not.toBeUndefined();
       expect(button("Change setup")).not.toBeUndefined();
       expect(document.activeElement?.textContent).toContain("Rudiment complete");
     });
     expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain(
-      "MPC results ready",
+      "Rudiment complete.",
     );
 
     button("Change setup")?.click();
     await vi.waitFor(() => expect(select("Left pad")).not.toBeUndefined());
-    expect(button("Cancel rudiment")).toBeUndefined();
+    expect(button("Stop")).toBeUndefined();
     expect(button("Change setup")).toBeUndefined();
     expect(document.activeElement?.textContent).toContain("Single strokes");
   });
 
   test("rejects identical left and right pads", async () => {
     render(Page);
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
+    await openSetup();
     const right = document.querySelector<HTMLSelectElement>('[aria-label="Right pad"]');
     if (!right) throw new Error("Right pad selector not found");
     right.value = "36";
@@ -128,21 +132,21 @@ describe("/music/play/mpc/+page.svelte", () => {
     right.dispatchEvent(new Event("change", { bubbles: true }));
     await tick();
 
-    button("Start rudiment")?.click();
+    button("Start")?.click();
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Choose two different MPC pads.");
-      expect(button("Cancel rudiment")).toBeUndefined();
+      expect(button("Stop")).toBeUndefined();
     });
   });
 
   test("cancels an active run and allows a restart", async () => {
     render(Page);
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
-    button("Start rudiment")?.click();
-    await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
-    button("Cancel rudiment")?.click();
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    button("Stop")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
   });
 
   test("restores setup from shareable query parameters", async () => {
@@ -151,11 +155,12 @@ describe("/music/play/mpc/+page.svelte", () => {
     render(Page);
 
     expect(button("Moving accent")).toHaveAttribute("aria-pressed", "true");
+    await openSetup();
     expect(select("Left pad")?.value).toBe("40");
     expect(select("Right pad")?.value).toBe("41");
     expect(button("16 hits")).toHaveAttribute("aria-pressed", "true");
     await vi.waitFor(() => expect(document.body.textContent).toContain("Tempo · 100 BPM"));
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
   });
 
   test("keeps setup changes in the shareable URL", async () => {
@@ -163,6 +168,7 @@ describe("/music/play/mpc/+page.svelte", () => {
     const runtime = new MusicRuntime();
     render(Page, { runtime });
 
+    await openSetup();
     select("Left pad")!.value = "44";
     select("Left pad")!.dispatchEvent(new Event("change", { bubbles: true }));
     select("Right pad")!.value = "45";
@@ -203,10 +209,10 @@ describe("/music/play/mpc/+page.svelte", () => {
 
   test("starts a paradiddle rudiment from core pattern data", async () => {
     render(Page);
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
     button("Paradiddle")?.click();
-    button("Start rudiment")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("MPC paradiddle");
@@ -219,10 +225,10 @@ describe("/music/play/mpc/+page.svelte", () => {
 
   test("starts a moving-accent rudiment with visible accent cues", async () => {
     render(Page);
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
     button("Moving accent")?.click();
-    button("Start rudiment")?.click();
+    button("Start")?.click();
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("MPC moving accent");
@@ -240,10 +246,10 @@ describe("/music/play/mpc/+page.svelte", () => {
     render(Page, { runtime });
     await vi.waitFor(() => expect(window.location.search).toContain("bpm=80"));
     runtime.setPracticeVariantBpm(100, "v1:mpc:single-strokes");
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
 
-    button("Start rudiment")?.click();
-    await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     for (const midi of [36, 38, 36, 38, 36, 38, 36, 38]) {
       pad(midi)?.click();
     }
@@ -251,7 +257,7 @@ describe("/music/play/mpc/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Slow down")).not.toBeUndefined());
     button("Slow down")?.click();
 
-    await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(select("Left pad")).toBeUndefined();
     expect(document.body.textContent).toContain("80BPM");
     expect(window.location.search).toContain("bpm=80");
@@ -271,7 +277,7 @@ describe("/music/play/mpc/+page.svelte", () => {
       }),
     );
 
-    button("Repeat rudiment")?.click();
+    button("Again")?.click();
 
     await vi.waitFor(() => expect(beginPerformance).toHaveBeenCalledOnce());
     expect(document.body.textContent).not.toContain("Rudiment complete");
@@ -284,8 +290,8 @@ describe("/music/play/mpc/+page.svelte", () => {
       expect(document.body.textContent).toContain("MPC transport unavailable."),
     );
     expect(document.body.textContent).not.toContain("Rudiment complete");
-    expect(button("Start rudiment")?.disabled).toBe(false);
-    expect(button("Cancel rudiment")).toBeUndefined();
+    expect(button("Start")?.disabled).toBe(false);
+    expect(button("Stop")).toBeUndefined();
     expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain(
       "MPC transport unavailable.",
     );
@@ -298,14 +304,14 @@ describe("/music/play/mpc/+page.svelte", () => {
 
     const beginPerformance = vi.mocked(runtime.beginPerformance);
     beginPerformance.mockClear();
-    button("Repeat rudiment")?.click();
+    button("Again")?.click();
     button("Change setup")?.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(beginPerformance).not.toHaveBeenCalled();
     expect(document.body.textContent).not.toContain("Rudiment complete");
-    expect(button("Start rudiment")?.disabled).toBe(false);
-    expect(button("Cancel rudiment")).toBeUndefined();
+    expect(button("Start")?.disabled).toBe(false);
+    expect(button("Stop")).toBeUndefined();
     expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain("Setup ready.");
   });
 
@@ -334,7 +340,7 @@ describe("/music/play/mpc/+page.svelte", () => {
       }),
     );
 
-    button("Repeat rudiment")?.click();
+    button("Again")?.click();
     await vi.waitFor(() => expect(beginPerformance).toHaveBeenCalledOnce());
     invokeChangeSetup.call(changeSetup, new MouseEvent("click"));
     await tick();
@@ -345,25 +351,32 @@ describe("/music/play/mpc/+page.svelte", () => {
     expect(beginPerformance).toHaveBeenCalledOnce();
 
     resolveActivation({ status: "started", downbeat: monotonicMs(2_000) });
-    await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     expect(endPerformance).toHaveBeenCalledOnce();
 
     endPerformance.mockClear();
-    button("Start rudiment")?.click();
-    await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(beginPerformance).toHaveBeenCalledTimes(2);
     expect(endPerformance).not.toHaveBeenCalled();
   });
 });
 
 async function completeRudiment(): Promise<void> {
-  await vi.waitFor(() => expect(button("Start rudiment")?.disabled).toBe(false));
-  button("Start rudiment")?.click();
-  await vi.waitFor(() => expect(button("Cancel rudiment")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
   for (const midi of [36, 38, 36, 38, 36, 38, 36, 38]) {
     pad(midi)?.click();
   }
-  await vi.waitFor(() => expect(button("Repeat rudiment")).not.toBeUndefined());
+  await vi.waitFor(() => expect(button("Again")).not.toBeUndefined());
+}
+
+// Pads, hit count and MIDI sit behind "Edit setup" on the ready stage; the
+// pattern picker stays on the stage.
+async function openSetup(): Promise<void> {
+  if (!button("Hide setup")) button("Edit setup")?.click();
+  await vi.waitFor(() => expect(select("Left pad")).not.toBeUndefined());
 }
 
 function button(label: string): HTMLButtonElement | undefined {

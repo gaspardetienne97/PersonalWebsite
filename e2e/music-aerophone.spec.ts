@@ -10,7 +10,8 @@ test.describe("music Aerophone technique workflows", () => {
     await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
 
     await page.getByRole("button", { name: "Start", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Stop" })).toBeEnabled();
+    // The stage appears after the transport count-in; allow for it under load.
+    await expect(page.getByRole("button", { name: "Stop" })).toBeEnabled({ timeout: 15_000 });
     await expect(page.getByText("Soft", { exact: true })).toHaveCount(2);
 
     await page.getByRole("button", { name: "Stop" }).click();

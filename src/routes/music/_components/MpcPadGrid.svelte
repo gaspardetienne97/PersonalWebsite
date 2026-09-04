@@ -82,7 +82,7 @@
   });
 </script>
 
-<div class="inline-grid grid-cols-4 gap-2" role="group" aria-label="MPC pad grid">
+<div class="grid w-full grid-cols-4 gap-2" role="group" aria-label="MPC pad grid">
   {#each MPC_PAD_MIDI as row, rowIndex (rowIndex)}
     {#each row as midi (midi)}
       {@const key = keymap[midi]}
@@ -91,9 +91,9 @@
           type="button"
           aria-label={`Pad ${midi}`}
           class={cn(
-            "grid size-16 place-items-center rounded-xl border text-xs font-semibold transition-transform active:scale-95",
+            "grid aspect-square w-full place-items-center rounded-xl border text-xs font-semibold transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             lastHit === midi
-              ? "border-primary bg-primary text-primary-foreground"
+              ? "border-practice-accent bg-practice-accent text-practice-accent-foreground"
               : "border-border bg-muted text-muted-foreground hover:bg-muted/70",
           )}
           onclick={() => trigger(midi)}
@@ -104,7 +104,7 @@
           type="button"
           aria-label={`Assign key for pad ${midi}`}
           class={cn(
-            "absolute right-1 top-1 grid size-5 place-items-center rounded text-[10px] font-bold uppercase",
+            "absolute right-1 top-1 grid size-5 place-items-center rounded text-[0.625rem] font-bold uppercase",
             assigning === midi
               ? "bg-primary text-primary-foreground"
               : "bg-background/70 text-foreground",

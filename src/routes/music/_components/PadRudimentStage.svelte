@@ -42,14 +42,11 @@
   }
 </script>
 
-<PracticeStage instrument="mpc" class="min-w-0 space-y-5 overflow-x-auto p-4">
+<PracticeStage instrument="mpc" class="min-w-0 space-y-5 p-4 sm:p-6">
   <div class="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <p class="eyebrow">Bank A pads</p>
-      <h2 class="text-xl font-semibold text-stage-foreground">MPC rudiment stage</h2>
-    </div>
+    <p class="eyebrow">Bank A pads</p>
     <div class="rounded-lg border border-practice-accent/30 bg-practice-accent/15 px-3 py-2 text-right">
-      <p class="text-xs font-semibold uppercase text-practice-accent">Next pad cue</p>
+      <p class="eyebrow text-practice-accent">Next pad cue</p>
       <p class="text-lg font-bold tabular-nums text-stage-foreground">
         Pad {nextPad ?? targetSequence[0] ?? "—"}
       </p>
@@ -57,7 +54,7 @@
   </div>
 
   <div class="grid gap-5 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center">
-    <div class="justify-self-center">
+    <div class="w-full max-w-xs justify-self-center lg:w-64">
       <MpcPadGrid {router} {onAccepted} />
     </div>
 
@@ -72,7 +69,7 @@
       </div>
       <div
         class="grid gap-2"
-        style={`grid-template-columns: repeat(${Math.max(1, sequenceEvents.length)}, minmax(2.25rem, 1fr));`}
+        style={`grid-template-columns: repeat(${Math.max(1, sequenceEvents.length)}, minmax(0, 1fr));`}
         aria-label="Rudiment sequence lane"
       >
         {#each sequenceEvents as event, index (`${event.padMidi}-${index}`)}
@@ -81,17 +78,17 @@
             data-rudiment-step={index}
             data-state={state}
             class={cn(
-              "grid min-h-16 min-w-9 place-items-center rounded-lg border p-2 text-center text-xs font-semibold tabular-nums",
+              "grid min-h-14 place-items-center rounded-lg border p-1 text-center text-xs font-semibold tabular-nums sm:p-2",
               state === "completed" && "border-success/40 bg-success/15 text-success",
               state === "current" &&
                 "border-practice-accent bg-practice-accent/20 text-stage-foreground ring-2 ring-practice-accent/30",
               state === "upcoming" && "border-stage-line bg-stage-2 text-stage-muted",
             )}
           >
-            <span class="text-[10px] uppercase opacity-70">{index + 1}</span>
+            <span class="text-[0.625rem] uppercase opacity-70">{index + 1}</span>
             <span>Pad {event.padMidi}</span>
             {#if event.velocityBand}
-              <span class="text-[10px] uppercase opacity-70">
+              <span class="text-[0.625rem] uppercase opacity-70">
                 {event.accent === "accent" ? "Accent" : "Tap"}
               </span>
             {/if}
