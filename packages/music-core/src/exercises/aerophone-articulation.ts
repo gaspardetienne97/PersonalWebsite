@@ -176,7 +176,7 @@ function grade(
         severity: articulationScore >= 0.7 ? "good" : "warn",
         message:
           fractions.length === 0
-            ? "No sustained notes — use a wind controller for articulation."
+            ? "No sustained notes. Use a wind controller for articulation."
             : `${prompt.style} ${Math.round(articulationScore * 100)}% · notes sounded ${Math.round(meanSoundingFraction * 100)}% of the beat.`,
       },
       {

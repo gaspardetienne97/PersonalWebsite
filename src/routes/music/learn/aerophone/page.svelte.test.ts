@@ -272,7 +272,7 @@ describe("/music/learn/aerophone/+page.svelte", () => {
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Articulation complete"));
     expect(document.body.textContent).toContain(
-      "No sustained notes — use a wind controller for articulation.",
+      "No sustained notes. Use a wind controller for articulation.",
     );
     expect(dimension("Articulation")).toBe("0%");
     expect(dimension("Pitch")).toBe("100%");
