@@ -67,6 +67,7 @@
     "./exercises/cadence-recognition": "./src/exercises/cadence-recognition.ts",
     "./exercises/chord-change": "./src/exercises/chord-change.ts",
     "./exercises/chord-perfect": "./src/exercises/chord-perfect.ts",
+    "./exercises/chord-positions": "./src/exercises/chord-positions.ts",
     "./exercises/chord-quality-recognition": "./src/exercises/chord-quality-recognition.ts",
     "./exercises/ear-training": "./src/exercises/ear-training.ts",
     "./exercises/fretboard-note-finder": "./src/exercises/fretboard-note-finder.ts",
