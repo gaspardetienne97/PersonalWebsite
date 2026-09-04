@@ -506,7 +506,7 @@
     </div>
 
     <!-- Backing controls -->
-    <aside class="grid content-start gap-4">
+    <aside class="grid min-w-0 content-start gap-4">
       <Card.Root>
         <Card.Header>
           <Card.Description>Backing track</Card.Description>

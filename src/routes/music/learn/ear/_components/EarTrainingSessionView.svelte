@@ -153,7 +153,7 @@
   {/if}
 
   <!-- combo / replay orb / accuracy -->
-  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+  <div class="grid grid-cols-2 items-center gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
     <div class="flex flex-col items-center gap-1 rounded-2xl border bg-card p-4">
       <span class="flex items-center gap-1 eyebrow">
         <Zap class="size-3" aria-hidden="true" /> Combo
@@ -166,7 +166,7 @@
       type="button"
       onclick={onReplay}
       aria-label="Replay sound"
-      class="group relative grid size-40 place-items-center rounded-full border-2 border-primary/30 bg-primary/5 transition-colors hover:bg-primary/10"
+      class="group relative order-first col-span-2 grid size-40 place-items-center justify-self-center rounded-full sm:order-none sm:col-span-1 border-2 border-primary/30 bg-primary/5 transition-colors hover:bg-primary/10"
     >
       <span class="absolute inset-0 animate-ping rounded-full border border-primary/20" aria-hidden="true"></span>
       <span class="flex flex-col items-center gap-2 text-primary">

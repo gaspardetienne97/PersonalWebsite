@@ -35,6 +35,7 @@
   <svg
     width={size}
     {height}
+    style="max-width: 100%; height: auto;"
     viewBox="{AEROPHONE_VIEWBOX.x} {AEROPHONE_VIEWBOX.y} {AEROPHONE_VIEWBOX.width} {AEROPHONE_VIEWBOX.height}"
     role="img"
     aria-label={fingering.inRange

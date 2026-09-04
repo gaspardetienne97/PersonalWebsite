@@ -26,7 +26,7 @@
 <div
   role="group"
   aria-label={ariaLabel}
-  class="inline-flex items-center gap-0.5 rounded-lg border bg-muted/60 p-1 {cls}"
+  class="inline-flex max-w-full flex-wrap items-center gap-0.5 rounded-lg border bg-muted/60 p-1 {cls}"
 >
   {#each options as option (option.value)}
     <button

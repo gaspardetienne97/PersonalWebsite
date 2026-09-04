@@ -16,4 +16,15 @@ test.describe("music Aerophone technique workflows", () => {
     await page.getByRole("button", { name: "Cancel dynamic swell" }).click();
     await expect(page.getByRole("button", { name: "Start dynamic swell" })).toBeEnabled();
   });
+
+  test("fits the fingering chart at a mobile viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/music/learn/aerophone");
+
+    await expect(page.getByRole("heading", { name: "Fingering chart" })).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
 });

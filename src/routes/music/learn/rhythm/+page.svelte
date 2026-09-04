@@ -583,7 +583,7 @@
           <p class="text-sm text-stage-muted">{liveProgress}%</p>
         </div>
         <!-- beat visualizer -->
-        <div class="flex justify-center gap-3" aria-hidden="true">
+        <div class="flex flex-wrap justify-center gap-3" aria-hidden="true">
           {#each Array.from({ length: beats }, (_, i) => i) as beatIndex (beatIndex)}
             <div
               class="grid size-11 place-items-center rounded-full border text-sm font-bold tabular-nums transition-colors {beatIndex ===
