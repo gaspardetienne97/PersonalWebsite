@@ -1,70 +1,88 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
+  import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
+  import { PracticeStore } from "@repo/music-core/engines/store";
   import BookOpen from "lucide-svelte/icons/book-open";
+  import Disc3 from "lucide-svelte/icons/disc-3";
   import Ear from "lucide-svelte/icons/ear";
   import Gauge from "lucide-svelte/icons/gauge";
-  import NotebookPen from "lucide-svelte/icons/notebook-pen";
   import Plug from "lucide-svelte/icons/plug";
-  import WifiOff from "lucide-svelte/icons/wifi-off";
+  import Settings2 from "lucide-svelte/icons/settings-2";
+  import Waves from "lucide-svelte/icons/waves";
+  import { onMount } from "svelte";
 
   import * as Card from "@repo/ui/card";
 
+  import type { Hue } from "../_components/musicCatalog";
+  import MusicToolCard from "../_components/MusicToolCard.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
+  import SectionHeading from "../_components/SectionHeading.svelte";
+  import SetupChecklist, { type SetupItem } from "../_components/SetupChecklist.svelte";
+  import { useMusicRuntime } from "../_runtime.svelte";
 
-  const quickStart = [
+  const runtime = useMusicRuntime();
+  const store = browser ? new PracticeStore() : undefined;
+  const sessions = new PracticeSessionStore(store);
+
+  let audioEnabled = $state(runtime.sound.enabled);
+  let midi = $state(runtime.midi.state);
+  let sessionCount = $state<number | undefined>(undefined);
+
+  onMount(() => {
+    const unsubscribe = runtime.midi.subscribeState((state) => (midi = state));
+    void sessions.load().then(() => (sessionCount = sessions.all().length));
+    return unsubscribe;
+  });
+
+  async function enableAudio(): Promise<void> {
+    audioEnabled = await runtime.ensurePlaybackVoice();
+    if (audioEnabled) runtime.sound.playNote(60, 0.3, undefined, 0.6);
+  }
+
+  const devices = $derived(midi.inputs?.length ?? 0);
+  const setupItems = $derived<SetupItem[]>([
     {
+      id: "audio",
       title: "Enable audio",
-      body: "Most screens have an “Enable audio” button — browsers only allow sound after a click. Tap it once per visit so prompts and the metronome can play.",
+      detail: audioEnabled
+        ? "Enabled · prompts and the metronome can play"
+        : "Browsers only allow sound after a tap. Once per visit.",
+      state: audioEnabled ? "ok" : "warn",
+      action: { label: audioEnabled ? "Test sound" : "Enable audio", onclick: () => void enableAudio() },
     },
     {
-      title: "Connect an instrument (or use on-screen)",
-      body: "Open Connect, press “Add device”, and allow Web MIDI to detect controllers. No hardware? Every screen falls back to an on-screen surface — keyboard, guitar/ukulele fretboard, or MPC pads.",
-      href: "/music/connect",
-      cta: "Open Connect",
+      id: "instrument",
+      title: "Connect an instrument, or play on-screen",
+      detail:
+        devices > 0
+          ? `${devices} MIDI device${devices === 1 ? "" : "s"} connected`
+          : "No hardware? Every drill has an on-screen keyboard, fretboard or pad grid.",
+      state: devices > 0 ? "ok" : "off",
+      action: { label: "Open Connect", href: "/music/connect" },
     },
     {
-      title: "Pick a drill",
-      body: "Open Practice and start an Ear Training, Note Reading, Rhythm, or Scales session. Choose how you answer (multiple choice or by playing the note).",
-      href: "/music",
-      cta: "Open Practice",
+      id: "first-drill",
+      title: "Run your first drill",
+      detail:
+        sessionCount === undefined
+          ? "Reading your journal…"
+          : sessionCount > 0
+            ? `${sessionCount} session${sessionCount === 1 ? "" : "s"} in your journal`
+            : "Finishing one session awards XP, starts your streak and writes a journal entry.",
+      state: sessionCount ? "ok" : "off",
+      action: { label: "Open Practice", href: "/music" },
     },
-    {
-      title: "Play through it",
-      body: "Answer the prompts — getting some wrong is how the app learns what to drill next. Use each screen’s Play or Pause control for previews; the floating controls set the instrument, metronome, tempo, and count-in.",
-    },
-    {
-      title: "Finish & read your journal",
-      body: "Completing a session awards XP, updates your streak, and writes an entry to the Journal automatically. Open Track to add notes or edit entries.",
-      href: "/music/track",
-      cta: "Open Journal",
-    },
-  ];
+  ]);
 
-  const areas = [
-    {
-      icon: Ear,
-      label: "Practice",
-      body: "Skill-building drills: Chord Library, Ear Training, Note Reading, Rhythm, and Scales & Drills. Each run feeds your Skill Tree.",
-      href: "/music",
-    },
-    {
-      icon: BookOpen,
-      label: "Play",
-      body: "Open-ended playing: the Practice Lab, Import & Play a MIDI file, Jam / Improv over a progression, the Studio step sequencer, and Recording.",
-      href: "/music/play",
-    },
-    {
-      icon: NotebookPen,
-      label: "Track",
-      body: "Your Practice Journal. Sessions land here automatically; add free-text notes and tags, or edit and delete entries.",
-      href: "/music/track",
-    },
-    {
-      icon: Gauge,
-      label: "Progress",
-      body: "The Skill Tree, capability coverage rings, streak calendar, and the confusion map showing which sounds you mix up.",
-      href: "/music/progress",
-    },
+  const hubs: Array<{ title: string; href: string; hue: Hue; icon: typeof Ear; description: string }> = [
+    { title: "Practice", href: "/music", hue: "ear", icon: Ear, description: "Drills and learning paths. Each run feeds your skill map." },
+    { title: "Library", href: "/music/library", hue: "reading", icon: BookOpen, description: "Your songs, the chord and scale reference, and import." },
+    { title: "Create", href: "/music/create", hue: "mpc", icon: Disc3, description: "Beat grid, piano roll and the recorder." },
+    { title: "Progress", href: "/music/progress", hue: "technique", icon: Gauge, description: "Today's XP, streak, mastery and what to practise next." },
+    { title: "Connect", href: "/music/connect", hue: "piano", icon: Plug, description: "Devices, routing per instrument and the on-screen surfaces." },
+    { title: "Tuner", href: "/music/tuner", hue: "voice", icon: Waves, description: "Tune, check intonation over time, or hold a drone." },
+    { title: "Settings", href: "/music/settings", hue: "harmony", icon: Settings2, description: "Sound, input, latency, appearance and your data." },
   ];
 </script>
 
@@ -75,154 +93,55 @@
 <PracticeScreen>
   <PracticeScreenHeader
     title="How to use Practice OS"
-    subtitle="A two-minute tour: plug in (or play on-screen), run a drill, and watch your journal and skill tree fill in."
+    subtitle="Plug in or play on-screen, run a drill, and watch your journal and skill map fill in."
   />
 
-  <!-- Quick start -->
-  <section aria-label="Quick start" class="grid gap-3">
-    <h2 class="eyebrow">
-      Quick start
-    </h2>
-    <ol class="grid gap-3">
-      {#each quickStart as step, i (step.title)}
-        <li>
-          <Card.Root>
-            <Card.Content class="flex items-start gap-4 py-4">
-              <span
-                class="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-sm font-bold text-primary"
-                aria-hidden="true"
-              >
-                {i + 1}
-              </span>
-              <div class="min-w-0 flex-1">
-                <p class="font-semibold">{step.title}</p>
-                <p class="mt-0.5 text-sm text-muted-foreground">{step.body}</p>
-                {#if step.href}
-                  <a
-                    href={step.href}
-                    class="mt-2 inline-flex text-sm font-semibold text-primary hover:underline"
-                  >
-                    {step.cta} →
-                  </a>
-                {/if}
-              </div>
-            </Card.Content>
-          </Card.Root>
-        </li>
-      {/each}
-    </ol>
-  </section>
+  <div class="grid grid-cols-[minmax(0,1fr)] gap-8">
+    <section class="grid gap-3" aria-labelledby="guide-setup">
+      <SectionHeading id="guide-setup" title="Get set up" eyebrow="Three steps" description="This list reads what is already done on this device." />
+      <SetupChecklist items={setupItems} label="Get set up" />
+    </section>
 
-  <!-- The practice loop -->
-  <section aria-label="The practice loop">
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>The practice loop</Card.Title>
-        <Card.Description>How a session turns into progress.</Card.Description>
-      </Card.Header>
-      <Card.Content class="text-sm text-muted-foreground">
-        <p>
-          Every drill scores the notes you play through a shared input router, so MIDI, audio, and
-          on-screen input all count the same. Finishing a session awards <strong
-            class="text-foreground">XP</strong
-          >, nudges the <strong class="text-foreground">mastery</strong> of the skills it exercised,
-          and records what you confused for what. The
-          <a href="/music/progress" class="font-semibold text-primary hover:underline">Skill Tree</a>
-          then surfaces what to practice next, and the
-          <a href="/music/track" class="font-semibold text-primary hover:underline">Journal</a>
-          keeps the running history — all stored locally on your device.
-        </p>
-      </Card.Content>
-    </Card.Root>
-  </section>
+    <section aria-labelledby="guide-loop">
+      <Card.Root class="min-w-0">
+        <Card.Header>
+          <SectionHeading id="guide-loop" title="The practice loop" eyebrow="How it works" description="How a session turns into progress." />
+        </Card.Header>
+        <Card.Content class="text-sm text-muted-foreground">
+          <p>
+            Every drill scores the notes you play through one input router, so MIDI, microphone and
+            on-screen input count the same. Finishing a session awards
+            <strong class="text-foreground">XP</strong>, nudges the
+            <strong class="text-foreground">mastery</strong> of the skills it exercised and records
+            what you confused for what. <a href="/music/progress" class="font-semibold text-primary hover:underline">Progress</a>
+            then says what to practise next, and the
+            <a href="/music/track" class="font-semibold text-primary hover:underline">Journal</a>
+            keeps the history. Everything stays on your device.
+          </p>
+        </Card.Content>
+      </Card.Root>
+    </section>
 
-  <!-- Areas of the app -->
-  <section aria-label="Areas of the app" class="grid gap-3">
-    <h2 class="eyebrow">
-      Around the app
-    </h2>
-    <div class="grid gap-4 sm:grid-cols-2">
-      {#each areas as area (area.label)}
-        {@const Icon = area.icon}
-        <Card.Root>
-          <Card.Header class="flex-row items-center gap-3 space-y-0">
-            <span
-              class="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground"
-            >
-              <Icon class="size-5" aria-hidden="true" />
-            </span>
-            <Card.Title>{area.label}</Card.Title>
-          </Card.Header>
-          <Card.Content class="grid gap-2 text-sm text-muted-foreground">
-            <p>{area.body}</p>
-            <a href={area.href} class="font-semibold text-primary hover:underline">
-              Open {area.label} →
-            </a>
-          </Card.Content>
-        </Card.Root>
-      {/each}
-    </div>
-  </section>
+    <section class="grid gap-3" aria-labelledby="guide-hubs">
+      <SectionHeading id="guide-hubs" title="Around the app" eyebrow="Seven hubs" />
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="guide-hubs">
+        {#each hubs as hub (hub.href)}
+          <MusicToolCard
+            href={hub.href}
+            title={hub.title}
+            description={hub.description}
+            eyebrow="Hub"
+            action={`Open ${hub.title}`}
+            icon={hub.icon}
+            hue={hub.hue}
+          />
+        {/each}
+      </div>
+    </section>
 
-  <!-- Floating practice controls + Connect -->
-  <section aria-label="Practice controls and devices" class="grid gap-4 sm:grid-cols-2">
-    <Card.Root>
-      <Card.Header class="flex-row items-center gap-3 space-y-0">
-        <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-          <Gauge class="size-5" aria-hidden="true" />
-        </span>
-        <Card.Title>Floating practice controls</Card.Title>
-      </Card.Header>
-      <Card.Content class="text-sm text-muted-foreground">
-        <p>
-          The controls near the top stay available while you practice. Pick the instrument, set the
-          <strong class="text-foreground">tempo</strong> and <strong class="text-foreground"
-            >count-in</strong
-          >, or toggle the metronome. Previews keep their own <strong class="text-foreground"
-            >Play</strong
-          > and <strong class="text-foreground">Pause</strong> buttons, while playback sound and
-          volume live in <a href="/music/settings" class="font-semibold text-primary hover:underline"
-            >Settings</a
-          >.
-        </p>
-      </Card.Content>
-    </Card.Root>
-
-    <Card.Root>
-      <Card.Header class="flex-row items-center gap-3 space-y-0">
-        <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-          <Plug class="size-5" aria-hidden="true" />
-        </span>
-        <Card.Title>Devices & input surfaces</Card.Title>
-      </Card.Header>
-      <Card.Content class="text-sm text-muted-foreground">
-        <p>
-          In <a href="/music/connect" class="font-semibold text-primary hover:underline">Connect</a>
-          you name your controllers, pick a preferred source per instrument (MIDI / audio /
-          on-screen), and choose the on-screen surface — keyboard, fretboard, or MPC pads — that
-          follows you into each drill.
-        </p>
-      </Card.Content>
-    </Card.Root>
-  </section>
-
-  <!-- Offline -->
-  <section aria-label="Offline use">
-    <Card.Root>
-      <Card.Header class="flex-row items-center gap-3 space-y-0">
-        <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-          <WifiOff class="size-5" aria-hidden="true" />
-        </span>
-        <Card.Title>Works offline</Card.Title>
-      </Card.Header>
-      <Card.Content class="text-sm text-muted-foreground">
-        <p>
-          Practice OS is a Progressive Web App. Install it from your browser and it runs offline —
-          drills, audio, and the metronome all work without a connection. Your profile, journal, and
-          progress live in your browser’s local storage, so nothing is uploaded and your history is
-          waiting next time you open it.
-        </p>
-      </Card.Content>
-    </Card.Root>
-  </section>
+    <p class="text-xs text-muted-foreground">
+      Practice OS is a Progressive Web App: install it from your browser and drills, audio and the
+      metronome work offline. Your journal and progress live in this browser and are never uploaded.
+    </p>
+  </div>
 </PracticeScreen>
