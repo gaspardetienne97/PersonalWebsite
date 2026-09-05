@@ -21,11 +21,12 @@
     type IntonationStats,
   } from "@repo/music-core/engines/intonation-session";
   import { DRONE_TIMBRE_NAMES } from "@repo/music-core/engines/sound";
+  import { midiToNote } from "@repo/music-core/engines/theory";
+  import { curatedTunings } from "@repo/music-core/engines/tunings";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
-  import CentsGauge from "../_components/CentsGauge.svelte";
-  import CentsMeter from "../_components/CentsMeter.svelte";
+  import ArcGauge from "../_components/ArcGauge.svelte";
   import HudTile from "../_components/HudTile.svelte";
   import PitchTrace from "../_components/PitchTrace.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
@@ -33,6 +34,8 @@
   import PracticeStage from "../_components/PracticeStage.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
+  import StringStrip from "../_components/StringStrip.svelte";
+  import { DEGREE_CLASS } from "../_components/degree-classes";
   import { readRouteTab, writeRouteTab } from "../_components/route-state";
   import { useMusicRuntime } from "../_runtime.svelte";
 
@@ -53,11 +56,17 @@
   // Drone tonics shown in the picker (pitch class -> name), octave 4 for the bed.
   const TONICS = [
     { pc: 0, name: "C" },
+    { pc: 1, name: "C#" },
     { pc: 2, name: "D" },
+    { pc: 3, name: "D#" },
     { pc: 4, name: "E" },
     { pc: 5, name: "F" },
+    { pc: 6, name: "F#" },
     { pc: 7, name: "G" },
+    { pc: 8, name: "G#" },
     { pc: 9, name: "A" },
+    { pc: 10, name: "A#" },
+    { pc: 11, name: "B" },
   ] as const;
 
   const source = new AudioPitchSource();
@@ -87,6 +96,47 @@
   let zone = $state<IntonationZone>("in-tune");
   let frequency = $state(0);
 
+  // Fretted instruments get a string strip; a targeted string makes the gauge read against it.
+  const fretted = $derived(
+    runtime.activeInstrument === "guitar" || runtime.activeInstrument === "ukulele",
+  );
+  const tunings = $derived(fretted ? curatedTunings(runtime.activeInstrument as "guitar" | "ukulele") : []);
+  let tuningId = $state<string | undefined>();
+  const tuning = $derived(tunings.find((profile) => profile.id === tuningId) ?? tunings[0]);
+  let targetMidi = $state<number | undefined>();
+  const nearestStringMidi = $derived.by(() => {
+    if (!tuning || !tuner) return undefined;
+    return tuning.openStrings.reduce((best, midi) =>
+      Math.abs(midi - tuner!.midi) < Math.abs(best - tuner!.midi) ? midi : best,
+    );
+  });
+  // The reading shown: against the targeted string when there is one, else the nearest note.
+  const shown = $derived.by(() => {
+    if (!tuner) return null;
+    if (targetMidi === undefined) return tuner;
+    const target = midiToFrequency(targetMidi, a4);
+    const relative = centsBetween(tuner.frequency, target);
+    const name = midiToNote(targetMidi);
+    return {
+      ...tuner,
+      midi: targetMidi,
+      note: name.replace(/\d+$/, ""),
+      octave: Number(name.match(/\d+$/)?.[0] ?? tuner.octave),
+      cents: relative,
+      zone: intonationZone(relative, TUNER_TOLERANCE_CENTS),
+    };
+  });
+  const direction = $derived(
+    !shown ? "" : shown.zone === "in-tune" ? "In tune" : shown.zone === "flat" ? "Tune up" : "Tune down",
+  );
+  const neighbors = $derived(
+    shown
+      ? {
+          flat: midiToNote(shown.midi - 1).replace(/\d+$/, ""),
+          sharp: midiToNote(shown.midi + 1).replace(/\d+$/, ""),
+        }
+      : { flat: undefined, sharp: undefined },
+  );
   const running = $derived(state.status === "running");
   const tunerActive = $derived(running && tuner !== null);
   const intonationActive = $derived(running && note !== null);
@@ -96,7 +146,7 @@
     runtime.activeInstrument.charAt(0).toUpperCase() + runtime.activeInstrument.slice(1),
   );
   const tunerCentsLabel = $derived(
-    tuner ? `${tuner.cents > 0 ? "+" : ""}${Math.round(tuner.cents)}¢` : "-",
+    shown ? `${shown.cents > 0 ? "+" : ""}${Math.round(shown.cents)} cents` : "",
   );
   const intonationCentsLabel = $derived(
     intonationActive ? `${cents > 0 ? "+" : ""}${Math.round(cents)} cents` : "-",
@@ -234,33 +284,9 @@
 </svelte:head>
 
 <PracticeScreen>
-  <PracticeScreenHeader
-    title="Tuner"
-    subtitle="Tune a note, hold pitch against a tonic, or run a drone from one shared audio tool."
-  >
+  <PracticeScreenHeader title="Tuner" compact>
     {#snippet controls()}
-      <SegmentedControl
-        options={TOOL_TABS}
-        value={tool}
-        onChange={changeTool}
-        ariaLabel="Tuner tool"
-      />
-      {#if tool !== "drone"}
-        <SourceReadout label="Listening to" device={instrumentLabel} live={running}>
-          {#snippet icon()}<Waves size={18} />{/snippet}
-        </SourceReadout>
-        <Button variant={running ? "secondary" : "default"} onclick={toggleMic} disabled={!supported}>
-          {#if state.status === "requesting"}
-            Starting...
-          {:else if running}
-            Stop mic
-          {:else if tool === "tune"}
-            Start tuner
-          {:else}
-            Start mic
-          {/if}
-        </Button>
-      {/if}
+      <SegmentedControl options={TOOL_TABS} value={tool} onChange={changeTool} ariaLabel="Tuner tool" />
     {/snippet}
   </PracticeScreenHeader>
 
@@ -272,124 +298,171 @@
       </Card.Content>
     </Card.Root>
   {:else if tool === "tune"}
-    <PracticeStage class="flex flex-col items-center gap-6 px-6 py-10">
-        <div class="flex flex-col items-center gap-1">
-          <span
-            class="text-7xl font-bold tabular-nums tracking-tight transition-colors {tunerActive
-              ? tuner?.zone === 'in-tune'
-                ? 'text-success'
-                : 'text-foreground'
-              : 'text-muted-foreground/40'}"
-          >
-            {tuner ? tuner.note : "-"}
-          </span>
-          <span class="text-sm text-muted-foreground">
-            {#if tuner && tunerActive}
-              {tuner.name} · {tuner.frequency.toFixed(1)} Hz
-            {:else if running}
-              Listening...
-            {:else}
-              Press start and play a note
-            {/if}
-          </span>
-        </div>
+    <PracticeStage instrument={runtime.activeInstrument} class="grid gap-6 p-5 sm:p-7">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <SourceReadout label="Listening to" device={instrumentLabel} live={running}>
+          {#snippet icon()}<Waves size={18} />{/snippet}
+        </SourceReadout>
+        <Button variant={running ? "secondary" : "default"} onclick={toggleMic}>
+          {#if state.status === "requesting"}
+            Starting...
+          {:else if running}
+            Stop microphone
+          {:else}
+            Start tuner
+          {/if}
+        </Button>
+      </div>
 
-        <div class="w-full max-w-md">
-          <CentsMeter
-            cents={tuner?.cents ?? 0}
-            zone={tuner?.zone ?? "in-tune"}
-            toleranceCents={TUNER_TOLERANCE_CENTS}
-            active={tunerActive}
-          />
-          <div class="mt-2 text-center text-sm font-medium tabular-nums">
-            <span
-              class={tunerActive
-                ? tuner?.zone === "in-tune"
-                  ? "text-success"
-                  : "text-warn"
-                : "text-muted-foreground"}
-            >
-              {tunerCentsLabel}
+      <div class="grid items-center gap-6 md:grid-cols-2">
+        <!-- The readout is the page: note, cents, direction, then the numbers. -->
+        <div class="flex flex-col items-center gap-1 text-center">
+          <span
+            class="font-display text-[7rem] font-semibold leading-[0.9] tracking-[-0.04em] transition-colors sm:text-[8rem] {tunerActive
+              ? shown?.zone === 'in-tune'
+                ? 'text-success'
+                : 'text-stage-foreground'
+              : 'text-stage-muted/50'}"
+            aria-live="off"
+          >
+            {shown ? shown.note : "–"}<span class="text-[2.5rem] text-stage-muted">{shown ? shown.octave : ""}</span>
+          </span>
+          <span
+            class="font-mono text-2xl font-bold tabular-nums {tunerActive
+              ? shown?.zone === 'in-tune'
+                ? 'text-success'
+                : 'text-practice-accent'
+              : 'text-stage-muted'}"
+          >
+            {tunerActive ? tunerCentsLabel : running ? "Listening..." : "Pluck or play a note"}
+          </span>
+          {#if tunerActive && shown}
+            <span class="text-base font-bold {shown.zone === 'in-tune' ? 'text-success' : 'text-practice-accent'}" data-testid="tuner-direction">
+              {direction}
             </span>
-            {#if tunerActive && tuner}
-              <span class="ml-2 text-muted-foreground">
-                {tuner.zone === "in-tune" ? "in tune" : tuner.zone}
-              </span>
-            {/if}
-          </div>
+            <span class="font-mono text-xs text-stage-muted">
+              {shown.frequency.toFixed(1)} Hz · target {midiToFrequency(shown.midi, a4).toFixed(2)} Hz · A4 = {a4}
+            </span>
+          {/if}
         </div>
+        <ArcGauge
+          cents={shown?.cents ?? 0}
+          zone={shown?.zone ?? "in-tune"}
+          toleranceCents={TUNER_TOLERANCE_CENTS}
+          active={tunerActive}
+          flatNeighbor={neighbors.flat}
+          sharpNeighbor={neighbors.sharp}
+          class="justify-self-center"
+        />
+      </div>
+
+      {#if fretted && tuning}
+        <StringStrip
+          openStrings={tuning.openStrings}
+          nearestMidi={nearestStringMidi}
+          {targetMidi}
+          onTarget={(midi) => (targetMidi = midi)}
+        />
+      {/if}
     </PracticeStage>
-  {:else if tool === "intonation"}
-    <Card.Root>
-      <Card.Header class="flex-row items-center justify-between gap-3 space-y-0">
-        <div>
-          <Card.Title class="text-sm">Intonation</Card.Title>
-          <Card.Description>Track drift and steadiness while the mic listens.</Card.Description>
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2 text-sm">
+        <span class="text-muted-foreground">Reference A4</span>
+        <div class="flex overflow-hidden rounded-md border" role="group" aria-label="Reference A4">
+          {#each A4_OPTIONS as hz (hz)}
+            <button
+              type="button"
+              aria-pressed={a4 === hz}
+              class="px-2.5 py-1 font-mono text-sm tabular-nums transition-colors {a4 === hz
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted'}"
+              onclick={() => (a4 = hz)}
+            >
+              {hz}
+            </button>
+          {/each}
         </div>
+      </div>
+      {#if fretted && tunings.length > 1}
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Tuning"
+          options={tunings.map((profile) => ({ value: profile.id, label: profile.name }))}
+          value={tuning?.id ?? ""}
+          onChange={(id) => {
+            tuningId = id;
+            targetMidi = undefined;
+          }}
+        />
+      {/if}
+      {#if state.status === "denied" || state.status === "error"}
+        <span class="text-sm text-destructive">{state.message}</span>
+      {/if}
+    </div>
+  {:else if tool === "intonation"}
+    <PracticeStage instrument={runtime.activeInstrument} class="grid gap-5 p-5 sm:p-7">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <SegmentedControl
           options={INTONATION_MODES}
           value={intonationMode}
           onChange={changeIntonationMode}
           ariaLabel="Intonation mode"
         />
-      </Card.Header>
-      <Card.Content class="flex flex-col items-center gap-5 py-8">
-        <PracticeStage class="flex w-full flex-col items-center gap-5 px-6 py-8">
-          <div class="w-full max-w-md">
-            <CentsGauge
-              cents={cents}
-              zone={zone}
-              toleranceCents={INTONATION_TOLERANCE_CENTS}
-              active={intonationActive}
-            />
-          </div>
-
-          <div class="flex flex-col items-center gap-1">
-            <span
-              class="text-6xl font-bold tabular-nums leading-none transition-colors {intonationActive
-                ? zone === 'in-tune'
-                  ? 'text-success'
-                  : 'text-foreground'
-                : 'text-muted-foreground/40'}"
-            >
-              {note ?? "-"}
-            </span>
-            <span
-              class="text-sm font-semibold {intonationActive
-                ? zone === 'in-tune'
-                  ? 'text-success'
-                  : 'text-warn'
-                : 'text-muted-foreground'}"
-            >
-              {#if intonationActive}
-                {intonationCentsLabel} · {zoneLabel}{#if frequency > 0}<span class="text-muted-foreground"> · {frequency.toFixed(1)} Hz</span>{/if}
-              {:else if running}
-                Listening...
-              {:else}
-                Start the mic and play a note
-              {/if}
-            </span>
-          </div>
-        </PracticeStage>
-
-        <div class="grid w-full max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
-          <HudTile label="In tune" value={Math.round(stats.inTunePercent)} unit="%" tone="good">
-            {#snippet icon()}<Target size={12} />{/snippet}
-          </HudTile>
-          <HudTile label="Hold" value={stats.holdSeconds.toFixed(1)} unit="s" tone="accent">
-            {#snippet icon()}<Clock size={12} />{/snippet}
-          </HudTile>
-          <HudTile label="Steadiness" value={Math.round(stats.steadiness)} unit="%" />
-          <HudTile label="Avg drift" value={`+/-${Math.round(stats.avgDriftCents)}`} unit="¢" />
+        <div class="flex items-center gap-2">
+          <SourceReadout label="Listening to" device={instrumentLabel} live={running}>
+            {#snippet icon()}<Waves size={18} />{/snippet}
+          </SourceReadout>
+          <Button variant={running ? "secondary" : "default"} onclick={toggleMic}>
+            {#if state.status === "requesting"}Starting...{:else if running}Stop microphone{:else}Start mic{/if}
+          </Button>
         </div>
-      </Card.Content>
-    </Card.Root>
+      </div>
+      <p class="text-sm text-stage-muted">Track drift and steadiness while the mic listens.</p>
+      <div class="grid items-center gap-6 md:grid-cols-2">
+        <div class="flex flex-col items-center gap-1 text-center">
+          <span
+            class="font-display text-[6rem] font-semibold leading-[0.9] tracking-[-0.04em] transition-colors {intonationActive
+              ? zone === 'in-tune'
+                ? 'text-success'
+                : 'text-stage-foreground'
+              : 'text-stage-muted/50'}"
+          >
+            {note ?? "–"}
+          </span>
+          <span
+            class="font-mono text-xl font-bold {intonationActive
+              ? zone === 'in-tune'
+                ? 'text-success'
+                : 'text-practice-accent'
+              : 'text-stage-muted'}"
+          >
+            {#if intonationActive}
+              {intonationCentsLabel} · {zoneLabel}{#if frequency > 0}<span class="text-stage-muted"> · {frequency.toFixed(1)} Hz</span>{/if}
+            {:else if running}
+              Listening...
+            {:else}
+              Start the mic and play a note
+            {/if}
+          </span>
+        </div>
+        <ArcGauge {cents} {zone} toleranceCents={INTONATION_TOLERANCE_CENTS} active={intonationActive} class="justify-self-center" />
+      </div>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <HudTile size="sm" label="In tune" value={Math.round(stats.inTunePercent)} unit="%" tone="good">
+          {#snippet icon()}<Target size={12} />{/snippet}
+        </HudTile>
+        <HudTile size="sm" label="Hold" value={stats.holdSeconds.toFixed(1)} unit="s" tone="accent">
+          {#snippet icon()}<Clock size={12} />{/snippet}
+        </HudTile>
+        <HudTile size="sm" label="Steadiness" value={Math.round(stats.steadiness)} unit="%" />
+        <HudTile size="sm" label="Avg drift" value={`+/-${Math.round(stats.avgDriftCents)}`} unit="¢" />
+      </div>
+    </PracticeStage>
 
     <Card.Root>
       <Card.Header class="flex-row items-center justify-between gap-2 space-y-0">
-        <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Pitch trace · last 10 s
-        </span>
+        <span class="eyebrow">Pitch trace · last 10 s</span>
         <span class="rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">
           Within +/-{INTONATION_TOLERANCE_CENTS}¢
         </span>
@@ -399,82 +472,63 @@
       </Card.Content>
     </Card.Root>
   {:else}
-    <Card.Root>
-      <Card.Header class="flex-row items-center justify-between gap-2 space-y-0">
-        <div>
-          <Card.Title class="text-sm">Drone</Card.Title>
-          <Card.Description>Play a sustained tonic while you tune by ear.</Card.Description>
-        </div>
-        <span class="rounded-full border px-2 py-0.5 text-xs font-semibold text-primary">
-          {tonicName} · {midiToFrequency(droneMidi).toFixed(0)} Hz
-        </span>
-      </Card.Header>
-      <Card.Content class="flex flex-col gap-4">
-        <div class="grid grid-cols-6 gap-1.5">
-          {#each TONICS as tonic (tonic.pc)}
-            <button
-              type="button"
-              aria-pressed={tonicPc === tonic.pc}
-              onclick={() => pickTonic(tonic.pc)}
-              class="rounded-md border py-2.5 text-center font-bold transition-colors {tonicPc ===
-              tonic.pc
-                ? 'border-transparent bg-primary text-primary-foreground'
-                : 'bg-muted/40 hover:bg-muted'}"
-            >
-              {tonic.name}
-            </button>
+    <!-- Drone: no microphone, no reference row. One tonic, one timbre, one Play. -->
+    <PracticeStage instrument={runtime.activeInstrument} class="grid gap-6 p-5 sm:p-7">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="eyebrow text-stage-muted">Drone · {tonicName} · {midiToFrequency(droneMidi).toFixed(0)} Hz{droneOn ? " · playing" : ""}</p>
+        <Button variant={droneOn ? "secondary" : "default"} onclick={toggleDrone}>
+          {droneOn ? "Stop drone" : "Play drone"}
+        </Button>
+      </div>
+      <div class="grid place-items-center py-2">
+        <div class="relative grid size-56 place-items-center">
+          {#each [224, 176, 128] as size (size)}
+            <span class="absolute rounded-full border border-stage-line {droneOn ? 'opacity-100' : 'opacity-50'}" style={`width: ${size}px; height: ${size}px;`} aria-hidden="true"></span>
           {/each}
+          <span class="font-display text-[6rem] font-semibold leading-none">{tonicName}</span>
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-muted-foreground">Timbre</span>
-            <SegmentedControl
-              options={DRONE_TIMBRE_NAMES.map((name) => ({ value: name, label: name }))}
-              value={timbre}
-              onChange={pickTimbre}
-              size="sm"
-              ariaLabel="Drone timbre"
-            />
-          </div>
-          <div class="flex items-center gap-3">
-            <Volume2 size={18} class="text-muted-foreground" />
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={level}
-              oninput={(e) => setLevel(e.currentTarget.valueAsNumber)}
-              class="h-1.5 w-32 cursor-pointer accent-primary"
-              aria-label="Drone volume"
-            />
-            <Button variant={droneOn ? "secondary" : "default"} size="sm" onclick={toggleDrone}>
-              {droneOn ? "Stop drone" : "Play drone"}
-            </Button>
-          </div>
-        </div>
-      </Card.Content>
-    </Card.Root>
-  {/if}
-
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-2 text-sm">
-      <span class="text-muted-foreground">Reference A4</span>
-      <div class="flex overflow-hidden rounded-md border">
-        {#each A4_OPTIONS as hz (hz)}
+      </div>
+      <div class="grid grid-cols-6 gap-1.5 sm:grid-cols-12" role="group" aria-label="Drone tonic">
+        {#each TONICS as tonic (tonic.pc)}
           <button
             type="button"
-            class="px-2.5 py-1 text-sm tabular-nums transition-colors {a4 === hz
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-muted'}"
-            onclick={() => (a4 = hz)}
+            aria-pressed={tonicPc === tonic.pc}
+            onclick={() => pickTonic(tonic.pc)}
+            class={[
+              "rounded-md border py-2.5 text-center font-mono text-sm font-bold transition-colors",
+              tonicPc === tonic.pc
+                ? `${DEGREE_CLASS["1"]} text-degree-foreground`
+                : "border-stage-line bg-stage-2 text-stage-foreground hover:bg-stage-2/70",
+            ]}
           >
-            {hz}
+            {tonic.name}
           </button>
         {/each}
       </div>
-    </div>
-    {#if state.status === "denied" || state.status === "error"}
-      <p class="text-sm text-destructive">{state.message}</p>
-    {/if}
-  </div>
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-stage-muted">Timbre</span>
+          <SegmentedControl
+            options={DRONE_TIMBRE_NAMES.map((name) => ({ value: name, label: name }))}
+            value={timbre}
+            onChange={pickTimbre}
+            size="sm"
+            ariaLabel="Drone timbre"
+          />
+        </div>
+        <div class="flex items-center gap-3">
+          <Volume2 size={18} class="text-stage-muted" />
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={level}
+            oninput={(e) => setLevel(e.currentTarget.valueAsNumber)}
+            class="h-1.5 w-32 cursor-pointer accent-primary"
+            aria-label="Drone volume"
+          />
+        </div>
+      </div>
+    </PracticeStage>
+  {/if}
 </PracticeScreen>

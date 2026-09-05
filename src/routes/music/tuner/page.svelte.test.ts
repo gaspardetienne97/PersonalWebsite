@@ -31,7 +31,18 @@ describe("/music/tuner/+page.svelte", () => {
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play drone"));
     expect(document.body.textContent).toContain("Timbre");
+    // Drone has no microphone controls and no reference row; A4 lives under Tune.
+    expect(document.body.textContent).not.toContain("Reference A4");
+    expect(document.body.textContent).not.toContain("Start mic");
+    expect(document.querySelectorAll('[aria-label="Drone tonic"] button')).toHaveLength(12);
+  });
+
+  test("shows the arc gauge and the reference row in Tune", async () => {
+    setTestUrl("/music/tuner?mode=tune");
+    render(Page);
+    expect(document.querySelector('[data-testid="arc-gauge"]')).not.toBeNull();
     expect(document.body.textContent).toContain("Reference A4");
+    expect(document.body.textContent).toContain("Pluck or play a note");
   });
 
   test("opens the mode named in the URL", async () => {
