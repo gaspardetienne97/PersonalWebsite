@@ -220,8 +220,9 @@
     <SetupChecklist items={setupItems} />
   </section>
 
-  <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
-    <div class="grid gap-6">
+  <!-- minmax(0,1fr) columns: the routing table scrolls inside its card instead of widening the page. -->
+  <div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
+    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
       <!-- Connected MIDI devices -->
       <section aria-label="Connected devices" class="grid gap-3">
         <SectionHeading title="MIDI devices" eyebrow={`${midiDevices.length} detected`} />
@@ -360,11 +361,11 @@
       </section>
     </div>
 
-    <div class="grid gap-6">
+    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
       <!-- Per-instrument preferred source + on-screen surface, as one table. -->
-      <section aria-label="Input routing" class="grid gap-3">
+      <section aria-label="Input routing" class="grid grid-cols-[minmax(0,1fr)] gap-3">
         <SectionHeading title="Preferred source per instrument" eyebrow="Routing" />
-        <Card.Root>
+        <Card.Root class="min-w-0">
           <Card.Content class="overflow-x-auto py-4">
             <table class="w-full min-w-[26rem] text-sm">
               <thead>
