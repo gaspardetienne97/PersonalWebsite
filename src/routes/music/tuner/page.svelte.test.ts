@@ -2,9 +2,11 @@ import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import Page from "./+page.svelte";
+import { setTestUrl } from "../_components/test-url";
 
 describe("/music/tuner/+page.svelte", () => {
   test("consolidates tuning, intonation, and drone controls into one tool", async () => {
+    setTestUrl("/music/tuner");
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("Tuner");
@@ -18,6 +20,7 @@ describe("/music/tuner/+page.svelte", () => {
     intonation?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Hold the pitch"));
+    expect(new URLSearchParams(window.location.search).get("mode")).toBe("intonation");
     expect(document.body.textContent).toContain("Scale in tune");
     expect(document.body.textContent).toContain("Pitch trace");
 
@@ -29,5 +32,11 @@ describe("/music/tuner/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play drone"));
     expect(document.body.textContent).toContain("Timbre");
     expect(document.body.textContent).toContain("Reference A4");
+  });
+
+  test("opens the mode named in the URL", async () => {
+    setTestUrl("/music/tuner?mode=drone");
+    render(Page);
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Play drone"));
   });
 });

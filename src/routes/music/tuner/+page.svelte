@@ -33,6 +33,7 @@
   import PracticeStage from "../_components/PracticeStage.svelte";
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import SourceReadout from "../_components/SourceReadout.svelte";
+  import { readRouteTab, writeRouteTab } from "../_components/route-state";
   import { useMusicRuntime } from "../_runtime.svelte";
 
   const runtime = useMusicRuntime();
@@ -64,7 +65,13 @@
   const session = new IntonationSession({ toleranceCents: INTONATION_TOLERANCE_CENTS });
 
   let state = $state<AudioPitchState>({ status: "idle" });
-  let tool = $state("tune");
+  const TOOL_IDS = ["tune", "intonation", "drone"] as const;
+  // The mode lives in the URL (?mode=) so Tune, Intonation and Drone are linkable.
+  let tool = $state<string>(
+    typeof window === "undefined"
+      ? "tune"
+      : readRouteTab(window.location.search, "mode", TOOL_IDS, "tune"),
+  );
   let intonationMode = $state("hold");
   let a4 = $state(440);
   let tuner = $state<TunerReading | null>(null);
@@ -171,7 +178,8 @@
   }
 
   function changeTool(next: string) {
-    tool = next;
+    tool = readRouteTab(new URLSearchParams({ mode: next }), "mode", TOOL_IDS, "tune");
+    writeRouteTab("mode", tool);
     tuner = null;
     note = null;
     session.reset();

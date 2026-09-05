@@ -109,3 +109,32 @@ export function suppressRouterHistoryWarning<T>(update: () => T): T {
     console.warn = warn;
   }
 }
+
+/**
+ * A hub tab that lives in the URL. `readRouteTab` picks the tab out of a
+ * search string (falling back when the value is unknown); `writeRouteTab`
+ * writes the chosen tab back through `syncRouteQuery`, keeping every other
+ * parameter, so Library, Create and Tuner round-trip their tabs the same way.
+ */
+export function readRouteTab<T extends string>(
+  search: URLSearchParams | string | null | undefined,
+  param: string,
+  values: readonly T[],
+  fallback: T,
+): T {
+  const params = search instanceof URLSearchParams ? search : new URLSearchParams(search ?? "");
+  const value = params.get(param);
+  return (values as readonly string[]).includes(value ?? "") ? (value as T) : fallback;
+}
+
+export function writeRouteTab(
+  param: string,
+  value: string,
+  options: { drop?: string[] } = {},
+): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.set(param, value);
+  for (const key of options.drop ?? []) url.searchParams.delete(key);
+  syncRouteQuery(`${url.pathname}?${url.searchParams.toString()}${url.hash}`);
+}

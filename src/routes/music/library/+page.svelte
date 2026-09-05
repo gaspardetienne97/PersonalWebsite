@@ -9,6 +9,7 @@
   import SegmentedControl from "../_components/SegmentedControl.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
+  import { readRouteTab, writeRouteTab } from "../_components/route-state";
   import ImportView from "./_components/ImportView.svelte";
   import SongsView from "./_components/SongsView.svelte";
   import TheoryReference from "./_components/TheoryReference.svelte";
@@ -27,18 +28,30 @@
     { value: "transcribe", label: "Transcribe audio" },
   ];
 
-  let tab = $state<LibraryTab>("songs");
-  let importTab = $state<ImportTab>("score");
+  const LIBRARY_TABS: LibraryTab[] = ["songs", "reference", "import"];
+  const IMPORT_TABS: ImportTab[] = ["score", "transcribe"];
 
+  const initialSearch = typeof window === "undefined" ? "" : window.location.search;
+  let tab = $state<LibraryTab>(readRouteTab(initialSearch, "tab", LIBRARY_TABS, "songs"));
+  let importTab = $state<ImportTab>(readRouteTab(initialSearch, "mode", IMPORT_TABS, "score"));
+
+  // The tab lives in the URL (?tab=, ?mode= for the import sub-mode) so a
+  // bookmark or a back gesture lands on the same view.
   $effect(() => {
     const params = $page.url?.searchParams;
-    const next = normalizeTab(params?.get("tab") ?? null);
-    tab = next;
-    if (params?.get("mode") === "transcribe") importTab = "transcribe";
+    if (!params) return;
+    tab = readRouteTab(params, "tab", LIBRARY_TABS, "songs");
+    importTab = readRouteTab(params, "mode", IMPORT_TABS, "score");
   });
 
-  function normalizeTab(value: string | null): LibraryTab {
-    return value === "reference" || value === "import" ? value : "songs";
+  function selectTab(value: string): void {
+    tab = readRouteTab(new URLSearchParams({ tab: value }), "tab", LIBRARY_TABS, "songs");
+    writeRouteTab("tab", tab, tab === "import" ? {} : { drop: ["mode"] });
+  }
+
+  function selectImportTab(value: string): void {
+    importTab = readRouteTab(new URLSearchParams({ mode: value }), "mode", IMPORT_TABS, "score");
+    writeRouteTab("mode", importTab);
   }
 </script>
 
@@ -59,7 +72,7 @@
       <SegmentedControl
         options={tabs}
         value={tab}
-        onChange={(value) => (tab = value as LibraryTab)}
+        onChange={selectTab}
         ariaLabel="Library section"
       />
     {/snippet}
@@ -104,7 +117,7 @@
         <SegmentedControl
           options={importTabs}
           value={importTab}
-          onChange={(value) => (importTab = value as ImportTab)}
+          onChange={selectImportTab}
           ariaLabel="Import mode"
         />
       </div>
