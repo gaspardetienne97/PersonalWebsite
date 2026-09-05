@@ -93,7 +93,7 @@
 
   const sliderClass = "w-32 accent-primary sm:w-40";
   const selectClass =
-    "flex h-9 rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "flex h-9 rounded-lg border border-input bg-background pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 </script>
 
 <svelte:head>
