@@ -9,9 +9,45 @@ describe("/music/settings/+page.svelte", () => {
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("Settings");
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Audio & MIDI"));
-    expect(document.body.textContent).toContain("Latency calibration");
-    expect(document.body.textContent).toContain("Appearance");
+    // Groups: Audio, Input, Latency, Appearance, Your data, each a SectionHeading.
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Latency calibration"));
+    const headings = [...document.querySelectorAll("h2")].map((h) => h.textContent?.trim());
+    expect(headings).toEqual(["Audio", "Input", "Latency calibration", "Appearance", "Your data"]);
+    expect(document.querySelectorAll("[data-settings-row]").length).toBeGreaterThanOrEqual(12);
+  });
+
+  test("offers export and a confirmed reset of local data", async () => {
+    render(Page);
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Your data"));
+    const button = (label: string) =>
+      [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+        (b) => b.textContent?.trim() === label,
+      );
+    expect(button("Export journal")).toBeDefined();
+    expect(button("Yes, reset")).toBeUndefined();
+    button("Reset local data")?.click();
+    await vi.waitFor(() => expect(button("Yes, reset")).toBeDefined());
+    button("Keep")?.click();
+    await vi.waitFor(() => expect(button("Yes, reset")).toBeUndefined());
+  });
+
+  test("steps latency offsets by 5 ms", async () => {
+    const runtime = new MusicRuntime();
+    await runtime.attachStorage({
+      get: async () => ({ id: "music.settings", value: {} }),
+      put: async () => {},
+    });
+    render(Page, { context: new Map([[MUSIC_RUNTIME, runtime]]) });
+
+    await vi.waitFor(() =>
+      expect(document.querySelector<HTMLInputElement>("#audio-offset")).not.toBeNull(),
+    );
+    document.querySelector<HTMLButtonElement>('[aria-label="Audio offset plus 5 ms"]')?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector<HTMLInputElement>("#audio-offset")?.value).toBe("5"),
+    );
+    runtime.dispose();
   });
 
   test("shows playback sound selector", async () => {
