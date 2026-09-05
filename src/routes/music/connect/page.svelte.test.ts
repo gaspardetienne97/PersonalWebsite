@@ -14,9 +14,22 @@ describe("/music/connect/+page.svelte", () => {
     expect(document.body.textContent).toContain("MPC One+ pad LEDs");
     expect(document.body.textContent).toContain("Preferred source per instrument");
     expect(document.body.textContent).toContain("On-screen fallback");
-    expect(
-      document.querySelector('[role="group"][aria-label="On-screen keyboard"]'),
-    ).not.toBeNull();
+    // The setup checklist says what is ready, one row each.
+    const checklist = document.querySelector('[data-testid="setup-checklist"]');
+    expect(checklist?.textContent).toContain("Audio");
+    expect(checklist?.textContent).toContain("MIDI");
+    expect(checklist?.textContent).toContain("Microphone");
+    expect(checklist?.querySelectorAll("li").length).toBe(3);
+    // The on-screen surface stays collapsed until asked for.
+    expect(document.querySelector('[role="group"][aria-label="On-screen keyboard"]')).toBeNull();
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((button) => button.textContent?.trim() === "Try the on-screen surface")
+      ?.click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[role="group"][aria-label="On-screen keyboard"]'),
+      ).not.toBeNull(),
+    );
   });
 
   test("persists a per-instrument source preference", async () => {
