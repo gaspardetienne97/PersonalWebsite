@@ -1,10 +1,14 @@
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
+import { PracticeDatabase } from "@repo/music-core/engines/store";
+
 import Page from "./+page.svelte";
 
 describe("/music/guide/+page.svelte", () => {
   test("shows a live three-row setup checklist and the seven hubs", async () => {
+    // A fresh device: other test files may have written sessions to the shared database.
+    await new PracticeDatabase().delete();
     render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("How to use Practice OS");

@@ -467,9 +467,16 @@ This file provides guidance for agents working on the Music app under
   future piano-roll polish.
 - `/music/create?mode=recorder`: take list, waveform, compare, and self-review.
 - `/music/track`: practice journal and routine/session tracking.
-- `/music/settings`: the runtime-owned Music settings surface. It owns audio
-  enable/test, playback sound, playback/metronome/master levels, mute, latency,
-  MIDI, and appearance settings through the single `MusicSettingsStore`.
+- `/music/settings`: the runtime-owned Music settings surface. Groups Audio,
+  Input, Latency calibration, Appearance and Your data as `SectionHeading`
+  cards of `SettingsRow` rows; values flow through the single
+  `MusicSettingsStore`. Your data exports the journal (JSON of
+  `PracticeSessionStore` sessions) and resets the local Dexie database behind
+  an inline confirm; nothing else may delete user data.
+- `/music/guide`: a live `SetupChecklist` (audio enabled, a MIDI device or the
+  on-screen surface, a first session in the journal) plus the practice-loop
+  card and one `MusicToolCard` per hub. It reads state; it never changes it
+  except through the same runtime calls Connect uses.
 - `/music/progress`: dashboard, skill tree, weak spots, achievements, streaks,
   practice-next picks, and personal daily challenges. Challenge cards must come
   from `@repo/music-core/engines/challenges`; keep them non-competitive unless
@@ -757,6 +764,21 @@ If you add a new engine or public exercise, update
   shape, ids unchanged) with a `PositionStepper`.
 - Keep card radii and spacing aligned with the existing shadcn Svelte
   components.
+- **Hub pages** (`/music/library`, `/music/create`, `/music/progress`,
+  `/music/connect`, `/music/tuner`, `/music/settings`, `/music/guide`) share one
+  shell: `PracticeScreenHeader` for the h1, tabs or modes in the URL through
+  `readRouteTab`/`writeRouteTab` in `_components/route-state.ts` (`?tab=` on
+  Library, `?mode=` on Create and Tuner; sub-views never mount their own
+  `PracticeScreen` or `<title>`), `SectionHeading` for every section (eyebrow,
+  display-face title, description, action snippet), and the hub components in
+  `_components/`: `TransportStrip`, `SetupChecklist`, `ArcGauge`, `StringStrip`,
+  `WeekBars`, `StreakCalendar`, `SettingsRow`, `degree-classes.ts`. The object
+  is the card (song, take, device, string, skill) and every empty state has one
+  action. Phone rule: page roots and columns use
+  `grid grid-cols-[minmax(0,1fr)]` with `min-w-0` cards so wide surfaces (piano
+  roll, routing table, mastery grid) scroll inside their own container.
+- One route-owned live region per page (the status line); components under it
+  use `aria-live="off"` or none.
 - Route pages own their semantic `h1`. Shared chrome should use non-heading
   text for route labels unless there is a specific accessibility reason.
 - Ensure desktop and mobile layouts do not introduce horizontal overflow.

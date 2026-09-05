@@ -133,7 +133,7 @@
       <Button type="button" variant="outline" onclick={padsOff} disabled={!lit}>Pads off</Button>
     </div>
 
-    <p class="text-sm text-muted-foreground" aria-live="polite">
+    <p class="text-sm text-muted-foreground" aria-live="off">
       {status ||
         (activeKit
           ? "Lights assigned pads green on the MPC One+ (Controller Mode). Needs MIDI + SysEx."

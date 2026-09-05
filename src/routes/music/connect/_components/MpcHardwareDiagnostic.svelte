@@ -157,7 +157,7 @@
       </Button>
     </div>
 
-    <p class="text-sm text-muted-foreground" aria-live="polite">{statusMessage}</p>
+    <p class="text-sm text-muted-foreground" aria-live="off">{statusMessage}</p>
     {#if lastOutbound}
       <p class="break-all font-mono text-xs text-muted-foreground">Last outbound: {lastOutbound}</p>
     {/if}
