@@ -7,10 +7,11 @@ describe("/music/progress/+page.svelte", () => {
   test("renders dashboard and skill tree views", async () => {
     render(Page);
 
-    expect(document.querySelector("h1")?.textContent).toContain("Dashboard");
+    expect(document.querySelector("h1")?.textContent).toContain("Progress");
     await vi.waitFor(() => expect(document.body.textContent).toContain("Today's XP"));
-    expect(document.body.textContent).toContain("Practice next");
-    expect(document.body.textContent).toContain("Skill Tree");
+    expect(document.body.textContent).toContain("Practise next");
+    expect(document.body.textContent).toContain("Skill map");
+    expect(document.querySelector('[data-testid="week-bars"]')).not.toBeNull();
     // The mastery grid shows eight skills until expanded.
     await vi.waitFor(() =>
       expect(
@@ -31,7 +32,15 @@ describe("/music/progress/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Weak spots"));
     expect(document.body.textContent).toContain("Achievements");
     expect(document.body.textContent).toContain("Streak calendar");
-    expect(document.body.textContent).toContain("Capability summary");
+    // The calendar toggles between one month and a 12-week heatmap.
+    const weeks = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "12 weeks",
+    );
+    weeks?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("last 12 weeks"));
+    expect(
+      document.querySelectorAll('[data-testid="streak-calendar"] [data-day]').length,
+    ).toBeGreaterThan(80);
   });
 
   test("shows personal daily challenges", async () => {

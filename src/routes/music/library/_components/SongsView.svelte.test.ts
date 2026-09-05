@@ -64,8 +64,8 @@ describe("/music/songs/+page.svelte", () => {
     const sessions = {
       load: vi.fn(async () => {}),
       all: vi.fn(() => [
-        { id: "s1", tags: ["song", "song-a"], startedAt: 10, endedAt: 20 },
-        { id: "s2", tags: ["song", "song-b"], startedAt: 100, endedAt: 200 },
+        { id: "s1", tags: ["song", "song-a"], startTime: 100, endTime: 200 },
+        { id: "s2", tags: ["song", "song-b"], startTime: 10, endTime: 20 },
       ]),
     };
     const runtime = new MusicRuntime();
@@ -75,7 +75,8 @@ describe("/music/songs/+page.svelte", () => {
       [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Saved songs"] button')].map(
         (b) => b.getAttribute("aria-label"),
       );
-    await vi.waitFor(() => expect(titles()).toEqual(["Open Autumn Leaves", "Open Blue Bossa"]));
+    // Blue Bossa was practised most recently, so it shelves first even though it sorts after A to Z.
+    await vi.waitFor(() => expect(titles()).toEqual(["Open Blue Bossa", "Open Autumn Leaves"]));
     expect(document.body.textContent).toContain("Practised");
 
     [...document.querySelectorAll<HTMLButtonElement>("button")]

@@ -102,7 +102,7 @@
       for (const session of sessions.all()) {
         const [kind, songId] = session.tags ?? [];
         if (kind !== "song" || !songId) continue;
-        const at = session.endedAt ?? session.startedAt;
+        const at = session.endTime ?? session.startTime;
         latest[songId] = Math.max(latest[songId] ?? 0, at);
       }
       lastPractised = latest;

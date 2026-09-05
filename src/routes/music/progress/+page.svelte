@@ -20,14 +20,18 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
+  import InstrumentBadge from "../_components/InstrumentBadge.svelte";
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
+  import PracticeStage from "../_components/PracticeStage.svelte";
   import ProgressRing from "../_components/ProgressRing.svelte";
-  import SkillRing from "../_components/SkillRing.svelte";
+  import SectionHeading from "../_components/SectionHeading.svelte";
   import SkillTreeGraph from "../_components/SkillTreeGraph.svelte";
+  import StreakCalendar from "../_components/StreakCalendar.svelte";
+  import WeekBars from "../_components/WeekBars.svelte";
+  import WeekDots from "../_components/WeekDots.svelte";
 
   let showAllNodes = $state(false);
-  import WeekDots from "../_components/WeekDots.svelte";
 
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
@@ -35,7 +39,6 @@
   const progress = new ProgressEngine(store);
   const sessions = new PracticeSessionStore(store);
 
-  let ready = $state(false);
   let status = $state("Loading progress.");
   let dashboard = $state<DashboardView | undefined>();
   let skillTree = $state<SkillTreeView | undefined>();
@@ -47,6 +50,56 @@
       completedDays: last7.flatMap((day, index) => (day.practiced ? [index] : [])),
       todayIndex: last7.length - 1,
     };
+  });
+  // XP per day for the last seven days and the days practised, from the journal.
+  const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+  const isoDay = (at: number) => {
+    const date = new Date(at);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+  const weekBars = $derived.by(() => {
+    void dashboard;
+    const today = new Date();
+    return Array.from({ length: 7 }, (_, offset) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - offset));
+      const day = isoDay(date.getTime());
+      const xp = sessions
+        .all()
+        .filter((session) => isoDay(session.endTime ?? session.startTime) === day)
+        .reduce((sum, session) => sum + session.xpEarned, 0);
+      return { label: DAY_LABELS[(date.getDay() + 6) % 7]!, xp, today: offset === 6 };
+    });
+  });
+  const practisedDays = $derived.by(() => {
+    void dashboard;
+    return new Set(sessions.all().map((session) => isoDay(session.endTime ?? session.startTime)));
+  });
+  // Weak spots and the daily challenge as one list of actions.
+  const practiseNext = $derived.by(() => {
+    const picks = (skillTree?.practiceNext ?? []).slice(0, 5).map((pick) => ({
+      id: pick.skillId,
+      title: pick.skillName,
+      detail: `${Math.round(pick.accuracy * 100)}% accuracy · ${pick.attempts} attempts`,
+      href: pick.href,
+      kind: "weak" as const,
+    }));
+    const challenge = dashboard?.dailyChallenge;
+    return challenge
+      ? [
+          {
+            id: `challenge-${challenge.skillId}`,
+            title: challenge.label,
+            detail:
+              challenge.reason === "weak-spot"
+                ? "Today's challenge · from your weakest signal"
+                : "Today's challenge · from unlocked skills",
+            href: challenge.href,
+            kind: "challenge" as const,
+          },
+          ...picks.filter((pick) => pick.id !== challenge.skillId),
+        ]
+      : picks;
   });
   const capabilityNodes = $derived(
     Object.entries(skillTree?.capabilitySummary ?? {}).map(([capability, summary]) => ({
@@ -76,7 +129,6 @@
         sessions.load(),
       ]);
       refresh();
-      ready = true;
       status = "Progress loaded.";
     } catch (error) {
       status = error instanceof Error ? error.message : "Progress could not be loaded.";
@@ -106,95 +158,102 @@
 </script>
 
 <svelte:head>
-  <title>Dashboard & Skill Tree | Practice OS</title>
+  <title>Progress | Practice OS</title>
   <meta
     name="description"
-    content="Review practice dashboard, skill mastery, weak spots, achievements, and streak history."
+    content="Today, this week and the skills behind them: XP, streak, weak spots and mastery from your real practice."
   />
 </svelte:head>
 
 <PracticeScreen>
   <PracticeScreenHeader
-    title="Dashboard & Skill Tree"
-    subtitle="Daily XP, streaks, skill mastery, weak spots, and practice-next picks from your real practice history."
-  />
-
+    title="Progress"
+    subtitle="Today, this week, and the skills behind them, from your real practice."
+  >
+    {#snippet controls()}
+      {#if dashboard}
+        <Button href={dashboard.continuePractice.href}>
+          Practise next: {dashboard.dailyChallenge.skillName}
+        </Button>
+      {/if}
+    {/snippet}
+  </PracticeScreenHeader>
 
   {#if !dashboard || !skillTree || !challenges}
     <Card.Root>
       <Card.Content class="py-6 text-sm text-muted-foreground">{status}</Card.Content>
     </Card.Root>
   {:else}
-    <section class="grid gap-4 md:grid-cols-4" aria-label="Dashboard">
-      <Card.Root class="flex flex-col items-center gap-3 p-5">
-        <span class="w-full eyebrow"
-          >Today's XP</span
-        >
-        <ProgressRing value={dashboard.todayXp} total={dashboard.todayGoalXp} label="Today's XP" size={132} gradient />
-        <span class="text-xs text-muted-foreground">Daily goal</span>
+    <!-- Hero: today's ring, the streak, the week. -->
+    <section class="grid gap-4 md:grid-cols-3" aria-label="Today and this week">
+      <Card.Root class="flex items-center gap-4 p-5">
+        <ProgressRing value={dashboard.todayXp} total={dashboard.todayGoalXp} label="Today's XP" size={108} gradient />
+        <div class="grid gap-1">
+          <span class="eyebrow">Today's XP</span>
+          <span class="font-display text-xl font-semibold">Daily goal</span>
+          <span class="text-xs text-muted-foreground">
+            Level {dashboard.level} · {dashboard.todayXp} of {dashboard.todayGoalXp} XP
+          </span>
+        </div>
       </Card.Root>
-      <Card.Root class="flex flex-col items-center gap-2 p-5">
-        <span class="w-full eyebrow"
-          >Streak</span
-        >
-        <div class="text-3xl" aria-hidden="true">🔥</div>
-        <span class="text-3xl font-bold leading-none tabular-nums">{dashboard.streakDays}</span>
-        <span class="eyebrow">days</span>
+      <Card.Root class="grid content-start gap-2 p-5">
+        <span class="eyebrow">Streak</span>
+        <div class="flex items-baseline gap-2">
+          <span class="font-display text-4xl font-semibold leading-none tabular-nums">{dashboard.streakDays}</span>
+          <span class="text-sm text-muted-foreground">day{dashboard.streakDays === 1 ? "" : "s"} in a row</span>
+        </div>
         <WeekDots completedDays={weekDots.completedDays} todayIndex={weekDots.todayIndex} />
       </Card.Root>
-      <Card.Root class="flex flex-col justify-center gap-1 p-5">
-        <span class="eyebrow">Level</span>
-        <span class="text-4xl font-bold tabular-nums">{dashboard.level}</span>
-        <span class="text-xs text-muted-foreground">Across all instruments</span>
-      </Card.Root>
-      <Card.Root class="flex flex-col gap-2 p-5">
-        <span class="eyebrow"
-          >Practice next</span
-        >
-        <span class="text-lg font-bold leading-tight">{dashboard.dailyChallenge.skillName}</span>
-        <Button class="mt-auto" href={dashboard.continuePractice.href} variant="outline">
-          {dashboard.continuePractice.label}
-        </Button>
+      <Card.Root class="grid content-start gap-2 p-5">
+        <span class="eyebrow">This week · {weekBars.reduce((sum, day) => sum + day.xp, 0)} XP</span>
+        <WeekBars days={weekBars} />
       </Card.Root>
     </section>
 
-    {#if capabilityNodes.length > 0}
-      <Card.Root>
-        <Card.Header>
-          <Card.Description>Skill tree</Card.Description>
-          <Card.Title>Capability overview</Card.Title>
-        </Card.Header>
-        <Card.Content>
-          <SkillTreeGraph root={capabilityRoot} nodes={capabilityNodes} height={240} />
-        </Card.Content>
-      </Card.Root>
-    {/if}
-
     <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div class="grid gap-6">
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Daily challenge</Card.Description>
-            <Card.Title>{dashboard.dailyChallenge.label}</Card.Title>
-          </Card.Header>
-          <Card.Content class="text-sm text-muted-foreground">
-            {dashboard.dailyChallenge.reason === "weak-spot"
-              ? "Chosen from your weakest analytics signal."
-              : "Chosen from currently unlocked skills."}
-          </Card.Content>
-          <Card.Footer>
-            <Button href={dashboard.dailyChallenge.href}>Start challenge</Button>
-          </Card.Footer>
-        </Card.Root>
+        {#if capabilityNodes.length > 0}
+          <PracticeStage class="p-4 sm:p-5">
+            <p class="mb-2 eyebrow text-stage-muted">Skill map · capability coverage</p>
+            <SkillTreeGraph root={capabilityRoot} nodes={capabilityNodes} height={240} />
+          </PracticeStage>
+        {/if}
 
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Personal practice goals</Card.Description>
-            <Card.Title>Daily challenges</Card.Title>
-          </Card.Header>
-          <Card.Content class="grid gap-3 md:grid-cols-2">
+        <div class="grid gap-3">
+          <SectionHeading title="Practise next" eyebrow="Weak spots and today's challenge" />
+          {#if practiseNext.length === 0}
+            <p class="text-sm text-muted-foreground">
+              No weak spots yet. Complete a few exercises to populate analytics.
+            </p>
+          {:else}
+            <ul class="grid gap-2" aria-label="Practise next">
+              {#each practiseNext as item (item.id)}
+                <li>
+                  <a
+                    class="grid grid-cols-[0.375rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent/40"
+                    href={item.href}
+                  >
+                    <span class="h-8 w-1.5 rounded-full {item.kind === 'challenge' ? 'bg-primary' : 'bg-warn'}" aria-hidden="true"></span>
+                    <span class="grid min-w-0">
+                      <span class="truncate text-sm font-semibold">{item.title}</span>
+                      <span class="font-mono text-[11px] text-muted-foreground">{item.detail}</span>
+                    </span>
+                    <span class="text-sm font-medium text-primary">Practise</span>
+                  </a>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
+
+        <div class="grid gap-3">
+          <SectionHeading
+            title="Daily challenges"
+            eyebrow={`Personal practice goals · this week ${challenges.weeklySummary.xp} XP · ${challenges.weeklySummary.sessions} sessions · ${challenges.weeklySummary.completedChallenges} challenges today`}
+          />
+          <div class="grid gap-2 md:grid-cols-2">
             {#each challenges.daily as challenge (challenge.id)}
-              <a class="grid gap-3 rounded-md border p-3 hover:bg-accent/50" href={challenge.href}>
+              <a class="grid gap-2 rounded-xl border bg-card p-3 hover:bg-accent/40" href={challenge.href}>
                 <div class="flex items-start justify-between gap-3">
                   <div>
                     <p class="text-sm font-medium">{challenge.title}</p>
@@ -203,166 +262,100 @@
                   <span
                     class={[
                       "rounded-full border px-2 py-0.5 text-xs",
-                      challenge.complete
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "text-muted-foreground",
+                      challenge.complete ? "border-success bg-success text-success-foreground" : "text-muted-foreground",
                     ]}
                   >
                     {challenge.complete ? "done" : "open"}
                   </span>
                 </div>
                 <Progress value={challengePercent(challenge.progress, challenge.target)} max={100} />
-                <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <div class="flex items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
                   <span>{challenge.progress}/{challenge.target}</span>
                   <span>{challenge.reason}</span>
                 </div>
               </a>
             {/each}
-          </Card.Content>
-          <Card.Footer class="flex flex-wrap gap-3 text-sm text-muted-foreground">
-            <span class="font-medium text-foreground">This week</span>
-            <span>{challenges.weeklySummary.xp} XP</span>
-            <span>{challenges.weeklySummary.sessions} sessions</span>
-            <span>{challenges.weeklySummary.completedChallenges} challenges today</span>
-          </Card.Footer>
-        </Card.Root>
+          </div>
+        </div>
 
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Skill Tree</Card.Description>
-            <Card.Title>Mastery rings</Card.Title>
-          </Card.Header>
-          <Card.Content class="grid gap-4">
-            <!-- Compact two-up on the phone, with the long tail behind Show all: the full
-                 node list ran to a 15,000 px page at 375 px. -->
-            <div class="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
-              {#each showAllNodes ? skillTree.nodes : skillTree.nodes.slice(0, 8) as node (node.id)}
-                <div class="grid gap-2 rounded-md border p-2.5 sm:p-3">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <p class="text-sm font-medium">{node.name}</p>
-                      <p class="text-xs text-muted-foreground">{node.capability}</p>
-                    </div>
-                    <span
-                      class="rounded-full border px-2 py-0.5 text-xs"
-                      class:text-muted-foreground={!node.unlocked}
-                    >
-                      {node.unlocked ? "unlocked" : "locked"}
-                    </span>
+        <div class="grid gap-3">
+          <SectionHeading title="Mastery" eyebrow={`Skill tree · ${skillTree.nodes.length} skills`}>
+            {#snippet action()}
+              {#if skillTree && skillTree.nodes.length > 8}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-expanded={showAllNodes}
+                  onclick={() => (showAllNodes = !showAllNodes)}
+                >
+                  {showAllNodes ? "Show fewer" : `Show all ${skillTree.nodes.length} skills`}
+                </Button>
+              {/if}
+            {/snippet}
+          </SectionHeading>
+          <!-- Compact two-up on the phone, with the long tail behind Show all. -->
+          <div class="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
+            {#each showAllNodes ? skillTree.nodes : skillTree.nodes.slice(0, 8) as node (node.id)}
+              <div class="grid gap-2 rounded-xl border bg-card p-2.5 sm:p-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-medium">{node.name}</p>
+                    <p class="text-xs text-muted-foreground">{node.capability}</p>
                   </div>
-                  <Progress value={node.masteryPercent} max={100} />
-                  <div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span>{node.masteryPercent}% mastery</span>
-                    <span>{node.confidencePercent}% confidence</span>
-                  </div>
-                  {#if node.weakSpot}
-                    <a class="text-sm font-medium text-foreground underline-offset-4 hover:underline" href={node.practiceHref}>
-                      Practice weak spot
-                    </a>
-                  {/if}
+                  <span
+                    class="rounded-full border px-2 py-0.5 text-xs"
+                    class:text-muted-foreground={!node.unlocked}
+                  >
+                    {node.unlocked ? "unlocked" : "locked"}
+                  </span>
                 </div>
-              {/each}
-            </div>
-            {#if skillTree.nodes.length > 8}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                class="justify-self-start"
-                aria-expanded={showAllNodes}
-                onclick={() => (showAllNodes = !showAllNodes)}
-              >
-                {showAllNodes ? "Show fewer" : `Show all ${skillTree.nodes.length} skills`}
-              </Button>
-            {/if}
-          </Card.Content>
-        </Card.Root>
+                <Progress value={node.masteryPercent} max={100} />
+                <div class="flex items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
+                  <span>{node.masteryPercent}% mastery</span>
+                  <span>{node.confidencePercent}% confidence</span>
+                </div>
+                {#if node.weakSpot}
+                  <a class="text-sm font-medium text-foreground underline-offset-4 hover:underline" href={node.practiceHref}>
+                    Practice weak spot
+                  </a>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </div>
       </div>
 
       <aside class="grid content-start gap-4">
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Weak spots</Card.Description>
-            <Card.Title>Practice next</Card.Title>
-          </Card.Header>
-          <Card.Content class="grid gap-3">
-            {#if skillTree.practiceNext.length === 0}
-              <p class="text-sm text-muted-foreground">
-                No weak spots yet. Complete a few exercises to populate analytics.
-              </p>
-            {:else}
-              {#each skillTree.practiceNext.slice(0, 5) as pick}
-                <a class="grid gap-1 rounded-md border p-3 hover:bg-accent/50" href={pick.href}>
-                  <span class="text-sm font-medium">{pick.skillName}</span>
-                  <span class="text-xs text-muted-foreground">
-                    {Math.round(pick.accuracy * 100)}% accuracy · {pick.attempts} attempts
-                  </span>
-                </a>
+        <Card.Root class="p-4">
+          <SectionHeading title="Streak calendar" level={3} class="mb-3" />
+          <StreakCalendar practised={practisedDays} />
+        </Card.Root>
+
+        <Card.Root class="p-4">
+          <SectionHeading title="Recent instruments" level={3} class="mb-3" />
+          {#if dashboard.recentInstruments.length === 0}
+            <p class="text-sm text-muted-foreground">No instrument history yet.</p>
+          {:else}
+            <div class="flex flex-wrap gap-2">
+              {#each dashboard.recentInstruments as instrument (instrument)}
+                <InstrumentBadge {instrument} />
               {/each}
-            {/if}
-          </Card.Content>
+            </div>
+          {/if}
         </Card.Root>
 
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Capability summary</Card.Description>
-            <Card.Title>Coverage</Card.Title>
-          </Card.Header>
-          <Card.Content class="flex flex-wrap justify-center gap-4">
-            {#each Object.entries(skillTree.capabilitySummary) as [capability, summary]}
-              <SkillRing percent={summary.averageMastery} label={capability} />
-            {/each}
-          </Card.Content>
-        </Card.Root>
-
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Achievements</Card.Description>
-            <Card.Title>{dashboard.achievements.length}</Card.Title>
-          </Card.Header>
-          <Card.Content>
-            {#if dashboard.achievements.length === 0}
-              <p class="text-sm text-muted-foreground">No achievements unlocked yet.</p>
-            {:else}
-              <ul class="grid gap-2 text-sm text-muted-foreground">
-                {#each dashboard.achievements as achievement}
-                  <li>{achievement}</li>
-                {/each}
-              </ul>
-            {/if}
-          </Card.Content>
-        </Card.Root>
-
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Streak calendar</Card.Description>
-            <Card.Title>Last 14 days</Card.Title>
-          </Card.Header>
-          <Card.Content class="grid grid-cols-7 gap-2">
-            {#each dashboard.streakCalendar as day}
-              <span
-                class="grid aspect-square place-items-center rounded-md border text-[0.65rem]"
-                class:bg-primary={day.practiced}
-                class:text-primary-foreground={day.practiced}
-                class:bg-muted={day.frozen && !day.practiced}
-                title={day.day}
-              >
-                {day.day.slice(8)}
-              </span>
-            {/each}
-          </Card.Content>
-        </Card.Root>
-
-        <Card.Root>
-          <Card.Header>
-            <Card.Description>Recent instruments</Card.Description>
-            <Card.Title>{dashboard.recentInstruments.length}</Card.Title>
-          </Card.Header>
-          <Card.Content class="text-sm text-muted-foreground">
-            {dashboard.recentInstruments.length > 0
-              ? dashboard.recentInstruments.join(", ")
-              : "No instrument history yet."}
-          </Card.Content>
+        <Card.Root class="p-4">
+          <SectionHeading title="Achievements" eyebrow={`${dashboard.achievements.length} unlocked`} level={3} class="mb-3" />
+          {#if dashboard.achievements.length === 0}
+            <p class="text-sm text-muted-foreground">No achievements unlocked yet.</p>
+          {:else}
+            <ul class="grid gap-2 text-sm">
+              {#each dashboard.achievements as achievement}
+                <li class="flex items-center gap-2"><span class="text-success" aria-hidden="true">✓</span>{achievement}</li>
+              {/each}
+            </ul>
+          {/if}
         </Card.Root>
       </aside>
     </section>
