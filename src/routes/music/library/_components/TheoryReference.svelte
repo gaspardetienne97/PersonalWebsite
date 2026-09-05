@@ -19,7 +19,9 @@
   import { Input } from "@repo/ui/input";
   import { cn } from "@repo/ui/utils";
 
+  import { degreeClassForSemitones, degreeToken } from "../../_components/degree-classes";
   import InstrumentView from "../../_components/InstrumentView.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import SectionHeading from "../../_components/SectionHeading.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
@@ -208,9 +210,18 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-2">
                 <h2 class="text-sm font-semibold">Notes</h2>
-                <div class="flex flex-wrap gap-2">
-                  {#each selected.notes as note}
-                    <Badge variant="secondary">{note}</Badge>
+                <!-- Degree colour relative to the root, the same as on the ear drills; the degree and note name carry the meaning. -->
+                <div class="flex flex-wrap gap-2" aria-label="Notes by degree">
+                  {#each selected.notes as note, index (index)}
+                    {@const semitones = (selected.pianoMidi[index] ?? selected.pianoMidi[0] ?? 0) - (selected.pianoMidi[0] ?? 0)}
+                    <span
+                      class={cn(
+                        "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 font-mono text-xs font-bold text-degree-foreground",
+                        degreeClassForSemitones(semitones),
+                      )}
+                    >
+                      <span class="opacity-70">{degreeToken(semitones)}</span>{note}
+                    </span>
                   {/each}
                 </div>
               </div>
@@ -256,7 +267,9 @@
                 </div>
               {/if}
 
-              <InstrumentView midi={viewMidi} instrument={viewInstrument} router={runtime.router} />
+              <PracticeStage instrument={viewInstrument} class="p-3 sm:p-4">
+                <InstrumentView midi={viewMidi} instrument={viewInstrument} router={runtime.router} />
+              </PracticeStage>
 
               {#if viewInstrument === "aerophone" && selected.kind === "chord"}
                 <p class="text-xs text-muted-foreground">
@@ -264,6 +277,26 @@
                   at a time.
                 </p>
               {/if}
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="rounded-xl border bg-muted/30 p-3">
+                <p class="eyebrow">Practise it</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  {#if selected.kind === "chord"}
+                    <Button href="/music/learn/ear/chord-qualities" size="sm" variant="outline">Chord qualities by ear</Button>
+                    <Button href="/music/play/voicings" size="sm" variant="outline">Voicings</Button>
+                    <Button href="/music/play/chord-scales" size="sm" variant="outline">Chord-scale</Button>
+                  {:else}
+                    <Button href="/music/play/scales" size="sm" variant="outline">Scales and technique</Button>
+                    <Button href="/music/learn/ear/scale-degrees" size="sm" variant="outline">Scale degrees by ear</Button>
+                  {/if}
+                </div>
+              </div>
+              <div class="rounded-xl border bg-muted/30 p-3">
+                <p class="eyebrow">Intervals from the root</p>
+                <p class="mt-2 font-mono text-sm">{selected.intervals.join(" · ")}</p>
+              </div>
             </div>
 
             {#if status}

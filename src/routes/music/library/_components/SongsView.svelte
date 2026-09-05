@@ -5,6 +5,7 @@
   import Pause from "lucide-svelte/icons/pause";
   import Play from "lucide-svelte/icons/play";
 
+  import { PracticeSessionStore, type PracticeSession } from "@repo/music-core/engines/sessions";
   import { scorePlaybackPattern, SongLibrary } from "@repo/music-core/engines/song-library";
   import { PracticeStore, type SongRow } from "@repo/music-core/engines/store";
   import { Badge } from "@repo/ui/badge";
@@ -13,7 +14,9 @@
   import { Empty } from "@repo/ui/empty";
   import { Skeleton } from "@repo/ui/skeleton";
 
+  import HueMotif from "../../_components/HueMotif.svelte";
   import SectionHeading from "../../_components/SectionHeading.svelte";
+  import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface SongLibraryLike {
@@ -21,15 +24,26 @@
     get(id: string): Promise<SongRow | undefined>;
   }
 
+  interface SessionsLike {
+    load(): Promise<void>;
+    all(): PracticeSession[];
+  }
+
+  const store = browser ? new PracticeStore() : undefined;
   const {
     runtime = useMusicRuntime(),
-    library = browser ? new SongLibrary(new PracticeStore()) : undefined,
+    library = store ? new SongLibrary(store) : undefined,
+    sessions = store ? new PracticeSessionStore(store) : undefined,
   }: {
     runtime?: MusicRuntime;
     library?: SongLibraryLike;
+    /** Journal sessions, for "last practised" per song (tags ["song", id]). */
+    sessions?: SessionsLike;
   } = $props();
 
   let songs = $state<SongRow[]>([]);
+  let lastPractised = $state<Record<string, number>>({});
+  let sort = $state<"practised" | "title">("practised");
   let selectedId = $state("");
   let status = $state("Loading repertoire.");
   let loading = $state(true);
@@ -38,7 +52,15 @@
   let previewTimer: ReturnType<typeof setTimeout> | undefined;
   let previewGeneration = 0;
 
-  const selected = $derived(songs.find((song) => song.id === selectedId) ?? songs[0]);
+  // The shelf: last practised first (never practised after, newest saved first), or A to Z.
+  const shelf = $derived(
+    [...songs].sort((a, b) =>
+      sort === "title"
+        ? a.title.localeCompare(b.title)
+        : (lastPractised[b.id] ?? 0) - (lastPractised[a.id] ?? 0) || b.updatedAt - a.updatedAt,
+    ),
+  );
+  const selected = $derived(songs.find((song) => song.id === selectedId) ?? shelf[0]);
   const selectedScore = $derived(selected?.score);
   const noteCount = $derived(selectedScore?.notes.length ?? 0);
   const durationBeats = $derived(selectedScore?.sections[0]?.endBeat ?? 0);
@@ -62,13 +84,38 @@
     }
     try {
       songs = await library.list();
-      selectedId = songs[0]?.id ?? "";
+      await loadLastPractised();
+      selectedId = shelf[0]?.id ?? "";
       status = songs.length === 0 ? "No saved songs yet." : "Repertoire ready.";
     } catch (error) {
       status = error instanceof Error ? error.message : "Could not load repertoire.";
     } finally {
       loading = false;
     }
+  }
+
+  async function loadLastPractised(): Promise<void> {
+    if (!sessions) return;
+    try {
+      await sessions.load();
+      const latest: Record<string, number> = {};
+      for (const session of sessions.all()) {
+        const [kind, songId] = session.tags ?? [];
+        if (kind !== "song" || !songId) continue;
+        const at = session.endedAt ?? session.startedAt;
+        latest[songId] = Math.max(latest[songId] ?? 0, at);
+      }
+      lastPractised = latest;
+    } catch {
+      // Without a journal the shelf still lists songs, newest saved first.
+    }
+  }
+
+  function practisedLabel(id: string): string {
+    const at = lastPractised[id];
+    if (!at) return "Not practised yet";
+    const days = Math.floor((Date.now() - at) / 86_400_000);
+    return days === 0 ? "Practised today" : days === 1 ? "Practised yesterday" : `Practised ${days} days ago`;
   }
 
   async function openSong(id: string): Promise<void> {
@@ -138,6 +185,7 @@
         note: `Song practice · ${selected.title}`,
       });
       status = "Song practice logged.";
+      lastPractised = { ...lastPractised, [selected.id]: Date.now() };
     } catch (error) {
       status = error instanceof Error ? error.message : "Could not log song practice.";
     } finally {
@@ -148,47 +196,72 @@
 
 
 <div class="grid min-w-0 gap-6">
-  <SectionHeading title="Song Library" description="Saved repertoire from imported MIDI files. Reopen, replay, and log song practice." />
+  <SectionHeading
+    title="Song Library"
+    eyebrow={`Repertoire · ${songs.length} saved song${songs.length === 1 ? "" : "s"}`}
+    description="Saved repertoire from imported MIDI files. Reopen, replay, and log song practice."
+  >
+    {#snippet action()}
+      <SegmentedControl
+        size="sm"
+        ariaLabel="Sort songs"
+        options={[
+          { value: "practised", label: "Last practised" },
+          { value: "title", label: "A to Z" },
+        ]}
+        value={sort}
+        onChange={(value) => (sort = value as "practised" | "title")}
+      />
+    {/snippet}
+  </SectionHeading>
 
-  <section class="grid min-w-0 gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
-    <Card.Root class="min-w-0">
-      <Card.Header>
-        <Card.Description>Repertoire</Card.Description>
-        <Card.Title>{songs.length} saved song{songs.length === 1 ? "" : "s"}</Card.Title>
-      </Card.Header>
-      <Card.Content class="grid gap-2">
-        {#if loading}
-          {#each [0, 1, 2, 3] as i (i)}
-            <Skeleton class="h-14 w-full" />
-          {/each}
-        {:else if songs.length === 0}
-          <Empty
-            title="No saved songs yet"
-            description="Import a MIDI file, then save it to your repertoire."
+  <section class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <!-- The shelf: one card per song with its state on it. -->
+    <div class="grid min-w-0 gap-3" aria-label="Saved songs">
+      {#if loading}
+        {#each [0, 1, 2, 3] as i (i)}
+          <Skeleton class="h-24 w-full" />
+        {/each}
+      {:else if songs.length === 0}
+        <Empty
+          title="No saved songs yet"
+          description="Import a MIDI file, then save it to your repertoire."
+        >
+          {#snippet icon()}<ListMusic aria-hidden="true" />{/snippet}
+          <Button href="/music/library?tab=import" variant="outline">Import a song</Button>
+        </Empty>
+      {:else}
+        {#each shelf as song (song.id)}
+          {@const active = song.id === selected?.id}
+          <button
+            type="button"
+            aria-label={`Open ${song.title}`}
+            aria-pressed={active}
+            class={[
+              "grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] overflow-hidden rounded-xl border bg-card text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              active && "border-primary ring-4 ring-primary/15",
+            ]}
+            onclick={() => void openSong(song.id)}
           >
-            {#snippet icon()}<ListMusic aria-hidden="true" />{/snippet}
-            <Button href="/music/library?tab=import" variant="outline">Import a song</Button>
-          </Empty>
-        {:else}
-          {#each songs as song (song.id)}
-            <button
-              type="button"
-              aria-label={`Open ${song.title}`}
-              class={[
-                "min-w-0 rounded-md border p-3 text-left transition-colors hover:bg-muted",
-                song.id === selected?.id && "border-primary/60 bg-primary/5",
-              ]}
-              onclick={() => void openSong(song.id)}
-            >
-              <span class="block truncate font-medium">{song.title}</span>
-              <span class="text-xs text-muted-foreground">
-                {song.score?.keySignature ?? "Imported MIDI"} · {song.score?.notes.length ?? 0} notes
+            <span class="relative bg-linear-to-br from-instr-piano to-instr-piano/40 text-white" aria-hidden="true">
+              <HueMotif hue="piano" class="absolute inset-0 size-full" />
+            </span>
+            <span class="grid min-w-0 gap-1 p-3">
+              <span class="flex items-baseline justify-between gap-3">
+                <span class="truncate font-display text-base font-semibold">{song.title}</span>
+                <span class="shrink-0 font-mono text-[11px] text-muted-foreground">{practisedLabel(song.id)}</span>
               </span>
-            </button>
-          {/each}
-        {/if}
-      </Card.Content>
-    </Card.Root>
+              <span class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Badge variant="outline">{song.score?.keySignature ?? "Key unknown"}</Badge>
+                <span class="font-mono">
+                  {Math.round(song.score?.tempoMap[0]?.bpm ?? 120)} BPM · {song.score?.notes.length ?? 0} notes
+                </span>
+              </span>
+            </span>
+          </button>
+        {/each}
+      {/if}
+    </div>
 
     <div class="min-w-0 space-y-4">
       {#if selected && selectedScore}

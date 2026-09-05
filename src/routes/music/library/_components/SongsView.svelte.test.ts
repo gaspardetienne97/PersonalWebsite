@@ -50,6 +50,40 @@ describe("/music/songs/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Song practice logged."));
     runtime.dispose();
   });
+
+  test("shelves songs by last practised first, then A to Z on request", async () => {
+    const library = {
+      list: vi.fn(async () => [
+        songRow("song-a", "Blue Bossa"),
+        songRow("song-b", "Autumn Leaves"),
+      ]),
+      get: vi.fn(async (id: string) =>
+        songRow(id, id === "song-a" ? "Blue Bossa" : "Autumn Leaves"),
+      ),
+    };
+    const sessions = {
+      load: vi.fn(async () => {}),
+      all: vi.fn(() => [
+        { id: "s1", tags: ["song", "song-a"], startedAt: 10, endedAt: 20 },
+        { id: "s2", tags: ["song", "song-b"], startedAt: 100, endedAt: 200 },
+      ]),
+    };
+    const runtime = new MusicRuntime();
+    render(Page, { runtime, library, sessions: sessions as never });
+
+    const titles = () =>
+      [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Saved songs"] button')].map(
+        (b) => b.getAttribute("aria-label"),
+      );
+    await vi.waitFor(() => expect(titles()).toEqual(["Open Autumn Leaves", "Open Blue Bossa"]));
+    expect(document.body.textContent).toContain("Practised");
+
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((b) => b.textContent?.trim() === "A to Z")
+      ?.click();
+    await vi.waitFor(() => expect(titles()).toEqual(["Open Autumn Leaves", "Open Blue Bossa"]));
+    runtime.dispose();
+  });
 });
 
 function songRow(id: string, title: string): SongRow {

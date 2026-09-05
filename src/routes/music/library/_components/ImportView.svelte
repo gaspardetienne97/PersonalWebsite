@@ -206,7 +206,29 @@
 
 
 <div class="grid min-w-0 gap-6">
-  <SectionHeading title="Import & Play-Along" description="Import MIDI or MusicXML locally, then save the canonical score to your repertoire." />
+  <SectionHeading title="Import & Play-Along" description="Import MIDI or MusicXML locally, then save the canonical score to your repertoire.">
+    {#snippet action()}
+      <!-- Three steps; the current one is the accent. -->
+      <ol class="flex flex-wrap items-center gap-4 text-sm" aria-label="Import steps">
+        {#each [["Drop a file", song || musicXmlScore ? "done" : "current"], ["Check the preview", savedSongId ? "done" : song || musicXmlScore ? "current" : "todo"], ["Save and practise", savedSongId ? "done" : "todo"]] as [label, state], index (label)}
+          <li class="flex items-center gap-2" data-step-state={state}>
+            <span
+              class={[
+                "grid size-6 place-items-center rounded-full font-display text-xs font-semibold",
+                state === "done" && "bg-success text-success-foreground",
+                state === "current" && "bg-primary text-primary-foreground",
+                state === "todo" && "bg-muted text-muted-foreground",
+              ]}
+              aria-hidden="true"
+            >
+              {state === "done" ? "✓" : index + 1}
+            </span>
+            <span class={state === "todo" ? "text-muted-foreground" : "font-medium"}>{label}</span>
+          </li>
+        {/each}
+      </ol>
+    {/snippet}
+  </SectionHeading>
 
   <!-- Drop zone -->
   <button
@@ -261,6 +283,7 @@
             {saving ? "Saving..." : "Save to repertoire"}
           </Button>
           {#if savedSongId}
+            <Button size="sm" href={`/music/songs/${savedSongId}`}>Practise now</Button>
             <Button size="sm" variant="outline" href="/music/library?tab=songs">Open songs</Button>
           {/if}
         </div>
@@ -310,6 +333,7 @@
             {saving ? "Saving..." : "Save to repertoire"}
           </Button>
           {#if savedSongId}
+            <Button size="sm" href={`/music/songs/${savedSongId}`}>Practise now</Button>
             <Button size="sm" variant="outline" href="/music/library?tab=songs">Open songs</Button>
           {/if}
         </div>

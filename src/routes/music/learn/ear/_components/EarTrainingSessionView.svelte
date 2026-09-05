@@ -3,23 +3,8 @@
   import Ear from "lucide-svelte/icons/ear";
   import { cn } from "@repo/ui/utils";
 
-  // Musical colour: every scale degree keeps one fixed colour in every drill.
-  // Literal class strings so Tailwind emits them; hue is never the only carrier
-  // (the degree number and solfege name sit on the button).
-  const DEGREE_CLASS: Record<string, string> = {
-    "1": "border-degree-1 bg-degree-1/40",
-    b2: "border-degree-b2 bg-degree-b2/40",
-    "2": "border-degree-2 bg-degree-2/40",
-    b3: "border-degree-b3 bg-degree-b3/40",
-    "3": "border-degree-3 bg-degree-3/40",
-    "4": "border-degree-4 bg-degree-4/40",
-    "#4": "border-degree-s4 bg-degree-s4/40",
-    "5": "border-degree-5 bg-degree-5/40",
-    b6: "border-degree-b6 bg-degree-b6/40",
-    "6": "border-degree-6 bg-degree-6/40",
-    b7: "border-degree-b7 bg-degree-b7/40",
-    "7": "border-degree-7 bg-degree-7/40",
-  };
+  import { DEGREE_CLASS } from "../../../_components/degree-classes";
+
 
   import type { InstrumentId, NoteEvent } from "@repo/music-core/domain";
   import type { InputSurfaceId } from "@repo/music-core/engines/device-profiles";
