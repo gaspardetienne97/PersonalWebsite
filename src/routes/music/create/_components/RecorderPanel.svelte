@@ -29,7 +29,9 @@
 
   import AudioTakePanel from "../../_components/AudioTakePanel.svelte";
   import PianoSurface from "../../_components/piano/PianoSurface.svelte";
+  import SectionHeading from "../../_components/SectionHeading.svelte";
   import SourceReadout from "../../_components/SourceReadout.svelte";
+  import TransportStrip from "../../_components/TransportStrip.svelte";
   import { syncRouteQuery } from "../../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
   import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "./piano-roll-storage";
@@ -541,39 +543,41 @@
   }
 </script>
 
-<div class="grid gap-6">
-  <section class="flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 sm:flex-row sm:items-start">
-    <div>
-      <h2 class="text-xl font-semibold tracking-tight">Recording & Self-Review</h2>
-      <p class="text-sm text-muted-foreground">
-        Record any take, compare them, and let the numbers show what to fix.
-      </p>
-    </div>
-    <div class="flex flex-wrap gap-2 sm:justify-end">
+<!-- minmax(0,1fr): let the track shrink below the grid so its own scroller engages on phones. -->
+<div class="grid grid-cols-[minmax(0,1fr)] gap-6">
+  <SectionHeading
+    title="Recording & Self-Review"
+    description="Record any take, compare them, and let the numbers show what to fix."
+  />
+
+  <TransportStrip>
+    <Button
+      type="button"
+      variant={recording ? "destructive" : "default"}
+      disabled={recordingPending}
+      onclick={() => void toggleRecording()}
+    >
+      {#if recording}
+        <Square class="size-4 fill-current" aria-hidden="true" />Stop · {liveCount}
+      {:else}
+        <Circle class="size-4 fill-current text-destructive" aria-hidden="true" />{recordingPending ? "Starting..." : "New recording"}
+      {/if}
+    </Button>
+    <span aria-label="Recording BPM" class="rounded-md bg-muted px-2.5 py-1.5 font-mono text-xs font-semibold text-muted-foreground">
+      {runtime.practiceBpm} BPM
+    </span>
+    {#snippet actions()}
       <SourceReadout label="Input" device={sourceLabel} live={runtime.activeSource === "midi"} />
-      <span aria-label="Recording BPM" class="flex h-9 items-center rounded-md border px-3 text-sm">
-        {runtime.practiceBpm} BPM
-      </span>
-      <Button
-        type="button"
-        variant={recording ? "destructive" : "default"}
-        disabled={recordingPending}
-        onclick={() => void toggleRecording()}
-      >
-        {#if recording}
-          <Square class="size-4 fill-current" aria-hidden="true" />Stop · {liveCount}
-        {:else}
-          <Circle class="size-4 fill-current text-destructive" aria-hidden="true" />{recordingPending ? "Starting..." : "New recording"}
-        {/if}
-      </Button>
-    </div>
-  </section>
+    {/snippet}
+  </TransportStrip>
 
   <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
     <div class="grid gap-6">
       <!-- Takes -->
       <Card.Root>
-        <Card.Header><Card.Description>Takes</Card.Description></Card.Header>
+        <Card.Header>
+          <Card.Description>Takes · {midiTakes.length}</Card.Description>
+        </Card.Header>
         <Card.Content class="grid gap-3">
           {#if midiTakes.length === 0}
             <p class="py-6 text-center text-sm text-muted-foreground">
@@ -581,15 +585,23 @@
             </p>
           {:else}
             {#each midiTakes as take (take.id)}
-              <div class="flex items-center gap-3 rounded-xl border p-3">
+              <div
+                class={[
+                  "flex items-center gap-3 rounded-xl border bg-card p-3",
+                  playingMidiTakeId === take.id && "border-practice-accent ring-4 ring-practice-accent/15",
+                ]}
+              >
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
-                    <span class="truncate text-sm font-semibold">{take.name}</span>
-                    <span class="text-xs uppercase tracking-wide text-muted-foreground">{take.source}</span>
+                    <span class="truncate font-display text-sm font-semibold">{take.name}</span>
+                    <span class="eyebrow">{take.source}</span>
                   </div>
                   <div class="mt-2 flex h-10 items-end gap-px" aria-hidden="true">
                     {#each barHeights(take) as height}
-                      <span class="flex-1 rounded-sm bg-primary/70" style="height:{Math.round(height * 100)}%"></span>
+                      <span
+                        class="flex-1 rounded-sm {playingMidiTakeId === take.id ? 'bg-practice-accent' : 'bg-primary/60'}"
+                        style="height:{Math.round(height * 100)}%"
+                      ></span>
                     {/each}
                   </div>
                   <div class="mt-1 text-xs text-muted-foreground tabular-nums">

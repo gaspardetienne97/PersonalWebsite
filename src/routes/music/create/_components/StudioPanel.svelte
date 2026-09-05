@@ -38,6 +38,9 @@
   import { toast } from "@repo/ui/sonner";
 
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
+  import SectionHeading from "../../_components/SectionHeading.svelte";
+  import TransportStrip from "../../_components/TransportStrip.svelte";
   import SampleKitPanel from "../../studio/_components/SampleKitPanel.svelte";
   import StudioPadLeds from "../../studio/_components/StudioPadLeds.svelte";
   import {
@@ -520,15 +523,26 @@
 
 <!-- minmax(0,1fr): let the track shrink below the 640px step grid so its overflow-x-auto scroller engages on phones. -->
 <div class="grid grid-cols-[minmax(0,1fr)] gap-6">
-  <section class="flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 sm:flex-row sm:items-start">
-    <div>
-      <h2 class="text-xl font-semibold tracking-tight">Studio</h2>
-      <p class="text-sm text-muted-foreground">
-        DAW-lite for the MPC pads — sequence a pattern and play it back. Complements your gear, doesn't replace it.
-      </p>
-    </div>
-    <div class="flex flex-wrap gap-2 sm:justify-end">
-      <Button type="button" variant="outline" onclick={clearGrid}>
+  <SectionHeading
+    title="Studio"
+    description="DAW-lite for the MPC pads: sequence a pattern and play it back. Complements your gear, doesn't replace it."
+  />
+
+  <!-- One transport strip above the surface: Play first, then the pattern's actions. -->
+  <TransportStrip>
+    <Button type="button" onclick={() => void togglePlay()}>
+      {#if playing}
+        <Pause class="size-4" aria-hidden="true" />Pause
+      {:else}
+        <Play class="size-4" aria-hidden="true" />Play
+      {/if}
+    </Button>
+    <span class="rounded-md bg-muted px-2.5 py-1.5 font-mono text-xs font-semibold text-muted-foreground">
+      {STEPS} steps · 1 bar
+    </span>
+    <span class="text-xs text-muted-foreground" role="status" aria-live="polite">{patternStatus}</span>
+    {#snippet actions()}
+      <Button type="button" variant="ghost" onclick={clearGrid}>
         <Trash2 class="size-4" aria-hidden="true" />Clear
       </Button>
       <Button type="button" variant="outline" onclick={exportPatternMidi}>
@@ -547,75 +561,59 @@
         {savingToSongStudio ? "Saving..." : "Save to Song Studio"}
       </Button>
       {#if savedSongId}
-        <Button href={`/music/songs/${savedSongId}`} variant="outline">
-          Open Song Studio
-        </Button>
+        <Button href={`/music/songs/${savedSongId}`} variant="outline">Open Song Studio</Button>
       {/if}
-      <Button type="button" onclick={() => void togglePlay()}>
-        {#if playing}
-          <Pause class="size-4" aria-hidden="true" />Pause
-        {:else}
-          <Play class="size-4" aria-hidden="true" />Play
-        {/if}
-      </Button>
-    </div>
-  </section>
+    {/snippet}
+  </TransportStrip>
 
-  <Card.Root>
-    <Card.Header class="flex-row items-center justify-between gap-2">
-      <Card.Description>Sequencer · Boom Bap</Card.Description>
-      <div class="flex flex-wrap items-center justify-end gap-2">
-        <span class="text-xs text-muted-foreground" role="status" aria-live="polite">{patternStatus}</span>
-        <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-          {STEPS} steps · 1 bar
-        </span>
-      </div>
-    </Card.Header>
-    <Card.Content>
-      <div class="overflow-x-auto">
-        <div class="min-w-[640px] space-y-1.5">
-          <!-- step ruler -->
-          <div class="flex items-center gap-1 pl-24">
-            {#each Array(STEPS) as _, step}
-              <div
-                class="flex-1 text-center text-[10px] font-semibold {activeStep === step
-                  ? 'text-primary'
-                  : 'text-muted-foreground'}"
-              >
-                {step % 4 === 0 ? step / 4 + 1 : ""}
-              </div>
-            {/each}
-          </div>
-
-          {#each sequencer.rows as row, rowIndex}
-            <div class="flex items-center gap-1">
-              <div class="flex w-24 items-center gap-2 pr-2">
-                <span class="size-2 rounded-full bg-primary/60"></span>
-                <span class="truncate text-xs font-semibold">{row.name}</span>
-              </div>
-              {#each Array(STEPS) as _, step}
-                <button
-                  type="button"
-                  aria-label="{row.name} step {step + 1}"
-                  aria-pressed={grid[rowIndex]?.[step] ?? false}
-                  onclick={() => toggleCell(rowIndex, step)}
-                  class="aspect-square flex-1 rounded-md border transition-colors {grid[rowIndex]?.[
-                    step
-                  ]
-                    ? 'border-primary bg-primary'
-                    : step % 4 === 0
-                      ? 'bg-muted/60 hover:bg-muted'
-                      : 'bg-background hover:bg-muted'} {activeStep === step
-                    ? 'ring-2 ring-primary/40'
-                    : ''}"
-                ></button>
-              {/each}
+  <!-- The grid on a hardware stage: row labels, beat numbers, a playhead, steps in the MPC hue. -->
+  <PracticeStage instrument="mpc" class="p-4 sm:p-5">
+    <p class="mb-3 eyebrow text-stage-muted">Sequencer · Boom Bap</p>
+    <div class="overflow-x-auto">
+      <div class="min-w-[640px] space-y-1.5">
+        <!-- step ruler -->
+        <div class="flex items-center gap-1 pl-24">
+          {#each Array(STEPS) as _, step}
+            <div
+              class="flex-1 text-center font-mono text-[10px] font-semibold {activeStep === step
+                ? 'text-practice-accent'
+                : 'text-stage-muted'}"
+            >
+              {step % 4 === 0 ? step / 4 + 1 : "·"}
             </div>
           {/each}
         </div>
+
+        {#each sequencer.rows as row, rowIndex}
+          <div class="flex items-center gap-1">
+            <div class="flex w-24 items-center gap-2 pr-2">
+              <span class="size-2 rounded-sm bg-instr"></span>
+              <span class="truncate text-xs font-semibold">{row.name}</span>
+            </div>
+            {#each Array(STEPS) as _, step}
+              <button
+                type="button"
+                aria-label="{row.name} step {step + 1}"
+                aria-pressed={grid[rowIndex]?.[step] ?? false}
+                onclick={() => toggleCell(rowIndex, step)}
+                class="aspect-square flex-1 rounded-md border transition-colors {grid[rowIndex]?.[
+                  step
+                ]
+                  ? step % 4 === 0
+                    ? 'border-transparent bg-instr'
+                    : 'border-transparent bg-instr/75'
+                  : step % 4 === 0
+                    ? 'border-stage-line bg-stage-2 hover:bg-stage-2/70'
+                    : 'border-stage-line/60 bg-transparent hover:bg-stage-2/60'} {activeStep === step
+                  ? 'ring-2 ring-practice-accent'
+                  : ''}"
+              ></button>
+            {/each}
+          </div>
+        {/each}
       </div>
-    </Card.Content>
-  </Card.Root>
+    </div>
+  </PracticeStage>
 
   {#if runtime.sampleKits}
     <SampleKitPanel
@@ -631,18 +629,18 @@
 
   <StudioPadLeds {runtime} {activeKit} />
 
-  <Card.Root>
-    <Card.Header><Card.Description>Pad bank · Boom Bap</Card.Description></Card.Header>
-    <Card.Content class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+  <PracticeStage instrument="mpc" class="p-4 sm:p-5">
+    <p class="mb-3 eyebrow text-stage-muted">Pad bank · Boom Bap · tap to audition</p>
+    <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
       {#each sequencer.rows as row}
         <button
           type="button"
           onclick={() => auditionPad(row.midi)}
-          class="grid aspect-square place-items-center rounded-xl bg-primary/15 text-sm font-bold text-primary transition-transform hover:scale-105 active:scale-95"
+          class="grid aspect-square place-items-center rounded-xl border border-stage-line bg-instr/25 text-sm font-bold text-stage-foreground shadow-[inset_0_1px_0_oklch(1_0_0/12%),0_3px_0_oklch(0_0_0/25%)] transition-transform hover:scale-[1.03] active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-practice-accent"
         >
           {row.name}
         </button>
       {/each}
-    </Card.Content>
-  </Card.Root>
+    </div>
+  </PracticeStage>
 </div>

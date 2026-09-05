@@ -48,6 +48,8 @@
   } from "./piano-roll-storage";
   import { SongLibrary } from "@repo/music-core/engines/song-library";
   import { PracticeStore } from "@repo/music-core/engines/store";
+  import SectionHeading from "../../_components/SectionHeading.svelte";
+  import TransportStrip from "../../_components/TransportStrip.svelte";
 
   interface SongStudioSaver {
     saveScore(score: Score): Promise<{ id: string; title: string }>;
@@ -601,16 +603,32 @@
   }
 </script>
 
-<div class="grid gap-6">
-  <section class="flex flex-col justify-between gap-4 rounded-lg border bg-card p-4">
-    <div>
-      <h2 class="text-xl font-semibold tracking-tight">Piano Roll</h2>
-      <p class="text-sm text-muted-foreground">
-        Multitrack note editor — sketch melodies and parts on a pitch × time grid, then play or export. {gridSummary()}, 4/4.
-      </p>
-    </div>
-    <div class="flex flex-wrap gap-2">
-      <Button type="button" variant="outline" onclick={() => clearTrack(activeVoiceId)}>
+<!-- minmax(0,1fr): let the track shrink below the grid so its own scroller engages on phones. -->
+<div class="grid grid-cols-[minmax(0,1fr)] gap-6">
+  <SectionHeading
+    title="Piano Roll"
+    description={`Multitrack note editor: sketch melodies and parts on a pitch × time grid, then play or export. ${gridSummary()}, 4/4.`}
+  />
+
+  <TransportStrip>
+    <Button type="button" onclick={() => void togglePlay()}>
+      {#if playing}
+        <Pause class="size-4" aria-hidden="true" />Pause
+      {:else}
+        <Play class="size-4" aria-hidden="true" />Play
+      {/if}
+    </Button>
+    <Button
+      type="button"
+      variant={resizeMode ? "default" : "outline"}
+      aria-pressed={resizeMode}
+      onclick={toggleResizeMode}
+    >
+      Resize notes
+    </Button>
+    <Button type="button" variant="outline" onclick={addBar}>Add bar</Button>
+    {#snippet actions()}
+      <Button type="button" variant="ghost" onclick={() => clearTrack(activeVoiceId)}>
         <Trash2 class="size-4" aria-hidden="true" />Clear track
       </Button>
       <Button type="button" variant="outline" onclick={() => void addTrack()}>Add track</Button>
@@ -622,15 +640,6 @@
       >
         Remove track
       </Button>
-      <Button
-        type="button"
-        variant={resizeMode ? "default" : "outline"}
-        aria-pressed={resizeMode}
-        onclick={toggleResizeMode}
-      >
-        Resize notes
-      </Button>
-      <Button type="button" variant="outline" onclick={addBar}>Add bar</Button>
       <Button type="button" variant="outline" onclick={exportMidi}>
         <Download class="size-4" aria-hidden="true" />Export MIDI
       </Button>
@@ -647,19 +656,10 @@
         {savingToSongStudio ? "Saving..." : "Save to Song Studio"}
       </Button>
       {#if savedSongId}
-        <Button href={`/music/songs/${savedSongId}`} variant="outline">
-          Open Song Studio
-        </Button>
+        <Button href={`/music/songs/${savedSongId}`} variant="outline">Open Song Studio</Button>
       {/if}
-      <Button type="button" onclick={() => void togglePlay()}>
-        {#if playing}
-          <Pause class="size-4" aria-hidden="true" />Pause
-        {:else}
-          <Play class="size-4" aria-hidden="true" />Play
-        {/if}
-      </Button>
-    </div>
-  </section>
+    {/snippet}
+  </TransportStrip>
 
   {#if pendingTakeImport}
     <section class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
