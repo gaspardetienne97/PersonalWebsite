@@ -11,7 +11,8 @@ test.describe("music progress workflows", () => {
     // The mastery grid shows eight skills until expanded.
     await page.getByRole("button", { name: /^Show all \d+ skills$/ }).click();
     await expect(page.getByText("Quarter-Note Pulse")).toBeVisible();
-    await expect(page.getByText("Weak spots", { exact: true })).toBeVisible();
-    await expect(page.getByText("Streak calendar", { exact: true })).toBeVisible();
+    // Weak spots fold into the "Practise next" list; the calendar keeps its own heading.
+    await expect(page.getByText("Weak spots and today's challenge", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Streak calendar" })).toBeVisible();
   });
 });
