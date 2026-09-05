@@ -20,8 +20,7 @@
   import { cn } from "@repo/ui/utils";
 
   import InstrumentView from "../../_components/InstrumentView.svelte";
-  import PracticeScreen from "../../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SectionHeading from "../../_components/SectionHeading.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import { useMusicRuntime } from "../../_runtime.svelte";
 
@@ -100,19 +99,9 @@
   }
 </script>
 
-<svelte:head>
-  <title>Chord &amp; Scale Reference | Practice OS</title>
-  <meta
-    name="description"
-    content="Explore, hear, and save chord and scale theory across piano, guitar, and ukulele."
-  />
-</svelte:head>
 
-  <PracticeScreen>
-    <PracticeScreenHeader level={2} compact
-    title="Chord & Scale Reference"
-    subtitle="Every chord and scale, voiced for every instrument."
-  />
+  <div class="grid min-w-0 gap-6">
+    <SectionHeading title="Chord & Scale Reference" description="Every chord and scale, voiced for every instrument." />
 
   <section class="grid min-w-0 gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
     <aside class="min-w-0 space-y-4" aria-label="Theory catalog">
@@ -285,4 +274,4 @@
       </article>
     {/if}
   </section>
-</PracticeScreen>
+</div>

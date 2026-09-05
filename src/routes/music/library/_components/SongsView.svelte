@@ -13,8 +13,7 @@
   import { Empty } from "@repo/ui/empty";
   import { Skeleton } from "@repo/ui/skeleton";
 
-  import PracticeScreen from "../../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SectionHeading from "../../_components/SectionHeading.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface SongLibraryLike {
@@ -147,19 +146,9 @@
   }
 </script>
 
-<svelte:head>
-  <title>Songs | Practice OS</title>
-  <meta
-    name="description"
-    content="Reopen saved imported songs, replay them, and log repertoire practice."
-  />
-</svelte:head>
 
-<PracticeScreen>
-  <PracticeScreenHeader level={2} compact
-    title="Song Library"
-    subtitle="Saved repertoire from imported MIDI files. Reopen, replay, and log song practice."
-  />
+<div class="grid min-w-0 gap-6">
+  <SectionHeading title="Song Library" description="Saved repertoire from imported MIDI files. Reopen, replay, and log song practice." />
 
   <section class="grid min-w-0 gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
     <Card.Root class="min-w-0">
@@ -273,4 +262,4 @@
       <p class="text-sm text-muted-foreground" role="status">{status}</p>
     </div>
   </section>
-</PracticeScreen>
+</div>

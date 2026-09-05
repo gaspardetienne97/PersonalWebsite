@@ -7,6 +7,7 @@
   let {
     title,
     eyebrow,
+    description,
     level = 2,
     action,
     id,
@@ -14,6 +15,8 @@
   }: {
     title: string;
     eyebrow?: string;
+    /** One sentence under the title. */
+    description?: string;
     level?: 2 | 3;
     action?: Snippet;
     id?: string;
@@ -31,6 +34,7 @@
     >
       {title}
     </svelte:element>
+    {#if description}<p class="mt-1 text-sm text-muted-foreground">{description}</p>{/if}
   </div>
   {#if action}
     <div class="flex shrink-0 items-center gap-2">{@render action()}</div>

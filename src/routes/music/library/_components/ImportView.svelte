@@ -25,8 +25,7 @@
   import * as Card from "@repo/ui/card";
   import { onDestroy } from "svelte";
 
-  import PracticeScreen from "../../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SectionHeading from "../../_components/SectionHeading.svelte";
   import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
@@ -205,15 +204,9 @@
   }
 </script>
 
-<svelte:head>
-  <title>Import & Play | Practice OS</title>
-</svelte:head>
 
-<PracticeScreen>
-  <PracticeScreenHeader level={2} compact
-    title="Import & Play-Along"
-    subtitle="Import MIDI or MusicXML locally, then save the canonical score to your repertoire."
-  />
+<div class="grid min-w-0 gap-6">
+  <SectionHeading title="Import & Play-Along" description="Import MIDI or MusicXML locally, then save the canonical score to your repertoire." />
 
   <!-- Drop zone -->
   <button
@@ -383,4 +376,4 @@
       </Card.Content>
     </Card.Root>
   {/if}
-</PracticeScreen>
+</div>

@@ -28,8 +28,7 @@
   import { Progress } from "@repo/ui/progress";
 
   import { createBasicPitchExtractor } from "../../transcribe/basic-pitch-extractor";
-  import PracticeScreen from "../../_components/PracticeScreen.svelte";
-  import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import SectionHeading from "../../_components/SectionHeading.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface TranscriptionSaver {
@@ -301,19 +300,9 @@
   }
 </script>
 
-<svelte:head>
-  <title>Transcription Trainer | Practice OS</title>
-  <meta
-    name="description"
-    content="Draft an audio transcription locally and save it as a canonical practice score."
-  />
-</svelte:head>
 
-<PracticeScreen>
-  <PracticeScreenHeader level={2} compact
-    title="Transcription Trainer"
-    subtitle="Extract notes locally from an audio file, edit or enter them manually, then practice and save a canonical transcription score."
-  />
+<div class="grid min-w-0 gap-6">
+  <SectionHeading title="Transcription Trainer" description="Extract notes locally from an audio file, edit or enter them manually, then practice and save a canonical transcription score." />
 
   <section class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
     <Card.Root>
@@ -493,4 +482,4 @@
       </Card.Root>
     </aside>
   </section>
-</PracticeScreen>
+</div>
