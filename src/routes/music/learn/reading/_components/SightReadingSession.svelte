@@ -29,6 +29,7 @@
     observedMidiNotes = [],
     microphone,
     onAccepted,
+    onHint,
     onStart,
     onFinish,
   }: {
@@ -45,6 +46,8 @@
     /** The route's microphone control, shown right under the keyboard it tints. */
     microphone?: Snippet;
     onAccepted: (event: NoteEvent) => void;
+    /** Records the phrase as hinted; the route owns the session that stores it. */
+    onHint: () => void;
     onStart: () => Promise<number | undefined>;
     onFinish: () => Promise<void>;
   } = $props();
@@ -101,15 +104,28 @@
       ),
     };
   });
-  // Wait mode is follower-driven, so the on-screen surface must drop its local
-  // holds whenever the follower moves on. The session index is the generation:
-  // a fresh phrase restarts at group 0 and still counts as a change.
-  const waitGroupKey = $derived(
-    mode === "wait"
-      ? `${sessionState.currentIndex}:${currentGroup?.id ?? live?.currentGroupIndex ?? 0}`
-      : undefined,
+  // Identity of the group being played, within one phrase. Two phrases with the
+  // same setup produce the same key (the score id comes from the options, not
+  // the notes), so nothing may rely on it to separate phrases.
+  const groupKey = $derived(
+    `${sessionState.currentIndex}:${currentGroup?.id ?? live?.currentGroupIndex ?? 0}`,
   );
+  // Wait mode is follower-driven, so the on-screen surface must drop its local
+  // holds whenever the follower moves on.
+  const waitGroupKey = $derived(mode === "wait" ? groupKey : undefined);
+  // Sight-reading is read, not copied: the expected keys stay dark until the
+  // player asks for them, and the ask is spent on that one group. The session's
+  // own hint flag scopes it to the phrase - it is cleared whenever a phrase is
+  // prepared - so a new phrase can never open pre-hinted.
+  let hintedGroupKey = $state<string>();
+  const hinted = $derived(sessionState.hintUsed === true && hintedGroupKey === groupKey);
   let startTimestampMs = $state(0);
+
+  function revealHint(): void {
+    if (hinted) return;
+    hintedGroupKey = groupKey;
+    onHint();
+  }
 
   // Opt-in fretboard reveal for guitar/ukulele — hidden by default so it
   // doesn't short-circuit reading the staff.
@@ -198,6 +214,7 @@
             router={router}
             activeMidiNotes={live?.heldMidiNotes ?? []}
             wrongMidiNotes={live?.wrongMidiNotes ?? []}
+            showTargets={hinted}
             {observedMidiNotes}
             {pianoHandHint}
             {waitGroupKey}
@@ -205,6 +222,19 @@
             onExpectedNoteSelected={playExpected}
             {onAccepted}
           />
+          {#if !complete}
+            <!-- aria-disabled, not disabled: a spent hint must not drop the
+                 focus a keyboard user just put on it, mid-phrase. -->
+            <Button
+              type="button"
+              variant="outline"
+              class="min-h-11 justify-self-start"
+              aria-disabled={hinted}
+              onclick={revealHint}
+            >
+              {hinted ? "Hint shown for this group" : "Show a hint"}
+            </Button>
+          {/if}
           {#if microphone}{@render microphone()}{/if}
         {/if}
 

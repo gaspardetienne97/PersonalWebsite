@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
 
-import { createTwoHandIndependenceExercise } from "./two-hand-independence";
+import { createTwoHandIndependenceExercise, type TwoHandLiveState } from "./two-hand-independence";
 
 describe("createTwoHandIndependenceExercise", () => {
   test("builds a steady LH pulse against a faster RH line", () => {
@@ -202,6 +202,132 @@ describe("createTwoHandIndependenceExercise", () => {
     expect(prompt.payload.label).not.toContain("dynamics");
   });
 });
+
+describe("contrary-five (P1 Mirror hands)", () => {
+  const exercise = createTwoHandIndependenceExercise({
+    tonic: "C4",
+    bpm: 60,
+    bars: 2,
+    patternKind: "contrary-five",
+  });
+  const prompt = exercise.generate({ targetSkillIds: [], difficulty: 0.4 }).payload;
+
+  test("walks the hands outward and back from the C3 / C4 thumbs", () => {
+    expect(prompt.rightMidiNotes).toEqual([60, 62, 64, 65, 67, 65, 64, 62]);
+    expect(prompt.leftMidiNotes).toEqual([48, 47, 45, 43, 41, 43, 45, 47]);
+    expect(prompt.targetEvents.map((event) => event.beat)).toEqual([
+      0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7,
+    ]);
+    expect(prompt.splitMidi).toBe(54);
+    expect(prompt.patternLabel).toBe("Mirror hands");
+  });
+
+  test("shows the same finger number in both hands on every beat", () => {
+    const fingers = (hand: "left" | "right") =>
+      prompt.targetEvents.filter((event) => event.hand === hand).map((event) => event.finger);
+    expect(fingers("right")).toEqual([1, 2, 3, 4, 5, 4, 3, 2]);
+    expect(fingers("left")).toEqual(fingers("right"));
+  });
+
+  test("counts a beat as together within the window and not beyond it", () => {
+    const beatMs = prompt.beatMs;
+    const play = (offsets: number[]) => {
+      const run = exercise.createRun(exercise.generate({ targetSkillIds: [], difficulty: 0.4 }), {
+        targetSkillIds: [],
+        difficulty: 0.4,
+      });
+      prompt.leftMidiNotes.forEach((pitch, beat) => run.accept(midiNote(pitch, beat * beatMs)));
+      prompt.rightMidiNotes.forEach((pitch, beat) =>
+        run.accept(midiNote(pitch, beat * beatMs + offsets[beat]!)),
+      );
+      return run.finish().answer;
+    };
+
+    const onTime = play([40, 40, 40, 40, 40, 40, 40, 40]);
+    expect(onTime!.togetherBeats).toBe(8);
+    expect(onTime!.togetherTotal).toBe(8);
+
+    const late = play([40, 60, 40, 60, 40, 60, 40, 60]);
+    expect(late!.togetherBeats).toBe(4);
+  });
+
+  test("a dropped left-hand note costs its own beat, not every beat after it", () => {
+    const beatMs = prompt.beatMs;
+    const context = { targetSkillIds: [], difficulty: 0.4 };
+    const run = exercise.createRun(exercise.generate(context), context);
+    prompt.leftMidiNotes.forEach((pitch, beat) => {
+      if (beat === 2) return; // the left hand misses beat 3 entirely
+      run.accept(midiNote(pitch, beat * beatMs));
+    });
+    prompt.rightMidiNotes.forEach((pitch, beat) => run.accept(midiNote(pitch, beat * beatMs + 10)));
+    const answer = run.finish().answer!;
+    expect(answer.togetherBeats).toBe(7);
+    expect(answer.togetherTotal).toBe(8);
+  });
+
+  test("does not measure together when every note came from the on-screen keyboard", () => {
+    const beatMs = prompt.beatMs;
+    const context = { targetSkillIds: [], difficulty: 0.4 };
+    const run = exercise.createRun(exercise.generate(context), context);
+    // Perfectly simultaneous taps, which an on-screen keyboard cannot actually produce.
+    prompt.leftMidiNotes.forEach((pitch, beat) => run.accept(note(pitch, beat * beatMs)));
+    prompt.rightMidiNotes.forEach((pitch, beat) => run.accept(note(pitch, beat * beatMs)));
+    const result = run.finish();
+    expect(result.answer!.togetherBeats).toBeUndefined();
+    expect(result.feedback.map((item) => item.message).join(" ")).toContain(
+      "Together not measured — an on-screen keyboard plays one hand at a time.",
+    );
+  });
+
+  test("leaves the other patterns without a together readout", () => {
+    const context = { targetSkillIds: [], difficulty: 0.4 };
+    const pulse = createTwoHandIndependenceExercise({ tonic: "C4", bpm: 60, bars: 1 });
+    const run = pulse.createRun(pulse.generate(context), context);
+    run.accept(midiNote(36, 0));
+    run.accept(midiNote(60, 10));
+    const result = run.finish();
+    expect(result.answer!.togetherBeats).toBeUndefined();
+    expect(result.feedback.map((item) => item.message).join(" ")).not.toContain("Together");
+  });
+
+  test("reports per-beat together flags live", () => {
+    const run = exercise.createRun(exercise.generate({ targetSkillIds: [], difficulty: 0.4 }), {
+      targetSkillIds: [],
+      difficulty: 0.4,
+    });
+    run.accept(midiNote(48, 0));
+    run.accept(midiNote(60, 30));
+    run.accept(midiNote(47, prompt.beatMs));
+    run.accept(midiNote(62, prompt.beatMs + 100));
+    expect((run.getLiveState() as TwoHandLiveState).togetherFlags).toEqual([true, false]);
+  });
+
+  test("does not measure together on a single-hand run", () => {
+    const rightOnly = createTwoHandIndependenceExercise({
+      tonic: "C4",
+      bpm: 60,
+      bars: 2,
+      patternKind: "contrary-five",
+      handMode: "right",
+    });
+    const context = { targetSkillIds: [], difficulty: 0.4 };
+    const run = rightOnly.createRun(rightOnly.generate(context), context);
+    prompt.rightMidiNotes.forEach((pitch, beat) =>
+      run.accept(midiNote(pitch, beat * prompt.beatMs)),
+    );
+    const result = run.finish();
+    expect(result.answer!.togetherBeats).toBeUndefined();
+    expect((run.getLiveState() as TwoHandLiveState).togetherFlags).toBeUndefined();
+    expect(result.feedback.map((item) => item.message).join(" ")).toContain(
+      "Together not measured",
+    );
+  });
+});
+
+/** MIDI is the only source that can show two hands arriving together. */
+function midiNote(pitch: number, atMs: number): NoteOnEvent {
+  return { ...note(pitch, atMs), source: "midi" };
+}
 
 function note(midiNote: number, atMs: number, velocity = 1): NoteOnEvent {
   return {

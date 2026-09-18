@@ -7,8 +7,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/tes
 import { render } from "vitest-browser-svelte";
 import { tick } from "svelte";
 
-import { MusicRuntime } from "../../_runtime.svelte";
-import Panel from "./RecorderPanel.svelte";
+import { MusicRuntime } from "../_runtime.svelte";
+import { setTestUrl } from "../_components/test-url";
+import Panel from "./+page.svelte";
+
+/** Take names are inline-editable inputs, so they are not page text. */
+function takeNameField(name: string): HTMLInputElement | null {
+  return document.querySelector<HTMLInputElement>(`[aria-label="Take name for ${name}"]`);
+}
 
 function button(match: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find((candidate) =>
@@ -25,6 +31,7 @@ class ReviewAudio {
 }
 
 beforeEach(() => {
+  setTestUrl("/music/record");
   vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
   vi.spyOn(MusicRuntime.prototype, "beginPerformance").mockResolvedValue({
     status: "started",
@@ -33,12 +40,14 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setTestUrl("/");
   vi.restoreAllMocks();
 });
 
-describe("RecorderPanel", () => {
+describe("/music/record/+page.svelte", () => {
   test("renders takes, compare, and capture surfaces", () => {
     render(Panel);
+    expect(document.querySelector("h1")?.textContent).toContain("Record");
     expect(document.body.textContent).toContain("Recording & Self-Review");
     expect(document.body.textContent).toContain("Takes");
     expect(document.body.textContent).toContain("No takes yet");
@@ -59,7 +68,7 @@ describe("RecorderPanel", () => {
     await vi.waitFor(() => expect(button("Stop · 1")).not.toBeUndefined());
 
     button("Stop")?.click();
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Take 1"));
+    await vi.waitFor(() => expect(takeNameField("Take 1")).not.toBeNull());
     expect(document.body.textContent).toContain("1 notes");
   });
 
@@ -197,6 +206,28 @@ describe("RecorderPanel", () => {
     expect(button("New recording")).not.toBeUndefined();
   });
 
+  test("leaving the page mid-recording ends the microphone recorder", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(AudioTakeRecorder.prototype, "prepare").mockResolvedValue();
+    vi.spyOn(AudioTakeRecorder.prototype, "start").mockImplementation(() => {});
+    const cancel = vi.spyOn(AudioTakeRecorder.prototype, "cancel").mockResolvedValue(undefined);
+    const view = render(Panel, { runtime });
+
+    document.querySelector<HTMLButtonElement>('[aria-label="Arm microphone"]')?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Disarm microphone"]')).not.toBeNull(),
+    );
+    button("New recording")?.click();
+    await vi.waitFor(() => expect(AudioTakeRecorder.prototype.start).toHaveBeenCalledOnce());
+
+    const cancelsBeforeUnmount = cancel.mock.calls.length;
+    view.unmount();
+
+    // The stream and the MediaRecorder must end with the page, or the browser
+    // keeps recording for the rest of the session.
+    expect(cancel.mock.calls.length).toBeGreaterThan(cancelsBeforeUnmount);
+  });
+
   test("keeps recorder setup when playback voice activation fails", async () => {
     const runtime = new MusicRuntime();
     runtime.audioMessage = "Playback voice unavailable.";
@@ -271,7 +302,46 @@ describe("RecorderPanel", () => {
     } as unknown as MusicRuntime["media"];
 
     render(Panel, { runtime });
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Saved riff"));
+    await vi.waitFor(() => expect(takeNameField("Saved riff")).not.toBeNull());
+  });
+
+  test("?take= opens on that take and ?from= prefills the follow-up note", async () => {
+    setTestUrl("/music/record?take=take-7&from=/music/play/two-hand");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "readLocalState").mockImplementation(async (id) =>
+      id === "music.recording.midi-takes" ? ([midiTake()] as never) : (undefined as never),
+    );
+    runtime.media = {
+      listTakes: vi.fn().mockResolvedValue([]),
+      usage: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MusicRuntime["media"];
+
+    render(Panel, { runtime });
+    await vi.waitFor(() => expect(takeNameField("Saved riff")).not.toBeNull());
+    expect(document.body.textContent).toContain("Recording after Two-Hand Independence");
+    expect(document.querySelector('[aria-label="Note for Saved riff"]')).not.toBeNull();
+  });
+
+  test("a take recorded after a drill carries the follow-up note", async () => {
+    setTestUrl("/music/record?from=/music/play/mpc");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "readLocalState").mockResolvedValue(undefined as never);
+    vi.spyOn(runtime, "writeLocalState").mockResolvedValue(undefined);
+
+    render(Panel, { runtime });
+    button("New recording")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    [...document.querySelectorAll<HTMLButtonElement>("button")]
+      .find((candidate) => candidate.textContent?.trim() === "C4")
+      ?.click();
+    await vi.waitFor(() => expect(button("Stop \u00b7 1")).not.toBeUndefined());
+    button("Stop")?.click();
+
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector<HTMLInputElement>('[aria-label="Note for Take 1"]')?.value,
+      ).toBe("Recording after MPC Rudiments"),
+    );
   });
 
   test("plays, pauses, completes, and tears down MIDI-only take playback locally", async () => {
@@ -286,7 +356,7 @@ describe("RecorderPanel", () => {
     const playPattern = vi.spyOn(runtime.sound, "playPattern");
     const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
     const view = render(Panel, { runtime });
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Saved riff"));
+    await vi.waitFor(() => expect(takeNameField("Saved riff")).not.toBeNull());
 
     button("Play")?.click();
     await vi.waitFor(() => expect(playPattern).toHaveBeenCalledOnce());
@@ -332,6 +402,34 @@ describe("RecorderPanel", () => {
         expect.arrayContaining([expect.objectContaining({ notes: expect.any(Array) })]),
       ),
     );
+  });
+
+  test("renames a restored MIDI take on the card and persists the new name", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "readLocalState").mockImplementation(async (id) =>
+      id === "music.recording.midi-takes" ? ([midiTake()] as never) : (undefined as never),
+    );
+    const writeSpy = vi.spyOn(runtime, "writeLocalState").mockResolvedValue(undefined);
+    runtime.media = {
+      listTakes: vi.fn().mockResolvedValue([]),
+      usage: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MusicRuntime["media"];
+
+    render(Panel, { runtime });
+    await vi.waitFor(() => expect(takeNameField("Saved riff")).not.toBeNull());
+
+    const name = takeNameField("Saved riff");
+    expect(name).not.toBeNull();
+    name!.value = "Bridge idea";
+    name!.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await vi.waitFor(() =>
+      expect(writeSpy).toHaveBeenCalledWith("music.recording.midi-takes", [
+        expect.objectContaining({ id: "take-7", name: "Bridge idea" }),
+      ]),
+    );
+    expect(takeNameField("Bridge idea")?.value).toBe("Bridge idea");
+    expect(document.querySelectorAll("[data-take-roll]")).toHaveLength(1);
   });
 
   test("sends a recorded MIDI take to the Piano Roll import flow", async () => {
@@ -439,7 +537,7 @@ describe("RecorderPanel", () => {
 
     render(Panel, { runtime });
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Practice Lab take.webm"));
+    await vi.waitFor(() => expect(takeNameField("Practice Lab take.webm")).not.toBeNull());
     expect(document.body.textContent).toContain("Audio takes");
     expect(document.querySelector('[aria-label="Play synchronized take"]')).not.toBeNull();
   });
@@ -470,7 +568,7 @@ describe("RecorderPanel", () => {
     } as unknown as MusicRuntime["media"];
 
     const view = render(Panel, { runtime });
-    await vi.waitFor(() => expect(document.body.textContent).toContain("First take"));
+    await vi.waitFor(() => expect(takeNameField("First take")).not.toBeNull());
     button("Play take")?.click();
     await vi.waitFor(() => expect(created).toHaveLength(1));
     expect(created[0]!.volume).toBeCloseTo(0.4);

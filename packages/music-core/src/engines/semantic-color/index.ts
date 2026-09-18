@@ -12,8 +12,19 @@
 /** A meaning-bearing tone backed by a CSS token (never a raw color). */
 export type SemanticTone = "success" | "warn" | "error" | "info";
 
-/** Diverging classification for a timing/intonation meter. */
+/**
+ * Diverging classification of a signed reading against a ±tolerance window.
+ * The names are read from the *value's* side, not the beat's, so the tuner can
+ * rename them to flat/in-tune/sharp. Timing code wants {@link timingVerdict},
+ * which speaks in early/late.
+ */
 export type TimingZone = "behind" | "pocket" | "ahead";
+
+/**
+ * Where a hit sat relative to the beat. Every scorer computes
+ * `errorMs = hit − expected`, so a positive error means the hit arrived *late*.
+ */
+export type TimingVerdict = "early" | "pocket" | "late";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -39,14 +50,23 @@ export function accuracyTone(ratio: number): SemanticTone {
 }
 
 /**
- * Classify a timing offset for a diverging meter. `offsetMs` follows the app's
- * convention: negative = behind the beat, positive = ahead. Within ±`pocketMs`
- * counts as "in the pocket". The same shape drives the Phase-2 tuner
- * (flat/in-tune/sharp).
+ * Bucket a signed reading against a ±`pocketMs` window: below the window,
+ * inside it, above it. The tuner renames the buckets to flat/in-tune/sharp.
+ * Timing callers want {@link timingVerdict} instead — with `errorMs` being
+ * `hit − expected`, a positive reading is a *late* hit, not an early one.
  */
 export function timingZone(offsetMs: number, pocketMs = 15): TimingZone {
   if (Math.abs(offsetMs) <= pocketMs) return "pocket";
   return offsetMs < 0 ? "behind" : "ahead";
+}
+
+/**
+ * Classify a scorer's `errorMs` (`hit − expected`) for a timing meter: negative
+ * is an early hit, positive a late one, within ±`pocketMs` is in the pocket.
+ */
+export function timingVerdict(errorMs: number, pocketMs = 15): TimingVerdict {
+  if (Math.abs(errorMs) <= pocketMs) return "pocket";
+  return errorMs < 0 ? "early" : "late";
 }
 
 /**

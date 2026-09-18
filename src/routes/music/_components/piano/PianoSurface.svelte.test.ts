@@ -2,8 +2,10 @@ import { tick } from "svelte";
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import type { NoteEvent } from "@repo/music-core/domain";
+import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
 import { InputRouter } from "@repo/music-core/engines/input-router";
+
+import "../../../../app.css";
 
 import PianoSurface from "./PianoSurface.svelte";
 import { keyPercent, noteLane, pianoGeometry } from "./piano-geometry";
@@ -520,5 +522,47 @@ describe("PianoSurface input", () => {
     expect(pairs(routed)).toEqual(["noteOn:60", "noteOn:64"]);
     await tick();
     expect(key("C4").getAttribute("aria-pressed")).toBe("true");
+  });
+
+  test("router noteOn events from midi mark keys active independently, and noteOff releases just one", async () => {
+    const { router } = setup();
+    render(PianoSurface, { router, notes: ["C4", "E4"] });
+    await tick();
+
+    router.noteOn(60, "midi", "piano");
+    router.noteOn(64, "midi", "piano");
+    await tick();
+    expect(key("C4").dataset.state).toBe("active");
+    expect(key("E4").dataset.state).toBe("active");
+
+    router.push({
+      type: "noteOff",
+      midiNote: 60,
+      source: "midi",
+      instrument: "piano",
+      timestamp: monotonicMs(0),
+      clock: "performance",
+    });
+    await tick();
+    expect(key("C4").dataset.state).toBe("neutral");
+    expect(key("E4").dataset.state).toBe("active");
+  });
+
+  test("a latched, focused white key's inset focus never covers the black key beside it", async () => {
+    const { router } = setup();
+    render(PianoSurface, { router, notes: ["C4", "D4"] });
+    await tick();
+
+    const d4 = key("D4");
+    d4.focus();
+    activate("D4", "Enter"); // latch it
+    await tick();
+    expect(d4.getAttribute("aria-pressed")).toBe("true");
+    expect(document.activeElement).toBe(d4);
+
+    const sharp = key("C#4");
+    const rect = sharp.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    expect(hit?.closest("[data-note]")).toBe(sharp);
   });
 });

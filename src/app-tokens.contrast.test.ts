@@ -28,7 +28,7 @@ const themes = {
   dark: { ...root, ...dark, ...musicDark },
 };
 
-function oklchToLuminance(value: string, vars: Record<string, string>): number {
+function resolveLinearRgb(value: string, vars: Record<string, string>): [number, number, number] {
   const resolved = value.replace(/var\(--([\w-]+)\)/g, (_, name) => vars[name] ?? "");
   const match = /oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)/.exec(resolved);
   if (!match) throw new Error(`not an oklch colour: ${value}`);
@@ -45,12 +45,53 @@ function oklchToLuminance(value: string, vars: Record<string, string>): number {
   const g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
   const bl = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
   const clamp = (x: number) => Math.min(1, Math.max(0, x));
-  return 0.2126 * clamp(r) + 0.7152 * clamp(g) + 0.0722 * clamp(bl);
+  return [clamp(r), clamp(g), clamp(bl)];
+}
+
+function luminanceOf([r, g, bl]: [number, number, number]): number {
+  return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+}
+
+function oklchToLuminance(value: string, vars: Record<string, string>): number {
+  return luminanceOf(resolveLinearRgb(value, vars));
 }
 
 function ratio(fg: string, bg: string, vars: Record<string, string>): number {
   const a = oklchToLuminance(vars[fg]!, vars) + 0.05;
   const b = oklchToLuminance(vars[bg]!, vars) + 0.05;
+  return a > b ? a / b : b / a;
+}
+
+const SRGB_GAMMA_THRESHOLD = 0.0031308;
+const SRGB_LINEAR_THRESHOLD = 0.04045;
+
+function linearToGamma(c: number): number {
+  return c <= SRGB_GAMMA_THRESHOLD ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055;
+}
+
+function gammaToLinear(c: number): number {
+  return c <= SRGB_LINEAR_THRESHOLD ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+/**
+ * Contrast of an opaque `fg` token against a translucent `tint` (e.g. a
+ * `bg-primary/10` badge fill) painted over `base`. Alpha compositing happens
+ * in gamma-encoded sRGB, the same space the browser paints in, not linear
+ * light.
+ */
+function ratioAgainstTint(
+  fg: string,
+  tint: string,
+  alpha: number,
+  base: string,
+  vars: Record<string, string>,
+): number {
+  const tintRgb = resolveLinearRgb(vars[tint]!, vars).map(linearToGamma);
+  const baseRgb = resolveLinearRgb(vars[base]!, vars).map(linearToGamma);
+  const blended = tintRgb.map((channel, index) => alpha * channel + (1 - alpha) * baseRgb[index]!);
+  const tintLuminance = luminanceOf(blended.map(gammaToLinear) as [number, number, number]);
+  const a = oklchToLuminance(vars[fg]!, vars) + 0.05;
+  const b = tintLuminance + 0.05;
   return a > b ? a / b : b / a;
 }
 
@@ -93,5 +134,27 @@ const TEXT_PAIRS: [string, string][] = [
 describe.each(Object.entries(themes))("music tokens · %s", (_name, vars) => {
   test.each(TEXT_PAIRS)("%s on %s reads at 4.5:1", (fg, bg) => {
     expect(ratio(fg, bg, vars)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+/**
+ * Non-text UI (WCAG 1.4.11): the progress fill against its track, and a
+ * selected/focused boundary against the page it sits on.
+ */
+const UI_PAIRS: [string, string][] = [
+  ["primary", "muted"], // progress indicator fill vs. track
+  ["primary", "background"], // selection border vs. background
+];
+
+describe.each(Object.entries(themes))("music tokens · %s (3:1 UI)", (_name, vars) => {
+  test.each(UI_PAIRS)("%s on %s reads at 3:1", (fg, bg) => {
+    expect(ratio(fg, bg, vars)).toBeGreaterThanOrEqual(3);
+  });
+
+  // InstrumentBadge is the only remaining text-primary-on-tint pair (a
+  // bg-primary/10 fill over its containing card); HudTile's accent tone sits
+  // on plain `card`, already covered above at the stricter 4.5:1 bar.
+  test("InstrumentBadge's text-primary on its primary/10 tint (over card) reads at 3:1", () => {
+    expect(ratioAgainstTint("primary", "primary", 0.1, "card", vars)).toBeGreaterThanOrEqual(3);
   });
 });

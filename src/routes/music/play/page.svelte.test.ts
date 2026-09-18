@@ -24,6 +24,11 @@ class PracticeReviewAudio {
   removeEventListener(): void {}
 }
 
+/** Take names are inline-editable inputs, so they are not page text. */
+function takeNameField(name: string): HTMLInputElement | null {
+  return document.querySelector<HTMLInputElement>(`[aria-label="Take name for ${name}"]`);
+}
+
 function button(name: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (candidate) =>
@@ -82,7 +87,7 @@ describe("/music/play/+page.svelte", () => {
     const usage = vi.fn().mockResolvedValue(undefined);
     runtime.media = { listBackings, listTakes, usage } as unknown as MusicRuntime["media"];
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Restored first take"));
+    await vi.waitFor(() => expect(takeNameField("Restored first take")).not.toBeNull());
     button("Imported backing")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Backing loop.wav"));
     button("Select take Restored second take")?.click();
@@ -90,6 +95,30 @@ describe("/music/play/+page.svelte", () => {
     expect(listBackings).toHaveBeenCalledOnce();
     expect(listTakes).toHaveBeenCalledOnce();
     expect(usage).toHaveBeenCalledOnce();
+  });
+
+  test("renames a saved take through the media library and refreshes just that card", async () => {
+    const runtime = new MusicRuntime();
+    const updateTake = vi
+      .fn()
+      .mockResolvedValue({ ...practiceTake("take-1", "Morning warmup"), gainDb: undefined });
+    const listTakes = vi.fn().mockResolvedValue([practiceTake("take-1", "Practice take")]);
+    runtime.media = {
+      listBackings: vi.fn().mockResolvedValue([]),
+      listTakes,
+      usage: vi.fn().mockResolvedValue(undefined),
+      updateTake,
+    } as unknown as MusicRuntime["media"];
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(takeNameField("Practice take")).not.toBeNull());
+    const field = takeNameField("Practice take")!;
+    field.value = "Morning warmup";
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await vi.waitFor(() => expect(takeNameField("Morning warmup")).not.toBeNull());
+    expect(updateTake).toHaveBeenCalledWith("take-1", { name: "Morning warmup" });
+    expect(listTakes).toHaveBeenCalledOnce(); // the returned row refreshes the card, no reload
   });
 
   test("gates generated backing before publishing playing state and reports activation failure", async () => {
@@ -837,7 +866,7 @@ describe("/music/play/+page.svelte", () => {
     } as unknown as MusicRuntime["media"];
     const view = render(Page, { runtime });
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("First practice take"));
+    await vi.waitFor(() => expect(takeNameField("First practice take")).not.toBeNull());
     const reviewButton = document.querySelector<HTMLButtonElement>(
       '[aria-label="Play synchronized take"]',
     );

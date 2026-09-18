@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { page } from "$app/stores";
 
   import PracticeScreen from "../_components/PracticeScreen.svelte";
@@ -7,29 +8,45 @@
   import { syncRouteQuery } from "../_components/route-state";
   import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import PianoRollPanel from "./_components/PianoRollPanel.svelte";
-  import RecorderPanel from "./_components/RecorderPanel.svelte";
   import StudioPanel from "./_components/StudioPanel.svelte";
 
-  type CreateMode = "beat" | "piano-roll" | "recorder";
+  type CreateMode = "beat" | "piano-roll";
 
   const modes = [
     { value: "beat", label: "Beat grid" },
     { value: "piano-roll", label: "Piano roll" },
-    { value: "recorder", label: "Recorder" },
   ];
 
-  let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
+  let {
+    runtime = useMusicRuntime(),
+    navigate = goto,
+  }: {
+    runtime?: MusicRuntime;
+    navigate?: (href: string, options?: { replaceState?: boolean }) => unknown;
+  } = $props();
   let mode = $state<CreateMode>("beat");
 
   $effect(() => {
     // Shallow updates retain page.url; the address bar owns the current mode.
     const pageUrl = $page.url;
     const search = typeof window === "undefined" ? pageUrl?.search ?? "" : window.location.search;
-    mode = normalizeMode(new URLSearchParams(search).get("mode"));
+    const params = new URLSearchParams(search);
+    const requested = params.get("mode");
+    // The recorder is its own destination now; the old mode still routes there,
+    // carrying every other param (a bookmarked ?mode=recorder&bpm=132 keeps its
+    // tempo) and dropping only the mode that no longer exists here.
+    if (requested === "recorder") {
+      params.delete("mode");
+      const query = params.toString();
+      const hash = typeof window === "undefined" ? "" : window.location.hash;
+      void navigate(`/music/record${query ? `?${query}` : ""}${hash}`, { replaceState: true });
+      return;
+    }
+    mode = normalizeMode(requested);
   });
 
   function normalizeMode(value: string | null): CreateMode {
-    return value === "piano-roll" || value === "recorder" ? value : "beat";
+    return value === "piano-roll" ? value : "beat";
   }
 
   function selectMode(value: string): void {
@@ -53,14 +70,14 @@
   <title>Create | Practice OS</title>
   <meta
     name="description"
-    content="Make music with one Create workspace: beat grid, piano roll, and recorder."
+    content="Make music with one Create workspace: beat grid and piano roll."
   />
 </svelte:head>
 
 <PracticeScreen>
   <PracticeScreenHeader
     title="Create"
-    subtitle="Make music — sketch a beat, sequence a part, and capture takes in one workspace."
+    subtitle="Make music — sketch a beat and sequence a part in one workspace."
   >
     {#snippet controls()}
       <SegmentedControl
@@ -72,11 +89,9 @@
     {/snippet}
   </PracticeScreenHeader>
 
-  {#if mode === "beat"}
-    <StudioPanel {runtime} />
-  {:else if mode === "piano-roll"}
+  {#if mode === "piano-roll"}
     <PianoRollPanel {runtime} />
   {:else}
-    <RecorderPanel {runtime} />
+    <StudioPanel {runtime} />
   {/if}
 </PracticeScreen>

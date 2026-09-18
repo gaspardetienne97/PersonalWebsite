@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
 
   import {
     MPC_BANKS,
@@ -10,7 +10,9 @@
   import { Badge } from "@repo/ui/badge";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
+  import { cn } from "@repo/ui/utils";
 
+  import { padLayoutFor, padNumber } from "../../_components/pad-labels";
   import type { ActiveSampleKit } from "./sample-kit-playback";
 
   const {
@@ -43,6 +45,10 @@
   let confirmingDelete = $state(false);
   let selectedBankId = $state<(typeof MPC_BANKS)[number]["id"]>("A");
   let sampleNameDrafts = $state<Record<string, string>>({});
+  let pressedMidi = $state<number>();
+  let assigningSampleId = $state<string>();
+  let dragOverMidi = $state<number>();
+  let pressTimer: ReturnType<typeof setTimeout> | undefined;
 
   const selectedKit = $derived(kits.find((kit) => kit.id === selectedKitId));
   const selectedBank = $derived(
@@ -55,6 +61,9 @@
         )
       : [],
   );
+  // Visual pad order, A01 bottom-left as on the hardware (MpcPadGrid convention):
+  // ascending notes chunked into rows of 4, rows rendered highest-row-first.
+  const displayMidiNotes = $derived(reorderForDisplay(selectedBank.midiNotes));
 
   onMount(async () => {
     kits = await store.load();
@@ -210,6 +219,75 @@
     if (!activeKit || activeKit.kitId !== selectedKitId) return undefined;
     return activeKit.pads.find((pad) => pad.midiNote === midiNote)?.status;
   }
+
+  function reorderForDisplay<T>(midiNotes: readonly T[]): T[] {
+    const rows: T[][] = [];
+    for (let i = 0; i < midiNotes.length; i += 4) rows.push(midiNotes.slice(i, i + 4) as T[]);
+    return rows.reverse().flat();
+  }
+
+  /**
+   * `A05`-style pad label: bank id plus the pad's hardware position, from the
+   * same `padNumber` helper `MpcPadGrid.svelte` uses, so the two surfaces
+   * can't silently disagree on which pad a note is.
+   */
+  function padLabelForMidi(midiNote: number): string {
+    const bank = MPC_BANKS.find((candidate) => candidate.midiNotes.includes(midiNote as never));
+    if (!bank) return "";
+    const position = padNumber(midiNote, padLayoutFor(bank.midiNotes));
+    return `${bank.id}${String(position).padStart(2, "0")}`;
+  }
+
+  function assignedPadLabel(sampleId: string): string | undefined {
+    const assignment = selectedKit?.assignments.find((entry) => entry.sampleId === sampleId);
+    return assignment ? padLabelForMidi(assignment.midiNote) : undefined;
+  }
+
+  function auditionPad(midiNote: MpcPadMidi): void {
+    pressedMidi = midiNote;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => {
+      pressedMidi = undefined;
+    }, 140);
+    onaudition(midiNote);
+  }
+
+  function onSampleDragStart(event: DragEvent, sampleId: string): void {
+    event.dataTransfer?.setData("text/plain", sampleId);
+  }
+
+  function onSampleDragEnd(): void {
+    // Drag ended (dropped elsewhere, or cancelled): clear any drop highlight.
+    dragOverMidi = undefined;
+  }
+
+  function onPadDragOver(event: DragEvent, midiNote: MpcPadMidi): void {
+    event.preventDefault();
+    dragOverMidi = midiNote;
+  }
+
+  function onPadDragLeave(midiNote: MpcPadMidi): void {
+    if (dragOverMidi === midiNote) dragOverMidi = undefined;
+  }
+
+  function onPadDrop(event: DragEvent, midiNote: MpcPadMidi): void {
+    event.preventDefault();
+    dragOverMidi = undefined;
+    const sampleId = event.dataTransfer?.getData("text/plain");
+    if (sampleId) void assignSampleToPad(sampleId, midiNote);
+  }
+
+  function assignFromPicker(sampleId: string, value: string): void {
+    assigningSampleId = undefined;
+    if (value !== "") void assignSampleToPad(sampleId, Number(value) as MpcPadMidi);
+  }
+
+  /** Moves focus into a control right after it appears (the pad-choice picker). */
+  function focusOnMount(node: HTMLElement): void {
+    node.focus();
+  }
+
+  onDestroy(() => clearTimeout(pressTimer));
 </script>
 
 <Card.Root class="min-w-0">
@@ -322,7 +400,16 @@
           <p class="text-sm font-medium">Samples</p>
           <div class="grid gap-2">
             {#each selectedKit.samples as sample (sample.id)}
-              <div class="grid gap-2 rounded-md border p-2 sm:grid-cols-[1fr_auto_auto]">
+              {@const padLabel = assignedPadLabel(sample.id)}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="grid gap-2 rounded-md border p-2 sm:grid-cols-[1fr_auto_auto]"
+                role="group"
+                aria-label={`${sample.displayName}, ${padLabel ? `on pad ${padLabel}` : "not on a pad yet"}. Drag to a pad, or use Assign to pad.`}
+                draggable={!busy}
+                ondragstart={(event) => onSampleDragStart(event, sample.id)}
+                ondragend={onSampleDragEnd}
+              >
                 <label class="sr-only" for={`sample-name-${sample.id}`}>
                   Sample name for {sample.fileName}
                 </label>
@@ -361,6 +448,42 @@
                 >
                   Delete
                 </Button>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:col-span-3">
+                  <span>{padLabel ? `Pad ${padLabel}` : "Not on a pad yet"}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    class="min-h-11"
+                    disabled={busy}
+                    aria-label={`Assign sample ${sample.id} to a pad`}
+                    onclick={() =>
+                      (assigningSampleId = assigningSampleId === sample.id ? undefined : sample.id)}
+                  >
+                    Assign to pad…
+                  </Button>
+                  {#if assigningSampleId === sample.id}
+                    <label class="sr-only" for={`assign-pad-for-${sample.id}`}>
+                      Choose a pad for {sample.displayName}
+                    </label>
+                    <select
+                      id={`assign-pad-for-${sample.id}`}
+                      class="min-h-11 min-w-0 rounded border bg-background px-1 text-xs"
+                      value=""
+                      use:focusOnMount
+                      onchange={(event) =>
+                        assignFromPicker(
+                          sample.id,
+                          (event.currentTarget as HTMLSelectElement).value,
+                        )}
+                    >
+                      <option value="" disabled>Choose a pad…</option>
+                      {#each selectedBank.midiNotes as midiNote (midiNote)}
+                        <option value={midiNote}>Pad {padLabelForMidi(midiNote)}</option>
+                      {/each}
+                    </select>
+                  {/if}
+                </div>
               </div>
             {/each}
           </div>
@@ -381,21 +504,40 @@
       </div>
 
       <div class="grid grid-cols-4 gap-2" aria-label={`${selectedBank.label} pads`}>
-        {#each selectedBank.midiNotes as midiNote, index (midiNote)}
+        {#each displayMidiNotes as midiNote (midiNote)}
           {@const assignment = selectedKit.assignments.find((a) => a.midiNote === midiNote)}
           {@const status = padStatus(midiNote)}
-          <div class="grid min-w-0 gap-1 rounded-md border p-2">
+          {@const padLabel = padLabelForMidi(midiNote)}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class={cn(
+              "grid min-w-0 gap-1 rounded-md border p-2",
+              dragOverMidi === midiNote && "ring-2 ring-inset ring-primary",
+            )}
+            role="group"
+            aria-label={`Pad ${padLabel} drop target`}
+            ondragover={(event) => onPadDragOver(event, midiNote)}
+            ondragleave={() => onPadDragLeave(midiNote)}
+            ondrop={(event) => onPadDrop(event, midiNote)}
+          >
             <button
               type="button"
-              class="grid min-w-0 gap-0.5 text-left"
-              aria-label={`Pad ${selectedBank.id}${index + 1}, MIDI ${midiNote}, ${assignment ? assignment.label : "empty"}`}
+              class={cn(
+                "grid min-w-0 gap-0.5 rounded-[7px] p-1 text-left transition-[background-color,box-shadow,transform] duration-75",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-practice-accent",
+                pressedMidi !== midiNote &&
+                  "border border-white/10 bg-linear-to-b from-[color-mix(in_oklab,var(--stage-2)_88%,white)] to-stage-2 text-stage-muted shadow-[inset_0_1px_0_oklch(1_0_0/10%),inset_0_-3px_0_oklch(0_0_0/35%),0_1px_2px_oklch(0_0_0/40%)] hover:from-[color-mix(in_oklab,var(--stage-2)_78%,white)]",
+                pressedMidi === midiNote &&
+                  "translate-y-px border border-practice-accent bg-practice-accent text-practice-accent-foreground shadow-[inset_0_2px_6px_oklch(0_0_0/25%),0_0_18px_color-mix(in_oklab,var(--practice-accent)_60%,transparent)]",
+              )}
+              aria-label={`Pad ${padLabel} · ${midiNote} · ${assignment ? assignment.label : "Empty"}`}
               disabled={busy || !assignment}
-              onclick={() => onaudition(midiNote)}
+              onclick={() => auditionPad(midiNote)}
             >
-              <span class="text-xs text-muted-foreground"
-                >Pad {selectedBank.id}{index + 1} · {midiNote}</span
+              <span class="text-xs opacity-80">Pad {padLabel} · {midiNote}</span>
+              <span class="truncate text-sm font-medium"
+                >{assignment ? assignment.label : "Empty"}</span
               >
-              <span class="truncate text-sm font-medium">{assignment ? assignment.label : "—"}</span>
             </button>
             {#if status}
               <Badge variant={status === "playable" ? "secondary" : "outline"}>{status}</Badge>

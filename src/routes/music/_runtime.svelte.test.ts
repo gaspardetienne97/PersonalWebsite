@@ -5,6 +5,7 @@ import {
   monotonicMs,
   unixMs,
   type ExerciseRunRecord,
+  type NoteEvent,
   type ScoringEvent,
 } from "@repo/music-core/domain";
 import { buildDailyRoutinePlan } from "@repo/music-core/engines/daily-routine";
@@ -97,6 +98,28 @@ async function flushAsync(): Promise<void> {
 }
 
 describe("MusicRuntime shared UI state", () => {
+  it("snapshots reactive state before persisting local state", async () => {
+    // Dexie structuredClones every row; a $state proxy cannot be cloned, so the
+    // runtime must hand the repository a plain value.
+    const rt = new MusicRuntime();
+    const rows: unknown[] = [];
+    const repository = {
+      get: async () => undefined,
+      put: async (row: unknown) => {
+        rows.push(structuredClone(row));
+      },
+      delete: async () => undefined,
+      list: async () => [],
+    };
+    await rt.attachStorage(repository as never);
+    const takes = $state([{ id: "take-1", notes: [{ midi: 60 }] }]);
+    await rt.writeLocalState("music.recording.midi-takes", takes);
+    expect(rows).toEqual([
+      { id: "music.recording.midi-takes", value: [{ id: "take-1", notes: [{ midi: 60 }] }] },
+    ]);
+    rt.dispose();
+  });
+
   it("defaults active instrument to piano", () => {
     const rt = new MusicRuntime();
     expect(rt.activeInstrument).toBe("piano");
@@ -1746,5 +1769,42 @@ describe("MPC controller link", () => {
     await unlinked.attachStorage(repo([{ id: "mpc-out", alias: "Pads" }]));
     expect(sendUnlinked).not.toHaveBeenCalled();
     unlinked.dispose();
+  });
+});
+
+describe("saved latency offsets", () => {
+  it("hands them to the router, a device profile beating the global MIDI offset", async () => {
+    const records: Record<string, unknown> = {
+      "music.settings": { audioOffsetMs: 40, midiOffsetMs: 12 },
+      "music.device-profiles": {
+        profiles: [{ id: "mpc", inputOffsetMs: 30 }],
+        preferences: {},
+        surfaces: {},
+      },
+    };
+    const rt = new MusicRuntime();
+    await rt.attachStorage({
+      get: async (id: string) => (id in records ? { id, value: records[id] } : undefined),
+      put: async () => {},
+    });
+
+    const played = (source: "midi" | "audio", deviceId?: string) => {
+      rt.router.push({
+        type: "noteOn",
+        midiNote: 60,
+        velocity: 1,
+        source,
+        timestamp: monotonicMs(1_000),
+        clock: "performance",
+        ...(deviceId ? { deviceId } : {}),
+      } as NoteEvent);
+      return rt.router.events.at(-1)!.timestamp;
+    };
+
+    // Audio first: MIDI activity would otherwise win arbitration.
+    expect(played("audio")).toBe(960);
+    expect(played("midi")).toBe(988);
+    expect(played("midi", "mpc")).toBe(970);
+    rt.dispose();
   });
 });

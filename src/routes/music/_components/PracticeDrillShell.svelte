@@ -12,6 +12,7 @@
   // is "stage" the chrome yields to the drill, the same way on every route.
   let {
     phase,
+    mode = "practice",
     runtime: runtimeProp,
     focus = true,
     startPending = false,
@@ -28,11 +29,19 @@
   }: {
     /** Route-computed phase. The shell renders exactly this phase. */
     phase: "setup" | "stage" | "summary";
+    /**
+     * Stage mode. Route-owned like the phase; the shell only dresses it. Demo
+     * gets a dashed frame and an eyebrow saying nothing is being scored.
+     */
+    mode?: "demo" | "practice" | "check";
     /** Shared runtime for focus mode; resolved from context when omitted. */
     runtime?: MusicRuntime;
     /** A shell nested inside another shell's stage passes false. */
     focus?: boolean;
-    /** Renders the setup region disabled while a start settles (preflight only). */
+    /**
+     * Renders the setup region disabled while the route says the setup must not
+     * change under it: a start settling (preflight) or a demonstration sounding.
+     */
     startPending?: boolean;
     setup?: Snippet;
     /**
@@ -64,9 +73,24 @@
   <DrillFocusScope active={phase === "stage"} {runtime} />
 {/if}
 
+<!-- Demo dresses whichever stage is on screen; every other mode renders it bare. -->
+{#snippet staged(content: Snippet)}
+  {#if mode === "demo"}
+    <div
+      data-testid="demo-frame"
+      class="grid gap-2 rounded-2xl border border-dashed border-practice-accent/60 p-2"
+    >
+      <p class="eyebrow px-2">listening, not scored</p>
+      {@render content()}
+    </div>
+  {:else}
+    {@render content()}
+  {/if}
+{/snippet}
+
 <!-- #key replays the shared entrance and rebinds route-owned focus refs on phase changes. -->
 {#key phase}
-  <div class="reveal-up">
+  <div class="reveal-up" data-mode={mode}>
     {#if phase === "summary"}
       <div class={cn("space-y-4", cls)}>
         {#if summary}{@render summary()}{/if}
@@ -77,7 +101,7 @@
         {#if stageAction}
           <div class="flex flex-wrap items-center justify-end gap-2">{@render stageAction()}</div>
         {/if}
-        {#if stage}{@render stage()}{/if}
+        {#if stage}{@render staged(stage)}{/if}
         {#if feedback}{@render feedback()}{/if}
         {#if children}{@render children()}{/if}
         {#if rail}
@@ -112,7 +136,7 @@
             {#if setup}{@render setup()}{/if}
           </fieldset>
         {/if}
-        {#if readyStage}{@render readyStage()}{/if}
+        {#if readyStage}{@render staged(readyStage)}{/if}
       </div>
     {/if}
   </div>

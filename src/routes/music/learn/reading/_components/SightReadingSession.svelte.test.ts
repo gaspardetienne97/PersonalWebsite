@@ -55,15 +55,65 @@ describe("SightReadingSession", () => {
     await vi.waitFor(() => expect(clearHeldNotes()).toBeUndefined());
     expect(pianoKey()?.getAttribute("aria-pressed")).toBe("false");
   });
+
+  test("lights the current group's targets only after the hint, then resets per group", async () => {
+    const prompt = waitPrompt();
+    const router = new InputRouter();
+    const onHint = vi.fn();
+    const view = render(SightReadingSession, { ...sessionProps(prompt, 0, router), onHint });
+
+    await vi.waitFor(() => expect(pianoKey()).not.toBeNull());
+    expect(targetKey()).toBeNull();
+
+    const hint = button("Show a hint")!;
+    hint.focus();
+    hint.click();
+
+    expect(onHint).toHaveBeenCalledOnce();
+
+    // The route records the hint on the session; the stage then lights the
+    // group it was spent on.
+    await view.rerender({ ...sessionProps(prompt, 0, router, true), onHint });
+
+    await vi.waitFor(() => expect(targetKey()).not.toBeNull());
+    // A spent hint must not take the focus out of a keyboard user's hands.
+    expect(document.activeElement).toBe(button("Hint shown for this group"));
+    expect(button("Hint shown for this group")?.getAttribute("aria-disabled")).toBe("true");
+    button("Hint shown for this group")?.click();
+    expect(onHint).toHaveBeenCalledOnce();
+
+    // The hint is spent on its own group; the next one is read unaided again,
+    // although the phrase stays recorded as hinted.
+    await view.rerender({ ...sessionProps(prompt, 1, router, true), onHint });
+
+    await vi.waitFor(() => expect(targetKey()).toBeNull());
+    expect(button("Show a hint")).not.toBeUndefined();
+  });
 });
 
-function sessionProps(prompt: SightReadingPrompt, currentGroupIndex: number, router: InputRouter) {
+function button(label: string): HTMLButtonElement | undefined {
+  return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+    (candidate) => candidate.textContent?.trim() === label,
+  );
+}
+
+function targetKey(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('[aria-label="Piano input"] [data-state^="target"]');
+}
+
+function sessionProps(
+  prompt: SightReadingPrompt,
+  currentGroupIndex: number,
+  router: InputRouter,
+  hintUsed = false,
+) {
   const state: ReadingSessionState = {
     status: "sight-reading",
     currentPrompt: prompt,
     currentIndex: 0,
     total: 1,
     countIn: "playing",
+    hintUsed,
     results: [],
     live: {
       progress: 0,
@@ -82,6 +132,7 @@ function sessionProps(prompt: SightReadingPrompt, currentGroupIndex: number, rou
     bpm: prompt.options.bpm,
     sessionXp: 0,
     onAccepted: () => undefined,
+    onHint: () => undefined,
     onStart: async () => undefined,
     onFinish: async () => undefined,
     onAbandon: () => undefined,

@@ -15,6 +15,18 @@ import { tunerReading, type TunerOptions, type TunerReading } from "./tuner";
 
 export type AudioPitchStatus = "idle" | "requesting" | "running" | "denied" | "error";
 
+/**
+ * Window of the most recent samples the detector falls back to when a frame's
+ * own estimate is low or unusable — twice the worklet frame, so a low string
+ * gets twice the periods per estimate.
+ */
+const WIDE_WINDOW = 4096;
+/**
+ * Below this, a 2048-sample frame holds too few periods to estimate steadily
+ * (E2 has 3.5). Above it the frame stands on its own and latency is unchanged.
+ */
+const WIDE_WINDOW_BELOW_HZ = 130;
+
 export interface AudioPitchState {
   status: AudioPitchStatus;
   /** Human-readable reason when status is "denied" or "error". */
@@ -50,6 +62,9 @@ export class AudioPitchSource {
   #source?: MediaStreamAudioSourceNode;
 
   #state: AudioPitchState = { status: "idle" };
+  /** Rolling tail of the incoming frames, for the wide-window second pass. */
+  #wide = new Float32Array(WIDE_WINDOW);
+  #wideFilled = 0;
   #detectOptions: Omit<PitchDetectOptions, "sampleRate">;
   #tunerOptions: TunerOptions;
   #onsetDetector: OnsetDetector;
@@ -87,6 +102,7 @@ export class AudioPitchSource {
 
     this.#setState({ status: "requesting" });
     this.#onsetDetector.reset();
+    this.#wideFilled = 0;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -139,6 +155,7 @@ export class AudioPitchSource {
     this.#stream = undefined;
     this.#context = undefined;
     this.#onsetDetector.reset();
+    this.#wideFilled = 0;
     if (this.#state.status === "running") this.#setState({ status: "idle" });
   }
 
@@ -180,10 +197,24 @@ export class AudioPitchSource {
       }
     }
 
+    this.#pushWide(frame);
     if (this.#readingListeners.size === 0 && this.#eventListeners.size === 0) return;
 
-    const estimate = detectPitch(frame, { sampleRate, ...this.#detectOptions });
-    const reading = tunerReading(estimate, this.#tunerOptions);
+    const detectOptions = { sampleRate, ...this.#detectOptions };
+    const estimate = detectPitch(frame, detectOptions);
+    let reading = tunerReading(estimate, this.#tunerOptions);
+    // Low notes and unusable frames get a second pass over the last 4096
+    // samples: more periods per estimate, ~4 cents less frame-to-frame jitter,
+    // and the frames a single 2048 window loses to noise come back. Notes above
+    // 130 Hz never pay the extra pass, so their latency is unchanged.
+    const lowOrUnusable = !reading || estimate.frequency < WIDE_WINDOW_BELOW_HZ;
+    if (lowOrUnusable && this.#wideFilled === WIDE_WINDOW) {
+      // `?? reading`: the wide window straddles two frames, so on a transition
+      // (a new pluck, a string change) half of it is the previous signal and its
+      // clarity can fall under the floor. It may improve a reading, never delete
+      // one the single frame already earned.
+      reading = tunerReading(detectPitch(this.#wide, detectOptions), this.#tunerOptions) ?? reading;
+    }
     if (!reading) return;
 
     for (const listener of this.#readingListeners) listener(reading);
@@ -201,6 +232,19 @@ export class AudioPitchSource {
       };
       for (const listener of this.#eventListeners) listener(event);
     }
+  }
+
+  /**
+   * Slide the newest frame into the tail of the rolling wide window. Resetting
+   * `#wideFilled` alone is enough to forget a previous session: the wide pass
+   * only re-enables once WIDE_WINDOW fresh samples have landed, by which point
+   * every stale sample has been overwritten.
+   */
+  #pushWide(frame: Float32Array): void {
+    const n = Math.min(frame.length, WIDE_WINDOW);
+    this.#wide.copyWithin(0, n);
+    this.#wide.set(frame.subarray(frame.length - n), WIDE_WINDOW - n);
+    this.#wideFilled = Math.min(WIDE_WINDOW, this.#wideFilled + n);
   }
 
   #setState(state: AudioPitchState): void {

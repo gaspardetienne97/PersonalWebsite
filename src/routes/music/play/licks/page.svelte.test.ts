@@ -2,11 +2,19 @@ import { midiToNote } from "@repo/music-core/engines/theory";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import { LICK_PHRASES } from "@repo/music-core/engines/jazz";
+import {
+  GUITAR_BOX_ONE_LICK,
+  LICK_PHRASES,
+  lickMidiNotes,
+  lickTimeline,
+} from "@repo/music-core/engines/jazz";
 import { monotonicMs, type InstrumentId } from "@repo/music-core/domain";
 import { SkillGraphStore } from "@repo/music-core/engines/skills";
 
 import Page from "./+page.svelte";
+
+/** Lick 1's pitched notes; the jazz phrases carry no rests. */
+const LICK_1 = lickMidiNotes(LICK_PHRASES[1]!);
 import { setTestUrl } from "../../_components/test-url";
 import { MusicRuntime } from "../../_runtime.svelte";
 
@@ -32,9 +40,7 @@ describe("/music/play/licks/+page.svelte", () => {
     button("Hear chunk")?.click();
     await vi.waitFor(() => expect(harness.runtime.sound.playPattern).toHaveBeenCalledOnce());
     const normal = harness.runtime.sound.playPattern.mock.calls[0]![0];
-    expect(normal.map((note) => note.midiNotes[0])).toEqual(
-      LICK_PHRASES[1]!.slice(4, 8).map(([midi]) => midi),
-    );
+    expect(normal.map((note) => note.midiNotes[0])).toEqual(LICK_1.slice(4, 8));
     button("Hear at half speed")?.click();
     await vi.waitFor(() => expect(harness.runtime.sound.playPattern).toHaveBeenCalledTimes(2));
     const slow = harness.runtime.sound.playPattern.mock.calls[1]![0];
@@ -53,13 +59,11 @@ describe("/music/play/licks/+page.svelte", () => {
     render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
     button("Start")?.click();
     await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
-    LICK_PHRASES[1]!.forEach(([midi], index) =>
-      harness.emit(index === 5 ? midi + 1 : midi, index * 100),
-    );
+    LICK_1.forEach((midi, index) => harness.emit(index === 5 ? midi + 1 : midi, index * 100));
     await vi.waitFor(() => expect(button("Practise notes 5–8")).not.toBeUndefined());
     button("Practise notes 5–8")?.click();
     await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
-    LICK_PHRASES[1]!.slice(4, 8).forEach(([midi], index) => harness.emit(midi, index * 100));
+    LICK_1.slice(4, 8).forEach((midi, index) => harness.emit(midi, index * 100));
     await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledTimes(2));
     const chunk = harness.runtime.recordPractice.mock.calls[1]![0];
     expect(chunk.scoringEvents[0].skillIds).toEqual(["harmony.ii-v-i"]);
@@ -92,9 +96,9 @@ describe("/music/play/licks/+page.svelte", () => {
         await vi.waitFor(() =>
           expect(document.body.textContent).toContain(`Loop response ${turn} of 3`),
         );
-        LICK_PHRASES[1]!
-          .slice(0, 2)
-          .forEach(([midi], index) => harness.emit(midi + (mistake ? 1 : 0), index * 100));
+        LICK_1.slice(0, 2).forEach((midi, index) =>
+          harness.emit(midi + (mistake ? 1 : 0), index * 100),
+        );
         await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledTimes(turn));
       }
       await vi.waitFor(() => expect(button("Stop loop")).toBeUndefined());
@@ -116,7 +120,7 @@ describe("/music/play/licks/+page.svelte", () => {
     render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
     button("Loop chunk 3 times")?.click();
     await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
-    LICK_PHRASES[1]!.slice(4, 6).forEach(([midi], index) => harness.emit(midi, index * 100));
+    LICK_1.slice(4, 6).forEach((midi, index) => harness.emit(midi, index * 100));
     await vi.waitFor(() => expect(release).toBeDefined());
     button("Stop loop")?.click();
     await openSetup();
@@ -137,7 +141,7 @@ describe("/music/play/licks/+page.svelte", () => {
     render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
     button("Loop chunk 3 times")?.click();
     await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
-    LICK_PHRASES[1]!.slice(0, 2).forEach(([midi], index) => harness.emit(midi, index * 100));
+    LICK_1.slice(0, 2).forEach((midi, index) => harness.emit(midi, index * 100));
     await vi.waitFor(() =>
       expect(document.body.textContent).toContain("Could not save this result"),
     );
@@ -155,7 +159,7 @@ describe("/music/play/licks/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
     expect(document.querySelector('[data-highlight="target"]')).toBeNull();
     expect(document.body.textContent).not.toContain(
-      LICK_PHRASES[1]!.map(([midi]) => midiToNote(midi, true)).join("  "),
+      LICK_1.map((midi) => midiToNote(midi, true)).join("  "),
     );
     expect(button("Hear it")).toBeUndefined();
     runtime.dispose();
@@ -253,7 +257,13 @@ describe("/music/play/licks/+page.svelte", () => {
     const categories = [...document.querySelectorAll('[aria-label="Lick category"] button')].map(
       (button) => button.textContent?.trim(),
     );
-    expect(categories).toEqual(["Major ii-V-I", "ii-V-I-VI", "Minor ii-V-i", "Minor chord"]);
+    expect(categories).toEqual([
+      "Major ii-V-I",
+      "ii-V-I-VI",
+      "Minor ii-V-i",
+      "Minor chord",
+      "Guitar pentatonic",
+    ]);
 
     // The lick picker exposes a button per lick in the active category.
     const lickButtons = document.querySelectorAll('[aria-label="Pick a lick"] button');
@@ -323,7 +333,7 @@ describe("/music/play/licks/+page.svelte", () => {
 
       button("Start")?.click();
       await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
-      const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
+      const expected = LICK_1;
       for (const [index, midi] of expected.entries()) {
         harness.emit(midi, index * 100, index === 0 ? "midi" : "onscreen");
       }
@@ -382,7 +392,7 @@ describe("/music/play/licks/+page.svelte", () => {
 
     button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
-    const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
+    const expected = LICK_1;
     for (const [index, midi] of expected.entries()) harness.emit(midi, index * 100);
 
     await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
@@ -403,7 +413,7 @@ describe("/music/play/licks/+page.svelte", () => {
 
     button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
-    const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
+    const expected = LICK_1;
     for (const [index, midi] of expected.entries()) harness.emit(midi, index * 100);
 
     await vi.waitFor(() => expect(button("Again")).not.toBeUndefined());
@@ -426,7 +436,7 @@ describe("/music/play/licks/+page.svelte", () => {
 
     button("Start")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
-    const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
+    const expected = LICK_1;
     for (const [index, midi] of expected.entries()) harness.emit(midi, index * 100);
 
     await vi.waitFor(() => expect(ingest).toHaveBeenCalledOnce());
@@ -451,6 +461,75 @@ function button(label: string): HTMLButtonElement | undefined {
     (candidate) => candidate.textContent?.trim() === label,
   );
 }
+
+describe("guitar licks with fretted positions", () => {
+  test("shows the fret window with the lick's targets, and an empty window in check mode", async () => {
+    setTestUrl(`/music/play/licks?category=guitar-pentatonic&lick=${GUITAR_BOX_ONE_LICK}`);
+    const harness = makeRuntime();
+    render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
+
+    // G3 sits in frets 12 to 15, so the window is frets 11 to 16.
+    const strip = document.querySelector('[data-testid="fret-window-strip"] [role="img"]');
+    expect(strip?.getAttribute("aria-label")).toBe("Frets 11 to 16 of 22");
+    const lit = () =>
+      [...document.querySelectorAll('[aria-label*="target"]')].map((node) =>
+        node.getAttribute("aria-label"),
+      );
+    expect(lit()).toContain("String 4 fret 14, E4, target");
+    expect(lit()).toContain("String 2 fret 15, D5, target");
+    // B4 is authored at string 2 fret 12; the same pitch at string 3 fret 16 is
+    // inside the window and must stay dark, or the page would point at a dot
+    // that gradeLickPositions then marks wrong.
+    expect(lit()).toContain("String 2 fret 12, B4, target");
+    expect(lit()).not.toContain("String 3 fret 16, B4, target");
+    // Six authored string/fret pairs across strings 2 to 4.
+    expect(lit()).toHaveLength(6);
+
+    await openSetup();
+    button("Check")?.click();
+    await vi.waitFor(() => expect(lit()).toEqual([]));
+    expect(document.querySelector('[data-testid="fret-window-strip"] [role="img"]')).not.toBeNull();
+  });
+
+  test("counts notes, not events, so the rest can never be a chunk of its own", async () => {
+    // G3 is 14 events: 13 notes and one rest.
+    setTestUrl(
+      `/music/play/licks?category=guitar-pentatonic&lick=${GUITAR_BOX_ONE_LICK}&from=13&to=14`,
+    );
+    const harness = makeRuntime();
+    render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("of 13"));
+    // Clamped to the notes that exist; the totals the HUD and the picker show agree.
+    expect(document.body.textContent).toContain("Notes 13–13 of 13");
+    expect(document.body.textContent).not.toContain("of 14");
+
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(document.body.textContent).toContain("0 / 1");
+  });
+
+  test("grades timing from the follower and says the position is not verified", async () => {
+    setTestUrl(`/music/play/licks?category=guitar-pentatonic&lick=${GUITAR_BOX_ONE_LICK}`);
+    const harness = makeRuntime();
+    render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+
+    // Dead on the grid at the harness tempo (150 BPM, 400 ms a beat).
+    for (const note of lickTimeline(LICK_PHRASES[GUITAR_BOX_ONE_LICK]!)) {
+      harness.emit(note.midi, note.offsetBeats * 400);
+    }
+
+    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce());
+    const record = harness.runtime.recordPractice.mock.calls[0]![0];
+    expect(record.note).toContain("13/13 notes on time");
+    // Pitch arrived without a string or fret, so the box itself is unproven.
+    expect(record.note).toContain("position not verified");
+    expect(document.body.textContent).toContain("On time");
+    expect(document.body.textContent).not.toContain("performed timing is not assessed");
+  });
+});
 
 function makeRuntime() {
   type HarnessListener = (event: {

@@ -63,6 +63,12 @@ export interface DeviceProfile {
    */
   padNotes?: number[];
   /**
+   * Saved latency offset for this device in whole ms, positive meaning its
+   * notes arrive late. Overrides the global MIDI offset when present; the
+   * router subtracts it from this device's timestamps.
+   */
+  inputOffsetMs?: number;
+  /**
    * This port is an MPC's MIDI output in Controller Mode: keep the captured
    * init handshake and one-second heartbeat alive on it whenever MIDI is on,
    * because the MPC only sends pad notes while a host is talking to it.
@@ -139,6 +145,13 @@ export function applyDeviceProfile<E extends { deviceId?: string; instrument?: I
   return next;
 }
 
+/** A plausible round trip, in whole ms; anything else is not a calibration. */
+function sanitizeOffsetMs(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  const rounded = Math.round(value);
+  return Math.abs(rounded) <= MAX_INPUT_OFFSET_MS ? rounded : undefined;
+}
+
 function sanitizePadNotes(value: unknown): number[] | undefined {
   if (!Array.isArray(value) || value.length !== 16) return undefined;
   const notes = value.map((note) => (typeof note === "number" ? Math.round(note) : NaN));
@@ -158,6 +171,9 @@ export interface DeviceProfilesState {
 }
 
 const STORE_ID = "music.device-profiles";
+
+/** Widest per-device offset worth storing; beyond this it is bad data. */
+export const MAX_INPUT_OFFSET_MS = 500;
 
 export interface DeviceProfileRepository {
   get(id: string): Promise<SettingsRecord | undefined>;
@@ -288,6 +304,8 @@ function sanitizeProfile(value: unknown): DeviceProfile | undefined {
     profile.channel = Math.round(source.channel);
   }
   if (source.ignored === true) profile.ignored = true;
+  const inputOffsetMs = sanitizeOffsetMs(source.inputOffsetMs);
+  if (inputOffsetMs !== undefined) profile.inputOffsetMs = inputOffsetMs;
   if (source.controllerLink === true) profile.controllerLink = true;
   const padNotes = sanitizePadNotes(source.padNotes);
   if (padNotes) profile.padNotes = padNotes;

@@ -236,3 +236,124 @@ describe("guide-tone voice leading", () => {
     expect(answer([53, 59, 53]).correct).toBe(true);
   });
 });
+
+describe("inversions (P2)", () => {
+  // P2 bar 2: F/C — RH C4 F4 A4 over an LH root of F2.
+  const target: VoicingTarget = {
+    id: "P2-2",
+    symbol: "F/C",
+    mode: "chord",
+    strict: true,
+    expectedPitchClasses: [0, 5, 9],
+    expectedBassPc: 0,
+    bassSplitMidi: 54,
+    requireInversion: true,
+  };
+
+  function play(events: NoteEvent[], overrides: Partial<VoicingTarget> = {}) {
+    const exercise = createVoicingDrillExercise({ ...target, ...overrides });
+    const run = exercise.createRun(exercise.generate(ctx), ctx);
+    events.forEach((event) => run.accept(event));
+    return run.finish();
+  }
+
+  function hold(notes: number[], overrides: Partial<VoicingTarget> = {}) {
+    return play(notes.map(noteOn), overrides);
+  }
+
+  const inversion = (result: ReturnType<typeof hold>) =>
+    result.metrics.find((metric) => metric.kind === "chord")?.inversionCorrect;
+
+  test("sets inversionCorrect from the lowest held MIDI's pitch class", () => {
+    expect(inversion(hold([60, 65, 69]))).toBe(true);
+    expect(inversion(hold([65, 69, 72]))).toBe(false);
+  });
+
+  test("ignores the accompanying root below bassSplitMidi", () => {
+    const result = hold([41, 60, 65, 69]);
+    expect(inversion(result)).toBe(true);
+    expect(result.metrics.find((metric) => metric.kind === "chord")?.actualBass).toBe(0);
+  });
+
+  test("strict mode rejects an octave-equivalent right-hand voicing", () => {
+    expect(hold([60, 65, 69]).correct).toBe(true);
+    // Same pitch classes, wrong inversion: F4 A4 C5 is root position, not F/C.
+    expect(hold([65, 69, 72]).correct).toBe(false);
+  });
+
+  test("reports the inversion without gating correctness when it is not required", () => {
+    const relaxed = hold([65, 69, 72], { requireInversion: false });
+    expect(inversion(relaxed)).toBe(false);
+    expect(relaxed.correct).toBe(true);
+  });
+
+  test("keeps the bass of the complete voicing when a voice is released before Check", () => {
+    // P2 bar 1: C3 in the left hand under C4 E4 G4. Lifting the right thumb
+    // leaves {48, 64, 67} — the sustained root keeps pitch class 0 alive, so the
+    // held set still covers {0, 4, 7} and ties on matched, while the lowest
+    // *voiced* note jumps to E4. The bass must stay C4, or the bar reads as a
+    // first inversion the player never played.
+    const barOne: Partial<VoicingTarget> = {
+      symbol: "C",
+      expectedPitchClasses: [0, 4, 7],
+      expectedBassPc: 0,
+    };
+    const released = play([noteOn(48), noteOn(60), noteOn(64), noteOn(67), noteOff(60)], barOne);
+    expect(inversion(released)).toBe(true);
+    expect(released.correct).toBe(true);
+  });
+
+  test("requires the left-hand root under the chord", () => {
+    const rooted = { requiredRootPc: 5 };
+    expect(play([noteOn(41), noteOn(60), noteOn(65), noteOn(69)], rooted).correct).toBe(true);
+    // Right hand alone: every expected pitch class is there, but no root below the split.
+    const handsOff = play([noteOn(60), noteOn(65), noteOn(69)], rooted);
+    expect(handsOff.correct).toBe(false);
+    expect(handsOff.feedback.map((item) => item.message)).toContain(
+      "Play the left-hand root under the chord.",
+    );
+  });
+});
+
+describe("three-voice voice leading", () => {
+  // P2 bar 3: G/B — B3 D4 G4 from the previous bar's C4 F4 A4.
+  const target: VoicingTarget = {
+    id: "P2-3",
+    symbol: "G/B",
+    mode: "chord",
+    strict: true,
+    expectedPitchClasses: [7, 11, 2],
+    voiceLeading: { fromMidi: [60, 65, 69], register: [55, 72], toleranceSemitones: 2 },
+  };
+
+  function play(notes: number[]) {
+    const exercise = createVoicingDrillExercise(target);
+    const run = exercise.createRun(exercise.generate(ctx), ctx);
+    notes.forEach((note) => run.accept(noteOn(note)));
+    return run.finish();
+  }
+
+  const movement = (notes: number[]) =>
+    play(notes).metrics.find((metric) => metric.kind === "voice-leading");
+
+  test("totals the movement across three voices", () => {
+    expect(movement([59, 62, 67])).toMatchObject({
+      membershipCorrect: true,
+      actualSemitones: 6,
+      minimumSemitones: 6,
+    });
+  });
+
+  test("ignores notes outside the register, so an accompanying root does not count as a voice", () => {
+    expect(movement([43, 59, 62, 67])).toMatchObject({
+      actualMidi: [59, 62, 67],
+      actualSemitones: 6,
+    });
+  });
+
+  test("accepts a voicing within the tolerance of the best and rejects one beyond it", () => {
+    expect(play([59, 62, 67]).correct).toBe(true);
+    expect(play([62, 67, 71]).correct).toBe(true); // D4 G4 B4, also 6
+    expect(play([55, 59, 62]).correct).toBe(false); // G3 B3 D4 — 5 + 6 + 7 = 18
+  });
+});

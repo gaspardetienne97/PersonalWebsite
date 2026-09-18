@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { monotonicMs, Capability, unixMs } from "@repo/music-core/domain";
+import { monotonicMs, Capability, unixMs, type NoteOnEvent } from "@repo/music-core/domain";
 
 import {
   buildJazzSequenceCapture,
   buildAlteredDominantVoicings,
   buildIIVIDrill,
   CHORD_SCALE_MAP,
+  gradeLickPositions,
   gradeLickSequence,
+  gradeLickTiming,
+  lickBarBeats,
+  lickMidiNotes,
+  transposeLickPhrase,
+  GUITAR_BOX_ONE_LICK,
+  GUITAR_BOX_ONE_LICK_A_MINOR,
   normalizeLickRange,
   missedLickChunk,
   JAZZ_LICKS,
@@ -254,9 +261,12 @@ describe("jazz lesson path", () => {
 });
 
 describe("content catalogues", () => {
-  it("has all 29 licks numbered 1-29", () => {
-    expect(JAZZ_LICKS).toHaveLength(29);
-    expect(JAZZ_LICKS.map((l) => l.number)).toEqual(Array.from({ length: 29 }, (_, i) => i + 1));
+  it("has the 29 jazz licks plus the two guitar licks, numbered 1-31", () => {
+    expect(JAZZ_LICKS).toHaveLength(31);
+    expect(JAZZ_LICKS.map((l) => l.number)).toEqual(Array.from({ length: 31 }, (_, i) => i + 1));
+    expect(
+      JAZZ_LICKS.filter((l) => l.category === "guitar-pentatonic").map((l) => l.number),
+    ).toEqual([30, 31]);
   });
 
   it("has the 33-song repertoire", () => {
@@ -292,7 +302,7 @@ describe("gradeLickSequence", () => {
 
   it("grades a real lick phrase played back correctly", () => {
     const phrase = LICK_PHRASES[1]!;
-    const played = phrase.map(([midi]) => midi);
+    const played = lickMidiNotes(phrase);
     expect(gradeLickSequence(played, played).accuracy).toBe(1);
   });
 
@@ -374,4 +384,152 @@ it("normalizes contiguous lick ranges and suggests the first error-bearing chunk
     end: 6,
   });
   expect(missedLickChunk([60, 62], [72, 74])).toBeUndefined();
+});
+
+describe("G3 · box one, twelfth fret", () => {
+  const phrase = LICK_PHRASES[GUITAR_BOX_ONE_LICK]!;
+
+  it("is fourteen events, thirteen of them pitched, with one rest", () => {
+    expect(phrase).toHaveLength(14);
+    expect(phrase.filter(([midi]) => midi !== null)).toHaveLength(13);
+    expect(phrase.filter(([midi]) => midi === null)).toHaveLength(1);
+    expect(lickMidiNotes(phrase)).toEqual([64, 67, 69, 71, 74, 71, 69, 67, 69, 67, 64, 62, 64]);
+  });
+
+  it("fills each bar to exactly 4.0 beats", () => {
+    expect(lickBarBeats(phrase, 4)).toEqual([4, 4]);
+    expect(lickDurationBeats(phrase)).toBe(8);
+  });
+
+  it("sits in box 1 at the twelfth fret, on strings 2 to 4", () => {
+    const positions = phrase.flatMap(([, , position]) => (position ? [position] : []));
+    expect(positions).toHaveLength(13);
+    expect(new Set(positions.map((position) => position.string))).toEqual(new Set([2, 3, 4]));
+    expect(Math.min(...positions.map((position) => position.fret))).toBe(12);
+    expect(Math.max(...positions.map((position) => position.fret))).toBe(15);
+    expect(new Set(positions.map((position) => position.finger))).toEqual(new Set([1, 3, 4]));
+  });
+
+  it("every position sounds its own pitch in standard tuning", () => {
+    const openStrings = [64, 59, 55, 50, 45, 40];
+    for (const [midi, , position] of phrase) {
+      if (!position) continue;
+      expect(openStrings[position.string - 1]! + position.fret, `string ${position.string}`).toBe(
+        midi,
+      );
+    }
+  });
+
+  it("transposes to A minor at fret 5 keeping the strings and fingers", () => {
+    const transposed = LICK_PHRASES[GUITAR_BOX_ONE_LICK_A_MINOR]!;
+    expect(transposed).toEqual(transposeLickPhrase(phrase, -7));
+    expect(lickMidiNotes(transposed)).toEqual(lickMidiNotes(phrase).map((midi) => midi - 7));
+    expect(transposed[0]![2]).toEqual({ string: 4, fret: 7, finger: 3 });
+    expect(Math.min(...transposed.flatMap(([, , p]) => (p ? [p.fret] : [])))).toBe(5);
+  });
+});
+
+describe("gradeLickPositions", () => {
+  const phrase = LICK_PHRASES[GUITAR_BOX_ONE_LICK]!;
+  const note = (
+    midiNote: number,
+    atMs: number,
+    fretPosition?: { stringNumber: number; fretNumber: number },
+  ): NoteOnEvent => ({
+    type: "noteOn",
+    midiNote,
+    velocity: 1,
+    source: fretPosition ? "onscreen" : "audio",
+    instrument: "guitar",
+    timestamp: monotonicMs(atMs),
+    clock: "performance",
+    ...(fretPosition === undefined ? {} : { fretPosition }),
+  });
+
+  it("verifies the string and fret of an on-screen tap", () => {
+    const played = phrase.flatMap(([midi, , position], index) =>
+      midi === null || !position
+        ? []
+        : [note(midi, index * 250, { stringNumber: position.string, fretNumber: position.fret })],
+    );
+
+    expect(gradeLickPositions(phrase, played)).toEqual({ total: 13, measured: 13, correct: 13 });
+  });
+
+  it("counts a right pitch on the wrong string as a wrong position", () => {
+    const played = phrase.flatMap(([midi, , position], index) =>
+      midi === null || !position
+        ? []
+        : [
+            note(midi, index * 250, {
+              stringNumber: index === 0 ? 1 : position.string,
+              fretNumber: index === 0 ? 0 : position.fret,
+            }),
+          ],
+    );
+
+    expect(gradeLickPositions(phrase, played)).toMatchObject({ measured: 13, correct: 12 });
+  });
+
+  it("reads no position where the played note is not the phrase note", () => {
+    const played = phrase.flatMap(([midi, , position], index) =>
+      midi === null || !position
+        ? []
+        : [
+            // The second note is a semitone out, on an otherwise correct dot.
+            note(index === 1 ? midi + 1 : midi, index * 250, {
+              stringNumber: position.string,
+              fretNumber: position.fret,
+            }),
+          ],
+    );
+
+    // 12 measured, not 13: the wrong note is counted by the note-order grade,
+    // not a second time as a wrong position.
+    expect(gradeLickPositions(phrase, played)).toEqual({ total: 13, measured: 12, correct: 12 });
+  });
+
+  it("measures nothing from microphone pitch", () => {
+    const played = lickMidiNotes(phrase).map((midi, index) => note(midi, index * 250));
+
+    expect(gradeLickPositions(phrase, played)).toEqual({ total: 13, measured: 0, correct: 0 });
+  });
+});
+
+describe("gradeLickTiming", () => {
+  const phrase = LICK_PHRASES[GUITAR_BOX_ONE_LICK]!;
+  const bpm = 96;
+  const beatMs = 60_000 / bpm;
+  const note = (midiNote: number, atMs: number): NoteOnEvent => ({
+    type: "noteOn",
+    midiNote,
+    velocity: 1,
+    source: "audio",
+    instrument: "guitar",
+    timestamp: monotonicMs(atMs),
+    clock: "performance",
+  });
+
+  it("counts every note on the grid as on time", () => {
+    const played = lickTimeline(phrase).map((entry) =>
+      note(entry.midi, entry.offsetBeats * beatMs),
+    );
+
+    expect(gradeLickTiming(phrase, { bpm, startTimestampMs: 0, input: played })).toEqual({
+      total: 13,
+      onTime: 13,
+      ratio: 1,
+    });
+  });
+
+  it("drops a note that lands outside the on-time window", () => {
+    const played = lickTimeline(phrase).map((entry, index) =>
+      note(entry.midi, entry.offsetBeats * beatMs + (index === 2 ? 170 : 0)),
+    );
+    const grade = gradeLickTiming(phrase, { bpm, startTimestampMs: 0, input: played });
+
+    // min(180, beatMs / 4) = 156 ms at 96 BPM.
+    expect(grade.onTime).toBe(12);
+    expect(grade.ratio).toBeCloseTo(12 / 13, 5);
+  });
 });

@@ -21,12 +21,15 @@
     createTwoHandIndependenceExercise,
     type TwoHandIndependenceAnswer,
     type TwoHandIndependencePrompt,
+    type TwoHandLiveState,
+    type TwoHandTargetEvent,
   } from "@repo/music-core/exercises/two-hand-independence";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
   import TempoPracticeSuggestion from "../../_components/TempoPracticeSuggestion.svelte";
+  import DemoBeatLane from "../../_components/DemoBeatLane.svelte";
   import MidiStatus from "../../_components/MidiStatus.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
@@ -90,6 +93,15 @@
   let session = $state<TechniqueSession | undefined>();
   let sessionState = $state<TechniqueSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
+  // Demo mode: an audible model of the exercise. It starts no run, writes no
+  // scoring event, and leaves the page exactly as it found it (review 21 O06).
+  let demoRunning = $state(false);
+  let demoBeat = $state(-1);
+  let demoSounding = $state<TwoHandTargetEvent[]>([]);
+  let demoGeneration = 0;
+  let demoTimers: ReturnType<typeof setTimeout>[] = [];
+  let statusBeforeDemo = "";
+  const DEMO_STATUS = "Demo: listening, not scored.";
 
   const activePrompt = $derived(
     sessionState?.currentPrompt && "leftMidiNotes" in sessionState.currentPrompt
@@ -130,12 +142,43 @@
     }
     return highlights;
   });
+  // The demo model lights the notes it is sounding over the standing targets.
+  const stageHighlights = $derived.by(() => {
+    if (!demoRunning) return handHighlights;
+    const lit: Record<number, PianoHighlight> = { ...handHighlights };
+    for (const event of demoSounding) lit[event.midiNote] = { role: "sounding", hand: event.hand };
+    return lit;
+  });
   const handFingerings = $derived({
     ...suggestedFingerings(display.rightMidiNotes, "right"),
     ...suggestedFingerings(display.leftMidiNotes, "left"),
   });
   const totalNotes = $derived(display.leftMidiNotes.length + display.rightMidiNotes.length);
   const playedNotes = $derived(Math.round((sessionState?.live?.progress ?? 0) * totalNotes));
+
+  // One lane cell per beat the pattern uses, in order.
+  const beatValues = $derived(
+    [...new Set(display.targetEvents.map((event) => event.beat))].sort((a, b) => a - b),
+  );
+  const beatLane = $derived(
+    beatValues.map((beat) => ({
+      left: display.targetEvents.some((event) => event.beat === beat && event.hand === "left"),
+      right: display.targetEvents.some((event) => event.beat === beat && event.hand === "right"),
+    })),
+  );
+  // The engine flags the beats both hands share, in that order; map them back
+  // onto the lane so a "not together" mark sits on the beat it belongs to.
+  const apartBeats = $derived.by(() => {
+    const shared = beatLane.flatMap((beat, index) => (beat.left && beat.right ? [index] : []));
+    const marks: boolean[] = beatLane.map(() => false);
+    const flags = (sessionState?.live as TwoHandLiveState | undefined)?.togetherFlags ?? [];
+    flags.forEach((together, index) => {
+      const laneIndex = shared[index];
+      if (laneIndex !== undefined && !together) marks[laneIndex] = true;
+    });
+    return marks;
+  });
+  const drillMode = $derived<"demo" | "practice" | "check">(demoRunning ? "demo" : "practice");
 
   const summary = $derived(sessionState?.summary);
   const completedPrompt = $derived(summary?.results[0]?.prompt);
@@ -170,9 +213,29 @@
     }
     return `Both hands matched on note accuracy: ${left}%.`;
   });
+  /** Share of shared beats struck within the window; undefined on a single-hand run. */
+  const together = $derived(
+    answer?.togetherTotal === undefined
+      ? undefined
+      : (answer.togetherBeats ?? 0) / answer.togetherTotal,
+  );
+  const togetherValue = $derived(
+    answer?.togetherTotal === undefined
+      ? "Not measured"
+      : `${answer.togetherBeats ?? 0} of ${answer.togetherTotal}`,
+  );
+  // Only the pattern that asks the hands to strike together reports on it; an
+  // on-screen run cannot show it at all, so it reads "not measured" rather than 0.
+  const togetherDetail = $derived(
+    !display.measuresTogether
+      ? ""
+      : together === undefined
+        ? "Together not measured · "
+        : `Together ${Math.round(together * 100)}% of beats · `,
+  );
   const resultDetail = $derived(
     answer
-      ? `${handMode === "left" ? `Left-hand note accuracy ${Math.round(answer.leftAccuracy * 100)}%` : handMode === "right" ? `Right-hand note accuracy ${Math.round(answer.rightAccuracy * 100)}%` : `Left-hand note accuracy ${Math.round(answer.leftAccuracy * 100)}% · Right-hand note accuracy ${Math.round(answer.rightAccuracy * 100)}%`} · Mean spacing error: ${Math.round(answer.meanEvennessErrorMs)} ms${
+      ? `${togetherDetail}${handMode === "left" ? `Left-hand note accuracy ${Math.round(answer.leftAccuracy * 100)}%` : handMode === "right" ? `Right-hand note accuracy ${Math.round(answer.rightAccuracy * 100)}%` : `Left-hand note accuracy ${Math.round(answer.leftAccuracy * 100)}% · Right-hand note accuracy ${Math.round(answer.rightAccuracy * 100)}%`} · Mean spacing error: ${Math.round(answer.meanEvennessErrorMs)} ms${
           answer.dynamicsContrast === undefined
             ? ""
             : ` · MIDI velocity contrast ${answer.dynamicsContrast >= 0 ? "+" : ""}${answer.dynamicsContrast.toFixed(2)} (melody − accompaniment)`
@@ -285,8 +348,69 @@
     }
   }
 
+  /**
+   * Play the exercise as a model. No run, no attempt, no scoring event — the
+   * player can still touch the keys and hear them, nothing is graded.
+   */
+  async function toggleDemo(): Promise<void> {
+    if (demoRunning) {
+      stopDemo();
+      return;
+    }
+    // A start is in flight (count-in, preflight) with the ready stage still up:
+    // a demo begun now would dress the graded run as a demonstration.
+    if (!ready || pending) return;
+    const generation = ++demoGeneration;
+    if (!(await runtime.ensurePlaybackVoice())) {
+      if (generation === demoGeneration) status = runtime.audioMessage;
+      return;
+    }
+    if (generation !== demoGeneration || destroyed || pending) return;
+    const prompt = display;
+    const secondsPerBeat = prompt.beatMs / 1_000;
+    const epoch = runtime.sound.playPattern(
+      prompt.targetEvents.map((event) => ({
+        midiNotes: [event.midiNote],
+        offsetSeconds: event.beat * secondsPerBeat,
+        durationSeconds: secondsPerBeat * 0.9,
+      })),
+      0.7,
+    );
+    statusBeforeDemo = status;
+    demoRunning = true;
+    status = DEMO_STATUS;
+    // Tone schedules a lookahead ahead of the call, so light from the instant
+    // beat 0 actually sounds, not from the instant the call was made.
+    const lightsAt = Math.max(0, (epoch?.startedAt ?? performance.now()) - performance.now());
+    for (const [index, beat] of beatValues.entries()) {
+      demoTimers.push(
+        setTimeout(() => {
+          demoBeat = index;
+          demoSounding = prompt.targetEvents.filter((event) => event.beat === beat);
+        }, lightsAt + beat * prompt.beatMs),
+      );
+    }
+    demoTimers.push(
+      setTimeout(stopDemo, lightsAt + ((beatValues.at(-1) ?? 0) + 1) * prompt.beatMs),
+    );
+  }
+
+  function stopDemo(): void {
+    demoGeneration += 1;
+    for (const timer of demoTimers) clearTimeout(timer);
+    demoTimers = [];
+    if (!demoRunning) return;
+    runtime.sound.stopPattern();
+    // Only take back the line the demo wrote: initialize() may have replaced it.
+    if (status === DEMO_STATUS) status = statusBeforeDemo;
+    demoRunning = false;
+    demoBeat = -1;
+    demoSounding = [];
+  }
+
   async function start(): Promise<void> {
     if (!ready || pending || !session) return;
+    stopDemo();
     const request = ++startRequest;
     const generation = routeGeneration;
     resultsDismissed = true;
@@ -401,6 +525,7 @@
     destroyed = true;
     startRequest += 1;
     routeGeneration += 1;
+    stopDemo();
     runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
@@ -437,7 +562,7 @@
       notes={handNotes}
       lowMidi={selectedHandRange.lowMidi}
       highMidi={selectedHandRange.highMidi}
-      highlights={handHighlights}
+      highlights={stageHighlights}
       fingerings={handFingerings}
       onAccepted={playAccepted}
     />
@@ -476,6 +601,15 @@
           {#if answer && handMode !== "left"}
             <HudTile size="sm" label="Right note accuracy" value={Math.round(answer.rightAccuracy * 100)} unit="%" tone={answer.rightAccuracy >= 0.9 ? "good" : "default"} />
           {/if}
+          {#if display.measuresTogether}
+            <HudTile
+              size="sm"
+              label="Together"
+              value={togetherValue}
+              unit={answer?.togetherTotal === undefined ? undefined : "beats"}
+              tone={together !== undefined && together >= 0.8 ? "good" : "default"}
+            />
+          {/if}
           <HudTile size="sm" label="Mean spacing error" value={Math.round(answer?.meanEvennessErrorMs ?? 0)} unit="ms" />
           <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
         </div>
@@ -496,7 +630,13 @@
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
+  <PracticeDrillShell
+    {phase}
+    mode={drillMode}
+    startPending={pending || demoRunning}
+    setupSummary={setupSummaryLine}
+    summary={summaryPhase}
+  >
     {#snippet setup()}
       <div class="grid gap-4 rounded-lg border bg-card p-4">
         <SegmentedControl ariaLabel="Pattern" options={patternOptions} bind:value={patternKind} />
@@ -546,9 +686,23 @@
             <Button type="button" size="lg" disabled={!ready || pending} onclick={() => void start()}>
               {pending ? "Starting..." : "Start"}
             </Button>
+            {#if drillMode !== "check"}
+              <Button
+                type="button"
+                variant="outline"
+                class="min-h-11"
+                disabled={!ready || pending}
+                onclick={() => void toggleDemo()}
+              >
+                {demoRunning ? "Stop demo" : "Demo"}
+              </Button>
+            {/if}
             <StartShortcut onStart={() => void start()} />
           </div>
         </div>
+        {#if demoRunning}
+          <DemoBeatLane beats={beatLane} current={demoBeat} label="Demo beat lane" />
+        {/if}
         {@render keyboard()}
         <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-stage-muted">
           <span>{status}</span>
@@ -575,6 +729,7 @@
           <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
         </div>
         <Progress value={Math.min(totalNotes, playedNotes)} max={totalNotes} />
+        <DemoBeatLane beats={beatLane} apart={apartBeats} label="Beat lane" />
         {@render keyboard()}
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>

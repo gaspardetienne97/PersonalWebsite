@@ -16,7 +16,8 @@ import type {
   SkillRelationshipRow,
   SongRow,
 } from "./index";
-import { withMediaLibraryMutationLock } from "../media-library/index";
+import { TAKE_GAIN_DB_RANGE, withMediaLibraryMutationLock } from "../media-library/index";
+import { TEMPO_LADDER_SETTINGS_ID } from "../technique-session/tempo-ladder";
 import { validateTuning, type TuningProfile } from "../tunings/index";
 
 export const MUSIC_DATA_BACKUP_MAX_BYTES = 50 * 1024 * 1024;
@@ -34,9 +35,14 @@ export interface MusicDataBackupTables {
   audioTakes: AudioTakeRow[];
 }
 
-export interface MusicDataBackupV1 {
+/** Current data backup format. Version 1 (no take gain/note) still restores. */
+export const MUSIC_DATA_BACKUP_VERSION = 2;
+
+export type MusicDataBackupVersion = 1 | 2;
+
+export interface MusicDataBackup {
   format: "practice-os-data-backup";
-  version: 1;
+  version: MusicDataBackupVersion;
   exportedAt: string;
   tables: MusicDataBackupTables;
   media: {
@@ -47,8 +53,11 @@ export interface MusicDataBackupV1 {
   };
 }
 
+/** @deprecated Kept for callers written against the first format version. */
+export type MusicDataBackupV1 = MusicDataBackup;
+
 export interface PreparedMusicDataBackup {
-  backup: MusicDataBackupV1;
+  backup: MusicDataBackup;
   json: string;
   byteSize: number;
   counts: Record<keyof MusicDataBackupTables, number>;
@@ -110,7 +119,7 @@ export async function prepareMusicDataBackup(
   );
   const backup = validateMusicDataBackup({
     format: "practice-os-data-backup",
-    version: 1,
+    version: MUSIC_DATA_BACKUP_VERSION,
     exportedAt: now().toISOString(),
     tables,
     media: {
@@ -129,7 +138,7 @@ export async function prepareMusicDataBackup(
   };
 }
 
-export function parseMusicDataBackup(json: string): MusicDataBackupV1 {
+export function parseMusicDataBackup(json: string): MusicDataBackup {
   if (json.trim() === "") throw new Error("The data backup file is empty.");
   let parsed: unknown;
   try {
@@ -140,10 +149,11 @@ export function parseMusicDataBackup(json: string): MusicDataBackupV1 {
   return validateMusicDataBackup(parsed);
 }
 
-export function validateMusicDataBackup(input: unknown): MusicDataBackupV1 {
+export function validateMusicDataBackup(input: unknown): MusicDataBackup {
   assertPlainObject(input, "backup");
   if (input.format !== "practice-os-data-backup") fail("backup.format", "is unsupported");
-  if (input.version !== 1) fail("backup.version", "is unsupported");
+  if (input.version !== 1 && input.version !== MUSIC_DATA_BACKUP_VERSION)
+    fail("backup.version", "is unsupported");
   assertString(input.exportedAt, "backup.exportedAt");
   if (!Number.isFinite(Date.parse(input.exportedAt)))
     fail("backup.exportedAt", "must be an ISO date");
@@ -170,7 +180,7 @@ export function validateMusicDataBackup(input: unknown): MusicDataBackupV1 {
     fail("backup.media", "counts do not match the referenced media metadata");
   }
 
-  const cloned = structuredClone(input) as unknown as MusicDataBackupV1;
+  const cloned = structuredClone(input) as unknown as MusicDataBackup;
   cloned.tables.settings = cloned.tables.settings.map((row) => ({
     id: row.id,
     value: row.value,
@@ -325,6 +335,9 @@ function validateRow(
       enumValue(row.instrument, INSTRUMENTS, `${path}.instrument`);
       numberIn(row.backingOffsetMs, `${path}.backingOffsetMs`, 0);
       optionalString(row.backingTrackId, `${path}.backingTrackId`);
+      optionalString(row.note, `${path}.note`);
+      if (row.gainDb !== undefined)
+        numberIn(row.gainDb, `${path}.gainDb`, TAKE_GAIN_DB_RANGE.min, TAKE_GAIN_DB_RANGE.max);
       if (row.backingKind !== undefined)
         enumValue(row.backingKind, new Set(["generated", "imported"]), `${path}.backingKind`);
       if (row.generatedBacking !== undefined) {
@@ -671,6 +684,15 @@ function validateSetting(row: Record<string, unknown>, path: string): void {
   else if (row.id === "music.custom-tunings") validateCustomTunings(value, settingPath);
   else if (row.id === "music.studio.boom-bap") validateStudioPattern(value, settingPath);
   else if (row.id === "music.studio.active-sample-kit") assertString(value, `${settingPath}.value`);
+  else if (row.id === TEMPO_LADDER_SETTINGS_ID) validateTempoLadder(value, settingPath);
+}
+
+/** Tempo ladder rungs: one unlocked BPM per drill variant key. */
+function validateTempoLadder(value: unknown, path: string): void {
+  assertPlainObject(value, `${path}.value`);
+  for (const [variantKey, bpm] of Object.entries(value)) {
+    numberIn(bpm, `${path}.value.${variantKey}`, 1);
+  }
 }
 
 function validatePartialMusicSettings(value: unknown, path: string): void {

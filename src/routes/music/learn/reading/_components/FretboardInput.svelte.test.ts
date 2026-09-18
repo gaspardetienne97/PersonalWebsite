@@ -331,6 +331,50 @@ describe("FretboardInput fret window", () => {
       document.querySelector('[aria-label="String 6 fret 5, A2, target"]')?.textContent?.trim(),
     ).toBe("A");
   });
+
+  test("position targets light one dot per authored string and fret, not every octave", async () => {
+    // G3's window: B4 is authored at string 2 fret 12 and also playable at
+    // string 3 fret 16, which is inside the same window.
+    render(FretboardInput, {
+      tuning: curatedTunings("guitar")[0]!,
+      router: new InputRouter(),
+      visibleFrets: 22,
+      fretWindow: { start: 11, end: 16 },
+      targetPositions: [{ stringNumber: 2, fretNumber: 12, label: "1" }],
+    });
+
+    expect(document.querySelector('[aria-label="String 2 fret 12, B4, target"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="String 3 fret 16, B4, target"]')).toBeNull();
+    expect(document.querySelectorAll('[aria-label*=", target"]')).toHaveLength(1);
+    await vi.waitFor(() =>
+      expect([...document.querySelectorAll(".dot-text")].map((node) => node.textContent)).toEqual([
+        "1",
+      ]),
+    );
+  });
+
+  test("position targets carry their own active and completed states", async () => {
+    render(FretboardInput, {
+      tuning: curatedTunings("guitar")[0]!,
+      router: new InputRouter(),
+      visibleFrets: 22,
+      fretWindow: { start: 11, end: 16 },
+      targetPositions: [
+        { stringNumber: 4, fretNumber: 14, label: "3" },
+        { stringNumber: 3, fretNumber: 12, label: "1" },
+        { stringNumber: 2, fretNumber: 15, label: "4" },
+      ],
+      correctPositions: [{ stringNumber: 4, fretNumber: 14 }],
+      activePosition: { stringNumber: 3, fretNumber: 12 },
+    });
+
+    expect(document.querySelector('[aria-label="String 4 fret 14, E4, correct"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="String 3 fret 12, G4, active"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="String 2 fret 15, D5, target"]')).not.toBeNull();
+    // E4 also sits at string 3 fret 16 in this window and stays unlit.
+    expect(document.querySelector('[aria-label="String 3 fret 16, B4"]')).not.toBeNull();
+    await vi.waitFor(() => expect(document.querySelectorAll(".dot-circle").length).toBe(3));
+  });
 });
 
 function visualStringCount(): number {

@@ -65,6 +65,24 @@ export type DrumArticulation =
   | "ride"
   | "perc";
 
+/** Drum voices of the stock kit: the ids the sequencer, groove exercises and pad map all share. */
+export type DrumVoice = "kick" | "snare" | "hats" | "openhat" | "808" | "perc";
+
+/**
+ * Canonical pad note per drum voice as the stock kit maps them (pad A01 = 36),
+ * the one place that decides which pad a voice lives on. `BOOM_BAP_KIT` and the
+ * MPC groove exercises read it, so a `ScoreNote` carrying a `drumArticulation`
+ * lands on the same pad the drills teach.
+ */
+export const DRUM_VOICE_PADS: Record<DrumVoice, number> = {
+  kick: 36,
+  snare: 38,
+  hats: 42,
+  openhat: 46,
+  "808": 35,
+  perc: 39,
+};
+
 export interface ScoreNote {
   midiNote: number;
   /** Written spelling, kept separate from sounding pitch for notation. */

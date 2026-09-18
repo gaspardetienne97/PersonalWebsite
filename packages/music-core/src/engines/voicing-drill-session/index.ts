@@ -32,7 +32,7 @@ import {
 
 import { midiToNote } from "@repo/music-core/engines/theory";
 
-export type VoicingDrillVariant = DrillVariant | "guide-tones";
+export type VoicingDrillVariant = DrillVariant | "guide-tones" | "inversions";
 
 const pitchClass = (midi: number): number => ((midi % 12) + 12) % 12;
 
@@ -78,25 +78,38 @@ export function normalizeVoicingDrillConfig(
       : VOICING_DRILL_DEFAULT_CONFIG.instrument;
   const rawVariant = readVoicingConfigValue(source, ["variant"]);
   const variant: VoicingDrillVariant =
-    rawVariant === "minor" || rawVariant === "altered" || rawVariant === "guide-tones"
+    rawVariant === "minor" ||
+    rawVariant === "altered" ||
+    rawVariant === "guide-tones" ||
+    rawVariant === "inversions"
       ? rawVariant
       : "major";
   const rawStart = readVoicingConfigValue(source, ["start", "startPosition"]);
   const rawStrict = readVoicingConfigValue(source, ["strict"]);
   const rawAdvance = readVoicingConfigValue(source, ["advance", "auto", "autoAdvance"]);
 
+  const rawKey = Number(readVoicingConfigValue(source, ["key"]));
+  // Guide tones and P2 inversions are authored piano drills: they pin the
+  // instrument, grade held chords, and are checked one chord at a time.
+  const pianoOnly = variant === "guide-tones" || variant === "inversions";
+
   return {
-    instrument: variant === "guide-tones" ? "piano" : instrument,
+    instrument: pianoOnly ? "piano" : instrument,
     variant,
     ...(variant === "guide-tones"
-      ? { key: guideKey(Number(readVoicingConfigValue(source, ["key"]))) }
-      : {}),
+      ? { key: guideKey(rawKey) }
+      : variant === "inversions"
+        ? { key: rawKey === 7 ? 7 : 0 }
+        : {}),
     startPosition: rawStart === "B" ? "B" : "A",
     strict:
-      rawStrict === "held" || rawStrict === "strict" || rawStrict === "true" || rawStrict === "1",
+      variant === "inversions" ||
+      rawStrict === "held" ||
+      rawStrict === "strict" ||
+      rawStrict === "true" ||
+      rawStrict === "1",
     autoAdvance:
-      variant !== "guide-tones" &&
-      !(rawAdvance === "manual" || rawAdvance === "false" || rawAdvance === "0"),
+      !pianoOnly && !(rawAdvance === "manual" || rawAdvance === "false" || rawAdvance === "0"),
   };
 }
 
@@ -110,6 +123,7 @@ export function buildVoicingDrillTargets(
     strict?: boolean;
   } = {},
 ): VoicingTarget[] {
+  if (opts.variant === "inversions") return buildClosestChordsTargets(opts.key === 7 ? 7 : 0);
   if (opts.variant === "guide-tones") {
     if (instrument !== "piano") throw new Error("Guide tones require piano.");
     const key = guideKey(opts.key);
@@ -153,6 +167,75 @@ export function buildVoicingDrillTargets(
       } satisfies VoicingTarget;
     }),
   );
+}
+
+/**
+ * P2 "Closest chords: I IV V I" (curriculum §5 P2), tabled in C major: one chord
+ * per bar held for four beats, the right hand taking the inversion that moves
+ * least while the left hand plays the root. Bar 1 opens the sequence; bars 2-4
+ * each carry the previous bar's right hand as the voice-leading origin.
+ */
+const CLOSEST_CHORDS: readonly { bassMidi: number; rightMidi: number[] }[] = [
+  { bassMidi: 48, rightMidi: [60, 64, 67] }, // C   · root     · C3
+  { bassMidi: 41, rightMidi: [60, 65, 69] }, // F/C · second   · F2
+  { bassMidi: 43, rightMidi: [59, 62, 67] }, // G/B · first    · G2
+  { bassMidi: 48, rightMidi: [60, 64, 67] }, // C   · root     · C3
+] as const;
+
+/** One hand, G3 to C5: wide enough for every equally economical alternative. */
+const CLOSEST_CHORDS_REGISTER: [number, number] = [55, 72];
+/** Below this, a note is the left-hand root, not a voice. */
+const CLOSEST_CHORDS_SPLIT_MIDI = 54;
+/** A voicing within this much of the best total movement still counts as minimal. */
+const CLOSEST_CHORDS_TOLERANCE_SEMITONES = 2;
+/** E3 — the top of the octave the tabled left-hand roots (F2 to C3) live in. */
+const CLOSEST_CHORDS_HIGHEST_ROOT = 52;
+
+function buildClosestChordsTargets(key: 0 | 7): VoicingTarget[] {
+  // G major takes the right hand up a fifth; the left-hand root follows and is
+  // folded back down an octave when it leaves the bass register, so the roots
+  // stay G2 C3 D3 G2 rather than climbing into the right hand.
+  const shift = key;
+  return CLOSEST_CHORDS.map(({ bassMidi, rightMidi }, index) => {
+    const bass = foldBassRoot(bassMidi + shift);
+    const right = rightMidi.map((midi) => midi + shift);
+    const previous = CLOSEST_CHORDS[index - 1]?.rightMidi.map((midi) => midi + shift);
+    return {
+      id: `closest-chords-${key}-${index}`,
+      skillIds: [VOICING_DRILL_SKILL, VOICE_LEADING_SKILL],
+      symbol: inversionSymbol(bass, right[0]!),
+      mode: "chord",
+      strict: true,
+      expectedPitchClasses: [...new Set(right.map(pitchClass))],
+      expectedBassPc: pitchClass(right[0]!),
+      bassSplitMidi: CLOSEST_CHORDS_SPLIT_MIDI + shift,
+      requireInversion: true,
+      requiredRootPc: pitchClass(bass),
+      displayMidi: [bass, ...right],
+      ...(previous === undefined
+        ? {}
+        : {
+            voiceLeading: {
+              fromMidi: previous,
+              register: CLOSEST_CHORDS_REGISTER.map((midi) => midi + shift) as [number, number],
+              toleranceSemitones: CLOSEST_CHORDS_TOLERANCE_SEMITONES,
+            },
+          }),
+    } satisfies VoicingTarget;
+  });
+}
+
+/** Keep the left-hand root inside the F2-E3 octave the table uses. */
+function foldBassRoot(midi: number): number {
+  return midi > CLOSEST_CHORDS_HIGHEST_ROOT ? midi - 12 : midi;
+}
+
+/** "C", or "F/C" when the bass of the voicing is not the root. */
+function inversionSymbol(rootMidi: number, voicingBassMidi: number): string {
+  const name = (midi: number) => midiToNote(midi).replace(/-?\d+$/, "");
+  return pitchClass(rootMidi) === pitchClass(voicingBassMidi)
+    ? name(rootMidi)
+    : `${name(rootMidi)}/${name(voicingBassMidi)}`;
 }
 
 export interface VoicingDrillStepResult {
@@ -279,7 +362,7 @@ export class VoicingDrillSession {
       const next = this.#targets[this.#index]!;
       const movement = outcome.event.metrics.find((metric) => metric.kind === "voice-leading");
       if (next.voiceLeading && step.correct && movement) {
-        next.voiceLeading.fromMidi = [...movement.actualMidi] as [number, number];
+        next.voiceLeading.fromMidi = [...movement.actualMidi];
       }
       this.#beginCurrent();
     } else {

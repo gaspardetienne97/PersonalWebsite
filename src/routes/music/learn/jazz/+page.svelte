@@ -129,7 +129,7 @@
     <p class="text-sm text-muted-foreground">
       Reference material. Want it in order, tracked by your progress?
     </p>
-    <Button href="/music/learn/path" size="sm" variant="outline">Open the Jazz Path →</Button>
+    <Button href="/music/learn/path?path=jazz" size="sm" variant="outline">Open the Jazz Path →</Button>
   </div>
 
   {#if tab === "theory"}

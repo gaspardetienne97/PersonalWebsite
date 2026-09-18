@@ -1,9 +1,12 @@
 <script lang="ts">
   import type { ScoreSection } from "@repo/music-core/domain";
-  import type {
-    LoopOrder,
-    LoopSnap,
-    ScorePracticeSelection,
+  import {
+    barBeatRange,
+    barRangeOf,
+    type LoopOrder,
+    type LoopSnap,
+    type ScorePracticeSelection,
+    type ScoreSelectionBoundary,
   } from "@repo/music-core/engines/score-practice";
   import type { TimingStrictness } from "@repo/music-core/engines/score-follower";
   import { Button } from "@repo/ui/button";
@@ -16,12 +19,14 @@
   let {
     sections,
     scoreEndBeat,
+    measureBoundaries = [],
     value,
     active = false,
     onChange,
   }: {
     sections: ScoreSection[];
     scoreEndBeat: number;
+    measureBoundaries?: ScoreSelectionBoundary[];
     value: ScorePracticeSetupValue;
     active?: boolean;
     onChange?: (value: ScorePracticeSetupValue) => void;
@@ -41,7 +46,12 @@
     value.selection.kind === "custom" ? value.selection.endBeat : scoreEndBeat,
   );
   const customSnap = $derived(
-    value.selection.kind === "custom" ? value.selection.snap : "note-group",
+    value.selection.kind === "custom" ? value.selection.snap : "measure",
+  );
+  // Bars are what a player reads off the page; beats stay the model underneath.
+  const lastBar = $derived(Math.max(1, measureBoundaries.length - 1));
+  const bars = $derived(
+    barRangeOf({ startBeat: customStart, endBeat: customEnd }, measureBoundaries),
   );
 
   function update(patch: Partial<ScorePracticeSetupValue>): void {
@@ -58,7 +68,7 @@
       setSelection({ kind: "sections", sectionIds: [], order: "sequence" });
     }
     if (mode === "custom") {
-      setSelection({ kind: "custom", startBeat: 0, endBeat: scoreEndBeat, snap: "note-group" });
+      setSelection({ kind: "custom", startBeat: 0, endBeat: scoreEndBeat, snap: "measure" });
     }
   }
 
@@ -86,12 +96,31 @@
     });
   }
 
-  function setRangeBoundary(boundary: "start" | "end", event: Event): void {
-    const next = Number((event.currentTarget as HTMLInputElement).value);
+  /**
+   * Committed on `change`, so typing "12" is not read as bar 1 then bar 12. The
+   * typed number is clamped into the score and the field is written back to the
+   * bar that was actually applied: the box can never disagree with the range.
+   */
+  function setRangeBar(boundary: "start" | "end", event: Event): void {
+    const field = event.currentTarget as HTMLInputElement;
+    // An emptied field is not bar 0: it resyncs to the bar already in force.
+    const typed = field.value.trim() === "" ? Number.NaN : Number(field.value);
+    const other = boundary === "start" ? bars.endBar : bars.startBar;
+    const bar = Number.isFinite(typed)
+      ? Math.min(lastBar, Math.max(1, Math.round(typed)))
+      : boundary === "start"
+        ? bars.startBar
+        : bars.endBar;
+    // Neither end may cross the other; the moving end stops at it.
+    const applied =
+      boundary === "start" ? Math.min(bar, other) : Math.max(bar, other);
+    const range = barBeatRange(applied, measureBoundaries);
+    field.value = String(applied);
+    if (!range) return;
     setSelection({
       kind: "custom",
-      startBeat: boundary === "start" ? next : customStart,
-      endBeat: boundary === "end" ? next : customEnd,
+      startBeat: boundary === "start" ? range.startBeat : customStart,
+      endBeat: boundary === "end" ? range.endBeat : customEnd,
       snap: customSnap,
     });
   }
@@ -165,27 +194,29 @@
       />
       <div class="grid gap-3 sm:grid-cols-2">
         <div class="grid gap-2">
-          <Label for="score-range-start">Start beat</Label>
+          <Label for="score-range-start">Start bar</Label>
           <Input
             id="score-range-start"
-            aria-label="Range start beat"
+            aria-label="Range start bar"
             type="number"
-            min={0}
-            step={0.25}
-            value={value.selection.startBeat}
-            oninput={(event) => setRangeBoundary("start", event)}
+            min={1}
+            max={lastBar}
+            step={1}
+            value={bars.startBar}
+            onchange={(event) => setRangeBar("start", event)}
           />
         </div>
         <div class="grid gap-2">
-          <Label for="score-range-end">End beat</Label>
+          <Label for="score-range-end">End bar</Label>
           <Input
             id="score-range-end"
-            aria-label="Range end beat"
+            aria-label="Range end bar"
             type="number"
-            min={0}
-            step={0.25}
-            value={value.selection.endBeat}
-            oninput={(event) => setRangeBoundary("end", event)}
+            min={1}
+            max={lastBar}
+            step={1}
+            value={bars.endBar}
+            onchange={(event) => setRangeBar("end", event)}
           />
         </div>
       </div>

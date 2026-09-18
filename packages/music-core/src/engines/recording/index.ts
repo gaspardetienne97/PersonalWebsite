@@ -5,6 +5,8 @@ export interface TakeNote {
   /** Milliseconds from the start of the take. */
   atMs: number;
   velocity: number;
+  /** Gate time in milliseconds. Absent when no note-off arrived before the take ended. */
+  durationMs?: number;
 }
 
 export interface Take {
@@ -13,6 +15,8 @@ export interface Take {
   source: InputSource;
   notes: TakeNote[];
   durationMs: number;
+  /** Optional one-line note the player attaches to the take. */
+  note?: string;
 }
 
 export interface TakeComparison {
@@ -29,15 +33,20 @@ export interface TakeDensityBucket {
   intensity: number;
 }
 
+/** Gate time used when a note-off never arrived before the take ended. */
+export const DEFAULT_TAKE_NOTE_DURATION_BEATS = 0.5;
+
 /**
- * In-session MIDI/on-screen take recorder. Captures note-on events with
- * timing relative to the take start; supports listing, removal, and take-vs-take
- * pitch comparison for self-review. No audio is recorded (Phase 2).
+ * In-session MIDI/on-screen take recorder. Captures note-on and note-off events
+ * with timing relative to the take start; supports listing, renaming, removal,
+ * and take-vs-take pitch comparison for self-review.
  */
 export class RecordingSession {
   #takes: Take[] = [];
   #recording = false;
   #buffer: TakeNote[] = [];
+  /** Pitch -> index in #buffer of the note-on still waiting for its note-off. */
+  #open = new Map<number, number>();
   #startMs = 0;
   #source: InputSource = "midi";
   #counter = 0;
@@ -49,21 +58,33 @@ export class RecordingSession {
   start(atMs: number): void {
     this.#recording = true;
     this.#buffer = [];
+    this.#open.clear();
     this.#startMs = atMs;
   }
 
   capture(event: NoteEvent): void {
-    if (!this.#recording || event.type !== "noteOn") return;
+    if (!this.#recording) return;
+    if (event.type !== "noteOn" && event.type !== "noteOff") return;
+    const atMs = Math.max(0, Number(event.timestamp) - this.#startMs);
+
+    if (event.type === "noteOff") {
+      const index = this.#open.get(event.midiNote);
+      const note = index === undefined ? undefined : this.#buffer[index];
+      // A stray note-off contributed no note, so it cannot claim the take's source.
+      if (!note) return;
+      note.durationMs = Math.max(0, atMs - note.atMs);
+      this.#open.delete(event.midiNote);
+      return;
+    }
+
     this.#source = event.source;
-    this.#buffer.push({
-      midi: event.midiNote,
-      atMs: Math.max(0, Number(event.timestamp) - this.#startMs),
-      velocity: event.velocity,
-    });
+    this.#open.set(event.midiNote, this.#buffer.length);
+    this.#buffer.push({ midi: event.midiNote, atMs, velocity: event.velocity });
   }
 
   stop(atMs: number, name?: string): Take {
     this.#recording = false;
+    this.#open.clear();
     this.#counter += 1;
     const take: Take = {
       id: `take-${this.#counter}`,
@@ -100,6 +121,25 @@ export class RecordingSession {
     this.#takes = this.#takes.filter((take) => take.id !== id);
   }
 
+  /** Rename a take. A blank name is ignored so a card can never lose its label. */
+  renameTake(id: string, name: string): void {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    this.#patch(id, (take) => ({ ...take, name: trimmed }));
+  }
+
+  /** Attach (or, with a blank value, clear) the take's one-line note. */
+  setTakeNote(id: string, note: string): void {
+    const trimmed = note.trim();
+    this.#patch(id, ({ note: _previous, ...take }) =>
+      trimmed ? { ...take, note: trimmed } : { ...take },
+    );
+  }
+
+  #patch(id: string, update: (take: Take) => Take): void {
+    this.#takes = this.#takes.map((take) => (take.id === id ? update(take) : take));
+  }
+
   compare(aId: string, bId: string): TakeComparison {
     const a = this.#takes.find((take) => take.id === aId);
     const b = this.#takes.find((take) => take.id === bId);
@@ -118,19 +158,17 @@ export class RecordingSession {
 /**
  * Convert a recorded {@link Take} into a canonical {@link Score} so it can flow
  * into the MIDI/audio export engines. Millisecond timestamps become beats at the
- * given tempo.
- *
- * ponytail: note-off isn't captured, so every note gets a fixed eighth-note
- * length. Upgrade path: capture noteOff in `RecordingSession` and use the real
- * gate time if held-note fidelity matters.
+ * given tempo; a note with no captured note-off keeps the fixed default length.
  */
 export function takeToScore(take: Take, bpm: number): Score {
   const msPerBeat = 60000 / Math.max(1, bpm);
-  const durationBeats = 0.5;
   const notes: ScoreNote[] = take.notes.map((note) => ({
     midiNote: note.midi,
     startBeat: note.atMs / msPerBeat,
-    durationBeats,
+    durationBeats:
+      note.durationMs === undefined
+        ? DEFAULT_TAKE_NOTE_DURATION_BEATS
+        : Math.max(0.01, note.durationMs / msPerBeat),
     velocity: note.velocity,
     voiceId: take.source,
   }));
@@ -170,4 +208,70 @@ export function buildTakeDensity(take: Take, bucketCount = 16): TakeDensityBucke
     ...bucket,
     intensity: bucket.count / maxCount,
   }));
+}
+
+export interface TakeRollNote {
+  midi: number;
+  /** Unit-box geometry: x/width across the take, y/height down from the highest pitch. */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  hand: "left" | "right";
+}
+
+export interface TakeRoll {
+  notes: TakeRollNote[];
+  /** Unit y of the middle-C guide line, absent when middle C is outside the take. */
+  middleCY?: number;
+  lowMidi: number;
+  highMidi: number;
+}
+
+const MIDDLE_C = 60;
+/** A note with no note-off still needs a visible sliver on the roll. */
+const MIN_ROLL_NOTE_WIDTH = 0.02;
+const FALLBACK_ROLL_NOTE_FRACTION = 0.04;
+
+/**
+ * Lay a take out as a mini piano roll inside a 0..1 box: x is time, y is pitch
+ * with the highest note at the top, and the hand follows the register so the
+ * card can colour it with the shared hand tokens.
+ */
+export function buildTakeRoll(take: Take): TakeRoll {
+  const pitches = take.notes.map((note) => note.midi);
+  const lowMidi = pitches.length > 0 ? Math.min(...pitches) : MIDDLE_C - 12;
+  const highMidi = pitches.length > 0 ? Math.max(...pitches) : MIDDLE_C + 12;
+  const rows = highMidi - lowMidi + 1;
+  const height = 1 / rows;
+  const spanMs = Math.max(
+    1,
+    take.durationMs,
+    ...take.notes.map((note) => note.atMs + (note.durationMs ?? 0)),
+  );
+
+  const notes = take.notes.map((note) => {
+    // Leave room for the minimum width: a note struck on the last millisecond still shows.
+    const x = Math.min(1 - MIN_ROLL_NOTE_WIDTH, note.atMs / spanMs);
+    const rawWidth = (note.durationMs ?? spanMs * FALLBACK_ROLL_NOTE_FRACTION) / spanMs;
+    return {
+      midi: note.midi,
+      x,
+      y: (highMidi - note.midi) * height,
+      width: Math.min(1 - x, Math.max(MIN_ROLL_NOTE_WIDTH, rawWidth)),
+      height,
+      hand: note.midi < MIDDLE_C ? ("left" as const) : ("right" as const),
+    };
+  });
+
+  return {
+    notes,
+    // Only guide the eye when middle C is really in range; pinning it to an edge would lie.
+    middleCY:
+      lowMidi <= MIDDLE_C && MIDDLE_C <= highMidi
+        ? (highMidi - MIDDLE_C + 0.5) * height
+        : undefined,
+    lowMidi,
+    highMidi,
+  };
 }

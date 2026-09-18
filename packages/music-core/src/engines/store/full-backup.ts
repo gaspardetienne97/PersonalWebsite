@@ -11,7 +11,7 @@ import {
   prepareMusicDataBackup,
   restoreMusicDataBackup,
   validateMusicDataBackup,
-  type MusicDataBackupV1,
+  type MusicDataBackup,
 } from "./data-backup";
 
 export const MUSIC_FULL_BACKUP_MAX_BYTES = 250 * 1024 * 1024;
@@ -25,10 +25,15 @@ export interface MusicFullBackupAsset {
   mimeType: string;
   sha256: string;
 }
+/** Current archive format. Version 1 archives still restore. */
+export const MUSIC_FULL_BACKUP_VERSION = 2;
+
+export type MusicFullBackupVersion = 1 | 2;
+
 export interface MusicFullBackupManifest {
   format: "practice-os-full-backup";
-  version: 1;
-  data: MusicDataBackupV1;
+  version: MusicFullBackupVersion;
+  data: MusicDataBackup;
   assets: MusicFullBackupAsset[];
 }
 export interface ParsedMusicFullBackup {
@@ -68,7 +73,7 @@ export async function prepareMusicFullBackup(
     }
     const manifest = validateManifest({
       format: "practice-os-full-backup",
-      version: 1,
+      version: MUSIC_FULL_BACKUP_VERSION,
       data,
       assets,
     });
@@ -182,7 +187,7 @@ export async function restoreMusicFullBackup(
 }
 
 function assetReferences(
-  data: MusicDataBackupV1,
+  data: MusicDataBackup,
 ): Array<Pick<MusicFullBackupAsset, "key" | "size" | "mimeType">> {
   const assets = [
     ...data.tables.backingTracks.map((row) => ({
@@ -227,7 +232,10 @@ function assetReferences(
 function validateManifest(input: unknown): MusicFullBackupManifest {
   if (!input || typeof input !== "object") throw new Error("Invalid full backup manifest.");
   const manifest = input as MusicFullBackupManifest;
-  if (manifest.format !== "practice-os-full-backup" || manifest.version !== 1)
+  if (
+    manifest.format !== "practice-os-full-backup" ||
+    (manifest.version !== 1 && manifest.version !== MUSIC_FULL_BACKUP_VERSION)
+  )
     throw new Error("Unsupported full backup format or version.");
   const data = validateMusicDataBackup(manifest.data);
   const expected = assetReferences(data);
@@ -248,7 +256,7 @@ function validateManifest(input: unknown): MusicFullBackupManifest {
   }
   const result = {
     format: "practice-os-full-backup" as const,
-    version: 1 as const,
+    version: manifest.version,
     data,
     assets: structuredClone(manifest.assets),
   };

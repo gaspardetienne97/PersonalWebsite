@@ -159,6 +159,35 @@ export function projectScoreToFretboard(
   };
 }
 
+export interface UnreachableNotes {
+  /** Below the lowest open string: an octave up brings these onto the neck. */
+  below: number;
+  /** Past the top fret: transposing up only makes these worse. */
+  above: number;
+  total: number;
+}
+
+/**
+ * Notes the chosen tuning cannot reach, split by direction. Which way they miss
+ * decides what a caller may offer: the engine's `transpose` rescues the low
+ * ones and pushes the high ones further off the neck, so the two are never
+ * reported as one number.
+ */
+export function unreachableNotes(
+  projection: InstrumentProjection,
+  tuning: TuningProfile,
+): UnreachableNotes {
+  const lowestOpenString = Math.min(...tuning.openStrings);
+  let below = 0;
+  let above = 0;
+  for (const { frets, midiNote } of projection.notes) {
+    if (frets?.length) continue;
+    if (midiNote < lowestOpenString) below += 1;
+    else above += 1;
+  }
+  return { below, above, total: below + above };
+}
+
 /**
  * Project a score onto the Aerophone as a single readable line. The Aerophone
  * is monophonic, so each onset keeps only its highest note (the melody on top);

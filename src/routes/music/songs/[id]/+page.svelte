@@ -27,12 +27,14 @@
     filterScoreVoices,
     projectScoreToAerophone,
     projectScoreToFretboard,
+    unreachableNotes,
   } from "@repo/music-core/engines/projection";
   import { curatedTunings } from "@repo/music-core/engines/tunings";
   import {
     buildScorePracticePlan,
     buildPracticeExecutions,
     buildScoreSelectionMap,
+    describeScoreRange,
     ScorePracticeSession,
     type ScorePracticePlan,
     type ScorePracticeState,
@@ -61,6 +63,7 @@
   import MicrophoneGatePanel from "../../_components/MicrophoneGatePanel.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../../_components/PracticeScreenHeader.svelte";
+  import PracticeStage from "../../_components/PracticeStage.svelte";
   import ScoreFollowerStage from "../../_components/ScoreFollowerStage.svelte";
   import SegmentProgress from "../../_components/SegmentProgress.svelte";
   import StaffNotation from "../../_components/StaffNotation.svelte";
@@ -190,7 +193,39 @@
   let notationMode = $state<"staff" | "tab" | "fingering" | "waterfall">("staff");
   let tabTuningId = $state(TAB_TUNINGS[0]!.id);
   const tabTuning = $derived(TAB_TUNINGS.find(({ id }) => id === tabTuningId) ?? TAB_TUNINGS[0]!);
-  const tabProjection = $derived(score ? projectScoreToFretboard(score, tabTuning) : undefined);
+  // Tab draws the first staff only, so it is projected from that staff's voices
+  // alone: a bass stave's frets must never leak onto the melody's tab line.
+  const tabScore = $derived.by(() => {
+    const voiceIds = notation.view?.staves[0]?.voiceIds ?? [];
+    return score && voiceIds.length > 0 ? filterScoreVoices(score, voiceIds) : score;
+  });
+  let tabOctaveUp = $state(false);
+  const tabProjection = $derived(
+    tabScore
+      ? projectScoreToFretboard(tabScore, tabTuning, { transpose: tabOctaveUp ? 12 : 0 })
+      : undefined,
+  );
+  // Notes with no fret in this tuning would render as invisible ghosts, so the
+  // count is said out loud and the engine's transpose is offered for the view.
+  const tabUnreachable = $derived(
+    tabProjection ? unreachableNotes(tabProjection, tabTuning) : { below: 0, above: 0, total: 0 },
+  );
+  // Direction decides both the wording and the remedy: an octave up rescues
+  // notes under the lowest string and pushes high ones further off the neck.
+  const tabRangeMessage = $derived.by(() => {
+    const { below, above } = tabUnreachable;
+    const parts = [
+      ...(tabOctaveUp ? ["Tab is shown an octave up"] : []),
+      ...(below > 0
+        ? [`${plural(below, "note")} ${below === 1 ? "is" : "are"} below the lowest string`]
+        : []),
+      ...(above > 0
+        ? [`${plural(above, "note")} ${above === 1 ? "is" : "are"} above the highest fret`]
+        : []),
+    ];
+    if (parts.length === 1 && tabOctaveUp) parts.push("so every note has a fret");
+    return `${parts.join(", ")}.`;
+  });
   const aerophoneProjection = $derived(score ? projectScoreToAerophone(score) : undefined);
   // Staff and Tab both support range selection; Fingering can't, so it's hidden
   // while editing a custom range.
@@ -207,6 +242,9 @@
   );
 
   const live = $derived(practiceState?.live);
+  // A number, not the live object: ScorePracticeSession.tick() returns a fresh
+  // object every 50 ms, so anything keyed on it would run 20x a second.
+  const cursorGroupIndex = $derived(live?.currentGroupIndex);
   const progressPercent = $derived(Math.round((live?.progress ?? 0) * 100));
   const expectedNames = $derived((live?.expectedMidiNotes ?? []).map((note) => midiToNote(note)));
   const stageGroups = $derived.by(() =>
@@ -238,7 +276,21 @@
       .filter((beat) => beat !== undefined)
       .sort((left, right) => left - right)[0];
   });
-  const highlightedRanges = $derived.by(() => {
+  /** The group the follower stands on, in canonical score beats. */
+  const followerRanges = $derived.by(() => {
+    const group = practicing ? stageGroups[stageGroupIndex] : undefined;
+    return group
+      ? [
+          {
+            id: "current-group",
+            startBeat: group.startBeat,
+            endBeat: group.startBeat + group.durationBeats,
+            active: true,
+          },
+        ]
+      : [];
+  });
+  const sectionRanges = $derived.by(() => {
     if (!score || setup.selection.kind !== "sections") return [];
     return setup.selection.sectionIds.flatMap((id) => {
       const section = score.sections.find((candidate) => candidate.id === id);
@@ -254,11 +306,18 @@
         : [];
     });
   });
+  const highlightedRanges = $derived([...sectionRanges, ...followerRanges]);
   const customSelection = $derived(
     setup.selection.kind === "custom"
       ? { startBeat: setup.selection.startBeat, endBeat: setup.selection.endBeat }
       : undefined,
   );
+  const rangeReadout = $derived(
+    customSelection && selectionMap
+      ? describeScoreRange(customSelection, selectionMap.measureBoundaries, performanceEngineBpm)
+      : undefined,
+  );
+  let scoreViewport = $state<HTMLDivElement>();
 
   onMount(() => {
     unsubscribeInput = runtime.router.subscribe((event) => {
@@ -314,6 +373,18 @@
 
   $effect(() => microphone?.subscribe((next) => (microphoneState = next)));
 
+  /**
+   * Keep the playhead in the middle of the score viewport. One scroll per group
+   * change (the effect reads nothing else that moves), and never while a range
+   * is being tapped out, which would pull the bars away under the finger.
+   */
+  $effect(() => {
+    const groupIndex = cursorGroupIndex;
+    const viewport = scoreViewport;
+    if (!practicing || selectionEditing || groupIndex === undefined || !viewport) return;
+    void tick().then(() => centreCursor(viewport));
+  });
+
   // Retarget on every group change (take, segment, and index form the key), so
   // identical consecutive groups still land the gate unarmed.
   $effect(() => {
@@ -337,6 +408,19 @@
     stopPreview();
     microphone?.dispose();
   });
+
+  function centreCursor(viewport: HTMLDivElement): void {
+    // Only the follower's own line. A Sections selection also draws an active
+    // section line, which comes first in document order and would otherwise
+    // pin the viewport to the section's first bar for the whole take.
+    const cursor = viewport.querySelector(
+      '[data-notation-cursor="current-group"], [data-osmd-cursor]',
+    );
+    if (!cursor) return;
+    const box = cursor.getBoundingClientRect();
+    const frame = viewport.getBoundingClientRect();
+    viewport.scrollTop += box.top - frame.top - (frame.height - box.height) / 2;
+  }
 
   function startMicrophone(): void {
     void microphone?.start();
@@ -747,6 +831,11 @@
     return [...groups.values()];
   }
 
+  function plural(count: number, noun: string): string {
+    const rounded = Math.round(count * 100) / 100;
+    return `${rounded} ${noun}${rounded === 1 ? "" : "s"}`;
+  }
+
   function message(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
   }
@@ -877,6 +966,22 @@
                 </span>
               {/if}
             </div>
+            {#if showTab && tabProjection && (tabUnreachable.total > 0 || tabOctaveUp)}
+              <p class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span>{tabRangeMessage}</span>
+                {#if tabUnreachable.below > 0 || tabOctaveUp}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    class="min-h-11"
+                    onclick={() => (tabOctaveUp = !tabOctaveUp)}
+                  >
+                    {tabOctaveUp ? "Show at written pitch" : "Show the tab an octave up"}
+                  </Button>
+                {/if}
+              </p>
+            {/if}
             <!-- Transport and practice actions sit above the score, so a long
                  score scrolls inside its own viewport while Play and Start stay
                  in reach with the instrument in hand. -->
@@ -906,16 +1011,40 @@
                 </Button>
               {/if}
             </div>
-            <div class="max-h-[min(62dvh,44rem)] min-w-0 overflow-y-auto rounded-md" data-testid="score-viewport">
+            {#if rangeReadout}
+              <p class="flex flex-wrap items-center gap-2 text-sm" data-testid="range-readout">
+                <span class="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-semibold">
+                  <span class="size-2.5 rounded-sm bg-range-start" aria-hidden="true"></span>
+                  Start · bar {rangeReadout.startBar}
+                </span>
+                <span class="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-semibold">
+                  <span class="size-2.5 rounded-sm bg-range-end" aria-hidden="true"></span>
+                  End · bar {rangeReadout.endBar}
+                </span>
+                <span class="text-muted-foreground">
+                  {plural(rangeReadout.bars, "bar")} · {plural(rangeReadout.beats, "beat")} · ~{Math.round(
+                    rangeReadout.seconds,
+                  )} s at {setup.bpm} BPM
+                </span>
+              </p>
+            {/if}
+            <div
+              bind:this={scoreViewport}
+              class="max-h-[min(62dvh,44rem)] min-w-0 overflow-y-auto rounded-md"
+              data-testid="score-viewport"
+            >
             {#if showWaterfall}
-              <PianoSurface
-                label="Waterfall"
-                notes={previewMaterial}
-                timelineNotes={previewTimeline}
-                positionBeat={previewPositionBeat}
-                {mutedHands}
-                onMutedHandsChange={requestMutedHands}
-              />
+              <PracticeStage instrument="piano">
+                <PianoSurface
+                  label="Waterfall"
+                  notes={previewMaterial}
+                  timelineNotes={previewTimeline}
+                  positionBeat={previewPositionBeat}
+                  noteNames="c"
+                  {mutedHands}
+                  onMutedHandsChange={requestMutedHands}
+                />
+              </PracticeStage>
             {:else if showTab && tabProjection && notation.view}
               <TabNotation
                 view={notation.view}
@@ -1069,6 +1198,7 @@
                 0,
                 ...score.notes.map((note) => note.startBeat + note.durationBeats),
               )}
+              measureBoundaries={selectionMap?.measureBoundaries ?? []}
               value={setup}
               active={practicing}
               onChange={updateSetup}

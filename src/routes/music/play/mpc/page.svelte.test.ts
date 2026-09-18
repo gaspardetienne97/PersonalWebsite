@@ -6,6 +6,7 @@ import { monotonicMs } from "@repo/music-core/domain";
 import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore } from "@repo/music-core/engines/skills";
+import { PracticeStore } from "@repo/music-core/engines/store";
 import { TechniqueSession } from "@repo/music-core/engines/technique-session";
 
 import Page from "./+page.svelte";
@@ -403,6 +404,11 @@ async function openSetup(): Promise<void> {
   await vi.waitFor(() => expect(select("Left pad")).not.toBeUndefined());
 }
 
+/** The stage mode the shell is rendering. */
+function mode(): string | null | undefined {
+  return document.querySelector("[data-mode]")?.getAttribute("data-mode");
+}
+
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (candidate) => candidate.textContent?.trim() === label,
@@ -502,6 +508,122 @@ test("cancelled deferred groove start cannot open input or schedule a deadline",
   runtime.dispose();
 });
 
+test("Demo plays the same model the count-in reference plays", async () => {
+  // turnaround-fill authors a landing kick on the downbeat after its four bars:
+  // it belongs to the response, so neither the reference nor Demo sounds it.
+  setTestUrl("/music/play/mpc?mode=groove&groove=turnaround-fill&bpm=240");
+  const runtime = new MusicRuntime();
+  vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+  const play = vi.spyOn(runtime.sound, "playPercussion").mockImplementation(() => {});
+  const view = render(Page, { runtime });
+
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Demo")?.click();
+
+  await vi.waitFor(() => expect(play).toHaveBeenCalledTimes(51), { timeout: 8000 });
+  await vi.waitFor(() => expect(button("Demo")).not.toBeUndefined(), { timeout: 8000 });
+  expect(play).toHaveBeenCalledTimes(51);
+  view.unmount();
+  runtime.dispose();
+}, 15000);
+
+test("Demo is locked while a start is in flight", async () => {
+  // Rudiment mode keeps the ready stage up across the count-in (groove mode swaps
+  // to the stage as soon as its reference starts), so this is where Demo is exposed.
+  setTestUrl("/music/play/mpc?bpm=240&hits=8");
+  const runtime = new MusicRuntime();
+  vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+  vi.spyOn(runtime.sound, "playPercussion").mockImplementation(() => {});
+  let resolveStart!: (result: {
+    status: "started";
+    downbeat: ReturnType<typeof monotonicMs>;
+  }) => void;
+  vi.mocked(runtime.beginPerformance).mockReturnValue(
+    new Promise((resolve) => {
+      resolveStart = resolve;
+    }),
+  );
+  const view = render(Page, { runtime });
+
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Start")?.click();
+  await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalledOnce());
+
+  // The count-in is running with the ready stage, and its Demo control, still up.
+  expect(button("Demo")?.disabled).toBe(true);
+  button("Demo")?.click();
+  expect(mode()).not.toBe("demo");
+  resolveStart({ status: "started", downbeat: monotonicMs(performance.now()) });
+
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  expect(mode()).toBe("practice");
+  expect(document.body.textContent).not.toContain("listening, not scored");
+  view.unmount();
+  runtime.dispose();
+});
+
+test("Demo plays the groove model once and writes nothing", async () => {
+  setTestUrl("/music/play/mpc?mode=groove&bpm=240");
+  const runtime = new MusicRuntime();
+  vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+  const play = vi.spyOn(runtime.sound, "playPercussion").mockImplementation(() => {});
+  const startGroove = vi.spyOn(TechniqueSession.prototype, "startMpcGroove");
+  const recordPractice = vi.spyOn(runtime, "recordPractice");
+  const view = render(Page, { runtime });
+
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  expect(mode()).toBe("practice");
+  button("Demo")?.click();
+
+  await vi.waitFor(() => expect(button("Stop demo")).not.toBeUndefined());
+  expect(mode()).toBe("demo");
+  expect(document.body.textContent).toContain("listening, not scored");
+  // The pad grid comes on so the model is visible as well as audible.
+  expect(document.querySelector('[aria-label="MPC pad grid"]')).not.toBeNull();
+  await vi.waitFor(() => expect(play).toHaveBeenCalled());
+  // A demonstration is not a run: nothing starts, nothing is scored, nothing is journalled.
+  expect(runtime.beginPerformance).not.toHaveBeenCalled();
+  expect(startGroove).not.toHaveBeenCalled();
+  expect(recordPractice).not.toHaveBeenCalled();
+
+  button("Stop demo")?.click();
+  await vi.waitFor(() => expect(button("Demo")).not.toBeUndefined());
+  expect(mode()).toBe("practice");
+  expect(document.body.textContent).not.toContain("listening, not scored");
+  view.unmount();
+  runtime.dispose();
+});
+
+test("Demo plays the rudiment model and the graded run takes it off the stage", async () => {
+  setTestUrl("/music/play/mpc?bpm=240&hits=8");
+  const runtime = new MusicRuntime();
+  vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+  const play = vi.spyOn(runtime.sound, "playPercussion").mockImplementation(() => {});
+  const store = new PracticeStore();
+  const eventsBefore = (await store.scoringEvents.all()).length;
+  const view = render(Page, { runtime });
+
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Demo")?.click();
+  await vi.waitFor(() => expect(play).toHaveBeenCalled());
+  expect(mode()).toBe("demo");
+  // The model must not change under a demo that is already sounding.
+  expect(document.querySelector("fieldset")?.disabled).toBe(true);
+  // The acceptance itself: the stored scoring-event list is unchanged by a demo.
+  button("Stop demo")?.click();
+  await vi.waitFor(() => expect(button("Demo")).not.toBeUndefined());
+  expect((await store.scoringEvents.all()).length).toBe(eventsBefore);
+
+  // Starting a run leaves Demo behind: the stage carries no demonstration control.
+  button("Start")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  expect(mode()).toBe("practice");
+  expect(button("Demo")).toBeUndefined();
+  expect(button("Stop demo")).toBeUndefined();
+  view.unmount();
+  runtime.dispose();
+});
+
 test("failed reference scheduling disposes partially queued groove sound", async () => {
   setTestUrl("/music/play/mpc?mode=groove");
   const runtime = new MusicRuntime();
@@ -519,3 +641,40 @@ test("failed reference scheduling disposes partially queued groove sound", async
   view.unmount();
   runtime.dispose();
 });
+
+test("plays the four-bar reference and reports the fill section on its own", async () => {
+  setTestUrl("/music/play/mpc?mode=groove&groove=turnaround-fill&bpm=300");
+  const runtime = new MusicRuntime();
+  const play = vi.spyOn(runtime.sound, "playPercussion").mockImplementation(() => {});
+  vi.mocked(runtime.beginPerformance).mockImplementation(async (options) => {
+    options?.leadIn?.onStart({
+      kind: "beat",
+      atSeconds: 10,
+      atMonotonicMs: monotonicMs(performance.now()),
+      beat: 0,
+      absoluteBeat: 0,
+      subdivision: 0,
+      accented: true,
+      countingIn: true,
+    });
+    return { status: "started", downbeat: monotonicMs(performance.now()) };
+  });
+  vi.spyOn(runtime, "recordPractice").mockResolvedValue(undefined);
+  const view = render(Page, { runtime });
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Start")?.click();
+
+  // The 51 onsets inside the four-bar model; the closing downbeat of bar 5 belongs to
+  // the response, so the reference does not play it over the count-in click.
+  await vi.waitFor(() => expect(play).toHaveBeenCalledTimes(51));
+  expect(runtime.beginPerformance).toHaveBeenCalledWith(
+    expect.objectContaining({ leadIn: expect.objectContaining({ bars: 4 }) }),
+  );
+  await vi.waitFor(() => expect(document.body.textContent).toContain("Groove complete"), {
+    timeout: 8000,
+  });
+  expect(document.body.textContent).toContain("Groove: 0 of 37");
+  expect(document.body.textContent).toContain("Fill: 0 of 15");
+  view.unmount();
+  runtime.dispose();
+}, 15000);

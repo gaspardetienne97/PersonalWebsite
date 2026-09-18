@@ -112,3 +112,89 @@ describe("buildLearningPath", () => {
     expect(STEPS[0]?.skillIds).toEqual(["x", "y"]);
   });
 });
+
+describe("prerequisite edges", () => {
+  const CHAIN: LearningPathStepDefinition[] = [
+    { id: "one", order: 1, title: "One", summary: "first", skillIds: ["s1"] },
+    {
+      id: "two",
+      order: 2,
+      title: "Two",
+      summary: "second",
+      skillIds: ["s2"],
+      requires: ["one"],
+    },
+    {
+      id: "three",
+      order: 3,
+      title: "Three",
+      summary: "third",
+      skillIds: ["s3"],
+      requires: ["two"],
+    },
+  ];
+
+  it("marks the first open step next and locks everything behind an unfinished step", () => {
+    const path = buildLearningPath(CHAIN);
+    expect(path.steps.map((step) => step.status)).toEqual(["next", "locked", "locked"]);
+    expect(path.next?.id).toBe("one");
+  });
+
+  it("unlocks the successor once the check is passed independently", () => {
+    const path = buildLearningPath(CHAIN, { events: [event("s1")] });
+    expect(path.steps.map((step) => step.status)).toEqual(["done", "next", "locked"]);
+    expect(path.next?.id).toBe("two");
+    expect(path.done).toBe(1);
+  });
+
+  it("does not unlock on hinted evidence alone", () => {
+    const path = buildLearningPath(CHAIN, {
+      events: [event("s1", { assistance: "hinted" })],
+    });
+    expect(path.steps.map((step) => step.status)).toEqual(["next", "locked", "locked"]);
+  });
+
+  it("does not unlock a successor through a step that is locked", () => {
+    // "two" meets its own threshold but sits behind an unfinished "one", so it
+    // is locked — and must not hand "three" an open door on the way past.
+    const path = buildLearningPath(CHAIN, { events: [event("s2")] });
+    expect(path.steps.map((step) => step.status)).toEqual(["next", "locked", "locked"]);
+    expect(path.next?.id).toBe("one");
+  });
+
+  it("never gates a chain on a step that has no skills to measure", () => {
+    const steps: LearningPathStepDefinition[] = [
+      { id: "read", order: 1, title: "Read", summary: "reference", kind: "reference" },
+      {
+        id: "play",
+        order: 2,
+        title: "Play",
+        summary: "drill",
+        skillIds: ["s1"],
+        requires: ["read"],
+      },
+    ];
+    expect(buildLearningPath(steps).steps.map((step) => step.status)).toEqual(["todo", "next"]);
+  });
+
+  it("counts guided attempts only for a step whose drill has no check mode", () => {
+    const steps: LearningPathStepDefinition[] = [
+      { ...CHAIN[0]!, evidence: "guided-accepted" },
+      CHAIN[1]!,
+    ];
+    const guided = buildLearningPath(steps, {
+      events: [event("s1", { assistance: "guided" })],
+    });
+    expect(guided.steps.map((step) => step.status)).toEqual(["done", "next"]);
+
+    const hinted = buildLearningPath(steps, {
+      events: [event("s1", { assistance: "hinted" })],
+    });
+    expect(hinted.steps.map((step) => step.status)).toEqual(["next", "locked"]);
+  });
+
+  it("leaves paths without prerequisites on their existing statuses", () => {
+    const path = buildLearningPath(STEPS, { events: [event("done"), event("x")] });
+    expect(path.steps.map((step) => step.status)).toEqual(["done", "todo", "in-progress"]);
+  });
+});

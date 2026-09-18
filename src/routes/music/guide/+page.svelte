@@ -78,7 +78,7 @@
   const hubs: Array<{ title: string; href: string; hue: Hue; icon: typeof Ear; description: string }> = [
     { title: "Practice", href: "/music", hue: "ear", icon: Ear, description: "Drills and learning paths. Each run feeds your skill map." },
     { title: "Library", href: "/music/library", hue: "reading", icon: BookOpen, description: "Your songs, the chord and scale reference, and import." },
-    { title: "Create", href: "/music/create", hue: "mpc", icon: Disc3, description: "Beat grid, piano roll and the recorder." },
+    { title: "Create", href: "/music/create", hue: "mpc", icon: Disc3, description: "Beat grid and piano roll. Recording is its own destination under Create." },
     { title: "Progress", href: "/music/progress", hue: "technique", icon: Gauge, description: "Today's XP, streak, mastery and what to practise next." },
     { title: "Connect", href: "/music/connect", hue: "piano", icon: Plug, description: "Devices, routing per instrument and the on-screen surfaces." },
     { title: "Tuner", href: "/music/tuner", hue: "voice", icon: Waves, description: "Tune, check intonation over time, or hold a drone." },

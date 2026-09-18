@@ -36,13 +36,13 @@ test.describe("music studio step sequencer", () => {
 
     // Deterministic Bank A mapping: kick -> 36 (pad 1), snare -> 38 (pad 3),
     // closed hat -> 42 (pad 7).
-    await expect(page.getByRole("button", { name: /Pad A1,.*Kick/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Pad A3,.*Snare/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Pad A7,.*Closed Hat/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Pad A01\b.*Kick/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Pad A03\b.*Snare/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Pad A07\b.*Closed Hat/i })).toBeVisible();
 
     // Activate and audition.
     await page.getByRole("button", { name: "Activate kit" }).click();
-    await page.getByRole("button", { name: /Pad A1,.*Kick/i }).click();
+    await page.getByRole("button", { name: /Pad A01\b.*Kick/i }).click();
 
     // Sequence and play/stop.
     await page.getByRole("button", { name: "Kick step 2", exact: true }).click();
@@ -51,7 +51,7 @@ test.describe("music studio step sequencer", () => {
 
     // Metadata survives a reload (OPFS + settings, no DB migration).
     await page.reload();
-    await expect(page.getByRole("button", { name: /Pad A1,.*Kick/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Pad A01\b.*Kick/i })).toBeVisible();
 
     // Download the MPC ZIP and inspect its structure.
     const downloadPromise = page.waitForEvent("download");

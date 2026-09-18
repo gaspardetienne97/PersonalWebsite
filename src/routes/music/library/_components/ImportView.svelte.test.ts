@@ -60,7 +60,11 @@ describe("/music/library?tab=import", () => {
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Analysis complete"));
     expect(document.body.textContent).toContain("120 bpm");
-    expect(document.body.textContent).toContain("Projection");
+    // The preview says what it actually draws: no projection picker that only
+    // swapped a caption over this same piano roll.
+    expect(document.body.textContent).toContain("Piano roll");
+    expect(document.body.textContent).not.toContain("Projection");
+    expect(document.body.textContent).not.toContain("single-note tab");
   });
 
   test("plays and pauses an imported score locally", async () => {

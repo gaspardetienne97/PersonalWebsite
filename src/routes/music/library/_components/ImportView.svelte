@@ -26,7 +26,6 @@
   import { onDestroy } from "svelte";
 
   import SectionHeading from "../../_components/SectionHeading.svelte";
-  import SegmentedControl from "../../_components/SegmentedControl.svelte";
   import { useMusicRuntime, type MusicRuntime } from "../../_runtime.svelte";
 
   interface SongSaver {
@@ -45,18 +44,10 @@
     library?: SongSaver;
   } = $props();
 
-  const PROJECTIONS = [
-    { value: "piano", label: "Piano" },
-    { value: "guitar", label: "Guitar" },
-    { value: "wind", label: "Wind" },
-    { value: "drums", label: "Drums" },
-  ];
-
   let song = $state<ImportedSong | undefined>();
   let musicXmlScore = $state.raw<Score>();
   let musicXmlSource = "";
   let status = $state("Drop a MIDI file, or browse to import one.");
-  let projection = $state("piano");
   let saving = $state(false);
   let savedSongId = $state<string | undefined>();
   let previewPlaying = $state(false);
@@ -348,11 +339,10 @@
       </Card.Content>
     </Card.Root>
 
-    <!-- Projection + piano roll -->
+    <!-- Piano roll of what was parsed -->
     <Card.Root>
       <Card.Header class="flex-row items-center justify-between gap-2">
-        <Card.Description>Projection</Card.Description>
-        <SegmentedControl size="sm" options={PROJECTIONS} value={projection} onChange={(value) => (projection = value)} />
+        <Card.Description>Piano roll</Card.Description>
       </Card.Header>
       <Card.Content>
         <div class="overflow-hidden rounded-xl border bg-muted/30">
@@ -373,16 +363,12 @@
             {/each}
           </svg>
         </div>
+        <!-- A projection picker used to sit here, but every option drew this
+             same piano roll under a different caption. Save the song and open
+             Song Studio for the real Staff, Tab and Waterfall views. -->
         <p class="mt-3 text-sm text-muted-foreground">
-          {#if projection === "drums"}
-            Percussion tracks map onto the MPC pad grid for play-along.
-          {:else if projection === "guitar"}
-            Melody projects to single-note tab; chords to shapes (tab rendering is a Phase 3 add).
-          {:else if projection === "wind"}
-            The melody line only — winds are monophonic — transposed into range.
-          {:else}
-            Full two-hand piano roll across {song.tracks.length} track{song.tracks.length === 1 ? "" : "s"}.
-          {/if}
+          All {song.tracks.length} track{song.tracks.length === 1 ? "" : "s"} across the imported
+          range. Save to repertoire, then open Song Studio for staff, tab and waterfall views.
         </p>
       </Card.Content>
     </Card.Root>

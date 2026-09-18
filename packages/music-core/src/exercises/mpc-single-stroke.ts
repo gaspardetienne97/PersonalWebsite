@@ -1,9 +1,11 @@
 import {
   Capability,
+  monotonicMs,
   type ExerciseDefinition,
   type ExerciseRun,
   type ExerciseResult,
   type FeedbackItem,
+  type MonotonicMs,
   type NoteOnEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
@@ -17,8 +19,23 @@ export type MpcRudimentPatternId =
   | "single-strokes"
   | "double-strokes"
   | "paradiddle"
-  | "moving-accent";
+  | "moving-accent"
+  | "single-16ths"
+  | "triple-strokes"
+  | "flam";
+/** Hits per beat: eighths, triplets or sixteenths. */
+export type MpcSubdivision = 2 | 3 | 4;
+export const MPC_SUBDIVISIONS: readonly MpcSubdivision[] = [2, 3, 4];
+export const MPC_SUBDIVISION_LABELS: Record<MpcSubdivision, string> = {
+  2: "Eighths",
+  3: "Triplets",
+  4: "Sixteenths",
+};
+/** A flam is a grace note this far ahead of its main hit, whatever the tempo. */
+export const MPC_FLAM_GRACE_MS = 30;
 export type MpcRudimentHand = "left" | "right";
+/** Where the timing grid hangs off: the click's count-in downbeat, or the player's first hit. */
+export type MpcTimingAnchor = "click" | "first-hit";
 export type MpcRudimentAccent = "normal" | "accent";
 
 export interface MpcVelocityBand {
@@ -34,6 +51,8 @@ export interface MpcRudimentTargetEvent {
   padMidi: number;
   accent: MpcRudimentAccent;
   velocityBand?: MpcVelocityBand;
+  /** Grace note of a flam: expected this many ms *before* its beat. */
+  graceMs?: number;
 }
 
 export interface MpcRudimentPattern {
@@ -41,6 +60,10 @@ export interface MpcRudimentPattern {
   label: string;
   unit: readonly MpcRudimentHand[];
   accentMode?: "moving";
+  /** Patterns that are defined by their grid (sixteenth singles, triplets) fix it. */
+  subdivision?: MpcSubdivision;
+  /** Each step is a grace note plus its main hit on the other hand. */
+  flam?: true;
 }
 
 export const MPC_RUDIMENT_PATTERNS: readonly MpcRudimentPattern[] = [
@@ -52,7 +75,25 @@ export const MPC_RUDIMENT_PATTERNS: readonly MpcRudimentPattern[] = [
     unit: ["left", "right", "left", "left", "right", "left", "right", "right"],
   },
   { id: "moving-accent", label: "Moving accent", unit: ["left", "right"], accentMode: "moving" },
+  { id: "single-16ths", label: "Sixteenth singles", unit: ["left", "right"], subdivision: 4 },
+  {
+    id: "triple-strokes",
+    label: "Triple strokes",
+    unit: ["left", "left", "left", "right", "right", "right"],
+    subdivision: 3,
+  },
+  { id: "flam", label: "Flam", unit: ["left", "right"], flam: true },
 ];
+
+/** The pattern's own grid wins; otherwise the requested subdivision, else eighths. */
+export function resolveMpcSubdivision(
+  patternId: MpcRudimentPatternId,
+  requested?: number,
+): MpcSubdivision {
+  const fixed = rudimentPattern(patternId).subdivision;
+  if (fixed) return fixed;
+  return MPC_SUBDIVISIONS.includes(requested as MpcSubdivision) ? (requested as MpcSubdivision) : 2;
+}
 
 export interface MpcSingleStrokeOptions {
   leftPadMidi?: number;
@@ -60,6 +101,9 @@ export interface MpcSingleStrokeOptions {
   hitCount?: MpcHitCount;
   bpm?: number;
   patternId?: MpcRudimentPatternId;
+  subdivision?: MpcSubdivision;
+  /** Count-in downbeat the click grid hangs off; timing is measured against it. */
+  startTimestampMs?: MonotonicMs | number;
 }
 
 export interface MpcSingleStrokePrompt {
@@ -70,6 +114,10 @@ export interface MpcSingleStrokePrompt {
   rightPadMidi: number;
   hitCount: MpcHitCount;
   bpm: number;
+  subdivision: MpcSubdivision;
+  /** Count-in downbeat, when the caller gave one; absent means "anchor on the first hit". */
+  startTimestampMs?: MonotonicMs;
+  timingAnchor: MpcTimingAnchor;
   targetSpacingMs: number;
   targetSequence: number[];
   targetEvents: MpcRudimentTargetEvent[];
@@ -82,6 +130,7 @@ export interface MpcSingleStrokeAnswer {
   padAccuracy: number;
   meanTimingErrorMs: number;
   velocityConsistency: number;
+  timingAnchor: MpcTimingAnchor;
 }
 
 /** Display only observed dimensions; the persisted practice score and XP are unchanged. */
@@ -131,11 +180,15 @@ export function createMpcSingleStrokeExercise(
     throw new Error("BPM must be a finite number");
   }
   const bpm = clamp(requestedBpm, 30, 240);
+  const subdivision = resolveMpcSubdivision(pattern.id, options.subdivision);
+  const startTimestampMs =
+    options.startTimestampMs === undefined ? undefined : monotonicMs(options.startTimestampMs);
   const targetEvents = buildMpcRudimentTargetEvents(
     pattern.id,
     leftPadMidi,
     rightPadMidi,
     hitCount,
+    subdivision,
   );
   const targetSequence = targetEvents.map((event) => event.padMidi);
   const label = `MPC ${pattern.label.toLowerCase()}: pads ${leftPadMidi} / ${rightPadMidi}`;
@@ -159,7 +212,10 @@ export function createMpcSingleStrokeExercise(
         rightPadMidi,
         hitCount,
         bpm,
-        targetSpacingMs: beatDurationMs(bpm) / 2,
+        subdivision,
+        ...(startTimestampMs === undefined ? {} : { startTimestampMs }),
+        timingAnchor: startTimestampMs === undefined ? "first-hit" : "click",
+        targetSpacingMs: beatDurationMs(bpm) / subdivision,
         targetSequence: [...targetSequence],
         targetEvents: [...targetEvents],
       },
@@ -175,10 +231,15 @@ export function buildMpcRudimentSequence(
   leftPadMidi: number,
   rightPadMidi: number,
   hitCount: MpcHitCount,
+  subdivision?: MpcSubdivision,
 ): number[] {
-  return buildMpcRudimentTargetEvents(patternId, leftPadMidi, rightPadMidi, hitCount).map(
-    (event) => event.padMidi,
-  );
+  return buildMpcRudimentTargetEvents(
+    patternId,
+    leftPadMidi,
+    rightPadMidi,
+    hitCount,
+    subdivision,
+  ).map((event) => event.padMidi);
 }
 
 export function buildMpcRudimentTargetEvents(
@@ -186,22 +247,39 @@ export function buildMpcRudimentTargetEvents(
   leftPadMidi: number,
   rightPadMidi: number,
   hitCount: MpcHitCount,
+  subdivision?: MpcSubdivision,
 ): MpcRudimentTargetEvent[] {
   const pattern = rudimentPattern(patternId);
+  const grid = resolveMpcSubdivision(patternId, subdivision);
   return Array.from({ length: hitCount }, (_, index) => {
-    const hand = pattern.unit[index % pattern.unit.length]!;
+    // A flam spends two events on one grid step: grace note, then main hit.
+    const step = pattern.flam ? Math.floor(index / 2) : index;
+    const isGrace = pattern.flam === true && index % 2 === 0;
+    const mainHand = pattern.unit[step % pattern.unit.length]!;
+    const hand = isGrace ? otherHand(mainHand) : mainHand;
     const accent = accentFor(pattern, index);
     return {
       index,
-      beat: index * 0.5,
+      beat: step / grid,
       hand,
       padMidi: hand === "left" ? leftPadMidi : rightPadMidi,
       accent,
+      ...(isGrace ? { graceMs: MPC_FLAM_GRACE_MS } : {}),
       ...(pattern.accentMode === "moving"
         ? { velocityBand: accent === "accent" ? accentVelocityBand : tapVelocityBand }
         : {}),
     };
   });
+}
+
+/** Offset of each target from the click anchor, in ms (a flam grace sits just ahead of its beat). */
+function expectedOffsetsMs(prompt: MpcSingleStrokePrompt): number[] {
+  const beatMs = beatDurationMs(prompt.bpm);
+  return prompt.targetEvents.map((event) => event.beat * beatMs - (event.graceMs ?? 0));
+}
+
+function otherHand(hand: MpcRudimentHand): MpcRudimentHand {
+  return hand === "left" ? "right" : "left";
 }
 
 function singleStrokeRun(prompt: MpcSingleStrokePrompt): ExerciseRun<MpcSingleStrokeAnswer> {
@@ -252,6 +330,7 @@ function singleStrokeRun(prompt: MpcSingleStrokePrompt): ExerciseRun<MpcSingleSt
           padAccuracy: analysis.padAccuracy,
           meanTimingErrorMs: analysis.meanTimingErrorMs,
           velocityConsistency: analysis.velocityConsistency,
+          timingAnchor: analysis.timingAnchor,
         },
         input: [...hits],
       };
@@ -259,17 +338,26 @@ function singleStrokeRun(prompt: MpcSingleStrokePrompt): ExerciseRun<MpcSingleSt
   };
 }
 
+/**
+ * The click grid when the caller anchored us to the count-in downbeat, otherwise the first hit:
+ * a missing anchor degrades to "even spacing scores well" instead of grading against time zero.
+ */
+function anchorMs(prompt: MpcSingleStrokePrompt, hits: NoteOnEvent[]): number {
+  return Number(prompt.startTimestampMs ?? hits[0]?.timestamp ?? 0);
+}
+
 function analyze(hits: NoteOnEvent[], prompt: MpcSingleStrokePrompt): RunAnalysis {
-  const firstTimestamp = hits[0] === undefined ? 0 : Number(hits[0].timestamp);
+  const anchor = anchorMs(prompt, hits);
+  const expectedMs = expectedOffsetsMs(prompt);
   const playedPads = hits.map((hit) => hit.midiNote);
   const velocities = hits.map((hit) => hit.velocity);
-  const relativeTimestampsMs = hits.map((hit) => Number(hit.timestamp) - firstTimestamp);
+  const relativeTimestampsMs = hits.map((hit) => Number(hit.timestamp) - anchor);
   const correctPadHits = playedPads.reduce(
     (count, midiNote, index) => count + (midiNote === prompt.targetSequence[index] ? 1 : 0),
     0,
   );
   const timingErrors = relativeTimestampsMs.map(
-    (actualMs, index) => actualMs - index * prompt.targetSpacingMs,
+    (actualMs, index) => actualMs - (expectedMs[index] ?? index * prompt.targetSpacingMs),
   );
   const meanTimingErrorMs =
     hits.length === 0 ? 180 : mean(timingErrors.map((error) => Math.abs(error)));
@@ -290,6 +378,7 @@ function analyze(hits: NoteOnEvent[], prompt: MpcSingleStrokePrompt): RunAnalysi
     padAccuracy,
     meanTimingErrorMs,
     velocityConsistency,
+    timingAnchor: prompt.timingAnchor,
     timingAccuracy,
     completion,
     score,
@@ -303,9 +392,10 @@ function buildMetrics(
   analysis: RunAnalysis,
 ): ScoringMetric[] {
   const meanVelocity = mean(analysis.velocities);
+  const expectedOffsets = expectedOffsetsMs(prompt);
 
   return hits.flatMap((hit, index): ScoringMetric[] => {
-    const expectedMs = index * prompt.targetSpacingMs;
+    const expectedMs = expectedOffsets[index] ?? index * prompt.targetSpacingMs;
     const actualMs = analysis.relativeTimestampsMs[index]!;
     const velocityTarget = prompt.targetEvents[index]?.velocityBand;
     return [
@@ -343,10 +433,9 @@ function liveFeedback(hits: NoteOnEvent[], prompt: MpcSingleStrokePrompt): Feedb
           message: `Expected pad ${expectedMidi}, played pad ${hit.midiNote}.`,
         };
 
-  if (index === 0) return [orderFeedback];
-
-  const relativeMs = Number(hit.timestamp) - Number(hits[0]!.timestamp);
-  const timingErrorMs = relativeMs - index * prompt.targetSpacingMs;
+  const relativeMs = Number(hit.timestamp) - anchorMs(prompt, hits);
+  const timingErrorMs =
+    relativeMs - (expectedOffsetsMs(prompt)[index] ?? index * prompt.targetSpacingMs);
   const timingFeedback: FeedbackItem =
     Math.abs(timingErrorMs) <= 45
       ? { severity: "good", message: "Timing is centered." }

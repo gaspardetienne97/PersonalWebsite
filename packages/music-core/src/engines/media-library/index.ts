@@ -43,6 +43,15 @@ export interface MediaLibraryOptions {
   limits?: Partial<MediaLimits>;
 }
 
+/** Supported nondestructive playback gain range, in dB. */
+export const TAKE_GAIN_DB_RANGE = { min: -12, max: 18 } as const;
+
+export interface AudioTakeUpdate {
+  name?: string;
+  note?: string;
+  gainDb?: number;
+}
+
 export interface MediaUsage {
   backingBytes: number;
   takeBytes: number;
@@ -115,6 +124,38 @@ export class MediaLibrary {
   saveTake(row: AudioTakeRow, blob: Blob): Promise<void> {
     const snapshot = structuredClone(row);
     return this.#enqueueMutation(() => this.#saveTake(snapshot, blob));
+  }
+
+  /**
+   * Update a take's own metadata (name, note, playback gain) and return the
+   * stored row, so a caller can refresh one card without reloading the list.
+   * The recorded audio is never rewritten, so gain stays nondestructive.
+   */
+  updateTake(id: string, patch: AudioTakeUpdate): Promise<AudioTakeRow> {
+    const snapshot = { ...patch };
+    return this.#enqueueMutation(() => this.#updateTake(id, snapshot));
+  }
+
+  renameTake(id: string, name: string): Promise<AudioTakeRow> {
+    return this.updateTake(id, { name });
+  }
+
+  async #updateTake(id: string, patch: AudioTakeUpdate): Promise<AudioTakeRow> {
+    validateId(id, "Take id");
+    const row = await this.#takeRepository.get(id);
+    if (!row) throw new Error(`Audio take does not exist: ${id}`);
+
+    const { note: previousNote, ...rest } = row;
+    const next: AudioTakeRow = { ...rest };
+    if (patch.name !== undefined) next.name = patch.name.trim();
+    if (patch.gainDb !== undefined) next.gainDb = patch.gainDb;
+    const note = (patch.note ?? previousNote)?.trim();
+    if (note) next.note = note;
+
+    validateName(next.name, "Take name");
+    validateGainDb(next.gainDb);
+    await this.#takeRepository.put(next);
+    return next;
   }
 
   deleteTake(id: string): Promise<void> {
@@ -346,6 +387,7 @@ export class MediaLibrary {
     validateFinite(row.createdAt, "Take createdAt");
     validateInstrument(row.instrument);
     validateNonnegative(row.backingOffsetMs, "Take backingOffsetMs");
+    validateGainDb(row.gainDb);
     const mimeType = normalizeMimeType(row.mimeType);
     if (!mimeType) {
       throw new Error("Take MIME type must be nonempty.");
@@ -504,6 +546,19 @@ function validateName(name: string, label: string): void {
 function validateFinite(value: number, label: string): void {
   if (!Number.isFinite(value)) {
     throw new Error(`${label} must be finite.`);
+  }
+}
+
+function validateGainDb(gainDb: number | undefined): void {
+  if (gainDb === undefined) return;
+  if (
+    !Number.isFinite(gainDb) ||
+    gainDb < TAKE_GAIN_DB_RANGE.min ||
+    gainDb > TAKE_GAIN_DB_RANGE.max
+  ) {
+    throw new Error(
+      `Take gainDb must be between ${TAKE_GAIN_DB_RANGE.min} and ${TAKE_GAIN_DB_RANGE.max} dB.`,
+    );
   }
 }
 

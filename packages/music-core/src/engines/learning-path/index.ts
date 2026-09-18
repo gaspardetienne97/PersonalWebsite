@@ -13,7 +13,13 @@ import {
 } from "@repo/music-core/domain";
 
 export type LearningPathStepKind = "drill" | "review" | "reference";
-export type LearningPathStepStatus = "todo" | "not-assessed" | "in-progress" | "done";
+export type LearningPathStepStatus =
+  | "todo"
+  | "not-assessed"
+  | "in-progress"
+  | "done"
+  | "locked"
+  | "next";
 
 export interface LearningPathLink {
   label: string;
@@ -36,6 +42,26 @@ export interface LearningPathStepDefinition {
   href?: string;
   /** Secondary routes worth opening from this step. */
   links?: LearningPathLink[];
+  /**
+   * Step ids that must be `done` before this one opens. A step with an
+   * unfinished prerequisite is `locked`; the lowest-order open step is `next`.
+   * Paths that declare none keep their existing statuses.
+   */
+  requires?: string[];
+  /**
+   * Which attempts count as evidence for this step.
+   *
+   *  - `independent` (the default) is the mastery rule: only unaided Check
+   *    answers count, exactly as `isMasteryEligible` defines it.
+   *  - `guided-accepted` also counts `guided` attempts. It exists for steps
+   *    whose drill has no Check mode yet and therefore records every run as
+   *    guided, which would otherwise leave the step — and everything behind it
+   *    — locked for good. Hinted attempts never count either way, and this
+   *    never affects Skill Graph mastery, which keeps the strict rule.
+   *
+   * TODO: remove each `guided-accepted` when Check mode lands on its drill.
+   */
+  evidence?: "independent" | "guided-accepted";
   /** Skill Graph nodes whose mean mastery drives this step's status. */
   skillIds?: string[];
   /** Evidence must match each required skill, modality and exercise. */
@@ -95,16 +121,14 @@ export function buildLearningPath<S extends LearningPathStepDefinition>(
 ): LearningPath<S> {
   const events = [
     ...new Map((opts.events ?? []).map((event) => [event.id, event])).values(),
-  ].filter(
-    (event) =>
-      isMasteryEligible(event) && (!opts.instrument || event.instrument === opts.instrument),
-  );
+  ].filter((event) => !opts.instrument || event.instrument === opts.instrument);
   const projected = [...steps]
     .sort((a, b) => a.order - b.order)
     .map((step): LearningPathStep<S> => {
       const applies = step.applies ?? "all";
       const relevant = events.filter(
         (event) =>
+          counts(step, event) &&
           (!step.modalities || (event.modality && step.modalities.includes(event.modality))) &&
           (!step.exerciseIds ||
             step.exerciseIds.some(
@@ -152,15 +176,51 @@ export function buildLearningPath<S extends LearningPathStepDefinition>(
             : undefined,
       };
     });
+  // Prerequisite edges are opt-in per path: a path that declares none keeps
+  // exactly the statuses it had before `locked`/`next` existed.
+  if (projected.some((step) => step.requires?.length)) {
+    // A step with no skills of its own is never measured, so it can never be
+    // `done` and must not gate anything. `projected` is sorted by order and
+    // every `requires` points backwards, so one forward pass that writes its
+    // own result back is enough for locking to propagate down the chain.
+    const done = new Map(
+      projected.map((step) => [step.id, step.status === "done" || !step.skillIds?.length]),
+    );
+    for (const step of projected) {
+      if (step.requires?.some((id) => !done.get(id))) {
+        step.status = "locked";
+        done.set(step.id, false);
+      }
+    }
+    const open = projected.find(
+      (step) => step.skillIds?.length && step.status !== "done" && step.status !== "locked",
+    );
+    if (open) open.status = "next";
+  }
+
   const measured = projected.filter((step) => step.skillIds?.length);
   return {
     steps: projected,
     done: measured.filter((step) => step.status === "done").length,
     total: measured.length,
-    next: measured.find((step) => step.status !== "done"),
+    next: measured.find((step) => step.status !== "done" && step.status !== "locked"),
   };
+}
+
+/** Whether one attempt is evidence for this step (see `evidence`). */
+function counts(step: LearningPathStepDefinition, event: ScoringEvent): boolean {
+  return (
+    isMasteryEligible(event) ||
+    (step.evidence === "guided-accepted" && event.assistance === "guided")
+  );
 }
 
 function clamp01(value: number): number {
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 }
+
+// Import cycle by design: `instrument-paths` imports `buildLearningPath` from
+// here, and only ever calls it from inside a function. Do not read a `const`
+// exported from this file at `instrument-paths` module scope — it would be in
+// its temporal dead zone at import time.
+export * from "./instrument-paths";

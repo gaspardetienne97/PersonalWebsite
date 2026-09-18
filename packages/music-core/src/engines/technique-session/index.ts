@@ -36,17 +36,31 @@ import {
 import {
   createMpcSingleStrokeExercise,
   MPC_RUDIMENT_PATTERNS,
+  MPC_SUBDIVISION_LABELS,
+  resolveMpcSubdivision,
   type MpcHitCount,
   type MpcRudimentPatternId,
   type MpcSingleStrokePrompt,
+  type MpcSubdivision,
 } from "@repo/music-core/exercises/mpc-single-stroke";
 import {
   createScalePatternExercise,
+  type ScaleHands,
   type ScaleMotion,
   type ScalePatternKind,
   type ScalePatternPrompt,
   type ScaleSpan,
 } from "@repo/music-core/exercises/scale-pattern";
+import { scaleLadderVariantKey, TempoLadder } from "./tempo-ladder";
+
+export {
+  scaleLadderVariantKey,
+  TempoLadder,
+  TEMPO_LADDER_BASE_BPM,
+  TEMPO_LADDER_SETTINGS_ID,
+  type ScaleLadderVariant,
+  type TempoLadderStore,
+} from "./tempo-ladder";
 import {
   createChordChangeExercise,
   type ChordChangePrompt,
@@ -61,6 +75,15 @@ import {
   type FretboardNoteFinderPrompt,
   type FretboardNoteFinderOptions,
 } from "@repo/music-core/exercises/fretboard-note-finder";
+import {
+  createFretboardPatternExercise,
+  FRETBOARD_PATTERNS,
+  fretboardPatternDefinition,
+  fretboardPatternRootFretRange,
+  type FretboardPatternId,
+  type FretboardPatternOptions,
+  type FretboardPatternPrompt,
+} from "@repo/music-core/exercises/fretboard-pattern";
 import {
   createStringSpiderExercise,
   STRING_SPIDER_PATTERNS,
@@ -90,6 +113,48 @@ export interface TechniqueScaleOptions {
   bpm: number;
   motion?: ScaleMotion;
   span?: ScaleSpan;
+  hands?: ScaleHands;
+  /** Extra success bar, 0-1. Left out, the checkpoint rules below decide. */
+  minEvenness?: number;
+}
+
+export const SCALE_DRILL_HANDS = ["right", "left", "both"] as const satisfies readonly ScaleHands[];
+
+/** P-I3: the curriculum's hands-together checkpoint, ready to select. */
+export const SCALE_HANDS_TOGETHER_PRESET = {
+  id: "hands-together-80",
+  label: "Hands together, one octave, 80",
+  config: {
+    scale: "major",
+    tonic: "C4",
+    motion: "up",
+    span: "one-octave",
+    hands: "both",
+    bpm: 80,
+    /** P-I3's own bar: pitch complete *and* evenness ≥ 0.85. */
+    minEvenness: 0.85,
+  },
+} as const satisfies {
+  id: string;
+  label: string;
+  config: Partial<ScaleDrillConfig> & { bpm: number; minEvenness: number };
+};
+
+/**
+ * The extra success rules a curriculum checkpoint puts on a scale setup. The
+ * rule follows the setup, not the button that produced it, so a shared link
+ * lands on the same bar as the preset.
+ */
+export function scaleSuccessRule(options: TechniqueScaleOptions): { minEvenness?: number } {
+  const preset = SCALE_HANDS_TOGETHER_PRESET.config;
+  const matches =
+    options.scale === preset.scale &&
+    options.tonic === preset.tonic &&
+    options.bpm === preset.bpm &&
+    (options.motion ?? "up") === preset.motion &&
+    (options.span ?? "one-octave") === preset.span &&
+    (options.hands ?? "right") === preset.hands;
+  return matches ? { minEvenness: preset.minEvenness } : {};
 }
 
 export const SCALE_DRILL_SCALES = [
@@ -146,6 +211,7 @@ export interface ScaleDrillConfig {
   bpm: number;
   motion: ScaleMotion;
   span: ScaleSpan;
+  hands: ScaleHands;
 }
 
 export interface ScaleDrillConfigSource {
@@ -156,6 +222,7 @@ export interface ScaleDrillConfigSource {
   bpm?: unknown;
   motion?: unknown;
   span?: unknown;
+  hands?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -166,6 +233,7 @@ export const SCALE_DRILL_DEFAULT_CONFIG: ScaleDrillConfig = {
   bpm: 100,
   motion: "up",
   span: "one-octave",
+  hands: "right",
 };
 
 export function normalizeScaleDrillConfig(source: ScaleDrillConfigSource): ScaleDrillConfig {
@@ -174,6 +242,7 @@ export function normalizeScaleDrillConfig(source: ScaleDrillConfigSource): Scale
   const rawInstrument = readScaleConfigValue(source, "instrument");
   const rawMotion = readScaleConfigValue(source, "motion");
   const rawSpan = readScaleConfigValue(source, "span");
+  const rawHands = readScaleConfigValue(source, "hands");
 
   return {
     scale: SCALE_DRILL_SCALES.includes(rawScale as ScalePatternKind)
@@ -194,6 +263,9 @@ export function normalizeScaleDrillConfig(source: ScaleDrillConfigSource): Scale
     span: SCALE_DRILL_SPANS.includes(rawSpan as ScaleSpan)
       ? (rawSpan as ScaleSpan)
       : SCALE_DRILL_DEFAULT_CONFIG.span,
+    hands: SCALE_DRILL_HANDS.includes(rawHands as ScaleHands)
+      ? (rawHands as ScaleHands)
+      : SCALE_DRILL_DEFAULT_CONFIG.hands,
   };
 }
 
@@ -307,6 +379,9 @@ export interface TechniqueMpcRudimentOptions {
   hitCount: MpcHitCount;
   bpm: number;
   patternId?: MpcRudimentPatternId;
+  subdivision?: MpcSubdivision;
+  /** Count-in downbeat: timing is graded against this click grid. */
+  startTimestampMs?: MonotonicMs | number;
 }
 
 export const MPC_RUDIMENT_PAD_OPTIONS = Array.from({ length: 16 }, (_, index) => index + 36);
@@ -315,6 +390,9 @@ export const MPC_RUDIMENT_PATTERN_OPTIONS = MPC_RUDIMENT_PATTERNS.map((pattern) 
   value: pattern.id,
   label: pattern.label,
 }));
+export const MPC_SUBDIVISION_OPTIONS = Object.entries(MPC_SUBDIVISION_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
 
 export interface MpcRudimentConfig {
   patternId: MpcRudimentPatternId;
@@ -322,6 +400,7 @@ export interface MpcRudimentConfig {
   rightPadMidi: number;
   hitCount: MpcHitCount;
   bpm: number;
+  subdivision: MpcSubdivision;
 }
 
 export interface MpcRudimentConfigSource {
@@ -334,6 +413,8 @@ export interface MpcRudimentConfigSource {
   hits?: unknown;
   hitCount?: unknown;
   bpm?: unknown;
+  sub?: unknown;
+  subdivision?: unknown;
   get?: (key: string) => unknown;
 }
 
@@ -343,6 +424,7 @@ export const MPC_RUDIMENT_DEFAULT_CONFIG: MpcRudimentConfig = {
   rightPadMidi: 38,
   hitCount: 8,
   bpm: 80,
+  subdivision: 2,
 };
 
 export function normalizeMpcRudimentConfig(source: MpcRudimentConfigSource): MpcRudimentConfig {
@@ -373,6 +455,10 @@ export function normalizeMpcRudimentConfig(source: MpcRudimentConfigSource): Mpc
     rightPadMidi,
     hitCount: hitCountValue === 16 ? 16 : MPC_RUDIMENT_DEFAULT_CONFIG.hitCount,
     bpm: normalizeMpcTempo(readMpcConfigValue(source, "bpm")),
+    subdivision: resolveMpcSubdivision(
+      patternId,
+      Number(readMpcConfigValue(source, "sub") ?? readMpcConfigValue(source, "subdivision")),
+    ),
   };
 }
 
@@ -386,7 +472,16 @@ export interface TechniqueSpiderOptions {
   crossing?: boolean;
 }
 
-export type StringTechniqueMode = "spider" | "note-finder" | "interval-recall";
+export type TechniqueFretboardPatternOptions = FretboardPatternOptions;
+
+/** Box / shape picker for the Positions mode, boxes first. */
+export const FRETBOARD_PATTERN_OPTIONS = FRETBOARD_PATTERNS.map((pattern) => ({
+  value: pattern.id,
+  label: pattern.label,
+  family: pattern.family,
+}));
+
+export type StringTechniqueMode = "spider" | "positions" | "note-finder" | "interval-recall";
 
 export interface StringTechniqueConfig {
   mode: StringTechniqueMode;
@@ -407,10 +502,48 @@ export function normalizeStringTechniqueConfig(
   const rawMode = readStringTechniqueConfigValue(source, "mode");
   return {
     mode:
-      rawMode === "note-finder" || rawMode === "interval-recall"
+      rawMode === "note-finder" || rawMode === "interval-recall" || rawMode === "positions"
         ? rawMode
         : STRING_TECHNIQUE_DEFAULT_CONFIG.mode,
   };
+}
+
+export interface FretboardPatternDrillConfig {
+  patternId: FretboardPatternId;
+  rootFret: number;
+}
+
+export interface FretboardPatternDrillConfigSource {
+  pattern?: unknown;
+  rootFret?: unknown;
+  root?: unknown;
+  get?: (key: string) => unknown;
+}
+
+/** Clamp a shareable Positions setup to a pattern that exists at a fret that fits. */
+export function normalizeFretboardPatternConfig(
+  source: FretboardPatternDrillConfigSource,
+  tuning: TuningProfile,
+): FretboardPatternDrillConfig {
+  const readConfigValue = (key: keyof FretboardPatternDrillConfigSource): unknown => {
+    const value = source.get?.(key);
+    if (value !== null && value !== undefined && value !== "") return value;
+    return source[key] === "" ? undefined : source[key];
+  };
+  const requested = readConfigValue("pattern");
+  const definition = fretboardPatternDefinition(
+    (FRETBOARD_PATTERNS.some((pattern) => pattern.id === requested)
+      ? requested
+      : FRETBOARD_PATTERNS[0]!.id) as FretboardPatternId,
+  );
+  const range = fretboardPatternRootFretRange(tuning, definition);
+  const rootFret = normalizeInteger(
+    readConfigValue("rootFret") ?? readConfigValue("root"),
+    Math.min(range.max, Math.max(range.min, 5)),
+    range.min,
+    range.max,
+  );
+  return { patternId: definition.id, rootFret };
 }
 
 export const SPIDER_DRILL_TEMPOS = [60, 80, 100, 120] as const;
@@ -592,6 +725,12 @@ export interface TechniqueChordChangeOptions {
   repetitions?: number;
   /** Timed one-minute-changes mode; the caller calls finishNow() at time-up. */
   durationSeconds?: number;
+  /** Change on a clock (G-B3): grade each target against its own beat. */
+  bpm?: number;
+  /** Beats between targets when `bpm` is set; 4 = change on the bar. */
+  beatsPerChord?: number;
+  /** Count-in downbeat the clock hangs off; without it the grid anchors on the first change. */
+  startTimestampMs?: MonotonicMs | number;
 }
 
 export type TechniqueFretboardNoteFinderOptions = FretboardNoteFinderOptions;
@@ -613,6 +752,7 @@ export type TechniquePrompt =
   | MpcGroovePrompt
   | MpcSingleStrokePrompt
   | StringSpiderPrompt
+  | FretboardPatternPrompt
   | FretboardNoteFinderPrompt
   | TwoHandIndependencePrompt
   | ChordPerfectPrompt
@@ -625,6 +765,8 @@ export interface TechniqueSessionDependencies {
   initialUnlockedBpm?: number;
   tempoStepBpm?: number;
   maxBpm?: number;
+  /** Persisted tempo ladder; without it the ladder stays session-scoped. */
+  ladder?: TempoLadder;
   now?: () => number;
   makeId?: () => string;
 }
@@ -677,10 +819,13 @@ export class TechniqueSession {
   #disposed = false;
   #sessionId: string;
   #highestUnlockedBpm: number;
+  #baseUnlockedBpm: number;
+  #ladderKey?: string;
 
   constructor(private readonly dependencies: TechniqueSessionDependencies) {
     this.#sessionId = dependencies.sessionId ?? `technique-${Date.now()}`;
     this.#highestUnlockedBpm = dependencies.initialUnlockedBpm ?? 100;
+    this.#baseUnlockedBpm = this.#highestUnlockedBpm;
     this.#host = new ExerciseRunHost(dependencies.router, dependencies.services, {
       ...(dependencies.now === undefined ? {} : { now: dependencies.now }),
       ...(dependencies.makeId === undefined ? {} : { makeId: dependencies.makeId }),
@@ -705,6 +850,22 @@ export class TechniqueSession {
     return this.#highestUnlockedBpm;
   }
 
+  /**
+   * Point the ladder at a variant and load its saved rung. Setup calls this so
+   * the readout shows the earned tempo before a run starts; startScale calls it
+   * with the variant it is about to run, so reads and writes cannot drift.
+   */
+  async useLadder(variantKey: string): Promise<number> {
+    this.#ladderKey = variantKey;
+    const ladder = this.dependencies.ladder;
+    if (!ladder) return this.#highestUnlockedBpm;
+    const saved = await ladder.readLadder(variantKey, this.#baseUnlockedBpm);
+    if (saved === this.#highestUnlockedBpm) return saved;
+    this.#highestUnlockedBpm = saved;
+    this.#notify();
+    return saved;
+  }
+
   subscribe(listener: StateListener): () => void {
     this.#listeners.add(listener);
     listener(this.state);
@@ -713,14 +874,30 @@ export class TechniqueSession {
 
   async startScale(options: TechniqueScaleOptions): Promise<ScalePatternPrompt> {
     this.#assertUsable();
-    if (this.#status === "active") throw new Error("A technique session is already active");
+    this.#assertNotActive();
+    await this.useLadder(
+      scaleLadderVariantKey({
+        scale: options.scale,
+        tonic: options.tonic,
+        motion: options.motion ?? "up",
+        span: options.span ?? "one-octave",
+        hands: options.hands ?? "right",
+      }),
+    );
+    // The ladder read yields, so re-check the guard before claiming the host.
+    this.#assertNotActive();
     if (options.bpm > this.#highestUnlockedBpm) {
       throw new Error(
         `Clean a scale at ${this.#highestUnlockedBpm} BPM before ${options.bpm} BPM.`,
       );
     }
 
-    const exercise = createScalePatternExercise(options);
+    // Options first: an explicit `minEvenness: undefined` must not spread the
+    // preset's success rule back out again.
+    const exercise = createScalePatternExercise({
+      ...options,
+      ...(options.minEvenness === undefined ? scaleSuccessRule(options) : {}),
+    });
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
@@ -910,6 +1087,36 @@ export class TechniqueSession {
     return currentPrompt;
   }
 
+  async startFretboardPattern(
+    options: TechniqueFretboardPatternOptions,
+  ): Promise<FretboardPatternPrompt> {
+    this.#assertUsable();
+    if (this.#status === "active") throw new Error("A technique session is already active");
+
+    const exercise = createFretboardPatternExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-positions-${options.tuning.id}-${options.patternId}-${options.rootFret}-${options.bpm}`,
+      inputs: ["midi", "onscreen", "audio"],
+      context: {
+        metadata: { assistance: "guided" },
+        targetSkillIds: exercise.skillIds,
+        difficulty: difficultyForBpm(options.bpm),
+        instrument: options.tuning.instrument,
+      },
+    });
+
+    const currentPrompt = prompt.payload as FretboardPatternPrompt;
+    this.#status = "active";
+    this.#currentPrompt = currentPrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return currentPrompt;
+  }
+
   async startFretboardNoteFinder(
     options: TechniqueFretboardNoteFinderOptions,
   ): Promise<FretboardNoteFinderPrompt> {
@@ -1038,7 +1245,7 @@ export class TechniqueSession {
         options.durationSeconds === undefined
           ? (options.repetitions ?? 2)
           : `timed${options.durationSeconds}`
-      }`,
+      }${options.bpm === undefined ? "" : `-${options.bpm}bpm-${options.beatsPerChord ?? 4}`}`,
       inputs: ["midi", "onscreen", "audio"],
       context: {
         metadata: { assistance: "guided" },
@@ -1128,6 +1335,15 @@ export class TechniqueSession {
           this.dependencies.maxBpm ?? 180,
           this.#highestUnlockedBpm + (this.dependencies.tempoStepBpm ?? 10),
         );
+        if (this.#ladderKey !== undefined) {
+          try {
+            await this.dependencies.ladder?.writeLadder(this.#ladderKey, this.#highestUnlockedBpm);
+          } catch {
+            // The rung is progress, not the result — never lose a saved run over it.
+            // The in-memory rung survives in the shared TempoLadder, so the readout
+            // only falls back a rung after a reload.
+          }
+        }
       }
       this.#status = "summary";
       this.#currentPrompt = undefined;
@@ -1148,6 +1364,10 @@ export class TechniqueSession {
   #notify(): void {
     const state = this.state;
     this.#listeners.forEach((listener) => listener(state));
+  }
+
+  #assertNotActive(): void {
+    if (this.#status === "active") throw new Error("A technique session is already active");
   }
 
   #assertUsable(): void {

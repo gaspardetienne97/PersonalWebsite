@@ -342,6 +342,163 @@ function benchmarkEvent(
   };
 }
 
+describe("chord changes on a clock", () => {
+  test("assigns each strum cluster to the nearest expected beat, not to its index", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.d-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.a-major")!;
+    // 60 BPM, one chord per bar: targets land on 0, 4000, 8000 and 12000 ms.
+    const exercise = createChordChangeExercise({
+      tuning,
+      fromShape,
+      toShape,
+      repetitions: 2,
+      bpm: 60,
+      beatsPerChord: 4,
+    });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.45 };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    expect(prompt.payload).toMatchObject({ bpm: 60, beatsPerChord: 4 });
+
+    // Bar 2 is dropped entirely; bars 1, 3 and 4 are strummed on the beat.
+    [0, 2, 3].forEach((targetIndex) => {
+      prompt.payload.targets[targetIndex]!.midiNotes.forEach((midiNote, noteIndex) => {
+        run.accept(note(midiNote, targetIndex * 4_000 + noteIndex * 30));
+      });
+    });
+
+    const result = run.finish({ reason: "completed" });
+
+    // Index assignment would grade the bar-3 D strum against the bar-2 A target.
+    expect(result.answer?.coverageByChange).toEqual([1, 0, 1, 1]);
+    expect(result.answer).toMatchObject({ completedChanges: 3, cleanChanges: 3, onTimeChanges: 3 });
+  });
+
+  test("emits a timing metric per graded chord and bands it against the beat", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.e-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.a-major")!;
+    const exercise = createChordChangeExercise({
+      tuning,
+      fromShape,
+      toShape,
+      repetitions: 1,
+      bpm: 60,
+      beatsPerChord: 4,
+    });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.45 };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    prompt.payload.targets[0]!.midiNotes.forEach((midiNote, index) => {
+      run.accept(note(midiNote, index * 30));
+    });
+    // 600 ms late: outside min(180, beatMs/4) = 180 ms, so not on time.
+    prompt.payload.targets[1]!.midiNotes.forEach((midiNote, index) => {
+      run.accept(note(midiNote, 4_600 + index * 30));
+    });
+
+    const result = run.finish({ reason: "completed" });
+    const timing = result.metrics.filter((metric) => metric.kind === "timing");
+
+    expect(timing).toEqual([
+      { kind: "timing", expectedMs: 0, actualMs: 0, errorMs: 0 },
+      { kind: "timing", expectedMs: 4_000, actualMs: 4_600, errorMs: 600 },
+    ]);
+    expect(result.answer?.onTimeChanges).toBe(1);
+    expect(result.feedback[0]?.message).toContain("1/2 on the beat");
+  });
+
+  test("grades against the count-in downbeat when the caller anchors the clock", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.e-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.a-major")!;
+    const exercise = createChordChangeExercise({
+      tuning,
+      fromShape,
+      toShape,
+      repetitions: 1,
+      bpm: 60,
+      beatsPerChord: 4,
+      startTimestampMs: 1_000,
+    });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.45 };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    expect(prompt.payload).toMatchObject({ startTimestampMs: 1_000, timingAnchor: "click" });
+
+    // First change 40 ms after the downbeat: graded as 40 ms late, not as 0.
+    prompt.payload.targets[0]!.midiNotes.forEach((midiNote, index) => {
+      run.accept(note(midiNote, 1_040 + index * 30));
+    });
+    prompt.payload.targets[1]!.midiNotes.forEach((midiNote, index) => {
+      run.accept(note(midiNote, 5_040 + index * 30));
+    });
+
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.metrics.filter((metric) => metric.kind === "timing")).toEqual([
+      { kind: "timing", expectedMs: 1_000, actualMs: 1_040, errorMs: 40 },
+      { kind: "timing", expectedMs: 5_000, actualMs: 5_040, errorMs: 40 },
+    ]);
+    expect(result.answer).toMatchObject({ onTimeChanges: 2, timingAnchor: "click" });
+  });
+
+  test("falls back to the first change and says so when no downbeat is given", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.e-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.a-major")!;
+    const exercise = createChordChangeExercise({
+      tuning,
+      fromShape,
+      toShape,
+      repetitions: 1,
+      bpm: 60,
+    });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.45 };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    expect(prompt.payload.startTimestampMs).toBeUndefined();
+    expect(prompt.payload.timingAnchor).toBe("first-change");
+
+    prompt.payload.targets[0]!.midiNotes.forEach((midiNote, index) => {
+      run.accept(note(midiNote, 1_040 + index * 30));
+    });
+
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.metrics.filter((metric) => metric.kind === "timing")).toEqual([
+      { kind: "timing", expectedMs: 1_040, actualMs: 1_040, errorMs: 0 },
+    ]);
+    expect(result.answer?.timingAnchor).toBe("first-change");
+  });
+
+  test("stays index-assigned and emits no timing metric without a clock", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.g-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.c-major")!;
+    const exercise = createChordChangeExercise({ tuning, fromShape, toShape, repetitions: 1 });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.45 };
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    prompt.payload.targets.forEach((target, targetIndex) => {
+      target.midiNotes.forEach((midiNote, noteIndex) => {
+        run.accept(note(midiNote, targetIndex * 1_000 + noteIndex * 40));
+      });
+    });
+
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.metrics.some((metric) => metric.kind === "timing")).toBe(false);
+    expect(result.answer?.onTimeChanges).toBeUndefined();
+  });
+});
+
 function note(midiNote: number, atMs: number): NoteOnEvent {
   return {
     type: "noteOn",

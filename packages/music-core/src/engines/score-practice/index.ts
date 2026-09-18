@@ -143,6 +143,73 @@ export function buildScoreSelectionMap(score: Score): ScoreSelectionMap {
   };
 }
 
+/**
+ * A custom range read as a musician reads it: which bar it starts and ends on,
+ * how many bars and beats that is, and how long that lasts at the practice
+ * tempo. Beats and `quarterNoteBpm` are both in quarter notes, the unit the
+ * score follower runs on.
+ */
+export interface ScoreRangeReadout {
+  startBar: number;
+  endBar: number;
+  bars: number;
+  beats: number;
+  seconds: number;
+}
+
+/** The 1-based bar number containing `beat`. */
+export function barNumberAtBeat(
+  beat: number,
+  measureBoundaries: readonly ScoreSelectionBoundary[],
+): number {
+  const index = measureBoundaries.findLastIndex(
+    (boundary, position) =>
+      position < measureBoundaries.length - 1 && boundary.beat <= beat + EPSILON,
+  );
+  return Math.max(1, index + 1);
+}
+
+/** The half-open beat range of the 1-based `bar`, or undefined past the score. */
+export function barBeatRange(
+  bar: number,
+  measureBoundaries: readonly ScoreSelectionBoundary[],
+): { startBeat: number; endBeat: number } | undefined {
+  const start = measureBoundaries[bar - 1];
+  const end = measureBoundaries[bar];
+  if (bar < 1 || !start || !end) return undefined;
+  return { startBeat: start.beat, endBeat: end.beat };
+}
+
+/** The first and last bars a range touches. The range is half-open, so a range
+ * ending on a bar line ends in the bar before it. */
+export function barRangeOf(
+  range: { startBeat: number; endBeat: number },
+  measureBoundaries: readonly ScoreSelectionBoundary[],
+): { startBar: number; endBar: number } {
+  const startBar = barNumberAtBeat(range.startBeat, measureBoundaries);
+  const lastBarIndex = measureBoundaries.findLastIndex(
+    (boundary, position) =>
+      position < measureBoundaries.length - 1 && boundary.beat < range.endBeat - EPSILON,
+  );
+  return { startBar, endBar: Math.max(startBar, lastBarIndex + 1) };
+}
+
+export function describeScoreRange(
+  range: { startBeat: number; endBeat: number },
+  measureBoundaries: readonly ScoreSelectionBoundary[],
+  quarterNoteBpm: number,
+): ScoreRangeReadout {
+  const { startBar, endBar } = barRangeOf(range, measureBoundaries);
+  const beats = Math.max(0, range.endBeat - range.startBeat);
+  return {
+    startBar,
+    endBar,
+    bars: endBar - startBar + 1,
+    beats,
+    seconds: quarterNoteBpm > 0 ? (beats * 60) / quarterNoteBpm : 0,
+  };
+}
+
 export function buildScorePracticePlan(
   score: Score,
   selection: ScorePracticeSelection,

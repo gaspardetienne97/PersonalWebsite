@@ -459,7 +459,9 @@ export class MusicRuntime {
   }
 
   async writeLocalState<T>(id: string, value: T): Promise<void> {
-    await this.#settings?.put({ id, value });
+    // Callers hand over $state proxies; Dexie structuredClones the row, and a
+    // Proxy cannot be cloned, so snapshot once here for every caller.
+    await this.#settings?.put({ id, value: $state.snapshot(value) as T });
   }
 
   /** Point the journal sink at the local PracticeStore so activities persist. */
@@ -582,6 +584,7 @@ export class MusicRuntime {
       state.profiles.filter((profile) => profile.ignored).map((profile) => profile.id),
     );
     this.#profilesByDevice = new Map(state.profiles.map((profile) => [profile.id, profile]));
+    this.#applyInputOffsets();
     this.#refreshMidiListening();
     this.#syncControllerLinks();
   }
@@ -894,7 +897,25 @@ export class MusicRuntime {
     if (persistenceError !== undefined) throw persistenceError;
   }
 
+  /**
+   * Hand the saved calibration to the router, which subtracts it from incoming
+   * timestamps once so every scorer grades against the corrected time. A device
+   * profile's own offset wins over the global MIDI one.
+   */
+  #applyInputOffsets(settings = this.#settingsStore?.get()): void {
+    const midiByDeviceId: Record<string, number> = {};
+    for (const [id, profile] of this.#profilesByDevice) {
+      if (profile.inputOffsetMs !== undefined) midiByDeviceId[id] = profile.inputOffsetMs;
+    }
+    this.router.setInputOffsets({
+      audioMs: settings?.audioOffsetMs ?? 0,
+      midiMs: settings?.midiOffsetMs ?? 0,
+      midiByDeviceId,
+    });
+  }
+
   #applyAudioSettings(settings: MusicSettings): void {
+    this.#applyInputOffsets(settings);
     const preferredChanged = settings.preferredPlaybackSound !== this.preferredPlaybackSound;
     this.preferredPlaybackSound = settings.preferredPlaybackSound;
     this.instrument = PLAYBACK_SOUND_LABELS[settings.preferredPlaybackSound];

@@ -3,6 +3,7 @@ import {
   type ExerciseDefinition,
   type ExerciseRun,
   type NoteEvent,
+  type NoteOnEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
 import { midiToNote } from "@repo/music-core/engines/theory";
@@ -240,6 +241,64 @@ function stringNumbersForSpan(
   return strings;
 }
 
+export interface FrettedSequenceGrade {
+  played: NoteOnEvent[];
+  playedMidiNotes: number[];
+  correctNotes: number;
+  pitchAccuracy: number;
+  meanTimingErrorMs: number;
+  /** Evenness of the played spacing, 1 at a perfect grid. */
+  evennessScore: number;
+  metrics: ScoringMetric[];
+}
+
+/**
+ * The grading pass every fretted sequence drill shares: one pitch metric per
+ * target, and one timing metric per played note against an even grid anchored
+ * on the first note played (these drills have no count-in, so what is measured
+ * is the spacing inside the run). `fretboard-pattern.ts` layers its string and
+ * fret checks on top of this.
+ */
+export function gradeFrettedSequence(
+  midiNotes: readonly number[],
+  targetSpacingMs: number,
+  input: readonly NoteEvent[],
+): FrettedSequenceGrade {
+  const played = input.filter((event): event is NoteOnEvent => event.type === "noteOn");
+  const firstTimestamp = played[0]?.timestamp;
+  const metrics: ScoringMetric[] = [];
+  let correctNotes = 0;
+  let timingErrorTotal = 0;
+  let timingCount = 0;
+
+  midiNotes.forEach((expectedMidi, index) => {
+    const actual = played[index];
+    const actualMidi = actual?.midiNote;
+    metrics.push({ kind: "pitch", expectedMidi, actualMidi });
+    if (actualMidi === expectedMidi) correctNotes += 1;
+
+    if (firstTimestamp !== undefined && actual !== undefined) {
+      const expectedMs = Number(firstTimestamp) + index * targetSpacingMs;
+      const actualMs = Number(actual.timestamp);
+      const errorMs = actualMs - expectedMs;
+      timingErrorTotal += Math.abs(errorMs);
+      timingCount += 1;
+      metrics.push({ kind: "timing", expectedMs, actualMs, errorMs });
+    }
+  });
+
+  const meanTimingErrorMs = timingCount === 0 ? 0 : timingErrorTotal / timingCount;
+  return {
+    played,
+    playedMidiNotes: played.map((event) => event.midiNote),
+    correctNotes,
+    pitchAccuracy: midiNotes.length === 0 ? 0 : correctNotes / midiNotes.length,
+    meanTimingErrorMs,
+    evennessScore: Math.max(0, 1 - meanTimingErrorMs / 180),
+    metrics,
+  };
+}
+
 function stringSpiderRun(prompt: StringSpiderPrompt): ExerciseRun<StringSpiderAnswer> {
   const input: NoteEvent[] = [];
 
@@ -259,35 +318,11 @@ function stringSpiderRun(prompt: StringSpiderPrompt): ExerciseRun<StringSpiderAn
       };
     },
     finish() {
-      const played = input.filter((event) => event.type === "noteOn");
-      const firstTimestamp = played[0]?.timestamp;
-      const metrics: ScoringMetric[] = [];
-      let correctNotes = 0;
-      let timingErrorTotal = 0;
-      let timingCount = 0;
-
-      prompt.midiNotes.forEach((expectedMidi, index) => {
-        const actual = played[index];
-        const actualMidi = actual?.type === "noteOn" ? actual.midiNote : undefined;
-        metrics.push({ kind: "pitch", expectedMidi, actualMidi });
-        if (actualMidi === expectedMidi) correctNotes += 1;
-
-        if (firstTimestamp !== undefined && actual?.type === "noteOn") {
-          const expectedMs = Number(firstTimestamp) + index * prompt.targetSpacingMs;
-          const actualMs = Number(actual.timestamp);
-          const errorMs = actualMs - expectedMs;
-          timingErrorTotal += Math.abs(errorMs);
-          timingCount += 1;
-          metrics.push({ kind: "timing", expectedMs, actualMs, errorMs });
-        }
-      });
-
-      const pitchAccuracy = correctNotes / prompt.midiNotes.length;
-      const meanTimingErrorMs = timingCount === 0 ? 0 : timingErrorTotal / timingCount;
-      const evennessScore = Math.max(0, 1 - meanTimingErrorMs / 180);
+      const { metrics, correctNotes, pitchAccuracy, meanTimingErrorMs, evennessScore, ...graded } =
+        gradeFrettedSequence(prompt.midiNotes, prompt.targetSpacingMs, input);
       const score = pitchAccuracy * 0.85 + evennessScore * 0.15;
       const answer: StringSpiderAnswer = {
-        playedMidiNotes: played.map((event) => event.midiNote),
+        playedMidiNotes: graded.playedMidiNotes,
         pitchAccuracy,
         meanTimingErrorMs,
       };

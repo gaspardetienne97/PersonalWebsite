@@ -608,6 +608,46 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
       expect(button("Again")).not.toBeUndefined();
     });
   });
+  test("puts the change trainer on a clock and keeps the setting shareable", async () => {
+    setTestUrl(
+      "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.d-major&to=guitar.a-major&reps=1&clock=4",
+    );
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+
+    expect(button("The bar")).toHaveAttribute("aria-pressed", "true");
+    expect(document.body.textContent).toContain("a chord every 4 beats");
+    expect(document.body.textContent).toContain("graded against its own beat");
+
+    button("2 beats")?.click();
+    await vi.waitFor(() => expect(window.location.search).toContain("clock=2"));
+
+    button("No clock")?.click();
+    await vi.waitFor(() => expect(window.location.search).not.toContain("clock="));
+    expect(document.body.textContent).not.toContain("graded against its own beat");
+  });
+
+  test("One-minute changes have no clock: its windows are strums, not beats", async () => {
+    setTestUrl(
+      "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.d-major&to=guitar.a-major&clock=4",
+    );
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    expect(button("The bar")).not.toBeUndefined();
+
+    button("One-minute")?.click();
+
+    await vi.waitFor(() => expect(button("The bar")).toBeUndefined());
+    expect(button("No clock")).toBeUndefined();
+    expect(document.body.textContent).not.toContain("a chord every 4 beats");
+    expect(document.body.textContent).not.toContain("graded against its own beat");
+    await vi.waitFor(() => expect(window.location.search).not.toContain("clock="));
+  });
+
   test("runs one-minute changes on a clock and reports changes per minute", async () => {
     setTestUrl(
       "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major&timed=1",

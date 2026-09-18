@@ -358,9 +358,15 @@ export class ReadingSession {
     this.#advanceFlashcard();
   }
 
-  revealFlashcardHint(): void {
+  /**
+   * Flashcards reveal the answer; sight-reading lights the current group's
+   * targets. Either way the run's provenance drops to "hinted", so the phrase
+   * no longer counts as independent.
+   */
+  revealHint(): void {
     this.#assertUsable();
-    if (this.#status !== "flashcard" || this.#awaitingContinue || this.#finishing) return;
+    if (this.#awaitingContinue || this.#finishing) return;
+    if (this.#status !== "flashcard" && this.#status !== "sight-reading") return;
     this.#host.markHintUsed();
     this.#hintUsed = true;
     this.#notify();
@@ -429,6 +435,7 @@ export class ReadingSession {
     this.#status = "sight-reading";
     this.#countIn = "ready";
     this.#answerMode = undefined;
+    this.#hintUsed = false;
     this.#currentIndex = 0;
     this.#currentPrompt = prompt.payload;
     this.#results = [];
@@ -475,7 +482,8 @@ export class ReadingSession {
         targetSkillIds: [item.targetSkillId],
         difficulty: item.difficulty,
         instrument: options.instrument,
-        // The sight-reading stage displays expected note names and target keys.
+        // The stage still names the expected notes and can play them, so an
+        // unhinted phrase is guided; `revealHint` drops it to "hinted".
         metadata: { assistance: "guided" },
       },
     });
@@ -550,6 +558,7 @@ export class ReadingSession {
     this.#status = "sight-reading";
     this.#countIn = "ready";
     this.#answerMode = undefined;
+    this.#hintUsed = false;
     this.#currentIndex = 0;
     this.#currentPrompt = retry.prompt;
     this.#results = [];

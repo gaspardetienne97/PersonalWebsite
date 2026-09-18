@@ -1,5 +1,7 @@
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
+import { monotonicMs } from "@repo/music-core/domain";
+import { AudioPitchSource } from "@repo/music-core/engines/audio-in";
 import { PracticeDatabase } from "@repo/music-core/engines/store";
 
 import Page from "./+page.svelte";
@@ -95,7 +97,7 @@ describe("/music/settings/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Yes, reset")).toBeUndefined());
   });
 
-  test("steps latency offsets by 5 ms", async () => {
+  test("shows a read-only output-latency line and a Calibrate control per input", async () => {
     const runtime = new MusicRuntime();
     await runtime.attachStorage({
       get: async () => ({ id: "music.settings", value: {} }),
@@ -104,12 +106,79 @@ describe("/music/settings/+page.svelte", () => {
     render(Page, { context: new Map([[MUSIC_RUNTIME, runtime]]) });
 
     await vi.waitFor(() =>
-      expect(document.querySelector<HTMLInputElement>("#audio-offset")).not.toBeNull(),
+      expect(document.body.textContent).toContain("Output latency (reported by the browser)"),
     );
-    document.querySelector<HTMLButtonElement>('[aria-label="Audio offset plus 5 ms"]')?.click();
-    await vi.waitFor(() =>
-      expect(document.querySelector<HTMLInputElement>("#audio-offset")?.value).toBe("5"),
+    // Audio is not enabled in a test run, so the browser reports nothing.
+    expect(document.body.textContent).toContain("Not reported");
+    expect(document.body.textContent).toContain("never applied to scoring");
+    const calibrate = [...document.querySelectorAll<HTMLButtonElement>("button")].filter(
+      (button) => button.textContent?.trim() === "Calibrate",
     );
+    // One for the microphone, one for MIDI devices without their own offset.
+    expect(calibrate.length).toBe(2);
+    expect((document.body.textContent ?? "").replace(/\s+/g, " ")).toContain(
+      "a positive offset means your hits arrive late and are pulled earlier",
+    );
+    runtime.dispose();
+  });
+
+  test("the microphone panel is already forwarding onsets on its first run", async () => {
+    const onsets = vi.spyOn(AudioPitchSource.prototype, "subscribeOnsets");
+    const runtime = new MusicRuntime();
+    await runtime.attachStorage({
+      get: async () => ({ id: "music.settings", value: {} }),
+      put: async () => {},
+    });
+    render(Page, { context: new Map([[MUSIC_RUNTIME, runtime]]) });
+
+    const calibrate = () =>
+      [...document.querySelectorAll<HTMLButtonElement>("button")].filter(
+        (button) => button.textContent?.trim() === "Calibrate",
+      );
+    await vi.waitFor(() => expect(calibrate().length).toBe(2));
+    // The microphone panel comes first; its source must exist before it runs.
+    calibrate()[0]!.click();
+    await vi.waitFor(() => expect(onsets).toHaveBeenCalled());
+
+    const forward = onsets.mock.calls[0]![0];
+    forward({
+      type: "onset",
+      strength: 0.9,
+      source: "audio",
+      timestamp: monotonicMs(1_234),
+      clock: "performance",
+    });
+    expect(runtime.router.events.at(-1)?.timestamp).toBe(1_234);
+
+    onsets.mockRestore();
+    runtime.dispose();
+  });
+
+  test("shows a saved offset and resets it", async () => {
+    const written: unknown[] = [];
+    const runtime = new MusicRuntime();
+    await runtime.attachStorage({
+      get: async (id: string) =>
+        id === "music.settings" ? { id, value: { midiOffsetMs: 42 } } : undefined,
+      put: async (record: { id: string; value: unknown }) => {
+        written.push(record.value);
+      },
+    });
+    render(Page, { context: new Map([[MUSIC_RUNTIME, runtime]]) });
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Offset 42 ms"));
+    const reset = [...document.querySelectorAll<HTMLButtonElement>("button")].filter(
+      (button) => button.textContent?.trim() === "Reset",
+    );
+    expect(reset.length).toBe(1);
+
+    reset[0]!.click();
+    await vi.waitFor(() => expect(document.body.textContent).not.toContain("Offset 42 ms"));
+    expect(
+      [...document.querySelectorAll<HTMLButtonElement>("button")].filter(
+        (candidate) => candidate.textContent?.trim() === "Reset",
+      ),
+    ).toEqual([]);
     runtime.dispose();
   });
 

@@ -7,6 +7,11 @@ import {
   type NoteEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
+import {
+  createChordFollower,
+  type ChordGrade,
+  type ExpectedChord,
+} from "@repo/music-core/engines/chord-follower";
 import { beatDurationMs } from "@repo/music-core/engines/transport";
 
 export type RhythmPatternId =
@@ -18,13 +23,22 @@ export type RhythmPatternId =
   | "off-beats"
   | "dotted-quarters"
   | "swing-eighths"
-  | "gap-click-1-on-1-off";
+  | "gap-click-1-on-1-off"
+  | "guitar-four-on-the-floor"
+  | "guitar-island-strum";
 
 export interface RhythmPatternEvent {
   id: string;
   beat: number;
   voice: "tap" | "left" | "right";
   accent?: "normal" | "accent" | "ghost";
+  /**
+   * Display only (the input cannot see a picking hand). A `"mute"` stroke is an
+   * onset accepted without a pitch, so it grades on timing alone.
+   */
+  stroke?: "down" | "up" | "mute";
+  /** Written length, for the strum lane and the per-bar beat total. */
+  durationBeats?: number;
 }
 
 export interface RhythmRestWindow {
@@ -45,6 +59,8 @@ export interface RhythmPatternDefinition {
   events: RhythmPatternEvent[];
   rests: RhythmRestWindow[];
   clickSchedule?: RhythmClickScheduleEntry[];
+  /** Chord spans the strums are played over, graded from pitch when it is heard. */
+  chords?: ExpectedChord[];
 }
 
 export interface RhythmPatternOptions {
@@ -65,6 +81,7 @@ export interface RhythmPatternPrompt {
   rests: RhythmRestWindow[];
   expectedMs: number[];
   clickSchedule?: RhythmClickScheduleEntry[];
+  chords?: ExpectedChord[];
 }
 
 export interface RhythmPatternAnswer {
@@ -75,7 +92,23 @@ export interface RhythmPatternAnswer {
   extraRestHits: number;
   /** Unmatched hits outside rest windows (double-taps, noise). */
   extraHits: number;
+  /** Strum patterns with mutes: muted strokes met by a pitchless onset. */
+  mutesMatched?: number;
+  /** Strum patterns with chords: false when no pitch was heard to verify them. */
+  chordsVerified?: boolean;
+  chordGrades?: ChordGrade[];
 }
+
+/** One bar of G2: [onset beat, stroke, written duration in beats] — 4.0 in all. */
+const ISLAND_STRUM_BAR: [number, NonNullable<RhythmPatternEvent["stroke"]>, number][] = [
+  [0, "down", 1],
+  [1, "down", 0.5],
+  [1.5, "up", 0.5],
+  [2, "mute", 0.5],
+  [2.5, "up", 0.5],
+  [3, "down", 0.5],
+  [3.5, "up", 0.5],
+];
 
 export const RHYTHM_PATTERN_CATALOG: RhythmPatternDefinition[] = [
   {
@@ -194,6 +227,52 @@ export const RHYTHM_PATTERN_CATALOG: RhythmPatternDefinition[] = [
       { bar: 1, audible: false },
     ],
   },
+  {
+    // Curriculum G1 "Four on the floor, D to A": a downstroke on every beat,
+    // changing chord on the bar line at bar 3.
+    id: "guitar-four-on-the-floor",
+    label: "Guitar: four on the floor (D to A)",
+    meter: { beats: 4, beatUnit: 4 },
+    defaultBars: 4,
+    events: Array.from({ length: 16 }, (_unused, index) => ({
+      id: `strum-${index + 1}`,
+      beat: index,
+      voice: "tap" as const,
+      accent: index % 4 === 0 ? ("accent" as const) : ("normal" as const),
+      stroke: "down" as const,
+      durationBeats: 1,
+    })),
+    rests: [],
+    clickSchedule: Array.from({ length: 4 }, (_unused, bar) => ({ bar, audible: true })),
+    chords: [
+      { symbol: "D", pitchClasses: [2, 6, 9], startBeat: 0, durationBeats: 8 },
+      { symbol: "A", pitchClasses: [1, 4, 9], startBeat: 8, durationBeats: 8 },
+    ],
+  },
+  {
+    // Curriculum G2 "Island strum with a mute, G to C": D DU (mute) UDU, with
+    // the palm mute on beat 3 counted as a stroke.
+    id: "guitar-island-strum",
+    label: "Guitar: island strum with a mute (G to C)",
+    meter: { beats: 4, beatUnit: 4 },
+    defaultBars: 4,
+    events: Array.from({ length: 4 }, (_unused, bar) =>
+      ISLAND_STRUM_BAR.map(([offset, stroke, durationBeats]) => ({
+        id: `island-${bar + 1}-${offset}`,
+        beat: bar * 4 + offset,
+        voice: "tap" as const,
+        accent: offset === 0 ? ("accent" as const) : ("normal" as const),
+        stroke,
+        durationBeats,
+      })),
+    ).flat(),
+    rests: [],
+    clickSchedule: Array.from({ length: 4 }, (_unused, bar) => ({ bar, audible: true })),
+    chords: [
+      { symbol: "G", pitchClasses: [2, 7, 11], startBeat: 0, durationBeats: 8 },
+      { symbol: "C", pitchClasses: [0, 4, 7], startBeat: 8, durationBeats: 8 },
+    ],
+  },
 ];
 
 export function rhythmPatternDefinition(patternId: RhythmPatternId): RhythmPatternDefinition {
@@ -265,6 +344,18 @@ function buildRhythmPatternPrompt(
     events,
     rests,
     expectedMs: events.map((event) => Number(options.startTimestampMs) + event.beat * beatMs),
+    ...(definition.chords === undefined
+      ? {}
+      : {
+          chords: Array.from({ length: repetitions }, (_unused, repetition) =>
+            definition.chords!.map((chord) => ({
+              ...chord,
+              startBeat: chord.startBeat + repetition * patternBeats,
+            })),
+          )
+            .flat()
+            .filter((chord) => chord.startBeat < options.bars * definition.meter.beats),
+        }),
     ...(definition.clickSchedule === undefined
       ? {}
       : {
@@ -328,6 +419,22 @@ function rhythmPatternRun(prompt: RhythmPatternPrompt): ExerciseRun<RhythmPatter
           missedEvents += 1;
         }
       }
+      // A muted stroke is an onset with no pitch. It counts as a mute only when
+      // an onset landed in its window AND nothing pitched did: a strum that
+      // rings out there is a played chord, not a palm mute.
+      const mutes = prompt.events.filter((event) => event.stroke === "mute");
+      const mutesMatched = mutes.filter((event) => {
+        const expectedMs =
+          Number(prompt.startTimestampMs) + event.beat * beatDurationMs(prompt.bpm);
+        const inWindow = hits.filter(
+          (hit) => Math.abs(Number(hit.timestamp) - expectedMs) <= matchWindowMs,
+        );
+        return (
+          inWindow.some((hit) => hit.type === "onset") &&
+          !inWindow.some((hit) => hit.type === "noteOn")
+        );
+      }).length;
+      const chordGrades = gradeChordSpans(prompt, hits);
       const extraRestHits = pool.filter((candidate) => candidate.rest).length;
       const extraHits = pool.filter((candidate) => !candidate.rest && !candidate.used).length;
       const meanAbsoluteErrorMs = average(errors.map((error) => Math.abs(error)));
@@ -347,6 +454,10 @@ function rhythmPatternRun(prompt: RhythmPatternPrompt): ExerciseRun<RhythmPatter
         missedEvents,
         extraRestHits,
         extraHits,
+        ...(mutes.length === 0 ? {} : { mutesMatched }),
+        ...(prompt.chords === undefined
+          ? {}
+          : { chordsVerified: chordGrades !== undefined, ...(chordGrades ? { chordGrades } : {}) }),
       };
 
       return {
@@ -358,6 +469,19 @@ function rhythmPatternRun(prompt: RhythmPatternPrompt): ExerciseRun<RhythmPatter
             severity: score >= 0.85 ? "good" : "warn",
             message: `Timing ${Math.round(meanSignedErrorMs)}ms · ${missedEvents} missed · ${extraRestHits} rest hit${extraRestHits === 1 ? "" : "s"}.`,
           },
+          ...(prompt.chords === undefined
+            ? []
+            : [
+                {
+                  severity: "info" as const,
+                  message:
+                    chordGrades === undefined
+                      ? "Timing only: chord not verified (no pitch was heard)."
+                      : `Chords: ${chordGrades
+                          .map((grade) => `${grade.symbol} ${grade.matched ? "held" : "missed"}`)
+                          .join(" · ")}.`,
+                },
+              ]),
         ],
         target: { label: prompt.label, events: prompt.events },
         response: { label: `${hits.length} hits` },
@@ -366,6 +490,37 @@ function rhythmPatternRun(prompt: RhythmPatternPrompt): ExerciseRun<RhythmPatter
       };
     },
   };
+}
+
+/**
+ * Chord identity from whatever pitch was heard inside each chord span, graded
+ * by the shared chord-follower bands. Returns undefined when no pitched input
+ * arrived at all — the drill then reports timing only.
+ */
+function gradeChordSpans(prompt: RhythmPatternPrompt, hits: NoteEvent[]): ChordGrade[] | undefined {
+  if (prompt.chords === undefined || prompt.chords.length === 0) return undefined;
+  const pitched = hits.filter((hit) => hit.type === "noteOn");
+  if (pitched.length === 0) return undefined;
+  const beatMs = beatDurationMs(prompt.bpm);
+  const startMs = Number(prompt.startTimestampMs);
+  const follower = createChordFollower(prompt.chords, { bpm: prompt.bpm, startAtMs: startMs });
+  for (const chord of prompt.chords) {
+    const spanStartMs = startMs + chord.startBeat * beatMs;
+    const spanEndMs = spanStartMs + chord.durationBeats * beatMs;
+    const inSpan = pitched.filter(
+      (hit) => Number(hit.timestamp) >= spanStartMs && Number(hit.timestamp) < spanEndMs,
+    );
+    if (inSpan.length === 0) continue;
+    follower.accept({
+      pitchClasses: [...new Set(inSpan.map((hit) => ((hit.midiNote % 12) + 12) % 12))],
+      // A strum is onset-confirmed evidence, so it grades rather than only
+      // updating the readout.
+      confidence: 0.9,
+      source: "onset",
+      atMs: Number(inSpan[0]!.timestamp),
+    });
+  }
+  return follower.finish().grades;
 }
 
 /**

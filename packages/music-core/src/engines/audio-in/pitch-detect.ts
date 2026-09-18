@@ -26,7 +26,7 @@ export interface PitchDetectOptions {
   /**
    * Peak-pick ratio (0–1): a key maximum counts only if it is at least this
    * fraction of the strongest key maximum. MPM's classic value is ~0.9; lower
-   * picks lower (sub-)octaves more eagerly. Default 0.9.
+   * picks lower (sub-)octaves more eagerly. Default 0.85.
    */
   clarityThreshold?: number;
 }
@@ -50,7 +50,16 @@ export function detectPitch(buffer: Float32Array, options: PitchDetectOptions): 
   const { sampleRate } = options;
   const minFrequency = options.minFrequency ?? 50;
   const maxFrequency = options.maxFrequency ?? 1500;
-  const clarityThreshold = options.clarityThreshold ?? 0.9;
+  // 0.85 rather than MPM's classic 0.9: the "first peak within k of the tallest"
+  // rule flips to a sub-multiple lag (2T, 3T) whenever in-band interference
+  // raises that long-lag key maximum to within 10% of the true period's — mains
+  // hum (50/60 Hz is inside the 50 Hz floor) or the neighbouring string still
+  // ringing a fourth away, whose common period sits at 3T. Both land at ~0.90
+  // on the synthetic fixtures, i.e. exactly on the 0.9 cutoff, so the tuner
+  // reads an octave (or a twelfth) down on low strings. 0.85 is the largest
+  // step that still reports zero octave-*up* frames when the fundamental is
+  // weak (NSDF(T/2) reaches 0.66 there); 0.8 starts picking T/2.
+  const clarityThreshold = options.clarityThreshold ?? 0.85;
 
   const n = buffer.length;
   if (n < 4 || sampleRate <= 0) return NO_PITCH;

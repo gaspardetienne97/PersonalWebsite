@@ -109,7 +109,9 @@ export interface BuildSkillTreeViewArgs {
 }
 
 // A small sample prevents a single answer from becoming a diagnosis.
-const MIN_COACH_ATTEMPTS = 5;
+export const MIN_COACH_ATTEMPTS = 5;
+// Ten points off the last measurement is the review-due rule, everywhere.
+const REVIEW_DROP = 0.1;
 
 export function buildDashboardView(args: BuildDashboardViewArgs): DashboardView {
   const now = args.now ?? unixMs(Date.now());
@@ -168,7 +170,7 @@ export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView 
       return {
         ...stats,
         estimate: current.mastery,
-        dueForReview: stats.accuracy - current.mastery >= 0.1,
+        dueForReview: stats.accuracy - current.mastery >= REVIEW_DROP,
       };
     })
     .sort((a, b) => a.estimate - b.estimate)
@@ -189,7 +191,7 @@ export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView 
         confidencePercent: Math.round(mastery.confidence * 100),
         observations: mastery.observations,
         lastPracticed: mastery.lastPracticed,
-        dueForReview: args.skills.getMastery(skill.id).mastery - mastery.mastery >= 0.1,
+        dueForReview: args.skills.getMastery(skill.id).mastery - mastery.mastery >= REVIEW_DROP,
         unlocked: unlockedIds.has(skill.id),
         weakSpot: weakIds.has(skill.id),
         practiceHref: hrefForSkill(skill.id),
@@ -405,3 +407,157 @@ function clamp01(value: number): number {
 }
 
 const DAY_MS = 86_400_000;
+
+export interface SkillDriftRow {
+  skillId: string;
+  name: string;
+  capability: Capability;
+  href: string;
+  /** Unaided attempts on this instrument. */
+  attempts: number;
+  /** Today's decayed estimate, 0-100; absent until there is any unaided evidence. */
+  estimatePercent?: number;
+  /** Points lost since the last measurement. */
+  dropPercent: number;
+  /** Five unaided attempts and a ten-point drop: the one review-due rule. */
+  dueForReview: boolean;
+  lastPracticed?: UnixMs;
+}
+
+/**
+ * Skills split three ways for the Progress "what next" view: falling (the
+ * estimate has dropped ten points or more), holding (measured and steady) and
+ * not measured yet (fewer than five unaided attempts, so no verdict at all).
+ */
+export interface SkillDriftView {
+  falling: SkillDriftRow[];
+  holding: SkillDriftRow[];
+  unmeasured: SkillDriftRow[];
+  headline: string;
+  reason: string;
+}
+
+export interface BuildSkillDriftViewArgs extends BuildSkillTreeViewArgs {
+  /** Minutes the player has today; named in the reasoning when given. */
+  budgetMinutes?: number;
+}
+
+export function buildSkillDriftView(args: BuildSkillDriftViewArgs): SkillDriftView {
+  const now = args.now ?? unixMs(Date.now());
+  const scoped = args.skills.skills.filter(
+    (skill) =>
+      !args.instrument || !skill.instruments?.length || skill.instruments.includes(args.instrument),
+  );
+  const measured = new Map(
+    args.analytics
+      .weakestSkills(Infinity, {
+        assessedOnly: true,
+        instrument: args.instrument,
+        skillIds: scoped.map((skill) => skill.id),
+      })
+      .map((stats) => [stats.skillId, stats]),
+  );
+
+  const falling: SkillDriftRow[] = [];
+  const holding: SkillDriftRow[] = [];
+  const unmeasured: SkillDriftRow[] = [];
+  for (const skill of scoped) {
+    const stats = measured.get(skill.id);
+    const base = {
+      skillId: skill.id,
+      name: skill.name,
+      capability: skill.capability,
+      href: hrefForSkill(skill.id),
+      attempts: stats?.attempts ?? 0,
+      ...(stats?.lastPracticed === undefined ? {} : { lastPracticed: stats.lastPracticed }),
+    };
+    if (!stats) {
+      unmeasured.push({ ...base, dropPercent: 0, dueForReview: false });
+      continue;
+    }
+    // Some unaided evidence gives an estimate; only five attempts give a verdict.
+    const estimate = applyDecay(
+      {
+        ...args.skills.getMastery(skill.id),
+        mastery: stats.accuracy,
+        lastPracticed: stats.lastPracticed,
+      },
+      now,
+    ).mastery;
+    const drop = stats.accuracy - estimate;
+    const measuredEnough = stats.attempts >= MIN_COACH_ATTEMPTS;
+    const row = {
+      ...base,
+      estimatePercent: Math.round(estimate * 100),
+      dropPercent: Math.round(drop * 100),
+      dueForReview: measuredEnough && drop >= REVIEW_DROP,
+    };
+    if (!measuredEnough) unmeasured.push(row);
+    else (row.dueForReview ? falling : holding).push(row);
+  }
+
+  falling.sort((a, b) => b.dropPercent - a.dropPercent || a.name.localeCompare(b.name));
+  holding.sort(
+    (a, b) => (b.estimatePercent ?? 0) - (a.estimatePercent ?? 0) || a.name.localeCompare(b.name),
+  );
+  unmeasured.sort((a, b) => b.attempts - a.attempts || a.name.localeCompare(b.name));
+
+  return {
+    falling,
+    holding,
+    unmeasured,
+    headline: driftHeadline(falling, holding),
+    reason: driftReason(falling, holding, unmeasured, args.budgetMinutes),
+  };
+}
+
+function driftHeadline(falling: SkillDriftRow[], holding: SkillDriftRow[]): string {
+  if (falling[0]) return `${falling[0].name} is the weak link`;
+  return holding.length > 0 ? "Everything measured is holding" : "Nothing is measured yet";
+}
+
+function driftReason(
+  falling: SkillDriftRow[],
+  holding: SkillDriftRow[],
+  unmeasured: SkillDriftRow[],
+  budgetMinutes?: number,
+): string {
+  const sentences: string[] = [];
+  const steepest = falling[0];
+  if (steepest) {
+    sentences.push(
+      `${steepest.name} has fallen ${steepest.dropPercent} points since it was last measured and estimates ${steepest.estimatePercent}% today.`,
+    );
+    if (falling.length > 1) {
+      sentences.push(
+        `${falling.length - 1} other skill${falling.length === 2 ? " is" : "s are"} drifting the same way.`,
+      );
+    }
+  }
+  if (holding.length > 0) {
+    const highest = holding[0]!;
+    sentences.push(
+      steepest
+        ? `${holding.length} skill${holding.length === 1 ? " is" : "s are"} holding.`
+        : `${holding.length} skill${holding.length === 1 ? " is" : "s are"} holding, ${highest.name} highest at ${highest.estimatePercent}%.`,
+    );
+  }
+  if (unmeasured.length > 0) {
+    sentences.push(
+      `${unmeasured.length} skill${unmeasured.length === 1 ? " has" : "s have"} fewer than five unaided attempts, so ${unmeasured.length === 1 ? "it gets" : "they get"} no verdict.`,
+    );
+  }
+  if (budgetMinutes !== undefined && steepest) {
+    sentences.push(`The ${budgetMinutes} minutes below start with the steepest drop.`);
+  }
+  return sentences.join(" ");
+}
+
+export {
+  buildPracticeJournal,
+  type AssistanceLabel,
+  type BuildPracticeJournalArgs,
+  type JournalDay,
+  type JournalRun,
+  type PracticeJournalView,
+} from "./journal";

@@ -1,5 +1,8 @@
 import type { InputSource, InstrumentId, NoteEvent } from "@repo/music-core/domain";
 
+/** Tap-along offset calibration (pure math; the UI drives the run). */
+export * from "./calibration";
+
 type Listener = (event: NoteEvent) => void;
 type StateListener = (state: InputRouterState) => void;
 type MidiActivityKey = InstrumentId | "generic";
@@ -15,6 +18,20 @@ export interface InputRouterOptions {
   now?: () => number;
 }
 
+/**
+ * Saved latency offsets, in ms, positive meaning the input arrives late. The
+ * router subtracts them from incoming timestamps once, here, so every scorer
+ * downstream grades against the corrected time without knowing about them.
+ */
+export interface InputOffsets {
+  /** Applied to `audio` events. */
+  audioMs?: number;
+  /** Applied to `midi` events with no per-device offset. */
+  midiMs?: number;
+  /** Per-MIDI-device offset, keyed by device id; overrides `midiMs`. */
+  midiByDeviceId?: Record<string, number>;
+}
+
 export class InputRouter {
   #events: NoteEvent[] = [];
   #listeners = new Set<Listener>();
@@ -26,6 +43,7 @@ export class InputRouter {
   #lastMidiActivity = new Map<MidiActivityKey, number>();
   #midiActivityWindowMs: number;
   #now: () => number;
+  #offsets: InputOffsets = {};
 
   constructor(options: InputRouterOptions = {}) {
     this.#midiActivityWindowMs = options.midiActivityWindowMs ?? 1_500;
@@ -61,6 +79,11 @@ export class InputRouter {
     return this.#activeChannel;
   }
 
+  /** Saved calibration offsets to subtract from incoming timestamps. */
+  setInputOffsets(offsets: InputOffsets): void {
+    this.#offsets = offsets;
+  }
+
   setActiveInstrument(instrument?: InstrumentId): void {
     const previous = this.state;
     this.#activeInstrument = instrument;
@@ -73,9 +96,10 @@ export class InputRouter {
     this.#notifyStateIfChanged(previous);
   }
 
-  push(event: NoteEvent): boolean {
-    if (!this.#accepts(event)) return false;
+  push(incoming: NoteEvent): boolean {
+    if (!this.#accepts(incoming)) return false;
 
+    const event = this.#correctTimestamp(incoming);
     const previous = this.state;
     this.#events.push(event);
 
@@ -123,6 +147,20 @@ export class InputRouter {
     this.#stateListeners.add(listener);
     listener(this.state);
     return () => this.#stateListeners.delete(listener);
+  }
+
+  /** Pull a late-arriving event back to when it was actually played. */
+  #correctTimestamp(event: NoteEvent): NoteEvent {
+    const offset =
+      event.source === "midi"
+        ? ((event.deviceId === undefined
+            ? undefined
+            : this.#offsets.midiByDeviceId?.[event.deviceId]) ?? this.#offsets.midiMs)
+        : event.source === "audio"
+          ? this.#offsets.audioMs
+          : undefined;
+    if (!offset) return event;
+    return { ...event, timestamp: (event.timestamp - offset) as NoteEvent["timestamp"] };
   }
 
   #accepts(event: NoteEvent): boolean {

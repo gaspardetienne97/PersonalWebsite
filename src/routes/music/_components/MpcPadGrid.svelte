@@ -2,6 +2,8 @@
   import type { NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
 
+  import { padNumber } from "./pad-labels";
+
   /** Bank-A pads, MPC visual order: top row is the highest notes. */
   export const MPC_PAD_MIDI: number[][] = [
     [48, 49, 50, 51],
@@ -17,13 +19,6 @@
     40: "a", 41: "s", 42: "d", 43: "f",
     36: "z", 37: "x", 38: "c", 39: "v",
   };
-
-  /** Pad index on the hardware (A01 bottom-left … A16 top-right) for a bank-A note. */
-  export function padNumber(midi: number): number {
-    const row = MPC_PAD_MIDI.findIndex((pads) => pads.includes(midi));
-    if (row < 0) return 0;
-    return (MPC_PAD_MIDI.length - 1 - row) * 4 + MPC_PAD_MIDI[row]!.indexOf(midi) + 1;
-  }
 
   /** A hit with no release of its own (click, MIDI without note-off) stays lit this long. */
   const FLASH_MS = 140;
@@ -276,7 +271,7 @@
           </span>
           <span
             class="pointer-events-none absolute bottom-1 left-1.5 text-[0.5625rem] font-medium tabular-nums opacity-55"
-            aria-hidden="true">A{String(padNumber(midi)).padStart(2, "0")}</span
+            aria-hidden="true">A{String(padNumber(midi, MPC_PAD_MIDI)).padStart(2, "0")}</span
           >
           {#if target && !down}
             <span class="sr-only">, next</span>

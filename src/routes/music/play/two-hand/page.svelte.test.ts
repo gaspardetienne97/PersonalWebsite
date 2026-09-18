@@ -528,7 +528,167 @@ describe("/music/play/two-hand/+page.svelte", () => {
       expect(button("Stop")).not.toBeUndefined();
     });
   });
+
+  test("Demo plays the pattern once and writes nothing", async () => {
+    // The dashed frame and the lane are extra ink on the narrowest screen.
+    await page.viewport(375, 812);
+    const runtime = new MusicRuntime();
+    const playPattern = vi.spyOn(runtime.sound, "playPattern");
+    const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
+    const startTwoHand = vi.spyOn(TechniqueSession.prototype, "startTwoHand");
+    const recordPractice = vi.spyOn(runtime, "recordPractice");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(mode()).toBe("practice");
+    button("Demo")?.click();
+
+    await vi.waitFor(() => expect(button("Stop demo")).not.toBeUndefined());
+    expect(playPattern).toHaveBeenCalledOnce();
+    expect(mode()).toBe("demo");
+    expect(document.body.textContent).toContain("listening, not scored");
+    expect(document.querySelector('[aria-label="Demo beat lane"]')).not.toBeNull();
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      document.documentElement.clientWidth,
+    );
+    // A demonstration is not a run: nothing starts, nothing is scored, nothing is journalled.
+    expect(startTwoHand).not.toHaveBeenCalled();
+    expect(recordPractice).not.toHaveBeenCalled();
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+    // The model must not change under a demo that is already sounding.
+    await openSetup();
+    expect(document.querySelector("fieldset")?.disabled).toBe(true);
+
+    button("Stop demo")?.click();
+    await vi.waitFor(() => expect(button("Demo")).not.toBeUndefined());
+    expect(stopPattern).toHaveBeenCalled();
+    expect(mode()).toBe("practice");
+    expect(document.body.textContent).not.toContain("listening, not scored");
+    expect(document.querySelector('[aria-label="Demo beat lane"]')).toBeNull();
+    runtime.dispose();
+  });
+
+  test("Demo is locked while a start is in flight, so a graded run is never dressed as one", async () => {
+    const runtime = new MusicRuntime();
+    let resolveVoice!: (enabled: boolean) => void;
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockReturnValue(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+    const playPattern = vi.spyOn(runtime.sound, "playPattern");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
+
+    // The count-in/preflight is running with the ready stage still on screen.
+    expect(button("Demo")?.disabled).toBe(true);
+    button("Demo")?.click();
+    expect(playPattern).not.toHaveBeenCalled();
+    resolveVoice(true);
+
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(mode()).toBe("practice");
+    expect(document.body.textContent).not.toContain("listening, not scored");
+    runtime.dispose();
+  });
+
+  test("the graded run replaces Demo with the live beat lane", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(button("Demo")).not.toBeUndefined();
+    button("Start")?.click();
+
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(button("Demo")).toBeUndefined();
+    expect(button("Stop demo")).toBeUndefined();
+    expect(document.querySelector('[aria-label="Beat lane"]')).not.toBeNull();
+    runtime.dispose();
+  });
+
+  test("does not measure Mirror hands together on an on-screen run", async () => {
+    setTestUrl("/music/play/two-hand?pattern=contrary-five&hand=both&tonic=C4");
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.body.textContent).toContain("Mirror hands");
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    // An on-screen keyboard plays one hand at a time, so however fast the clicks
+    // land, they are no evidence about the hands arriving together.
+    for (const note of ["C3", "B2", "A2", "G2", "F2", "G2", "A2", "B2"]) key(note)?.click();
+    for (const note of ["C4", "D4", "E4", "F4", "G4", "F4", "E4", "D4"]) key(note)?.click();
+    await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+    expect(hudTile("Together")).toBe("Not measured");
+    expect(document.body.textContent).toContain("Together not measured");
+    runtime.dispose();
+  });
+
+  test("counts Mirror hands beats as together on a MIDI run", async () => {
+    setTestUrl("/music/play/two-hand?pattern=contrary-five&hand=both&tonic=C4");
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    // Both hands on every beat, sent back to back so each pair is inside the window.
+    const left = [48, 47, 45, 43, 41, 43, 45, 47];
+    const right = [60, 62, 64, 65, 67, 65, 64, 62];
+    left.forEach((midiNote, beat) => {
+      runtime.router.noteOn(midiNote, "midi");
+      runtime.router.noteOn(right[beat]!, "midi");
+    });
+    await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+    expect(hudTile("Together")).toBe("8 of 8beats");
+    runtime.dispose();
+  });
+
+  test("leaves the other patterns without a Together tile", async () => {
+    setTestUrl("/music/play/two-hand?pattern=lh-pulse-rh-line&hand=both&tonic=C4");
+    render(Page);
+    await completeDrill();
+    expect(hudTile("Together")).toBeUndefined();
+    expect(document.body.textContent).not.toContain("Together");
+  });
+
+  test("does not measure together when only the right hand runs", async () => {
+    setTestUrl("/music/play/two-hand?pattern=contrary-five&hand=right&tonic=C4");
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    for (const note of ["C4", "D4", "E4", "F4", "G4", "F4", "E4", "D4"]) key(note)?.click();
+    await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
+    expect(hudTile("Together")).toBe("Not measured");
+    expect(document.body.textContent).toContain("Together not measured");
+    runtime.dispose();
+  });
 });
+
+/** The stage mode the shell is rendering. */
+function mode(): string | null | undefined {
+  return document.querySelector("[data-mode]")?.getAttribute("data-mode");
+}
+
+/** An on-screen keyboard key by pitch, e.g. "B2" — most keys carry no label. */
+function key(note: string): HTMLButtonElement | null {
+  return document.querySelector<HTMLButtonElement>(
+    `[aria-label="On-screen keyboard"] button[data-note="${note}"]`,
+  );
+}
+
+/** The value text of the summary HUD tile with this label. */
+function hudTile(label: string): string | undefined {
+  const tile = [...document.querySelectorAll("[data-hud-tile]")].find((candidate) =>
+    candidate.firstElementChild?.textContent?.trim().startsWith(label),
+  );
+  return tile?.lastElementChild?.textContent?.trim();
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(

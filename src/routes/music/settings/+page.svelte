@@ -8,6 +8,12 @@
     type MusicSettings,
   } from "@repo/music-core/engines/settings";
   import { PracticeStore } from "@repo/music-core/engines/store";
+  import { AudioPitchSource } from "@repo/music-core/engines/audio-in";
+  import {
+    DeviceProfileStore,
+    type DeviceProfile,
+  } from "@repo/music-core/engines/device-profiles";
+  import { createToneTransportEngine } from "@repo/music-core/engines/transport";
   import {
     MUSIC_DATA_BACKUP_MAX_BYTES,
     parseMusicDataBackup,
@@ -34,6 +40,10 @@
   import SectionHeading from "../_components/SectionHeading.svelte";
   import SettingsRow from "../_components/SettingsRow.svelte";
   import { useMusicRuntime } from "../_runtime.svelte";
+  import CalibrationPanel, {
+    type ClickRun,
+    type ClickRunInput,
+  } from "./_components/CalibrationPanel.svelte";
 
   const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
@@ -59,6 +69,7 @@
   onDestroy(() => {
     alive = false;
     selectionGeneration += 1;
+    void microphone?.stop();
   });
 
   $effect(() => {
@@ -83,10 +94,6 @@
   async function testAudio(): Promise<void> {
     status = "Testing audio…";
     status = (await runtime.testAudio()) ? "Audio is ready." : runtime.audioMessage;
-  }
-
-  function step(key: "audioOffsetMs" | "midiOffsetMs", delta: number): void {
-    void patch({ [key]: Math.round(((settings?.[key] ?? 0) + delta) * 10) / 10 });
   }
 
   async function exportJournal(): Promise<void> {
@@ -281,10 +288,137 @@
     }
   }
 
-  const OFFSET_ROWS = [
-    { key: "audioOffsetMs", id: "audio-offset", label: "Audio offset", help: "Microphone and interface round trip." },
-    { key: "midiOffsetMs", id: "midi-offset", label: "MIDI offset", help: "Controller and driver round trip." },
-  ] as const;
+  const deviceProfiles = browser ? new DeviceProfileStore(store?.settings) : undefined;
+  let savedProfiles = $state<DeviceProfile[]>([]);
+  // Built up front: the panel subscribes to taps *before* it asks for clicks,
+  // so a source created inside the runner would miss the whole first run.
+  const microphone = browser ? new AudioPitchSource() : undefined;
+
+  if (deviceProfiles) {
+    void deviceProfiles.load().then((state) => {
+      if (alive) savedProfiles = state.profiles;
+    });
+  }
+
+  /** Device ids that carry their own offset, which overrides the global one. */
+  const deviceOffsets = $derived(
+    new Map(
+      savedProfiles
+        .filter((profile) => profile.inputOffsetMs !== undefined)
+        .map((profile) => [profile.id, profile.inputOffsetMs!]),
+    ),
+  );
+  const reportedLatency = $derived(runtime.audioEnabled ? runtime.sound.reportedLatency : {});
+  const outputLatencyLabel = $derived(
+    [
+      reportedLatency.outputMs === undefined ? "Not reported" : `${reportedLatency.outputMs} ms`,
+      reportedLatency.baseMs === undefined ? undefined : `browser graph ${reportedLatency.baseMs} ms`,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  );
+  // Calibration drives the shared clock, so it must not fight a running one.
+  const calibrationBlocked = $derived(
+    runtime.metronomeRunning || runtime.practicePhase !== "idle"
+      ? "Stop the metronome and any running drill before calibrating."
+      : undefined,
+  );
+  /**
+   * One row per connected MIDI input, plus any device that still holds a saved
+   * offset while unplugged — otherwise its offset could never be reset.
+   */
+  const midiDevices = $derived.by(() => {
+    const rows = runtime.midi.state.inputs.map((input) => ({
+      id: input.id,
+      label: savedProfiles.find((profile) => profile.id === input.id)?.alias || input.name,
+      connected: true,
+    }));
+    for (const profile of savedProfiles) {
+      if (profile.inputOffsetMs === undefined) continue;
+      if (rows.some((row) => row.id === profile.id)) continue;
+      rows.push({ id: profile.id, label: profile.alias || profile.id, connected: false });
+    }
+    return rows;
+  });
+
+  /**
+   * Play `beats` clicks and report each one on the performance.now clock.
+   *
+   * This drives the *shared* Tone transport, which is why calibration is blocked
+   * while the metronome or a drill runs. It is safe afterwards because
+   * `MusicRuntime` re-applies bpm, time signature and grid before every start.
+   */
+  async function runClicks(input: ClickRunInput): Promise<ClickRun> {
+    if (!(await runtime.enableAudio())) throw new Error(runtime.audioMessage);
+    let heard = 0;
+    let settle!: () => void;
+    const done = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    const engine = await createToneTransportEngine({
+      bpm: input.bpm,
+      numerator: 4,
+      onMetronomeClick: (event) => {
+        if (heard >= input.beats) return;
+        heard += 1;
+        runtime.sound.playMetronomeClick(event.atSeconds, event.accented);
+        input.onClick(event.atMonotonicMs);
+        if (heard >= input.beats) settle();
+      },
+    });
+    engine.start();
+    return {
+      done,
+      stop: () => {
+        if (engine.state.running) engine.stop();
+        settle();
+      },
+    };
+  }
+
+  async function runMicrophoneClicks(input: ClickRunInput): Promise<ClickRun> {
+    if (!microphone) throw new Error("The microphone is not available here.");
+    await microphone.start();
+    if (microphone.state.status !== "running") {
+      throw new Error(
+        microphone.state.status === "error"
+          ? microphone.state.message
+          : "The microphone did not start.",
+      );
+    }
+    return runClicks(input);
+  }
+
+  /** Taps as the router delivers them, i.e. with the saved offset applied. */
+  function subscribeTaps(accept: (event: { source: string; deviceId?: string }) => boolean) {
+    return (listener: (atMs: number) => void) =>
+      runtime.router.subscribe((event) => {
+        if (event.type === "noteOff" || !accept(event)) return;
+        listener(event.timestamp);
+      });
+  }
+
+  function subscribeMicrophoneTaps(listener: (atMs: number) => void): () => void {
+    const stopForwarding = microphone?.subscribeOnsets((event) => {
+      runtime.router.push(event);
+    });
+    const unsubscribe = subscribeTaps((event) => event.source === "audio")(listener);
+    return () => {
+      unsubscribe();
+      stopForwarding?.();
+      void microphone?.stop();
+    };
+  }
+
+  async function saveDeviceOffset(id: string, offsetMs?: number): Promise<void> {
+    if (!deviceProfiles) return;
+    const { inputOffsetMs: _previous, ...rest } = deviceProfiles.profile(id) ?? { id };
+    const next = await deviceProfiles.saveProfile(
+      offsetMs === undefined ? rest : { ...rest, inputOffsetMs: offsetMs },
+    );
+    savedProfiles = next.profiles;
+    await runtime.reloadMidiInstruments();
+  }
 
   const sliderClass = "w-32 accent-primary sm:w-40";
   const selectClass =
@@ -433,26 +567,60 @@
         <SectionHeading
           title="Latency calibration"
           eyebrow="Timing"
-          description="Round-trip offsets keep scoring fair across audio and MIDI. Positive values mean the input arrives late."
+          description="Offsets pull late input back to when you played it, so every drill scores the same. A positive offset means your hits arrive late and are pulled earlier."
         />
       </Card.Header>
       <Card.Content class="divide-y divide-border">
-        {#each OFFSET_ROWS as row (row.key)}
-          <SettingsRow label={row.label} for={row.id} help={row.help}>
-            <Button type="button" variant="outline" size="icon" aria-label={`${row.label} minus 5 ms`} onclick={() => step(row.key, -5)}>−</Button>
-            <span class="flex items-baseline gap-1">
-              <Input
-                id={row.id}
-                type="number"
-                step="1"
-                class="w-20 text-right font-mono tabular-nums"
-                value={settings?.[row.key] ?? 0}
-                oninput={(event) => patch({ [row.key]: Number(event.currentTarget.value) })}
-              />
-              <span class="text-xs text-muted-foreground">ms</span>
-            </span>
-            <Button type="button" variant="outline" size="icon" aria-label={`${row.label} plus 5 ms`} onclick={() => step(row.key, 5)}>+</Button>
-          </SettingsRow>
+        <SettingsRow
+          label="Output latency (reported by the browser)"
+          help="Read-only. The click is already scheduled against the audio clock, so this is never applied to scoring."
+        >
+          <span class="font-mono text-sm tabular-nums">{outputLatencyLabel}</span>
+        </SettingsRow>
+        <CalibrationPanel
+          label="Microphone"
+          detail="Audio input"
+          offsetMs={settings?.audioOffsetMs ?? 0}
+          disabledReason={AudioPitchSource.supported
+            ? calibrationBlocked
+            : "This browser has no microphone input."}
+          runClicks={runMicrophoneClicks}
+          subscribeTaps={subscribeMicrophoneTaps}
+          onSave={(offsetMs) => patch({ audioOffsetMs: offsetMs })}
+          onReset={() => patch({ audioOffsetMs: 0 })}
+          onStatus={(message) => (status = message)}
+        />
+        <CalibrationPanel
+          label="MIDI"
+          detail="Every device without its own offset"
+          offsetMs={settings?.midiOffsetMs ?? 0}
+          disabledReason={calibrationBlocked}
+          {runClicks}
+          subscribeTaps={subscribeTaps(
+            (event) =>
+              event.source === "midi" &&
+              (event.deviceId === undefined || !deviceOffsets.has(event.deviceId)),
+          )}
+          onSave={(offsetMs) => patch({ midiOffsetMs: offsetMs })}
+          onReset={() => patch({ midiOffsetMs: 0 })}
+          onStatus={(message) => (status = message)}
+        />
+        {#each midiDevices as device (device.id)}
+          <CalibrationPanel
+            label={device.label}
+            detail={deviceOffsets.has(device.id)
+              ? "This MIDI device only"
+              : `Using the MIDI offset (${settings?.midiOffsetMs ?? 0} ms)`}
+            offsetMs={deviceOffsets.get(device.id) ?? 0}
+            disabledReason={device.connected ? calibrationBlocked : "Not connected."}
+            {runClicks}
+            subscribeTaps={subscribeTaps(
+              (event) => event.source === "midi" && event.deviceId === device.id,
+            )}
+            onSave={(offsetMs) => saveDeviceOffset(device.id, offsetMs)}
+            onReset={() => saveDeviceOffset(device.id)}
+            onStatus={(message) => (status = message)}
+          />
         {/each}
       </Card.Content>
     </Card.Root>

@@ -378,6 +378,73 @@ describe("/music/play/spider/+page.svelte", () => {
     expect(window.location.search).toContain("mode=note-finder");
   });
 
+  test("completes a pentatonic box in Positions mode, grading string and fret", async () => {
+    setTestUrl("/music/play/spider?mode=positions&pattern=minor-pentatonic-box-1&rootFret=5");
+    render(Page);
+
+    expect(button("Positions")).toHaveAttribute("aria-pressed", "true");
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+
+    if (!button("Hide setup")) button("Edit setup")?.click();
+    await vi.waitFor(() => expect(select("Box or shape")).not.toBeUndefined());
+    expect(select("Box or shape")?.value).toBe("minor-pentatonic-box-1");
+    expect(select("Root fret")?.value).toBe("5");
+    // Frets 5 to 8 in play, plus one of context on each side.
+    expect(document.querySelector('[data-testid="positions-window"]')?.textContent).toContain(
+      "frets 4 to 9",
+    );
+
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+
+    const box: [number, number][] = [
+      [6, 5],
+      [6, 8],
+      [5, 5],
+      [5, 7],
+      [4, 5],
+      [4, 7],
+      [3, 5],
+      [3, 7],
+      [2, 5],
+      [2, 8],
+      [1, 5],
+      [1, 8],
+    ];
+    for (const [stringNumber, fret] of box) fretButton(stringNumber, fret)?.click();
+
+    // Box 1 at fret 5 puts E4 at string 2 fret 5 and again at string 3 fret 9,
+    // both inside the window; only the authored one may be a target.
+    expect(document.querySelector('[aria-label="String 2 fret 5, E4, target"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="String 3 fret 9, E4, target"]')).toBeNull();
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Positions complete"));
+    expect(document.body.textContent).toContain(
+      "On-screen taps verified the string and fret of every note.",
+    );
+    expect(window.location.search).toContain("mode=positions");
+    expect(window.location.search).toContain("rootFret=5");
+  });
+
+  test("pins Positions mode to guitar instead of throwing on a four-string tuning", async () => {
+    setTestUrl("/music/play/spider?instrument=ukulele");
+    render(Page);
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(button("Ukulele")).toHaveAttribute("aria-pressed", "true");
+
+    button("Positions")?.click();
+
+    // Every box and CAGED grip reaches string 6, so the mode is guitar-only.
+    await vi.waitFor(() => expect(button("Guitar")).toHaveAttribute("aria-pressed", "true"));
+    expect(button("Ukulele")).toBeUndefined();
+    if (!button("Hide setup")) button("Edit setup")?.click();
+    await vi.waitFor(() => expect(select("Box or shape")).not.toBeUndefined());
+    expect(document.querySelector('[data-testid="positions-window"]')?.textContent).toContain(
+      "frets",
+    );
+    expect(button("Start")?.disabled).toBe(false);
+  });
+
   test("completes a selected spider permutation on the fretboard", async () => {
     setTestUrl("/music/play/spider?pattern=outside-in-1423");
     render(Page);

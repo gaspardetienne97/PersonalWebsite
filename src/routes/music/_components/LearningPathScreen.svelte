@@ -1,5 +1,6 @@
 <script lang="ts">
   import Check from "lucide-svelte/icons/check";
+  import Lock from "lucide-svelte/icons/lock";
   import type { Snippet } from "svelte";
 
   import type {
@@ -14,10 +15,11 @@
   import PracticeScreen from "./PracticeScreen.svelte";
   import PracticeScreenHeader from "./PracticeScreenHeader.svelte";
 
-  // One screen for every learning path (Ear Training, Jazz). Steps are cards
-  // that say what the step adds and what done means, carry the mastery bar for
-  // the skills behind them, and open one drill with its setup. "Continue here"
-  // marks the engine's `next` step; the header's Continue button opens it.
+  // One screen for every learning path (Ear Training, Jazz, and the three
+  // instrument progressions). Steps are cards that say what the step adds and
+  // what done means, carry the mastery bar for the skills behind them, and open
+  // one drill with its setup. A `next` step is badged Next and keeps the primary
+  // action; a `locked` step shows the lock, reads muted and offers no way in.
   let {
     title,
     subtitle,
@@ -35,10 +37,16 @@
     testId?: string;
   } = $props();
 
-  const statusLabel = (status: string) =>
-    status === "done" ? "Done" : status === "in-progress" ? "In progress" : status === "not-assessed" ? "Not assessed" : "Reference";
+  const STATUS_LABELS: Record<string, string> = {
+    done: "Done",
+    next: "Next",
+    locked: "Locked",
+    "in-progress": "In progress",
+    "not-assessed": "Not assessed",
+  };
+  const statusLabel = (status: string) => STATUS_LABELS[status] ?? "Reference";
   const statusBadge = (status: string) =>
-    status === "done" ? "default" : status === "in-progress" ? "secondary" : "outline";
+    status === "done" ? "default" : status === "in-progress" || status === "next" ? "secondary" : "outline";
 </script>
 
 <PracticeScreen>
@@ -61,11 +69,13 @@
         <Card.Root
           data-step-status={step.status}
           data-step-next={isNext ? "true" : undefined}
-          class={isNext
-            ? "border-primary ring-4 ring-primary/15"
-            : step.status === "done"
-              ? "border-success/40"
-              : ""}
+          class={step.status === "locked"
+            ? "border-dashed text-muted-foreground"
+            : isNext
+              ? "border-primary ring-4 ring-primary/15"
+              : step.status === "done"
+                ? "border-success/40"
+                : ""}
         >
           <Card.Header class="flex-row flex-wrap items-start gap-4">
             <div
@@ -79,6 +89,8 @@
             >
               {#if step.status === "done"}
                 <Check class="size-4" />
+              {:else if step.status === "locked"}
+                <Lock class="size-4" data-testid="{testId}-lock-{step.id}" />
               {:else}
                 {step.order}
               {/if}
@@ -87,7 +99,7 @@
               <div class="flex flex-wrap items-center gap-2">
                 <Card.Title class="font-display text-lg">{step.title}</Card.Title>
                 <Badge variant={statusBadge(step.status)}>{statusLabel(step.status)}</Badge>
-                {#if isNext}
+                {#if isNext && step.status !== "next"}
                   <Badge variant="secondary" class="text-primary">Continue here</Badge>
                 {/if}
                 {#if step.kind === "reference"}
@@ -116,17 +128,30 @@
                 {#each step.resources ?? [] as resource}
                   <Badge variant="outline">{resource}</Badge>
                 {/each}
-                {#each step.links ?? [] as link (link.href)}
-                  <Button href={link.href} variant="link" size="sm" class="h-auto p-0">
-                    {link.label}
-                  </Button>
-                {/each}
+                {#if step.status !== "locked"}
+                  {#each step.links ?? [] as link (link.href)}
+                    <Button href={link.href} variant="link" size="sm" class="h-auto p-0">
+                      {link.label}
+                    </Button>
+                  {/each}
+                {/if}
               </div>
             </div>
-            {#if step.href}
+            {#if step.status === "locked"}
+              <Button
+                aria-disabled="true"
+                tabindex={0}
+                variant="outline"
+                size="lg"
+                class="shrink-0 self-center text-muted-foreground max-sm:basis-full"
+              >
+                Locked
+              </Button>
+            {:else if step.href}
               <Button
                 href={step.href}
                 variant={isNext ? "default" : "outline"}
+                size="lg"
                 class="shrink-0 self-center max-sm:basis-full"
               >
                 {step.kind === "reference" ? "Open" : "Practice"}

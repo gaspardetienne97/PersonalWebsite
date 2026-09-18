@@ -65,11 +65,6 @@ describe("/music/create/+page.svelte", () => {
     expect(window.location.pathname).toBe("/music/create");
     expect(window.location.search).toBe("?source=practice-lab-take&mode=piano-roll");
     expect(window.location.hash).toBe("#compose");
-
-    button("Recorder")?.click();
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Record any take"));
-
-    expect(window.location.search).toBe("?source=practice-lab-take&mode=recorder&bpm=96");
   });
 
   test("renders Studio as the default Create mode", () => {
@@ -78,24 +73,43 @@ describe("/music/create/+page.svelte", () => {
     expect(document.querySelector("h1")?.textContent).toContain("Create");
     expect(button("Beat grid")).not.toBeUndefined();
     expect(button("Piano roll")).not.toBeUndefined();
-    expect(button("Recorder")).not.toBeUndefined();
+    expect(button("Recorder")).toBeUndefined();
     expect(document.body.textContent).toContain("Sequencer");
     expect(document.body.textContent).toContain("Pad bank");
   });
 
-  test("switches between piano-roll and recorder modes without leaving Create", async () => {
+  test("switches to the piano roll without leaving Create", async () => {
     render(Page, { runtime: makeRuntime() });
 
     button("Piano roll")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Multitrack note editor"));
     expect(button("Lead")).not.toBeUndefined();
     expect(document.querySelector('[aria-label="Velocity lane"]')).not.toBeNull();
+  });
 
-    button("Recorder")?.click();
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Record any take"));
-    expect(document.body.textContent).toContain("Compare takes");
-    expect(
-      document.querySelector('[role="group"][aria-label="On-screen keyboard"]'),
-    ).not.toBeNull();
+  test("the old recorder mode redirects to the standalone Record destination", async () => {
+    setTestUrl("/music/create?mode=recorder");
+    const navigate = vi.fn();
+    render(Page, { runtime: makeRuntime(), navigate });
+
+    await vi.waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith("/music/record", { replaceState: true }),
+    );
+  });
+
+  test("the redirect keeps every other query param and drops only the mode", async () => {
+    setTestUrl("/music/create?mode=recorder&bpm=132&take=take-3#capture");
+    const navigate = vi.fn();
+    render(Page, { runtime: makeRuntime(), navigate });
+
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+    const [href, options] = navigate.mock.calls[0]!;
+    expect(options).toEqual({ replaceState: true });
+    const url = new URL(href as string, "http://localhost");
+    expect(url.pathname).toBe("/music/record");
+    expect(url.searchParams.get("bpm")).toBe("132");
+    expect(url.searchParams.get("take")).toBe("take-3");
+    expect(url.searchParams.has("mode")).toBe(false);
+    expect(url.hash).toBe("#capture");
   });
 });

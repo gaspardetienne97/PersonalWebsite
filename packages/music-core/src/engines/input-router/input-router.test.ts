@@ -147,3 +147,54 @@ describe("music-core/input-router", () => {
     expect(events.map((event) => event.source)).toEqual(["midi", "click"]);
   });
 });
+
+describe("music-core/input-router saved offsets", () => {
+  const stamped = (source: NoteEvent["source"], atMs: number, deviceId?: string): NoteEvent => ({
+    ...note(source, 60),
+    timestamp: monotonicMs(atMs),
+    ...(deviceId ? { deviceId } : {}),
+  });
+
+  test("subtracts each source's own offset and leaves the others alone", () => {
+    // One router per source: MIDI activity would otherwise take arbitration.
+    const stampOf = (source: NoteEvent["source"]) => {
+      const router = new InputRouter();
+      router.setInputOffsets({ midiMs: 12, audioMs: 40 });
+      router.push(stamped(source, 1_000));
+      return router.events[0]!.timestamp;
+    };
+
+    expect(stampOf("midi")).toBe(988);
+    expect(stampOf("audio")).toBe(960);
+    expect(stampOf("onscreen")).toBe(1_000);
+  });
+
+  test("a per-device offset overrides the global MIDI offset for that device only", () => {
+    const router = new InputRouter();
+    router.setInputOffsets({ midiMs: 12, midiByDeviceId: { "mpc-1": 30 } });
+
+    router.push(stamped("midi", 1_000, "mpc-1"));
+    router.push(stamped("midi", 1_000, "keys-2"));
+
+    expect(router.events.map((event) => event.timestamp)).toEqual([970, 988]);
+  });
+
+  test("delivers the corrected timestamp to subscribers", () => {
+    const router = new InputRouter();
+    const seen: number[] = [];
+    router.subscribe((event) => seen.push(event.timestamp));
+    router.setInputOffsets({ audioMs: 43 });
+
+    router.push(stamped("audio", 5_000));
+
+    expect(seen).toEqual([4_957]);
+  });
+
+  test("leaves timestamps untouched until offsets are set", () => {
+    const router = new InputRouter();
+
+    router.push(stamped("midi", 1_000));
+
+    expect(router.events[0]!.timestamp).toBe(1_000);
+  });
+});

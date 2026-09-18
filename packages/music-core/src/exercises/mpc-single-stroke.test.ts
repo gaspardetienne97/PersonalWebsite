@@ -51,12 +51,6 @@ describe("createMpcSingleStrokeExercise", () => {
     ).toBe(true);
   });
   test("exports reusable rudiment pattern data for singles, doubles, and paradiddles", () => {
-    expect(MPC_RUDIMENT_PATTERNS.map((pattern) => pattern.id)).toEqual([
-      "single-strokes",
-      "double-strokes",
-      "paradiddle",
-      "moving-accent",
-    ]);
     expect(buildMpcRudimentSequence("single-strokes", 36, 38, 8)).toEqual([
       36, 38, 36, 38, 36, 38, 36, 38,
     ]);
@@ -72,7 +66,7 @@ describe("createMpcSingleStrokeExercise", () => {
   });
 
   test("passes eight steady alternating hits at the default tempo", () => {
-    const exercise = createMpcSingleStrokeExercise();
+    const exercise = createMpcSingleStrokeExercise({ startTimestampMs: 1_000 });
     const prompt = exercise.generate(context);
     const run = exercise.createRun(prompt, context);
     const targetSequence = [36, 38, 36, 38, 36, 38, 36, 38];
@@ -218,7 +212,7 @@ describe("createMpcSingleStrokeExercise", () => {
   });
 
   test("ignores other notes while a configured wrong pad consumes the current target", () => {
-    const exercise = createMpcSingleStrokeExercise();
+    const exercise = createMpcSingleStrokeExercise({ startTimestampMs: 1_000 });
     const prompt = exercise.generate(context);
     const run = exercise.createRun(prompt, context);
 
@@ -316,6 +310,120 @@ describe("createMpcSingleStrokeExercise", () => {
     expect(() => createMpcSingleStrokeExercise({ hitCount: malformedHitCount })).toThrowError(
       "hitCount must be 8 or 16",
     );
+  });
+
+  test("measures timing against the click grid, not the first hit", () => {
+    const exercise = createMpcSingleStrokeExercise({ bpm: 60, startTimestampMs: 5_000 });
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    expect(prompt.payload).toMatchObject({ subdivision: 2, targetSpacingMs: 500 });
+    // A run that is 40 ms late all the way through: even spacing, but behind the click.
+    prompt.payload.targetSequence.forEach((midiNote, index) => {
+      run.accept(note(midiNote, 5_040 + index * 500, 0.8));
+    });
+
+    const result = run.finish({ reason: "completed" });
+    expect(prompt.payload.timingAnchor).toBe("click");
+    expect(result.answer?.timingAnchor).toBe("click");
+    expect(result.answer?.meanTimingErrorMs).toBe(40);
+    expect(result.answer?.relativeTimestampsMs[0]).toBe(40);
+    expect(result.metrics.find((metric) => metric.kind === "timing")).toMatchObject({
+      expectedMs: 0,
+      actualMs: 40,
+      errorMs: 40,
+    });
+  });
+
+  test("falls back to the first hit when no click anchor is given", () => {
+    const exercise = createMpcSingleStrokeExercise({ bpm: 60 });
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    expect(prompt.payload.timingAnchor).toBe("first-hit");
+    expect(prompt.payload.startTimestampMs).toBeUndefined();
+    // Evenly spaced, but starting deep into the transport clock: without a click to
+    // measure against, even spacing must still read as good timing.
+    prompt.payload.targetSequence.forEach((midiNote, index) => {
+      run.accept(note(midiNote, 1_200_000 + index * 500, 0.8));
+    });
+
+    const result = run.finish({ reason: "completed" });
+    expect(result.answer).toMatchObject({ timingAnchor: "first-hit", meanTimingErrorMs: 0 });
+    expect(result.correct).toBe(true);
+  });
+
+  test("spaces sixteenths at a quarter of the beat", () => {
+    const prompt = createMpcSingleStrokeExercise({
+      bpm: 60,
+      subdivision: 4,
+      hitCount: 16,
+    }).generate(context).payload;
+
+    expect(prompt.targetSpacingMs).toBe(250);
+    expect(prompt.targetEvents.slice(0, 5).map((event) => event.beat)).toEqual([
+      0, 0.25, 0.5, 0.75, 1,
+    ]);
+  });
+
+  test("carries sixteenth singles, triple strokes and flams as pattern data", () => {
+    expect(MPC_RUDIMENT_PATTERNS.map((pattern) => pattern.id)).toEqual([
+      "single-strokes",
+      "double-strokes",
+      "paradiddle",
+      "moving-accent",
+      "single-16ths",
+      "triple-strokes",
+      "flam",
+    ]);
+
+    const sixteenths = createMpcSingleStrokeExercise({
+      patternId: "single-16ths",
+      bpm: 60,
+    }).generate(context).payload;
+    expect(sixteenths).toMatchObject({ subdivision: 4, targetSpacingMs: 250 });
+    expect(buildMpcRudimentSequence("single-16ths", 36, 38, 8)).toEqual([
+      36, 38, 36, 38, 36, 38, 36, 38,
+    ]);
+
+    const triples = createMpcSingleStrokeExercise({
+      patternId: "triple-strokes",
+      bpm: 60,
+    }).generate(context).payload;
+    expect(triples.subdivision).toBe(3);
+    expect(triples.targetSpacingMs).toBeCloseTo(1000 / 3);
+    expect(buildMpcRudimentSequence("triple-strokes", 36, 38, 8)).toEqual([
+      36, 36, 36, 38, 38, 38, 36, 36,
+    ]);
+
+    // A flam is the grace note plus its main hit: two events, one beat.
+    const flam = createMpcSingleStrokeExercise({ patternId: "flam", bpm: 60 }).generate(
+      context,
+    ).payload;
+    expect(flam.targetEvents.slice(0, 4)).toMatchObject([
+      { beat: 0, padMidi: 38, graceMs: 30 },
+      { beat: 0, padMidi: 36 },
+      { beat: 0.5, padMidi: 36, graceMs: 30 },
+      { beat: 0.5, padMidi: 38 },
+    ]);
+    expect(flam.targetEvents[1]?.graceMs).toBeUndefined();
+  });
+
+  test("expects a flam grace note just ahead of its main hit", () => {
+    const exercise = createMpcSingleStrokeExercise({
+      patternId: "flam",
+      bpm: 60,
+      startTimestampMs: 1_000,
+    });
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+
+    // Grace 30 ms before each beat, main hit on it.
+    prompt.payload.targetEvents.forEach((event) => {
+      run.accept(note(event.padMidi, 1_000 + event.beat * 1_000 - (event.graceMs ?? 0), 0.8));
+    });
+
+    expect(run.finish({ reason: "completed" }).answer?.meanTimingErrorMs).toBe(0);
   });
 
   test("keeps the identical-pad validation error stable", () => {

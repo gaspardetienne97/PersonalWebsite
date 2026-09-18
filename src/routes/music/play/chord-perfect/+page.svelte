@@ -169,6 +169,10 @@
   let toPosition = $state(initialConfig.toPosition);
   let repetitions = $state(initialConfig.repetitions);
   let timed = $state(initialConfig.timed);
+  /** Beats between chord targets; 0 leaves the change trainer off the clock. */
+  let clockBeats = $state(
+    [2, 4].includes(Number(initialSearch.get("clock"))) ? Number(initialSearch.get("clock")) : 0,
+  );
   let bpm = $state(80);
   let changeTimer: ReturnType<typeof setTimeout> | undefined;
   let ready = $state(false);
@@ -348,7 +352,9 @@
       ? `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`
       : (runtime.midi.state.error ?? "MIDI permission has not been requested."),
   );
-  const variantKey = $derived(`v1:chord-perfect:${instrument}:${mode}`);
+  const variantKey = $derived(
+    `v1:chord-perfect:${instrument}:${mode}${mode === "changes" && !timed && clockBeats > 0 ? `:clock${clockBeats}` : ""}`,
+  );
   const instrumentLabel = $derived(instrument === "guitar" ? "Guitar" : "Ukulele");
   // Baseline cutoff for the last-run comparison (see LastRunDelta).
   const visitStartedAt = unixMs(Date.now());
@@ -446,7 +452,7 @@
           void runtime.recordPractice({
             source: "drill",
             instrument,
-            comparison: { variantKey, bpm, settings: JSON.stringify({ shapeId, toShapeId, position, toPosition, repetitions, timed }), dimensions: "instrument, mode, chord shapes, positions and repetitions" },
+            comparison: { variantKey, bpm, settings: JSON.stringify({ shapeId, toShapeId, position, toPosition, repetitions, timed, clockBeats }), dimensions: "instrument, mode, chord shapes, positions and repetitions" },
             tags: ["technique", isChanges ? "chord-changes" : "chord-perfect", instrument],
             scoringEvents: state.summary.results.map(({ event }) => event),
             xpEarned: state.summary.xp,
@@ -574,12 +580,19 @@
         status = performance.status === "failed" ? performance.message : "Start cancelled.";
         return;
       }
+      // Reps only: the timed format grades one window per strum cluster, so
+      // there is no fixed beat grid to hold it to.
+      const clock =
+        !timed && clockBeats > 0
+          ? { bpm, beatsPerChord: clockBeats, startTimestampMs: performance.downbeat }
+          : {};
       if (mode === "changes" && timed) {
         await session.startChordChange({
           tuning,
           fromShape: activePosition,
           toShape: activeToPosition,
           durationSeconds: changeDurationSeconds,
+          ...clock,
         });
         if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
@@ -595,13 +608,14 @@
           fromShape: activePosition,
           toShape: activeToPosition,
           repetitions,
+          ...clock,
         });
         if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance();
           session.abandon();
           return;
         }
-        status = `Alternate ${shape.name} to ${toShape.name} cleanly, ${repetitions}×.`;
+        status = `Alternate ${shape.name} to ${toShape.name} cleanly, ${repetitions}×${clockBeats > 0 ? `, changing every ${clockBeats} beats at ${bpm} BPM` : ""}.`;
       } else {
         await session.startChordPerfect({ tuning, shape: activePosition });
         if (request !== startRequest || generation !== routeGeneration) {
@@ -770,11 +784,14 @@
       params.set("reps", String(config.repetitions));
       if (config.timed) params.set("timed", "1");
       else params.delete("timed");
+      if (!config.timed && clockBeats > 0) params.set("clock", String(clockBeats));
+      else params.delete("clock");
     } else {
       params.delete("to");
       params.delete("toPosition");
       params.delete("reps");
       params.delete("timed");
+      params.delete("clock");
     }
     syncRouteQuery(`${url.pathname}?${params.toString()}${url.hash}`);
   }
@@ -1467,6 +1484,12 @@
                 }`
               : `${changeAnswer.changesPerMinute} clean changes/min · ${changeAnswer.cleanChanges}/${changeAnswer.completedChanges} strums clean`}
           </p>
+          {#if changeAnswer?.onTimeChanges !== undefined}
+            <p class="text-sm text-muted-foreground" data-testid="chord-change-clock">
+              {changeAnswer.onTimeChanges}/{changePrompt?.targets.length ?? 0} on the beat · mean
+              {Math.round(changeAnswer.meanTimingErrorMs ?? 0)}ms from the bar line
+            </p>
+          {/if}
           {#if changeAnswer?.changesPerMinute !== undefined}
             {@render chordPairHistory(false)}
           {/if}
@@ -1507,6 +1530,20 @@
             </div>
             {#if !timed}
               <div class="grid gap-2">
+                <span class="text-sm font-medium">Change on</span>
+                <SegmentedControl
+                  size="sm"
+                  ariaLabel="Change on"
+                  options={[
+                    { value: "0", label: "No clock" },
+                    { value: "2", label: "2 beats" },
+                    { value: "4", label: "The bar" },
+                  ]}
+                  value={String(clockBeats)}
+                  onChange={(value) => (clockBeats = Number(value))}
+                />
+              </div>
+              <div class="grid gap-2">
                 <span class="text-sm font-medium">Repetitions</span>
                 <SegmentedControl
                   size="sm"
@@ -1522,7 +1559,17 @@
             {/if}
           </div>
         {/if}
-        <p class="text-sm tabular-nums text-muted-foreground">Tempo · {bpm} BPM (practice controls above)</p>
+        <p class="text-sm tabular-nums text-muted-foreground">
+          Tempo · {bpm} BPM (practice controls above){mode === "changes" && !timed && clockBeats > 0
+            ? ` · a chord every ${clockBeats} beats`
+            : ""}
+        </p>
+        {#if mode === "changes" && !timed && clockBeats > 0}
+          <p class="text-xs text-muted-foreground">
+            Each strum is graded against its own beat, so a dropped bar stays dropped instead of
+            shifting the chords that follow.
+          </p>
+        {/if}
         <MidiStatus />
       </div>
     {/snippet}

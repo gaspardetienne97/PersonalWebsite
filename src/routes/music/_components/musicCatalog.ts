@@ -261,7 +261,7 @@ export const PATHS: CatalogItem[] = [
     icon: Ear,
   },
   {
-    href: "/music/learn/path",
+    href: "/music/learn/path?path=jazz",
     title: "Jazz Path",
     description:
       "A guided, in-order path: intervals → chords → scales → voicings → the graded ii-V-I drill → improv. Tracked by your real skill progress.",
@@ -335,11 +335,19 @@ export const CREATE_ITEMS: CatalogItem[] = [
     icon: Piano,
   },
   {
-    href: "/music/create?mode=recorder",
-    title: "Recording",
+    href: "/music/record",
+    title: "Record",
     description: "Capture MIDI and audio takes, compare them, and export.",
     meta: "Capture",
     action: "Open recorder",
     icon: Disc,
   },
 ];
+
+/** The drill title behind a route, for cross-links like Record's "recording
+ *  after <drill>" note. Query strings and trailing slashes are ignored. */
+export function drillTitle(href: string): string | undefined {
+  const path = href.split(/[?#]/)[0]?.replace(/\/$/, "");
+  if (!path) return undefined;
+  return [...DRILLS, ...PATHS].find((item) => item.href.split(/[?#]/)[0] === path)?.title;
+}

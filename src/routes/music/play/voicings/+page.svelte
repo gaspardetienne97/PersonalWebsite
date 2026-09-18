@@ -15,6 +15,7 @@
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     buildDrillVoicings,
+    type DrillVariant as RootlessDrillVariant,
     type RootlessPosition,
   } from "@repo/music-core/engines/jazz";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
@@ -73,6 +74,7 @@
     minor: "Minor ii-V-i",
     altered: "Altered V7",
     "guide-tones": "Guide tones",
+    inversions: "Inversions",
   };
 
   let instrument = $state<InstrumentId>(initialConfig.instrument);
@@ -80,6 +82,9 @@
   let variant = $state<VoicingDrillVariant>(initialConfig.variant);
   let key = $state(initialConfig.key ?? 0);
   const guideTones = $derived(variant === "guide-tones");
+  // P2 "Closest chords": authored inversions, held chords, one chord per Check.
+  const inversions = $derived(variant === "inversions");
+  const pianoOnly = $derived(guideTones || inversions);
   const unaided = $derived(checkMode || guideTones);
   let startPosition = $state<RootlessPosition>(initialConfig.startPosition);
   // Grading: lenient (any note played, beginner/on-screen) vs held-together
@@ -121,13 +126,25 @@
         : "setup",
   );
   const variantLabel = $derived(variantLabels[variant]);
-  const preview = $derived(variant === "guide-tones" ? [] : buildDrillVoicings(variant, startPosition));
+  const preview = $derived(
+    pianoOnly ? [] : buildDrillVoicings(variant as RootlessDrillVariant, startPosition),
+  );
+  const inversionTargets = $derived(
+    inversions ? buildVoicingDrillTargets("piano", { variant: "inversions", key }) : [],
+  );
   const guideFirst = $derived(guideTones ? buildVoicingDrillTargets("piano", { variant: "guide-tones", key })[0] : undefined);
   const guideContext = $derived((phase === "stage" ? drillState?.current : guideFirst)?.voiceLeading);
   const guideFromSymbol = $derived(phase === "stage" && drillState?.index === 1
     ? drillState.results[0]?.target.symbol
     : `${midiToNote(60 + ((key + 2) % 12), true).replace(/\d+$/, "")}m7`);
   const keyLabel = $derived(midiToNote(60 + key, true).replace(/\d+$/, ""));
+  const scopeLabel = $derived(
+    guideTones
+      ? `key ${keyLabel} · two transitions`
+      : inversions
+        ? `key ${keyLabel} · four bars`
+        : "all 12 keys",
+  );
   const normalizedConfig = $derived(
     normalizeVoicingDrillConfig({
       instrument,
@@ -139,7 +156,7 @@
     }),
   );
   const variantKey = $derived(
-    guideTones ? `v1:voicings:piano:guide-tones:${key}:${48 + key}-${71 + key}:independent` : `v1:voicings:${instrument}:${variant}:${startPosition}:${strict ? "held" : "lenient"}:${autoAdvance ? "auto" : "manual"}`,
+    guideTones ? `v1:voicings:piano:guide-tones:${key}:${48 + key}-${71 + key}:independent` : inversions ? `v1:voicings:piano:inversions:${key}:held:manual:${unaided ? "independent" : "guided"}` : `v1:voicings:${instrument}:${variant}:${startPosition}:${strict ? "held" : "lenient"}:${autoAdvance ? "auto" : "manual"}`,
   );
   const liveAnnouncement = $derived(
     phase === "summary" && summary
@@ -148,12 +165,19 @@
   );
 
   const firstTarget = $derived(preview[0]?.chords[0]);
+  const firstMidi = $derived(
+    inversions
+      ? (inversionTargets[0]?.displayMidi ?? [])
+      : firstTarget
+        ? [...(firstTarget.bassMidi === undefined ? [] : [firstTarget.bassMidi]), ...firstTarget.midi]
+        : [60, 72],
+  );
   const setupSummaryText = $derived(
     [
       variantLabel,
       INSTRUMENT_LABELS[instrument],
       variant === "major" ? (startPosition === "A" ? "A-B-A" : "B-A-B") : undefined,
-      guideTones ? `Key ${keyLabel}` : mono ? undefined : strict ? "Held" : "Lenient",
+      pianoOnly ? `Key ${keyLabel}` : mono ? undefined : strict ? "Held" : "Lenient",
       unaided ? "Check" : "Practice",
       autoAdvance && !unaided ? "Auto" : "Manual",
     ]
@@ -165,11 +189,7 @@
     Object.fromEntries((unaided ? [] : drillState?.current?.displayMidi ?? []).map((midi) => [midi, "target" as const])),
   );
   const readyHighlights = $derived(
-    Object.fromEntries(
-      (firstTarget ? [...(firstTarget.bassMidi === undefined ? [] : [firstTarget.bassMidi]), ...firstTarget.midi] : []).map(
-        (midi) => [midi, "target" as const],
-      ),
-    ),
+    Object.fromEntries(firstMidi.map((midi) => [midi, "target" as const])),
   );
   const chordStrip = $derived(
     (summary?.results ?? []).map((result) => ({
@@ -212,7 +232,7 @@
         defaultBpm: 96,
         ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
         meter: { numerator: 4, denominator: 4 },
-        allowedInstruments: guideTones ? ["piano"] : [...VIEWABLE_INSTRUMENTS],
+        allowedInstruments: pianoOnly ? ["piano"] : [...VIEWABLE_INSTRUMENTS],
         onBpmChange: (next) => (bpm = next),
         onInstrumentChange: (next) => (instrument = next),
       })
@@ -316,7 +336,7 @@
       });
       session.start();
       resultsDismissed = false;
-      status = guideTones ? "Select exactly two guide tones for the next chord with the least total movement, then Check chord." : autoAdvance && !unaided
+      status = guideTones ? "Select exactly two guide tones for the next chord with the least total movement, then Check chord." : inversions ? "Play the left-hand root and the right-hand inversion together, then Check chord." : autoAdvance && !unaided
         ? "Play the voicing. It advances on its own."
         : "Play the voicing, then press Check chord.";
     } catch (error) {
@@ -339,17 +359,22 @@
       if (destroyed || checkedSession !== session || generation !== routeGeneration) return;
       const step = await checkedSession.submit();
       if (destroyed || checkedSession !== session || generation !== routeGeneration) return;
+      const chord = step.event.metrics.find((metric) => metric.kind === "chord");
+      const inversionNote =
+        !inversions || chord?.inversionCorrect === undefined
+          ? ""
+          : ` Inversion: ${chord.inversionCorrect ? "correct" : "wrong bass note"}.`;
       const movement = step.event.metrics.find((metric) => metric.kind === "voice-leading");
       if (movement) {
-        status = `${step.target.symbol}: ${voiceLeadingFeedback(movement)}`;
+        status = `${step.target.symbol}: ${voiceLeadingFeedback(movement)}${inversionNote}`;
         if (!step.correct && session.state.current?.voiceLeading) status += " Restored current pair for the next transition (shown above).";
         return;
       }
       status = step.correct
         ? `${step.target.symbol}: ${!mono && !strict ? "Notes collected; extras tolerated" : "Target notes matched"} · +${step.xp} XP`
         : `${step.target.symbol}: ${Math.round(step.score * 100)}% — keep going.`;
-      const metric = step.event.metrics.find((metric) => metric.kind === "chord");
-      const extras = metric?.extraPitchClasses ?? [];
+      status += inversionNote;
+      const extras = chord?.extraPitchClasses ?? [];
       status += ` Extra notes: ${extras.length ? extras.map((pc) => midiToNote(60 + pc).replace(/\d+$/, "")).join(", ") : "none"}.`;
     } finally {
       pending = false;
@@ -392,7 +417,7 @@
     params.set("advance", config.autoAdvance ? "auto" : "manual");
     params.set("bpm", String(bpm));
     params.set("mode", unaided ? "check" : "practice");
-    if (guideTones) params.set("key", String(config.key));
+    if (pianoOnly) params.set("key", String(config.key));
     else params.delete("key");
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
@@ -434,6 +459,17 @@
         <Card.Title class="text-base">Drill preview</Card.Title>
       </Card.Header>
       <Card.Content class="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        {#each inversionTargets as target, bar (target.id)}
+          <div class="rounded-md border px-3 py-2">
+            <div class="mb-1 flex items-center justify-between gap-2">
+              <span class="font-semibold">Bar {bar + 1}</span>
+              <span class="text-xs text-muted-foreground">{target.symbol}</span>
+            </div>
+            <p class="text-xs text-muted-foreground tabular-nums">
+              {previewNotes(target.displayMidi ?? [])}
+            </p>
+          </div>
+        {/each}
         {#each preview as step (step.key)}
           <div class="rounded-md border px-3 py-2">
             <div class="mb-1 flex items-center justify-between gap-2">
@@ -456,7 +492,10 @@
     </Card.Root>
   {/snippet}
 
-  {#snippet targetView(midi: number[], highlights: Record<number, "target">, ready: boolean)}
+  <!-- `warmUp` is the stage before Start. During the drill, and throughout P2
+       (which grades held chords), the surface latches: one pointer can hold only
+       one key, so a sequential click would otherwise release as soon as it lands. -->
+  {#snippet targetView(midi: number[], highlights: Record<number, "target">, warmUp: boolean)}
     {#if guideTones}
       <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
         {#key `${phase}:${drillState?.index ?? 0}`}
@@ -471,7 +510,7 @@
           notes={checkMode ? [48, 84] : midi}
           highlights={checkMode ? {} : highlights}
           noteNames="c"
-          pointerMode={ready ? "auto" : "latch"}
+          pointerMode={inversions || !warmUp ? "latch" : "auto"}
           onAccepted={playInput}
         />
       </div>
@@ -502,9 +541,9 @@
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>{variantLabel} · {guideTones ? `key ${keyLabel} · two transitions` : "all 12 keys"}</Card.Description>
+        <Card.Description>{variantLabel} · {scopeLabel}</Card.Description>
         <Card.Title>Drill complete</Card.Title>
-        {#if !guideTones && !mono && !strict}<p>Notes collected · Extra notes are tolerated; notes need not be held together.</p>{/if}
+        {#if !pianoOnly && !mono && !strict}<p>Notes collected · Extra notes are tolerated; notes need not be held together.</p>{/if}
       {/snippet}
       {#snippet metric()}
         <p class="flex items-baseline gap-1">
@@ -522,7 +561,7 @@
       {/snippet}
       {#snippet children()}
         <div class="grid gap-2">
-          {#if guideTones}
+          {#if pianoOnly}
             <ul class="grid gap-2 text-sm" aria-label="Voice-leading results">
               {#each summary?.results ?? [] as result (result.target.id)}
                 {@const movement = result.event.metrics.find((metric) => metric.kind === "voice-leading")}
@@ -599,13 +638,30 @@
               { value: "minor", label: "Minor" },
               { value: "altered", label: "Altered V7" },
               { value: "guide-tones", label: "Guide tones" },
+              { value: "inversions", label: "Inversions" },
             ]}
             value={variant}
             onChange={(v) => {
               variant = v as VoicingDrillVariant;
-              if (variant === "guide-tones") { instrument = "piano"; runtime.setActiveInstrument("piano"); }
+              if (variant === "guide-tones" || variant === "inversions") {
+                instrument = "piano";
+                runtime.setActiveInstrument("piano");
+                key = variant === "inversions" && key !== 7 ? 0 : key;
+              }
             }}
           />
+          {#if inversions}
+            <SegmentedControl
+              size="sm"
+              ariaLabel="Key"
+              options={[
+                { value: "0", label: "C major" },
+                { value: "7", label: "G major" },
+              ]}
+              value={String(key)}
+              onChange={(v) => (key = Number(v))}
+            />
+          {/if}
           {#if guideTones}
             <label class="flex items-center gap-2 text-sm">Key
               <select aria-label="Key" bind:value={key} class="rounded-md border bg-background px-3 py-2">
@@ -627,7 +683,7 @@
               onChange={(v) => (startPosition = v as RootlessPosition)}
             />
           {/if}
-          {#if !guideTones && !mono}
+          {#if !pianoOnly && !mono}
             <SegmentedControl
               size="sm"
               ariaLabel="Grading"
@@ -639,7 +695,7 @@
               onChange={(v) => (strict = v === "held")}
             />
           {/if}
-          {#if !guideTones}
+          {#if !pianoOnly}
           <SegmentedControl
             size="sm"
             ariaLabel="Advance"
@@ -652,7 +708,7 @@
           />
           {/if}
         </div>
-        {#if !guideTones && !mono && !strict}<p class="text-xs text-muted-foreground">Notes collected: extra notes are tolerated; notes need not be held together.</p>{/if}
+        {#if !pianoOnly && !mono && !strict}<p class="text-xs text-muted-foreground">Notes collected: extra notes are tolerated; notes need not be held together.</p>{/if}
         {#if mono}
           <p class="text-xs text-muted-foreground">
             The Aerophone is monophonic: play each voicing as an ascending arpeggio.
@@ -665,9 +721,9 @@
       <PracticeStage {instrument} class="grid gap-4 p-4 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="eyebrow">Ready · {guideTones ? "two transitions" : `first chord ${firstTarget?.symbol ?? ""}`}</p>
+            <p class="eyebrow">Ready · {guideTones ? "two transitions" : `first chord ${(inversions ? inversionTargets[0]?.symbol : firstTarget?.symbol) ?? ""}`}</p>
             <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={setupHeading}>
-              {variantLabel} · {guideTones ? `key ${keyLabel} · two transitions` : "all 12 keys"}
+              {variantLabel} · {scopeLabel}
             </h2>
             <p class="text-sm text-stage-muted">
               {mono ? "Play each voicing as an ascending arpeggio." : "Play anything to warm up. Nothing is graded until you start."}
@@ -681,11 +737,7 @@
           </div>
         </div>
         {#if guideTones}{@render guidePrompt()}{/if}
-        {@render targetView(
-          firstTarget ? [...(firstTarget.bassMidi === undefined ? [] : [firstTarget.bassMidi]), ...firstTarget.midi] : [60, 72],
-          readyHighlights,
-          true,
-        )}
+        {@render targetView(firstMidi, readyHighlights, true)}
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
       {#if !unaided}{@render drillReference()}{/if}

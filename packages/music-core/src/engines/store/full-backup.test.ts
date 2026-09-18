@@ -145,6 +145,22 @@ describe("full collection backup", () => {
       expect(blob.type).toBe("audio/wav");
     }
   });
+  test("writes version 2 archives and still restores a version 1 archive", async () => {
+    const { parsed } = await fixture();
+    expect(parsed.manifest.version).toBe(2);
+
+    const legacy = structuredClone(parsed.manifest);
+    Object.assign(legacy, { version: 1 });
+    Object.assign(legacy.data, { version: 1 });
+    const restored = await parseMusicFullBackup(await archive(legacy));
+
+    expect(restored.manifest.version).toBe(1);
+    const destination = store();
+    const io = binaries();
+    await restoreMusicFullBackup(destination, restored, io);
+    expect(await destination.audioTakes.get("take")).not.toHaveProperty("gainDb");
+  });
+
   test("fails export for missing or metadata-sized-mismatched referenced files", async () => {
     const { source, io } = await fixture();
     io.files.delete("music-backing-back");
@@ -166,7 +182,7 @@ describe("full collection backup", () => {
   ])("rejects %s archive", async (kind) => {
     const { parsed } = await fixture();
     const manifest = structuredClone(parsed.manifest);
-    if (kind === "version") Object.assign(manifest, { version: 2 });
+    if (kind === "version") Object.assign(manifest, { version: 3 });
     if (kind === "key") manifest.assets[0]!.key = "pdf/private";
     if (kind === "mime") manifest.assets[0]!.mimeType = "text/plain";
     if (kind === "size") manifest.assets[0]!.size = 3;

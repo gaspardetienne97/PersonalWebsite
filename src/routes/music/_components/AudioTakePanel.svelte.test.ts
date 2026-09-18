@@ -5,7 +5,7 @@ import type {
 } from "@repo/music-core/engines/audio-recording";
 import type { MediaUsage } from "@repo/music-core/engines/media-library";
 import type { AudioTakeRow } from "@repo/music-core/engines/store";
-import { describe, expect, test } from "vite-plus/test";
+import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import AudioTakePanel from "./AudioTakePanel.svelte";
@@ -101,6 +101,94 @@ describe("AudioTakePanel", () => {
     });
 
     expect(document.querySelector('[aria-label="Retry save"]')).not.toBeNull();
+  });
+
+  test("meters the armed input with a plain sentence", () => {
+    render(AudioTakePanel, {
+      recorderState: { ...recorderState, levelDb: -14, peakDb: -9 },
+      devices,
+      armed: true,
+      takes: [take],
+      selectedTake: take,
+    });
+
+    const meter = document.querySelector('[role="meter"]');
+    expect(meter?.getAttribute("aria-valuenow")).toBe("-14"); // the bar shows the live level
+    expect(meter?.getAttribute("aria-valuetext")).toBe("peak −9 dB, good level");
+    expect(document.body.textContent).toContain("peak −9 dB, good level");
+  });
+
+  test("draws the recorder error without claiming a live region", () => {
+    render(AudioTakePanel, {
+      recorderState: { ...recorderState, status: "error", message: "Microphone is busy." },
+      devices,
+      armed: false,
+      takes: [],
+    });
+
+    expect(document.body.textContent).toContain("Microphone is busy.");
+    // The route owns announcements and renders this same message in the one
+    // live region it owns; a second one here would announce it twice.
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+    expect(document.querySelector("[aria-live]")).toBeNull();
+  });
+
+  test("draws the take envelope, its gained peak, and a clipping warning", async () => {
+    const loud = { ...take, gainDb: 12 };
+    render(AudioTakePanel, {
+      recorderState,
+      devices,
+      takes: [loud],
+      selectedTake: loud,
+      loadTakePeaks: async () => ({ peaks: [0.1, 0.5, 0.25, 0.4], peakDb: -6 }),
+    });
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("[data-take-envelope]")).not.toBeNull();
+    });
+    const gain = document.querySelector<HTMLInputElement>('[aria-label="Take gain"]');
+    expect(gain?.value).toBe("12");
+    expect(document.body.textContent).toContain("peak +6 dB"); // −6 dB plus 12 dB of gain
+    expect(document.body.textContent).toMatch(/clipping/i);
+    expect(
+      document.querySelectorAll("[data-take-envelope] .fill-destructive").length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("emits rename, note, and gain callbacks for a take", () => {
+    const onRenameTake = vi.fn();
+    const onNoteTake = vi.fn();
+    const onGainTake = vi.fn();
+    render(AudioTakePanel, {
+      recorderState,
+      devices,
+      takes: [take],
+      selectedTake: take,
+      onRenameTake,
+      onNoteTake,
+      onGainTake,
+    });
+
+    const name = document.querySelector<HTMLInputElement>(
+      '[aria-label="Take name for Morning take.webm"]',
+    );
+    const note = document.querySelector<HTMLInputElement>(
+      '[aria-label="Note for Morning take.webm"]',
+    );
+    const gain = document.querySelector<HTMLInputElement>('[aria-label="Take gain"]');
+    name!.value = "Morning warmup";
+    name!.dispatchEvent(new Event("change", { bubbles: true }));
+    note!.value = "too much pedal";
+    note!.dispatchEvent(new Event("change", { bubbles: true }));
+    gain!.value = "-6";
+    gain!.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(onGainTake).not.toHaveBeenCalled(); // dragging only previews
+    gain!.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(onRenameTake).toHaveBeenCalledWith(take, "Morning warmup");
+    expect(onNoteTake).toHaveBeenCalledWith(take, "too much pedal");
+    expect(onGainTake).toHaveBeenCalledOnce();
+    expect(onGainTake).toHaveBeenCalledWith(take, -6);
   });
 
   test("emits recorder, playback, volume, download, and retry callbacks", () => {

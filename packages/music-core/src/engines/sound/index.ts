@@ -65,6 +65,8 @@ export interface ToneSoundModule {
   /** Raw audio-context time, with no look-ahead added. */
   immediate(): number;
   gainToDb(gain: number): number;
+  /** Tone's context wrapper; `rawContext` is the browser's AudioContext. */
+  getContext?(): { rawContext?: { outputLatency?: number; baseLatency?: number } };
   Synth: ToneConstructor<ToneInstrument>;
   MembraneSynth: ToneConstructor<ToneInstrument>;
   NoiseSynth: ToneConstructor<ToneNoiseInstrument>;
@@ -73,6 +75,14 @@ export interface ToneSoundModule {
   Sampler: ToneConstructor<ToneInstrument>;
   Players: ToneConstructor<TonePlayers>;
   Gain: ToneConstructor<ToneGain>;
+}
+
+/** What the browser says about its own output path, in ms. */
+export interface ReportedLatency {
+  /** `AudioContext.outputLatency`: buffer plus the OS/device path. */
+  outputMs?: number;
+  /** `AudioContext.baseLatency`: what the browser's own graph adds. */
+  baseMs?: number;
 }
 
 export interface AudioGateState {
@@ -801,6 +811,27 @@ export class SoundEngine {
     this.#master = undefined;
     this.#tone = undefined;
     this.enabled = false;
+  }
+
+  /**
+   * Latency the browser reports for playback, read-only and never applied to
+   * scoring: clicks are already scheduled against the audio clock, so this is
+   * diagnostic. A field is absent when the browser does not report it (Safari
+   * reports 0 for `outputLatency`).
+   */
+  get reportedLatency(): ReportedLatency {
+    const raw = this.#tone?.getContext?.().rawContext;
+    if (!raw) return {};
+    const ms = (seconds: number | undefined) =>
+      typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0
+        ? Math.round(seconds * 10_000) / 10
+        : undefined;
+    const outputMs = ms(raw.outputLatency);
+    const baseMs = ms(raw.baseLatency);
+    return {
+      ...(outputMs !== undefined ? { outputMs } : {}),
+      ...(baseMs !== undefined ? { baseMs } : {}),
+    };
   }
 
   get #instrument(): ToneInstrument | undefined {

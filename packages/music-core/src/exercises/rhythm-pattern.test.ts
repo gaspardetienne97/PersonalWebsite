@@ -8,6 +8,15 @@ import {
   rhythmPatternDefinition,
 } from "./rhythm-pattern";
 
+const strum = (atMs: number, midiNote: number): NoteEvent => ({
+  type: "noteOn",
+  midiNote,
+  velocity: 1,
+  source: "audio",
+  timestamp: monotonicMs(atMs),
+  clock: "performance",
+});
+
 const tap = (atMs: number): NoteEvent => ({
   type: "onset",
   strength: 1,
@@ -28,6 +37,8 @@ describe("rhythm pattern catalog", () => {
       "dotted-quarters",
       "swing-eighths",
       "gap-click-1-on-1-off",
+      "guitar-four-on-the-floor",
+      "guitar-island-strum",
     ]);
     expect(rhythmPatternDefinition("gap-click-1-on-1-off").clickSchedule).toEqual([
       { bar: 0, audible: true },
@@ -212,5 +223,128 @@ describe("createRhythmPatternExercise", () => {
     expect(
       createRhythmPatternExercise({ patternId: "gap-click-1-on-1-off", bpm: 100 }).skillIds,
     ).toContain("rhythm.gap-click");
+  });
+});
+
+describe("guitar strum patterns", () => {
+  test("G1 is sixteen downstrokes over D then A", () => {
+    const definition = rhythmPatternDefinition("guitar-four-on-the-floor");
+
+    expect(definition.defaultBars).toBe(4);
+    expect(definition.events).toHaveLength(16);
+    expect(definition.events.every((event) => event.stroke === "down")).toBe(true);
+    expect(definition.events.map((event) => event.beat)).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    ]);
+    expect(definition.chords).toEqual([
+      { symbol: "D", pitchClasses: [2, 6, 9], startBeat: 0, durationBeats: 8 },
+      { symbol: "A", pitchClasses: [1, 4, 9], startBeat: 8, durationBeats: 8 },
+    ]);
+  });
+
+  test("G2's bar is D DU (mute) UDU: 4.0 beats, six pitched strokes and one mute", () => {
+    const definition = rhythmPatternDefinition("guitar-island-strum");
+    const bar = definition.events.filter((event) => event.beat < 4);
+
+    expect(bar.map((event) => [event.beat, event.stroke, event.durationBeats])).toEqual([
+      [0, "down", 1],
+      [1, "down", 0.5],
+      [1.5, "up", 0.5],
+      [2, "mute", 0.5],
+      [2.5, "up", 0.5],
+      [3, "down", 0.5],
+      [3.5, "up", 0.5],
+    ]);
+    expect(bar.reduce((total, event) => total + (event.durationBeats ?? 0), 0)).toBe(4);
+    expect(bar.filter((event) => event.stroke !== "mute")).toHaveLength(6);
+    expect(bar.filter((event) => event.stroke === "mute")).toHaveLength(1);
+    expect(definition.chords?.map((chord) => chord.symbol)).toEqual(["G", "C"]);
+  });
+
+  test("a mute is an onset accepted without a pitch", () => {
+    const exercise = createRhythmPatternExercise({
+      patternId: "guitar-island-strum",
+      bpm: 60,
+      bars: 1,
+    });
+    const ctx = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+
+    // Pitched strokes carry a G major note; the mute is a bare onset.
+    prompt.payload.events.forEach((event, index) => {
+      const atMs = prompt.payload.expectedMs[index]!;
+      run.accept(event.stroke === "mute" ? tap(atMs) : strum(atMs, 55));
+    });
+
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.answer?.missedEvents).toBe(0);
+    expect(result.answer?.mutesMatched).toBe(1);
+  });
+
+  test("a strum that rings out on beat 3 is not credited as a mute", () => {
+    const exercise = createRhythmPatternExercise({
+      patternId: "guitar-island-strum",
+      bpm: 60,
+      bars: 1,
+    });
+    const ctx = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+
+    // The microphone reports an onset and a pitch at every stroke, the mute
+    // included — the player never damped the strings.
+    prompt.payload.events.forEach((_event, index) => {
+      const atMs = prompt.payload.expectedMs[index]!;
+      run.accept(tap(atMs));
+      run.accept(strum(atMs, 55));
+    });
+
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.answer?.mutesMatched).toBe(0);
+  });
+
+  test("says the chord is not verified when nothing pitched was heard", () => {
+    const exercise = createRhythmPatternExercise({
+      patternId: "guitar-four-on-the-floor",
+      bpm: 60,
+      bars: 4,
+    });
+    const ctx = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+
+    prompt.payload.expectedMs.forEach((atMs) => run.accept(tap(atMs)));
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.answer?.chordsVerified).toBe(false);
+    expect(result.feedback.map((item) => item.message).join(" ")).toContain("chord not verified");
+  });
+
+  test("verifies each chord span from the pitches heard inside it", () => {
+    const exercise = createRhythmPatternExercise({
+      patternId: "guitar-four-on-the-floor",
+      bpm: 60,
+      bars: 4,
+    });
+    const ctx = { targetSkillIds: exercise.skillIds, difficulty: 0.4 };
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+
+    // D major (50 57 62 66) for bars 1-2, A major (45 52 57 61 64) for bars 3-4.
+    prompt.payload.expectedMs.forEach((atMs, index) => {
+      const chord = index < 8 ? [50, 57, 62, 66] : [45, 52, 57, 61, 64];
+      chord.forEach((midiNote, voice) => run.accept(strum(atMs + voice * 12, midiNote)));
+    });
+
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.answer?.chordsVerified).toBe(true);
+    expect(result.answer?.chordGrades?.map((grade) => [grade.symbol, grade.matched])).toEqual([
+      ["D", true],
+      ["A", true],
+    ]);
   });
 });

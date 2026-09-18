@@ -8,6 +8,7 @@ import {
   prepareMusicDataBackup,
   restoreMusicDataBackup,
   validateMusicDataBackup,
+  MUSIC_DATA_BACKUP_VERSION,
   type MusicDataBackupV1,
 } from "./data-backup";
 
@@ -129,6 +130,27 @@ describe("music data backup", () => {
     expect(() =>
       validateBackupObject(backup({ settings: [{ id: "cyclic", value: cyclic }] })),
     ).toThrow(/JSON-safe/i);
+  });
+
+  test("round-trips the persisted tempo ladder and rejects a malformed rung", async () => {
+    const store = createStore();
+    await store.settings.put({
+      id: "technique.tempo-ladder.v1",
+      value: { "major:C4:up:one-octave:both": 130 },
+    });
+
+    const prepared = await prepareMusicDataBackup(store, () => new Date("2026-09-13T12:00:00Z"));
+    const restored = createStore();
+    await restoreMusicDataBackup(restored, parseMusicDataBackup(prepared.json));
+
+    expect((await restored.settings.get("technique.tempo-ladder.v1"))?.value).toEqual({
+      "major:C4:up:one-octave:both": 130,
+    });
+    expect(() =>
+      validateBackupObject(
+        backup({ settings: [{ id: "technique.tempo-ladder.v1", value: { "major:C4": "fast" } }] }),
+      ),
+    ).toThrow(/tempo-ladder/i);
   });
 
   test("accepts the persisted 16-step Song Studio pattern", () => {
@@ -437,6 +459,78 @@ describe("music data backup", () => {
     });
     expect(mutationRan).toBe(true);
     await expect(store.settings.get("safe")).resolves.toEqual({ id: "safe", value: true });
+  });
+
+  test("exports version 2 with the take gain and note fields", async () => {
+    const store = createStore();
+    await store.audioTakes.put({
+      id: "take-1",
+      name: "Take 1.webm",
+      mimeType: "audio/webm",
+      size: 4,
+      durationMs: 1_000,
+      createdAt: unixMs(5),
+      instrument: "piano",
+      backingOffsetMs: 0,
+      gainDb: 6,
+      note: "watch the left hand",
+    });
+
+    const prepared = await prepareMusicDataBackup(store);
+    expect(prepared.backup.version).toBe(MUSIC_DATA_BACKUP_VERSION);
+    expect(prepared.backup.version).toBe(2);
+    expect(prepared.backup.tables.audioTakes[0]).toMatchObject({
+      gainDb: 6,
+      note: "watch the left hand",
+    });
+  });
+
+  test("restores a version 1 backup that predates the take gain field", async () => {
+    const store = createStore();
+    const incoming = backup({
+      audioTakes: [
+        {
+          id: "take-1",
+          name: "Take 1.webm",
+          mimeType: "audio/webm",
+          size: 4,
+          durationMs: 1_000,
+          createdAt: unixMs(5),
+          instrument: "piano",
+          backingOffsetMs: 0,
+        },
+      ],
+    });
+    expect(incoming.version).toBe(1);
+
+    await restoreMusicDataBackup(store, incoming, {
+      getBinary: async () => undefined,
+      withMutationLock: async (operation) => operation(),
+    });
+
+    const restored = await store.audioTakes.get("take-1");
+    expect(restored).not.toHaveProperty("gainDb");
+    expect(restored?.name).toBe("Take 1.webm");
+  });
+
+  test("rejects an unsupported version and an out-of-range take gain", () => {
+    expect(() => validateBackupObject({ ...backup(), version: 3 })).toThrow(/version/i);
+    const withGain = backup({
+      audioTakes: [
+        {
+          id: "take-1",
+          name: "Take 1.webm",
+          mimeType: "audio/webm",
+          size: 4,
+          durationMs: 1_000,
+          createdAt: unixMs(5),
+          instrument: "piano",
+          backingOffsetMs: 0,
+          gainDb: 24,
+        },
+      ],
+    });
+    expect(() => validateBackupObject(withGain)).toThrow(/gainDb/i);
   });
 });
 

@@ -20,11 +20,83 @@ const EXPECTED_PCS: Record<string, number[]> = {
   "guitar.d-major": [2, 6, 9],
   "guitar.e-minor": [4, 7, 11],
   "guitar.a-minor": [9, 0, 4],
+  "guitar.e-major": [4, 8, 11],
+  "guitar.a-major": [9, 1, 4],
+  "guitar.d-minor": [2, 5, 9],
+  "guitar.f-major": [5, 9, 0],
+  "guitar.b7": [11, 3, 6, 9],
+  "guitar.b-minor": [11, 2, 6],
+  "guitar.g7": [7, 11, 2, 5],
   "ukulele.c-major": [0, 4, 7],
   "ukulele.f-major": [5, 9, 0],
   "ukulele.g-major": [7, 11, 2],
   "ukulele.a-minor": [9, 0, 4],
 };
+
+// The curriculum's G1 and G2 voicings, low string to high, in standard tuning.
+const CURRICULUM_VOICINGS: Record<string, number[]> = {
+  "guitar.d-major": [50, 57, 62, 66],
+  "guitar.a-major": [45, 52, 57, 61, 64],
+  "guitar.g-major": [43, 47, 50, 55, 59, 67],
+  "guitar.c-major": [48, 52, 55, 60, 64],
+};
+
+describe("CHORD_SHAPES", () => {
+  test("the G1 and G2 voicings match the curriculum tables", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    for (const [id, midiNotes] of Object.entries(CURRICULUM_VOICINGS)) {
+      const shape = CHORD_SHAPES.find((entry) => entry.id === id)!;
+      expect(chordShapeMidiNotes(tuning, shape), id).toEqual(midiNotes);
+    }
+  });
+
+  test("the added open and barre shapes are playable in standard tuning", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const added = [
+      "guitar.e-major",
+      "guitar.a-major",
+      "guitar.d-minor",
+      "guitar.f-major",
+      "guitar.b7",
+      "guitar.b-minor",
+      "guitar.g7",
+    ];
+    for (const id of added) {
+      const shape = CHORD_SHAPES.find((entry) => entry.id === id);
+      expect(shape, id).toBeDefined();
+      // A hand covers four frets; open strings and mutes do not count.
+      const fretted = shape!.frets.filter(
+        (fret): fret is number => typeof fret === "number" && fret > 0,
+      );
+      expect(Math.max(...fretted) - Math.min(...fretted), id).toBeLessThanOrEqual(3);
+      expect(chordShapeMidiNotes(tuning, shape!).length, id).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  test("the curriculum's change pairs are wired both ways", () => {
+    const byId = new Map(CHORD_SHAPES.map((shape) => [shape.id, shape]));
+    const pairs: [string, string][] = [
+      ["guitar.d-major", "guitar.a-major"],
+      ["guitar.e-major", "guitar.a-major"],
+      ["guitar.g-major", "guitar.c-major"],
+      ["guitar.c-major", "guitar.g7"],
+      ["guitar.a-minor", "guitar.e-major"],
+    ];
+    for (const [left, right] of pairs) {
+      expect(byId.get(left)?.commonTransitions, `${left}->${right}`).toContain(right);
+      expect(byId.get(right)?.commonTransitions, `${right}->${left}`).toContain(left);
+    }
+  });
+
+  test("every declared transition names a shape on the same instrument", () => {
+    const byId = new Map(CHORD_SHAPES.map((shape) => [shape.id, shape]));
+    for (const shape of CHORD_SHAPES) {
+      for (const id of shape.commonTransitions) {
+        expect(byId.get(id)?.instrument, `${shape.id} -> ${id}`).toBe(shape.instrument);
+      }
+    }
+  });
+});
 
 describe("createChordPerfectExercise", () => {
   test("every curated shape resolves to the right chord tones", () => {

@@ -468,6 +468,13 @@
     }
   }
 
+  // The reveal is otherwise a silent change on the keyboard; the route's live
+  // region is the one place this page announces from.
+  function revealSightReadingHint(): void {
+    session?.revealHint();
+    status = "Hint shown: the expected keys are lit for this group.";
+  }
+
   async function finishSightReading(): Promise<void> {
     try {
       await session?.finishSightReading();
@@ -955,6 +962,7 @@
           {sessionXp}
           microphone={microphonePanel}
           onAccepted={playAccepted}
+          onHint={revealSightReadingHint}
           onStart={startSightReading}
           onFinish={finishSightReading}
         />
@@ -968,7 +976,7 @@
           onChoice={answerChoice}
           onAccepted={playAccepted}
           onContinue={continueFlashcard}
-          onHint={() => session?.revealFlashcardHint()}
+          onHint={() => session?.revealHint()}
           range={setup.range}
         />
       {/if}

@@ -4,6 +4,7 @@ import {
   nearestHit,
   overlayRects,
   rangeFromHits,
+  rangeHandles,
   type NotationHitTarget,
 } from "./notation-selection";
 
@@ -24,10 +25,24 @@ describe("notation selection geometry", () => {
     expect(rangeFromHits(last, first)).toEqual({ startBeat: 0, endBeat: 3 });
   });
 
-  test("rejects a selection that begins and ends on the same boundary", () => {
+  test("accepts a single-boundary selection as a one-bar range", () => {
     const first = target("first", 0, 1, 0, 0, 10, 10);
 
-    expect(rangeFromHits(first, first)).toBeUndefined();
+    expect(rangeFromHits(first, first)).toEqual({ startBeat: 0, endBeat: 1 });
+  });
+
+  test("places a start handle at the range's left edge and an end handle at its right", () => {
+    const targets = [
+      target("a", 0, 1, 0, 0, 10, 10),
+      target("b", 1, 2, 10, 0, 20, 10),
+      target("c", 2, 3, 0, 20, 10, 30),
+    ];
+
+    expect(rangeHandles({ startBeat: 0, endBeat: 3 }, targets)).toEqual([
+      { edge: "start", left: 0, top: 0, height: 10 },
+      { edge: "end", left: 10, top: 20, height: 10 },
+    ]);
+    expect(rangeHandles({ startBeat: 9, endBeat: 10 }, targets)).toEqual([]);
   });
 
   test("merges adjacent highlight rectangles on the same row", () => {

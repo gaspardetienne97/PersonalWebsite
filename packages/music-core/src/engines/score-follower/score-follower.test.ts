@@ -70,6 +70,22 @@ describe("music-core/score-follower", () => {
     ).toEqual([61]);
   });
 
+  test("wait mode shows a wrong note only while its own group is current", () => {
+    const run = waitRun([group(0, [60]), group(1, [62])]);
+
+    run.accept(noteOn(61));
+    expect(run.getLiveState().wrongMidiNotes).toEqual([61]);
+
+    run.accept(noteOff(61));
+    run.accept(noteOn(60));
+
+    // The keyboard and staff only ever show the current group's mistakes.
+    expect(run.getLiveState()).toMatchObject({ currentGroupIndex: 1, wrongMidiNotes: [] });
+    expect(run.getLiveState().feedback).toEqual([]);
+    // The run still remembers the mis-hit for the result.
+    expect(run.finish().answer?.wrongMidiNotes).toEqual([61]);
+  });
+
   test("wait mode requires a group to be held simultaneously", () => {
     const [group] = expectedGroups(polyphonicScore());
     const run = createScoreFollower([group!], { mode: "wait", bpm: 90, strictness: "normal" });
@@ -197,6 +213,24 @@ describe("music-core/score-follower", () => {
       { kind: "pitch", expectedMidi: 64, actualMidi: 64 },
       { kind: "timing", expectedMs: 12_000, actualMs: 12_000, errorMs: 0 },
     ]);
+  });
+
+  test("performance mode shows an extra note only until the player lands an expected one", () => {
+    const groups = expectedGroups(polyphonicScore());
+    const run = createScoreFollower(groups, {
+      mode: "performance",
+      bpm: 60,
+      strictness: "normal",
+      startTimestampMs: monotonicMs(10_000),
+    });
+
+    run.accept(noteOn(67, 10_000));
+    expect(run.getLiveState().wrongMidiNotes).toEqual([67]);
+
+    // Back on the score: the stale red must not sit over the notes still to come.
+    run.accept(noteOn(48, 10_000));
+    expect(run.getLiveState().wrongMidiNotes).toEqual([]);
+    expect(run.finish().answer?.wrongMidiNotes).toEqual([67]);
   });
 
   test("performance mode scores wrong, missed, extra, early, and late notes below perfect", () => {

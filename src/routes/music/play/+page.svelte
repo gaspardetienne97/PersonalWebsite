@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onDestroy, onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick, untrack } from "svelte";
 
   import Circle from "lucide-svelte/icons/circle";
   import Drum from "lucide-svelte/icons/drum";
@@ -22,7 +22,14 @@
     type NoteEvent,
     type UnixMs,
   } from "@repo/music-core/domain";
-  import { AudioTakeRecorder, type AudioTakeRecording } from "@repo/music-core/engines/audio-recording";
+  import {
+    applyPlaybackGain,
+    AudioTakeRecorder,
+    closePlaybackContext,
+    releasePlaybackGain,
+    createTakeEnvelopeCache,
+    type AudioTakeRecording,
+  } from "@repo/music-core/engines/audio-recording";
   import {
     BackingTrackEngine,
     type BackingSelection,
@@ -37,9 +44,8 @@
   } from "@repo/music-core/engines/free-practice";
   import { JAM_PROGRESSIONS } from "@repo/music-core/engines/jam";
   import type { MediaUsage } from "@repo/music-core/engines/media-library";
-  import { RecordingSession, takeToScore, type Take } from "@repo/music-core/engines/recording";
+  import type { Take } from "@repo/music-core/engines/recording";
   import type { AudioTakeRow, ImportedBackingTrackRow } from "@repo/music-core/engines/store";
-  import { scoreToPattern } from "@repo/music-core/engines/sound";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { toast } from "@repo/ui/sonner";
@@ -53,8 +59,11 @@
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
   import { syncRouteQuery } from "../_components/route-state";
   import SourceReadout from "../_components/SourceReadout.svelte";
+  import { useTakeRecorder } from "../_components/take-recorder.svelte";
   import { useMusicRuntime, type MusicRuntime, type PracticeCaptureEntry } from "../_runtime.svelte";
   import { PIANO_ROLL_PENDING_TAKE_IMPORT_ID } from "../create/_components/piano-roll-storage";
+
+  const PRACTICE_LAB_TAKE_PREFIX = "Practice Lab take";
 
   interface StartBoundary {
     wallClock: UnixMs;
@@ -84,8 +93,6 @@
   let importedTracks = $state<ImportedBackingTrackRow[]>([]);
   let takes = $state<AudioTakeRow[]>([]);
   let selectedTake = $state<AudioTakeRow | undefined>();
-  let midiTakes = $state<Take[]>([]);
-  let selectedMidiTake = $state<Take | undefined>();
   let mediaUsage = $state<MediaUsage | undefined>();
   let unsavedTake = $state<AudioTakeRecording | undefined>();
   let performanceVolume = $state(1);
@@ -100,9 +107,6 @@
   let reviewAudio = $state<HTMLAudioElement | undefined>();
   let playingAudioTakeId = $state<string | undefined>();
   let reviewGeneration = 0;
-  let playingMidiTakeId = $state<string | undefined>();
-  let midiPlaybackGeneration = 0;
-  let midiPlaybackTimer: ReturnType<typeof setTimeout> | undefined;
   let generatedPlaybackGeneration = 0;
   let mediaLoadGeneration = 0;
   let backingPending = false;
@@ -114,7 +118,13 @@
     : undefined;
 
   const audioRecorder = new AudioTakeRecorder();
-  const midiRecorder = new RecordingSession();
+  // The MIDI take list is shared with /music/record: a take captured here is
+  // already on that page's list, and a take recorded there shows up here.
+  const takeRecorder = untrack(() => useTakeRecorder(runtime));
+  const midiTakes = $derived(takeRecorder.midiTakes);
+  const selectedMidiTake = $derived(takeRecorder.selectedMidiTake);
+  const playingMidiTakeId = $derived(takeRecorder.playingMidiTakeId);
+  const takeEnvelope = createTakeEnvelopeCache((id) => loadTakeBlob(id));
   let recorderState = $state(audioRecorder.state);
   let backingPlayer: BrowserBackingPlayer | undefined;
   const backingEngine = new BackingTrackEngine(createBackingAdapter());
@@ -126,6 +136,9 @@
     runtime.activeSource === "midi" ? "MIDI" : runtime.activeSource === "audio" ? "Audio" : "On-screen",
   );
   const canChangeSetup = $derived(!recording && !recordingPending && !saving);
+  // AudioTakePanel draws the recorder's own error but does not announce it; this
+  // route's one live region does.
+  const attentionMessage = $derived(saveError || recorderState.message || "");
 
   const unsubscribeRouter = subscribeRouter();
   const unsubscribeBacking = backingEngine.subscribe((state) => {
@@ -161,7 +174,7 @@
       }
       if (!activeSession || !recording) return;
       activeSession.accept(event);
-      midiRecorder.capture(event);
+      takeRecorder.capture(event);
       activeState = activeSession.state;
     });
   }
@@ -174,6 +187,7 @@
     const media = runtime.media;
     let active = true;
     if (media) {
+      void takeRecorder.loadMidi();
       void loadMedia(media).catch((error) => {
         if (active) saveError = error instanceof Error ? error.message : "Saved media could not be loaded.";
       });
@@ -194,9 +208,12 @@
     unsubscribeBacking();
     unsubscribeRecorder();
     backingEngine.dispose();
-    stopMidiTake();
+    // Stops shared take playback and clears the shared message, so an error
+    // raised here does not greet /music/record.
+    takeRecorder.release();
     void audioRecorder.dispose();
     stopTake();
+    void closePlaybackContext();
   });
 
   async function loadMedia(media = runtime.media): Promise<void> {
@@ -276,7 +293,7 @@
           startedAt: boundary.wallClock,
           startedAtMonotonic: clock.downbeat,
         });
-        midiRecorder.start(Number(clock.downbeat));
+        takeRecorder.startMidi(Number(clock.downbeat));
         startBoundary = boundary;
         activeSession = session;
         activeState = session.state;
@@ -322,11 +339,13 @@
     }
 
     const result = session.stop(boundary.wallClock);
-    const midiTake = midiRecorder.stop(Number(boundary.monotonic), `Practice Lab take ${midiTakes.length + 1}`);
-    if (midiTake.notes.length > 0) {
-      midiTakes = [midiTake, ...midiTakes];
-      selectedMidiTake = midiTake;
-    }
+    takeRecorder.stopMidi(Number(boundary.monotonic), {
+      // The list is shared with /music/record now, so count only this page's own
+      // takes — otherwise a session that starts after three Record takes opens
+      // at "Practice Lab take 4".
+      name: `Practice Lab take ${midiTakes.filter((take) => take.name.startsWith(PRACTICE_LAB_TAKE_PREFIX)).length + 1}`,
+      discardEmpty: true,
+    });
     activeSession = undefined;
     activeState = undefined;
     lastResult = result;
@@ -581,6 +600,7 @@
       if (!blob) throw new Error("Practice take audio is unavailable.");
       takeUrl = URL.createObjectURL(blob);
       const audio = new Audio(takeUrl);
+      applyPlaybackGain(audio, take.gainDb ?? 0);
       reviewAudio = audio;
       playingAudioTakeId = take.id;
       audio.volume = performanceVolume * runtime.mediaVolume;
@@ -594,61 +614,53 @@
   }
 
   async function toggleMidiTake(take: Take): Promise<void> {
-    if (playingMidiTakeId === take.id) {
-      stopMidiTake();
-      return;
+    if (playingMidiTakeId !== take.id) {
+      invalidateBackingActivation();
+      backingEngine.pause();
+      stopTake();
+      saveError = "";
     }
-
-    invalidateBackingActivation();
-    backingEngine.pause();
-    stopTake();
-    stopMidiTake();
-    const generation = midiPlaybackGeneration;
-    saveError = "";
-    if (!(await runtime.ensurePlaybackVoice())) {
-      if (generation === midiPlaybackGeneration) {
-        saveError = runtime.audioMessage || "MIDI take playback could not be enabled.";
-      }
-      return;
-    }
-    if (generation !== midiPlaybackGeneration) return;
-    const pattern = scoreToPattern(takeToScore(take, runtime.transportBpm), { bpm: runtime.transportBpm });
-    runtime.sound.playPattern(pattern.steps);
-    playingMidiTakeId = take.id;
-    midiPlaybackTimer = setTimeout(
-      () => finishMidiTake(generation),
-      Math.max(0, pattern.durationSec * 1_000),
-    );
+    await takeRecorder.toggleMidiTake(take);
+    if (takeRecorder.message) saveError = takeRecorder.message;
   }
 
   function stopMidiTake(): void {
-    midiPlaybackGeneration += 1;
-    if (midiPlaybackTimer) clearTimeout(midiPlaybackTimer);
-    midiPlaybackTimer = undefined;
-    runtime.sound.stopPattern();
-    playingMidiTakeId = undefined;
+    takeRecorder.stopMidiPlayback();
   }
 
-  function finishMidiTake(generation: number): void {
-    if (generation !== midiPlaybackGeneration) return;
-    midiPlaybackTimer = undefined;
-    playingMidiTakeId = undefined;
+  function renameMidiTake(take: Take, name: string): void {
+    takeRecorder.renameMidiTake(take, name);
+  }
+
+  function noteMidiTake(take: Take, note: string): void {
+    takeRecorder.noteMidiTake(take, note);
+  }
+
+  async function updateAudioTake(
+    take: AudioTakeRow,
+    patch: { name?: string; note?: string; gainDb?: number },
+  ): Promise<void> {
+    if (!runtime.media) return;
+    try {
+      // The library returns the stored row, so one card refreshes without reloading the list.
+      const updated = await runtime.media.updateTake(take.id, patch);
+      takes = takes.map((row) => (row.id === updated.id ? updated : row));
+      if (selectedTake?.id === updated.id) selectedTake = updated;
+    } catch (error) {
+      saveError = error instanceof Error ? error.message : "Practice take could not be updated.";
+    }
   }
 
   function selectMidiTake(take: Take): void {
-    if (playingMidiTakeId !== take.id) stopMidiTake();
-    selectedMidiTake = take;
+    takeRecorder.selectMidiTake(take);
   }
 
   function deleteMidiTake(take: Take): void {
-    if (playingMidiTakeId === take.id) stopMidiTake();
-    midiTakes = midiTakes.filter((candidate) => candidate.id !== take.id);
-    selectedMidiTake = midiTakes[0];
+    takeRecorder.removeMidiTake(take.id);
   }
 
   function practiceMidiTake(take: Take): void {
-    stopMidiTake();
-    selectedMidiTake = take;
+    takeRecorder.practiceMidiTake(take);
     statusMessage = `Reviewing ${take.name}. Replay it, then record a cleaner pass.`;
   }
 
@@ -664,6 +676,10 @@
     } catch (error) {
       saveError = error instanceof Error ? error.message : "MIDI take could not be opened in Piano Roll.";
     }
+  }
+
+  async function loadTakeBlob(id: string): Promise<Blob | undefined> {
+    return runtime.media?.takeBlob(id);
   }
 
   function downloadTake(take: AudioTakeRow): void {
@@ -686,6 +702,7 @@
   function stopTake(): void {
     reviewGeneration += 1;
     reviewAudio?.pause();
+    releasePlaybackGain(reviewAudio);
     reviewAudio = undefined;
     playingAudioTakeId = undefined;
     revokeTakeUrl();
@@ -693,6 +710,7 @@
 
   function finishTake(generation: number): void {
     if (generation !== reviewGeneration) return;
+    releasePlaybackGain(reviewAudio);
     reviewAudio = undefined;
     playingAudioTakeId = undefined;
     revokeTakeUrl();
@@ -929,7 +947,7 @@
           </Card.Content>
         </Card.Root>
 
-        {#if saveError}
+        {#if attentionMessage}
           <Card.Root
             class="border-destructive/30 bg-destructive/5"
             role="alert"
@@ -938,7 +956,7 @@
             <Card.Content class="flex flex-wrap items-center justify-between gap-3 py-4">
               <div>
                 <p class="text-sm font-semibold text-destructive">Practice needs attention</p>
-                <p class="text-sm text-muted-foreground">{saveError}</p>
+                <p class="text-sm text-muted-foreground">{attentionMessage}</p>
               </div>
               {#if failedCapture}
                 <Button type="button" aria-label="Retry save" disabled={saving} onclick={() => void retrySave()}>
@@ -1009,6 +1027,10 @@
           onDownloadTake={downloadTake}
           onDeleteTake={deleteTake}
           onRetrySave={retryTakeSave}
+          onRenameTake={(take, name) => void updateAudioTake(take, { name })}
+          onNoteTake={(take, note) => void updateAudioTake(take, { note })}
+          onGainTake={(take, gainDb) => void updateAudioTake(take, { gainDb })}
+          loadTakePeaks={takeEnvelope}
         />
         <MidiTakeReviewPanel
           takes={midiTakes}
@@ -1022,6 +1044,8 @@
           onDeleteTake={deleteMidiTake}
           onPracticeTake={practiceMidiTake}
           onOpenInPianoRoll={openMidiTakeInPianoRoll}
+          onRenameTake={renameMidiTake}
+          onNoteTake={noteMidiTake}
         />
       </aside>
     </div>

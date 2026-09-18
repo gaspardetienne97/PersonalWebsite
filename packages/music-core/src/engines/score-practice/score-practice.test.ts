@@ -4,9 +4,12 @@ import { monotonicMs, type NoteEvent, type Score } from "@repo/music-core/domain
 
 import {
   ScorePracticeSession,
+  barBeatRange,
+  barNumberAtBeat,
   buildPracticeExecutions,
   buildScorePracticePlan,
   buildScoreSelectionMap,
+  describeScoreRange,
   type ScorePracticeSelection,
 } from "./index";
 
@@ -300,6 +303,63 @@ describe("music-core/score-practice", () => {
     });
   });
 });
+
+describe("music-core/score-practice bars", () => {
+  test("numbers bars from one and keeps the last beat inside the last bar", () => {
+    const { measureBoundaries } = buildScoreSelectionMap(changingMeterScore());
+
+    expect(measureBoundaries.map(({ beat }) => beat)).toEqual([0, 4, 7]);
+    expect(barNumberAtBeat(0, measureBoundaries)).toBe(1);
+    expect(barNumberAtBeat(3.5, measureBoundaries)).toBe(1);
+    expect(barNumberAtBeat(4, measureBoundaries)).toBe(2);
+    expect(barNumberAtBeat(6.5, measureBoundaries)).toBe(2);
+  });
+
+  test("resolves a bar number back to its half-open beat range", () => {
+    const { measureBoundaries } = buildScoreSelectionMap(changingMeterScore());
+
+    expect(barBeatRange(1, measureBoundaries)).toEqual({ startBeat: 0, endBeat: 4 });
+    expect(barBeatRange(2, measureBoundaries)).toEqual({ startBeat: 4, endBeat: 7 });
+    expect(barBeatRange(0, measureBoundaries)).toBeUndefined();
+    expect(barBeatRange(3, measureBoundaries)).toBeUndefined();
+  });
+
+  test("describes a custom range as bars, beats and seconds at the practice tempo", () => {
+    const { measureBoundaries } = buildScoreSelectionMap(eightBarScore());
+
+    expect(describeScoreRange({ startBeat: 8, endBeat: 24 }, measureBoundaries, 96)).toEqual({
+      startBar: 3,
+      endBar: 6,
+      bars: 4,
+      beats: 16,
+      seconds: 10,
+    });
+  });
+
+  test("describes a single-bar range as one bar", () => {
+    const { measureBoundaries } = buildScoreSelectionMap(eightBarScore());
+
+    expect(describeScoreRange({ startBeat: 8, endBeat: 12 }, measureBoundaries, 120)).toMatchObject(
+      { startBar: 3, endBar: 3, bars: 1, beats: 4 },
+    );
+  });
+});
+
+function eightBarScore(): Score {
+  return {
+    id: "eight-bar",
+    title: "Eight Bars",
+    origin: "generated",
+    keySignature: "C major",
+    tempoMap: [{ atBeat: 0, bpm: 96 }],
+    timeSignatures: [{ atBeat: 0, numerator: 4, denominator: 4 }],
+    voices: [{ id: "melody", name: "Melody", role: "melody" }],
+    notes: Array.from({ length: 8 }, (_, index) => note(60, index * 4, 4)),
+    chords: [],
+    sections: [],
+    markers: [],
+  };
+}
 
 function changingMeterScore(): Score {
   return {

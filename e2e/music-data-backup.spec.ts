@@ -5,7 +5,7 @@ test("data backup restores a played take, saved score, journal and preferences i
   browser,
 }, testInfo) => {
   test.setTimeout(60_000);
-  await page.goto("/music/create?mode=recorder");
+  await page.goto("/music/record");
   await expect(page.getByRole("button", { name: "New recording", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: /^Count in:/ }).click();
   await page.getByRole("button", { name: "Off", exact: true }).click();
@@ -141,7 +141,7 @@ test("data backup restores a played take, saved score, journal and preferences i
       restored.getByText("Next time: Keep the backup reflection", { exact: true }),
     ).toBeVisible();
     await expect(restored.getByText("Destination note to replace", { exact: true })).toHaveCount(0);
-    await restored.goto("/music/create?mode=recorder");
+    await restored.goto("/music/record");
     await expect(restored.getByText(/^3 notes ·/)).toBeVisible();
     await expect(restored.getByRole("button", { name: "Play Take 1", exact: true })).toBeEnabled();
     await restored.goto(songHref!);

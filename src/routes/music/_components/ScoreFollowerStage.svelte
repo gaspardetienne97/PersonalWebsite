@@ -1,3 +1,12 @@
+<script module lang="ts">
+  /**
+   * One stable empty array for the notation id props: a fresh `[]` per render
+   * would re-run StaffNotation's draw effect (which wipes and re-renders the
+   * whole SVG) on every note on and note off, not just on a group change.
+   */
+  const NO_EVENT_IDS: string[] = [];
+</script>
+
 <script lang="ts">
   import type { InstrumentId, InstrumentProjection, NoteEvent, Score } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
@@ -9,6 +18,7 @@
   import { cn } from "@repo/ui/utils";
 
   import FretboardInput from "../learn/reading/_components/FretboardInput.svelte";
+  import PracticeStage from "./PracticeStage.svelte";
   import StaffNotation from "./StaffNotation.svelte";
   import TabNotation from "./TabNotation.svelte";
   import PianoSurface, { type PianoHand, type PianoHighlight } from "./piano/PianoSurface.svelte";
@@ -26,6 +36,7 @@
     inputEnabled = true,
     activeMidiNotes = [],
     wrongMidiNotes = [],
+    showTargets = true,
     observedMidiNotes = [],
     pianoHandHint,
     suggestedFingerings,
@@ -48,6 +59,11 @@
     inputEnabled?: boolean;
     activeMidiNotes?: number[];
     wrongMidiNotes?: number[];
+    /**
+     * Whether the expected notes are lit on the instrument. A route that gates
+     * the answer behind a hint (sight-reading) passes false until it is asked for.
+     */
+    showTargets?: boolean;
     /** What the microphone gate hears. Display only; it never advances. */
     observedMidiNotes?: number[];
     pianoHandHint?: string;
@@ -76,6 +92,7 @@
 
   const currentGroup = $derived(groups[currentGroupIndex]);
   const targetNotes = $derived(currentGroup?.midiNotes ?? []);
+  const litTargets = $derived(showTargets ? targetNotes : []);
   // Wait mode needs a fresh attack for a note the previous group also had (a
   // repeated note is re-struck on a real piano too); the stage says so instead
   // of leaving a still-held key to look ignored.
@@ -103,6 +120,15 @@
       )
       .map(({ id }) => id);
   });
+  // Both marks are plain colour utilities on the same `.vf-stavenote`, so the
+  // error only shows if it is the one set: a wrong note replaces the accent on
+  // the group it belongs to rather than layering under it.
+  const staffErrorEventIds = $derived(
+    wrongMidiNotes.length === 0 ? NO_EVENT_IDS : currentNotationEventIds,
+  );
+  const staffActiveEventIds = $derived(
+    wrongMidiNotes.length === 0 ? currentNotationEventIds : NO_EVENT_IDS,
+  );
   const currentNotationHighlights = $derived.by<NotationRangeHighlight[]>(() => {
     if (!currentGroup) return [];
     return [
@@ -137,7 +163,7 @@
   const pianoHighlights = $derived.by(() => {
     const highlights: Record<number, PianoHighlight> = {};
     for (const midiNote of observedMidiNotes) highlights[midiNote] = { role: "locate" };
-    for (const midiNote of targetNotes) {
+    for (const midiNote of litTargets) {
       const hand = targetHands.get(midiNote);
       highlights[midiNote] = { role: "target", ...(hand ? { hand } : {}) };
     }
@@ -170,7 +196,8 @@
   {:else}
     <StaffNotation
       {view}
-      activeEventIds={currentNotationEventIds}
+      activeEventIds={staffActiveEventIds}
+      errorEventIds={staffErrorEventIds}
       highlightedRanges={currentNotationHighlights}
     />
   {/if}
@@ -234,23 +261,26 @@
       </div>
 
       {#if instrument === "piano"}
-        <PianoSurface
-          label="Piano input"
-          notes={pianoMaterial}
-          highlights={pianoHighlights}
-          fingerings={suggestedFingerings}
-          {router}
-          {waitGroupKey}
-          {onAccepted}
-          timelineNotes={waterfallView ? waterfallView.notes : undefined}
-          positionBeat={waterfallView ? waterfallView.positionBeat : undefined}
-          mutedHands={waterfallView ? waterfallView.mutedHands : undefined}
-          onMutedHandsChange={waterfallView ? waterfallView.onMutedHandsChange : undefined}
-        />
+        <PracticeStage instrument="piano" class="min-w-0 p-4 sm:p-6">
+          <PianoSurface
+            label="Piano input"
+            notes={pianoMaterial}
+            highlights={pianoHighlights}
+            fingerings={showTargets ? suggestedFingerings : undefined}
+            noteNames="c"
+            {router}
+            {waitGroupKey}
+            {onAccepted}
+            timelineNotes={waterfallView ? waterfallView.notes : undefined}
+            positionBeat={waterfallView ? waterfallView.positionBeat : undefined}
+            mutedHands={waterfallView ? waterfallView.mutedHands : undefined}
+            onMutedHandsChange={waterfallView ? waterfallView.onMutedHandsChange : undefined}
+          />
+        </PracticeStage>
       {:else if tuning}
         <FretboardInput
           {tuning}
-          targetMidiNotes={targetNotes}
+          targetMidiNotes={litTargets}
           {wrongMidiNotes}
           {router}
           visibleFrets={Math.min(12, tuning.fretCount)}

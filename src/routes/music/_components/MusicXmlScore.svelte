@@ -16,6 +16,7 @@
     type NotationHitTarget,
     type NotationRangeHighlight,
   } from "./notation-selection";
+  import NotationRangeHandles from "./NotationRangeHandles.svelte";
 
   let {
     xml,
@@ -92,8 +93,25 @@
   let hitTargets = $state.raw<NotationHitTarget[]>([]);
   let previewRange = $state.raw<BeatRange>();
   let dragStart: NotationHitTarget | undefined;
-  let pendingTap: NotationHitTarget | undefined;
+  let pendingStart = $state.raw<NotationHitTarget>();
   let dragging = false;
+
+  const pendingRange = $derived(
+    pendingStart
+      ? { startBeat: pendingStart.startBeat, endBeat: pendingStart.endBeat }
+      : undefined,
+  );
+  /**
+   * A half-finished tap belongs to one editing session and one engraving. Drop
+   * it when selection is handed back to the follower, and when the score being
+   * drawn changes, so the second tap can never pair bars from two scores.
+   */
+  $effect(() => {
+    void xml;
+    void selectionEnabled;
+    pendingStart = undefined;
+  });
+
 
   const overlayLayers = $derived.by(() => {
     const ranges: NotationRangeHighlight[] = [
@@ -190,10 +208,10 @@
     target: HTMLDivElement,
     content: string,
   ): Promise<{ cleanup: () => void; osmd: OsmdSelectionSource }> {
-    const document = new DOMParser().parseFromString(content, "application/xml");
+    const xmlDocument = new DOMParser().parseFromString(content, "application/xml");
     if (
-      document.querySelector("parsererror") ||
-      document.documentElement.localName !== "score-partwise"
+      xmlDocument.querySelector("parsererror") ||
+      xmlDocument.documentElement.localName !== "score-partwise"
     ) {
       throw new Error("Invalid score-partwise MusicXML.");
     }
@@ -418,22 +436,23 @@
     previewRange = end ? rangeFromHits(dragStart, end) : undefined;
   }
 
+  /**
+   * A drag across boundaries sets the range outright. Otherwise the first tap
+   * only marks Start (drawn immediately, with a hint) and the second tap
+   * completes the range, including on the same bar for a one-bar loop.
+   */
   function handlePointerUp(event: PointerEvent): void {
     if (!selectionEnabled || !dragStart) return;
     const end = pointerHit(event);
-    const draggedRange = end ? rangeFromHits(dragStart, end) : undefined;
 
-    if (draggedRange) {
-      onSelectionChange?.(draggedRange);
-      pendingTap = undefined;
-    } else if (end && pendingTap) {
-      const tappedRange = rangeFromHits(pendingTap, end);
-      if (tappedRange) {
-        onSelectionChange?.(tappedRange);
-        pendingTap = undefined;
-      }
+    if (end && end.boundaryId !== dragStart.boundaryId) {
+      onSelectionChange?.(rangeFromHits(dragStart, end));
+      pendingStart = undefined;
+    } else if (end && pendingStart) {
+      onSelectionChange?.(rangeFromHits(pendingStart, end));
+      pendingStart = undefined;
     } else if (end) {
-      pendingTap = end;
+      pendingStart = end;
     }
 
     dragStart = undefined;
@@ -491,6 +510,12 @@
       ></span>
     {/each}
   </div>
+  <NotationRangeHandles
+    selection={customSelection}
+    pendingStart={pendingRange}
+    targets={hitTargets}
+    measureBoundaries={selectionMap?.measureBoundaries}
+  />
 </div>
 
 {#if status === "loading"}

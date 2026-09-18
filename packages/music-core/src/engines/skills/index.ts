@@ -252,8 +252,23 @@ export function seedCoreSkills(): SkillSeed {
       ["licks.major-ii-V-I-VI", "Turnaround licks"],
       ["licks.minor-ii-V-i", "Minor ii-V-i licks"],
       ["licks.minor-chord", "Minor chord licks"],
+      ["licks.guitar-pentatonic", "Guitar pentatonic licks"],
     ].map(([id, label]) =>
       skill(`harmony.ii-v-i.${id}`, label!, Capability.Harmony, "intermediate", ["jazz"]),
+    ),
+    skill(
+      "rhythm.pattern.guitar-four-on-the-floor",
+      "Four on the Floor Strum",
+      Capability.Rhythm,
+      "beginner",
+      ["guitar", "strumming", "rhythm", "pattern"],
+    ),
+    skill(
+      "rhythm.pattern.guitar-island-strum",
+      "Island Strum with a Mute",
+      Capability.Rhythm,
+      "early-intermediate",
+      ["guitar", "strumming", "rhythm", "pattern", "syncopation"],
     ),
     skill("rhythm.subdivisions", "Rhythm Subdivisions", Capability.Rhythm, "beginner", [
       "timing",
@@ -538,7 +553,14 @@ export function seedCoreSkills(): SkillSeed {
       "early-intermediate",
       ["piano", "independence", "shell", "line", "hands"],
     ),
-    ...["backbeat", "eighth-hats", "syncopated"].map((family) =>
+    skill(
+      "technique.piano.comping",
+      "Piano Comping over a Shell",
+      Capability.Technique,
+      "intermediate",
+      ["piano", "comping", "shell", "swing", "syncopation"],
+    ),
+    ...["backbeat", "eighth-hats", "syncopated", "boom-bap-2bar", "turnaround-fill"].map((family) =>
       skill(
         `technique.mpc.groove.${family}`,
         `MPC Groove Recall: ${family}`,
@@ -638,7 +660,7 @@ export function seedCoreSkills(): SkillSeed {
       "technique.guitar.open-chord-id",
       "technique.ukulele.open-chord-id",
     ],
-    "technique.piano": ["technique.piano.two-hand-independence"],
+    "technique.piano": ["technique.piano.two-hand-independence", "technique.piano.comping"],
     "technique.piano.two-hand-independence": ["technique.piano.independence.shell-line"],
     "technique.mpc": [
       "technique.mpc.single-strokes",
@@ -646,6 +668,8 @@ export function seedCoreSkills(): SkillSeed {
       "technique.mpc.groove.backbeat",
       "technique.mpc.groove.eighth-hats",
       "technique.mpc.groove.syncopated",
+      "technique.mpc.groove.boom-bap-2bar",
+      "technique.mpc.groove.turnaround-fill",
     ],
   };
 

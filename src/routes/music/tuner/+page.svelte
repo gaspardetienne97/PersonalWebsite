@@ -43,6 +43,10 @@
 
   const A4_OPTIONS = [438, 439, 440, 441, 442] as const;
   const TUNER_TOLERANCE_CENTS = 5;
+  // Noise, a decaying string or rumble leaves frames unaccepted; after this long
+  // without one the readout goes back to idle rather than freezing on a note
+  // that is no longer being played.
+  const STALE_READING_MS = 1500;
   const INTONATION_TOLERANCE_CENTS = 10;
   const TOOL_TABS = [
     { value: "tune", label: "Tune" },
@@ -165,9 +169,25 @@
     );
   }
 
+  let staleTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /**
+   * Restart the idle countdown; the next accepted frame restarts it again.
+   * Covers both readouts: Tune's note and Intonation's, which read from the
+   * same frames and would otherwise freeze on the last one just as badly.
+   */
+  function holdReading() {
+    clearTimeout(staleTimer);
+    staleTimer = setTimeout(() => {
+      tuner = null;
+      note = null;
+    }, STALE_READING_MS);
+  }
+
   const unsubscribeState = source.subscribeState((next) => {
     state = next;
     if (next.status !== "running") {
+      clearTimeout(staleTimer);
       tuner = null;
       note = null;
       session.reset();
@@ -185,7 +205,10 @@
         { frequency: freq, clarity },
         { a4, toleranceCents: TUNER_TOLERANCE_CENTS },
       );
-      if (next) tuner = next;
+      if (next) {
+        tuner = next;
+        holdReading();
+      }
       return;
     }
 
@@ -208,11 +231,13 @@
       note = reading.note;
     }
     frequency = freq;
+    holdReading();
     session.push({ cents, clarity, t: event.timestamp });
     stats = session.stats;
   });
 
   onDestroy(() => {
+    clearTimeout(staleTimer);
     unsubscribeState();
     unsubscribeEvents();
     void source.stop();
@@ -230,6 +255,7 @@
   function changeTool(next: string) {
     tool = readRouteTab(new URLSearchParams({ mode: next }), "mode", TOOL_IDS, "tune");
     writeRouteTab("mode", tool);
+    clearTimeout(staleTimer);
     tuner = null;
     note = null;
     session.reset();

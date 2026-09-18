@@ -8,7 +8,7 @@ test("full backup restores a saved song, MIDI take, backing and sample bytes in 
   browser,
 }, testInfo) => {
   test.setTimeout(90_000);
-  await page.goto("/music/create?mode=recorder");
+  await page.goto("/music/record");
   await expect(page.getByRole("button", { name: "New recording", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: /^Count in:/ }).click();
   await page.getByRole("button", { name: "Off", exact: true }).click();
@@ -33,7 +33,7 @@ test("full backup restores a saved song, MIDI take, backing and sample bytes in 
   await page
     .locator("#import-samples")
     .setInputFiles({ name: "kick.wav", mimeType: "audio/wav", buffer: wav });
-  await expect(page.getByRole("button", { name: /Pad A1,.*Kick/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Pad A01\b.*Kick/i })).toBeVisible();
   await page.goto("/music/play");
   await page.getByRole("button", { name: "Imported backing", exact: true }).click();
   await page
@@ -141,7 +141,7 @@ test("full backup restores a saved song, MIDI take, backing and sample bytes in 
     await expect(
       restored.getByText("Keep this until restore succeeds", { exact: true }),
     ).toHaveCount(0);
-    await restored.goto("/music/create?mode=recorder");
+    await restored.goto("/music/record");
     await expect(restored.getByText(/^3 notes ·/)).toBeVisible();
     await expect(restored.getByRole("button", { name: "Play Take 1", exact: true })).toBeEnabled();
     await restored.goto(songHref!);
@@ -154,9 +154,9 @@ test("full backup restores a saved song, MIDI take, backing and sample bytes in 
       restored.getByRole("button", { name: /Use imported backing backup-loop/ }),
     ).toBeVisible();
     await restored.goto("/music/create");
-    await expect(restored.getByRole("button", { name: /Pad A1,.*Kick/i })).toBeVisible();
+    await expect(restored.getByRole("button", { name: /Pad A01\b.*Kick/i })).toBeVisible();
     await restored.getByRole("button", { name: "Activate kit", exact: true }).click();
-    await restored.getByRole("button", { name: /Pad A1,.*Kick/i }).click();
+    await restored.getByRole("button", { name: /Pad A01\b.*Kick/i }).click();
     const kitDownload = restored.waitForEvent("download");
     await restored.getByRole("button", { name: "Download ZIP", exact: true }).click();
     const kit = await JSZip.loadAsync(readFileSync(await (await kitDownload).path()));

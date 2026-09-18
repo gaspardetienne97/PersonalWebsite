@@ -60,6 +60,10 @@
   /* Single fixed practice accent (focus/target/progress on the stage). */
   --practice-accent: oklch(0.52 0.2 277);
   --practice-accent-foreground: oklch(0.99 0 0);
+  /* Range selection ends on the score. Paired with the words Start and End and
+     with position, never colour alone. */
+  --range-start: oklch(0.6 0.16 150);
+  --range-end: oklch(0.6 0.2 25);
   /* Piano keys. Deliberately theme-stable (no .dark override): a physical
      keyboard's ivory/ebony does not invert when the app theme does, so the
      shared PianoSurface reads as a piano in both themes. */
@@ -174,6 +178,8 @@
   --stage-line: oklch(0.3 0.03 265);
   --practice-accent: oklch(0.62 0.2 290);
   --practice-accent-foreground: oklch(0.99 0 0);
+  --range-start: oklch(0.75 0.16 150);
+  --range-end: oklch(0.72 0.19 25);
   /* Hands lift a little on charcoal; foregrounds flip to dark for AA on the fill. */
   --hand-left: oklch(0.72 0.11 195);
   --hand-left-foreground: oklch(0.18 0.03 195);
@@ -237,6 +243,8 @@
   --color-stage-line: var(--stage-line);
   --color-practice-accent: var(--practice-accent);
   --color-practice-accent-foreground: var(--practice-accent-foreground);
+  --color-range-start: var(--range-start);
+  --color-range-end: var(--range-end);
   --color-piano-key: var(--piano-key);
   --color-piano-key-line: var(--piano-key-line);
   --color-piano-key-black: var(--piano-key-black);

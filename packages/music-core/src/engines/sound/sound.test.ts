@@ -902,3 +902,29 @@ describe("SoundEngine pattern look-ahead", () => {
     }
   });
 });
+
+describe("SoundEngine reported latency", () => {
+  const withContext = (rawContext: unknown) => {
+    const mock = createToneMock();
+    (mock.tone as { getContext?: () => unknown }).getContext = () => ({ rawContext });
+    return new SoundEngine(async () => mock.tone);
+  };
+
+  test("reports nothing before audio is enabled", () => {
+    expect(new SoundEngine().reportedLatency).toEqual({});
+  });
+
+  test("reports the browser's output and base latency in ms", async () => {
+    const engine = withContext({ outputLatency: 0.0123, baseLatency: 0.0053 });
+    await engine.enable();
+
+    expect(engine.reportedLatency).toEqual({ outputMs: 12.3, baseMs: 5.3 });
+  });
+
+  test("treats a zero or missing outputLatency as not reported", async () => {
+    const engine = withContext({ outputLatency: 0, baseLatency: 0.005 });
+    await engine.enable();
+
+    expect(engine.reportedLatency).toEqual({ baseMs: 5 });
+  });
+});

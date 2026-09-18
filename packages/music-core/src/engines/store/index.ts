@@ -62,6 +62,10 @@ export interface AudioTakeRow {
   backingTrackId?: string;
   backingKind?: "generated" | "imported";
   backingOffsetMs: number;
+  /** Playback gain in dB (−12…+18). The recorded audio is never rewritten. */
+  gainDb?: number;
+  /** Optional one-line note the player attaches to the take. */
+  note?: string;
   generatedBacking?: {
     progressionId: string;
     bpm: number;

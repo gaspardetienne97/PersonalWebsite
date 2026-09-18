@@ -115,6 +115,10 @@ function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
    */
   const held = new Set<number>();
   const wrong = new Set<number>();
+  // `wrong` is the run's record (it feeds the result); `liveWrong` is what the
+  // keyboard and staff show, so a mis-hit stops being red once the group moves
+  // on instead of hiding the next group's active/target keys.
+  const liveWrong = new Set<number>();
   const input: NoteEvent[] = [];
   const playedMidiNotes: number[] = [];
   let heldSource: InputSource | undefined;
@@ -136,6 +140,7 @@ function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
     if (!expected.every((midiNote) => held.has(midiNote))) return;
 
     clearHold();
+    liveWrong.clear();
     currentGroupIndex += 1;
   }
 
@@ -161,11 +166,14 @@ function waitModeRun(groups: ExpectedNoteGroup[]): ScoreFollowerRun {
       held.add(event.midiNote);
 
       const expected = currentGroup()?.midiNotes ?? [];
-      if (expected.length > 0 && !expected.includes(event.midiNote)) wrong.add(event.midiNote);
+      if (expected.length > 0 && !expected.includes(event.midiNote)) {
+        wrong.add(event.midiNote);
+        liveWrong.add(event.midiNote);
+      }
       advanceIfComplete();
     },
     getLiveState() {
-      return liveState(groups, currentGroupIndex, held, wrong);
+      return liveState(groups, currentGroupIndex, held, liveWrong);
     },
     finish() {
       const state = liveState(groups, currentGroupIndex, held, wrong);
@@ -215,6 +223,9 @@ function performanceModeRun(
   const matched = new Map<number, { actualMs: number; errorMs: number }>();
   const expectedPitchSet = new Set(expected.map(({ midiNote }) => midiNote));
   const extraMidiNotes = new Set<number>();
+  // As in wait mode: the run keeps every extra for the result, the surfaces
+  // only show the ones since the player last landed an expected note.
+  const liveExtraMidiNotes = new Set<number>();
   let lastTimingErrorMs: number | undefined;
 
   return {
@@ -231,13 +242,17 @@ function performanceModeRun(
           errorMs: candidate.errorMs,
         });
         lastTimingErrorMs = candidate.errorMs;
+        liveExtraMidiNotes.clear();
         return;
       }
 
-      if (!expectedPitchSet.has(event.midiNote)) extraMidiNotes.add(event.midiNote);
+      if (!expectedPitchSet.has(event.midiNote)) {
+        extraMidiNotes.add(event.midiNote);
+        liveExtraMidiNotes.add(event.midiNote);
+      }
     },
     getLiveState() {
-      return performanceLiveState(groups, expected, matched, extraMidiNotes, lastTimingErrorMs);
+      return performanceLiveState(groups, expected, matched, liveExtraMidiNotes, lastTimingErrorMs);
     },
     finish() {
       const metrics: ScoringMetric[] = [];

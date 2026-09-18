@@ -465,7 +465,9 @@ This file provides guidance for agents working on the Music app under
   use the core grid projection plus the route-level Add bar control instead of
   fixed two-bar rendering. Do not add route-local playback/export engines for
   future piano-roll polish.
-- `/music/create?mode=recorder`: take list, waveform, compare, and self-review.
+- `/music/record`: take list, waveform, compare, and self-review. Its takes come from
+  the shared `_components/take-recorder.svelte.ts` recorder, which `/music/play` reads
+  too. `/music/create?mode=recorder` redirects here.
 - `/music/track`: practice journal and routine/session tracking.
 - `/music/settings`: the runtime-owned Music settings surface. Groups Audio,
   Input, Latency calibration, Appearance and Your data as `SectionHeading`

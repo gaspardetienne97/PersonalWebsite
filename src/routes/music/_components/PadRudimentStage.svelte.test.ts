@@ -38,4 +38,21 @@ describe("PadRudimentStage", () => {
       "upcoming",
     );
   });
+
+  test("names the subdivision and marks flam grace notes in the lane", () => {
+    render(PadRudimentStage, {
+      router: new InputRouter(),
+      targetSequence: [38, 36],
+      targetEvents: [
+        { padMidi: 38, accent: "normal", graceMs: 30 },
+        { padMidi: 36, accent: "normal" },
+      ],
+      subdivision: 4,
+      bpm: 80,
+    });
+
+    const lane = document.querySelector('[aria-label="Rudiment sequence lane"]');
+    expect(document.body.textContent).toContain("Sixteenths");
+    expect(lane?.textContent).toContain("Grace");
+  });
 });

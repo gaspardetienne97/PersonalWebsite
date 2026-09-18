@@ -1,3 +1,5 @@
+import { DRUM_VOICE_PADS, type DrumVoice } from "@repo/music-core/domain";
+
 export interface PadRow {
   id: string;
   name: string;
@@ -13,13 +15,13 @@ export interface StepSequencerPattern {
   }>;
 }
 
-export const BOOM_BAP_KIT: PadRow[] = [
-  { id: "kick", name: "Kick", midi: 36 },
-  { id: "snare", name: "Snare", midi: 38 },
-  { id: "hats", name: "Hats", midi: 42 },
-  { id: "openhat", name: "Open Hat", midi: 46 },
-  { id: "808", name: "808", midi: 35 },
-  { id: "perc", name: "Perc", midi: 39 },
+export const BOOM_BAP_KIT: Array<PadRow & { id: DrumVoice }> = [
+  { id: "kick", name: "Kick", midi: DRUM_VOICE_PADS.kick },
+  { id: "snare", name: "Snare", midi: DRUM_VOICE_PADS.snare },
+  { id: "hats", name: "Hats", midi: DRUM_VOICE_PADS.hats },
+  { id: "openhat", name: "Open Hat", midi: DRUM_VOICE_PADS.openhat },
+  { id: "808", name: "808", midi: DRUM_VOICE_PADS["808"] },
+  { id: "perc", name: "Perc", midi: DRUM_VOICE_PADS.perc },
 ];
 
 /**

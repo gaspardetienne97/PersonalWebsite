@@ -11,6 +11,7 @@ import {
   projectScoreToAerophone,
   projectScoreToFretboard,
   projectScoreToPiano,
+  unreachableNotes,
 } from "./index";
 
 function tabScore(notes: { midiNote: number; startBeat: number }[]) {
@@ -250,6 +251,45 @@ describe("music-core/projection", () => {
     expect(projection.options).toMatchObject({ instrument: "aerophone" });
     expect(projection.notes.map((note) => note.midiNote)).toEqual([67, 62]);
     expect(projection.notes.map((note) => note.startBeat)).toEqual([0, 1]);
+  });
+});
+
+describe("unreachableNotes", () => {
+  test("counts notes below the lowest string and clears them an octave up", () => {
+    // A bass line under standard guitar tuning: E1 and A1 sit below the low E string.
+    const bassPart = tabScore([
+      { midiNote: 28, startBeat: 0 },
+      { midiNote: 33, startBeat: 1 },
+      { midiNote: 40, startBeat: 2 },
+    ]);
+
+    expect(
+      unreachableNotes(projectScoreToFretboard(bassPart, guitarStandard), guitarStandard),
+    ).toMatchObject({ below: 2, above: 0, total: 2 });
+    expect(
+      unreachableNotes(
+        projectScoreToFretboard(bassPart, guitarStandard, { transpose: 12 }),
+        guitarStandard,
+      ),
+    ).toMatchObject({ below: 0, above: 0, total: 0 });
+  });
+
+  test("counts notes past the top fret separately, and an octave up makes them worse", () => {
+    // The top string is E4 (64) with 22 frets, so 87 and above is off the neck.
+    const highPart = tabScore([
+      { midiNote: 86, startBeat: 0 },
+      { midiNote: 95, startBeat: 1 },
+    ]);
+
+    expect(
+      unreachableNotes(projectScoreToFretboard(highPart, guitarStandard), guitarStandard),
+    ).toMatchObject({ below: 0, above: 1, total: 1 });
+    expect(
+      unreachableNotes(
+        projectScoreToFretboard(highPart, guitarStandard, { transpose: 12 }),
+        guitarStandard,
+      ).above,
+    ).toBe(2);
   });
 });
 

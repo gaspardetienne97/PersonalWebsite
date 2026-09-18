@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { GROOVE_VOICES, MPC_GROOVES, grooveTargets, normalizeMpcGrooveConfig, type MpcGrooveAnswer, type MpcGroovePrompt } from "@repo/music-core/exercises/mpc-groove";
+  import { GROOVE_VOICES, MPC_GROOVES, grooveDefinition, grooveVoices, normalizeMpcGrooveConfig, type GrooveTarget, type GrooveVoice, type MpcGrooveAnswer, type MpcGroovePrompt } from "@repo/music-core/exercises/mpc-groove";
   import { browser } from "$app/environment";
   import { onDestroy, tick } from "svelte";
 
@@ -13,6 +13,8 @@
     buildMpcRudimentSequence,
     buildMpcRudimentTargetEvents,
     assessedMpcResult,
+    MPC_RUDIMENT_PATTERNS,
+    MPC_SUBDIVISION_LABELS,
   } from "@repo/music-core/exercises/mpc-single-stroke";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
@@ -21,6 +23,7 @@
   import {
     MPC_RUDIMENT_TEMPOS,
     MPC_RUDIMENT_PATTERN_OPTIONS,
+    MPC_SUBDIVISION_OPTIONS,
     normalizeMpcRudimentConfig,
     TechniqueSession,
     type TechniqueSessionState,
@@ -77,12 +80,35 @@
   const grooveAnswer = $derived(mode === "groove" ? result?.result.answer as MpcGrooveAnswer | undefined : undefined);
   const completedGroove = $derived(completedPrompt && "responseStart" in completedPrompt ? completedPrompt as MpcGroovePrompt : undefined);
 
+  // Tone gives us three drum sounds; the other kit voices borrow the nearest one.
+  const PERCUSSION_SOUND: Record<GrooveVoice, "kick" | "snare" | "hats"> = {
+    kick: "kick",
+    "808": "kick",
+    snare: "snare",
+    perc: "snare",
+    hats: "hats",
+    openhat: "hats",
+  };
+  /** The one place a groove target becomes sound: the count-in model and Demo share it. */
+  function soundGrooveTarget(target: GrooveTarget, atSeconds?: number): void {
+    runtime.sound.playPercussion(
+      PERCUSSION_SOUND[target.voice],
+      atSeconds,
+      target.accent === "accent" ? 0.95 : 0.7,
+    );
+  }
+
+  const grooveDef = $derived(grooveDefinition(grooveFamily));
+  const grooveVoiceRows = $derived(grooveVoices(grooveFamily));
+
   let mappingOpen = $state(false);
   let keymap = $state({ ...DEFAULT_PAD_KEYS });
   let leftPadMidi = $state(String(initialConfig.leftPadMidi));
   let rightPadMidi = $state(String(initialConfig.rightPadMidi));
   let patternId = $state(initialConfig.patternId);
   let hitCount = $state(String(initialConfig.hitCount));
+  // The request, not the resolved value: a pattern with a fixed grid must not overwrite it.
+  let subdivision = $state(String(normalizeMpcRudimentConfig({ sub: initialSearch.get("sub") }).subdivision));
   let bpm = $state(String(initialConfig.bpm));
   let ready = $state(false);
   let pending = $state(false);
@@ -97,6 +123,15 @@
   let sessionState = $state<TechniqueSessionState | undefined>();
   let resultsDismissed = $state(false);
   let unsubscribeSession: (() => void) | undefined;
+  // Demo mode: the same model the count-in plays, on demand and without a run.
+  // No performance, no scoring event, nothing written to history (review 21 O06).
+  let demoRunning = $state(false);
+  let demoPad = $state<number | undefined>();
+  let demoGeneration = 0;
+  let demoTimers: ReturnType<typeof setTimeout>[] = [];
+  let statusBeforeDemo = "";
+  const DEMO_STATUS = "Demo: listening, not scored.";
+  const drillMode = $derived<"demo" | "practice" | "check">(demoRunning ? "demo" : "practice");
 
   const prompt = $derived(
     sessionState?.currentPrompt && "targetSequence" in sessionState.currentPrompt
@@ -131,7 +166,11 @@
       right: rightPadMidi,
       hits: hitCount,
       bpm,
+      sub: subdivision,
     }),
+  );
+  const fixedSubdivision = $derived(
+    MPC_RUDIMENT_PATTERNS.find((pattern) => pattern.id === patternId)?.subdivision,
   );
   const stageTargetSequence = $derived(
     prompt?.targetSequence ??
@@ -140,6 +179,7 @@
         normalizedConfig.leftPadMidi,
         normalizedConfig.rightPadMidi,
         normalizedConfig.hitCount,
+        normalizedConfig.subdivision,
       ),
   );
   const stageTargetEvents = $derived(
@@ -149,6 +189,7 @@
         normalizedConfig.leftPadMidi,
         normalizedConfig.rightPadMidi,
         normalizedConfig.hitCount,
+        normalizedConfig.subdivision,
       ),
   );
   const variantKey = $derived(mode === "groove" ? `v1:mpc:groove:${grooveFamily}` : `v1:mpc:${patternId}`);
@@ -239,7 +280,7 @@
               source: "drill", instrument: "mpc",
               comparison: { variantKey: `v1:mpc:groove:${config.family}`, bpm: config.bpm, settings: JSON.stringify({ family: config.family, bpm: config.bpm, mapping: config.mapping }), dimensions: "groove family, BPM and voice mappings" },
               tags: ["mpc", "groove", config.family], scoringEvents: [completed.event], xpEarned: state.summary.xp,
-              note: `MPC groove recall · ${config.label} · ${config.bpm} BPM · ${Math.round(detail.accuracy * 100)}% independent accuracy · ${detail.meanTimingErrorMs === null ? "Timing not measured" : `${Math.round(detail.meanTimingErrorMs)}ms timing`} · Accents not assessed`,
+              note: `MPC groove recall · ${config.label} · ${config.bars} bar${config.bars === 1 ? "" : "s"} · ${config.bpm} BPM · ${Math.round(detail.accuracy * 100)}% independent accuracy · ${detail.meanTimingErrorMs === null ? "Timing not measured" : `${Math.round(detail.meanTimingErrorMs)}ms timing`} · ${detail.sections.map((section) => `${section.label} ${section.matched}/${section.targets}`).join(", ")} · ${detail.accentAssessed ? `accents ${detail.accentMatched}/${detail.accentTargets}` : "accents not assessed"}`,
             });
             return;
           }
@@ -268,10 +309,84 @@
     }
   }
 
+  /** The model Demo sounds: the groove's own targets, or the rudiment's sticking. */
+  const demoStrokes = $derived.by(() => {
+    const beatMs = 60_000 / Number(bpm);
+    if (mode === "groove") {
+      // The same slice the count-in reference plays: a target on the downbeat
+      // after the model (M3's landing kick) belongs to the response, not the model.
+      return grooveDef.targets
+        .filter((target) => target.beat < grooveDef.bars * 4)
+        .map((target) => ({
+          atMs: target.beat * beatMs,
+          pad: grooveConfig.mapping[target.voice],
+          play: () => soundGrooveTarget(target),
+        }));
+    }
+    // A rudiment is a sticking on one surface, so every stroke is the same voice.
+    return stageTargetEvents.map((event) => ({
+      atMs: Math.max(0, event.beat * beatMs - (event.graceMs ?? 0)),
+      pad: event.padMidi,
+      play: () => runtime.sound.playPercussion("snare", undefined, event.accent === "accent" ? 0.95 : 0.7),
+    }));
+  });
+
+  /**
+   * Play the exercise as a model. No performance, no attempt, no scoring event —
+   * the pads still sound under a finger, nothing is graded.
+   */
+  async function toggleDemo(): Promise<void> {
+    if (demoRunning) {
+      stopDemo();
+      return;
+    }
+    // A start is in flight (the reference and its count-in are sounding) with the
+    // ready stage still up: a demo begun now would dress the graded run as one,
+    // and its stopPercussion would silence the reference the player must copy.
+    if (!ready || pending) return;
+    const generation = ++demoGeneration;
+    if (!(await runtime.ensurePlaybackVoice())) {
+      if (generation === demoGeneration) status = runtime.audioMessage;
+      return;
+    }
+    if (generation !== demoGeneration || destroyed || pending) return;
+    const strokes = demoStrokes;
+    statusBeforeDemo = status;
+    demoRunning = true;
+    status = DEMO_STATUS;
+    for (const stroke of strokes) {
+      demoTimers.push(
+        setTimeout(() => {
+          demoPad = stroke.pad;
+          stroke.play();
+        }, stroke.atMs),
+      );
+    }
+    demoTimers.push(
+      setTimeout(stopDemo, (strokes.at(-1)?.atMs ?? 0) + 60_000 / Number(bpm)),
+    );
+  }
+
+  function stopDemo(): void {
+    demoGeneration += 1;
+    for (const timer of demoTimers) clearTimeout(timer);
+    demoTimers = [];
+    // Nothing to silence when no demo ran; stopPercussion() disposes the kit
+    // synths, which would cut a count-in reference that is still playing.
+    if (!demoRunning) return;
+    runtime.sound.stopPercussion();
+    // Only take back the line the demo wrote: initialize() may have replaced it.
+    if (status === DEMO_STATUS) status = statusBeforeDemo;
+    demoRunning = false;
+    demoPad = undefined;
+  }
+
   async function start(): Promise<void> {
     if (!ready || pending || !session) return;
-    if (mode === "groove" && new Set(Object.values(grooveMapping)).size !== 3) {
-      status = "Choose three different MIDI pads.";
+    stopDemo();
+    const groovePads = grooveVoiceRows.map((voice) => grooveMapping[voice.id]);
+    if (mode === "groove" && new Set(groovePads).size !== groovePads.length) {
+      status = "Choose a different pad for each groove voice.";
       return;
     }
     if (mode !== "groove" && leftPadMidi === rightPadMidi) {
@@ -294,13 +409,16 @@
       if (request !== startRequest || generation !== routeGeneration) return;
       const config = normalizedConfig;
       const groove = grooveConfig;
-      if (mode === "groove") { groovePreparing = true; status = "Listen to one bar, then count in for one bar."; }
+      const definition = grooveDefinition(groove.family);
+      if (mode === "groove") { groovePreparing = true; status = `Listen to ${barsLabel(definition.bars)}, then count in for one bar.`; }
       const performanceResult = await runtime.beginPerformance(mode === "groove" ? {
         countInBars: 1,
-        leadIn: { bars: 1, onStart: (event) => {
+        leadIn: { bars: definition.bars, onStart: (event) => {
           if (request !== startRequest || generation !== routeGeneration) return;
-          for (const target of grooveTargets(groove.family)) {
-            runtime.sound.playPercussion(target.voice, event.atSeconds + target.beat * 60 / groove.bpm);
+          // Only the bars of the model itself: a target on the downbeat after them
+          // (M3's landing kick) belongs to the response, not on top of the count-in click.
+          for (const target of definition.targets.filter(target => target.beat < definition.bars * 4)) {
+            soundGrooveTarget(target, event.atSeconds + target.beat * 60 / groove.bpm);
           }
         } },
       } : undefined);
@@ -318,15 +436,15 @@
         if (request !== startRequest || generation !== routeGeneration) {
           runtime.endPerformance(); stopGrooveSound(); session.abandon(); return;
         }
-        groovePreparing = false; resultsDismissed = false; status = "Your turn. Copy the groove for one bar.";
+        groovePreparing = false; resultsDismissed = false; status = `Your turn. Copy the groove for ${barsLabel(definition.bars)}.`;
         const finishAtDeadline = () => {
           if (request !== startRequest || generation !== routeGeneration) return;
-          const remaining = prompt.responseEnd - performance.now();
+          const remaining = prompt.captureEndMs - performance.now();
           if (remaining > 0) { responseDeadline = setTimeout(finishAtDeadline, remaining); return; }
           responseDeadline = undefined;
           runtime.endPerformance(); runtime.sound.stopPercussion(); session?.finishNow();
         };
-        responseDeadline = setTimeout(finishAtDeadline, Math.max(0, prompt.responseEnd - performance.now()));
+        responseDeadline = setTimeout(finishAtDeadline, Math.max(0, prompt.captureEndMs - performance.now()));
         return;
       }
       await session.startMpcRudiment({
@@ -335,6 +453,8 @@
         rightPadMidi: config.rightPadMidi,
         hitCount: config.hitCount,
         bpm: config.bpm,
+        subdivision: config.subdivision,
+        startTimestampMs: performanceResult.downbeat,
       });
       if (request !== startRequest || generation !== routeGeneration) {
         runtime.endPerformance();
@@ -366,9 +486,9 @@
   const unsubscribeGrooveInput = runtime.router.subscribe(event => {
     const prompt = sessionState?.currentPrompt;
     if (mode !== "groove" || !prompt || !("responseStart" in prompt) || event.type !== "noteOn" ||
-        event.timestamp < prompt.responseStart || event.timestamp >= prompt.responseEnd || sessionState?.status !== "active") return;
-    const voice = GROOVE_VOICES.find(voice => prompt.mapping[voice.id] === event.midiNote);
-    if (voice) runtime.sound.playPercussion(voice.id, undefined, event.velocity);
+        event.timestamp < prompt.responseStart || event.timestamp >= prompt.captureEndMs || sessionState?.status !== "active") return;
+    const voice = grooveVoices(prompt.family).find(voice => prompt.mapping[voice.id] === event.midiNote);
+    if (voice) runtime.sound.playPercussion(PERCUSSION_SOUND[voice.id], undefined, event.velocity);
   });
 
   function cancel(): void {
@@ -391,6 +511,18 @@
     void start();
   }
 
+  function grooveSteps(prompt: MpcGroovePrompt): number[] {
+    const lastBeat = prompt.targets.at(-1)?.beat ?? 0;
+    return Array.from(
+      { length: Math.max(prompt.bars * 16, Math.floor(lastBeat * 4) + 1) },
+      (_, step) => step,
+    );
+  }
+
+  function barsLabel(bars: number): string {
+    return bars === 1 ? "one bar" : `${bars} bars`;
+  }
+
   function message(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
   }
@@ -401,9 +533,10 @@
     params.set("mode", mode);
     if (mode === "groove") {
       params.set("groove", grooveConfig.family);
-      for (const voice of GROOVE_VOICES) params.set(voice.id, String(grooveConfig.mapping[voice.id]));
+      for (const voice of grooveVoiceRows) params.set(voice.id, String(grooveConfig.mapping[voice.id]));
     }
     params.set("pattern", config.patternId);
+    params.set("sub", subdivision);
     params.set("left", String(config.leftPadMidi));
     params.set("right", String(config.rightPadMidi));
     params.set("hits", String(config.hitCount));
@@ -415,6 +548,7 @@
     destroyed = true;
     routeGeneration += 1;
     startRequest += 1;
+    stopDemo();
     runtime.endPerformance();
     stopGrooveSound();
     unsubscribeGrooveInput();
@@ -475,12 +609,15 @@
             <HudTile size="sm" label="Timing error" value={grooveAnswer.meanTimingErrorMs === null ? "Not measured" : Math.round(grooveAnswer.meanTimingErrorMs)} unit={grooveAnswer.meanTimingErrorMs === null ? undefined : "ms"} />
           </div>
           <p class="text-sm text-muted-foreground">{grooveAnswer.matched} matched · {grooveAnswer.omissions} missed · {grooveAnswer.extras} extra. Timing uses matched hits only.</p>
-          <p class="text-sm text-muted-foreground">Accents are not assessed for these grooves. Velocity: {grooveAnswer.variableMidiVelocity ? "variable MIDI observed" : "Not measured"}.</p>
+          <p class="text-sm text-muted-foreground">Accents: {grooveAnswer.accentTargets === 0 ? "none written in this groove" : grooveAnswer.accentAssessed ? `${grooveAnswer.accentMatched} of ${grooveAnswer.accentTargets} in band, ${grooveAnswer.dynamicsMatched} of ${grooveAnswer.dynamicsTargets} notes in their written band` : "Not measured, MIDI velocity needed"}. Velocity: {grooveAnswer.variableMidiVelocity ? "variable MIDI observed" : "Not measured"}.</p>
+          {#if grooveAnswer.sections.length > 1}
+            <ul class="space-y-1 text-sm">{#each grooveAnswer.sections as section (section.label)}<li>{section.label === "fill" ? "Fill" : "Groove"}: {section.matched} of {section.targets} hit · {section.omissions} missed · {section.extras} extra · timing {section.meanTimingErrorMs === null ? "Not measured" : `${Math.round(section.meanTimingErrorMs)}ms`}.</li>{/each}</ul>
+          {/if}
           <div class="max-w-full overflow-x-auto">
             <table aria-label="Expected groove" class="w-full text-center text-xs">
-              <caption class="pb-2 text-left font-medium">Expected groove · sixteenth-note grid</caption>
-              <thead><tr><th scope="col">Voice</th>{#each Array.from({length:16}, (_,i)=>i) as step (step)}<th scope="col" class="min-w-5">{step % 4 === 0 ? step / 4 + 1 : ["", "e", "&", "a"][step % 4]}</th>{/each}</tr></thead>
-              <tbody>{#each GROOVE_VOICES as voice (voice.id)}<tr><th scope="row">{voice.name}</th>{#each Array.from({length:16}, (_,i)=>i) as step (step)}<td class="border p-1">{completedGroove.targets.some(target=>target.voice===voice.id && target.beat===step/4) ? "●" : "·"}</td>{/each}</tr>{/each}</tbody>
+              <caption class="pb-2 text-left font-medium">Expected groove · sixteenth-note grid · {barsLabel(completedGroove.bars)}</caption>
+              <thead><tr><th scope="col">Voice</th>{#each grooveSteps(completedGroove) as step (step)}<th scope="col" class="min-w-5">{step % 4 === 0 ? (step / 4) % 4 + 1 : ["", "e", "&", "a"][step % 4]}</th>{/each}</tr></thead>
+              <tbody>{#each grooveVoices(completedGroove.family) as voice (voice.id)}<tr><th scope="row">{voice.name}</th>{#each grooveSteps(completedGroove) as step (step)}{@const target = completedGroove.targets.find(target=>target.voice===voice.id && target.beat===step/4)}<td class="border p-1" class:font-bold={target?.accent === "accent"}>{target ? "●" : "·"}</td>{/each}</tr>{/each}</tbody>
             </table>
           </div>
           <ul class="space-y-1 text-sm">{#each grooveAnswer.voices as voice (voice.voice)}<li>{GROOVE_VOICES.find(item=>item.id===voice.voice)?.name ?? "Unmapped pads"}: {voice.matched} matched, {voice.omissions} missed, {voice.extras} extra; timing {voice.meanTimingErrorMs === null ? "Not measured" : `${Math.round(voice.meanTimingErrorMs)}ms`}.</li>{/each}</ul>
@@ -504,12 +641,18 @@
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
+  <PracticeDrillShell
+    {phase}
+    mode={drillMode}
+    startPending={pending || demoRunning}
+    setupSummary={setupSummaryLine}
+    summary={summaryPhase}
+  >
     {#snippet setup()}
       <div class="grid gap-4 rounded-lg border bg-card p-4">
         {#if mode === "groove"}
           <div class="grid gap-3 sm:grid-cols-3">
-            {#each GROOVE_VOICES as voice (voice.id)}
+            {#each grooveVoiceRows as voice (voice.id)}
               <div class="grid gap-2"><Label for={`groove-${voice.id}`}>{voice.name} pad</Label><select id={`groove-${voice.id}`} aria-label={`${voice.name} pad`} bind:value={grooveMapping[voice.id]} class="h-9 rounded-md border border-input bg-background px-3 text-sm">{#each padOptions as midi (midi)}<option value={midi}>Pad {midi}</option>{/each}</select></div>
             {/each}
           </div>
@@ -544,12 +687,17 @@
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <SegmentedControl ariaLabel="Hit count" options={hitCountOptions} bind:value={hitCount} size="sm" />
+          {#if fixedSubdivision === undefined}
+            <SegmentedControl ariaLabel="Subdivision" options={MPC_SUBDIVISION_OPTIONS} bind:value={subdivision} size="sm" />
+          {:else}
+            <p class="text-sm text-muted-foreground">Subdivision · {MPC_SUBDIVISION_LABELS[fixedSubdivision]} (fixed by this pattern)</p>
+          {/if}
           <p class="text-sm tabular-nums text-muted-foreground">Tempo · {bpm} BPM (practice controls above)</p>
         </div>
         {/if}
         <details bind:open={mappingOpen}>
           <summary class="cursor-pointer text-sm font-medium">Keyboard pad mapping</summary>
-          {#if mappingOpen && !pending}
+          {#if mappingOpen && !pending && !demoRunning}
           <PracticeStage instrument="mpc" class="mt-3 max-w-xs p-3">
             <MpcPadGrid router={runtime.router} bind:keymap editable />
           </PracticeStage>
@@ -574,7 +722,7 @@
               {patternLabel}
             </div>
             <p class="text-sm text-stage-muted">
-              {#if mode === "groove"}Hear one bar, count in for one bar, then copy it for one bar. Targets appear afterward.
+              {#if mode === "groove"}Hear {barsLabel(grooveDef.bars)}, count in for one bar, then copy it. Targets appear afterward.
               {:else}Alternate pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi} for {normalizedConfig.hitCount}
               hits; order, timing and velocity are graded.{/if}
             </p>
@@ -583,17 +731,33 @@
             <Button type="button" size="lg" disabled={!ready || pending} onclick={start}>
               {pending ? "Starting..." : "Start"}
             </Button>
+            {#if drillMode !== "check"}
+              <Button
+                type="button"
+                variant="outline"
+                class="min-h-11"
+                disabled={!ready || pending}
+                onclick={() => void toggleDemo()}
+              >
+                {demoRunning ? "Stop demo" : "Demo"}
+              </Button>
+            {/if}
             <StartShortcut onStart={() => void start()} enabled={ready && !pending} />
           </div>
         </div>
         <!-- The pattern is what you drill, so it stays on the stage; the fieldset mirrors the shell's start lock. -->
-        <fieldset class="min-w-0 border-0 p-0" disabled={pending}>
+        <fieldset class="min-w-0 border-0 p-0" disabled={pending || demoRunning}>
           <SegmentedControl ariaLabel="Practice mode" options={modeOptions} bind:value={mode} />
           <div class="mt-3">
             {#if mode === "groove"}<SegmentedControl ariaLabel="Groove family" options={[...MPC_GROOVES]} bind:value={grooveFamily} />
             {:else}<SegmentedControl ariaLabel="Rudiment pattern" options={MPC_RUDIMENT_PATTERN_OPTIONS} bind:value={patternId} />{/if}
           </div>
         </fieldset>
+        {#if demoRunning}
+          <div class="mx-auto w-full max-w-sm">
+            <MpcPadGrid {keymap} router={runtime.router} targetMidi={demoPad} />
+          </div>
+        {/if}
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
     {/snippet}
@@ -610,8 +774,8 @@
       {#if mode === "groove"}
         <PracticeStage instrument="mpc" class="grid min-w-0 gap-4 p-4 sm:p-6">
           <p class="text-lg font-medium">{status}</p>
-          <p class="text-sm text-stage-muted">{#each GROOVE_VOICES as voice (voice.id)}<span class="mr-3 inline-block">{voice.name}: pad {grooveConfig.mapping[voice.id]} ({keymap[grooveConfig.mapping[voice.id]]?.toUpperCase() ?? "unassigned"})</span>{/each}</p>
-          <div class="mx-auto w-full max-w-sm"><MpcPadGrid {keymap} router={runtime.router} labels={Object.fromEntries(GROOVE_VOICES.map((voice) => [grooveConfig.mapping[voice.id], voice.name]))} /></div>
+          <p class="text-sm text-stage-muted">{#each grooveVoiceRows as voice (voice.id)}<span class="mr-3 inline-block">{voice.name}: pad {grooveConfig.mapping[voice.id]} ({keymap[grooveConfig.mapping[voice.id]]?.toUpperCase() ?? "unassigned"})</span>{/each}</p>
+          <div class="mx-auto w-full max-w-sm"><MpcPadGrid {keymap} router={runtime.router} labels={Object.fromEntries(grooveVoiceRows.map((voice) => [grooveConfig.mapping[voice.id], voice.name]))} /></div>
         </PracticeStage>
       {:else}
       <PadRudimentStage
@@ -621,6 +785,7 @@
         targetEvents={stageTargetEvents}
         completedHits={completedHits}
         bpm={normalizedConfig.bpm}
+        subdivision={normalizedConfig.subdivision}
       />
       {#if prompt}
         <div class="grid gap-2 px-1">

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { monotonicMs, type ExerciseContext, type NoteEvent } from "@repo/music-core/domain";
+import {
+  createVoicingDrillExercise,
+  type VoicingTarget,
+} from "@repo/music-core/exercises/voicing-drill";
+
 import {
   buildVoicingDrillTargets,
   normalizeVoicingDrillConfig,
@@ -210,5 +216,93 @@ describe("guide-tone session", () => {
     await failed.submit();
     expect(failed.state.current!.voiceLeading!.fromMidi).toEqual([53, 59]);
     failed.dispose();
+  });
+});
+
+describe("closest chords (P2)", () => {
+  const targets = buildVoicingDrillTargets("piano", { variant: "inversions" });
+
+  it("authors the four tabled chords with their inversions and left-hand roots", () => {
+    expect(targets.map((target) => target.symbol)).toEqual(["C", "F/C", "G/B", "C"]);
+    expect(targets.map((target) => target.displayMidi)).toEqual([
+      [48, 60, 64, 67],
+      [41, 60, 65, 69],
+      [43, 59, 62, 67],
+      [48, 60, 64, 67],
+    ]);
+    expect(targets.map((target) => target.expectedBassPc)).toEqual([0, 0, 11, 0]);
+    expect(targets.every((target) => target.strict && target.requireInversion)).toBe(true);
+    // "LH plays roots": the root is graded, not just displayed.
+    expect(targets.map((target) => target.requiredRootPc)).toEqual([0, 5, 7, 0]);
+  });
+
+  it("moves 12 semitones in total across the four bars", () => {
+    const rightHand = targets.map((target) => target.displayMidi!.slice(1));
+    const total = rightHand
+      .slice(1)
+      .reduce(
+        (sum, voicing, index) =>
+          sum +
+          voicing.reduce((bar, midi, voice) => bar + Math.abs(midi - rightHand[index]![voice]!), 0),
+        0,
+      );
+    expect(total).toBe(12);
+    // Each move is carried by the target's own voice-leading spec.
+    expect(targets.slice(1).map((target) => target.voiceLeading?.fromMidi)).toEqual([
+      [60, 64, 67],
+      [60, 65, 69],
+      [59, 62, 67],
+    ]);
+    expect(targets.slice(1).every((target) => target.voiceLeading?.toleranceSemitones === 2)).toBe(
+      true,
+    );
+  });
+
+  it("transposes the variation to G major, keeping the same total movement", () => {
+    const g = buildVoicingDrillTargets("piano", { variant: "inversions", key: 7 });
+    expect(g.map((target) => target.symbol)).toEqual(["G", "C/G", "D/F#", "G"]);
+    expect(g.map((target) => target.displayMidi)).toEqual([
+      [43, 67, 71, 74],
+      [48, 67, 72, 76],
+      [50, 66, 69, 74],
+      [43, 67, 71, 74],
+    ]);
+    // Same three moves, so the tabled 12-semitone total is invariant.
+    const rightHand = g.map((target) => target.displayMidi!.slice(1));
+    const total = rightHand
+      .slice(1)
+      .reduce(
+        (sum, voicing, index) =>
+          sum +
+          voicing.reduce((bar, midi, voice) => bar + Math.abs(midi - rightHand[index]![voice]!), 0),
+        0,
+      );
+    expect(total).toBe(12);
+  });
+
+  it("grades the tabled voicings correct and an octave-equivalent right hand wrong", () => {
+    const hold = (target: VoicingTarget, notes: number[]) => {
+      const exercise = createVoicingDrillExercise(target);
+      const context: ExerciseContext = { targetSkillIds: [], difficulty: 0.5 };
+      const run = exercise.createRun(exercise.generate(context), context);
+      notes.forEach((midiNote) => {
+        const event: NoteEvent = {
+          type: "noteOn",
+          midiNote,
+          velocity: 1,
+          source: "midi",
+          timestamp: monotonicMs(0),
+          clock: "performance",
+        };
+        run.accept(event);
+      });
+      return run.finish();
+    };
+
+    for (const target of targets) {
+      expect(hold(target, target.displayMidi!).correct, target.symbol).toBe(true);
+    }
+    // Bar 2 respelled up an octave is root position, not F/C.
+    expect(hold(targets[1]!, [41, 65, 69, 72]).correct).toBe(false);
   });
 });

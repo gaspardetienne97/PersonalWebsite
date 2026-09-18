@@ -162,7 +162,7 @@ describe("ReadingSession", () => {
     const dependencies = await setup();
     const session = new ReadingSession(dependencies);
     await session.startFlashcards({ ...pianoOptions(), answerMode: "play", length: 2 });
-    session.revealFlashcardHint();
+    session.revealHint();
     expect(session.state.hintUsed).toBe(true);
     let prompt = session.state.currentPrompt as NoteReadingPrompt;
     dependencies.router.noteOn(prompt.midiNotes[0]!);
@@ -286,6 +286,35 @@ describe("ReadingSession", () => {
       assistance: "guided",
     });
     expect(analyticsIngest).toHaveBeenCalledOnce();
+    session.dispose();
+  });
+
+  test("records a revealed sight-reading hint as hinted provenance", async () => {
+    const dependencies = await setup();
+    const session = new ReadingSession(dependencies);
+
+    await session.prepareSightReading(sightReadingOptions());
+    const prompt = session.state.currentPrompt as SightReadingPrompt;
+    const startTimestampMs = monotonicMs(1_000);
+    await session.startSightReading(startTimestampMs);
+    expect(session.state.hintUsed).toBe(false);
+
+    session.revealHint();
+    expect(session.state.hintUsed).toBe(true);
+
+    for (const group of prompt.groups) {
+      for (const midiNote of group.midiNotes) {
+        dependencies.router.push(
+          noteOn(midiNote, startTimestampMs + beatToMs(group.startBeat, sightReadingOptions().bpm)),
+        );
+      }
+    }
+    await session.finishSightReading();
+    expect(session.state.results[0]?.event.assistance).toBe("hinted");
+
+    // The next phrase starts unhinted.
+    await session.prepareSightReading(sightReadingOptions());
+    expect(session.state.hintUsed).toBe(false);
     session.dispose();
   });
 

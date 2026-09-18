@@ -16,11 +16,40 @@ beforeEach(() => {
   });
 });
 
+let overlayStyle: HTMLStyleElement | undefined;
+
 afterEach(() => {
   vi.restoreAllMocks();
   setTestUrl("/");
+  overlayStyle?.remove();
+  overlayStyle = undefined;
   document.body.replaceChildren();
 });
+
+/**
+ * Browser tests load no stylesheet, so the notation overlay collapses into the
+ * flow and every cursor reports the same rect. These are the three Tailwind
+ * rules the overlay's geometry depends on, plus a bounded scroller in place of
+ * the `max-h-[min(62dvh,44rem)]` utility.
+ */
+function scrollableViewport(): HTMLElement {
+  overlayStyle = document.createElement("style");
+  overlayStyle.textContent =
+    ".relative{position:relative}.absolute{position:absolute}.inset-0{inset:0}";
+  document.head.append(overlayStyle);
+  const viewport = document.querySelector<HTMLElement>('[data-testid="score-viewport"]')!;
+  viewport.style.maxHeight = "300px";
+  viewport.style.overflowY = "auto";
+  return viewport;
+}
+
+/** The middle of the playhead, measured from the top of the viewport. */
+function playheadCentre(viewport: HTMLElement): number {
+  const box = viewport
+    .querySelector('[data-notation-cursor="current-group"]')!
+    .getBoundingClientRect();
+  return box.top + box.height / 2 - viewport.getBoundingClientRect().top;
+}
 
 describe("/music/songs/[id]/+page.svelte", () => {
   test("loads a score and completes wait-mode follow-along from shared input", async () => {
@@ -80,7 +109,7 @@ describe("/music/songs/[id]/+page.svelte", () => {
       );
       if (customRange) {
         button("Custom range")?.click();
-        await vi.waitFor(() => expect(input("Range start beat")).not.toBeUndefined());
+        await vi.waitFor(() => expect(input("Range start bar")).not.toBeUndefined());
       }
       expect(document.body.textContent).toContain("original timing");
       expect(button("Open Waterfall")).toBeDefined();
@@ -278,6 +307,70 @@ describe("/music/songs/[id]/+page.svelte", () => {
     runtime.dispose();
   });
 
+  test("centres the playhead, not the active section's first bar, under Sections", async () => {
+    const library = { get: vi.fn(async () => longSongRow()) };
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "recordPractice").mockResolvedValue();
+
+    render(Page, { songId: "song-long", runtime, library });
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
+    );
+
+    button("Sections")?.click();
+    await vi.waitFor(() => expect(button("A")).not.toBeUndefined());
+    button("A")?.click();
+    await vi.waitFor(() => expect(button("A")?.getAttribute("aria-pressed")).toBe("true"));
+
+    button("Start practice")?.click();
+    const viewport = scrollableViewport();
+    await vi.waitFor(() =>
+      expect(viewport.querySelector('[data-notation-cursor="current-group"]')).not.toBeNull(),
+    );
+    // The section is active throughout, so its own line is drawn first in the
+    // overlay and spans all eight bars; centring on it would park the viewport
+    // on the section's middle, not on the playhead.
+    expect(viewport.querySelectorAll("[data-notation-cursor]").length).toBeGreaterThan(1);
+
+    for (let index = 0; index < 28; index += 1) runtime.router.noteOn(60, "onscreen", "piano");
+
+    await vi.waitFor(() => expect(viewport.scrollTop).toBeGreaterThan(0));
+    // Centring on the section's own line would park the viewport on the middle
+    // of the section, leaving the playhead hundreds of pixels below the frame.
+    const centre = playheadCentre(viewport);
+    expect(centre).toBeGreaterThanOrEqual(0);
+    expect(centre).toBeLessThanOrEqual(viewport.getBoundingClientRect().height);
+    runtime.dispose();
+  });
+
+  test("clamps a typed bar into the score and writes the applied bar back", async () => {
+    const library = { get: vi.fn(async () => longSongRow()) };
+    const runtime = new MusicRuntime();
+
+    render(Page, { songId: "song-long", runtime, library });
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Autumn Leaves"));
+    button("Custom range")?.click();
+    await vi.waitFor(() => expect(input("Range end bar")).not.toBeUndefined());
+
+    // Eight bars of 4/4; bar 99 does not exist and must not be left in the box.
+    const end = input("Range end bar")!;
+    end.value = "99";
+    end.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(end.value).toBe("8");
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="range-readout"]')?.textContent).toContain(
+        "End · bar 8",
+      ),
+    );
+
+    // An emptied field resyncs rather than reading as bar 0.
+    end.value = "";
+    end.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(end.value).toBe("8");
+    runtime.dispose();
+  });
+
   test("selects multiple sections and completes the resolved wait-mode queue", async () => {
     const library = {
       get: vi.fn(async () => songRow()),
@@ -311,7 +404,7 @@ describe("/music/songs/[id]/+page.svelte", () => {
     runtime.dispose();
   });
 
-  test("keeps custom range controls synchronized with canonical beat values", async () => {
+  test("seeds a custom range as bar numbers snapped to measures, with a readout", async () => {
     const library = {
       get: vi.fn(async () => songRow()),
     };
@@ -321,12 +414,107 @@ describe("/music/songs/[id]/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Autumn Leaves"));
 
     button("Custom range")?.click();
-    await vi.waitFor(() => expect(input("Range start beat")).not.toBeUndefined());
+    await vi.waitFor(() => expect(input("Range start bar")).not.toBeUndefined());
 
-    expect(input("Range start beat")?.value).toBe("0");
-    expect(input("Range end beat")?.value).toBe("4");
-    expect(button("Note groups")?.getAttribute("aria-pressed")).toBe("true");
-    expect(button("Measures")).not.toBeUndefined();
+    expect(input("Range start bar")?.value).toBe("1");
+    expect(input("Range end bar")?.value).toBe("1");
+    expect(button("Measures")?.getAttribute("aria-pressed")).toBe("true");
+    expect(button("Note groups")).not.toBeUndefined();
+    const readout = document.querySelector('[data-testid="range-readout"]')?.textContent ?? "";
+    expect(readout).toContain("Start · bar 1");
+    expect(readout).toContain("End · bar 1");
+    expect(readout).toContain("1 bar · 4 beats · ~2 s at 120 BPM");
+    runtime.dispose();
+  });
+
+  test("marks the two ends of the range on the staff with labelled handles", async () => {
+    const library = { get: vi.fn(async () => songRow()) };
+    const runtime = new MusicRuntime();
+
+    render(Page, { songId: "song-1", runtime, library });
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
+    );
+    button("Custom range")?.click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-range-handle="start"]')).not.toBeNull(),
+    );
+    expect(
+      document.querySelector('[data-range-handle="start"]')?.getAttribute("aria-label"),
+    ).toContain("bar 1");
+    expect(document.querySelector('[data-range-handle="end"]')?.textContent?.trim()).toBe("End");
+    runtime.dispose();
+  });
+
+  test("counts tab notes below the lowest string and can lift the view an octave", async () => {
+    const library = { get: vi.fn(async () => bassSongRow()) };
+    const runtime = new MusicRuntime();
+
+    render(Page, { songId: "song-1", runtime, library });
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
+    );
+
+    button("Tab")?.click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("2 notes are below the lowest string"),
+    );
+    // Tab never falls through to the staff while Tab is pressed.
+    expect(document.querySelector('[aria-label="Staff notation"]')).toBeNull();
+
+    button("Show the tab an octave up")?.click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).not.toContain("below the lowest string"),
+    );
+    expect(document.body.textContent).toContain("Tab is shown an octave up");
+    runtime.dispose();
+  });
+
+  test("names notes above the highest fret for what they are and offers no octave up", async () => {
+    const library = { get: vi.fn(async () => highSongRow()) };
+    const runtime = new MusicRuntime();
+
+    render(Page, { songId: "song-1", runtime, library });
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
+    );
+
+    button("Tab")?.click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("2 notes are above the highest fret"),
+    );
+    expect(document.body.textContent).not.toContain("below the lowest string");
+    // Transposing up would only push them further off the neck.
+    expect(button("Show the tab an octave up")).toBeUndefined();
+    runtime.dispose();
+  });
+
+  test("keeps the follower cursor inside the score viewport on a long score", async () => {
+    const library = { get: vi.fn(async () => longSongRow()) };
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "recordPractice").mockResolvedValue();
+
+    render(Page, { songId: "song-long", runtime, library });
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
+    );
+
+    button("Start practice")?.click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-testid="score-viewport"] [data-notation-cursor]'),
+      ).not.toBeNull(),
+    );
+
+    const viewport = scrollableViewport();
+
+    for (let index = 0; index < 20; index += 1) runtime.router.noteOn(60, "onscreen", "piano");
+
+    await vi.waitFor(() => expect(viewport.scrollTop).toBeGreaterThan(0));
+    const centre = playheadCentre(viewport);
+    expect(centre).toBeGreaterThanOrEqual(0);
+    expect(centre).toBeLessThanOrEqual(viewport.getBoundingClientRect().height);
     runtime.dispose();
   });
 
@@ -446,6 +634,56 @@ function twoHandSongRow(): SongRow {
         { midiNote: 48, startBeat: 0, durationBeats: 4, velocity: 0.8, voiceId: "bass" },
         { midiNote: 79, startBeat: 5, durationBeats: 1, velocity: 0.8, voiceId: "melody" },
       ],
+    },
+  };
+}
+
+function bassSongRow(): SongRow {
+  return {
+    ...songRow(),
+    score: {
+      ...score(),
+      voices: [{ id: "voice-1", name: "Bass", role: "bass" }],
+      // E1 and A1 sit below the low E string of a standard guitar; E2 does not.
+      notes: [
+        { midiNote: 28, startBeat: 0, durationBeats: 1, velocity: 0.8, voiceId: "voice-1" },
+        { midiNote: 33, startBeat: 1, durationBeats: 1, velocity: 0.8, voiceId: "voice-1" },
+        { midiNote: 40, startBeat: 2, durationBeats: 2, velocity: 0.8, voiceId: "voice-1" },
+      ],
+    },
+  };
+}
+
+function highSongRow(): SongRow {
+  return {
+    ...songRow(),
+    score: {
+      ...score(),
+      // The top string is E4 with 22 frets, so 87 and above is off the neck.
+      notes: [
+        { midiNote: 88, startBeat: 0, durationBeats: 1, velocity: 0.8, voiceId: "voice-1" },
+        { midiNote: 90, startBeat: 1, durationBeats: 1, velocity: 0.8, voiceId: "voice-1" },
+        { midiNote: 64, startBeat: 2, durationBeats: 2, velocity: 0.8, voiceId: "voice-1" },
+      ],
+    },
+  };
+}
+
+function longSongRow(): SongRow {
+  return {
+    ...songRow(),
+    id: "song-long",
+    score: {
+      ...score(),
+      id: "song-long",
+      notes: Array.from({ length: 32 }, (_, index) => ({
+        midiNote: 60,
+        startBeat: index,
+        durationBeats: 1,
+        velocity: 0.8,
+        voiceId: "voice-1",
+      })),
+      sections: [{ id: "a", name: "A", startBeat: 0, endBeat: 32 }],
     },
   };
 }

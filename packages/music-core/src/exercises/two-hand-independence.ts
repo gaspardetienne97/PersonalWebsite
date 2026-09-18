@@ -14,6 +14,7 @@
 import {
   Capability,
   type ExerciseDefinition,
+  type ExerciseLiveState,
   type ExerciseResult,
   type ExerciseRun,
   type NoteEvent,
@@ -21,6 +22,8 @@ import {
   type ScoringMetric,
 } from "@repo/music-core/domain";
 import { midiToNote, noteToMidi } from "@repo/music-core/engines/theory";
+
+import { SCALE_TOGETHER_WINDOW_MS } from "./scale-pattern";
 
 export interface TwoHandIndependenceOptions {
   /** Right-hand starting note, e.g. "C4". The left-hand root sits two octaves below. */
@@ -30,6 +33,11 @@ export interface TwoHandIndependenceOptions {
   bars?: number;
   patternKind?: TwoHandPatternKind;
   handMode?: TwoHandHandMode;
+  /**
+   * Simultaneity window: a beat both hands share counts as "together" when
+   * their onsets land within this many milliseconds of each other.
+   */
+  togetherWindowMs?: number;
   /**
    * Dynamics mode: the melody hand must play louder than the accompaniment
    * (graded on MIDI velocity contrast between hands). Needs velocity-sensitive
@@ -43,7 +51,8 @@ export type TwoHandPatternKind =
   | "rh-pulse-lh-line"
   | "lh-shell-rh-line"
   | "alberti-rh-holds"
-  | "contrary-motion-scale";
+  | "contrary-motion-scale"
+  | "contrary-five";
 
 export type TwoHandHand = "left" | "right";
 export type TwoHandHandMode = "both" | "left" | "right";
@@ -57,6 +66,8 @@ export interface TwoHandTargetEvent {
   hand: TwoHandHand;
   midiNote: number;
   beat: number;
+  /** Authored fingering, shown on the key and never graded (MIDI cannot see fingers). */
+  finger?: number;
 }
 
 export const TWO_HAND_PATTERNS: readonly TwoHandPatternOption[] = [
@@ -65,6 +76,7 @@ export const TWO_HAND_PATTERNS: readonly TwoHandPatternOption[] = [
   { id: "lh-shell-rh-line", label: "Shell + line" },
   { id: "alberti-rh-holds", label: "Alberti + holds" },
   { id: "contrary-motion-scale", label: "Contrary scale" },
+  { id: "contrary-five", label: "Mirror hands" },
 ] as const;
 
 export const TWO_HAND_HAND_MODES: readonly {
@@ -94,6 +106,10 @@ export interface TwoHandIndependencePrompt {
   beatMs: number;
   /** Dynamics mode: grade the melody hand louder than the accompaniment. */
   dynamics: boolean;
+  /** Milliseconds within which two hands count as striking a shared beat together. */
+  togetherWindowMs: number;
+  /** Does this pattern ask the hands to strike together? Only P1 "Mirror hands" does. */
+  measuresTogether: boolean;
   /** The hand carrying the line (or holds) — the one that should sing out. */
   melodyHand: TwoHandHand;
 }
@@ -107,9 +123,23 @@ export interface TwoHandIndependenceAnswer {
   meanEvennessErrorMs: number;
   /** Dynamics mode only: mean melody velocity minus mean accompaniment velocity (−1..1). */
   dynamicsContrast?: number;
+  /** Shared beats struck within the together window. Undefined on a single-hand run. */
+  togetherBeats?: number;
+  /** Shared beats in the pattern. Undefined on a single-hand run. */
+  togetherTotal?: number;
+}
+
+export interface TwoHandLiveState extends ExerciseLiveState {
+  /** One flag per shared beat played so far. Undefined on a single-hand run. */
+  togetherFlags?: boolean[];
 }
 
 const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11];
+
+/** P1 "Mirror hands" (curriculum §5 P1): C major five-finger, out and back. */
+const MIRROR_RIGHT_STEPS = [0, 2, 4, 5, 7, 5, 4, 2];
+const MIRROR_LEFT_STEPS = [0, -1, -3, -5, -7, -5, -3, -1];
+const MIRROR_FINGERS = [1, 2, 3, 4, 5, 4, 3, 2];
 
 export function createTwoHandIndependenceExercise(
   options: TwoHandIndependenceOptions = {},
@@ -119,12 +149,18 @@ export function createTwoHandIndependenceExercise(
   const bars = options.bars ?? 2;
   const patternKind = options.patternKind ?? "lh-pulse-rh-line";
   const handMode = options.handMode ?? "both";
+  const togetherWindowMs = options.togetherWindowMs ?? SCALE_TOGETHER_WINDOW_MS;
+  // Simultaneity is P1's whole point; the other patterns deliberately move the
+  // hands at different rates, so reporting it for them would be noise.
+  const measuresTogether = patternKind === "contrary-five";
   const dynamics = (options.dynamics ?? false) && handMode === "both";
   const melodyHand = melodyHandForPattern(patternKind);
   const beatMs = 60_000 / bpm;
 
   const rhRoot = noteToMidi(tonic);
-  const lhRoot = rhRoot - 24;
+  // Mirror hands puts both thumbs on the same letter an octave apart (C3/C4);
+  // the other patterns keep the accompaniment two octaves down.
+  const lhRoot = patternKind === "contrary-five" ? rhRoot - 12 : rhRoot - 24;
   const beats = bars * 4;
   const allEvents = buildTargetEvents({ patternKind, lhRoot, rhRoot, beats });
   const targetEvents = filterEventsByHandMode(allEvents, handMode);
@@ -168,6 +204,8 @@ export function createTwoHandIndependenceExercise(
         bpm,
         beatMs,
         dynamics,
+        togetherWindowMs,
+        measuresTogether,
         melodyHand,
       },
     }),
@@ -185,9 +223,24 @@ function twoHandRun(prompt: TwoHandIndependencePrompt): ExerciseRun<TwoHandIndep
     accept(event) {
       if (event.type === "noteOn") input.push(event);
     },
-    getLiveState() {
+    getLiveState(): TwoHandLiveState {
       const progress = total === 0 ? 0 : Math.min(1, input.length / total);
-      return { progress, runningScore: progress, feedback: [] };
+      const hands = splitHands(prompt, input);
+      const together = gradeTogether(prompt, hands);
+      return {
+        progress,
+        runningScore: progress,
+        feedback: [],
+        ...(together === undefined
+          ? {}
+          : {
+              // Only the beats both hands have reached so far.
+              togetherFlags: together.flags.slice(
+                0,
+                Math.min(hands.left.length, hands.right.length),
+              ),
+            }),
+      };
     },
     finish() {
       return gradeTwoHand(prompt, input);
@@ -202,14 +255,8 @@ function gradeTwoHand(
   const played = input.filter((event): event is NoteOnEvent => event.type === "noteOn");
   const leftExpected = prompt.targetEvents.filter((event) => event.hand === "left");
   const rightExpected = prompt.targetEvents.filter((event) => event.hand === "right");
-  const leftExpectedNotes = new Set(leftExpected.map((event) => event.midiNote));
-  const rightExpectedNotes = new Set(rightExpected.map((event) => event.midiNote));
-  const leftPlayed = played.filter((event) =>
-    belongsToHand(event.midiNote, "left", prompt, leftExpectedNotes, rightExpectedNotes),
-  );
-  const rightPlayed = played.filter((event) =>
-    belongsToHand(event.midiNote, "right", prompt, leftExpectedNotes, rightExpectedNotes),
-  );
+  const { left: leftPlayed, right: rightPlayed } = splitHands(prompt, input);
+  const together = gradeTogether(prompt, { left: leftPlayed, right: rightPlayed });
 
   const left = gradeHand(leftExpected, leftPlayed, prompt.beatMs);
   const right = gradeHand(rightExpected, rightPlayed, prompt.beatMs);
@@ -252,6 +299,23 @@ function gradeTwoHand(
         severity: score >= 0.9 ? "good" : "warn",
         message: `LH ${left.correct}/${prompt.leftMidiNotes.length} steady · RH ${right.correct}/${prompt.rightMidiNotes.length} line.`,
       },
+      ...(!prompt.measuresTogether
+        ? []
+        : together === undefined
+          ? [
+              {
+                severity: "info" as const,
+                message: "Together not measured — an on-screen keyboard plays one hand at a time.",
+              },
+            ]
+          : [
+              {
+                severity: (together.beats / together.flags.length >= 0.8 ? "good" : "warn") as
+                  | "good"
+                  | "warn",
+                message: `Together ${together.beats}/${together.flags.length} beats within ${prompt.togetherWindowMs} ms.`,
+              },
+            ]),
       ...(dynamicsContrast === undefined
         ? []
         : [
@@ -276,9 +340,88 @@ function gradeTwoHand(
       rightAccuracy,
       meanEvennessErrorMs: meanEvennessError,
       ...(dynamicsContrast === undefined ? {} : { dynamicsContrast }),
+      ...(together === undefined
+        ? {}
+        : { togetherBeats: together.beats, togetherTotal: together.flags.length }),
     },
     input,
   };
+}
+
+interface PlayedHands {
+  left: NoteOnEvent[];
+  right: NoteOnEvent[];
+}
+
+/** Sort the played notes into hands: authored pitches first, register otherwise. */
+function splitHands(prompt: TwoHandIndependencePrompt, input: NoteEvent[]): PlayedHands {
+  const played = input.filter((event): event is NoteOnEvent => event.type === "noteOn");
+  const leftExpectedNotes = new Set(prompt.leftMidiNotes);
+  const rightExpectedNotes = new Set(prompt.rightMidiNotes);
+  return {
+    left: played.filter((event) =>
+      belongsToHand(event.midiNote, "left", prompt, leftExpectedNotes, rightExpectedNotes),
+    ),
+    right: played.filter((event) =>
+      belongsToHand(event.midiNote, "right", prompt, leftExpectedNotes, rightExpectedNotes),
+    ),
+  };
+}
+
+/** Beats the pattern asks both hands to strike at once. */
+function sharedBeatCount(prompt: TwoHandIndependencePrompt): number {
+  const rightBeats = new Set(
+    prompt.targetEvents.filter((event) => event.hand === "right").map((event) => event.beat),
+  );
+  return prompt.targetEvents.filter((event) => event.hand === "left" && rightBeats.has(event.beat))
+    .length;
+}
+
+/**
+ * The simultaneity metric: on every beat the pattern asks both hands to strike,
+ * did the two onsets land within `togetherWindowMs` of each other?
+ *
+ * Three cases return `undefined` — "not measured" — rather than a false zero:
+ * a pattern that does not ask for it, a pattern with no shared beat (a
+ * single-hand run has none), and a run played entirely on-screen, because an
+ * on-screen keyboard plays one hand at a time and cannot show two hands
+ * arriving together.
+ *
+ * Hands are paired by onset, not by index: each left onset takes the nearest
+ * unclaimed right onset inside the window, so dropping one note costs that beat
+ * alone instead of shifting every later beat against the wrong partner.
+ */
+function gradeTogether(
+  prompt: TwoHandIndependencePrompt,
+  played: PlayedHands,
+): { flags: boolean[]; beats: number } | undefined {
+  if (!prompt.measuresTogether) return undefined;
+  const shared = sharedBeatCount(prompt);
+  if (shared === 0) return undefined;
+  const sounded = [...played.left, ...played.right];
+  if (sounded.length > 0 && sounded.every((event) => event.source === "onscreen")) return undefined;
+
+  const claimed = new Set<number>();
+  const flags: boolean[] = Array.from({ length: shared }, () => false);
+  for (const left of played.left) {
+    let nearest = -1;
+    let nearestDelta = Infinity;
+    played.right.forEach((right, index) => {
+      if (claimed.has(index)) return;
+      const delta = Math.abs(Number(right.timestamp) - Number(left.timestamp));
+      if (delta <= prompt.togetherWindowMs && delta < nearestDelta) {
+        nearestDelta = delta;
+        nearest = index;
+      }
+    });
+    if (nearest < 0) continue;
+    claimed.add(nearest);
+    // Flag the beat the right hand was on, so the readout stays in beat order
+    // even when the left hand dropped a note earlier in the bar.
+    if (nearest < shared) flags[nearest] = true;
+  }
+
+  return { flags, beats: flags.filter(Boolean).length };
 }
 
 function gradeHand(
@@ -381,6 +524,15 @@ function buildTargetEvents({
         midiNote: rhRoot + holds[beat % holds.length]!,
         beat,
       });
+    }
+  }
+
+  if (patternKind === "contrary-five") {
+    for (let beat = 0; beat < beats; beat += 1) {
+      const phase = beat % MIRROR_FINGERS.length;
+      const finger = MIRROR_FINGERS[phase]!;
+      events.push({ hand: "left", midiNote: lhRoot + MIRROR_LEFT_STEPS[phase]!, beat, finger });
+      events.push({ hand: "right", midiNote: rhRoot + MIRROR_RIGHT_STEPS[phase]!, beat, finger });
     }
   }
 

@@ -27,8 +27,7 @@ describe("ScoreFollowerStage", () => {
       instrument: "piano",
       router: new InputRouter(),
       inputEnabled: true,
-      activeMidiNotes: [],
-      wrongMidiNotes: [60],
+      activeMidiNotes: [60],
       pianoHandHint: "Right hand",
       suggestedFingerings: { 62: 2 },
       onExpectedNoteSelected,
@@ -47,14 +46,90 @@ describe("ScoreFollowerStage", () => {
       "Right hand",
     );
     expect(document.querySelector("[data-testid='finger-62']")).not.toBeNull();
-    // The shared surface carries the hand from projectScoreToPiano, and wrong
-    // notes still outrank the target highlight.
+    // The shared surface carries the hand from projectScoreToPiano, and a played
+    // note still outranks the target highlight.
     expect(pianoKey("D4")?.getAttribute("data-state")).toBe("target-right");
-    expect(pianoKey("C4")?.getAttribute("data-state")).toBe("wrong");
+    expect(pianoKey("C4")?.getAttribute("data-state")).toBe("active");
+    // One keyboard look: the input surface sits on the practice stage and names its Cs.
+    expect(
+      document.querySelector('[data-surface="stage"] [aria-label="Piano input"]'),
+    ).not.toBeNull();
+    expect(pianoKey("C4")?.querySelector("span")?.classList.contains("sr-only")).toBe(false);
 
     document.querySelector<HTMLButtonElement>("[data-testid='score-expected-note']")?.click();
 
     expect(onExpectedNoteSelected).toHaveBeenCalledWith(62);
+  });
+
+  test("marks the group being read while a wrong note is live, then clears it", async () => {
+    const score = scoreFixture();
+    const groups = expectedGroups(score);
+    const props = {
+      score,
+      view: notationView(score),
+      groups,
+      currentGroupIndex: 1,
+      instrument: "piano" as const,
+      router: new InputRouter(),
+      inputEnabled: true,
+      wrongMidiNotes: [61],
+    };
+
+    const view = render(ScoreFollowerStage, props);
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Staff notation"] svg')).not.toBeNull(),
+    );
+
+    // The second group is the one being read, and it reads as the error, not as
+    // the accent: both are plain colour classes on the same element, so the
+    // error only shows while it is the only one set.
+    const [first, current] = [...document.querySelectorAll<SVGGElement>(".vf-stavenote")];
+    expect(current?.classList.contains("text-destructive")).toBe(true);
+    expect(current?.classList.contains("text-practice-accent")).toBe(false);
+    expect(current?.dataset.activeNote).toBe("false");
+    expect(first?.classList.contains("text-destructive")).toBe(false);
+    expect(pianoKey("C#4")?.getAttribute("data-state")).toBe("wrong");
+
+    // Once the follower drops the live wrong note the group is simply current again.
+    await view.rerender({ ...props, wrongMidiNotes: [] });
+
+    await vi.waitFor(() =>
+      expect(document.querySelector(".vf-stavenote.text-destructive")).toBeNull(),
+    );
+    expect(
+      [...document.querySelectorAll<SVGGElement>(".vf-stavenote")][1]?.dataset.activeNote,
+    ).toBe("true");
+  });
+
+  test("hides the expected targets until the route reveals them", async () => {
+    const score = scoreFixture();
+    const groups = expectedGroups(score);
+    const props = {
+      score,
+      view: notationView(score),
+      groups,
+      currentGroupIndex: 1,
+      instrument: "piano" as const,
+      router: new InputRouter(),
+      inputEnabled: true,
+      activeMidiNotes: [60],
+      suggestedFingerings: { 62: 2 },
+      showTargets: false,
+    };
+
+    const view = render(ScoreFollowerStage, props);
+    await vi.waitFor(() => expect(pianoKey("C4")).not.toBeNull());
+
+    expect(document.querySelector('[aria-label="Piano input"] [data-state^="target"]')).toBeNull();
+    // A finger number names the expected key just as plainly as lighting it.
+    expect(document.querySelector("[data-testid='finger-62']")).toBeNull();
+    expect(pianoKey("D4")?.getAttribute("aria-label")).not.toContain("finger");
+    // Played notes stay visible whether or not the targets are revealed.
+    expect(pianoKey("C4")?.getAttribute("data-state")).toBe("active");
+
+    await view.rerender({ ...props, showTargets: true });
+    await vi.waitFor(() => expect(pianoKey("D4")?.getAttribute("data-state")).toBe("target-right"));
+    expect(document.querySelector("[data-testid='finger-62']")).not.toBeNull();
   });
 
   test("names a repeated note that needs a fresh attack", async () => {

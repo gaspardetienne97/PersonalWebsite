@@ -9,6 +9,9 @@ import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills
 import { curatedTunings } from "@repo/music-core/engines/tunings";
 import { CHORD_SHAPES } from "@repo/music-core/exercises/chord-perfect";
 
+import type { SettingsRecord } from "@repo/music-core/engines/store";
+
+import { TempoLadder, scaleLadderVariantKey } from "./tempo-ladder";
 import {
   AEROPHONE_DRILL_DEFAULT_CONFIG,
   MPC_RUDIMENT_DEFAULT_CONFIG,
@@ -19,6 +22,7 @@ import {
   normalizeStringTechniqueConfig,
   normalizeTwoHandDrillConfig,
   SCALE_DRILL_DEFAULT_CONFIG,
+  SCALE_HANDS_TOGETHER_PRESET,
   SPIDER_DRILL_DEFAULT_CONFIG,
   STRING_TECHNIQUE_DEFAULT_CONFIG,
   TechniqueSession,
@@ -97,6 +101,7 @@ describe("TechniqueSession", () => {
       bpm: 90,
       motion: "up-down",
       span: "two-octave",
+      hands: "right",
     });
 
     expect(
@@ -149,6 +154,7 @@ describe("TechniqueSession", () => {
       rightPadMidi: 41,
       hitCount: 16,
       bpm: 120,
+      subdivision: 2,
     });
 
     expect(
@@ -176,7 +182,16 @@ describe("TechniqueSession", () => {
       rightPadMidi: 38,
       hitCount: 16,
       bpm: 100,
+      subdivision: 2,
     });
+  });
+
+  test("resolves the rudiment subdivision, letting the pattern's own grid win", () => {
+    expect(normalizeMpcRudimentConfig({ sub: "4" }).subdivision).toBe(4);
+    expect(normalizeMpcRudimentConfig({ subdivision: 3 }).subdivision).toBe(3);
+    expect(normalizeMpcRudimentConfig({ sub: "5" }).subdivision).toBe(2);
+    expect(normalizeMpcRudimentConfig({ pattern: "single-16ths", sub: "2" }).subdivision).toBe(4);
+    expect(normalizeMpcRudimentConfig({ pattern: "triple-strokes" }).subdivision).toBe(3);
   });
 
   test("normalizes shareable spider drill config values", () => {
@@ -423,6 +438,150 @@ describe("TechniqueSession", () => {
     session.dispose();
   });
 
+  test("starts a hands-together scale with both octaves on every beat", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    const prompt = await session.startScale({
+      tonic: "C4",
+      scale: "major",
+      bpm: 80,
+      hands: "both",
+    });
+
+    expect(prompt.hands).toBe("both");
+    expect(prompt.noteGroups[0]).toEqual([48, 60]);
+    expect(prompt.midiNotes).toHaveLength(16);
+    session.dispose();
+  });
+
+  test("loads the persisted tempo ladder and writes the rung it unlocks", async () => {
+    const dependencies = await setup();
+    const rows = new Map<string, SettingsRecord>();
+    const settings = {
+      get: async (id: string) => rows.get(id),
+      put: async (record: SettingsRecord) => {
+        rows.set(record.id, record);
+      },
+    };
+    const variantKey = scaleLadderVariantKey({
+      scale: "major",
+      tonic: "C4",
+      motion: "up",
+      span: "one-octave",
+      hands: "right",
+    });
+    await new TempoLadder(settings).writeLadder(variantKey, 130);
+
+    const session = new TechniqueSession({ ...dependencies, ladder: new TempoLadder(settings) });
+    expect(await session.useLadder(variantKey)).toBe(130);
+    expect(session.state.highestUnlockedBpm).toBe(130);
+
+    // 130 BPM is only startable because the saved rung survived; the gate stands.
+    await session.startScale({ tonic: "C4", scale: "major", bpm: 130 });
+    const spacing = 60_000 / 130;
+    [60, 62, 64, 65, 67, 69, 71, 72].forEach((midiNote, index) => {
+      dependencies.router.push(note(midiNote, index * spacing));
+    });
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+
+    expect(session.state.summary?.highestUnlockedBpm).toBe(140);
+    const reloaded = new TempoLadder(settings);
+    expect(await reloaded.readLadder(variantKey)).toBe(140);
+    expect(
+      await reloaded.readLadder(
+        scaleLadderVariantKey({
+          scale: "major",
+          tonic: "C4",
+          motion: "up",
+          span: "one-octave",
+          hands: "both",
+        }),
+      ),
+    ).toBe(100);
+    session.dispose();
+  });
+
+  test("keeps scales startable when the ladder cannot be read", async () => {
+    const dependencies = await setup();
+    const ladder = new TempoLadder({
+      get: async () => {
+        throw new Error("Settings are unavailable.");
+      },
+      put: async () => {
+        throw new Error("Settings are unavailable.");
+      },
+    });
+    const session = new TechniqueSession({ ...dependencies, ladder });
+
+    await expect(session.useLadder("major:C4:up:one-octave:right")).resolves.toBe(100);
+    await expect(
+      session.startScale({ tonic: "C4", scale: "major", bpm: 100 }),
+    ).resolves.toMatchObject({ bpm: 100 });
+    session.dispose();
+  });
+
+  test("keeps the session's own base tempo when the ladder has no rung yet", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession({
+      ...dependencies,
+      initialUnlockedBpm: 130,
+      ladder: new TempoLadder(),
+    });
+
+    await expect(
+      session.startScale({ tonic: "C4", scale: "major", bpm: 130 }),
+    ).resolves.toMatchObject({ bpm: 130 });
+    session.dispose();
+  });
+
+  test("rejects a second scale start that races the first", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+
+    const first = session.startScale({ tonic: "C4", scale: "major", bpm: 100 });
+    const second = session.startScale({ tonic: "C4", scale: "major", bpm: 100 });
+
+    await expect(first).resolves.toMatchObject({ bpm: 100 });
+    await expect(second).rejects.toThrow(/already active/i);
+    session.dispose();
+  });
+
+  test("applies the hands-together checkpoint's evenness rule from its setup", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+    const preset = SCALE_HANDS_TOGETHER_PRESET.config;
+
+    const checkpoint = await session.startScale({
+      tonic: preset.tonic,
+      scale: preset.scale,
+      bpm: preset.bpm,
+      motion: preset.motion,
+      span: preset.span,
+      hands: preset.hands,
+    });
+    expect(checkpoint.minEvenness).toBe(0.85);
+    session.abandon();
+
+    // The same scale one hand at a time is not the checkpoint, and keeps its bar.
+    const plain = await session.startScale({ tonic: "C4", scale: "major", bpm: 80 });
+    expect(plain.minEvenness).toBeUndefined();
+    session.abandon();
+
+    // An explicit `minEvenness: undefined` must not erase the preset's rule.
+    const explicit = await session.startScale({
+      tonic: preset.tonic,
+      scale: preset.scale,
+      bpm: preset.bpm,
+      motion: preset.motion,
+      span: preset.span,
+      hands: preset.hands,
+      minEvenness: undefined,
+    });
+    expect(explicit.minEvenness).toBe(0.85);
+    session.dispose();
+  });
+
   test("completes an eight-hit MPC rudiment without changing the scale tempo", async () => {
     const dependencies = await setup();
     const session = new TechniqueSession(dependencies);
@@ -568,6 +727,79 @@ describe("TechniqueSession", () => {
       noteAccuracy: 1,
     });
     expect(session.state.results[0]?.result.feedback[0]?.message).toContain("8/8");
+    session.dispose();
+  });
+
+  test("completes a positions pattern, grading string and fret from on-screen taps", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+    const tuning = curatedTunings("guitar")[0]!;
+
+    const prompt = await session.startFretboardPattern({
+      tuning,
+      patternId: "minor-pentatonic-box-1",
+      rootFret: 5,
+      bpm: 120,
+    });
+    expect(prompt.positions).toHaveLength(12);
+    expect(prompt.label).toBe("Guitar · Minor pentatonic box 1 · root fret 5");
+
+    prompt.positions.forEach((position, index) => {
+      dependencies.router.push({
+        ...note(position.midiNote, index * prompt.targetSpacingMs),
+        instrument: "guitar",
+        source: "onscreen",
+        inputProfileId: tuning.id,
+        fretPosition: {
+          stringNumber: position.stringNumber,
+          fretNumber: position.fretNumber,
+        },
+      });
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.results[0]?.result.answer).toMatchObject({
+      positionsMeasured: 12,
+      positionsCorrect: 12,
+    });
+    expect(session.state.results[0]?.event.runId).toBe(
+      "technique-test-positions-guitar.standard-minor-pentatonic-box-1-5-120",
+    );
+    session.dispose();
+  });
+
+  test("puts chord changes on a clock and grades them against the bar line", async () => {
+    const dependencies = await setup();
+    const session = new TechniqueSession(dependencies);
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.d-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.a-major")!;
+
+    const prompt = await session.startChordChange({
+      tuning,
+      fromShape,
+      toShape,
+      repetitions: 1,
+      bpm: 60,
+      beatsPerChord: 4,
+    });
+    expect(prompt.bpm).toBe(60);
+    expect(prompt.beatsPerChord).toBe(4);
+
+    prompt.targets.forEach((target, targetIndex) => {
+      target.midiNotes.forEach((midiNote, noteIndex) => {
+        dependencies.router.push({
+          ...note(midiNote, targetIndex * 4_000 + noteIndex * 30),
+          instrument: "guitar",
+        });
+      });
+    });
+
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.results[0]?.result.answer).toMatchObject({ onTimeChanges: 2 });
+    expect(session.state.results[0]?.event.runId).toBe(
+      "technique-test-chord-change-guitar.d-major-guitar.a-major-1-60bpm-4",
+    );
     session.dispose();
   });
 

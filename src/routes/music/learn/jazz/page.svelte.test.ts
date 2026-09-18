@@ -14,7 +14,7 @@ describe("/music/learn/jazz/+page.svelte", () => {
     const pathPointer = [...document.querySelectorAll("a")].find((anchor) =>
       anchor.textContent?.includes("Jazz Path"),
     );
-    expect(pathPointer?.getAttribute("href")).toBe("/music/learn/path");
+    expect(pathPointer?.getAttribute("href")).toBe("/music/learn/path?path=jazz");
 
     const tabButton = (label: string) =>
       [...document.querySelectorAll('[aria-label="Jazz section"] button')].find(

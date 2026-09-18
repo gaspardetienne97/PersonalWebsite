@@ -169,6 +169,9 @@ async function selectFirstTwoNotationGroups(
   rendererLabel: string,
 ): Promise<void> {
   await page.getByRole("button", { name: "Custom range" }).click();
+  // A custom range snaps to whole bars by default; note groups are what this
+  // helper drags across.
+  await page.getByRole("button", { name: "Note groups", exact: true }).click();
   await expect(page.getByLabel(rendererLabel)).toBeVisible();
   const targets = page.locator('[data-selection-kind="note-group"]');
   await expect(targets).toHaveCount(3);

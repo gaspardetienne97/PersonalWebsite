@@ -15,6 +15,9 @@
     activeMidiNotes = [],
     correctMidiNotes = [],
     wrongMidiNotes = [],
+    targetPositions,
+    activePosition,
+    correctPositions = [],
     router,
     visibleFrets = 12,
     visibleStrings,
@@ -29,6 +32,18 @@
     activeMidiNotes?: number[];
     correctMidiNotes?: number[];
     wrongMidiNotes?: number[];
+    /**
+     * Position-based targets. A pitch usually sits at several string/fret pairs,
+     * so a drill that grades the position (a pentatonic box, a fretted lick)
+     * passes the authored pairs here and only those dots light, each with its
+     * own label. Leaving it undefined keeps the MIDI highlighting every other
+     * caller uses.
+     */
+    targetPositions?: { stringNumber: number; fretNumber: number; label?: string }[];
+    /** With `targetPositions`, the one position sounding now. */
+    activePosition?: { stringNumber: number; fretNumber: number };
+    /** With `targetPositions`, the positions already played. */
+    correctPositions?: { stringNumber: number; fretNumber: number }[];
     router: InputRouter;
     visibleFrets?: number;
     visibleStrings?: number[];
@@ -90,8 +105,39 @@
     onAccepted?.(event);
   }
 
-  function fretState(midiNote: number): FretState | undefined {
+  const positionKey = (stringNumber: number, fretNumber: number) => `${stringNumber}:${fretNumber}`;
+  const targetPositionLabels = $derived(
+    targetPositions === undefined
+      ? undefined
+      : new Map(
+          targetPositions.map((position) => [
+            positionKey(position.stringNumber, position.fretNumber),
+            position.label,
+          ]),
+        ),
+  );
+  const correctPositionKeys = $derived(
+    new Set(correctPositions.map((position) => positionKey(position.stringNumber, position.fretNumber))),
+  );
+
+  function fretState(
+    stringNumber: number,
+    fretNumber: number,
+    midiNote: number,
+  ): FretState | undefined {
     if (wrongMidiNotes.includes(midiNote)) return "wrong";
+    // Position-graded drills: the same pitch elsewhere on the neck is not a target.
+    if (targetPositionLabels) {
+      const key = positionKey(stringNumber, fretNumber);
+      if (correctPositionKeys.has(key)) return "correct";
+      if (
+        activePosition?.stringNumber === stringNumber &&
+        activePosition.fretNumber === fretNumber
+      ) {
+        return "active";
+      }
+      return targetPositionLabels.has(key) ? "target" : undefined;
+    }
     if (correctMidiNotes.includes(midiNote)) return "correct";
     if (activeMidiNotes.includes(midiNote)) return "active";
     if (targetMidiNotes.includes(midiNote)) return "target";
@@ -135,9 +181,10 @@
     return themeColor("--stage", "#ffffff");
   }
 
-  function noteLabel(midiNote: number): string {
+  function noteLabel(stringNumber: number, fretNumber: number, midiNote: number): string {
     if (hideNoteNames) return "";
-    return dotLabels?.[midiNote] ?? midiToNote(midiNote).replace(/\d+$/, "");
+    const positionLabel = targetPositionLabels?.get(positionKey(stringNumber, fretNumber));
+    return positionLabel ?? dotLabels?.[midiNote] ?? midiToNote(midiNote).replace(/\d+$/, "");
   }
 
   /**
@@ -205,16 +252,16 @@
     for (const { openMidi } of strings) {
       for (const fret of windowFrets) {
         const midiNote = openMidi + fret;
-        const anchor = anchorPosition?.stringNumber === fbStringFor(openMidi) && anchorPosition?.fretNumber === fret;
-        const s = anchor ? "anchor" : fretState(midiNote);
-        const focused =
-          focusedFret?.stringNumber === fbStringFor(openMidi) && focusedFret.fret === fret;
+        const stringNumber = fbStringFor(openMidi);
+        const anchor = anchorPosition?.stringNumber === stringNumber && anchorPosition?.fretNumber === fret;
+        const s = anchor ? "anchor" : fretState(stringNumber, fret, midiNote);
+        const focused = focusedFret?.stringNumber === stringNumber && focusedFret.fret === fret;
         if (s || focused) {
           dots.push({
-            string: fbStringFor(openMidi),
+            string: stringNumber,
             fret: fret - fretOffset,
             color: stateColor(s ?? "focus"),
-            label: anchor ? "A" : noteLabel(midiNote),
+            label: anchor ? "A" : noteLabel(stringNumber, fret, midiNote),
             state: s ?? "focus",
             focused,
           });
@@ -396,7 +443,7 @@
     {#each windowFrets as fret (fret)}
       {@const midiNote = openMidi + fret}
       {@const note = midiToNote(midiNote)}
-      {@const noteState = fretState(midiNote)}
+      {@const noteState = fretState(stringNumber, fret, midiNote)}
       <button
         type="button"
         aria-label={`String ${stringNumber} fret ${fret}${hideNoteNames ? "" : `, ${note}`}${anchorPosition?.stringNumber === stringNumber && anchorPosition?.fretNumber === fret ? ", anchor" : noteState ? `, ${noteState}` : ""}`}

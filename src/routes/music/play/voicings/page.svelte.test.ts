@@ -213,7 +213,7 @@ describe("/music/play/voicings/+page.svelte", () => {
     const variants = [...document.querySelectorAll('[aria-label="Drill variant"] button')].map(
       (button) => button.textContent?.trim(),
     );
-    expect(variants).toEqual(["Major", "Minor", "Altered V7", "Guide tones"]);
+    expect(variants).toEqual(["Major", "Minor", "Altered V7", "Guide tones", "Inversions"]);
 
     await vi.waitFor(() =>
       expect(
@@ -492,7 +492,76 @@ describe("/music/play/voicings/+page.svelte", () => {
     expect(endPerformance).toHaveBeenCalled();
     runtime.dispose();
   });
+
+  test("runs the P2 inversions drill: piano-only, held, and graded on the bass note", async () => {
+    setTestUrl("/music/play/voicings?variant=inversions");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.body.textContent).toContain("first chord C");
+    expect(document.body.textContent).toContain("C3 C4 E4 G4");
+    expect(document.body.textContent).toContain("F2 C4 F4 A4");
+    expect(button("Guitar")).toBeUndefined();
+    expect(button("Lenient")).toBeUndefined();
+    expect(window.location.search).toContain("strict=held");
+    expect(window.location.search).toContain("advance=manual");
+
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Check chord")).not.toBeUndefined());
+    // Root position C: C3 in the left hand, C4 E4 G4 in the right.
+    for (const note of [48, 60, 64, 67]) runtime.router.noteOn(note, "onscreen");
+    button("Check chord")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Inversion: correct"));
+
+    // Bar 2 wants F/C; F4 A4 C5 is the same pitch classes in root position.
+    for (const note of [41, 65, 69, 72]) runtime.router.noteOn(note, "onscreen");
+    button("Check chord")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("wrong bass note"));
+    runtime.dispose();
+  });
+
+  test("builds a P2 bar from sequential pointer clicks, because the surface latches", async () => {
+    setTestUrl("/music/play/voicings?variant=inversions");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Check chord")).not.toBeUndefined());
+
+    // A mouse holds one key at a time; in latch mode each click adds to the chord.
+    for (const note of ["C3", "C4", "E4", "G4"]) pianoKey(note)?.click();
+    await vi.waitFor(() => expect(notesMatched()).toBe("100%"));
+    button("Check chord")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Inversion: correct"));
+    expect(document.body.textContent).toContain("F/C");
+    runtime.dispose();
+  });
+
+  test("fails a P2 bar played without the left-hand root", async () => {
+    setTestUrl("/music/play/voicings?variant=inversions");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Check chord")).not.toBeUndefined());
+    // The right hand alone covers every expected pitch class — "LH plays roots" does not.
+    for (const note of ["C4", "E4", "G4"]) pianoKey(note)?.click();
+    button("Check chord")?.click();
+    // Every pitch class is present, so the halved score is the missing root.
+    await vi.waitFor(() => expect(document.body.textContent).toContain("50% — keep going"));
+    runtime.dispose();
+  });
 });
+
+/** An on-screen keyboard key by pitch, e.g. "E4" — most keys carry no visible label. */
+function pianoKey(note: string): HTMLButtonElement | null {
+  return document.querySelector<HTMLButtonElement>(
+    `[aria-label="On-screen keyboard"] button[data-note="${note}"]`,
+  );
+}
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(

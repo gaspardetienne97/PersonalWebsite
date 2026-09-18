@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { accuracyTone, intensityStep, masteryTone, timingZone } from "./index";
+import { accuracyTone, intensityStep, masteryTone, timingVerdict, timingZone } from "./index";
 
 describe("masteryTone", () => {
   test("buckets low/mid/high mastery into error/warn/success", () => {
@@ -39,6 +39,21 @@ describe("timingZone", () => {
     expect(timingZone(-15)).toBe("pocket");
     expect(timingZone(-16)).toBe("behind");
     expect(timingZone(8, 5)).toBe("ahead");
+  });
+});
+
+describe("timingVerdict", () => {
+  test("calls a positive error late, because errorMs is hit minus expected", () => {
+    expect(timingVerdict(40)).toBe("late");
+    expect(timingVerdict(0)).toBe("pocket");
+    expect(timingVerdict(-40)).toBe("early");
+  });
+
+  test("respects the pocket width at the boundary", () => {
+    expect(timingVerdict(15)).toBe("pocket");
+    expect(timingVerdict(16)).toBe("late");
+    expect(timingVerdict(-16)).toBe("early");
+    expect(timingVerdict(8, 5)).toBe("late");
   });
 });
 

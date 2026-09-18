@@ -1,6 +1,10 @@
 <script lang="ts">
   import type { NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
+  import {
+    MPC_SUBDIVISION_LABELS,
+    type MpcSubdivision,
+  } from "@repo/music-core/exercises/mpc-single-stroke";
   import { cn } from "@repo/ui/utils";
 
   import MpcPadGrid from "./MpcPadGrid.svelte";
@@ -10,6 +14,7 @@
     padMidi: number;
     accent?: "normal" | "accent";
     velocityBand?: { label: string };
+    graceMs?: number;
   }
 
   let {
@@ -18,6 +23,7 @@
     targetEvents,
     completedHits = 0,
     bpm,
+    subdivision,
     onAccepted,
     keymap,
   }: {
@@ -27,6 +33,7 @@
     targetEvents?: PadRudimentStageEvent[];
     completedHits?: number;
     bpm?: number | string;
+    subdivision?: MpcSubdivision;
     onAccepted?: (event: NoteEvent) => void;
   } = $props();
 
@@ -63,17 +70,24 @@
     <div class="grid gap-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p class="eyebrow">Rudiment sequence</p>
+        {#if subdivision !== undefined}
+          <span class="rounded-full bg-stage-2 px-2.5 py-0.5 text-xs font-semibold text-stage-foreground">
+            {MPC_SUBDIVISION_LABELS[subdivision]}
+          </span>
+        {/if}
         {#if bpm !== undefined}
           <span class="rounded-full bg-stage-2 px-2.5 py-0.5 text-xs font-semibold text-stage-foreground">
             {bpm} BPM
           </span>
         {/if}
       </div>
-      <div
-        class="grid gap-2"
-        style={`grid-template-columns: repeat(${Math.max(1, sequenceEvents.length)}, minmax(0, 1fr));`}
-        aria-label="Rudiment sequence lane"
-      >
+      <!-- Sixteenth lanes run 16 steps wide; scroll the lane rather than squeezing "Pad 36" into 14 px. -->
+      <div class="max-w-full overflow-x-auto">
+        <div
+          class="grid gap-2"
+          style={`grid-template-columns: repeat(${Math.max(1, sequenceEvents.length)}, minmax(2.5rem, 1fr));`}
+          aria-label="Rudiment sequence lane"
+        >
         {#each sequenceEvents as event, index (`${event.padMidi}-${index}`)}
           {@const state = stepState(index)}
           <div
@@ -89,13 +103,16 @@
           >
             <span class="text-[0.625rem] uppercase opacity-70">{index + 1}</span>
             <span>Pad {event.padMidi}</span>
-            {#if event.velocityBand}
+            {#if event.graceMs}
+              <span class="text-[0.625rem] uppercase opacity-70">Grace</span>
+            {:else if event.velocityBand}
               <span class="text-[0.625rem] uppercase opacity-70">
                 {event.accent === "accent" ? "Accent" : "Tap"}
               </span>
             {/if}
           </div>
         {/each}
+        </div>
       </div>
     </div>
   </div>

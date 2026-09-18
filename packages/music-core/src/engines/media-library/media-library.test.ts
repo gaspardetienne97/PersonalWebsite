@@ -795,6 +795,45 @@ describe("music-core/media-library", () => {
     await expect(library.takeBlob(row.id)).resolves.toBeDefined();
   });
 
+  test("renames a take and stores a note and gain without rewriting the audio", async () => {
+    const harness = createHarness();
+    const blob = makeBlob(4, "audio/webm");
+    await harness.library.saveTake(take(), blob);
+    const storedBytes = await harness.binaries.get("music-take-take-1")!.arrayBuffer();
+    harness.events.length = 0;
+
+    await harness.library.renameTake("take-1", "  Morning warmup  ");
+    const updated = await harness.library.updateTake("take-1", { gainDb: 12, note: "  breathy  " });
+    expect(updated).toMatchObject({ name: "Morning warmup", gainDb: 12, note: "breathy" });
+
+    const row = await harness.takeRepository.get("take-1");
+    expect(row).toMatchObject({ name: "Morning warmup", gainDb: 12, note: "breathy" });
+    expect(harness.events.every((event) => event.startsWith("take:metadata:put"))).toBe(true);
+    const afterBytes = await harness.binaries.get("music-take-take-1")!.arrayBuffer();
+    expect(new Uint8Array(afterBytes)).toEqual(new Uint8Array(storedBytes));
+  });
+
+  test("clears an emptied note and rejects an out-of-range gain or unknown take", async () => {
+    const harness = createHarness();
+    await harness.library.saveTake(take({ note: "first pass" }), makeBlob(4, "audio/webm"));
+
+    await harness.library.updateTake("take-1", { note: "   " });
+    expect(await harness.takeRepository.get("take-1")).not.toHaveProperty("note");
+
+    await expect(harness.library.updateTake("take-1", { gainDb: 19 })).rejects.toThrow(
+      /Take gainDb/,
+    );
+    await expect(harness.library.renameTake("take-1", "  ")).rejects.toThrow(/Take name/);
+    await expect(harness.library.renameTake("missing", "x")).rejects.toThrow(/does not exist/);
+  });
+
+  test("rejects a saved take whose gain falls outside the supported range", async () => {
+    const harness = createHarness();
+    await expect(
+      harness.library.saveTake(take({ gainDb: -13 }), makeBlob(4, "audio/webm")),
+    ).rejects.toThrow(/Take gainDb/);
+  });
+
   test("rejects referenced backing deletion unless takes are orphaned", async () => {
     const { library } = createHarness();
     const backingRow = backing();

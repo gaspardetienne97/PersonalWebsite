@@ -7,6 +7,7 @@ import {
   JAZZ_SCALE_KINDS,
   majorScaleExercise,
   scaleSemitones,
+  type ScalePatternLiveState,
 } from "./scale-pattern";
 
 const note = (midiNote: number, atMs: number): NoteEvent => ({
@@ -117,5 +118,162 @@ describe("majorScaleExercise", () => {
 
     expect(result.correct).toBe(false);
     expect(result.score).toBeLessThan(0.9);
+  });
+});
+
+describe("hands together", () => {
+  const ctx = { targetSkillIds: ["technique.scale.major"], difficulty: 0.4 };
+  const midi = (midiNote: number, atMs: number): NoteEvent => ({
+    type: "noteOn",
+    midiNote,
+    velocity: 1,
+    source: "midi",
+    timestamp: monotonicMs(atMs),
+    clock: "performance",
+  });
+
+  test("defaults to the right hand and keeps one note per beat", () => {
+    const prompt = majorScaleExercise.generate(ctx);
+    expect(prompt.payload.hands).toBe("right");
+    expect(prompt.payload.noteGroups[0]).toEqual([60]);
+    expect(prompt.payload.midiNotes).toEqual([60, 62, 64, 65, 67, 69, 71, 72]);
+  });
+
+  test("hands: left plays the same pattern one octave down", () => {
+    const prompt = createScalePatternExercise({ hands: "left" }).generate(ctx);
+    expect(prompt.payload.midiNotes).toEqual([48, 50, 52, 53, 55, 57, 59, 60]);
+    expect(prompt.payload.noteGroups[0]).toEqual([48]);
+  });
+
+  test("hands: both expects two notes an octave apart on every beat", () => {
+    const prompt = createScalePatternExercise({ hands: "both", bpm: 80 }).generate(ctx);
+    expect(prompt.payload.noteGroups).toHaveLength(8);
+    for (const group of prompt.payload.noteGroups) {
+      expect(group).toHaveLength(2);
+      expect(group[1]! - group[0]!).toBe(12);
+    }
+    expect(prompt.payload.midiNotes.slice(0, 4)).toEqual([48, 60, 50, 62]);
+  });
+
+  test("counts a beat as together inside the window and not beyond it", () => {
+    const exercise = createScalePatternExercise({ hands: "both", bpm: 80 });
+    const prompt = exercise.generate(ctx);
+    const beatMs = prompt.payload.targetSpacingMs;
+    const play = (offsets: number[]) => {
+      const run = exercise.createRun(prompt, ctx);
+      prompt.payload.noteGroups.forEach((group, beat) => {
+        run.accept(midi(group[0]!, beat * beatMs));
+        run.accept(midi(group[1]!, beat * beatMs + offsets[beat]!));
+      });
+      return run;
+    };
+
+    const tight = play(prompt.payload.noteGroups.map(() => 30)).finish({ reason: "completed" });
+    expect(tight.answer?.togetherTotal).toBe(8);
+    expect(tight.answer?.togetherCount).toBe(8);
+
+    const loose = play(prompt.payload.noteGroups.map(() => 60)).finish({ reason: "completed" });
+    expect(loose.answer?.togetherCount).toBe(0);
+    expect(loose.answer?.togetherTotal).toBe(8);
+  });
+
+  test("reports per-beat together flags live", () => {
+    const exercise = createScalePatternExercise({ hands: "both", bpm: 80 });
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+    const [first, second] = prompt.payload.noteGroups;
+    run.accept(midi(first![0]!, 0));
+    run.accept(midi(first![1]!, 20));
+    run.accept(midi(second![0]!, 750));
+    run.accept(midi(second![1]!, 900));
+
+    expect((run.getLiveState() as ScalePatternLiveState).togetherFlags).toEqual([true, false]);
+  });
+
+  test("does not measure together when both hands come from the on-screen keyboard", () => {
+    const exercise = createScalePatternExercise({ hands: "both", bpm: 80 });
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+    prompt.payload.noteGroups.forEach((group, beat) => {
+      run.accept(note(group[0]!, beat * 750));
+      run.accept(note(group[1]!, beat * 750 + 20));
+    });
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.answer?.togetherCount).toBeUndefined();
+    expect(result.feedback.map((item) => item.message).join(" ")).toContain(
+      "Together not measured",
+    );
+  });
+
+  test("keeps beats aligned when one hand drops a note", () => {
+    const exercise = createScalePatternExercise({ hands: "both", bpm: 80 });
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+    const beatMs = prompt.payload.targetSpacingMs;
+    prompt.payload.noteGroups.forEach((group, beat) => {
+      run.accept(midi(group[0]!, beat * beatMs));
+      // The right hand misses beat 1 entirely.
+      if (beat !== 1) run.accept(midi(group[1]!, beat * beatMs + 10));
+    });
+    const result = run.finish({ reason: "completed" });
+
+    // 15 of the 16 expected notes still line up: only the dropped one is missing.
+    expect(result.feedback[0]?.message).toContain("notes 15/16");
+    expect(result.answer?.togetherCount).toBe(7);
+  });
+
+  test("measures together on a MIDI run that never completes a beat", () => {
+    const exercise = createScalePatternExercise({ hands: "both", bpm: 80 });
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+    prompt.payload.noteGroups.forEach((group, beat) => {
+      run.accept(midi(group[0]!, beat * prompt.payload.targetSpacingMs));
+    });
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.answer?.togetherCount).toBe(0);
+    expect(result.answer?.togetherTotal).toBe(8);
+    expect(result.feedback.map((item) => item.message).join(" ")).not.toContain("not measured");
+  });
+
+  test("reports evenness and honours a preset evenness threshold", () => {
+    const play = (options: { minEvenness?: number }) => {
+      const exercise = createScalePatternExercise({ hands: "both", bpm: 80, ...options });
+      const prompt = exercise.generate(ctx);
+      const run = exercise.createRun(prompt, ctx);
+      const beatMs = prompt.payload.targetSpacingMs;
+      prompt.payload.noteGroups.forEach((group, beat) => {
+        // Every note right, but the beats drag by 50 ms more each time: evenness ~0.72.
+        const at = beat * beatMs + beat * 50;
+        run.accept(midi(group[0]!, at));
+        run.accept(midi(group[1]!, at + 10));
+      });
+      return run.finish({ reason: "completed" });
+    };
+
+    const unchecked = play({});
+    expect(unchecked.answer?.evenness).toBeCloseTo(1 - 50 / 180, 5);
+    // Pitch is complete, so the composite bar alone still passes it.
+    expect(unchecked.correct).toBe(true);
+
+    const checkpoint = play({ minEvenness: 0.85 });
+    expect(checkpoint.answer?.evenness).toBeCloseTo(1 - 50 / 180, 5);
+    expect(checkpoint.correct).toBe(false);
+  });
+
+  test("grades an even hands-together octave scale at 80 BPM", () => {
+    const exercise = createScalePatternExercise({ hands: "both", bpm: 80 });
+    const prompt = exercise.generate(ctx);
+    const run = exercise.createRun(prompt, ctx);
+    const beatMs = prompt.payload.targetSpacingMs;
+    prompt.payload.noteGroups.forEach((group, beat) => {
+      run.accept(midi(group[0]!, beat * beatMs));
+      run.accept(midi(group[1]!, beat * beatMs + 10));
+    });
+    const result = run.finish({ reason: "completed" });
+
+    expect(result.correct).toBe(true);
+    expect(result.score).toBeGreaterThan(0.9);
   });
 });

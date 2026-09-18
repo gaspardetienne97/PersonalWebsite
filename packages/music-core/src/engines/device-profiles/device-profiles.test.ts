@@ -152,6 +152,26 @@ describe("pad note maps", () => {
     expect(state.profiles.find((profile) => profile.id === "other")).toEqual({ id: "other" });
   });
 
+  test("keeps a per-device input offset and drops an unusable one", async () => {
+    const store = new DeviceProfileStore(fakeRepo());
+    await store.saveProfile({ id: "mpc", inputOffsetMs: 22.4 });
+    await store.saveProfile({ id: "keys", inputOffsetMs: Number.NaN });
+    await store.saveProfile({ id: "wild", inputOffsetMs: 9_000 });
+
+    expect(store.profile("mpc")).toEqual({ id: "mpc", inputOffsetMs: 22 });
+    expect(store.profile("keys")).toEqual({ id: "keys" });
+    expect(store.profile("wild")).toEqual({ id: "wild" });
+  });
+
+  test("a zero per-device offset survives a reload", async () => {
+    const repo = fakeRepo();
+    await new DeviceProfileStore(repo).saveProfile({ id: "mpc", inputOffsetMs: 0 });
+
+    const state = await new DeviceProfileStore(repo).load();
+
+    expect(state.profiles[0]).toEqual({ id: "mpc", inputOffsetMs: 0 });
+  });
+
   test("a malformed pad map is dropped rather than half-applied", async () => {
     const repo = fakeRepo();
     await repo.put({

@@ -15,7 +15,10 @@
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     buildJazzSequenceCapture,
+    gradeLickPositions,
     gradeLickSequence,
+    gradeLickTiming,
+    lickMidiNotes,
     normalizeLickRange,
     missedLickChunk,
     JAZZ_LICKS,
@@ -24,7 +27,11 @@
     normalizeJazzLickDrillConfig,
     type LickCategory,
     type LickGrade,
+    type LickPositionGrade,
+    type LickTimingGrade,
   } from "@repo/music-core/engines/jazz";
+  import { fretWindowAround } from "@repo/music-core/engines/projection";
+  import { curatedTunings } from "@repo/music-core/engines/tunings";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
@@ -40,6 +47,7 @@
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
+  import FretboardInput from "../../learn/reading/_components/FretboardInput.svelte";
   import PianoSurface from "../../_components/piano/PianoSurface.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
@@ -84,7 +92,12 @@
     { value: "major-ii-V-I-VI", label: "ii-V-I-VI" },
     { value: "minor-ii-V-i", label: "Minor ii-V-i" },
     { value: "minor-chord", label: "Minor chord" },
+    { value: "guitar-pentatonic", label: "Guitar pentatonic" },
   ];
+
+  // Guitar licks carry a string/fret/finger per note, so they are shown and
+  // graded on a fret window instead of the keyboard.
+  const guitarTuning = curatedTunings("guitar")[0]!;
 
   let category = $state<LickCategory>(initialConfig.category);
   let lickNumber = $state(initialConfig.lickNumber);
@@ -97,12 +110,53 @@
   const fullPhrase = $derived(LICK_PHRASES[lick?.number ?? 1] ?? []);
   let chunkStart = $state(Number(initialSearch.get("from")) || 1);
   let chunkEnd = $state<number | undefined>(Number(initialSearch.get("to")) || undefined);
-  const range = $derived(normalizeLickRange(fullPhrase.length, chunkStart, chunkEnd));
-  const isChunk = $derived(range.start !== 1 || range.end !== fullPhrase.length);
-  const rangeLabel = $derived(isChunk ? `Notes ${range.start}–${range.end} of ${fullPhrase.length}` : "Full line");
-  const phrase = $derived(fullPhrase.slice(range.start - 1, range.end));
+  /**
+   * Chunk bounds count *notes*, not events: a rest is not something to play, so
+   * it can neither be selected on its own nor inflate the total the HUD grades
+   * against. Rests between the chosen notes stay in the slice, because they
+   * carry the timing.
+   */
+  const noteIndexes = $derived(
+    fullPhrase.flatMap(([midi], index) => (midi === null ? [] : [index])),
+  );
+  const range = $derived(normalizeLickRange(noteIndexes.length, chunkStart, chunkEnd));
+  const isChunk = $derived(range.start !== 1 || range.end !== noteIndexes.length);
+  const rangeLabel = $derived(isChunk ? `Notes ${range.start}–${range.end} of ${noteIndexes.length}` : "Full line");
+  const phrase = $derived(
+    fullPhrase.slice(noteIndexes[range.start - 1] ?? 0, (noteIndexes[range.end - 1] ?? -1) + 1),
+  );
   let loopsLeft = $state(0);
-  const expectedMidi = $derived(phrase.map(([midi]) => midi));
+  const expectedMidi = $derived(lickMidiNotes(phrase));
+  const lickPositions = $derived(
+    phrase.flatMap(([midi, , position]) =>
+      midi === null || position === undefined ? [] : [{ midi, position }],
+    ),
+  );
+  const fretted = $derived(lickPositions.length > 0);
+  const fretWindow = $derived(
+    fretWindowAround(
+      lickPositions.map((entry) => entry.position.fret),
+      guitarTuning.fretCount,
+    ),
+  );
+  /**
+   * The authored dots, deduped by string and fret: a pitch can sit at several
+   * places inside one window, and only the one the lick names is a target.
+   */
+  const fingerDots = $derived([
+    ...new Map(
+      lickPositions.map((entry) => [
+        `${entry.position.string}:${entry.position.fret}`,
+        {
+          stringNumber: entry.position.string,
+          fretNumber: entry.position.fret,
+          label: String(entry.position.finger),
+        },
+      ]),
+    ).values(),
+  ]);
+  /** The position the audible model is sounding right now, lit on the fret window. */
+  let modelPosition = $state<{ stringNumber: number; fretNumber: number } | undefined>();
   const phraseNotes = $derived(expectedMidi.map((midi) => midiToNote(midi, true)).join("  "));
 
   // The drill's own state machine. Maps 1:1 onto the shell's phase anatomy:
@@ -119,7 +173,27 @@
   const readyHighlights = $derived(
     Object.fromEntries(expectedMidi.map((midi) => [midi, "target" as const])),
   );
+  /** The one authored dot still to play, so the stage points at a single fret. */
+  const nextPositionDot = $derived(
+    lickPositions[played.length] === undefined
+      ? []
+      : [
+          {
+            stringNumber: lickPositions[played.length]!.position.string,
+            fretNumber: lickPositions[played.length]!.position.fret,
+            label: String(lickPositions[played.length]!.position.finger),
+          },
+        ],
+  );
   let grade = $state<LickGrade | undefined>();
+  let positionGrade = $state<LickPositionGrade | undefined>();
+  let timingGrade = $state<LickTimingGrade | undefined>();
+  // The curriculum's G3 rule: every pitched note, and 80% of them on time.
+  const cleanRun = $derived(
+    expectedMidi.length > 0 &&
+      grade?.accuracy === 1 &&
+      (timingGrade === undefined || timingGrade.ratio >= 0.8),
+  );
   let completedBpm = $state(LICK_BPM);
   const missedChunk = $derived(grade ? missedLickChunk(expectedMidi, played) : undefined);
   let saveError = $state("");
@@ -143,6 +217,7 @@
   let acceptedInput: NoteEvent[] = [];
   let unsubscribe: (() => void) | undefined;
   let previewGeneration = 0;
+  let modelTimers: ReturnType<typeof setTimeout>[] = [];
   // Reactive: drives the shell's setup lock (`startPending`) during preflight.
   let attemptPending = $state(false);
   let attemptRequest = 0;
@@ -218,6 +293,8 @@
     runPhase = "idle";
     played = [];
     grade = undefined;
+    positionGrade = undefined;
+    timingGrade = undefined;
     captured = false;
   }
 
@@ -258,6 +335,7 @@
     if (checkMode && runPhase === "listening") return;
     const generation = ++previewGeneration;
     runtime.sound.stopPattern();
+    clearModelDots();
     if (!(await runtime.ensurePlaybackVoice())) {
       if (generation === previewGeneration) status = runtime.audioMessage;
       return;
@@ -272,11 +350,42 @@
       })),
       0.85,
     );
+    // The fret window lights each dot as it sounds; check mode shows the empty
+    // window, so there is nothing to follow.
+    if (!fretted || checkMode) return;
+    for (const note of lickTimeline(phrase)) {
+      modelTimers.push(
+        setTimeout(() => {
+          if (generation !== previewGeneration) return;
+          modelPosition = note.position
+            ? { stringNumber: note.position.string, fretNumber: note.position.fret }
+            : undefined;
+        }, note.offsetBeats * secondsPerBeat * 1_000),
+      );
+    }
+    modelTimers.push(
+      setTimeout(
+        () => {
+          if (generation === previewGeneration) modelPosition = undefined;
+        },
+        lickTimeline(phrase).reduce(
+          (end, note) => Math.max(end, (note.offsetBeats + note.beats) * secondsPerBeat * 1_000),
+          0,
+        ),
+      ),
+    );
+  }
+
+  function clearModelDots(): void {
+    for (const timer of modelTimers) clearTimeout(timer);
+    modelTimers = [];
+    modelPosition = undefined;
   }
 
   function cancelPreview(): void {
     previewGeneration += 1;
     runtime.sound.stopPattern();
+    clearModelDots();
   }
 
   async function startAttempt(preserveLoop = false): Promise<void> {
@@ -331,8 +440,20 @@
     const expected = [...expectedMidi];
     const response = [...played];
     const result = gradeLickSequence(expected, response);
+    const positions = fretted ? gradeLickPositions(phrase, acceptedInput) : undefined;
+    // Timing is measured from the first note played: the drill has no count-in,
+    // so what is graded is the spacing inside the line, not entry on a downbeat.
+    const timing = fretted
+      ? gradeLickTiming(phrase, {
+          bpm,
+          startTimestampMs: Number(acceptedInput[0]?.timestamp ?? 0),
+          input: [...acceptedInput],
+        })
+      : undefined;
     completedBpm = bpm;
     grade = result;
+    positionGrade = positions;
+    timingGrade = timing;
     runPhase = "graded";
     if (!captured) {
       captured = true;
@@ -379,9 +500,18 @@
           scoringEvents: [capture.event],
           runs: [capture.run],
           xpEarned: xp,
-          note: `Lick #${currentLick?.number ?? lickNumber} · ${completedRangeLabel}: ${Math.round(result.accuracy * 100)}% notes matched; timing not assessed`,
+          note: `Lick #${currentLick?.number ?? lickNumber} · ${completedRangeLabel}: ${Math.round(result.accuracy * 100)}% notes matched; ${
+            timing
+              ? `${timing.onTime}/${timing.total} notes on time${positions && positions.measured === 0 ? "; position not verified" : ""}`
+              : "timing not assessed"
+          }`,
         });
-        if (request === attemptRequest && loopsLeft > 1 && result.accuracy === 1) {
+        if (
+          request === attemptRequest &&
+          loopsLeft > 1 &&
+          result.accuracy === 1 &&
+          (timing === undefined || timing.ratio >= 0.8)
+        ) {
           loopsLeft -= 1;
           void startAttempt(true);
         } else if (request === attemptRequest) loopsLeft = 0;
@@ -409,14 +539,14 @@
 
   function selectChunk(start: number, end: number): void {
     reset();
-    const next = normalizeLickRange(fullPhrase.length, start, end);
+    const next = normalizeLickRange(noteIndexes.length, start, end);
     chunkStart = next.start;
     chunkEnd = next.end;
     status = "Hear the selected chunk, then play it back.";
   }
 
   function fullLine(): void {
-    selectChunk(1, fullPhrase.length);
+    selectChunk(1, noteIndexes.length);
   }
 
   function practiseMissedChunk(): void {
@@ -444,6 +574,7 @@
   onDestroy(() => {
     attemptRequest += 1;
     practiceContextRequest += 1;
+    clearModelDots();
     cancelPreview();
     runtime.endPerformance();
     unsubscribe?.();
@@ -474,6 +605,31 @@
 
   {#snippet setupSummaryLine()}
     Lick #{lick?.number} · {rangeLabel} · {lick?.progression.join(" ")} · {lickCategories.find((c) => c.value === category)?.label ?? category} · {bpm} BPM
+  {/snippet}
+
+  {#snippet lickSurface(
+    highlights: Record<number, "target">,
+    positions: { stringNumber: number; fretNumber: number; label?: string }[],
+  )}
+    <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+      {#if fretted}
+        <FretboardInput
+          tuning={guitarTuning}
+          router={runtime.router}
+          {fretWindow}
+          visibleFrets={guitarTuning.fretCount}
+          targetPositions={checkMode ? [] : positions}
+          activePosition={checkMode ? undefined : modelPosition}
+        />
+      {:else}
+        <PianoSurface
+          router={runtime.router}
+          notes={checkMode ? [48, 84] : expectedMidi}
+          highlights={checkMode ? {} : highlights}
+          noteNames="c"
+        />
+      {/if}
+    </div>
   {/snippet}
 
   {#snippet lickLine()}
@@ -514,19 +670,25 @@
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <HudTile size="sm" label="Notes matched" value={`${grade?.matched ?? 0} / ${grade?.total ?? 0}`} />
           <HudTile size="sm" label="Replay tempo" value={bpm} unit="BPM" />
+          {#if timingGrade}
+            <HudTile size="sm" label="On time" value={`${timingGrade.onTime} / ${timingGrade.total}`} />
+            <HudTile size="sm" label="Position" value={positionGrade && positionGrade.measured > 0 ? `${positionGrade.correct} / ${positionGrade.measured}` : "Not measured"} />
+          {/if}
         </div>
         <div class="space-y-1 rounded-lg border bg-muted/30 p-4">
           <p class="eyebrow">The line</p>
           <p class="font-mono text-sm tabular-nums">{phraseNotes}</p>
         </div>
         {#if saveError}<p class="text-sm text-destructive">{saveError}</p>{/if}
-        <p class="text-xs text-muted-foreground">{rangeLabel} · Notes and order only; performed timing is not assessed. Chunk practice does not complete full-line milestones.</p>
+        <p class="text-xs text-muted-foreground">{rangeLabel} · {timingGrade ? "Notes, order and timing (measured from your first note). On-screen taps verify the string and fret; microphone pitch does not, so the position is not verified." : "Notes and order only; performed timing is not assessed."} Chunk practice does not complete full-line milestones.</p>
       {/snippet}
       {#snippet actions()}
         {#if loopsLeft > 0}<Button variant="outline" onclick={changeSetup}>Stop loop</Button>{/if}
-        <TempoPracticeSuggestion bpm={completedBpm} clean={grade?.accuracy === 1}
+        <TempoPracticeSuggestion bpm={completedBpm} clean={cleanRun}
           options={{ startBpm: 30, stepBpm: 10, rungs: 28 }}
-          basis="Replay/count-in tempo only: notes and order are scored, performed timing is not assessed."
+          basis={fretted
+            ? "Notes, order and timing are scored; the fret window shows the fingering."
+            : "Replay/count-in tempo only: notes and order are scored, performed timing is not assessed."}
           onPractice={practiceAtTempo} />
         <AdaptiveRetryBar onWeakItem={missedChunk ? practiseMissedChunk : undefined}
           weakItemLabel={missedChunk ? `Practise notes ${range.start + missedChunk.start - 1}–${range.start + missedChunk.end - 1}` : "Practise missed chunk"} />
@@ -567,11 +729,11 @@
         <div class="grid gap-2" role="group" aria-label="Phrase range">
           <p class="text-sm font-medium">{rangeLabel}</p>
           <div class="grid grid-cols-2 gap-3">
-            <div><Label for="lick-from">First note</Label><Input id="lick-from" type="number" min={1} max={fullPhrase.length} value={range.start} onchange={(event) => selectChunk(Number(event.currentTarget.value), range.end)} /></div>
-            <div><Label for="lick-to">Last note</Label><Input id="lick-to" type="number" min={range.start} max={fullPhrase.length} value={range.end} onchange={(event) => selectChunk(range.start, Number(event.currentTarget.value))} /></div>
+            <div><Label for="lick-from">First note</Label><Input id="lick-from" type="number" min={1} max={noteIndexes.length} value={range.start} onchange={(event) => selectChunk(Number(event.currentTarget.value), range.end)} /></div>
+            <div><Label for="lick-to">Last note</Label><Input id="lick-to" type="number" min={range.start} max={noteIndexes.length} value={range.end} onchange={(event) => selectChunk(range.start, Number(event.currentTarget.value))} /></div>
           </div>
           {#if isChunk}<Button variant="outline" onclick={fullLine}>Full line</Button>{/if}
-          <p class="text-xs text-muted-foreground">Select a contiguous range. Check hides targets for a recall pass. Notes and order are scored; performed timing is not assessed.</p>
+          <p class="text-xs text-muted-foreground">Select a contiguous range. Check hides targets for a recall pass. {fretted ? "Notes, order and timing are scored; on-screen taps also verify the string and fret." : "Notes and order are scored; performed timing is not assessed."}</p>
         </div>
         <p class="text-xs text-muted-foreground">
           Tempo lives in the practice controls above: {bpm} BPM.
@@ -625,9 +787,7 @@
           </div>
         </div>
         {#if !checkMode}{@render lickLine()}{/if}
-        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
-          <PianoSurface router={runtime.router} notes={checkMode ? [48, 84] : expectedMidi} highlights={checkMode ? {} : readyHighlights} noteNames="c" />
-        </div>
+        {@render lickSurface(readyHighlights, fingerDots)}
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
     {/snippet}
@@ -649,9 +809,7 @@
           <HudTile size="sm" label="Replay tempo" value={bpm} unit="BPM" />
         </div>
         <Progress value={Math.min(played.length, expectedMidi.length)} max={expectedMidi.length} />
-        <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
-          <PianoSurface router={runtime.router} notes={checkMode ? [48, 84] : expectedMidi} highlights={checkMode ? {} : nextTarget} noteNames="c" />
-        </div>
+        {@render lickSurface(nextTarget, nextPositionDot)}
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
     {/snippet}

@@ -11,6 +11,9 @@
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
 
+  import TakeMiniRoll from "./TakeMiniRoll.svelte";
+  import TakeNameInput from "./TakeNameInput.svelte";
+
   let {
     takes = [],
     selectedTake,
@@ -25,6 +28,8 @@
     onDeleteTake,
     onPracticeTake,
     onOpenInPianoRoll,
+    onRenameTake,
+    onNoteTake,
   }: {
     takes?: Take[];
     selectedTake?: Take;
@@ -39,6 +44,8 @@
     onDeleteTake?: (take: Take) => void | Promise<void>;
     onPracticeTake?: (take: Take) => void | Promise<void>;
     onOpenInPianoRoll?: (take: Take) => void | Promise<void>;
+    onRenameTake?: (take: Take, name: string) => void | Promise<void>;
+    onNoteTake?: (take: Take, note: string) => void | Promise<void>;
   } = $props();
 
   const selected = $derived(selectedTake ?? takes[0]);
@@ -92,6 +99,7 @@
               size="icon"
               variant={playing ? "default" : "ghost"}
               class="ml-1 size-11 shrink-0 rounded-full"
+              aria-pressed={playing}
               aria-label={`${playing ? "Pause" : "Play"} MIDI take ${take.name}`}
               onclick={() => {
                 onSelectTake?.(take);
@@ -104,24 +112,38 @@
                 <Play class="size-4" aria-hidden="true" />
               {/if}
             </Button>
-            <button
-              type="button"
-              class="flex min-w-0 flex-1 items-center justify-between gap-3 py-2 text-left hover:bg-muted/40"
-              aria-label={`Select MIDI take ${take.name}`}
-              onclick={() => onSelectTake?.(take)}
-            >
-              <span class="min-w-0">
-                <span class="block truncate text-sm font-semibold">{take.name}</span>
-                <span class="text-xs text-muted-foreground">
-                  <Music2 class="mr-1 inline size-3 align-[-2px]" aria-hidden="true" />MIDI ·
-                  {formatDuration(take.durationMs)} · {take.notes.length}
-                  {take.notes.length === 1 ? "note" : "notes"} · {take.source}
+            <div class="grid min-w-0 flex-1 gap-1 py-2">
+              <TakeNameInput
+                value={take.name}
+                label={`Take name for ${take.name}`}
+                onCommit={(name) => void onRenameTake?.(take, name)}
+              />
+              <button
+                type="button"
+                class="flex min-w-0 items-center justify-between gap-3 rounded-md px-1.5 text-left hover:bg-muted/40"
+                aria-label={`Select MIDI take ${take.name}`}
+                onclick={() => onSelectTake?.(take)}
+              >
+                <span class="min-w-0">
+                  <TakeMiniRoll {take} class="h-8 w-full" />
+                  <span class="mt-1 block text-xs text-muted-foreground">
+                    <Music2 class="mr-1 inline size-3 align-[-2px]" aria-hidden="true" />MIDI ·
+                    {formatDuration(take.durationMs)} · {take.notes.length}
+                    {take.notes.length === 1 ? "note" : "notes"} · {take.source}
+                  </span>
                 </span>
-              </span>
-              <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                {pitchRange(take)}
-              </span>
-            </button>
+                <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                  {pitchRange(take)}
+                </span>
+              </button>
+              <TakeNameInput
+                value={take.note ?? ""}
+                tone="note"
+                placeholder="Add a note"
+                label={`Note for ${take.name}`}
+                onCommit={(note) => void onNoteTake?.(take, note)}
+              />
+            </div>
           </div>
         {/each}
       {:else}

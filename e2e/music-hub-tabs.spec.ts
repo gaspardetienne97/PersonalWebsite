@@ -39,15 +39,15 @@ for (const width of [1280, 375]) {
       "aria-pressed",
       "true",
     );
-    await page.getByRole("button", { name: "Recorder", exact: true }).focus();
-    await page.keyboard.press("Space");
-    await expect(page.getByText("Recording & Self-Review", { exact: true })).toBeVisible();
-    expect(new URL(page.url()).searchParams.get("mode")).toBe("recorder");
+    expect(new URL(page.url()).searchParams.get("mode")).toBe("piano-roll");
     expect(new URL(page.url()).searchParams.get("source")).toBe("review");
     await page.reload();
-    await expect(page.getByText("Recording & Self-Review", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Beat grid", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Piano Roll", exact: true })).toBeVisible();
+    // Keyboard activation reaches the other mode, and the URL follows it.
+    await page.getByRole("button", { name: "Beat grid", exact: true }).focus();
+    await page.keyboard.press("Space");
     await expect(page.getByText(/^Pad bank ·/)).toBeVisible();
+    expect(new URL(page.url()).searchParams.get("mode")).toBe("beat");
     await expect(page.getByRole("button", { name: "Beat grid", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",

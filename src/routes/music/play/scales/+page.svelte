@@ -10,17 +10,23 @@
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
     normalizeScaleDrillConfig,
+    scaleLadderVariantKey,
+    SCALE_DRILL_HANDS,
     SCALE_DRILL_MOTIONS,
     SCALE_DRILL_SPANS,
     SCALE_DRILL_TONICS,
+    SCALE_HANDS_TOGETHER_PRESET,
     TechniqueSession,
+    TempoLadder,
     type TechniqueSessionState,
   } from "@repo/music-core/engines/technique-session";
   import { noteToMidi } from "@repo/music-core/engines/theory";
   import {
     JAZZ_SCALE_KINDS,
     scalePatternSemitones,
+    type ScaleHands,
     type ScaleMotion,
+    type ScalePatternLiveState,
     type ScalePatternPrompt,
     type ScalePatternKind,
     type ScaleSpan,
@@ -35,12 +41,16 @@
   import InstrumentView from "../../_components/InstrumentView.svelte";
   import MidiStatus from "../../_components/MidiStatus.svelte";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import DemoBeatLane from "../../_components/DemoBeatLane.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
-  import PianoSurface, { type PianoHighlightRole } from "../../_components/piano/PianoSurface.svelte";
+  import PianoSurface, {
+    type PianoHighlight,
+    type PianoHighlightRole,
+  } from "../../_components/piano/PianoSurface.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -93,6 +103,10 @@
       label: value === "up" ? "Ascending" : value === "down" ? "Descending" : "Up-down",
     }),
   );
+  const HANDS_OPTIONS: { value: ScaleHands; label: string }[] = SCALE_DRILL_HANDS.map((value) => ({
+    value,
+    label: value === "left" ? "Left" : value === "both" ? "Both" : "Right",
+  }));
   const SPAN_OPTIONS: { value: ScaleSpan; label: string }[] = SCALE_DRILL_SPANS.map((value) => ({
     value,
     label:
@@ -106,6 +120,7 @@
   let tonic = $state(initialConfig.tonic);
   let motion = $state<ScaleMotion>(initialConfig.motion);
   let span = $state<ScaleSpan>(initialConfig.span);
+  let hands = $state<ScaleHands>(initialConfig.hands);
   const motionLabel = $derived(
     MOTION_OPTIONS.find((option) => option.value === motion)?.label ?? "Ascending",
   );
@@ -113,9 +128,22 @@
     SPAN_OPTIONS.find((option) => option.value === span)?.label ?? "One octave",
   );
   const tonicLabel = $derived(tonic.replace(/\d+$/, ""));
+  const handsLabel = $derived(
+    HANDS_OPTIONS.find((option) => option.value === hands)?.label ?? "Right",
+  );
   // Reference view of the selected scale pattern on the chosen instrument.
-  const referenceMidi = $derived(
-    scalePatternSemitones(scale, span, motion).map((semitones) => noteToMidi(tonic) + semitones),
+  // Hands together doubles every step an octave down, so both octaves light up.
+  const referenceGroups = $derived(
+    scalePatternSemitones(scale, span, motion).map((semitones) => {
+      const upper = noteToMidi(tonic) + semitones;
+      if (hands === "both") return [upper - 12, upper];
+      return [hands === "left" ? upper - 12 : upper];
+    }),
+  );
+  const referenceMidi = $derived(referenceGroups.flat());
+  // One lane cell per beat; a hands-together scale strikes both rows at once.
+  const beatLane = $derived(
+    referenceGroups.map(() => ({ left: hands !== "right", right: hands !== "left" })),
   );
   let scaleInstrument = $state<InstrumentId>(initialConfig.instrument);
   runtime.setActiveInstrument(initialConfig.instrument);
@@ -133,6 +161,21 @@
   let unsubscribeSession: (() => void) | undefined;
   let midiEnabled = $state(runtime.midi.state.enabled);
   let captured = false;
+  // Demo mode: an audible model of the scale. It starts no run, writes no
+  // scoring event, and leaves setup exactly as it found it (review 21 O06).
+  let demoRunning = $state(false);
+  let demoBeat = $state(-1);
+  let demoSounding = $state<number[]>([]);
+  let demoGeneration = 0;
+  let demoTimers: ReturnType<typeof setTimeout>[] = [];
+  let statusBeforeDemo = "";
+  const DEMO_STATUS = "Demo: listening, not scored.";
+  const drillMode = $derived<"demo" | "practice" | "check">(demoRunning ? "demo" : "practice");
+  const apartBeats = $derived(
+    ((sessionState?.live as ScalePatternLiveState | undefined)?.togetherFlags ?? []).map(
+      (together) => !together,
+    ),
+  );
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
   const activePrompt = $derived(
@@ -176,8 +219,19 @@
     ladderState ? tempoLadderProjection(ladderState, { startBpm: 100, stepBpm: 10, rungs: 6 }) : [],
   );
   const normalizedConfig = $derived(
-    normalizeScaleDrillConfig({ scale, tonic, instrument: scaleInstrument, bpm: tempo, motion, span }),
+    normalizeScaleDrillConfig({
+      scale,
+      tonic,
+      instrument: scaleInstrument,
+      bpm: tempo,
+      motion,
+      span,
+      hands,
+    }),
   );
+  // The persisted tempo ladder: one rung per (exercise, variant), reloaded on setup.
+  const ladder = new TempoLadder(store?.settings);
+  const ladderKey = $derived(scaleLadderVariantKey({ scale, tonic, motion, span, hands }));
   const variantKey = $derived(`v1:scales:${scaleInstrument}:${scale}:${motion}:${span}`);
 
   // Branch swaps destroy the focused element (e.g. the Start button), dropping
@@ -187,17 +241,35 @@
   let resultsHeading = $state<HTMLElement | null>(null);
   let setupSummary = $state<HTMLElement | null>(null);
   const setupSummaryText = $derived(
-    `${tonicLabel} ${scaleLabel} · ${motionLabel} · ${spanLabel} · ${tempo} BPM · ${INSTRUMENT_LABELS[scaleInstrument]}`,
+    `${tonicLabel} ${scaleLabel} · ${motionLabel} · ${spanLabel} · ${handsLabel} hand${hands === "both" ? "s" : ""} · ${tempo} BPM · ${INSTRUMENT_LABELS[scaleInstrument]}`,
   );
-  const readyHighlights = $derived(
-    Object.fromEntries(referenceMidi.map((midi) => [midi, "target" as const])),
-  );
+  const readyHighlights = $derived.by(() => {
+    const highlights: Record<number, PianoHighlightRole | PianoHighlight> = Object.fromEntries(
+      referenceMidi.map((midi) => [midi, "target" as const]),
+    );
+    // The demo model lights the notes it is sounding over the standing targets,
+    // in the hand's own colour: a group is written low to high, so index 0 is the
+    // left hand whenever both play.
+    for (const [index, midi] of demoSounding.entries()) {
+      highlights[midi] = {
+        role: "sounding",
+        hand: hands === "both" ? (index === 0 ? "left" : "right") : hands,
+      };
+    }
+    return highlights;
+  });
   let previousPhase: "summary" | "stage" | "setup" | undefined;
 
   void initialize();
 
   $effect(() => {
     syncConfigUrl();
+  });
+
+  // Load the saved rung for the selected variant so setup shows the earned
+  // tempo before a run starts; the session writes it back when a run unlocks.
+  $effect(() => {
+    void session?.useLadder(ladderKey);
   });
 
   $effect(() => {
@@ -254,6 +326,7 @@
       const nextSession = new TechniqueSession({
         router: runtime.router,
         services: { skills, analytics, progress },
+        ladder,
       });
       if (destroyed) {
         nextSession.dispose();
@@ -285,8 +358,67 @@
     }
   }
 
+  /**
+   * Play the scale as a model. No run, no attempt, no scoring event — the
+   * player can still touch the keys and hear them, nothing is graded.
+   */
+  async function toggleDemo(): Promise<void> {
+    if (demoRunning) {
+      stopDemo();
+      return;
+    }
+    // A start is in flight (count-in, preflight) with the ready stage still up:
+    // a demo begun now would dress the graded run as a demonstration.
+    if (!ready || pending) return;
+    const generation = ++demoGeneration;
+    if (!(await runtime.ensurePlaybackVoice())) {
+      if (generation === demoGeneration) status = runtime.audioMessage;
+      return;
+    }
+    if (generation !== demoGeneration || destroyed || pending) return;
+    const groups = referenceGroups;
+    const beatMs = 60_000 / tempo;
+    const epoch = runtime.sound.playPattern(
+      groups.map((group, index) => ({
+        midiNotes: group,
+        offsetSeconds: (index * beatMs) / 1_000,
+        durationSeconds: (beatMs * 0.9) / 1_000,
+      })),
+      0.7,
+    );
+    statusBeforeDemo = status;
+    demoRunning = true;
+    status = DEMO_STATUS;
+    // Tone schedules a lookahead ahead of the call, so light from the instant
+    // beat 0 actually sounds, not from the instant the call was made.
+    const lightsAt = Math.max(0, (epoch?.startedAt ?? performance.now()) - performance.now());
+    groups.forEach((group, index) => {
+      demoTimers.push(
+        setTimeout(() => {
+          demoBeat = index;
+          demoSounding = group;
+        }, lightsAt + index * beatMs),
+      );
+    });
+    demoTimers.push(setTimeout(stopDemo, lightsAt + groups.length * beatMs));
+  }
+
+  function stopDemo(): void {
+    demoGeneration += 1;
+    for (const timer of demoTimers) clearTimeout(timer);
+    demoTimers = [];
+    if (!demoRunning) return;
+    runtime.sound.stopPattern();
+    // Only take back the line the demo wrote: initialize() may have replaced it.
+    if (status === DEMO_STATUS) status = statusBeforeDemo;
+    demoRunning = false;
+    demoBeat = -1;
+    demoSounding = [];
+  }
+
   async function startScale(): Promise<void> {
     if (!ready || pending || !session) return;
+    stopDemo();
     const request = ++startRequest;
     resultsDismissed = true;
     pending = true;
@@ -321,6 +453,7 @@
         bpm: config.bpm,
         motion: config.motion,
         span: config.span,
+        hands: config.hands,
       });
       if (request !== startRequest) {
         runtime.endPerformance();
@@ -375,6 +508,17 @@
     resultsDismissed = true;
   }
 
+  /** The curriculum's hands-together checkpoint, applied in one click. */
+  function applyHandsTogetherPreset(): void {
+    const preset = SCALE_HANDS_TOGETHER_PRESET.config;
+    scale = preset.scale;
+    tonic = preset.tonic;
+    motion = preset.motion;
+    span = preset.span;
+    hands = preset.hands;
+    runtime.setPracticeVariantBpm(preset.bpm, variantKey);
+  }
+
   function syncConfigUrl(): void {
     const config = normalizedConfig;
     const params = new URLSearchParams(window.location.search);
@@ -384,6 +528,7 @@
     params.set("bpm", String(config.bpm));
     params.set("motion", config.motion);
     params.set("span", config.span);
+    params.set("hands", config.hands);
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
@@ -395,6 +540,7 @@
     destroyed = true;
     startRequest += 1;
     practiceContextRequest += 1;
+    stopDemo();
     runtime.endPerformance();
     unsubscribeSession?.();
     unsubscribeMidiState();
@@ -493,7 +639,13 @@
     </DrillSummaryCard>
   {/snippet}
 
-  <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
+  <PracticeDrillShell
+    {phase}
+    mode={drillMode}
+    startPending={pending || demoRunning}
+    setupSummary={setupSummaryLine}
+    summary={summaryPhase}
+  >
     {#snippet setup()}
       <div class="grid gap-5 rounded-lg border bg-card p-4">
         <div class="grid gap-4 sm:grid-cols-2">
@@ -556,6 +708,30 @@
               {/each}
             </select>
           </div>
+          <div class="grid gap-2">
+            <Label for="scale-hands">Hands</Label>
+            <select
+              id="scale-hands"
+              aria-label="Hands"
+              class="min-h-11 rounded-md border border-input bg-background px-3 text-sm"
+              bind:value={hands}
+            >
+              {#each HANDS_OPTIONS as option (option.value)}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            class="min-h-11"
+            onclick={applyHandsTogetherPreset}
+          >
+            {SCALE_HANDS_TOGETHER_PRESET.label}
+          </Button>
         </div>
         <div class="grid gap-2">
           <Label>Instrument</Label>
@@ -570,8 +746,9 @@
             }}
           />
         </div>
-        <p class="text-xs text-muted-foreground">
-          Tempo lives in the practice controls above: {tempo} BPM. Unlocked target {currentTempo} BPM.
+        <p class="text-xs text-muted-foreground" data-testid="scales-ladder-readout">
+          Tempo lives in the practice controls above: {tempo} BPM. Tempo ladder: unlocked to
+          {currentTempo} BPM, saved for this setup.
         </p>
       </div>
     {/snippet}
@@ -602,9 +779,23 @@
             >
               {pending ? "Starting..." : "Start"}
             </Button>
+            {#if drillMode !== "check"}
+              <Button
+                type="button"
+                variant="outline"
+                class="min-h-11"
+                disabled={!ready || pending}
+                onclick={() => void toggleDemo()}
+              >
+                {demoRunning ? "Stop demo" : "Demo"}
+              </Button>
+            {/if}
             <StartShortcut onStart={() => void startScale()} />
           </div>
         </div>
+        {#if demoRunning}
+          <DemoBeatLane beats={beatLane} current={demoBeat} label="Demo beat lane" />
+        {/if}
         {#if scaleInstrument === "piano"}
           <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
             <PianoSurface
@@ -645,6 +836,7 @@
           <HudTile size="sm" label="Span" value={spanLabel} />
         </div>
         <Progress value={liveProgress} max={100} />
+        <DemoBeatLane beats={beatLane} apart={apartBeats} label="Beat lane" />
         <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <PianoSurface
             router={runtime.router}

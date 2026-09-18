@@ -73,6 +73,103 @@ describe("StaffNotation", () => {
     ).toBe("true");
   });
 
+  test("draws a pending Start handle and a hint after the first tap", async () => {
+    mockNotationRects();
+    const onSelectionChange = vi.fn();
+    render(StaffNotation, {
+      view: notationFixture(),
+      selectionMap: selectionMap(),
+      selectionEnabled: true,
+      snap: "measure",
+      onSelectionChange,
+    });
+
+    const host = await notationHost();
+    tap(host, 15);
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-range-handle="start"]')).not.toBeNull(),
+    );
+    expect(document.querySelector('[data-range-handle="start"]')?.getAttribute("aria-label")).toBe(
+      "Start of the practice range, bar 1",
+    );
+    expect(document.querySelector('[data-range-handle="end"]')).toBeNull();
+    expect(document.body.textContent).toContain("Now tap the end bar");
+  });
+
+  test("completes a one-bar range from two taps on the same bar", async () => {
+    mockNotationRects();
+    const onSelectionChange = vi.fn();
+    render(StaffNotation, {
+      view: notationFixture(),
+      selectionMap: selectionMap(),
+      selectionEnabled: true,
+      snap: "measure",
+      onSelectionChange,
+    });
+
+    const host = await notationHost();
+    tap(host, 15);
+    tap(host, 15);
+
+    expect(onSelectionChange).toHaveBeenCalledWith({ startBeat: 0, endBeat: 4 });
+  });
+
+  test("forgets a half-finished tap when selection is handed back and taken again", async () => {
+    mockNotationRects();
+    const onSelectionChange = vi.fn();
+    const props = {
+      view: notationFixture(),
+      selectionMap: selectionMap(),
+      selectionEnabled: true,
+      snap: "measure" as const,
+      onSelectionChange,
+    };
+    const view = render(StaffNotation, props);
+
+    const host = await notationHost();
+    tap(host, 15);
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-range-handle="start"]')).not.toBeNull(),
+    );
+
+    // Practice starts, then is cancelled: the pending Start must not survive.
+    await view.rerender({ ...props, selectionEnabled: false });
+    await view.rerender({ ...props, selectionEnabled: true });
+    tap(await notationHost(), 105);
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-range-handle="start"]')?.getAttribute("aria-label"),
+      ).toBe("Start of the practice range, bar 2"),
+    );
+  });
+
+  test("labels both ends of a committed range with Start, End and their bars", async () => {
+    mockNotationRects();
+    render(StaffNotation, {
+      view: notationFixture(),
+      selectionMap: selectionMap(),
+      customSelection: { startBeat: 0, endBeat: 8 },
+      selectionEnabled: true,
+      snap: "measure",
+    });
+
+    await notationHost();
+
+    const labels = [...document.querySelectorAll("[data-range-handle]")].map((handle) => [
+      handle.getAttribute("data-range-handle"),
+      handle.getAttribute("aria-label"),
+      handle.textContent?.trim(),
+    ]);
+    expect(labels).toEqual([
+      ["start", "Start of the practice range, bar 1", "Start"],
+      ["end", "End of the practice range, bar 2", "End"],
+    ]);
+  });
+
   test("marks active noteheads and active range cursors for score following", async () => {
     mockNotationRects();
     render(StaffNotation, {

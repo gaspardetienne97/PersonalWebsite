@@ -12,6 +12,8 @@
   import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import {
+    FRETBOARD_PATTERN_OPTIONS,
+    normalizeFretboardPatternConfig,
     normalizeSpiderDrillConfig,
     normalizeStringTechniqueConfig,
     SPIDER_DRILL_PATTERNS,
@@ -21,6 +23,14 @@
     type StringTechniqueMode,
     type TechniqueSessionState,
   } from "@repo/music-core/engines/technique-session";
+  import {
+    fretboardPatternDefinition,
+    fretboardPatternPositions,
+    fretboardPatternRootFretRange,
+    type FretboardPatternAnswer,
+    type FretboardPatternId,
+    type FretboardPatternPrompt,
+  } from "@repo/music-core/exercises/fretboard-pattern";
   import {
     curatedTunings,
     type StringInstrumentId,
@@ -96,6 +106,7 @@
   ];
   const modeOptions = [
     { value: "spider", label: "Spider" },
+    { value: "positions", label: "Positions" },
     { value: "note-finder", label: "Note Finder" },
     { value: "interval-recall", label: "Interval recall" },
   ];
@@ -106,7 +117,15 @@
   const initialMode = normalizeStringTechniqueConfig(initialSearch);
   const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
 
+  const initialPositions = normalizeFretboardPatternConfig(
+    initialSearch,
+    curatedTunings(initialConfig.instrument).find(
+      (profile) => profile.id === initialConfig.tuningId,
+    ) ?? curatedTunings(initialConfig.instrument)[0]!,
+  );
   let mode = $state<StringTechniqueMode>(initialMode.mode);
+  let positionsPattern = $state<FretboardPatternId>(initialPositions.patternId);
+  let positionsRootFret = $state(initialPositions.rootFret);
   let recallInterval = $state<3 | 4 | 7 | 12>([3, 4, 7, 12].includes(Number(initialSearch.get("interval"))) ? Number(initialSearch.get("interval")) as 3 | 4 | 7 | 12 : 4);
   let recallRegion = $state([0, 5, 10].includes(Number(initialSearch.get("region"))) ? Number(initialSearch.get("region")) : 0);
   let intervalHistory = $state<ScoringEvent[]>([]);
@@ -152,11 +171,38 @@
       ? (sessionState.currentPrompt as FretboardNoteFinderPrompt)
       : undefined,
   );
+  const positionsPrompt = $derived(
+    sessionState?.currentPrompt && "patternId" in sessionState.currentPrompt
+      ? (sessionState.currentPrompt as FretboardPatternPrompt)
+      : undefined,
+  );
+  // Positions definition/fret range for the pickers, independent of any run.
+  const positionsDefinition = $derived(fretboardPatternDefinition(positionsPattern));
+  // Every box and CAGED grip reaches string 6, so Positions is a guitar drill:
+  // the instrument control is pinned below, and this keeps the pickers on a
+  // six-string tuning for the tick before that lands.
+  const positionsTuning = $derived(instrument === "guitar" ? tuning : curatedTunings("guitar")[0]!);
+  const positionsRootRange = $derived(
+    fretboardPatternRootFretRange(positionsTuning, positionsDefinition),
+  );
+  /** The selected box/shape at the selected root, for the setup preview and fret window. */
+  const previewPositions = $derived(
+    fretboardPatternPositions(
+      positionsTuning,
+      positionsDefinition,
+      Math.min(positionsRootRange.max, Math.max(positionsRootRange.min, positionsRootFret)),
+    ),
+  );
   const summary = $derived(sessionState?.summary);
   const completedPrompt = $derived(summary?.results[0]?.prompt);
-  const completedBpm = $derived(completedPrompt && "bpm" in completedPrompt ? completedPrompt.bpm : Number(bpm));
+  const completedBpm = $derived(
+    completedPrompt && "bpm" in completedPrompt && typeof completedPrompt.bpm === "number"
+      ? completedPrompt.bpm
+      : Number(bpm),
+  );
   const result = $derived(summary?.results[0]);
   const answer = $derived(result?.result.answer as StringSpiderAnswer | undefined);
+  const positionsAnswer = $derived(result?.result.answer as FretboardPatternAnswer | undefined);
   const noteFinderAnswer = $derived(result?.result.answer as FretboardNoteFinderAnswer | undefined);
   const phase = $derived<"setup" | "stage" | "summary">(
     pending
@@ -167,11 +213,15 @@
           ? "stage"
           : "setup",
   );
-  const targetNoteCount = $derived(prompt?.midiNotes.length ?? (noteFinderPrompt ? 1 : 4));
+  const targetNoteCount = $derived(
+    prompt?.midiNotes.length ?? positionsPrompt?.midiNotes.length ?? (noteFinderPrompt ? 1 : 4),
+  );
   const completedNotes = $derived(
     Math.min(targetNoteCount, Math.round((sessionState?.live?.progress ?? 0) * targetNoteCount)),
   );
-  const currentPosition = $derived(prompt?.positions[completedNotes]);
+  const currentPosition = $derived(
+    prompt?.positions[completedNotes] ?? positionsPrompt?.positions[completedNotes],
+  );
   // Finger numbers on the dots: finger 1 sits on the start fret.
   const fingerLabels = $derived.by(() => {
     if (!prompt) return undefined;
@@ -187,7 +237,13 @@
     normalizedMode.mode === "note-finder"
       ? undefined
       : fretWindowAround(
-          prompt ? prompt.positions.map((position) => position.fretNumber) : [startFret, startFret + 3],
+          normalizedMode.mode === "positions"
+            ? (positionsPrompt?.positions ?? previewPositions).map(
+                (position) => position.fretNumber,
+              )
+            : prompt
+              ? prompt.positions.map((position) => position.fretNumber)
+              : [startFret, startFret + 3],
           tuning.fretCount,
         ),
   );
@@ -257,11 +313,17 @@
     phase === "summary"
       ? mode === "interval-recall" ? `Interval checked. ${result?.result.feedback[0]?.message ?? ""}` : normalizedMode.mode === "note-finder"
         ? `Note found. ${summary?.xp ?? 0} XP.`
-        : `Spider complete. ${Math.round((answer?.pitchAccuracy ?? 0) * 100)}% notes · ${Math.round(answer?.meanTimingErrorMs ?? 0)}ms mean timing error.`
+        : normalizedMode.mode === "positions"
+          ? `Positions complete. ${result?.result.feedback.map((item) => item.message).join(" ") ?? ""}`
+          : `Spider complete. ${Math.round((answer?.pitchAccuracy ?? 0) * 100)}% notes · ${Math.round(answer?.meanTimingErrorMs ?? 0)}ms mean timing error.`
       : status,
   );
   const variantKey = $derived(
-    mode === "interval-recall" ? `v1:spider:guitar:interval:${recallInterval}:${recallRegion}:${tuningId}` : `v1:spider:${instrument}:${pattern}:${stringSpan}${crossing ? "-crossing" : ""}`,
+    mode === "interval-recall"
+      ? `v1:spider:guitar:interval:${recallInterval}:${recallRegion}:${tuningId}`
+      : mode === "positions"
+        ? `v1:spider:${instrument}:positions:${positionsPattern}:${positionsRootFret}`
+        : `v1:spider:${instrument}:${pattern}:${stringSpan}${crossing ? "-crossing" : ""}`,
   );
 
   let activeHeading = $state<HTMLHeadingElement | null>(null);
@@ -286,9 +348,8 @@
   });
 
   $effect(() => {
-    if (mode === "interval-recall" && instrument !== "guitar") {
-      instrument = "guitar";
-      tuningId = curatedTunings("guitar")[0]!.id;
+    if ((mode === "interval-recall" || mode === "positions") && instrument !== "guitar") {
+      selectInstrument("guitar");
     }
     const key = variantKey;
     routeGeneration += 1;
@@ -301,8 +362,11 @@
         defaultBpm: 80,
         ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
         meter: { numerator: 4, denominator: 4 },
-        allowedInstruments: mode === "interval-recall" ? ["guitar"] : ["guitar", "ukulele"],
-        ...(mode === "interval-recall" ? { pinnedInstrument: "guitar" as const } : {}),
+        allowedInstruments:
+          mode === "interval-recall" || mode === "positions" ? ["guitar"] : ["guitar", "ukulele"],
+        ...(mode === "interval-recall" || mode === "positions"
+          ? { pinnedInstrument: "guitar" as const }
+          : {}),
         onBpmChange: (next) => (bpm = String(next)),
         onInstrumentChange: selectInstrument,
       })
@@ -351,10 +415,12 @@
             tags:
               mode === "interval-recall" ? ["technique", "interval-recall", instrument] : mode === "note-finder"
                 ? ["technique", "note-finder", instrument]
-                : ["technique", "spider", pattern, instrument],
+                : mode === "positions"
+                  ? ["technique", "positions", positionsPattern, instrument]
+                  : ["technique", "spider", pattern, instrument],
             scoringEvents: state.summary.results.map(({ event }) => event),
             xpEarned: state.summary.xp,
-            note: mode === "interval-recall" ? `${recallLabel} · frets ${recallRegion}–${recallRegion + 4} · ${completed?.result.feedback[0]?.message ?? ""}` : mode === "note-finder" ? completed?.result.feedback[0]?.message : detail
+            note: mode === "interval-recall" ? `${recallLabel} · frets ${recallRegion}–${recallRegion + 4} · ${completed?.result.feedback[0]?.message ?? ""}` : mode === "note-finder" ? completed?.result.feedback[0]?.message : mode === "positions" ? `${positionsDefinition.label} · root fret ${positionsRootFret} · ${completed?.result.feedback.map((item) => item.message).join(" ") ?? ""}` : detail
               ? `${instrument === "guitar" ? "Guitar" : "Ukulele"} spider ${prompt?.patternLabel ?? pattern} · ${Math.round(detail.pitchAccuracy * 100)}% notes · ${Math.round(detail.meanTimingErrorMs)}ms timing`
               : "String spider drill",
           });
@@ -440,6 +506,22 @@
           return;
         }
         status = nextPrompt.interval ? `${nextPrompt.label}. On-screen measures position and pitch; MIDI or microphone measures pitch only.` : `Find ${nextPrompt.targetNote} on the fretboard.`;
+      } else if (exerciseMode === "positions") {
+        const nextPrompt = await session.startFretboardPattern({
+          tuning: positionsTuning,
+          patternId: positionsPattern,
+          rootFret: Math.min(
+            positionsRootRange.max,
+            Math.max(positionsRootRange.min, positionsRootFret),
+          ),
+          bpm: config.bpm,
+        });
+        if (request !== startRequest || generation !== routeGeneration) {
+          runtime.endPerformance();
+          session.abandon();
+          return;
+        }
+        status = `Play ${nextPrompt.patternLabel.toLowerCase()} from fret ${nextPrompt.rootFret}, low string to high. On-screen taps grade the string and fret; MIDI and microphone grade pitch only.`;
       } else {
         await session.startSpider({
           tuning: selectedTuning,
@@ -514,6 +596,9 @@
     params.set("fret", String(config.startFret));
     params.set("bpm", String(config.bpm));
     params.set("pattern", config.pattern);
+    // Positions owns the `pattern` key while it is the active mode.
+    if (mode === "positions") { params.set("pattern", positionsPattern); params.set("rootFret", String(positionsRootFret)); }
+    else params.delete("rootFret");
     if (config.crossing) params.set("crossing", "1");
     else params.delete("crossing");
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
@@ -586,6 +671,8 @@
   {#snippet setupSummaryLine()}
     {#if mode === "interval-recall"}
       Interval recall · {recallLabel} · Frets {recallRegion}–{recallRegion + 4} · Guitar
+    {:else if normalizedMode.mode === "positions"}
+      Positions · {positionsDefinition.label} · Root fret {positionsRootFret} · {instrumentLabel} · {bpm} BPM
     {:else if normalizedMode.mode === "note-finder"}
       Note Finder · {instrumentLabel} · {tuning.name} · {bpm} BPM
     {:else}
@@ -594,28 +681,38 @@
   {/snippet}
 
   {#snippet summaryPhase()}
-    {@const noteFinder = normalizedMode.mode !== "spider"}
+    {@const positionsMode = normalizedMode.mode === "positions"}
+    {@const noteFinder = normalizedMode.mode !== "spider" && !positionsMode}
+    {@const positionsPct = positionsAnswer
+      ? Math.round(
+          (positionsAnswer.positionsMeasured > 0
+            ? positionsAnswer.positionsCorrect / positionsAnswer.positionsMeasured
+            : positionsAnswer.pitchAccuracy) * 100,
+        )
+      : 0}
     {@const primaryPct = noteFinder
       ? Math.round(((summary?.correct ?? 0) / Math.max(1, summary?.total ?? 1)) * 100)
-      : Math.round((answer?.pitchAccuracy ?? 0) * 100)}
+      : positionsMode
+        ? positionsPct
+        : Math.round((answer?.pitchAccuracy ?? 0) * 100)}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
         <Card.Description>
-          {mode === "interval-recall" ? `Interval recall · ${recallLabel}` : noteFinder ? `Note Finder · ${instrumentLabel}` : `${patternLabel} · ${instrumentLabel} · ${spanLabel}`}
+          {mode === "interval-recall" ? `Interval recall · ${recallLabel}` : noteFinder ? `Note Finder · ${instrumentLabel}` : positionsMode ? `${positionsDefinition.label} · root fret ${positionsRootFret}` : `${patternLabel} · ${instrumentLabel} · ${spanLabel}`}
         </Card.Description>
-        <Card.Title>{mode === "interval-recall" ? "Interval checked" : noteFinder ? "Note found" : "Spider complete"}</Card.Title>
+        <Card.Title>{mode === "interval-recall" ? "Interval checked" : noteFinder ? "Note found" : positionsMode ? "Positions complete" : "Spider complete"}</Card.Title>
       {/snippet}
       {#snippet metric()}
         <p class="flex items-baseline">
           <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
             {primaryPct}<span class="text-3xl text-muted-foreground">%</span>
           </span>
-          <span class="sr-only"> {noteFinder ? "found" : "of notes matched"}</span>
+          <span class="sr-only"> {noteFinder ? "found" : positionsMode && (positionsAnswer?.positionsMeasured ?? 0) > 0 ? "of notes on the right string and fret" : "of notes matched"}</span>
         </p>
       {/snippet}
       {#snippet lastRunDelta()}
         <LastRunDelta
-          tags={["technique", mode === "interval-recall" ? "interval-recall" : noteFinder ? "note-finder" : "spider"]}
+          tags={["technique", mode === "interval-recall" ? "interval-recall" : noteFinder ? "note-finder" : positionsMode ? "positions" : "spider"]}
           before={visitStartedAt}
         />
       {/snippet}
@@ -624,6 +721,16 @@
           {#if noteFinder && noteFinderAnswer}
             <HudTile size="sm" label="Target" value={noteFinderAnswer.targetMidi} unit="midi" />
             <HudTile size="sm" label="Played" value={noteFinderAnswer.playedMidiNote ?? "none"} />
+          {:else if positionsMode && positionsAnswer}
+            <HudTile size="sm" label="Notes" value={Math.round(positionsAnswer.pitchAccuracy * 100)} unit="%" />
+            <HudTile
+              size="sm"
+              label="Position"
+              value={positionsAnswer.positionsMeasured > 0
+                ? `${positionsAnswer.positionsCorrect} / ${positionsAnswer.positionsMeasured}`
+                : "Not measured"}
+            />
+            <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
           {:else if answer}
             <HudTile size="sm" label="Notes" value={Math.round(answer.pitchAccuracy * 100)} unit="%" />
             <HudTile size="sm" label="Timing error" value={Math.round(answer.meanTimingErrorMs)} unit="ms" />
@@ -631,6 +738,13 @@
           {/if}
           <HudTile size="sm" label="Input" value={inputDevice} />
         </div>
+        {#if positionsMode}
+          <p class="text-sm text-muted-foreground">
+            {(positionsAnswer?.positionsMeasured ?? 0) > 0
+              ? "On-screen taps verified the string and fret of every note."
+              : "Pitch only: position not verified. Tap the fretboard to grade the box itself."}
+          </p>
+        {/if}
         {#if mode === "interval-recall"}
           <p>{result?.result.feedback[0]?.message}</p>
           <p class="text-sm text-muted-foreground">Five recent correct independent position answers suggest another region. Pitch-only answers count toward interval recall, not region proficiency.</p>
@@ -643,6 +757,8 @@
           {#if mode === "interval-recall" && regionReady && recallRegion < 10}
             <Button onclick={() => { changeSetup(); recallRegion += 5; }}>Try frets {recallRegion + 5}–{recallRegion + 9}</Button>
           {/if}
+        {:else if positionsMode}
+          <TempoPracticeSuggestion bpm={completedBpm} clean={positionsPct === 100 && (positionsAnswer?.meanTimingErrorMs ?? Infinity) <= 60} basis="Based on position accuracy (or pitch, when the position is not measured) and measured timing." onPractice={practiceAtTempo} />
         {:else}
           <TempoPracticeSuggestion bpm={completedBpm} clean={(answer?.pitchAccuracy ?? 0) >= 0.95 && (answer?.meanTimingErrorMs ?? Infinity) <= 60} basis="Based on note accuracy and measured timing." onPractice={practiceAtTempo} />
         {/if}
@@ -670,6 +786,45 @@
             </div>
           </div>
           <p class="text-sm text-muted-foreground">Guitar · {tuning.name}. Anchor A has no note label. Find the ascending interval inside the window. No timing or fingering is assessed.</p>
+        {:else if mode === "positions"}
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-2">
+              <Label for="positions-pattern">Box or shape</Label>
+              <select
+                id="positions-pattern"
+                aria-label="Box or shape"
+                bind:value={positionsPattern}
+                class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <optgroup label="Minor pentatonic boxes">
+                  {#each FRETBOARD_PATTERN_OPTIONS.filter((option) => option.family === "minor-pentatonic") as option (option.value)}
+                    <option value={option.value}>{option.label}</option>
+                  {/each}
+                </optgroup>
+                <optgroup label="CAGED major shapes">
+                  {#each FRETBOARD_PATTERN_OPTIONS.filter((option) => option.family === "caged-major") as option (option.value)}
+                    <option value={option.value}>{option.label}</option>
+                  {/each}
+                </optgroup>
+              </select>
+            </div>
+            <div class="grid gap-2">
+              <Label for="positions-root">Root fret</Label>
+              <select
+                id="positions-root"
+                aria-label="Root fret"
+                bind:value={positionsRootFret}
+                class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {#each Array.from({ length: positionsRootRange.max - positionsRootRange.min + 1 }, (_, index) => positionsRootRange.min + index) as fret (fret)}
+                  <option value={fret}>Fret {fret}</option>
+                {/each}
+              </select>
+            </div>
+          </div>
+          <p class="text-sm text-muted-foreground" data-testid="positions-window">
+            {positionsDefinition.label} at fret {positionsRootFret} · frets {spiderWindow?.start} to {spiderWindow?.end} · {previewPositions.length} notes. On-screen taps grade the string and fret; MIDI and microphone grade pitch only.
+          </p>
         {:else}
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div class="grid gap-2">
@@ -780,13 +935,17 @@
             >
               {mode === "interval-recall" ? "Find an interval from the anchor" : normalizedMode.mode === "note-finder"
                 ? "Find the note on the fretboard"
-                : "Pattern permutations across strings"}
+                : normalizedMode.mode === "positions"
+                  ? "One box, low string to high"
+                  : "Pattern permutations across strings"}
             </div>
             <p class="text-sm text-stage-muted">
               {mode === "interval-recall" ? `${recallLabel} · frets ${recallRegion}–${recallRegion + 4}. Answers remain hidden until you respond.` : normalizedMode.mode === "note-finder"
                 ? "One note name at a time: find it anywhere on the neck."
-                : `${patternLabel} from fret ${startFret} on ${spanLabel.toLowerCase()}, one clean note per beat.`}
-              {#if spiderWindow && mode === "spider"}
+                : normalizedMode.mode === "positions"
+                  ? `${positionsDefinition.label} from fret ${positionsRootFret}, one clean note per beat.`
+                  : `${patternLabel} from fret ${startFret} on ${spanLabel.toLowerCase()}, one clean note per beat.`}
+              {#if spiderWindow && (mode === "spider" || mode === "positions")}
                 <span data-testid="spider-fret-range"> Frets {spiderWindow.start} to {spiderWindow.end} shown.</span>
               {/if}
             </p>
@@ -804,7 +963,9 @@
           <SegmentedControl ariaLabel="Exercise" options={modeOptions} bind:value={mode} />
           <SegmentedControl
             ariaLabel="Instrument"
-            options={mode === "interval-recall" ? instrumentOptions.slice(0, 1) : instrumentOptions}
+            options={mode === "interval-recall" || mode === "positions"
+              ? instrumentOptions.slice(0, 1)
+              : instrumentOptions}
             value={instrument}
             onChange={(value) => {
               selectInstrument(value);
@@ -828,12 +989,30 @@
         <div>
           <p class="eyebrow">{instrumentLabel} · {bpm} BPM</p>
           <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
-            {prompt?.label ?? noteFinderPrompt?.label ?? `${instrumentLabel} string ${stringNumber}`}
+            {prompt?.label ?? positionsPrompt?.label ?? noteFinderPrompt?.label ?? `${instrumentLabel} string ${stringNumber}`}
           </h2>
         </div>
         <span class="text-sm tabular-nums text-muted-foreground">{completedNotes} / {targetNoteCount} notes</span>
       </div>
-      {#if noteFinderPrompt?.interval}
+      {#if positionsPrompt}
+        <PracticeStage {instrument} class="min-w-0 overflow-x-auto p-4" aria-label={positionsPrompt.label}>
+          <!-- Position-graded: only the authored string/fret pairs light, so the
+               board never points at an octave the run would mark wrong. -->
+          <FretboardInput
+            tuning={positionsTuning}
+            router={runtime.router}
+            visibleFrets={positionsTuning.fretCount}
+            fretWindow={spiderWindow}
+            targetPositions={positionsPrompt.positions.map((position) => ({
+              stringNumber: position.stringNumber,
+              fretNumber: position.fretNumber,
+            }))}
+            correctPositions={positionsPrompt.positions.slice(0, completedNotes)}
+            activePosition={positionsPrompt.positions[completedNotes]}
+            onAccepted={playAccepted}
+          />
+        </PracticeStage>
+      {:else if noteFinderPrompt?.interval}
         <PracticeStage instrument="guitar" class="min-w-0 p-4">
           <p class="mb-3 text-sm text-stage-muted">A marks the anchor. Choose any correct position within the shown frets.</p>
           <FretboardInput {tuning} router={runtime.router} visibleFrets={noteFinderPrompt.interval.windowEnd}
@@ -859,7 +1038,7 @@
         onAccepted={playAccepted}
       />
       {/if}
-      {#if prompt || noteFinderPrompt}
+      {#if prompt || positionsPrompt || noteFinderPrompt}
         <div class="grid gap-2 px-1">
           <Progress value={completedNotes} max={targetNoteCount} />
           <p class="text-sm text-muted-foreground">{status}</p>

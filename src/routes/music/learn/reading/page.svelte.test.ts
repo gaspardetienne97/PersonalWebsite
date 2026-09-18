@@ -818,6 +818,20 @@ describe("/music/learn/reading/+page.svelte", () => {
     expect(document.querySelector('[data-notation-cursor="current-group"]')).not.toBeNull();
     expect(document.querySelectorAll('[data-active-note="true"]').length).toBeGreaterThan(0);
 
+    // The expected keys are read off the staff, not copied off the keyboard,
+    // until the player asks for them.
+    expect(document.querySelector('[aria-label="Piano input"] [data-state^="target"]')).toBeNull();
+    button("Show a hint")?.click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[aria-label="Piano input"] [data-state^="target"]'),
+      ).not.toBeNull(),
+    );
+    // The reveal is otherwise silent, so the route announces it.
+    expect(
+      document.querySelector('[data-testid="reading-phase-announcement"]')?.textContent,
+    ).toContain("Hint shown");
+
     for (let index = 0; index < 32 && button("Finish phrase")?.disabled; index += 1) {
       const targets = [
         ...document.querySelectorAll<HTMLButtonElement>('[data-testid="score-expected-note"]'),

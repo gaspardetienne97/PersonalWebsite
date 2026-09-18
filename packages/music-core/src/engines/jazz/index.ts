@@ -11,6 +11,7 @@
 
 import {
   Capability,
+  monotonicMs,
   type ContentApplicability,
   type ExerciseRunRecord,
   type InstrumentId,
@@ -28,6 +29,10 @@ import {
   type LearningPathStepDefinition,
   type LearningPathStepStatus,
 } from "@repo/music-core/engines/learning-path";
+import {
+  createScoreFollower,
+  type ExpectedNoteGroup,
+} from "@repo/music-core/engines/score-follower";
 import { noteToMidi } from "@repo/music-core/engines/theory";
 
 // ---------------------------------------------------------------------------
@@ -736,7 +741,12 @@ export const IMPROV_TECHNIQUES: ImprovTechnique[] = [
 // The 29 licks (JT5) — encoded as practice cards, not literal transcriptions.
 // ---------------------------------------------------------------------------
 
-export type LickCategory = "major-ii-V-I" | "major-ii-V-I-VI" | "minor-ii-V-i" | "minor-chord";
+export type LickCategory =
+  | "major-ii-V-I"
+  | "major-ii-V-I-VI"
+  | "minor-ii-V-i"
+  | "minor-chord"
+  | "guitar-pentatonic";
 
 export interface JazzLickDrillConfig {
   category: LickCategory;
@@ -757,6 +767,7 @@ export const JAZZ_LICK_CATEGORIES: readonly LickCategory[] = [
   "major-ii-V-I-VI",
   "minor-ii-V-i",
   "minor-chord",
+  "guitar-pentatonic",
 ];
 
 export const JAZZ_LICK_DRILL_DEFAULT_CONFIG: JazzLickDrillConfig = {
@@ -780,6 +791,10 @@ export interface JazzLick {
 const MAJ = ["Dm7", "G7", "Cmaj7"];
 const MAJ_VI = ["Dm7", "G7", "Cmaj7", "A7"];
 const MIN = ["Dm7b5", "G7", "Cm7"];
+
+/** Curriculum G3 "Box one, twelfth fret" and its G-A2 transposition. */
+export const GUITAR_BOX_ONE_LICK = 30;
+export const GUITAR_BOX_ONE_LICK_A_MINOR = 31;
 
 export const JAZZ_LICKS: JazzLick[] = [
   {
@@ -1013,6 +1028,22 @@ export const JAZZ_LICKS: JazzLick[] = [
     scales: ["C minor pentatonic (C Eb F G Bb)"],
     techniques: ["lh-textures", "sequence"],
     tip: "Ascending minor pentatonic in 4-note cells; the left hand plays the first note of each cell.",
+  },
+  {
+    number: GUITAR_BOX_ONE_LICK,
+    category: "guitar-pentatonic",
+    progression: ["Em", "D"],
+    scales: ["E minor pentatonic (E G A B D)"],
+    techniques: ["sequence"],
+    tip: "Box 1 at the twelfth fret, three fingers. Land the D on beat 3 of bar 1 and let it ring.",
+  },
+  {
+    number: GUITAR_BOX_ONE_LICK_A_MINOR,
+    category: "guitar-pentatonic",
+    progression: ["Am", "D"],
+    scales: ["A minor pentatonic (A C D E G)"],
+    techniques: ["sequence"],
+    tip: "The same shape, fingers and strings at the fifth fret. Transfer, not a new lick.",
   },
 ];
 
@@ -1343,8 +1374,22 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
 // Lick transcriptions (JT5) — playable single-line melodies.
 // ---------------------------------------------------------------------------
 
-/** One melody note: [MIDI pitch, duration in beats] (0.5 = a swung eighth). */
-export type LickNote = readonly [midi: number, beats: number];
+/**
+ * A fretted position for a lick note. Shown on the fret window and verified
+ * against on-screen taps; pitch input can never establish it.
+ */
+export interface LickPosition {
+  string: number;
+  fret: number;
+  finger: number;
+}
+
+/**
+ * One melody event: [MIDI pitch, duration in beats] (0.5 = a swung eighth), with
+ * an optional fretted position. A `null` pitch is a rest: it occupies its beats
+ * and is never graded.
+ */
+export type LickNote = readonly [midi: number | null, beats: number, position?: LickPosition];
 
 /**
  * Transcribed right-hand lines for the 29 licks, one bar per chord of the
@@ -1969,21 +2014,165 @@ export const LICK_PHRASES: Record<number, LickNote[]> = {
     [79, 0.5],
     [84, 1],
   ],
+  // --- G3 · guitar, E minor pentatonic box 1 at the twelfth fret ---
+  // Strings 2 to 4, frets 12 to 15 in standard tuning; two bars of 4.0 beats.
+  [GUITAR_BOX_ONE_LICK]: [
+    [64, 0.5, { string: 4, fret: 14, finger: 3 }],
+    [67, 0.5, { string: 3, fret: 12, finger: 1 }],
+    [69, 0.5, { string: 3, fret: 14, finger: 3 }],
+    [71, 0.5, { string: 2, fret: 12, finger: 1 }],
+    [74, 1, { string: 2, fret: 15, finger: 4 }],
+    [71, 0.5, { string: 2, fret: 12, finger: 1 }],
+    [69, 0.5, { string: 3, fret: 14, finger: 3 }],
+    [67, 0.5, { string: 3, fret: 12, finger: 1 }],
+    [69, 0.5, { string: 3, fret: 14, finger: 3 }],
+    [67, 0.5, { string: 3, fret: 12, finger: 1 }],
+    [64, 0.5, { string: 4, fret: 14, finger: 3 }],
+    [62, 0.5, { string: 4, fret: 12, finger: 1 }],
+    [null, 0.5],
+    [64, 1, { string: 4, fret: 14, finger: 3 }],
+  ],
 };
 
-/** Cumulative-offset timed notes for a lick, in beats. */
+// G-A2: the same shape at the fifth fret, in A minor.
+LICK_PHRASES[GUITAR_BOX_ONE_LICK_A_MINOR] = transposeLickPhrase(
+  LICK_PHRASES[GUITAR_BOX_ONE_LICK]!,
+  -7,
+);
+
+/** Cumulative-offset timed notes for a lick, in beats. Rests advance the clock
+ *  without appearing in the timeline. */
 export function lickTimeline(
   phrase: LickNote[],
-): { midi: number; beats: number; offsetBeats: number }[] {
+): { midi: number; beats: number; offsetBeats: number; position?: LickPosition }[] {
   let offset = 0;
-  return phrase.map(([midi, beats]) => {
-    const note = { midi, beats, offsetBeats: offset };
+  const timeline: { midi: number; beats: number; offsetBeats: number; position?: LickPosition }[] =
+    [];
+  for (const [midi, beats, position] of phrase) {
+    if (midi !== null) {
+      timeline.push({ midi, beats, offsetBeats: offset, ...(position ? { position } : {}) });
+    }
     offset += beats;
-    return note;
-  });
+  }
+  return timeline;
 }
 
-/** Total length of a lick phrase in beats. */
+/** The pitched notes of a phrase, in order — what note-order grading compares. */
+export function lickMidiNotes(phrase: LickNote[]): number[] {
+  return phrase.flatMap(([midi]) => (midi === null ? [] : [midi]));
+}
+
+/** Beats written in each bar, so an authored phrase can be checked against the meter. */
+export function lickBarBeats(phrase: LickNote[], beatsPerBar: number): number[] {
+  const bars: number[] = [];
+  let offset = 0;
+  for (const [, beats] of phrase) {
+    const bar = Math.floor(offset / beatsPerBar);
+    bars[bar] = (bars[bar] ?? 0) + beats;
+    offset += beats;
+  }
+  return [...bars].map((beats) => beats ?? 0);
+}
+
+/**
+ * The same shape somewhere else on the neck: pitch and fret move together, the
+ * strings and fingers stay put. G-A2 is G3 at -7 (E minor fret 12 → A minor
+ * fret 5).
+ */
+export function transposeLickPhrase(phrase: LickNote[], semitones: number): LickNote[] {
+  return phrase.map(
+    ([midi, beats, position]): LickNote =>
+      position === undefined
+        ? [midi === null ? null : midi + semitones, beats]
+        : [
+            midi === null ? null : midi + semitones,
+            beats,
+            { ...position, fret: position.fret + semitones },
+          ],
+  );
+}
+
+export interface LickPositionGrade {
+  /** Pitched notes that carry an authored position. */
+  total: number;
+  /** Of those, the ones played with an observable string and fret. */
+  measured: number;
+  correct: number;
+}
+
+/**
+ * On-screen taps carry a string and a fret, so the box itself is verifiable.
+ * Microphone and MIDI give pitch only and measure nothing here.
+ *
+ * Position is only read where the i-th played note *is* the i-th phrase note,
+ * by the same octave-lenient rule `gradeLickSequence` uses. A wrong or dropped
+ * note is already counted there; without this the two graders would disagree
+ * about which note is which as soon as one shifted the sequence.
+ */
+export function gradeLickPositions(phrase: LickNote[], played: NoteEvent[]): LickPositionGrade {
+  const expected = lickTimeline(phrase);
+  const total = expected.filter((note) => note.position !== undefined).length;
+  const noteOns = played.filter((event) => event.type === "noteOn");
+  let measured = 0;
+  let correct = 0;
+  expected.forEach((note, index) => {
+    if (!note.position) return;
+    const actual = noteOns[index];
+    const fretPosition = actual?.source === "onscreen" ? actual.fretPosition : undefined;
+    if (!fretPosition) return;
+    if (gradeLickSequence([note.midi], [actual!.midiNote]).matched === 0) return;
+    measured += 1;
+    if (
+      fretPosition.stringNumber === note.position.string &&
+      fretPosition.fretNumber === note.position.fret
+    ) {
+      correct += 1;
+    }
+  });
+  return { total, measured, correct };
+}
+
+export interface LickTimingGrade {
+  total: number;
+  onTime: number;
+  ratio: number;
+}
+
+/**
+ * Timing from the shared score-follower in performance mode: the phrase becomes
+ * one expected group per note, and a note counts as on time inside the
+ * curriculum's window of min(180 ms, a quarter of the beat).
+ */
+export function gradeLickTiming(
+  phrase: LickNote[],
+  options: { bpm: number; startTimestampMs: number; input: NoteEvent[] },
+): LickTimingGrade {
+  const timeline = lickTimeline(phrase);
+  const groups: ExpectedNoteGroup[] = timeline.map((note, index) => ({
+    id: `lick-note-${index}`,
+    startBeat: note.offsetBeats,
+    durationBeats: note.beats,
+    midiNotes: [note.midi],
+    sourceNoteIndexes: [index],
+  }));
+  const follower = createScoreFollower(groups, {
+    mode: "performance",
+    bpm: options.bpm,
+    strictness: "normal",
+    startTimestampMs: monotonicMs(options.startTimestampMs),
+  });
+  for (const event of options.input) follower.accept(event);
+  const windowMs = Math.min(180, 60_000 / options.bpm / 4);
+  const onTime = follower
+    .finish({ reason: "completed" })
+    .metrics.filter(
+      (metric) => metric.kind === "timing" && Math.abs(metric.errorMs) <= windowMs,
+    ).length;
+  const total = timeline.length;
+  return { total, onTime, ratio: total === 0 ? 0 : onTime / total };
+}
+
+/** Total length of a lick phrase in beats, rests included. */
 export function lickDurationBeats(phrase: LickNote[]): number {
   return phrase.reduce((total, [, beats]) => total + beats, 0);
 }

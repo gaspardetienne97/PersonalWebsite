@@ -134,6 +134,67 @@ describe("PracticeDrillShell phase-only contract", () => {
     expect(document.getElementById(controlsId!)?.textContent).toContain("SETUP CONTROLS");
   });
 
+  test("mode lands on the root element in every mode", async () => {
+    const shell = render(PracticeDrillShell, {
+      phase: "stage",
+      focus: false,
+      stage: region("STAGE REGION"),
+    });
+    expect(document.querySelector("[data-mode]")?.getAttribute("data-mode")).toBe("practice");
+
+    await shell.rerender({
+      phase: "stage",
+      focus: false,
+      mode: "check",
+      stage: region("STAGE REGION"),
+    });
+    expect(document.querySelector("[data-mode]")?.getAttribute("data-mode")).toBe("check");
+
+    await shell.rerender({
+      phase: "stage",
+      focus: false,
+      mode: "demo",
+      stage: region("STAGE REGION"),
+    });
+    expect(document.querySelector("[data-mode]")?.getAttribute("data-mode")).toBe("demo");
+  });
+
+  test("only demo dresses the stage with a dashed frame and the listening eyebrow", async () => {
+    const shell = render(PracticeDrillShell, {
+      phase: "stage",
+      focus: false,
+      mode: "demo",
+      stage: region("STAGE REGION"),
+    });
+    const frame = document.querySelector('[data-testid="demo-frame"]');
+    expect(frame?.className).toContain("border-dashed");
+    expect(frame?.className).toContain("border-practice-accent/60");
+    expect(document.body.textContent).toContain("listening, not scored");
+    expect(document.body.textContent).toContain("STAGE REGION");
+
+    await shell.rerender({
+      phase: "stage",
+      focus: false,
+      mode: "practice",
+      stage: region("STAGE REGION"),
+    });
+    expect(document.querySelector('[data-testid="demo-frame"]')).toBeNull();
+    expect(document.body.textContent).not.toContain("listening, not scored");
+    expect(document.body.textContent).toContain("STAGE REGION");
+  });
+
+  test("demo frames the ready stage too, since Demo runs before a run starts", () => {
+    render(PracticeDrillShell, {
+      phase: "setup",
+      mode: "demo",
+      setupSummary: region("C MAJOR"),
+      readyStage: region("READY STAGE"),
+    });
+    const frame = document.querySelector('[data-testid="demo-frame"]');
+    expect(frame?.textContent).toContain("READY STAGE");
+    expect(frame?.className).toContain("border-dashed");
+  });
+
   test("the rail renders under the stage, not beside it", () => {
     render(PracticeDrillShell, {
       phase: "stage",

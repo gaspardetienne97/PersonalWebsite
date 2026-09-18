@@ -5,7 +5,11 @@ import { monotonicMs } from "@repo/music-core/domain";
 import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore } from "@repo/music-core/engines/skills";
-import { TechniqueSession } from "@repo/music-core/engines/technique-session";
+import { PracticeStore } from "@repo/music-core/engines/store";
+import {
+  TechniqueSession,
+  TEMPO_LADDER_SETTINGS_ID,
+} from "@repo/music-core/engines/technique-session";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
@@ -19,10 +23,12 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
   setTestUrl("/");
   document.body.replaceChildren();
+  // Runs persist their unlocked rung; keep the ladder out of the next test.
+  await new PracticeStore().settings.delete(TEMPO_LADDER_SETTINGS_ID);
 });
 
 describe("/music/play/scales/+page.svelte", () => {
@@ -137,6 +143,47 @@ describe("/music/play/scales/+page.svelte", () => {
     expect(scaleSelect?.querySelectorAll("optgroup")).toHaveLength(2);
     expect(select("Span")?.value).toBe("one-octave");
     expect(select("Motion")?.value).toBe("up");
+  });
+
+  test("offers a hands option that lights both octaves when hands play together", async () => {
+    render(Page);
+    await openSetup();
+    expect(select("Hands")?.value).toBe("right");
+    expect(targetNotes()).not.toContain("C3");
+
+    select("Hands")!.value = "both";
+    select("Hands")!.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await vi.waitFor(() => expect(targetNotes()).toContain("C3"));
+    expect(targetNotes()).toContain("C4");
+    expect(window.location.search).toContain("hands=both");
+  });
+
+  test("selects the hands-together checkpoint preset", async () => {
+    render(Page);
+    await openSetup();
+    button("Hands together, one octave, 80")?.click();
+
+    await vi.waitFor(() => expect(select("Hands")?.value).toBe("both"));
+    expect(select("Span")?.value).toBe("one-octave");
+    await vi.waitFor(() => expect(document.body.textContent).toContain("80 BPM"));
+  });
+
+  test("shows the persisted tempo ladder rung on setup after a remount", async () => {
+    const store = new PracticeStore();
+    await store.settings.put({
+      id: TEMPO_LADDER_SETTINGS_ID,
+      value: { "major:C4:up:one-octave:right": 130 },
+    });
+
+    render(Page);
+    await openSetup();
+
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-testid="scales-ladder-readout"]')?.textContent,
+      ).toContain("130 BPM"),
+    );
   });
 
   test("restores setup from shareable query parameters", async () => {
@@ -370,6 +417,90 @@ describe("/music/play/scales/+page.svelte", () => {
     expect(startScale).toHaveBeenCalledTimes(2);
   });
 
+  test("Demo plays the scale once and writes nothing", async () => {
+    const runtime = new MusicRuntime();
+    const playPattern = vi.spyOn(runtime.sound, "playPattern");
+    const stopPattern = vi.spyOn(runtime.sound, "stopPattern");
+    const startScale = vi.spyOn(TechniqueSession.prototype, "startScale");
+    const recordPractice = vi.spyOn(runtime, "recordPractice");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(mode()).toBe("practice");
+    button("Demo")?.click();
+
+    await vi.waitFor(() => expect(button("Stop demo")).not.toBeUndefined());
+    expect(playPattern).toHaveBeenCalledOnce();
+    expect(mode()).toBe("demo");
+    expect(document.body.textContent).toContain("listening, not scored");
+    expect(document.querySelector('[aria-label="Demo beat lane"]')).not.toBeNull();
+    // A demonstration is not a run: nothing starts, nothing is scored, nothing is journalled.
+    expect(startScale).not.toHaveBeenCalled();
+    expect(recordPractice).not.toHaveBeenCalled();
+    expect(runtime.beginPerformance).not.toHaveBeenCalled();
+
+    button("Stop demo")?.click();
+    await vi.waitFor(() => expect(button("Demo")).not.toBeUndefined());
+    expect(stopPattern).toHaveBeenCalled();
+    expect(mode()).toBe("practice");
+    expect(document.querySelector('[aria-label="Demo beat lane"]')).toBeNull();
+    runtime.dispose();
+  });
+
+  test("hands-together Demo lights each octave in its own hand colour", async () => {
+    setTestUrl("/music/play/scales?hands=both&bpm=100");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime.sound, "playPattern").mockReturnValue(undefined);
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Demo")?.click();
+
+    // The tonic beat sounds both octaves: the lower one is the left hand.
+    await vi.waitFor(() => expect(keyState("C3")).toBe("sounding-left"));
+    expect(keyState("C4")).toBe("sounding-right");
+    button("Stop demo")?.click();
+    runtime.dispose();
+  });
+
+  test("Demo is locked while a start is in flight", async () => {
+    const runtime = new MusicRuntime();
+    let resolveVoice!: (enabled: boolean) => void;
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockReturnValue(
+      new Promise((resolve) => {
+        resolveVoice = resolve;
+      }),
+    );
+    const playPattern = vi.spyOn(runtime.sound, "playPattern");
+    render(Page, { runtime });
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
+
+    expect(button("Demo")?.disabled).toBe(true);
+    button("Demo")?.click();
+    expect(playPattern).not.toHaveBeenCalled();
+    resolveVoice(true);
+
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(mode()).toBe("practice");
+    runtime.dispose();
+  });
+
+  test("the graded run replaces Demo with the live beat lane", async () => {
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(button("Demo")).not.toBeUndefined();
+    button("Start")?.click();
+
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(button("Demo")).toBeUndefined();
+    expect(button("Stop demo")).toBeUndefined();
+    expect(document.querySelector('[aria-label="Beat lane"]')).not.toBeNull();
+  });
+
   test("offers a slower retry after a completed scale run", async () => {
     setTestUrl("/music/play/scales?bpm=90");
     render(Page);
@@ -403,6 +534,18 @@ async function completeScale(): Promise<void> {
   await vi.waitFor(() => expect(button("Change setup")).not.toBeUndefined());
 }
 
+/** The piano surface's rendered state for one key. */
+function keyState(note: string): string | null | undefined {
+  return document
+    .querySelector(`[aria-label="On-screen keyboard"] button[data-note="${note}"]`)
+    ?.getAttribute("data-state");
+}
+
+/** The stage mode the shell is rendering. */
+function mode(): string | null | undefined {
+  return document.querySelector("[data-mode]")?.getAttribute("data-mode");
+}
+
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(
     (candidate) => candidate.textContent?.trim() === label,
@@ -411,6 +554,13 @@ function button(label: string): HTMLButtonElement | undefined {
 
 function input(label: string): HTMLInputElement | null {
   return document.querySelector<HTMLInputElement>(`[aria-label="${label}"]`);
+}
+
+/** Note names the piano surface is currently lighting as targets. */
+function targetNotes(): string[] {
+  return [...document.querySelectorAll('[data-state="target"]')].map(
+    (key) => key.getAttribute("data-note") ?? "",
+  );
 }
 
 function select(label: string): HTMLSelectElement | undefined {

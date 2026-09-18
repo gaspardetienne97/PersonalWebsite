@@ -35,6 +35,24 @@ describe("MidiTakeReviewPanel", () => {
     expect(document.body.textContent).toContain("3 notes");
     expect(document.body.textContent).toContain("C4-G4");
     expect(document.querySelectorAll("[data-density-bucket]")).toHaveLength(16);
+    expect(document.querySelectorAll("[data-take-roll]")).toHaveLength(2);
+  });
+
+  test("renames a take and edits its note from the card", () => {
+    const onRenameTake = vi.fn();
+    const onNoteTake = vi.fn();
+    render(MidiTakeReviewPanel, { takes, onRenameTake, onNoteTake });
+
+    const name = document.querySelector<HTMLInputElement>('[aria-label="Take name for Chorus 2"]');
+    const note = document.querySelector<HTMLInputElement>('[aria-label="Note for Chorus 2"]');
+    expect(name?.value).toBe("Chorus 2");
+    name!.value = "Bridge idea";
+    name!.dispatchEvent(new Event("change", { bubbles: true }));
+    note!.value = "rushed the turnaround";
+    note!.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(onRenameTake).toHaveBeenCalledWith(takes[0], "Bridge idea");
+    expect(onNoteTake).toHaveBeenCalledWith(takes[0], "rushed the turnaround");
   });
 
   test("exposes take actions", () => {
