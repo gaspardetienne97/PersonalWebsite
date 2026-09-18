@@ -17,16 +17,14 @@
   import Play from "lucide-svelte/icons/play";
   import Sparkles from "lucide-svelte/icons/sparkles";
 
-  import { useMusicRuntime } from "../_runtime.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
   import ProgressRing from "./ProgressRing.svelte";
   import SegmentProgress from "./SegmentProgress.svelte";
 
   // Decision 7: Start routine navigates to the first step instead of only setting
   // state on Today. Injectable so the component test can observe the navigation.
-  let { navigate = (href: string) => goto(href) }: { navigate?: (href: string) => void | Promise<void> } =
+  let { navigate = (href: string) => goto(href), runtime = useMusicRuntime() }: { navigate?: (href: string) => void | Promise<void>; runtime?: MusicRuntime } =
     $props();
-
-  const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
@@ -35,7 +33,7 @@
 
   let ready = $state(false);
   let status = $state("Building today's plan.");
-  let coach = $state<PracticeCoachView | undefined>();
+  const coach = $derived<PracticeCoachView | undefined>(ready ? buildPracticeCoachView({ skills, analytics, progressState: progress.state, sessions: sessions.all(), instrument: runtime.activeInstrument, budgetMinutes: runtime.routineBudgetMinutes }) : undefined);
   const routine = $derived(runtime.dailyRoutine);
   const plan = $derived(coach?.routine ?? []);
   const visibleSteps = $derived(routine?.steps ?? plan);
@@ -53,12 +51,6 @@
         progress.load(),
         sessions.load(),
       ]);
-      coach = buildPracticeCoachView({
-        skills,
-        analytics,
-        progressState: progress.state,
-        sessions: sessions.all(),
-      });
       ready = true;
       status = "Today's plan is ready.";
     } catch (error) {
@@ -121,7 +113,7 @@
     </Card.Content>
     <Card.Footer class="flex flex-wrap justify-center gap-2">
       <Button onclick={restartRoutine}>Repeat routine</Button>
-      <Button href="/music/progress?tab=journal" variant="outline">Open journal</Button>
+      <Button href="/music/track" variant="outline">Open journal</Button>
     </Card.Footer>
   </Card.Root>
 {:else}
@@ -168,6 +160,11 @@
             </Card.Description>
           </Card.Header>
           <Card.Footer class="flex flex-wrap items-center gap-3">
+            <label class="grid gap-1 text-sm">Available time
+              <select aria-label="Available time" class="rounded-md border bg-background p-2" bind:value={runtime.routineBudgetMinutes} disabled={!ready}>
+                {#each [5, 10, 20, 30] as minutes (minutes)}<option value={minutes}>{minutes} minutes</option>{/each}
+              </select>
+            </label>
             <Button disabled={!ready} onclick={startRoutine}>
               <Play class="size-4" aria-hidden="true" />
               Start routine
@@ -197,7 +194,7 @@
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <h2 class="font-semibold">{index + 1}. {step.label}</h2>
-                  <span class="text-xs text-muted-foreground">~5 min</span>
+                  <span class="text-xs text-muted-foreground">~{step.minutes} min</span>
                 </div>
                 <p class="mt-1 text-sm text-muted-foreground">{step.description}</p>
               </div>
@@ -215,7 +212,7 @@
         </Card.Header>
         <Card.Content class="grid gap-2 text-sm text-muted-foreground">
           {#if coach}
-            {#each coach.insights as insight}
+            {#each coach.insights as insight (insight)}
               <p>{insight}</p>
             {/each}
           {:else}

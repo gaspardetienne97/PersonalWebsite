@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { GROOVE_VOICES, MPC_GROOVES, grooveTargets, normalizeMpcGrooveConfig, type MpcGrooveAnswer, type MpcGroovePrompt } from "@repo/music-core/exercises/mpc-groove";
   import { browser } from "$app/environment";
   import { onDestroy, tick } from "svelte";
 
-  import { unixMs } from "@repo/music-core/domain";
+  import { unixMs, type ExerciseResult } from "@repo/music-core/domain";
 
   import type {
     MpcSingleStrokeAnswer,
@@ -11,6 +12,7 @@
   import {
     buildMpcRudimentSequence,
     buildMpcRudimentTargetEvents,
+    assessedMpcResult,
   } from "@repo/music-core/exercises/mpc-single-stroke";
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
@@ -28,13 +30,14 @@
   import { Label } from "@repo/ui/label";
   import { Progress } from "@repo/ui/progress";
 
-  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import TempoPracticeSuggestion from "../../_components/TempoPracticeSuggestion.svelte";
+  import MidiStatus from "../../_components/MidiStatus.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import PracticeStage from "../../_components/PracticeStage.svelte";
-  import { MPC_PAD_MIDI } from "../../_components/MpcPadGrid.svelte";
+  import MpcPadGrid, { MPC_PAD_MIDI, DEFAULT_PAD_KEYS } from "../../_components/MpcPadGrid.svelte";
   import PadRudimentStage from "../../_components/PadRudimentStage.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
   import PracticeScreen from "../../_components/PracticeScreen.svelte";
@@ -63,6 +66,19 @@
   const initialConfig = normalizeMpcRudimentConfig(initialSearch);
   const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
 
+  const initialGroove = normalizeMpcGrooveConfig(initialSearch);
+  const modeOptions = [{ value: "rudiment", label: "Rudiments" }, { value: "groove", label: "Groove copy-back" }];
+  let mode = $state(initialSearch.get("mode") === "groove" ? "groove" : "rudiment");
+  let grooveFamily = $state(initialGroove.family);
+  let grooveMapping = $state({ ...initialGroove.mapping });
+  let responseDeadline: ReturnType<typeof setTimeout> | undefined;
+  let groovePreparing = $state(false);
+  const grooveConfig = $derived(normalizeMpcGrooveConfig({ groove: grooveFamily, ...grooveMapping, bpm }));
+  const grooveAnswer = $derived(mode === "groove" ? result?.result.answer as MpcGrooveAnswer | undefined : undefined);
+  const completedGroove = $derived(completedPrompt && "responseStart" in completedPrompt ? completedPrompt as MpcGroovePrompt : undefined);
+
+  let mappingOpen = $state(false);
+  let keymap = $state({ ...DEFAULT_PAD_KEYS });
   let leftPadMidi = $state(String(initialConfig.leftPadMidi));
   let rightPadMidi = $state(String(initialConfig.rightPadMidi));
   let patternId = $state(initialConfig.patternId);
@@ -88,12 +104,15 @@
       : undefined,
   );
   const summary = $derived(sessionState?.summary);
+  const completedPrompt = $derived(summary?.results[0]?.prompt);
+  const completedBpm = $derived(completedPrompt && "bpm" in completedPrompt ? completedPrompt.bpm : Number(bpm));
   const result = $derived(summary?.results[0]);
   const answer = $derived(result?.result.answer as MpcSingleStrokeAnswer | undefined);
+  const assessed = $derived(result && mode !== "groove" ? assessedMpcResult(result.result as ExerciseResult<MpcSingleStrokeAnswer>) : undefined);
   const phase = $derived<"setup" | "stage" | "summary">(
     summary && !resultsDismissed
       ? "summary"
-      : sessionState?.status === "active"
+      : sessionState?.status === "active" || groovePreparing
         ? "stage"
         : "setup",
   );
@@ -104,11 +123,6 @@
   const nextPad = $derived(prompt?.targetSequence[completedHits]);
   const runningScore = $derived(
     Math.round((sessionState?.live?.runningScore ?? 0) * 100),
-  );
-  const midiStatus = $derived(
-    midiEnabled
-      ? `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`
-      : runtime.midi.state.error ?? "MIDI permission has not been requested.",
   );
   const normalizedConfig = $derived(
     normalizeMpcRudimentConfig({
@@ -137,13 +151,13 @@
         normalizedConfig.hitCount,
       ),
   );
-  const variantKey = $derived(`v1:mpc:${patternId}`);
+  const variantKey = $derived(mode === "groove" ? `v1:mpc:groove:${grooveFamily}` : `v1:mpc:${patternId}`);
   const patternLabel = $derived(
-    MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === patternId)?.label ?? "Single strokes",
+    mode === "groove" ? (MPC_GROOVES.find(option => option.value === grooveFamily)?.label ?? "Groove") : (MPC_RUDIMENT_PATTERN_OPTIONS.find((option) => option.value === patternId)?.label ?? "Single strokes"),
   );
   const liveAnnouncement = $derived(
     phase === "summary"
-      ? `Rudiment complete. ${Math.round((result?.result.score ?? 0) * 100)}% total, ${summary?.xp ?? 0} XP.`
+      ? mode === "groove" ? `Groove complete. ${Math.round((grooveAnswer?.accuracy ?? 0) * 100)}% independent accuracy.` : `Rudiment complete. ${Math.round((assessed?.score ?? 0) * 100)}% on measured dimensions, ${summary?.xp ?? 0} XP.`
       : status,
   );
 
@@ -214,10 +228,21 @@
       unsubscribeSession = nextSession.subscribe((state) => {
         sessionState = state;
         if (state.error) status = state.error;
-        if (state.summary) runtime.endPerformance();
+        if (state.summary) { runtime.endPerformance(); stopGrooveSound(); }
         if (state.summary && !captured) {
           captured = true;
           const completed = state.summary.results[0];
+          if (completed && "responseStart" in completed.prompt) {
+            const detail = completed.result.answer as MpcGrooveAnswer;
+            const config = completed.prompt;
+            void runtime.recordPractice({
+              source: "drill", instrument: "mpc",
+              comparison: { variantKey: `v1:mpc:groove:${config.family}`, bpm: config.bpm, settings: JSON.stringify({ family: config.family, bpm: config.bpm, mapping: config.mapping }), dimensions: "groove family, BPM and voice mappings" },
+              tags: ["mpc", "groove", config.family], scoringEvents: [completed.event], xpEarned: state.summary.xp,
+              note: `MPC groove recall · ${config.label} · ${config.bpm} BPM · ${Math.round(detail.accuracy * 100)}% independent accuracy · ${detail.meanTimingErrorMs === null ? "Timing not measured" : `${Math.round(detail.meanTimingErrorMs)}ms timing`} · Accents not assessed`,
+            });
+            return;
+          }
           const detail = completed?.result.answer as MpcSingleStrokeAnswer | undefined;
           const patternLabel =
             completed && "patternLabel" in completed.prompt
@@ -226,6 +251,7 @@
           void runtime.recordPractice({
             source: "drill",
             instrument: "mpc",
+            comparison: { variantKey, bpm: Number(bpm), settings: JSON.stringify(normalizedConfig), dimensions: "pattern, pads and hit count" },
             tags: ["mpc", "rudiment", "single-strokes"],
             scoringEvents: state.summary.results.map(({ event }) => event),
             xpEarned: state.summary.xp,
@@ -242,13 +268,13 @@
     }
   }
 
-  async function enableMidi(): Promise<void> {
-    await runtime.midi.enable();
-  }
-
   async function start(): Promise<void> {
     if (!ready || pending || !session) return;
-    if (leftPadMidi === rightPadMidi) {
+    if (mode === "groove" && new Set(Object.values(grooveMapping)).size !== 3) {
+      status = "Choose three different MIDI pads.";
+      return;
+    }
+    if (mode !== "groove" && leftPadMidi === rightPadMidi) {
       status = "Choose two different MPC pads.";
       return;
     }
@@ -258,6 +284,7 @@
     pending = true;
     captured = false;
     status = "";
+    stopGrooveSound();
     let generation = routeGeneration;
     try {
       await tick();
@@ -266,13 +293,40 @@
       await practiceContextReady;
       if (request !== startRequest || generation !== routeGeneration) return;
       const config = normalizedConfig;
-      const performance = await runtime.beginPerformance();
+      const groove = grooveConfig;
+      if (mode === "groove") { groovePreparing = true; status = "Listen to one bar, then count in for one bar."; }
+      const performanceResult = await runtime.beginPerformance(mode === "groove" ? {
+        countInBars: 1,
+        leadIn: { bars: 1, onStart: (event) => {
+          if (request !== startRequest || generation !== routeGeneration) return;
+          for (const target of grooveTargets(groove.family)) {
+            runtime.sound.playPercussion(target.voice, event.atSeconds + target.beat * 60 / groove.bpm);
+          }
+        } },
+      } : undefined);
       if (request !== startRequest || generation !== routeGeneration) {
-        if (performance.status === "started") runtime.endPerformance();
+        if (performanceResult.status === "started") runtime.endPerformance();
         return;
       }
-      if (performance.status !== "started") {
-        status = performance.status === "failed" ? performance.message : "Start cancelled.";
+      if (performanceResult.status !== "started") {
+        stopGrooveSound();
+        status = performanceResult.status === "failed" ? performanceResult.message : "Start cancelled.";
+        return;
+      }
+      if (mode === "groove") {
+        const prompt = await session.startMpcGroove({ ...groove, responseStart: performanceResult.downbeat });
+        if (request !== startRequest || generation !== routeGeneration) {
+          runtime.endPerformance(); stopGrooveSound(); session.abandon(); return;
+        }
+        groovePreparing = false; resultsDismissed = false; status = "Your turn. Copy the groove for one bar.";
+        const finishAtDeadline = () => {
+          if (request !== startRequest || generation !== routeGeneration) return;
+          const remaining = prompt.responseEnd - performance.now();
+          if (remaining > 0) { responseDeadline = setTimeout(finishAtDeadline, remaining); return; }
+          responseDeadline = undefined;
+          runtime.endPerformance(); runtime.sound.stopPercussion(); session?.finishNow();
+        };
+        responseDeadline = setTimeout(finishAtDeadline, Math.max(0, prompt.responseEnd - performance.now()));
         return;
       }
       await session.startMpcRudiment({
@@ -294,18 +348,36 @@
       status = `Play ${patternLabel.toLowerCase()} on pads ${config.leftPadMidi} and ${config.rightPadMidi}.`;
     } catch (error) {
       runtime.endPerformance();
+      stopGrooveSound();
       if (request !== startRequest || generation !== routeGeneration) return;
       status = message(error, "The MPC rudiment could not be started.");
     } finally {
+      groovePreparing = false;
       pending = false;
     }
   }
+
+  function stopGrooveSound(): void {
+    if (responseDeadline !== undefined) clearTimeout(responseDeadline);
+    responseDeadline = undefined;
+    runtime.sound.stopPercussion();
+  }
+
+  const unsubscribeGrooveInput = runtime.router.subscribe(event => {
+    const prompt = sessionState?.currentPrompt;
+    if (mode !== "groove" || !prompt || !("responseStart" in prompt) || event.type !== "noteOn" ||
+        event.timestamp < prompt.responseStart || event.timestamp >= prompt.responseEnd || sessionState?.status !== "active") return;
+    const voice = GROOVE_VOICES.find(voice => prompt.mapping[voice.id] === event.midiNote);
+    if (voice) runtime.sound.playPercussion(voice.id, undefined, event.velocity);
+  });
 
   function cancel(): void {
     startRequest += 1;
     runtime.endPerformance();
     session?.abandon();
-    status = "Rudiment cancelled. You can start again.";
+    stopGrooveSound();
+    groovePreparing = false;
+    status = "Practice cancelled. You can start again.";
   }
 
   function changeSetup(): void {
@@ -314,13 +386,9 @@
     resultsDismissed = true;
   }
 
-  async function slowDown(): Promise<void> {
-    const current = Number(bpm);
-    const slowerTempo =
-      [...MPC_RUDIMENT_TEMPOS].reverse().find((tempo) => tempo < current) ??
-      MPC_RUDIMENT_TEMPOS[0];
-    runtime.setPracticeVariantBpm(slowerTempo, variantKey);
-    await start();
+  function practiceAtTempo(nextBpm: number): void {
+    runtime.setPracticeVariantBpm(nextBpm, variantKey);
+    void start();
   }
 
   function message(error: unknown, fallback: string): string {
@@ -330,11 +398,16 @@
   function syncConfigUrl(): void {
     const config = normalizedConfig;
     const params = new URLSearchParams(window.location.search);
+    params.set("mode", mode);
+    if (mode === "groove") {
+      params.set("groove", grooveConfig.family);
+      for (const voice of GROOVE_VOICES) params.set(voice.id, String(grooveConfig.mapping[voice.id]));
+    }
     params.set("pattern", config.patternId);
     params.set("left", String(config.leftPadMidi));
     params.set("right", String(config.rightPadMidi));
     params.set("hits", String(config.hitCount));
-    params.set("bpm", String(config.bpm));
+    params.set("bpm", String(mode === "groove" ? grooveConfig.bpm : config.bpm));
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
@@ -343,6 +416,8 @@
     routeGeneration += 1;
     startRequest += 1;
     runtime.endPerformance();
+    stopGrooveSound();
+    unsubscribeGrooveInput();
     unsubscribeSession?.();
     unsubscribeMidiState();
     session?.dispose();
@@ -362,48 +437,66 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        source={runtime.activeSource}
         live={sessionState?.status === "active"}
       />
     {/snippet}
   </PracticeScreenHeader>
+  <MidiStatus class="-mt-2" />
 
   <p class="sr-only" aria-live="polite">{liveAnnouncement}</p>
 
   {#snippet setupSummaryLine()}
-    {patternLabel} · Pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi} · {normalizedConfig.hitCount} hits · {bpm} BPM
+    {#if mode === "groove"}Groove copy-back · {patternLabel} · {bpm} BPM
+    {:else}{patternLabel} · Pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi} · {normalizedConfig.hitCount} hits · {bpm} BPM{/if}
   {/snippet}
 
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>{patternLabel} · Pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi}</Card.Description>
-        <Card.Title>Rudiment complete</Card.Title>
+        <Card.Description>{patternLabel} · {bpm} BPM</Card.Description>
+        <Card.Title>{mode === "groove" ? "Groove complete" : "Rudiment complete"}</Card.Title>
       {/snippet}
       {#snippet metric()}
         <p class="flex items-baseline">
           <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
-            {Math.round((result?.result.score ?? 0) * 100)}<span class="text-3xl text-muted-foreground">%</span>
+              {Math.round((grooveAnswer?.accuracy ?? assessed?.score ?? 0) * 100)}<span class="text-3xl text-muted-foreground">%</span>
           </span>
-          <span class="sr-only"> total</span>
+          <span class="sr-only"> {mode === "groove" ? "independent accuracy" : "measured dimensions"}</span>
         </p>
       {/snippet}
       {#snippet lastRunDelta()}
-        <LastRunDelta tags={["mpc"]} accuracy={result?.result.score ?? 0} before={visitStartedAt} />
+        {#if grooveAnswer || assessed?.velocityMeasured}<LastRunDelta tags={["mpc"]} before={visitStartedAt} />{/if}
       {/snippet}
       {#snippet children()}
-        {#if answer}
+        {#if grooveAnswer && completedGroove}
+          <div class="grid grid-cols-2 gap-3">
+            <HudTile size="sm" label="Independent accuracy" value={Math.round(grooveAnswer.accuracy * 100)} unit="%" />
+            <HudTile size="sm" label="Timing error" value={grooveAnswer.meanTimingErrorMs === null ? "Not measured" : Math.round(grooveAnswer.meanTimingErrorMs)} unit={grooveAnswer.meanTimingErrorMs === null ? undefined : "ms"} />
+          </div>
+          <p class="text-sm text-muted-foreground">{grooveAnswer.matched} matched · {grooveAnswer.omissions} missed · {grooveAnswer.extras} extra. Timing uses matched hits only.</p>
+          <p class="text-sm text-muted-foreground">Accents are not assessed for these grooves. Velocity: {grooveAnswer.variableMidiVelocity ? "variable MIDI observed" : "Not measured"}.</p>
+          <div class="max-w-full overflow-x-auto">
+            <table aria-label="Expected groove" class="w-full text-center text-xs">
+              <caption class="pb-2 text-left font-medium">Expected groove · sixteenth-note grid</caption>
+              <thead><tr><th scope="col">Voice</th>{#each Array.from({length:16}, (_,i)=>i) as step (step)}<th scope="col" class="min-w-5">{step % 4 === 0 ? step / 4 + 1 : ["", "e", "&", "a"][step % 4]}</th>{/each}</tr></thead>
+              <tbody>{#each GROOVE_VOICES as voice (voice.id)}<tr><th scope="row">{voice.name}</th>{#each Array.from({length:16}, (_,i)=>i) as step (step)}<td class="border p-1">{completedGroove.targets.some(target=>target.voice===voice.id && target.beat===step/4) ? "●" : "·"}</td>{/each}</tr>{/each}</tbody>
+            </table>
+          </div>
+          <ul class="space-y-1 text-sm">{#each grooveAnswer.voices as voice (voice.voice)}<li>{GROOVE_VOICES.find(item=>item.id===voice.voice)?.name ?? "Unmapped pads"}: {voice.matched} matched, {voice.omissions} missed, {voice.extras} extra; timing {voice.meanTimingErrorMs === null ? "Not measured" : `${Math.round(voice.meanTimingErrorMs)}ms`}.</li>{/each}</ul>
+        {:else if answer}
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <HudTile size="sm" label="Pad accuracy" value={Math.round(answer.padAccuracy * 100)} unit="%" />
             <HudTile size="sm" label="Timing error" value={Math.round(answer.meanTimingErrorMs)} unit="ms" />
-            <HudTile size="sm" label="Velocity" value={Math.round(answer.velocityConsistency * 100)} unit="%" />
+            <HudTile size="sm" label="Velocity" value={assessed?.velocityMeasured ? Math.round(answer.velocityConsistency * 100) : "Not measured"} unit={assessed?.velocityMeasured ? "%" : undefined} />
             <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
           </div>
+          {#if !assessed?.velocityMeasured}<p class="text-sm text-muted-foreground">On-screen velocity is fixed. This score covers pad order, timing and completion; velocity needs MIDI input.</p>{/if}
         {/if}
         <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · MPC</p>
       {/snippet}
       {#snippet actions()}
-        <AdaptiveRetryBar onRetry={start} onSlower={slowDown} retryLabel="Again" />
+        <TempoPracticeSuggestion bpm={completedBpm} clean={mode === "groove" ? (grooveAnswer?.accuracy ?? 0) >= 0.95 && (grooveAnswer?.meanTimingErrorMs ?? Infinity) <= 60 : (answer?.padAccuracy ?? 0) >= 0.95 && (answer?.meanTimingErrorMs ?? Infinity) <= 60} basis={mode === "groove" ? "Based on independent groove accuracy and matched timing; accents are not assessed." : "Based on pad accuracy and measured timing; velocity is separate."} onPractice={practiceAtTempo} />
       {/snippet}
       {#snippet nextUp()}
         <NextUpSuggestion {skills} {analytics} currentPath="/music/play/mpc" routine={runtime.dailyRoutine} />
@@ -414,6 +507,13 @@
   <PracticeDrillShell {phase} startPending={pending} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
       <div class="grid gap-4 rounded-lg border bg-card p-4">
+        {#if mode === "groove"}
+          <div class="grid gap-3 sm:grid-cols-3">
+            {#each GROOVE_VOICES as voice (voice.id)}
+              <div class="grid gap-2"><Label for={`groove-${voice.id}`}>{voice.name} pad</Label><select id={`groove-${voice.id}`} aria-label={`${voice.name} pad`} bind:value={grooveMapping[voice.id]} class="h-9 rounded-md border border-input bg-background px-3 text-sm">{#each padOptions as midi (midi)}<option value={midi}>Pad {midi}</option>{/each}</select></div>
+            {/each}
+          </div>
+        {:else}
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="grid gap-2">
             <Label for="mpc-left-pad">Left pad</Label>
@@ -446,12 +546,15 @@
           <SegmentedControl ariaLabel="Hit count" options={hitCountOptions} bind:value={hitCount} size="sm" />
           <p class="text-sm tabular-nums text-muted-foreground">Tempo · {bpm} BPM (practice controls above)</p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-          </Button>
-          <p class="text-xs text-muted-foreground">{midiStatus}</p>
-        </div>
+        {/if}
+        <details bind:open={mappingOpen}>
+          <summary class="cursor-pointer text-sm font-medium">Keyboard pad mapping</summary>
+          {#if mappingOpen && !pending}
+          <PracticeStage instrument="mpc" class="mt-3 max-w-xs p-3">
+            <MpcPadGrid router={runtime.router} bind:keymap editable />
+          </PracticeStage>
+          {/if}
+        </details>
       </div>
     {/snippet}
 
@@ -471,8 +574,9 @@
               {patternLabel}
             </div>
             <p class="text-sm text-stage-muted">
-              Alternate pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi} for {normalizedConfig.hitCount}
-              hits; order, timing and velocity are graded.
+              {#if mode === "groove"}Hear one bar, count in for one bar, then copy it for one bar. Targets appear afterward.
+              {:else}Alternate pads {normalizedConfig.leftPadMidi} and {normalizedConfig.rightPadMidi} for {normalizedConfig.hitCount}
+              hits; order, timing and velocity are graded.{/if}
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
@@ -484,7 +588,11 @@
         </div>
         <!-- The pattern is what you drill, so it stays on the stage; the fieldset mirrors the shell's start lock. -->
         <fieldset class="min-w-0 border-0 p-0" disabled={pending}>
-          <SegmentedControl ariaLabel="Rudiment pattern" options={MPC_RUDIMENT_PATTERN_OPTIONS} bind:value={patternId} />
+          <SegmentedControl ariaLabel="Practice mode" options={modeOptions} bind:value={mode} />
+          <div class="mt-3">
+            {#if mode === "groove"}<SegmentedControl ariaLabel="Groove family" options={[...MPC_GROOVES]} bind:value={grooveFamily} />
+            {:else}<SegmentedControl ariaLabel="Rudiment pattern" options={MPC_RUDIMENT_PATTERN_OPTIONS} bind:value={patternId} />{/if}
+          </div>
         </fieldset>
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
@@ -499,7 +607,15 @@
           </h2>
         </div>
       </div>
+      {#if mode === "groove"}
+        <PracticeStage instrument="mpc" class="grid min-w-0 gap-4 p-4 sm:p-6">
+          <p class="text-lg font-medium">{status}</p>
+          <p class="text-sm text-stage-muted">{#each GROOVE_VOICES as voice (voice.id)}<span class="mr-3 inline-block">{voice.name}: pad {grooveConfig.mapping[voice.id]} ({keymap[grooveConfig.mapping[voice.id]]?.toUpperCase() ?? "unassigned"})</span>{/each}</p>
+          <div class="mx-auto w-full max-w-sm"><MpcPadGrid {keymap} router={runtime.router} labels={Object.fromEntries(GROOVE_VOICES.map((voice) => [grooveConfig.mapping[voice.id], voice.name]))} /></div>
+        </PracticeStage>
+      {:else}
       <PadRudimentStage
+        {keymap}
         router={runtime.router}
         targetSequence={stageTargetSequence}
         targetEvents={stageTargetEvents}
@@ -518,6 +634,7 @@
           </p>
         </div>
       {/if}
+      {/if}
     {/snippet}
 
     {#snippet stageAction()}
@@ -525,6 +642,7 @@
     {/snippet}
 
     {#snippet rail()}
+      {#if mode !== "groove"}
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <HudTile size="sm" label="Next pad" value={nextPad ?? leftPadMidi} tone="accent" />
         <HudTile size="sm" label="Hits" value={completedHits} unit={`/${totalHits}`} />
@@ -532,7 +650,8 @@
         <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
         <HudTile size="sm" label="Input" value={runtime.activeSource === "midi" ? "MIDI" : "On-screen"} />
       </div>
-      <p class="text-xs text-muted-foreground">{midiStatus}</p>
+      {/if}
+      <MidiStatus />
     {/snippet}
   </PracticeDrillShell>
 </PracticeScreen>

@@ -456,14 +456,15 @@ describe("TechniqueSession", () => {
     });
     expect(session.state.results[0]?.event).toMatchObject({
       runId: "technique-test-mpc-double-strokes-36-38-8-100",
+      assistance: "guided",
+      instrument: "mpc",
+      source: "midi",
       skillIds: expect.arrayContaining(["technique.mpc", "technique.mpc.single-strokes"]),
     });
     expect(
       dependencies.services.skills.getMastery("technique.mpc.single-strokes").observations,
-    ).toBeGreaterThan(0);
-    expect(dependencies.services.skills.getMastery("technique.mpc").observations).toBeGreaterThan(
-      0,
-    );
+    ).toBe(0);
+    expect(dependencies.services.skills.getMastery("technique.mpc").observations).toBe(0);
     expect(dependencies.services.progress.state.xp).toBeGreaterThan(0);
     session.dispose();
   });
@@ -536,9 +537,7 @@ describe("TechniqueSession", () => {
     expect(session.state.results[0]?.event.skillIds).toEqual(
       expect.arrayContaining(["technique.strings.spider", "technique.guitar.spider"]),
     );
-    expect(
-      dependencies.services.skills.getMastery("technique.guitar.spider").observations,
-    ).toBeGreaterThan(0);
+    expect(dependencies.services.skills.getMastery("technique.guitar.spider").observations).toBe(0);
     session.dispose();
   });
 
@@ -631,7 +630,7 @@ describe("TechniqueSession", () => {
     );
     expect(
       dependencies.services.skills.getMastery("technique.guitar.chord-changes").observations,
-    ).toBeGreaterThan(0);
+    ).toBe(0);
     session.dispose();
   });
 
@@ -773,3 +772,56 @@ function breath(value: number, atMs: number): ControlChangeEvent {
     clock: "midi",
   };
 }
+
+test("groove keeps independent timed recall open after target count and persists family evidence", async () => {
+  const dependencies = await setup();
+  const session = new TechniqueSession(dependencies);
+  const prompt = await session.startMpcGroove({
+    family: "backbeat",
+    bpm: 120,
+    mapping: { kick: 36, snare: 38, hats: 42 },
+    responseStart: monotonicMs(1000),
+  });
+  for (const target of prompt.targets)
+    dependencies.router.push(note(prompt.mapping[target.voice], 1000 + target.beat * 500));
+  expect(session.state.status).toBe("active");
+  dependencies.router.push(note(51, 2999));
+  session.finishNow();
+  await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+  expect(session.state.results[0]).toMatchObject({
+    event: {
+      assistance: "independent",
+      skillIds: ["technique.mpc", "technique.mpc.groove.backbeat"],
+    },
+    result: { answer: { extras: 1 } },
+  });
+  session.dispose();
+});
+
+test("abandoning a groove during a deferred save never resurrects its summary", async () => {
+  const dependencies = await setup();
+  const session = new TechniqueSession(dependencies);
+  let resolveSave!: () => void;
+  vi.spyOn(dependencies.services.analytics, "ingest").mockReturnValueOnce(
+    new Promise((resolve) => {
+      resolveSave = resolve;
+    }),
+  );
+  const config = {
+    family: "backbeat" as const,
+    bpm: 120,
+    mapping: { kick: 36, snare: 38, hats: 42 },
+    responseStart: monotonicMs(1000),
+  };
+  await session.startMpcGroove(config);
+  session.finishNow();
+  await vi.waitFor(() => expect(resolveSave).toBeTypeOf("function"));
+  session.abandon();
+  resolveSave();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(session.state.status).toBe("abandoned");
+  expect(session.state.summary).toBeUndefined();
+  await session.startMpcGroove({ ...config, responseStart: monotonicMs(4000) });
+  expect(session.state.status).toBe("active");
+  session.dispose();
+});

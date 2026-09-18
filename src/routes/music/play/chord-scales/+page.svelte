@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/state";
   import Play from "lucide-svelte/icons/play";
   import { onDestroy, tick } from "svelte";
 
@@ -83,6 +84,7 @@
     index: number;
     expectedMidi: number[];
     playedMidi: number[];
+    input: NoteEvent[];
     grade: LickGrade;
   }
   const ALL_CHANGES: Changes[] = [
@@ -108,6 +110,7 @@
   const changesOptions = ALL_CHANGES.map((entry) => ({ value: entry.id, label: entry.label }));
   const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
   const initialConfig = normalizeChordScaleDrillConfig(initialSearch);
+  let checkMode = $state((browser ? initialSearch : page.url.searchParams).get("mode") === "check");
   const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
   const initialInstrument = VIEWABLE_INSTRUMENTS.includes(
     initialSearch.get("instrument") as InstrumentId,
@@ -132,6 +135,7 @@
   let status = $state("Ready. Press Start, or Space.");
   let captured = false;
   let attemptStartedAt = unixMs(Date.now());
+  let acceptedInput: NoteEvent[] = [];
   let unsubscribe: (() => void) | undefined;
   let previewGeneration = 0;
   let attemptPending = false;
@@ -282,6 +286,7 @@
   }
 
   async function hearScale(): Promise<void> {
+    if (checkMode) return;
     const generation = ++previewGeneration;
     runtime.sound.stopPattern();
     if (!(await runtime.ensurePlaybackVoice())) {
@@ -331,12 +336,14 @@
       if (completedChords.length === 0) attemptStartedAt = unixMs(Date.now());
       step = "listening";
       played = [];
-      status = `Play ${chord.scaleLabel} over ${chord.symbol}.`;
+      acceptedInput = [];
+      status = checkMode ? `Play the scale over ${chord.symbol}.` : `Play ${chord.scaleLabel} over ${chord.symbol}.`;
       unsubscribe = runtime.router.subscribe((event: NoteEvent) => {
         if (step !== "listening" || event.type !== "noteOn") return;
         if (runtime.audioEnabled) {
           runtime.sound.playNote(event.midiNote, 0.16, undefined, event.velocity);
         }
+        acceptedInput.push(event);
         played = [...played, event.midiNote];
         if (played.length >= scaleMidi.length) gradeChord();
       });
@@ -356,7 +363,7 @@
     const grade = gradeLickSequence(expected, response);
     const nextCompleted = [
       ...completedChords,
-      { change: currentChord, index: currentIndex, expectedMidi: expected, playedMidi: response, grade },
+      { change: currentChord, index: currentIndex, expectedMidi: expected, playedMidi: response, input: [...acceptedInput], grade },
     ];
     grades = [...grades, grade];
     completedChords = nextCompleted;
@@ -393,10 +400,12 @@
           runId,
           eventId: stableId(`jazz-chord-scale-event-${item.index + 1}`),
           promptId: `${completedChanges.id}-${item.index + 1}-${item.change.symbol}`,
-          skillIds: [CHORD_SCALE_SKILL, `technique.scale.${item.change.scale}`],
+          skillIds: [CHORD_SCALE_SKILL, `${CHORD_SCALE_SKILL}.chord-scales.${completedChanges.id}`, `technique.scale.${item.change.scale}`],
           capabilities: CHORD_SCALE_CAPABILITIES,
           expectedMidi: item.expectedMidi,
           playedMidi: item.playedMidi,
+          input: item.input,
+          assistance: checkMode ? "independent" : "guided",
           grade: item.grade,
           startedAt: completedStartedAt,
           endedAt,
@@ -422,6 +431,7 @@
         id: sessionId,
         source: "drill" as const,
         instrument: completedInstrument,
+        comparison: { variantKey, bpm, dimensions: "instrument and chord changes" },
         tags: ["jazz", "chord-scales"],
         scoringEvents,
         runs,
@@ -488,6 +498,7 @@
     params.set("changes", config.changesId);
     params.set("instrument", instrument);
     params.set("bpm", String(bpm));
+    params.set("mode", checkMode ? "check" : "practice");
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
@@ -513,7 +524,7 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        source={runtime.activeSource}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
@@ -547,7 +558,7 @@
           <span class="text-xs text-stage-muted">
             {romanFor(changes.id, index)}{state === "current" ? " · now" : state === "next" ? " · next" : ""}
           </span>
-          <span class="text-[0.6875rem] font-medium text-stage-muted">{change.scaleLabel}</span>
+          {#if !checkMode || done}<span class="text-[0.6875rem] font-medium text-stage-muted">{change.scaleLabel}</span>{/if}
         </li>
       {/each}
     </ol>
@@ -578,7 +589,7 @@
         </p>
       {/snippet}
       {#snippet lastRunDelta()}
-        <LastRunDelta tags={["chord-scales"]} accuracy={overall / 100} before={visitStartedAt} />
+        <LastRunDelta tags={["chord-scales"]} before={visitStartedAt} />
       {/snippet}
       {#snippet children()}
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -612,6 +623,13 @@
   <PracticeDrillShell {phase} setupSummary={setupSummaryLine} summary={summaryPhase}>
     {#snippet setup()}
       <div class="grid gap-3 rounded-lg border bg-card p-4">
+        <SegmentedControl
+          size="sm" ariaLabel="Practice mode"
+          options={[{ value: "practice", label: "Practice" }, { value: "check", label: "Check" }]}
+          value={checkMode ? "check" : "practice"}
+          onChange={(value) => (checkMode = value === "check")}
+        />
+        <p class="text-xs text-muted-foreground">{checkMode ? "Unaided Check: answer cues stay hidden until grading." : "Guided practice: target cues are shown."}</p>
         <SegmentedControl
           size="sm"
           ariaLabel="Changes"
@@ -652,10 +670,10 @@
         {@render chordStrip(-1)}
         <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-xs font-semibold tracking-wide text-stage-muted">First up · {chord.symbol} / {chord.scaleLabel}</p>
-            {@render toneLegend()}
+            <p class="text-xs font-semibold tracking-wide text-stage-muted">First up · {chord.symbol}{checkMode ? "" : ` / ${chord.scaleLabel}`}</p>
+            {#if !checkMode}{@render toneLegend()}{/if}
           </div>
-          <PianoSurface router={runtime.router} notes={scaleMidi} {toneRoles} noteNames="c" />
+          <PianoSurface router={runtime.router} notes={checkMode ? [48, 84] : scaleMidi} toneRoles={checkMode ? {} : toneRoles} noteNames="c" />
         </div>
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
@@ -670,14 +688,14 @@
               <span data-testid="progression-current-symbol">{chord.symbol}</span>
             </p>
             <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={activeHeading}>
-              {chord.scaleLabel} over {chord.symbol}
+              {checkMode ? "Choose the scale" : chord.scaleLabel} over {chord.symbol}
             </h2>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" onclick={hearScale}>
+            {#if !checkMode}<Button type="button" variant="outline" onclick={hearScale}>
               <Play aria-hidden="true" />
               Hear scale
-            </Button>
+            </Button>{/if}
             <Button type="button" onclick={() => void startAttempt()} disabled={step === "listening"}>
               Play it back
             </Button>
@@ -694,10 +712,10 @@
         {/if}
         <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-xs font-semibold tracking-wide text-stage-muted">Target tones · {chord.symbol} / {chord.scaleLabel}</p>
-            {@render toneLegend()}
+            <p class="text-xs font-semibold tracking-wide text-stage-muted">Target tones · {chord.symbol}{checkMode ? "" : ` / ${chord.scaleLabel}`}</p>
+            {#if !checkMode}{@render toneLegend()}{/if}
           </div>
-          <PianoSurface router={runtime.router} notes={scaleMidi} {toneRoles} highlights={nextTarget} noteNames="c" />
+          <PianoSurface router={runtime.router} notes={checkMode ? [48, 84] : scaleMidi} toneRoles={checkMode ? {} : toneRoles} highlights={checkMode ? {} : nextTarget} noteNames="c" />
         </div>
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>

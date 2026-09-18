@@ -1,9 +1,7 @@
-import {
-  earTrainingDrillHref,
-  earTrainingHrefForSkill,
-} from "@repo/music-core/engines/ear-training";
+import { earTrainingHrefForSkill } from "@repo/music-core/engines/ear-training";
 import {
   SkillRelationKind,
+  applyDecay,
   type Capability,
   type InstrumentId,
   type PracticeSession,
@@ -14,6 +12,10 @@ import {
 import type { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import type { ProgressState } from "@repo/music-core/engines/progress";
 import type { SkillGraphStore } from "@repo/music-core/engines/skills";
+import {
+  buildDailyRoutinePlan,
+  type DailyRoutineOptions,
+} from "@repo/music-core/engines/daily-routine";
 
 export interface DashboardAction {
   label: string;
@@ -22,6 +24,7 @@ export interface DashboardAction {
 
 export interface DashboardRoutineItem extends DashboardAction {
   description: string;
+  minutes: number;
 }
 
 export interface DashboardChallenge extends DashboardAction {
@@ -44,7 +47,7 @@ export interface DashboardView {
   streakCalendar: { day: string; practiced: boolean; frozen: boolean }[];
 }
 
-export interface BuildDashboardViewArgs {
+export interface BuildDashboardViewArgs extends DailyRoutineOptions {
   progressState: ProgressState;
   sessions: PracticeSession[];
   skills: SkillGraphStore;
@@ -62,6 +65,8 @@ export interface SkillTreeNode {
   masteryPercent: number;
   confidencePercent: number;
   observations: number;
+  lastPracticed?: UnixMs;
+  dueForReview: boolean;
   unlocked: boolean;
   weakSpot: boolean;
   practiceHref: string;
@@ -79,6 +84,8 @@ export interface SkillTreePracticePick {
   href: string;
   accuracy: number;
   attempts: number;
+  lastPracticed?: UnixMs;
+  dueForReview?: boolean;
 }
 
 interface PracticeTarget {
@@ -95,9 +102,14 @@ export interface SkillTreeView {
 }
 
 export interface BuildSkillTreeViewArgs {
+  now?: UnixMs;
   skills: SkillGraphStore;
   analytics: AnalyticsEngine;
+  instrument?: InstrumentId;
 }
+
+// A small sample prevents a single answer from becoming a diagnosis.
+const MIN_COACH_ATTEMPTS = 5;
 
 export function buildDashboardView(args: BuildDashboardViewArgs): DashboardView {
   const now = args.now ?? unixMs(Date.now());
@@ -108,7 +120,8 @@ export function buildDashboardView(args: BuildDashboardViewArgs): DashboardView 
   );
   const todayXp = todaySessions.reduce((total, session) => total + session.xpEarned, 0);
   const todayGoalXp = args.dailyGoalXp ?? 100;
-  const dailyChallenge = challengeFor(args.skills, args.analytics);
+  const picks = buildSkillTreeView(args).practiceNext;
+  const dailyChallenge = challengeFor(args.skills, picks, args.instrument);
 
   return {
     todayXp,
@@ -120,36 +133,52 @@ export function buildDashboardView(args: BuildDashboardViewArgs): DashboardView 
     recentInstruments: recentInstruments(args.sessions),
     continuePractice: actionForSkill(dailyChallenge.skillId, "Continue practice"),
     dailyChallenge,
-    todaysRoutine: [
-      {
-        label: "Ear training review",
-        href: earTrainingDrillHref("mixed"),
-        description: "Recognition and weak-spot review.",
-      },
-      {
-        label: "Note Reading",
-        href: "/music/learn/reading",
-        description: "Flashcards and sight-reading.",
-      },
-      {
-        label: "Scales",
-        href: "/music/play/scales",
-        description: "Technique and tempo progression.",
-      },
-    ],
+    todaysRoutine: buildDailyRoutinePlan(picks, args),
     streakCalendar: streakCalendar(args.progressState, now),
   };
 }
 
 export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView {
+  const now = args.now ?? unixMs(Date.now());
   const unlockedIds = new Set(args.skills.unlockedSkills().map((skill) => skill.id));
-  const weakStats = args.analytics.weakestSkills(8);
-  const weakIds = new Set(weakStats.map((stats) => stats.skillId));
+  const weakStats = args.analytics.weakestSkills(Infinity, {
+    minAttempts: MIN_COACH_ATTEMPTS,
+    assessedOnly: true,
+    instrument: args.instrument,
+    skillIds: args.skills.skills
+      .filter(
+        (skill) =>
+          !args.instrument ||
+          !skill.instruments?.length ||
+          skill.instruments.includes(args.instrument),
+      )
+      .map((skill) => skill.id),
+  });
+  // Use scoped independent history for ranking, so another instrument cannot refresh it.
+  const reviewStats = weakStats
+    .map((stats) => {
+      const current = applyDecay(
+        {
+          ...args.skills.getMastery(stats.skillId),
+          mastery: stats.accuracy,
+          lastPracticed: stats.lastPracticed,
+        },
+        now,
+      );
+      return {
+        ...stats,
+        estimate: current.mastery,
+        dueForReview: stats.accuracy - current.mastery >= 0.1,
+      };
+    })
+    .sort((a, b) => a.estimate - b.estimate)
+    .slice(0, 8);
+  const weakIds = new Set(reviewStats.map((stats) => stats.skillId));
   const skillById = new Map(args.skills.skills.map((skill) => [skill.id, skill]));
 
   const nodes = args.skills.skills
     .map((skill) => {
-      const mastery = args.skills.getMastery(skill.id);
+      const mastery = args.skills.getMastery(skill.id, now);
       return {
         id: skill.id,
         name: skill.name,
@@ -159,6 +188,8 @@ export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView 
         masteryPercent: Math.round(mastery.mastery * 100),
         confidencePercent: Math.round(mastery.confidence * 100),
         observations: mastery.observations,
+        lastPracticed: mastery.lastPracticed,
+        dueForReview: args.skills.getMastery(skill.id).mastery - mastery.mastery >= 0.1,
         unlocked: unlockedIds.has(skill.id),
         weakSpot: weakIds.has(skill.id),
         practiceHref: hrefForSkill(skill.id),
@@ -173,7 +204,7 @@ export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView 
 
   const practiceNext: SkillTreePracticePick[] = [];
   const seenPracticeTargets = new Set<string>();
-  for (const stats of weakStats) {
+  for (const stats of reviewStats) {
     const target = practiceTargetForSkill(stats.skillId, skillById);
     if (seenPracticeTargets.has(target.skillId)) continue;
     practiceNext.push({
@@ -182,6 +213,8 @@ export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView 
       href: target.href,
       accuracy: stats.accuracy,
       attempts: stats.attempts,
+      lastPracticed: stats.lastPracticed,
+      dueForReview: stats.dueForReview,
     });
     seenPracticeTargets.add(target.skillId);
   }
@@ -194,8 +227,12 @@ export function buildSkillTreeView(args: BuildSkillTreeViewArgs): SkillTreeView 
   };
 }
 
-function challengeFor(skills: SkillGraphStore, analytics: AnalyticsEngine): DashboardChallenge {
-  const weak = analytics.weakestSkills(1)[0];
+function challengeFor(
+  skills: SkillGraphStore,
+  picks: SkillTreePracticePick[],
+  instrument?: InstrumentId,
+): DashboardChallenge {
+  const weak = picks[0];
   if (weak) {
     const skillById = new Map(skills.skills.map((skill) => [skill.id, skill]));
     const target = practiceTargetForSkill(weak.skillId, skillById);
@@ -208,7 +245,12 @@ function challengeFor(skills: SkillGraphStore, analytics: AnalyticsEngine): Dash
     };
   }
 
-  const next = skills.unlockedSkills()[0] ?? skills.skills[0];
+  const next = skills
+    .unlockedSkills()
+    .find(
+      (skill) =>
+        !instrument || !skill.instruments?.length || skill.instruments.includes(instrument),
+    );
   return {
     skillId: next?.id ?? "pitch.intervals",
     skillName: next?.name ?? "Intervals",
@@ -223,6 +265,12 @@ function actionForSkill(skillId: string, label: string): DashboardAction {
 }
 
 function hrefForSkill(skillId: string): string {
+  if (skillId.startsWith("harmony.ii-v-i.voicings."))
+    return `/music/play/voicings?variant=${encodeURIComponent(skillId.split(".").at(-1)!)}`;
+  if (skillId.startsWith("harmony.ii-v-i.chord-scales."))
+    return `/music/play/chord-scales?changes=${encodeURIComponent(skillId.split(".").at(-1)!)}`;
+  if (skillId.startsWith("harmony.ii-v-i.licks."))
+    return `/music/play/licks?category=${encodeURIComponent(skillId.split(".").at(-1)!)}`;
   const earHref = earTrainingHrefForSkill(skillId);
   if (earHref) return earHref;
   if (skillId === "intonation.interval-landing") {

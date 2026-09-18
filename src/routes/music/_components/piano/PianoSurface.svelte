@@ -60,6 +60,9 @@
   /** How far ahead the waterfall lane looks, in beats. One bar of 4/4. */
   const LOOKAHEAD_BEATS = 4;
 
+  /** Middle C carries a fixed orientation mark on every surface that shows it. */
+  const MIDDLE_C = 60;
+
   const HANDS: PianoHand[] = ["left", "right"];
 </script>
 
@@ -193,16 +196,43 @@
     input.setWaitGroupKey(waitGroupKey);
   });
 
-  // Only a wait-mode instance watches the router: an accepted foreign attack
-  // takes the group over, so the local virtual/latch holds must go.
+  /**
+   * Notes the router accepted from a physical source (MIDI, audio) and has
+   * not released yet. They light as "held" exactly like local presses, so a
+   * hardware chord shows every finger while it sounds. Local on-screen events
+   * are excluded: `heldNotes` already owns them with holder semantics.
+   */
+  let routerHeld = $state<ReadonlySet<number>>(new Set());
+
   $effect(() => {
-    if (waitGroupKey === undefined || router === undefined) return;
-    return router.subscribe((event) => input.observe(event));
+    if (router === undefined) return;
+    const held = new Set<number>();
+    const unsubscribe = router.subscribe((event) => {
+      // A wait-mode instance also lets an accepted foreign attack take the
+      // group over, so its local virtual/latch holds go (no-op otherwise).
+      input.observe(event);
+      if (event.source === "onscreen" || event.source === "click") return;
+      if (event.type === "noteOn") held.add(event.midiNote);
+      else if (event.type === "noteOff") held.delete(event.midiNote);
+      else return;
+      routerHeld = new Set(held);
+    });
+    return () => {
+      unsubscribe();
+      routerHeld = new Set();
+    };
   });
 
   // Leaving the surface abandons local holds silently - cleanup must never
   // depend on an event the router may reject during MIDI arbitration.
   onDestroy(() => input.reset());
+
+  /** Cmd/Alt-Tab away with a key down: the key-up never arrives, so let go. */
+  function onWindowBlur(): void {
+    input.releaseKind("qwerty");
+  }
+
+  const middleCKey = $derived(geometry.keys.find((key) => key.midiNote === MIDDLE_C));
 
   const fingerMarkers = $derived(
     Object.entries(fingerings ?? {})
@@ -321,7 +351,8 @@
     const highlight = highlightFor(midiNote);
     if (highlight?.role === "wrong") return "wrong";
     if (highlight?.role === "correct") return "correct";
-    if (heldNotes.has(midiNote) || highlight?.role === "active") return "active";
+    if (heldNotes.has(midiNote) || routerHeld.has(midiNote) || highlight?.role === "active")
+      return "active";
     if (highlight?.role === "target") {
       return highlight.hand === "left"
         ? "target-left"
@@ -343,6 +374,8 @@
 
   function accessibleName(key: PianoKey, state: PianoKeyState): string {
     const finger = fingerings?.[key.midiNote];
+    // The name stays the note (consumers and tests find keys by it); the
+    // orientation mark is a description, announced after the name.
     return [key.name, STATE_LABELS[state], finger ? `finger ${finger}` : ""]
       .filter(Boolean)
       .join(", ");
@@ -408,19 +441,28 @@
   }
 
   function keyClass(key: PianoKey, state: PianoKeyState): string {
+    const pressed = state === "active" || state === "correct" || state === "wrong";
     return cn(
-      "relative grid items-end justify-center border border-piano-key-line pb-1 text-[10px] font-semibold leading-none transition-colors",
+      "relative grid items-end justify-center border border-piano-key-line pb-1.5 text-[10px] font-semibold leading-none transition-[background-color,box-shadow,transform] duration-75",
       // Keys read as keys: a top-to-bottom shade and a bottom lip on the white
-      // keys, an edge highlight on the black ones. State fills replace the shade.
+      // keys, a lacquer highlight on the black ones. State fills replace the
+      // shade; a pressed key sinks by losing its lip and gaining an inner shade.
       key.kind === "white"
-        ? "h-28 rounded-b-md bg-piano-key text-piano-key-black shadow-[inset_0_-4px_0_var(--piano-key-line)] sm:h-32"
-        : "absolute top-0 z-10 h-[62%] rounded-b-sm border-piano-key-black bg-piano-key-black text-piano-key shadow-[inset_0_-5px_0_oklch(0_0_0/40%),inset_1px_0_0_oklch(1_0_0/15%)]",
+        ? "h-28 rounded-b-[5px] bg-piano-key text-piano-key-black shadow-[inset_0_-5px_0_var(--piano-key-line),inset_-1px_0_0_oklch(0_0_0/6%)] sm:h-32"
+        : "absolute top-0 z-10 h-[62%] rounded-b-[3px] border-piano-key-black bg-linear-to-b from-[color-mix(in_oklab,var(--piano-key-black)_78%,white)] via-piano-key-black via-30% to-piano-key-black text-piano-key shadow-[inset_0_-5px_0_oklch(0_0_0/45%),inset_1px_0_0_oklch(1_0_0/18%),0_2px_2px_oklch(0_0_0/35%)]",
       key.kind === "white" &&
         state === "neutral" &&
-        "bg-linear-to-b from-piano-key to-[color-mix(in_oklab,var(--piano-key)_93%,black)]",
+        "bg-linear-to-b from-piano-key to-[color-mix(in_oklab,var(--piano-key)_92%,black)]",
+      pressed &&
+        (key.kind === "white"
+          ? "shadow-[inset_0_-2px_0_oklch(0_0_0/18%),inset_0_3px_6px_oklch(0_0_0/22%)]"
+          : "h-[60%] shadow-[inset_0_-2px_0_oklch(0_0_0/45%),inset_0_3px_6px_oklch(0_0_0/35%)]"),
       playable && "cursor-pointer",
+      // Focus stays inside the key: a white key must never rise above the
+      // black keys it sits between (an outset ring needs z-lift and covers them).
       playable &&
-        "focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-practice-accent focus-visible:ring-offset-1",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-practice-accent",
+      playable && key.kind === "black" && "focus-visible:z-20",
       stateClass(state),
     );
   }
@@ -471,7 +513,7 @@
   }
 </script>
 
-<svelte:window onkeydown={onWindowKeydown} onkeyup={onWindowKeyup} />
+<svelte:window onkeydown={onWindowKeydown} onkeyup={onWindowKeyup} onblur={onWindowBlur} />
 
 {#snippet pianoKeyView(key: PianoKey)}
   {@const state = keyState(key.midiNote)}
@@ -483,6 +525,7 @@
       data-state={state}
       data-tone-role={toneRoles?.[key.midiNote]}
       aria-label={accessibleName(key, state)}
+      aria-description={key.midiNote === MIDDLE_C ? "Middle C" : undefined}
       aria-pressed={heldNotes.has(key.midiNote)}
       class={keyClass(key, state)}
       style:left={key.kind === "black" ? `${box.left}%` : undefined}
@@ -563,6 +606,17 @@
       {#each geometry.blackKeys as key (key.midiNote)}
         {@render pianoKeyView(key)}
       {/each}
+      {#if middleCKey}
+        {@const box = keyPercent(geometry, middleCKey)}
+        <!-- Orientation mark: the same dot on middle C in every view, so a
+             range change never loses the player. Named in the key's label. -->
+        <span
+          data-testid="middle-c-mark"
+          class="pointer-events-none absolute bottom-4 z-20 size-1.5 -translate-x-1/2 rounded-full bg-piano-key-black/60 ring-1 ring-piano-key/70"
+          style:left={`${box.left + box.width / 2}%`}
+          aria-hidden="true"
+        ></span>
+      {/if}
       {#each handMarkers as marker (marker.key.midiNote)}
         {@const box = keyPercent(geometry, marker.key)}
         <span

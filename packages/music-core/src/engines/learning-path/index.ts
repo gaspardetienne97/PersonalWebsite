@@ -5,12 +5,15 @@
 // themselves stay independent routes.
 import {
   degradesToArpeggio,
+  isMasteryEligible,
+  type ScoringEvent,
+  type PracticeModality,
   type ContentApplicability,
   type InstrumentId,
 } from "@repo/music-core/domain";
 
 export type LearningPathStepKind = "drill" | "review" | "reference";
-export type LearningPathStepStatus = "todo" | "in-progress" | "done";
+export type LearningPathStepStatus = "todo" | "not-assessed" | "in-progress" | "done";
 
 export interface LearningPathLink {
   label: string;
@@ -35,6 +38,11 @@ export interface LearningPathStepDefinition {
   links?: LearningPathLink[];
   /** Skill Graph nodes whose mean mastery drives this step's status. */
   skillIds?: string[];
+  /** Evidence must match each required skill, modality and exercise. */
+  modalities?: PracticeModality[];
+  exerciseIds?: string[];
+  minSessions?: number;
+  minAttempts?: number;
   /** How this step generalises across instruments. Defaults to `all`. */
   applies?: ContentApplicability;
 }
@@ -74,6 +82,8 @@ export interface LearningPath<S extends LearningPathStepDefinition = LearningPat
 export interface LearningPathOptions {
   /** `SkillGraphStore.getMastery(id).mastery`, kept outside the engine so it stays storage-free. */
   mastery?: (skillId: string) => number;
+  /** Immutable attempts; aggregate historical mastery cannot establish independence. */
+  events?: readonly ScoringEvent[];
   instrument?: InstrumentId;
 }
 
@@ -83,13 +93,50 @@ export function buildLearningPath<S extends LearningPathStepDefinition>(
   steps: readonly S[],
   opts: LearningPathOptions = {},
 ): LearningPath<S> {
+  const events = [
+    ...new Map((opts.events ?? []).map((event) => [event.id, event])).values(),
+  ].filter(
+    (event) =>
+      isMasteryEligible(event) && (!opts.instrument || event.instrument === opts.instrument),
+  );
   const projected = [...steps]
     .sort((a, b) => a.order - b.order)
     .map((step): LearningPathStep<S> => {
       const applies = step.applies ?? "all";
-      const mastery = meanMastery(step.skillIds, opts.mastery);
-      const status: LearningPathStepStatus =
-        mastery >= LEARNING_PATH_DONE_THRESHOLD ? "done" : mastery > 0 ? "in-progress" : "todo";
+      const relevant = events.filter(
+        (event) =>
+          (!step.modalities || (event.modality && step.modalities.includes(event.modality))) &&
+          (!step.exerciseIds ||
+            step.exerciseIds.some(
+              (id) => event.exerciseId === id || event.exerciseId.startsWith(`${id}.`),
+            )),
+      );
+      const evidence = (step.skillIds ?? []).map((id) =>
+        relevant.filter((event) => event.skillIds.includes(id)),
+      );
+      const scores = evidence.map((attempts) =>
+        attempts.length
+          ? attempts.reduce((sum, event) => sum + clamp01(event.partialCredit), 0) / attempts.length
+          : 0,
+      );
+      const mastery = scores.length
+        ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+        : 0;
+      const complete =
+        evidence.length > 0 &&
+        evidence.every(
+          (attempts, index) =>
+            scores[index]! >= LEARNING_PATH_DONE_THRESHOLD &&
+            attempts.length >= (step.minAttempts ?? 1) &&
+            new Set(attempts.map((event) => event.sessionId)).size >= (step.minSessions ?? 1),
+        );
+      const status: LearningPathStepStatus = complete
+        ? "done"
+        : evidence.some((attempts) => attempts.length)
+          ? "in-progress"
+          : step.skillIds?.length
+            ? "not-assessed"
+            : "todo";
       return {
         ...step,
         ...(step.links ? { links: step.links.map((link) => ({ ...link })) } : {}),
@@ -105,23 +152,13 @@ export function buildLearningPath<S extends LearningPathStepDefinition>(
             : undefined,
       };
     });
+  const measured = projected.filter((step) => step.skillIds?.length);
   return {
     steps: projected,
-    done: projected.filter((step) => step.status === "done").length,
-    total: projected.length,
-    next: projected.find(
-      (step) => step.status !== "done" && !(step.kind === "reference" && !step.skillIds?.length),
-    ),
+    done: measured.filter((step) => step.status === "done").length,
+    total: measured.length,
+    next: measured.find((step) => step.status !== "done"),
   };
-}
-
-function meanMastery(
-  skillIds: readonly string[] | undefined,
-  mastery: ((skillId: string) => number) | undefined,
-): number {
-  if (!skillIds?.length || !mastery) return 0;
-  const values = skillIds.map((id) => clamp01(mastery(id)));
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function clamp01(value: number): number {

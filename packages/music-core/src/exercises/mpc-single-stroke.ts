@@ -2,6 +2,7 @@ import {
   Capability,
   type ExerciseDefinition,
   type ExerciseRun,
+  type ExerciseResult,
   type FeedbackItem,
   type NoteOnEvent,
   type ScoringMetric,
@@ -81,6 +82,21 @@ export interface MpcSingleStrokeAnswer {
   padAccuracy: number;
   meanTimingErrorMs: number;
   velocityConsistency: number;
+}
+
+/** Display only observed dimensions; the persisted practice score and XP are unchanged. */
+export function assessedMpcResult(result: ExerciseResult<MpcSingleStrokeAnswer>): {
+  score: number;
+  velocityMeasured: boolean;
+} {
+  const velocityMeasured =
+    result.input.length > 0 && result.input.every((event) => event.source === "midi");
+  return {
+    velocityMeasured,
+    score: velocityMeasured
+      ? result.score
+      : clamp((result.score - (result.answer?.velocityConsistency ?? 0) * 0.15) / 0.85),
+  };
 }
 
 interface RunAnalysis extends MpcSingleStrokeAnswer {

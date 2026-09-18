@@ -3,6 +3,7 @@ import {
   type ExerciseLiveState,
   type ExerciseResult,
   type ScoringEvent,
+  type InstrumentId,
 } from "@repo/music-core/domain";
 import { ExerciseRunHost, type PipelineServices } from "@repo/music-core/engines/exercise";
 import type { InputRouter } from "@repo/music-core/engines/input-router";
@@ -19,6 +20,7 @@ import {
 } from "@repo/music-core/exercises/rhythm-pulse";
 
 export interface RhythmSessionOptions {
+  instrument?: InstrumentId;
   bpm: number;
   beats: number;
   startTimestampMs: number;
@@ -185,6 +187,8 @@ export class RhythmSession {
       runId: `${this.#sessionId}-${mode}-${pattern}`,
       inputs: ["midi", "onscreen", "audio"],
       context: {
+        instrument: options.instrument,
+        metadata: { assistance: "guided" },
         targetSkillIds: exercise.skillIds,
         difficulty: 0.4,
       },

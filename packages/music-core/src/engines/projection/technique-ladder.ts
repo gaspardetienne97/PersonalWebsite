@@ -17,7 +17,7 @@ export interface TempoLadderOptions {
  * concrete list of rungs with per-rung status.
  */
 export function tempoLadderProjection(
-  state: TechniqueSessionState,
+  state: Pick<TechniqueSessionState, "highestUnlockedBpm" | "nextTargetBpm">,
   options: TempoLadderOptions,
 ): TempoRung[] {
   const { startBpm, stepBpm, rungs } = options;
@@ -29,4 +29,22 @@ export function tempoLadderProjection(
     else status = "locked";
     return { bpm, status };
   });
+}
+
+/** Per-run suggestions; these are available practice tempos, not earned achievements. */
+export function tempoPracticePlan(bpm: number, clean: boolean, options: TempoLadderOptions) {
+  const tempos = Array.from(
+    { length: options.rungs },
+    (_, index) => options.startBpm + index * options.stepBpm,
+  );
+  const nextBpm = clean ? (tempos.find((tempo) => tempo > bpm) ?? bpm) : bpm;
+  const slowerBpm = tempos.filter((tempo) => tempo < bpm).at(-1) ?? bpm;
+  return {
+    nextBpm,
+    slowerBpm,
+    rungs: tempoLadderProjection(
+      { highestUnlockedBpm: nextBpm - options.stepBpm, nextTargetBpm: nextBpm },
+      options,
+    ),
+  };
 }

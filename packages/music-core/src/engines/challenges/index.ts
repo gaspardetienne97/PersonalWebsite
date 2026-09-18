@@ -1,5 +1,6 @@
 import { earTrainingHrefForSkill } from "@repo/music-core/engines/ear-training";
-import type { PracticeSession, UnixMs } from "@repo/music-core/domain";
+import type { PracticeSession, UnixMs, InstrumentId } from "@repo/music-core/domain";
+import { buildSkillTreeView } from "@repo/music-core/engines/dashboard";
 import type { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import type { ProgressState } from "@repo/music-core/engines/progress";
 import type { SkillGraphStore } from "@repo/music-core/engines/skills";
@@ -33,6 +34,7 @@ export interface BuildChallengeBoardArgs {
   sessions: PracticeSession[];
   skills: SkillGraphStore;
   analytics: AnalyticsEngine;
+  instrument?: InstrumentId;
   now?: UnixMs;
   dailyXpTarget?: number;
   weakRepTarget?: number;
@@ -52,7 +54,7 @@ export function buildChallengeBoard(args: BuildChallengeBoardArgs): ChallengeBoa
   const weekStart = startOfUtcWeek(now);
   const todaySessions = sessionsInRange(args.sessions, todayStart, tomorrowStart);
   const weekSessions = sessionsInRange(args.sessions, weekStart, (weekStart + WEEK_MS) as UnixMs);
-  const weakPick = selectWeakPick(args.skills, args.analytics);
+  const weakPick = selectWeakPick(args.skills, args.analytics, args.instrument, now);
   const todayEvents = todaySessions.flatMap((session) => session.scoringEvents);
   const todayXp = sumXp(todaySessions);
   const weakReps = countSkillEvents(todaySessions, weakPick.skillId);
@@ -75,7 +77,7 @@ export function buildChallengeBoard(args: BuildChallengeBoardArgs): ChallengeBoa
       id: "weak-spot-reps",
       title: weakPick.skillName,
       description: "Run a few reps against the skill that needs the next signal.",
-      href: hrefForSkill(weakPick.skillId),
+      href: weakPick.href ?? hrefForSkill(weakPick.skillId),
       progress: weakReps,
       target: weakRepTarget,
       complete: weakReps >= weakRepTarget,
@@ -118,18 +120,28 @@ export function buildChallengeBoard(args: BuildChallengeBoardArgs): ChallengeBoa
 function selectWeakPick(
   skills: SkillGraphStore,
   analytics: AnalyticsEngine,
-): { skillId: string; skillName: string; reason: string } {
-  const weak = analytics.weakestSkills(1)[0];
+  instrument?: InstrumentId,
+  now?: UnixMs,
+): { skillId: string; skillName: string; reason: string; href?: string } {
+  const weak = buildSkillTreeView({ skills, analytics, instrument, now }).practiceNext[0];
   if (weak) {
     const skill = skills.skills.find((item) => item.id === weak.skillId);
     return {
       skillId: weak.skillId,
+      href: weak.href,
       skillName: skill?.name ?? weak.skillId,
-      reason: "Review your weakest analytics signal.",
+      reason: weak.dueForReview
+        ? "Due for review based on a time-based heuristic."
+        : "Review your weakest analytics signal.",
     };
   }
 
-  const next = skills.unlockedSkills()[0] ?? skills.skills[0];
+  const next = skills
+    .unlockedSkills()
+    .find(
+      (skill) =>
+        !instrument || !skill.instruments?.length || skill.instruments.includes(instrument),
+    );
   return {
     skillId: next?.id ?? "pitch.intervals",
     skillName: next?.name ?? "Intervals",

@@ -14,6 +14,8 @@ import {
   type ContentApplicability,
   type ExerciseRunRecord,
   type InstrumentId,
+  resultToScoringEvent,
+  type NoteEvent,
   type ScoringEvent,
   type ScoringMetric,
   type UnixMs,
@@ -1199,6 +1201,10 @@ export interface CurriculumLesson extends LearningPathStepDefinition {
   href?: string;
   /** Skill Graph node this lesson advances (drives the path's progress). */
   skillId?: string;
+  skillIds?: string[];
+  modalities?: LearningPathStepDefinition["modalities"];
+  minAttempts?: number;
+  detail?: string;
   /** How this lesson generalizes across instruments. Defaults to `all`. */
   applies?: ContentApplicability;
 }
@@ -1225,7 +1231,6 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     kind: "reference",
     href: "/music/learn/jazz",
     links: [{ label: "Hear the qualities", href: "/music/learn/ear/chord-qualities" }],
-    skillId: "harmony.sevenths",
   },
   {
     id: "extensions",
@@ -1237,7 +1242,6 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     kind: "reference",
     href: "/music/learn/jazz",
     links: [{ label: "Hear the qualities", href: "/music/learn/ear/chord-qualities" }],
-    skillId: "harmony.sevenths",
   },
   {
     id: "chord-scales",
@@ -1251,7 +1255,11 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
       { label: "Minor ii-V-i", href: "/music/play/chord-scales?changes=minor" },
       { label: "Theory", href: "/music/learn/jazz" },
     ],
-    skillId: "harmony.ii-v-i",
+    skillIds: ["harmony.ii-v-i.chord-scales.major", "harmony.ii-v-i.chord-scales.minor"],
+    modalities: ["played"],
+    minAttempts: 3,
+    detail:
+      "At least 3 unaided Check answers in each major and minor variant, each averaging 66% or higher.",
   },
   {
     id: "shell-voicings",
@@ -1272,7 +1280,11 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
       'Positions A (3 5 7 9) and B (7 9 3 5). "If you only learn one voicing type, make it this." Drill all 12 keys (graded).',
     resources: ["JT9", "JT6"],
     href: "/music/play/voicings",
-    skillId: "harmony.ii-v-i",
+    skillIds: ["harmony.ii-v-i.voicings.major", "harmony.ii-v-i.voicings.minor"],
+    modalities: ["played"],
+    minAttempts: 36,
+    detail:
+      "At least 36 unaided Check chord answers in each major and minor variant, each averaging 66% or higher. Extras are tolerated; this checks note collection.",
     applies: "polyphonic",
   },
   {
@@ -1284,7 +1296,11 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     resources: ["JT10", "JT11", "JT12"],
     href: "/music/play/voicings?variant=altered",
     links: [{ label: "Theory", href: "/music/learn/jazz" }],
-    skillId: "harmony.ii-v-i",
+    skillId: "harmony.ii-v-i.voicings.altered",
+    modalities: ["played"],
+    minAttempts: 36,
+    detail:
+      "At least 36 unaided Check answers in the altered variant, averaging 66% or higher. Extras are tolerated; this checks note collection.",
     applies: "polyphonic",
   },
   {
@@ -1296,7 +1312,10 @@ export const JAZZ_CURRICULUM: CurriculumLesson[] = [
     resources: ["JT5"],
     href: "/music/play/licks?category=major-ii-V-I",
     links: [{ label: "Minor ii-V-i licks", href: "/music/play/licks?category=minor-ii-V-i" }],
-    skillId: "harmony.ii-v-i",
+    skillIds: ["harmony.ii-v-i.licks.major-ii-V-I", "harmony.ii-v-i.licks.minor-ii-V-i"],
+    modalities: ["played"],
+    detail:
+      "At least one unaided Check phrase in each major and minor ii-V-I category, each averaging 66% or higher. Pitch order only; transposition and timing are not assessed.",
     applies: "pitched",
   },
   {
@@ -1978,6 +1997,9 @@ export interface LickGrade {
 }
 
 export interface JazzSequenceCaptureArgs {
+  /** Accepted note events, when observed; older callers may only have pitch arrays. */
+  input?: NoteEvent[];
+  assistance?: ScoringEvent["assistance"];
   exerciseId: string;
   label: string;
   sessionId: string;
@@ -2018,22 +2040,27 @@ export function buildJazzSequenceCapture(args: JazzSequenceCaptureArgs): JazzSeq
     ...(args.instrument !== undefined ? { instrument: args.instrument } : {}),
     ...(args.params !== undefined ? { params: { ...args.params } } : {}),
   };
-  const event: ScoringEvent = {
-    id: args.eventId,
+  const event = resultToScoringEvent({
+    result: {
+      correct: args.grade.accuracy >= 0.9,
+      score: args.grade.accuracy,
+      metrics,
+      feedback: [],
+      input: args.input ?? [],
+      target: { label: args.label, midiNotes: [...args.expectedMidi] },
+      response: { midiNotes: [...args.playedMidi] },
+    },
     sessionId: args.sessionId,
-    exerciseId: args.exerciseId,
     runId: args.runId,
-    skillIds: [...args.skillIds],
-    capabilities: [...args.capabilities],
-    modality: "played",
+    exercise: { id: args.exerciseId, skillIds: args.skillIds, capabilities: args.capabilities },
+    prompt: { id: args.promptId },
     at: args.endedAt,
-    correct: args.grade.accuracy >= 0.9,
-    partialCredit: args.grade.accuracy,
     difficulty: args.difficulty,
-    metrics,
-    target: { label: args.label, midiNotes: [...args.expectedMidi] },
-    response: { midiNotes: [...args.playedMidi] },
-  };
+    modality: "played",
+    instrument: args.instrument,
+    assistance: args.assistance,
+    makeId: () => args.eventId,
+  });
 
   return { event, run };
 }
@@ -2072,12 +2099,7 @@ export type LessonPathStep = LearningPathStep<CurriculumLesson>;
  * `skillId` onto the engine's `skillIds`. Pass `mastery(skillId)` (e.g.
  * `SkillGraphStore.getMastery(id).mastery`) so the engine stays free of storage.
  */
-export function buildJazzLessonPath(
-  opts: {
-    mastery?: (skillId: string) => number;
-    instrument?: InstrumentId;
-  } = {},
-): LessonPathStep[] {
+export function buildJazzLessonPath(opts: LearningPathOptions = {}): LessonPathStep[] {
   return buildJazzPath(opts).steps;
 }
 
@@ -2090,4 +2112,30 @@ export function buildJazzPath(opts: LearningPathOptions = {}): LearningPath<Curr
     })),
     opts,
   );
+}
+
+/** Inclusive, one-based note positions for the selected response and its reference. */
+export function normalizeLickRange(
+  length: number,
+  start = 1,
+  end = length,
+): { start: number; end: number } {
+  const first = Math.max(1, Math.min(length, Number.isFinite(start) ? Math.floor(start) : 1));
+  return {
+    start: first,
+    end: Math.max(first, Math.min(length, Number.isFinite(end) ? Math.floor(end) : length)),
+  };
+}
+
+/** A four-note practice window around the first positional pitch-class error. */
+export function missedLickChunk(
+  expected: number[],
+  played: number[],
+): { start: number; end: number } | undefined {
+  const missed = expected.findIndex(
+    (note, index) => gradeLickSequence([note], played.slice(index, index + 1)).matched === 0,
+  );
+  if (missed < 0) return undefined;
+  const start = Math.floor(missed / 4) * 4 + 1;
+  return { start, end: Math.min(expected.length, start + 3) };
 }

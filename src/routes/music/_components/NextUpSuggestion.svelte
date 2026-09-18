@@ -6,6 +6,7 @@
   import { buildSkillTreeView } from "@repo/music-core/engines/dashboard";
   import type { SkillGraphStore } from "@repo/music-core/engines/skills";
   import { Button } from "@repo/ui/button";
+  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
 
   // Post-drill dead-end fix: one coach suggestion after a NON-routine run —
   // the current weakest skill at its own drill (remediation, post-R5). The
@@ -17,19 +18,21 @@
     analytics,
     currentPath,
     routine,
+    runtime = useMusicRuntime(),
   }: {
     skills: SkillGraphStore;
     analytics: AnalyticsEngine;
     /** The hosting drill's pathname — never suggest the drill just finished. */
     currentPath: string;
     routine?: DailyRoutineState;
+    runtime?: MusicRuntime;
   } = $props();
 
   // Computed once when the summary mounts (the engines aren't reactive).
   const pick = $derived.by(() => {
     if (routine?.status === "active" || routine?.status === "summary") return undefined;
     try {
-      return buildSkillTreeView({ skills, analytics }).practiceNext.find(
+      return buildSkillTreeView({ skills, analytics, instrument: runtime.activeInstrument }).practiceNext.find(
         (candidate) => pathnameOf(candidate.href) !== currentPath,
       );
     } catch {
@@ -51,7 +54,7 @@
       <p class="eyebrow">Next up</p>
       <p class="font-semibold">{pick.skillName}</p>
       <p class="text-xs text-muted-foreground">
-        Your weakest spot right now · {Math.round(pick.accuracy * 100)}% accuracy
+        {pick.dueForReview ? "Due for review (time-based heuristic)" : "Review suggestion"} · {Math.round(pick.accuracy * 100)}% across {pick.attempts} independent attempts
       </p>
     </div>
     <Button href={pick.href} variant="outline">

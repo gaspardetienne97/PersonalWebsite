@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { NoteEvent } from "@repo/music-core/domain";
   import type { InputRouter } from "@repo/music-core/engines/input-router";
+  import { midiToNote } from "@repo/music-core/engines/theory";
   import { notationView } from "@repo/music-core/engines/notation";
   import type { ReadingSessionState } from "@repo/music-core/engines/reading-session";
   import type { TuningProfile } from "@repo/music-core/engines/tunings";
@@ -15,13 +16,16 @@
   import StaffNotation from "../../../_components/StaffNotation.svelte";
 
   let {
-    state,
+    state: sessionState,
     answerMode,
     tuning,
     router,
     sessionXp,
     onChoice,
     onAccepted,
+    onContinue,
+    onHint,
+    range,
   }: {
     state: ReadingSessionState;
     answerMode: ReadingAnswerMode;
@@ -30,15 +34,38 @@
     sessionXp: number;
     onChoice: (choice: string) => void;
     onAccepted: (event: NoteEvent) => void;
+    onContinue: () => void;
+    onHint: () => void;
+    range: { lowestMidi: number; highestMidi: number };
   } = $props();
 
-  const prompt = $derived(state.currentPrompt as NoteReadingPrompt | undefined);
+  const prompt = $derived(sessionState.currentPrompt as NoteReadingPrompt | undefined);
+  const feedback = $derived(sessionState.feedback);
+  const awaitingContinue = $derived(sessionState.awaitingContinue === true);
   const view = $derived(prompt ? notationView(prompt.score) : undefined);
+  const hintRevealed = $derived(
+    prompt !== undefined && (sessionState.hintUsed || awaitingContinue),
+  );
   const pianoHighlights = $derived.by(() => {
     const highlights: Record<number, PianoHighlight> = {};
-    for (const midiNote of prompt?.midiNotes ?? []) highlights[midiNote] = { role: "target" };
+    if (hintRevealed) {
+      for (const midiNote of prompt?.midiNotes ?? []) highlights[midiNote] = { role: "target" };
+    }
     return highlights;
   });
+
+  const expectedChoice = $derived(
+    typeof feedback?.result.target?.choice === "string" ? feedback.result.target.choice : undefined,
+  );
+
+  const chosenChoice = $derived(
+    typeof feedback?.result.answer === "string" ? feedback.result.answer : undefined,
+  );
+  const playedNotes = $derived(
+    Array.isArray(feedback?.result.answer)
+      ? feedback.result.answer.filter((note): note is number => typeof note === "number").map((note) => midiToNote(note)).join(" ")
+      : undefined,
+  );
 </script>
 
 <div class="grid min-w-0 gap-4">
@@ -60,38 +87,62 @@
             aria-label="Answer choices"
           >
             {#each prompt.choices as choice (choice)}
-              <Button type="button" variant="outline" class="min-h-11" onclick={() => onChoice(choice)}>
+              <Button type="button" variant="outline" class="min-h-11" disabled={awaitingContinue} onclick={() => onChoice(choice)}>
                 {choice}
               </Button>
             {/each}
           </div>
         {:else if prompt?.instrument === "piano"}
-          <PianoSurface
-            label="Piano input"
-            notes={prompt.midiNotes}
-            highlights={pianoHighlights}
-            {router}
-            {onAccepted}
-          />
+          <div inert={awaitingContinue || undefined}>
+            <PianoSurface
+              label="Piano input"
+              lowMidi={range.lowestMidi}
+              highMidi={range.highestMidi}
+              highlights={pianoHighlights}
+              {router}
+              {onAccepted}
+            />
+          </div>
         {:else if prompt && tuning}
-          <FretboardInput
-            {tuning}
-            targetMidiNotes={prompt.midiNotes}
-            {router}
-            visibleFrets={tuning.fretCount}
-            {onAccepted}
-          />
+          <div inert={awaitingContinue || undefined}>
+            <FretboardInput
+              {tuning}
+              targetMidiNotes={hintRevealed ? prompt.midiNotes : []}
+              {router}
+              visibleFrets={tuning.fretCount}
+              {onAccepted}
+            />
+          </div>
         {/if}
 
-        {#if state.error}
+        {#if prompt && answerMode === "play" && !hintRevealed}
+          <Button type="button" variant="outline" onclick={onHint}>
+            Help
+          </Button>
+        {/if}
+        {#if sessionState.hintUsed}<p class="text-xs text-muted-foreground">Hint used for this answer.</p>{/if}
+
+        {#if awaitingContinue && feedback}
+          <div class="grid gap-3 rounded-md border border-warn/40 bg-warn/10 p-4">
+            <p class="font-semibold">Expected {answerMode === "choice" ? expectedChoice : feedback.result.target?.label}</p>
+            {#if chosenChoice}
+              <p class="text-sm text-muted-foreground">You chose {chosenChoice}</p>
+            {:else if playedNotes}
+              <p class="text-sm text-muted-foreground">You played {playedNotes}</p>
+            {/if}
+            <Button type="button" onclick={onContinue}>Continue</Button>
+          </div>
+        {/if}
+
+        {#if sessionState.error}
           <p class="rounded-md border border-destructive px-4 py-3 text-sm text-destructive">
-            {state.error}
+            {sessionState.error}
           </p>
         {/if}
       </Card.Content>
     </Card.Root>
   <div class="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-    <SegmentProgress current={state.currentIndex + 1} total={state.total} label="Set" />
+    <SegmentProgress current={sessionState.currentIndex + 1} total={sessionState.total} label="Set" />
     <HudTile size="sm" label="Session XP" value={sessionXp} />
   </div>
 </div>

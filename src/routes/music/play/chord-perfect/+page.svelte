@@ -18,6 +18,8 @@
     verifyChordTarget,
     type ChordVerificationResult,
   } from "@repo/music-core/engines/chord-verification";
+  import { midiToNote } from "@repo/music-core/engines/theory";
+  import { inputSourceLabel } from "@repo/music-core/engines/device-profiles";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
   import {
     commitPreparedExerciseOutcome,
@@ -45,6 +47,7 @@
     ChordChangeAnswer,
     ChordChangePrompt,
   } from "@repo/music-core/exercises/chord-change";
+  import { chordChangeHistory } from "@repo/music-core/exercises/chord-change";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Label } from "@repo/ui/label";
@@ -52,6 +55,7 @@
 
   import FretboardInput from "../../learn/reading/_components/FretboardInput.svelte";
   import PositionStepper from "../../_components/PositionStepper.svelte";
+  import MidiStatus from "../../_components/MidiStatus.svelte";
   import { fretWindowAround } from "@repo/music-core/engines/projection";
   import { chordPositionAt, chordPositionsFor, type ChordPosition } from "@repo/music-core/exercises/chord-positions";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
@@ -95,6 +99,8 @@
     prepareStrum: prepareStrumProp,
     changeDurationSeconds = 60,
     runtime: runtimeProp,
+    store: storeProp,
+    loadHistory,
   }: {
     audioSource?: ChordVerifierAudioSource;
     audioSupported?: boolean;
@@ -105,6 +111,8 @@
     /** One-minute-changes clock length. Injectable for tests. */
     changeDurationSeconds?: number;
     runtime?: MusicRuntime;
+    store?: PracticeStore;
+    loadHistory?: () => Promise<ScoringEvent[]>;
   } = $props();
   // svelte-ignore state_referenced_locally -- runtime ownership is fixed for a route mount
   const runtime = runtimeProp ?? useMusicRuntime();
@@ -131,7 +139,8 @@
     };
   }
 
-  const store = browser ? new PracticeStore() : undefined;
+  // svelte-ignore state_referenced_locally -- storage ownership is fixed for a route mount
+  const store = storeProp ?? (browser ? new PracticeStore() : undefined);
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
@@ -181,6 +190,9 @@
   let unsubscribeSession: (() => void) | undefined;
   let unsubscribeAudioState: (() => void) | undefined;
   let unsubscribeAudioEvents: (() => void) | undefined;
+  let historyEvents = $state<ScoringEvent[]>([]);
+  let historyLoaded = $state(false);
+  let historyFailed = $state(false);
 
   const shapes = $derived(chordShapesFor(instrument));
   const shape = $derived(shapes.find((entry) => entry.id === shapeId) ?? shapes[0]!);
@@ -251,6 +263,7 @@
       : undefined,
   );
   const summary = $derived(sessionState?.summary);
+  const buildResultPrompt = $derived(summary?.results[0]?.prompt as ChordPerfectPrompt | undefined);
   const answer = $derived(
     summary?.results[0]?.result.answer as ChordPerfectAnswer | undefined,
   );
@@ -272,7 +285,7 @@
   const liveAnnouncement = $derived(
     phase === "summary"
       ? mode === "build"
-        ? `Chord-perfect results ready. ${Math.round((answer?.pitchAccuracy ?? 0) * 100)}% strings clean.`
+        ? `Chord-perfect results ready. ${Math.round((answer?.pitchAccuracy ?? 0) * 100)}% target notes matched.`
         : `Chord-change results ready. ${changeAnswer?.cleanChanges ?? 0} clean changes.`
       : status,
   );
@@ -285,6 +298,17 @@
   const transitionMidi = $derived([
     ...new Set([...shapeMidi, ...chordShapeMidiNotes(tuning, activeToPosition)]),
   ]);
+  const pairHistory = $derived(
+    chordChangeHistory(historyEvents, {
+      instrument,
+      tuningId: tuning.id,
+      durationSeconds: changeDurationSeconds,
+      fromShapeId: activePosition.id,
+      fromMidiNotes: chordShapeMidiNotes(tuning, activePosition),
+      toShapeId: activeToPosition.id,
+      toMidiNotes: chordShapeMidiNotes(tuning, activeToPosition),
+    }),
+  );
   const changeMidiNotes = $derived(
     changePrompt?.targets.flatMap((target) => target.midiNotes) ?? [],
   );
@@ -329,6 +353,7 @@
   // Baseline cutoff for the last-run comparison (see LastRunDelta).
   const visitStartedAt = unixMs(Date.now());
   void initialize();
+  void initializeHistory();
 
   $effect(() => {
     syncConfigUrl();
@@ -409,6 +434,10 @@
         }
         if (state.summary && !captured) {
           captured = true;
+          historyEvents = [
+            ...historyEvents,
+            ...state.summary.results.map(({ event }) => event),
+          ];
           const detail = state.summary.results[0]?.result.answer as
             | ChordPerfectAnswer
             | ChordChangeAnswer
@@ -417,6 +446,7 @@
           void runtime.recordPractice({
             source: "drill",
             instrument,
+            comparison: { variantKey, bpm, settings: JSON.stringify({ shapeId, toShapeId, position, toPosition, repetitions, timed }), dimensions: "instrument, mode, chord shapes, positions and repetitions" },
             tags: ["technique", isChanges ? "chord-changes" : "chord-perfect", instrument],
             scoringEvents: state.summary.results.map(({ event }) => event),
             xpEarned: state.summary.xp,
@@ -436,6 +466,19 @@
       status = "Ready. Press Start, or Space.";
     } catch (error) {
       status = message(error, "Chord technique could not be prepared.");
+    }
+  }
+
+  async function initializeHistory(): Promise<void> {
+    try {
+      const loaded = await (loadHistory?.() ?? store?.scoringEvents.all() ?? Promise.resolve([]));
+      if (destroyed) return;
+      historyEvents = [...loaded, ...historyEvents];
+      historyLoaded = true;
+    } catch {
+      if (destroyed) return;
+      historyFailed = true;
+      historyLoaded = true;
     }
   }
 
@@ -501,10 +544,6 @@
     routeGeneration += 1;
     releasePreparedStrum();
     repetitions = normalizeChordPerfectDrillConfig({ reps: value }).repetitions;
-  }
-
-  async function enableMidi(): Promise<void> {
-    await runtime.midi.enable();
   }
 
   async function start(): Promise<void> {
@@ -838,6 +877,7 @@
           sessionId: `open-chord-id-${Date.now()}`,
           runId: `open-chord-id-${config.shape.id}-${Date.now()}`,
           context: {
+            metadata: { assistance: "guided" },
             targetSkillIds: exercise.skillIds,
             difficulty: 0.45,
             instrument: config.instrument,
@@ -966,6 +1006,25 @@
     return parts.join(" · ");
   }
 
+  function assistanceLabel(assistance: ScoringEvent["assistance"]): string {
+    return assistance
+      ? {
+          independent: "Independent",
+          hinted: "Hinted",
+          guided: "Guided",
+          "self-assessed": "Self-rated",
+        }[assistance]
+      : "Assistance not recorded";
+  }
+
+  function historyDate(event: ScoringEvent): string {
+    return new Date(Number(event.at)).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
   onMount(() => {
     audioState = audioSource.state;
     unsubscribeAudioState = audioSource.subscribeState((next) => {
@@ -1014,7 +1073,7 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        source={runtime.activeSource}
         live={sessionState?.status === "active" || verifierActive || micVerifierActive}
       />
     {/snippet}
@@ -1298,6 +1357,43 @@
     {/if}
   {/snippet}
 
+  {#snippet chordPairHistory(stage: boolean)}
+    <section
+      aria-label="Chord-pair history"
+      class="grid gap-2 rounded-xl border p-3 text-sm {stage
+        ? 'border-stage-line bg-stage-2/70'
+        : 'bg-muted/20'}"
+    >
+      <h3 class="font-semibold">Chord-pair history</h3>
+      <p class={stage ? "text-stage-muted" : "text-muted-foreground"}>
+        Counts are pitch-matched chord targets; physical string cleanliness is not measured.
+      </p>
+      {#if historyFailed}
+        <p class={stage ? "text-stage-muted" : "text-muted-foreground"}>
+          Chord-pair history could not be loaded. Your next result will still be saved.
+        </p>
+      {:else if !historyLoaded}
+        <p class={stage ? "text-stage-muted" : "text-muted-foreground"}>Loading chord-pair history…</p>
+      {/if}
+      {#if pairHistory.length}
+        <ul class="grid gap-2">
+          {#each pairHistory as entry (entry.event.id)}
+            <li class="flex flex-wrap items-baseline justify-between gap-x-3 rounded-md border border-current/15 px-3 py-2">
+              <span class="font-medium tabular-nums">{entry.metric.changesPerMinute} changes/min</span>
+              <span class={stage ? "text-stage-muted" : "text-muted-foreground"}>
+                {historyDate(entry.event)} · {inputSourceLabel(entry.event.source)} · {assistanceLabel(entry.event.assistance)}
+              </span>
+            </li>
+          {/each}
+        </ul>
+      {:else if historyLoaded && !historyFailed}
+        <p class={stage ? "text-stage-muted" : "text-muted-foreground"}>
+          Complete a one-minute run to start this pair’s history.
+        </p>
+      {/if}
+    </section>
+  {/snippet}
+
   <!-- Consolidated results frame: the build and changes summaries share one
        DrillSummaryCard (route keeps focus authority via headingRef). -->
   {#snippet summaryCard()}
@@ -1309,7 +1405,7 @@
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
         {#if mode === "build"}
-          <Card.Description>{shape.name} · {buildPct}% strings clean</Card.Description>
+          <Card.Description>{shape.name} · {buildPct}% target notes matched</Card.Description>
           <Card.Title>Chord-perfect check</Card.Title>
         {:else}
           <Card.Description>{shape.name} to {toShape.name}</Card.Description>
@@ -1322,7 +1418,7 @@
             <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
               {buildPct}<span class="text-3xl text-muted-foreground">%</span>
             </span>
-            <span class="sr-only"> of strings rang clean</span>
+            <span class="sr-only"> of target notes matched</span>
           {:else if changeAnswer?.changesPerMinute !== undefined}
             <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
               {changeAnswer.changesPerMinute}
@@ -1337,15 +1433,30 @@
         </p>
       {/snippet}
       {#snippet lastRunDelta()}
-        <LastRunDelta
-          tags={["technique", mode === "build" ? "chord-perfect" : "chord-changes"]}
-          accuracy={mode === "build" ? (answer?.pitchAccuracy ?? 0) : changePct / 100}
-          before={visitStartedAt}
-        />
+        {#if !(mode === "changes" && changeAnswer?.changesPerMinute !== undefined)}
+          <LastRunDelta
+            tags={["technique", mode === "build" ? "chord-perfect" : "chord-changes"]}
+            before={visitStartedAt}
+            {store}
+          />
+        {/if}
       {/snippet}
       {#snippet children()}
         {#if mode === "build"}
-          <p class="text-sm text-muted-foreground">{buildPct}% of strings rang clean.</p>
+          <p class="text-sm font-medium">Target notes matched · {buildPct}%</p>
+          <p class="text-xs text-muted-foreground">Pitch matching measures note selection, not string tone or cleanliness.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <caption class="sr-only">Target notes by intended string</caption>
+              <thead><tr><th class="p-2">Target string</th><th class="p-2">Expected</th><th class="p-2">Played</th></tr></thead>
+              <tbody>
+                {#each buildResultPrompt?.midiNotes ?? [] as expected, index (index)}
+                  {@const actual = answer?.playedMidiNotes[index]}
+                  <tr><td class="p-2">String {buildResultPrompt?.stringNumbers[index]}</td><td class="p-2">{midiToNote(expected)}</td><td class="p-2">{actual === undefined ? "Not played" : midiToNote(actual)} · {actual === expected ? "Matched" : "Missed"}</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
         {:else}
           <p class="text-sm text-muted-foreground">
             {changeAnswer?.changesPerMinute === undefined
@@ -1356,11 +1467,14 @@
                 }`
               : `${changeAnswer.changesPerMinute} clean changes/min · ${changeAnswer.cleanChanges}/${changeAnswer.completedChanges} strums clean`}
           </p>
+          {#if changeAnswer?.changesPerMinute !== undefined}
+            {@render chordPairHistory(false)}
+          {/if}
         {/if}
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <HudTile size="sm" label="Chord" value={mode === "changes" ? `${shape.name} to ${toShape.name}` : shape.name} />
           <HudTile size="sm" label="Tempo" value={bpm} unit="BPM" />
-          <HudTile size="sm" label="Input" value={runtime.activeSource === "midi" ? "MIDI" : "On-screen"} />
+          <HudTile size="sm" label="Input" value={inputSourceLabel(summary?.results[0]?.event.source)} />
         </div>
         <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · Technique</p>
       {/snippet}
@@ -1409,12 +1523,7 @@
           </div>
         {/if}
         <p class="text-sm tabular-nums text-muted-foreground">Tempo · {bpm} BPM (practice controls above)</p>
-        <div class="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-            {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-          </Button>
-          <p class="text-xs text-muted-foreground">{midiStatus}</p>
-        </div>
+        <MidiStatus />
       </div>
     {/snippet}
 
@@ -1456,6 +1565,9 @@
           </div>
           {@render chordPickers()}
         </fieldset>
+        {#if mode === "changes" && timed}
+          {@render chordPairHistory(true)}
+        {/if}
         {@render fingeringGuide()}
         {#if mode === "pick" || mode === "strum" || (mode === "changes" && !changePrompt)}
           {@render modeContent()}

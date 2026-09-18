@@ -34,6 +34,8 @@ export interface ResultToEventArgs {
   at: UnixMs;
   difficulty: number;
   modality?: PracticeModality;
+  instrument?: ScoringEvent["instrument"];
+  assistance?: ScoringEvent["assistance"];
   /** Id factory (injected so the function stays pure/deterministic in tests). */
   makeId: () => string;
 }
@@ -46,6 +48,12 @@ export interface ResultToEventArgs {
  */
 export function resultToScoringEvent(args: ResultToEventArgs): ScoringEvent {
   const { result, exercise } = args;
+  const sources = new Set(result.input.map((input) => input.source));
+  const instruments = new Set(
+    result.input.flatMap((input) => (input.instrument ? [input.instrument] : [])),
+  );
+  const instrument =
+    instruments.size > 1 ? undefined : (instruments.values().next().value ?? args.instrument);
   const event: ScoringEvent = {
     id: args.makeId(),
     sessionId: args.sessionId,
@@ -58,6 +66,11 @@ export function resultToScoringEvent(args: ResultToEventArgs): ScoringEvent {
     partialCredit: clamp01(result.score),
     difficulty: clamp01(args.difficulty),
     metrics: result.metrics,
+    ...(sources.size
+      ? { source: sources.size === 1 ? sources.values().next().value! : ("mixed" as const) }
+      : {}),
+    ...(instrument !== undefined ? { instrument } : {}),
+    ...(args.assistance !== undefined ? { assistance: args.assistance } : {}),
     ...(result.latencyMs !== undefined ? { latencyMs: result.latencyMs } : {}),
     ...(args.modality !== undefined ? { modality: args.modality } : {}),
     ...(result.target !== undefined ? { target: result.target } : {}),
@@ -77,6 +90,9 @@ export function resultToScoringEvent(args: ResultToEventArgs): ScoringEvent {
  * partial successes move mastery partially (not all-or-nothing).
  */
 export function scoringEventToEvidence(event: ScoringEvent): LearningEvidence[] {
+  // Keep legacy cumulative mastery compatible without relabeling unknown records.
+  // Unaided assessment projections use the stricter isMasteryEligible predicate.
+  if (event.assistance !== undefined && event.assistance !== "independent") return [];
   const performance = clamp01(event.partialCredit);
   // Difficulty in [0,1] maps to a weight in [0.5, 1.5]: harder => heavier.
   const weight = 0.5 + event.difficulty;

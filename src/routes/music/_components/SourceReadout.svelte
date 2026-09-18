@@ -1,24 +1,29 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import type { InputSource } from "@repo/music-core/domain";
+  import { inputSourceLabel } from "@repo/music-core/engines/device-profiles";
 
   let {
     label = "Active input",
     device,
+    source,
     live = false,
     icon,
     class: cls = "",
   }: {
     label?: string;
-    device: string;
+    device?: string;
+    source?: InputSource | "mixed";
     live?: boolean;
     icon?: Snippet;
     class?: string;
   } = $props();
+  const name = $derived(device ?? inputSourceLabel(source));
 </script>
 
 <div
   class="inline-flex items-center gap-3 rounded-xl border bg-card px-3 py-2 shadow-sm {cls}"
-  aria-label="{label}: {device}"
+  aria-label="{label}: {name}"
 >
   {#if icon}
     <div class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
@@ -31,7 +36,7 @@
       {#if live}
         <span class="inline-block size-1.5 shrink-0 rounded-full bg-success" aria-hidden="true"></span>
       {/if}
-      {device}
+      {name}
     </span>
   </div>
 </div>

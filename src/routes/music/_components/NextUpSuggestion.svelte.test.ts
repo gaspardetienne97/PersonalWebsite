@@ -6,6 +6,8 @@ import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import type { DailyRoutineState } from "@repo/music-core/engines/daily-routine";
 import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
 
+import { MusicRuntime } from "../_runtime.svelte";
+
 import NextUpSuggestion from "./NextUpSuggestion.svelte";
 
 afterEach(() => {
@@ -23,20 +25,24 @@ const weakEvent = (id: string, skillId: string): ScoringEvent => ({
   partialCredit: 0,
   difficulty: 0.5,
   metrics: [],
+  assistance: "independent",
+  instrument: "guitar",
 });
 
 async function engines(weakSkillId: string) {
   const skills = new SkillGraphStore();
   const analytics = new AnalyticsEngine();
   await skills.seed(seedCoreSkills());
-  await analytics.ingest(weakEvent("weak-1", weakSkillId));
+  for (let i = 0; i < 5; i += 1) await analytics.ingest(weakEvent(`weak-${i}`, weakSkillId));
   return { skills, analytics };
 }
 
 describe("NextUpSuggestion", () => {
   test("suggests the weakest skill at its own drill", async () => {
     const { skills, analytics } = await engines("technique.strings.spider");
-    render(NextUpSuggestion, { skills, analytics, currentPath: "/music/learn/rhythm" });
+    const runtime = new MusicRuntime();
+    runtime.setActiveInstrument("guitar");
+    render(NextUpSuggestion, { skills, analytics, currentPath: "/music/learn/rhythm", runtime });
 
     const card = document.querySelector('[data-testid="next-up"]');
     expect(card?.textContent).toContain("Next up");
@@ -70,7 +76,9 @@ describe("NextUpSuggestion", () => {
     const skills = new SkillGraphStore();
     const analytics = new AnalyticsEngine();
     await skills.seed(seedCoreSkills());
-    render(NextUpSuggestion, { skills, analytics, currentPath: "/music/learn/rhythm" });
+    const runtime = new MusicRuntime();
+    runtime.setActiveInstrument("guitar");
+    render(NextUpSuggestion, { skills, analytics, currentPath: "/music/learn/rhythm", runtime });
 
     expect(document.querySelector('[data-testid="next-up"]')).toBeNull();
   });

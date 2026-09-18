@@ -1032,6 +1032,28 @@ describe("practice context registration", () => {
     rt.dispose();
   });
 
+  it.each(["mpc", "piano", "aerophone"] as const)(
+    "keeps an early %s pin after storage hydration and restores the saved preference on exit",
+    async (instrument) => {
+      const rt = new MusicRuntime();
+      const cleanup = await rt.registerPracticeContext({
+        owner: "early-pin",
+        variantKey: "test",
+        defaultBpm: 96,
+        pinnedInstrument: instrument,
+      });
+      await rt.attachStorage(repoWithSettings({ activeInstrument: "guitar" }));
+
+      expect(rt.activeInstrument).toBe(instrument);
+      expect(rt.router.state.activeInstrument).toBe(instrument);
+      expect(rt.getMusicSettings()?.activeInstrument).toBe("guitar");
+      cleanup();
+      expect(rt.activeInstrument).toBe("guitar");
+      expect(rt.router.state.activeInstrument).toBe("guitar");
+      rt.dispose();
+    },
+  );
+
   it("pinned instrument overrides allowed list and active instrument", async () => {
     const rt = new MusicRuntime();
     rt.setActiveInstrument("piano");
@@ -1506,3 +1528,223 @@ function routineEvent(id: string, partialCredit: number): ScoringEvent {
     metrics: [],
   };
 }
+
+describe("MPC shared-clock preparation", () => {
+  it.each([0, 2])(
+    "plays one reference bar and one forced count-in with saved preference %s",
+    async (preference) => {
+      const transport = createFakeTransport();
+      let options!: TransportEngineOptions;
+      const rt = new MusicRuntime({
+        createTransport: async (value) => {
+          options = value;
+          return transport;
+        },
+      });
+      vi.spyOn(rt, "enableAudio").mockResolvedValue(true);
+      const click = vi.spyOn(rt.sound, "playMetronomeClick").mockImplementation(() => {});
+      rt.setCountIn(preference);
+      rt.metronomeEnabled = false;
+      const onStart = vi.fn();
+      const started = rt.beginPerformance({ countInBars: 1, leadIn: { bars: 1, onStart } });
+      await flushAsync();
+      expect(transport.state.countInBars).toBe(2);
+      for (let absoluteBeat = 0; absoluteBeat <= 8; absoluteBeat++) {
+        const event = transportEvent({
+          absoluteBeat,
+          beat: absoluteBeat % 4,
+          countingIn: absoluteBeat < 8,
+          atSeconds: absoluteBeat,
+          atMonotonicMs: monotonicMs(1000 + absoluteBeat * 500),
+        });
+        options.onMetronomeClick?.(event);
+        transport.emit(event);
+      }
+      await expect(started).resolves.toEqual({ status: "started", downbeat: 5000 });
+      expect(onStart).toHaveBeenCalledOnce();
+      expect(click).toHaveBeenCalledTimes(4);
+      expect(rt.countInBars).toBe(preference);
+      rt.dispose();
+    },
+  );
+  it("settles cancellation from the reference callback and removes the listener", async () => {
+    const transport = createFakeTransport();
+    const rt = new MusicRuntime({ createTransport: async () => transport });
+    vi.spyOn(rt, "enableAudio").mockResolvedValue(true);
+    const started = rt.beginPerformance({
+      countInBars: 1,
+      leadIn: { bars: 1, onStart: () => rt.endPerformance() },
+    });
+    await flushAsync();
+    transport.emit(transportEvent({ countingIn: true }));
+    await expect(started).resolves.toEqual({ status: "cancelled" });
+    expect(rt.practicePhase).toBe("idle");
+    expect(transport.listenerCount()).toBe(1);
+    rt.dispose();
+  });
+});
+
+it("rejects invalid preparation counts before audio and preserves ordinary clicks after cancelled lead-in", async () => {
+  let options!: TransportEngineOptions;
+  const transport = createFakeTransport();
+  const rt = new MusicRuntime({
+    createTransport: async (value) => {
+      options = value;
+      return transport;
+    },
+  });
+  const enable = vi.spyOn(rt, "enableAudio").mockResolvedValue(true);
+  await expect(
+    rt.beginPerformance({ leadIn: { bars: NaN, onStart: vi.fn() } }),
+  ).resolves.toMatchObject({ status: "failed" });
+  expect(enable).not.toHaveBeenCalled();
+  const preparation = rt.beginPerformance({
+    countInBars: 1,
+    leadIn: {
+      bars: 1,
+      onStart: () => {
+        throw new Error("Reference failed");
+      },
+    },
+  });
+  await flushAsync();
+  transport.emit(transportEvent({ countingIn: true }));
+  await expect(preparation).resolves.toEqual({ status: "failed", message: "Reference failed" });
+  expect(rt.practicePhase).toBe("idle");
+  const click = vi.spyOn(rt.sound, "playMetronomeClick").mockImplementation(() => {});
+  const ordinary = rt.beginPerformance();
+  await flushAsync();
+  options.onMetronomeClick?.(transportEvent({ countingIn: true }));
+  expect(click).toHaveBeenCalledOnce();
+  rt.endPerformance();
+  await ordinary;
+  rt.dispose();
+});
+
+describe("MIDI comes back on a fresh load", () => {
+  function repo(entries: Record<string, unknown> = {}) {
+    const map = new Map<string, { id: string; value: unknown }>();
+    map.set("music.settings", {
+      id: "music.settings",
+      value: { activeInstrument: "mpc", tempoByVariant: {} },
+    });
+    for (const [id, value] of Object.entries(entries)) map.set(id, { id, value });
+    return {
+      get: async (id: string) => map.get(id),
+      put: async (record: { id: string; value: unknown }) => {
+        map.set(record.id, record);
+      },
+      map,
+    };
+  }
+
+  it("re-enables MIDI when it was enabled here before and the browser already granted it", async () => {
+    const rt = new MusicRuntime();
+    const enable = vi.spyOn(rt.midi, "enable").mockResolvedValue(true);
+    const query = vi
+      .spyOn(navigator.permissions, "query")
+      .mockResolvedValue({ state: "granted" } as PermissionStatus);
+    await rt.attachStorage(repo({ "music.midi.wanted": true }));
+    await vi.waitFor(() => expect(enable).toHaveBeenCalledOnce());
+    query.mockRestore();
+    rt.dispose();
+  });
+
+  it("stays quiet when MIDI was never enabled here or the browser has denied it", async () => {
+    const never = new MusicRuntime();
+    const enableNever = vi.spyOn(never.midi, "enable").mockResolvedValue(true);
+    await never.attachStorage(repo());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(enableNever).not.toHaveBeenCalled();
+    never.dispose();
+
+    const denied = new MusicRuntime();
+    const enableDenied = vi.spyOn(denied.midi, "enable").mockResolvedValue(true);
+    const query = vi
+      .spyOn(navigator.permissions, "query")
+      .mockResolvedValue({ state: "denied" } as PermissionStatus);
+    await denied.attachStorage(repo({ "music.midi.wanted": true }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(enableDenied).not.toHaveBeenCalled();
+    query.mockRestore();
+    denied.dispose();
+  });
+});
+
+describe("MPC controller link", () => {
+  function repo(profiles: unknown[]) {
+    const map = new Map<string, { id: string; value: unknown }>();
+    map.set("music.settings", {
+      id: "music.settings",
+      value: { activeInstrument: "mpc", tempoByVariant: {} },
+    });
+    map.set("music.device-profiles", {
+      id: "music.device-profiles",
+      value: { profiles, preferences: {}, surfaces: {} },
+    });
+    return {
+      get: async (id: string) => map.get(id),
+      put: async (record: { id: string; value: unknown }) => {
+        map.set(record.id, record);
+      },
+    };
+  }
+
+  it("replays the init handshake and heartbeats on the linked output while MIDI is on", async () => {
+    vi.useFakeTimers();
+    try {
+      const rt = new MusicRuntime();
+      const send = vi.spyOn(rt.midi, "send").mockReturnValue(true);
+      Object.assign(rt.midi.state, {
+        enabled: true,
+        sysexEnabled: true,
+        outputs: [{ id: "mpc-out", name: "MPC One+ Private", type: "output" }],
+      });
+      await rt.attachStorage(repo([{ id: "mpc-out", controllerLink: true }]));
+
+      // Identity request opens the captured handshake.
+      expect(send).toHaveBeenCalledWith("mpc-out", [0xf0, 0x7e, 0x00, 0x06, 0x01, 0xf7]);
+      expect(rt.mpcLink).toEqual({ outputName: "MPC One+ Private" });
+      const afterInit = send.mock.calls.length;
+      vi.advanceTimersByTime(2_050);
+      expect(send.mock.calls.length).toBe(afterInit + 2);
+      expect(send).toHaveBeenLastCalledWith(
+        "mpc-out",
+        [0xf0, 0x47, 0x00, 0x56, 0x52, 0x00, 0x04, 0x41, 0x67, 0x16, 0x00, 0xf7],
+      );
+
+      // Dispose stops the heartbeat.
+      rt.dispose();
+      const afterDispose = send.mock.calls.length;
+      vi.advanceTimersByTime(3_000);
+      expect(send.mock.calls.length).toBe(afterDispose);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does nothing without SysEx or without a linked profile", async () => {
+    const rt = new MusicRuntime();
+    const send = vi.spyOn(rt.midi, "send").mockReturnValue(true);
+    Object.assign(rt.midi.state, {
+      enabled: true,
+      sysexEnabled: false,
+      outputs: [{ id: "mpc-out", name: "MPC One+ Private", type: "output" }],
+    });
+    await rt.attachStorage(repo([{ id: "mpc-out", controllerLink: true }]));
+    expect(send).not.toHaveBeenCalled();
+    expect(rt.mpcLink).toBeUndefined();
+    rt.dispose();
+
+    const unlinked = new MusicRuntime();
+    const sendUnlinked = vi.spyOn(unlinked.midi, "send").mockReturnValue(true);
+    Object.assign(unlinked.midi.state, {
+      enabled: true,
+      sysexEnabled: true,
+      outputs: [{ id: "mpc-out", name: "MPC One+ Private", type: "output" }],
+    });
+    await unlinked.attachStorage(repo([{ id: "mpc-out", alias: "Pads" }]));
+    expect(sendUnlinked).not.toHaveBeenCalled();
+    unlinked.dispose();
+  });
+});

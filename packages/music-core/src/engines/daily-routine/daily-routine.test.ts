@@ -4,6 +4,30 @@ import { describe, expect, test } from "vitest";
 import { DailyRoutineSession, buildDailyRoutinePlan } from "./index";
 
 describe("daily routine", () => {
+  test("keeps specific jazz review recommendations in the routine", () => {
+    const plan = buildDailyRoutinePlan(
+      [
+        {
+          skillId: "harmony.ii-v-i.chord-scales.minor",
+          skillName: "Minor chord-scales",
+          href: "/music/play/chord-scales?changes=minor",
+        },
+      ],
+      { instrument: "piano", budgetMinutes: 5 },
+    );
+    expect(plan[0]?.href).toBe("/music/play/chord-scales?changes=minor&instrument=piano");
+  });
+  test("fits the available time and rejects recommendations for another instrument", () => {
+    const plan = buildDailyRoutinePlan(
+      [{ skillId: "piano", skillName: "Piano", href: "/music/play/two-hand" }],
+      { instrument: "guitar", budgetMinutes: 10 },
+    );
+    expect(plan.map((step) => step.id)).toEqual(["spider", "ear"]);
+    expect(plan.reduce((sum, step) => sum + step.minutes, 0)).toBeLessThanOrEqual(10);
+    expect(plan.every((step) => step.href.includes("instrument=guitar"))).toBe(true);
+    const mpc = buildDailyRoutinePlan([], { instrument: "mpc", budgetMinutes: 5 });
+    expect(mpc.map((step) => step.id)).toEqual(["mpc"]);
+  });
   test("orders playable drills from practice-next picks and fills missing categories", () => {
     const plan = buildDailyRoutinePlan([
       {
@@ -47,7 +71,7 @@ describe("daily routine", () => {
       },
     ]);
 
-    expect(plan.map((step) => step.id)).toEqual(["voicings", "rhythm", "ear", "reading", "scales"]);
+    expect(plan.map((step) => step.id)).toEqual(["voicings", "rhythm", "ear", "reading"]);
     expect(plan[0]).toMatchObject({
       label: "ii-V-I Voicings",
       href: "/music/play/voicings",
@@ -77,9 +101,8 @@ describe("daily routine", () => {
     expect(plan.map((step) => step.href)).toEqual([
       "/music/play/mpc?pattern=paradiddle",
       "/music/learn/rhythm?pattern=gap-click-1-on-1-off",
-      "/music/learn/ear/mixed",
+      "/music/learn/ear/scale-degrees?level=anchor",
       "/music/learn/reading",
-      "/music/play/scales",
     ]);
     expect(plan[0]).toMatchObject({
       id: "mpc",

@@ -180,7 +180,7 @@
   );
   const summary = $derived(sessionState?.status === "summary" ? sessionState.summary : undefined);
   const answerModeLabel = $derived(
-    { choice: "Choice", "play-back": "Play-back", listen: "Pocket", voice: "Voice" }[answerMode],
+    { choice: "Choice", "play-back": "Play-back", listen: "Pocket", "listen-along": "Listen along", voice: "Voice" }[answerMode],
   );
   const setupSummaryText = $derived(
     [
@@ -208,11 +208,13 @@
         ? "stage"
         : "setup",
   );
+  const listeningAlong = $derived(sessionState?.options.answerMode === "listen-along");
+  const selfRated = $derived(sessionState?.options.answerMode === "listen");
   const liveAnnouncement = $derived(
     phase === "summary" && summary
-      ? `Session complete. ${summary.correct} of ${summary.total} correct.`
+      ? listeningAlong ? "Listen along complete. Unscored." : `${selfRated ? "Self-rated recall" : "Session"} complete. ${summary.correct} of ${summary.total} correct.`
       : phase === "stage"
-        ? status || "Ear training session started."
+        ? status || (sessionState?.awaitingContinue ? `${sessionState.feedback[0]?.message ?? "Answer saved."} Review your answer, then Continue.` : "Ear training session started.")
         : pending
           ? "Starting ear training session."
           : status || "Ear training setup.",
@@ -398,6 +400,7 @@
         {
           drill,
           answerMode: sessionAnswerMode,
+          ...(sessionAnswerMode === "play-back" ? { instrument: runtime.activeInstrument } : {}),
           feedbackMode,
           scaleDegreeLabelMode,
           ...(overrides.length !== undefined ? { length: overrides.length } : {}),
@@ -450,8 +453,16 @@
   }
 
   function handleSessionState(next: EarTrainingSessionState): void {
+    const wasAwaitingContinue = sessionState?.awaitingContinue;
     sessionState = next;
     status = next.error ?? "";
+    if (next.awaitingContinue && !wasAwaitingContinue) {
+      answerGeneration += 1;
+      cancelPromptPlaybackWait();
+      runtime.sound.stopPattern();
+      runtime.endPerformance();
+      answerReady = false;
+    }
     if (next.status === "active" && next.currentIndex !== lastPlayedIndex) {
       runtime.sound.stopPattern();
       runtime.endPerformance();
@@ -473,6 +484,7 @@
       captured = true;
       void runtime.recordPractice({
         source: "drill",
+        comparison: { variantKey: `v1:ear:${next.options.drill}:${next.options.scaleDegreeSet ?? scaleDegreeSet}:${next.options.answerMode}`, bpm: runtime.transportBpm, settings: JSON.stringify(next.options), dimensions: "drill, level, answer mode and feedback setup" },
         tags: [
           "ear",
           definition.drill,
@@ -480,7 +492,7 @@
         ],
         scoringEvents: next.summary.recentResults.map((result) => result.event),
         xpEarned: next.summary.xp,
-        note: `Ear training · ${next.summary.correct}/${next.summary.total} correct (${Math.round(
+        note: next.options.answerMode === "listen-along" ? `Listen along · ${next.queue.length} prompts · Unscored` : `${next.options.answerMode === "listen" ? "Pocket recall · Self-rated" : "Ear training"} · ${next.summary.correct}/${next.summary.total} correct (${Math.round(
           next.summary.accuracy * 100,
         )}%)`,
       });
@@ -497,15 +509,20 @@
     try {
       const prompt = session.replay();
       runtime.sound.playPattern(prompt.playback, playbackVelocity(prompt.drill));
-      if (!isPerformanceAnswer(sessionState?.options.answerMode)) {
-        answerReady = true;
-        return;
-      }
       const durationMs =
         prompt.playback.reduce(
           (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
           0,
         ) * 1_000;
+      if (sessionState?.options.answerMode === "listen-along") {
+        // Two seconds after playback to associate the visible answer with the sound.
+        if (await waitForPromptPlayback(durationMs + 2_000, generation)) session?.advanceListening();
+        return;
+      }
+      if (!isPerformanceAnswer(sessionState?.options.answerMode)) {
+        answerReady = true;
+        return;
+      }
       if (!(await waitForPromptPlayback(durationMs, generation))) return;
       await practiceContextQueue;
       if (generation !== answerGeneration) return;
@@ -536,7 +553,7 @@
   function replayCurrent(): void {
     if (!session) return;
     try {
-      if (isPerformanceAnswer(sessionState?.options.answerMode)) {
+      if (!sessionState?.awaitingContinue && (isPerformanceAnswer(sessionState?.options.answerMode) || sessionState?.options.answerMode === "listen-along")) {
         answerGeneration += 1;
         answerReady = false;
         cancelPromptPlaybackWait();
@@ -765,8 +782,8 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
-        live={runtime.activeSource === "midi"}
+        source={answerMode === "voice" ? "audio" : runtime.activeSource}
+        live={answerMode === "voice" ? voiceState.status === "running" : runtime.activeSource === "midi"}
       />
     {/snippet}
   </PracticeScreenHeader>
@@ -779,26 +796,29 @@
     {#if summary}
       <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
         {#snippet heading()}
-          <Card.Description>{summary.correct} of {summary.total} correct</Card.Description>
+          <Card.Description>{listeningAlong ? `${sessionState?.queue.length ?? 0} prompts · Unscored` : `${selfRated ? "Self-rated recall · " : ""}${summary.correct} of ${summary.total} correct`}</Card.Description>
           <Card.Title>Session complete</Card.Title>
         {/snippet}
         {#snippet metric()}
+          {#if listeningAlong}<p class="text-3xl font-semibold">Listen along complete</p>{:else}
           <p class="flex items-baseline">
             <span class="text-6xl font-bold leading-none tracking-tight tabular-nums">
               {Math.round(summary.accuracy * 100)}<span class="text-3xl text-muted-foreground">%</span>
             </span>
-            <span class="sr-only"> accuracy</span>
+            <span class="sr-only">{selfRated ? " self-rated recall" : " accuracy"}</span>
           </p>
+          {/if}
         {/snippet}
         {#snippet lastRunDelta()}
+          {#if !listeningAlong && !selfRated}
           <LastRunDelta
             tags={["ear", definition.drill]}
-            accuracy={summary.accuracy}
             before={visitStartedAt}
           />
+          {/if}
         {/snippet}
         {#snippet children()}
-          <EarTrainingSummary {summary} />
+          {#if !listeningAlong}<EarTrainingSummary {summary} />{:else}<p class="text-sm text-muted-foreground">No answers, XP or mastery were scored.</p>{/if}
         {/snippet}
         {#snippet actions()}
           {#if summary.confusions.length > 0}
@@ -933,6 +953,8 @@
             onReplay={replayCurrent}
             onPlayTonic={playTonic}
             onAnswer={answerChoice}
+            onContinue={() => session?.continue()}
+            onReveal={() => session?.revealAnswer()}
             onAccepted={playAccepted}
           />
         </div>

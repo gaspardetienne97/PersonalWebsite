@@ -1,3 +1,4 @@
+import { continueEarPractice } from "../_components/ear-test-helpers";
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
@@ -56,7 +57,10 @@ describe("/music/learn/ear/melody-dictation/+page.svelte", () => {
         ?.click();
     }
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Answer correction"]')).not.toBeNull(),
+    );
+    expect(document.body.textContent).toContain("1 / 10");
     await vi.waitFor(() =>
       expect(document.querySelector('[data-testid="phrase-result-feedback"]')).not.toBeNull(),
     );
@@ -77,5 +81,8 @@ describe("/music/learn/ear/melody-dictation/+page.svelte", () => {
     ].map((element) => element.getAttribute("data-state"));
     expect(resultStates).toHaveLength(3);
     expect(resultStates).toContain("review");
+    await continueEarPractice();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
+    expect(document.querySelector('[data-testid="phrase-result-feedback"]')).toBeNull();
   });
 });

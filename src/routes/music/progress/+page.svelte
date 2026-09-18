@@ -30,6 +30,9 @@
   import StreakCalendar from "../_components/StreakCalendar.svelte";
   import WeekBars from "../_components/WeekBars.svelte";
   import WeekDots from "../_components/WeekDots.svelte";
+  import { useMusicRuntime } from "../_runtime.svelte";
+  const runtime = useMusicRuntime();
+  let ready = $state(false);
 
   let showAllNodes = $state(false);
 
@@ -80,7 +83,7 @@
     const picks = (skillTree?.practiceNext ?? []).slice(0, 5).map((pick) => ({
       id: pick.skillId,
       title: pick.skillName,
-      detail: `${Math.round(pick.accuracy * 100)}% accuracy · ${pick.attempts} attempts`,
+      detail: `${pick.dueForReview ? "Due for review · " : ""}${Math.round(pick.accuracy * 100)}% historical accuracy · ${pick.attempts} attempts`,
       href: pick.href,
       kind: "weak" as const,
     }));
@@ -92,7 +95,7 @@
             title: challenge.label,
             detail:
               challenge.reason === "weak-spot"
-                ? "Today's challenge · from your weakest signal"
+                ? "Today's challenge · from your review priorities"
                 : "Today's challenge · from unlocked skills",
             href: challenge.href,
             kind: "challenge" as const,
@@ -128,7 +131,7 @@
         progress.load(),
         sessions.load(),
       ]);
-      refresh();
+      ready = true;
       status = "Progress loaded.";
     } catch (error) {
       status = error instanceof Error ? error.message : "Progress could not be loaded.";
@@ -141,15 +144,20 @@
       sessions: sessions.all(),
       skills,
       analytics,
+      instrument: runtime.activeInstrument,
+      budgetMinutes: runtime.routineBudgetMinutes,
     });
-    skillTree = buildSkillTreeView({ skills, analytics });
+    skillTree = buildSkillTreeView({ skills, analytics, instrument: runtime.activeInstrument });
     challenges = buildChallengeBoard({
       progressState: progress.state,
       sessions: sessions.all(),
       skills,
       analytics,
+      instrument: runtime.activeInstrument,
     });
   }
+
+  $effect(() => { if (ready) refresh(); });
 
   function challengePercent(progressValue: number, target: number): number {
     if (target <= 0) return 100;
@@ -254,7 +262,7 @@
           <div class="grid gap-2 md:grid-cols-2">
             {#each challenges.daily as challenge (challenge.id)}
               <a class="grid gap-2 rounded-xl border bg-card p-3 hover:bg-accent/40" href={challenge.href}>
-                <div class="flex items-start justify-between gap-3">
+                <div class="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p class="text-sm font-medium">{challenge.title}</p>
                     <p class="text-xs text-muted-foreground">{challenge.description}</p>
@@ -269,7 +277,7 @@
                   </span>
                 </div>
                 <Progress value={challengePercent(challenge.progress, challenge.target)} max={100} />
-                <div class="flex items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
+                <div class="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
                   <span>{challenge.progress}/{challenge.target}</span>
                   <span>{challenge.reason}</span>
                 </div>
@@ -279,7 +287,7 @@
         </div>
 
         <div class="grid gap-3">
-          <SectionHeading title="Mastery" eyebrow={`Skill tree · ${skillTree.nodes.length} skills`}>
+          <SectionHeading title="Mastery" description="Current estimates use a time-based heuristic. A 10-point drop marks review due; earned achievements stay earned." eyebrow={`Skill tree · ${skillTree.nodes.length} skills`}>
             {#snippet action()}
               {#if skillTree && skillTree.nodes.length > 8}
                 <Button
@@ -297,8 +305,8 @@
           <!-- Compact two-up on the phone, with the long tail behind Show all. -->
           <div class="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
             {#each showAllNodes ? skillTree.nodes : skillTree.nodes.slice(0, 8) as node (node.id)}
-              <div class="grid gap-2 rounded-xl border bg-card p-2.5 sm:p-3">
-                <div class="flex items-start justify-between gap-3">
+              <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 rounded-xl border bg-card p-2.5 sm:p-3">
+                <div class="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p class="text-sm font-medium">{node.name}</p>
                     <p class="text-xs text-muted-foreground">{node.capability}</p>
@@ -311,13 +319,17 @@
                   </span>
                 </div>
                 <Progress value={node.masteryPercent} max={100} />
-                <div class="flex items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
-                  <span>{node.masteryPercent}% mastery</span>
+                <div class="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
+                  <span>{node.masteryPercent}% estimated mastery</span>
                   <span>{node.confidencePercent}% confidence</span>
                 </div>
-                {#if node.weakSpot}
+                <p class="text-xs text-muted-foreground">
+                  {node.lastPracticed === undefined ? "Not practised yet" : `Last practised ${new Date(node.lastPracticed).toLocaleDateString()}`}
+                  {#if node.dueForReview} · Due for review{/if}
+                </p>
+                {#if node.weakSpot || node.dueForReview}
                   <a class="text-sm font-medium text-foreground underline-offset-4 hover:underline" href={node.practiceHref}>
-                    Practice weak spot
+                    {node.dueForReview ? "Review skill" : "Practice weak spot"}
                   </a>
                 {/if}
               </div>

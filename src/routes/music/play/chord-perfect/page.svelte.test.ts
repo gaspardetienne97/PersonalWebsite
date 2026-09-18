@@ -5,10 +5,13 @@ import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
 import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore } from "@repo/music-core/engines/skills";
+import { PracticeDatabase, PracticeStore } from "@repo/music-core/engines/store";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
 import { MusicRuntime } from "../../_runtime.svelte";
+
+const databases: PracticeDatabase[] = [];
 
 beforeEach(() => {
   vi.spyOn(MusicRuntime.prototype, "ensurePlaybackVoice").mockResolvedValue(true);
@@ -18,9 +21,11 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
   document.body.replaceChildren();
+  await Promise.all(databases.map((database) => database.delete()));
+  databases.length = 0;
   setTestUrl("/");
 });
 
@@ -371,6 +376,12 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Chord-perfect check");
+      expect(document.body.textContent).toContain("Target notes matched");
+      expect(document.body.textContent).toContain("Expected");
+      expect(document.body.textContent).toContain("Played");
+      expect(document.querySelectorAll("tbody tr")).toHaveLength(5);
+      expect(document.querySelector("tbody tr")?.textContent).toContain("String 5C3C3 · Matched");
+      expect(document.body.textContent).not.toContain("strings rang clean");
       expect(button("Again")).not.toBeUndefined();
     });
   });
@@ -640,6 +651,77 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     );
   });
 
+  test("shows the persisted exact-pair benchmark after completion and reload", async () => {
+    const database = new PracticeDatabase(`chord-pair-history-${crypto.randomUUID()}`);
+    databases.push(database);
+    const store = new PracticeStore(database);
+    setTestUrl(
+      "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major&timed=1",
+    );
+    const first = render(Page, { changeDurationSeconds: 1, store });
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.querySelector('[aria-label="Chord-pair history"]')?.textContent).toContain(
+      "Complete a one-minute run to start this pair’s history.",
+    );
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    for (const [stringNumber, fret] of [
+      [5, 3],
+      [4, 2],
+      [3, 0],
+      [2, 1],
+      [1, 0],
+    ]) {
+      fretButton(stringNumber, fret)?.click();
+    }
+
+    await vi.waitFor(
+      () => {
+        const history = document.querySelector('[aria-label="Chord-pair history"]');
+        expect(history?.querySelectorAll("li")).toHaveLength(1);
+        expect(history?.textContent).toContain("60 changes/min");
+        expect(history?.textContent).toContain("On-screen");
+        expect(history?.textContent).toContain("Guided");
+        expect(document.querySelector('[data-testid="last-run-delta"]')).toBeNull();
+      },
+      { timeout: 5_000 },
+    );
+
+    first.unmount();
+    document.body.replaceChildren();
+    render(Page, { changeDurationSeconds: 1, store });
+    await vi.waitFor(() => {
+      const history = document.querySelector('[aria-label="Chord-pair history"]');
+      expect(history?.querySelectorAll("li")).toHaveLength(1);
+      expect(history?.textContent).toContain("60 changes/min");
+    });
+
+    const target = select("To chord")!;
+    const other = [...target.options].find((option) => option.value !== "guitar.g-major")!;
+    target.value = other.value;
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Chord-pair history"]')?.textContent).toContain(
+        "Complete a one-minute run to start this pair’s history.",
+      ),
+    );
+  });
+
+  test("keeps a history read failure nonfatal and leaves the timed drill available", async () => {
+    setTestUrl(
+      "/music/play/chord-perfect?mode=changes&instrument=guitar&shape=guitar.c-major&to=guitar.g-major&timed=1",
+    );
+    render(Page, { loadHistory: async () => Promise.reject(new Error("IndexedDB unavailable")) });
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Chord-pair history"]')?.textContent).toContain(
+        "Chord-pair history could not be loaded. Your next result will still be saved.",
+      ),
+    );
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  });
+
   test("hides setup configuration and moves Cancel into the stage during an active run", async () => {
     render(Page);
 
@@ -742,7 +824,7 @@ describe("/music/play/chord-perfect/+page.svelte", () => {
     // The consolidated summary frame replaces the setup while it is shown.
     expect(select("Chord")).toBeUndefined();
     expect(fretButton(5, 3)).toBeUndefined();
-    expect(document.activeElement?.textContent).toContain("strings clean");
+    expect(document.activeElement?.textContent).toContain("target notes matched");
     expect(document.querySelectorAll("p.sr-only[aria-live='polite']")).toHaveLength(1);
     expect(document.querySelector("p.sr-only[aria-live='polite']")?.textContent).toContain(
       "Chord-perfect results ready",

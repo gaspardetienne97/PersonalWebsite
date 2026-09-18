@@ -10,9 +10,11 @@
   } from "@repo/music-core/engines/projection";
   import {
     PracticeSessionStore,
+    isRunComparisonTag,
     type WeekComparison,
   } from "@repo/music-core/engines/sessions";
   import { PracticeStore } from "@repo/music-core/engines/store";
+  import { inputSourceLabel } from "@repo/music-core/engines/device-profiles";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Input } from "@repo/ui/input";
@@ -20,9 +22,19 @@
 
   import PracticeScreen from "../_components/PracticeScreen.svelte";
   import PracticeScreenHeader from "../_components/PracticeScreenHeader.svelte";
+  import { useMusicRuntime, type MusicRuntime } from "../_runtime.svelte";
+  import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
+  import { buildPracticeCoachView } from "@repo/music-core/engines/coach";
+  import { ProgressEngine } from "@repo/music-core/engines/progress";
+  import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills";
+
+  let { runtime = useMusicRuntime() }: { runtime?: MusicRuntime } = $props();
 
   const store = browser ? new PracticeStore() : undefined;
   const journal = new PracticeSessionStore(store);
+  const analytics = new AnalyticsEngine(store);
+  const skills = new SkillGraphStore(store);
+  const progress = new ProgressEngine(store);
 
   let ready = $state(false);
   let pending = $state(false);
@@ -36,15 +48,12 @@
   // Inline editing of an existing journal entry.
   let editingId = $state<string | null>(null);
   let editNote = $state("");
+  let editNextTime = $state("");
   let editTags = $state("");
 
-  const routineSteps = [
-    { label: "Warm-up · long tones", meta: "Technique", href: "/music/play/scales" },
-    { label: "Ear training review", meta: "Listening", href: "/music/learn/ear/mixed" },
-    { label: "Rhythm lock", meta: "Timing", href: "/music/learn/rhythm" },
-    { label: "Jazz voicings", meta: "Harmony", href: "/music/library?tab=reference" },
-  ];
+  const routineSteps = $derived(runtime.dailyRoutine?.steps ?? (ready ? buildPracticeCoachView({ skills, analytics, progressState: progress.state, sessions, instrument: runtime.activeInstrument, budgetMinutes: runtime.routineBudgetMinutes }).routine : []));
   const weeklySessionGoal = 5;
+  const assistanceLabels = { independent: "Independent", hinted: "Hinted", guided: "Guided", "self-assessed": "Self-rated" };
   let tagText = $state("journal");
   let filterSkill = $state("");
   let filterInstrument = $state("");
@@ -66,7 +75,7 @@
 
   async function initialize(): Promise<void> {
     try {
-      await journal.load();
+      await Promise.all([journal.load(), analytics.load(), skills.seed(seedCoreSkills()), progress.load()]);
       refresh();
       ready = true;
       status = sessions.length === 0 ? "No practice sessions recorded yet." : "Journal loaded.";
@@ -103,7 +112,8 @@
   function beginEdit(session: PracticeSession): void {
     editingId = session.id;
     editNote = session.notes ?? "";
-    editTags = session.tags.join(", ");
+    editNextTime = session.nextTime ?? "";
+    editTags = session.tags.filter((tag) => !isRunComparisonTag(tag)).join(", ");
   }
 
   function cancelEdit(): void {
@@ -118,8 +128,7 @@
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean);
-      journal.updateJournal(id, editNote.trim(), nextTags);
-      await journal.flush();
+      await journal.updateJournal(id, editNote.trim(), nextTags, editNextTime);
       editingId = null;
       refresh();
       status = "Journal entry updated.";
@@ -365,6 +374,7 @@
                       variant="ghost"
                       size="sm"
                       aria-label="Edit entry {session.id}"
+                      disabled={pending}
                       onclick={() => beginEdit(session)}
                     >
                       Edit
@@ -383,6 +393,19 @@
                 {/if}
               </Card.Header>
               <Card.Content class="grid gap-2 text-sm text-muted-foreground">
+                {#if session.scoringEvents.length > 0}
+                  <details>
+                    <summary class="cursor-pointer">Attempt evidence</summary>
+                    <ol class="mt-2 grid gap-2">
+                      {#each session.scoringEvents as event (event.id)}
+                        <li>
+                          <p>{event.assistance ? assistanceLabels[event.assistance] : "Assistance not recorded"} · {inputSourceLabel(event.source)}{event.instrument ? ` · ${event.instrument}` : ""}</p>
+                          <p class="text-xs">{Math.round(event.partialCredit * 100)}% · {event.target?.label ?? "Practice attempt"}</p>
+                        </li>
+                      {/each}
+                    </ol>
+                  </details>
+                {/if}
                 {#if editingId === session.id}
                   <div class="grid gap-2">
                     <Label for="edit-note-{session.id}">Edit note</Label>
@@ -391,24 +414,32 @@
                       aria-label="Edit note"
                       class="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                       bind:value={editNote}
+                      disabled={pending}
                     ></textarea>
                   </div>
                   <div class="grid gap-2">
+                    <Label for="edit-next-time-{session.id}">Next time (optional)</Label>
+                    <Input id="edit-next-time-{session.id}" aria-label="Next time (optional)" bind:value={editNextTime} disabled={pending} />
+                  </div>
+                  <div class="grid gap-2">
                     <Label for="edit-tags-{session.id}">Edit tags</Label>
-                    <Input id="edit-tags-{session.id}" aria-label="Edit tags" bind:value={editTags} />
+                    <Input id="edit-tags-{session.id}" aria-label="Edit tags" bind:value={editTags} disabled={pending} />
                   </div>
                   <div class="flex gap-2">
                     <Button type="button" size="sm" disabled={pending} onclick={() => saveEdit(session.id)}>
                       Save changes
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onclick={cancelEdit}>Cancel</Button>
+                    <Button type="button" variant="ghost" size="sm" disabled={pending} onclick={cancelEdit}>Cancel</Button>
                   </div>
                 {:else}
                   {#if session.notes}
                     <p>{session.notes}</p>
                   {/if}
-                  {#if session.tags.length > 0}
-                    <p>Tags: {session.tags.join(", ")}</p>
+                  {#if session.nextTime}
+                    <p class="break-words"><span class="font-medium text-foreground">Next time:</span> {session.nextTime}</p>
+                  {/if}
+                  {#if session.tags.some((tag) => !isRunComparisonTag(tag))}
+                    <p>Tags: {session.tags.filter((tag) => !isRunComparisonTag(tag)).join(", ")}</p>
                   {/if}
                   {#if session.instrument}
                     <p>Instrument: {session.instrument}</p>
@@ -432,7 +463,7 @@
         </span>
       </Card.Header>
       <Card.Content class="grid gap-2">
-        {#each routineSteps as step, index}
+        {#each routineSteps as step, index (step.id)}
           <a
             href={step.href}
             class="flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted"
@@ -442,7 +473,7 @@
             </span>
             <span class="min-w-0 flex-1">
               <span class="block truncate text-sm font-semibold">{step.label}</span>
-              <span class="text-xs text-muted-foreground">{step.meta}</span>
+              <span class="text-xs text-muted-foreground">~{step.minutes} min · {step.description}</span>
             </span>
           </a>
         {/each}

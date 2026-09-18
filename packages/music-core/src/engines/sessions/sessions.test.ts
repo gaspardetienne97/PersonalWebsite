@@ -32,6 +32,72 @@ const event = (
 });
 
 describe("PracticeSessionStore", () => {
+  test("a failed journal edit does not leak into later reads or saves", async () => {
+    const store = createStore();
+    const sessions = new PracticeSessionStore(store);
+    sessions.start({ id: "failed-edit", source: "free-practice", startedAt: unixMs(1000) });
+    await sessions.flush();
+    const before = sessions.all()[0];
+    const put = vi.spyOn(store.sessions, "put").mockRejectedValueOnce(new Error("Storage full"));
+    try {
+      const save = sessions.updateJournal(
+        "failed-edit",
+        "Rejected note",
+        ["rejected"],
+        "Rejected reflection",
+      );
+      await expect(Promise.all([Promise.resolve(save), sessions.flush()])).rejects.toThrow(
+        "Storage full",
+      );
+      expect(sessions.all()[0]).toEqual(before);
+      await sessions.updateJournal("failed-edit", "Later note");
+      await sessions.flush();
+      expect(await store.sessions.get("failed-edit")).not.toHaveProperty("nextTime");
+      expect(sessions.all()[0]?.notes).toBe("Later note");
+    } finally {
+      put.mockRestore();
+    }
+  });
+  test("persists, preserves and clears an optional Next time without changing session evidence", async () => {
+    const store = createStore();
+    const sessions = new PracticeSessionStore(store);
+    const session = sessions.start({
+      id: "reflection",
+      source: "drill",
+      startedAt: unixMs(1000),
+      tags: ["practice", "comparison:bpm:80"],
+    });
+    sessions.finish(session.id, unixMs(2000), 42, "Original note");
+    await sessions.flush();
+    expect(await store.sessions.get(session.id)).not.toHaveProperty("nextTime");
+
+    await sessions.updateJournal(
+      session.id,
+      "Edited note",
+      ["harmony"],
+      "  Start with the left hand  ",
+    );
+    await sessions.flush();
+    const reloaded = new PracticeSessionStore(store);
+    await reloaded.load();
+    expect(reloaded.all()[0]).toMatchObject({
+      nextTime: "Start with the left hand",
+      notes: "Edited note",
+      tags: ["harmony", "comparison:bpm:80"],
+      xpEarned: 42,
+      startTime: 1000,
+      endTime: 2000,
+    });
+    await reloaded.updateJournal(session.id, "Another note");
+    await reloaded.flush();
+    expect(await store.sessions.get(session.id)).toHaveProperty(
+      "nextTime",
+      "Start with the left hand",
+    );
+    await reloaded.updateJournal(session.id, "Another note", undefined, "   ");
+    await reloaded.flush();
+    expect(await store.sessions.get(session.id)).not.toHaveProperty("nextTime");
+  });
   test("persists a completed session and queries by skill and date", async () => {
     const sessions = new PracticeSessionStore();
     const session = sessions.start({
@@ -122,7 +188,7 @@ describe("PracticeSessionStore", () => {
 
     await expect(sessions.flush()).rejects.toThrow("Persistence unavailable");
 
-    sessions.updateJournal(session.id, "Recovered note");
+    await sessions.updateJournal(session.id, "Recovered note");
     sessions.finish(session.id, unixMs(2_000), 12, "Completed after recovery");
     await expect(sessions.flush()).resolves.toBeUndefined();
 
@@ -149,6 +215,7 @@ describe("PracticeSessionStore", () => {
     const sessions = new PracticeSessionStore(store);
     sessions.start({
       id: "keep",
+      tags: ["v1:scales:piano:major", "comparison:bpm:60"],
       source: "free-practice",
       startedAt: unixMs(Date.UTC(2026, 0, 6)),
     });
@@ -158,7 +225,7 @@ describe("PracticeSessionStore", () => {
       startedAt: unixMs(Date.UTC(2026, 0, 7)),
     });
 
-    sessions.updateJournal("keep", "Edited note.", ["harmony", "edited"]);
+    await sessions.updateJournal("keep", "Edited note.", ["harmony", "edited"]);
     sessions.remove("drop");
     await sessions.flush();
 
@@ -170,7 +237,7 @@ describe("PracticeSessionStore", () => {
     const kept = reloaded.all()[0];
     expect(kept?.id).toBe("keep");
     expect(kept?.notes).toBe("Edited note.");
-    expect(kept?.tags).toEqual(["harmony", "edited"]);
+    expect(kept?.tags).toEqual(["harmony", "edited", "v1:scales:piano:major", "comparison:bpm:60"]);
   });
 
   test("removing an unknown session is a no-op", () => {
@@ -255,6 +322,26 @@ describe("lastRunReference", () => {
 
     const reference = lastRunReference(sessions, ["rhythm"], unixMs(Date.UTC(2026, 0, 2, 12)));
     expect(reference?.accuracy).toBeCloseTo(0.6, 5);
+  });
+
+  test("only compares matching variants, tempo, and observed input before the visit", () => {
+    const matching = [
+      "scales",
+      "v1:scales:piano:major:up:octave",
+      "comparison:bpm:60",
+      'comparison:input:[["midi","piano","independent"]]',
+    ];
+    const sessions = [
+      drillSession("match", 1, matching, [0.6]),
+      drillSession("other-variant", 2, ["scales", "v1:scales:piano:minor:up:octave"], [1]),
+      drillSession("legacy", 3, ["scales"], [1]),
+      { ...drillSession("routine", 4, matching, [1]), source: "daily-routine" as const },
+      drillSession("this-visit", 5, matching, [1]),
+    ];
+    expect(lastRunReference(sessions, matching, unixMs(5))?.accuracy).toBe(0.6);
+    expect(
+      lastRunReference(sessions, [...matching, "comparison:bpm:120"], unixMs(5)),
+    ).toBeUndefined();
   });
 
   test("returns undefined when no prior tagged run exists", () => {

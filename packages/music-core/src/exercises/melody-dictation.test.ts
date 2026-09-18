@@ -71,6 +71,14 @@ describe("melody dictation", () => {
     });
   });
 
+  test("reports out-of-phrase pitches as musical degrees rather than semitone numbers", () => {
+    const exercise = createMelodyDictationExercise({ random: () => 0 });
+    const ctx = context("1");
+    const run = exercise.createRun(exercise.generate(ctx), ctx);
+    for (const midi of [51, 54, 58]) run.accept(noteOn(midi));
+    expect(run.finish().answer).toEqual(["b3", "#4", "b7"]);
+  });
+
   test("can build short phrases from chromatic scale-degree colors", () => {
     const exercise = createMelodyDictationExercise({ random: () => 0 });
     const prompt = exercise.generate(chromaticContext("b2"));

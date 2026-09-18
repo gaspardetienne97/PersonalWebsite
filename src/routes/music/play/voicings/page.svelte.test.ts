@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
-import { monotonicMs, unixMs } from "@repo/music-core/domain";
+import { monotonicMs, unixMs, type ScoringEvent } from "@repo/music-core/domain";
 import { type DailyRoutineStep } from "@repo/music-core/engines/daily-routine";
 import { midiToNote } from "@repo/music-core/engines/theory";
-import { buildVoicingDrillTargets } from "@repo/music-core/engines/voicing-drill-session";
+import {
+  buildVoicingDrillTargets,
+  VoicingDrillSession,
+} from "@repo/music-core/engines/voicing-drill-session";
 
 import { MusicRuntime } from "../../_runtime.svelte";
 import Page from "./+page.svelte";
@@ -25,6 +28,130 @@ afterEach(() => {
 });
 
 describe("/music/play/voicings/+page.svelte", () => {
+  test("does not submit a guide-tone Check after teardown during deferred audio activation", async () => {
+    setTestUrl("/music/play/voicings?variant=guide-tones");
+    const runtime = new MusicRuntime();
+    let release!: (enabled: boolean) => void;
+    const audio = vi.spyOn(runtime, "enableAudio").mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    const submit = vi.spyOn(VoicingDrillSession.prototype, "submit").mockResolvedValue({
+      target: buildVoicingDrillTargets("piano", { variant: "guide-tones" })[0]!,
+      event: { metrics: [] } as unknown as ScoringEvent,
+      xp: 0,
+      correct: false,
+      score: 0,
+    });
+    const view = render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Check chord")?.disabled).toBe(false));
+    button("Check chord")?.click();
+    await vi.waitFor(() => expect(audio).toHaveBeenCalledOnce());
+    view.unmount();
+    release(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(submit).not.toHaveBeenCalled();
+    runtime.dispose();
+  });
+  test("guide tones stays manual and unaided, carries the source forward and reports both dimensions", async () => {
+    setTestUrl("/music/play/voicings?variant=guide-tones&mode=practice");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    const record = vi.spyOn(runtime, "recordPractice").mockResolvedValue(undefined);
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.body.textContent).toContain("Current Dm7: F3 C4");
+    expect(document.body.textContent).toContain("Register: C3–B4");
+    expect(document.body.textContent).not.toContain("Drill preview");
+    expect(document.querySelector('[data-highlight="target"]')).toBeNull();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Check chord")).not.toBeUndefined());
+    for (const note of [53, 59]) runtime.router.noteOn(note, "onscreen");
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Two notes selected"));
+    expect(document.querySelector("h2")?.textContent).toContain("G7");
+    button("Check chord")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Current G7: F3 B3"));
+    expect(document.body.textContent).toContain("Movement: 1 semitone; minimum 1 semitone");
+    for (const note of [52, 59]) runtime.router.noteOn(note, "onscreen");
+    button("Check chord")?.click();
+    await vi.waitFor(() => expect(button("Again")).not.toBeUndefined());
+    expect(document.body.textContent).toContain("Membership: correct");
+    expect(document.body.textContent).toContain("Movement: 1 semitone; minimum 1 semitone");
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scoringEvents: expect.arrayContaining([
+          expect.objectContaining({
+            assistance: "independent",
+            skillIds: ["harmony.ii-v-i.voice-leading"],
+          }),
+        ]),
+        comparison: expect.objectContaining({
+          variantKey: expect.stringContaining("guide-tones:0:48-71:independent"),
+        }),
+      }),
+    );
+    runtime.dispose();
+  });
+
+  test("guide-tone key setup persists, remains piano-only, and cancellation restores setup", async () => {
+    setTestUrl("/music/play/voicings?variant=guide-tones&key=2&instrument=guitar");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Edit setup")?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector<HTMLSelectElement>('[aria-label="Key"]')?.value).toBe("2"),
+    );
+    expect(button("Guitar")).toBeUndefined();
+    expect(document.body.textContent).toContain("Register: D3–C#5");
+    expect(window.location.search).toContain("key=2");
+    expect(window.location.search).toContain("instrument=piano");
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    button("Check chord")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Restored current pair"));
+    button("Stop")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.body.textContent).toContain("Drill cancelled");
+    expect(document.body.textContent).toContain("Guide tones");
+    runtime.dispose();
+  });
+
+  test("reports extra notes after a lenient unaided answer", async () => {
+    setTestUrl("/music/play/voicings?mode=check");
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "enableAudio").mockResolvedValue(true);
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Check chord")).not.toBeUndefined());
+    for (const pc of [1, ...buildVoicingDrillTargets("piano")[0]!.expectedPitchClasses]) {
+      runtime.router.noteOn(60 + pc, "onscreen");
+    }
+    button("Check chord")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Extra notes: C#"));
+    expect(document.body.textContent).toContain("Notes collected");
+    runtime.dispose();
+  });
+  test("Check mode hides target cues before the answer", async () => {
+    setTestUrl("/music/play/voicings?mode=check");
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.querySelector('[data-highlight="target"]')).toBeNull();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(document.querySelector('[data-highlight="target"]')).toBeNull();
+    expect(button("Check chord")).not.toBeUndefined();
+    expect(document.body.textContent).not.toContain("Drill preview");
+    expect(document.body.textContent).not.toContain("Notes collected");
+    runtime.dispose();
+  });
+
   test("keeps the engine stopped when playback voice activation fails", async () => {
     const runtime = new MusicRuntime();
     runtime.audioMessage = "Preferred voice unavailable.";
@@ -86,7 +213,7 @@ describe("/music/play/voicings/+page.svelte", () => {
     const variants = [...document.querySelectorAll('[aria-label="Drill variant"] button')].map(
       (button) => button.textContent?.trim(),
     );
-    expect(variants).toEqual(["Major", "Minor", "Altered V7"]);
+    expect(variants).toEqual(["Major", "Minor", "Altered V7", "Guide tones"]);
 
     await vi.waitFor(() =>
       expect(
@@ -402,6 +529,7 @@ function routineStep(): DailyRoutineStep {
     label: "ii-V-I Voicings",
     href: "/music/play/voicings",
     description: "Cycle the graded ii-V-I drill through all 12 keys.",
+    minutes: 5,
     skillId: "harmony.ii-v-i",
   };
 }

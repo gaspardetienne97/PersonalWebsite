@@ -75,6 +75,7 @@ export type ReadingDrillConfigSource = {
   lowestMidi?: unknown;
   high?: unknown;
   highestMidi?: unknown;
+  range?: { lowestMidi?: unknown; highestMidi?: unknown };
   difficulty?: unknown;
   level?: unknown;
   readingLevel?: unknown;
@@ -123,16 +124,24 @@ const READING_KEYS = new Set([
 ]);
 
 export function normalizeReadingDrillConfig(source: ReadingDrillConfigSource): ReadingDrillConfig {
-  const lowestMidi = normalizeInteger(readReadingConfigValue(source, ["low", "lowestMidi"]), {
-    fallback: READING_DRILL_DEFAULT_CONFIG.range.lowestMidi,
-    min: 21,
-    max: 108,
-  });
-  const highestMidi = normalizeInteger(readReadingConfigValue(source, ["high", "highestMidi"]), {
-    fallback: READING_DRILL_DEFAULT_CONFIG.range.highestMidi,
-    min: 21,
-    max: 108,
-  });
+  const lowestMidi = normalizeInteger(
+    readReadingConfigValue(source, ["low", "lowestMidi"]) ??
+      readReadingConfigValue(source.range ?? {}, ["lowestMidi"]),
+    {
+      fallback: READING_DRILL_DEFAULT_CONFIG.range.lowestMidi,
+      min: 21,
+      max: 108,
+    },
+  );
+  const highestMidi = normalizeInteger(
+    readReadingConfigValue(source, ["high", "highestMidi"]) ??
+      readReadingConfigValue(source.range ?? {}, ["highestMidi"]),
+    {
+      fallback: READING_DRILL_DEFAULT_CONFIG.range.highestMidi,
+      min: 21,
+      max: 108,
+    },
+  );
   const instrument = normalizeReadingInstrument(readReadingConfigValue(source, ["instrument"]));
   const tuningId = readReadingConfigValue(source, ["tuning", "tuningId"]);
 
@@ -172,6 +181,7 @@ export function normalizeReadingDrillConfig(source: ReadingDrillConfigSource): R
 
 export interface FlashcardSessionOptions extends NoteReadingOptions {
   answerMode: ReadingAnswerMode;
+  feedbackMode?: "immediate" | "delayed";
   length?: number;
 }
 
@@ -214,6 +224,9 @@ export interface ReadingSessionState {
   live?: ExerciseLiveState | ScoreFollowerLiveState;
   countIn?: "ready" | "playing" | "done";
   results: ReadingResultView[];
+  awaitingContinue?: boolean;
+  hintUsed?: boolean;
+  feedback?: ReadingResultView;
   summary?: ReadingSummary;
   error?: string;
 }
@@ -233,6 +246,13 @@ export class ReadingSession {
   #summary?: ReadingSummary;
   #error?: string;
   #answerMode?: ReadingAnswerMode;
+  #feedbackMode: "immediate" | "delayed" = "delayed";
+  #awaitingContinue = false;
+  #feedback?: ReadingResultView;
+  #fixedFlashcardPrompts?: NoteReadingPrompt[];
+  #hintUsed = false;
+  #flashcardInstrument?: ReadingDrillInstrument;
+  #runSequence = 0;
   #exercise?: ExerciseDefinition<NoteReadingPrompt | SightReadingPrompt, unknown>;
   #sightReadingOptions?: SightReadingOptions;
   #completion?: Promise<void>;
@@ -262,6 +282,9 @@ export class ReadingSession {
       ...(this.#host.liveState === undefined ? {} : { live: this.#host.liveState }),
       ...(this.#countIn === undefined ? {} : { countIn: this.#countIn }),
       results: [...this.#results],
+      ...(this.#awaitingContinue ? { awaitingContinue: true } : {}),
+      hintUsed: this.#hintUsed,
+      ...(this.#feedback === undefined ? {} : { feedback: this.#feedback }),
       ...(this.#summary === undefined ? {} : { summary: this.#summary }),
       ...(this.#error === undefined ? {} : { error: this.#error }),
     };
@@ -302,6 +325,11 @@ export class ReadingSession {
     this.#status = "flashcard";
     this.#countIn = undefined;
     this.#answerMode = options.answerMode;
+    this.#flashcardInstrument = options.instrument;
+    this.#feedbackMode = options.feedbackMode ?? "delayed";
+    this.#awaitingContinue = false;
+    this.#feedback = undefined;
+    this.#fixedFlashcardPrompts = undefined;
     this.#sightReadingOptions = undefined;
     this.#currentIndex = 0;
     this.#results = [];
@@ -316,9 +344,55 @@ export class ReadingSession {
       throw new Error("No active reading flashcard");
     }
     if (this.#answerMode !== "choice") throw new Error("This session accepts played answers");
+    if (this.#awaitingContinue) throw new Error("Continue to the next flashcard");
 
     this.dependencies.router.push(noteReadingChoiceEvent(token, this.#currentPrompt.choices));
     if (this.#completion) await this.#completion;
+  }
+
+  continueFlashcard(): void {
+    this.#assertUsable();
+    if (!this.#awaitingContinue) return;
+    this.#awaitingContinue = false;
+    this.#feedback = undefined;
+    this.#advanceFlashcard();
+  }
+
+  revealFlashcardHint(): void {
+    this.#assertUsable();
+    if (this.#status !== "flashcard" || this.#awaitingContinue || this.#finishing) return;
+    this.#host.markHintUsed();
+    this.#hintUsed = true;
+    this.#notify();
+  }
+
+  prepareMissedFlashcards(): boolean {
+    this.#assertUsable();
+    if (this.#status !== "summary" || !this.#summary || !this.#exercise || !this.#answerMode) {
+      return false;
+    }
+    const missed = this.#summary.results.filter(
+      (item): item is ReadingResultView & { prompt: NoteReadingPrompt } =>
+        !item.result.correct && isNoteReadingPrompt(item.prompt),
+    );
+    if (missed.length === 0) return false;
+
+    this.#host.cancel();
+    this.#queue = missed.map(({ targetSkillId, event }) => ({
+      targetSkillId,
+      difficulty: event.difficulty,
+      reason: "weakness",
+    }));
+    this.#fixedFlashcardPrompts = missed.map(({ prompt }) => prompt);
+    this.#status = "flashcard";
+    this.#currentIndex = 0;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#awaitingContinue = false;
+    this.#feedback = undefined;
+    this.#startCurrent();
+    return true;
   }
 
   async retrySave(): Promise<void> {
@@ -401,6 +475,8 @@ export class ReadingSession {
         targetSkillIds: [item.targetSkillId],
         difficulty: item.difficulty,
         instrument: options.instrument,
+        // The sight-reading stage displays expected note names and target keys.
+        metadata: { assistance: "guided" },
       },
     });
     this.#countIn = "playing";
@@ -500,18 +576,25 @@ export class ReadingSession {
   }
 
   #startCurrent(): void {
+    this.#hintUsed = false;
     const item = this.#queue[this.#currentIndex];
     if (!item || !this.#exercise || !this.#answerMode) {
       throw new Error("No reading prompt remains");
     }
+    const fixedPrompt = this.#fixedFlashcardPrompts?.[this.#currentIndex];
+    const exercise = fixedPrompt
+      ? fixedNoteReadingExercise(fixedPrompt, this.#exercise)
+      : this.#exercise;
     const prompt = this.#host.start({
-      exercise: this.#exercise,
+      exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-${this.#currentIndex + 1}`,
+      runId: `${this.#sessionId}-${++this.#runSequence}`,
       inputs: this.#answerMode === "choice" ? ["click", "midi", "onscreen"] : ["midi", "onscreen"],
       context: {
         targetSkillIds: [item.targetSkillId],
         difficulty: item.difficulty,
+        instrument: this.#flashcardInstrument,
+        metadata: { assistance: "independent" },
       },
     });
     this.#currentPrompt = prompt.payload as NoteReadingPrompt;
@@ -527,6 +610,7 @@ export class ReadingSession {
     if (
       this.#status !== "flashcard" ||
       this.#finishing ||
+      this.#awaitingContinue ||
       this.#currentPrompt === undefined ||
       (this.#host.liveState?.progress ?? 0) < 1
     ) {
@@ -546,19 +630,21 @@ export class ReadingSession {
     this.#error = undefined;
     try {
       const outcome = await this.#host.finish();
-      this.#results.push({
+      const completed = {
         targetSkillId: item.targetSkillId,
         prompt,
         ...outcome,
-      });
-      this.#currentIndex += 1;
-      if (this.#currentIndex >= this.#queue.length) {
-        this.#status = "summary";
-        this.#currentPrompt = undefined;
-        this.#countIn = undefined;
-        this.#summary = summarize(this.#results);
+      };
+      this.#results.push(completed);
+      if (
+        this.#status === "flashcard" &&
+        this.#feedbackMode === "immediate" &&
+        !outcome.result.correct
+      ) {
+        this.#awaitingContinue = true;
+        this.#feedback = completed;
       } else {
-        this.#startCurrent();
+        this.#advanceFlashcard();
       }
       this.#notify();
     } catch (error) {
@@ -570,6 +656,19 @@ export class ReadingSession {
       this.#finishing = false;
       this.#completion = undefined;
     }
+  }
+
+  #advanceFlashcard(): void {
+    this.#currentIndex += 1;
+    if (this.#currentIndex >= this.#queue.length) {
+      this.#status = "summary";
+      this.#currentPrompt = undefined;
+      this.#countIn = undefined;
+      this.#summary = summarize(this.#results);
+    } else {
+      this.#startCurrent();
+    }
+    this.#notify();
   }
 
   #notify(): void {
@@ -595,6 +694,20 @@ function fixedSightReadingExercise(
   return {
     ...exercise,
     generate: () => fixedPrompt,
+  };
+}
+
+function fixedNoteReadingExercise(
+  prompt: NoteReadingPrompt,
+  exercise: ExerciseDefinition<NoteReadingPrompt | SightReadingPrompt, unknown>,
+): ExerciseDefinition<NoteReadingPrompt | SightReadingPrompt, unknown> {
+  return {
+    ...exercise,
+    generate: () => ({
+      id: `reading:retry:${prompt.score.id}`,
+      payload: prompt,
+      scoreId: prompt.score.id,
+    }),
   };
 }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { EarTrainingSummary as Summary } from "@repo/music-core/engines/ear-training";
+  import type { EarTrainingConfusion, EarTrainingSummary as Summary } from "@repo/music-core/engines/ear-training";
+  import { scaleDegreeFreePlayChoices } from "@repo/music-core/exercises/scale-degree-recognition";
   import { intensityStep } from "@repo/music-core/engines/semantic-color";
   import * as Card from "@repo/ui/card";
 
@@ -9,6 +10,19 @@
   // Results body only: the frame, metric, delta and actions belong to the
   // route's DrillSummaryCard.
   let { summary }: { summary: Summary } = $props();
+
+  const degreeChoices = scaleDegreeFreePlayChoices({ tonicMidi: 60, scaleDegreeSet: "full-current" });
+  function answerLabel(drill: EarTrainingConfusion["drill"], token: string): string {
+    const choice = summary.recentResults
+      .filter((item) => item.drill === drill)
+      .flatMap((item) => item.prompt.choices)
+      .find((choice) => choice.token === token);
+    if (choice) return choice.label;
+    if (drill === "scale-degree" || drill === "melody-dictation" || drill === "repertoire-transfer") {
+      return degreeChoices.find((choice) => choice.token === token)?.label ?? token;
+    }
+    return token;
+  }
 
   // Confusion intensity → a sequential heatmap over the error token.
   const maxConfusion = $derived(
@@ -62,10 +76,10 @@
       </Card.Header>
       <Card.Content>
         <ul class="grid gap-2 text-sm">
-          {#each summary.confusions as confusion (confusion.expected + confusion.actual)}
+          {#each summary.confusions as confusion (`${confusion.drill}:${confusion.expected}:${confusion.actual}`)}
             {@const heat = HEAT_BG[intensityStep(confusion.count, maxConfusion, 4)]}
             <li class="flex items-center justify-between rounded-md border px-3 py-2 {heat}">
-              <span>{confusion.expected} → {confusion.actual}</span>
+              <span>{answerLabel(confusion.drill, confusion.expected)} → {answerLabel(confusion.drill, confusion.actual)}</span>
               <span class="font-semibold tabular-nums">{confusion.count}×</span>
             </li>
           {/each}

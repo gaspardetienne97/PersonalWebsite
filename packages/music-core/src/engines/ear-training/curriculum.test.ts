@@ -68,12 +68,13 @@ describe("ear-training curriculum", () => {
       expect(
         earTrainingDrillBySlug(new URL(stage.href!, "http://x").pathname.split("/").at(-1)),
       ).toBeDefined();
-      expect(stage.skillIds?.length).toBeGreaterThan(0);
+      if (stage.kind === "reference") expect(stage.skillIds ?? []).toHaveLength(0);
+      else expect(stage.skillIds?.length).toBeGreaterThan(0);
       expect(stage.summary.length).toBeGreaterThan(0);
       expect(stage.detail.length).toBeGreaterThan(0);
     }
     expect(EAR_TRAINING_LEARNING_PATH[0]?.href).toBe(
-      "/music/learn/ear/scale-degrees?answer=listen&level=anchor",
+      "/music/learn/ear/scale-degrees?answer=listen-along&level=anchor",
     );
     expect(EAR_TRAINING_LEARNING_PATH.at(-1)).toMatchObject({
       kind: "review",

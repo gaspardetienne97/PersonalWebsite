@@ -1,3 +1,4 @@
+import { midiToNote } from "@repo/music-core/engines/theory";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
@@ -24,6 +25,142 @@ afterEach(() => {
 });
 
 describe("/music/play/licks/+page.svelte", () => {
+  test("previews only the selected range at normal and half speed, then returns to the full line", async () => {
+    setTestUrl("/music/play/licks?from=5&to=8");
+    const harness = makeRuntime();
+    render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
+    button("Hear chunk")?.click();
+    await vi.waitFor(() => expect(harness.runtime.sound.playPattern).toHaveBeenCalledOnce());
+    const normal = harness.runtime.sound.playPattern.mock.calls[0]![0];
+    expect(normal.map((note) => note.midiNotes[0])).toEqual(
+      LICK_PHRASES[1]!.slice(4, 8).map(([midi]) => midi),
+    );
+    button("Hear at half speed")?.click();
+    await vi.waitFor(() => expect(harness.runtime.sound.playPattern).toHaveBeenCalledTimes(2));
+    const slow = harness.runtime.sound.playPattern.mock.calls[1]![0];
+    expect(slow[1].offsetSeconds).toBe(normal[1].offsetSeconds * 2);
+    expect(slow[0].durationSeconds).toBe(normal[0].durationSeconds * 2);
+    await openSetup();
+    button("Full line")?.click();
+    await vi.waitFor(() =>
+      expect(new URLSearchParams(window.location.search).has("from")).toBe(false),
+    );
+    expect(button("Hear it")).not.toBeUndefined();
+  });
+
+  test("suggests the missed chunk and records its range without awarding full-line evidence", async () => {
+    const harness = makeRuntime();
+    render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    LICK_PHRASES[1]!.forEach(([midi], index) =>
+      harness.emit(index === 5 ? midi + 1 : midi, index * 100),
+    );
+    await vi.waitFor(() => expect(button("Practise notes 5–8")).not.toBeUndefined());
+    button("Practise notes 5–8")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    LICK_PHRASES[1]!.slice(4, 8).forEach(([midi], index) => harness.emit(midi, index * 100));
+    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledTimes(2));
+    const chunk = harness.runtime.recordPractice.mock.calls[1]![0];
+    expect(chunk.scoringEvents[0].skillIds).toEqual(["harmony.ii-v-i"]);
+    expect(chunk.comparison.settings).toBe(JSON.stringify({ start: 5, end: 8 }));
+    expect(chunk.note).toContain("Notes 5–8");
+    expect(document.body.textContent).toContain("performed timing is not assessed");
+    harness.runtime.setPracticeVariantBpm(270);
+    await Promise.resolve();
+    expect(button("Try 280 BPM")).toBeUndefined();
+    expect(button("Try 160 BPM")).not.toBeUndefined();
+    button("Try 160 BPM")?.click();
+    await vi.waitFor(() =>
+      expect(harness.runtime.setPracticeVariantBpm).toHaveBeenCalledWith(
+        160,
+        "v1:licks:piano:1:playback",
+      ),
+    );
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  });
+
+  test.each([false, true])(
+    "loops clean responses at most three times; mistake=%s",
+    async (mistake) => {
+      setTestUrl("/music/play/licks?from=1&to=2&mode=check");
+      const harness = makeRuntime();
+      render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
+      expect(document.querySelector('[data-highlight="target"]')).toBeNull();
+      button("Loop chunk 3 times")?.click();
+      for (let turn = 1; turn <= (mistake ? 1 : 3); turn++) {
+        await vi.waitFor(() =>
+          expect(document.body.textContent).toContain(`Loop response ${turn} of 3`),
+        );
+        LICK_PHRASES[1]!
+          .slice(0, 2)
+          .forEach(([midi], index) => harness.emit(midi + (mistake ? 1 : 0), index * 100));
+        await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledTimes(turn));
+      }
+      await vi.waitFor(() => expect(button("Stop loop")).toBeUndefined());
+      expect(button("Change setup")).not.toBeUndefined();
+      expect(harness.runtime.beginPerformance).toHaveBeenCalledTimes(mistake ? 1 : 3);
+    },
+  );
+
+  test("stopping a loop while saving preserves captured range and cannot restart it", async () => {
+    setTestUrl("/music/play/licks?from=5&to=6");
+    let release!: () => void;
+    vi.spyOn(SkillGraphStore.prototype, "ingest").mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const harness = makeRuntime();
+    render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
+    button("Loop chunk 3 times")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    LICK_PHRASES[1]!.slice(4, 6).forEach(([midi], index) => harness.emit(midi, index * 100));
+    await vi.waitFor(() => expect(release).toBeDefined());
+    button("Stop loop")?.click();
+    await openSetup();
+    button("Full line")?.click();
+    release();
+    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce());
+    const entry = harness.runtime.recordPractice.mock.calls[0]![0];
+    expect(entry.tags).toContain("chunk");
+    expect(entry.note).toContain("Notes 5–6");
+    expect(harness.runtime.beginPerformance).toHaveBeenCalledOnce();
+    expect(button("Start")).not.toBeUndefined();
+  });
+
+  test("a failed save stops automatic repetition and reports the failure", async () => {
+    setTestUrl("/music/play/licks?from=1&to=2");
+    const harness = makeRuntime();
+    harness.runtime.recordPractice.mockRejectedValueOnce(new Error("storage unavailable"));
+    render(Page, { runtime: harness.runtime as unknown as MusicRuntime });
+    button("Loop chunk 3 times")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    LICK_PHRASES[1]!.slice(0, 2).forEach(([midi], index) => harness.emit(midi, index * 100));
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Could not save this result"),
+    );
+    expect(button("Stop loop")).toBeUndefined();
+    expect(harness.runtime.beginPerformance).toHaveBeenCalledOnce();
+  });
+
+  test("Check mode hides target cues before the answer", async () => {
+    setTestUrl("/music/play/licks?mode=check");
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.querySelector('[data-highlight="target"]')).toBeNull();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(document.querySelector('[data-highlight="target"]')).toBeNull();
+    expect(document.body.textContent).not.toContain(
+      LICK_PHRASES[1]!.map(([midi]) => midiToNote(midi, true)).join("  "),
+    );
+    expect(button("Hear it")).toBeUndefined();
+    runtime.dispose();
+  });
+
   test("keeps duplicate starts single-flight and cancels a late activation on teardown", async () => {
     const runtime = new MusicRuntime();
     let resolveVoice!: (enabled: boolean) => void;
@@ -35,6 +172,9 @@ describe("/music/play/licks/+page.svelte", () => {
     const beginPerformance = vi.spyOn(runtime, "beginPerformance");
     const subscribe = vi.spyOn(runtime.router, "subscribe");
     const view = render(Page, { runtime });
+    // The piano surface subscribes on mount to light held notes; the page's
+    // own session subscription is what must not happen here.
+    const mountedSubscriptions = subscribe.mock.calls.length;
 
     button("Start")?.click();
     button("Start")?.click();
@@ -44,7 +184,7 @@ describe("/music/play/licks/+page.svelte", () => {
     await Promise.resolve();
 
     expect(beginPerformance).not.toHaveBeenCalled();
-    expect(subscribe).not.toHaveBeenCalled();
+    expect(subscribe).toHaveBeenCalledTimes(mountedSubscriptions);
   });
 
   test("replaces previews and cancels delayed preview work on attempt start and teardown", async () => {
@@ -174,32 +314,39 @@ describe("/music/play/licks/+page.svelte", () => {
     });
   });
 
-  test("records a completed lick with scoring events and run metadata", async () => {
-    const harness = makeRuntime();
-    render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
+  test.each(["practice", "check"])(
+    "records a completed %s lick with scoring events and run metadata",
+    async (mode) => {
+      setTestUrl(`/music/play/licks?mode=${mode}`);
+      const harness = makeRuntime();
+      render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
 
-    button("Start")?.click();
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
-    const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
-    for (const [index, midi] of expected.entries()) {
-      harness.emit(midi, index * 100);
-    }
+      button("Start")?.click();
+      await vi.waitFor(() => expect(document.body.textContent).toContain("Play the lick"));
+      const expected = LICK_PHRASES[1]!.map(([midi]) => midi);
+      for (const [index, midi] of expected.entries()) {
+        harness.emit(midi, index * 100, index === 0 ? "midi" : "onscreen");
+      }
 
-    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce());
-    const entry = harness.runtime.recordPractice.mock.calls[0]![0];
-    expect(entry.tags).toEqual(["jazz", "licks"]);
-    expect(entry.scoringEvents).toHaveLength(1);
-    expect(entry.runs).toHaveLength(1);
-    expect(entry.scoringEvents[0]).toMatchObject({
-      exerciseId: "jazz.lick.playback",
-      skillIds: ["harmony.ii-v-i"],
-      partialCredit: 1,
-    });
-    expect(entry.runs[0]).toMatchObject({
-      exerciseId: "jazz.lick.playback",
-      targetSkillIds: ["harmony.ii-v-i"],
-    });
-  });
+      await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce());
+      const entry = harness.runtime.recordPractice.mock.calls[0]![0];
+      expect(entry.tags).toEqual(["jazz", "licks"]);
+      expect(entry.scoringEvents).toHaveLength(1);
+      expect(entry.runs).toHaveLength(1);
+      expect(entry.scoringEvents[0]).toMatchObject({
+        exerciseId: "jazz.lick.playback",
+        skillIds: ["harmony.ii-v-i", "harmony.ii-v-i.licks.major-ii-V-I"],
+        partialCredit: 1,
+        assistance: mode === "check" ? "independent" : "guided",
+        source: "mixed",
+        instrument: "piano",
+      });
+      expect(entry.runs[0]).toMatchObject({
+        exerciseId: "jazz.lick.playback",
+        targetSkillIds: ["harmony.ii-v-i", "harmony.ii-v-i.licks.major-ii-V-I"],
+      });
+    },
+  );
 
   test("hides setup during the play stage and moves run controls into the stage", async () => {
     const runtime = new MusicRuntime();
@@ -306,11 +453,20 @@ function button(label: string): HTMLButtonElement | undefined {
 }
 
 function makeRuntime() {
-  let listener:
-    | ((event: { type: "noteOn"; midiNote: number; velocity: number; timestamp: number }) => void)
-    | undefined;
+  type HarnessListener = (event: {
+    type: "noteOn";
+    midiNote: number;
+    velocity: number;
+    timestamp: number;
+    source: "midi" | "onscreen";
+  }) => void;
+  // Every subscriber hears the event: the page's session and any PianoSurface
+  // that lights held notes from the router.
+  const listeners = new Set<HarnessListener>();
   let onInstrumentChange: ((instrument: InstrumentId) => void) | undefined;
+  let onBpmChange: ((bpm: number) => void) | undefined;
   const runtime = {
+    setPracticeVariantBpm: vi.fn((bpm: number) => onBpmChange?.(bpm)),
     activeSource: "onscreen",
     activeInstrument: "piano",
     audioEnabled: false,
@@ -320,9 +476,9 @@ function makeRuntime() {
     ensurePlaybackVoice: vi.fn(async () => true),
     sound: { playNote: vi.fn(), playPattern: vi.fn(), stopPattern: vi.fn() },
     router: {
-      subscribe: vi.fn((next) => {
-        listener = next;
-        return vi.fn();
+      subscribe: vi.fn((next: HarnessListener) => {
+        listeners.add(next);
+        return vi.fn(() => listeners.delete(next));
       }),
       push: vi.fn(() => true),
     },
@@ -331,6 +487,7 @@ function makeRuntime() {
     registerPracticeContext: vi.fn(
       async (context: Parameters<MusicRuntime["registerPracticeContext"]>[0]) => {
         onInstrumentChange = context.onInstrumentChange;
+        onBpmChange = context.onBpmChange;
         context.onBpmChange?.(150);
         return vi.fn();
       },
@@ -341,8 +498,10 @@ function makeRuntime() {
 
   return {
     runtime,
-    emit(midiNote: number, timestamp: number) {
-      listener?.({ type: "noteOn", midiNote, velocity: 1, timestamp });
+    emit(midiNote: number, timestamp: number, source: "midi" | "onscreen" = "onscreen") {
+      for (const listener of Array.from(listeners)) {
+        listener({ type: "noteOn", midiNote, velocity: 1, timestamp, source });
+      }
     },
     changeInstrument(instrument: InstrumentId) {
       onInstrumentChange?.(instrument);

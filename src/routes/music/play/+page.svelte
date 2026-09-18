@@ -104,6 +104,7 @@
   let midiPlaybackGeneration = 0;
   let midiPlaybackTimer: ReturnType<typeof setTimeout> | undefined;
   let generatedPlaybackGeneration = 0;
+  let mediaLoadGeneration = 0;
   let backingPending = false;
   let practiceContextCleanup: (() => void) | undefined;
   let practiceContextRequest = 0;
@@ -166,7 +167,21 @@
   }
 
   onMount(async () => {
-    await Promise.all([loadMedia(), loadAudioDevices()]);
+    await loadAudioDevices();
+  });
+
+  $effect(() => {
+    const media = runtime.media;
+    let active = true;
+    if (media) {
+      void loadMedia(media).catch((error) => {
+        if (active) saveError = error instanceof Error ? error.message : "Saved media could not be loaded.";
+      });
+    }
+    return () => {
+      active = false;
+      mediaLoadGeneration += 1;
+    };
   });
 
   onDestroy(() => {
@@ -184,14 +199,21 @@
     stopTake();
   });
 
-  async function loadMedia(): Promise<void> {
-    if (!runtime.media) return;
-    importedTracks = await runtime.media.listBackings();
-    takes = await runtime.media.listTakes();
+  async function loadMedia(media = runtime.media): Promise<void> {
+    const generation = ++mediaLoadGeneration;
+    if (!media) return;
+    const [tracks, storedTakes, usage] = await Promise.all([
+      media.listBackings(),
+      media.listTakes(),
+      media.usage(),
+    ]);
+    if (generation !== mediaLoadGeneration || media !== runtime.media) return;
+    importedTracks = tracks;
+    takes = storedTakes;
     selectedTake = selectedTake
       ? (takes.find((take) => take.id === selectedTake?.id) ?? takes[0])
       : takes[0];
-    mediaUsage = await runtime.media.usage();
+    mediaUsage = usage;
   }
 
   async function loadAudioDevices(

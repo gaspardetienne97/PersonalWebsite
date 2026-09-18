@@ -8,11 +8,13 @@ test.describe("ear training path and drills", () => {
     await expect(steps).toHaveCount(6);
     await expect(page.getByTestId("ear-path-continue")).toHaveAttribute(
       "href",
-      "/music/learn/ear/scale-degrees?answer=listen&level=anchor",
+      "/music/learn/ear/scale-degrees?answer=choice&level=major-diatonic",
     );
 
-    await steps.first().getByRole("link", { name: "Practice" }).click();
-    await expect(page).toHaveURL(/\/music\/learn\/ear\/scale-degrees\?answer=listen&level=anchor/);
+    await steps.first().getByRole("link", { name: "Open", exact: true }).click();
+    await expect(page).toHaveURL(
+      /\/music\/learn\/ear\/scale-degrees\?answer=listen-along&level=anchor/,
+    );
     await expect(page.getByRole("heading", { name: "Scale degrees" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled({
       timeout: 15_000,

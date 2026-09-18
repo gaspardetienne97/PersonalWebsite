@@ -15,7 +15,10 @@ describe("/music/songs/+page.svelte", () => {
     };
     const runtime = new MusicRuntime();
     vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
-    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => undefined);
+    // A scheduled pattern reports its epoch; the view only says "Playing" then.
+    const playPattern = vi
+      .spyOn(runtime.sound, "playPattern")
+      .mockReturnValue({ clock: "performance", startedAt: 0 as never });
     const recordPractice = vi.spyOn(runtime, "recordPractice").mockResolvedValue();
 
     render(Page, { runtime, library });

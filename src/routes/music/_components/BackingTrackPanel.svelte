@@ -64,7 +64,7 @@
     { value: "imported", label: "Imported backing" },
   ];
 
-  const mode = $derived(backingState.selection.kind);
+  let mode = $derived<string>(backingState.selection.kind);
   const currentLoop = $derived(backingState.selection.kind !== "none" ? backingState.selection.loop : false);
   const currentProgression = $derived(
     backingState.selection.kind === "generated"
@@ -187,7 +187,7 @@
   <Card.Content class="space-y-5">
     <SegmentedControl
       options={MODES}
-      value={mode}
+      bind:value={mode}
       ariaLabel="Backing source"
       class="w-full flex-wrap justify-center sm:w-fit"
       onChange={selectMode}

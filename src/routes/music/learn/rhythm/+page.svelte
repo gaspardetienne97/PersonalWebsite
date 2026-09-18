@@ -33,9 +33,9 @@
   import { Progress } from "@repo/ui/progress";
 
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
+  import MidiStatus from "../../_components/MidiStatus.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
-  import { meanPartialCredit } from "@repo/music-core/engines/sessions";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
@@ -86,7 +86,6 @@
   let unsubscribeSession: (() => void) | undefined;
   // Seeded by the $effect below (avoids an init-time read of the runtime prop).
   let midiEnabled = $state(false);
-  let midiStatus = $state("");
   let microphoneState = $state<AudioPitchState>(microphone.state);
   let microphoneStatus = $state("Start the microphone to score acoustic note attacks.");
   let microphoneAcceptAfterMs = Number.POSITIVE_INFINITY;
@@ -97,6 +96,9 @@
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
   const runSummary = $derived(sessionState?.summary);
+  const recommendIncrease = $derived(
+    (runSummary?.accuracy ?? 0) >= 0.9 && (runSummary?.meanAbsoluteErrorMs ?? Infinity) <= 100 && bpm < 220,
+  );
   const hud = $derived(sessionState ? rhythmHudProjection(sessionState) : undefined);
   const activeBeatIndex = $derived(Math.floor((sessionState?.live?.progress ?? 0) * beats));
   const activePatternEvents = $derived(patternEvents(sessionState?.currentPrompt));
@@ -150,10 +152,8 @@
 
   $effect(() => {
     midiEnabled = runtime.midi.state.enabled;
-    midiStatus = midiMessage();
     return runtime.midi.subscribeState(() => {
       midiEnabled = runtime.midi.state.enabled;
-      midiStatus = midiMessage();
     });
   });
   const unsubscribeMicrophoneState = microphone.subscribeState((state) => {
@@ -183,17 +183,6 @@
     } catch (error) {
       status = message(error, "Rhythm history could not be loaded.");
     }
-  }
-
-  function midiMessage(): string {
-    if (runtime.midi.state.enabled) {
-      return `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`;
-    }
-    return runtime.midi.state.error ?? "MIDI permission has not been requested.";
-  }
-
-  async function enableMidi(): Promise<void> {
-    await runtime.midi.enable();
   }
 
   async function toggleMicrophone(): Promise<void> {
@@ -247,6 +236,7 @@
           captured = true;
           void runtime.recordPractice({
             source: "drill",
+            comparison: { variantKey: rhythmVariantKey(mode, pattern), bpm, settings: JSON.stringify({ beats }), dimensions: "mode, pattern and beat count" },
             tags: ["rhythm"],
             scoringEvents: state.summary.results.map((result) => result.event),
             xpEarned: state.summary.xp,
@@ -258,6 +248,7 @@
       const startTimestampMs = Number(clock.downbeat);
       microphoneAcceptAfterMs = startTimestampMs;
       await session.start({
+        instrument: runtime.activeInstrument,
         bpm,
         beats,
         pattern,
@@ -404,9 +395,7 @@
   </p>
 
   {#snippet inputActions()}
-    <Button type="button" variant="outline" disabled={midiEnabled || pending} onclick={enableMidi}>
-      {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-    </Button>
+    <MidiStatus />
     <Button
       type="button"
       variant="outline"
@@ -442,7 +431,6 @@
       {#snippet lastRunDelta()}
         <LastRunDelta
           tags={["rhythm"]}
-          accuracy={meanPartialCredit((runSummary?.results ?? []).map((result) => result.event))}
           before={visitStartedAt}
         />
       {/snippet}
@@ -458,17 +446,19 @@
           <p class="text-sm text-muted-foreground">{runSummary.results[0].result.feedback[0].message}</p>
         {/if}
         <p class="text-xs text-muted-foreground">+{runSummary?.xp ?? 0} XP · Rhythm</p>
+        <p class="text-sm text-muted-foreground">
+          {recommendIncrease ? "Steady timing. Try the next tempo when you feel ready." : "Repeat this tempo or slow down to make the pulse steadier."}
+        </p>
       {/snippet}
       {#snippet actions()}
         <Button
           type="button"
-          disabled={bpm >= 220}
-          onclick={() => prepareBpm(Math.min(220, bpm + 10))}
+          onclick={() => prepareBpm(recommendIncrease ? Math.min(220, bpm + 10) : bpm)}
         >
-          Increase to {Math.min(220, bpm + 10)} BPM
+          {recommendIncrease ? `Increase to ${Math.min(220, bpm + 10)} BPM` : `Repeat at ${bpm} BPM`}
         </Button>
-        <Button type="button" variant="outline" onclick={() => prepareBpm(bpm)}>
-          Repeat at {bpm} BPM
+        <Button type="button" variant="outline" disabled={!recommendIncrease && bpm >= 220} onclick={() => prepareBpm(recommendIncrease ? bpm : Math.min(220, bpm + 10))}>
+          {recommendIncrease ? `Repeat at ${bpm} BPM` : `Increase to ${Math.min(220, bpm + 10)} BPM`}
         </Button>
         <Button
           type="button"
@@ -578,7 +568,6 @@
           <div class="flex flex-wrap gap-2">
             {@render inputActions()}
           </div>
-          <p class="text-sm text-stage-muted">{midiStatus}</p>
           <p class="text-sm text-stage-muted">{microphoneStatus}</p>
         </div>
         <p class="text-sm text-stage-muted">{status}</p>

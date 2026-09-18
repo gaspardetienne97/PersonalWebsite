@@ -457,13 +457,16 @@ export function downloadName(name: string, mimeType: string): string {
   return name.toLowerCase().endsWith(`.${extension}`) ? name : `${name}.${extension}`;
 }
 
-function backingKey(id: string): string {
+export function backingBinaryKey(id: string): string {
   return `music-backing-${id}`;
 }
 
-function takeKey(id: string): string {
+export function takeBinaryKey(id: string): string {
   return `music-take-${id}`;
 }
+
+const backingKey = backingBinaryKey;
+const takeKey = takeBinaryKey;
 
 function normalizeMimeType(mimeType: string): string {
   return mimeType.split(";", 1)[0]?.trim().toLowerCase() ?? "";
@@ -569,10 +572,12 @@ type LockCapableNavigator = Navigator & {
   };
 };
 
-function browserMutationLock<T>(operation: () => Promise<T>): Promise<T> {
+export function withMediaLibraryMutationLock<T>(operation: () => Promise<T>): Promise<T> {
   if (typeof navigator !== "undefined") {
     const locks = (navigator as LockCapableNavigator).locks;
     if (locks) return locks.request<T>(MEDIA_LIBRARY_LOCK_NAME, operation);
   }
   return fallbackMutationLock(operation);
 }
+
+const browserMutationLock = withMediaLibraryMutationLock;

@@ -1,3 +1,4 @@
+import { continueEarPractice } from "../_components/ear-test-helpers";
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
@@ -23,7 +24,10 @@ describe("/music/learn/ear/cadences/+page.svelte", () => {
     await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
     expect(document.body.textContent).toContain("What cadence did you hear?");
     expect(document.body.textContent).toContain("Authentic");
+    expect(document.body.textContent).toContain("Listen, then choose an answer below.");
+    expect(document.body.textContent).not.toContain("or play it on your instrument");
     answerChoiceButton()?.click();
+    await continueEarPractice();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
   });

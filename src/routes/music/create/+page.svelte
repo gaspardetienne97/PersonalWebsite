@@ -22,7 +22,10 @@
   let mode = $state<CreateMode>("beat");
 
   $effect(() => {
-    mode = normalizeMode($page.url?.searchParams.get("mode") ?? null);
+    // Shallow updates retain page.url; the address bar owns the current mode.
+    const pageUrl = $page.url;
+    const search = typeof window === "undefined" ? pageUrl?.search ?? "" : window.location.search;
+    mode = normalizeMode(new URLSearchParams(search).get("mode"));
   });
 
   function normalizeMode(value: string | null): CreateMode {

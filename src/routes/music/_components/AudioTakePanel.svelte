@@ -192,27 +192,52 @@
     <div class="grid gap-2">
       {#if takes.length > 0}
         {#each takes as take (take.id)}
-          <button
-            type="button"
-            class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors hover:bg-muted/50 {selected?.id ===
+          {@const playing = playingTakeId === take.id}
+          <div
+            class="flex items-center gap-2 rounded-lg border pr-2 transition-colors {selected?.id ===
             take.id
               ? 'border-primary/40 bg-primary/5'
               : 'bg-background'}"
-            aria-label={`Select take ${take.name}`}
-            onclick={() => onSelectTake?.(take)}
           >
-            <span class="min-w-0">
-              <span class="block truncate text-sm font-semibold">{take.name}</span>
-              <span class="text-xs text-muted-foreground">
-                {formatDuration(take.durationMs)} · {formatBytes(take.size)} · {take.instrument}
+            <!-- Play lives on the card: a take is something you listen to, not a row you select. -->
+            <Button
+              type="button"
+              size="icon"
+              variant={playing ? "default" : "ghost"}
+              class="ml-1 size-11 shrink-0 rounded-full"
+              aria-label={`${playing ? "Pause" : "Play"} take ${take.name}`}
+              onclick={() => {
+                onSelectTake?.(take);
+                if (playing) onPauseTake?.(take);
+                else void onPlayTake?.(take);
+              }}
+            >
+              {#if playing}
+                <Pause class="size-4" aria-hidden="true" />
+              {:else}
+                <Play class="size-4" aria-hidden="true" />
+              {/if}
+            </Button>
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 items-center justify-between gap-3 py-2 text-left hover:bg-muted/40"
+              aria-label={`Select take ${take.name}`}
+              onclick={() => onSelectTake?.(take)}
+            >
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-semibold">{take.name}</span>
+                <span class="text-xs text-muted-foreground">
+                  <Mic class="mr-1 inline size-3 align-[-2px]" aria-hidden="true" />Audio ·
+                  {formatDuration(take.durationMs)} · {formatBytes(take.size)} · {take.instrument}
+                </span>
               </span>
-            </span>
-            {#if take.backingKind}
-              <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold capitalize text-muted-foreground">
-                {take.backingKind}
-              </span>
-            {/if}
-          </button>
+              {#if take.backingKind}
+                <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold capitalize text-muted-foreground">
+                  {take.backingKind}
+                </span>
+              {/if}
+            </button>
+          </div>
         {/each}
       {:else}
         <p class="rounded-lg bg-muted/40 px-3 py-3 text-sm text-muted-foreground">

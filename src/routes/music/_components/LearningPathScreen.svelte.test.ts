@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
+import { unixMs } from "@repo/music-core/domain";
 import { buildLearningPath } from "@repo/music-core/engines/learning-path";
 
 import LearningPathScreen from "./LearningPathScreen.svelte";
@@ -36,12 +37,28 @@ describe("LearningPathScreen", () => {
           skillIds: ["t"],
         },
       ],
-      { mastery: (id) => (id === "s" ? 0.9 : 0.1) },
+      {
+        events: [
+          {
+            id: "e",
+            sessionId: "s",
+            exerciseId: "e",
+            skillIds: ["s"],
+            capabilities: [],
+            at: unixMs(1),
+            correct: true,
+            partialCredit: 0.9,
+            difficulty: 0.5,
+            metrics: [],
+            assistance: "independent",
+          },
+        ],
+      },
     );
     render(LearningPathScreen, { title: "Test Path", subtitle: "Sub", path });
 
     expect(document.querySelector("h1")?.textContent).toContain("Test Path");
-    expect(document.body.textContent).toContain("1 / 3 done");
+    expect(document.body.textContent).toContain("1 / 2 done");
     const steps = [...document.querySelectorAll('[data-testid="learning-path-steps"] li')];
     expect(steps.map((li) => li.textContent?.includes("Done when: One clean run."))).toEqual([
       true,
@@ -56,6 +73,6 @@ describe("LearningPathScreen", () => {
     expect(document.querySelector('a[href="/music/x?a=1"]')?.textContent?.trim()).toBe("Practice");
     expect(document.querySelector('a[href="/music/y"]')?.textContent?.trim()).toBe("Open");
     expect(document.querySelector('a[href="/music/z"]')).not.toBeNull();
-    expect(document.body.textContent).toContain("90% mastery");
+    expect(document.body.textContent).toContain("90% independent score");
   });
 });

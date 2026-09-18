@@ -81,3 +81,8 @@ export async function openSetup(): Promise<void> {
     expect(document.querySelector('[aria-label="Feedback mode"]')).not.toBeNull(),
   );
 }
+
+export async function continueEarPractice(): Promise<void> {
+  await vi.waitFor(() => expect(button("Continue")).not.toBeUndefined());
+  button("Continue")?.click();
+}

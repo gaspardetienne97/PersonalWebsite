@@ -29,6 +29,7 @@ export type VoicingGradingMode = "chord" | "arpeggio";
 export interface VoicingTarget {
   /** Stable id for this prompt (e.g. "C-ii"). */
   id: string;
+  skillIds?: string[];
   /** Chord symbol shown to the player, e.g. "Dm7". */
   symbol: string;
   /**
@@ -50,6 +51,8 @@ export interface VoicingTarget {
   strict?: boolean;
   /** The voiced MIDI notes, for showing the target on an instrument view. */
   displayMidi?: number[];
+  /** Two guide tones selected sequentially or via MIDI; timing is not graded. */
+  voiceLeading?: { fromMidi: [number, number]; register: [number, number] };
 }
 
 export interface VoicingDrillPrompt {
@@ -63,6 +66,7 @@ export interface VoicingDrillAnswer {
 }
 
 export const VOICING_DRILL_SKILL = "harmony.ii-v-i";
+export const VOICE_LEADING_SKILL = "harmony.ii-v-i.voice-leading";
 
 /**
  * A voicing-drill exercise pinned to one target. The session builds one per
@@ -75,7 +79,7 @@ export function createVoicingDrillExercise(
     id: `voicing-drill.${target.id}`,
     name: `Voice ${target.symbol}`,
     capabilities: [Capability.Harmony],
-    skillIds: [VOICING_DRILL_SKILL],
+    skillIds: target.skillIds ?? [VOICING_DRILL_SKILL],
     inputs: ["midi", "onscreen", "audio"],
     streaming: true,
     generate: () => ({ id: target.id, payload: { target } }),
@@ -92,6 +96,20 @@ function createVoicingRun(target: VoicingTarget): ExerciseRun<VoicingDrillAnswer
       input.push(event);
     },
     getLiveState() {
+      if (target.voiceLeading) {
+        const count = new Set(playedMidiNotes(input)).size;
+        return {
+          progress: Math.min(count / 2, 1),
+          runningScore: 0,
+          feedback: [
+            {
+              severity: "info",
+              message:
+                count === 2 ? "Two notes selected" : `${count} notes selected · select exactly two`,
+            },
+          ],
+        };
+      }
       const { matched } = grade(target, input);
       const progress = expected.length === 0 ? 0 : matched / expected.length;
       return { progress, runningScore: progress, feedback: [] };
@@ -172,8 +190,19 @@ function gradeToResult(
   const expected = target.expectedPitchClasses;
   const { matched, actual } = grade(target, input);
   const total = expected.length;
-  const score = total === 0 ? 0 : matched / total;
-  const correct = matched === total;
+  const movement = target.voiceLeading ? gradeVoiceLeading(target, input) : undefined;
+  const correct = movement
+    ? movement.membershipCorrect && movement.actualSemitones === movement.minimumSemitones
+    : matched === total;
+  const score = movement
+    ? correct
+      ? 1
+      : movement.membershipCorrect
+        ? 0.5
+        : 0
+    : total === 0
+      ? 0
+      : matched / total;
 
   const expectedSet = new Set(expected);
   const actualSet = new Set(actual);
@@ -189,17 +218,22 @@ function gradeToResult(
   return {
     correct,
     score,
-    metrics: [metric],
-    feedback: [
-      correct
-        ? { severity: "good", message: `${target.symbol} — all ${total} notes correct.` }
-        : {
-            severity: "warn",
-            message: `${target.symbol} — ${matched}/${total} notes. Missing ${
-              metric.missingPitchClasses?.length ?? 0
-            }.`,
-          },
-    ],
+    metrics: movement ? [metric, movement] : [metric],
+    feedback: movement
+      ? [{ severity: correct ? "good" : "warn", message: voiceLeadingFeedback(movement) }]
+      : [
+          correct
+            ? {
+                severity: "good",
+                message: `${target.symbol} — ${total}/${total} ${target.mode === "chord" && !target.strict ? "notes collected. Extra notes are tolerated." : "target notes matched."}`,
+              }
+            : {
+                severity: "warn",
+                message: `${target.symbol} — ${matched}/${total} notes. Missing ${
+                  metric.missingPitchClasses?.length ?? 0
+                }.`,
+              },
+        ],
     target: { label: target.symbol },
     response: { midiNotes: playedMidiNotes(input) },
     answer: { playedPitchClasses: actual, matched, total },
@@ -219,4 +253,42 @@ function pitchClassOrder(midiNotes: number[]): number[] {
     }
   }
   return order;
+}
+
+/** Enumerate the bounded register so every equally economical voicing earns credit. */
+function gradeVoiceLeading(
+  target: VoicingTarget,
+  input: NoteEvent[],
+): Extract<ScoringMetric, { kind: "voice-leading" }> {
+  const { fromMidi, register } = target.voiceLeading!;
+  const from = [...fromMidi].sort((a, b) => a - b);
+  const actualMidi = [...new Set(playedMidiNotes(input))].sort((a, b) => a - b);
+  const expected = new Set(target.expectedPitchClasses);
+  const isMember = (pair: number[]) =>
+    pair.length === 2 &&
+    pair.every((note) => note >= register[0] && note <= register[1] && expected.has(pc12(note))) &&
+    new Set(pair.map(pc12)).size === 2;
+  const travel = (low: number, high: number) =>
+    Math.abs(low - from[0]!) + Math.abs(high - from[1]!);
+  let minimumSemitones = Infinity;
+  for (let low = register[0]; low <= register[1]; low += 1) {
+    for (let high = low + 1; high <= register[1]; high += 1) {
+      if (isMember([low, high])) minimumSemitones = Math.min(minimumSemitones, travel(low, high));
+    }
+  }
+  return {
+    kind: "voice-leading",
+    fromMidi: from,
+    actualMidi,
+    register,
+    membershipCorrect: isMember(actualMidi),
+    ...(actualMidi.length === 2 ? { actualSemitones: travel(actualMidi[0]!, actualMidi[1]!) } : {}),
+    minimumSemitones,
+  };
+}
+
+export function voiceLeadingFeedback(
+  metric: Extract<ScoringMetric, { kind: "voice-leading" }>,
+): string {
+  return `Membership: ${metric.membershipCorrect ? "correct" : "needs exactly two guide tones in the register"}. Movement: ${metric.actualSemitones === undefined ? "not measured (select exactly two distinct notes)" : `${metric.actualSemitones} semitone${metric.actualSemitones === 1 ? "" : "s"}`}; minimum ${metric.minimumSemitones} semitone${metric.minimumSemitones === 1 ? "" : "s"}.`;
 }

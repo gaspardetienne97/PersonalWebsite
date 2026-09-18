@@ -809,3 +809,96 @@ describe("music-core/sound", () => {
     expect(mock.metronomeTrigger).toHaveBeenNthCalledWith(4, 800, "32n", 11.5, 0.45);
   });
 });
+
+test("lazily schedules percussion on playback gain, disposes future sound, and recreates voices", async () => {
+  const mock = createToneMock();
+  const voices: Array<{
+    kind: string;
+    triggerAttackRelease: ReturnType<typeof vi.fn>;
+    connect: ReturnType<typeof vi.fn>;
+    dispose: ReturnType<typeof vi.fn>;
+  }> = [];
+  for (const kind of ["MembraneSynth", "NoiseSynth", "MetalSynth"] as const) {
+    mock.tone[kind] = class {
+      triggerAttackRelease = vi.fn();
+      triggerAttack = vi.fn();
+      triggerRelease = vi.fn();
+      dispose = vi.fn();
+      connect = vi.fn(() => this);
+      toDestination = vi.fn(() => this);
+      constructor() {
+        voices.push(Object.assign(this, { kind }));
+      }
+    };
+  }
+  const sound = new SoundEngine(async () => mock.tone);
+  await sound.enable();
+  expect(voices).toHaveLength(0);
+  sound.playPercussion("kick", 12, 0.8);
+  sound.playPercussion("snare", 13, 0.7);
+  sound.playPercussion("hats", 14, 0.6);
+  expect(voices.map((voice) => voice.kind)).toEqual(["MembraneSynth", "NoiseSynth", "MetalSynth"]);
+  expect(voices[0].triggerAttackRelease).toHaveBeenCalledWith("C1", 0.15, 12, 0.8);
+  expect(voices[1].triggerAttackRelease).toHaveBeenCalledWith(0.12, 13, 0.7);
+  expect(voices[2].triggerAttackRelease).toHaveBeenCalledWith(200, 0.04, 14, 0.6);
+  for (const voice of voices) expect(voice.connect).toHaveBeenCalledWith(mock.playbackGain());
+  sound.stopPercussion();
+  for (const voice of voices) expect(voice.dispose).toHaveBeenCalledOnce();
+  sound.playPercussion("kick", 15);
+  expect(voices).toHaveLength(4);
+  sound.dispose();
+  expect(voices[3].dispose).toHaveBeenCalledOnce();
+});
+
+test("cancels queued metronome automation by disposing and recreating its voice", async () => {
+  const mock = createToneMock();
+  const sound = new SoundEngine(async () => mock.tone);
+  await sound.enable();
+  const original = mock.synthInstances[0];
+  const dispose = vi.spyOn(original, "dispose");
+  sound.playMetronomeClick(20, true);
+  sound.stopMetronomeClicks();
+  expect(dispose).toHaveBeenCalledOnce();
+  sound.playMetronomeClick(30, false);
+  expect(mock.synthInstances).toHaveLength(2);
+  expect(mock.synthInstances[1].destination).toBe(mock.metronomeGain());
+  sound.dispose();
+});
+
+describe("SoundEngine pattern look-ahead", () => {
+  test("hands notes to the voice just ahead of their start and stops the rest", async () => {
+    vi.useFakeTimers();
+    try {
+      let audioSeconds = 10;
+      const mock = createToneMock({ immediate: () => audioSeconds, now: () => audioSeconds });
+      const sound = new SoundEngine(async () => mock.tone);
+      await sound.enable();
+      await sound.loadSampler({ C4: "/samples/piano.mp3" });
+
+      sound.playPattern([
+        { midiNotes: [60], offsetSeconds: 0, durationSeconds: 0.5 },
+        { midiNotes: [60], offsetSeconds: 0.8, durationSeconds: 0.5 },
+        { midiNotes: [60], offsetSeconds: 2.5, durationSeconds: 0.5 },
+        { midiNotes: [64], offsetSeconds: 6, durationSeconds: 0.5 },
+      ]);
+      // Only the first second of material is scheduled up front.
+      expect(mock.samplerTrigger).toHaveBeenCalledTimes(2);
+      expect(mock.samplerTrigger).toHaveBeenNthCalledWith(2, ["C4"], 0.5, 10.8, 0.8);
+
+      // Time passes on the audio clock; the scheduler tops the window up.
+      audioSeconds = 11.6;
+      vi.advanceTimersByTime(100);
+      expect(mock.samplerTrigger).toHaveBeenCalledTimes(3);
+      expect(mock.samplerTrigger).toHaveBeenLastCalledWith(["C4"], 0.5, 12.5, 0.8);
+
+      // Stopping cancels what has not been handed over yet.
+      sound.stopPattern();
+      audioSeconds = 20;
+      vi.advanceTimersByTime(1_000);
+      expect(mock.samplerTrigger).toHaveBeenCalledTimes(3);
+      expect(mock.releaseAll).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

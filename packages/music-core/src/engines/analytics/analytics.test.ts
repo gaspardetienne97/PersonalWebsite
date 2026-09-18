@@ -35,6 +35,36 @@ function choiceEvent(id: string, skillId: string, expected: string, actual: stri
 }
 
 describe("music-core/analytics", () => {
+  test("scopes coaching evidence before applying the sample floor and ranking", async () => {
+    const analytics = new AnalyticsEngine();
+    for (let i = 0; i < 5; i += 1) {
+      await analytics.ingest({
+        ...choiceEvent(`piano-${i}`, "shared", "C", "D"),
+        instrument: "piano",
+        assistance: "independent",
+      });
+      await analytics.ingest({
+        ...choiceEvent(`hint-${i}`, "shared", "C", "D"),
+        instrument: "guitar",
+        assistance: "hinted",
+      });
+    }
+    for (let i = 0; i < 4; i += 1)
+      await analytics.ingest({
+        ...choiceEvent(`guitar-${i}`, "shared", "C", "D"),
+        instrument: "guitar",
+        assistance: "independent",
+      });
+    const scope = { instrument: "guitar" as const, minAttempts: 5, assessedOnly: true };
+    expect(analytics.weakestSkills(1, scope)).toEqual([]);
+    await analytics.ingest({
+      ...choiceEvent("guitar-5", "shared", "C", "C"),
+      instrument: "guitar",
+      assistance: "independent",
+    });
+    expect(analytics.weakestSkills(1, scope)[0]).toMatchObject({ attempts: 5, accuracy: 0.2 });
+    expect(analytics.getStats("shared")?.attempts).toBe(15);
+  });
   test("reports the pipeline-trace substitution by skill and ranks the weak skill", async () => {
     const analytics = new AnalyticsEngine();
     const traceAnswers = ["P5", "P5", "P5", "P5", "m6", "m6", "m6", "m6"];

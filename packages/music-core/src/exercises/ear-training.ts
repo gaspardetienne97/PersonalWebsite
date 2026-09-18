@@ -13,7 +13,7 @@ export type EarTrainingDrill =
   | "scale-degree"
   | "melody-dictation"
   | "repertoire-transfer";
-export type EarTrainingAnswerMode = "choice" | "play-back" | "voice" | "listen";
+export type EarTrainingAnswerMode = "choice" | "play-back" | "voice" | "listen" | "listen-along";
 export type EarTrainingFeedbackMode = "practice" | "test";
 
 export interface PromptPlaybackStep {

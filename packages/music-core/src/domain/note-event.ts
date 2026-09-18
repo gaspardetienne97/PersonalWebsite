@@ -46,6 +46,8 @@ export interface NoteOnEvent extends NoteEventBase {
   midiNote: number;
   /** Exact detected frequency before quantization; present on the audio path. */
   frequencyHz?: number;
+  /** Observed on-screen string/fret selection; never inferred from MIDI pitch. */
+  fretPosition?: { stringNumber: number; fretNumber: number };
   /** Normalized velocity 0-1 (raw MIDI 0-127 is scaled on ingest). */
   velocity: number;
   channel?: number;

@@ -20,6 +20,8 @@
     visibleStrings,
     fretWindow,
     dotLabels,
+    hideNoteNames = false,
+    anchorPosition,
     onAccepted,
   }: {
     tuning: TuningProfile;
@@ -38,11 +40,19 @@
     fretWindow?: FretWindow;
     /** Text on a highlighted dot per MIDI note (finger numbers); defaults to the note name. */
     dotLabels?: Record<number, string>;
+    hideNoteNames?: boolean;
+    anchorPosition?: { stringNumber: number; fretNumber: number };
     onAccepted?: (event: NoteEvent) => void;
   } = $props();
 
-  type FretState = "target" | "active" | "correct" | "wrong";
-  type FretDot = Position & { color: string; label: string; state: FretState };
+  type FretState = "target" | "active" | "correct" | "wrong" | "focus" | "anchor";
+  type FretDot = Position & {
+    color: string;
+    label: string;
+    state: FretState;
+    focused: boolean;
+  };
+  type FocusedFret = { stringNumber: number; fret: number; midiNote: number };
   type FretboardConstructor = new (options?: Record<string, unknown>) => FretboardType;
 
   const fretCount = $derived(Math.min(tuning.fretCount, Math.max(0, visibleFrets)));
@@ -75,9 +85,8 @@
   const fbTuning = $derived(fbOpenMidi.map((midi) => midiToNote(midi)));
   const fbStringFor = (openMidi: number) => fbOpenMidi.indexOf(openMidi) + 1;
 
-  function play(midiNote: number): void {
-    const event = router.noteOn(midiNote, "onscreen", tuning.instrument);
-    event.inputProfileId = tuning.id;
+  function play(midiNote: number, stringNumber: number, fretNumber: number): void {
+    const event = router.noteOn(midiNote, "onscreen", tuning.instrument, { inputProfileId: tuning.id, fretPosition: { stringNumber, fretNumber } });
     onAccepted?.(event);
   }
 
@@ -91,8 +100,17 @@
 
   // --- fretboard.js visual layer -------------------------------------------
   let visual = $state<HTMLDivElement>();
+  let visualWidth = $state(0);
+  let resizeFrame = 0;
   let fretboard = $state<FretboardType | undefined>();
   let FretboardCtor = $state<FretboardConstructor>();
+  let focusedFret = $state<FocusedFret>();
+
+  function resizeVisual(width: number): void {
+    cancelAnimationFrame(resizeFrame);
+    // Rebuild after ResizeObserver delivery, outside its layout notification loop.
+    resizeFrame = requestAnimationFrame(() => (visualWidth = width));
+  }
 
   function themeColor(token: string, fallback: string): string {
     if (typeof window === "undefined") return fallback;
@@ -105,6 +123,7 @@
     if (s === "wrong") return themeColor("--destructive", "#ef4444");
     if (s === "correct") return themeColor("--success", "#22c55e");
     if (s === "active") return themeColor("--practice-accent", "#7c5cff");
+    if (s === "focus") return themeColor("--stage", "#ffffff");
     // Targets are the chord or pattern itself: ink, not amber (amber means "needs work").
     return themeColor("--stage-foreground", "#111111");
   }
@@ -117,7 +136,59 @@
   }
 
   function noteLabel(midiNote: number): string {
+    if (hideNoteNames) return "";
     return dotLabels?.[midiNote] ?? midiToNote(midiNote).replace(/\d+$/, "");
+  }
+
+  /**
+   * Position markers at the real frets (3, 5, 7, 9, 15 …, a double at 12),
+   * drawn between the fret wires and under the dots. fretboard.js has no inlay
+   * option, so they are added to its SVG after each render.
+   */
+  function drawInlays(): void {
+    const svg = visual?.querySelector("svg");
+    if (!svg) return;
+    svg.querySelector(".inlays")?.remove();
+    // fretboard.js places fret wires at percentage x (they stretch with the
+    // board) and strings at pixel y; the circles reuse the same units.
+    const fretX = [...svg.querySelectorAll<SVGLineElement>(".frets line")]
+      .map((line) => parseFloat(line.getAttribute("x1") ?? ""))
+      .filter((x) => Number.isFinite(x))
+      .sort((a, b) => a - b);
+    const fretUnit = svg.querySelector(".frets line")?.getAttribute("x1")?.endsWith("%") ? "%" : "";
+    const stringY = [...svg.querySelectorAll<SVGLineElement>(".strings line")]
+      .map((line) => parseFloat(line.getAttribute("y1") ?? ""))
+      .filter((y) => Number.isFinite(y))
+      .sort((a, b) => a - b);
+    if (fretX.length < 2 || stringY.length < 2) return;
+    const top = stringY[0]!;
+    const bottom = stringY[stringY.length - 1]!;
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    group.setAttribute("class", "inlays");
+    group.setAttribute("aria-hidden", "true");
+    const ink = themeColor("--fretboard-fret", "#ddd");
+    for (let index = 1; index < fretX.length; index += 1) {
+      const fret = index + fretOffset;
+      if (!INLAY_FRETS.includes(fret)) continue;
+      const cx = (fretX[index - 1]! + fretX[index]!) / 2;
+      const centres =
+        fret === 12
+          ? [top + (bottom - top) / 3, top + (2 * (bottom - top)) / 3]
+          : [(top + bottom) / 2];
+      for (const cy of centres) {
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", `${cx}${fretUnit}`);
+        circle.setAttribute("cy", String(cy));
+        circle.setAttribute("r", fret === 12 ? "4.5" : "5.5");
+        circle.setAttribute("fill", ink);
+        circle.setAttribute("fill-opacity", "0.5");
+        group.append(circle);
+      }
+    }
+    // Under the dots, over the strings: the dots' own parent keeps the order.
+    const dots = svg.querySelector(".dots");
+    if (dots?.parentNode) dots.parentNode.insertBefore(group, dots);
+    else svg.append(group);
   }
 
   /** fretboard.js numbers frets from its own nut; rewrite them to the real neck. */
@@ -134,14 +205,18 @@
     for (const { openMidi } of strings) {
       for (const fret of windowFrets) {
         const midiNote = openMidi + fret;
-        const s = fretState(midiNote);
-        if (s) {
+        const anchor = anchorPosition?.stringNumber === fbStringFor(openMidi) && anchorPosition?.fretNumber === fret;
+        const s = anchor ? "anchor" : fretState(midiNote);
+        const focused =
+          focusedFret?.stringNumber === fbStringFor(openMidi) && focusedFret.fret === fret;
+        if (s || focused) {
           dots.push({
             string: fbStringFor(openMidi),
             fret: fret - fretOffset,
-            color: stateColor(s),
-            label: noteLabel(midiNote),
-            state: s,
+            color: stateColor(s ?? "focus"),
+            label: anchor ? "A" : noteLabel(midiNote),
+            state: s ?? "focus",
+            focused,
           });
         }
       }
@@ -158,13 +233,14 @@
     })();
     return () => {
       destroyed = true;
+      cancelAnimationFrame(resizeFrame);
       FretboardCtor = undefined;
     };
   });
 
   $effect(() => {
     const Fretboard = FretboardCtor;
-    if (!Fretboard || !visual) return;
+    if (!Fretboard || !visual || !visualWidth) return;
 
     const openMidiByString = [...fbOpenMidi];
     const offset = fretOffset;
@@ -174,16 +250,29 @@
       tuning: fbTuning,
       stringCount: fbTuning.length,
       fretCount: boardFretCount,
+      // Match SVG units to the available pixels; long necks scroll locally.
+      width: visualWidth - 32,
+      leftPadding: 16,
+      rightPadding: 16,
+      scaleFrets: false,
       height: 180,
+      topPadding: 14,
+      bottomPadding: 14,
       dotSize: 26,
-      dotTextSize: 11,
+      dotStrokeWidth: 1.5,
+      dotTextSize: 14,
       dotText: (dot: FretDot) => dot.label,
       // The neck as material: wood from --fretboard (on the wrapper), light fret
-      // wire and strings, real fret numbers in the readout face.
+      // wire, strings that thicken toward the bass side, real fret numbers in
+      // the readout face.
       font: "Fira Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
       dotStrokeColor: "oklch(0 0 0 / 0.25)",
+      stringWidth: fbTuning.map(
+        (_, index) => 1 + (index * 2.2) / Math.max(1, fbTuning.length - 1),
+      ) as unknown as number,
       stringColor: themeColor("--fretboard-fret", "#ddd"),
       fretColor: themeColor("--fretboard-fret", "#ddd"),
+      fretWidth: 2,
       // A real nut only when the window starts at fret 0; otherwise a thin fret-coloured edge.
       nutColor: offset === 0 ? themeColor("--foreground", "#fff") : themeColor("--muted-foreground", "#888"),
       nutWidth: offset === 0 ? 7 : 2,
@@ -193,10 +282,11 @@
     });
     board.render();
     relabelFretNumbers();
+    drawInlays();
     board.on("click", (position: Position) => {
       const openMidi = openMidiByString[position.string - 1];
       const fret = position.fret + offset;
-      if (openMidi !== undefined && fret >= firstFret) play(openMidi + fret);
+      if (openMidi !== undefined && fret >= firstFret) play(openMidi + fret, position.string, fret);
     });
     fretboard = board;
 
@@ -212,29 +302,43 @@
     const dots = highlightDots();
     if (!fretboard) return;
     fretboard.setDots(dots).render();
+    drawInlays();
     fretboard.style({
       fill: (dot: FretDot) => dot.color,
       text: (dot: FretDot) => dot.label,
-      fontSize: 11,
+      fontSize: 14,
       fontFill: themeColor("--foreground", "#111111"),
     });
-    for (const state of ["target", "active", "correct", "wrong"] as const) {
+    for (const state of ["target", "active", "correct", "wrong", "focus", "anchor"] as const) {
       fretboard.style({
         filter: { state },
         text: (dot: FretDot) => dot.label,
-        fontSize: 11,
+        fontSize: 14,
         fontFill: stateTextColor(state),
       });
     }
+    fretboard.style({
+      filter: { focused: true },
+      stroke: themeColor("--practice-accent", "#7c5cff"),
+      "stroke-width": 4,
+    });
+    visual?.querySelector('.dot-circle[stroke-width="4"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
   });
 </script>
 
 <!-- Visual fretboard (mouse/touch). Decorative: input + a11y live in the grid below. -->
 <div
-  bind:this={visual}
   aria-hidden="true"
-  class="w-full max-w-full min-w-0 overflow-x-auto rounded-lg border border-stage-line bg-fretboard p-2 shadow-inner"
-></div>
+  class="fretboard-wood w-full max-w-full min-w-0 overflow-x-auto rounded-lg border border-stage-line p-2"
+>
+  <div bind:this={visual} bind:clientWidth={null, resizeVisual} style:min-width={`${boardFretCount * 44 + 32}px`}></div>
+</div>
+
+{#if focusedFret}
+  <p data-testid="fretboard-focus" class="mt-2 text-xs font-medium text-stage-foreground">
+    Keyboard focus: String {focusedFret.stringNumber}, fret {focusedFret.fret}{hideNoteNames ? "" : `, ${midiToNote(focusedFret.midiNote)}`}
+  </p>
+{/if}
 
 {#if fretWindow}
   <!-- Where the window sits on the whole neck. -->
@@ -295,7 +399,7 @@
       {@const noteState = fretState(midiNote)}
       <button
         type="button"
-        aria-label={`String ${stringNumber} fret ${fret}, ${note}${noteState ? `, ${noteState}` : ""}`}
+        aria-label={`String ${stringNumber} fret ${fret}${hideNoteNames ? "" : `, ${note}`}${anchorPosition?.stringNumber === stringNumber && anchorPosition?.fretNumber === fret ? ", anchor" : noteState ? `, ${noteState}` : ""}`}
         class={cn(
           "grid size-10 place-items-center rounded-sm border bg-background text-xs font-medium",
           noteState === "target" && "border-warn/60 bg-warn/15 text-foreground",
@@ -304,9 +408,11 @@
           noteState === "correct" && "border-success/70 bg-success/15 text-foreground",
           noteState === "wrong" && "border-destructive/70 bg-destructive/15 text-foreground",
         )}
-        onclick={() => play(midiNote)}
+        onfocus={() => (focusedFret = { stringNumber, fret, midiNote })}
+        onblur={() => (focusedFret = undefined)}
+        onclick={() => play(midiNote, stringNumber, fret)}
       >
-        {note.replace(/\d+$/, "")}
+        {hideNoteNames ? `S${stringNumber} F${fret}` : note.replace(/\d+$/, "")}
       </button>
     {/each}
   {/each}

@@ -169,3 +169,70 @@ describe("voicing drill — arpeggio mode (monophonic)", () => {
     expect(result.score).toBeGreaterThan(0);
   });
 });
+
+describe("guide-tone voice leading", () => {
+  const target: VoicingTarget = {
+    id: "C-guide-V",
+    symbol: "G7",
+    mode: "chord",
+    expectedPitchClasses: [11, 5],
+    voiceLeading: { fromMidi: [53, 60], register: [48, 71] },
+  };
+  function answer(notes: number[], fromMidi: [number, number] = [53, 60]) {
+    const exercise = createVoicingDrillExercise({
+      ...target,
+      voiceLeading: { ...target.voiceLeading!, fromMidi },
+    });
+    const run = exercise.createRun(exercise.generate(ctx), ctx);
+    notes.forEach((note) => {
+      run.accept(noteOn(note));
+      run.accept(noteOff(note));
+    });
+    return run.finish();
+  }
+  test("separates exact membership from minimum sorted-voice travel, accepting sequential notes", () => {
+    expect(answer([53, 59])).toMatchObject({ correct: true, score: 1 });
+    expect(answer([53, 59]).metrics).toContainEqual(
+      expect.objectContaining({
+        kind: "voice-leading",
+        membershipCorrect: true,
+        actualSemitones: 1,
+        minimumSemitones: 1,
+      }),
+    );
+    expect(answer([59, 65])).toMatchObject({ correct: false });
+    expect(answer([59, 65]).metrics).toContainEqual(
+      expect.objectContaining({
+        kind: "voice-leading",
+        membershipCorrect: true,
+        actualSemitones: 11,
+        minimumSemitones: 1,
+      }),
+    );
+  });
+  test("accepts every tied minimum rather than only the authored answer", () => {
+    for (const notes of [
+      [53, 59],
+      [59, 65],
+    ]) {
+      expect(answer(notes, [53, 65])).toMatchObject({ correct: true, score: 1 });
+      expect(answer(notes, [53, 65]).metrics).toContainEqual(
+        expect.objectContaining({ minimumSemitones: 6, actualSemitones: 6 }),
+      );
+    }
+  });
+  test("rejects wrong, out-of-register, doubled octave, extra and missing pitches", () => {
+    for (const notes of [[53, 60], [41, 59], [53, 71, 59], [53, 53], [], [53], [53, 65]]) {
+      const result = answer(notes);
+      expect(result.correct).toBe(false);
+      expect(result.metrics).toContainEqual(
+        expect.objectContaining({ kind: "voice-leading", membershipCorrect: false }),
+      );
+      if (new Set(notes).size !== 2)
+        expect(
+          result.metrics.find((metric) => metric.kind === "voice-leading")?.actualSemitones,
+        ).toBeUndefined();
+    }
+    expect(answer([53, 59, 53]).correct).toBe(true);
+  });
+});

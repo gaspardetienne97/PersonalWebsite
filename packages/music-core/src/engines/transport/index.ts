@@ -242,7 +242,7 @@ export async function createToneTransportEngine(
   const tone = await import("tone");
   return new TransportEngine(tone.getTransport() as unknown as ToneTransportClock, {
     ...options,
-    audioNowSeconds: options.audioNowSeconds ?? tone.now,
+    audioNowSeconds: options.audioNowSeconds ?? tone.immediate,
     monotonicNowMs: options.monotonicNowMs ?? (() => monotonicMs(performance.now())),
   });
 }

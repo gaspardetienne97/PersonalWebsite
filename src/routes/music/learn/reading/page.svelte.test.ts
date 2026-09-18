@@ -3,6 +3,7 @@ import { render } from "vitest-browser-svelte";
 
 import { monotonicMs } from "@repo/music-core/domain";
 import { ReadingSession } from "@repo/music-core/engines/reading-session";
+import { writtenPitchName } from "@repo/music-core/engines/notation";
 import { scoreToPattern, SoundEngine } from "@repo/music-core/engines/sound";
 
 import Page from "./+page.svelte";
@@ -443,7 +444,7 @@ describe("/music/learn/reading/+page.svelte", () => {
     for (let index = 0; index < 10; index += 1) {
       const prompt = readingSession.state.currentPrompt;
       if (!prompt || !("choices" in prompt)) throw new Error("Flashcard prompt disappeared");
-      await readingSession.answerChoice(prompt.choices[0]!);
+      await readingSession.answerChoice(writtenPitchName(prompt.writtenPitches[0]!));
     }
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("Reading results"));
@@ -462,6 +463,40 @@ describe("/music/learn/reading/+page.svelte", () => {
     );
     expect(document.body.textContent).not.toContain("Recent results");
     expect(document.activeElement).toHaveAttribute("aria-label", "Reading setup");
+  });
+
+  test("continues after a wrong practice answer and retries only the missed card", async () => {
+    const startFlashcards = vi.spyOn(ReadingSession.prototype, "startFlashcards");
+    render(Page);
+
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(startFlashcards).toHaveBeenCalledOnce());
+
+    const readingSession = startFlashcards.mock.contexts[0] as ReadingSession;
+    const missedPrompt = readingSession.state.currentPrompt;
+    if (!missedPrompt || !("choices" in missedPrompt)) throw new Error("Flashcard prompt missing");
+    const expected = writtenPitchName(missedPrompt.writtenPitches[0]!);
+    const wrong = missedPrompt.choices.find((choice) => choice !== expected)!;
+    await readingSession.answerChoice(wrong);
+
+    await vi.waitFor(() => expect(button("Continue")).not.toBeUndefined());
+    expect(document.body.textContent).toContain(`Expected ${expected}`);
+    expect(document.body.textContent).toContain(`You chose ${wrong}`);
+    button("Continue")?.click();
+
+    for (let index = 1; index < 10; index += 1) {
+      const prompt = readingSession.state.currentPrompt;
+      if (!prompt || !("choices" in prompt)) throw new Error("Flashcard prompt disappeared");
+      await readingSession.answerChoice(writtenPitchName(prompt.writtenPitches[0]!));
+    }
+
+    await vi.waitFor(() => expect(button("Retry mistakes")).not.toBeUndefined());
+    expect(document.body.textContent).toContain(`You chose ${wrong}`);
+    button("Retry mistakes")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("1 / 1"));
+    expect(readingSession.state.currentPrompt).toEqual(missedPrompt);
   });
 
   test("starts performance sight reading only after the shared downbeat", async () => {
@@ -710,6 +745,10 @@ describe("/music/learn/reading/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("1 / 10"));
     document.querySelector<HTMLButtonElement>('[aria-label="Answer choices"] button')?.click();
 
+    await vi.waitFor(() =>
+      expect(button("Continue") ?? document.body.textContent.includes("2 / 10")).toBeTruthy(),
+    );
+    button("Continue")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
     expect(document.body.textContent).toContain("Session XP");
     unmount();
@@ -723,6 +762,8 @@ describe("/music/learn/reading/+page.svelte", () => {
     await vi.waitFor(() => expect(button("Play")?.getAttribute("aria-pressed")).toBe("true"));
     button("Start")?.click();
 
+    await vi.waitFor(() => expect(button("Help")).not.toBeUndefined());
+    button("Help")?.click();
     await vi.waitFor(() =>
       expect(document.querySelector<HTMLButtonElement>('[aria-label*=", target"]')).not.toBeNull(),
     );

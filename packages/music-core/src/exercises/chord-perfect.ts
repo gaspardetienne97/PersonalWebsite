@@ -283,6 +283,8 @@ export interface ChordPerfectPrompt {
   /** Voiced strings, ascending by pitch — the order to play and grade. */
   midiNotes: number[];
   noteLabels: string[];
+  /** Intended string for each graded pitch; pitch input cannot verify the physical string. */
+  stringNumbers: number[];
   /** Every voiced note, for lighting the whole shape on the fretboard. */
   shapeMidiNotes: number[];
 }
@@ -333,6 +335,14 @@ export function createChordPerfectExercise(
         shapeId: shape.id,
         midiNotes,
         noteLabels: midiNotes.map((midi) => midiToNote(midi)),
+        stringNumbers: shape.frets
+          .map((fret, index) => ({
+            string: index + 1,
+            midi: fret === null ? undefined : tuning.openStrings[index]! + fret,
+          }))
+          .filter((entry) => entry.midi !== undefined)
+          .sort((a, b) => a.midi! - b.midi!)
+          .map((entry) => entry.string),
         shapeMidiNotes: midiNotes,
       },
     }),
@@ -405,14 +415,14 @@ function chordPerfectRun(prompt: ChordPerfectPrompt): ExerciseRun<ChordPerfectAn
       const pitchAccuracy = total === 0 ? 0 : correct / total;
 
       return {
-        // "Chord perfect" means every voiced string rang true.
+        // Pitch matching cannot establish physical string choice or tone cleanliness.
         correct: correct === total && total > 0,
         score: pitchAccuracy,
         metrics,
         feedback: [
           {
             severity: correct === total ? "good" : "warn",
-            message: `${correct}/${total} strings clean.`,
+            message: `${correct}/${total} target notes matched.`,
           },
         ],
         target: { label: prompt.label, midiNotes: prompt.midiNotes },

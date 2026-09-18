@@ -26,6 +26,29 @@ afterEach(() => {
 });
 
 describe("/music/play/mpc/+page.svelte", () => {
+  test("keeps setup key assignments during a run without remapping controls", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    await openSetup();
+    document.querySelector<HTMLElement>("details summary")?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[aria-label="Assign key for pad 36"]')).not.toBeNull(),
+    );
+    document.querySelector<HTMLButtonElement>('[aria-label="Assign key for pad 36"]')?.click();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "p", bubbles: true }));
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(document.querySelector('[aria-label^="Assign key"]')).toBeNull();
+    const accepted = vi.fn();
+    const unsubscribe = runtime.router.subscribe(accepted);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "p", bubbles: true }));
+    expect(accepted).toHaveBeenCalledWith(
+      expect.objectContaining({ midiNote: 36, instrument: "mpc" }),
+    );
+    unsubscribe();
+    runtime.dispose();
+  });
   test("does not install session subscriptions when services resolve after teardown", async () => {
     let resolveServices!: () => void;
     vi.spyOn(SkillGraphStore.prototype, "seed").mockReturnValue(
@@ -105,6 +128,7 @@ describe("/music/play/mpc/+page.svelte", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("Rudiment complete");
+      expect(document.body.textContent).toContain("Not measured");
       expect(button("Again")).not.toBeUndefined();
       expect(button("Change setup")).not.toBeUndefined();
       expect(document.activeElement?.textContent).toContain("Rudiment complete");
@@ -394,3 +418,104 @@ function select(label: string): HTMLSelectElement | undefined {
     (candidate) => candidate.getAttribute("aria-label") === label,
   );
 }
+
+test("groove hides targets through preparation and response, then completes an empty bar and starts Again", async () => {
+  setTestUrl("/music/play/mpc?mode=groove&groove=eighth-hats&bpm=240&kick=40&snare=41&hats=42");
+  const runtime = new MusicRuntime();
+  const play = vi.spyOn(runtime.sound, "playPercussion").mockImplementation(() => {});
+  const stop = vi.spyOn(runtime.sound, "stopPercussion");
+  let resolveStart!: (result: Awaited<ReturnType<typeof runtime.beginPerformance>>) => void;
+  vi.mocked(runtime.beginPerformance)
+    .mockImplementationOnce((options) => {
+      options?.leadIn?.onStart({
+        kind: "beat",
+        atSeconds: 10,
+        atMonotonicMs: monotonicMs(performance.now()),
+        beat: 0,
+        absoluteBeat: 0,
+        subdivision: 0,
+        accented: true,
+        countingIn: true,
+      });
+      return new Promise((resolve) => {
+        resolveStart = resolve;
+      });
+    })
+    .mockImplementation(async () => ({
+      status: "started",
+      downbeat: monotonicMs(performance.now() + 40),
+    }));
+  const capture = vi.spyOn(runtime, "recordPractice").mockResolvedValue(undefined);
+  const view = render(Page, { runtime });
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  expect(window.location.search).toContain("kick=40");
+  button("Start")?.click();
+  await vi.waitFor(() => expect(play).toHaveBeenCalledTimes(12));
+  expect(runtime.beginPerformance).toHaveBeenCalledWith(
+    expect.objectContaining({ countInBars: 1, leadIn: expect.objectContaining({ bars: 1 }) }),
+  );
+  expect(document.body.textContent).not.toContain("Next pad");
+  expect(document.querySelector('[aria-label="Expected groove"]')).toBeNull();
+  expect(document.querySelector('[aria-label="Pad 40"]')).not.toBeNull();
+  resolveStart({ status: "started", downbeat: monotonicMs(performance.now() + 40) });
+  await vi.waitFor(() => expect(document.body.textContent).toContain("Your turn"));
+  expect(document.querySelector('[aria-label="Expected groove"]')).toBeNull();
+  await vi.waitFor(() => expect(document.body.textContent).toContain("Groove complete"), {
+    timeout: 2500,
+  });
+  expect(document.body.textContent).toContain("Not measured");
+  expect(document.querySelector('[aria-label="Expected groove"]')).not.toBeNull();
+  expect(capture).toHaveBeenCalledWith(
+    expect.objectContaining({
+      tags: ["mpc", "groove", "eighth-hats"],
+      comparison: expect.objectContaining({ bpm: 240 }),
+    }),
+  );
+  expect(stop).toHaveBeenCalled();
+  button("Again")?.click();
+  await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+  button("Stop")?.click();
+  expect(document.querySelector('[aria-label="Expected groove"]')).toBeNull();
+  view.unmount();
+  runtime.dispose();
+});
+
+test("cancelled deferred groove start cannot open input or schedule a deadline", async () => {
+  setTestUrl("/music/play/mpc?mode=groove&bpm=240");
+  const runtime = new MusicRuntime();
+  let resolveStart!: (result: Awaited<ReturnType<typeof runtime.beginPerformance>>) => void;
+  vi.mocked(runtime.beginPerformance).mockReturnValueOnce(
+    new Promise((resolve) => {
+      resolveStart = resolve;
+    }),
+  );
+  const start = vi.spyOn(TechniqueSession.prototype, "startMpcGroove");
+  const view = render(Page, { runtime });
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  button("Start")?.click();
+  await vi.waitFor(() => expect(runtime.beginPerformance).toHaveBeenCalled());
+  button("Stop")?.click();
+  resolveStart({ status: "started", downbeat: monotonicMs(performance.now()) });
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  expect(start).not.toHaveBeenCalled();
+  view.unmount();
+  runtime.dispose();
+});
+
+test("failed reference scheduling disposes partially queued groove sound", async () => {
+  setTestUrl("/music/play/mpc?mode=groove");
+  const runtime = new MusicRuntime();
+  const stop = vi.spyOn(runtime.sound, "stopPercussion");
+  vi.mocked(runtime.beginPerformance).mockResolvedValueOnce({
+    status: "failed",
+    message: "Reference playback failed.",
+  });
+  const view = render(Page, { runtime });
+  await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+  stop.mockClear();
+  button("Start")?.click();
+  await vi.waitFor(() => expect(document.body.textContent).toContain("Reference playback failed."));
+  expect(stop.mock.calls.length).toBeGreaterThanOrEqual(2);
+  view.unmount();
+  runtime.dispose();
+});

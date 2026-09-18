@@ -7,7 +7,12 @@ import type {
 import type { TuningProfile } from "@repo/music-core/engines/tunings";
 
 export { rhythmHudProjection, type RhythmHudData } from "./rhythm-hud";
-export { tempoLadderProjection, type TempoRung, type TempoLadderOptions } from "./technique-ladder";
+export {
+  tempoPracticePlan,
+  tempoLadderProjection,
+  type TempoRung,
+  type TempoLadderOptions,
+} from "./technique-ladder";
 export { buildJournalHeatmap, type HeatmapCell } from "./journal-projections";
 export { summarizeFocusAreas, type FocusArea } from "./journal-focus";
 

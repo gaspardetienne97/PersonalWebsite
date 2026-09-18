@@ -7,7 +7,11 @@ import {
 } from "@repo/music-core/domain";
 
 import { earTrainingRun, playedMidiNotes, type EarTrainingPromptBase } from "./ear-training";
-import { scaleDegreeFreePlayChoices, type ScaleDegreeSetId } from "./scale-degree-recognition";
+import {
+  identifyScaleDegreeFromMidi,
+  scaleDegreeFreePlayChoices,
+  type ScaleDegreeSetId,
+} from "./scale-degree-recognition";
 
 export interface MelodyDictationPrompt extends EarTrainingPromptBase {
   drill: "melody-dictation";
@@ -159,12 +163,15 @@ function scaleDegreeSetId(value: unknown): ScaleDegreeSetId {
 }
 
 function degreeForMidi(prompt: MelodyDictationPrompt, midiNote: number): string {
-  const pitchClass = (midiNote - prompt.tonicMidi + 120) % 12;
   const expectedIndex = prompt.targetMidiNotes.findIndex((expected) =>
     samePitchClass(expected, midiNote),
   );
   if (expectedIndex >= 0) return prompt.degrees[expectedIndex]!;
-  return `${pitchClass}`;
+  return identifyScaleDegreeFromMidi({
+    tonicMidi: prompt.tonicMidi,
+    midiNote,
+    scaleDegreeSet: "full-current",
+  })!.token;
 }
 
 function samePitchClass(expected?: number, actual?: number): boolean {

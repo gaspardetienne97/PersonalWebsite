@@ -49,6 +49,7 @@
     type ReadingSetupValue,
   } from "./_components/ReadingSetup.svelte";
   import ReadingSummary, {
+    hasMissedFlashcards,
     hasMissedSightReadingGroups,
     hasSightReading,
   } from "./_components/ReadingSummary.svelte";
@@ -182,7 +183,9 @@
     phase === "summary" && summary
       ? `Reading results ready. ${summary.correct} of ${summary.total} correct.`
       : phase === "stage"
-        ? status || "Reading session started."
+        ? status || (sessionState?.awaitingContinue
+          ? `${sessionState.feedback?.result.feedback[0]?.message ?? "Review your answer."} Press Continue when ready.`
+          : "Reading session started.")
         : pending
           ? "Starting reading session."
           : status || "Reading setup.",
@@ -328,6 +331,7 @@
           range: config.range,
           promptKind: config.promptKind,
           answerMode: config.answerMode,
+          feedbackMode: config.mode === "wait" ? "immediate" : "delayed",
           length: 10,
         });
       } else {
@@ -394,12 +398,13 @@
       void runtime.recordPractice({
         source: "drill",
         instrument: setup.instrument,
+        comparison: { variantKey: readingVariantKey(normalizedSetup), bpm: setup.bpm, settings: JSON.stringify(normalizedSetup), dimensions: "activity, instrument, level, meter, answer mode and reading setup" },
         tags: ["reading", setup.activity],
         scoringEvents: next.summary.results.map((result) => result.event),
         xpEarned: next.summary.xp,
         note: `Note reading · ${next.summary.correct}/${next.summary.total} correct (${Math.round(
           next.summary.accuracy * 100,
-        )}%)`,
+        )}%) · ${next.summary.results.filter((item) => item.event.assistance === "hinted").length} hinted answers`,
       });
     }
   }
@@ -410,6 +415,10 @@
     } catch (error) {
       status = message(error, "The answer could not be saved.");
     }
+  }
+
+  function continueFlashcard(): void {
+    session?.continueFlashcard();
   }
 
   function playAccepted(event: NoteEvent): void {
@@ -554,6 +563,14 @@
 
   function practiceMissedGroups(): void {
     if (!session?.prepareMissedSightReading()) {
+      repeat();
+      return;
+    }
+    captured = false;
+  }
+
+  function practiceMissedFlashcards(): void {
+    if (!session?.prepareMissedFlashcards()) {
       repeat();
       return;
     }
@@ -734,7 +751,7 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        source={runtime.activeSource}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
@@ -762,7 +779,6 @@
         {#snippet lastRunDelta()}
           <LastRunDelta
             tags={["reading", setup.activity]}
-            accuracy={summary.accuracy}
             before={visitStartedAt}
           />
         {/snippet}
@@ -795,6 +811,11 @@
             {/if}
           {:else}
             <AdaptiveRetryBar onRetry={repeat} retryLabel="Again" />
+            {#if hasMissedFlashcards(summary)}
+              <Button type="button" variant="outline" onclick={practiceMissedFlashcards}>
+                Retry mistakes
+              </Button>
+            {/if}
           {/if}
           <Button href="/music" variant="ghost">Return to Practice</Button>
         {/snippet}
@@ -946,6 +967,9 @@
           {sessionXp}
           onChoice={answerChoice}
           onAccepted={playAccepted}
+          onContinue={continueFlashcard}
+          onHint={() => session?.revealFlashcardHint()}
+          range={setup.range}
         />
       {/if}
     </div>

@@ -148,7 +148,11 @@
         (end, step) => Math.max(end, step.offsetSeconds + step.durationSeconds),
         0,
       );
-      runtime.sound.playPattern(pattern);
+      // No epoch means nothing was scheduled; saying "Playing" would be a lie.
+      if (!runtime.sound.playPattern(pattern)) {
+        status = runtime.audioMessage || "Audio could not be started.";
+        return;
+      }
       previewPlaying = true;
       status = `Playing ${selected?.title ?? "song"}.`;
       previewTimer = setTimeout(finishPreview, Math.max(300, durationSec * 1_000));

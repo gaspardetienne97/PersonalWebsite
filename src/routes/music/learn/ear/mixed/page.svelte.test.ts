@@ -34,10 +34,23 @@ describe("/music/learn/ear/mixed/+page.svelte", () => {
     await vi.waitFor(() => expect(playPattern).toHaveBeenCalled());
     expect(document.body.textContent).toContain("1 / 10");
 
+    const question = document.querySelector("h2")?.textContent;
+    const calls = playPattern.mock.calls.length;
     answerChoiceButton()?.click();
-
+    await vi.waitFor(() => expect(button("Continue")).not.toBeUndefined());
+    expect(document.body.textContent).toContain("1 / 10");
+    expect(document.querySelector("h2")?.textContent).toBe(question);
+    expect(playPattern).toHaveBeenCalledTimes(calls);
+    expect(document.querySelector('[data-testid="feedback"]')?.textContent).toContain(
+      "Your answer:",
+    );
+    expect(document.activeElement?.textContent).toMatch(/Correct|Review this answer/);
+    button("Replay answered sound")?.click();
+    expect(playPattern).toHaveBeenCalledTimes(calls + 1);
+    button("Continue")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
-    expect(document.querySelector('[data-testid="feedback"]')).not.toBeNull();
+    expect(document.querySelector("h2")?.textContent).not.toBe(question);
+    expect(document.querySelector('[data-testid="feedback"]')).toBeNull();
     expect(document.body.textContent).toContain("Session XP");
     expect(document.body.textContent).toContain("Streak");
     expect(beginPerformance).not.toHaveBeenCalled();
@@ -101,15 +114,55 @@ describe("/music/learn/ear/mixed/+page.svelte", () => {
     await vi.waitFor(() => expect(mixed?.disabled).toBe(false));
     mixed?.click();
 
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Pocket mode"));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Pocket recall"));
     expect(document.querySelector('[aria-label="Answer choices"]')).toBeNull();
     expect(document.querySelector('[role="group"][aria-label="On-screen keyboard"]')).toBeNull();
 
+    expect(document.querySelector('[data-testid="revealed-answer"]')).toBeNull();
+    expect(button("I recalled it")).toBeUndefined();
+    button("Reveal answer")?.click();
+    await vi.waitFor(() => expect(button("I recalled it")).not.toBeUndefined());
+    expect(document.activeElement).toBe(document.querySelector('[data-testid="revealed-answer"]'));
     [...document.querySelectorAll("button")]
-      .find((button) => button.textContent?.trim() === "I heard it")
+      .find((button) => button.textContent?.trim() === "I recalled it")
       ?.click();
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
+  });
+
+  test("plays Listen along without rating or scoring, and cancels its timer on Stop", async () => {
+    const runtime = new MusicRuntime();
+    vi.spyOn(runtime, "ensurePlaybackVoice").mockResolvedValue(true);
+    const playPattern = vi.spyOn(runtime.sound, "playPattern").mockImplementation(() => undefined);
+    const recordPractice = vi.spyOn(runtime, "recordPractice").mockResolvedValue(undefined);
+    render(Page, { runtime });
+    await openSetup();
+    button("Listen along")?.click();
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    vi.useFakeTimers();
+    button("Start")?.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="revealed-answer"]')).not.toBeNull(),
+    );
+    expect(button("Reveal answer")).toBeUndefined();
+    expect(button("I recalled it")).toBeUndefined();
+    expect(document.body.textContent).not.toContain("Accuracy");
+    button("Stop")?.focus();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(document.activeElement).toBe(button("Stop"));
+    for (let index = 0; index < 9; index++) await vi.advanceTimersByTimeAsync(10_000);
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Listen along complete"));
+    expect(recordPractice).toHaveBeenCalledWith(
+      expect.objectContaining({ scoringEvents: [], xpEarned: 0 }),
+    );
+    expect(document.body.textContent).not.toContain("0 of 0 correct");
+    button("Again")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    button("Stop")?.click();
+    const calls = playPattern.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(playPattern).toHaveBeenCalledTimes(calls);
+    expect(button("Start")).not.toBeUndefined();
   });
 
   test("stops the free-play drone before starting a scored session", async () => {
@@ -147,6 +200,8 @@ describe("/music/learn/ear/mixed/+page.svelte", () => {
     for (let index = 0; index < 10; index += 1) {
       await vi.waitFor(() => expect(answerChoiceButton()).not.toBeNull());
       answerChoiceButton()?.click();
+      await vi.waitFor(() => expect(button("Continue")).not.toBeUndefined());
+      button("Continue")?.click();
       if (index < 9) {
         await vi.waitFor(() => expect(document.body.textContent).toContain(`${index + 2} / 10`));
       }

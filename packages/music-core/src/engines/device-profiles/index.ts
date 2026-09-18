@@ -11,6 +11,18 @@ const INSTRUMENTS: readonly InstrumentId[] = [
 ];
 const SOURCES: readonly InputSource[] = ["midi", "audio", "onscreen", "click"];
 
+export function inputSourceLabel(source?: InputSource | "mixed"): string {
+  return source
+    ? {
+        midi: "MIDI",
+        audio: "Microphone",
+        onscreen: "On-screen",
+        click: "Answer buttons",
+        mixed: "Mixed input",
+      }[source]
+    : "Not observed";
+}
+
 /** On-screen input surfaces the player can fall back to per instrument. */
 export type InputSurfaceId = "keyboard" | "guitar" | "ukulele" | "mpc";
 
@@ -42,6 +54,97 @@ export interface DeviceProfile {
   channel?: number;
   /** Drop this input's note events (e.g. an MPC control port that floods traffic). */
   ignored?: boolean;
+  /**
+   * The MIDI note each hardware pad sends, pad A01 (bottom-left) first, 16
+   * entries. Exercises and the on-screen grid speak the canonical bank-A
+   * layout (36..51), so an incoming note is rewritten to 36 + its pad index
+   * before it reaches the router. Absent means the device already sends the
+   * canonical chromatic map.
+   */
+  padNotes?: number[];
+  /**
+   * This port is an MPC's MIDI output in Controller Mode: keep the captured
+   * init handshake and one-second heartbeat alive on it whenever MIDI is on,
+   * because the MPC only sends pad notes while a host is talking to it.
+   */
+  controllerLink?: true;
+}
+
+/** Bank A as the app draws and grades it: pad A01 = 36 … A16 = 51. */
+export const CANONICAL_PAD_NOTES: readonly number[] = Array.from({ length: 16 }, (_, i) => 36 + i);
+
+export interface PadNotePreset {
+  id: string;
+  label: string;
+  notes: readonly number[];
+}
+
+/**
+ * Known MPC pad note maps. "Classic" is Akai's legacy default drum-program map
+ * (pad A01 sends 37, A02 sends 36, A06 sends 38 …); newer firmware defaults to
+ * chromatic from C1. A learned map from the Connect page overrides both.
+ */
+export const MPC_PAD_NOTE_PRESETS: readonly PadNotePreset[] = [
+  { id: "chromatic-36", label: "Chromatic from 36 (C1)", notes: CANONICAL_PAD_NOTES },
+  {
+    id: "classic",
+    label: "Akai Classic MPC map",
+    notes: [37, 36, 42, 82, 40, 38, 46, 44, 48, 47, 45, 43, 49, 55, 51, 53],
+  },
+  {
+    id: "chromatic-37",
+    label: "Chromatic from 37",
+    notes: Array.from({ length: 16 }, (_, i) => 37 + i),
+  },
+];
+
+/** Which preset a saved map equals, or "custom" for a learned map. */
+export function padNotePresetId(padNotes: readonly number[] | undefined): string {
+  if (!padNotes) return MPC_PAD_NOTE_PRESETS[0]!.id;
+  return (
+    MPC_PAD_NOTE_PRESETS.find((preset) => preset.notes.every((note, i) => note === padNotes[i]))
+      ?.id ?? "custom"
+  );
+}
+
+/**
+ * Translate a note the hardware sent into the canonical bank-A note the app
+ * grades. Notes outside the map (other banks, keys) pass through unchanged.
+ */
+export function canonicalPadNote(padNotes: readonly number[] | undefined, note: number): number {
+  if (!padNotes) return note;
+  const index = padNotes.indexOf(note);
+  return index >= 0 && index < 16 ? 36 + index : note;
+}
+
+/**
+ * Apply what Connect saved for a device to one of its events: the assigned
+ * instrument wins over port-name detection, and a hardware pad note becomes
+ * the canonical bank-A note. Events from unknown devices pass through.
+ */
+export function applyDeviceProfile<E extends { deviceId?: string; instrument?: InstrumentId }>(
+  event: E,
+  profile: DeviceProfile | undefined,
+): E {
+  if (!profile) return event;
+  let next = event;
+  if (profile.instrument && profile.instrument !== next.instrument) {
+    next = { ...next, instrument: profile.instrument };
+  }
+  const current = (next as { midiNote?: unknown }).midiNote;
+  if (profile.padNotes && typeof current === "number") {
+    const midiNote = canonicalPadNote(profile.padNotes, current);
+    if (midiNote !== current) next = { ...next, midiNote } as E;
+  }
+  return next;
+}
+
+function sanitizePadNotes(value: unknown): number[] | undefined {
+  if (!Array.isArray(value) || value.length !== 16) return undefined;
+  const notes = value.map((note) => (typeof note === "number" ? Math.round(note) : NaN));
+  if (notes.some((note) => !Number.isFinite(note) || note < 0 || note > 127)) return undefined;
+  if (new Set(notes).size !== 16) return undefined;
+  return notes;
 }
 
 export type InstrumentSourcePreferences = Partial<Record<InstrumentId, InputSource>>;
@@ -184,5 +287,9 @@ function sanitizeProfile(value: unknown): DeviceProfile | undefined {
   if (typeof source.channel === "number" && source.channel >= 1 && source.channel <= 16) {
     profile.channel = Math.round(source.channel);
   }
+  if (source.ignored === true) profile.ignored = true;
+  if (source.controllerLink === true) profile.controllerLink = true;
+  const padNotes = sanitizePadNotes(source.padNotes);
+  if (padNotes) profile.padNotes = padNotes;
   return profile;
 }

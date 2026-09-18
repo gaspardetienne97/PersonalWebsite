@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Capability, unixMs } from "@repo/music-core/domain";
+import { monotonicMs, Capability, unixMs } from "@repo/music-core/domain";
 
 import {
   buildJazzSequenceCapture,
@@ -8,6 +8,8 @@ import {
   buildIIVIDrill,
   CHORD_SCALE_MAP,
   gradeLickSequence,
+  normalizeLickRange,
+  missedLickChunk,
   JAZZ_LICKS,
   JAZZ_REPERTOIRE,
   LICK_PHRASES,
@@ -161,22 +163,75 @@ describe("lick phrases", () => {
 });
 
 describe("jazz lesson path", () => {
-  it("is ordered and derives status from skill mastery", async () => {
+  it("keeps unrelated milestones unassessed after a major-only check", async () => {
+    const { buildJazzPath } = await import("./index");
+    const events = Array.from({ length: 36 }, (_, i) => ({
+      id: `major-${i}`,
+      sessionId: "major",
+      exerciseId: "jazz.voicing-drill",
+      skillIds: ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      capabilities: [],
+      at: unixMs(i),
+      correct: true,
+      partialCredit: 1,
+      difficulty: 0.5,
+      metrics: [],
+      assistance: "independent" as const,
+      modality: "played" as const,
+      instrument: "piano" as const,
+    }));
+    const major = buildJazzPath({ events, instrument: "piano" });
+    expect(major.steps.find((step) => step.id === "rootless-voicings")?.status).toBe("in-progress");
+    for (const id of ["altered-voicings", "chord-scales", "licks"])
+      expect(major.steps.find((step) => step.id === id)?.status).toBe("not-assessed");
+    const both = buildJazzPath({
+      events: [
+        ...events,
+        ...events.map((event) => ({
+          ...event,
+          id: event.id.replace("major", "minor"),
+          sessionId: "minor",
+          skillIds: ["harmony.ii-v-i", "harmony.ii-v-i.voicings.minor"],
+        })),
+      ],
+      instrument: "piano",
+    });
+    expect(both.steps.find((step) => step.id === "rootless-voicings")?.status).toBe("done");
+    expect(both.steps.find((step) => step.id === "altered-voicings")?.status).toBe("not-assessed");
+  });
+  it("is ordered and does not treat old parent mastery as an assessment", async () => {
     const { buildJazzLessonPath } = await import("./index");
     const path = buildJazzLessonPath({
       mastery: (id) => (id === "harmony.ii-v-i" ? 0.8 : id === "harmony.sevenths" ? 0.2 : 0),
     });
 
     expect(path.map((s) => s.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    expect(path.find((s) => s.id === "rootless-voicings")?.status).toBe("done"); // 0.8 ≥ 0.66
-    expect(path.find((s) => s.id === "chord-symbols")?.status).toBe("in-progress"); // 0.2
-    expect(path.find((s) => s.id === "intervals")?.status).toBe("todo"); // pitch.intervals at 0
+    expect(path.find((s) => s.id === "rootless-voicings")?.status).toBe("not-assessed");
+    expect(path.find((s) => s.id === "chord-symbols")?.status).toBe("todo");
+    expect(path.find((s) => s.id === "intervals")?.status).toBe("not-assessed");
     expect(path.find((s) => s.id === "chord-symbols")?.kind).toBe("reference");
   });
 
   it("links every drill step to the drill that practises it, with its setup", async () => {
     const { buildJazzPath } = await import("./index");
-    const path = buildJazzPath({ mastery: (id) => (id === "pitch.intervals" ? 1 : 0) });
+    const path = buildJazzPath({
+      events: [
+        {
+          id: "interval",
+          sessionId: "s",
+          exerciseId: "ear.interval",
+          skillIds: ["pitch.intervals"],
+          capabilities: [],
+          at: unixMs(1),
+          correct: true,
+          partialCredit: 1,
+          difficulty: 0.5,
+          metrics: [],
+          assistance: "independent",
+          modality: "heard",
+        },
+      ],
+    });
     const href = (id: string) => path.steps.find((s) => s.id === id)?.href;
     expect(href("intervals")).toBe("/music/learn/ear/intervals");
     expect(href("chord-scales")).toBe("/music/play/chord-scales?changes=major");
@@ -186,7 +241,7 @@ describe("jazz lesson path", () => {
       "/music/learn/ear/chord-qualities",
     );
     // Continue skips the finished intervals step and the skill-less reference steps.
-    expect(path.next?.id).toBe("chord-symbols");
+    expect(path.next?.id).toBe("chord-scales");
     expect(path.done).toBe(1);
   });
 
@@ -262,6 +317,18 @@ describe("gradeLickSequence", () => {
       endedAt: unixMs(250),
       difficulty: 0.6,
       instrument: "piano",
+      assistance: "guided",
+      input: [
+        {
+          type: "noteOn",
+          source: "midi",
+          instrument: "piano",
+          midiNote: 62,
+          velocity: 1,
+          timestamp: monotonicMs(0),
+          clock: "performance",
+        },
+      ],
       params: { lickNumber: 1 },
     });
 
@@ -282,6 +349,9 @@ describe("gradeLickSequence", () => {
       skillIds: ["harmony.ii-v-i"],
       capabilities: ["harmony", "improv", "pitch"],
       modality: "played",
+      instrument: "piano",
+      source: "midi",
+      assistance: "guided",
       partialCredit: 0.75,
       correct: false,
       target: { label: "Lick #1", midiNotes: expectedMidi },
@@ -294,4 +364,14 @@ describe("gradeLickSequence", () => {
       { kind: "pitch", expectedMidi: 72, actualMidi: 72 },
     ]);
   });
+});
+
+it("normalizes contiguous lick ranges and suggests the first error-bearing chunk", () => {
+  expect(normalizeLickRange(23, -4, 99)).toEqual({ start: 1, end: 23 });
+  expect(normalizeLickRange(23, 8, 2)).toEqual({ start: 8, end: 8 });
+  expect(missedLickChunk([60, 62, 64, 65, 67, 69], [72, 74, 76, 77, 66, 69])).toEqual({
+    start: 5,
+    end: 6,
+  });
+  expect(missedLickChunk([60, 62], [72, 74])).toBeUndefined();
 });

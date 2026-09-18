@@ -5,7 +5,9 @@
   import Gauge from "lucide-svelte/icons/gauge";
   import Grid3x3 from "lucide-svelte/icons/grid-3x3";
   import Library from "lucide-svelte/icons/library";
-    import Play from "lucide-svelte/icons/play";
+  import PanelLeftClose from "lucide-svelte/icons/panel-left-close";
+  import PanelLeftOpen from "lucide-svelte/icons/panel-left-open";
+  import Play from "lucide-svelte/icons/play";
   import Plug from "lucide-svelte/icons/plug";
   import Settings from "lucide-svelte/icons/settings";
 
@@ -73,18 +75,62 @@
       (prefix) => currentPath === prefix || currentPath.startsWith(prefix + "/"),
     );
   }
+
+  // Collapsed, the sidebar is an icon rail so a drill gets the width back. The
+  // choice is a per-browser convenience, so it lives in localStorage.
+  const COLLAPSED_KEY = "music.sidebar.collapsed";
+  let collapsed = $state(readCollapsed());
+
+  function readCollapsed(): boolean {
+    try {
+      return typeof localStorage !== "undefined" && localStorage.getItem(COLLAPSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function toggleCollapsed(): void {
+    collapsed = !collapsed;
+    try {
+      localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
+    } catch {
+      /* private mode: the choice lasts for the session only */
+    }
+  }
+
+  function linkClass(item: NavItem): string {
+    return cn(
+      "relative flex items-center gap-3 rounded-lg py-2 text-sm font-medium text-sidebar-foreground/70",
+      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      collapsed ? "justify-center px-0" : "px-3",
+      isActive(item) && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+    );
+  }
 </script>
 
-<!-- Desktop sidebar: sticky under the site header so the shell stays put while content scrolls -->
+<!-- Desktop sidebar. The column stretches with the shell (so a short page keeps
+     the footer in view); the sticky panel inside is at most one viewport tall,
+     so on a long page the utilities sit at the bottom edge of the window. -->
 <aside
-  class="sticky top-12 hidden h-full max-h-[calc(100dvh-3rem)] w-60 shrink-0 flex-col self-start border-r bg-sidebar text-sidebar-foreground md:flex"
+  data-collapsed={collapsed ? "true" : undefined}
+  class={cn(
+    "relative hidden shrink-0 self-stretch border-r bg-sidebar text-sidebar-foreground transition-[width] duration-200 motion-reduce:transition-none md:block",
+    collapsed ? "w-14" : "w-60",
+  )}
 >
-  <div class="flex flex-col gap-0.5 border-b p-4">
+<!-- Absolute, so the panel adds no height of its own: the column is exactly as
+     tall as the page content, and the sticky panel is clamped to it. -->
+<div class="absolute inset-0">
+<div class="sticky top-12 flex h-[calc(100dvh-3rem)] max-h-full flex-col">
+  <div class={cn("flex flex-col gap-0.5 border-b", collapsed ? "items-center px-0 py-4" : "p-4")}>
     <span class="flex items-center gap-2 font-display text-base font-bold tracking-tight">
       <PracticeOsMark />
-      Practice OS
+      <span class={collapsed ? "sr-only" : ""}>Practice OS</span>
     </span>
-    <span class="eyebrow">cross-instrument</span>
+    {#if !collapsed}
+      <span class="eyebrow">cross-instrument</span>
+    {/if}
   </div>
 
   <nav aria-label="Music sections" class="flex-1 overflow-y-auto py-3">
@@ -94,18 +140,15 @@
         <a
           href={item.href}
           aria-current={isActive(item) ? "page" : undefined}
-          class={cn(
-            "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70",
-            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            isActive(item) && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
-          )}
+          title={collapsed ? item.label : undefined}
+          class={linkClass(item)}
         >
           {#if isActive(item)}
             <!-- Active marker in the instrument hue (identity only). -->
             <span class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-instr" aria-hidden="true"></span>
           {/if}
           <Icon class="size-4 shrink-0" aria-hidden="true" />
-          <span class="truncate">{item.label}</span>
+          <span class={collapsed ? "sr-only" : "truncate"}>{item.label}</span>
         </a>
       {/each}
     </div>
@@ -117,17 +160,35 @@
       <a
         href={item.href}
         aria-current={isActive(item) ? "page" : undefined}
-        class={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70",
-          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          isActive(item) && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
-        )}
+        title={collapsed ? item.label : undefined}
+        class={linkClass(item)}
       >
         <Icon class="size-4 shrink-0" aria-hidden="true" />
-        <span class="truncate">{item.label}</span>
+        <span class={collapsed ? "sr-only" : "truncate"}>{item.label}</span>
       </a>
     {/each}
+    <button
+      type="button"
+      aria-pressed={collapsed}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      class={cn(
+        "mt-1 flex min-h-10 items-center gap-3 rounded-lg py-2 text-xs font-medium text-sidebar-foreground/60",
+        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        collapsed ? "justify-center px-0" : "px-3",
+      )}
+      onclick={toggleCollapsed}
+    >
+      {#if collapsed}
+        <PanelLeftOpen class="size-4 shrink-0" aria-hidden="true" />
+      {:else}
+        <PanelLeftClose class="size-4 shrink-0" aria-hidden="true" />
+        <span class="truncate">Collapse</span>
+      {/if}
+    </button>
   </div>
+</div>
+</div>
 </aside>
 
 <!-- Mobile bottom tab bar -->

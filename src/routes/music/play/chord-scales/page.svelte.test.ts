@@ -24,6 +24,20 @@ afterEach(() => {
 });
 
 describe("/music/play/chord-scales/+page.svelte", () => {
+  test("Check mode hides target cues before the answer", async () => {
+    setTestUrl("/music/play/chord-scales?mode=check");
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(document.querySelector('[data-highlight="target"]')).toBeNull();
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(document.querySelector('[data-highlight="target"]')).toBeNull();
+    expect(document.body.textContent).not.toContain("D Dorian");
+    expect(button("Hear scale")).toBeUndefined();
+    runtime.dispose();
+  });
+
   test("gates hear/play controls behind the setup → stage phases", async () => {
     render(Page);
 
@@ -69,11 +83,16 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     button("Play it back")?.click();
     await vi.waitFor(() => expect(runtime.ensurePlaybackVoice).toHaveBeenCalledOnce());
     button("Stop")?.click();
+    // Let the setup phase (and its piano surface, which subscribes on mount)
+    // render; what must not happen is a new session subscription once the
+    // late activation settles after Stop.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const beforeSettle = subscribe.mock.calls.length;
     resolveVoice(true);
     await Promise.resolve();
 
     expect(beginPerformance).not.toHaveBeenCalled();
-    expect(subscribe).not.toHaveBeenCalled();
+    expect(subscribe).toHaveBeenCalledTimes(beforeSettle);
   });
 
   test("replaces previews and cancels delayed preview work on attempt start and teardown", async () => {
@@ -211,79 +230,98 @@ describe("/music/play/chord-scales/+page.svelte", () => {
     });
   });
 
-  test("records completed chord-scales with scoring events and run metadata", async () => {
-    const harness = makeRuntime();
-    render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
+  test.each(["practice", "check"])(
+    "records completed %s chord-scales with scoring events and run metadata",
+    async (mode) => {
+      setTestUrl(`/music/play/chord-scales?mode=${mode}`);
+      const harness = makeRuntime();
+      render(Page, { props: { runtime: harness.runtime as unknown as MusicRuntime } });
 
-    const scales = [
-      scaleSemitones("dorian").map((semitones) => 62 + semitones),
-      scaleSemitones("mixolydian").map((semitones) => 67 + semitones),
-      scaleSemitones("major").map((semitones) => 60 + semitones),
-    ];
+      const scales = [
+        scaleSemitones("dorian").map((semitones) => 62 + semitones),
+        scaleSemitones("mixolydian").map((semitones) => 67 + semitones),
+        scaleSemitones("major").map((semitones) => 60 + semitones),
+      ];
 
-    button("Start")?.click();
-    await Promise.resolve();
-    button("Play it back")?.click();
-    await vi.waitFor(() => expect(document.body.textContent).toContain("Play D Dorian"));
-    expect(harness.runtime.beginPerformance).toHaveBeenCalledOnce();
-    expect(harness.runtime.registerPracticeContext).toHaveBeenCalledWith(
-      expect.objectContaining({ variantKey: "v1:chord-scales:piano:major" }),
-    );
-    for (const [index, midi] of scales[0]!.entries()) {
-      harness.emit(midi, index * 100);
-    }
-    await vi.waitFor(() => expect(document.body.textContent ?? "").toContain("next chord: G7"));
-    await vi.waitFor(() =>
-      expect(
-        document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
-      ).toContain("G7"),
-    );
-    expect(
-      document.querySelector('[data-testid="progression-cell-1"]')?.getAttribute("data-state"),
-    ).toBe("current");
-
-    // Wait for each chord's UI state before playing it — a single microtask
-    // isn't a real synchronization point once phase changes drive effects
-    // (focus mode, stage updates).
-    const symbols = ["G7", "Cmaj7"];
-    for (const [scaleIndex, scale] of scales.slice(1).entries()) {
-      await vi.waitFor(() =>
-        expect(
-          document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
-        ).toContain(symbols[scaleIndex]!),
-      );
+      button("Start")?.click();
+      await Promise.resolve();
       button("Play it back")?.click();
       await vi.waitFor(() =>
         expect(document.body.textContent).toContain(
-          scaleIndex === 0 ? "Play G Mixolydian" : "Play C Major",
+          mode === "check" ? "Play the scale over Dm7" : "Play D Dorian",
         ),
       );
-      for (const [index, midi] of scale.entries()) {
+      expect(harness.runtime.beginPerformance).toHaveBeenCalledOnce();
+      expect(harness.runtime.registerPracticeContext).toHaveBeenCalledWith(
+        expect.objectContaining({ variantKey: "v1:chord-scales:piano:major" }),
+      );
+      for (const [index, midi] of scales[0]!.entries()) {
         harness.emit(midi, index * 100);
       }
-    }
+      await vi.waitFor(() => expect(document.body.textContent ?? "").toContain("next chord: G7"));
+      await vi.waitFor(() =>
+        expect(
+          document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
+        ).toContain("G7"),
+      );
+      expect(
+        document.querySelector('[data-testid="progression-cell-1"]')?.getAttribute("data-state"),
+      ).toBe("current");
 
-    await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce(), {
-      timeout: 5_000,
-    });
-    const entry = harness.runtime.recordPractice.mock.calls[0]![0];
-    expect(entry.tags).toEqual(["jazz", "chord-scales"]);
-    expect(entry.scoringEvents).toHaveLength(3);
-    expect(entry.runs).toHaveLength(1);
-    expect(entry.scoringEvents.map((event) => event.exerciseId)).toEqual([
-      "jazz.chord-scale.major",
-      "jazz.chord-scale.major",
-      "jazz.chord-scale.major",
-    ]);
-    expect(entry.scoringEvents[0]).toMatchObject({
-      skillIds: expect.arrayContaining(["harmony.ii-v-i", "technique.scale.dorian"]),
-      partialCredit: 1,
-    });
-    expect(entry.runs[0]).toMatchObject({
-      exerciseId: "jazz.chord-scale.major",
-      targetSkillIds: expect.arrayContaining(["harmony.ii-v-i"]),
-    });
-  });
+      // Wait for each chord's UI state before playing it — a single microtask
+      // isn't a real synchronization point once phase changes drive effects
+      // (focus mode, stage updates).
+      const symbols = ["G7", "Cmaj7"];
+      for (const [scaleIndex, scale] of scales.slice(1).entries()) {
+        await vi.waitFor(() =>
+          expect(
+            document.querySelector('[data-testid="progression-current-symbol"]')?.textContent,
+          ).toContain(symbols[scaleIndex]!),
+        );
+        button("Play it back")?.click();
+        await vi.waitFor(() =>
+          expect(document.body.textContent).toContain(
+            mode === "check"
+              ? `Play the scale over ${symbols[scaleIndex]}`
+              : scaleIndex === 0
+                ? "Play G Mixolydian"
+                : "Play C Major",
+          ),
+        );
+        for (const [index, midi] of scale.entries()) {
+          harness.emit(midi, index * 100);
+        }
+      }
+
+      await vi.waitFor(() => expect(harness.runtime.recordPractice).toHaveBeenCalledOnce(), {
+        timeout: 5_000,
+      });
+      const entry = harness.runtime.recordPractice.mock.calls[0]![0];
+      expect(entry.tags).toEqual(["jazz", "chord-scales"]);
+      expect(entry.scoringEvents).toHaveLength(3);
+      expect(entry.runs).toHaveLength(1);
+      expect(entry.scoringEvents.map((event) => event.exerciseId)).toEqual([
+        "jazz.chord-scale.major",
+        "jazz.chord-scale.major",
+        "jazz.chord-scale.major",
+      ]);
+      expect(entry.scoringEvents[0]).toMatchObject({
+        assistance: mode === "check" ? "independent" : "guided",
+        source: "onscreen",
+        instrument: "piano",
+        skillIds: expect.arrayContaining([
+          "harmony.ii-v-i",
+          "harmony.ii-v-i.chord-scales.major",
+          "technique.scale.dorian",
+        ]),
+        partialCredit: 1,
+      });
+      expect(entry.runs[0]).toMatchObject({
+        exerciseId: "jazz.chord-scale.major",
+        targetSkillIds: expect.arrayContaining(["harmony.ii-v-i"]),
+      });
+    },
+  );
 
   test("keeps a differently configured retry authoritative while the prior completion persists", async () => {
     let releaseIngest!: () => void;
@@ -417,9 +455,16 @@ async function completeMajorRun(harness: ReturnType<typeof makeRuntime>): Promis
 }
 
 function makeRuntime() {
-  let listener:
-    | ((event: { type: "noteOn"; midiNote: number; velocity: number; timestamp: number }) => void)
-    | undefined;
+  type HarnessListener = (event: {
+    type: "noteOn";
+    midiNote: number;
+    velocity: number;
+    timestamp: number;
+    source: "midi" | "onscreen";
+  }) => void;
+  // Every subscriber hears the event: the page's session and any PianoSurface
+  // that lights held notes from the router.
+  const listeners = new Set<HarnessListener>();
   let practiceContext: Parameters<MusicRuntime["registerPracticeContext"]>[0] | undefined;
   const runtime = {
     activeSource: "onscreen",
@@ -431,9 +476,9 @@ function makeRuntime() {
     ensurePlaybackVoice: vi.fn(async () => true),
     sound: { playNote: vi.fn(), playPattern: vi.fn(), stopPattern: vi.fn() },
     router: {
-      subscribe: vi.fn((next) => {
-        listener = next;
-        return vi.fn();
+      subscribe: vi.fn((next: HarnessListener) => {
+        listeners.add(next);
+        return vi.fn(() => listeners.delete(next));
       }),
       push: vi.fn(() => true),
     },
@@ -452,8 +497,10 @@ function makeRuntime() {
 
   return {
     runtime,
-    emit(midiNote: number, timestamp: number) {
-      listener?.({ type: "noteOn", midiNote, velocity: 1, timestamp });
+    emit(midiNote: number, timestamp: number, source: "midi" | "onscreen" = "onscreen") {
+      for (const listener of Array.from(listeners)) {
+        listener({ type: "noteOn", midiNote, velocity: 1, timestamp, source });
+      }
     },
     changeInstrument(instrument: "piano" | "guitar") {
       practiceContext?.onInstrumentChange?.(instrument);

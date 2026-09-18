@@ -8,6 +8,11 @@ type ToneTime = number | string;
 /** Forward nudge for a same-time pad retrigger (see {@link SoundEngine.playDrum}). */
 const DRUM_RETRIGGER_NUDGE_SEC = 0.001;
 
+/** Pattern notes reach the voice this far ahead of their start (audio seconds). */
+const PATTERN_LOOKAHEAD_SEC = 1;
+/** How often the pattern scheduler tops up the look-ahead window. */
+const PATTERN_TICK_MS = 100;
+
 interface ToneInstrument {
   triggerAttackRelease(
     notes: string | string[] | number,
@@ -21,6 +26,12 @@ interface ToneInstrument {
   releaseAll?(time?: ToneTime): unknown;
   toDestination(): ToneInstrument;
   connect(destination: unknown): ToneInstrument;
+  dispose(): unknown;
+}
+
+interface ToneNoiseInstrument {
+  triggerAttackRelease(duration: ToneTime, time?: ToneTime, velocity?: number): unknown;
+  connect(destination: unknown): ToneNoiseInstrument;
   dispose(): unknown;
 }
 
@@ -55,6 +66,9 @@ export interface ToneSoundModule {
   immediate(): number;
   gainToDb(gain: number): number;
   Synth: ToneConstructor<ToneInstrument>;
+  MembraneSynth: ToneConstructor<ToneInstrument>;
+  NoiseSynth: ToneConstructor<ToneNoiseInstrument>;
+  MetalSynth: ToneConstructor<ToneInstrument>;
   PolySynth: ToneConstructor<ToneInstrument>;
   Sampler: ToneConstructor<ToneInstrument>;
   Players: ToneConstructor<TonePlayers>;
@@ -212,6 +226,9 @@ export class SoundEngine {
   /** Last scheduled start per pad; Tone.Player rejects a start that is not strictly later. */
   #lastDrumStart = new Map<string, number>();
   #metronome: ToneInstrument | undefined;
+  #kick?: ToneInstrument;
+  #snare?: ToneNoiseInstrument;
+  #hats?: ToneInstrument;
   #drone: ToneInstrument | undefined;
   #master: ToneGain | undefined;
   #playbackGain: ToneGain | undefined;
@@ -228,6 +245,7 @@ export class SoundEngine {
   #voiceGeneration = 0;
   #drumKitGeneration = 0;
   #patternVoiceDisposable = false;
+  #patternTimer: ReturnType<typeof setTimeout> | undefined;
   #patternLoopTimer: ReturnType<typeof setTimeout> | undefined;
   #drumPatternLoopTimer: ReturnType<typeof setTimeout> | undefined;
   #loadTone: ToneLoader;
@@ -429,14 +447,29 @@ export class SoundEngine {
     const performanceSample = performance.now();
     const immediateAudio = this.#tone.immediate();
     const startAt = this.#tone.now();
-    for (const step of steps) {
-      voice.triggerAttackRelease(
-        step.midiNotes.map((note) => midiToNote(note)),
-        step.durationSeconds,
-        startAt + step.offsetSeconds,
-        clampVelocity(velocity),
-      );
-    }
+    const tone = this.#tone;
+    const level = clampVelocity(velocity);
+    // Hand notes to the voice just ahead of their start instead of all at
+    // once. A long score otherwise allocates a buffer source per note up
+    // front, and a Sampler release stops every source it holds for that
+    // pitch, so anything that re-triggers a pitch mid-preview (a played-along
+    // note, a retrigger) can silence notes still queued. The first window is
+    // scheduled synchronously so the returned epoch matches the audio.
+    const pending = [...steps].sort((a, b) => a.offsetSeconds - b.offsetSeconds);
+    const schedule = (): void => {
+      const horizon = tone.immediate() - immediateAudio + PATTERN_LOOKAHEAD_SEC;
+      while (pending.length > 0 && pending[0]!.offsetSeconds <= horizon) {
+        const step = pending.shift()!;
+        voice.triggerAttackRelease(
+          step.midiNotes.map((note) => midiToNote(note)),
+          step.durationSeconds,
+          startAt + step.offsetSeconds,
+          level,
+        );
+      }
+      this.#patternTimer = pending.length > 0 ? setTimeout(schedule, PATTERN_TICK_MS) : undefined;
+    };
+    schedule();
     return {
       clock: "performance",
       startedAt: monotonicMs(performanceSample + (startAt - immediateAudio) * 1_000),
@@ -444,6 +477,10 @@ export class SoundEngine {
   }
 
   stopPattern(): void {
+    if (this.#patternTimer !== undefined) {
+      clearTimeout(this.#patternTimer);
+      this.#patternTimer = undefined;
+    }
     const voice = this.#patternVoice;
     voice?.releaseAll?.();
     if (this.#patternVoiceDisposable) voice?.dispose();
@@ -521,6 +558,49 @@ export class SoundEngine {
     this.#players = connected;
     this.#lastDrumStart.clear();
     previous?.dispose();
+  }
+
+  /** Synthesized kit voices need no imported samples and share the playback gain. */
+  playPercussion(padId: "kick" | "snare" | "hats", atSeconds?: number, velocity = 0.8): void {
+    if (!this.enabled || !this.#tone || !this.#playbackGain) return;
+    const at = atSeconds ?? this.#tone.now();
+    const level = clampVelocity(velocity);
+    if (padId === "kick") {
+      this.#kick ??= new this.#tone.MembraneSynth({
+        pitchDecay: 0.03,
+        octaves: 6,
+        volume: -5,
+        envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.05 },
+      }).connect(this.#playbackGain);
+      this.#kick.triggerAttackRelease("C1", 0.15, at, level);
+    } else if (padId === "snare") {
+      this.#snare ??= new this.#tone.NoiseSynth({
+        noise: { type: "white" },
+        volume: -14,
+        envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.03 },
+      }).connect(this.#playbackGain);
+      this.#snare.triggerAttackRelease(0.12, at, level);
+    } else {
+      this.#hats ??= new this.#tone.MetalSynth({
+        volume: -22,
+        harmonicity: 5.1,
+        modulationIndex: 32,
+        resonance: 4000,
+        octaves: 1.5,
+        envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.02 },
+      }).connect(this.#playbackGain);
+      this.#hats.triggerAttackRelease(200, 0.04, at, level);
+    }
+  }
+
+  /** Disposal cancels future envelope automation as well as currently sounding hits. */
+  stopPercussion(): void {
+    this.#kick?.dispose();
+    this.#snare?.dispose();
+    this.#hats?.dispose();
+    this.#kick = undefined;
+    this.#snare = undefined;
+    this.#hats = undefined;
   }
 
   playDrum(padId: string, time?: ToneTime, velocity = 0.8): void {
@@ -654,8 +734,17 @@ export class SoundEngine {
     );
   }
 
+  stopMetronomeClicks(): void {
+    this.#metronome?.dispose();
+    this.#metronome = undefined;
+  }
+
   playMetronomeClick(atSeconds: number, accented: boolean): void {
-    if (!this.enabled) return;
+    if (!this.enabled || !this.#tone || !this.#metronomeGain) return;
+    this.#metronome ??= new this.#tone.Synth({
+      oscillator: { type: "triangle" },
+      envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.02 },
+    }).connect(this.#metronomeGain);
     this.#metronome?.triggerAttackRelease(
       accented ? 1200 : 800,
       "32n",
@@ -689,6 +778,7 @@ export class SoundEngine {
     this.#drumKitGeneration += 1;
     this.stopPatternLoop();
     this.stopDrumPatternLoop();
+    this.stopPercussion();
     this.#synth?.dispose();
     this.#sampler?.dispose();
     this.#players?.dispose();

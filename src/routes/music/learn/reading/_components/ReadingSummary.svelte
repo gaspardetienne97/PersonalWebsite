@@ -17,10 +17,15 @@
       );
     });
   }
+
+  export function hasMissedFlashcards(summary: Summary): boolean {
+    return summary.results.some(({ prompt, result }) => "choices" in prompt && !result.correct);
+  }
 </script>
 
 <script lang="ts">
   import { writtenPitchName } from "@repo/music-core/engines/notation";
+  import { midiToNote } from "@repo/music-core/engines/theory";
   import type { NoteReadingPrompt } from "@repo/music-core/exercises/note-reading";
   import type { SightReadingPrompt } from "@repo/music-core/exercises/sight-reading";
 
@@ -34,6 +39,13 @@
     }
     return `Phrase · ${prompt.groups.length} groups`;
   }
+
+  function chosenAnswer(item: Summary["results"][number]): string | undefined {
+    if (!("choices" in item.prompt)) return;
+    const answer = item.result.answer;
+    if (typeof answer === "string") return `You chose ${answer}`;
+    if (Array.isArray(answer)) return `You played ${answer.filter((note): note is number => typeof note === "number").map((note) => midiToNote(note)).join(" ")}`;
+  }
 </script>
 
 <div class="grid gap-2">
@@ -46,6 +58,10 @@
           : 'bg-warn/15 text-warn'}"
       >
         {label(item.prompt)}
+        {#if chosenAnswer(item)}
+          <span class="block font-normal">{chosenAnswer(item)}</span>
+        {/if}
+        {#if item.event.assistance === "hinted"}<span class="block font-normal">Hint used</span>{/if}
         <span class="sr-only">{item.result.correct ? ", correct" : ", review"}</span>
       </li>
     {/each}

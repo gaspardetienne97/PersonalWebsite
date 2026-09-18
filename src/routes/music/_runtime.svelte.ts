@@ -8,13 +8,16 @@ import {
   type InputSource,
   type InstrumentId,
   type MonotonicMs,
+  type NoteEvent,
   type ScoringEvent,
   type SessionSource,
   type UnixMs,
 } from "@repo/music-core/domain";
 import {
   DeviceProfileStore,
+  applyDeviceProfile,
   defaultSurfaceForInstrument,
+  type DeviceProfile,
   type DeviceProfileRepository,
   type InputSurfaceId,
   type InstrumentSurfacePreferences,
@@ -26,9 +29,14 @@ import {
 } from "@repo/music-core/engines/daily-routine";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { createMediaLibrary, type MediaLibrary } from "@repo/music-core/engines/media-library";
-import { MidiEngine } from "@repo/music-core/engines/midi";
+import { MidiEngine, type MidiDeviceSummary } from "@repo/music-core/engines/midi";
+import { mpcControllerInitSysex, mpcHeartbeatSysex } from "@repo/music-core/engines/pad-color";
 import { SampleKitStore } from "@repo/music-core/engines/sample-kit";
-import { PracticeSessionStore } from "@repo/music-core/engines/sessions";
+import {
+  PracticeSessionStore,
+  runComparisonTags,
+  type RunComparisonSetup,
+} from "@repo/music-core/engines/sessions";
 import {
   MusicSettingsStore,
   PLAYBACK_SOUND_IDS,
@@ -96,6 +104,37 @@ export interface MusicRuntimeOptions {
   monotonicNowMs?: () => MonotonicMs;
 }
 
+/** Local-state id: the user enabled MIDI in this browser at least once. */
+export const MIDI_WANTED_KEY = "music.midi.wanted";
+
+/** The last hardware note-on and what became of it, for the drills' status line. */
+export interface MidiTrace {
+  deviceName: string;
+  /** The note the device sent. */
+  note: number;
+  /** The note the drill saw after the pad map. */
+  canonical: number;
+  instrument?: InstrumentId;
+  accepted: boolean;
+  reason?: string;
+}
+
+/**
+ * The browser's MIDI permission, or "unknown" where the Permissions API has no
+ * "midi" entry (Safari, Firefox). "prompt" is treated like unknown by the
+ * caller: an enable then shows the browser's own dialog, never a silent grant.
+ */
+export async function midiPermissionState(
+  permissions: Pick<Permissions, "query"> | undefined = globalThis.navigator?.permissions,
+): Promise<"granted" | "denied" | "prompt" | "unknown"> {
+  try {
+    const status = await permissions?.query({ name: "midi" as PermissionName });
+    return status?.state ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export type PracticePhase = "idle" | "count-in" | "running";
 
 export type BeginPerformanceResult =
@@ -103,7 +142,13 @@ export type BeginPerformanceResult =
   | { status: "cancelled" }
   | { status: "failed"; message: string };
 
+export interface BeginPerformanceOptions {
+  countInBars?: number;
+  leadIn?: { bars: number; onStart: (event: TransportEvent) => void };
+}
+
 interface PendingPerformance {
+  options: BeginPerformanceOptions;
   generation: number;
   owner: string | undefined;
   promise: Promise<BeginPerformanceResult>;
@@ -118,6 +163,7 @@ interface PendingPerformance {
  * `/music/track` automatically (and is editable there).
  */
 export interface PracticeCaptureEntry {
+  comparison?: RunComparisonSetup;
   id?: string;
   startedAt?: UnixMs;
   endedAt?: UnixMs;
@@ -131,6 +177,8 @@ export interface PracticeCaptureEntry {
 }
 
 export class MusicRuntime {
+  /** The captured run supplies summary comparisons, including routine steps. */
+  lastPracticeCapture = $state<PracticeCaptureEntry | undefined>();
   readonly router = new InputRouter();
   readonly midi = new MidiEngine();
   readonly sound = new SoundEngine();
@@ -192,6 +240,7 @@ export class MusicRuntime {
   media = $state<MediaLibrary | undefined>();
   sampleKits = $state.raw<SampleKitStore | undefined>(undefined);
   dailyRoutine = $state<DailyRoutineState | undefined>();
+  routineBudgetMinutes = $state(20);
   #settings: DeviceProfileRepository | undefined;
   #journal: PracticeSessionStore | undefined;
   #dailyRoutineSession: DailyRoutineSession | undefined;
@@ -207,14 +256,119 @@ export class MusicRuntime {
   #performanceGeneration = 0;
   #performanceFlight?: Promise<BeginPerformanceResult>;
   #pendingPerformance?: PendingPerformance;
+  #leadInBeats = 0;
   #practiceNavigationActivation = 0;
   #pendingPracticeNavigation?: { bpm: number | undefined };
-  #unsubscribeMidi = this.midi.subscribe((event) => {
-    this.router.push(event);
+  /** Connect's saved profile per MIDI device id: instrument, alias, pad map. */
+  #profilesByDevice = new Map<string, DeviceProfile>();
+  /** What the last hardware MIDI note became, for the drills' status line. */
+  lastMidi = $state<MidiTrace | undefined>();
+  /** Mirror of the engine's enabled flag plus the devices actually listened to. */
+  midiEnabled = $state(false);
+  midiListening = $state<{ devices: string[]; removed: number }>({ devices: [], removed: 0 });
+  /** MIDI was enabled in this browser before (so a fresh load re-opens it). */
+  midiEverEnabled = $state(false);
+  #midiInputs: MidiDeviceSummary[] = [];
+  /**
+   * The MPC output the app keeps in Controller Mode. The MPC One+ sends pad
+   * notes only while a host talks to it (MPC 3 does: init once, heartbeat every
+   * second), so the link lives here, for the whole app, not on one page.
+   */
+  mpcLink = $state<{ outputName: string } | undefined>();
+  #controllerHeartbeats = new Map<string, ReturnType<typeof setInterval>>();
+
+  #syncControllerLinks(): void {
+    const { enabled, sysexEnabled, outputs } = this.midi.state;
+    const wanted = new Map<string, MidiDeviceSummary>();
+    if (enabled && sysexEnabled && !this.#disposed) {
+      for (const output of outputs) {
+        if (this.#profilesByDevice.get(output.id)?.controllerLink) wanted.set(output.id, output);
+      }
+    }
+    for (const [id, timer] of this.#controllerHeartbeats) {
+      if (wanted.has(id)) continue;
+      clearInterval(timer);
+      this.#controllerHeartbeats.delete(id);
+    }
+    for (const [id] of wanted) {
+      if (this.#controllerHeartbeats.has(id)) continue;
+      for (const frame of mpcControllerInitSysex()) this.midi.send(id, frame);
+      this.#controllerHeartbeats.set(
+        id,
+        setInterval(() => this.midi.send(id, mpcHeartbeatSysex()), 1_000),
+      );
+    }
+    const first = wanted.values().next().value;
+    this.mpcLink = first
+      ? { outputName: this.#profilesByDevice.get(first.id)?.alias || first.name }
+      : undefined;
+  }
+  #unsubscribeMidi = this.midi.subscribe((incoming) => {
+    // Connect's choices are applied once, here, so every exercise, grid and
+    // diagnostic downstream sees the same event: the port's assigned instrument
+    // wins over name detection, and hardware pads become canonical bank-A notes.
+    const profile = incoming.deviceId ? this.#profilesByDevice.get(incoming.deviceId) : undefined;
+    const event = applyDeviceProfile(incoming, profile);
+    const accepted = this.router.push(event);
+    if (event.type === "noteOn") {
+      const device = this.#midiInputs.find((input) => input.id === event.deviceId);
+      this.lastMidi = {
+        deviceName: profile?.alias || device?.name || event.deviceId || "MIDI",
+        note: incoming.type === "noteOn" ? incoming.midiNote : event.midiNote,
+        canonical: event.midiNote,
+        instrument: event.instrument,
+        accepted,
+        reason: accepted ? undefined : this.#midiRejectReason(event),
+      };
+    }
   });
+
+  #midiRejectReason(event: NoteEvent): string {
+    if (
+      event.instrument !== undefined &&
+      this.activeInstrument !== undefined &&
+      event.instrument !== this.activeInstrument
+    ) {
+      return `port is assigned to ${INSTRUMENT_LABELS[event.instrument]}, this drill listens to ${INSTRUMENT_LABELS[this.activeInstrument]}`;
+    }
+    if (
+      this.activeChannel !== undefined &&
+      "channel" in event &&
+      event.channel !== undefined &&
+      event.channel !== this.activeChannel
+    ) {
+      return `channel ${event.channel}, the drill listens to channel ${this.activeChannel}`;
+    }
+    return "not accepted by the input router";
+  }
+
+  #refreshMidiListening(): void {
+    const devices = this.#midiInputs
+      .filter((input) => !this.midi.isInputIgnored(input.id))
+      .map((input) => this.#profilesByDevice.get(input.id)?.alias || input.name);
+    const removed = this.#midiInputs.length - devices.length;
+    this.midiListening = { devices, removed };
+  }
   #unsubscribeRouterState = this.router.subscribeState((state) => {
     this.activeSource = state.activeSource;
     this.inputConfidence = state.confidence;
+  });
+  /**
+   * Once MIDI has been enabled in this browser, remember it so a fresh page
+   * load (a reload, a bookmarked drill, the dev server recovering) brings the
+   * devices back without a trip to Connect. The browser's own permission
+   * still decides: we only re-enable when it is already granted.
+   */
+  #midiWantedRemembered = false;
+  #unsubscribeMidiState = this.midi.subscribeState((state) => {
+    this.midiEnabled = state.enabled;
+    this.#midiInputs = state.inputs;
+    this.#refreshMidiListening();
+    this.#syncControllerLinks();
+    if (!state.enabled || this.#midiWantedRemembered) return;
+    this.#midiWantedRemembered = true;
+    this.midiEverEnabled = true;
+    void this.writeLocalState(MIDI_WANTED_KEY, true).catch(() => undefined);
   });
 
   constructor(options: MusicRuntimeOptions = {}) {
@@ -277,9 +431,25 @@ export class MusicRuntime {
     this.metronomeEnabled = loaded.metronomeEnabled;
     this.countInBars = loaded.countInBars;
     this.activeInstrument = loaded.activeInstrument;
-    this.router.setActiveInstrument(loaded.activeInstrument);
+    // A route can register before storage finishes loading. Apply its constraint
+    // without persisting a fixed drill's instrument over the user's preference.
+    if (this.#practiceContext) {
+      this.activeInstrument = this.#reconcileInstrument(this.#practiceContext);
+    }
+    this.router.setActiveInstrument(this.activeInstrument);
     this.settingsReady = true;
     await this.reloadMidiInstruments();
+    void this.#autoEnableMidi();
+  }
+
+  /** Re-open MIDI on startup when the user enabled it before and the browser still allows it. */
+  async #autoEnableMidi(): Promise<void> {
+    if (this.midi.state.enabled || !this.midi.state.supported) return;
+    if ((await this.readLocalState<boolean>(MIDI_WANTED_KEY)) !== true) return;
+    this.midiEverEnabled = true;
+    if ((await midiPermissionState()) === "denied") return;
+    if (this.#disposed || this.midi.state.enabled) return;
+    await this.midi.enable();
   }
 
   /** Small route-owned local state, persisted through PracticeStore.settings. */
@@ -309,6 +479,16 @@ export class MusicRuntime {
     if (endedAt < startedAt) {
       throw new Error("Practice capture endedAt must not be before startedAt");
     }
+    entry = {
+      ...entry,
+      startedAt,
+      endedAt,
+      tags: [
+        ...(entry.tags ?? []),
+        ...(entry.comparison ? runComparisonTags(entry.comparison, entry.scoringEvents ?? []) : []),
+      ],
+    };
+    this.lastPracticeCapture = entry;
     const routineState = this.#dailyRoutineSession?.state;
     const isCurrentRoutineDrill =
       routineState?.status === "active" &&
@@ -401,6 +581,9 @@ export class MusicRuntime {
     this.midi.setIgnoredInputs(
       state.profiles.filter((profile) => profile.ignored).map((profile) => profile.id),
     );
+    this.#profilesByDevice = new Map(state.profiles.map((profile) => [profile.id, profile]));
+    this.#refreshMidiListening();
+    this.#syncControllerLinks();
   }
 
   /** The on-screen surface to show for an instrument (chosen in Connect, or default). */
@@ -519,7 +702,17 @@ export class MusicRuntime {
     this.metronomeRunning = true;
   }
 
-  beginPerformance(): Promise<BeginPerformanceResult> {
+  beginPerformance(options: BeginPerformanceOptions = {}): Promise<BeginPerformanceResult> {
+    if (
+      [options.countInBars ?? this.countInBars, options.leadIn?.bars ?? 0].some(
+        (bars) => !Number.isInteger(bars) || bars < 0,
+      )
+    ) {
+      return Promise.resolve({
+        status: "failed",
+        message: "Preparation bars must be nonnegative integers.",
+      });
+    }
     if (this.#performanceFlight) return this.#performanceFlight;
     if (this.practicePhase !== "idle") return Promise.resolve({ status: "cancelled" });
 
@@ -528,6 +721,10 @@ export class MusicRuntime {
       resolve = settle;
     });
     const pending: PendingPerformance = {
+      options: {
+        countInBars: options.countInBars ?? this.countInBars,
+        ...(options.leadIn ? { leadIn: { ...options.leadIn } } : {}),
+      },
       generation: this.#performanceGeneration,
       owner: this.#contextOwner,
       promise,
@@ -790,9 +987,13 @@ export class MusicRuntime {
 
       if (transport.state.running) transport.stop();
       this.metronomeRunning = false;
-      this.#configureTransport(transport);
+      const preparationBars =
+        (pending.options.countInBars ?? 0) + (pending.options.leadIn?.bars ?? 0);
+      this.#leadInBeats =
+        (pending.options.leadIn?.bars ?? 0) * (this.#practiceContext?.meter?.numerator ?? 4);
+      this.#configureTransport(transport, preparationBars);
 
-      if (this.countInBars === 0 && !this.metronomeEnabled) {
+      if (preparationBars === 0 && !this.metronomeEnabled) {
         this.practicePhase = "running";
         this.#settlePerformance(pending, {
           status: "started",
@@ -801,7 +1002,28 @@ export class MusicRuntime {
         return;
       }
 
+      let leadInStarted = false;
       pending.unsubscribe = transport.subscribe((event) => {
+        if (!this.#isCurrentPerformance(pending)) return;
+        if (
+          event.kind === "beat" &&
+          event.absoluteBeat === 0 &&
+          !leadInStarted &&
+          this.#leadInBeats > 0
+        ) {
+          leadInStarted = true;
+          try {
+            pending.options.leadIn?.onStart(event);
+          } catch (error) {
+            this.#settlePerformance(pending, {
+              status: "failed",
+              message: error instanceof Error ? error.message : "Reference playback failed.",
+            });
+            this.#stopTransport();
+            this.practicePhase = "idle";
+          }
+        }
+        if (!this.#isCurrentPerformance(pending)) return;
         if (event.kind !== "beat" || event.countingIn || event.beat !== 0) return;
         if (!this.#isCurrentPerformance(pending)) return;
 
@@ -814,7 +1036,7 @@ export class MusicRuntime {
         });
         if (!this.metronomeEnabled) this.#stopTransport();
       });
-      this.practicePhase = this.countInBars > 0 ? "count-in" : "running";
+      this.practicePhase = preparationBars > 0 ? "count-in" : "running";
       transport.start();
       this.metronomeRunning = true;
     } catch (error) {
@@ -858,6 +1080,8 @@ export class MusicRuntime {
   }
 
   #stopTransport(): void {
+    this.#leadInBeats = 0;
+    this.sound.stopMetronomeClicks();
     if (this.#transport?.state.running) this.#transport.stop();
     this.metronomeRunning = false;
     this.activeBeat = -1;
@@ -873,6 +1097,7 @@ export class MusicRuntime {
       bpm: this.transportBpm,
       countInBars: this.countInBars,
       onMetronomeClick: (event: TransportEvent) => {
+        if (this.#leadInBeats > 0 && event.absoluteBeat < this.#leadInBeats) return;
         if (
           event.countingIn ||
           (this.metronomeEnabled && (this.#practiceContext?.shouldPlayMetronome?.(event) ?? true))
@@ -904,8 +1129,11 @@ export class MusicRuntime {
     this.#transportGeneration += 1;
     this.endPerformance();
     this.#unsubscribeMidi();
+    this.#unsubscribeMidiState();
     this.#unsubscribeRouterState();
     this.#unsubscribeTransport?.();
+    for (const timer of this.#controllerHeartbeats.values()) clearInterval(timer);
+    this.#controllerHeartbeats.clear();
     void this.midi.disable();
     this.sound.dispose();
   }

@@ -4,6 +4,7 @@ import {
   type ExerciseRun,
   type NoteEvent,
   type NoteOnEvent,
+  type ScoringEvent,
   type ScoringMetric,
 } from "@repo/music-core/domain";
 import { verifyChordTarget } from "@repo/music-core/engines/chord-verification";
@@ -54,10 +55,61 @@ export interface ChordChangeAnswer {
   playedMidiNotes: number[];
 }
 
+export type ChordChangeMetric = Extract<ScoringMetric, { kind: "chord-changes" }>;
+
+export interface ChordChangeBenchmark {
+  instrument: ChordShape["instrument"];
+  tuningId: string;
+  durationSeconds: number;
+  fromShapeId: string;
+  fromMidiNotes: number[];
+  toShapeId: string;
+  toMidiNotes: number[];
+}
+
+export interface ChordChangeHistoryEntry {
+  event: ScoringEvent;
+  metric: ChordChangeMetric;
+}
+
+export function chordChangeHistory(
+  events: readonly ScoringEvent[],
+  benchmark: ChordChangeBenchmark,
+  limit = 6,
+): ChordChangeHistoryEntry[] {
+  const seen = new Set<string>();
+  return [...events]
+    .sort((left, right) => Number(right.at) - Number(left.at))
+    .flatMap((event) => {
+      if (seen.has(event.id) || event.instrument !== benchmark.instrument) return [];
+      const metric = event.metrics.find(
+        (candidate): candidate is ChordChangeMetric =>
+          candidate.kind === "chord-changes" &&
+          candidate.tuningId === benchmark.tuningId &&
+          candidate.durationSeconds === benchmark.durationSeconds &&
+          candidate.fromShapeId === benchmark.fromShapeId &&
+          sameNotes(candidate.fromMidiNotes, benchmark.fromMidiNotes) &&
+          candidate.toShapeId === benchmark.toShapeId &&
+          sameNotes(candidate.toMidiNotes, benchmark.toMidiNotes) &&
+          Number.isFinite(candidate.changesPerMinute),
+      );
+      if (!metric) return [];
+      seen.add(event.id);
+      return [{ event, metric }];
+    })
+    .slice(0, Math.max(0, limit));
+}
+
 export function createChordChangeExercise(
   options: ChordChangeOptions,
 ): ExerciseDefinition<ChordChangePrompt, ChordChangeAnswer> {
   const durationSeconds = options.durationSeconds;
+  if (
+    durationSeconds !== undefined &&
+    (!Number.isFinite(durationSeconds) || durationSeconds <= 0)
+  ) {
+    throw new RangeError("Timed chord changes require a positive finite duration");
+  }
   const repetitions = Math.max(1, Math.min(8, Math.round(options.repetitions ?? 2)));
   // Timed mode grades an unbounded alternating cycle, so targets is just the
   // from→to pair template.
@@ -202,6 +254,20 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
         prompt.durationSeconds === undefined
           ? undefined
           : Math.round((cleanChanges * 60) / prompt.durationSeconds);
+      if (changesPerMinute !== undefined) {
+        metrics.push({
+          kind: "chord-changes",
+          tuningId: prompt.tuningId,
+          durationSeconds: prompt.durationSeconds!,
+          fromShapeId: prompt.fromShapeId,
+          fromMidiNotes: [...prompt.targets[0]!.midiNotes],
+          toShapeId: prompt.toShapeId,
+          toMidiNotes: [...prompt.targets[1]!.midiNotes],
+          completedChanges,
+          cleanChanges,
+          changesPerMinute,
+        });
+      }
       const correct = timed
         ? completedChanges > 0 && cleanChanges === completedChanges
         : cleanChanges === windows.length && windows.length > 0;
@@ -240,4 +306,8 @@ function chordChangeRun(prompt: ChordChangePrompt): ExerciseRun<ChordChangeAnswe
 function timestampDelta(first?: number, second?: number): number | undefined {
   if (first === undefined || second === undefined) return undefined;
   return Math.max(0, Math.round(second - first));
+}
+
+function sameNotes(left: readonly number[], right: readonly number[]): boolean {
+  return left.length === right.length && left.every((note, index) => note === right[index]);
 }

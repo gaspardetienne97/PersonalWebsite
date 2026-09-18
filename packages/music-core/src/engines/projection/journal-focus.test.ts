@@ -20,11 +20,18 @@ function session(start: string, tags: string[]): PracticeSession {
 describe("summarizeFocusAreas", () => {
   test("aggregates tag counts and most-recent practice", () => {
     const focus = summarizeFocusAreas([
-      session("2026-06-01T10:00:00Z", ["ii-V-I", "shell voicings"]),
+      session("2026-06-01T10:00:00Z", [
+        "ii-V-I",
+        "shell voicings",
+        "v1:voicings:piano:major",
+        "comparison:bpm:96",
+      ]),
       session("2026-06-03T10:00:00Z", ["ii-V-I"]),
       session("2026-06-02T10:00:00Z", ["spider"]),
     ]);
 
+    expect(focus.map((entry) => entry.tag)).not.toContain("comparison:bpm:96");
+    expect(focus.map((entry) => entry.tag)).not.toContain("v1:voicings:piano:major");
     expect(focus[0]).toMatchObject({ tag: "ii-V-I", sessionCount: 2 });
     expect(focus.map((entry) => entry.tag)).toContain("spider");
   });

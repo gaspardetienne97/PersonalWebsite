@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
+import { userEvent } from "vitest/browser";
 
 import type { NoteEvent } from "@repo/music-core/domain";
 import { InputRouter } from "@repo/music-core/engines/input-router";
 import { curatedTunings } from "@repo/music-core/engines/tunings";
 
 import FretboardInput from "./FretboardInput.svelte";
+import "../../../../../app.css";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -39,7 +41,57 @@ describe("FretboardInput", () => {
       source: "onscreen",
       instrument: "guitar",
       inputProfileId: "guitar.standard",
+      fretPosition: { stringNumber: 1, fretNumber: 0 },
     });
+  });
+
+  test("interval recall hides answer names in the keyboard, focus mirror and visual dots", async () => {
+    const router = new InputRouter();
+    render(FretboardInput, {
+      tuning: curatedTunings("guitar")[0]!,
+      router,
+      visibleFrets: 4,
+      hideNoteNames: true,
+      anchorPosition: { stringNumber: 1, fretNumber: 0 },
+    });
+    const anchor = document.querySelector<HTMLButtonElement>(
+      '[aria-label="String 1 fret 0, anchor"]',
+    );
+    expect(anchor).not.toBeNull();
+    anchor!.focus();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="fretboard-focus"]')?.textContent).toContain(
+        "String 1, fret 0",
+      ),
+    );
+    expect(document.querySelector('[data-testid="fretboard-focus"]')?.textContent).not.toContain(
+      "E4",
+    );
+    expect(document.querySelector('[aria-label*="fret 3, G4"]')).toBeNull();
+    await vi.waitFor(() => expect(document.querySelector("svg")?.textContent).toContain("A"));
+  });
+
+  test.each([
+    { theme: "light", stage: "#ffffff", ink: "#111111" },
+    { theme: "dark", stage: "#111111", ink: "#ffffff" },
+  ])("uses the contrasting stage token pair for the anchor in $theme", async ({ stage, ink }) => {
+    const tokens = document.createElement("style");
+    tokens.textContent = `:root { --stage: ${stage}; --stage-foreground: ${ink}; --foreground: ${ink}; }`;
+    document.head.append(tokens);
+    try {
+      render(FretboardInput, {
+        tuning: curatedTunings("guitar")[0]!,
+        router: new InputRouter(),
+        visibleFrets: 4,
+        hideNoteNames: true,
+        anchorPosition: { stringNumber: 1, fretNumber: 0 },
+      });
+      await vi.waitFor(() => expect(document.querySelector(".dot-text")?.textContent).toBe("A"));
+      expect(document.querySelector(".dot-circle")).toHaveAttribute("fill", ink);
+      expect(document.querySelector(".dot-text")).toHaveAttribute("fill", stage);
+    } finally {
+      tokens.remove();
+    }
   });
 
   test("labels and colors highlighted visual fretboard notes", async () => {
@@ -97,9 +149,136 @@ describe("FretboardInput", () => {
     expect(document.querySelector('[aria-label^="String 6 fret 5,"]')).not.toBeNull();
     expect(document.querySelector('[aria-label^="String 1 fret 5,"]')).toBeNull();
   });
+
+  test("mirrors keyboard focus on the visual fretboard and preserves activation", async () => {
+    const router = new InputRouter();
+    const accepted = vi.fn();
+    render(FretboardInput, {
+      tuning: curatedTunings("guitar")[0]!,
+      router,
+      targetMidiNotes: [45],
+      visibleStrings: [6],
+      visibleFrets: 5,
+      onAccepted: accepted,
+    });
+    const focused = document.querySelector<HTMLButtonElement>(
+      '[aria-label="String 6 fret 5, A2, target"]',
+    )!;
+
+    const buttons = [
+      ...document.querySelectorAll<HTMLButtonElement>('button[aria-label^="String 6 fret"]'),
+    ];
+    buttons[buttons.indexOf(focused) - 1]!.focus();
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(focused);
+    await vi.waitFor(() => {
+      expect(document.querySelector('[data-testid="fretboard-focus"]')?.textContent).toContain(
+        "String 6, fret 5, A2",
+      );
+      expect(document.querySelector('.dot-circle[stroke-width="4"]')).not.toBeNull();
+    });
+
+    await userEvent.keyboard("{Enter}");
+    expect(accepted).toHaveBeenCalledOnce();
+    await userEvent.keyboard(" ");
+    expect(accepted).toHaveBeenCalledTimes(2);
+
+    focused.blur();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid="fretboard-focus"]')).toBeNull(),
+    );
+  });
 });
 
 describe("FretboardInput fret window", () => {
+  test("keeps a bounded fretboard readable through resize and preserves position input", async () => {
+    const accepted = vi.fn();
+    const result = render(FretboardInput, {
+      tuning: curatedTunings("guitar")[0]!,
+      router: new InputRouter(),
+      fretWindow: { start: 5, end: 9 },
+      hideNoteNames: true,
+      anchorPosition: { stringNumber: 1, fretNumber: 5 },
+      onAccepted: accepted,
+    });
+    const button = result.container.querySelector<HTMLButtonElement>(
+      '[aria-label="String 1 fret 5, anchor"]',
+    )!;
+    button.focus();
+    for (const width of [280, 900, 280]) {
+      result.container.style.width = `${width}px`;
+      await vi.waitFor(() => {
+        const label = result.container.querySelector(".dot-text")!;
+        expect(label?.textContent).toBe("A");
+        expect(label.getBoundingClientRect().height).toBeGreaterThanOrEqual(10);
+        const strings = result.container.querySelectorAll(".strings line");
+        expect(
+          strings[1]!.getBoundingClientRect().y - strings[0]!.getBoundingClientRect().y,
+        ).toBeGreaterThanOrEqual(26);
+        expect(
+          result.container.querySelector("svg")!.getBoundingClientRect().width,
+        ).toBeGreaterThan(width - 40);
+        const svg = result.container.querySelector("svg")!;
+        expect(
+          Math.abs(svg.viewBox.baseVal.width - svg.getBoundingClientRect().width),
+        ).toBeLessThan(1);
+        expect(result.container.scrollWidth).toBeLessThanOrEqual(width);
+      });
+      expect(document.activeElement).toBe(button);
+      expect(result.container.querySelector('.dot-circle[stroke-width="4"]')).not.toBeNull();
+      const dot = result.container.querySelector(".dot-circle")!.getBoundingClientRect();
+      result.container.querySelector(".hoverDiv")!.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          clientX: dot.x + dot.width / 2,
+          clientY: dot.y + dot.height / 2,
+        }),
+      );
+      await userEvent.keyboard("{Enter}");
+    }
+    expect(accepted).toHaveBeenCalledTimes(6);
+    for (const [event] of accepted.mock.calls) {
+      expect(event).toMatchObject({
+        midiNote: 69,
+        fretPosition: { stringNumber: 1, fretNumber: 5 },
+      });
+    }
+  });
+
+  test("keeps whole-neck labels separated in a local scroller", async () => {
+    const result = render(FretboardInput, {
+      tuning: curatedTunings("guitar")[0]!,
+      router: new InputRouter(),
+      visibleFrets: 22,
+      targetMidiNotes: [84, 85, 86],
+      visibleStrings: [1],
+    });
+    result.container.style.width = "280px";
+    await vi.waitFor(() => {
+      const labels = [...result.container.querySelectorAll(".dot-text")];
+      expect(labels).toHaveLength(3);
+      expect(labels[0]!.getBoundingClientRect().height).toBeGreaterThanOrEqual(10);
+      expect(
+        labels[1]!.getBoundingClientRect().left - labels[0]!.getBoundingClientRect().right,
+      ).toBeGreaterThanOrEqual(10);
+    });
+    const scroller = result.container.querySelector<HTMLElement>('[aria-hidden="true"]')!;
+    expect(scroller.scrollWidth).toBeGreaterThan(scroller.clientWidth);
+    result.container
+      .querySelector<HTMLButtonElement>('[aria-label="String 1 fret 22, D6, target"]')!
+      .focus();
+    await vi.waitFor(() => {
+      const focused = result.container
+        .querySelector('.dot-circle[stroke-width="4"]')!
+        .getBoundingClientRect();
+      const bounds = scroller.getBoundingClientRect();
+      expect(scroller.scrollLeft).toBeGreaterThan(0);
+      expect(focused.left).toBeGreaterThanOrEqual(bounds.left);
+      expect(focused.right).toBeLessThanOrEqual(bounds.right);
+    });
+    expect(result.container.scrollWidth).toBeLessThanOrEqual(280);
+  });
+
   test("shows only the window with absolute fret labels and a neck strip", async () => {
     const tuning = curatedTunings("guitar")[0]!;
     render(FretboardInput, {

@@ -484,6 +484,7 @@
         runtime.recordPractice({
           source: "drill",
           instrument: "guitar",
+          comparison: { variantKey, bpm, dimensions: "progression and follow mode" },
           tags: ["technique", "chord-changes"],
           scoringEvents: [],
           xpEarned: Math.round(finishSummary.score * 20),
@@ -637,7 +638,7 @@
         </p>
       {/snippet}
       {#snippet lastRunDelta()}
-        <LastRunDelta tags={["technique", "chord-changes"]} accuracy={summary?.score ?? 0} before={visitStartedAt} />
+        <LastRunDelta tags={["technique", "chord-changes"]} before={visitStartedAt} />
       {/snippet}
       {#snippet children()}
         {#if finishError}

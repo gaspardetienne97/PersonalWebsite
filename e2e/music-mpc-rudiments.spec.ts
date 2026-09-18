@@ -21,10 +21,13 @@ test.describe("music MPC rudiment workflows", () => {
     await expect(page.getByRole("heading", { name: "Rudiment complete" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Again" }).first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
+    await expect(page.getByText("Not measured", { exact: true })).toBeVisible();
 
     await page.waitForTimeout(500);
     await page.goto("/music/track");
-    await expect(page.getByText(/MPC single strokes/)).toBeVisible();
+    await expect(page.getByText(/^MPC single strokes · 8 hits/)).toBeVisible();
+    await page.getByText("Attempt evidence", { exact: true }).click();
+    await expect(page.getByText("Guided · On-screen · mpc", { exact: true })).toBeVisible();
   });
 
   test("fits the MPC trainer at a mobile viewport", async ({ page }) => {

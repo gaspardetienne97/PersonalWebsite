@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { page } from "$app/state";
   import Check from "lucide-svelte/icons/check";
   import { onDestroy, tick } from "svelte";
 
@@ -14,7 +15,6 @@
   import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
   import {
     buildDrillVoicings,
-    type DrillVariant,
     type RootlessPosition,
   } from "@repo/music-core/engines/jazz";
   import { ProgressEngine } from "@repo/music-core/engines/progress";
@@ -22,10 +22,13 @@
   import { PracticeStore } from "@repo/music-core/engines/store";
   import { midiToNote } from "@repo/music-core/engines/theory";
   import {
+    buildVoicingDrillTargets,
     normalizeVoicingDrillConfig,
+    type VoicingDrillVariant,
     VoicingDrillSession,
     type VoicingDrillState,
   } from "@repo/music-core/engines/voicing-drill-session";
+  import { voiceLeadingFeedback } from "@repo/music-core/exercises/voicing-drill";
   import { Button } from "@repo/ui/button";
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
@@ -57,22 +60,27 @@
   const skills = new SkillGraphStore(store);
   const analytics = new AnalyticsEngine(store);
   const progress = new ProgressEngine(store);
-  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : new URLSearchParams();
+  const initialSearch = browser ? initialDrillSearch(["bpm", "tempo"]) : page.url.searchParams;
   const hasInstrumentQuery = initialSearch.has("instrument");
   const initialConfig = normalizeVoicingDrillConfig(
     initialSearch,
     hasInstrumentQuery ? "piano" : runtime.activeInstrument,
   );
+  let checkMode = $state((browser ? initialSearch : page.url.searchParams).get("mode") === "check");
   const initialUrlBpm = Number(initialSearch.get("bpm")) || undefined;
-  const variantLabels: Record<DrillVariant, string> = {
+  const variantLabels: Record<VoicingDrillVariant, string> = {
     major: "Rootless ii-V-I",
     minor: "Minor ii-V-i",
     altered: "Altered V7",
+    "guide-tones": "Guide tones",
   };
 
   let instrument = $state<InstrumentId>(initialConfig.instrument);
   runtime.setActiveInstrument(initialConfig.instrument);
-  let variant = $state<DrillVariant>(initialConfig.variant);
+  let variant = $state<VoicingDrillVariant>(initialConfig.variant);
+  let key = $state(initialConfig.key ?? 0);
+  const guideTones = $derived(variant === "guide-tones");
+  const unaided = $derived(checkMode || guideTones);
   let startPosition = $state<RootlessPosition>(initialConfig.startPosition);
   // Grading: lenient (any note played, beginner/on-screen) vs held-together
   // (true chord detection, best with a MIDI instrument). Auto-advance moves on as
@@ -87,6 +95,7 @@
   let status = $state("Loading your harmony progress…");
   let pending = $state(false);
   let routeGeneration = 0;
+  let destroyed = false;
   let startRequest = 0;
   let practiceContextReady: Promise<void> = Promise.resolve();
   let liveTick = $state(0);
@@ -98,6 +107,10 @@
     void liveTick;
     return Math.round((session?.liveProgress ?? 0) * 100);
   });
+  const selectedNotes = $derived.by(() => {
+    void liveTick;
+    return session?.selectionFeedback ?? "";
+  });
   const mono = $derived(isMonophonic(instrument));
   const summary = $derived(drillState?.status === "summary" ? drillState : undefined);
   const phase = $derived<"setup" | "stage" | "summary">(
@@ -108,18 +121,25 @@
         : "setup",
   );
   const variantLabel = $derived(variantLabels[variant]);
-  const preview = $derived(buildDrillVoicings(variant, startPosition));
+  const preview = $derived(variant === "guide-tones" ? [] : buildDrillVoicings(variant, startPosition));
+  const guideFirst = $derived(guideTones ? buildVoicingDrillTargets("piano", { variant: "guide-tones", key })[0] : undefined);
+  const guideContext = $derived((phase === "stage" ? drillState?.current : guideFirst)?.voiceLeading);
+  const guideFromSymbol = $derived(phase === "stage" && drillState?.index === 1
+    ? drillState.results[0]?.target.symbol
+    : `${midiToNote(60 + ((key + 2) % 12), true).replace(/\d+$/, "")}m7`);
+  const keyLabel = $derived(midiToNote(60 + key, true).replace(/\d+$/, ""));
   const normalizedConfig = $derived(
     normalizeVoicingDrillConfig({
       instrument,
       variant,
+      key,
       start: startPosition,
       strict: strict ? "held" : "lenient",
       advance: autoAdvance ? "auto" : "manual",
     }),
   );
   const variantKey = $derived(
-    `v1:voicings:${instrument}:${variant}:${startPosition}:${strict ? "held" : "lenient"}:${autoAdvance ? "auto" : "manual"}`,
+    guideTones ? `v1:voicings:piano:guide-tones:${key}:${48 + key}-${71 + key}:independent` : `v1:voicings:${instrument}:${variant}:${startPosition}:${strict ? "held" : "lenient"}:${autoAdvance ? "auto" : "manual"}`,
   );
   const liveAnnouncement = $derived(
     phase === "summary" && summary
@@ -133,15 +153,16 @@
       variantLabel,
       INSTRUMENT_LABELS[instrument],
       variant === "major" ? (startPosition === "A" ? "A-B-A" : "B-A-B") : undefined,
-      mono ? undefined : strict ? "Held" : "Lenient",
-      autoAdvance ? "Auto" : "Manual",
+      guideTones ? `Key ${keyLabel}` : mono ? undefined : strict ? "Held" : "Lenient",
+      unaided ? "Check" : "Practice",
+      autoAdvance && !unaided ? "Auto" : "Manual",
     ]
       .filter(Boolean)
       .join(" · "),
   );
   /** Target keys lit on the one input keyboard (piano and Aerophone fallback). */
   const targetHighlights = $derived(
-    Object.fromEntries((drillState?.current?.displayMidi ?? []).map((midi) => [midi, "target" as const])),
+    Object.fromEntries((unaided ? [] : drillState?.current?.displayMidi ?? []).map((midi) => [midi, "target" as const])),
   );
   const readyHighlights = $derived(
     Object.fromEntries(
@@ -191,7 +212,7 @@
         defaultBpm: 96,
         ...(initialUrlBpm === undefined ? {} : { initialUrlBpm }),
         meter: { numerator: 4, denominator: 4 },
-        allowedInstruments: [...VIEWABLE_INSTRUMENTS],
+        allowedInstruments: guideTones ? ["piano"] : [...VIEWABLE_INSTRUMENTS],
         onBpmChange: (next) => (bpm = next),
         onInstrumentChange: (next) => (instrument = next),
       })
@@ -214,7 +235,7 @@
     const unsubscribe = runtime.router.subscribe((event) => {
       if (drillState?.status !== "active") return;
       if (event.type === "noteOn") liveTick += 1;
-      if (!autoAdvance) return;
+      if (!autoAdvance || unaided) return;
       queueMicrotask(() => {
         if (!pending && drillState?.status === "active" && (session?.liveProgress ?? 0) >= 1) {
           void check();
@@ -274,6 +295,8 @@
         variant: config.variant,
         startPosition: config.startPosition,
         strict: config.strict,
+        key: config.key,
+        assistance: unaided ? "independent" : "guided",
       });
       unsubscribeSession = session.subscribe((next) => {
         drillState = next;
@@ -283,6 +306,7 @@
           void runtime.recordPractice({
             source: "drill",
             instrument: config.instrument,
+            comparison: { variantKey, bpm, settings: JSON.stringify(guideTones ? { ...config, assistance: "independent", register: [48 + key, 71 + key] } : config), dimensions: guideTones ? "instrument, variant, key, register and assistance" : "instrument, variant, position, held-note rule and advance mode" },
             tags: ["jazz", "voicings", "ii-v-i"],
             scoringEvents: next.results.map((result) => result.event),
             xpEarned: next.xp,
@@ -292,7 +316,7 @@
       });
       session.start();
       resultsDismissed = false;
-      status = autoAdvance
+      status = guideTones ? "Select exactly two guide tones for the next chord with the least total movement, then Check chord." : autoAdvance && !unaided
         ? "Play the voicing. It advances on its own."
         : "Play the voicing, then press Check chord.";
     } catch (error) {
@@ -304,16 +328,29 @@
   }
 
   async function check(): Promise<void> {
-    if (!session || drillState?.status !== "active" || pending) return;
+    if (destroyed || !session || drillState?.status !== "active" || pending) return;
+    const checkedSession = session;
+    const generation = routeGeneration;
     pending = true;
     try {
       if (!(await runtime.enableAudio())) {
         // Audio is optional; grading still works without it.
       }
-      const step = await session.submit();
+      if (destroyed || checkedSession !== session || generation !== routeGeneration) return;
+      const step = await checkedSession.submit();
+      if (destroyed || checkedSession !== session || generation !== routeGeneration) return;
+      const movement = step.event.metrics.find((metric) => metric.kind === "voice-leading");
+      if (movement) {
+        status = `${step.target.symbol}: ${voiceLeadingFeedback(movement)}`;
+        if (!step.correct && session.state.current?.voiceLeading) status += " Restored current pair for the next transition (shown above).";
+        return;
+      }
       status = step.correct
-        ? `${step.target.symbol} ✓ +${step.xp} XP`
+        ? `${step.target.symbol}: ${!mono && !strict ? "Notes collected; extras tolerated" : "Target notes matched"} · +${step.xp} XP`
         : `${step.target.symbol}: ${Math.round(step.score * 100)}% — keep going.`;
+      const metric = step.event.metrics.find((metric) => metric.kind === "chord");
+      const extras = metric?.extraPitchClasses ?? [];
+      status += ` Extra notes: ${extras.length ? extras.map((pc) => midiToNote(60 + pc).replace(/\d+$/, "")).join(", ") : "none"}.`;
     } finally {
       pending = false;
     }
@@ -354,10 +391,14 @@
     params.set("strict", config.strict ? "held" : "lenient");
     params.set("advance", config.autoAdvance ? "auto" : "manual");
     params.set("bpm", String(bpm));
+    params.set("mode", unaided ? "check" : "practice");
+    if (guideTones) params.set("key", String(config.key));
+    else params.delete("key");
     syncRouteQuery(`${window.location.pathname}?${params.toString()}${window.location.hash}`);
   }
 
   onDestroy(() => {
+    destroyed = true;
     routeGeneration += 1;
     runtime.endPerformance();
     unsubscribeSession?.();
@@ -369,7 +410,7 @@
   <title>ii-V-I Voicing Drill | Practice OS</title>
   <meta
     name="description"
-    content="Play rootless, minor, and altered dominant jazz voicings through all 12 keys, graded on any instrument."
+    content="Practice jazz voicings across all 12 keys, or connect two guide-tone transitions on piano."
   />
 </svelte:head>
 
@@ -378,7 +419,7 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        source={runtime.activeSource}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
@@ -416,12 +457,19 @@
   {/snippet}
 
   {#snippet targetView(midi: number[], highlights: Record<number, "target">, ready: boolean)}
-    {#if instrument === "piano"}
+    {#if guideTones}
+      <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
+        {#key `${phase}:${drillState?.index ?? 0}`}
+          <PianoSurface router={runtime.router} lowMidi={48 + key} highMidi={71 + key}
+            noteNames="c" pointerMode="hold" onAccepted={playInput} />
+        {/key}
+      </div>
+    {:else if instrument === "piano"}
       <div class="min-w-0 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
         <PianoSurface
           router={runtime.router}
-          notes={midi}
-          {highlights}
+          notes={checkMode ? [48, 84] : midi}
+          highlights={checkMode ? {} : highlights}
           noteNames="c"
           pointerMode={ready ? "auto" : "latch"}
           onAccepted={playInput}
@@ -429,10 +477,20 @@
       </div>
     {:else}
       <div class="grid min-w-0 gap-2 rounded-xl border border-stage-line bg-stage-2/70 p-3 sm:p-4">
-        <InstrumentView {midi} {instrument} router={runtime.router} />
+        <InstrumentView midi={checkMode ? [] : midi} {instrument} router={runtime.router} />
         {#if mono}
-          <PianoSurface router={runtime.router} notes={midi} {highlights} noteNames="c" onAccepted={playInput} />
+          <PianoSurface router={runtime.router} notes={checkMode ? [48, 84] : midi} highlights={checkMode ? {} : highlights} noteNames="c" onAccepted={playInput} />
         {/if}
+      </div>
+    {/if}
+  {/snippet}
+
+  {#snippet guidePrompt()}
+    {#if guideContext}
+      <div class="grid gap-1 text-sm text-stage-muted">
+        <p>Current {guideFromSymbol}: {previewNotes(guideContext.fromMidi)}</p>
+        <p>Register: {midiToNote(guideContext.register[0])}–{midiToNote(guideContext.register[1])}</p>
+        <p>Select the next chord’s third and seventh with the least total semitone movement. Sequential taps count as two notes selected; timing is not graded. Every distinct note played counts until Check.</p>
       </div>
     {/if}
   {/snippet}
@@ -444,8 +502,9 @@
   {#snippet summaryPhase()}
     <DrillSummaryCard bind:headingRef={resultsHeading} onChangeSetup={changeSetup}>
       {#snippet heading()}
-        <Card.Description>{variantLabel} · all 12 keys</Card.Description>
+        <Card.Description>{variantLabel} · {guideTones ? `key ${keyLabel} · two transitions` : "all 12 keys"}</Card.Description>
         <Card.Title>Drill complete</Card.Title>
+        {#if !guideTones && !mono && !strict}<p>Notes collected · Extra notes are tolerated; notes need not be held together.</p>{/if}
       {/snippet}
       {#snippet metric()}
         <p class="flex items-baseline gap-1">
@@ -458,12 +517,21 @@
       {#snippet lastRunDelta()}
         <LastRunDelta
           tags={["voicings"]}
-          accuracy={summary?.accuracy ?? 0}
           before={visitStartedAt}
         />
       {/snippet}
       {#snippet children()}
         <div class="grid gap-2">
+          {#if guideTones}
+            <ul class="grid gap-2 text-sm" aria-label="Voice-leading results">
+              {#each summary?.results ?? [] as result (result.target.id)}
+                {@const movement = result.event.metrics.find((metric) => metric.kind === "voice-leading")}
+                <li><strong>{result.target.symbol}</strong>
+                  {#if movement}{voiceLeadingFeedback(movement)}{/if}
+                </li>
+              {/each}
+            </ul>
+          {/if}
           <p class="eyebrow">Per chord</p>
           <ul class="grid grid-cols-3 gap-1 sm:grid-cols-6 lg:grid-cols-9" aria-label="Chord results">
             {#each chordStrip as chord, index (index)}
@@ -473,7 +541,7 @@
                   : 'bg-warn/15 text-warn'}"
               >
                 {chord.symbol}
-                <span class="sr-only">{chord.correct ? "clean" : `${chord.score}%`}</span>
+                <span class="sr-only">{chord.correct ? "target notes collected" : `${chord.score}%`}</span>
               </li>
             {/each}
           </ul>
@@ -503,11 +571,20 @@
   <PracticeDrillShell {phase} startPending={pending} {setupSummary} summary={summaryPhase}>
     {#snippet setup()}
       <div class="grid gap-3 rounded-lg border bg-card p-4">
+        {#if !guideTones}
+        <SegmentedControl
+          size="sm" ariaLabel="Practice mode"
+          options={[{ value: "practice", label: "Practice" }, { value: "check", label: "Check" }]}
+          value={checkMode ? "check" : "practice"}
+          onChange={(value) => (checkMode = value === "check")}
+        />
+        {/if}
+        <p class="text-xs text-muted-foreground">{unaided ? "Unaided Check: answer cues stay hidden until grading." : "Guided practice: target cues are shown."}</p>
         <div class="flex flex-wrap items-center gap-2">
           <SegmentedControl
             size="sm"
             ariaLabel="Instrument"
-            options={VIEWABLE_INSTRUMENTS.map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
+            options={(guideTones ? ["piano"] as InstrumentId[] : VIEWABLE_INSTRUMENTS).map((id) => ({ value: id, label: INSTRUMENT_LABELS[id] }))}
             value={instrument}
             onChange={(v) => {
               instrument = v as InstrumentId;
@@ -521,10 +598,23 @@
               { value: "major", label: "Major" },
               { value: "minor", label: "Minor" },
               { value: "altered", label: "Altered V7" },
+              { value: "guide-tones", label: "Guide tones" },
             ]}
             value={variant}
-            onChange={(v) => (variant = v as DrillVariant)}
+            onChange={(v) => {
+              variant = v as VoicingDrillVariant;
+              if (variant === "guide-tones") { instrument = "piano"; runtime.setActiveInstrument("piano"); }
+            }}
           />
+          {#if guideTones}
+            <label class="flex items-center gap-2 text-sm">Key
+              <select aria-label="Key" bind:value={key} class="rounded-md border bg-background px-3 py-2">
+                {#each Array.from({ length: 12 }, (_, index) => index) as tonic (tonic)}
+                  <option value={tonic}>{midiToNote(60 + tonic, true).replace(/\d+$/, "")}</option>
+                {/each}
+              </select>
+            </label>
+          {/if}
           {#if variant === "major"}
             <SegmentedControl
               size="sm"
@@ -537,7 +627,7 @@
               onChange={(v) => (startPosition = v as RootlessPosition)}
             />
           {/if}
-          {#if !mono}
+          {#if !guideTones && !mono}
             <SegmentedControl
               size="sm"
               ariaLabel="Grading"
@@ -549,6 +639,7 @@
               onChange={(v) => (strict = v === "held")}
             />
           {/if}
+          {#if !guideTones}
           <SegmentedControl
             size="sm"
             ariaLabel="Advance"
@@ -559,7 +650,9 @@
             value={autoAdvance ? "auto" : "manual"}
             onChange={(v) => (autoAdvance = v === "auto")}
           />
+          {/if}
         </div>
+        {#if !guideTones && !mono && !strict}<p class="text-xs text-muted-foreground">Notes collected: extra notes are tolerated; notes need not be held together.</p>{/if}
         {#if mono}
           <p class="text-xs text-muted-foreground">
             The Aerophone is monophonic: play each voicing as an ascending arpeggio.
@@ -572,9 +665,9 @@
       <PracticeStage {instrument} class="grid gap-4 p-4 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="eyebrow">Ready · first chord {firstTarget?.symbol ?? ""}</p>
+            <p class="eyebrow">Ready · {guideTones ? "two transitions" : `first chord ${firstTarget?.symbol ?? ""}`}</p>
             <h2 class="text-xl font-semibold tracking-tight" tabindex="-1" bind:this={setupHeading}>
-              {variantLabel} · all 12 keys
+              {variantLabel} · {guideTones ? `key ${keyLabel} · two transitions` : "all 12 keys"}
             </h2>
             <p class="text-sm text-stage-muted">
               {mono ? "Play each voicing as an ascending arpeggio." : "Play anything to warm up. Nothing is graded until you start."}
@@ -587,6 +680,7 @@
             <StartShortcut onStart={() => void startDrill()} />
           </div>
         </div>
+        {#if guideTones}{@render guidePrompt()}{/if}
         {@render targetView(
           firstTarget ? [...(firstTarget.bassMidi === undefined ? [] : [firstTarget.bassMidi]), ...firstTarget.midi] : [60, 72],
           readyHighlights,
@@ -594,7 +688,7 @@
         )}
         <p class="text-sm text-stage-muted">{status}</p>
       </PracticeStage>
-      {@render drillReference()}
+      {#if !unaided}{@render drillReference()}{/if}
     {/snippet}
 
     {#snippet stage()}
@@ -611,17 +705,21 @@
           </span>
         </div>
 
+        {#if guideTones}{@render guidePrompt()}{/if}
         {@render targetView(drillState?.current?.displayMidi ?? [], targetHighlights, false)}
 
+        {#if guideTones}<p class="text-sm text-stage-muted">{selectedNotes}</p>{/if}
+        {#if !unaided}
         <div class="space-y-1.5">
           <div class="flex justify-between text-xs text-stage-muted">
-            <span>Notes matched</span><span>{live}%</span>
+            <span>{!mono && !strict ? "Notes collected" : "Notes matched"}</span><span>{live}%</span>
           </div>
           <Progress value={live} max={100} />
         </div>
+        {/if}
 
         <div class="flex flex-wrap items-center gap-3">
-          {#if autoAdvance}
+          {#if autoAdvance && !unaided}
             <Button type="button" variant="outline" disabled={pending} onclick={check}>
               Skip chord
             </Button>
@@ -645,7 +743,7 @@
         items={[
           { label: "Chord", value: `${(drillState?.index ?? 0) + 1} / ${drillState?.total ?? 36}` },
           { label: "Accuracy", value: `${Math.round((drillState?.accuracy ?? 0) * 100)}%` },
-          { label: "Skill", value: "ii-V-I" },
+          { label: "Skill", value: guideTones ? "Voice leading" : "ii-V-I" },
         ]}
       />
     {/snippet}

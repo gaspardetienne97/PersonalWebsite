@@ -68,6 +68,30 @@ afterEach(() => {
 });
 
 describe("/music/play/+page.svelte", () => {
+  test("loads backing tracks and takes when media attaches after mount without reloading on selection", async () => {
+    const runtime = new MusicRuntime();
+    render(Page, { runtime });
+    await flush();
+    const listBackings = vi.fn().mockResolvedValue([importedBacking()]);
+    const listTakes = vi
+      .fn()
+      .mockResolvedValue([
+        practiceTake("restored-1", "Restored first take"),
+        practiceTake("restored-2", "Restored second take"),
+      ]);
+    const usage = vi.fn().mockResolvedValue(undefined);
+    runtime.media = { listBackings, listTakes, usage } as unknown as MusicRuntime["media"];
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Restored first take"));
+    button("Imported backing")?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Backing loop.wav"));
+    button("Select take Restored second take")?.click();
+    await flush();
+    expect(listBackings).toHaveBeenCalledOnce();
+    expect(listTakes).toHaveBeenCalledOnce();
+    expect(usage).toHaveBeenCalledOnce();
+  });
+
   test("gates generated backing before publishing playing state and reports activation failure", async () => {
     const runtime = new MusicRuntime();
     runtime.audioMessage = "Playback voice unavailable.";
@@ -126,6 +150,7 @@ describe("/music/play/+page.svelte", () => {
     await vi.waitFor(() => expect(listBackings).toHaveBeenCalledOnce());
     button("Imported backing")?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Backing loop.wav"));
+    button("Use imported backing Backing loop.wav")?.click();
     await vi.waitFor(() =>
       expect(
         document.querySelector<HTMLButtonElement>('[aria-label="Play backing"]'),

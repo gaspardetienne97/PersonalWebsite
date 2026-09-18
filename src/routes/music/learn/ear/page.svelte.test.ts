@@ -21,12 +21,12 @@ describe("/music/learn/ear/+page.svelte (Ear Training Path)", () => {
     const practice = [...document.querySelectorAll('[data-testid="ear-path-steps"] a')].map((a) =>
       a.getAttribute("href"),
     );
-    expect(practice).toContain("/music/learn/ear/scale-degrees?answer=listen&level=anchor");
+    expect(practice).toContain("/music/learn/ear/scale-degrees?answer=listen-along&level=anchor");
     expect(practice).toContain("/music/learn/ear/mixed");
     expect(practice).toContain("/music/learn/ear/cadences");
     expect(document.body.textContent).toContain("Done when:");
     expect(document.querySelector('[data-testid="ear-path-continue"]')?.getAttribute("href")).toBe(
-      "/music/learn/ear/scale-degrees?answer=listen&level=anchor",
+      "/music/learn/ear/scale-degrees?answer=choice&level=major-diatonic",
     );
 
     // Every drill is listed below the path as its own card.

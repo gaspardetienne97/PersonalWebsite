@@ -250,6 +250,8 @@ describe("music-core/exercise", () => {
       skillIds: ["rhythm.quarter-pulse"],
       difficulty: 0.7,
       correct: true,
+      source: "onscreen",
+      instrument: "mpc",
     });
     expect(skills.getMastery("rhythm.quarter-pulse").mastery).toBeGreaterThan(0);
     expect(analytics.getStats("rhythm.quarter-pulse")?.attempts).toBe(1);
@@ -297,7 +299,12 @@ describe("music-core/exercise", () => {
       sessionId: "session-1",
       runId: "run-1",
       inputs: ["click"],
-      context: { targetSkillIds: ["pitch.interval.m6"], difficulty: 0.4 },
+      context: {
+        targetSkillIds: ["pitch.interval.m6"],
+        difficulty: 0.4,
+        metadata: { assistance: "independent" },
+        instrument: "piano",
+      },
     });
 
     router.noteOn(68, "onscreen");
@@ -335,7 +342,12 @@ describe("music-core/exercise", () => {
       sessionId: "session-1",
       runId: "run-1",
       inputs: ["click"],
-      context: { targetSkillIds: ["pitch.interval.m6"], difficulty: 0.4 },
+      context: {
+        targetSkillIds: ["pitch.interval.m6"],
+        difficulty: 0.4,
+        metadata: { assistance: "independent" },
+        instrument: "piano",
+      },
     });
     router.push(
       choiceAnswerEvent(
@@ -346,8 +358,15 @@ describe("music-core/exercise", () => {
 
     await expect(host.finish()).rejects.toThrow("Persistence unavailable");
     expect(host.prompt).toBe(prompt);
+    host.markHintUsed(); // A retry must keep the already prepared provenance.
+    router.noteOn(60, "midi", "guitar");
     await expect(host.finish()).resolves.toMatchObject({
-      event: { id: "stable-event" },
+      event: {
+        id: "stable-event",
+        source: "click",
+        instrument: "piano",
+        assistance: "independent",
+      },
       result: { correct: true },
     });
     expect(makeId).toHaveBeenCalledOnce();

@@ -1,11 +1,14 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import Plug from "lucide-svelte/icons/plug";
+  import X from "lucide-svelte/icons/x";
 
   import type { InputSource, InstrumentId, NoteEvent } from "@repo/music-core/domain";
   import {
     DeviceProfileStore,
+    MPC_PAD_NOTE_PRESETS,
     defaultSurfaceForInstrument,
+    padNotePresetId,
     type DeviceProfile,
     type InputSurfaceId,
     type InstrumentSurfacePreferences,
@@ -82,12 +85,12 @@
       detail: !capabilities.supported
         ? capabilities.reason
         : midiEnabled
-          ? `${midiDevices.length} device${midiDevices.length === 1 ? "" : "s"} connected`
+          ? `Listening to ${listenedDevices.length} device${listenedDevices.length === 1 ? "" : "s"}${removedCount > 0 ? ` · ${removedCount} removed` : ""}`
           : "Not requested · needed for keyboards, pads and MIDI guitars",
-      state: midiEnabled ? (midiDevices.length > 0 ? "ok" : "warn") : "off",
+      state: midiEnabled ? (listenedDevices.length > 0 ? "ok" : "warn") : "off",
       action: {
         label: midiEnabled ? "Rescan" : "Enable MIDI",
-        onclick: () => void enableMidi(),
+        onclick: () => void (midiEnabled ? rescanMidi() : enableMidi()),
         disabled: !capabilities.supported,
       },
     },
@@ -119,10 +122,59 @@
   const unsubscribeEvents = runtime.midi.subscribe((event) => {
     liveEventSeq += 1;
     liveEvents = [{ id: `${event.timestamp}-${liveEventSeq}`, event }, ...liveEvents].slice(0, 10);
+    void learnPadFrom(event);
   });
 
+  /**
+   * Pad learning: the player hits A01 … A16 in order; the raw note each pad
+   * sends becomes the device's pad map. Only note-ons from the device being
+   * taught count, and a repeated note is ignored so a double hit cannot skip
+   * a pad.
+   */
+  let learning = $state<{ deviceId: string; notes: number[] } | undefined>();
+  const learningPad = $derived(learning ? learning.notes.length + 1 : 0);
+
+  function startLearning(deviceId: string): void {
+    learning = { deviceId, notes: [] };
+    status = "Hit pad A01 on the device.";
+  }
+
+  function cancelLearning(): void {
+    learning = undefined;
+    status = "Pad learning cancelled; the saved map is unchanged.";
+  }
+
+  async function learnPadFrom(event: NoteEvent): Promise<void> {
+    const session = learning;
+    if (!session || event.type !== "noteOn" || event.deviceId !== session.deviceId) return;
+    if (session.notes.includes(event.midiNote)) return;
+    const notes = [...session.notes, event.midiNote];
+    if (notes.length < 16) {
+      learning = { ...session, notes };
+      status = `Pad A${String(notes.length).padStart(2, "0")} sends note ${event.midiNote}. Hit pad A${String(notes.length + 1).padStart(2, "0")}.`;
+      return;
+    }
+    learning = undefined;
+    await updateProfile(session.deviceId, { padNotes: notes });
+    status = "Pad map learned and saved. Exercises now follow your pads.";
+  }
+
+  async function applyPadPreset(deviceId: string, presetId: string): Promise<void> {
+    const preset = MPC_PAD_NOTE_PRESETS.find((candidate) => candidate.id === presetId);
+    if (!preset) return;
+    const current = profileFor(deviceId) ?? { id: deviceId };
+    const { padNotes: _dropped, ...rest } = current;
+    const next = await profiles.saveProfile(
+      presetId === MPC_PAD_NOTE_PRESETS[0]!.id ? rest : { ...rest, padNotes: [...preset.notes] },
+    );
+    savedProfiles = next.profiles;
+    await runtime.reloadMidiInstruments();
+    status = `Pad map set to ${preset.label}.`;
+  }
+
   function describeEvent(event: NoteEvent): string {
-    const ch = "channel" in event && event.channel != null ? `ch ${event.channel + 1}` : "ch —";
+    // The MIDI engine already reports 1-based channels.
+    const ch = "channel" in event && event.channel != null ? `ch ${event.channel}` : "ch —";
     const note = "midiNote" in event && event.midiNote != null ? ` · note ${event.midiNote}` : "";
     return `${event.type} · ${ch}${note} · ${Math.round(event.timestamp)}ms`;
   }
@@ -150,6 +202,49 @@
     await runtime.midi.enable();
     status = midiEnabled ? "Devices connected." : (midiError ?? "MIDI permission was declined.");
   }
+
+  /** Rescan lists every device again: removals are undone, then the ports are re-read. */
+  async function rescanMidi(): Promise<void> {
+    if (ready) {
+      for (const profile of savedProfiles.filter((entry) => entry.ignored)) {
+        const { ignored: _removed, ...rest } = profile;
+        const next = await profiles.saveProfile(rest);
+        savedProfiles = next.profiles;
+      }
+      await runtime.reloadMidiInstruments();
+    }
+    await runtime.midi.enable();
+    status = midiEnabled ? "All devices listed again." : (midiError ?? "MIDI permission was declined.");
+  }
+
+  /** Remove a device: the app stops listening to it until the next Rescan. */
+  async function removeDevice(id: string, name: string): Promise<void> {
+    await updateProfile(id, { ignored: true });
+    status = `${name} removed. Rescan lists it again.`;
+  }
+
+  const listenedDevices = $derived(midiDevices.filter((device) => !profileFor(device.id)?.ignored));
+  const linkedOutputId = $derived(
+    midiOutputs.find((output) => profileFor(output.id)?.controllerLink)?.id,
+  );
+
+  /** One linked MPC output at a time; the runtime keeps its handshake alive app-wide. */
+  async function setControllerLink(outputId: string | undefined): Promise<void> {
+    if (!ready) return;
+    for (const profile of savedProfiles.filter((entry) => entry.controllerLink && entry.id !== outputId)) {
+      const { controllerLink: _dropped, ...rest } = profile;
+      savedProfiles = (await profiles.saveProfile(rest)).profiles;
+    }
+    if (outputId) {
+      const current = profileFor(outputId) ?? { id: outputId };
+      savedProfiles = (await profiles.saveProfile({ ...current, controllerLink: true })).profiles;
+    }
+    await runtime.reloadMidiInstruments();
+    status = outputId
+      ? "MPC linked. The app keeps it in Controller Mode on every page."
+      : "MPC unlinked.";
+  }
+  const removedCount = $derived(midiDevices.length - listenedDevices.length);
 
   async function updateProfile(id: string, patch: Partial<DeviceProfile>): Promise<void> {
     if (!ready) return;
@@ -225,7 +320,12 @@
     <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
       <!-- Connected MIDI devices -->
       <section aria-label="Connected devices" class="grid gap-3">
-        <SectionHeading title="MIDI devices" eyebrow={`${midiDevices.length} detected`} />
+        <SectionHeading title="MIDI devices" eyebrow={`${listenedDevices.length} listening${removedCount > 0 ? ` · ${removedCount} removed` : ""}`} />
+        {#if removedCount > 0}
+          <p class="text-sm text-muted-foreground">
+            {removedCount} device{removedCount === 1 ? "" : "s"} removed. The app ignores {removedCount === 1 ? "it" : "them"} everywhere; Rescan lists every device again.
+          </p>
+        {/if}
         {#if midiDevices.length === 0}
           <Empty
             title={midiEnabled ? "No MIDI inputs detected" : "No devices connected"}
@@ -247,14 +347,13 @@
           </Empty>
         {:else}
           <div class="grid gap-3">
-            {#each midiDevices as device (device.id)}
+            {#each listenedDevices as device (device.id)}
               {@const profile = profileFor(device.id)}
-              {@const ignored = profile?.ignored ?? false}
-              <Card.Root class={ignored ? "opacity-60" : ""}>
+              <Card.Root>
                 <Card.Header class="flex-row items-start justify-between gap-2">
                   <div class="flex min-w-0 items-center gap-3">
                     <span
-                      class="led {ignored ? '[--led-color:var(--muted-foreground)]' : '[--led-color:var(--success)]'}"
+                      class="led [--led-color:var(--success)]"
                       aria-hidden="true"
                     ></span>
                     <div class="min-w-0">
@@ -264,13 +363,20 @@
                       </Card.Description>
                     </div>
                   </div>
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {ignored
-                      ? 'bg-muted text-muted-foreground'
-                      : 'bg-success/15 text-success'}"
-                  >
-                    {ignored ? "Ignored" : "Live"}
-                  </span>
+                  <div class="flex items-center gap-2">
+                    <span class="rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">Live</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      class="size-9"
+                      aria-label="Remove {device.name}"
+                      title="Remove: stop listening to this device until the next Rescan"
+                      onclick={() => void removeDevice(device.id, profile?.alias || device.name)}
+                    >
+                      <X class="size-4" aria-hidden="true" />
+                    </Button>
+                  </div>
                 </Card.Header>
                 <Card.Content class="grid gap-3">
                   <div class="grid gap-3 sm:grid-cols-2">
@@ -301,19 +407,65 @@
                       </select>
                     </label>
                   </div>
-                  <label class="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      class="size-4"
-                      aria-label="Ignore input from {device.name}"
-                      checked={ignored}
-                      onchange={(event) =>
-                        updateProfile(device.id, { ignored: event.currentTarget.checked })}
-                    />
-                    <span class="text-muted-foreground">
-                      Ignore this input (drop its notes; e.g. an MPC control port)
-                    </span>
-                  </label>
+                  {#if profile?.instrument === "mpc"}
+                    {@const presetId = padNotePresetId(profile.padNotes)}
+                    <div class="grid gap-2 rounded-lg border border-dashed p-3" data-testid="pad-map-{device.id}">
+                      <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p class="text-sm font-medium">Pad notes</p>
+                          <p class="text-xs text-muted-foreground">
+                            Which MIDI note each pad sends. Exercises grade pads, not note numbers, so this map has to match your program.
+                          </p>
+                        </div>
+                        {#if learning?.deviceId === device.id}
+                          <Button type="button" size="sm" variant="outline" onclick={cancelLearning}>
+                            Cancel learning
+                          </Button>
+                        {:else}
+                          <Button type="button" size="sm" variant="outline" onclick={() => startLearning(device.id)}>
+                            Learn pads
+                          </Button>
+                        {/if}
+                      </div>
+                      {#if learning?.deviceId === device.id}
+                        <div class="grid grid-cols-8 gap-1" aria-label="Pad learning progress">
+                          {#each Array.from({ length: 16 }, (_, i) => i) as index (index)}
+                            {@const learned = learning.notes[index]}
+                            <span
+                              class="grid h-8 place-items-center rounded border font-mono text-[0.625rem] tabular-nums {index + 1 === learningPad
+                                ? 'border-practice-accent bg-practice-accent/15 text-foreground ring-1 ring-practice-accent'
+                                : learned !== undefined
+                                  ? 'bg-success/15 text-success'
+                                  : 'text-muted-foreground'}"
+                            >
+                              {learned ?? `A${String(index + 1).padStart(2, "0")}`}
+                            </span>
+                          {/each}
+                        </div>
+                      {:else}
+                        <label class="grid gap-1.5">
+                          <span class="sr-only">Pad note map for {device.name}</span>
+                          <select
+                            aria-label="Pad note map for {device.name}"
+                            class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            value={presetId}
+                            onchange={(event) => void applyPadPreset(device.id, event.currentTarget.value)}
+                          >
+                            {#each MPC_PAD_NOTE_PRESETS as preset (preset.id)}
+                              <option value={preset.id}>{preset.label}</option>
+                            {/each}
+                            <!-- Always present so a learned map selects itself; only choosable once learned. -->
+                            <option value="custom" disabled={presetId !== "custom"}>Learned from this device</option>
+                          </select>
+                        </label>
+                        {#if profile.padNotes}
+                          <p class="font-mono text-xs text-muted-foreground tabular-nums">
+                            A01–A16: {profile.padNotes.join(" ")}
+                          </p>
+                        {/if}
+                      {/if}
+                    </div>
+                  {/if}
                 </Card.Content>
               </Card.Root>
             {/each}
@@ -356,6 +508,8 @@
             {sysexEnabled}
             send={(outputId, data) => runtime.midi.send(outputId, data)}
             subscribeRaw={(listener) => runtime.midi.subscribeRaw(listener)}
+            linkedOutputId={linkedOutputId}
+            onLink={setControllerLink}
           />
         {/key}
       </section>

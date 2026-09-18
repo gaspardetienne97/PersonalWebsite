@@ -314,6 +314,7 @@
           void runtime.recordPractice({
             source: "drill",
             instrument: "aerophone",
+            comparison: { variantKey: aerophoneVariantKey(drillMode, articulationStyle, intervalDirection), bpm: runtime.transportBpm, settings: JSON.stringify({ selected, durationMs, intervalKind }), dimensions: "mode, target, duration, interval, articulation style and direction" },
             tags: [
               "aerophone",
               isIntervalLanding
@@ -942,7 +943,7 @@
         </p>
       {/snippet}
       {#snippet lastRunDelta()}
-        <LastRunDelta tags={["aerophone"]} accuracy={primaryPct / 100} before={visitStartedAt} />
+        <LastRunDelta tags={["aerophone"]} before={visitStartedAt} />
       {/snippet}
       {#snippet children()}
         <p class="text-sm text-muted-foreground">

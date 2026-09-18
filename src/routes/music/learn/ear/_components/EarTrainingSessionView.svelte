@@ -45,7 +45,7 @@
   ];
 
   let {
-    state,
+    state: sessionState,
     router,
     instrument = "piano",
     surface = "keyboard",
@@ -54,6 +54,8 @@
     onReplay,
     onPlayTonic,
     onAnswer,
+    onContinue,
+    onReveal,
     onAccepted,
   }: {
     state: EarTrainingSessionState;
@@ -65,16 +67,34 @@
     onReplay: () => void;
     onPlayTonic?: (midiNote: number) => void;
     onAnswer: (token: string) => void;
+    onContinue: () => void;
+    onReveal: () => void;
     onAccepted: (event: NoteEvent) => void;
   } = $props();
 
-  const prompt = $derived(state.currentPrompt);
+  const prompt = $derived(sessionState.currentPrompt);
+  const listeningAlong = $derived(sessionState.options.answerMode === "listen-along");
+  const correction = $derived(sessionState.awaitingContinue ? sessionState.results.at(-1) : undefined);
+  const selectedAnswer = $derived.by(() => {
+    if (!correction) return "";
+    const answer = correction.result.answer;
+    if (typeof answer === "string") return prompt?.choices.find((choice) => choice.token === answer)?.label ?? answer;
+    return correction.result.input.filter((event) => event.type === "noteOn" && event.source !== "click").map((event) => midiToNote(event.midiNote)).join(" · ") || "No answer";
+  });
+  let promptHeading = $state<HTMLHeadingElement | undefined>();
+  let feedbackHeading = $state<HTMLHeadingElement | undefined>();
+  let revealedAnswer = $state<HTMLParagraphElement | undefined>();
+  $effect(() => {
+    if (sessionState.awaitingContinue) feedbackHeading?.focus();
+    else if (sessionState.answerRevealed && !listeningAlong) revealedAnswer?.focus();
+    else if (sessionState.currentIndex > 0 && !listeningAlong) promptHeading?.focus();
+  });
   const latestPhraseResult = $derived.by(() => {
-    const result = state.results.at(-1);
+    const result = sessionState.results.at(-1);
     if (
       !result ||
       (result.drill !== "melody-dictation" && result.drill !== "repertoire-transfer") ||
-      state.feedback.length === 0
+      sessionState.feedback.length === 0
     ) {
       return undefined;
     }
@@ -109,11 +129,11 @@
               ? "Repertoire Transfer"
               : "Interval",
   );
-  const total = $derived(state.queue.length);
-  const answered = $derived(state.results.length);
-  const correctCount = $derived(state.results.filter((result) => result.event.correct).length);
+  const total = $derived(sessionState.queue.length);
+  const answered = $derived(sessionState.results.length);
+  const correctCount = $derived(sessionState.results.filter((result) => result.event.correct).length);
   const accuracyPct = $derived(answered > 0 ? Math.round((correctCount / answered) * 100) : 0);
-  const feedbackKind = $derived(state.feedback[0]?.severity === "good" ? "correct" : "wrong");
+  const feedbackKind = $derived(sessionState.feedback[0]?.severity === "good" ? "correct" : "wrong");
 
   function contextLabel(context: ScaleDegreeRecognitionPrompt["scaleContext"]): string {
     return {
@@ -137,7 +157,7 @@
 
 <div class="flex min-w-0 flex-col gap-6">
   {#if total > 0}
-    <SegmentProgress {total} current={answered} label="Session" />
+    <SegmentProgress {total} current={listeningAlong ? sessionState.currentIndex : answered} label="Session" />
   {/if}
 
   <!-- replay, accuracy, prompt -->
@@ -159,35 +179,53 @@
           <Ear class="size-5" aria-hidden="true" />
         </span>
         <div class="min-w-0 flex-1">
-          <h2 class="text-lg font-semibold tracking-tight">
+          <h2 bind:this={promptHeading} tabindex="-1" class="text-lg font-semibold tracking-tight">
             What {scaleDegreePrompt?.labelMode === "solfege"
               ? "solfege syllable"
               : drillLabel.toLowerCase()} did you hear?
           </h2>
           <p class="text-sm text-muted-foreground">
-            {prompt?.drill === "melody-dictation"
+            {correction
+              ? "Review your answer and replay the sound, then Continue."
+              : prompt?.drill === "melody-dictation"
               ? "Play back the phrase on MIDI or the on-screen keyboard."
               : prompt?.drill === "repertoire-transfer"
                 ? "Play back the saved-song phrase on MIDI or the on-screen keyboard."
-                : state.options.answerMode === "choice"
-                  ? "Listen, then choose, or play it on your instrument."
-                  : state.options.answerMode === "listen"
-                    ? "Pocket mode: listen, check the answer, then self-mark the rep."
-                    : state.options.answerMode === "voice"
+                : sessionState.options.answerMode === "choice"
+                  ? "Listen, then choose an answer below."
+                  : sessionState.options.answerMode === "listen"
+                    ? "Pocket recall: think or sing your answer, then reveal and self-rate."
+                    : listeningAlong
+                      ? "Listen along: answers are visible and prompts advance automatically. Unscored."
+                    : sessionState.options.answerMode === "voice"
                       ? "Sing the answer into the microphone."
                       : "Play the answer on MIDI or the on-screen keyboard."}
           </p>
         </div>
       </div>
+      {#if !listeningAlong && sessionState.options.feedbackMode !== "test"}
       <div class="grid grid-cols-2 gap-3">
-        <HudTile size="sm" label="Accuracy" value={accuracyPct} unit="%" tone={answered > 0 && accuracyPct >= 90 ? "good" : "default"} />
-        <HudTile size="sm" label="Correct" value={`${correctCount} / ${answered}`} />
+        <HudTile size="sm" label={sessionState.options.answerMode === "listen" ? "Self-rated recall" : "Accuracy"} value={accuracyPct} unit="%" tone={answered > 0 && accuracyPct >= 90 ? "good" : "default"} />
+        <HudTile size="sm" label={sessionState.options.answerMode === "listen" ? "Reported recalled" : "Correct"} value={`${correctCount} / ${answered}`} />
       </div>
+      {/if}
     </div>
   </div>
 
   <!-- answers -->
-  {#if prompt && state.options.answerMode === "choice"}
+  {#if correction}
+    <section class="grid gap-3 rounded-lg border bg-card p-5" aria-label="Answer correction" data-testid="feedback">
+      <h3 bind:this={feedbackHeading} tabindex="-1" class="text-lg font-semibold">{correction.event.correct ? "Correct" : "Review this answer"}</h3>
+      <p>Your answer: <strong>{selectedAnswer}</strong></p>
+      <p>Correct answer: <strong>{correction.prompt.answerLabel}</strong></p>
+      {#if sessionState.feedback[0]}<SessionFeedback kind={feedbackKind} message={sessionState.feedback[0].message} />{/if}
+      {#if latestPhraseResult}<PhraseResultFeedback result={latestPhraseResult} />{/if}
+      <div class="flex flex-wrap gap-2">
+        <Button variant="outline" onclick={onReplay}>Replay answered sound</Button>
+        <Button onclick={onContinue}>Continue</Button>
+      </div>
+    </section>
+  {:else if prompt && sessionState.options.answerMode === "choice"}
     {#if scaleDegreePrompt}
       <div class="grid gap-4">
         <div
@@ -245,13 +283,13 @@
     {/if}
   {:else if
     prompt &&
-    (state.options.answerMode === "play-back" || state.options.answerMode === "voice") &&
+    (sessionState.options.answerMode === "play-back" || sessionState.options.answerMode === "voice") &&
     !answerReady}
     <div class="rounded-lg border bg-card p-5 text-center">
       <p class="text-lg font-semibold">Get ready</p>
       <p class="text-sm text-muted-foreground">Listen to the count-in. Input opens on the downbeat.</p>
     </div>
-  {:else if prompt && state.options.answerMode === "voice"}
+  {:else if prompt && sessionState.options.answerMode === "voice"}
     <div class="rounded-lg border bg-card p-5">
       <div class="grid gap-2 text-center">
         <p class="text-lg font-semibold">Sing the answer</p>
@@ -260,23 +298,29 @@
         </p>
       </div>
     </div>
-  {:else if prompt && state.options.answerMode === "listen"}
+  {:else if prompt && (sessionState.options.answerMode === "listen" || listeningAlong)}
     <div class="grid gap-4 rounded-lg border bg-card p-5">
       <div class="grid gap-1 text-center">
         <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Pocket mode
+          {listeningAlong ? "Listen along · Unscored" : "Pocket recall · Self-rated"}
         </p>
-        <p class="text-2xl font-bold">{prompt.answerLabel}</p>
+        {#if listeningAlong || sessionState.answerRevealed}<p bind:this={revealedAnswer} tabindex="-1" class="text-2xl font-bold" data-testid="revealed-answer">{prompt.answerLabel}</p>{/if}
         <p class="text-sm text-muted-foreground">
-          Mark whether you identified it correctly after listening.
+          {listeningAlong ? "Follow the sound and answer. The next prompt plays automatically." : sessionState.answerRevealed ? "Did you recall it before revealing? This is self-reported, not detected pitch." : "Think or sing your answer before revealing it."}
         </p>
       </div>
+      {#if !listeningAlong}
+      {#if sessionState.answerRevealed}
       <div class="grid gap-2 sm:grid-cols-2">
         <Button type="button" variant="outline" onclick={() => onAnswer("__listen_missed")}>
           Missed it
         </Button>
-        <Button type="button" onclick={() => onAnswer("__listen_correct")}>I heard it</Button>
+        <Button type="button" onclick={() => onAnswer("__listen_correct")}>I recalled it</Button>
       </div>
+      {:else}
+        <Button onclick={onReveal}>Reveal answer</Button>
+      {/if}
+      {/if}
     </div>
   {:else if melodySlotPrompt}
     <MelodyDictationStage
@@ -294,13 +338,4 @@
     </div>
   {/if}
 
-  {#if state.options.feedbackMode === "practice" && state.feedback[0]}
-    <div data-testid="feedback">
-      <SessionFeedback kind={feedbackKind} message={state.feedback[0].message} />
-    </div>
-  {/if}
-
-  {#if latestPhraseResult}
-    <PhraseResultFeedback result={latestPhraseResult} />
-  {/if}
 </div>

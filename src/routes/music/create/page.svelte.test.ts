@@ -1,9 +1,11 @@
-import { describe, expect, test, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
 import type { MusicRuntime } from "../_runtime.svelte";
 import Page from "./+page.svelte";
 import { setTestUrl } from "../_components/test-url";
+
+beforeEach(() => setTestUrl("/music/create"));
 
 function button(label: string): HTMLButtonElement | undefined {
   return [...document.querySelectorAll<HTMLButtonElement>("button")].find(

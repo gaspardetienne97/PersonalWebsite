@@ -166,6 +166,14 @@ export class PianoInput {
     if (this.press(midiNote, "tap", midiNote)) this.release("tap", midiNote);
   }
 
+  /** Release every holder of one kind (e.g. all QWERTY keys when the window blurs). */
+  releaseKind(kind: PianoHolderKind): void {
+    const prefix = `${kind}:`;
+    for (const holderKey of Array.from(this.#holderNotes.keys())) {
+      if (holderKey.startsWith(prefix)) this.release(kind, holderKey.slice(prefix.length));
+    }
+  }
+
   /** The named "Clear held notes" action. */
   clearLatches(): void {
     // `latchedNotes` is already a fresh snapshot, so releasing while iterating

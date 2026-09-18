@@ -27,6 +27,7 @@ describe("MpcPadGrid", () => {
     const { router, events } = setup();
     render(MpcPadGrid, { router });
 
+    expect(document.querySelector('[aria-label="Assign key for pad 36"]')).toBeNull();
     pad(36)?.click();
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
@@ -47,7 +48,7 @@ describe("MpcPadGrid", () => {
 
   test("a reassigned key triggers the pad and the old key no longer does", () => {
     const { router, events } = setup();
-    render(MpcPadGrid, { router });
+    render(MpcPadGrid, { router, editable: true });
 
     // Enter assign mode for pad 36, then press "p" to bind it.
     document.querySelector<HTMLButtonElement>('[aria-label="Assign key for pad 36"]')?.click();

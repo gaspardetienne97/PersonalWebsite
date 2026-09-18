@@ -1,3 +1,4 @@
+import { continueEarPractice } from "../_components/ear-test-helpers";
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
@@ -138,6 +139,7 @@ describe("/music/learn/ear/repertoire-transfer/+page.svelte", () => {
         ?.click();
     }
 
+    await continueEarPractice();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
     expect(document.body.textContent).toContain("1 of 1 correct");
     await vi.waitFor(() =>
@@ -181,8 +183,9 @@ describe("/music/learn/ear/repertoire-transfer/+page.svelte", () => {
         ?.click();
     }
 
+    await continueEarPractice();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
-    expect(document.body.textContent).toContain("3 → 2");
+    expect(document.body.textContent).toContain("3 / mi → 2 / re");
 
     [...document.querySelectorAll("button")]
       .find((button) => button.textContent?.trim() === "Retry mistakes")
@@ -227,6 +230,7 @@ describe("/music/learn/ear/repertoire-transfer/+page.svelte", () => {
         .find((button) => button.textContent === noteName)
         ?.click();
     }
+    await continueEarPractice();
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 2"));
     await vi.advanceTimersByTimeAsync(3_000);
     for (const noteName of ["C4", "D4", "E4", "G4"]) {
@@ -235,6 +239,7 @@ describe("/music/learn/ear/repertoire-transfer/+page.svelte", () => {
         ?.click();
     }
 
+    await continueEarPractice();
     await vi.waitFor(() => expect(document.body.textContent).toContain("Session complete"));
     expect(document.body.textContent).toContain("2 of 2 correct");
   });

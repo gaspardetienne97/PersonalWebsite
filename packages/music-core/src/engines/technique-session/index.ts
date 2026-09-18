@@ -1,4 +1,10 @@
 import {
+  createMpcGrooveExercise,
+  type MpcGrooveConfig,
+  type MpcGroovePrompt,
+} from "@repo/music-core/exercises/mpc-groove";
+import type { MonotonicMs } from "@repo/music-core/domain";
+import {
   type ExerciseLiveState,
   type ExerciseResult,
   type InstrumentId,
@@ -53,6 +59,7 @@ import {
 import {
   createFretboardNoteFinderExercise,
   type FretboardNoteFinderPrompt,
+  type FretboardNoteFinderOptions,
 } from "@repo/music-core/exercises/fretboard-note-finder";
 import {
   createStringSpiderExercise,
@@ -77,6 +84,7 @@ import {
 } from "@repo/music-core/engines/tunings";
 
 export interface TechniqueScaleOptions {
+  instrument?: InstrumentId;
   tonic: string;
   scale: ScalePatternKind;
   bpm: number;
@@ -378,7 +386,7 @@ export interface TechniqueSpiderOptions {
   crossing?: boolean;
 }
 
-export type StringTechniqueMode = "spider" | "note-finder";
+export type StringTechniqueMode = "spider" | "note-finder" | "interval-recall";
 
 export interface StringTechniqueConfig {
   mode: StringTechniqueMode;
@@ -398,7 +406,10 @@ export function normalizeStringTechniqueConfig(
 ): StringTechniqueConfig {
   const rawMode = readStringTechniqueConfigValue(source, "mode");
   return {
-    mode: rawMode === "note-finder" ? "note-finder" : STRING_TECHNIQUE_DEFAULT_CONFIG.mode,
+    mode:
+      rawMode === "note-finder" || rawMode === "interval-recall"
+        ? rawMode
+        : STRING_TECHNIQUE_DEFAULT_CONFIG.mode,
   };
 }
 
@@ -583,12 +594,7 @@ export interface TechniqueChordChangeOptions {
   durationSeconds?: number;
 }
 
-export interface TechniqueFretboardNoteFinderOptions {
-  tuning: TuningProfile;
-  stringNumber: number;
-  fretNumber: number;
-  visibleFrets?: number;
-}
+export type TechniqueFretboardNoteFinderOptions = FretboardNoteFinderOptions;
 
 export interface TechniqueArticulationOptions {
   targetMidi: number;
@@ -604,6 +610,7 @@ export type TechniquePrompt =
   | AerophoneSwellPrompt
   | AerophoneArticulationPrompt
   | AerophoneIntervalLandingPrompt
+  | MpcGroovePrompt
   | MpcSingleStrokePrompt
   | StringSpiderPrompt
   | FretboardNoteFinderPrompt
@@ -720,7 +727,9 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-scale-${options.bpm}`,
       inputs: ["midi", "onscreen"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: [`technique.scale.${options.scale}`],
+        instrument: options.instrument,
         difficulty: difficultyForBpm(options.bpm),
       },
     });
@@ -745,6 +754,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-long-tone-${options.targetMidi}`,
       inputs: ["midi"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: ["technique.aerophone.breath-steadiness"],
         difficulty: difficultyForHold(options.holdMs),
         instrument: "aerophone",
@@ -771,6 +781,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-swell-${options.targetMidi}`,
       inputs: ["midi"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: ["technique.aerophone.dynamic-control"],
         difficulty: difficultyForHold(options.durationMs),
         instrument: "aerophone",
@@ -799,6 +810,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-interval-landing-${options.droneMidi}-${options.interval}-${options.direction ?? "up"}`,
       inputs: ["midi"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: ["technique.aerophone.interval-landing"],
         difficulty: difficultyForHold(options.holdMs),
         instrument: "aerophone",
@@ -815,6 +827,34 @@ export class TechniqueSession {
     return currentPrompt;
   }
 
+  async startMpcGroove(
+    options: MpcGrooveConfig & { responseStart: MonotonicMs },
+  ): Promise<MpcGroovePrompt> {
+    this.#assertUsable();
+    if (this.#status === "active" || this.#finishing)
+      throw new Error("A technique session is already active");
+    const exercise = createMpcGrooveExercise(options);
+    const prompt = this.#host.start({
+      exercise,
+      sessionId: this.#sessionId,
+      runId: `${this.#sessionId}-groove-${options.family}-${options.responseStart}`,
+      inputs: ["midi", "onscreen"],
+      context: {
+        metadata: { assistance: "independent" },
+        targetSkillIds: exercise.skillIds,
+        difficulty: difficultyForBpm(options.bpm),
+        instrument: "mpc",
+      },
+    });
+    this.#status = "active";
+    this.#currentPrompt = prompt.payload as MpcGroovePrompt;
+    this.#results = [];
+    this.#summary = undefined;
+    this.#error = undefined;
+    this.#notify();
+    return this.#currentPrompt;
+  }
+
   async startMpcRudiment(options: TechniqueMpcRudimentOptions): Promise<MpcSingleStrokePrompt> {
     this.#assertUsable();
     if (this.#status === "active") throw new Error("A technique session is already active");
@@ -826,6 +866,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-mpc-${options.patternId ?? "single-strokes"}-${options.leftPadMidi}-${options.rightPadMidi}-${options.hitCount}-${options.bpm}`,
       inputs: ["midi", "onscreen"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: ["technique.mpc", "technique.mpc.single-strokes"],
         difficulty: difficultyForBpm(options.bpm),
         instrument: "mpc",
@@ -852,6 +893,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-spider-${options.tuning.id}-${options.pattern ?? "ascending-1234"}-${options.stringSpan ?? "single"}${options.crossing ? "-crossing" : ""}-${options.stringNumber}-${options.startFret}-${options.bpm}`,
       inputs: ["midi", "onscreen", "audio"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: exercise.skillIds,
         difficulty: difficultyForBpm(options.bpm),
         instrument: options.tuning.instrument,
@@ -878,9 +920,10 @@ export class TechniqueSession {
     const prompt = this.#host.start({
       exercise,
       sessionId: this.#sessionId,
-      runId: `${this.#sessionId}-note-finder-${options.tuning.id}-${options.stringNumber}-${options.fretNumber}`,
+      runId: `${this.#sessionId}-note-finder-${options.tuning.id}-${options.stringNumber}-${options.fretNumber}${options.interval ? `-interval-${options.interval.semitones}-${options.interval.windowStart}` : ""}`,
       inputs: ["midi", "onscreen", "audio"],
       context: {
+        metadata: { assistance: options.interval ? "independent" : "guided" },
         targetSkillIds: exercise.skillIds,
         difficulty: 0.3,
         instrument: options.tuning.instrument,
@@ -908,6 +951,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-two-hand-${options.patternKind ?? "lh-pulse-rh-line"}-${options.handMode ?? "both"}${options.dynamics ? "-dynamics" : ""}-${options.tonic}-${options.bpm}-${options.bars ?? 2}`,
       inputs: ["midi", "onscreen"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: exercise.skillIds,
         difficulty: difficultyForBpm(options.bpm),
         instrument: "piano",
@@ -937,6 +981,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-articulation-${options.style}-${options.targetMidi}`,
       inputs: ["midi", "onscreen"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: exercise.skillIds,
         difficulty: difficultyForBpm(options.bpm ?? 90),
         instrument: "aerophone",
@@ -964,6 +1009,7 @@ export class TechniqueSession {
       runId: `${this.#sessionId}-chord-perfect-${options.shape.id}`,
       inputs: ["midi", "onscreen"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: exercise.skillIds,
         difficulty: 0.4,
         instrument: options.tuning.instrument,
@@ -995,6 +1041,7 @@ export class TechniqueSession {
       }`,
       inputs: ["midi", "onscreen", "audio"],
       context: {
+        metadata: { assistance: "guided" },
         targetSkillIds: exercise.skillIds,
         difficulty: 0.45,
         instrument: options.tuning.instrument,
@@ -1064,6 +1111,7 @@ export class TechniqueSession {
     this.#error = undefined;
     try {
       const outcome = await this.#host.finish();
+      if (this.#disposed || this.#currentPrompt !== prompt) return;
       const resultView = {
         prompt,
         result: outcome.result,
@@ -1086,6 +1134,7 @@ export class TechniqueSession {
       this.#summary = summarize(this.#results, this.#highestUnlockedBpm);
       this.#notify();
     } catch (error) {
+      if (this.#disposed || this.#currentPrompt !== prompt) return;
       this.#error =
         error instanceof Error ? error.message : "The technique result could not be saved.";
       this.#notify();
@@ -1103,6 +1152,7 @@ export class TechniqueSession {
 
   #assertUsable(): void {
     if (this.#disposed) throw new Error("Technique session is disposed");
+    if (this.#finishing) throw new Error("The previous technique result is still saving");
   }
 }
 

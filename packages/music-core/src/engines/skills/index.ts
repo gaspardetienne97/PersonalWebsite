@@ -1,5 +1,7 @@
 import {
   Capability,
+  applyDecay,
+  type UnixMs,
   SkillRelationKind,
   applyScoringEventToSkillState,
   initialMastery,
@@ -66,8 +68,10 @@ export class SkillGraphStore {
     });
   }
 
-  getMastery(skillId: string): SkillMastery {
-    return this.#mastery.get(skillId) ?? initialMastery(skillId);
+  /** Omit now for earned state; pass it for a non-persisted current estimate. */
+  getMastery(skillId: string, now?: UnixMs): SkillMastery {
+    const stored = this.#mastery.get(skillId) ?? initialMastery(skillId);
+    return now === undefined ? stored : applyDecay(stored, now);
   }
 
   unlockedSkills(): Skill[] {
@@ -237,6 +241,20 @@ export function seedCoreSkills(): SkillSeed {
       "ear",
     ]),
     skill("harmony.ii-v-i", "ii-V-I", Capability.Harmony, "intermediate", ["jazz", "progression"]),
+    ...[
+      ["voicings.major", "Major ii-V-I voicings"],
+      ["voicings.minor", "Minor ii-V-i voicings"],
+      ["voicings.altered", "Altered dominant voicings"],
+      ["voice-leading", "Guide-tone voice leading"],
+      ["chord-scales.major", "Major chord-scales"],
+      ["chord-scales.minor", "Minor chord-scales"],
+      ["licks.major-ii-V-I", "Major ii-V-I licks"],
+      ["licks.major-ii-V-I-VI", "Turnaround licks"],
+      ["licks.minor-ii-V-i", "Minor ii-V-i licks"],
+      ["licks.minor-chord", "Minor chord licks"],
+    ].map(([id, label]) =>
+      skill(`harmony.ii-v-i.${id}`, label!, Capability.Harmony, "intermediate", ["jazz"]),
+    ),
     skill("rhythm.subdivisions", "Rhythm Subdivisions", Capability.Rhythm, "beginner", [
       "timing",
       "subdivision",
@@ -407,6 +425,20 @@ export function seedCoreSkills(): SkillSeed {
       "spider",
       "chromatic",
     ]),
+    skill("technique.guitar.intervals", "Guitar Interval Recall", Capability.Pitch, "beginner", [
+      "guitar",
+      "fretboard",
+      "intervals",
+    ]),
+    ...[3, 4, 7, 12].map((semitones) =>
+      skill(
+        `technique.guitar.intervals.${semitones}`,
+        `Guitar ${semitones === 3 ? "Minor Third" : semitones === 4 ? "Major Third" : semitones === 7 ? "Perfect Fifth" : "Octave"} Recall`,
+        Capability.Pitch,
+        "beginner",
+        ["guitar", "fretboard", "intervals"],
+      ),
+    ),
     skill("technique.guitar.note-finder", "Guitar Note Finder", Capability.Technique, "beginner", [
       "guitar",
       "fretboard",
@@ -506,6 +538,15 @@ export function seedCoreSkills(): SkillSeed {
       "early-intermediate",
       ["piano", "independence", "shell", "line", "hands"],
     ),
+    ...["backbeat", "eighth-hats", "syncopated"].map((family) =>
+      skill(
+        `technique.mpc.groove.${family}`,
+        `MPC Groove Recall: ${family}`,
+        Capability.Technique,
+        "beginner",
+        ["mpc", "groove", "recall", family],
+      ),
+    ),
     skill("technique.mpc", "MPC Technique", Capability.Technique, "beginner", [
       "mpc",
       "pads",
@@ -527,6 +568,9 @@ export function seedCoreSkills(): SkillSeed {
   ];
 
   const components: Record<string, string[]> = {
+    "harmony.ii-v-i": skills
+      .filter((item) => item.id.startsWith("harmony.ii-v-i."))
+      .map((item) => item.id),
     "pitch.intervals": skills
       .filter((item) => item.id.startsWith("pitch.interval."))
       .map((item) => item.id),
@@ -565,6 +609,7 @@ export function seedCoreSkills(): SkillSeed {
     "technique.strings": [
       "technique.strings.spider",
       "technique.strings.note-finder",
+      "technique.guitar.intervals",
       "technique.strings.chord-perfect",
       "technique.strings.chord-changes",
       "technique.strings.open-chord-id",
@@ -574,6 +619,9 @@ export function seedCoreSkills(): SkillSeed {
       "technique.guitar.spider",
       "technique.ukulele.spider",
     ],
+    "technique.guitar.intervals": [3, 4, 7, 12].map(
+      (semitones) => `technique.guitar.intervals.${semitones}`,
+    ),
     "technique.strings.note-finder": [
       "technique.guitar.note-finder",
       "technique.ukulele.note-finder",
@@ -592,7 +640,13 @@ export function seedCoreSkills(): SkillSeed {
     ],
     "technique.piano": ["technique.piano.two-hand-independence"],
     "technique.piano.two-hand-independence": ["technique.piano.independence.shell-line"],
-    "technique.mpc": ["technique.mpc.single-strokes", "technique.mpc.paradiddles"],
+    "technique.mpc": [
+      "technique.mpc.single-strokes",
+      "technique.mpc.paradiddles",
+      "technique.mpc.groove.backbeat",
+      "technique.mpc.groove.eighth-hats",
+      "technique.mpc.groove.syncopated",
+    ],
   };
 
   return {

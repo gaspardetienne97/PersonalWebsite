@@ -1,3 +1,5 @@
+import type { InstrumentId } from "./instrument";
+import type { InputSource } from "./note-event";
 import type { Capability } from "./capability";
 import type { PracticeModality } from "./modality";
 import type { UnixMs } from "./time";
@@ -27,6 +29,28 @@ export type ScoringMetric =
       expectedBass?: number;
       actualBass?: number;
       inversionCorrect?: boolean;
+    }
+  | {
+      kind: "voice-leading";
+      fromMidi: number[];
+      actualMidi: number[];
+      register: [number, number];
+      membershipCorrect: boolean;
+      /** Undefined unless exactly two distinct pitches were observed. */
+      actualSemitones?: number;
+      minimumSemitones: number;
+    }
+  | {
+      kind: "chord-changes";
+      tuningId: string;
+      durationSeconds: number;
+      fromShapeId: string;
+      fromMidiNotes: number[];
+      toShapeId: string;
+      toMidiNotes: number[];
+      completedChanges: number;
+      cleanChanges: number;
+      changesPerMinute: number;
     }
   | { kind: "breath"; steadiness: number; targetCurve?: number[]; actualCurve?: number[] };
 
@@ -70,6 +94,12 @@ export interface ScoringEvent {
   capabilities: Capability[];
   /** How the skill was exercised this time (played/heard/read/...). */
   modality?: PracticeModality;
+  /** Observed input used to grade the answer; absent when no input was captured. */
+  source?: InputSource | "mixed";
+  /** Observed or explicitly configured instrument; never inferred from a default. */
+  instrument?: InstrumentId;
+  /** Assistance explicitly known for this run; missing historical values remain unknown. */
+  assistance?: "independent" | "hinted" | "guided" | "self-assessed";
   /** WALL-CLOCK time of the attempt (history, not timing). */
   at: UnixMs;
 
@@ -86,4 +116,9 @@ export interface ScoringEvent {
   metrics: ScoringMetric[];
   target?: ScoringTarget;
   response?: ScoringResponse;
+}
+
+/** Strict eligibility for claims of unaided mastery, including historical projections. */
+export function isMasteryEligible(event: Pick<ScoringEvent, "assistance">): boolean {
+  return event.assistance === "independent";
 }

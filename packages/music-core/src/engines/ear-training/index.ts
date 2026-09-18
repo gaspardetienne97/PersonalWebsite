@@ -3,6 +3,7 @@ import type {
   ExerciseResult,
   FeedbackItem,
   InputSource,
+  InstrumentId,
   ScoringEvent,
 } from "@repo/music-core/domain";
 import {
@@ -71,6 +72,7 @@ export {
 } from "./repertoire";
 
 export interface EarTrainingSessionOptions {
+  instrument?: InstrumentId;
   drill: EarTrainingDrill | "mixed";
   answerMode: EarTrainingAnswerMode;
   feedbackMode: EarTrainingFeedbackMode;
@@ -195,6 +197,8 @@ export interface EarTrainingSessionState {
   currentIndex: number;
   currentPrompt?: EarTrainingPromptBase;
   heard: boolean;
+  awaitingContinue: boolean;
+  answerRevealed: boolean;
   results: EarTrainingResultView[];
   feedback: FeedbackItem[];
   sessionXp: number;
@@ -236,6 +240,8 @@ export class EarTrainingSession {
   #currentIndex = 0;
   #currentPrompt?: EarTrainingPromptBase;
   #heard = false;
+  #awaitingContinue = false;
+  #answerRevealed = false;
   #results: EarTrainingResultView[] = [];
   #feedback: FeedbackItem[] = [];
   #error?: string;
@@ -271,6 +277,8 @@ export class EarTrainingSession {
       currentIndex: this.#currentIndex,
       ...(this.#currentPrompt !== undefined ? { currentPrompt: this.#currentPrompt } : {}),
       heard: this.#heard,
+      awaitingContinue: this.#awaitingContinue,
+      answerRevealed: this.#answerRevealed,
       results: [...this.#results],
       feedback: [...this.#feedback],
       sessionXp: this.#results.reduce((total, result) => total + result.xp, 0),
@@ -303,17 +311,18 @@ export class EarTrainingSession {
   }
 
   armCurrentAnswer(): void {
-    if (this.#status !== "active" || !this.#currentPrompt) return;
+    if (this.#status !== "active" || this.#awaitingContinue || !this.#currentPrompt) return;
     this.#host.setInputEnabled(true);
   }
 
   disarmCurrentAnswer(): void {
-    if (this.#status !== "active" || !this.#currentPrompt) return;
+    if (this.#status !== "active" || this.#awaitingContinue || !this.#currentPrompt) return;
     this.#host.setInputEnabled(false);
   }
 
   async answerChoice(token: string): Promise<void> {
     this.#assertUsable();
+    if (this.#awaitingContinue || this.#finishing) return;
     if (this.options.answerMode !== "choice") {
       throw new Error("This session accepts musical play-back answers");
     }
@@ -339,23 +348,64 @@ export class EarTrainingSession {
     if (!this.#heard || !this.#currentPrompt) {
       throw new Error("Replay the prompt before answering");
     }
+    if (!this.#answerRevealed) throw new Error("Reveal the answer before self-rating");
+    if (this.#finishing) return;
     if (this.#currentPrompt.choices.length === 0) {
       throw new Error("This prompt cannot be self-assessed in listening mode");
     }
 
-    const token = heardCorrectly
-      ? this.#currentPrompt.answerToken
-      : (this.#currentPrompt.choices.find(({ token }) => token !== this.#currentPrompt?.answerToken)
-          ?.token ?? this.#currentPrompt.answerToken);
-
+    // A missed self-report has no observed wrong choice. The extra index decodes
+    // to undefined in the prompt's choices instead of inventing a confusion.
+    const tokens = this.#currentPrompt.choices.map((choice) => choice.token);
     this.dependencies.router.push(
-      choiceAnswerEvent(
-        token,
-        this.#currentPrompt.choices.map((choice) => choice.token),
-      ),
+      choiceAnswerEvent(heardCorrectly ? this.#currentPrompt.answerToken : "__not_recalled", [
+        ...tokens,
+        "__not_recalled",
+      ]),
     );
     const completion = this.#completion;
     if (completion) await completion;
+  }
+
+  revealAnswer(): void {
+    if (this.#status !== "active" || this.options.answerMode !== "listen" || !this.#heard) return;
+    this.#answerRevealed = true;
+    this.#notify();
+  }
+
+  continue(): void {
+    if (this.#disposed || !this.#awaitingContinue) return;
+    this.#awaitingContinue = false;
+    this.#advance();
+  }
+
+  advanceListening(): void {
+    if (
+      this.#disposed ||
+      this.#status !== "active" ||
+      this.options.answerMode !== "listen-along" ||
+      !this.#heard
+    )
+      return;
+    this.#host.cancel();
+    this.#advance();
+  }
+
+  #advance(): void {
+    this.#currentIndex += 1;
+    this.#feedback = [];
+    if (this.#currentIndex >= this.#queue.length) {
+      this.#status = "summary";
+      this.#currentPrompt = undefined;
+      this.#heard = false;
+      this.#summary = summarize(
+        this.#results,
+        this.dependencies.services.progress.state.streakDays,
+      );
+    } else {
+      this.#startCurrent();
+    }
+    this.#notify();
   }
 
   abandon(): void {
@@ -381,27 +431,39 @@ export class EarTrainingSession {
       sessionId: this.#sessionId,
       runId: `${this.#sessionId}-${this.#currentIndex + 1}`,
       inputs: inputsForAnswerMode(this.options.answerMode, item.drill),
-      inputEnabled: !(
-        this.options.deferPerformanceAnswers &&
-        (this.options.answerMode === "play-back" || this.options.answerMode === "voice")
-      ),
+      inputEnabled:
+        this.options.answerMode !== "listen-along" &&
+        !(
+          this.options.deferPerformanceAnswers &&
+          (this.options.answerMode === "play-back" || this.options.answerMode === "voice")
+        ),
       context: {
         targetSkillIds: item.targetSkillIds,
         difficulty: item.difficulty,
-        ...(this.options.scaleDegreeSet !== undefined
-          ? {
-              metadata: {
+        instrument: this.options.answerMode === "voice" ? "voice" : this.options.instrument,
+        metadata: {
+          assistance: this.options.answerMode === "listen" ? "self-assessed" : "independent",
+          modality:
+            this.options.answerMode === "voice"
+              ? "sung"
+              : this.options.answerMode === "play-back"
+                ? "played"
+                : "heard",
+          ...(this.options.scaleDegreeSet !== undefined
+            ? {
                 scaleDegreeSet: this.options.scaleDegreeSet,
                 scaleDegreeLabelMode: this.options.scaleDegreeLabelMode,
-              },
-            }
-          : {}),
+              }
+            : {}),
+        },
       },
     }) as ExercisePrompt<EarTrainingPromptBase>;
 
     this.#status = "active";
     this.#currentPrompt = prompt.payload;
     this.#heard = false;
+    this.#answerRevealed = false;
+    this.#feedback = [];
     this.#notify();
     return prompt.payload;
   }
@@ -411,6 +473,8 @@ export class EarTrainingSession {
       !this.#heard ||
       this.#status !== "active" ||
       this.#finishing ||
+      this.#awaitingContinue ||
+      this.options.answerMode === "listen-along" ||
       (this.#host.liveState?.progress ?? 0) < 1
     ) {
       return;
@@ -443,18 +507,11 @@ export class EarTrainingSession {
         xp: outcome.xp,
       });
       this.#feedback = this.options.feedbackMode === "practice" ? [...outcome.result.feedback] : [];
-      this.#currentIndex += 1;
-
-      if (this.#currentIndex >= this.#queue.length) {
-        this.#status = "summary";
-        this.#currentPrompt = undefined;
-        this.#heard = false;
-        this.#summary = summarize(
-          this.#results,
-          this.dependencies.services.progress.state.streakDays,
-        );
+      if (this.options.feedbackMode === "practice" && this.options.answerMode !== "listen") {
+        this.#awaitingContinue = true;
+        this.#host.setInputEnabled(false);
       } else {
-        this.#startCurrent();
+        this.#advance();
       }
       this.#notify();
     } finally {
@@ -606,7 +663,8 @@ function normalizeEarDrill(value: string | undefined): EarTrainingConfigDrill {
 
 function normalizeEarAnswerMode(value: string | undefined): EarTrainingAnswerMode {
   if (value === "play") return "play-back";
-  if (value === "play-back" || value === "voice" || value === "listen") return value;
+  if (value === "play-back" || value === "voice" || value === "listen" || value === "listen-along")
+    return value;
   return EAR_TRAINING_DEFAULT_CONFIG.answerMode;
 }
 
@@ -642,7 +700,8 @@ export function drillEligibleForAnswerMode(
   if (drill === "melody-dictation" || drill === "repertoire-transfer") {
     return answerMode === "play-back";
   }
-  if (drill === "cadence") return answerMode === "choice" || answerMode === "listen";
+  if (drill === "cadence")
+    return answerMode === "choice" || answerMode === "listen" || answerMode === "listen-along";
   return true;
 }
 
@@ -652,6 +711,7 @@ function inputsForAnswerMode(
 ): InputSource[] {
   if (answerMode === "choice") return ["click"];
   if (answerMode === "listen") return ["click"];
+  if (answerMode === "listen-along") return [];
   if (answerMode === "voice") return ["audio"];
   if (drill === "melody-dictation") return ["midi", "onscreen"];
   return ["midi", "onscreen"];

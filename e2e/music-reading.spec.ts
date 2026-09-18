@@ -9,11 +9,33 @@ test.describe("music reading workflows", () => {
     await expect(page.getByRole("button", { name: "Flashcards" })).toBeVisible();
   });
 
-  test("completes a piano choice flashcard", async ({ page }) => {
+  test("holds a wrong flashcard for correction and retries only mistakes", async ({ page }) => {
+    await page.goto("/music/learn/reading?low=60&high=60");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByText("1 / 10")).toBeVisible();
-    await page.locator('[aria-label="Answer choices"] button').first().click();
+    await page
+      .locator('[aria-label="Answer choices"]')
+      .getByRole("button", { name: "D", exact: true })
+      .click();
+    await expect(page.getByText("Expected C", { exact: true })).toBeVisible();
+    await expect(page.getByText("You chose D", { exact: true })).toBeVisible();
+    await expect(page.getByText("1 / 10")).toBeVisible();
+    await expect(page.locator('[aria-label="Answer choices"] button').first()).toBeDisabled();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect(page.getByText("2 / 10")).toBeVisible();
+    for (let index = 1; index < 10; index += 1) {
+      await page
+        .locator('[aria-label="Answer choices"]')
+        .getByRole("button", { name: "C", exact: true })
+        .click();
+    }
+    await page.getByRole("button", { name: "Retry mistakes", exact: true }).click();
+    await expect(page.getByText("1 / 1", { exact: true })).toBeVisible();
+    await page
+      .locator('[aria-label="Answer choices"]')
+      .getByRole("button", { name: "C", exact: true })
+      .click();
+    await expect(page.getByText("100% accuracy")).toBeVisible();
   });
 
   test("plays a guitar flashcard on the fretboard", async ({ page }) => {
@@ -22,6 +44,8 @@ test.describe("music reading workflows", () => {
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const targets = page.locator('[aria-label*=", target"]');
+    await expect(targets).toHaveCount(0);
+    await page.getByRole("button", { name: "Help", exact: true }).click();
     await expect(targets.first()).toBeVisible();
     await targets.first().focus();
     await page.keyboard.press("Enter");

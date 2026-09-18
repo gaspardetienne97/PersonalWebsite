@@ -212,7 +212,75 @@ describe("EarTrainingSession", () => {
     session.dispose();
   });
 
-  test("requires replay, advances choice answers, and exposes Practice feedback", async () => {
+  test("holds mixed Practice corrections, blocks duplicate input and delays the final summary", async () => {
+    const dependencies = await setup();
+    const session = new EarTrainingSession(dependencies, {
+      drill: "mixed",
+      answerMode: "choice",
+      feedbackMode: "practice",
+      length: 2,
+      queueMode: "balanced",
+    });
+    const first = await session.start();
+    session.replay();
+    await session.answerChoice(
+      first.choices.find((choice) => choice.token !== first.answerToken)!.token,
+    );
+    expect(session.state.awaitingContinue).toBe(true);
+    expect(session.state.currentIndex).toBe(0);
+    expect(session.replay()).toBe(first);
+    await session.answerChoice(first.answerToken);
+    expect(session.state.results).toHaveLength(1);
+    session.continue();
+    const second = session.replay();
+    expect(second.drill).not.toBe(first.drill);
+    expect(session.state.feedback).toEqual([]);
+    await session.answerChoice(second.answerToken);
+    expect(session.state.status).toBe("active");
+    expect(session.state.awaitingContinue).toBe(true);
+    session.continue();
+    expect(session.state.status).toBe("summary");
+    session.dispose();
+  });
+
+  test("requires Pocket reveal and leaves Listen along entirely unscored", async () => {
+    const dependencies = await setup();
+    const recall = new EarTrainingSession(dependencies, {
+      drill: "interval",
+      answerMode: "listen",
+      feedbackMode: "practice",
+      length: 2,
+    });
+    await recall.start();
+    recall.replay();
+    await expect(recall.answerListening(true)).rejects.toThrow("Reveal");
+    recall.revealAnswer();
+    expect(recall.state.answerRevealed).toBe(true);
+    await recall.answerListening(true);
+    expect(recall.state.results[0]?.event.assistance).toBe("self-assessed");
+    expect(recall.state.awaitingContinue).toBe(false);
+    expect(recall.state.answerRevealed).toBe(false);
+    recall.dispose();
+    const xp = dependencies.services.progress.state.xp;
+    const along = new EarTrainingSession(dependencies, {
+      drill: "cadence",
+      answerMode: "listen-along",
+      feedbackMode: "practice",
+      length: 2,
+    });
+    await along.start();
+    along.replay();
+    along.advanceListening();
+    along.replay();
+    along.advanceListening();
+    expect(along.state.status).toBe("summary");
+    expect(along.state.results).toEqual([]);
+    expect(along.state.sessionXp).toBe(0);
+    expect(dependencies.services.progress.state.xp).toBe(xp);
+    along.dispose();
+  });
+
+  test("requires replay, holds choice answers, and exposes Practice feedback", async () => {
     const dependencies = await setup();
     const session = new EarTrainingSession(dependencies, {
       drill: "interval",
@@ -226,7 +294,7 @@ describe("EarTrainingSession", () => {
     expect(session.replay()).toBe(prompt);
     await session.answerChoice(prompt.answerToken);
 
-    expect(session.state.currentIndex).toBe(1);
+    expect(session.state.currentIndex).toBe(0);
     expect(session.state.results).toHaveLength(1);
     expect(session.state.feedback[0]?.severity).toBe("good");
     expect(dependencies.services.skills.getMastery(prompt.targetSkillId).mastery).toBeGreaterThan(
@@ -249,21 +317,22 @@ describe("EarTrainingSession", () => {
 
     await expect(session.answerListening(true)).rejects.toThrow("Replay the prompt");
     session.replay();
+    session.revealAnswer();
     await session.answerListening(true);
 
     expect(session.state.currentIndex).toBe(1);
     expect(session.state.results[0]).toMatchObject({
       targetSkillId: firstPrompt.targetSkillId,
+      event: { assistance: "self-assessed", source: "click" },
       result: {
         correct: true,
         answer: firstPrompt.answerToken,
       },
     });
-    expect(
-      dependencies.services.skills.getMastery(firstPrompt.targetSkillId).mastery,
-    ).toBeGreaterThan(0);
+    expect(dependencies.services.skills.getMastery(firstPrompt.targetSkillId).mastery).toBe(0);
 
-    const secondPrompt = session.replay();
+    session.replay();
+    session.revealAnswer();
     await session.answerListening(false);
 
     expect(session.state.status).toBe("summary");
@@ -271,9 +340,8 @@ describe("EarTrainingSession", () => {
       total: 2,
       correct: 1,
     });
-    expect(session.state.summary?.confusions[0]).toMatchObject({
-      expected: secondPrompt.answerToken,
-    });
+    expect(session.state.summary?.confusions).toEqual([]);
+    expect(session.state.results[1]?.event.response?.choice).toBeUndefined();
     session.dispose();
   });
 
@@ -328,8 +396,11 @@ describe("EarTrainingSession", () => {
 
     dependencies.router.noteOn(scalePrompt.tonicMidi + scalePrompt.semitones, "onscreen");
 
-    await vi.waitFor(() => expect(latest.status).toBe("summary"));
+    await vi.waitFor(() => expect(latest.awaitingContinue).toBe(true));
+    session.continue();
+    expect(latest.status).toBe("summary");
     expect(latest.results[0]?.result.correct).toBe(true);
+    expect(latest.results[0]?.event.modality).toBe("played");
     unsubscribe();
     session.dispose();
   });
@@ -352,7 +423,9 @@ describe("EarTrainingSession", () => {
 
     session.armCurrentAnswer();
     dependencies.router.noteOn(prompt.tonicMidi + prompt.semitones, "midi");
-    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    await vi.waitFor(() => expect(session.state.awaitingContinue).toBe(true));
+    session.continue();
+    expect(session.state.status).toBe("summary");
     expect(session.state.results[0]?.result.correct).toBe(true);
     session.dispose();
   });
@@ -377,7 +450,9 @@ describe("EarTrainingSession", () => {
 
     session.armCurrentAnswer();
     dependencies.router.noteOn(prompt.tonicMidi + prompt.semitones, "midi");
-    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    await vi.waitFor(() => expect(session.state.awaitingContinue).toBe(true));
+    session.continue();
+    expect(session.state.status).toBe("summary");
     session.dispose();
   });
 
@@ -400,8 +475,11 @@ describe("EarTrainingSession", () => {
 
     dependencies.router.noteOn(scalePrompt.tonicMidi + scalePrompt.semitones, "audio");
 
-    await vi.waitFor(() => expect(latest.status).toBe("summary"));
+    await vi.waitFor(() => expect(latest.awaitingContinue).toBe(true));
+    session.continue();
+    expect(latest.status).toBe("summary");
     expect(latest.results[0]?.result.correct).toBe(true);
+    expect(latest.results[0]?.event.modality).toBe("sung");
     unsubscribe();
     session.dispose();
   });
@@ -426,7 +504,9 @@ describe("EarTrainingSession", () => {
       dependencies.router.noteOn(midiNote, "onscreen");
     }
 
-    await vi.waitFor(() => expect(latest.status).toBe("summary"));
+    await vi.waitFor(() => expect(latest.awaitingContinue).toBe(true));
+    session.continue();
+    expect(latest.status).toBe("summary");
     expect(latest.results[0]?.result.correct).toBe(true);
     expect(latest.results[0]?.drill).toBe("melody-dictation");
     unsubscribe();
@@ -491,7 +571,9 @@ describe("EarTrainingSession", () => {
       dependencies.router.noteOn(midiNote, "onscreen");
     }
 
-    await vi.waitFor(() => expect(latest.status).toBe("summary"));
+    await vi.waitFor(() => expect(latest.awaitingContinue).toBe(true));
+    session.continue();
+    expect(latest.status).toBe("summary");
     expect(latest.summary?.confusions).toContainEqual({
       drill: "repertoire-transfer",
       expected: "3",
@@ -542,6 +624,7 @@ describe("EarTrainingSession", () => {
     });
 
     await session.answerChoice(prompt.answerToken);
+    session.continue();
     expect(session.state.status).toBe("summary");
     session.dispose();
   });

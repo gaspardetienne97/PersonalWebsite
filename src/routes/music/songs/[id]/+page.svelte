@@ -198,7 +198,7 @@
   const showTab = $derived(notationMode === "tab");
   const showFingering = $derived(notationMode === "fingering" && !selectionEditing);
   // Staff and waterfall are alternative views of the same score, never both.
-  const showWaterfall = $derived(notationMode === "waterfall" && !selectionEditing);
+  const showWaterfall = $derived(notationMode === "waterfall" && (!selectionEditing || !!notation.error));
   const previewTimeline = $derived(score ? scoreTimelineNotes(score) : []);
   const previewMaterial = $derived(
     Array.from(new Set(score?.notes.map(({ midiNote }) => midiNote) ?? [])).sort(
@@ -826,8 +826,8 @@
               <Button
                 type="button"
                 size="sm"
-                variant={!showTab ? "secondary" : "outline"}
-                aria-pressed={!showTab}
+                variant={!showTab && !showFingering && !showWaterfall ? "secondary" : "outline"}
+                aria-pressed={!showTab && !showFingering && !showWaterfall}
                 onclick={() => (notationMode = "staff")}
               >
                 Staff
@@ -856,7 +856,7 @@
                 size="sm"
                 variant={showWaterfall ? "secondary" : "outline"}
                 aria-pressed={showWaterfall}
-                disabled={selectionEditing}
+                disabled={selectionEditing && !notation.error}
                 onclick={() => (notationMode = "waterfall")}
               >
                 Waterfall
@@ -877,6 +877,36 @@
                 </span>
               {/if}
             </div>
+            <!-- Transport and practice actions sit above the score, so a long
+                 score scrolls inside its own viewport while Play and Start stay
+                 in reach with the instrument in hand. -->
+            <div class="flex flex-wrap items-center gap-2" aria-label="Score actions">
+              <Button type="button" onclick={playPreview}>
+                {#if previewPlaying}
+                  <Pause class="size-4" aria-hidden="true" />Pause preview
+                {:else}
+                  <Play class="size-4" aria-hidden="true" />Play preview
+                {/if}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={practicing || !planProjection.plan}
+                onclick={startPractice}
+              >
+                Start practice
+              </Button>
+              <Button type="button" variant="outline" disabled={!score} onclick={exportMidi}>
+                <Download class="size-4" aria-hidden="true" />
+                Export MIDI
+              </Button>
+              {#if practicing}
+                <Button type="button" variant="outline" onclick={cancelPractice}>
+                  Cancel practice
+                </Button>
+              {/if}
+            </div>
+            <div class="max-h-[min(62dvh,44rem)] min-w-0 overflow-y-auto rounded-md" data-testid="score-viewport">
             {#if showWaterfall}
               <PianoSurface
                 label="Waterfall"
@@ -904,6 +934,19 @@
                 {#each aerophoneProjection.notes as note (note.sourceIndex)}
                   <AerophoneFingering midi={note.midiNote} size={88} />
                 {/each}
+              </div>
+            {:else if showTab}
+              <div class="grid gap-3 rounded-md border p-4 text-sm text-muted-foreground">
+                <p>
+                  {notation.error
+                    ? `Tab is unavailable for this score: ${notation.error}`
+                    : "Tab is unavailable for this score in the chosen tuning."} Staff and Waterfall
+                  keep the original timing for preview and practice.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onclick={() => (notationMode = "staff")}>Show staff</Button>
+                  <Button type="button" variant="outline" onclick={() => (notationMode = "waterfall")}>Open Waterfall</Button>
+                </div>
               </div>
             {:else if song.source?.format === "musicxml"}
               <MusicXmlScore
@@ -933,37 +976,16 @@
                 onSelectionChange={updateCustomSelection}
               />
             {:else}
-              <div class="rounded-md border p-4 text-sm text-muted-foreground">
-                Staff preview unavailable: {notation.error}
+              <div class="grid gap-3 rounded-md border p-4 text-sm text-muted-foreground">
+                <p>Staff preview unavailable. This score contains notation the staff renderer cannot display. Waterfall keeps the original timing for preview and practice.</p>
+                <Button type="button" variant="outline" class="justify-self-start" onclick={() => (notationMode = "waterfall")}>Open Waterfall</Button>
+                {#if selectionEditing}
+                  <p>Custom range selection is available in Staff or Tab; your current range is kept.</p>
+                {/if}
               </div>
             {/if}
+            </div>
           </Card.Content>
-          <Card.Footer class="flex-wrap gap-2">
-            <Button type="button" onclick={playPreview}>
-              {#if previewPlaying}
-                <Pause class="size-4" aria-hidden="true" />Pause preview
-              {:else}
-                <Play class="size-4" aria-hidden="true" />Play preview
-              {/if}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={practicing || !planProjection.plan}
-              onclick={startPractice}
-            >
-              Start practice
-            </Button>
-            <Button type="button" variant="outline" disabled={!score} onclick={exportMidi}>
-              <Download class="size-4" aria-hidden="true" />
-              Export MIDI
-            </Button>
-            {#if practicing}
-              <Button type="button" variant="outline" onclick={cancelPractice}>
-                Cancel practice
-              </Button>
-            {/if}
-          </Card.Footer>
         </Card.Root>
 
         {#if practicing}

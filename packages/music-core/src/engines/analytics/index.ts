@@ -1,4 +1,11 @@
-import { updateConfusion, type ConfusionMatrix, type ScoringEvent } from "@repo/music-core/domain";
+import {
+  updateConfusion,
+  isMasteryEligible,
+  type ConfusionMatrix,
+  type ScoringEvent,
+  type InstrumentId,
+  type UnixMs,
+} from "@repo/music-core/domain";
 import type { PracticeStore } from "@repo/music-core/engines/store";
 
 export interface SkillStats {
@@ -10,6 +17,7 @@ export interface SkillStats {
   meanReactionTimeMs?: number;
   chordSwitchSpeedMs?: number;
   consistency: number;
+  lastPracticed?: UnixMs;
 }
 
 interface SkillAccumulator {
@@ -23,6 +31,7 @@ export class AnalyticsEngine {
   #confusionsBySkill = new Map<string, ConfusionMatrix>();
   #stats = new Map<string, SkillAccumulator>();
   #eventIds = new Set<string>();
+  #events: ScoringEvent[] = [];
   #loaded = false;
   #operationQueue: Promise<void> = Promise.resolve();
 
@@ -57,9 +66,36 @@ export class AnalyticsEngine {
     return stats === undefined ? undefined : structuredClone(stats);
   }
 
-  weakestSkills(n: number): SkillStats[] {
-    return [...this.#stats.values()]
+  weakestSkills(
+    n: number,
+    options: {
+      instrument?: InstrumentId;
+      minAttempts?: number;
+      assessedOnly?: boolean;
+      skillIds?: string[];
+    } = {},
+  ): SkillStats[] {
+    let accumulators = this.#stats;
+    if (options.instrument || options.assessedOnly) {
+      // ponytail: scan local history for scoped coaching; index if large histories make this slow.
+      accumulators = new Map();
+      for (const event of this.#events) {
+        if (options.instrument && event.instrument !== options.instrument) continue;
+        if (options.assessedOnly && !isMasteryEligible(event)) continue;
+        for (const skillId of new Set(event.skillIds)) {
+          const accumulator = accumulators.get(skillId) ?? createAccumulator(skillId);
+          updateStats(accumulator, event);
+          accumulators.set(skillId, accumulator);
+        }
+      }
+    }
+    return [...accumulators.values()]
       .map(({ stats }) => structuredClone(stats))
+      .filter(
+        (stats) =>
+          stats.attempts >= (options.minAttempts ?? 0) &&
+          (!options.skillIds || options.skillIds.includes(stats.skillId)),
+      )
       .sort(
         (a, b) =>
           a.accuracy - b.accuracy ||
@@ -84,6 +120,7 @@ export class AnalyticsEngine {
   #apply(event: ScoringEvent): void {
     if (this.#eventIds.has(event.id)) return;
     this.#eventIds.add(event.id);
+    this.#events.push(event);
 
     for (const skillId of new Set(event.skillIds)) {
       const confusion = this.#confusionsBySkill.get(skillId) ?? new Map();
@@ -126,6 +163,7 @@ function updateStats(accumulator: SkillAccumulator, event: ScoringEvent): void {
   const nextMeanScore = stats.meanScore + scoreDelta / nextAttempts;
   accumulator.scoreM2 += scoreDelta * (event.partialCredit - nextMeanScore);
 
+  stats.lastPracticed = Math.max(stats.lastPracticed ?? event.at, event.at) as UnixMs;
   stats.attempts = nextAttempts;
   stats.correctAttempts += event.correct ? 1 : 0;
   stats.accuracy = stats.correctAttempts / nextAttempts;

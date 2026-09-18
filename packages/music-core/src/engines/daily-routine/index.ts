@@ -1,4 +1,9 @@
-import type { ExerciseRunRecord, ScoringEvent, UnixMs } from "@repo/music-core/domain";
+import type {
+  ExerciseRunRecord,
+  ScoringEvent,
+  UnixMs,
+  InstrumentId,
+} from "@repo/music-core/domain";
 
 export interface DailyRoutineRecommendation {
   skillId: string;
@@ -11,6 +16,7 @@ export interface DailyRoutineStep {
   label: string;
   href: string;
   description: string;
+  minutes: number;
   skillId?: string;
 }
 
@@ -54,11 +60,11 @@ export interface DailyRoutineState {
   summary?: DailyRoutineSummary;
 }
 
-const DEFAULT_STEPS: DailyRoutineStep[] = [
+const DEFAULT_STEPS: Omit<DailyRoutineStep, "minutes">[] = [
   {
     id: "ear",
     label: "Ear training review",
-    href: "/music/learn/ear/mixed",
+    href: "/music/learn/ear/scale-degrees?level=anchor",
     description: "Recognition and weak-spot review.",
   },
   {
@@ -81,7 +87,19 @@ const DEFAULT_STEPS: DailyRoutineStep[] = [
   },
 ];
 
-const RECOMMENDED_STEPS: DailyRoutineStep[] = [
+const RECOMMENDED_STEPS: Omit<DailyRoutineStep, "minutes">[] = [
+  {
+    id: "chord-scales",
+    label: "Chord-scale review",
+    href: "/music/play/chord-scales",
+    description: "Review the scale for each chord.",
+  },
+  {
+    id: "licks",
+    label: "Lick recall",
+    href: "/music/play/licks",
+    description: "Recall a phrase over the changes.",
+  },
   {
     id: "voicings",
     label: "ii-V-I Voicings",
@@ -121,8 +139,35 @@ const RECOMMENDED_STEPS: DailyRoutineStep[] = [
   ...DEFAULT_STEPS,
 ];
 
+export interface DailyRoutineOptions {
+  instrument?: InstrumentId;
+  budgetMinutes?: number;
+}
+
+const INSTRUMENT_STEPS: Record<InstrumentId, string[]> = {
+  piano: ["scales", "ear", "reading", "rhythm"],
+  guitar: ["spider", "ear", "chord-perfect", "rhythm"],
+  ukulele: ["spider", "ear", "chord-perfect", "rhythm"],
+  mpc: ["mpc", "rhythm"],
+  aerophone: ["aerophone", "ear", "rhythm", "scales"],
+  voice: ["ear", "rhythm"],
+};
+const STEP_INSTRUMENTS: Record<string, InstrumentId[]> = {
+  "chord-scales": ["piano", "guitar", "ukulele", "aerophone"],
+  licks: ["piano", "guitar", "ukulele", "aerophone"],
+  reading: ["piano", "guitar", "ukulele"],
+  scales: ["piano", "guitar", "ukulele", "aerophone"],
+  voicings: ["piano"],
+  spider: ["guitar", "ukulele"],
+  "chord-perfect": ["guitar", "ukulele"],
+  "two-hand": ["piano"],
+  mpc: ["mpc"],
+  aerophone: ["aerophone"],
+};
+
 export function buildDailyRoutinePlan(
   recommendations: DailyRoutineRecommendation[],
+  options: DailyRoutineOptions = {},
 ): DailyRoutineStep[] {
   const stepsByHref = new Map(RECOMMENDED_STEPS.map((step) => [hrefRouteKey(step.href), step]));
   const selected: DailyRoutineStep[] = [];
@@ -131,19 +176,51 @@ export function buildDailyRoutinePlan(
   for (const recommendation of recommendations) {
     const routeKey = hrefRouteKey(recommendation.href);
     const step = stepsByHref.get(routeKey);
-    if (!step || seen.has(routeKey)) continue;
-    selected.push({ ...step, href: recommendation.href, skillId: recommendation.skillId });
+    if (
+      !step ||
+      seen.has(routeKey) ||
+      (options.instrument &&
+        STEP_INSTRUMENTS[step.id] &&
+        !STEP_INSTRUMENTS[step.id]!.includes(options.instrument))
+    )
+      continue;
+    selected.push({
+      ...step,
+      minutes: 5,
+      href: recommendation.href,
+      skillId: recommendation.skillId,
+    });
     seen.add(routeKey);
   }
 
-  for (const step of DEFAULT_STEPS) {
+  const defaults = options.instrument
+    ? INSTRUMENT_STEPS[options.instrument].map(
+        (id) => RECOMMENDED_STEPS.find((step) => step.id === id)!,
+      )
+    : DEFAULT_STEPS;
+  for (const step of defaults) {
     const routeKey = hrefRouteKey(step.href);
     if (seen.has(routeKey)) continue;
-    selected.push({ ...step });
+    selected.push({ ...step, minutes: 5 });
     seen.add(routeKey);
   }
 
-  return selected;
+  const budget = Number.isFinite(options.budgetMinutes)
+    ? Math.max(1, Math.min(120, Math.floor(options.budgetMinutes!)))
+    : 20;
+  let remaining = budget;
+  return selected.flatMap((step) => {
+    if (remaining <= 0) return [];
+    const minutes = Math.min(step.minutes, remaining);
+    remaining -= minutes;
+    const url = new URL(step.href, "https://routine.local");
+    if (options.instrument) url.searchParams.set("instrument", options.instrument);
+    if (options.instrument === "voice" && step.id === "ear") {
+      url.pathname = "/music/learn/ear/scale-degrees";
+      url.searchParams.set("answer", "voice");
+    }
+    return [{ ...step, minutes, href: `${url.pathname}${url.search}${url.hash}` }];
+  });
 }
 
 export class DailyRoutineSession {

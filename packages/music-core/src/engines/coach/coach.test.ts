@@ -8,12 +8,38 @@ import { SkillGraphStore, seedCoreSkills } from "@repo/music-core/engines/skills
 import { buildPracticeCoachView } from "./index";
 
 describe("buildPracticeCoachView", () => {
+  test("does not diagnose a weak spot from sparse or other-instrument practice", async () => {
+    const skills = new SkillGraphStore();
+    const analytics = new AnalyticsEngine();
+    await skills.seed(seedCoreSkills());
+    for (let i = 0; i < 5; i += 1)
+      await analytics.ingest({
+        ...event(`piano-${i}`, "technique.piano.two-hand-independence", 0, false),
+        instrument: "piano",
+      });
+    await analytics.ingest({
+      ...event("guitar-1", "technique.strings.spider", 0, false),
+      instrument: "guitar",
+    });
+    const view = buildPracticeCoachView({
+      skills,
+      analytics,
+      progressState: new ProgressEngine().state,
+      sessions: [],
+      instrument: "guitar",
+      budgetMinutes: 10,
+    });
+    expect(view.focus).toBeUndefined();
+    expect(view.routine.map((step) => step.id)).toEqual(["spider", "ear"]);
+    expect(view.insights.join(" ")).toContain("at least 5 independent attempts");
+  });
   test("prioritizes weak spots and builds a routine", async () => {
     const skills = new SkillGraphStore();
     const analytics = new AnalyticsEngine();
     const progress = new ProgressEngine();
     await skills.seed(seedCoreSkills());
-    await analytics.ingest(event("weak-1", "harmony.seventh.dominant", 0, false));
+    for (let i = 0; i < 5; i += 1)
+      await analytics.ingest(event(`weak-${i}`, "harmony.seventh.dominant", 0, false));
     await analytics.ingest(event("strong-1", "rhythm.quarter-pulse", 1, true));
 
     const view = buildPracticeCoachView({
@@ -44,7 +70,7 @@ describe("buildPracticeCoachView", () => {
     expect(view.focus).toBeUndefined();
     expect(view.headline).toBe("Build a balanced routine");
     expect(view.routine.map((step) => step.href)).toEqual([
-      "/music/learn/ear/mixed",
+      "/music/learn/ear/scale-degrees?level=anchor",
       "/music/learn/reading",
       "/music/learn/rhythm",
       "/music/play/scales",
@@ -63,6 +89,8 @@ function event(id: string, skillId: string, partialCredit: number, correct: bool
     correct,
     partialCredit,
     difficulty: 0.6,
+    assistance: "independent",
+    instrument: "piano",
     metrics: [{ kind: "choice", expected: skillId, actual: correct ? skillId : "miss" }],
   };
 }

@@ -15,7 +15,7 @@
   // The session controls only. The route collapses them behind the shell's
   // setup summary line; Start lives on the ready stage.
   let {
-    answerModes = ["choice", "play-back", "listen", "voice"],
+    answerModes = ["choice", "play-back", "listen", "listen-along", "voice"],
     showLevel = true,
     showLabels = true,
     answerMode,
@@ -86,6 +86,8 @@
                 ? "Voice"
                 : mode === "listen"
                   ? "Pocket"
+                  : mode === "listen-along"
+                    ? "Listen along"
                   : "Play-back"}
           </button>
         {/each}

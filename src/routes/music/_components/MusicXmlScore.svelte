@@ -168,6 +168,24 @@
     syncCursor(renderedOsmd, cursorBeat);
   });
 
+  /**
+   * OSMD engraves in literal black. Handing those glyphs `currentColor` lets
+   * the host's `text-foreground` (and any theme switch after render) decide
+   * the ink, the same way StaffNotation's VexFlow output is treated.
+   */
+  function adoptThemeInk(target: HTMLElement): void {
+    for (const element of target.querySelectorAll<SVGElement>(
+      '[fill="#000000"], [fill="#000"], [fill="black"]',
+    )) {
+      element.setAttribute("fill", "currentColor");
+    }
+    for (const element of target.querySelectorAll<SVGElement>(
+      '[stroke="#000000"], [stroke="#000"], [stroke="black"]',
+    )) {
+      element.setAttribute("stroke", "currentColor");
+    }
+  }
+
   async function renderMusicXml(
     target: HTMLDivElement,
     content: string,
@@ -181,6 +199,11 @@
     }
 
     const { OpenSheetMusicDisplay } = await import("opensheetmusicdisplay");
+    // The cursor colour is the practice accent, read from the tokens (OSMD
+    // needs a literal, so this is the documented themeColor() fallback case).
+    const accent =
+      getComputedStyle(document.documentElement).getPropertyValue("--practice-accent").trim() ||
+      "#7c3aed";
     const osmd = new OpenSheetMusicDisplay(target, {
       backend: "svg",
       autoResize: false,
@@ -189,10 +212,11 @@
       drawComposer: false,
       drawLyricist: false,
       drawingParameters: "compacttight",
-      cursorsOptions: [{ type: 1, color: "#7c3aed", alpha: 1, follow: false }],
+      cursorsOptions: [{ type: 1, color: accent, alpha: 1, follow: false }],
     });
     await osmd.load(content);
     osmd.render();
+    adoptThemeInk(target);
     return {
       cleanup: () => osmd.clear(),
       osmd: osmd as unknown as OsmdSelectionSource,

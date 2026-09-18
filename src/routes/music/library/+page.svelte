@@ -38,8 +38,10 @@
   // The tab lives in the URL (?tab=, ?mode= for the import sub-mode) so a
   // bookmark or a back gesture lands on the same view.
   $effect(() => {
-    const params = $page.url?.searchParams;
-    if (!params) return;
+    // Shallow replaceState emits $page without changing its URL. Keep the
+    // navigation dependency, but read the address bar's current query.
+    const pageUrl = $page.url;
+    const params = typeof window === "undefined" ? pageUrl?.search ?? "" : window.location.search;
     tab = readRouteTab(params, "tab", LIBRARY_TABS, "songs");
     importTab = readRouteTab(params, "mode", IMPORT_TABS, "score");
   });

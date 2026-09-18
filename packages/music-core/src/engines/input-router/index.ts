@@ -91,9 +91,18 @@ export class InputRouter {
     return true;
   }
 
-  noteOn(midiNote: number, source: InputSource = "onscreen", instrument?: InstrumentId): NoteEvent {
+  noteOn(
+    midiNote: number,
+    source: InputSource = "onscreen",
+    instrument?: InstrumentId,
+    position?: {
+      inputProfileId: string;
+      fretPosition: { stringNumber: number; fretNumber: number };
+    },
+  ): NoteEvent {
     const event: NoteEvent = {
       type: "noteOn",
+      ...position,
       midiNote,
       velocity: 1,
       source,

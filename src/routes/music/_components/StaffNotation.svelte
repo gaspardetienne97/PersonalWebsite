@@ -68,6 +68,26 @@
     );
   });
 
+  /**
+   * The follower's position as one thin line per active range: it starts at
+   * the group's left edge and spans every staff of that system, so a grand
+   * staff shows one cursor, not a box per stave. Selection ranges (custom,
+   * preview) are regions, not positions, and get no cursor.
+   */
+  const cursorLines = $derived.by(() => {
+    const lines = new Map<string, { left: number; top: number; bottom: number }>();
+    for (const layer of overlayLayers) {
+      if (!layer.active || layer.rangeId === "custom" || layer.rangeId === "preview") continue;
+      const current = lines.get(layer.rangeId);
+      lines.set(layer.rangeId, {
+        left: Math.min(current?.left ?? Number.POSITIVE_INFINITY, layer.left),
+        top: Math.min(current?.top ?? Number.POSITIVE_INFINITY, layer.top),
+        bottom: Math.max(current?.bottom ?? Number.NEGATIVE_INFINITY, layer.top + layer.height),
+      });
+    }
+    return [...lines].map(([rangeId, box]) => ({ rangeId, ...box }));
+  });
+
   $effect(() => {
     if (host && wrapper) {
       draw(host, wrapper, view, activeEventIds, errorEventIds, selectionMap, snap);
@@ -325,26 +345,26 @@
       <span
         data-notation-highlight={layer.rangeId}
         data-active={layer.active}
-        class="absolute rounded-sm border {layer.active
-          ? 'border-practice-accent/80 bg-practice-accent/20 shadow-[0_0_0_1px_hsl(var(--practice-accent)/0.22)]'
-          : 'border-practice-accent/30 bg-practice-accent/10'}"
+        class="absolute rounded-sm {layer.rangeId === 'custom' || layer.rangeId === 'preview'
+          ? 'border border-primary/60 bg-primary/15'
+          : layer.active
+            ? 'bg-practice-accent/12'
+            : 'bg-practice-accent/8'}"
         style:left="{layer.left}px"
         style:top="{layer.top}px"
         style:width="{layer.width}px"
         style:height="{layer.height}px"
+      ></span>
+    {/each}
+    {#each cursorLines as line (line.rangeId)}
+      <span
+        data-notation-cursor={line.rangeId}
+        class="absolute w-0.5 rounded-full bg-practice-accent shadow-[0_0_6px_var(--practice-accent)]"
+        style:left="{line.left - 2}px"
+        style:top="{line.top - 8}px"
+        style:height="{line.bottom - line.top + 16}px"
       >
-        {#if layer.active}
-          <span
-            data-notation-cursor={layer.rangeId}
-            class="absolute -top-1 bottom-[-0.25rem] left-0 w-1.5 rounded-full bg-practice-accent ring-2 ring-background"
-          ></span>
-          <span
-            data-notation-cursor-label={layer.rangeId}
-            class="absolute left-2 top-1 rounded-sm bg-practice-accent px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-practice-accent-foreground shadow-sm"
-          >
-            Now
-          </span>
-        {/if}
+        <span data-notation-cursor-label={line.rangeId} class="sr-only">Now</span>
       </span>
     {/each}
   </div>

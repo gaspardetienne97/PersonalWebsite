@@ -25,15 +25,21 @@ import {
 import {
   createVoicingDrillExercise,
   VOICING_DRILL_SKILL,
+  VOICE_LEADING_SKILL,
   type VoicingGradingMode,
   type VoicingTarget,
 } from "@repo/music-core/exercises/voicing-drill";
+
+import { midiToNote } from "@repo/music-core/engines/theory";
+
+export type VoicingDrillVariant = DrillVariant | "guide-tones";
 
 const pitchClass = (midi: number): number => ((midi % 12) + 12) % 12;
 
 export interface VoicingDrillConfig {
   instrument: InstrumentId;
-  variant: DrillVariant;
+  variant: VoicingDrillVariant;
+  key?: number;
   startPosition: RootlessPosition;
   strict: boolean;
   autoAdvance: boolean;
@@ -43,6 +49,7 @@ export type VoicingDrillConfigSource = {
   get?: (key: string) => string | null;
   instrument?: unknown;
   variant?: unknown;
+  key?: unknown;
   start?: unknown;
   startPosition?: unknown;
   strict?: unknown;
@@ -70,27 +77,58 @@ export function normalizeVoicingDrillConfig(
       ? defaultInstrument
       : VOICING_DRILL_DEFAULT_CONFIG.instrument;
   const rawVariant = readVoicingConfigValue(source, ["variant"]);
-  const variant: DrillVariant =
-    rawVariant === "minor" || rawVariant === "altered" ? rawVariant : "major";
+  const variant: VoicingDrillVariant =
+    rawVariant === "minor" || rawVariant === "altered" || rawVariant === "guide-tones"
+      ? rawVariant
+      : "major";
   const rawStart = readVoicingConfigValue(source, ["start", "startPosition"]);
   const rawStrict = readVoicingConfigValue(source, ["strict"]);
   const rawAdvance = readVoicingConfigValue(source, ["advance", "auto", "autoAdvance"]);
 
   return {
-    instrument,
+    instrument: variant === "guide-tones" ? "piano" : instrument,
     variant,
+    ...(variant === "guide-tones"
+      ? { key: guideKey(Number(readVoicingConfigValue(source, ["key"]))) }
+      : {}),
     startPosition: rawStart === "B" ? "B" : "A",
     strict:
       rawStrict === "held" || rawStrict === "strict" || rawStrict === "true" || rawStrict === "1",
-    autoAdvance: !(rawAdvance === "manual" || rawAdvance === "false" || rawAdvance === "0"),
+    autoAdvance:
+      variant !== "guide-tones" &&
+      !(rawAdvance === "manual" || rawAdvance === "false" || rawAdvance === "0"),
   };
 }
 
 /** Pure: the ordered list of chord targets for the 12-key ii-V-I drill. */
 export function buildVoicingDrillTargets(
   instrument: InstrumentId,
-  opts: { variant?: DrillVariant; startPosition?: RootlessPosition; strict?: boolean } = {},
+  opts: {
+    variant?: VoicingDrillVariant;
+    key?: number;
+    startPosition?: RootlessPosition;
+    strict?: boolean;
+  } = {},
 ): VoicingTarget[] {
+  if (opts.variant === "guide-tones") {
+    if (instrument !== "piano") throw new Error("Guide tones require piano.");
+    const key = guideKey(opts.key);
+    return [
+      { root: 7, suffix: "7", pcs: [11, 5], from: [53, 60], midi: [53, 59] },
+      { root: 0, suffix: "maj7", pcs: [4, 11], from: [53, 59], midi: [52, 59] },
+    ].map((step, index) => ({
+      id: `guide-tones-${key}-${index}`,
+      symbol: `${midiToNote(60 + pitchClass(step.root + key), true).replace(/\d+$/, "")}${step.suffix}`,
+      mode: "chord",
+      skillIds: [VOICE_LEADING_SKILL],
+      expectedPitchClasses: step.pcs.map((pc) => pitchClass(pc + key)),
+      displayMidi: step.midi.map((note) => note + key),
+      voiceLeading: {
+        fromMidi: step.from.map((note) => note + key) as [number, number],
+        register: [48 + key, 71 + key],
+      },
+    }));
+  }
   const mode: VoicingGradingMode = isMonophonic(instrument) ? "arpeggio" : "chord";
 
   return buildDrillVoicings(opts.variant ?? "major", opts.startPosition ?? "A").flatMap((step) =>
@@ -99,6 +137,10 @@ export function buildVoicingDrillTargets(
       const pcs = [...new Set(notes.map(pitchClass))];
       return {
         id: `${step.key}-${chord.symbol}`,
+        skillIds: [
+          VOICING_DRILL_SKILL,
+          `${VOICING_DRILL_SKILL}.voicings.${opts.variant ?? "major"}`,
+        ],
         symbol: chord.symbol,
         // Arpeggio is graded in ascending pitch order; chord order is irrelevant.
         expectedPitchClasses:
@@ -135,10 +177,12 @@ export interface VoicingDrillDependencies {
   router: InputRouter;
   services: PipelineServices;
   instrument: InstrumentId;
-  variant?: DrillVariant;
+  variant?: VoicingDrillVariant;
+  key?: number;
   startPosition?: RootlessPosition;
   /** Held-together (strict) chord grading; defaults to lenient. */
   strict?: boolean;
+  assistance?: "guided" | "independent";
   sessionId?: string;
   now?: () => number;
   makeId?: () => string;
@@ -156,6 +200,7 @@ export class VoicingDrillSession {
   #status: VoicingDrillState["status"] = "idle";
   #results: VoicingDrillStepResult[] = [];
   #runSeq = 0;
+  #disposed = false;
 
   constructor(deps: VoicingDrillDependencies) {
     this.#deps = deps;
@@ -163,6 +208,7 @@ export class VoicingDrillSession {
       variant: deps.variant,
       startPosition: deps.startPosition,
       strict: deps.strict,
+      key: deps.key,
     });
     this.#sessionId = deps.sessionId ?? `voicing-drill-${this.#targets.length}`;
     this.#host = new ExerciseRunHost(deps.router, deps.services, {
@@ -196,7 +242,12 @@ export class VoicingDrillSession {
     return this.#host.liveState?.progress ?? 0;
   }
 
+  get selectionFeedback(): string {
+    return this.#host.liveState?.feedback[0]?.message ?? "";
+  }
+
   start(): void {
+    if (this.#disposed) throw new Error("Voicing drill is disposed.");
     if (this.#status !== "idle") throw new Error("Voicing drill has already started.");
     if (this.#targets.length === 0) throw new Error("Voicing drill has no targets.");
     this.#status = "active";
@@ -208,7 +259,8 @@ export class VoicingDrillSession {
 
   /** Grade the current chord and advance. Returns the step result. */
   async submit(): Promise<VoicingDrillStepResult> {
-    if (this.#status !== "active") throw new Error("Voicing drill is not active.");
+    if (this.#disposed || this.#status !== "active")
+      throw new Error("Voicing drill is not active.");
     const target = this.#targets[this.#index]!;
     const outcome = await this.#host.finish({ reason: "completed" });
     const step: VoicingDrillStepResult = {
@@ -218,10 +270,17 @@ export class VoicingDrillSession {
       correct: outcome.result.correct,
       score: outcome.result.score,
     };
+    // An already submitted answer may finish persisting after navigation.
+    if (this.#disposed) return step;
     this.#results.push(step);
 
     if (this.#index < this.#targets.length - 1) {
       this.#index += 1;
+      const next = this.#targets[this.#index]!;
+      const movement = outcome.event.metrics.find((metric) => metric.kind === "voice-leading");
+      if (next.voiceLeading && step.correct && movement) {
+        next.voiceLeading.fromMidi = [...movement.actualMidi] as [number, number];
+      }
       this.#beginCurrent();
     } else {
       this.#status = "summary";
@@ -231,6 +290,7 @@ export class VoicingDrillSession {
   }
 
   dispose(): void {
+    this.#disposed = true;
     this.#host.dispose();
     this.#listeners.clear();
   }
@@ -241,7 +301,13 @@ export class VoicingDrillSession {
       exercise: createVoicingDrillExercise(target),
       sessionId: this.#sessionId,
       runId: `${this.#sessionId}.${this.#runSeq++}`,
-      context: { instrument: this.#deps.instrument, targetSkillIds: [VOICING_DRILL_SKILL] },
+      context: {
+        instrument: this.#deps.instrument,
+        targetSkillIds: target.skillIds ?? [VOICING_DRILL_SKILL],
+        metadata: {
+          assistance: target.voiceLeading ? "independent" : (this.#deps.assistance ?? "guided"),
+        },
+      },
     });
   }
 
@@ -267,4 +333,8 @@ function readVoicingConfigValue(
     if (value !== undefined && value !== null) return String(value);
   }
   return undefined;
+}
+
+function guideKey(value: number | undefined): number {
+  return value !== undefined && Number.isInteger(value) && value >= 0 && value < 12 ? value : 0;
 }

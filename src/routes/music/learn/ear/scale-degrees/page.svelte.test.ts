@@ -1,3 +1,4 @@
+import { continueEarPractice } from "../_components/ear-test-helpers";
 import { describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
@@ -49,6 +50,7 @@ describe("/music/learn/ear/scale-degrees/+page.svelte", () => {
     const scaleDegree = [...document.querySelectorAll("button")].find(
       (button) => button.textContent?.trim() === "Start",
     );
+    expect(document.querySelector('[aria-label="Input: Microphone"]')).not.toBeNull();
     await vi.waitFor(() => expect(scaleDegree?.disabled).toBe(false));
     vi.useFakeTimers();
     scaleDegree?.click();
@@ -60,6 +62,7 @@ describe("/music/learn/ear/scale-degrees/+page.svelte", () => {
 
     audioListener?.(audioNote(60));
 
+    await continueEarPractice();
     await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
   });
 
@@ -252,8 +255,14 @@ describe("/music/learn/ear/scale-degrees/+page.svelte", () => {
       expect(beginPerformance).not.toHaveBeenCalled();
 
       stopPattern.mockClear();
-      if (mode === "listen") button("I heard it")?.click();
-      else answerChoiceButton()?.click();
+      if (mode === "listen") {
+        button("Reveal answer")?.click();
+        await vi.waitFor(() => expect(button("I recalled it")).not.toBeUndefined());
+        button("I recalled it")?.click();
+      } else {
+        answerChoiceButton()?.click();
+        await continueEarPractice();
+      }
       await vi.waitFor(() => expect(document.body.textContent).toContain("2 / 10"));
       expect(stopPattern).toHaveBeenCalled();
       expect(beginPerformance).not.toHaveBeenCalled();

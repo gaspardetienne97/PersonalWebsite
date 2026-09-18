@@ -1,3 +1,4 @@
+import { curatedTunings } from "@repo/music-core/engines/tunings";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
 
@@ -271,6 +272,92 @@ describe("/music/play/spider/+page.svelte", () => {
     expect(window.location.search).toContain("span=adjacent-2");
     expect(window.location.search).toContain("fret=4");
     expect(window.location.search).toContain("bpm=120");
+  });
+
+  test.each(["spider", "note-finder", "deep-link", "active-instrument"])(
+    "interval recall reconciles ukulele entry from %s before starting",
+    async (entry) => {
+      setTestUrl(
+        entry === "deep-link"
+          ? "/music/play/spider?mode=interval-recall&instrument=ukulele&tuning=ukulele.low-g"
+          : `/music/play/spider?mode=${entry === "active-instrument" ? "interval-recall" : entry}`,
+      );
+      const runtime = new MusicRuntime();
+      if (entry === "active-instrument") runtime.setActiveInstrument("ukulele");
+      const startNoteFinder = vi.spyOn(TechniqueSession.prototype, "startFretboardNoteFinder");
+      render(Page, { runtime });
+      await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+      if (entry === "spider" || entry === "note-finder") {
+        button("Ukulele")!.click();
+        await vi.waitFor(() => expect(button("Ukulele")).toHaveAttribute("aria-pressed", "true"));
+        button("Interval recall")!.click();
+      }
+
+      await vi.waitFor(() => expect(button("Guitar")).toHaveAttribute("aria-pressed", "true"));
+      expect(runtime.activeInstrument).toBe("guitar");
+      expect(window.location.search).toContain("instrument=guitar");
+      expect(window.location.search).toContain("tuning=guitar.standard");
+      button("Start")!.click();
+      await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+      expect(startNoteFinder).toHaveBeenCalledWith(
+        expect.objectContaining({ tuning: expect.objectContaining({ id: "guitar.standard" }) }),
+      );
+      expect(document.querySelector('[aria-label$=", anchor"]')).not.toBeNull();
+    },
+  );
+
+  test("entering interval recall preserves the selected guitar tuning", async () => {
+    setTestUrl("/music/play/spider?instrument=guitar&tuning=guitar.drop-d");
+    const startNoteFinder = vi.spyOn(TechniqueSession.prototype, "startFretboardNoteFinder");
+    render(Page, { runtime: new MusicRuntime() });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Interval recall")!.click();
+    await vi.waitFor(() => expect(window.location.search).toContain("mode=interval-recall"));
+    expect(window.location.search).toContain("tuning=guitar.drop-d");
+    button("Start")!.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    expect(startNoteFinder).toHaveBeenCalledWith(
+      expect.objectContaining({ tuning: expect.objectContaining({ id: "guitar.drop-d" }) }),
+    );
+  });
+
+  test("interval recall hides note labels, records position evidence, and preserves the URL", async () => {
+    setTestUrl("/music/play/spider?mode=interval-recall&interval=4&region=5");
+    const runtime = new MusicRuntime();
+    const record = vi.spyOn(runtime, "recordPractice").mockResolvedValue(undefined);
+    render(Page, { runtime });
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    expect(button("Interval recall")).toHaveAttribute("aria-pressed", "true");
+    button("Start")?.click();
+    await vi.waitFor(() => expect(button("Stop")).not.toBeUndefined());
+    const anchor = document.querySelector<HTMLButtonElement>('[aria-label$=", anchor"]');
+    expect(anchor).not.toBeNull();
+    expect(document.querySelector('[aria-label*="fret 9,"]')).toBeNull();
+    const [stringNumber, fret] = anchor!
+      .getAttribute("aria-label")!
+      .match(/String (\d+) fret (\d+)/)!
+      .slice(1)
+      .map(Number);
+    const open = curatedTunings("guitar")[0]!.openStrings;
+    const target = open[stringNumber! - 1]! + fret! + 4;
+    const answerString = open.findIndex((midi) => target - midi >= 5 && target - midi <= 9) + 1;
+    document
+      .querySelector<HTMLButtonElement>(
+        `[aria-label="String ${answerString} fret ${target - open[answerString - 1]!}"]`,
+      )
+      ?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Interval checked"));
+    await vi.waitFor(() => expect(record).toHaveBeenCalledOnce());
+    expect(record.mock.calls[0]![0].scoringEvents[0]).toMatchObject({
+      assistance: "independent",
+      instrument: "guitar",
+      source: "onscreen",
+      correct: true,
+    });
+    expect(record.mock.calls[0]![0].tags).toContain("interval-recall");
+    expect(document.body.textContent).toContain("Position and pitch");
+    expect(window.location.search).toContain("interval=4");
+    expect(window.location.search).toContain("region=5");
   });
 
   test("completes note finder mode on the fretboard", async () => {

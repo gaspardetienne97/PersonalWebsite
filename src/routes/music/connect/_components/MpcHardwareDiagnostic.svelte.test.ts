@@ -36,36 +36,43 @@ describe("MpcHardwareDiagnostic", () => {
     );
   });
 
-  test("Connect replays the captured init handshake and starts the heartbeat", () => {
-    vi.useFakeTimers();
-    try {
-      const send = vi.fn(() => true);
-      render(MpcHardwareDiagnostic, {
-        outputs: [{ id: "mpc-out", name: "MPC", type: "output" }],
-        sysexEnabled: true,
-        send,
-        subscribeRaw: vi.fn(() => vi.fn()),
-      });
+  test("Keep linked replays the init handshake once and hands the link to the app", () => {
+    const send = vi.fn(() => true);
+    const onLink = vi.fn();
+    render(MpcHardwareDiagnostic, {
+      outputs: [{ id: "mpc-out", name: "MPC", type: "output" }],
+      sysexEnabled: true,
+      send,
+      subscribeRaw: vi.fn(() => vi.fn()),
+      onLink,
+    });
 
-      button("Connect")?.click();
-      // Init handshake: identity request first, enter-controller-mode third.
-      expect(send).toHaveBeenCalledWith("mpc-out", [0xf0, 0x7e, 0x00, 0x06, 0x01, 0xf7]);
-      expect(send).toHaveBeenCalledWith(
-        "mpc-out",
-        [0xf0, 0x47, 0x7f, 0x56, 0x62, 0x00, 0x01, 0x61, 0xf7],
-      );
+    button("Keep linked")?.click();
+    // Init handshake: identity request first, enter-controller-mode third.
+    expect(send).toHaveBeenCalledWith("mpc-out", [0xf0, 0x7e, 0x00, 0x06, 0x01, 0xf7]);
+    expect(send).toHaveBeenCalledWith(
+      "mpc-out",
+      [0xf0, 0x47, 0x7f, 0x56, 0x62, 0x00, 0x01, 0x61, 0xf7],
+    );
+    // The heartbeat is the runtime's job (see _runtime.svelte.test.ts), so the
+    // component only records the choice.
+    expect(onLink).toHaveBeenCalledWith("mpc-out");
+  });
 
-      const afterInit = send.mock.calls.length;
-      vi.advanceTimersByTime(2_100);
-      // Heartbeat keep-alive fires while connected.
-      expect(send.mock.calls.length).toBeGreaterThan(afterInit);
-      expect(send).toHaveBeenLastCalledWith(
-        "mpc-out",
-        [0xf0, 0x47, 0x00, 0x56, 0x52, 0x00, 0x04, 0x41, 0x67, 0x16, 0x00, 0xf7],
-      );
-    } finally {
-      vi.useRealTimers();
-    }
+  test("a linked output shows as linked and Unlink clears it", () => {
+    const onLink = vi.fn();
+    render(MpcHardwareDiagnostic, {
+      outputs: [{ id: "mpc-out", name: "MPC", type: "output" }],
+      sysexEnabled: true,
+      send: vi.fn(() => true),
+      subscribeRaw: vi.fn(() => vi.fn()),
+      linkedOutputId: "mpc-out",
+      onLink,
+    });
+    expect(button("Linked")?.disabled).toBe(true);
+    expect(document.body.textContent).toContain("keeps this output in Controller Mode");
+    button("Unlink")?.click();
+    expect(onLink).toHaveBeenCalledWith(undefined);
   });
 
   test("displays inbound SysEx from the device", async () => {

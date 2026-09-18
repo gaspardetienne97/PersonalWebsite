@@ -80,26 +80,49 @@
     <div class="grid gap-2">
       {#if takes.length > 0}
         {#each takes as take (take.id)}
-          <button
-            type="button"
+          {@const playing = playingTakeId === take.id}
+          <div
             class={[
-              "flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors hover:bg-muted/50",
+              "flex items-center gap-2 rounded-lg border pr-2 transition-colors",
               selected?.id === take.id ? "border-primary/40 bg-primary/5" : "bg-background",
             ]}
-            aria-label={`Select MIDI take ${take.name}`}
-            onclick={() => onSelectTake?.(take)}
           >
-            <span class="min-w-0">
-              <span class="block truncate text-sm font-semibold">{take.name}</span>
-              <span class="text-xs text-muted-foreground">
-                {formatDuration(take.durationMs)} · {take.notes.length}
-                {take.notes.length === 1 ? "note" : "notes"} · {take.source}
+            <Button
+              type="button"
+              size="icon"
+              variant={playing ? "default" : "ghost"}
+              class="ml-1 size-11 shrink-0 rounded-full"
+              aria-label={`${playing ? "Pause" : "Play"} MIDI take ${take.name}`}
+              onclick={() => {
+                onSelectTake?.(take);
+                void (playing ? onPauseTake?.(take) : onPlayTake?.(take));
+              }}
+            >
+              {#if playing}
+                <Pause class="size-4" aria-hidden="true" />
+              {:else}
+                <Play class="size-4" aria-hidden="true" />
+              {/if}
+            </Button>
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 items-center justify-between gap-3 py-2 text-left hover:bg-muted/40"
+              aria-label={`Select MIDI take ${take.name}`}
+              onclick={() => onSelectTake?.(take)}
+            >
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-semibold">{take.name}</span>
+                <span class="text-xs text-muted-foreground">
+                  <Music2 class="mr-1 inline size-3 align-[-2px]" aria-hidden="true" />MIDI ·
+                  {formatDuration(take.durationMs)} · {take.notes.length}
+                  {take.notes.length === 1 ? "note" : "notes"} · {take.source}
+                </span>
               </span>
-            </span>
-            <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-              {pitchRange(take)}
-            </span>
-          </button>
+              <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                {pitchRange(take)}
+              </span>
+            </button>
+          </div>
         {/each}
       {:else}
         <p class="rounded-lg bg-muted/40 px-3 py-3 text-sm text-muted-foreground">

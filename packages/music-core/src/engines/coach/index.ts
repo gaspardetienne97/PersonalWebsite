@@ -1,9 +1,10 @@
-import type { PracticeSession } from "@repo/music-core/domain";
+import type { PracticeSession, UnixMs } from "@repo/music-core/domain";
 import type { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import { buildSkillTreeView } from "@repo/music-core/engines/dashboard";
 import {
   buildDailyRoutinePlan,
   type DailyRoutineStep,
+  type DailyRoutineOptions,
 } from "@repo/music-core/engines/daily-routine";
 import type { ProgressState } from "@repo/music-core/engines/progress";
 import type { SkillGraphStore } from "@repo/music-core/engines/skills";
@@ -25,7 +26,8 @@ export interface PracticeCoachView {
   primaryAction: { label: string; href: string };
 }
 
-export interface BuildPracticeCoachViewArgs {
+export interface BuildPracticeCoachViewArgs extends DailyRoutineOptions {
+  now?: UnixMs;
   skills: SkillGraphStore;
   analytics: AnalyticsEngine;
   progressState: ProgressState;
@@ -33,7 +35,7 @@ export interface BuildPracticeCoachViewArgs {
 }
 
 export function buildPracticeCoachView(args: BuildPracticeCoachViewArgs): PracticeCoachView {
-  const skillTree = buildSkillTreeView({ skills: args.skills, analytics: args.analytics });
+  const skillTree = buildSkillTreeView(args);
   const weak = skillTree.practiceNext[0];
   const focus = weak
     ? {
@@ -44,7 +46,7 @@ export function buildPracticeCoachView(args: BuildPracticeCoachViewArgs): Practi
         attempts: weak.attempts,
       }
     : undefined;
-  const routine = buildDailyRoutinePlan(skillTree.practiceNext);
+  const routine = buildDailyRoutinePlan(skillTree.practiceNext, args);
 
   return {
     headline: focus ? `Coach focus: ${focus.skillName}` : "Build a balanced routine",
@@ -53,7 +55,12 @@ export function buildPracticeCoachView(args: BuildPracticeCoachViewArgs): Practi
       : "No weak spot has enough history yet, so start with the balanced daily routine.",
     ...(focus === undefined ? {} : { focus }),
     routine,
-    insights: insightsFor(args.progressState, args.sessions, focus),
+    insights: [
+      ...(weak?.dueForReview
+        ? ["Due for review based on a time-based heuristic; earlier scores remain unchanged."]
+        : []),
+      ...insightsFor(args.progressState, args.sessions, focus),
+    ],
     primaryAction: focus
       ? { label: `Practice ${focus.skillName}`, href: focus.href }
       : { label: "Start daily routine", href: "/music" },
@@ -73,7 +80,9 @@ function insightsFor(
       }.`,
     );
   } else {
-    insights.push("Add a few scored reps to unlock weak-spot coaching.");
+    insights.push(
+      "Complete at least 5 independent attempts on this instrument to unlock weak-spot coaching. Guided and self-rated practice stays in your history.",
+    );
   }
   if (progress.streakDays > 0) insights.push(`${progress.streakDays}-day streak is active.`);
   if (sessions.length > 0)

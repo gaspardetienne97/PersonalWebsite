@@ -183,7 +183,7 @@ function scheduleSkill(
   weakRank: number,
   now: UnixMs,
 ): ScheduledSkill {
-  const mastery = skills.getMastery(skillId);
+  const mastery = skills.getMastery(skillId, now);
   const stats = analytics.getStats(skillId);
   const reviewIntervalDays = Math.max(
     1,
@@ -305,6 +305,11 @@ export class ExerciseRunHost {
     this.#inputEnabled = enabled;
   }
 
+  markHintUsed(): void {
+    if (!this.#active || this.#active.prepared) return;
+    this.#active.context.metadata = { ...this.#active.context.metadata, assistance: "hinted" };
+  }
+
   async finish(finishContext: ExerciseFinishContext = { reason: "completed" }) {
     const active = this.#active;
     if (!active) throw new Error("No exercise run is active");
@@ -351,7 +356,10 @@ function prepareExerciseRun(args: PrepareExerciseRunArgs): PreparedExerciseOutco
     prompt: args.prompt,
     at: unixMs(args.now?.() ?? Date.now()),
     difficulty: args.context.difficulty,
-    modality: inferModality(args.exercise.capabilities),
+    modality:
+      scoringModality(args.context.metadata?.modality) ?? inferModality(args.exercise.capabilities),
+    instrument: args.context.instrument,
+    assistance: scoringAssistance(args.context.metadata?.assistance),
     makeId: args.makeId ?? (() => crypto.randomUUID()),
   });
   return { event, result };
@@ -398,8 +406,29 @@ function inferModality(capabilities: Capability[]) {
   return capabilities.includes(Capability.EarTraining) ? "heard" : "played";
 }
 
+function scoringModality(value: unknown): ScoringEvent["modality"] {
+  return value === "played" ||
+    value === "heard" ||
+    value === "read" ||
+    value === "sung" ||
+    value === "written" ||
+    value === "tapped" ||
+    value === "recognized"
+    ? value
+    : undefined;
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
 const DAY_MS = 86_400_000;
+
+function scoringAssistance(value: unknown): ScoringEvent["assistance"] {
+  return value === "independent" ||
+    value === "hinted" ||
+    value === "guided" ||
+    value === "self-assessed"
+    ? value
+    : undefined;
+}

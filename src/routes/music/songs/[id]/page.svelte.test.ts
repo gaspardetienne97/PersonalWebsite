@@ -67,6 +67,32 @@ describe("/music/songs/[id]/+page.svelte", () => {
     runtime.dispose();
   });
 
+  test.each([false, true])(
+    "offers Waterfall for unsupported staff timing with custom range %s",
+    async (customRange) => {
+      const song = songRow();
+      song.score.notes[0]!.durationBeats = 0.37;
+      const original = structuredClone(song.score);
+      const runtime = new MusicRuntime();
+      render(Page, { songId: "song-1", runtime, library: { get: vi.fn(async () => song) } });
+      await vi.waitFor(() =>
+        expect(document.body.textContent).toContain("Staff preview unavailable"),
+      );
+      if (customRange) {
+        button("Custom range")?.click();
+        await vi.waitFor(() => expect(input("Range start beat")).not.toBeUndefined());
+      }
+      expect(document.body.textContent).toContain("original timing");
+      expect(button("Open Waterfall")).toBeDefined();
+      button("Open Waterfall")?.click();
+      await vi.waitFor(() =>
+        expect(document.querySelector('[aria-label="Waterfall"]')).not.toBeNull(),
+      );
+      expect(song.score).toEqual(original);
+      runtime.dispose();
+    },
+  );
+
   test("exports the loaded score as a MIDI download", async () => {
     const library = { get: vi.fn(async () => songRow()) };
     const runtime = new MusicRuntime();

@@ -51,6 +51,8 @@ export interface PracticeSession {
   xpEarned: number;
   /** Free-text reflection - the Practice Journal entry for this session. */
   notes?: string;
+  /** Optional one-line reminder for the next practice session. */
+  nextTime?: string;
   tags: string[];
 }
 

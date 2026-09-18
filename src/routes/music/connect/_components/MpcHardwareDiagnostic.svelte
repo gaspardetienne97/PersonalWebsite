@@ -3,7 +3,6 @@
 
   import {
     mpcControllerInitSysex,
-    mpcHeartbeatSysex,
     padColorSysex,
     padLayoutSysex,
     padsOffSysex,
@@ -18,28 +17,33 @@
     sysexEnabled: boolean;
     send: (outputId: string, data: number[] | Uint8Array) => boolean;
     subscribeRaw: (listener: (event: RawMidiEvent) => void) => () => void;
+    /** The output the app keeps linked (init + heartbeat) everywhere, if any. */
+    linkedOutputId?: string;
+    /** Persist the link; the runtime runs the handshake and heartbeat app-wide. */
+    onLink?: (outputId: string | undefined) => void | Promise<void>;
   }
 
-  let { outputs, sysexEnabled, send, subscribeRaw }: Props = $props();
+  let { outputs, sysexEnabled, send, subscribeRaw, linkedOutputId, onLink }: Props = $props();
 
   // "fire" red, captured from the MPC color picker.
   const FIRE = { r: 0x3f, g: 0x00, b: 0x00 };
 
   let selectedOutputId = $state("");
-  let connected = $state(false);
+  const connected = $derived(linkedOutputId !== undefined && linkedOutputId === outputId);
   let status = $state("");
   let lastOutbound = $state("");
   let lastInbound = $state("");
   const defaultOutputId = $derived(preferredOutput(outputs));
-  const outputId = $derived(selectedOutputId || defaultOutputId);
+  const outputId = $derived(selectedOutputId || linkedOutputId || defaultOutputId);
   const statusMessage = $derived(
     status ||
-      (sysexEnabled
-        ? "Put the MPC One+ in Controller Mode, pick its MIDI output, then Connect."
-        : "SysEx permission is required to drive the MPC pads."),
+      (!sysexEnabled
+        ? "SysEx permission is required to drive the MPC pads."
+        : connected
+          ? "Linked: the app keeps this output in Controller Mode on every page, so the pads keep sending notes."
+          : "Put the MPC One+ in Controller Mode, pick its MIDI output, then Keep linked."),
   );
 
-  let heartbeat: ReturnType<typeof setInterval> | undefined;
   let unsubscribeRaw: (() => void) | undefined;
 
   onMount(() => {
@@ -70,17 +74,17 @@
         : `${label}: only ${sent} of ${frames.length} frames could be sent to this output.`;
   }
 
+  /** Save the link; the runtime replays the init handshake and heartbeats from now on. */
   function connect(): void {
+    if (!outputId) return;
+    // Replay the handshake now too, so the LEDs answer even before the runtime's next sync.
     sendFrames(mpcControllerInitSysex(), "Init handshake");
-    connected = true;
-    stopHeartbeat();
-    heartbeat = setInterval(() => send(outputId, mpcHeartbeatSysex()), 1_000);
+    void onLink?.(outputId);
   }
 
   function disconnect(): void {
-    stopHeartbeat();
     sendFrames(padsOffSysex(), "All pads off");
-    connected = false;
+    void onLink?.(undefined);
   }
 
   function lightPad1(): void {
@@ -95,17 +99,11 @@
     sendFrames(padsOffSysex(), "All pads off");
   }
 
-  function stopHeartbeat(): void {
-    if (heartbeat !== undefined) clearInterval(heartbeat);
-    heartbeat = undefined;
-  }
-
   function formatBytes(data: ArrayLike<number>): string {
     return Array.from(data, (byte) => byte.toString(16).padStart(2, "0").toUpperCase()).join(" ");
   }
 
   onDestroy(() => {
-    stopHeartbeat();
     unsubscribeRaw?.();
   });
 </script>
@@ -137,11 +135,11 @@
     </label>
 
     <div class="flex flex-wrap gap-2">
-      <Button type="button" onclick={connect} disabled={!sysexEnabled || !outputId}>
-        Connect (init + heartbeat)
+      <Button type="button" onclick={connect} disabled={!sysexEnabled || !outputId || connected}>
+        {connected ? "Linked" : "Keep linked (init + heartbeat)"}
       </Button>
       <Button type="button" variant="outline" onclick={disconnect} disabled={!connected}>
-        Disconnect
+        Unlink
       </Button>
     </div>
 
@@ -166,8 +164,8 @@
     {/if}
 
     <p class="text-xs text-muted-foreground">
-      Tip: try “Light pad 1 red” first with the MPC already in Controller Mode. If nothing lights,
-      hit Connect to replay the full handshake, then try again.
+      The MPC One+ sends pad notes only while a host keeps talking to it. Keep linked makes the
+      app that host on every page, not just here. Try “Light pad 1 red” to confirm the output.
     </p>
   </Card.Content>
 </Card.Root>

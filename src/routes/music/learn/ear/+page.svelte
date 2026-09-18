@@ -9,7 +9,6 @@
     legacyEarTrainingHref,
   } from "@repo/music-core/engines/ear-training";
   import { buildLearningPath } from "@repo/music-core/engines/learning-path";
-  import { seedCoreSkills, SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
   import Ear from "lucide-svelte/icons/ear";
 
@@ -30,14 +29,12 @@
   if (legacyTarget) void navigate(legacyTarget);
 
   const store = browser ? new PracticeStore() : undefined;
-  const skills = new SkillGraphStore(store);
-  let ready = $state(false);
-  void skills.seed(seedCoreSkills()).then(() => (ready = true));
+  let events = $state<import("@repo/music-core/domain").ScoringEvent[]>([]);
+  void store?.scoringEvents.all().then((loaded) => (events = loaded));
 
   const path = $derived.by(() => {
-    void ready;
     return buildLearningPath(EAR_TRAINING_LEARNING_PATH_DEFINITION.steps, {
-      mastery: ready ? (id) => skills.getMastery(id).mastery : undefined,
+      events,
     });
   });
 </script>

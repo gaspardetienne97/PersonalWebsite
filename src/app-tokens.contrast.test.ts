@@ -60,6 +60,9 @@ const TEXT_PAIRS: [string, string][] = [
   ["muted-foreground", "background"],
   ["muted-foreground", "card"],
   ["primary-foreground", "primary"],
+  // Links, ring percentages and HUD values are set in text-primary on cards.
+  ["primary", "card"],
+  ["primary", "background"],
   ["stage-foreground", "stage"],
   ["stage-foreground", "stage-2"],
   ["stage-muted", "stage"],

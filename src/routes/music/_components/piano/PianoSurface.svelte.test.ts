@@ -69,6 +69,8 @@ describe("PianoSurface keys", () => {
     expect(key("D4").getAttribute("aria-label")).toBe("D4");
     expect(key("C4").getAttribute("aria-pressed")).toBe("false");
     expect(document.querySelector('[data-testid="finger-60"]')?.textContent?.trim()).toBe("1");
+    expect(key("C4").getAttribute("aria-description")).toBe("Middle C");
+    expect(key("D4").getAttribute("aria-description")).toBeNull();
     // Consumers find keys by their note label, so it stays the only key text.
     expect(key("C4").textContent?.trim()).toBe("C4");
     expect(key("C#4").textContent?.trim()).toBe("C#4");

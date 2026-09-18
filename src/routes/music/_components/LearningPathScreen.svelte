@@ -36,7 +36,7 @@
   } = $props();
 
   const statusLabel = (status: string) =>
-    status === "done" ? "Done" : status === "in-progress" ? "In progress" : "Not started";
+    status === "done" ? "Done" : status === "in-progress" ? "In progress" : status === "not-assessed" ? "Not assessed" : "Reference";
   const statusBadge = (status: string) =>
     status === "done" ? "default" : status === "in-progress" ? "secondary" : "outline";
 </script>
@@ -99,11 +99,11 @@
                 <p class="text-sm text-muted-foreground">Done when: {step.detail}</p>
               {/if}
 
-              {#if step.skillIds?.length}
+              {#if step.skillIds?.length && step.status !== "not-assessed"}
                 <div class="flex items-center gap-2 pt-1">
                   <Progress value={Math.round(step.mastery * 100)} max={100} class="max-w-[10rem]" />
                   <span class="text-xs text-muted-foreground tabular-nums">
-                    {Math.round(step.mastery * 100)}% mastery
+                    {Math.round(step.mastery * 100)}% independent score
                   </span>
                 </div>
               {/if}

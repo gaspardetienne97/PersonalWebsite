@@ -26,7 +26,8 @@
   import * as Card from "@repo/ui/card";
   import { Progress } from "@repo/ui/progress";
 
-  import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
+  import TempoPracticeSuggestion from "../../_components/TempoPracticeSuggestion.svelte";
+  import MidiStatus from "../../_components/MidiStatus.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import HudTile from "../../_components/HudTile.svelte";
@@ -115,6 +116,10 @@
   const handNotes = $derived([
     ...new Set([...display.leftMidiNotes, ...display.rightMidiNotes]),
   ]);
+  const selectedHandRange = $derived.by(() => {
+    if (handMode === "both" || handNotes.length === 0) return {};
+    return { lowMidi: Math.min(...handNotes), highMidi: Math.max(...handNotes) };
+  });
   const handHighlights = $derived.by(() => {
     const highlights: Record<number, PianoHighlight> = {};
     for (const midiNote of display.rightMidiNotes) {
@@ -133,6 +138,8 @@
   const playedNotes = $derived(Math.round((sessionState?.live?.progress ?? 0) * totalNotes));
 
   const summary = $derived(sessionState?.summary);
+  const completedPrompt = $derived(summary?.results[0]?.prompt);
+  const completedBpm = $derived(completedPrompt && "bpm" in completedPrompt ? completedPrompt.bpm : Number(bpm));
   const result = $derived(summary?.results[0]?.result);
   const answer = $derived(result?.answer as TwoHandIndependenceAnswer | undefined);
   // Route-owned phase: the shell renders it but never transitions it.
@@ -174,11 +181,6 @@
   );
   const liveAnnouncement = $derived(
     phase === "summary" && answer ? `Drill complete. ${resultHeadline}` : status,
-  );
-  const midiStatus = $derived(
-    midiEnabled
-      ? `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`
-      : (runtime.midi.state.error ?? "MIDI permission has not been requested."),
   );
   const variantKey = $derived(
     `v1:two-hand:${patternKind}:${handMode}:${dynamics ? "dynamics" : "even"}`,
@@ -266,6 +268,7 @@
           void runtime.recordPractice({
             source: "drill",
             instrument: "piano",
+            comparison: { variantKey, bpm: Number(bpm), settings: JSON.stringify({ tonic }), dimensions: "key, pattern, hands and dynamics mode" },
             tags: ["technique", "two-hand", "piano"],
             scoringEvents: state.summary.results.map(({ event }) => event),
             xpEarned: state.summary.xp,
@@ -280,10 +283,6 @@
     } catch (error) {
       status = message(error, "Piano technique could not be prepared.");
     }
-  }
-
-  async function enableMidi(): Promise<void> {
-    await runtime.midi.enable();
   }
 
   async function start(): Promise<void> {
@@ -346,11 +345,7 @@
     }
   }
 
-  function slowDown(): void {
-    const current = normalizeTwoHandDrillConfig({ tonic, bpm, pattern: patternKind, hand: handMode }).bpm;
-    const nextBpm =
-      [...TWO_HAND_DRILL_TEMPOS].reverse().find((tempo) => tempo < current) ??
-      TWO_HAND_DRILL_TEMPOS[0];
+  function practiceAtTempo(nextBpm: number): void {
     runtime.setPracticeVariantBpm(nextBpm, variantKey);
     void start();
   }
@@ -427,7 +422,7 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        source={runtime.activeSource}
         live={sessionState?.status === "active"}
       />
     {/snippet}
@@ -440,6 +435,8 @@
     <PianoSurface
       router={runtime.router}
       notes={handNotes}
+      lowMidi={selectedHandRange.lowMidi}
+      highMidi={selectedHandRange.highMidi}
       highlights={handHighlights}
       fingerings={handFingerings}
       onAccepted={playAccepted}
@@ -469,7 +466,7 @@
         </div>
       {/snippet}
       {#snippet lastRunDelta()}
-        <LastRunDelta tags={["two-hand"]} accuracy={result?.score ?? 0} before={visitStartedAt} />
+        <LastRunDelta tags={["two-hand"]} before={visitStartedAt} />
       {/snippet}
       {#snippet children()}
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -490,7 +487,7 @@
         <p class="text-xs text-muted-foreground">+{summary?.xp ?? 0} XP · Technique · Two-hand independence</p>
       {/snippet}
       {#snippet actions()}
-        <AdaptiveRetryBar onRetry={() => void start()} onSlower={slowDown} retryLabel="Again" />
+        <TempoPracticeSuggestion bpm={completedBpm} clean={(answer?.leftAccuracy ?? 0) >= 0.95 && (answer?.rightAccuracy ?? 0) >= 0.95 && (answer?.meanEvennessErrorMs ?? Infinity) <= 60} basis="Based on selected-hand note accuracy and evenness." onPractice={practiceAtTempo} />
         <StartShortcut onStart={() => void start()} />
       {/snippet}
       {#snippet nextUp()}
@@ -504,6 +501,11 @@
       <div class="grid gap-4 rounded-lg border bg-card p-4">
         <SegmentedControl ariaLabel="Pattern" options={patternOptions} bind:value={patternKind} />
         <SegmentedControl ariaLabel="Hand mode" options={handModeOptions} bind:value={handMode} />
+        <p class="text-xs text-muted-foreground sm:hidden">
+          {handMode === "both"
+            ? "On a narrow screen, Left or Right keeps that hand in view. Both is best with an external keyboard."
+            : `${handModeLabel(handMode)} keeps that hand in view on a narrow screen.`}
+        </p>
         <SegmentedControl ariaLabel="Key" options={keyOptions} bind:value={tonic} />
         {#if handMode === "both"}
           <SegmentedControl
@@ -550,12 +552,7 @@
         {@render keyboard()}
         <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-stage-muted">
           <span>{status}</span>
-          <span class="flex items-center gap-3">
-            <span>{midiStatus}</span>
-            <Button type="button" size="sm" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-            </Button>
-          </span>
+          <MidiStatus />
         </div>
       </PracticeStage>
     {/snippet}

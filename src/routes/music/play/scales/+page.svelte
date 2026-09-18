@@ -33,13 +33,13 @@
   import { INSTRUMENT_LABELS, VIEWABLE_INSTRUMENTS, type InstrumentId } from "@repo/music-core/domain";
 
   import InstrumentView from "../../_components/InstrumentView.svelte";
+  import MidiStatus from "../../_components/MidiStatus.svelte";
   import AdaptiveRetryBar from "../../_components/AdaptiveRetryBar.svelte";
   import DrillProgressRail from "../../_components/DrillProgressRail.svelte";
   import HudTile from "../../_components/HudTile.svelte";
   import LastRunDelta from "../../_components/LastRunDelta.svelte";
   import NextUpSuggestion from "../../_components/NextUpSuggestion.svelte";
   import { unixMs } from "@repo/music-core/domain";
-  import { meanPartialCredit } from "@repo/music-core/engines/sessions";
   import PianoSurface, { type PianoHighlightRole } from "../../_components/piano/PianoSurface.svelte";
   import DrillSummaryCard from "../../_components/DrillSummaryCard.svelte";
   import PracticeDrillShell from "../../_components/PracticeDrillShell.svelte";
@@ -132,7 +132,6 @@
   let sessionState = $state<TechniqueSessionState | undefined>();
   let unsubscribeSession: (() => void) | undefined;
   let midiEnabled = $state(runtime.midi.state.enabled);
-  let midiStatus = $state(midiMessage());
   let captured = false;
 
   const liveProgress = $derived(Math.round((sessionState?.live?.progress ?? 0) * 100));
@@ -246,7 +245,6 @@
 
   const unsubscribeMidiState = runtime.midi.subscribeState(() => {
     midiEnabled = runtime.midi.state.enabled;
-    midiStatus = midiMessage();
   });
 
   async function initialize(): Promise<void> {
@@ -272,6 +270,7 @@
           void runtime.recordPractice({
             source: "drill",
             instrument: runtime.activeInstrument,
+            comparison: { variantKey, bpm: tempo, settings: JSON.stringify(normalizedConfig), dimensions: "instrument, scale, key, motion and span" },
             tags: isJazzScale ? ["scales", "jazz"] : ["scales"],
             scoringEvents: state.summary.results.map((result) => result.event),
             xpEarned: state.summary.xp,
@@ -284,17 +283,6 @@
     } catch (error) {
       status = message(error, "Technique history could not be loaded.");
     }
-  }
-
-  function midiMessage(): string {
-    if (runtime.midi.state.enabled) {
-      return `${runtime.midi.state.inputs.length} MIDI input${runtime.midi.state.inputs.length === 1 ? "" : "s"} connected.`;
-    }
-    return runtime.midi.state.error ?? "MIDI permission has not been requested.";
-  }
-
-  async function enableMidi(): Promise<void> {
-    await runtime.midi.enable();
   }
 
   async function startScale(): Promise<void> {
@@ -327,6 +315,7 @@
       }
       performanceStarted = true;
       await session.startScale({
+        instrument: config.instrument,
         tonic: config.tonic,
         scale: config.scale,
         bpm: config.bpm,
@@ -426,7 +415,7 @@
     {#snippet controls()}
       <SourceReadout
         label="Input"
-        device={runtime.activeSource === "midi" ? "MIDI" : "On-screen"}
+        source={runtime.activeSource}
         live={runtime.activeSource === "midi"}
       />
     {/snippet}
@@ -456,7 +445,6 @@
       {#snippet lastRunDelta()}
         <LastRunDelta
           tags={["scales"]}
-          accuracy={meanPartialCredit((summary?.results ?? []).map((result) => result.event))}
           before={visitStartedAt}
         />
       {/snippet}
@@ -634,12 +622,7 @@
         {/if}
         <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-stage-muted">
           <span>{status}</span>
-          <span class="flex items-center gap-3">
-            <span>{midiStatus}</span>
-            <Button type="button" size="sm" variant="outline" disabled={midiEnabled} onclick={enableMidi}>
-              {midiEnabled ? "MIDI enabled" : "Enable MIDI"}
-            </Button>
-          </span>
+          <MidiStatus />
         </div>
       </PracticeStage>
     {/snippet}

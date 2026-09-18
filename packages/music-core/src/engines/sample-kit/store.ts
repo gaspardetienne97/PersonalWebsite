@@ -6,6 +6,8 @@
  * never keeps orphaned audio. No Tone, Svelte, or audio-decode here.
  */
 
+import { withMediaLibraryMutationLock } from "../media-library/index";
+
 import type { SettingsRecord } from "@repo/music-core/engines/store";
 
 import {
@@ -78,82 +80,92 @@ export class SampleKitStore {
   async create(name: string): Promise<SampleKit> {
     const trimmed = name.trim();
     if (trimmed.length === 0) throw new Error("Kit names cannot be empty.");
-    const kits = await this.#read();
-    const kit: SampleKit = {
-      id: this.#createId(),
-      name: trimmed,
-      createdAt: this.#now(),
-      updatedAt: this.#now(),
-      samples: [],
-      assignments: [],
-    };
-    await this.#persist([...kits, kit]);
-    return cloneSampleKit(kit);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit: SampleKit = {
+        id: this.#createId(),
+        name: trimmed,
+        createdAt: this.#now(),
+        updatedAt: this.#now(),
+        samples: [],
+        assignments: [],
+      };
+      await this.#persist([...kits, kit]);
+      return cloneSampleKit(kit);
+    });
   }
 
   async rename(kitId: string, name: string): Promise<SampleKit> {
     const trimmed = name.trim();
     if (trimmed.length === 0) throw new Error("Kit names cannot be empty.");
-    const kits = await this.#read();
-    const kit = this.#require(kits, kitId);
-    kit.name = trimmed;
-    kit.updatedAt = this.#now();
-    await this.#persist(kits);
-    return cloneSampleKit(kit);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = this.#require(kits, kitId);
+      kit.name = trimmed;
+      kit.updatedAt = this.#now();
+      await this.#persist(kits);
+      return cloneSampleKit(kit);
+    });
   }
 
   async importFiles(kitId: string, files: File[]): Promise<SampleKit> {
     if (files.length === 0) throw new Error("Choose at least one audio sample.");
     for (const file of files) validateSampleFile(file);
 
-    const kits = await this.#read();
-    const kit = this.#require(kits, kitId);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = this.#require(kits, kitId);
 
-    const newSamples: SampleAsset[] = files.map((file) => {
-      const id = this.#createId();
-      return {
-        id,
-        fileName: file.name,
-        displayName: displayNameFor(file.name),
-        mimeType: file.type || "application/octet-stream",
-        size: file.size,
-        binaryKey: sampleBinaryKey(kit.id, id, file.name),
-      };
-    });
+      const newSamples: SampleAsset[] = files.map((file) => {
+        const id = this.#createId();
+        return {
+          id,
+          fileName: file.name,
+          displayName: displayNameFor(file.name),
+          mimeType: file.type || "application/octet-stream",
+          size: file.size,
+          binaryKey: sampleBinaryKey(kit.id, id, file.name),
+        };
+      });
 
-    const written: string[] = [];
-    try {
-      for (let index = 0; index < newSamples.length; index += 1) {
-        await this.#binaries.put(newSamples[index]!.binaryKey, files[index]!);
-        written.push(newSamples[index]!.binaryKey);
+      const written: string[] = [];
+      try {
+        for (let index = 0; index < newSamples.length; index += 1) {
+          await this.#binaries.put(newSamples[index]!.binaryKey, files[index]!);
+          written.push(newSamples[index]!.binaryKey);
+        }
+        kit.samples = [...kit.samples, ...newSamples];
+        kit.assignments = autoMapSamples(kit.samples, kit.assignments);
+        kit.updatedAt = this.#now();
+        await this.#persist(kits);
+      } catch (error) {
+        await this.#rollback(written);
+        throw this.#translate(error);
       }
-      kit.samples = [...kit.samples, ...newSamples];
-      kit.assignments = autoMapSamples(kit.samples, kit.assignments);
-      kit.updatedAt = this.#now();
-      await this.#persist(kits);
-    } catch (error) {
-      await this.#rollback(written);
-      throw this.#translate(error);
-    }
-    return cloneSampleKit(kit);
+      return cloneSampleKit(kit);
+    });
   }
 
   async assign(kitId: string, sampleId: string, midiNote: MpcPadMidi): Promise<SampleKit> {
-    const kits = await this.#read();
-    const kit = this.#require(kits, kitId);
-    const updated = assignSample(kit, sampleId, midiNote, this.#now());
-    this.#replace(kits, updated);
-    await this.#persist(kits);
-    return cloneSampleKit(updated);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = this.#require(kits, kitId);
+      const updated = assignSample(kit, sampleId, midiNote, this.#now());
+      this.#replace(kits, updated);
+      await this.#persist(kits);
+      return cloneSampleKit(updated);
+    });
   }
 
   async unassign(kitId: string, midiNote: MpcPadMidi): Promise<SampleKit> {
-    const kits = await this.#read();
-    const kit = this.#require(kits, kitId);
-    const updated = unassignPad(kit, midiNote, this.#now());
-    this.#replace(kits, updated);
-    await this.#persist(kits);
-    return cloneSampleKit(updated);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = this.#require(kits, kitId);
+      const updated = unassignPad(kit, midiNote, this.#now());
+      this.#replace(kits, updated);
+      await this.#persist(kits);
+      return cloneSampleKit(updated);
+    });
   }
 
   async setVelocityLayers(
@@ -161,12 +173,14 @@ export class SampleKitStore {
     midiNote: MpcPadMidi,
     layers: SampleVelocityLayerInput[],
   ): Promise<SampleKit> {
-    const kits = await this.#read();
-    const kit = this.#require(kits, kitId);
-    const updated = setPadVelocityLayers(kit, midiNote, layers, this.#now());
-    this.#replace(kits, updated);
-    await this.#persist(kits);
-    return cloneSampleKit(updated);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = this.#require(kits, kitId);
+      const updated = setPadVelocityLayers(kit, midiNote, layers, this.#now());
+      this.#replace(kits, updated);
+      await this.#persist(kits);
+      return cloneSampleKit(updated);
+    });
   }
 
   async setChokeGroup(
@@ -174,44 +188,52 @@ export class SampleKitStore {
     midiNote: MpcPadMidi,
     chokeGroup: number | undefined,
   ): Promise<SampleKit> {
-    const kits = await this.#read();
-    const kit = this.#require(kits, kitId);
-    const updated = setPadChokeGroup(kit, midiNote, chokeGroup, this.#now());
-    this.#replace(kits, updated);
-    await this.#persist(kits);
-    return cloneSampleKit(updated);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = this.#require(kits, kitId);
+      const updated = setPadChokeGroup(kit, midiNote, chokeGroup, this.#now());
+      this.#replace(kits, updated);
+      await this.#persist(kits);
+      return cloneSampleKit(updated);
+    });
   }
 
   async renameSample(kitId: string, sampleId: string, displayName: string): Promise<SampleKit> {
-    const kits = await this.#read();
-    const kit = this.#require(kits, kitId);
-    const updated = renameSample(kit, sampleId, displayName, this.#now());
-    this.#replace(kits, updated);
-    await this.#persist(kits);
-    return cloneSampleKit(updated);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = this.#require(kits, kitId);
+      const updated = renameSample(kit, sampleId, displayName, this.#now());
+      this.#replace(kits, updated);
+      await this.#persist(kits);
+      return cloneSampleKit(updated);
+    });
   }
 
   async deleteSample(kitId: string, sampleId: string): Promise<SampleKit> {
-    const kits = await this.#read();
-    const kit = this.#require(kits, kitId);
-    const sample = kit.samples.find((candidate) => candidate.id === sampleId);
-    if (!sample) throw new Error(`Sample not found: ${sampleId}.`);
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = this.#require(kits, kitId);
+      const sample = kit.samples.find((candidate) => candidate.id === sampleId);
+      if (!sample) throw new Error(`Sample not found: ${sampleId}.`);
 
-    const updated = removeSampleFromKit(kit, sampleId, this.#now());
-    this.#replace(kits, updated);
+      const updated = removeSampleFromKit(kit, sampleId, this.#now());
+      this.#replace(kits, updated);
 
-    // Persist metadata first; if blob cleanup then fails, metadata stays updated.
-    await this.#persist(kits);
-    await this.#deleteBlobs([sample.binaryKey]);
-    return cloneSampleKit(updated);
+      // Persist metadata first; if blob cleanup then fails, metadata stays updated.
+      await this.#persist(kits);
+      await this.#deleteBlobs([sample.binaryKey]);
+      return cloneSampleKit(updated);
+    });
   }
 
   async deleteKit(kitId: string): Promise<void> {
-    const kits = await this.#read();
-    const kit = kits.find((candidate) => candidate.id === kitId);
-    if (!kit) throw new Error(`Sample kit not found: ${kitId}.`);
-    await this.#persist(kits.filter((candidate) => candidate.id !== kitId));
-    await this.#deleteBlobs(kit.samples.map((sample) => sample.binaryKey));
+    return withMediaLibraryMutationLock(async () => {
+      const kits = await this.#read();
+      const kit = kits.find((candidate) => candidate.id === kitId);
+      if (!kit) throw new Error(`Sample kit not found: ${kitId}.`);
+      await this.#persist(kits.filter((candidate) => candidate.id !== kitId));
+      await this.#deleteBlobs(kit.samples.map((sample) => sample.binaryKey));
+    });
   }
 
   async resolvePlayback(kitId: string): Promise<ResolvedSampleKit> {

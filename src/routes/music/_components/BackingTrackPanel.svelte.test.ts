@@ -50,6 +50,19 @@ function buttonNamed(name: string): HTMLButtonElement | undefined {
 }
 
 describe("BackingTrackPanel", () => {
+  test("opens the import controls before a first backing file exists", async () => {
+    render(BackingTrackPanel, { state: state({ selection: { kind: "none" } }) });
+    buttonNamed("Imported backing")?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[aria-label="Import MP3 or WAV"]')).not.toBeNull();
+    expect(document.querySelector<HTMLButtonElement>('[aria-label="Play backing"]')?.disabled).toBe(
+      true,
+    );
+    buttonNamed("No backing")?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[aria-label="Import MP3 or WAV"]')).toBeNull();
+  });
+
   test("renders the required accessible controls", () => {
     render(BackingTrackPanel, {
       state: state({

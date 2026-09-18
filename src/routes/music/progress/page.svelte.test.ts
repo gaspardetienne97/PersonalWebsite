@@ -11,6 +11,8 @@ describe("/music/progress/+page.svelte", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Today's XP"));
     expect(document.body.textContent).toContain("Practise next");
     expect(document.body.textContent).toContain("Skill map");
+    expect(document.body.textContent).toContain("time-based heuristic");
+    expect(document.body.textContent).toContain("Not practised yet");
     expect(document.querySelector('[data-testid="week-bars"]')).not.toBeNull();
     // The mastery grid shows eight skills until expanded.
     await vi.waitFor(() =>
@@ -38,9 +40,9 @@ describe("/music/progress/+page.svelte", () => {
     );
     weeks?.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain("last 12 weeks"));
-    expect(
-      document.querySelectorAll('[data-testid="streak-calendar"] [data-day]').length,
-    ).toBeGreaterThan(80);
+    expect(document.querySelectorAll('[data-testid="streak-calendar"] [data-day]').length).toBe(
+      78 + ((new Date().getDay() + 6) % 7),
+    );
   });
 
   test("shows personal daily challenges", async () => {

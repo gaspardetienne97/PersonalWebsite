@@ -26,7 +26,8 @@ describe("challenge projections", () => {
     const weak = event("weak-1", "pitch.interval.m6", today, 0, false);
     const rhythm = event("rhythm-1", "rhythm.quarter-pulse", today, 1, true);
     const reading = event("reading-1", "reading.note.treble", yesterday, 1, true);
-    await analytics.ingest(weak);
+    for (let i = 0; i < 5; i++)
+      await analytics.ingest({ ...weak, id: `weak-${i}`, assistance: "independent" });
     await analytics.ingest(rhythm);
     addSession(sessions, "today", today, 125, [weak, rhythm]);
     addSession(sessions, "yesterday", yesterday, 60, [reading]);

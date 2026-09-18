@@ -1,10 +1,17 @@
 import { describe, expect, test } from "vitest";
 
-import { monotonicMs, type NoteOnEvent } from "@repo/music-core/domain";
+import {
+  Capability,
+  monotonicMs,
+  resultToScoringEvent,
+  unixMs,
+  type NoteOnEvent,
+  type ScoringEvent,
+} from "@repo/music-core/domain";
 import { curatedTunings } from "@repo/music-core/engines/tunings";
 
 import { CHORD_SHAPES } from "./chord-perfect";
-import { createChordChangeExercise } from "./chord-change";
+import { chordChangeHistory, createChordChangeExercise } from "./chord-change";
 
 describe("createChordChangeExercise", () => {
   test("scores clean C major to G major changes as a transition drill", () => {
@@ -120,6 +127,18 @@ describe("createChordChangeExercise", () => {
       changesPerMinute: 4,
       firstChangeLatencyMs: 1_000,
     });
+    expect(result.metrics).toContainEqual({
+      kind: "chord-changes",
+      tuningId: tuning.id,
+      durationSeconds: 60,
+      fromShapeId: "guitar.c-major",
+      fromMidiNotes: prompt.payload.targets[0]!.midiNotes,
+      toShapeId: "guitar.g-major",
+      toMidiNotes: prompt.payload.targets[1]!.midiNotes,
+      completedChanges: 4,
+      cleanChanges: 4,
+      changesPerMinute: 4,
+    });
     expect(result.feedback[0]?.message).toContain("4 clean chord targets in 60s");
   });
 
@@ -140,7 +159,54 @@ describe("createChordChangeExercise", () => {
       cleanChanges: 0,
       changesPerMinute: 0,
     });
+    const event = resultToScoringEvent({
+      result,
+      sessionId: "session",
+      runId: "run",
+      exercise,
+      prompt: exercise.generate(context),
+      at: unixMs(100),
+      difficulty: 0.45,
+      instrument: "guitar",
+      assistance: "guided",
+      makeId: () => "zero-input",
+    });
+    expect(event.metrics).toContainEqual(
+      expect.objectContaining({
+        kind: "chord-changes",
+        completedChanges: 0,
+        cleanChanges: 0,
+        changesPerMinute: 0,
+      }),
+    );
+    expect(event).toMatchObject({ instrument: "guitar", assistance: "guided" });
+    expect(event).not.toHaveProperty("source");
   });
+
+  test("does not add benchmark metadata to repetition runs", () => {
+    const tuning = curatedTunings("guitar")[0]!;
+    const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.c-major")!;
+    const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.g-major")!;
+    const exercise = createChordChangeExercise({ tuning, fromShape, toShape, repetitions: 1 });
+    const context = { targetSkillIds: exercise.skillIds, difficulty: 0.45 };
+
+    const result = exercise.createRun(exercise.generate(context), context).finish();
+
+    expect(result.metrics.some((metric) => metric.kind === "chord-changes")).toBe(false);
+  });
+
+  test.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    "rejects invalid timed duration %s",
+    (durationSeconds) => {
+      const tuning = curatedTunings("guitar")[0]!;
+      const fromShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.c-major")!;
+      const toShape = CHORD_SHAPES.find((shape) => shape.id === "guitar.g-major")!;
+
+      expect(() =>
+        createChordChangeExercise({ tuning, fromShape, toShape, durationSeconds }),
+      ).toThrow("Timed chord changes require a positive finite duration");
+    },
+  );
 
   test("penalizes a wrong target shape during the second change", () => {
     const tuning = curatedTunings("guitar")[0]!;
@@ -174,6 +240,107 @@ describe("createChordChangeExercise", () => {
     expect(answer?.coverageByChange[1]).toBeLessThan(1);
   });
 });
+
+describe("chordChangeHistory", () => {
+  const benchmark = {
+    instrument: "guitar" as const,
+    tuningId: "guitar-standard",
+    durationSeconds: 60,
+    fromShapeId: "guitar.c-major",
+    fromMidiNotes: [48, 52, 55, 60, 64],
+    toShapeId: "guitar.g-major",
+    toMidiNotes: [43, 47, 50, 55, 59, 67],
+  };
+
+  test("returns newest exact-pair runs once and preserves observed provenance", () => {
+    const old = benchmarkEvent("old", 100, 24, { source: "midi", assistance: "independent" });
+    const latest = benchmarkEvent("latest", 300, 30, {
+      source: "onscreen",
+      assistance: "guided",
+    });
+
+    expect(chordChangeHistory([latest, old, latest], benchmark)).toEqual([
+      expect.objectContaining({
+        event: latest,
+        metric: expect.objectContaining({ changesPerMinute: 30 }),
+      }),
+      expect.objectContaining({
+        event: old,
+        metric: expect.objectContaining({ changesPerMinute: 24 }),
+      }),
+    ]);
+  });
+
+  test("separates ordered positions, tuning, instrument and exact target pitches", () => {
+    const matching = benchmarkEvent("matching", 100, 20);
+    const variants = [
+      benchmarkEvent(
+        "reverse",
+        200,
+        21,
+        {},
+        { fromShapeId: benchmark.toShapeId, toShapeId: benchmark.fromShapeId },
+      ),
+      benchmarkEvent("position", 300, 22, {}, { fromShapeId: "guitar.c-major@1" }),
+      benchmarkEvent("tuning", 400, 23, {}, { tuningId: "guitar-drop-d" }),
+      benchmarkEvent("pitches", 500, 24, {}, { fromMidiNotes: [60, 64, 67] }),
+      benchmarkEvent("instrument", 600, 25, { instrument: "ukulele" }),
+    ];
+
+    expect(
+      chordChangeHistory([matching, ...variants], benchmark).map(({ event }) => event.id),
+    ).toEqual(["matching"]);
+  });
+
+  test("omits legacy events and bounds the newest results", () => {
+    const legacy = benchmarkEvent("legacy", 1_000, 99);
+    legacy.metrics = [];
+    const events = Array.from({ length: 8 }, (_, index) =>
+      benchmarkEvent(`event-${index}`, index, index),
+    );
+
+    expect(
+      chordChangeHistory([legacy, ...events], benchmark, 3).map(({ event }) => event.id),
+    ).toEqual(["event-7", "event-6", "event-5"]);
+  });
+});
+
+function benchmarkEvent(
+  id: string,
+  at: number,
+  changesPerMinute: number,
+  provenance: Partial<ScoringEvent> = {},
+  metric: Partial<Extract<ScoringEvent["metrics"][number], { kind: "chord-changes" }>> = {},
+): ScoringEvent {
+  return {
+    id,
+    sessionId: id,
+    exerciseId: "technique.guitar.chord-changes",
+    skillIds: ["technique.guitar.chord-changes"],
+    capabilities: [Capability.Technique],
+    instrument: "guitar",
+    at: unixMs(at),
+    correct: changesPerMinute > 0,
+    partialCredit: changesPerMinute > 0 ? 1 : 0,
+    difficulty: 0.45,
+    metrics: [
+      {
+        kind: "chord-changes",
+        tuningId: "guitar-standard",
+        durationSeconds: 60,
+        fromShapeId: "guitar.c-major",
+        fromMidiNotes: [48, 52, 55, 60, 64],
+        toShapeId: "guitar.g-major",
+        toMidiNotes: [43, 47, 50, 55, 59, 67],
+        completedChanges: changesPerMinute,
+        cleanChanges: changesPerMinute,
+        changesPerMinute,
+        ...metric,
+      },
+    ],
+    ...provenance,
+  };
+}
 
 function note(midiNote: number, atMs: number): NoteOnEvent {
   return {

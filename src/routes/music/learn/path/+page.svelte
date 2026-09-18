@@ -3,7 +3,6 @@
 
   import { INSTRUMENT_LABELS, VIEWABLE_INSTRUMENTS, type InstrumentId } from "@repo/music-core/domain";
   import { buildJazzPath } from "@repo/music-core/engines/jazz";
-  import { SkillGraphStore } from "@repo/music-core/engines/skills";
   import { PracticeStore } from "@repo/music-core/engines/store";
 
   import LearningPathScreen from "../../_components/LearningPathScreen.svelte";
@@ -14,20 +13,18 @@
   // that practises it, rendered on the same screen as the Ear Training Path.
   const runtime = useMusicRuntime();
   const store = browser ? new PracticeStore() : undefined;
-  const skills = new SkillGraphStore(store);
 
   let instrument = $state<InstrumentId>(
     VIEWABLE_INSTRUMENTS.includes(runtime.activeInstrument) ? runtime.activeInstrument : "piano",
   );
-  let ready = $state(false);
+  let events = $state<import("@repo/music-core/domain").ScoringEvent[]>([]);
 
-  void skills.load().then(() => (ready = true));
+  void store?.scoringEvents.all().then((loaded) => (events = loaded));
 
   const path = $derived.by(() => {
-    void ready;
     return buildJazzPath({
       instrument,
-      mastery: ready ? (id) => skills.getMastery(id).mastery : undefined,
+      events,
     });
   });
 </script>

@@ -24,6 +24,18 @@ afterEach(() => {
 });
 
 describe("/music/learn/rhythm/+page.svelte", () => {
+  test("recommends repeating a poor run before increasing tempo", async () => {
+    setTestUrl("/music/learn/rhythm?beats=2");
+    render(Page);
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+    button("Start")!.click();
+    await vi.waitFor(() => expect(button("Tap beat")).not.toBeUndefined());
+    button("Tap beat")!.click();
+    button("Tap beat")!.click();
+    await vi.waitFor(() => expect(button("Repeat at 100 BPM")).not.toBeUndefined());
+    expect(button("Repeat at 100 BPM")?.className).toContain("bg-primary");
+    expect(button("Increase to 110 BPM")?.className).not.toContain("bg-primary");
+  });
   test("shows pulse setup with MIDI, microphone, and shared tempo readout", async () => {
     render(Page);
 

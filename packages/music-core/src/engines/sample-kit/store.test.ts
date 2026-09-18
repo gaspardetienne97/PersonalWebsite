@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 
 import type { SettingsRecord } from "@repo/music-core/engines/store";
 
+import { withMediaLibraryMutationLock } from "../media-library/index";
+
 import { SAMPLE_KITS_SETTINGS_ID } from "./index";
 import { SampleKitStore, type SampleBinaryStore } from "./store";
 
@@ -312,5 +314,35 @@ describe("SampleKitStore", () => {
     expect(kits).toHaveLength(1);
     expect(kits[0]!.name).toBe("First");
     expect(kits[0]!.samples).toHaveLength(1);
+  });
+});
+
+test("sample mutations wait for the shared media lock", async () => {
+  const { store, repository, binaries } = makeStore();
+  const kit = await store.create("Original");
+  let release!: () => void;
+  let entered!: () => void;
+  const enteredPromise = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const held = withMediaLibraryMutationLock(async () => {
+    entered();
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+  });
+  await enteredPromise;
+  const rename = store.rename(kit.id, "Renamed");
+  const importing = store.importFiles(kit.id, [audioFile("kick.wav")]);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  const before = structuredClone(repository.map.get(SAMPLE_KITS_SETTINGS_ID));
+  const written = binaries.keys();
+  release();
+  await Promise.all([held, rename, importing]);
+  expect(((before?.value ?? []) as { name: string }[])[0]?.name).toBe("Original");
+  expect(written).toEqual([]);
+  expect((await store.load())[0]).toMatchObject({
+    name: "Renamed",
+    samples: [expect.objectContaining({ fileName: "kick.wav" })],
   });
 });

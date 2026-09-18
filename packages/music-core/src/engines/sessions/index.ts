@@ -91,12 +91,35 @@ export class PracticeSessionStore {
     return clone(session);
   }
 
-  updateJournal(sessionId: string, notes: string, tags?: string[]): PracticeSession {
-    const session = this.requireSession(sessionId);
-    session.notes = notes;
-    if (tags !== undefined) session.tags = [...tags];
-    this.#persist(session);
-    return clone(session);
+  /** Await this save before reading the updated journal or making another session change. */
+  updateJournal(
+    sessionId: string,
+    notes: string,
+    tags?: string[],
+    nextTime?: string,
+  ): Promise<PracticeSession> {
+    const result = this.#operationQueue.then(async () => {
+      const session = clone(this.requireSession(sessionId));
+      session.notes = notes;
+      if (nextTime !== undefined) {
+        if (nextTime.trim()) session.nextTime = nextTime.trim();
+        else delete session.nextTime;
+      }
+      if (tags !== undefined)
+        session.tags = [
+          ...tags.filter((tag) => !isRunComparisonTag(tag)),
+          ...session.tags.filter(isRunComparisonTag),
+        ];
+      await this.store?.sessions.put(clone(session));
+      this.#sessions.set(sessionId, session);
+      return clone(session);
+    });
+    // The caller owns this save's rejection; keep later writes available for retry.
+    this.#operationQueue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
   }
 
   /** Delete a session (e.g. a journal entry). No-op if it does not exist. */
@@ -227,6 +250,51 @@ function round(value: number): number {
 const DAY_MS = 86_400_000;
 const WEEK_MS = DAY_MS * 7;
 
+/** Reserved journal tags describe measurements, not user-editable focus areas. */
+export function isRunComparisonTag(tag: string): boolean {
+  return tag.startsWith("v1:") || tag.startsWith("comparison:");
+}
+
+/** Explicit run metadata; never infer a variant for old journal entries. */
+export interface RunComparisonSetup {
+  variantKey: string;
+  dimensions: string;
+  bpm: number;
+  /** Additional settled settings not covered by the existing variant key. */
+  settings?: string;
+}
+
+export function runComparisonTags(
+  setup: RunComparisonSetup,
+  events: readonly ScoringEvent[],
+): string[] {
+  const input = [
+    ...new Set(
+      events.map((event) =>
+        JSON.stringify([event.source ?? null, event.instrument ?? null, event.assistance ?? null]),
+      ),
+    ),
+  ].sort();
+  return [
+    setup.variantKey,
+    `comparison:bpm:${setup.bpm}`,
+    `comparison:input:[${input.join(",")}]`,
+    ...(setup.settings === undefined ? [] : [`comparison:settings:${setup.settings}`]),
+  ];
+}
+
+export function hasComparableInput(events: readonly ScoringEvent[]): boolean {
+  return (
+    events.length > 0 &&
+    events.every(
+      (event) =>
+        event.source !== undefined &&
+        event.instrument !== undefined &&
+        event.assistance !== undefined,
+    )
+  );
+}
+
 export interface LastRunReference {
   /** Mean partial credit of the prior run, 0-1. */
   accuracy: number;
@@ -247,7 +315,7 @@ export function lastRunReference(
 ): LastRunReference | undefined {
   let best: PracticeSession | undefined;
   for (const session of sessions) {
-    if (session.startTime >= before) continue;
+    if (session.source !== "drill" || session.startTime >= before) continue;
     if (session.scoringEvents.length === 0) continue;
     if (!tags.every((tag) => session.tags.includes(tag))) continue;
     if (!best || session.startTime > best.startTime) best = session;

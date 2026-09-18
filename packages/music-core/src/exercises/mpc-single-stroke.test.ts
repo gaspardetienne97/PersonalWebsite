@@ -10,6 +10,7 @@ import {
   buildMpcRudimentSequence,
   createMpcSingleStrokeExercise,
   MPC_RUDIMENT_PATTERNS,
+  assessedMpcResult,
   type MpcHitCount,
 } from "@repo/music-core/exercises/mpc-single-stroke";
 
@@ -20,6 +21,35 @@ const context: ExerciseContext = {
 };
 
 describe("createMpcSingleStrokeExercise", () => {
+  test("excludes fixed on-screen velocity from the displayed assessment only", () => {
+    const exercise = createMpcSingleStrokeExercise();
+    const prompt = exercise.generate(context);
+    const run = exercise.createRun(prompt, context);
+    prompt.payload.targetSequence.forEach((midiNote, i) =>
+      run.accept({
+        type: "noteOn",
+        midiNote,
+        velocity: 1,
+        source: "onscreen",
+        timestamp: monotonicMs(i * 600),
+        clock: "performance",
+      }),
+    );
+    const result = run.finish({ reason: "completed" });
+    const originalScore = result.score;
+    const display = assessedMpcResult(result);
+    expect(display.velocityMeasured).toBe(false);
+    expect(display.score).toBeCloseTo(
+      (result.score - result.answer!.velocityConsistency * 0.15) / 0.85,
+    );
+    expect(result.score).toBe(originalScore);
+    expect(
+      assessedMpcResult({
+        ...result,
+        input: result.input.map((event) => ({ ...event, source: "midi" })),
+      }).velocityMeasured,
+    ).toBe(true);
+  });
   test("exports reusable rudiment pattern data for singles, doubles, and paradiddles", () => {
     expect(MPC_RUDIMENT_PATTERNS.map((pattern) => pattern.id)).toEqual([
       "single-strokes",

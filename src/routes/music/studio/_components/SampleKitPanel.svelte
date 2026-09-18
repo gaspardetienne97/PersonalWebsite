@@ -307,6 +307,15 @@
           onchange={importSamples}
         />
       </div>
+      {#if error}
+        <p class="text-sm text-destructive" role="alert">{error}</p>
+      {/if}
+      {#if selectedKit.samples.length === 0}
+        <p class="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+          This kit has no samples yet, so the pad menus below are disabled. Import WAV, AIFF,
+          FLAC, MP3 or OGG files above; each one lands on the next free pad.
+        </p>
+      {/if}
 
       {#if selectedKit.samples.length > 0}
         <div class="grid gap-2">

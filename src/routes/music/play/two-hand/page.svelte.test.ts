@@ -1,11 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
+import { page } from "vitest/browser";
+import "../../../../app.css";
 
 import { monotonicMs, type NoteEvent } from "@repo/music-core/domain";
 import { AnalyticsEngine } from "@repo/music-core/engines/analytics";
 import { ProgressEngine } from "@repo/music-core/engines/progress";
 import { SkillGraphStore } from "@repo/music-core/engines/skills";
-import { TechniqueSession } from "@repo/music-core/engines/technique-session";
+import {
+  TechniqueSession,
+  TWO_HAND_DRILL_PATTERNS,
+  TWO_HAND_DRILL_TONICS,
+} from "@repo/music-core/engines/technique-session";
+import { createTwoHandIndependenceExercise } from "@repo/music-core/exercises/two-hand-independence";
 
 import Page from "./+page.svelte";
 import { setTestUrl } from "../../_components/test-url";
@@ -19,10 +26,11 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
   document.body.replaceChildren();
   setTestUrl("/");
+  await page.viewport(1280, 900);
 });
 
 describe("/music/play/two-hand/+page.svelte", () => {
@@ -103,8 +111,7 @@ describe("/music/play/two-hand/+page.svelte", () => {
     );
     expect(button("C2")?.getAttribute("data-state")).toBe("target-left");
     expect(button("C4")?.getAttribute("data-state")).toBe("target-right");
-    expect(document.querySelector('[data-testid="finger-36"]')?.textContent).toBe("5");
-    expect(document.querySelector('[data-testid="finger-60"]')?.textContent).toBe("1");
+    expect(document.querySelector('[data-testid^="finger-"]')).toBeNull();
     await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
     await openSetup();
 
@@ -430,6 +437,57 @@ describe("/music/play/two-hand/+page.svelte", () => {
       expect(params.get("pattern")).toBe("contrary-motion-scale");
       expect(params.get("hand")).toBe("both");
     });
+  });
+
+  test.each(
+    TWO_HAND_DRILL_PATTERNS.flatMap(({ id: pattern }) =>
+      TWO_HAND_DRILL_TONICS.flatMap((tonic) =>
+        (["left", "right"] as const).map((hand) => ({ pattern, tonic, hand })),
+      ),
+    ),
+  )("bounds $pattern in $tonic to the selected $hand hand", async ({ pattern, tonic, hand }) => {
+    await page.viewport(375, 812);
+    setTestUrl(`/music/play/two-hand?hand=${hand}&pattern=${pattern}&tonic=${tonic}`);
+    render(Page);
+    // Settle IndexedDB seeding before the next layout case mounts another route.
+    await vi.waitFor(() => expect(button("Start")?.disabled).toBe(false));
+
+    const prompt = createTwoHandIndependenceExercise({
+      tonic,
+      patternKind: pattern,
+      handMode: hand,
+    }).generate({ targetSkillIds: [], difficulty: 0.5 }).payload;
+    for (const note of [...prompt.leftNoteLabels, ...prompt.rightNoteLabels]) {
+      await vi.waitFor(() =>
+        expect(
+          document.querySelector(`[aria-label="On-screen keyboard"] button[data-note="${note}"]`),
+        ).not.toBeNull(),
+      );
+    }
+    const keys = [
+      ...document.querySelectorAll<HTMLButtonElement>('[aria-label="On-screen keyboard"] button'),
+    ];
+    expect(keys.length).toBeGreaterThan(0);
+    for (const key of keys) {
+      const rect = key.getBoundingClientRect();
+      expect(rect.width).toBeGreaterThan(0);
+      expect(rect.left).toBeGreaterThanOrEqual(0);
+      expect(rect.right).toBeLessThanOrEqual(375);
+    }
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      document.documentElement.clientWidth,
+    );
+    await openSetup();
+    expect(document.body.textContent).toContain("keeps that hand in view");
+  });
+
+  test("recommends isolated hands on narrow screens while keeping Both for external keyboards", async () => {
+    await page.viewport(375, 812);
+    render(Page);
+
+    await openSetup();
+    expect(document.body.textContent).toContain("Both is best with an external keyboard");
+    expect(new URLSearchParams(window.location.search).get("hand")).toBe("both");
   });
 
   test("restores the melody-louder dynamics format and hides it for isolated hands", async () => {

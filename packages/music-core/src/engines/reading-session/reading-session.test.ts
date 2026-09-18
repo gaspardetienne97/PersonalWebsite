@@ -24,6 +24,10 @@ import type { NoteReadingPrompt } from "@repo/music-core/exercises/note-reading"
 import { normalizeReadingDrillConfig, ReadingSession } from "./index";
 
 describe("ReadingSession", () => {
+  test("preserves the configured range when normalizing settled setup", () => {
+    const config = normalizeReadingDrillConfig(new URLSearchParams("low=60&high=60"));
+    expect(normalizeReadingDrillConfig(config)).toEqual(config);
+  });
   test("normalizes shareable reading drill config values", () => {
     const params = new URLSearchParams(
       "activity=sight-reading&instrument=guitar&tuning=guitar-drop-d&clefs=treble,bass&key=G%20major&low=55&high=79&level=level-3&difficulty=0.7&transpose=2&prompt=chord&answer=play&mode=performance&bpm=128&strict=strict&meter=compound&measures=4",
@@ -107,6 +111,72 @@ describe("ReadingSession", () => {
     expect(skillsIngest).toHaveBeenCalledOnce();
     expect(analyticsIngest).toHaveBeenCalledOnce();
     expect(progressIngest).toHaveBeenCalledOnce();
+    session.dispose();
+  });
+
+  test("holds an incorrect practice answer until continue and retries only missed prompts", async () => {
+    const dependencies = await setup();
+    const session = new ReadingSession(dependencies);
+
+    await session.startFlashcards({
+      ...pianoOptions(),
+      answerMode: "choice",
+      feedbackMode: "immediate",
+      length: 2,
+    });
+    const firstPrompt = session.state.currentPrompt as NoteReadingPrompt;
+    const expected = writtenPitchName(firstPrompt.writtenPitches[0]!);
+    const wrong = firstPrompt.choices.find((choice) => choice !== expected)!;
+
+    await session.answerChoice(wrong);
+
+    expect(session.state).toMatchObject({
+      status: "flashcard",
+      currentIndex: 0,
+      awaitingContinue: true,
+      feedback: { prompt: firstPrompt, result: { answer: wrong, correct: false } },
+    });
+    await expect(session.answerChoice(wrong)).rejects.toThrow("Continue to the next flashcard");
+
+    session.continueFlashcard();
+    expect(session.state).toMatchObject({ status: "flashcard", currentIndex: 1 });
+    const secondPrompt = session.state.currentPrompt as NoteReadingPrompt;
+    await session.answerChoice(writtenPitchName(secondPrompt.writtenPitches[0]!));
+    expect(session.state.awaitingContinue).toBeUndefined();
+    expect(session.state.status).toBe("summary");
+
+    const firstRunId = session.state.results[0]?.event.runId;
+    expect(session.prepareMissedFlashcards()).toBe(true);
+    expect(session.state).toMatchObject({
+      status: "flashcard",
+      currentIndex: 0,
+      total: 1,
+      currentPrompt: firstPrompt,
+    });
+    await session.answerChoice(expected);
+    expect(session.state.summary?.results[0]?.event.runId).not.toBe(firstRunId);
+    session.dispose();
+  });
+
+  test("records a revealed hint on only the current flashcard", async () => {
+    const dependencies = await setup();
+    const session = new ReadingSession(dependencies);
+    await session.startFlashcards({ ...pianoOptions(), answerMode: "play", length: 2 });
+    session.revealFlashcardHint();
+    expect(session.state.hintUsed).toBe(true);
+    let prompt = session.state.currentPrompt as NoteReadingPrompt;
+    dependencies.router.noteOn(prompt.midiNotes[0]!);
+    await vi.waitFor(() => expect(session.state.results).toHaveLength(1));
+    expect(session.state.results[0]?.event).toMatchObject({
+      assistance: "hinted",
+      instrument: "piano",
+      source: "onscreen",
+    });
+    expect(session.state.hintUsed).toBe(false);
+    prompt = session.state.currentPrompt as NoteReadingPrompt;
+    dependencies.router.noteOn(prompt.midiNotes[0]!);
+    await vi.waitFor(() => expect(session.state.status).toBe("summary"));
+    expect(session.state.summary?.results[1]?.event.assistance).toBe("independent");
     session.dispose();
   });
 
@@ -211,7 +281,10 @@ describe("ReadingSession", () => {
     await session.finishSightReading();
     expect(session.state.status).toBe("summary");
     expect(session.state.results[0]?.result).toMatchObject({ correct: true, score: 1 });
-    expect(session.state.results[0]?.event.exerciseId).toBe("reading.sight-reading.generated");
+    expect(session.state.results[0]?.event).toMatchObject({
+      exerciseId: "reading.sight-reading.generated",
+      assistance: "guided",
+    });
     expect(analyticsIngest).toHaveBeenCalledOnce();
     session.dispose();
   });

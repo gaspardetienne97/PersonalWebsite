@@ -323,9 +323,12 @@ body:has([data-app="music"]) > :not(:has(.app)) {
   --primary-foreground: oklch(0.99 0 0);
   --ring: oklch(0.52 0.2 277);
   --shadow-glow-value: 0 0 24px oklch(0.62 0.2 290 / 35%);
+  /* The canvas wash is the app's accent, not the instrument's: instrument hue
+     stays on badges, rails and the switcher, so picking ukulele never repaints
+     the whole page (the fretboard alone is drawn as wood). */
   --ambient: radial-gradient(
     80% 50% at 70% -10%,
-    color-mix(in oklch, var(--instr) 10%, transparent),
+    color-mix(in oklch, var(--practice-accent) 8%, transparent),
     transparent
   );
 }
@@ -337,9 +340,11 @@ body:has([data-app="music"]) > :not(:has(.app)) {
   --card: oklch(0.2 0.035 265);
   --popover: oklch(0.2 0.035 265);
   --border: oklch(1 0 0 / 8%);
-  --primary: oklch(0.58 0.2 290);
-  --primary-foreground: oklch(0.99 0 0);
-  --ring: oklch(0.58 0.2 290);
+  /* Primary is light enough to be read as text on the card (text-primary on
+     card ≥ 4.5:1), so it carries dark ink like the practice accent. */
+  --primary: oklch(0.68 0.19 290);
+  --primary-foreground: oklch(0.14 0.03 290);
+  --ring: oklch(0.68 0.19 290);
   --stage: oklch(0.17 0.025 265);
   --stage-2: oklch(0.22 0.03 265);
   --practice-accent: oklch(0.7 0.18 290);
@@ -347,7 +352,7 @@ body:has([data-app="music"]) > :not(:has(.app)) {
   --shadow-glow-value: 0 0 24px oklch(0.72 0.2 290 / 45%);
   --ambient: radial-gradient(
     80% 50% at 70% -10%,
-    color-mix(in oklch, var(--instr) 18%, transparent),
+    color-mix(in oklch, var(--practice-accent) 14%, transparent),
     transparent
   );
 }
@@ -385,6 +390,30 @@ body:has([data-app="music"]) > :not(:has(.app)) {
     opacity: 1;
     transform: none;
   }
+}
+
+/* The neck as material: a dark-to-light board with fine grain, lit from above,
+   set into the stage. Colour comes from --fretboard; the rest is shade. */
+@utility fretboard-wood {
+  background-color: var(--fretboard);
+  background-image:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, white 9%, transparent),
+      transparent 28%,
+      transparent 70%,
+      color-mix(in oklab, black 20%, transparent)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, black 9%, transparent) 0 1px,
+      transparent 1px 6px,
+      color-mix(in oklab, white 4%, transparent) 6px 7px,
+      transparent 7px 17px
+    );
+  box-shadow:
+    inset 0 2px 6px oklch(0 0 0 / 35%),
+    inset 0 -1px 0 oklch(1 0 0 / 8%);
 }
 
 @utility reveal-up {

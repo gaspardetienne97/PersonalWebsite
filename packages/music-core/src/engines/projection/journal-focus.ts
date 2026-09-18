@@ -1,4 +1,5 @@
 import type { PracticeSession } from "@repo/music-core/domain";
+import { isRunComparisonTag } from "@repo/music-core/engines/sessions";
 
 export interface FocusArea {
   tag: string;
@@ -15,6 +16,7 @@ export function summarizeFocusAreas(sessions: PracticeSession[], limit = 5): Foc
   for (const session of sessions) {
     const start = Number(session.startTime);
     for (const tag of session.tags) {
+      if (isRunComparisonTag(tag)) continue;
       const entry = byTag.get(tag) ?? { count: 0, last: 0 };
       entry.count += 1;
       entry.last = Math.max(entry.last, start);

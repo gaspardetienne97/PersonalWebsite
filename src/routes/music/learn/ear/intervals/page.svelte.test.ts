@@ -41,6 +41,9 @@ describe("/music/learn/ear/intervals/+page.svelte", () => {
       [...document.querySelectorAll("button")].some((button) => button.textContent === "C#4"),
     ).toBe(true);
     expect(document.querySelector('[data-testid="feedback"]')).toBeNull();
+    expect(document.body.textContent).not.toContain("Accuracy");
+    expect(document.body.textContent).not.toContain("Recent answers");
+    expect(document.body.textContent).not.toContain("Session XP");
   });
 
   test("plays interval prompts louder than the default pattern level", async () => {

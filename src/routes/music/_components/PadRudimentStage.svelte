@@ -19,8 +19,10 @@
     completedHits = 0,
     bpm,
     onAccepted,
+    keymap,
   }: {
     router: InputRouter;
+    keymap?: Record<number, string>;
     targetSequence: number[];
     targetEvents?: PadRudimentStageEvent[];
     completedHits?: number;
@@ -55,7 +57,7 @@
 
   <div class="grid gap-5 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center">
     <div class="w-full max-w-xs justify-self-center lg:w-64">
-      <MpcPadGrid {router} {onAccepted} />
+      <MpcPadGrid {router} {onAccepted} {keymap} targetMidi={nextPad} />
     </div>
 
     <div class="grid gap-3">
