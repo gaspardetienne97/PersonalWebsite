@@ -12,6 +12,7 @@
   import ShieldCheck from "lucide-svelte/icons/shield-check";
   import Check from "lucide-svelte/icons/check";
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
+  import { onMount } from "svelte";
 
   const TOPICS = [
     { id: "session", label: "How a session works", hue: "piano", icon: Layers },
@@ -24,6 +25,29 @@
     { id: "privacy", label: "Privacy", hue: "aerophone", icon: ShieldCheck },
   ] as const;
   const topic = (id: string) => TOPICS.find((t) => t.id === id)!;
+
+  // The section you are reading: the last one whose top has reached the upper
+  // part of the screen, or the last section once the page is scrolled to the end.
+  let current = $state<string>(TOPICS[0].id);
+  onMount(() => {
+    const update = () => {
+      const atEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
+      if (atEnd) return void (current = TOPICS.at(-1)!.id);
+      let id: string = TOPICS[0].id;
+      for (const t of TOPICS) {
+        const el = document.getElementById(t.id);
+        if (el && el.getBoundingClientRect().top <= innerHeight * 0.3) id = t.id;
+      }
+      current = id;
+    };
+    update();
+    addEventListener("scroll", update, { passive: true });
+    addEventListener("resize", update);
+    return () => {
+      removeEventListener("scroll", update);
+      removeEventListener("resize", update);
+    };
+  });
 
   // Illustration data: a set, two keyboards, a result, a week.
   const SET = [
@@ -97,12 +121,18 @@
   </header>
   <p role="status" class="sr-only">Guide loaded.</p>
 
-  <nav aria-label="Guide topics" class="lg:sticky lg:top-20 lg:self-start">
+  <nav aria-label="Guide topics" class="lg:sticky lg:top-32 lg:self-start">
     <ul class="flex flex-wrap gap-2 lg:flex-col lg:gap-1">
       {#each TOPICS as t (t.id)}
         <li>
-          <a href="#{t.id}" class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line px-4 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink lg:rounded-lg lg:border-0 lg:px-3">
-            <span class="size-2.5 shrink-0 rounded-full" style:background="var(--hue-{t.hue})" aria-hidden="true"></span>{t.label}
+          <a
+            href="#{t.id}"
+            aria-current={current === t.id ? "location" : undefined}
+            style:--topic="var(--hue-{t.hue})"
+            class="topic flex min-h-11 items-start gap-2 rounded-full border border-ws-line px-4 py-3 text-sm leading-5 text-ws-soft hover:bg-ws-raised hover:text-ws-ink lg:rounded-lg lg:border-0 lg:px-3 lg:py-3"
+          >
+            <!-- Sits on the first line, so a label that wraps keeps its dot at the top. -->
+            <span class="mt-[0.3125rem] size-2.5 shrink-0 rounded-full" style:background="var(--topic)" aria-hidden="true"></span>{t.label}
           </a>
         </li>
       {/each}
@@ -110,7 +140,7 @@
   </nav>
 
   <div class="flex min-w-0 flex-col gap-12">
-    <section id="session" aria-labelledby="session-h" class="scroll-mt-20">
+    <section id="session" aria-labelledby="session-h" class="scroll-mt-32">
       {@render heading("session-h", "How a session works", "session")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -122,7 +152,7 @@
       </div>
     </section>
 
-    <section id="check" aria-labelledby="check-h" class="scroll-mt-20">
+    <section id="check" aria-labelledby="check-h" class="scroll-mt-32">
       {@render heading("check-h", "Practice and Check", "check")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -134,7 +164,7 @@
       </div>
     </section>
 
-    <section id="not-measured" aria-labelledby="nm-h" class="scroll-mt-20">
+    <section id="not-measured" aria-labelledby="nm-h" class="scroll-mt-32">
       {@render heading("nm-h", 'What "Not measured" means', "not-measured")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -145,7 +175,7 @@
       </div>
     </section>
 
-    <section id="connect" aria-labelledby="connect-h" class="scroll-mt-20">
+    <section id="connect" aria-labelledby="connect-h" class="scroll-mt-32">
       {@render heading("connect-h", "MIDI, the MPC and the microphone", "connect")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -158,7 +188,7 @@
       </div>
     </section>
 
-    <section id="keys" aria-labelledby="keys-h" class="scroll-mt-20">
+    <section id="keys" aria-labelledby="keys-h" class="scroll-mt-32">
       {@render heading("keys-h", "Playing from the computer keyboard", "keys")}
       <div class={prose}>
         <p>No instrument nearby? The keys below play whichever surface is on screen. They follow key positions, so they work the same on other layouts.</p>
@@ -202,7 +232,7 @@
       </div>
     </section>
 
-    <section id="shortcuts" aria-labelledby="shortcuts-h" class="scroll-mt-20">
+    <section id="shortcuts" aria-labelledby="shortcuts-h" class="scroll-mt-32">
       {@render heading("shortcuts-h", "Shortcuts", "shortcuts")}
       <dl class="mt-3 grid max-w-prose grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-3">
         <dt><kbd class="kbd">Space</kbd></dt>
@@ -214,7 +244,7 @@
       </dl>
     </section>
 
-    <section id="streaks" aria-labelledby="streaks-h" class="scroll-mt-20">
+    <section id="streaks" aria-labelledby="streaks-h" class="scroll-mt-32">
       {@render heading("streaks-h", "Streaks, freezes and XP", "streaks")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -226,7 +256,7 @@
       </div>
     </section>
 
-    <section id="privacy" aria-labelledby="privacy-h" class="scroll-mt-20">
+    <section id="privacy" aria-labelledby="privacy-h" class="scroll-mt-32">
       {@render heading("privacy-h", "Privacy", "privacy")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -363,6 +393,17 @@
 {/snippet}
 
 <style>
+  .topic[aria-current="location"] {
+    color: var(--ws-ink);
+    font-weight: 600;
+    border-color: var(--topic);
+    background: color-mix(in oklch, var(--topic) 16%, transparent);
+  }
+  @media (min-width: 1024px) {
+    .topic[aria-current="location"] {
+      box-shadow: inset 3px 0 0 var(--topic);
+    }
+  }
   .pic {
     border-radius: 1rem;
     padding: 1rem;
