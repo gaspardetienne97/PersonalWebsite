@@ -5,16 +5,30 @@
   import Search from "lucide-svelte/icons/search";
   import Timer from "lucide-svelte/icons/timer";
   import Volume from "lucide-svelte/icons/volume-2";
+  import PianoIcon from "lucide-svelte/icons/piano";
+  import GuitarIcon from "lucide-svelte/icons/guitar";
+  import DrumIcon from "lucide-svelte/icons/drum";
+  import WindIcon from "lucide-svelte/icons/wind";
+  import MicIcon from "lucide-svelte/icons/mic";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
   import { bench, INSTRUMENT_LABEL } from "../bench.svelte";
   import { audio, input, midi, mic, settings } from "../runtime";
   import { palette } from "./palette.svelte";
 
   const TEMPOS = [60, 72, 80, 90, 100, 120, 140];
+  const INSTRUMENT_ICON = {
+    piano: PianoIcon,
+    guitar: GuitarIcon,
+    ukulele: GuitarIcon,
+    aerophone: WindIcon,
+    mpc: DrumIcon,
+    voice: MicIcon,
+  } satisfies Record<Instrument, unknown>;
   let previewing = $state(false);
   let preview: { stop(): void } | null = null;
 
   const s = $derived(settings.value);
+  const InstrumentIcon = $derived(INSTRUMENT_ICON[s.activeInstrument]);
   const sourceLabel = $derived.by(() => {
     const src = input.activeSource;
     if (src === "midi") return "MIDI";
@@ -78,7 +92,7 @@
 <div class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12'}">
   <div class="flex items-center gap-2 overflow-x-auto overflow-y-hidden px-4 py-2 [scrollbar-width:thin] sm:px-6 lg:px-8" role="group" aria-label="Practice controls">
     <label class="{pill} relative pr-2">
-      <span class="size-2.5 rounded-full bg-instr" aria-hidden="true"></span>
+      <InstrumentIcon class="size-4 shrink-0 text-instr-ink" aria-hidden="true" />
       <span class="sr-only">Instrument</span>
       <select
         class="min-h-9 cursor-pointer appearance-none border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium focus:ring-0 disabled:cursor-not-allowed"
