@@ -1,0 +1,187 @@
+import { describe, expect, it } from "vitest";
+import { CHORD_SHAPES, LEARNING_PATHS, SCALE_DATA, SKILL_IDS, TWO_HAND } from "../data";
+import { tuningById } from "../theory/fretboard";
+import { CATALOG, exerciseIdFor, rhythmExerciseId } from "./catalog";
+import {
+  cadencePrompt,
+  chordQualityPrompt,
+  EAR_DRILLS,
+  EAR_PATH,
+  intervalPrompt,
+  melodyDictationPrompt,
+  SCALE_DEGREE_LEVELS,
+  scaleDegreePrompt,
+} from "./ear";
+import {
+  CHORD_SCALE_CHANGES,
+  chordScaleTargets,
+  LICK_CATEGORIES,
+  lickSkills,
+  twoHandSkills,
+  voicingTargets,
+  voiceLeadingTargets,
+} from "./piano";
+import { rng } from "./random";
+import { flashcardPrompt, sightReadingScore, sightReadingSkills } from "./reading";
+import { RHYTHM_PATTERNS, rhythmSkills } from "./rhythm";
+import { chordShapeSkills, intervalRecallPrompt, RECALL_INTERVALS, scaleSkills } from "./technique";
+import {
+  AEROPHONE_MODES,
+  aerophoneSkills,
+  GROOVES,
+  grooveSkills,
+  RUDIMENTS,
+  rudimentSkills,
+} from "./winds-pads";
+import { CADENCES_AND_QUALITIES } from "../data";
+import { INTERVALS } from "../theory/intervals";
+
+const ROUTES = [
+  "/music/ear/intervals",
+  "/music/ear/chord-qualities",
+  "/music/ear/cadences",
+  "/music/ear/scale-degrees",
+  "/music/ear/melody-dictation",
+  "/music/ear/repertoire-transfer",
+  "/music/ear/mixed",
+  "/music/reading",
+  "/music/rhythm",
+  "/music/scales",
+  "/music/two-hand",
+  "/music/comping",
+  "/music/voicings",
+  "/music/licks",
+  "/music/chord-scales",
+  "/music/fretboard",
+  "/music/chords",
+  "/music/strum",
+  "/music/pads",
+  "/music/aerophone",
+  "/music/lab",
+  "/music/jam",
+  "/music/library?tab=songs",
+];
+
+describe("drill catalog", () => {
+  it("has one entry per activity on the architecture routes", () => {
+    expect(CATALOG.map((e) => e.route)).toEqual(ROUTES);
+    expect(new Set(CATALOG.map((e) => e.id)).size).toBe(CATALOG.length);
+    for (const e of CATALOG) {
+      expect(e.blurb, e.id).toMatch(/^[A-Z].*\.$/);
+      expect(e.blurb).not.toMatch(/[–—]/);
+      expect(e.instruments.length).toBeGreaterThan(0);
+      expect(e.exerciseId).toBeTruthy();
+      for (const m of e.modes) expect(m.exerciseId, `${e.id}/${m.id}`).toBeTruthy();
+    }
+    expect(CATALOG.find((e) => e.id === "fretboard")!.modes.map((m) => m.id)).toEqual([
+      "spider",
+      "positions",
+      "note-finder",
+      "interval-recall",
+    ]);
+    expect(CATALOG.find((e) => e.id === "chords")!.modes).toHaveLength(4);
+    expect(CATALOG.find((e) => e.id === "aerophone")!.modes).toHaveLength(4);
+    expect(CATALOG.find((e) => e.id === "pads")!.modes.map((m) => m.id)).toEqual([
+      "rudiment",
+      "groove",
+    ]);
+  });
+
+  it("uses ear.* exercise ids and every exercise id the learning paths name", () => {
+    const ids = new Set(
+      CATALOG.flatMap((e) => [e.exerciseId, ...e.modes.map((m) => m.exerciseId)]),
+    );
+    for (const e of CATALOG.filter((x) => x.id.startsWith("ear-")))
+      expect(e.exerciseId).toMatch(/^ear\./);
+    const pathIds = [
+      ...Object.values(LEARNING_PATHS.paths).flatMap((p) =>
+        p.steps.flatMap((s) => s.exerciseIds ?? []),
+      ),
+      ...EAR_PATH.steps.flatMap((s) => s.exerciseIds ?? []),
+    ];
+    for (const id of pathIds) {
+      const covered = ids.has(id) || RHYTHM_PATTERNS.some((p) => rhythmExerciseId(p.id) === id);
+      expect(covered, id).toBe(true);
+    }
+    expect(exerciseIdFor("technique.guitar.chord-perfect", "ukulele")).toBe(
+      "technique.ukulele.chord-perfect",
+    );
+  });
+});
+
+describe("skill ids", () => {
+  it("only emits ids that exist in the seed graph", () => {
+    const r = rng(1);
+    const std = tuningById("guitar.standard")!;
+    const emitted = [
+      ...CATALOG.flatMap((e) => [...e.skillIds, ...e.modes.flatMap((m) => m.skillIds)]),
+      ...EAR_DRILLS.flatMap((d) => d.skillIds),
+      ...EAR_PATH.steps.flatMap((s) => s.skillIds ?? []),
+      ...INTERVALS.flatMap((i) => intervalPrompt(r, { difficulty: 0.5, token: i.token }).skillIds),
+      ...CADENCES_AND_QUALITIES.chordQualities.flatMap(
+        (q) => chordQualityPrompt(r, { difficulty: 1, token: q.token }).skillIds,
+      ),
+      ...CADENCES_AND_QUALITIES.cadences.flatMap(
+        (c) => cadencePrompt(r, { difficulty: 0.5, token: c.token }).skillIds,
+      ),
+      ...SCALE_DEGREE_LEVELS.flatMap((l) =>
+        l.degrees.flatMap((d) => [
+          ...scaleDegreePrompt(r, { difficulty: 0.5, level: l.id, degree: d }).skillIds,
+          ...melodyDictationPrompt(r, { difficulty: 0.9, level: l.id, degree: d }).skillIds,
+        ]),
+      ),
+      ...(["major", "minor", "altered"] as const).flatMap((v) =>
+        voicingTargets({ variant: v }).flatMap((t) => t.skillIds),
+      ),
+      ...voiceLeadingTargets().flatMap((t) => t.skillIds),
+      ...(Object.keys(CHORD_SCALE_CHANGES) as ("major" | "minor")[]).flatMap((c) =>
+        chordScaleTargets(c).flatMap((t) => t.skillIds),
+      ),
+      ...LICK_CATEGORIES.flatMap(lickSkills),
+      ...TWO_HAND.options.flatMap((o) => twoHandSkills(o.id)),
+      ...RHYTHM_PATTERNS.flatMap((p) => rhythmSkills(p.id)),
+      ...rhythmSkills("pulse"),
+      ...(
+        Object.keys(SCALE_DATA.semitonesByKind) as (keyof typeof SCALE_DATA.semitonesByKind)[]
+      ).flatMap(scaleSkills),
+      ...(["guitar", "ukulele"] as const).flatMap((i) =>
+        (["build", "pick", "strum", "changes"] as const).flatMap((m) => chordShapeSkills(i, m)),
+      ),
+      ...RECALL_INTERVALS.flatMap(
+        (i) => intervalRecallPrompt(r, { tuning: std, region: 0, semitones: i.semitones }).skillIds,
+      ),
+      ...AEROPHONE_MODES.flatMap((m) => aerophoneSkills(m.id)),
+      ...RUDIMENTS.flatMap((p) => rudimentSkills(p.id)),
+      ...GROOVES.flatMap((g) => grooveSkills(g.value)),
+      ...(["treble", "bass"] as const).flatMap((clef) => [
+        ...flashcardPrompt(r, {
+          kind: "note",
+          clefs: [clef],
+          key: "C major",
+          range: [43, 84],
+          difficulty: 0.5,
+        }).skillIds,
+        ...flashcardPrompt(r, {
+          kind: "chord",
+          clefs: [clef],
+          key: "C major",
+          range: [43, 84],
+          difficulty: 0.5,
+        }).skillIds,
+      ]),
+      ...sightReadingSkills(
+        sightReadingScore(r, {
+          level: "level-3",
+          instrument: "piano",
+          clefs: ["treble", "bass"],
+          measures: 2,
+          meter: "compound",
+          bpm: 90,
+        }),
+      ),
+    ];
+    const unknown = [...new Set(emitted)].filter((id) => !SKILL_IDS.has(id));
+    expect(unknown).toEqual([]);
+    expect(CHORD_SHAPES.length).toBe(16);
+  });
+});

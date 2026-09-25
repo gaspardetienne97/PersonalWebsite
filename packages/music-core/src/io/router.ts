@@ -68,13 +68,11 @@ export function createInputRouter(options: RouterOptions = {}): InputRouter {
   };
 
   function offsetFor(event: InputEvent): number {
-    const source =
-      event.kind === "cc" || event.kind === "pitchbend" || event.kind === "pressure"
-        ? "midi"
-        : event.source;
+    const source = "source" in event ? event.source : "midi";
     if (source === "audio") return bound(offsets.audioMs);
     if (source !== "midi") return 0;
-    const dev = event.deviceId ? offsets.deviceMs[event.deviceId] : undefined;
+    const deviceId = "deviceId" in event ? event.deviceId : undefined;
+    const dev = deviceId ? offsets.deviceMs[deviceId] : undefined;
     return bound(dev ?? offsets.midiMs);
   }
 

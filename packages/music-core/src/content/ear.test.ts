@@ -1,0 +1,239 @@
+import { describe, expect, it } from "vitest";
+import type { Score, ScoreNote } from "../types";
+import {
+  cadencePrompt,
+  chordQualityPrompt,
+  degreeLabel,
+  EAR_DRILLS,
+  EAR_PATH,
+  intervalPrompt,
+  melodyDictationPrompt,
+  phrasesFromScore,
+  rankPhrases,
+  repertoirePlan,
+  repertoirePrompt,
+  SCALE_DEGREE_LEVELS,
+  SCALE_DEGREES,
+  scaleContext,
+  scaleDegreePrompt,
+} from "./ear";
+import { rng } from "./random";
+
+const seeds = (n: number) => Array.from({ length: n }, (_, i) => rng(i + 1));
+
+describe("seeded randomness", () => {
+  it("is reproducible and in [0, 1)", () => {
+    const a = rng(42);
+    const b = rng(42);
+    const xs = Array.from({ length: 50 }, () => a());
+    expect(xs).toEqual(Array.from({ length: 50 }, () => b()));
+    expect(xs.every((x) => x >= 0 && x < 1)).toBe(true);
+    expect(rng(1)()).not.toBe(rng(2)());
+  });
+});
+
+describe("interval prompts", () => {
+  it("is ascending only below difficulty 0.4, root 48..60, 0.65 s apart, 0.55 s each", () => {
+    for (const r of seeds(200)) {
+      const p = intervalPrompt(r, { difficulty: 0.39 });
+      expect(p.direction).toBe("ascending");
+      expect(p.expectedMidi![0]).toBeGreaterThanOrEqual(48);
+      expect(p.expectedMidi![0]).toBeLessThanOrEqual(60);
+      expect(p.playback).toEqual([
+        { midi: [p.expectedMidi![0]], time: 0, duration: 0.55 },
+        { midi: [p.expectedMidi![1]], time: 0.65, duration: 0.55 },
+      ]);
+      expect(p.skillIds).toEqual(["pitch.intervals", `pitch.interval.${p.answer}`]);
+      expect(p.choices).toHaveLength(12);
+    }
+  });
+
+  it("splits 60/30/10 above 0.4 and plays harmonic for 0.8 s", () => {
+    const r = rng(7);
+    const counts = { ascending: 0, descending: 0, harmonic: 0 };
+    for (let i = 0; i < 4000; i++) counts[intervalPrompt(r, { difficulty: 0.5 }).direction]++;
+    expect(counts.ascending / 4000).toBeCloseTo(0.6, 1);
+    expect(counts.descending / 4000).toBeCloseTo(0.3, 1);
+    expect(counts.harmonic / 4000).toBeCloseTo(0.1, 1);
+    let harmonic;
+    for (let s = 1; !harmonic; s++) {
+      const p = intervalPrompt(rng(s), { difficulty: 0.9, token: "P5" });
+      if (p.direction === "harmonic") harmonic = p;
+    }
+    expect(harmonic.playback).toHaveLength(1);
+    expect(harmonic.playback[0].duration).toBe(0.8);
+    expect(harmonic.playback[0].midi[1] - harmonic.playback[0].midi[0]).toBe(7);
+  });
+});
+
+describe("chord quality prompts", () => {
+  it("offers only the four triads below 0.65, all nine above", () => {
+    for (const r of seeds(100)) {
+      const easy = chordQualityPrompt(r, { difficulty: 0.64 });
+      expect(easy.choices).toEqual(["major", "minor", "diminished", "augmented"]);
+      expect(easy.choices).toContain(easy.answer);
+      expect(easy.playback[0].duration).toBe(0.9);
+      expect(easy.playback[0].midi[0]).toBeGreaterThanOrEqual(48);
+      expect(easy.playback[0].midi[0]).toBeLessThanOrEqual(60);
+    }
+    const hard = chordQualityPrompt(rng(3), { difficulty: 0.65, token: "half-diminished-7" });
+    expect(hard.choices).toHaveLength(9);
+    expect(hard.skillIds).toEqual(["harmony.sevenths", "harmony.seventh.half-diminished"]);
+  });
+});
+
+describe("cadence prompts", () => {
+  it("plays the data's two chords transposed by -5..+6", () => {
+    const shifts = new Set<number>();
+    for (const r of seeds(400)) {
+      const p = cadencePrompt(r, { difficulty: 0.5, token: "plagal" });
+      const shift = p.playback[1].midi[0] - 48;
+      shifts.add(shift);
+      expect(p.playback).toEqual([
+        { midi: [53, 57, 60, 65].map((m) => m + shift), time: 0, duration: 1 },
+        { midi: [48, 52, 55, 60].map((m) => m + shift), time: 1.1, duration: 1.2 },
+      ]);
+    }
+    expect([...shifts].sort((a, b) => a - b)).toEqual([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]);
+  });
+});
+
+describe("scale degrees", () => {
+  it("has the six levels and solfege", () => {
+    expect(SCALE_DEGREE_LEVELS.map((l) => `${l.id}:${l.degrees.join(" ")}`)).toEqual([
+      "anchor:1 5",
+      "major-pentachord:1 2 3 4 5",
+      "major-diatonic:1 2 3 4 5 6 7",
+      "minor-diatonic:1 2 b3 4 5 b6 b7",
+      "chromatic-color:1 b2 2 b3 3 4 #4 5 b6 6 b7 7",
+      "full-current:1 b2 2 b3 3 4 #4 5 b6 6 b7 7",
+    ]);
+    expect(SCALE_DEGREES.map((d) => d.solfege).join(" ")).toBe(
+      "do ra re me mi fa fi sol le la te ti",
+    );
+    expect(degreeLabel("3", "degree")).toBe("3 / mi");
+    expect(degreeLabel("3", "solfege")).toBe("mi");
+  });
+
+  it("chooses the context by difficulty, chromatic when needed", () => {
+    expect(scaleContext(0.34, 4)).toBe("major");
+    expect(scaleContext(0.2, 3)).toBe("chromatic");
+    expect(scaleContext(0.5, 3)).toBe("natural-minor");
+    expect(scaleContext(0.7, 11)).toBe("harmonic-minor");
+    expect(scaleContext(0.8, 9)).toBe("melodic-minor");
+    expect(scaleContext(0.5, 11)).toBe("chromatic");
+  });
+
+  it("plays the tonic 0.55 s, then the target 0.7 s later for 0.65 s", () => {
+    const p = scaleDegreePrompt(rng(5), { difficulty: 0.2, level: "major-diatonic", degree: "6" });
+    const tonic = p.playback[0].midi[0];
+    expect(p.playback).toEqual([
+      { midi: [tonic], time: 0, duration: 0.55 },
+      { midi: [tonic + 9], time: 0.7, duration: 0.65 },
+    ]);
+    expect(p.choices).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
+    expect(p.skillIds).toEqual(["pitch.scale-degrees", "pitch.scale-degree.6"]);
+  });
+});
+
+describe("melody dictation", () => {
+  it("is 3 notes below 0.65 starting on the target", () => {
+    for (const r of seeds(50)) {
+      const p = melodyDictationPrompt(r, { difficulty: 0.5, level: "major-diatonic", degree: "3" });
+      const labels = p.answer.split(" ");
+      expect(labels).toHaveLength(3);
+      expect(labels[0]).toBe("3");
+      expect(p.playback.map((e) => e.time)).toEqual(
+        [0, 0.55, 1.1, 1.65].map((t) => expect.closeTo(t, 9)),
+      );
+    }
+  });
+
+  it("is 4 notes at 0.65+, returning to the target then the tonic", () => {
+    for (const r of seeds(50)) {
+      const p = melodyDictationPrompt(r, { difficulty: 0.7, level: "major-diatonic", degree: "5" });
+      const labels = p.answer.split(" ");
+      expect(labels).toHaveLength(4);
+      expect([labels[0], labels[2], labels[3]]).toEqual(["5", "5", "1"]);
+      const tonic = p.playback[0].midi[0];
+      expect(p.expectedMidi![3]).toBe(tonic);
+    }
+  });
+});
+
+describe("drill definitions and path", () => {
+  it("has 7 drills and the 6-step path on the new routes", () => {
+    expect(EAR_DRILLS.map((d) => d.route)).toEqual(
+      [
+        "intervals",
+        "chord-qualities",
+        "cadences",
+        "scale-degrees",
+        "melody-dictation",
+        "repertoire-transfer",
+        "mixed",
+      ].map((s) => `/music/ear/${s}`),
+    );
+    expect(EAR_PATH.steps).toHaveLength(6);
+    const hrefs = EAR_PATH.steps.flatMap((s) => [s.href, ...(s.links ?? []).map((l) => l.href)]);
+    expect(hrefs.every((h) => h.startsWith("/music/ear/"))).toBe(true);
+    expect(EAR_PATH.steps[0].href).toBe(
+      "/music/ear/scale-degrees?answer=listen-along&level=anchor",
+    );
+  });
+});
+
+describe("repertoire transfer", () => {
+  const g = (midi: number, startBeat: number): ScoreNote => ({ midi, startBeat, durationBeats: 1 });
+  // G major: G A B C | D E F# G | A (third phrase would be 1 note, dropped). A tie continuation is skipped.
+  const score: Score = {
+    id: "song-1",
+    title: "Test tune",
+    bpm: 90,
+    meter: { beats: 4, beatUnit: 4 },
+    keyFifths: 1,
+    keyMode: "major",
+    voices: [
+      {
+        id: "v",
+        name: "Melody",
+        notes: [67, 69, 71, 72, 74, 76, 78, 79, 81]
+          .map((m, i) => g(m, i))
+          .concat([{ ...g(81, 9), tieFrom: true }]),
+      },
+      { id: "bass", name: "Bass", notes: [g(43, 0), g(50, 4)] },
+    ],
+    lengthBeats: 12,
+  };
+
+  it("lifts phrases and maps them to degrees of the score key", () => {
+    const phrases = phrasesFromScore(score);
+    expect(phrases.map((p) => p.degrees.join(" "))).toEqual(["1 2 3 4", "5 6 7 1"]);
+    expect(phrases[0].tonicMidi).toBe(67);
+    expect(phrases[1].tonicMidi).toBe(67);
+    expect(phrases[0].difficulty).toBeCloseTo((5 / 12 + 2 / 12 + 0) / 3);
+  });
+
+  it("ranks by weakest degree, tags new/due/strong, and plans blocks", () => {
+    const phrases = phrasesFromScore(score);
+    const known: Record<string, { mastery: number; due: boolean }> = {
+      "pitch.scale-degree.1": { mastery: 0.9, due: false },
+      "pitch.scale-degree.2": { mastery: 0.9, due: false },
+      "pitch.scale-degree.3": { mastery: 0.9, due: false },
+      "pitch.scale-degree.4": { mastery: 0.8, due: false },
+    };
+    const ranked = rankPhrases(phrases, (id) => known[id]);
+    expect(ranked.map((p) => p.tag)).toEqual(["new", "strong"]);
+    expect(ranked[0].degrees).toContain("5");
+    const plan = repertoirePlan(ranked);
+    expect(plan.warmup.map((p) => p.id)).toEqual(["song-1:0"]);
+    expect(plan.new.map((p) => p.id)).toEqual(["song-1:4"]);
+    known["pitch.scale-degree.4"] = { mastery: 0.8, due: true };
+    expect(rankPhrases(phrases, (id) => known[id]).find((p) => p.id === "song-1:0")!.tag).toBe(
+      "due",
+    );
+    const prompt = repertoirePrompt(phrases[0]);
+    expect(prompt.expectedMidi).toEqual([67, 69, 71, 72]);
+    expect(prompt.playback[0]).toEqual({ midi: [67], time: 0, duration: 0.5 });
+  });
+});

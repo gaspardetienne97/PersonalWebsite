@@ -1,6 +1,7 @@
 // Shared domain contract for Practice OS. Framework-free: no DOM, no Svelte.
-// Every engine, drill and store speaks these types. Times are milliseconds on
-// the performance clock (performance.now()) unless a name says otherwise.
+// Input events carry performance.now() ms; stored records (ScoringEvent.at,
+// sessions, runs) carry epoch ms (Date.now()). Every
+// engine, drill and store speaks these types.
 
 export type Instrument = "piano" | "guitar" | "ukulele" | "aerophone" | "mpc" | "voice";
 export const INSTRUMENTS: readonly Instrument[] = [
@@ -332,7 +333,6 @@ export interface Settings {
   weeklySessionGoal: number;
   preferredSource: Partial<Record<Instrument, InputSource>>;
   preferredSurface: Partial<Record<Instrument, PreferredSurface>>;
-  streakFreezes: number;
   frozenDays: string[];
   feedbackStyle: "every-note" | "summary";
 }
@@ -361,7 +361,6 @@ export const DEFAULT_SETTINGS: Settings = {
   weeklySessionGoal: 4,
   preferredSource: {},
   preferredSurface: {},
-  streakFreezes: 1,
   frozenDays: [],
   feedbackStyle: "every-note",
 };
