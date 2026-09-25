@@ -30,6 +30,8 @@ export interface RudimentResult extends Graded {
   matched: number;
   total: number;
   extra: number;
+  /** Per stroke: the claimed hit's error (positive late) and whether it was the right pad; null when missed. */
+  perStroke: ({ errorMs: number; rightPad: boolean } | null)[];
 }
 
 /**
@@ -38,7 +40,8 @@ export interface RudimentResult extends Graded {
  * claims the nearest hit within half a grid step, right pad first, then any pad.
  * score = pad x 0.45 + timing x 0.3 + velocity x 0.15 + completion x 0.1, where
  * timing = 1 - meanAbsErr/180 and velocity is the in-band fraction with bands,
- * else consistency 1 - 2 x stdev(velocity).
+ * else consistency 1 - 2 x stdev(velocity). Banded patterns need varying MIDI velocity,
+ * or velocity is not measured.
  */
 export function gradeRudiment(input: {
   strokes: readonly { pad: number; offsetMs: number; band?: keyof typeof RUDIMENT_BANDS }[];
@@ -72,7 +75,11 @@ export function gradeRudiment(input: {
   const pad = total ? right.claims.filter(Boolean).length / total : 0;
   const completion = total ? matched / total : 0;
   const banded = input.strokes.some((s) => s.band);
-  const measured = velocityMeasured(hits);
+  // Accents are graded only when MIDI velocity varies: a pad on Full Level sends
+  // one value for every hit, which says nothing about accents.
+  const measured =
+    velocityMeasured(hits) &&
+    (!banded || new Set(hits.map((h) => Math.round(h.velocity * 127))).size > 1);
   const played = targets.flatMap((t, i) =>
     matchedHits[i] ? [{ t, v: matchedHits[i]!.velocity }] : [],
   );
@@ -118,6 +125,9 @@ export function gradeRudiment(input: {
     matched,
     total,
     extra: rest.extras.length,
+    perStroke: targets.map((t, i) =>
+      matchedHits[i] ? { errorMs: matchedHits[i]!.at - t.at, rightPad: !!right.claims[i] } : null,
+    ),
   };
 }
 
@@ -169,6 +179,8 @@ export interface GrooveResult extends Graded {
   ghostRatio: number | null;
   perVoice: (Tally & { voice: string; pad: number; inBand: number | null })[];
   perSection: (Tally & { label: string })[];
+  /** Per target, in input order: the claimed hit's error (positive late), null when missed. */
+  perTarget: (number | null)[];
 }
 
 /** Every groove voice must map to a distinct pad 0..127, or the drill refuses to start. */
@@ -301,6 +313,7 @@ export function gradeGroove(input: GrooveInput): GrooveResult | { error: string 
         inBand: assessable ? targets.filter((_, i) => mine(i) && inBandAt(i)).length : null,
       };
     }),
+    perTarget: claims.map((c) => (c ? c.errorMs : null)),
     perSection: [...new Set(sectionLabels)].map((label) => ({
       label,
       ...tally(

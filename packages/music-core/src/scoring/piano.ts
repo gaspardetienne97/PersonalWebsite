@@ -32,6 +32,9 @@ const smallestSpacing = (beats: readonly number[]) => {
 // ---------------------------------------------------------------------------
 // Two-hand independence.
 
+/** Share of shared beats that must land within 40 ms for a together pattern to pass. */
+export const TOGETHER_PASS = 0.8;
+
 export interface TwoHandInput {
   targets: readonly { hand: Hand; midi: number; beat: number }[];
   /** Notes below this are the left hand. */
@@ -156,9 +159,11 @@ export function gradeTwoHand(input: TwoHandInput): TwoHandResult {
           [0.15, dynamics],
         ])
       : pitch * 0.8 + even * 0.2;
+  // Mirror hands (curriculum P1) also asks for 80% of shared beats together when that can be observed.
+  const togetherOk80 = !together || together.count >= TOGETHER_PASS * together.beats;
   return {
     score,
-    correct: score >= 0.9,
+    correct: score >= 0.9 && togetherOk80,
     metrics,
     notMeasured: notMeasured({
       ...(input.dynamics ? { dynamics: velOk } : {}),
@@ -332,7 +337,8 @@ const SWUNG_OFFBEAT = 2 / 3;
 
 export interface CompingResult extends Graded {
   lick: { matched: number; total: number };
-  comp: { matched: number; total: number; extra: number };
+  /** `incomplete`: left-hand hits missing a shell note (they claim nothing). */
+  comp: { matched: number; total: number; extra: number; incomplete: number };
   extra: number;
   meanAbsErrorMs: number;
   windowMs: number;
@@ -342,8 +348,11 @@ export interface CompingResult extends Graded {
  * Lick notes (octave-exact) and left-hand hits, each claiming inside
  * matchWindowMs(beat, 0.5, strictness). With swing, an off-beat eighth may land
  * anywhere from straight (0.5) to swung (0.67) with zero error.
+ * With `shellMidi`, a left-hand hit counts only when every shell pitch class is in
+ * it (curriculum P3: "both shell notes present").
  * score = completion x 0.7 + timing credit x 0.3; correct when every lick note
- * and every comp hit landed.
+ * and every comp hit landed and the left hand added nothing (an extra LH onset,
+ * e.g. on beat 3, breaks the Charleston).
  */
 export function gradeComping(input: {
   lick: readonly { midi: number; startBeat: number }[];
@@ -354,6 +363,7 @@ export function gradeComping(input: {
   beatMs: number;
   startAt: number;
   strictness: Strictness;
+  shellMidi?: readonly number[];
   notes: readonly NoteEvent[];
 }): CompingResult {
   const { beatMs, startAt } = input;
@@ -364,10 +374,15 @@ export function gradeComping(input: {
   const split = Math.min(...input.lick.map((n) => n.midi));
   const ons = noteOns(input.notes);
   const rh = ons.filter((n) => n.midi >= split);
-  const lhHits = clusterByGap(
+  const shellPcs = input.shellMidi?.map(pc) ?? [];
+  const clusters = clusterByGap(
     ons.filter((n) => n.midi < split),
     COMP_CHORD_GAP_MS,
-  ).map((c) => ({ at: c.start }));
+  );
+  const complete = (c: { midis: number[] }) =>
+    shellPcs.every((p) => c.midis.some((m) => pc(m) === p));
+  const lhHits = clusters.filter(complete).map((c) => ({ at: c.start }));
+  const incomplete = clusters.length - lhHits.length;
 
   const lickTargets = input.lick.map((n) => ({ ...target(n.startBeat), midi: n.midi }));
   const compTargets = Array.from({ length: input.bars }, (_, bar) =>
@@ -384,7 +399,7 @@ export function gradeComping(input: {
   const score = completion * 0.7 + timing * 0.3;
   return {
     score,
-    correct: total > 0 && errors.length === total,
+    correct: total > 0 && errors.length === total && comp.extras.length === 0 && incomplete === 0,
     metrics: [
       ...lickTargets.map((t, i) => ({
         kind: "pitch" as const,
@@ -409,7 +424,12 @@ export function gradeComping(input: {
     ],
     notMeasured: [],
     lick: { matched: lickMatched, total: lickTargets.length },
-    comp: { matched: compMatched, total: compTargets.length, extra: comp.extras.length },
+    comp: {
+      matched: compMatched,
+      total: compTargets.length,
+      extra: comp.extras.length,
+      incomplete,
+    },
     extra: lick.extras.length + comp.extras.length,
     meanAbsErrorMs: mean(errors.map(Math.abs)),
     windowMs,
@@ -526,9 +546,12 @@ export function gradeChordScales(
   }[],
 ): ChordScaleResult {
   const rows = chords.map((c) => {
-    const chord = c.played.filter((m) => c.chordPcs.includes(pc(m))).length;
+    // Accept MIDI notes or pitch classes for the chord and the scale.
+    const chordPcs = pcSet(c.chordPcs);
+    const scalePcs = pcSet(c.scalePcs);
+    const chord = c.played.filter((m) => chordPcs.includes(pc(m))).length;
     const scale = c.played.filter(
-      (m) => !c.chordPcs.includes(pc(m)) && c.scalePcs.includes(pc(m)),
+      (m) => !chordPcs.includes(pc(m)) && scalePcs.includes(pc(m)),
     ).length;
     const avoid = c.played.length - chord - scale;
     return {

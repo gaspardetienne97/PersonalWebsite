@@ -150,7 +150,7 @@ export function createInputRouter(options: RouterOptions = {}): InputRouter {
     releaseAll(source) {
       const sources = source ? [source] : [...holders.keys()];
       for (const s of sources) {
-        for (const midi of [...(holders.get(s) ?? [])]) {
+        for (const midi of Array.from(holders.get(s) ?? [])) {
           push({ kind: "noteoff", midi, velocity: 0, at: now(), source: s, confidence: 1 });
         }
       }

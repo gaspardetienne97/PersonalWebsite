@@ -22,7 +22,8 @@
   function onWindowKey(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
       e.preventDefault();
-      palette.isOpen ? palette.close() : palette.open();
+      if (palette.isOpen) palette.close();
+      else palette.open();
     }
   }
 

@@ -18,6 +18,8 @@ async function load() {
     const stored = await getSetting<Partial<Settings>>(KEY, {});
     // Patches made before the row arrived win over what was stored.
     value = { ...DEFAULT_SETTINGS, ...stored, ...early };
+    // Persist patches made before the row arrived, now merged over what was stored.
+    if (Object.keys(early).length) await putSetting(KEY, value);
   } catch (e) {
     console.error("Woodshed: could not read settings", e);
   }
@@ -31,9 +33,14 @@ export const settings = {
   },
   ready: browser ? load() : Promise.resolve(),
   update(patch: Partial<Settings>): Promise<void> {
-    if (!loaded) Object.assign(early, patch);
     value = { ...value, ...patch };
     applyReduceMotion();
+    // Never write before the stored row is read: a write of defaults-plus-patch
+    // would erase stored fields (midiEnabledBefore, offsets). load() saves it.
+    if (!loaded) {
+      Object.assign(early, patch);
+      return settings.ready;
+    }
     return browser ? putSetting(KEY, value) : Promise.resolve();
   },
 };

@@ -6,7 +6,6 @@
   import { CATALOG, type CatalogEntry } from "@repo/music-core/content/catalog";
   import { INSTRUMENT_LABEL } from "../bench.svelte";
   import { hueForRoute, hueVar } from "../hues";
-  import { registerSearchItems } from "../search";
   import { settings } from "../runtime";
 
   const GROUPS: { title: string; test: (e: CatalogEntry) => boolean }[] = [
@@ -20,7 +19,6 @@
   let filter = $state<Instrument | "all">("all");
   onMount(() => {
     filter = settings.value.activeInstrument;
-    registerSearchItems(CATALOG.map((e) => ({ label: e.title, href: e.route, hint: "Drill", keywords: e.blurb })));
   });
   const visible = (e: CatalogEntry) => filter === "all" || e.instruments.includes(filter);
 </script>

@@ -60,7 +60,7 @@ export type BackupRead<T> =
 
 // Required fields are the Dexie primary key and indexes (§14); the rest are
 // type-checked when present. "?" = may be absent.
-type Kind = "string" | "number" | "boolean" | "array" | "object";
+type Kind = "string" | "number" | "boolean" | "array" | "object" | "key";
 const SCHEMA: Record<BackupTable, { key: string; fields: Record<string, `${Kind}${"" | "?"}`> }> = {
   sessions: {
     key: "id",
@@ -105,7 +105,7 @@ const SCHEMA: Record<BackupTable, { key: string; fields: Record<string, `${Kind}
   },
   skillRelationships: {
     key: "id",
-    fields: { id: "string", from: "string", to: "string", kind: "string" },
+    fields: { id: "key", from: "string", to: "string", kind: "string" },
   },
   chordLibrary: { key: "id", fields: { id: "string", symbol: "string" } },
   songs: {
@@ -179,10 +179,15 @@ function checkTables(
         if (v === undefined || (optional && v === null)) {
           if (!optional)
             errors.push({ path: `${rp}.${field}`, message: `is missing (expected ${want})` });
-        } else if (kindOf(v) !== want) {
+        } else if (
+          want === "key" ? !["string", "number"].includes(kindOf(v)) : kindOf(v) !== want
+        ) {
           errors.push({
             path: `${rp}.${field}`,
-            message: `must be ${want === "array" ? "an" : "a"} ${want}`,
+            message:
+              want === "key"
+                ? "must be a string or number key"
+                : `must be ${want === "array" ? "an" : "a"} ${want}`,
           });
         }
       }

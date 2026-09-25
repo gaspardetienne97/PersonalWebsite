@@ -18,6 +18,7 @@
   import CommandPalette from "$lib/music/components/CommandPalette.svelte";
   import { bench } from "$lib/music/bench.svelte";
   import { audio, input, midi, settings } from "$lib/music/runtime";
+  import { INSTRUMENTS, type Instrument } from "@repo/music-core";
 
   let { children } = $props();
 
@@ -73,6 +74,15 @@
     }
   }
 
+  // Routine and path links carry ?instrument= so the strip lands on the right one.
+  $effect(() => {
+    const want = page.url.searchParams.get("instrument");
+    if (want && (INSTRUMENTS as readonly string[]).includes(want) && !bench.locked)
+      void settings.ready.then(() => {
+        if (settings.value.activeInstrument !== want) void settings.update({ activeInstrument: want as Instrument });
+      });
+  });
+
   // Route-owned playback stops on navigation.
   let lastPath = "";
   $effect(() => {
@@ -84,7 +94,6 @@
   });
 </script>
 
-<svelte:head><title>Woodshed</title></svelte:head>
 
 <div
   class="woodshed flex min-h-[calc(100dvh-3rem)] w-full"

@@ -34,7 +34,8 @@ export interface SequenceNote {
   /** Seconds. */
   duration: number;
   velocity?: number;
-  voice?: "piano" | "drum" | "click";
+  /** "kit" plays the loaded sample kit's pad (synth drum when the pad is empty). */
+  voice?: "piano" | "drum" | "click" | "kit";
 }
 export interface SequenceHandle {
   /** performance.now() time at which `time: 0` sounds. */
@@ -364,6 +365,7 @@ function trigger(
 ) {
   const v = n.velocity ?? 0.8;
   if (n.voice === "drum") drumHit(t, raw, bus, n.midi, v, when);
+  else if (n.voice === "kit") kitHit(t, raw, bus, n.midi, v, when);
   else if (n.voice === "click") clickAt(t, raw, bus, when, v >= 0.9);
   else voice.triggerAttackRelease(mtof(n.midi), Math.max(0.05, n.duration), when, v);
 }
@@ -566,11 +568,21 @@ async function loadKit(k: SampleKit): Promise<{ failed: number[] }> {
 function playKitPad(midi: number, velocity = 0.8) {
   const t = ready();
   if (!t || !graph) return;
+  kitHit(t, rawCtx(t), graph.playback, midi, velocity, t.immediate());
+}
+
+/** A kit pad at an exact audio time (sequences schedule it ahead); synth drum when the pad has no sample. */
+function kitHit(
+  t: Tone,
+  raw: BaseAudioContext,
+  out: ToneNS.Gain,
+  midi: number,
+  velocity: number,
+  when: number,
+) {
   const pad = kit.get(midi);
   const buffer = pad && (velocity >= HARD_LAYER ? (pad.hard ?? pad.soft) : (pad.soft ?? pad.hard));
-  if (!pad || !buffer) return drum(midi, velocity);
-  const raw = rawCtx(t);
-  const when = t.immediate();
+  if (!pad || !buffer) return drumHit(t, raw, out, midi, velocity, when);
   if (pad.chokeGroup)
     for (const s of kitSources)
       if (s.group === pad.chokeGroup) {
@@ -586,7 +598,7 @@ function playKitPad(midi: number, velocity = 0.8) {
   const g = raw.createGain();
   g.gain.value = Math.max(0.05, velocity);
   src.connect(g);
-  t.connect(g, graph.playback);
+  t.connect(g, out);
   src.start(when);
   const entry = { src, g, group: pad.chokeGroup };
   kitSources.push(entry);

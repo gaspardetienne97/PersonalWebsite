@@ -76,7 +76,8 @@
     if (!interactive || (e.key !== "Enter" && e.key !== " ")) return;
     e.preventDefault();
     if (isDown && e.repeat) return;
-    isDown ? down(s, f) : up(s, f);
+    if (isDown) down(s, f);
+    else up(s, f);
   }
 
   const heldHere = (s: number, f: number) =>

@@ -1,0 +1,364 @@
+<script lang="ts">
+  // Audio takes from the microphone. The mic starts only when armed, stops on
+  // leaving; takes go to OPFS (music-take-<id>) with a row in db.audioTakes.
+  // Playback gain never rewrites the recording.
+  import { onDestroy, onMount } from "svelte";
+  import Play from "lucide-svelte/icons/play";
+  import Square from "lucide-svelte/icons/square";
+  import Mic from "lucide-svelte/icons/mic";
+  import Download from "lucide-svelte/icons/download";
+  import Trash from "lucide-svelte/icons/trash-2";
+  import { LEVEL_FLOOR_DB } from "@repo/music-core/signal/level";
+  import { btn } from "$lib/music/components/ui";
+  import { audio, db, deleteBinary, getBinary, mic, putBinary, settings, type AudioTakeRow, type SequenceHandle } from "$lib/music/runtime";
+  import RecordButton from "./RecordButton.svelte";
+  import { download } from "./files";
+  import { clipWarning, envelope, extensionFor, GAIN_RANGE, peakDbOf, signedDb, takeKey } from "./audioTakes";
+  import { clock, fileStem, takeLength, TAKE_LIMIT_MS } from "$lib/music/takes";
+
+  let { announce }: { announce: (msg: string) => void } = $props();
+
+  type Take = AudioTakeRow & { name: string; durationMs: number; envelope: number[]; mimeType: string; size: number };
+
+  let takes = $state<Take[]>([]);
+  let deviceId = $state(settings.value.audioInputDeviceId ?? "");
+  let recording = $state(false);
+  let elapsed = $state(0);
+  let hold = $state(LEVEL_FLOOR_DB);
+  let unsaved = $state<{ take: Take; blob: Blob; error: string } | null>(null);
+  let player = $state<{ id: string; handle: SequenceHandle } | null>(null);
+  let confirmDelete = $state<string | null>(null);
+
+  let rec: { stop(): Promise<Blob> } | null = null;
+  let t0 = 0;
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let holdAt = 0;
+
+  onMount(() => {
+    void db.audioTakes
+      .orderBy("createdAt")
+      .reverse()
+      .toArray()
+      .then((rows) => (takes = rows.filter((r) => Array.isArray(r.envelope)) as Take[]));
+    void mic.refreshDevices();
+    // Peak hold: the loudest recent peak, released after 1.5 s.
+    let raf = requestAnimationFrame(function step() {
+      const now = performance.now();
+      if (mic.peak >= hold || now - holdAt > 1500) {
+        hold = mic.peak;
+        holdAt = now;
+      }
+      raf = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(raf);
+  });
+
+  async function arm() {
+    if (mic.state === "on") {
+      if (recording) await stopRecording();
+      mic.stop();
+      return announce("Microphone off.");
+    }
+    const ok = await mic.start(deviceId ? { deviceId } : {});
+    announce(ok ? "Microphone on. Check the meter, then record." : mic.error);
+  }
+
+  async function toggle() {
+    if (recording) return stopRecording();
+    if (mic.state !== "on") return;
+    await audio.unlock();
+    stopPlayback();
+    try {
+      rec = mic.record();
+    } catch (e) {
+      return announce((e as Error).message);
+    }
+    t0 = performance.now();
+    elapsed = 0;
+    recording = true;
+    timer = setInterval(() => {
+      elapsed = performance.now() - t0;
+      if (elapsed >= TAKE_LIMIT_MS) void stopRecording("The take reached the 60-minute limit and was saved.");
+    }, 200);
+    announce("Recording from the microphone.");
+  }
+
+  async function stopRecording(reason?: string) {
+    if (!recording || !rec) return;
+    recording = false;
+    clearInterval(timer);
+    const durationMs = Math.round(performance.now() - t0);
+    const blob = await rec.stop();
+    rec = null;
+    let env: number[] = [];
+    try {
+      const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(await blob.arrayBuffer());
+      env = envelope(buf.getChannelData(0));
+    } catch {
+      // Undecodable here (some containers): keep the take, draw a flat line.
+    }
+    const id = crypto.randomUUID();
+    const take: Take = {
+      id,
+      createdAt: Date.now(),
+      name: `Audio take ${takes.length + 1}`,
+      durationMs,
+      envelope: env,
+      mimeType: blob.type || "audio/webm",
+      size: blob.size,
+      gainDb: 0,
+      note: "",
+      instrument: settings.value.activeInstrument,
+    };
+    await save(take, blob, reason);
+  }
+
+  /** OPFS first, then the row, so a row never points at a missing file. */
+  async function save(take: Take, blob: Blob, reason?: string) {
+    try {
+      await putBinary(takeKey(take.id), blob);
+      await db.audioTakes.put(take);
+    } catch (e) {
+      unsaved = { take, blob, error: (e as Error).message };
+      return announce(`The take was recorded but could not be saved: ${(e as Error).message}. It is kept on this page until you retry.`);
+    }
+    unsaved = null;
+    takes = [take, ...takes];
+    announce(reason ?? `Saved ${take.name}, ${takeLength(take.durationMs)}.`);
+  }
+
+  function stopPlayback() {
+    player?.handle.stop();
+    player = null;
+  }
+
+  async function play(take: Take) {
+    if (player?.id === take.id) {
+      stopPlayback();
+      return announce(`Stopped ${take.name}.`);
+    }
+    stopPlayback();
+    await audio.unlock();
+    const blob = await getBinary(takeKey(take.id));
+    if (!blob) return announce(`The file for ${take.name} is missing from this browser's storage.`);
+    try {
+      const handle = await audio.playBlob(blob, take.gainDb ?? 0);
+      player = { id: take.id, handle };
+      announce(`Playing ${take.name} at ${signedDb(take.gainDb ?? 0)}.`);
+      void handle.done.then(() => {
+        if (player?.handle === handle) player = null;
+      });
+    } catch (e) {
+      announce((e as Error).message);
+    }
+  }
+
+  async function patch(take: Take, change: Partial<Take>) {
+    await db.audioTakes.update(take.id, change);
+    takes = takes.map((t) => (t.id === take.id ? { ...t, ...change } : t));
+  }
+
+  async function downloadTake(take: Take) {
+    const blob = await getBinary(takeKey(take.id));
+    if (!blob) return announce(`The file for ${take.name} is missing.`);
+    const name = `${fileStem(take.name)}.${extensionFor(take.mimeType)}`;
+    download(blob, name);
+    announce(`Downloading ${name}.`);
+  }
+
+  async function remove(take: Take) {
+    if (confirmDelete !== take.id) return void (confirmDelete = take.id);
+    confirmDelete = null;
+    if (player?.id === take.id) stopPlayback();
+    await db.audioTakes.delete(take.id);
+    await deleteBinary(takeKey(take.id)).catch(() => {});
+    takes = takes.filter((t) => t.id !== take.id);
+    announce(`Deleted ${take.name}.`);
+  }
+
+  const pct = (db: number) => Math.max(0, Math.min(100, ((db - LEVEL_FLOOR_DB) / -LEVEL_FLOOR_DB) * 100));
+  const ADVICE: Record<string, string> = {
+    clipping: "the loudest notes distort. Turn the input down or move the mic away.",
+    hot: "fine, but there is little room left for a loud accent.",
+    good: "ready to record.",
+    quiet: "move closer or turn the input up. A quiet take can be lifted on playback, but its noise comes up with it.",
+  };
+  const live = $derived(mic.state === "on");
+
+  onDestroy(() => {
+    if (recording) void stopRecording();
+    stopPlayback();
+    mic.stop();
+  });
+</script>
+
+<section class="stage relative flex flex-col gap-5 overflow-hidden rounded-3xl p-4 sm:p-6" aria-label="Microphone recorder">
+  <div class="flex flex-wrap items-end gap-3">
+    <label class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
+      <span class="text-ws-stage-soft">Input</span>
+      <select
+        class="min-h-11 min-w-0 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-2 text-ws-stage-ink"
+        bind:value={deviceId}
+        disabled={live}
+        onchange={() => {
+          const d = mic.devices.find((x) => x.deviceId === deviceId);
+          void settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: d?.label ?? "Default input" });
+        }}
+      >
+        <option value="">Default input</option>
+        {#each mic.devices as d (d.deviceId)}{#if d.deviceId && d.deviceId !== "default"}<option value={d.deviceId}>{d.label}</option>{/if}{/each}
+      </select>
+    </label>
+    <button type="button" class="flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold {live ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/10 text-ws-stage-ink hover:bg-ws-stage-ink/20'}" aria-pressed={live} onclick={arm}>
+      <Mic class="size-4" aria-hidden="true" />{live ? "Microphone on" : mic.state === "starting" ? "Starting…" : "Arm microphone"}
+    </button>
+  </div>
+
+  {#if mic.state === "denied" || mic.state === "error"}
+    <p class="rounded-xl bg-destructive/15 px-3 py-2 text-sm" role="alert">{mic.error}</p>
+  {/if}
+
+  <div class="flex flex-wrap items-center gap-5">
+    <RecordButton {recording} disabled={!live} onclick={toggle} />
+    <div class="min-w-0 flex-1 basis-64">
+      <p class="tnum font-display text-5xl font-semibold tracking-tight sm:text-6xl">{clock(recording ? elapsed : 0)}</p>
+      <div class="meter mt-2" data-tone={live ? mic.advice?.tone : undefined} aria-hidden="true">
+        <span class="fill" style:width="{live ? pct(mic.peak) : 0}%"></span>
+        <span class="hold" style:left="{live ? pct(hold) : 0}%"></span>
+        {#each [-30, -6, -1] as mark (mark)}<span class="mark" style:left="{pct(mark)}%"></span>{/each}
+      </div>
+      <div class="mt-1 flex justify-between text-[0.7rem] text-ws-stage-soft" aria-hidden="true"><span>−60 dB</span><span>−30</span><span>−6</span><span>0</span></div>
+      <p class="mt-2 text-sm" data-testid="level-advice">
+        {#if live && mic.advice}
+          <strong>{mic.advice.label}</strong>: {ADVICE[mic.advice.tone]} Peak <span class="tnum">{Math.round(mic.peak)}</span> dB.
+        {:else}
+          <span class="text-ws-stage-soft">Arm the microphone to see the input level. Nothing is recorded until you press Record.</span>
+        {/if}
+      </p>
+    </div>
+  </div>
+</section>
+
+{#if unsaved}
+  <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-warn p-4" role="alert">
+    <p class="min-w-0 flex-1 text-sm">"{unsaved.take.name}" is recorded but not saved: {unsaved.error}</p>
+    <button type="button" class={btn} onclick={() => unsaved && save(unsaved.take, unsaved.blob)}>Retry save</button>
+    <button type="button" class={btn} onclick={() => unsaved && download(unsaved.blob, `${fileStem(unsaved.take.name)}.${extensionFor(unsaved.take.mimeType)}`)}>Download instead</button>
+  </div>
+{/if}
+
+<section aria-labelledby="audio-takes" class="flex flex-col gap-3">
+  <h2 id="audio-takes" class="font-display text-2xl font-semibold tracking-tight">Audio takes <span class="tnum text-base font-normal text-ws-soft">{takes.length}</span></h2>
+  {#if takes.length}
+    <ul class="divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
+      {#each takes as take (take.id)}
+        {@const isPlaying = player?.id === take.id}
+        {@const gain = take.gainDb ?? 0}
+        {@const warn = clipWarning(peakDbOf(take.envelope), gain)}
+        <li class="flex flex-col gap-3 p-3 sm:p-4" data-audio-take={take.id}>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-instr text-ws-stage' : 'bg-ws-raised hover:bg-instr-wash'}"
+              aria-label="{isPlaying ? 'Stop' : 'Play'} {take.name}"
+              aria-pressed={isPlaying}
+              onclick={() => play(take)}
+            >
+              {#if isPlaying}<Square class="size-5" aria-hidden="true" />{:else}<Play class="size-5" aria-hidden="true" />{/if}
+            </button>
+            <input
+              class="min-h-11 min-w-0 flex-1 basis-40 rounded-lg border border-transparent bg-transparent px-2 font-display text-lg font-semibold hover:border-ws-line focus:border-ws-line"
+              value={take.name}
+              aria-label="Take name"
+              onchange={(e) => patch(take, { name: e.currentTarget.value.trim() || take.name })}
+            />
+            <span class="tnum text-sm text-ws-soft">{takeLength(take.durationMs)}</span>
+            <button type="button" class="{btn} px-3" onclick={() => downloadTake(take)}><Download class="size-4" aria-hidden="true" />Download</button>
+            <button
+              type="button"
+              class="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm {confirmDelete === take.id ? 'bg-destructive font-semibold text-white' : 'text-ws-soft hover:bg-ws-raised'}"
+              aria-label={confirmDelete === take.id ? `Confirm: delete ${take.name}` : `Delete ${take.name}`}
+              onclick={() => remove(take)}
+              onblur={() => confirmDelete === take.id && (confirmDelete = null)}
+            >
+              <Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? "Delete?" : ""}
+            </button>
+          </div>
+          <svg viewBox="0 0 96 20" preserveAspectRatio="none" class="h-12 w-full rounded-lg bg-ws-stage" aria-hidden="true">
+            {#each take.envelope as p, i (i)}
+              {@const h = Math.min(1, p * 10 ** (gain / 20)) * 9}
+              <rect x={i + 0.15} y={10 - h} width="0.7" height={Math.max(0.2, 2 * h)} fill={p * 10 ** (gain / 20) >= 0.89 ? "var(--destructive)" : "var(--instr)"} />
+            {/each}
+          </svg>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <label class="flex items-center gap-2 text-sm">
+              <span class="text-ws-soft">Playback gain</span>
+              <input
+                type="range"
+                min={GAIN_RANGE.min}
+                max={GAIN_RANGE.max}
+                step="1"
+                value={gain}
+                class="min-h-11 w-40 accent-[var(--instr)]"
+                aria-valuetext={signedDb(gain)}
+                onchange={(e) => patch(take, { gainDb: e.currentTarget.valueAsNumber })}
+              />
+              <span class="tnum w-14 font-semibold">{signedDb(gain)}</span>
+            </label>
+            <input
+              class="min-h-11 min-w-0 flex-1 basis-48 rounded-lg border border-ws-line bg-transparent px-2 text-sm"
+              value={take.note ?? ""}
+              placeholder="Add a note"
+              aria-label="Note for {take.name}"
+              onchange={(e) => patch(take, { note: e.currentTarget.value })}
+            />
+          </div>
+          {#if warn}<p class="text-sm text-warn"><span aria-hidden="true">⚠</span> {warn}</p>{/if}
+        </li>
+      {/each}
+    </ul>
+    <p class="text-sm text-ws-soft">Gain changes only how a take plays back here; the recording itself is never changed.</p>
+  {:else}
+    <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">No audio takes yet. Arm the microphone, then press Record.</p>
+  {/if}
+</section>
+
+<style>
+  .meter {
+    position: relative;
+    height: 0.9rem;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--ws-stage-ink) 10%, transparent);
+    overflow: hidden;
+  }
+  .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 999px;
+    background: var(--success);
+    transition: width 60ms linear;
+  }
+  .meter[data-tone="quiet"] .fill {
+    background: color-mix(in oklch, var(--ws-stage-ink) 45%, transparent);
+  }
+  .meter[data-tone="hot"] .fill {
+    background: var(--warn);
+  }
+  .meter[data-tone="clipping"] .fill {
+    background: var(--destructive);
+  }
+  .hold {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--ws-stage-ink);
+  }
+  .mark {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: color-mix(in oklch, var(--ws-stage-ink) 35%, transparent);
+  }
+</style>

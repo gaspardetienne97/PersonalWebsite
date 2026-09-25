@@ -8,14 +8,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## In progress
 
-Phase 2, drills and hubs (parallel, one agent per area):
-
-- Ear training (7 drills), note reading and sight-reading, rhythm
-- Piano and jazz: two-hand, comping (new route), voicings, licks, chord-scales
-- Guitar and ukulele: fretboard (spider, positions, note finder, interval recall), chords (build, pick, strum and identify, changes), strum a progression
-- MPC pads (rudiments, grooves), Aerophone (4 modes), Connect
-- Library (songs, reference, import, transcribe), Song Studio, Jam, Practice Lab
-- Create (beat grid, sample kits, MPC kit export, piano roll), Record, Tuner, Settings, Guide
+Nothing. The build is complete; what remains is the owner's hardware pass (below).
 
 ## Done
 
@@ -28,11 +21,81 @@ Phase 2, drills and hubs (parallel, one agent per area):
 - Notation: VexFlow staff and tab, waterfall, Aerophone fingering row, one cursor, start/end range selection (16 tests)
 - Shell: layout, practice strip, command palette, focus mode, piano, fretboard, pads, Aerophone keys, drill shell, results, practice recorder
 - Hubs: Today, Drills, Paths, Progress (what next, skills, sessions), Journal
+- Ear training: all seven drills with Choice, Play-back, Voice (sung degrees through the microphone), Pocket recall (self-assessed) and Listen along; balanced and adaptive queues; the degree wheel; free-play warmup that writes nothing; confusion list and a retry schedule
+- Note reading (flashcards by choice or play, wrong answers shown beside the right one, practise-the-missed) and sight-reading (generated staff, one cursor, wait and keep-time modes, hidden-by-default tab for guitar and ukulele, left/right hand labels)
+- Rhythm: pulse (tap button, MIDI, microphone onsets) and read-and-tap for all 11 patterns, with rests, strokes, mutes and chord checks only when pitch was heard
+- Piano and jazz: two-hand (all six patterns, Mirror hands measures together over MIDI), comping (new route: blue third over C7, F7, G7 with a Charleston shell), voicings (major, minor, altered, closest chords, guide-tone voice leading, arpeggio on monophonic), licks (all 31, half speed, chunks, loops, practice window, 12-key transposition, fretboard licks), chord-scales (tone roles on the keys you play)
+- Guitar and ukulele: fretboard (spider with all 24 orders, positions, note finder, interval recall), chords (build, pick, strum and identify, changes with a clock and pair history), strum a progression through the microphone
+- MPC pads (rudiments and grooves, velocity honestly not measured when it can't be, "1 e & a" groove grid, per-voice and per-section results, a status line that says what each hardware note became) and Aerophone (long tone, swell, articulation, interval landing with breath and pitch traces and the fingering)
+- Connect: devices with alias, instrument, channel, Ignore vs Remove, pad maps (presets and Learn pads), live activity, the MPC panel (keep linked, lights, rainbow, frames in hex, a blocker line), routing table, microphone check
+- Library (songs as object cards, the full chord/scale and jazz reference with deep links, import of MIDI/MusicXML/MXL, monophonic transcription with a note editor), Song Studio (voices, range with Start/End handles, wait and performance, 1 to 8 takes, staff/tab/fingering/waterfall views, per-take and per-section results, no mastery for songs), Jam (tone roles on the instrument, drum/chord backing or your own track, chorus reports), Practice Lab (free capture, takes that persist)
+- Create (16-step beat grid, MPC sample kits across banks A to D with velocity layers and choke groups, MPC kit export as ZIP or folder, multitrack piano roll with MIDI and WAV export), Record (MIDI and audio takes, compare, level meter with advice, non-destructive playback gain), Tuner (tune, intonation, drone), Settings (sound, input, tap-along latency calibration, appearance, data backup, full backup, reset), Guide
+- Gates on the final tree: format and lint clean, 503 unit tests in 70 files pass, the production build succeeds and runs from `node build`, and 85 end-to-end tests pass against the production build (every hub and drill route at 375 and 1280 in both themes with no overflow and no console errors, a drill on every instrument with fake Web MIDI or synthetic microphone audio, plus the site's existing specs)
+
+### Known gaps
+
+- `svelte-check` reports `expect.element` as unknown in the browser tests (the existing site Header test has the same error): `vite-plus/test` does not pick up `@vitest/browser`'s matcher typings. The tests run and pass; only the typing is missing.
+- The site's own `Header.svelte` has a pre-existing type error on `DropdownMenu.Root modal`; it was not touched.
+
 - Scales drill, verified in the browser through on-screen input in Practice and Check (clean check: 100%, independent evidence, personal best, ladder)
 
 ## Dropped
 
+- **Microphone input for the guitar licks (30, 31)**: the catalog lists MIDI and on-screen for licks; the fretboard and chord drills own the microphone path.
+- **Synchronised dry audio take in the Practice Lab**: audio recording has its own destination (Record); the Lab keeps the MIDI take.
+- **Pentatonic boxes and CAGED shapes on ukulele**: the shapes are written for six strings with the root on string 6; folding them onto four strings gives wrong notes. The ukulele gets a one-action "Switch to guitar" instead.
+- **A microphone device picker on the Tuner**: the input chosen in Settings is used everywhere.
+- **A separate hint button**: see the Hints decision below.
+- **Chord following through the microphone as mastery evidence**: the Strum drill records a run with no skills until it has been checked on a real guitar (catalog weakness 7).
+
 ## Needs hardware
+
+The owner's checks, grouped by instrument. Everything below passed in the browser with fake MIDI or synthetic audio; none of it has been heard or played on the real thing.
+
+**MPC One+**
+- Connect: pick the Private output, press "Keep linked (init + heartbeat)", then check pads arrive on every drill page and still arrive after a full reload.
+- Which input carries pad notes and which is the control flood: the tests assume notes on Private and ignore Public. If it is the other way round, Ignore the other port on Connect.
+- Whether the loaded program is the Akai Classic map (A01 = 37, A06 = 38) or Chromatic from 36; try "Learn pads" and confirm the select then reads "Learned from this device".
+- "Light pad 1 red" and "Test rainbow" light the real pads, rainbow starting at A01.
+- Full Level on: results say velocity and accents are not measured. Off: moving-accent bands (accent 0.75 to 1, tap 0.25 to 0.70) and groove accents feel fair.
+- Whether the MPC itself is silent in Controller Mode ("Pad sounds" on the Pads page defaults on).
+- The exported kit (`<Kit>-mpc.zip` or a folder) loads on the MPC: program and Samples folder picked up, soft/hard layers switch at velocity 80/81, choke groups cut each other.
+- Beat grid with real pads at 90 to 140 BPM: sample rows stay in time.
+- Background tab for over 5 minutes: Chrome's timer throttling could slow the 1 s heartbeat.
+
+**Piano (MIDI keyboard)**
+- Mirror hands: both hands together reads "together N of 8"; staggering by about 80 ms should not count.
+- Two-hand dynamics: a louder melody hand scores, a flat touch does not.
+- Comping: a struck shell (left-hand notes within 100 ms), and whether the swung and-of-two feels right at 84 to 104 BPM.
+- Strict voicings with sustain pedal or rolled chords (judged 70 ms after all notes are down).
+- Lick timing "on time within min(180 ms, beat/4)" at real tempos.
+- Song Studio performance counts (early, on time, late) look plausible; the wait-mode cursor follows.
+- Record: a real take records the right durations; Save to Song Studio and Open in piano roll look right.
+
+**Guitar and ukulele (microphone)**
+- Tuner: low E2 and A2 read steadily with no octave flips, and the cents agree with a trusted tuner; the nearest-string highlight follows, including high-G ukulele.
+- Spider and Positions by microphone: one note per beat detected cleanly on low strings.
+- Build and Pick by microphone: each plucked string ticks its target; strings left ringing do not add extras.
+- Strum and identify: strum C, G, D, Em, Am, F (and ukulele C, F, G, Am). Watch the chroma threshold 0.5, the -50 dB silence floor and the -45 dB trigger; the chord should be named and all its tones heard.
+- Changes by microphone: one strum reads as one cluster, a 350 ms pause splits chords, changes per minute is plausible.
+- Strum a progression at 96 BPM on G-D-Em-C: how many chords are followed, and whether metronome clicks leak into the mic as onsets.
+- Mic level advice reads "Good level" at normal playing distance; with echo cancellation on and off.
+- The curated chord shapes and higher positions are playable and the finger numbers make sense (catalog weakness 6).
+
+**Aerophone AE-10**
+- CC 2 breath gives sensible steadiness (the x4 knob) and swell shape; articulation note-offs give a sensible sounding fraction for staccato and legato; the interval-landing drone feels right.
+- Fingerings marked best-effort: Bb3, B3, C#4, Eb4, F#4, F#5, G#4, Bb4, C5 (side C).
+- Voicings in arpeggio mode.
+
+**Sound (everything; headless tests cannot hear)**
+- Sampled Piano loads (needs network the first time) and falls back to Warm Synth until then; each of the six sounds; clicks and accents; the three drones stop without a click; the celebration chime.
+- A long song preview never cuts out (compare Sampled Piano and Warm Synth, the old O10), and lit keys stay in step with the sound in every demo.
+- Record: a quiet take lifted +6 to +12 dB is audible (O22) and the clip warning is right; takes play after a reload.
+- Jam: drum and chord balance, and the chord highlight stays in time over several choruses; an imported MP3 backing track plays and loops.
+
+**Calibration and backups**
+- Microphone calibration with real claps or muted strings; per-device offsets on the keyboard, MPC and Aerophone; the output latency Chrome reports (diagnostic only).
+- A full backup restore that includes real takes and kit samples.
 
 ## Decisions made
 
@@ -59,6 +122,7 @@ Phase 2, drills and hubs (parallel, one agent per area):
 
 - **Name**: the app is called **Woodshed** (jazz slang for practising alone). Nav and titles use it; routes stay under `/music`.
 - **Every graded drill has Practice and Check.** Practice shows targets and records `guided`; Check hides targets and hints and records `independent`; a hint in Practice records `hinted`; Demo is never a run. This closes catalog weakness 2, so the `guided-accepted` workaround on path steps is removed (those steps now require independent evidence like every other step).
+- **Hints**: Practice mode is the hint (every target shown, recorded `guided`); Check shows nothing and offers no reveal, so a Check result always means unaided. `hinted` stays in the model for drills with a genuine mid-run reveal; none of the rebuilt drills needed one.
 - **XP**: the catalog formula paid about 18 XP for a wrong answer (open question R31). XP now scales with the work: `round(5 + partialCredit × 35 + difficulty × partialCredit × 20 + improvement × 25)`. A wrong answer earns 5, a perfect hard answer 60 plus improvement. Level stays `floor(xp / 250) + 1`. Mastery is untouched by this.
 - **Tempo ladder**: two consecutive clean runs at or above the current rung promote it (the curriculum's stated rule; the old code promoted on one). Step, base, ceiling and never-drop are unchanged.
 - **Streak**: forgiving by default, one freeze granted per week of practice (cap 2), shown as a week calendar, never a flame that resets.
@@ -74,3 +138,19 @@ Phase 2, drills and hubs (parallel, one agent per area):
 - **Drills**: one shell. Setup collapses to a one-line summary with "Change setup"; the stage shows the target before Start in Practice; Practice and Check are a two-way toggle; "Hear it first" is the demo and is removed in Check; Space starts, Esc stops; one `role=status` line per page. Results lead with one sentence and a big number, then the delta vs the last run with the same setup, a breakdown with "Not measured" rows, XP, the tempo ladder where relevant, and a next step. A clean Check or a personal best gets a bloom and a short chime.
 - **Today**: the set drawn as a strip of blocks sized by minutes and coloured by what you will play, then the numbered steps, one primary Start, and a side column with the streak as a week calendar (freezes shown as dashed), the coach's honest note and today's challenges.
 - **Rendering**: the music app is client-only (`ssr = false` in `src/routes/music/+layout.ts`) because everything it shows lives in IndexedDB.
+
+### Found in the verified data (not changed)
+
+- `jazz.json` `CHORD_SCALE_MAP`: the m7b5 row labelled "Locrian #2" has `scale: "altered"`, a different scale. There is no Locrian #2 kind in `scales.json` to point it at and no drill uses the row, so the reference view shows the label and the data is left as is.
+- `review-21/curriculum.md` P2 says the alternative D4 G4 B4 moves 7 semitones; it moves 6, a tie with B3 D4 G4. Ties go to the lower placement, which gives the table's answer.
+- The skill graph has no ukulele interval-recall skill, so ukulele interval recall records runs without skills and says so.
+
+### Choices made where the context was silent
+
+- Pick mode (Chord-Perfect): one string per click after the count-in, graded on the chord's notes plus evenness.
+- Minor ii-V-i: the iiø7 rootless voicing is b3 b5 b7 1 (a natural 9, E over Dm7b5 in C minor, clashes with the key's Eb).
+- Every rudiment records under `technique.mpc.single-strokes`, because the MPC path's paradiddle and sixteenth steps read that id.
+- Chord-scale drill: G7 in the major set takes the map's go-to, lydian dominant.
+- A beat in every score is a quarter note (6/8 = 3 beats a bar).
+- Aerophone swell shape and smoothness formulas, the intonation trainer's steadiness, and the pulse score's matched/beats factor are documented in their modules as tuning knobs, not measurements.
+

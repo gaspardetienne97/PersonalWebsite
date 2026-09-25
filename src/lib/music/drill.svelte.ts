@@ -25,7 +25,7 @@ export function capture(since = 0, onEvent?: (e: InputEvent) => void): Capture {
     if (e.at < since) return;
     if (e.kind === "noteon" || e.kind === "noteoff") c.notes.push(e);
     else if (e.kind === "onset") c.onsets.push(e);
-    else c.controls.push(e);
+    else c.controls.push(e as ControlEvent);
     onEvent?.(e);
   });
   return c;

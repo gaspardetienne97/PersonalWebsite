@@ -50,6 +50,8 @@ describe("gradeRudiment", () => {
     const wrongPad = play((i) => (i === 3 ? { midi: 36 } : {}));
     const r = gradeRudiment({ strokes, stepMs: 500, anchorAt: 1000, hits: wrongPad });
     expect(r).toMatchObject({ pad: 0.875, completion: 1, correct: true });
+    expect(r.perStroke[3]).toEqual({ errorMs: 0, rightPad: false });
+    expect(r.perStroke[2]).toEqual({ errorMs: 0, rightPad: true });
     expect(r.score).toBeCloseTo(0.45 * 0.875 + 0.3 + 0.15 + 0.1, 10);
   });
 
@@ -84,6 +86,15 @@ describe("gradeRudiment", () => {
     expect(gradeRudiment({ strokes: banded, stepMs: 500, anchorAt: 1000, hits: two }).correct).toBe(
       false,
     );
+  });
+
+  it("bands are not graded when every MIDI hit has the same velocity (Full Level)", () => {
+    const banded = strokes.map((s, i) => ({
+      ...s,
+      band: i % 2 ? ("tap" as const) : ("accent" as const),
+    }));
+    const r = gradeRudiment({ strokes: banded, stepMs: 500, anchorAt: 1000, hits: play() });
+    expect(r).toMatchObject({ velocity: null, notMeasured: ["velocity"], score: 1, correct: true });
   });
 
   it("an incomplete or empty run is not correct", () => {
@@ -127,7 +138,11 @@ describe("gradeGroove", () => {
     expect(grooveCaptureEnd(1500, 500, 1200)).toBe(1562.5);
     expect(grooveCaptureEnd(1500, 500, 2000)).toBe(2000);
     const lateLast = play(g.targets).map((h, i) => (i === 3 ? { ...h, at: h.at + 60 } : h));
-    expect((gradeGroove({ ...base, ...g, hits: lateLast }) as GrooveResult).matched).toBe(4);
+    const late = gradeGroove({ ...base, ...g, hits: lateLast }) as GrooveResult;
+    expect(late.matched).toBe(4);
+    expect(late.perTarget).toEqual([0, 0, 0, 60]);
+    const missing = gradeGroove({ ...base, ...g, hits: play(g.targets).slice(1) }) as GrooveResult;
+    expect(missing.perTarget[0]).toBeNull();
   });
 
   it("accuracy = matched / (targets + extras); extras and misses are separate", () => {

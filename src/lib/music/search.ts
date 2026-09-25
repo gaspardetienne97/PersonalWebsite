@@ -1,4 +1,6 @@
-// The flat index behind the command palette.
+// The flat index behind the command palette: pages, every drill, every path.
+import { CATALOG } from "@repo/music-core/content/catalog";
+import { LEARNING_PATHS } from "@repo/music-core/progress/paths";
 export interface SearchItem {
   label: string;
   href: string;
@@ -48,14 +50,27 @@ const PAGES: SearchItem[] = [
   { label: "Guide", href: "/music/guide", hint: "How it works", keywords: "help" },
 ];
 
+const DRILLS: SearchItem[] = CATALOG.map((e) => ({
+  label: e.title,
+  href: e.route,
+  hint: "Drill",
+  keywords: e.blurb,
+}));
+const PATHS: SearchItem[] = Object.values(LEARNING_PATHS).map((p) => ({
+  label: p.title,
+  href: "/music?tab=paths",
+  hint: "Path",
+  keywords: p.subtitle,
+}));
+
 let extra: SearchItem[] = [];
 /** Drills, paths and songs register themselves once their data loads. */
 export function registerSearchItems(items: SearchItem[]) {
-  const seen = new Set(PAGES.map((p) => p.href));
+  const seen = new Set([...PAGES, ...DRILLS].map((p) => p.href));
   extra = [
     ...extra.filter((e) => !items.some((i) => i.href === e.href)),
     ...items.filter((i) => !seen.has(i.href)),
   ];
 }
 
-export const searchIndex = (): SearchItem[] => [...PAGES, ...extra];
+export const searchIndex = (): SearchItem[] => [...PAGES, ...DRILLS, ...PATHS, ...extra];

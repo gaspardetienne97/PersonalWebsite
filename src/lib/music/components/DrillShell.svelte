@@ -24,6 +24,8 @@
   import Settings2 from "lucide-svelte/icons/sliders-horizontal";
   import { bench, type Hue } from "../bench.svelte";
   import { audio, input, settings } from "../runtime";
+  import { page } from "$app/state";
+  import { CATALOG } from "@repo/music-core/content/catalog";
 
   interface Props {
     title: string;
@@ -36,7 +38,8 @@
     /** Drills with no hidden-target variant (free play) set this false. */
     checkable?: boolean;
     status?: string;
-    progress?: number;
+    /** 0..1; omit for open-ended runs (no bar is drawn). */
+    progress?: number | null;
     /** Run a metronome clock with the bench count-in; omit for untimed drills. */
     clock?: { bpm: number; beatsPerBar: number } | null;
     setup?: Snippet;
@@ -49,6 +52,8 @@
     onstart: (ctx: RunContext) => void | Promise<void>;
     onstop?: () => void;
     startLabel?: string;
+    /** What Practice and Check mean for this drill, shown beside the setup line. */
+    modeNotes?: { practice: string; check: string };
     /** Disable Start with a reason (e.g. microphone needed). */
     blocked?: string | null;
   }
@@ -62,7 +67,7 @@
     mode = $bindable("practice"),
     checkable = true,
     status = $bindable(""),
-    progress = 0,
+    progress = null,
     clock = null,
     setup,
     stage,
@@ -75,12 +80,24 @@
     onstop,
     startLabel = "Start",
     blocked = null,
+    modeNotes = { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
   }: Props = $props();
 
   let setupOpen = $state(false);
   let clockHandle: { stop(): void } | null = null;
   let heading: HTMLElement | undefined = $state();
   let resultsHeading: HTMLElement | undefined = $state();
+
+  // A drill for one family of instruments switches the practice strip to it, so
+  // the strip, the stage and the recorded instrument agree (Pads shows MPC).
+  $effect(() => {
+    const entry = CATALOG.find((e) => page.url.pathname === e.route.split("?")[0]);
+    const ok = entry?.instruments;
+    void settings.ready.then(() => {
+      if (ok?.length && !bench.locked && !ok.includes(settings.value.activeInstrument))
+        void settings.update({ activeInstrument: ok[0] });
+    });
+  });
 
   $effect(() => {
     bench.hue = hue;
@@ -210,10 +227,10 @@
     </header>
 
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-ws-line bg-ws-surface px-4 py-2">
-      <p class="min-w-0 flex-1 text-sm"><span class="text-ws-soft">Setup:</span> <span class="font-medium">{summary}</span></p>
+      <p class="min-w-0 flex-1 basis-full text-sm sm:basis-0"><span class="text-ws-soft">Setup:</span> <span class="font-medium">{summary}</span></p>
       {#if checkable}
         <p class="text-sm text-ws-soft">
-          {mode === "check" ? "Targets hidden. Counts toward mastery." : "Targets shown. Practice, not a test."}
+          {mode === "check" ? modeNotes.check : modeNotes.practice}
         </p>
       {/if}
       {#if setup}
@@ -257,9 +274,9 @@
         <p class="min-w-0 flex-1 truncate font-display text-lg font-semibold">{title}</p>
         {#if checkable}<span class="rounded-full border border-ws-stage-ink/20 px-3 py-1 text-xs">{mode === "check" ? "Check" : "Practice"}</span>{/if}
       </div>
-      <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
+      {#if progress !== null}<div class="mb-3 h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
         <div class="h-full rounded-full bg-instr transition-[width]" style:width="{progress * 100}%"></div>
-      </div>
+      </div>{/if}
     {/if}
     {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored.</p>{/if}
     {#if hud}<div class="mb-3 flex flex-wrap gap-2">{@render hud()}</div>{/if}

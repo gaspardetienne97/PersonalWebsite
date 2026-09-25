@@ -1,0 +1,313 @@
+// Library (songs, reference, import), Song Studio, Jam and the Practice Lab:
+// each route loads without sideways scroll, imports land in Songs, Song Studio
+// runs wait and performance passes over fake MIDI, views survive reload and
+// Back, Jam reports on a chorus, and a Lab take survives a reload.
+import { expect, test, type Page } from "@playwright/test";
+import { PORTS, expectNoHorizontalOverflow, installFakeMidi } from "./fixtures";
+
+const SHOTS = "docs/screenshots/rebuild/library-studio";
+const ODE = "e2e/music/fixtures/ode-to-joy.musicxml";
+// Ode to Joy, bars 1 to 4, one note per group.
+const ODE_NOTES = [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62];
+
+async function seedSettings(page: Page, patch: Record<string, unknown>) {
+  await page.goto("/music");
+  await page.waitForLoadState("networkidle");
+  for (let i = 0; ; i++) {
+    try {
+      await page.evaluate(
+        (patch) =>
+          new Promise<void>((resolve, reject) => {
+            const open = indexedDB.open("woodshed");
+            open.onerror = () => reject(open.error);
+            open.onsuccess = () => {
+              const tx = open.result.transaction("settings", "readwrite");
+              const store = tx.objectStore("settings");
+              const get = store.get("music.settings");
+              get.onsuccess = () =>
+                store.put({
+                  id: "music.settings",
+                  value: { ...get.result?.value, ...patch },
+                });
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error);
+            };
+          }),
+        patch,
+      );
+      return;
+    } catch (e) {
+      if (i >= 3) throw e;
+      await page.waitForLoadState("networkidle");
+    }
+  }
+}
+
+type Step = { at: number; notes: number[]; hold?: number };
+async function play(page: Page, steps: Step[]) {
+  await page.evaluate(
+    ({ steps, port }) =>
+      new Promise<void>((resolve) => {
+        const midi = (window as any).__midi;
+        let left = steps.length;
+        for (const s of steps)
+          setTimeout(() => {
+            for (const n of s.notes) midi.send(port, [0x90, n, 96]);
+            setTimeout(() => {
+              for (const n of s.notes) midi.send(port, [0x80, n, 0]);
+              if (--left === 0) resolve();
+            }, s.hold ?? 120);
+          }, s.at);
+      }),
+    { steps, port: PORTS.keys.id },
+  );
+}
+
+async function shoot(page: Page, name: string) {
+  const w = page.viewportSize()!.width;
+  await page.screenshot({ path: `${SHOTS}/${name}-${w}-light.png`, fullPage: true });
+  await page.evaluate(() => document.documentElement.classList.add("dark"));
+  await page.screenshot({ path: `${SHOTS}/${name}-${w}-dark.png`, fullPage: true });
+  await page.evaluate(() => document.documentElement.classList.remove("dark"));
+}
+
+async function importOde(page: Page) {
+  await page.goto("/music/library?tab=import");
+  await page.getByLabel("Score file").setInputFiles(ODE);
+  await expect(page.getByRole("heading", { name: "Preview" })).toBeVisible();
+  await page.getByRole("button", { name: "Save to songs" }).click();
+  await expect(page.getByText("Ode to Joy is in your songs.")).toBeVisible();
+}
+
+async function openOde(page: Page, query = "") {
+  await page.goto("/music/library");
+  await page
+    .getByRole("link", { name: /Ode to Joy/ })
+    .first()
+    .click();
+  await expect(page.getByRole("heading", { level: 1, name: "Ode to Joy" })).toBeVisible();
+  if (query) {
+    await page.goto(page.url().split("?")[0] + query);
+    await expect(page.getByRole("heading", { level: 1, name: "Ode to Joy" })).toBeVisible();
+  }
+}
+
+test.describe("library and song studio", () => {
+  test.beforeEach(async ({ page }) => {
+    await installFakeMidi(page, [PORTS.keys]);
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await seedSettings(page, {
+      midiEnabledBefore: true,
+      activeInstrument: "piano",
+      countInBars: 1,
+    });
+  });
+
+  test("imports MusicXML and MIDI into Songs, refuses other files", async ({ page }) => {
+    await importOde(page);
+
+    // A four-note MIDI file with no track title (e2e/music/fixtures/low-riff.mid, written with @tonejs/midi).
+    await page.getByLabel("Score file").setInputFiles("e2e/music/fixtures/low-riff.mid");
+    await expect(page.getByRole("heading", { name: "Preview" })).toBeVisible();
+    await expect(page.getByLabel("Title")).toHaveValue("low-riff");
+    await page.getByRole("button", { name: "Save to songs" }).click();
+    await expect(page.getByText("low-riff is in your songs.")).toBeVisible();
+
+    await page
+      .getByLabel("Score file")
+      .setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") });
+    await expect(page.getByRole("alert")).toContainText("not a score this app can read");
+
+    await page.getByRole("link", { name: "Songs", exact: true }).click();
+    await expect(page).toHaveURL(/\/music\/library$/);
+    const songs = page.getByRole("list", { name: "Saved songs" });
+    await expect(songs.getByRole("link", { name: /Ode to Joy/ })).toBeVisible();
+    await expect(songs.getByRole("link", { name: /low-riff/ })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await shoot(page, "songs");
+
+    // Transcribe audio: the editor path, typed by hand.
+    await page.goto("/music/library?tab=import");
+    await page.getByRole("button", { name: "Transcribe audio" }).click();
+    await expect(page.getByText("Monophonic and untuned.")).toBeVisible();
+    await page.getByRole("button", { name: "Type notes by hand instead" }).click();
+    await page.getByRole("button", { name: "Add a note" }).click();
+    await page.getByLabel("Row 2 note").fill("G4");
+    await page.getByLabel("Row 2 note").press("Tab");
+    await expect(page.getByLabel("Row 2 note")).toHaveValue("G4");
+    await shoot(page, "transcribe");
+  });
+
+  test("reference: sections by id, go-to in words, the one keyboard", async ({ page }) => {
+    await page.goto("/music/library?tab=reference&section=chord-scales");
+    await expect(page.getByRole("heading", { name: "Chord-scale map" })).toBeFocused();
+    await expect(page.getByText("Go-to").first()).toBeVisible();
+    await page.getByRole("button", { name: "Show C Dorian for Cm7 on the keyboard" }).click();
+    await expect(page.getByText("C dorian", { exact: true })).toBeVisible();
+    await expect(page.locator('#explorer [data-midi="63"][data-target]')).toHaveCount(1);
+    await page.getByRole("link", { name: "Upper structures" }).click();
+    await expect(page).toHaveURL(/section=upper-structures/);
+    await expect(page.getByRole("heading", { name: "Upper structures over a V7" })).toBeFocused();
+    await expect(
+      page.getByRole("region", { name: "Upper structures table" }).getByText("Favourite").first(),
+    ).toBeVisible();
+    await page.goto("/music/library?tab=reference");
+    await expectNoHorizontalOverflow(page);
+    await shoot(page, "reference");
+  });
+
+  test("song studio: wait pass and a performance take to results", async ({ page }) => {
+    await importOde(page);
+    await openOde(page, "?mode=wait");
+    await expectNoHorizontalOverflow(page);
+    await shoot(page, "studio");
+    await page.getByRole("button", { name: "Start in wait mode" }).click();
+    await expect(page.getByRole("status")).toContainText("Wait mode");
+    // One wrong note first: it flashes and clears; the pass is still completed.
+    await play(page, [
+      { at: 0, notes: [70] },
+      ...ODE_NOTES.map((m, i) => ({ at: 250 + i * 160, notes: [m], hold: 80 })),
+    ]);
+    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
+    await expect(page.getByRole("status")).toContainText("14 of 15 groups clean");
+    await expect(page.getByText("Groups played clean")).toBeVisible();
+    await expect(page.getByRole("list", { name: "Per-take results" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "Per-section results" })).toContainText(
+      "Whole score",
+    );
+    await shoot(page, "studio-wait-results");
+
+    await page.goto(page.url().split("?")[0] + "?mode=performance&bpm=240&takes=1");
+    await expect(page.getByRole("heading", { level: 1, name: "Ode to Joy" })).toBeVisible();
+    await page.getByRole("button", { name: "Start performance" }).click();
+    await expect(page.getByRole("status")).toContainText("Go.", { timeout: 6000 });
+    const beat = 250;
+    const starts = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13.5, 14];
+    await play(
+      page,
+      ODE_NOTES.map((m, i) => ({ at: starts[i] * beat, notes: [m], hold: 100 })),
+    );
+    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 10000 });
+    await expect(page.getByText("Notes matched", { exact: true })).toBeVisible();
+    await expect(page.getByText("Early / on time / late")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Again at 248 BPM" })).toBeVisible();
+    await shoot(page, "studio-performance-results");
+  });
+
+  test("song studio: views survive reload and Back", async ({ page }) => {
+    await importOde(page);
+    await openOde(page);
+    const views = page.getByRole("navigation", { name: "Score view" });
+    await views.getByRole("link", { name: "Tab" }).click();
+    await expect(page).toHaveURL(/view=tab/);
+    await expect(views.getByRole("link", { name: "Tab" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole("navigation", { name: "Score view" }).getByRole("link", { name: "Tab" }),
+    ).toHaveAttribute("aria-current", "page");
+    await page
+      .getByRole("navigation", { name: "Score view" })
+      .getByRole("link", { name: "Waterfall" })
+      .click();
+    await expect(page).toHaveURL(/view=waterfall/);
+    await expect(
+      page.getByRole("group", { name: "Piano keyboard under the waterfall" }),
+    ).toBeVisible();
+    await shoot(page, "studio-waterfall");
+    await page.goBack();
+    await expect(page).toHaveURL(/view=tab/);
+    await expect(
+      page.getByRole("navigation", { name: "Score view" }).getByRole("link", { name: "Tab" }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
+  });
+});
+
+test.describe("jam and lab", () => {
+  test.beforeEach(async ({ page }) => {
+    await installFakeMidi(page, [PORTS.keys]);
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await seedSettings(page, { midiEnabledBefore: true, activeInstrument: "piano" });
+  });
+
+  test("jam: tone roles light, a chorus report, a logged session", async ({ page }) => {
+    await page.goto("/music/jam?progression=pop-axis&backing=none&transpose=0&bpm=92");
+    await expect(page.getByRole("heading", { level: 1, name: "Jam" })).toBeVisible();
+    // Over C: E is a chord tone (filled), D a scale tone, F# an avoid note (dashed).
+    await expect(page.locator('[data-midi="64"][data-role="chord"]')).toHaveCount(1);
+    await expect(page.locator('[data-midi="62"][data-role="scale"]')).toHaveCount(1);
+    await expect(page.locator('[data-midi="66"][data-role="avoid"]')).toHaveCount(1);
+    await shoot(page, "jam");
+    await page.getByRole("button", { name: /^Start jamming/ }).click();
+    await expect(page.getByRole("status")).toContainText("Next chord");
+    await play(page, [{ at: 0, notes: [64] }]);
+    await expect(page.getByTestId("jam-last")).toContainText("chord tone");
+    await play(page, [{ at: 0, notes: [66] }]);
+    await expect(page.getByTestId("jam-last")).toContainText("avoid note");
+    await page.getByRole("button", { name: /^Next chord/ }).click();
+    await expect(page.getByTestId("jam-chord")).toHaveText("G");
+    // Over G, B is the third.
+    await expect(page.locator('[data-midi="71"][data-role="chord"]')).toHaveCount(1);
+    await play(page, [{ at: 0, notes: [71] }]);
+    await expect(page.getByTestId("jam-last")).toContainText("3 of G");
+    for (let i = 0; i < 3; i++) await page.getByRole("button", { name: /^Next chord/ }).click();
+    await expect(page.getByRole("status")).toContainText(
+      "Chorus 1: 3 notes: 2 chord tones, 0 scale tones, 1 avoid note.",
+    );
+    await page.getByRole("button", { name: /^Stop/ }).click();
+    await expect(page.getByRole("list", { name: "Chorus reports" })).toContainText("Chorus 1.");
+    await expect(page.getByRole("status")).toContainText("logged in your journal");
+    await expect(page.getByRole("button", { name: "Hear this chorus" })).toBeVisible();
+    await shoot(page, "jam-results");
+  });
+
+  test("lab: a captured take persists across a reload", async ({ page }) => {
+    await page.goto("/music/lab");
+    await expect(page.getByRole("heading", { level: 1, name: "Practice lab" })).toBeVisible();
+    await page.getByRole("button", { name: /^Start recording/ }).click();
+    await expect(page.getByRole("status")).toContainText("Recording");
+    await play(page, [
+      { at: 0, notes: [60], hold: 300 },
+      { at: 400, notes: [64], hold: 300 },
+      { at: 800, notes: [67], hold: 500 },
+    ]);
+    await expect(page.getByText("Distinct")).toBeVisible();
+    await shoot(page, "lab-running");
+    await page.getByRole("button", { name: /^Stop/ }).click();
+    await expect(page.getByText("Take saved: 3 notes")).toBeVisible();
+    await expect(page.getByRole("status")).toContainText("Logged as free practice");
+    await page.reload();
+    await expect(page.getByRole("list", { name: "Recent takes" })).toContainText("3 notes");
+    await shoot(page, "lab");
+  });
+});
+
+for (const width of [375, 1280]) {
+  test(`routes load without sideways scroll at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/music");
+    await page.waitForLoadState("networkidle");
+    await importOde(page);
+    await page.goto("/music/library");
+    const studio = (await page
+      .getByRole("link", { name: /Ode to Joy/ })
+      .first()
+      .getAttribute("href"))!;
+    for (const [path, h1, name] of [
+      ["/music/library", "Library", "songs"],
+      ["/music/library?tab=reference", "Library", "reference"],
+      ["/music/library?tab=import", "Library", "import"],
+      [studio, "Ode to Joy", "studio"],
+      [`${studio}?view=waterfall`, "Ode to Joy", "studio-waterfall"],
+      ["/music/jam", "Jam", "jam"],
+      ["/music/lab", "Practice lab", "lab"],
+    ] as const) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1, name: h1 })).toBeVisible();
+      await expect(page).toHaveTitle(/\| Woodshed$/);
+      await expectNoHorizontalOverflow(page);
+      if (width === 375) await shoot(page, name);
+    }
+  });
+}

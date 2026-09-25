@@ -50,6 +50,16 @@ describe("gradeTwoHand", () => {
     expect(r.together).toEqual({ count: shared, beats: shared });
   });
 
+  it("mirror hands with every note right but the hands apart is not correct", () => {
+    const p = ex("contrary-five");
+    const notes = play(p.targets).map((n) => (n.midi < p.splitMidi ? { ...n, at: n.at + 80 } : n));
+    const r = gradeTwoHand({ ...p, dynamics: false, beatMs, notes });
+    expect(r.pitch).toBe(1);
+    expect(r.score).toBeGreaterThanOrEqual(0.9);
+    expect(r.together?.count).toBe(0);
+    expect(r.correct).toBe(false);
+  });
+
   it("patterns that do not strike together do not measure it", () => {
     const p = ex("lh-pulse-rh-line");
     const r = gradeTwoHand({ ...p, dynamics: false, beatMs, notes: play(p.targets) });
@@ -206,6 +216,31 @@ describe("comping", () => {
 
   it("an empty run scores 0", () => {
     expect(gradeComping({ ...input, notes: [] }).score).toBe(0);
+  });
+
+  it("with shellMidi, a hit missing a shell note does not count", () => {
+    const notes = perform(0.5).filter((n) => !(n.midi === 58 && n.at < beatMs));
+    const r = gradeComping({ ...input, shellMidi: p.shellMidi, notes });
+    expect(r).toMatchObject({ correct: false, comp: { matched: 3, incomplete: 1 } });
+    expect(gradeComping({ ...input, shellMidi: p.shellMidi, notes: perform(0.5) }).correct).toBe(
+      true,
+    );
+  });
+
+  it("an extra left-hand onset on beat 3 breaks the Charleston", () => {
+    const notes = [...perform(0.5), on(48, 2 * beatMs), on(58, 2 * beatMs + 5)];
+    const r = gradeComping({ ...input, shellMidi: p.shellMidi, notes });
+    expect(r).toMatchObject({ correct: false, comp: { matched: 4, extra: 1 } });
+  });
+});
+
+describe("chord-scales input", () => {
+  it("accepts the scale as MIDI notes as well as pitch classes", () => {
+    const dorian = [62, 64, 65, 67, 69, 71, 72];
+    const r = gradeChordScales([
+      { symbol: "Dm7", chordPcs: [2, 5, 9, 0], scalePcs: dorian, played: [62, 64, 65, 67] },
+    ]);
+    expect(r.chords[0]).toMatchObject({ chord: 2, scale: 2, avoid: 0, score: 1 });
   });
 });
 

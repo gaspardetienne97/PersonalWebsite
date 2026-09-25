@@ -81,7 +81,7 @@
       <span class="size-2.5 rounded-full bg-instr" aria-hidden="true"></span>
       <span class="sr-only">Instrument</span>
       <select
-        class="min-h-9 cursor-pointer appearance-none border-0 bg-transparent py-0 pl-0 pr-6 text-sm font-medium focus:ring-0 disabled:cursor-not-allowed"
+        class="min-h-9 cursor-pointer appearance-none border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium focus:ring-0 disabled:cursor-not-allowed"
         value={s.activeInstrument}
         disabled={bench.locked}
         onchange={(e) => settings.update({ activeInstrument: e.currentTarget.value as Instrument })}

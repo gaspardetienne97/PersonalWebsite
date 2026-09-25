@@ -118,7 +118,11 @@ interface RawStep {
 
 /** P-I4 and P-A1 open the comping route (catalog weakness 3) instead of the two-hand stand-in. */
 const COMPING = (pattern: string) => `/music/comping?pattern=${pattern}&instrument=piano&bpm=90`;
+const REFERENCE = (section: string) => `/music/library?tab=reference&section=${section}`;
 const OVERRIDES: Record<string, Partial<PathStep>> = {
+  "chord-symbols": { href: REFERENCE("vocabulary") },
+  extensions: { href: REFERENCE("vocabulary") },
+  "shell-voicings": { href: REFERENCE("voicings") },
   "P-I4": { kind: "drill", href: COMPING("blue-third-c7") },
   "P-A1": {
     kind: "drill",

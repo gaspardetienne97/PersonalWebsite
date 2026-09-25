@@ -21,6 +21,8 @@
     next?: { label: string; href: string; reason?: string };
     routine?: { label: string; href: string };
     assistance?: string;
+    /** False for runs that write nothing (listen-along, unrecorded strums). */
+    recorded?: boolean;
   }
 </script>
 
@@ -61,7 +63,7 @@
           <span class={summary.delta >= 0 ? "text-success" : "text-ws-soft"}>
             {summary.delta >= 0 ? "+" : ""}{Math.round(summary.delta)} vs last time
           </span>
-        {:else}<span class="text-ws-soft">First run with this setup</span>{/if}
+        {:else if summary.recorded === false}<span class="text-ws-soft">Not recorded</span>{:else}<span class="text-ws-soft">First run with this setup</span>{/if}
         {#if summary.xp}<span class="ml-2 text-ws-soft">+{summary.xp} XP</span>{/if}
       </p>
     </div>

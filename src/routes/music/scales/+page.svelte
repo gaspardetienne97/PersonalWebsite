@@ -31,15 +31,15 @@
   import { audio, settings } from "$lib/music/runtime";
 
   const LADDER_KEY = "technique.tempo-ladder.v1";
-  const setup = new DrillSetup("scales", {
+  const cfg = new DrillSetup("scales", {
     kind: "major" as string,
     tonic: 60,
     span: "one-octave" as string,
     motion: "up-down" as string,
     hands: "right" as string,
-    preset: false,
+    preset: false as boolean,
   });
-  const s = $derived(setup.value);
+  const s = $derived(cfg.value);
   const scaleSetup = $derived({
     kind: s.kind as ScaleKind,
     tonic: s.tonic,
@@ -249,7 +249,7 @@
   const scaleOptions = [...SCALE_GROUPS.modes, ...SCALE_GROUPS.jazz].map((k) => ({ value: k, label: scaleLabel(k) + (SCALE_GROUPS.jazz.includes(k) ? " (jazz)" : "") }));
 </script>
 
-<svelte:head><title>Scales · Woodshed</title></svelte:head>
+<svelte:head><title>Scales | Woodshed</title></svelte:head>
 
 <DrillShell
   title="Scales"
@@ -268,8 +268,8 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="Scale" select options={scaleOptions} value={s.kind} onchange={(v) => setup.set({ kind: v, preset: false })} />
-      <Choice label="Tonic" select options={SCALE_TONICS.map((t) => ({ value: t.midi, label: t.name }))} value={s.tonic} onchange={(v) => setup.set({ tonic: v })} />
+      <Choice label="Scale" select options={scaleOptions} value={s.kind} onchange={(v) => cfg.set({ kind: v, preset: false })} />
+      <Choice label="Tonic" select options={SCALE_TONICS.map((t) => ({ value: t.midi, label: t.name }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
       <Choice
         label="Span"
         options={[
@@ -278,7 +278,7 @@
           { value: "two-octave", label: "Two octaves" },
         ]}
         value={s.span}
-        onchange={(v) => setup.set({ span: v, preset: false })}
+        onchange={(v) => cfg.set({ span: v, preset: false })}
       />
       <Choice
         label="Direction"
@@ -288,7 +288,7 @@
           { value: "up-down", label: "Up and down" },
         ]}
         value={s.motion}
-        onchange={(v) => setup.set({ motion: v, preset: false })}
+        onchange={(v) => cfg.set({ motion: v, preset: false })}
       />
       <Choice
         label="Hands"
@@ -298,7 +298,7 @@
           { value: "both", label: "Both" },
         ]}
         value={s.hands}
-        onchange={(v) => setup.set({ hands: v, preset: false })}
+        onchange={(v) => cfg.set({ hands: v, preset: false })}
       />
       <div class="flex flex-col justify-end gap-1 text-sm">
         <button
@@ -306,7 +306,7 @@
           class={btn}
           aria-pressed={s.preset}
           onclick={() => {
-            setup.set({ span: HANDS_TOGETHER_PRESET.span, motion: HANDS_TOGETHER_PRESET.motion, hands: HANDS_TOGETHER_PRESET.hands, preset: true });
+            cfg.set({ span: HANDS_TOGETHER_PRESET.span, motion: HANDS_TOGETHER_PRESET.motion, hands: HANDS_TOGETHER_PRESET.hands, preset: true });
             settings.update({ bpm: HANDS_TOGETHER_PRESET.bpm });
           }}>{HANDS_TOGETHER_PRESET.label}</button
         >

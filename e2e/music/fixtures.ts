@@ -143,8 +143,16 @@ export async function expectNoHorizontalOverflow(page: Page) {
 /** Start a drill and wait for the count-in to finish. */
 export async function startDrill(page: Page, mode: "Practice" | "Check" = "Practice") {
   await page.getByRole("button", { name: mode, exact: true }).click();
-  await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+  await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   await expect(page.getByRole("status")).toContainText(/Go\.|Listen|Play|Question/, {
     timeout: 10_000,
   });
+}
+
+/** On a shared dev server, keep other edits' HMR reloads from interrupting a run. */
+export async function muteHmr(page: Page) {
+  await page.routeWebSocket(
+    () => true,
+    () => {},
+  );
 }

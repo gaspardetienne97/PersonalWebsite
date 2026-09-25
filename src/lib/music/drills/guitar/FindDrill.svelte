@@ -1,0 +1,329 @@
+<script lang="ts">
+  // Note finder and Interval recall: find a note inside a five-fret window.
+  // Binary per question; no timing or fingering is assessed. The string and fret
+  // are verified only for on-screen taps (MIDI and the microphone carry pitch).
+  import { onDestroy } from "svelte";
+  import type { NoteEvent } from "@repo/music-core";
+  import { noteName } from "@repo/music-core";
+  import { catalogEntry } from "@repo/music-core/content/catalog";
+  import { rng } from "@repo/music-core/content/random";
+  import {
+    intervalRecallPrompt,
+    noteFinderPrompt,
+    RECALL_INTERVALS,
+    RECALL_REGIONS,
+    suggestRecallRegion,
+  } from "@repo/music-core/content/technique";
+  import { midiAt } from "@repo/music-core/theory/fretboard";
+  import { gradeFretFind } from "@repo/music-core/scoring/technique";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
+  import Choice from "$lib/music/components/Choice.svelte";
+  import Stat from "$lib/music/components/Stat.svelte";
+  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import { Flashes } from "$lib/music/components/feedback.svelte";
+  import { btn } from "$lib/music/components/ui";
+  import { DrillSetup } from "$lib/music/setup.svelte";
+  import { assistanceFor, assistanceText, capture, runInstrument, writeKeyed, type Capture } from "$lib/music/drill.svelte";
+  import { practice } from "$lib/music/practice.svelte";
+  import { mic } from "$lib/music/runtime";
+  import { exerciseFor, skillsFor } from "./fretted";
+  import { fretted, tunings } from "./instrument.svelte";
+  import MicPanel from "./MicPanel.svelte";
+  import ModeTabs from "./ModeTabs.svelte";
+  import TuningPicker from "./TuningPicker.svelte";
+  import { FRETBOARD_MODES } from "./modes";
+
+  let { kind }: { kind: "note-finder" | "interval-recall" } = $props();
+  // svelte-ignore state_referenced_locally
+  const isRecall = kind === "interval-recall";
+
+  const RECENT_KEY = "fretboard.recall-recent.v1";
+  const REVEAL_MS = 900;
+  const cfg = new DrillSetup(isRecall ? "fretboard-interval-recall" : "fretboard-note-finder", {
+    region: 0,
+    tuning: "guitar.standard",
+    interval: 7,
+    questions: 8,
+  });
+  const s = $derived(cfg.value);
+  const entry = catalogEntry("fretboard")!.modes.find((m) => m.id === (isRecall ? "interval-recall" : "note-finder"))!;
+  const instr = $derived(fretted());
+  const tuning = $derived(tunings.pick(s.tuning, instr));
+  const regionIdx = $derived(Math.min(Math.max(0, s.region), RECALL_REGIONS.length - 1));
+  const region = $derived(RECALL_REGIONS[regionIdx]);
+  const to = $derived(Math.min(tuning.fretCount, region.end));
+  const intervalLabel = (st: number) => RECALL_INTERVALS.find((i) => i.semitones === st)?.label ?? `${st} semitones`;
+  const key = $derived(isRecall ? `interval-recall:${tuning.id}:r${regionIdx}:i${s.interval}` : `note-finder:${tuning.id}:r${regionIdx}`);
+
+  interface Question {
+    id: string;
+    label: string;
+    anchor?: { string: number; fret: number; midi: number };
+    acceptable: { string: number; fret: number; midi: number }[];
+    skillIds: string[];
+    semitones?: number;
+  }
+  interface Answer {
+    q: Question;
+    correct: boolean;
+    positionVerified: boolean | null;
+    midi: number;
+    ms: number;
+  }
+
+  let phase = $state<Phase>("ready");
+  let mode = $state<DrillMode>("practice");
+  let status = $state("");
+  let question = $state<Question | null>(null);
+  let revealing = $state(false);
+  let answers = $state<Answer[]>([]);
+  let summary = $state<RunSummary | null>(null);
+  let suggestion = $state<number | null>(null);
+  const flashes = new Flashes();
+  let cap: Capture | null = null;
+  let run: ReturnType<typeof practice.beginRun> | null = null;
+  let rand = rng(Date.now());
+  let askedAt = 0;
+  let pending: Promise<unknown> = Promise.resolve();
+  let revealTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function nextQuestion(): Question {
+    const acceptable = (ps: { string: number; fret: number }[]) => ps.map((p) => ({ ...p, midi: midiAt(tuning, p.string, p.fret) }));
+    if (!isRecall) {
+      const p = noteFinderPrompt(rand, { tuning, region: { start: region.start, end: to } });
+      return { id: p.id, label: p.name, acceptable: acceptable(p.answers), skillIds: skillsFor(entry.skillIds, instr) };
+    }
+    const semitones = s.interval || RECALL_INTERVALS[Math.floor(rand() * RECALL_INTERVALS.length)].semitones;
+    const p = intervalRecallPrompt(rand, { tuning, region: regionIdx, semitones });
+    return { id: p.id, label: intervalLabel(semitones), anchor: p.anchor, acceptable: acceptable(p.answers), skillIds: skillsFor(p.skillIds, instr), semitones };
+  }
+
+  const marks = $derived.by((): FretMark[] => {
+    const out: FretMark[] = [];
+    if (!question || phase === "results") return out;
+    if (question.anchor) out.push({ string: question.anchor.string, fret: question.anchor.fret, role: "root" });
+    if (revealing || (mode === "practice" && phase === "running"))
+      for (const a of question.acceptable) out.push({ string: a.string, fret: a.fret, label: revealing ? noteName(a.midi, "sharp", false) : undefined });
+    return out;
+  });
+
+  const summaryLine = $derived(
+    `${isRecall ? (s.interval ? intervalLabel(s.interval) : "Mixed intervals") : "Named notes"}, frets ${region.start} to ${to}, ${tuning.name}, ${s.questions} questions`,
+  );
+
+  function ask() {
+    question = nextQuestion();
+    revealing = false;
+    askedAt = performance.now();
+    status = `Question ${answers.length + 1}: ${isRecall ? `find a ${question.label.toLowerCase()} above the square` : `find ${question.label}`}.`;
+  }
+
+  function onNote(e: NoteEvent) {
+    if (e.kind !== "noteon" || phase !== "running" || !question || revealing) return;
+    // Sounding the anchor first to hear it is not an answer.
+    if (question.anchor && e.midi === question.anchor.midi) return;
+    const q = question;
+    const g = gradeFretFind(q.acceptable, e);
+    // Taps know their string; a correct pitch from MIDI or the microphone lights where it lives.
+    const at = e.string !== undefined && e.fret !== undefined ? e : g.correct ? q.acceptable.find((a) => a.midi === e.midi) : undefined;
+    if (at) flashes.add(at.string! * 100 + at.fret!, g.correct ? "correct" : "wrong", REVEAL_MS);
+    const ms = Math.round(e.at - askedAt);
+    answers = [...answers, { q, correct: g.correct, positionVerified: g.positionVerified, midi: e.midi, ms }];
+    const r = run!;
+    pending = pending.then(() =>
+      r.attempt({
+        promptId: q.id,
+        correct: g.correct,
+        partialCredit: g.score,
+        metrics: g.metrics,
+        source: e.source,
+        instrument: runInstrument([e], instr) ?? null,
+        skillIds: q.skillIds,
+        target: q.acceptable.map((a) => a.midi),
+        response: [e.midi],
+        latencyMs: ms,
+      }),
+    );
+    revealing = true;
+    status = g.correct
+      ? `Yes, ${noteName(e.midi, "sharp")}.`
+      : `That was ${noteName(e.midi, "sharp")}. ${q.acceptable.length > 1 ? "The lit frets are" : "The lit fret is"} ${isRecall ? `a ${q.label.toLowerCase()} up` : q.label}.`;
+    revealTimer = setTimeout(() => {
+      if (phase !== "running") return;
+      if (answers.length >= s.questions) void finish();
+      else ask();
+    }, REVEAL_MS);
+  }
+
+  async function start(ctx: RunContext) {
+    summary = null;
+    suggestion = null;
+    answers = [];
+    flashes.clear();
+    rand = rng(Date.now());
+    pending = Promise.resolve();
+    run = practice.beginRun({
+      exerciseId: exerciseFor(entry.exerciseId, instr),
+      setupKey: key,
+      skillIds: skillsFor(entry.skillIds, instr),
+      capabilities: ["technique"],
+      modality: "played",
+      assistance: assistanceFor(mode),
+      difficulty: (isRecall ? 0.35 : 0.3) + regionIdx * 0.1,
+      instrument: instr,
+      params: { tuning: tuning.id, region: regionIdx, questions: s.questions, ...(isRecall ? { interval: s.interval } : {}) },
+    });
+    cap = capture(ctx.downbeat, (e) => e.kind === "noteon" && onNote(e));
+    ask();
+  }
+
+  async function finish() {
+    if (phase !== "running") return;
+    clearTimeout(revealTimer);
+    cap?.stop();
+    mic.stop();
+    question = null;
+    phase = "results";
+    await pending;
+    const right = answers.filter((a) => a.correct).length;
+    const score = answers.length ? right / answers.length : 0;
+    const fin = await run!.finish({ score, correct: right === answers.length && answers.length > 0, headline: `${right} of ${answers.length} found` });
+    if (isRecall && mode === "check") {
+      const recentKey = `${tuning.id}:${regionIdx}`;
+      const stored = await writeKeyed<boolean[]>(RECENT_KEY, recentKey, answers.map((a) => a.correct), (a, b) => [...a, ...b].slice(-20));
+      const next = suggestRecallRegion(regionIdx, stored[recentKey]);
+      suggestion = next > regionIdx ? next : null;
+    }
+    const taps = answers.filter((a) => a.positionVerified !== null);
+    const meanMs = answers.length ? answers.reduce((n, a) => n + a.ms, 0) / answers.length : 0;
+    const perInterval = isRecall && !s.interval
+      ? RECALL_INTERVALS.flatMap((iv) => {
+          const mine = answers.filter((a) => a.q.semitones === iv.semitones);
+          return mine.length ? [{ label: iv.label, value: mine.filter((a) => a.correct).length / mine.length, text: `${mine.filter((a) => a.correct).length} of ${mine.length}` }] : [];
+        })
+      : [];
+    summary = {
+      headline:
+        right === answers.length
+          ? `All ${right} found${isRecall ? "" : ` between frets ${region.start} and ${to}`}.${mode === "check" ? "" : " Try it in Check, with the frets hidden."}`
+          : `${right} of ${answers.length} found. The misses are listed on the stage, so look again before the next round.`,
+      metric: `${right}/${answers.length}`,
+      metricLabel: "found",
+      delta: fin.delta,
+      best: fin.best,
+      clean: mode === "check" && right === answers.length && answers.length > 0,
+      xp: fin.xp,
+      assistance:
+        assistanceText(mode) + (isRecall && instr === "ukulele" ? " The skill map has no ukulele interval skill yet, so this run is kept as practice history only." : ""),
+      rows: [
+        { label: "Found", value: score, text: `${right} of ${answers.length}` },
+        ...perInterval,
+        { label: "Mean time to answer", text: `${(meanMs / 1000).toFixed(1)} s` },
+        taps.length === answers.length && taps.length
+          ? { label: "On a lit string and fret", value: taps.filter((a) => a.positionVerified).length / taps.length, text: `${taps.filter((a) => a.positionVerified).length} of ${taps.length}` }
+          : { label: "String and fret", notMeasured: true },
+        { label: "Timing and fingering", notMeasured: true },
+      ],
+    };
+    status = summary.headline;
+  }
+
+  function stop() {
+    clearTimeout(revealTimer);
+    cap?.stop();
+    mic.stop();
+    question = null;
+    phase = "ready";
+    status = "Stopped. Answers so far were kept.";
+    void pending.then(() => (answers.length ? run?.finish({}) : undefined));
+  }
+
+  onDestroy(() => {
+    clearTimeout(revealTimer);
+    cap?.stop();
+    mic.stop();
+  });
+
+  const missed = $derived(answers.filter((a) => !a.correct));
+</script>
+
+<DrillShell
+  title={isRecall ? "Interval recall" : "Note finder"}
+  hue={instr}
+  blurb={isRecall
+    ? "From the square, find the note a set interval up, inside a five-fret window. No timing, no fingering, just where it lives."
+    : "A note is named. Find it on the neck inside a five-fret window, on any string."}
+  summary={summaryLine}
+  bind:phase
+  bind:mode
+  bind:status
+  progress={s.questions ? answers.length / s.questions : 0}
+  onstart={start}
+  onstop={stop}
+>
+  {#snippet setup()}
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Choice label="Region" options={RECALL_REGIONS.map((r, i) => ({ value: i, label: `Frets ${r.start} to ${r.end}` }))} value={regionIdx} onchange={(v) => cfg.set({ region: v })} />
+      {#if isRecall}
+        <Choice
+          label="Interval"
+          options={[...RECALL_INTERVALS.map((i) => ({ value: i.semitones as number, label: i.label })), { value: 0, label: "Mixed" }]}
+          value={s.interval}
+          onchange={(v) => cfg.set({ interval: v })}
+        />
+      {/if}
+      <Choice
+        label="Questions"
+        options={[
+          { value: 5, label: "5" },
+          { value: 8, label: "8" },
+          { value: 12, label: "12" },
+        ]}
+        value={s.questions}
+        onchange={(v) => cfg.set({ questions: v })}
+      />
+      <TuningPicker instrument={instr} value={tuning.id} onchange={(id) => cfg.set({ tuning: id })} />
+    </div>
+  {/snippet}
+
+  {#snippet hud()}
+    {#if phase === "running"}
+      <Stat label="Question" value="{Math.min(answers.length + 1, s.questions)} of {s.questions}" />
+      <Stat label="Found" value={answers.filter((a) => a.correct).length} />
+    {/if}
+  {/snippet}
+
+  {#snippet stage()}
+    {#if phase === "ready" || phase === "results"}<ModeTabs tabs={FRETBOARD_MODES} label="Fretboard drills" />{/if}
+    <div class="mb-3 flex min-h-20 flex-wrap items-end gap-x-4 gap-y-1">
+      {#if question}
+        <p class="font-display text-5xl font-bold leading-none sm:text-6xl" aria-hidden="true">{question.label}</p>
+        <p class="pb-1 text-ws-stage-soft">{isRecall ? "up from the square, on any string" : `anywhere from fret ${region.start} to ${to}`}</p>
+      {:else if phase === "results" && missed.length}
+        <p class="text-sm text-ws-stage-soft">Missed: {missed.map((a) => (isRecall ? `${a.q.label.toLowerCase()} from ${noteName(a.q.anchor!.midi, "sharp")}` : a.q.label)).join(", ")}.</p>
+      {:else}
+        <p class="max-w-prose text-ws-stage-soft">
+          {isRecall ? "A square marks the starting note. Find the interval above it; sounding the square first is fine." : "A note name appears here. Tap it on the neck, or play it."}
+          {mode === "check" ? " Check hides the answers." : " Practice lights the answers."}
+        </p>
+      {/if}
+    </div>
+    <Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
+          <div class="mt-3"><MicPanel disabled={phase === "running"} hint="Optional: answer on your instrument into the microphone, or tap the neck here." /></div>
+  {/snippet}
+
+  {#snippet results()}
+    {#if summary}
+      <Results {summary}>
+        {#snippet actions()}
+          {#if suggestion !== null}
+            <button type="button" class={btn} onclick={() => { cfg.set({ region: suggestion! }); phase = "ready"; summary = null; }}>
+              Five in a row: move to frets {RECALL_REGIONS[suggestion].start} to {RECALL_REGIONS[suggestion].end}
+            </button>
+          {/if}
+        {/snippet}
+      </Results>
+    {/if}
+  {/snippet}
+</DrillShell>
