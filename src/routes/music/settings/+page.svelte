@@ -17,8 +17,15 @@
   import { audio, mic, midi, settings } from "$lib/music/runtime";
 
   const s = $derived(settings.value);
+  // One live region for screen readers; the same message is also shown
+  // visibly in the section it is about, not at the bottom of the page.
   let status = $state("");
-  const announce = (msg: string) => (status = msg);
+  let noteIn = $state<string | null>(null);
+  const say = (section: string, msg: string) => {
+    status = msg;
+    noteIn = section;
+  };
+  const announceIn = (section: string) => (msg: string) => say(section, msg);
 
   const SOUNDS: { value: PlaybackSound; label: string }[] = [
     { value: "salamander-piano", label: "Sampled Piano" },
@@ -52,23 +59,40 @@
     const restored = page.url.searchParams.get("restored");
     if (restored !== null) {
       const files = Number(page.url.searchParams.get("files") ?? 0);
-      status = `Restored ${restored} rows from the backup${files ? ` and ${files} media file${files === 1 ? "" : "s"}` : ""}.`;
-    } else if (page.url.searchParams.has("reset")) status = "Local data deleted. Woodshed is back to a fresh start.";
+      say("top", `Restored ${restored} rows from the backup${files ? ` and ${files} media file${files === 1 ? "" : "s"}` : ""}.`);
+    } else if (page.url.searchParams.has("reset")) say("top", "Local data deleted. Woodshed is back to a fresh start.");
   });
 
-  async function enableAudio() {
+  // I IV V I in C, block chords: the test that says "this is working".
+  const CADENCE = [
+    [48, 60, 64, 67],
+    [53, 60, 65, 69],
+    [55, 59, 62, 67],
+    [48, 60, 64, 67],
+  ];
+
+  async function playTest() {
     await audio.unlock();
     latency = audio.latencyInfo();
-    if (audio.unlocked) {
-      audio.playChord([60, 64, 67], 1);
-      status = "Audio is on. You should hear a C major chord.";
-    } else status = "Audio did not start. Click again; browsers only allow sound after a tap.";
+    if (!audio.unlocked) return say("audio", "Audio did not start. Click again; browsers only allow sound after a tap.");
+    audio.playSequence(
+      CADENCE.flatMap((chord, i) => chord.map((midi) => ({ midi, time: i * 0.7, duration: i === 3 ? 1.4 : 0.65, velocity: 0.7 }))),
+    );
+    say("audio", "Playing a C major cadence: C, F, G, C.");
+  }
+
+  async function setSound(on: boolean) {
+    await settings.update({ muted: !on });
+    if (!on) return say("audio", "Sound is off everywhere in Woodshed. Your levels are kept.");
+    await audio.unlock();
+    latency = audio.latencyInfo();
+    say("audio", audio.unlocked ? "Sound is on." : "Sound is on, but the browser is still holding it back. Tap Play test sound.");
   }
 
   function pickDevice(id: string) {
     const d = mic.devices.find((x) => x.deviceId === id);
     settings.update({ audioInputDeviceId: id || undefined, audioInputLabel: d?.label ?? "Default input" });
-    status = `Input set to ${d?.label ?? "the default input"}. It applies the next time the microphone starts.`;
+    say("input", `Input set to ${d?.label ?? "the default input"}. It applies the next time the microphone starts.`);
   }
 
   const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v)} ms`;
@@ -91,6 +115,7 @@
   <header class="lg:col-span-2">
     <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
     <p class="mt-1 max-w-prose text-ws-soft">Sound, input, timing and your data. Everything is saved in this browser as you change it.</p>
+    <div class="mt-3">{@render note("top")}</div>
   </header>
 
   <nav aria-label="Settings sections" class="hidden lg:block">
@@ -108,13 +133,19 @@
   <div class="flex min-w-0 flex-col gap-10">
     <section id="audio" aria-labelledby="audio-h" class="scroll-mt-20">
       {@render heading("audio-h", "Audio", Volume2)}
+      {@render note("audio")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="font-medium">Sound engine</p>
-            <p class="text-sm text-ws-soft">{audio.unlocked ? "On for this visit." : "Browsers only play sound after a tap, once per visit."}</p>
+            <p id="sound-l" class="font-medium">Sound</p>
+            <p class="text-sm text-ws-soft">
+              {s.muted ? "Off: nothing in Woodshed makes sound. Your levels are kept." : audio.unlocked ? "On." : "On, and it starts at your first tap (browsers wait for one)."}
+            </p>
           </div>
-          <button type="button" class={btn} onclick={enableAudio}>{audio.unlocked ? "Play a test sound" : "Enable audio"}</button>
+          <div class="flex items-center gap-2">
+            <button type="button" class={btn} onclick={playTest} disabled={s.muted}>Play test sound</button>
+            {@render toggle("sound-l", !s.muted, (v) => void setSound(v))}
+          </div>
         </li>
         <li class={rowCls}>
           <label for="sound" class="min-w-0 flex-1 basis-48">
@@ -123,7 +154,7 @@
           </label>
           <select
             id="sound"
-            class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm"
+            class="min-h-11 rounded-lg border border-ws-line bg-ws-surface pl-3 pr-9 text-sm"
             value={s.preferredPlaybackSound}
             onchange={(e) => settings.update({ preferredPlaybackSound: e.currentTarget.value as PlaybackSound })}
           >
@@ -150,13 +181,6 @@
         {/each}
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p id="mute-l" class="font-medium">Mute all</p>
-            <p class="text-sm text-ws-soft">Silences everything and keeps your levels for when you unmute.</p>
-          </div>
-          {@render toggle("mute-l", s.muted, (v) => settings.update({ muted: v }))}
-        </li>
-        <li class={rowCls}>
-          <div class="min-w-0 flex-1 basis-48">
             <p id="onscreen-l" class="font-medium">On-screen instruments make sound</p>
             <p class="text-sm text-ws-soft">Keys, frets and pads you tap or play from the computer keyboard sound like the instrument. MIDI devices make their own sound.</p>
           </div>
@@ -170,6 +194,7 @@
 
     <section id="input" aria-labelledby="input-h" class="scroll-mt-20">
       {@render heading("input-h", "Input", Mic)}
+      {@render note("input")}
       <ul class={listCls}>
         <li class={rowCls}>
           <label for="mic-device" class="min-w-0 flex-1 basis-48">
@@ -201,6 +226,7 @@
 
     <section id="latency" aria-labelledby="latency-h" class="scroll-mt-20">
       {@render heading("latency-h", "Latency calibration", Timer)}
+      {@render note("latency")}
       <p class="mb-3 max-w-prose text-sm text-ws-soft">
         An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement.
       </p>
@@ -223,7 +249,7 @@
             current={s.audioOffsetMs}
             onsave={(v) => settings.update({ audioOffsetMs: v })}
             onreset={() => settings.update({ audioOffsetMs: 0 })}
-            {announce}
+            announce={announceIn("latency")}
           />
         </li>
         <li>
@@ -235,7 +261,7 @@
             current={s.midiOffsetMs}
             onsave={(v) => settings.update({ midiOffsetMs: v })}
             onreset={() => settings.update({ midiOffsetMs: 0 })}
-            {announce}
+            announce={announceIn("latency")}
           />
         </li>
         {#each midi.inputs as port (port.id)}
@@ -250,7 +276,7 @@
               current={profile?.inputOffsetMs}
               onsave={(v) => midi.saveProfile({ ...(midi.profile(port.id) ?? { id: port.id }), inputOffsetMs: v })}
               onreset={() => midi.saveProfile({ ...(midi.profile(port.id) ?? { id: port.id }), inputOffsetMs: undefined })}
-              {announce}
+              announce={announceIn("latency")}
             />
           </li>
         {:else}
@@ -263,6 +289,7 @@
 
     <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-20">
       {@render heading("appearance-h", "Appearance", Palette)}
+      {@render note("appearance")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
@@ -283,6 +310,7 @@
 
     <section id="goals" aria-labelledby="goals-h" class="scroll-mt-20">
       {@render heading("goals-h", "Goals", Target)}
+      {@render note("goals")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
@@ -300,11 +328,12 @@
 
     <section id="data" aria-labelledby="data-h" class="scroll-mt-20">
       {@render heading("data-h", "Your data", Database)}
+      {@render note("data")}
       <p class="mb-3 max-w-prose text-sm text-ws-soft">Everything stays in this browser. Backups are files you keep; there is no account and no server copy.</p>
-      <DataSection {announce} {rowCls} />
+      <DataSection announce={announceIn("data")} {rowCls} />
     </section>
 
-    <p role="status" class="min-h-6 text-sm font-medium">{status}</p>
+    <p role="status" class="sr-only">{status}</p>
   </div>
 </div>
 
@@ -326,4 +355,10 @@
     <span class="absolute inset-x-1 h-7 rounded-full transition-colors {on ? 'bg-instr-ink' : 'bg-ws-raised ring-1 ring-ws-line'}"></span>
     <span class="relative size-6 rounded-full bg-ws-surface shadow transition-transform {on ? 'translate-x-8' : 'translate-x-2'}"></span>
   </button>
+{/snippet}
+
+{#snippet note(section: string)}
+  {#if noteIn === section && status}
+    <p class="mb-3 rounded-xl border border-ws-line bg-instr-wash px-4 py-2.5 text-sm font-medium" aria-hidden="true">{status}</p>
+  {/if}
 {/snippet}

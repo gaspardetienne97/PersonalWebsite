@@ -442,6 +442,31 @@ test.describe("Settings", () => {
     await shootSettings(page, "settings");
   });
 
+  test("the Sound switch turns sound off and on, and the test message sits in Audio", async ({
+    page,
+  }) => {
+    await page.goto("/music/settings");
+    const audio = page.locator("section#audio");
+    const sw = audio.getByRole("switch", { name: "Sound", exact: true });
+    await expect(sw).toHaveAttribute("aria-checked", "true");
+    await audio.getByRole("button", { name: "Play test sound" }).click();
+    await expect(audio.getByText("Playing a C major cadence: C, F, G, C.")).toBeVisible();
+    await sw.click();
+    await expect(sw).toHaveAttribute("aria-checked", "false");
+    await expect(audio.getByRole("button", { name: "Play test sound" })).toBeDisabled();
+    // The practice strip says so, and turns it back on.
+    const off = page.getByRole("button", { name: "Sound is off. Turn it on" });
+    await expect(off).toBeVisible();
+    await page.reload();
+    await expect(
+      page.locator("section#audio").getByRole("switch", { name: "Sound", exact: true }),
+    ).toHaveAttribute("aria-checked", "false");
+    await page.getByRole("button", { name: "Sound is off. Turn it on" }).click();
+    await expect(
+      page.locator("section#audio").getByRole("switch", { name: "Sound", exact: true }),
+    ).toHaveAttribute("aria-checked", "true");
+  });
+
   test("reduce motion sets the root attribute", async ({ page }) => {
     await page.goto("/music/settings");
     const sw = page.getByRole("switch", { name: "Reduce motion" });

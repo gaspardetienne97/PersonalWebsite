@@ -5,6 +5,7 @@
   import Search from "lucide-svelte/icons/search";
   import Timer from "lucide-svelte/icons/timer";
   import Volume from "lucide-svelte/icons/volume-2";
+  import VolumeOff from "lucide-svelte/icons/volume-off";
   import { INSTRUMENT_ICON } from "./instrument-icons";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
   import { bench, INSTRUMENT_LABEL } from "../bench.svelte";
@@ -164,7 +165,11 @@
 
     <span class="ml-auto"></span>
 
-    {#if !audio.unlocked}
+    {#if s.muted}
+      <button type="button" class="{pill} border-warn text-ws-ink" onclick={() => settings.update({ muted: false })} aria-label="Sound is off. Turn it on">
+        <VolumeOff class="size-4" aria-hidden="true" />Sound off
+      </button>
+    {:else if !audio.unlocked}
       <button type="button" class="{pill} border-instr text-instr-ink" onclick={() => audio.unlock()}>
         <Volume class="size-4" aria-hidden="true" />Enable sound
       </button>
