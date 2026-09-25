@@ -27,6 +27,21 @@
   let confirmDelete = $state<string | null>(null);
   let savedSong = $state<Record<string, string>>({});
   let player = $state<{ id: string; handle: SequenceHandle; from: number } | null>(null);
+  // A clock for the playback cursor, ticking only while something plays.
+  let now = $state(0);
+  $effect(() => {
+    if (!player) return;
+    let raf = requestAnimationFrame(function tick() {
+      now = performance.now();
+      raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
+  });
+  function progress(take: MidiTake): number | null {
+    const at =
+      player?.id === take.id ? player.from * 1000 + Math.max(0, now - player.handle.startPerf) : paused[take.id] !== undefined ? paused[take.id] * 1000 : null;
+    return at === null ? null : Math.min(1, at / Math.max(1, take.durationMs));
+  }
   let paused = $state<Record<string, number>>({});
   let cmpA = $state("");
   let cmpB = $state("");
@@ -206,14 +221,14 @@
         <li class="flex flex-wrap items-start gap-3 p-3 sm:p-4" data-take={take.id}>
           <button
             type="button"
-            class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-instr text-ws-stage' : 'bg-ws-raised text-ws-ink hover:bg-instr-wash'}"
+            class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-ws-ink text-ws-bg' : 'bg-instr text-ws-stage hover:brightness-105'}"
             aria-label="{isPlaying ? 'Pause' : 'Play'} {take.name}"
             aria-pressed={isPlaying}
             onclick={() => play(take)}
           >
             {#if isPlaying}<svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>{:else}<Play class="size-5" aria-hidden="true" />{/if}
           </button>
-          <TakeThumb notes={take.notes} durationMs={take.durationMs} />
+          <TakeThumb notes={take.notes} durationMs={take.durationMs} progress={progress(take)} />
           <div class="flex min-w-0 flex-1 basis-56 flex-col gap-1">
             <input
               class="min-h-11 min-w-0 rounded-lg border border-transparent bg-transparent px-2 font-display text-lg font-semibold hover:border-ws-line focus:border-ws-line"
@@ -232,7 +247,7 @@
               onchange={(e) => patch(take, { note: e.currentTarget.value })}
             />
           </div>
-          <div class="flex w-full flex-wrap gap-1.5 sm:pl-[10.25rem]">
+          <div class="flex w-full flex-wrap gap-1.5 sm:pl-[13.5rem]">
             <button type="button" class="{btn} px-3" onclick={() => exportMidi(take)}><FileMusic class="size-4" aria-hidden="true" />Export MIDI</button>
             <a class="{btn} px-3" href="/music/create?mode=roll&take={take.id}">Open in piano roll</a>
             {#if savedSong[take.id]}

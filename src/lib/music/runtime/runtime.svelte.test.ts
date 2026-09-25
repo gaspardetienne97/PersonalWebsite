@@ -134,6 +134,16 @@ describe("on-screen sound", () => {
   });
 });
 
+describe("playback handles", () => {
+  it("stay === themselves when a page keeps them in $state, so ended playback resets its button", () => {
+    const handle = audio.playSequence([{ midi: 60, time: 0, duration: 0.1 }]);
+    let stored = $state<typeof handle | null>(null);
+    stored = handle;
+    expect(stored === handle).toBe(true);
+    handle.stop();
+  });
+});
+
 describe("storage", () => {
   it("persists a $state proxy through plain() and through the Dexie choke point", async () => {
     const take = $state({

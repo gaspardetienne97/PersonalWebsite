@@ -236,6 +236,8 @@ test.describe("Record", () => {
       /Good level|A little hot|Clipping|Quiet/,
       { timeout: 10_000 },
     );
+    // The recording boost sits under the meter.
+    await expect(page.getByRole("slider", { name: "Record boost" })).toBeVisible();
     await page.getByRole("button", { name: "Record", exact: true }).click();
     await page.waitForTimeout(1500);
     await page.getByRole("button", { name: "Stop", exact: true }).click();
@@ -249,6 +251,12 @@ test.describe("Record", () => {
     await expect(take).toContainText("+6 dB");
     await take.getByRole("button", { name: "Play Audio take 1" }).click();
     await expect(page.getByRole("status")).toContainText("Playing Audio take 1 at +6 dB");
+    // A cursor shows where playback is, and the button returns to Play when the take ends.
+    await expect(take.locator("svg line")).toHaveCount(1);
+    await expect(take.getByRole("button", { name: "Play Audio take 1" })).toBeVisible({
+      timeout: 6000,
+    });
+    await expect(take.locator("svg line")).toHaveCount(0);
 
     // Survives a reload with its gain.
     await page.reload();

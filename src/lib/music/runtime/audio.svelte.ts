@@ -45,6 +45,8 @@ export interface SequenceHandle {
   readonly playing: boolean;
   readonly done: Promise<void>;
   stop(): void;
+  /** Change the playback level while it sounds (dB). */
+  setGain(db: number): void;
 }
 export interface MetronomeOptions {
   bpm: number;
@@ -411,51 +413,67 @@ type Run = SequenceHandle & {
   stop(fadeS?: number): void;
 };
 
+/**
+ * A playback handle is a class instance on purpose: Svelte's $state deep-proxies
+ * plain objects, so a stored `{...}` handle stops being === to the one a page
+ * compares against when playback ends, and buttons stay stuck on "Stop".
+ * Class instances are never proxied.
+ */
+class RunHandle implements Run {
+  readonly disposers: (() => void)[] = [];
+  readonly done: Promise<void>;
+  #playing = $state(true);
+  #timers = new Set<ReturnType<typeof setTimeout>>();
+  #resolve!: () => void;
+  constructor(
+    readonly bus: ToneNS.Gain,
+    readonly startPerf: number,
+  ) {
+    this.done = new Promise<void>((r) => (this.#resolve = r));
+  }
+  get playing() {
+    return this.#playing;
+  }
+  /** Change the level of what is sounding now (a take's playback gain). */
+  setGain(db: number) {
+    if (this.#playing) this.bus.gain.rampTo(10 ** (db / 20), 0.05);
+  }
+  later(perfAt: number, fn: () => void) {
+    const id = setTimeout(
+      () => {
+        this.#timers.delete(id);
+        fn();
+      },
+      Math.max(0, perfAt - performance.now()),
+    );
+    this.#timers.add(id);
+  }
+  stop(fadeS: number = 0.04) {
+    if (!this.#playing) return;
+    this.#playing = false;
+    this.#timers.forEach(clearTimeout);
+    this.#timers.clear();
+    this.disposers.forEach((d) => d());
+    this.bus.gain.rampTo(0, fadeS);
+    setTimeout(() => this.bus.dispose(), fadeS * 1000 + 250);
+    this.#resolve();
+  }
+}
+
 function createRun(t: Tone, out: ToneNS.Gain, startPerf: number, gain = 1): Run {
   const bus = new t.Gain(gain);
   bus.connect(out);
-  const timers = new Set<ReturnType<typeof setTimeout>>();
-  const disposers: (() => void)[] = [];
-  let playing = $state(true);
-  let resolve!: () => void;
-  const done = new Promise<void>((r) => (resolve = r));
-  return {
-    startPerf,
-    done,
-    bus,
-    disposers,
-    get playing() {
-      return playing;
-    },
-    later(perfAt, fn) {
-      const id = setTimeout(
-        () => {
-          timers.delete(id);
-          fn();
-        },
-        Math.max(0, perfAt - performance.now()),
-      );
-      timers.add(id);
-    },
-    stop(fadeS: number = 0.04) {
-      if (!playing) return;
-      playing = false;
-      timers.forEach(clearTimeout);
-      timers.clear();
-      disposers.forEach((d) => d());
-      bus.gain.rampTo(0, fadeS);
-      setTimeout(() => bus.dispose(), fadeS * 1000 + 250);
-      resolve();
-    },
-  };
+  return new RunHandle(bus, startPerf);
 }
 
-const idleHandle = (): SequenceHandle => ({
-  startPerf: performance.now(),
-  playing: false,
-  done: Promise.resolve(),
-  stop() {},
-});
+class IdleHandle implements SequenceHandle {
+  readonly startPerf = performance.now();
+  readonly playing = false;
+  readonly done = Promise.resolve();
+  stop() {}
+  setGain() {}
+}
+const idleHandle = (): SequenceHandle => new IdleHandle();
 
 let currentSeq: Run | null = null;
 let currentMet: Run | null = null;

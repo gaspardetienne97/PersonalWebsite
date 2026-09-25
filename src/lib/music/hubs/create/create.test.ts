@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { NoteEvent } from "@repo/music-core";
 import { buildKitFiles } from "@repo/music-core/io/mpc-kit";
-import { clipWarning, envelope, peakDbOf, signedDb } from "./audioTakes";
+import {
+  autoGainDb,
+  clipWarning,
+  envelope,
+  peakDbOf,
+  signedDb,
+  suggestedBoost,
+} from "./audioTakes";
 import {
   newKit,
   padLabel,
@@ -197,5 +204,16 @@ describe("audio takes", () => {
     );
     expect(clipWarning(-Infinity, 18)).toBeNull();
     expect([signedDb(6), signedDb(-12), signedDb(0)]).toEqual(["+6 dB", "−12 dB", "0 dB"]);
+  });
+
+  it("lifts a quiet take to a -3 dB peak on playback, and suggests a recording boost", () => {
+    expect(autoGainDb(-30)).toBe(18); // capped at the top of the range
+    expect(autoGainDb(-15)).toBe(12);
+    expect(autoGainDb(-1)).toBe(0); // never cut a loud take
+    expect(autoGainDb(-Infinity)).toBe(0);
+    // Meter reads -30 dB with +6 dB boost already on: the raw input is -36, so +24 lands near -12.
+    expect(suggestedBoost(-30, 6)).toBe(24);
+    expect(suggestedBoost(-20, 0)).toBe(8);
+    expect(suggestedBoost(-6, 0)).toBe(0);
   });
 });

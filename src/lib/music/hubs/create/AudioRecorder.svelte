@@ -8,12 +8,12 @@
   import Mic from "lucide-svelte/icons/mic";
   import Download from "lucide-svelte/icons/download";
   import Trash from "lucide-svelte/icons/trash-2";
-  import { LEVEL_FLOOR_DB } from "@repo/music-core/signal/level";
+  import { LEVEL_FLOOR_DB, levelAdvice } from "@repo/music-core/signal/level";
   import { btn } from "$lib/music/components/ui";
   import { audio, db, deleteBinary, getBinary, mic, putBinary, settings, type AudioTakeRow, type SequenceHandle } from "$lib/music/runtime";
   import RecordButton from "./RecordButton.svelte";
   import { download } from "./files";
-  import { clipWarning, envelope, extensionFor, GAIN_RANGE, peakDbOf, signedDb, takeKey } from "./audioTakes";
+  import { autoGainDb, BOOST_RANGE, clipWarning, envelope, ENVELOPE_BUCKETS, extensionFor, GAIN_RANGE, peakDbOf, signedDb, suggestedBoost, takeKey } from "./audioTakes";
   import { clock, fileStem, takeLength, TAKE_LIMIT_MS } from "$lib/music/takes";
 
   let { announce }: { announce: (msg: string) => void } = $props();
@@ -26,10 +26,13 @@
   let elapsed = $state(0);
   let hold = $state(LEVEL_FLOOR_DB);
   let unsaved = $state<{ take: Take; blob: Blob; error: string } | null>(null);
-  let player = $state<{ id: string; handle: SequenceHandle } | null>(null);
+  let player = $state<{ id: string; handle: SequenceHandle; durationMs: number } | null>(null);
+  // Recording boost (dB before the encoder) and a clock for the playback cursor.
+  let boost = $state(settings.value.recordBoostDb ?? 0);
+  let now = $state(0);
   let confirmDelete = $state<string | null>(null);
 
-  let rec: { stop(): Promise<Blob> } | null = null;
+  let rec: { stop(): Promise<Blob>; setBoost(db: number): void } | null = null;
   let t0 = 0;
   let timer: ReturnType<typeof setInterval> | undefined;
   let holdAt = 0;
@@ -43,10 +46,11 @@
     void mic.refreshDevices();
     // Peak hold: the loudest recent peak, released after 1.5 s.
     let raf = requestAnimationFrame(function step() {
-      const now = performance.now();
-      if (mic.peak >= hold || now - holdAt > 1500) {
+      const t = performance.now();
+      now = t;
+      if (mic.peak >= hold || t - holdAt > 1500) {
         hold = mic.peak;
-        holdAt = now;
+        holdAt = t;
       }
       raf = requestAnimationFrame(step);
     });
@@ -69,7 +73,7 @@
     await audio.unlock();
     stopPlayback();
     try {
-      rec = mic.record();
+      rec = mic.record(boost);
     } catch (e) {
       return announce((e as Error).message);
     }
@@ -93,7 +97,7 @@
     let env: number[] = [];
     try {
       const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(await blob.arrayBuffer());
-      env = envelope(buf.getChannelData(0));
+      env = envelope(buf.getChannelData(0), ENVELOPE_BUCKETS);
     } catch {
       // Undecodable here (some containers): keep the take, draw a flat line.
     }
@@ -106,7 +110,8 @@
       envelope: env,
       mimeType: blob.type || "audio/webm",
       size: blob.size,
-      gainDb: 0,
+      // Start quiet takes at a -3 dB peak on playback; the file is untouched.
+      gainDb: autoGainDb(peakDbOf(env)),
       note: "",
       instrument: settings.value.activeInstrument,
     };
@@ -124,7 +129,8 @@
     }
     unsaved = null;
     takes = [take, ...takes];
-    announce(reason ?? `Saved ${take.name}, ${takeLength(take.durationMs)}.`);
+    const lift = take.gainDb ?? 0;
+    announce(reason ?? `Saved ${take.name}, ${takeLength(take.durationMs)}.${lift ? ` Playback lifted ${signedDb(lift)} so it is easy to hear; the recording is unchanged.` : ""}`);
   }
 
   function stopPlayback() {
@@ -143,7 +149,8 @@
     if (!blob) return announce(`The file for ${take.name} is missing from this browser's storage.`);
     try {
       const handle = await audio.playBlob(blob, take.gainDb ?? 0);
-      player = { id: take.id, handle };
+      player = { id: take.id, handle, durationMs: take.durationMs };
+      if (take.envelope.length < ENVELOPE_BUCKETS) void refine(take, blob);
       announce(`Playing ${take.name} at ${signedDb(take.gainDb ?? 0)}.`);
       void handle.done.then(() => {
         if (player?.handle === handle) player = null;
@@ -152,6 +159,31 @@
       announce((e as Error).message);
     }
   }
+
+  /** Older takes were drawn coarsely; redraw them finer the first time they play. */
+  async function refine(take: Take, blob: Blob) {
+    try {
+      const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(await blob.arrayBuffer());
+      await patch(take, { envelope: envelope(buf.getChannelData(0), ENVELOPE_BUCKETS) });
+    } catch {
+      // Keep the coarse drawing.
+    }
+  }
+
+  /** Live while dragging: the take that is sounding follows the slider. */
+  function previewGain(take: Take, db: number) {
+    takes = takes.map((t) => (t.id === take.id ? { ...t, gainDb: db } : t));
+    if (player?.id === take.id) player.handle.setGain(db);
+  }
+
+  function setBoost(db: number) {
+    boost = db;
+    rec?.setBoost(db);
+    void settings.update({ recordBoostDb: db });
+  }
+
+  const progress = (take: Take) =>
+    player?.id === take.id ? Math.max(0, Math.min(1, (now - player.handle.startPerf) / Math.max(1, player.durationMs))) : null;
 
   async function patch(take: Take, change: Partial<Take>) {
     await db.audioTakes.update(take.id, change);
@@ -184,6 +216,10 @@
     quiet: "move closer or turn the input up. A quiet take can be lifted on playback, but its noise comes up with it.",
   };
   const live = $derived(mic.state === "on");
+  // What the recording will actually get: the input plus the boost.
+  const boostedPeak = $derived(mic.peak + boost);
+  const boostedAdvice = $derived(levelAdvice(boostedPeak));
+  const suggestion = $derived(live ? suggestedBoost(hold + boost, boost) : boost);
 
   onDestroy(() => {
     if (recording) void stopRecording();
@@ -222,19 +258,40 @@
     <RecordButton {recording} disabled={!live} onclick={toggle} />
     <div class="min-w-0 flex-1 basis-64">
       <p class="tnum font-display text-5xl font-semibold tracking-tight sm:text-6xl">{clock(recording ? elapsed : 0)}</p>
-      <div class="meter mt-2" data-tone={live ? mic.advice?.tone : undefined} aria-hidden="true">
-        <span class="fill" style:width="{live ? pct(mic.peak) : 0}%"></span>
-        <span class="hold" style:left="{live ? pct(hold) : 0}%"></span>
+      <div class="meter mt-2" data-tone={live ? boostedAdvice.tone : undefined} aria-hidden="true">
+        <span class="fill" style:width="{live ? pct(boostedPeak) : 0}%"></span>
+        <span class="hold" style:left="{live ? pct(hold + boost) : 0}%"></span>
         {#each [-30, -6, -1] as mark (mark)}<span class="mark" style:left="{pct(mark)}%"></span>{/each}
       </div>
       <div class="mt-1 flex justify-between text-[0.7rem] text-ws-stage-soft" aria-hidden="true"><span>−60 dB</span><span>−30</span><span>−6</span><span>0</span></div>
       <p class="mt-2 text-sm" data-testid="level-advice">
-        {#if live && mic.advice}
-          <strong>{mic.advice.label}</strong>: {ADVICE[mic.advice.tone]} Peak <span class="tnum">{Math.round(mic.peak)}</span> dB.
+        {#if live}
+          <strong>{boostedAdvice.label}</strong>: {ADVICE[boostedAdvice.tone]} Peak <span class="tnum">{Math.round(boostedPeak)}</span> dB{boost ? ` with the ${signedDb(boost)} boost` : ""}.
         {:else}
           <span class="text-ws-stage-soft">Arm the microphone to see the input level. Nothing is recorded until you press Record.</span>
         {/if}
       </p>
+      <div class="mt-3 flex flex-wrap items-center gap-3">
+        <label class="flex items-center gap-2 text-sm">
+          <span class="text-ws-stage-soft">Record boost</span>
+          <input
+            type="range"
+            min={BOOST_RANGE.min}
+            max={BOOST_RANGE.max}
+            step="1"
+            value={boost}
+            class="min-h-11 w-40 accent-[var(--instr)]"
+            aria-valuetext={signedDb(boost)}
+            oninput={(e) => setBoost(e.currentTarget.valueAsNumber)}
+          />
+          <span class="tnum w-14 font-semibold">{signedDb(boost)}</span>
+        </label>
+        {#if live && suggestion > boost + 2}
+          <button type="button" class="min-h-11 rounded-full bg-instr px-4 text-sm font-semibold text-ws-stage" onclick={() => setBoost(suggestion)}>
+            Boost to {signedDb(suggestion)}
+          </button>
+        {/if}
+      </div>
     </div>
   </div>
 </section>
@@ -255,11 +312,13 @@
         {@const isPlaying = player?.id === take.id}
         {@const gain = take.gainDb ?? 0}
         {@const warn = clipWarning(peakDbOf(take.envelope), gain)}
+        {@const pos = progress(take)}
+        {@const n = Math.max(1, take.envelope.length)}
         <li class="flex flex-col gap-3 p-3 sm:p-4" data-audio-take={take.id}>
           <div class="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-instr text-ws-stage' : 'bg-ws-raised hover:bg-instr-wash'}"
+              class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-ws-ink text-ws-bg' : 'bg-instr text-ws-stage hover:brightness-105'}"
               aria-label="{isPlaying ? 'Stop' : 'Play'} {take.name}"
               aria-pressed={isPlaying}
               onclick={() => play(take)}
@@ -284,11 +343,20 @@
               <Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? "Delete?" : ""}
             </button>
           </div>
-          <svg viewBox="0 0 96 20" preserveAspectRatio="none" class="h-12 w-full rounded-lg bg-ws-stage" aria-hidden="true">
-            {#each take.envelope as p, i (i)}
-              {@const h = Math.min(1, p * 10 ** (gain / 20)) * 9}
-              <rect x={i + 0.15} y={10 - h} width="0.7" height={Math.max(0.2, 2 * h)} fill={p * 10 ** (gain / 20) >= 0.89 ? "var(--destructive)" : "var(--instr)"} />
+          <svg viewBox="0 0 {n} 20" preserveAspectRatio="none" class="wave h-16 w-full rounded-lg" aria-hidden="true">
+            {#each take.envelope as p, k (k)}
+              {@const lifted = p * 10 ** (gain / 20)}
+              {@const h = Math.min(1, lifted) * 9.5}
+              <rect
+                x={k + 0.1}
+                y={10 - h}
+                width="0.8"
+                height={Math.max(0.25, 2 * h)}
+                fill={lifted >= 0.89 ? "var(--destructive)" : `color-mix(in oklch, var(--hue-aerophone), var(--hue-mpc) ${Math.round(Math.min(1, lifted) * 100)}%)`}
+                opacity={pos === null || k / n <= pos ? 1 : 0.45}
+              />
             {/each}
+            {#if pos !== null}<line x1={pos * n} x2={pos * n} y1="0" y2="20" class="cursor" vector-effect="non-scaling-stroke" />{/if}
           </svg>
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             <label class="flex items-center gap-2 text-sm">
@@ -301,6 +369,7 @@
                 value={gain}
                 class="min-h-11 w-40 accent-[var(--instr)]"
                 aria-valuetext={signedDb(gain)}
+                oninput={(e) => previewGain(take, e.currentTarget.valueAsNumber)}
                 onchange={(e) => patch(take, { gainDb: e.currentTarget.valueAsNumber })}
               />
               <span class="tnum w-14 font-semibold">{signedDb(gain)}</span>
@@ -324,6 +393,13 @@
 </section>
 
 <style>
+  .wave {
+    background: var(--ws-stage);
+  }
+  .cursor {
+    stroke: var(--ws-stage-ink);
+    stroke-width: 2;
+  }
   .meter {
     position: relative;
     height: 0.9rem;

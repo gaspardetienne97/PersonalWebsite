@@ -5,8 +5,12 @@ export const CLIP_DB = -1;
 
 export const takeKey = (id: string) => `music-take-${id}`;
 
+/** Waveform resolution for new takes (older takes are redrawn at this on first play). */
+export const ENVELOPE_BUCKETS = 400;
+export const BOOST_RANGE = { min: 0, max: 24 } as const;
+
 /** Peak per bucket, 0..1, for a waveform envelope. */
-export function envelope(samples: Float32Array, buckets = 96): number[] {
+export function envelope(samples: Float32Array, buckets = ENVELOPE_BUCKETS): number[] {
   const out: number[] = [];
   const size = Math.max(1, Math.floor(samples.length / buckets));
   for (let b = 0; b < buckets; b++) {
@@ -39,4 +43,19 @@ export function extensionFor(mime: string): string {
   if (mime.includes("mp4") || mime.includes("aac")) return "m4a";
   if (mime.includes("wav")) return "wav";
   return "audio";
+}
+
+/**
+ * The playback gain a new take starts with: lift its loudest moment to -3 dB
+ * (never cut, at most the top of the gain range). The file is untouched.
+ */
+export function autoGainDb(peakDb: number): number {
+  if (!Number.isFinite(peakDb)) return 0;
+  return Math.max(0, Math.min(GAIN_RANGE.max, Math.round(-3 - peakDb)));
+}
+
+/** Recording boost that would bring a held peak near -12 dB, leaving headroom. */
+export function suggestedBoost(heldPeakDb: number, currentBoost: number): number {
+  const raw = heldPeakDb - currentBoost;
+  return Math.max(BOOST_RANGE.min, Math.min(BOOST_RANGE.max, Math.round(-12 - raw)));
 }

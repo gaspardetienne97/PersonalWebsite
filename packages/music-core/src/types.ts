@@ -337,6 +337,8 @@ export interface Settings {
   feedbackStyle: "every-note" | "summary";
   /** On-screen keys, frets and pads make sound (when sound is on). */
   onscreenSound: boolean;
+  /** Gain applied to microphone recordings before encoding (dB, 0..24). */
+  recordBoostDb: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -366,4 +368,5 @@ export const DEFAULT_SETTINGS: Settings = {
   frozenDays: [],
   feedbackStyle: "every-note",
   onscreenSound: true,
+  recordBoostDb: 0,
 };

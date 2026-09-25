@@ -280,17 +280,33 @@ async function startSynthetic(source: (t: number) => number, seconds = 4): Promi
 }
 
 /** Record the live mic stream (audio takes). */
-function record(): { stop(): Promise<Blob> } {
-  if (!stream || state !== "on") throw new Error("Start the microphone before recording.");
-  const rec = new MediaRecorder(stream);
+/**
+ * Record what the microphone hears, optionally boosted by `boostDb` before the
+ * encoder (laptop mics are quiet with auto gain off, which pitch detection
+ * needs). The boost only affects the recording, never pitch detection.
+ */
+function record(boostDb = 0): { stop(): Promise<Blob>; setBoost(db: number): void } {
+  if (!stream || !ctx || state !== "on") throw new Error("Start the microphone before recording.");
+  const src = ctx.createMediaStreamSource(stream);
+  const gain = ctx.createGain();
+  gain.gain.value = 10 ** (boostDb / 20);
+  const dest = ctx.createMediaStreamDestination();
+  src.connect(gain).connect(dest);
+  const rec = new MediaRecorder(dest.stream);
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   rec.start();
+  const done = () => {
+    src.disconnect();
+    gain.disconnect();
+    return new Blob(chunks, { type: rec.mimeType });
+  };
   return {
+    setBoost: (db) => gain.gain.setTargetAtTime(10 ** (db / 20), ctx!.currentTime, 0.02),
     stop: () =>
       new Promise<Blob>((resolve) => {
-        rec.onstop = () => resolve(new Blob(chunks, { type: rec.mimeType }));
-        if (rec.state === "inactive") resolve(new Blob(chunks, { type: rec.mimeType }));
+        rec.onstop = () => resolve(done());
+        if (rec.state === "inactive") resolve(done());
         else rec.stop();
       }),
   };
