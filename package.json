@@ -32,21 +32,18 @@
     "@repo/pdf-core": "workspace:*",
     "@repo/ui": "workspace:*",
     "@spotify/web-api-ts-sdk": "^1.2.0",
-    "@tonejs/midi": "^2.0.28",
     "@vite-pwa/sveltekit": "catalog:",
     "bits-ui": "catalog:",
     "clsx": "catalog:",
     "drizzle-orm": "catalog:",
     "embla-carousel-svelte": "catalog:",
-    "jszip": "^3.10.1",
     "lucide-svelte": "catalog:",
     "mode-watcher": "catalog:",
     "postgres": "catalog:",
     "svelte": "catalog:",
     "tailwind-merge": "catalog:",
     "tailwind-variants": "catalog:",
-    "tailwindcss-animate": "^1.0.7",
-    "tone": "^15.3.11"
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "catalog:",

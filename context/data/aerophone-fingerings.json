@@ -115,144 +115,63 @@
   ],
   "fingeringsByMidi": {
     "58": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "lowBb"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowBb"],
       "octave": false
     },
     "59": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "lowB"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowB"],
       "octave": false
     },
     "60": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "lowC"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowC"],
       "octave": false
     },
     "61": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "lowCsharp"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowCsharp"],
       "octave": false
     },
     "62": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6"],
       "octave": false
     },
     "63": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "eb"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
       "octave": false
     },
     "64": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5"],
       "octave": false
     },
     "65": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4"
-      ],
+      "keys": ["k1", "k2", "k3", "k4"],
       "octave": false
     },
     "66": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k5"
-      ],
+      "keys": ["k1", "k2", "k3", "k5"],
       "octave": false
     },
     "67": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3"
-      ],
+      "keys": ["k1", "k2", "k3"],
       "octave": false
     },
     "68": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "gsharp"
-      ],
+      "keys": ["k1", "k2", "k3", "gsharp"],
       "octave": false
     },
     "69": {
-      "keys": [
-        "k1",
-        "k2"
-      ],
+      "keys": ["k1", "k2"],
       "octave": false
     },
     "70": {
-      "keys": [
-        "k1",
-        "bisBb"
-      ],
+      "keys": ["k1", "bisBb"],
       "octave": false
     },
     "71": {
-      "keys": [
-        "k1"
-      ],
+      "keys": ["k1"],
       "octave": false
     },
     "72": {
-      "keys": [
-        "sideC"
-      ],
+      "keys": ["sideC"],
       "octave": false
     },
     "73": {
@@ -260,53 +179,23 @@
       "octave": false
     },
     "74": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6"],
       "octave": true
     },
     "75": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "eb"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
       "octave": true
     },
     "76": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5"],
       "octave": true
     },
     "77": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4"
-      ],
+      "keys": ["k1", "k2", "k3", "k4"],
       "octave": true
     },
     "78": {
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k5"
-      ],
+      "keys": ["k1", "k2", "k3", "k5"],
       "octave": true
     }
   },
@@ -314,172 +203,91 @@
     {
       "midi": 58,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "lowBb"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowBb"],
       "octave": false
     },
     {
       "midi": 59,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "lowB"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowB"],
       "octave": false
     },
     {
       "midi": 60,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "lowC"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowC"],
       "octave": false
     },
     {
       "midi": 61,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6",
-        "lowCsharp"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowCsharp"],
       "octave": false
     },
     {
       "midi": 62,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6"],
       "octave": false
     },
     {
       "midi": 63,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "eb"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
       "octave": false
     },
     {
       "midi": 64,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5"],
       "octave": false
     },
     {
       "midi": 65,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4"
-      ],
+      "keys": ["k1", "k2", "k3", "k4"],
       "octave": false
     },
     {
       "midi": 66,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k5"
-      ],
+      "keys": ["k1", "k2", "k3", "k5"],
       "octave": false
     },
     {
       "midi": 67,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3"
-      ],
+      "keys": ["k1", "k2", "k3"],
       "octave": false
     },
     {
       "midi": 68,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "gsharp"
-      ],
+      "keys": ["k1", "k2", "k3", "gsharp"],
       "octave": false
     },
     {
       "midi": 69,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2"
-      ],
+      "keys": ["k1", "k2"],
       "octave": false
     },
     {
       "midi": 70,
       "inRange": true,
-      "keys": [
-        "k1",
-        "bisBb"
-      ],
+      "keys": ["k1", "bisBb"],
       "octave": false
     },
     {
       "midi": 71,
       "inRange": true,
-      "keys": [
-        "k1"
-      ],
+      "keys": ["k1"],
       "octave": false
     },
     {
       "midi": 72,
       "inRange": true,
-      "keys": [
-        "sideC"
-      ],
+      "keys": ["sideC"],
       "octave": false
     },
     {
@@ -491,61 +299,31 @@
     {
       "midi": 74,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "k6"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6"],
       "octave": true
     },
     {
       "midi": 75,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5",
-        "eb"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
       "octave": true
     },
     {
       "midi": 76,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4",
-        "k5"
-      ],
+      "keys": ["k1", "k2", "k3", "k4", "k5"],
       "octave": true
     },
     {
       "midi": 77,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k4"
-      ],
+      "keys": ["k1", "k2", "k3", "k4"],
       "octave": true
     },
     {
       "midi": 78,
       "inRange": true,
-      "keys": [
-        "k1",
-        "k2",
-        "k3",
-        "k5"
-      ],
+      "keys": ["k1", "k2", "k3", "k5"],
       "octave": true
     }
   ]

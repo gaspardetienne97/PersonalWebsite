@@ -16,14 +16,7 @@
     "activeInstrument": "piano",
     "tempoByVariant": {}
   },
-  "playbackSoundIds": [
-    "salamander-piano",
-    "warm-synth",
-    "synth",
-    "e-piano",
-    "square",
-    "saw"
-  ],
+  "playbackSoundIds": ["salamander-piano", "warm-synth", "synth", "e-piano", "square", "saw"],
   "playbackSoundLabels": {
     "salamander-piano": "Sampled Piano",
     "warm-synth": "Warm Synth",

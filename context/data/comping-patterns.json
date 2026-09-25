@@ -79,10 +79,7 @@
           "durationBeats": 0.5
         }
       ],
-      "shellMidi": [
-        48,
-        58
-      ]
+      "shellMidi": [48, 58]
     },
     {
       "id": "blue-third-f7",
@@ -163,10 +160,7 @@
           "durationBeats": 0.5
         }
       ],
-      "shellMidi": [
-        41,
-        51
-      ]
+      "shellMidi": [41, 51]
     },
     {
       "id": "blue-third-g7",
@@ -247,10 +241,7 @@
           "durationBeats": 0.5
         }
       ],
-      "shellMidi": [
-        43,
-        53
-      ]
+      "shellMidi": [43, 53]
     }
   ],
   "leftHandVoice": "left-hand",
@@ -334,9 +325,6 @@
         "durationBeats": 0.5
       }
     ],
-    "shellMidi": [
-      48,
-      58
-    ]
+    "shellMidi": [48, 58]
   }
 }

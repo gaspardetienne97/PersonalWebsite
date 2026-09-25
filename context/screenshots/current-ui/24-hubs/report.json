@@ -6,9 +6,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 1,
     "buttons": 11,
     "unnamedButtons": 0,
@@ -25,9 +23,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library-tab-reference--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 4,
     "buttons": 44,
     "unnamedButtons": 0,
@@ -44,9 +40,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library-tab-import--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 1,
     "buttons": 12,
     "unnamedButtons": 0,
@@ -63,9 +57,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 119,
     "unnamedButtons": 0,
@@ -82,9 +74,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create-mode-piano-roll--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 1630,
     "unnamedButtons": 0,
@@ -101,9 +91,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create-mode-recorder--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 39,
     "unnamedButtons": 0,
@@ -120,9 +108,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/progress--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Progress"
-    ],
+    "h1": ["Progress"],
     "h2": 3,
     "buttons": 9,
     "unnamedButtons": 0,
@@ -139,9 +125,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/connect--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Connect Instruments"
-    ],
+    "h1": ["Connect Instruments"],
     "h2": 3,
     "buttons": 58,
     "unnamedButtons": 0,
@@ -158,9 +142,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 15,
     "unnamedButtons": 0,
@@ -177,9 +159,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner-mode-intonation--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 12,
     "unnamedButtons": 0,
@@ -196,9 +176,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner-mode-drone--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 25,
     "unnamedButtons": 0,
@@ -215,9 +193,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/settings--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Settings"
-    ],
+    "h1": ["Settings"],
     "h2": 5,
     "buttons": 14,
     "unnamedButtons": 0,
@@ -234,18 +210,14 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/guide--1280-light.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "How to use Practice OS"
-    ],
+    "h1": ["How to use Practice OS"],
     "h2": 3,
     "buttons": 7,
     "unnamedButtons": 0,
     "segmented": 0,
     "liveRegions": 2,
     "dark": false,
-    "widest": [
-      "path.[object.SVGAnimatedString]@1286"
-    ],
+    "widest": ["path.[object.SVGAnimatedString]@1286"],
     "errors": []
   },
   {
@@ -255,9 +227,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 1,
     "buttons": 11,
     "unnamedButtons": 0,
@@ -274,20 +244,14 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library-tab-reference--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 4,
     "buttons": 44,
     "unnamedButtons": 0,
     "segmented": 4,
     "liveRegions": 2,
     "dark": false,
-    "widest": [
-      "div.relative.grid.touch-none@395",
-      "div.relative.grid.items-end@395",
-      "span@384"
-    ],
+    "widest": ["div.relative.grid.touch-none@395", "div.relative.grid.items-end@395", "span@384"],
     "errors": []
   },
   {
@@ -297,9 +261,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library-tab-import--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 1,
     "buttons": 12,
     "unnamedButtons": 0,
@@ -316,9 +278,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 119,
     "unnamedButtons": 0,
@@ -339,20 +299,14 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create-mode-piano-roll--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 1630,
     "unnamedButtons": 0,
     "segmented": 2,
     "liveRegions": 3,
     "dark": false,
-    "widest": [
-      "div@721",
-      "div.sticky.top-0.z-10@721",
-      "div.flex-1.text-center.text-[10px]@721"
-    ],
+    "widest": ["div@721", "div.sticky.top-0.z-10@721", "div.flex-1.text-center.text-[10px]@721"],
     "errors": []
   },
   {
@@ -362,9 +316,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create-mode-recorder--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 39,
     "unnamedButtons": 0,
@@ -385,9 +337,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/progress--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Progress"
-    ],
+    "h1": ["Progress"],
     "h2": 3,
     "buttons": 9,
     "unnamedButtons": 0,
@@ -404,20 +354,14 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/connect--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Connect Instruments"
-    ],
+    "h1": ["Connect Instruments"],
     "h2": 3,
     "buttons": 58,
     "unnamedButtons": 0,
     "segmented": 12,
     "liveRegions": 4,
     "dark": false,
-    "widest": [
-      "table.w-full.min-w-[26rem].text-sm@457",
-      "thead@457",
-      "tr.text-left@457"
-    ],
+    "widest": ["table.w-full.min-w-[26rem].text-sm@457", "thead@457", "tr.text-left@457"],
     "errors": []
   },
   {
@@ -427,9 +371,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 15,
     "unnamedButtons": 0,
@@ -446,9 +388,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner-mode-intonation--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 12,
     "unnamedButtons": 0,
@@ -465,9 +405,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner-mode-drone--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 25,
     "unnamedButtons": 0,
@@ -484,9 +422,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/settings--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Settings"
-    ],
+    "h1": ["Settings"],
     "h2": 5,
     "buttons": 14,
     "unnamedButtons": 0,
@@ -503,9 +439,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/guide--375-light.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "How to use Practice OS"
-    ],
+    "h1": ["How to use Practice OS"],
     "h2": 3,
     "buttons": 7,
     "unnamedButtons": 0,
@@ -522,9 +456,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 1,
     "buttons": 11,
     "unnamedButtons": 0,
@@ -541,9 +473,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library-tab-reference--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 4,
     "buttons": 44,
     "unnamedButtons": 0,
@@ -560,9 +490,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library-tab-import--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 1,
     "buttons": 12,
     "unnamedButtons": 0,
@@ -579,9 +507,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 119,
     "unnamedButtons": 0,
@@ -598,9 +524,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create-mode-piano-roll--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 1630,
     "unnamedButtons": 0,
@@ -617,9 +541,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create-mode-recorder--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 39,
     "unnamedButtons": 0,
@@ -636,9 +558,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/progress--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Progress"
-    ],
+    "h1": ["Progress"],
     "h2": 3,
     "buttons": 9,
     "unnamedButtons": 0,
@@ -655,9 +575,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/connect--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Connect Instruments"
-    ],
+    "h1": ["Connect Instruments"],
     "h2": 3,
     "buttons": 58,
     "unnamedButtons": 0,
@@ -674,9 +592,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 15,
     "unnamedButtons": 0,
@@ -693,9 +609,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner-mode-intonation--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 12,
     "unnamedButtons": 0,
@@ -712,9 +626,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner-mode-drone--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 25,
     "unnamedButtons": 0,
@@ -731,9 +643,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/settings--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "Settings"
-    ],
+    "h1": ["Settings"],
     "h2": 5,
     "buttons": 14,
     "unnamedButtons": 0,
@@ -750,18 +660,14 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/guide--1280-dark.png",
     "scrollWidth": 1280,
     "innerWidth": 1280,
-    "h1": [
-      "How to use Practice OS"
-    ],
+    "h1": ["How to use Practice OS"],
     "h2": 3,
     "buttons": 7,
     "unnamedButtons": 0,
     "segmented": 0,
     "liveRegions": 2,
     "dark": true,
-    "widest": [
-      "path.[object.SVGAnimatedString]@1286"
-    ],
+    "widest": ["path.[object.SVGAnimatedString]@1286"],
     "errors": []
   },
   {
@@ -771,9 +677,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 1,
     "buttons": 11,
     "unnamedButtons": 0,
@@ -790,20 +694,14 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library-tab-reference--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 4,
     "buttons": 44,
     "unnamedButtons": 0,
     "segmented": 4,
     "liveRegions": 2,
     "dark": true,
-    "widest": [
-      "div.relative.grid.touch-none@395",
-      "div.relative.grid.items-end@395",
-      "span@384"
-    ],
+    "widest": ["div.relative.grid.touch-none@395", "div.relative.grid.items-end@395", "span@384"],
     "errors": []
   },
   {
@@ -813,9 +711,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/library-tab-import--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Library"
-    ],
+    "h1": ["Library"],
     "h2": 1,
     "buttons": 12,
     "unnamedButtons": 0,
@@ -832,9 +728,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 119,
     "unnamedButtons": 0,
@@ -855,20 +749,14 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create-mode-piano-roll--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 1630,
     "unnamedButtons": 0,
     "segmented": 2,
     "liveRegions": 3,
     "dark": true,
-    "widest": [
-      "div@721",
-      "div.sticky.top-0.z-10@721",
-      "div.flex-1.text-center.text-[10px]@721"
-    ],
+    "widest": ["div@721", "div.sticky.top-0.z-10@721", "div.flex-1.text-center.text-[10px]@721"],
     "errors": []
   },
   {
@@ -878,9 +766,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/create-mode-recorder--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Create"
-    ],
+    "h1": ["Create"],
     "h2": 1,
     "buttons": 39,
     "unnamedButtons": 0,
@@ -901,9 +787,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/progress--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Progress"
-    ],
+    "h1": ["Progress"],
     "h2": 3,
     "buttons": 9,
     "unnamedButtons": 0,
@@ -920,20 +804,14 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/connect--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Connect Instruments"
-    ],
+    "h1": ["Connect Instruments"],
     "h2": 3,
     "buttons": 58,
     "unnamedButtons": 0,
     "segmented": 12,
     "liveRegions": 4,
     "dark": true,
-    "widest": [
-      "table.w-full.min-w-[26rem].text-sm@457",
-      "thead@457",
-      "tr.text-left@457"
-    ],
+    "widest": ["table.w-full.min-w-[26rem].text-sm@457", "thead@457", "tr.text-left@457"],
     "errors": []
   },
   {
@@ -943,9 +821,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 15,
     "unnamedButtons": 0,
@@ -962,9 +838,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner-mode-intonation--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 12,
     "unnamedButtons": 0,
@@ -981,9 +855,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/tuner-mode-drone--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Tuner"
-    ],
+    "h1": ["Tuner"],
     "h2": 0,
     "buttons": 25,
     "unnamedButtons": 0,
@@ -1000,9 +872,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/settings--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "Settings"
-    ],
+    "h1": ["Settings"],
     "h2": 5,
     "buttons": 14,
     "unnamedButtons": 0,
@@ -1019,9 +889,7 @@
     "file": "/Users/gaspard/Code/PersonalWebsite/docs/screenshots/ui-pass/after/24-hubs/guide--375-dark.png",
     "scrollWidth": 375,
     "innerWidth": 375,
-    "h1": [
-      "How to use Practice OS"
-    ],
+    "h1": ["How to use Practice OS"],
     "h2": 3,
     "buttons": 7,
     "unnamedButtons": 0,

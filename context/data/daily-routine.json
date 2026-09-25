@@ -1,10 +1,7 @@
 {
   "minutesPerStep": 5,
   "defaultBudgetMinutes": 20,
-  "budgetRangeMinutes": [
-    1,
-    120
-  ],
+  "budgetRangeMinutes": [1, 120],
   "plansByInstrument": {
     "piano": [
       {

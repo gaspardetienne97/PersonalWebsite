@@ -747,21 +747,13 @@
     "chords": [
       {
         "symbol": "D",
-        "pitchClasses": [
-          2,
-          6,
-          9
-        ],
+        "pitchClasses": [2, 6, 9],
         "startBeat": 0,
         "durationBeats": 8
       },
       {
         "symbol": "A",
-        "pitchClasses": [
-          1,
-          4,
-          9
-        ],
+        "pitchClasses": [1, 4, 9],
         "startBeat": 8,
         "durationBeats": 8
       }
@@ -1023,21 +1015,13 @@
     "chords": [
       {
         "symbol": "G",
-        "pitchClasses": [
-          2,
-          7,
-          11
-        ],
+        "pitchClasses": [2, 7, 11],
         "startBeat": 0,
         "durationBeats": 8
       },
       {
         "symbol": "C",
-        "pitchClasses": [
-          0,
-          4,
-          7
-        ],
+        "pitchClasses": [0, 4, 7],
         "startBeat": 8,
         "durationBeats": 8
       }

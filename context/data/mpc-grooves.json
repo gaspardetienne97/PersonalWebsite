@@ -36,9 +36,7 @@
       "value": "backbeat",
       "label": "Kick / snare",
       "bars": 1,
-      "sectionLabels": [
-        "groove"
-      ],
+      "sectionLabels": ["groove"],
       "targets": [
         {
           "voice": "kick",
@@ -66,9 +64,7 @@
       "value": "eighth-hats",
       "label": "Eighth-note hats",
       "bars": 1,
-      "sectionLabels": [
-        "groove"
-      ],
+      "sectionLabels": ["groove"],
       "targets": [
         {
           "voice": "kick",
@@ -136,9 +132,7 @@
       "value": "syncopated",
       "label": "Syncopated kick",
       "bars": 1,
-      "sectionLabels": [
-        "groove"
-      ],
+      "sectionLabels": ["groove"],
       "targets": [
         {
           "voice": "kick",
@@ -211,10 +205,7 @@
       "value": "boom-bap-2bar",
       "label": "Boom bap · 2 bars",
       "bars": 2,
-      "sectionLabels": [
-        "groove",
-        "groove"
-      ],
+      "sectionLabels": ["groove", "groove"],
       "targets": [
         {
           "voice": "kick",
@@ -347,12 +338,7 @@
       "value": "turnaround-fill",
       "label": "Turnaround with a fill",
       "bars": 4,
-      "sectionLabels": [
-        "groove",
-        "groove",
-        "groove",
-        "fill"
-      ],
+      "sectionLabels": ["groove", "groove", "groove", "fill"],
       "targets": [
         {
           "voice": "kick",

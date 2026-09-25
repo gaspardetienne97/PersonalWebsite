@@ -39,73 +39,14 @@
       "label": "Right"
     }
   ],
-  "majorSteps": [
-    0,
-    2,
-    4,
-    5,
-    7,
-    9,
-    11
-  ],
-  "mirrorRightSteps": [
-    0,
-    2,
-    4,
-    5,
-    7,
-    5,
-    4,
-    2
-  ],
-  "mirrorLeftSteps": [
-    0,
-    -1,
-    -3,
-    -5,
-    -7,
-    -5,
-    -3,
-    -1
-  ],
-  "mirrorFingers": [
-    1,
-    2,
-    3,
-    4,
-    5,
-    4,
-    3,
-    2
-  ],
-  "leftShell": [
-    0,
-    7,
-    10,
-    7
-  ],
-  "rightFragment": [
-    0,
-    2,
-    4,
-    7,
-    9,
-    7,
-    4,
-    2
-  ],
-  "alberti": [
-    0,
-    7,
-    4,
-    7
-  ],
-  "holds": [
-    0,
-    4,
-    7,
-    12
-  ],
+  "majorSteps": [0, 2, 4, 5, 7, 9, 11],
+  "mirrorRightSteps": [0, 2, 4, 5, 7, 5, 4, 2],
+  "mirrorLeftSteps": [0, -1, -3, -5, -7, -5, -3, -1],
+  "mirrorFingers": [1, 2, 3, 4, 5, 4, 3, 2],
+  "leftShell": [0, 7, 10, 7],
+  "rightFragment": [0, 2, 4, 7, 9, 7, 4, 2],
+  "alberti": [0, 7, 4, 7],
+  "holds": [0, 4, 7, 12],
   "examplesTonicC4Bpm80Bars2": {
     "lh-pulse-rh-line": {
       "patternKind": "lh-pulse-rh-line",

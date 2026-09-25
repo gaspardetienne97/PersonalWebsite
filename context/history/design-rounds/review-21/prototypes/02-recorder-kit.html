@@ -1,233 +1,859 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Record and kits</title>
-<meta name="description" content="Prototype 2: a standalone Record destination with distinct MIDI and audio take cards, inline playback, renaming, a piano-roll and waveform per take, a level meter with headroom, and a sample-kit builder whose pad assignment works by drag or menu. Simulated data." />
-<link rel="stylesheet" href="tokens.css" />
-<style>
-  main { max-width: 1160px; margin: 0 auto; padding: 1rem 1.5rem 4rem; }
-  header.page { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; margin: 0.5rem 0 1rem; }
-  header.page h1 { font-size: 2rem; line-height: 1.1; }
-  header.page h1::after { content: ""; display: block; width: 40px; height: 2px; margin-top: 8px; background: var(--instr-piano); }
-  .crumbs { display: flex; gap: 0.5rem; align-items: center; color: var(--muted-foreground); font-size: 0.875rem; }
-  .crumbs b { color: var(--foreground); }
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1.25rem; align-items: start; }
-  .deck { padding: 1rem; display: grid; gap: 1rem; }
-  .arm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
-  .rec { min-height: 48px; padding: 0 1.125rem; border-radius: 999px; border: 0; background: var(--destructive); color: var(--destructive-foreground); font-weight: 700; display: inline-flex; align-items: center; gap: 0.625rem; }
-  .rec::before { content: ""; width: 12px; height: 12px; border-radius: 999px; background: currentColor; }
-  .rec[aria-pressed="true"]::before { border-radius: 2px; animation: blink 1s steps(2) infinite; }
-  @keyframes blink { 50% { opacity: 0.35; } }
-  .source { display: inline-flex; padding: 3px; border-radius: 999px; border: 1px solid var(--stage-line); background: color-mix(in oklab, var(--stage-2) 80%, black); }
-  .source button { min-height: 44px; padding: 0 0.875rem; border: 0; border-radius: 999px; background: transparent; color: var(--stage-muted); font-weight: 600; display: inline-flex; gap: 0.5rem; align-items: center; }
-  .source button[aria-pressed="true"] { background: var(--stage-2); color: var(--stage-foreground); box-shadow: inset 0 0 0 1px var(--stage-line); }
-  .meter-wrap { display: grid; gap: 0.375rem; flex: 1; min-width: 200px; }
-  .meter { position: relative; height: 14px; border-radius: 7px; background: color-mix(in oklab, var(--stage-2) 80%, black); overflow: hidden; box-shadow: inset 0 1px 2px oklch(0 0 0 / 40%); }
-  .meter .fill { position: absolute; inset: 0 auto 0 0; width: 0%; border-radius: 7px; background: linear-gradient(90deg, var(--success) 0 70%, var(--warn) 70% 90%, var(--destructive) 90%); transition: width 80ms; }
-  .meter .peak { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--stage-foreground); left: 0; }
-  .meter-scale { display: flex; justify-content: space-between; font: 10px var(--font-mono); color: var(--stage-muted); }
-  .meter-note { font-size: 0.8125rem; color: var(--stage-muted); }
-  .meter-note b { color: var(--stage-foreground); }
-  .timer { font-family: var(--font-mono); font-size: 1.75rem; font-weight: 500; font-variant-numeric: tabular-nums; }
-  .takes-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: 1.25rem 0 0.75rem; }
-  .takes-head h2 { font-size: 1.25rem; }
-  .filters { display: inline-flex; gap: 0.25rem; }
-  .filters button { min-height: 44px; padding: 0 0.75rem; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-weight: 600; font-size: 0.8125rem; }
-  .filters button[aria-pressed="true"] { background: var(--sidebar-accent); }
-  .takes { display: grid; gap: 0.75rem; }
-  .take { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 0.875rem; align-items: center; padding: 0.75rem 0.875rem; }
-  .take.playing { border-color: color-mix(in oklab, var(--practice-accent) 60%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, var(--practice-accent) 30%, transparent); }
-  .play { width: 48px; height: 48px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); display: grid; place-items: center; font-size: 1rem; }
-  .play[aria-pressed="true"] { background: var(--practice-accent); color: var(--practice-accent-foreground); border-color: transparent; }
-  .take .body { display: grid; gap: 0.375rem; min-width: 0; }
-  .take .title { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-  .take .title input { font: inherit; font-weight: 600; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px; margin: -2px -6px; color: inherit; min-width: 0; width: 100%; max-width: 32ch; }
-  .take .title input:hover { border-color: var(--border); }
-  .take .title input:focus { border-color: var(--practice-accent); outline: 0; }
-  .kind { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.125rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; }
-  .kind.midi { background: color-mix(in oklab, var(--instr-piano) 18%, transparent); color: var(--foreground); }
-  .kind.audio { background: color-mix(in oklab, var(--instr-guitar) 22%, transparent); color: var(--foreground); }
-  .take .meta { font-size: 0.8125rem; color: var(--muted-foreground); display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
-  .take .meta .mono { color: var(--foreground); }
-  .viz { position: relative; height: 56px; border-radius: 8px; background: var(--stage); border: 1px solid var(--stage-line); overflow: hidden; }
-  .viz svg { display: block; width: 100%; height: 100%; }
-  .viz .head { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--practice-accent); box-shadow: 0 0 6px var(--practice-accent); }
-  .viz .gain { position: absolute; right: 6px; top: 4px; font: 10px var(--font-mono); color: var(--stage-muted); background: color-mix(in oklab, var(--stage) 70%, transparent); padding: 1px 4px; border-radius: 3px; }
-  .take .actions { display: grid; gap: 0.25rem; }
-  .take .actions button { min-height: 44px; min-width: 44px; padding: 0 0.75rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); font-size: 0.8125rem; font-weight: 600; }
-  .take .actions button.danger { color: var(--destructive); }
-  .empty { display: grid; justify-items: center; gap: 0.5rem; padding: 2rem; text-align: center; color: var(--muted-foreground); border: 1px dashed var(--border); border-radius: var(--radius); }
-  aside .card { padding: 1rem; display: grid; gap: 0.75rem; }
-  aside h2 { font-size: 1.125rem; }
-  .kv { display: grid; grid-template-columns: 1fr auto; gap: 0.375rem 1rem; font-size: 0.875rem; }
-  .kv dt { color: var(--muted-foreground); }
-  .kv dd { margin: 0; font-weight: 600; text-align: right; }
-  .gain-row { display: grid; gap: 0.375rem; }
-  .gain-row input[type="range"] { width: 100%; accent-color: var(--practice-accent); height: 32px; }
-  .gain-row output { font-family: var(--font-mono); }
-  /* Kit builder */
-  section.kit { margin-top: 2rem; }
-  .kit-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
-  .kit-head h2 { font-size: 1.375rem; }
-  .kit-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
-  .pads-stage { padding: 1rem; --instr: var(--instr-mpc); }
-  .pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.625rem; padding: 0.625rem; border-radius: 16px; background: color-mix(in oklab, var(--stage-2) 70%, black); box-shadow: inset 0 1px 0 oklch(1 0 0 / 6%), inset 0 -1px 0 oklch(0 0 0 / 40%); }
-  .pad { position: relative; aspect-ratio: 1; border-radius: 7px; border: 1px solid oklch(1 0 0 / 10%); background: linear-gradient(180deg, color-mix(in oklab, var(--stage-2) 88%, white), var(--stage-2)); color: var(--stage-muted); box-shadow: inset 0 1px 0 oklch(1 0 0 / 10%), inset 0 -3px 0 oklch(0 0 0 / 35%), 0 1px 2px oklch(0 0 0 / 40%); display: grid; place-items: center; padding: 0.375rem; text-align: center; }
-  .pad .num { position: absolute; left: 6px; bottom: 4px; font: 9px var(--font-mono); opacity: 0.6; }
-  .pad .sample { font-size: 0.75rem; font-weight: 600; color: var(--stage-foreground); line-height: 1.2; word-break: break-word; }
-  .pad .sample small { display: block; font: 10px var(--font-mono); color: var(--stage-muted); margin-top: 2px; }
-  .pad.empty-pad { color: var(--stage-muted); font-size: 0.75rem; }
-  .pad.assigned { box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--instr-mpc) 70%, transparent), inset 0 -3px 0 oklch(0 0 0 / 35%); }
-  .pad.over { outline: 2px dashed var(--practice-accent); outline-offset: 2px; }
-  .pad.playing { background: var(--practice-accent); color: var(--practice-accent-foreground); }
-  .pad.playing .sample, .pad.playing .sample small { color: inherit; }
-  .pad .menu { position: absolute; right: 4px; top: 4px; width: 28px; height: 28px; border-radius: 6px; border: 0; background: color-mix(in oklab, black 25%, transparent); color: var(--stage-foreground); font-size: 14px; display: grid; place-items: center; }
-  .pad select { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-  .pad select:focus-visible + .menu { outline: 2px solid var(--practice-accent); }
-  .samples { padding: 1rem; display: grid; gap: 0.75rem; }
-  .drop { display: grid; justify-items: center; gap: 0.25rem; padding: 1rem; border: 2px dashed var(--border); border-radius: var(--radius); text-align: center; color: var(--muted-foreground); }
-  .drop b { color: var(--foreground); }
-  .sample-list { display: grid; gap: 0.5rem; }
-  .sample-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 0.625rem; align-items: center; padding: 0.375rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); cursor: grab; }
-  .sample-row[draggable="true"]:active { cursor: grabbing; }
-  .sample-row .wave { height: 28px; border-radius: 4px; background: var(--stage); }
-  .sample-row .wave svg { display: block; width: 100%; height: 100%; }
-  .sample-row .nm { font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
-  .sample-row .nm small { font: 11px var(--font-mono); color: var(--muted-foreground); }
-  .sample-row .assign { font-size: 0.75rem; color: var(--muted-foreground); }
-  .sample-row .assign b { color: var(--foreground); font-family: var(--font-mono); }
-  .err { border-color: color-mix(in oklab, var(--destructive) 55%, transparent); background: color-mix(in oklab, var(--destructive) 10%, transparent); padding: 0.625rem 0.875rem; border-radius: var(--radius); font-size: 0.875rem; }
-  .decision { margin-top: 2rem; padding: 1rem; display: grid; gap: 0.5rem; }
-  .decision h2 { font-size: 1.125rem; }
-  .decision ul { margin: 0; padding-left: 1.125rem; color: var(--muted-foreground); }
-  .theme-toggle { position: fixed; right: 12px; bottom: 12px; z-index: 40; }
-  @media (max-width: 900px) { .layout, .kit-layout { grid-template-columns: minmax(0, 1fr); } }
-  @media (max-width: 767px) {
-    main { padding: 0.75rem 1rem 4rem; }
-    header.page h1 { font-size: 1.625rem; }
-    .take { grid-template-columns: 48px minmax(0, 1fr); }
-    .take .actions { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .pads { gap: 0.375rem; padding: 0.375rem; }
-    .pad .sample { font-size: 0.6875rem; }
-  }
-</style>
-</head>
-<body>
-<main>
-  <div class="crumbs"><span>Music</span><span aria-hidden="true">›</span><b>Record</b><span class="note" style="margin-left:.5rem">Own destination in the utilities group, next to Connect</span></div>
-  <header class="page">
-    <h1>Record</h1>
-    <span class="pill"><span class="dot"></span>Piano · MIDI in, mic ready</span>
-  </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Record and kits</title>
+    <meta
+      name="description"
+      content="Prototype 2: a standalone Record destination with distinct MIDI and audio take cards, inline playback, renaming, a piano-roll and waveform per take, a level meter with headroom, and a sample-kit builder whose pad assignment works by drag or menu. Simulated data."
+    />
+    <link rel="stylesheet" href="tokens.css" />
+    <style>
+      main {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem 4rem;
+      }
+      header.page {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        justify-content: space-between;
+        gap: 1rem;
+        margin: 0.5rem 0 1rem;
+      }
+      header.page h1 {
+        font-size: 2rem;
+        line-height: 1.1;
+      }
+      header.page h1::after {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 2px;
+        margin-top: 8px;
+        background: var(--instr-piano);
+      }
+      .crumbs {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        color: var(--muted-foreground);
+        font-size: 0.875rem;
+      }
+      .crumbs b {
+        color: var(--foreground);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        gap: 1.25rem;
+        align-items: start;
+      }
+      .deck {
+        padding: 1rem;
+        display: grid;
+        gap: 1rem;
+      }
+      .arm-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .rec {
+        min-height: 48px;
+        padding: 0 1.125rem;
+        border-radius: 999px;
+        border: 0;
+        background: var(--destructive);
+        color: var(--destructive-foreground);
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.625rem;
+      }
+      .rec::before {
+        content: "";
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+      .rec[aria-pressed="true"]::before {
+        border-radius: 2px;
+        animation: blink 1s steps(2) infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.35;
+        }
+      }
+      .source {
+        display: inline-flex;
+        padding: 3px;
+        border-radius: 999px;
+        border: 1px solid var(--stage-line);
+        background: color-mix(in oklab, var(--stage-2) 80%, black);
+      }
+      .source button {
+        min-height: 44px;
+        padding: 0 0.875rem;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--stage-muted);
+        font-weight: 600;
+        display: inline-flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .source button[aria-pressed="true"] {
+        background: var(--stage-2);
+        color: var(--stage-foreground);
+        box-shadow: inset 0 0 0 1px var(--stage-line);
+      }
+      .meter-wrap {
+        display: grid;
+        gap: 0.375rem;
+        flex: 1;
+        min-width: 200px;
+      }
+      .meter {
+        position: relative;
+        height: 14px;
+        border-radius: 7px;
+        background: color-mix(in oklab, var(--stage-2) 80%, black);
+        overflow: hidden;
+        box-shadow: inset 0 1px 2px oklch(0 0 0 / 40%);
+      }
+      .meter .fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0%;
+        border-radius: 7px;
+        background: linear-gradient(
+          90deg,
+          var(--success) 0 70%,
+          var(--warn) 70% 90%,
+          var(--destructive) 90%
+        );
+        transition: width 80ms;
+      }
+      .meter .peak {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--stage-foreground);
+        left: 0;
+      }
+      .meter-scale {
+        display: flex;
+        justify-content: space-between;
+        font: 10px var(--font-mono);
+        color: var(--stage-muted);
+      }
+      .meter-note {
+        font-size: 0.8125rem;
+        color: var(--stage-muted);
+      }
+      .meter-note b {
+        color: var(--stage-foreground);
+      }
+      .timer {
+        font-family: var(--font-mono);
+        font-size: 1.75rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .takes-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 1rem;
+        margin: 1.25rem 0 0.75rem;
+      }
+      .takes-head h2 {
+        font-size: 1.25rem;
+      }
+      .filters {
+        display: inline-flex;
+        gap: 0.25rem;
+      }
+      .filters button {
+        min-height: 44px;
+        padding: 0 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        font-weight: 600;
+        font-size: 0.8125rem;
+      }
+      .filters button[aria-pressed="true"] {
+        background: var(--sidebar-accent);
+      }
+      .takes {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .take {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) auto;
+        gap: 0.875rem;
+        align-items: center;
+        padding: 0.75rem 0.875rem;
+      }
+      .take.playing {
+        border-color: color-mix(in oklab, var(--practice-accent) 60%, transparent);
+        box-shadow: 0 0 0 1px color-mix(in oklab, var(--practice-accent) 30%, transparent);
+      }
+      .play {
+        width: 48px;
+        height: 48px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        display: grid;
+        place-items: center;
+        font-size: 1rem;
+      }
+      .play[aria-pressed="true"] {
+        background: var(--practice-accent);
+        color: var(--practice-accent-foreground);
+        border-color: transparent;
+      }
+      .take .body {
+        display: grid;
+        gap: 0.375rem;
+        min-width: 0;
+      }
+      .take .title {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .take .title input {
+        font: inherit;
+        font-weight: 600;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 2px 6px;
+        margin: -2px -6px;
+        color: inherit;
+        min-width: 0;
+        width: 100%;
+        max-width: 32ch;
+      }
+      .take .title input:hover {
+        border-color: var(--border);
+      }
+      .take .title input:focus {
+        border-color: var(--practice-accent);
+        outline: 0;
+      }
+      .kind {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.125rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .kind.midi {
+        background: color-mix(in oklab, var(--instr-piano) 18%, transparent);
+        color: var(--foreground);
+      }
+      .kind.audio {
+        background: color-mix(in oklab, var(--instr-guitar) 22%, transparent);
+        color: var(--foreground);
+      }
+      .take .meta {
+        font-size: 0.8125rem;
+        color: var(--muted-foreground);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.75rem;
+      }
+      .take .meta .mono {
+        color: var(--foreground);
+      }
+      .viz {
+        position: relative;
+        height: 56px;
+        border-radius: 8px;
+        background: var(--stage);
+        border: 1px solid var(--stage-line);
+        overflow: hidden;
+      }
+      .viz svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .viz .head {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--practice-accent);
+        box-shadow: 0 0 6px var(--practice-accent);
+      }
+      .viz .gain {
+        position: absolute;
+        right: 6px;
+        top: 4px;
+        font: 10px var(--font-mono);
+        color: var(--stage-muted);
+        background: color-mix(in oklab, var(--stage) 70%, transparent);
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+      .take .actions {
+        display: grid;
+        gap: 0.25rem;
+      }
+      .take .actions button {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0 0.75rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--card);
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+      .take .actions button.danger {
+        color: var(--destructive);
+      }
+      .empty {
+        display: grid;
+        justify-items: center;
+        gap: 0.5rem;
+        padding: 2rem;
+        text-align: center;
+        color: var(--muted-foreground);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+      }
+      aside .card {
+        padding: 1rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+      aside h2 {
+        font-size: 1.125rem;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.375rem 1rem;
+        font-size: 0.875rem;
+      }
+      .kv dt {
+        color: var(--muted-foreground);
+      }
+      .kv dd {
+        margin: 0;
+        font-weight: 600;
+        text-align: right;
+      }
+      .gain-row {
+        display: grid;
+        gap: 0.375rem;
+      }
+      .gain-row input[type="range"] {
+        width: 100%;
+        accent-color: var(--practice-accent);
+        height: 32px;
+      }
+      .gain-row output {
+        font-family: var(--font-mono);
+      }
+      /* Kit builder */
+      section.kit {
+        margin-top: 2rem;
+      }
+      .kit-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+      .kit-head h2 {
+        font-size: 1.375rem;
+      }
+      .kit-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 1.25rem;
+        align-items: start;
+      }
+      .pads-stage {
+        padding: 1rem;
+        --instr: var(--instr-mpc);
+      }
+      .pads {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.625rem;
+        padding: 0.625rem;
+        border-radius: 16px;
+        background: color-mix(in oklab, var(--stage-2) 70%, black);
+        box-shadow:
+          inset 0 1px 0 oklch(1 0 0 / 6%),
+          inset 0 -1px 0 oklch(0 0 0 / 40%);
+      }
+      .pad {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 7px;
+        border: 1px solid oklch(1 0 0 / 10%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in oklab, var(--stage-2) 88%, white),
+          var(--stage-2)
+        );
+        color: var(--stage-muted);
+        box-shadow:
+          inset 0 1px 0 oklch(1 0 0 / 10%),
+          inset 0 -3px 0 oklch(0 0 0 / 35%),
+          0 1px 2px oklch(0 0 0 / 40%);
+        display: grid;
+        place-items: center;
+        padding: 0.375rem;
+        text-align: center;
+      }
+      .pad .num {
+        position: absolute;
+        left: 6px;
+        bottom: 4px;
+        font: 9px var(--font-mono);
+        opacity: 0.6;
+      }
+      .pad .sample {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--stage-foreground);
+        line-height: 1.2;
+        word-break: break-word;
+      }
+      .pad .sample small {
+        display: block;
+        font: 10px var(--font-mono);
+        color: var(--stage-muted);
+        margin-top: 2px;
+      }
+      .pad.empty-pad {
+        color: var(--stage-muted);
+        font-size: 0.75rem;
+      }
+      .pad.assigned {
+        box-shadow:
+          inset 0 0 0 2px color-mix(in oklab, var(--instr-mpc) 70%, transparent),
+          inset 0 -3px 0 oklch(0 0 0 / 35%);
+      }
+      .pad.over {
+        outline: 2px dashed var(--practice-accent);
+        outline-offset: 2px;
+      }
+      .pad.playing {
+        background: var(--practice-accent);
+        color: var(--practice-accent-foreground);
+      }
+      .pad.playing .sample,
+      .pad.playing .sample small {
+        color: inherit;
+      }
+      .pad .menu {
+        position: absolute;
+        right: 4px;
+        top: 4px;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 0;
+        background: color-mix(in oklab, black 25%, transparent);
+        color: var(--stage-foreground);
+        font-size: 14px;
+        display: grid;
+        place-items: center;
+      }
+      .pad select {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+      .pad select:focus-visible + .menu {
+        outline: 2px solid var(--practice-accent);
+      }
+      .samples {
+        padding: 1rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .drop {
+        display: grid;
+        justify-items: center;
+        gap: 0.25rem;
+        padding: 1rem;
+        border: 2px dashed var(--border);
+        border-radius: var(--radius);
+        text-align: center;
+        color: var(--muted-foreground);
+      }
+      .drop b {
+        color: var(--foreground);
+      }
+      .sample-list {
+        display: grid;
+        gap: 0.5rem;
+      }
+      .sample-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        gap: 0.625rem;
+        align-items: center;
+        padding: 0.375rem 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--background);
+        cursor: grab;
+      }
+      .sample-row[draggable="true"]:active {
+        cursor: grabbing;
+      }
+      .sample-row .wave {
+        height: 28px;
+        border-radius: 4px;
+        background: var(--stage);
+      }
+      .sample-row .wave svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .sample-row .nm {
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .sample-row .nm small {
+        font: 11px var(--font-mono);
+        color: var(--muted-foreground);
+      }
+      .sample-row .assign {
+        font-size: 0.75rem;
+        color: var(--muted-foreground);
+      }
+      .sample-row .assign b {
+        color: var(--foreground);
+        font-family: var(--font-mono);
+      }
+      .err {
+        border-color: color-mix(in oklab, var(--destructive) 55%, transparent);
+        background: color-mix(in oklab, var(--destructive) 10%, transparent);
+        padding: 0.625rem 0.875rem;
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+      }
+      .decision {
+        margin-top: 2rem;
+        padding: 1rem;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .decision h2 {
+        font-size: 1.125rem;
+      }
+      .decision ul {
+        margin: 0;
+        padding-left: 1.125rem;
+        color: var(--muted-foreground);
+      }
+      .theme-toggle {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 40;
+      }
+      @media (max-width: 900px) {
+        .layout,
+        .kit-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      @media (max-width: 767px) {
+        main {
+          padding: 0.75rem 1rem 4rem;
+        }
+        header.page h1 {
+          font-size: 1.625rem;
+        }
+        .take {
+          grid-template-columns: 48px minmax(0, 1fr);
+        }
+        .take .actions {
+          grid-column: 1 / -1;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .pads {
+          gap: 0.375rem;
+          padding: 0.375rem;
+        }
+        .pad .sample {
+          font-size: 0.6875rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="crumbs">
+        <span>Music</span><span aria-hidden="true">›</span><b>Record</b
+        ><span class="note" style="margin-left: 0.5rem"
+          >Own destination in the utilities group, next to Connect</span
+        >
+      </div>
+      <header class="page">
+        <h1>Record</h1>
+        <span class="pill"><span class="dot"></span>Piano · MIDI in, mic ready</span>
+      </header>
 
-  <div class="layout">
-    <div>
-      <section class="stage deck" aria-labelledby="deckTitle" style="--instr: var(--instr-piano)">
-        <div class="arm-row">
-          <div class="source" role="group" aria-label="What to capture">
-            <button aria-pressed="true" id="srcMidi">🎹 MIDI notes</button>
-            <button aria-pressed="false" id="srcAudio">🎙 Microphone</button>
+      <div class="layout">
+        <div>
+          <section
+            class="stage deck"
+            aria-labelledby="deckTitle"
+            style="--instr: var(--instr-piano)"
+          >
+            <div class="arm-row">
+              <div class="source" role="group" aria-label="What to capture">
+                <button aria-pressed="true" id="srcMidi">🎹 MIDI notes</button>
+                <button aria-pressed="false" id="srcAudio">🎙 Microphone</button>
+              </div>
+              <span class="timer mono" id="timer" aria-live="off">0:00.0</span>
+              <button class="rec" id="recBtn" aria-pressed="false">Record</button>
+            </div>
+            <div class="meter-wrap" id="meterWrap" hidden>
+              <div class="meter" aria-hidden="true">
+                <div class="fill" id="meterFill"></div>
+                <div class="peak" id="meterPeak"></div>
+              </div>
+              <div class="meter-scale" aria-hidden="true">
+                <span>-48</span><span>-24</span><span>-12</span><span>-6</span><span>0 dB</span>
+              </div>
+              <p class="meter-note" id="meterNote">
+                Input <b>MacBook Pro Microphone</b> · peak <b>-9 dB</b> · good level. Aim for the
+                green band peaking around -12 to -6 dB.
+              </p>
+            </div>
+            <p class="note" id="deckNote" style="margin: 0; color: var(--stage-muted)">
+              MIDI captures every note-on and note-off with velocity from the connected piano or the
+              on-screen keys. Count-in follows the practice capsule (1 bar at 96 BPM).
+            </p>
+          </section>
+
+          <div class="takes-head">
+            <h2>Takes <span class="note">· 4</span></h2>
+            <div class="filters" role="group" aria-label="Filter takes">
+              <button aria-pressed="true">All</button><button aria-pressed="false">MIDI</button
+              ><button aria-pressed="false">Audio</button>
+            </div>
           </div>
-          <span class="timer mono" id="timer" aria-live="off">0:00.0</span>
-          <button class="rec" id="recBtn" aria-pressed="false">Record</button>
+          <div class="takes" id="takes"></div>
         </div>
-        <div class="meter-wrap" id="meterWrap" hidden>
-          <div class="meter" aria-hidden="true"><div class="fill" id="meterFill"></div><div class="peak" id="meterPeak"></div></div>
-          <div class="meter-scale" aria-hidden="true"><span>-48</span><span>-24</span><span>-12</span><span>-6</span><span>0 dB</span></div>
-          <p class="meter-note" id="meterNote">Input <b>MacBook Pro Microphone</b> · peak <b>-9 dB</b> · good level. Aim for the green band peaking around -12 to -6 dB.</p>
+
+        <aside>
+          <div class="card">
+            <h2>Selected take</h2>
+            <dl class="kv" id="detail"></dl>
+            <div class="gain-row" id="gainRow">
+              <label for="gain" style="font-weight: 600; font-size: 0.875rem"
+                >Playback gain
+                <span class="note">(stored with the take, the recording is untouched)</span></label
+              >
+              <input id="gain" type="range" min="-12" max="18" step="1" value="0" />
+              <output for="gain" id="gainOut">+0 dB · peaks at -9 dB</output>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem">
+              <button class="btn" id="toStudio">Open in Song Studio</button>
+              <button class="btn" id="toRoll">Open in Piano roll</button>
+            </div>
+            <p class="note" style="margin: 0">
+              Audio takes cannot be graded or turned into a score. They are for listening back and
+              comparing.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <section class="kit" aria-labelledby="kitTitle">
+        <div class="kit-head">
+          <div>
+            <p class="eyebrow">Sample kits</p>
+            <h2 id="kitTitle">Bedroom Boom Bap <span class="note">· Bank A</span></h2>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
+            <button class="btn">New kit</button><button class="btn">Download ZIP</button>
+          </div>
         </div>
-        <p class="note" id="deckNote" style="margin:0;color:var(--stage-muted)">MIDI captures every note-on and note-off with velocity from the connected piano or the on-screen keys. Count-in follows the practice capsule (1 bar at 96 BPM).</p>
+        <div class="kit-layout">
+          <div class="stage pads-stage">
+            <p class="eyebrow" style="color: var(--stage-muted); margin: 0 0 0.5rem">
+              Drag a sample onto a pad, or use a pad's menu. Tap a pad to hear it.
+            </p>
+            <div class="pads" id="pads" role="group" aria-label="Bank A pads"></div>
+            <p class="note" style="margin: 0.75rem 0 0; color: var(--stage-muted)">
+              Pad A01 is bottom-left, as on the MPC. Notes follow the device map from Connect.
+            </p>
+          </div>
+          <div class="card samples">
+            <div class="drop" id="drop">
+              <b>Drop WAV, AIFF, FLAC, MP3 or OGG here</b><span>or</span
+              ><button class="btn">Choose files</button>
+            </div>
+            <div class="err" id="kitError" hidden></div>
+            <div class="sample-list" id="samples"></div>
+          </div>
+        </div>
       </section>
 
-      <div class="takes-head">
-        <h2>Takes <span class="note">· 4</span></h2>
-        <div class="filters" role="group" aria-label="Filter takes">
-          <button aria-pressed="true">All</button><button aria-pressed="false">MIDI</button><button aria-pressed="false">Audio</button>
-        </div>
-      </div>
-      <div class="takes" id="takes"></div>
-    </div>
+      <section class="card decision">
+        <h2>Recorder: its own destination or inside Create?</h2>
+        <ul>
+          <li>
+            <b>Recommend: own destination "Record"</b> in the utilities group, reachable in one tap
+            while an instrument is in hand, and openable from any drill's summary ("Record this").
+            Create keeps sequencing (Beat grid, Piano roll) where a mouse is the instrument.
+          </li>
+          <li>
+            Both places share one recorder implementation and one take list; Practice Lab's second
+            recorder goes away.
+          </li>
+          <li>
+            Cost: one more nav item (five utilities), and Create loses its Recorder tab; deep links
+            to it redirect.
+          </li>
+        </ul>
+      </section>
+      <button class="btn theme-toggle" id="themeToggle" aria-label="Toggle light and dark">
+        ◐
+      </button>
+    </main>
 
-    <aside>
-      <div class="card">
-        <h2>Selected take</h2>
-        <dl class="kv" id="detail"></dl>
-        <div class="gain-row" id="gainRow">
-          <label for="gain" style="font-weight:600;font-size:.875rem">Playback gain <span class="note">(stored with the take, the recording is untouched)</span></label>
-          <input id="gain" type="range" min="-12" max="18" step="1" value="0" />
-          <output for="gain" id="gainOut">+0 dB · peaks at -9 dB</output>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:.5rem">
-          <button class="btn" id="toStudio">Open in Song Studio</button>
-          <button class="btn" id="toRoll">Open in Piano roll</button>
-        </div>
-        <p class="note" style="margin:0">Audio takes cannot be graded or turned into a score. They are for listening back and comparing.</p>
-      </div>
-    </aside>
-  </div>
-
-  <section class="kit" aria-labelledby="kitTitle">
-    <div class="kit-head">
-      <div>
-        <p class="eyebrow">Sample kits</p>
-        <h2 id="kitTitle">Bedroom Boom Bap <span class="note">· Bank A</span></h2>
-      </div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn">New kit</button><button class="btn">Download ZIP</button></div>
-    </div>
-    <div class="kit-layout">
-      <div class="stage pads-stage">
-        <p class="eyebrow" style="color:var(--stage-muted);margin:0 0 .5rem">Drag a sample onto a pad, or use a pad's menu. Tap a pad to hear it.</p>
-        <div class="pads" id="pads" role="group" aria-label="Bank A pads"></div>
-        <p class="note" style="margin:.75rem 0 0;color:var(--stage-muted)">Pad A01 is bottom-left, as on the MPC. Notes follow the device map from Connect.</p>
-      </div>
-      <div class="card samples">
-        <div class="drop" id="drop"><b>Drop WAV, AIFF, FLAC, MP3 or OGG here</b><span>or</span><button class="btn">Choose files</button></div>
-        <div class="err" id="kitError" hidden></div>
-        <div class="sample-list" id="samples"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="card decision">
-    <h2>Recorder: its own destination or inside Create?</h2>
-    <ul>
-      <li><b>Recommend: own destination "Record"</b> in the utilities group, reachable in one tap while an instrument is in hand, and openable from any drill's summary ("Record this"). Create keeps sequencing (Beat grid, Piano roll) where a mouse is the instrument.</li>
-      <li>Both places share one recorder implementation and one take list; Practice Lab's second recorder goes away.</li>
-      <li>Cost: one more nav item (five utilities), and Create loses its Recorder tab; deep links to it redirect.</li>
-    </ul>
-  </section>
-  <button class="btn theme-toggle" id="themeToggle" aria-label="Toggle light and dark">◐</button>
-</main>
-
-<script>
-  // ---------- Simulated takes ----------
-  const takes = [
-    { id: "t1", kind: "midi", name: "Two-Hand pulse · take 3", when: "Today 21:14", dur: 12.4, notes: 34, range: "G2 to G4", bpm: 72, roll: [[48,0,1],[60,0,1],[43,1,1],[62,1,1],[48,2,1],[64,2,1],[43,3,1],[67,3,1],[48,4,1],[64,4,1],[43,5,1],[62,5,1],[48,6,1],[60,6,1],[43,7,1],[64,7,1]] },
-    { id: "t2", kind: "audio", name: "Guitar · Long Study bars 3 to 6", when: "Today 20:52", dur: 10.2, peak: -9, gain: 0, wave: 0.8 },
-    { id: "t3", kind: "audio", name: "Quiet mic test", when: "Yesterday", dur: 6.1, peak: -31, gain: 12, wave: 0.18 },
-    { id: "t4", kind: "midi", name: "C major scale, one octave", when: "Yesterday", dur: 8.0, notes: 15, range: "C4 to C5", bpm: 100, roll: Array.from({ length: 15 }, (_, i) => [60 + [0,2,4,5,7,9,11,12,11,9,7,5,4,2,0][i], i * 0.5, 0.5]) },
-  ];
-  let selected = takes[0], playing = null, playTimer;
-  const host = document.getElementById("takes");
-  function rollSvg(t) {
-    const w = 400, h = 56, minM = Math.min(...t.roll.map(n => n[0])) - 1, maxM = Math.max(...t.roll.map(n => n[0])) + 1, end = Math.max(...t.roll.map(n => n[1] + n[2]));
-    const rows = maxM - minM + 1, rh = h / rows;
-    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${t.roll.map(([m, s, d]) => `<rect x="${(s / end) * w}" y="${(maxM - m) * rh}" width="${Math.max(2, (d / end) * w - 1)}" height="${Math.max(2, rh - 1)}" rx="1" fill="${m < 60 ? 'var(--hand-left)' : 'var(--hand-right)'}"/>`).join("")}<line x1="0" x2="${w}" y1="${(maxM - 60) * rh + rh / 2}" y2="${(maxM - 60) * rh + rh / 2}" stroke="var(--stage-line)" stroke-dasharray="3 3"/></svg>`;
-  }
-  function waveSvg(t, seed = 7) {
-    const w = 400, h = 56, n = 160; let s = seed; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
-    const gain = Math.pow(10, (t.gain || 0) / 20);
-    const bars = Array.from({ length: n }, (_, i) => Math.min(1, t.wave * gain * (0.35 + 0.65 * Math.abs(Math.sin(i / 9) * rnd()))));
-    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${bars.map((a, i) => `<rect x="${(i / n) * w}" y="${(h / 2) * (1 - a)}" width="${w / n - 0.6}" height="${Math.max(1, a * h)}" fill="${a > 0.92 ? 'var(--destructive)' : 'var(--success)'}" opacity="${a > 0.92 ? 1 : 0.85}"/>`).join("")}<line x1="0" x2="${w}" y1="${h/2}" y2="${h/2}" stroke="var(--stage-line)"/></svg>`;
-  }
-  function render() {
-    host.innerHTML = "";
-    for (const t of takes) {
-      const el = document.createElement("article"); el.className = "card take" + (playing === t.id ? " playing" : "");
-      el.setAttribute("aria-label", `${t.kind === "midi" ? "MIDI" : "Audio"} take ${t.name}`);
-      el.innerHTML = `
+    <script>
+      // ---------- Simulated takes ----------
+      const takes = [
+        {
+          id: "t1",
+          kind: "midi",
+          name: "Two-Hand pulse · take 3",
+          when: "Today 21:14",
+          dur: 12.4,
+          notes: 34,
+          range: "G2 to G4",
+          bpm: 72,
+          roll: [
+            [48, 0, 1],
+            [60, 0, 1],
+            [43, 1, 1],
+            [62, 1, 1],
+            [48, 2, 1],
+            [64, 2, 1],
+            [43, 3, 1],
+            [67, 3, 1],
+            [48, 4, 1],
+            [64, 4, 1],
+            [43, 5, 1],
+            [62, 5, 1],
+            [48, 6, 1],
+            [60, 6, 1],
+            [43, 7, 1],
+            [64, 7, 1],
+          ],
+        },
+        {
+          id: "t2",
+          kind: "audio",
+          name: "Guitar · Long Study bars 3 to 6",
+          when: "Today 20:52",
+          dur: 10.2,
+          peak: -9,
+          gain: 0,
+          wave: 0.8,
+        },
+        {
+          id: "t3",
+          kind: "audio",
+          name: "Quiet mic test",
+          when: "Yesterday",
+          dur: 6.1,
+          peak: -31,
+          gain: 12,
+          wave: 0.18,
+        },
+        {
+          id: "t4",
+          kind: "midi",
+          name: "C major scale, one octave",
+          when: "Yesterday",
+          dur: 8.0,
+          notes: 15,
+          range: "C4 to C5",
+          bpm: 100,
+          roll: Array.from({ length: 15 }, (_, i) => [
+            60 + [0, 2, 4, 5, 7, 9, 11, 12, 11, 9, 7, 5, 4, 2, 0][i],
+            i * 0.5,
+            0.5,
+          ]),
+        },
+      ];
+      let selected = takes[0],
+        playing = null,
+        playTimer;
+      const host = document.getElementById("takes");
+      function rollSvg(t) {
+        const w = 400,
+          h = 56,
+          minM = Math.min(...t.roll.map((n) => n[0])) - 1,
+          maxM = Math.max(...t.roll.map((n) => n[0])) + 1,
+          end = Math.max(...t.roll.map((n) => n[1] + n[2]));
+        const rows = maxM - minM + 1,
+          rh = h / rows;
+        return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${t.roll.map(([m, s, d]) => `<rect x="${(s / end) * w}" y="${(maxM - m) * rh}" width="${Math.max(2, (d / end) * w - 1)}" height="${Math.max(2, rh - 1)}" rx="1" fill="${m < 60 ? "var(--hand-left)" : "var(--hand-right)"}"/>`).join("")}<line x1="0" x2="${w}" y1="${(maxM - 60) * rh + rh / 2}" y2="${(maxM - 60) * rh + rh / 2}" stroke="var(--stage-line)" stroke-dasharray="3 3"/></svg>`;
+      }
+      function waveSvg(t, seed = 7) {
+        const w = 400,
+          h = 56,
+          n = 160;
+        let s = seed;
+        const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+        const gain = Math.pow(10, (t.gain || 0) / 20);
+        const bars = Array.from({ length: n }, (_, i) =>
+          Math.min(1, t.wave * gain * (0.35 + 0.65 * Math.abs(Math.sin(i / 9) * rnd()))),
+        );
+        return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${bars.map((a, i) => `<rect x="${(i / n) * w}" y="${(h / 2) * (1 - a)}" width="${w / n - 0.6}" height="${Math.max(1, a * h)}" fill="${a > 0.92 ? "var(--destructive)" : "var(--success)"}" opacity="${a > 0.92 ? 1 : 0.85}"/>`).join("")}<line x1="0" x2="${w}" y1="${h / 2}" y2="${h / 2}" stroke="var(--stage-line)"/></svg>`;
+      }
+      function render() {
+        host.innerHTML = "";
+        for (const t of takes) {
+          const el = document.createElement("article");
+          el.className = "card take" + (playing === t.id ? " playing" : "");
+          el.setAttribute("aria-label", `${t.kind === "midi" ? "MIDI" : "Audio"} take ${t.name}`);
+          el.innerHTML = `
         <button class="play" aria-pressed="${playing === t.id}" aria-label="${playing === t.id ? "Pause" : "Play"} ${t.name}">${playing === t.id ? "❚❚" : "▶"}</button>
         <div class="body">
           <div class="title"><span class="kind ${t.kind}">${t.kind === "midi" ? "🎹 MIDI" : "🎙 Audio"}</span><input value="${t.name}" aria-label="Take name" /></div>
@@ -235,89 +861,210 @@
           <div class="viz">${t.kind === "midi" ? rollSvg(t) : waveSvg(t)}${t.kind === "audio" && t.gain ? `<span class="gain">+${t.gain} dB</span>` : ""}${playing === t.id ? '<span class="head" style="left:30%"></span>' : ""}</div>
         </div>
         <div class="actions"><button data-act="select">Details</button><button data-act="dl">Download</button><button data-act="del" class="danger">Delete</button></div>`;
-      el.querySelector(".play").addEventListener("click", () => { playing = playing === t.id ? null : t.id; selected = t; render(); });
-      el.querySelector("input").addEventListener("change", (e) => { t.name = e.target.value.trim() || t.name; render(); });
-      el.querySelector('[data-act="select"]').addEventListener("click", () => { selected = t; render(); });
-      el.querySelector('[data-act="del"]').addEventListener("click", () => { if (confirm(`Delete "${t.name}"? This cannot be undone.`)) { takes.splice(takes.indexOf(t), 1); if (selected === t) selected = takes[0]; render(); } });
-      host.append(el);
-    }
-    if (!takes.length) host.innerHTML = '<div class="empty"><b>No takes yet.</b><span>Press Record, play, and the take lands here with its picture.</span></div>';
-    document.querySelector(".takes-head .note").textContent = "· " + takes.length;
-    const d = document.getElementById("detail");
-    const t = selected;
-    d.innerHTML = t ? `<dt>Name</dt><dd>${t.name}</dd><dt>Kind</dt><dd>${t.kind === "midi" ? "MIDI notes" : "Audio (Opus)"}</dd><dt>Length</dt><dd class="mono">${t.dur.toFixed(1)} s</dd>${t.kind === "midi" ? `<dt>Notes</dt><dd class="mono">${t.notes}</dd><dt>Range</dt><dd>${t.range}</dd>` : `<dt>Peak level</dt><dd class="mono">${t.peak} dB</dd><dt>Input</dt><dd>Built-in mic</dd>`}` : "";
-    document.getElementById("gainRow").hidden = !t || t.kind !== "audio";
-    document.getElementById("toStudio").disabled = !t || t.kind !== "midi";
-    document.getElementById("toRoll").disabled = !t || t.kind !== "midi";
-    if (t && t.kind === "audio") { const g = document.getElementById("gain"); g.value = t.gain || 0; document.getElementById("gainOut").textContent = `${t.gain >= 0 ? "+" : ""}${t.gain || 0} dB · peaks at ${Math.min(0, t.peak + (t.gain || 0))} dB${t.peak + (t.gain || 0) > -1 ? " · will clip, lower it" : ""}`; }
-  }
-  document.getElementById("gain").addEventListener("input", (e) => { if (selected && selected.kind === "audio") { selected.gain = Number(e.target.value); render(); } });
-  render();
+          el.querySelector(".play").addEventListener("click", () => {
+            playing = playing === t.id ? null : t.id;
+            selected = t;
+            render();
+          });
+          el.querySelector("input").addEventListener("change", (e) => {
+            t.name = e.target.value.trim() || t.name;
+            render();
+          });
+          el.querySelector('[data-act="select"]').addEventListener("click", () => {
+            selected = t;
+            render();
+          });
+          el.querySelector('[data-act="del"]').addEventListener("click", () => {
+            if (confirm(`Delete "${t.name}"? This cannot be undone.`)) {
+              takes.splice(takes.indexOf(t), 1);
+              if (selected === t) selected = takes[0];
+              render();
+            }
+          });
+          host.append(el);
+        }
+        if (!takes.length)
+          host.innerHTML =
+            '<div class="empty"><b>No takes yet.</b><span>Press Record, play, and the take lands here with its picture.</span></div>';
+        document.querySelector(".takes-head .note").textContent = "· " + takes.length;
+        const d = document.getElementById("detail");
+        const t = selected;
+        d.innerHTML = t
+          ? `<dt>Name</dt><dd>${t.name}</dd><dt>Kind</dt><dd>${t.kind === "midi" ? "MIDI notes" : "Audio (Opus)"}</dd><dt>Length</dt><dd class="mono">${t.dur.toFixed(1)} s</dd>${t.kind === "midi" ? `<dt>Notes</dt><dd class="mono">${t.notes}</dd><dt>Range</dt><dd>${t.range}</dd>` : `<dt>Peak level</dt><dd class="mono">${t.peak} dB</dd><dt>Input</dt><dd>Built-in mic</dd>`}`
+          : "";
+        document.getElementById("gainRow").hidden = !t || t.kind !== "audio";
+        document.getElementById("toStudio").disabled = !t || t.kind !== "midi";
+        document.getElementById("toRoll").disabled = !t || t.kind !== "midi";
+        if (t && t.kind === "audio") {
+          const g = document.getElementById("gain");
+          g.value = t.gain || 0;
+          document.getElementById("gainOut").textContent =
+            `${t.gain >= 0 ? "+" : ""}${t.gain || 0} dB · peaks at ${Math.min(0, t.peak + (t.gain || 0))} dB${t.peak + (t.gain || 0) > -1 ? " · will clip, lower it" : ""}`;
+        }
+      }
+      document.getElementById("gain").addEventListener("input", (e) => {
+        if (selected && selected.kind === "audio") {
+          selected.gain = Number(e.target.value);
+          render();
+        }
+      });
+      render();
 
-  // ---------- Recorder deck simulation ----------
-  const recBtn = document.getElementById("recBtn"), timerEl = document.getElementById("timer");
-  let recStart, recTimer, meterTimer;
-  document.getElementById("srcMidi").addEventListener("click", () => setSource("midi"));
-  document.getElementById("srcAudio").addEventListener("click", () => setSource("audio"));
-  function setSource(k) {
-    document.getElementById("srcMidi").setAttribute("aria-pressed", k === "midi");
-    document.getElementById("srcAudio").setAttribute("aria-pressed", k === "audio");
-    document.getElementById("meterWrap").hidden = k !== "audio";
-    document.getElementById("deckNote").textContent = k === "midi" ? "MIDI captures every note-on and note-off with velocity from the connected piano or the on-screen keys. Count-in follows the practice capsule (1 bar at 96 BPM)." : "The microphone records raw (no echo cancellation, no auto-gain). Watch the meter: a peak under -24 dB will sound quiet on playback; move closer or raise the interface gain.";
-    if (k === "audio") { clearInterval(meterTimer); let peak = 0; meterTimer = setInterval(() => { const lvl = 45 + Math.random() * 30; peak = Math.max(peak * 0.98, lvl); document.getElementById("meterFill").style.width = lvl + "%"; document.getElementById("meterPeak").style.left = peak + "%"; }, 90); } else clearInterval(meterTimer);
-  }
-  recBtn.addEventListener("click", () => {
-    const on = recBtn.getAttribute("aria-pressed") !== "true";
-    recBtn.setAttribute("aria-pressed", on); recBtn.textContent = on ? "Stop" : "Record";
-    if (on) { recStart = performance.now(); recTimer = setInterval(() => { const s = (performance.now() - recStart) / 1000; timerEl.textContent = `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}.${Math.floor((s % 1) * 10)}`; }, 100); }
-    else { clearInterval(recTimer); const s = (performance.now() - recStart) / 1000; const midi = document.getElementById("srcMidi").getAttribute("aria-pressed") === "true"; takes.unshift(midi ? { id: "t" + Date.now(), kind: "midi", name: `New MIDI take · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, when: "Just now", dur: s, notes: 9, range: "C4 to G4", bpm: 96, roll: [[60,0,1],[64,1,1],[67,2,1],[64,3,1],[60,4,1]] } : { id: "t" + Date.now(), kind: "audio", name: `New audio take · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, when: "Just now", dur: s, peak: -11, gain: 0, wave: 0.7 }); selected = takes[0]; timerEl.textContent = "0:00.0"; render(); }
-  });
+      // ---------- Recorder deck simulation ----------
+      const recBtn = document.getElementById("recBtn"),
+        timerEl = document.getElementById("timer");
+      let recStart, recTimer, meterTimer;
+      document.getElementById("srcMidi").addEventListener("click", () => setSource("midi"));
+      document.getElementById("srcAudio").addEventListener("click", () => setSource("audio"));
+      function setSource(k) {
+        document.getElementById("srcMidi").setAttribute("aria-pressed", k === "midi");
+        document.getElementById("srcAudio").setAttribute("aria-pressed", k === "audio");
+        document.getElementById("meterWrap").hidden = k !== "audio";
+        document.getElementById("deckNote").textContent =
+          k === "midi"
+            ? "MIDI captures every note-on and note-off with velocity from the connected piano or the on-screen keys. Count-in follows the practice capsule (1 bar at 96 BPM)."
+            : "The microphone records raw (no echo cancellation, no auto-gain). Watch the meter: a peak under -24 dB will sound quiet on playback; move closer or raise the interface gain.";
+        if (k === "audio") {
+          clearInterval(meterTimer);
+          let peak = 0;
+          meterTimer = setInterval(() => {
+            const lvl = 45 + Math.random() * 30;
+            peak = Math.max(peak * 0.98, lvl);
+            document.getElementById("meterFill").style.width = lvl + "%";
+            document.getElementById("meterPeak").style.left = peak + "%";
+          }, 90);
+        } else clearInterval(meterTimer);
+      }
+      recBtn.addEventListener("click", () => {
+        const on = recBtn.getAttribute("aria-pressed") !== "true";
+        recBtn.setAttribute("aria-pressed", on);
+        recBtn.textContent = on ? "Stop" : "Record";
+        if (on) {
+          recStart = performance.now();
+          recTimer = setInterval(() => {
+            const s = (performance.now() - recStart) / 1000;
+            timerEl.textContent = `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}.${Math.floor((s % 1) * 10)}`;
+          }, 100);
+        } else {
+          clearInterval(recTimer);
+          const s = (performance.now() - recStart) / 1000;
+          const midi = document.getElementById("srcMidi").getAttribute("aria-pressed") === "true";
+          takes.unshift(
+            midi
+              ? {
+                  id: "t" + Date.now(),
+                  kind: "midi",
+                  name: `New MIDI take · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+                  when: "Just now",
+                  dur: s,
+                  notes: 9,
+                  range: "C4 to G4",
+                  bpm: 96,
+                  roll: [
+                    [60, 0, 1],
+                    [64, 1, 1],
+                    [67, 2, 1],
+                    [64, 3, 1],
+                    [60, 4, 1],
+                  ],
+                }
+              : {
+                  id: "t" + Date.now(),
+                  kind: "audio",
+                  name: `New audio take · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+                  when: "Just now",
+                  dur: s,
+                  peak: -11,
+                  gain: 0,
+                  wave: 0.7,
+                },
+          );
+          selected = takes[0];
+          timerEl.textContent = "0:00.0";
+          render();
+        }
+      });
 
-  // ---------- Kit builder ----------
-  const samples = [
-    { id: "s1", name: "kick_808_soft", dur: "0.42 s", pad: 1 },
-    { id: "s2", name: "snare_tape", dur: "0.31 s", pad: 3 },
-    { id: "s3", name: "hat_closed_dusty", dur: "0.12 s", pad: 2 },
-    { id: "s4", name: "hat_open", dur: "0.48 s", pad: 4 },
-    { id: "s5", name: "rim_click", dur: "0.09 s", pad: null },
-    { id: "s6", name: "vocal_chop_ah", dur: "0.66 s", pad: null },
-  ];
-  const padsEl = document.getElementById("pads"), samplesEl = document.getElementById("samples");
-  const padOrder = [13,14,15,16, 9,10,11,12, 5,6,7,8, 1,2,3,4];
-  let playingPad = null;
-  function renderKit() {
-    padsEl.innerHTML = "";
-    for (const p of padOrder) {
-      const s = samples.find(x => x.pad === p);
-      const el = document.createElement("div"); el.className = "pad" + (s ? " assigned" : " empty-pad") + (playingPad === p ? " playing" : "");
-      el.dataset.pad = p;
-      el.innerHTML = `<span class="num">A${String(p).padStart(2, "0")} · ${35 + p}</span>${s ? `<span class="sample">${s.name}<small>${s.dur}</small></span>` : `<span>Empty</span>`}
-        <select aria-label="Sample for pad A${String(p).padStart(2, "0")}"><option value="">None</option>${samples.map(x => `<option value="${x.id}" ${x.pad === p ? "selected" : ""}>${x.name}${x.pad && x.pad !== p ? " (on A" + String(x.pad).padStart(2, "0") + ")" : ""}</option>`).join("")}</select>
+      // ---------- Kit builder ----------
+      const samples = [
+        { id: "s1", name: "kick_808_soft", dur: "0.42 s", pad: 1 },
+        { id: "s2", name: "snare_tape", dur: "0.31 s", pad: 3 },
+        { id: "s3", name: "hat_closed_dusty", dur: "0.12 s", pad: 2 },
+        { id: "s4", name: "hat_open", dur: "0.48 s", pad: 4 },
+        { id: "s5", name: "rim_click", dur: "0.09 s", pad: null },
+        { id: "s6", name: "vocal_chop_ah", dur: "0.66 s", pad: null },
+      ];
+      const padsEl = document.getElementById("pads"),
+        samplesEl = document.getElementById("samples");
+      const padOrder = [13, 14, 15, 16, 9, 10, 11, 12, 5, 6, 7, 8, 1, 2, 3, 4];
+      let playingPad = null;
+      function renderKit() {
+        padsEl.innerHTML = "";
+        for (const p of padOrder) {
+          const s = samples.find((x) => x.pad === p);
+          const el = document.createElement("div");
+          el.className =
+            "pad" + (s ? " assigned" : " empty-pad") + (playingPad === p ? " playing" : "");
+          el.dataset.pad = p;
+          el.innerHTML = `<span class="num">A${String(p).padStart(2, "0")} · ${35 + p}</span>${s ? `<span class="sample">${s.name}<small>${s.dur}</small></span>` : `<span>Empty</span>`}
+        <select aria-label="Sample for pad A${String(p).padStart(2, "0")}"><option value="">None</option>${samples.map((x) => `<option value="${x.id}" ${x.pad === p ? "selected" : ""}>${x.name}${x.pad && x.pad !== p ? " (on A" + String(x.pad).padStart(2, "0") + ")" : ""}</option>`).join("")}</select>
         <span class="menu" aria-hidden="true">⋯</span>`;
-      el.querySelector("select").addEventListener("change", (e) => assign(e.target.value, p));
-      el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("over"); });
-      el.addEventListener("dragleave", () => el.classList.remove("over"));
-      el.addEventListener("drop", (e) => { e.preventDefault(); el.classList.remove("over"); assign(e.dataTransfer.getData("text/plain"), p); });
-      el.addEventListener("pointerdown", (e) => { if (e.target.tagName === "SELECT") return; if (!s) return; playingPad = p; renderKit(); setTimeout(() => { playingPad = null; renderKit(); }, 140); });
-      padsEl.append(el);
-    }
-    samplesEl.innerHTML = "";
-    for (const s of samples) {
-      const row = document.createElement("div"); row.className = "sample-row"; row.draggable = true; row.setAttribute("aria-label", `${s.name}, ${s.pad ? "on pad A" + String(s.pad).padStart(2, "0") : "unassigned"}. Drag to a pad.`);
-      row.innerHTML = `<div class="wave">${waveSvg({ wave: 0.6, gain: 0 }, s.id.charCodeAt(1))}</div><div><div class="nm">${s.name} <small>${s.dur}</small></div><div class="assign">${s.pad ? `Pad <b>A${String(s.pad).padStart(2, "0")}</b>` : "Not on a pad yet"}</div></div><button class="btn ghost" aria-label="Preview ${s.name}">▶</button>`;
-      row.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", s.id));
-      samplesEl.append(row);
-    }
-  }
-  function assign(sampleId, pad) {
-    for (const s of samples) if (s.pad === pad) s.pad = null;
-    const s = samples.find(x => x.id === sampleId); if (s) s.pad = pad;
-    renderKit();
-  }
-  renderKit();
-  document.getElementById("drop").addEventListener("dragover", (e) => e.preventDefault());
-  document.getElementById("drop").addEventListener("drop", (e) => { e.preventDefault(); const err = document.getElementById("kitError"); err.hidden = false; err.textContent = 'Could not import "loop.m4a": AAC is not supported. Convert it to WAV or MP3 and try again.'; });
-  document.getElementById("themeToggle").addEventListener("click", () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark"; });
-</script>
-</body>
+          el.querySelector("select").addEventListener("change", (e) => assign(e.target.value, p));
+          el.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            el.classList.add("over");
+          });
+          el.addEventListener("dragleave", () => el.classList.remove("over"));
+          el.addEventListener("drop", (e) => {
+            e.preventDefault();
+            el.classList.remove("over");
+            assign(e.dataTransfer.getData("text/plain"), p);
+          });
+          el.addEventListener("pointerdown", (e) => {
+            if (e.target.tagName === "SELECT") return;
+            if (!s) return;
+            playingPad = p;
+            renderKit();
+            setTimeout(() => {
+              playingPad = null;
+              renderKit();
+            }, 140);
+          });
+          padsEl.append(el);
+        }
+        samplesEl.innerHTML = "";
+        for (const s of samples) {
+          const row = document.createElement("div");
+          row.className = "sample-row";
+          row.draggable = true;
+          row.setAttribute(
+            "aria-label",
+            `${s.name}, ${s.pad ? "on pad A" + String(s.pad).padStart(2, "0") : "unassigned"}. Drag to a pad.`,
+          );
+          row.innerHTML = `<div class="wave">${waveSvg({ wave: 0.6, gain: 0 }, s.id.charCodeAt(1))}</div><div><div class="nm">${s.name} <small>${s.dur}</small></div><div class="assign">${s.pad ? `Pad <b>A${String(s.pad).padStart(2, "0")}</b>` : "Not on a pad yet"}</div></div><button class="btn ghost" aria-label="Preview ${s.name}">▶</button>`;
+          row.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", s.id));
+          samplesEl.append(row);
+        }
+      }
+      function assign(sampleId, pad) {
+        for (const s of samples) if (s.pad === pad) s.pad = null;
+        const s = samples.find((x) => x.id === sampleId);
+        if (s) s.pad = pad;
+        renderKit();
+      }
+      renderKit();
+      document.getElementById("drop").addEventListener("dragover", (e) => e.preventDefault());
+      document.getElementById("drop").addEventListener("drop", (e) => {
+        e.preventDefault();
+        const err = document.getElementById("kitError");
+        err.hidden = false;
+        err.textContent =
+          'Could not import "loop.m4a": AAC is not supported. Convert it to WAV or MP3 and try again.';
+      });
+      document.getElementById("themeToggle").addEventListener("click", () => {
+        const r = document.documentElement;
+        r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark";
+      });
+    </script>
+  </body>
 </html>

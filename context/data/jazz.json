@@ -177,10 +177,7 @@
       "label": "Lydian"
     }
   ],
-  "CHORD_SCALE_DRILL_CHANGES": [
-    "major",
-    "minor"
-  ],
+  "CHORD_SCALE_DRILL_CHANGES": ["major", "minor"],
   "CHORD_SCALE_DRILL_DEFAULT_CONFIG": {
     "changesId": "major"
   },
@@ -189,34 +186,19 @@
       "id": "rootless9",
       "label": "Rootless (3 5 7 9)",
       "hint": "Plain dominant colour.",
-      "offsets": [
-        4,
-        7,
-        10,
-        14
-      ]
+      "offsets": [4, 7, 10, 14]
     },
     {
       "id": "rootlessB9",
       "label": "Rootless b9 (3 7 b9 5)",
       "hint": "Diminished tension (JT10).",
-      "offsets": [
-        4,
-        10,
-        13,
-        19
-      ]
+      "offsets": [4, 10, 13, 19]
     },
     {
       "id": "altered",
       "label": "Altered (7 b9 3 b13)",
       "hint": "Max tension; resolves strongly (JT11).",
-      "offsets": [
-        10,
-        13,
-        16,
-        20
-      ]
+      "offsets": [10, 13, 16, 20]
     }
   ],
   "UPPER_STRUCTURES": [
@@ -280,12 +262,7 @@
       "name": "Major 7",
       "family": "maj7",
       "role": "The I chord of a major ii-V-I.",
-      "extensions": [
-        "Cmaj9",
-        "Cmaj7#11",
-        "C6",
-        "C6/9"
-      ]
+      "extensions": ["Cmaj9", "Cmaj7#11", "C6", "C6/9"]
     },
     {
       "id": "m7",
@@ -293,10 +270,7 @@
       "name": "Minor 7",
       "family": "m7",
       "role": "The ii chord of a major ii-V-I.",
-      "extensions": [
-        "Cm9",
-        "Cm11"
-      ]
+      "extensions": ["Cm9", "Cm11"]
     },
     {
       "id": "dom7",
@@ -304,16 +278,7 @@
       "name": "Dominant 7",
       "family": "dom7",
       "role": "The V chord of a ii-V-I. Takes every altered extension (b9 #9 #11 b13).",
-      "extensions": [
-        "C9",
-        "C13",
-        "C7b9",
-        "C7#9",
-        "C7#11",
-        "C7b13",
-        "C7alt",
-        "C7sus4"
-      ]
+      "extensions": ["C9", "C13", "C7b9", "C7#9", "C7#11", "C7b13", "C7alt", "C7sus4"]
     },
     {
       "id": "mMaj7",
@@ -321,9 +286,7 @@
       "name": "Minor-major 7",
       "family": "mMaj7",
       "role": "The i chord of a minor ii-V-i. (\"The James Bond chord\" with a 9th.)",
-      "extensions": [
-        "CmMaj9"
-      ]
+      "extensions": ["CmMaj9"]
     },
     {
       "id": "m7b5",
@@ -345,9 +308,7 @@
       "name": "Major 6",
       "family": "maj6",
       "role": "A brighter tonic than maj7. The 6th replaces the 7th.",
-      "extensions": [
-        "C6/9"
-      ]
+      "extensions": ["C6/9"]
     },
     {
       "id": "min6",
@@ -355,25 +316,10 @@
       "name": "Minor 6",
       "family": "min6",
       "role": "Tonic minor with a major 6th (not b6). Common minor i chord.",
-      "extensions": [
-        "Cm6/9"
-      ]
+      "extensions": ["Cm6/9"]
     }
   ],
-  "TWELVE_KEY_CYCLE": [
-    "C",
-    "Bb",
-    "Ab",
-    "Gb",
-    "E",
-    "D",
-    "C#",
-    "B",
-    "A",
-    "G",
-    "F",
-    "Eb"
-  ],
+  "TWELVE_KEY_CYCLE": ["C", "Bb", "Ab", "Gb", "E", "D", "C#", "B", "A", "G", "F", "Eb"],
   "IMPROV_TECHNIQUES": [
     {
       "id": "chord-tone-soloing",
@@ -432,9 +378,7 @@
       "order": 1,
       "title": "Memorize your intervals",
       "summary": "Every jazz technique is an interval pattern. Learn all ascending intervals first — set a 30–60 day deadline.",
-      "resources": [
-        "JT1"
-      ],
+      "resources": ["JT1"],
       "href": "/music/learn/ear/intervals",
       "skillId": "pitch.intervals"
     },
@@ -443,9 +387,7 @@
       "order": 2,
       "title": "Read every chord symbol",
       "summary": "maj7, m7, 7, mMaj7, m7b5, dim7, 6/9 and the slash chords — what each means and its role in a ii-V-I.",
-      "resources": [
-        "JT2"
-      ],
+      "resources": ["JT2"],
       "kind": "reference",
       "href": "/music/learn/jazz",
       "links": [
@@ -460,9 +402,7 @@
       "order": 3,
       "title": "Add chord extensions",
       "summary": "Build the 9th, 11th, 13th (and b9 #9 #11 b13) from the major scale above any chord root.",
-      "resources": [
-        "JT3"
-      ],
+      "resources": ["JT3"],
       "kind": "reference",
       "href": "/music/learn/jazz",
       "links": [
@@ -477,9 +417,7 @@
       "order": 4,
       "title": "Learn the chord-scale relationships",
       "summary": "Pick one go-to scale per chord type (lydian over maj7, dorian over m7, mixolydian/altered over V7).",
-      "resources": [
-        "JT4"
-      ],
+      "resources": ["JT4"],
       "href": "/music/play/chord-scales?changes=major",
       "links": [
         {
@@ -491,13 +429,8 @@
           "href": "/music/learn/jazz"
         }
       ],
-      "skillIds": [
-        "harmony.ii-v-i.chord-scales.major",
-        "harmony.ii-v-i.chord-scales.minor"
-      ],
-      "modalities": [
-        "played"
-      ],
+      "skillIds": ["harmony.ii-v-i.chord-scales.major", "harmony.ii-v-i.chord-scales.minor"],
+      "modalities": ["played"],
       "minAttempts": 3,
       "detail": "At least 3 unaided Check answers in each major and minor variant, each averaging 66% or higher."
     },
@@ -506,9 +439,7 @@
       "order": 5,
       "title": "Shell voicings",
       "summary": "Play the guide tones (1 3 7). The fastest way to comp through a tune.",
-      "resources": [
-        "JT8"
-      ],
+      "resources": ["JT8"],
       "kind": "reference",
       "href": "/music/learn/jazz",
       "links": [
@@ -524,18 +455,10 @@
       "order": 6,
       "title": "Rootless voicings — ii-V-I in 12 keys",
       "summary": "Positions A (3 5 7 9) and B (7 9 3 5). \"If you only learn one voicing type, make it this.\" Drill all 12 keys (graded).",
-      "resources": [
-        "JT9",
-        "JT6"
-      ],
+      "resources": ["JT9", "JT6"],
       "href": "/music/play/voicings",
-      "skillIds": [
-        "harmony.ii-v-i.voicings.major",
-        "harmony.ii-v-i.voicings.minor"
-      ],
-      "modalities": [
-        "played"
-      ],
+      "skillIds": ["harmony.ii-v-i.voicings.major", "harmony.ii-v-i.voicings.minor"],
+      "modalities": ["played"],
       "minAttempts": 36,
       "detail": "At least 36 unaided Check chord answers in each major and minor variant, each averaging 66% or higher. Extras are tolerated; this checks note collection.",
       "applies": "polyphonic"
@@ -545,11 +468,7 @@
       "order": 7,
       "title": "Altered & upper-structure V7 voicings",
       "summary": "Rootless voicings with V7b9 and V7 altered, plus upper-structure triads for richer dominant colour.",
-      "resources": [
-        "JT10",
-        "JT11",
-        "JT12"
-      ],
+      "resources": ["JT10", "JT11", "JT12"],
       "href": "/music/play/voicings?variant=altered",
       "links": [
         {
@@ -558,9 +477,7 @@
         }
       ],
       "skillId": "harmony.ii-v-i.voicings.altered",
-      "modalities": [
-        "played"
-      ],
+      "modalities": ["played"],
       "minAttempts": 36,
       "detail": "At least 36 unaided Check answers in the altered variant, averaging 66% or higher. Extras are tolerated; this checks note collection.",
       "applies": "polyphonic"
@@ -570,9 +487,7 @@
       "order": 8,
       "title": "Play the licks over ii-V-I",
       "summary": "Hear a transcribed line, play it back over the changes, then take it through the keys.",
-      "resources": [
-        "JT5"
-      ],
+      "resources": ["JT5"],
       "href": "/music/play/licks?category=major-ii-V-I",
       "links": [
         {
@@ -580,13 +495,8 @@
           "href": "/music/play/licks?category=minor-ii-V-i"
         }
       ],
-      "skillIds": [
-        "harmony.ii-v-i.licks.major-ii-V-I",
-        "harmony.ii-v-i.licks.minor-ii-V-i"
-      ],
-      "modalities": [
-        "played"
-      ],
+      "skillIds": ["harmony.ii-v-i.licks.major-ii-V-I", "harmony.ii-v-i.licks.minor-ii-V-i"],
+      "modalities": ["played"],
       "detail": "At least one unaided Check phrase in each major and minor ii-V-I category, each averaging 66% or higher. Pitch order only; transposition and timing are not assessed.",
       "applies": "pitched"
     },
@@ -595,9 +505,7 @@
       "order": 9,
       "title": "Improvise over ii-V-I",
       "summary": "Chord tones + approach patterns + bebop/altered/diminished scales. Work the 29 licks.",
-      "resources": [
-        "JT5"
-      ],
+      "resources": ["JT5"],
       "href": "/music/jam",
       "applies": "pitched"
     },
@@ -606,14 +514,7 @@
       "order": 10,
       "title": "Learn repertoire from a Real Book",
       "summary": "Apply everything to standards. Practice with the swing / ballad / bossa backing tracks.",
-      "resources": [
-        "JT13",
-        "JT14",
-        "JT15",
-        "JT16",
-        "JT17",
-        "JT18"
-      ],
+      "resources": ["JT13", "JT14", "JT15", "JT16", "JT17", "JT18"],
       "href": "/music/jam"
     }
   ],
@@ -757,10 +658,7 @@
       "style": "swing",
       "bpm": 125,
       "label": "Swing — 125 bpm",
-      "songs": [
-        "Autumn Leaves",
-        "Afternoon in Paris"
-      ],
+      "songs": ["Autumn Leaves", "Afternoon in Paris"],
       "url": "/audio/jazz/swing-125.mp3"
     },
     {
@@ -776,9 +674,7 @@
       "style": "swing",
       "bpm": 40,
       "label": "Slow swing — 40 bpm",
-      "songs": [
-        "Georgia On My Mind"
-      ],
+      "songs": ["Georgia On My Mind"],
       "url": "/audio/jazz/swing-40.mp3"
     },
     {
@@ -786,11 +682,7 @@
       "style": "ballad",
       "bpm": 65,
       "label": "Ballad — 65 bpm",
-      "songs": [
-        "Misty",
-        "Tenderly",
-        "Cry Me A River"
-      ],
+      "songs": ["Misty", "Tenderly", "Cry Me A River"],
       "url": "/audio/jazz/ballad-65.mp3"
     },
     {
@@ -798,11 +690,7 @@
       "style": "bossa-nova",
       "bpm": 125,
       "label": "Bossa nova — 125 bpm",
-      "songs": [
-        "Girl from Ipanema",
-        "So Nice",
-        "Blue Bossa"
-      ],
+      "songs": ["Girl from Ipanema", "So Nice", "Blue Bossa"],
       "url": "/audio/jazz/bossa-125.mp3"
     }
   ],
@@ -817,2793 +705,864 @@
     {
       "number": 1,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7",
-        "Cmaj7"
-      ],
-      "scales": [
-        "chord tones"
-      ],
-      "techniques": [
-        "chord-tone-soloing"
-      ],
+      "progression": ["Dm7", "G7", "Cmaj7"],
+      "scales": ["chord tones"],
+      "techniques": ["chord-tone-soloing"],
       "tip": "Solo using only the 1 3 5 7 of each chord."
     },
     {
       "number": 2,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7",
-        "Cmaj7"
-      ],
-      "scales": [
-        "C major"
-      ],
-      "techniques": [
-        "parent-scale"
-      ],
+      "progression": ["Dm7", "G7", "Cmaj7"],
+      "scales": ["C major"],
+      "techniques": ["parent-scale"],
       "tip": "The C major scale works over all three chords of a major ii-V-I."
     },
     {
       "number": 3,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7",
-        "Cmaj7"
-      ],
-      "scales": [
-        "G dominant bebop"
-      ],
-      "techniques": [
-        "bebop-scale",
-        "rhythmic-variation"
-      ],
+      "progression": ["Dm7", "G7", "Cmaj7"],
+      "scales": ["G dominant bebop"],
+      "techniques": ["bebop-scale", "rhythmic-variation"],
       "tip": "Add a triplet to vary rhythm; the bebop chromatic note is Gb. End lines on 1 3 5 or 7 (C E G B)."
     },
     {
       "number": 4,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7",
-        "Cmaj7"
-      ],
-      "scales": [
-        "C major"
-      ],
-      "techniques": [
-        "half-step-below"
-      ],
+      "progression": ["Dm7", "G7", "Cmaj7"],
+      "scales": ["C major"],
+      "techniques": ["half-step-below"],
       "tip": "Half-step-below approach into the changes: Bb→B and Eb→E."
     },
     {
       "number": 5,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7",
-        "Cmaj7"
-      ],
-      "scales": [
-        "C major"
-      ],
-      "techniques": [
-        "half-step-below"
-      ],
+      "progression": ["Dm7", "G7", "Cmaj7"],
+      "scales": ["C major"],
+      "techniques": ["half-step-below"],
       "tip": "The approach is most effective at the chord change. Aim for the chord's major 3rd."
     },
     {
       "number": 6,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7b9",
-        "Cmaj7"
-      ],
-      "scales": [
-        "C major"
-      ],
-      "techniques": [
-        "half-step-below"
-      ],
+      "progression": ["Dm7", "G7b9", "Cmaj7"],
+      "scales": ["C major"],
+      "techniques": ["half-step-below"],
       "tip": "You can precede all 7 scale notes with the half-step-below approach (F#→G, D#→E)."
     },
     {
       "number": 7,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7#9b9",
-        "Cmaj7"
-      ],
-      "scales": [
-        "C major",
-        "G diminished (half-whole)"
-      ],
-      "techniques": [
-        "v7-scale-change"
-      ],
+      "progression": ["Dm7", "G7#9b9", "Cmaj7"],
+      "scales": ["C major", "G diminished (half-whole)"],
+      "techniques": ["v7-scale-change"],
       "tip": "Go IN (C major), then OUT over the V7 (G diminished → b9 #9 #11), then back IN."
     },
     {
       "number": 8,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7#9b9",
-        "Cmaj7"
-      ],
-      "scales": [
-        "G diminished (half-whole)"
-      ],
-      "techniques": [
-        "v7-scale-change",
-        "lh-textures"
-      ],
+      "progression": ["Dm7", "G7#9b9", "Cmaj7"],
+      "scales": ["G diminished (half-whole)"],
+      "techniques": ["v7-scale-change", "lh-textures"],
       "tip": "Diminished line over G7 with a stride left-hand texture."
     },
     {
       "number": 9,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7alt",
-        "Cmaj7"
-      ],
-      "scales": [
-        "G altered (Ab melodic minor)"
-      ],
-      "techniques": [
-        "v7-scale-change"
-      ],
+      "progression": ["Dm7", "G7alt", "Cmaj7"],
+      "scales": ["G altered (Ab melodic minor)"],
+      "techniques": ["v7-scale-change"],
       "tip": "Altered scale over G7 with a rootless altered voicing underneath."
     },
     {
       "number": 10,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7alt",
-        "Cmaj7"
-      ],
-      "scales": [
-        "G altered"
-      ],
-      "techniques": [
-        "v7-scale-change",
-        "rhythmic-variation"
-      ],
+      "progression": ["Dm7", "G7alt", "Cmaj7"],
+      "scales": ["G altered"],
+      "techniques": ["v7-scale-change", "rhythmic-variation"],
       "tip": "Inject 8th-note rests for interesting rhythm."
     },
     {
       "number": 11,
       "category": "major-ii-V-I",
-      "progression": [
-        "Dm7",
-        "G7alt",
-        "Cmaj7"
-      ],
-      "scales": [
-        "G altered"
-      ],
-      "techniques": [
-        "sequence"
-      ],
+      "progression": ["Dm7", "G7alt", "Cmaj7"],
+      "scales": ["G altered"],
+      "techniques": ["sequence"],
       "tip": "A sequence: a repeating melodic shape moving up or down."
     },
     {
       "number": 12,
       "category": "major-ii-V-I-VI",
-      "progression": [
-        "Dm7",
-        "G7",
-        "Cmaj7",
-        "A7"
-      ],
-      "scales": [
-        "C major"
-      ],
-      "techniques": [
-        "chord-tone-soloing"
-      ],
+      "progression": ["Dm7", "G7", "Cmaj7", "A7"],
+      "scales": ["C major"],
+      "techniques": ["chord-tone-soloing"],
       "tip": "ii-V-I-VI loops: the A7 resolves back to Dm7. Great for repeated improv practice."
     },
     {
       "number": 13,
       "category": "major-ii-V-I-VI",
-      "progression": [
-        "Dm7",
-        "G7",
-        "Cmaj7",
-        "A7"
-      ],
-      "scales": [
-        "D minor bebop (D dorian + Db)"
-      ],
-      "techniques": [
-        "start-from-any-note",
-        "chromatic-enclosure"
-      ],
+      "progression": ["Dm7", "G7", "Cmaj7", "A7"],
+      "scales": ["D minor bebop (D dorian + Db)"],
+      "techniques": ["start-from-any-note", "chromatic-enclosure"],
       "tip": "Start lines from every possible note; use a chromatic enclosure to precede the A7."
     },
     {
       "number": 14,
       "category": "major-ii-V-I-VI",
-      "progression": [
-        "Dm7",
-        "G7alt",
-        "Cmaj7",
-        "A7b9"
-      ],
-      "scales": [
-        "G altered"
-      ],
-      "techniques": [
-        "half-step-below",
-        "chord-tone-soloing"
-      ],
+      "progression": ["Dm7", "G7alt", "Cmaj7", "A7b9"],
+      "scales": ["G altered"],
+      "techniques": ["half-step-below", "chord-tone-soloing"],
       "tip": "Half-step approach into G7alt; chord-tone solo (1 3 5 7 9) over A7b9."
     },
     {
       "number": 15,
       "category": "major-ii-V-I-VI",
-      "progression": [
-        "Dm7",
-        "G7",
-        "Cmaj7",
-        "A7"
-      ],
-      "scales": [
-        "G diminished (half-whole)"
-      ],
-      "techniques": [
-        "v7-scale-change",
-        "chromatic-enclosure"
-      ],
+      "progression": ["Dm7", "G7", "Cmaj7", "A7"],
+      "scales": ["G diminished (half-whole)"],
+      "techniques": ["v7-scale-change", "chromatic-enclosure"],
       "tip": "Diminished over G7; chromatic enclosure to precede the A7."
     },
     {
       "number": 16,
       "category": "major-ii-V-I-VI",
-      "progression": [
-        "Dm7",
-        "G7#9b9",
-        "Cmaj7",
-        "A7b9"
-      ],
-      "scales": [
-        "G diminished (half-whole)"
-      ],
-      "techniques": [
-        "v7-scale-change",
-        "lh-textures"
-      ],
+      "progression": ["Dm7", "G7#9b9", "Cmaj7", "A7b9"],
+      "scales": ["G diminished (half-whole)"],
+      "techniques": ["v7-scale-change", "lh-textures"],
       "tip": "Diminished over G7 with a stride left hand."
     },
     {
       "number": 17,
       "category": "major-ii-V-I-VI",
-      "progression": [
-        "Dm7",
-        "G7b9",
-        "Cmaj7",
-        "A7"
-      ],
-      "scales": [
-        "C major"
-      ],
-      "techniques": [
-        "half-step-below",
-        "chromatic-enclosure"
-      ],
+      "progression": ["Dm7", "G7b9", "Cmaj7", "A7"],
+      "scales": ["C major"],
+      "techniques": ["half-step-below", "chromatic-enclosure"],
       "tip": "Half-step approaches Bb→B and Eb→E; chromatic enclosure to precede the A7."
     },
     {
       "number": 18,
       "category": "minor-ii-V-i",
-      "progression": [
-        "Dm7b5",
-        "G7",
-        "Cm7"
-      ],
-      "scales": [
-        "chord tones"
-      ],
-      "techniques": [
-        "chord-tone-soloing"
-      ],
+      "progression": ["Dm7b5", "G7", "Cm7"],
+      "scales": ["chord tones"],
+      "techniques": ["chord-tone-soloing"],
       "tip": "Chord-tone solo (1 3 5 7 9). Over a minor ii-V-i you change scale on each chord."
     },
     {
       "number": 19,
       "category": "minor-ii-V-i",
-      "progression": [
-        "Dm7b5",
-        "G7",
-        "Cm7"
-      ],
-      "scales": [
-        "D locrian",
-        "G diminished",
-        "C dorian"
-      ],
-      "techniques": [
-        "v7-scale-change"
-      ],
+      "progression": ["Dm7b5", "G7", "Cm7"],
+      "scales": ["D locrian", "G diminished", "C dorian"],
+      "techniques": ["v7-scale-change"],
       "tip": "The standard minor ii-V-i scale set: D locrian – G diminished/altered – C dorian."
     },
     {
       "number": 20,
       "category": "minor-ii-V-i",
-      "progression": [
-        "Dm7b5",
-        "G7#9b9",
-        "Cm7"
-      ],
-      "scales": [
-        "D locrian",
-        "G diminished",
-        "C dorian"
-      ],
-      "techniques": [
-        "v7-scale-change",
-        "lh-textures"
-      ],
+      "progression": ["Dm7b5", "G7#9b9", "Cm7"],
+      "scales": ["D locrian", "G diminished", "C dorian"],
+      "techniques": ["v7-scale-change", "lh-textures"],
       "tip": "Stride left-hand texture under the minor ii-V-i."
     },
     {
       "number": 21,
       "category": "minor-ii-V-i",
-      "progression": [
-        "Dm7b5",
-        "G7#9b9",
-        "Cm7"
-      ],
-      "scales": [
-        "D locrian",
-        "G diminished",
-        "C dorian"
-      ],
-      "techniques": [
-        "half-step-below"
-      ],
+      "progression": ["Dm7b5", "G7#9b9", "Cm7"],
+      "scales": ["D locrian", "G diminished", "C dorian"],
+      "techniques": ["half-step-below"],
       "tip": "Half-step-below approaches C#→D and F#→G."
     },
     {
       "number": 22,
       "category": "minor-ii-V-i",
-      "progression": [
-        "Dm7b5",
-        "G7b9",
-        "Cm7"
-      ],
-      "scales": [
-        "chord tones"
-      ],
-      "techniques": [
-        "rhythmic-variation",
-        "chord-tone-soloing"
-      ],
+      "progression": ["Dm7b5", "G7b9", "Cm7"],
+      "scales": ["chord tones"],
+      "techniques": ["rhythmic-variation", "chord-tone-soloing"],
       "tip": "Inject 8th-note rests; chord-tone solo (1 3 5 7 9)."
     },
     {
       "number": 23,
       "category": "minor-ii-V-i",
-      "progression": [
-        "Dm7b5",
-        "G7alt",
-        "Cm7"
-      ],
-      "scales": [
-        "D locrian",
-        "G altered (Ab melodic minor)",
-        "C dorian / melodic minor"
-      ],
-      "techniques": [
-        "v7-scale-change"
-      ],
+      "progression": ["Dm7b5", "G7alt", "Cm7"],
+      "scales": ["D locrian", "G altered (Ab melodic minor)", "C dorian / melodic minor"],
+      "techniques": ["v7-scale-change"],
       "tip": "Altered scale over G7 with a rootless altered voicing."
     },
     {
       "number": 24,
       "category": "minor-ii-V-i",
-      "progression": [
-        "Dm7b5",
-        "G7alt",
-        "Cm7"
-      ],
-      "scales": [
-        "D locrian",
-        "G altered",
-        "C dorian"
-      ],
-      "techniques": [
-        "v7-scale-change"
-      ],
+      "progression": ["Dm7b5", "G7alt", "Cm7"],
+      "scales": ["D locrian", "G altered", "C dorian"],
+      "techniques": ["v7-scale-change"],
       "tip": "Another altered minor ii-V-i line."
     },
     {
       "number": 25,
       "category": "minor-chord",
-      "progression": [
-        "Cm7"
-      ],
-      "scales": [
-        "C dorian",
-        "C minor blues"
-      ],
-      "techniques": [
-        "half-step-below"
-      ],
+      "progression": ["Cm7"],
+      "scales": ["C dorian", "C minor blues"],
+      "techniques": ["half-step-below"],
       "tip": "Minor-chord lick in straight time. Half-step-below approach (B→C, E→F)."
     },
     {
       "number": 26,
       "category": "minor-chord",
-      "progression": [
-        "Cm7",
-        "Fm7"
-      ],
-      "scales": [
-        "C dorian",
-        "F dorian"
-      ],
-      "techniques": [
-        "lh-textures"
-      ],
+      "progression": ["Cm7", "Fm7"],
+      "scales": ["C dorian", "F dorian"],
+      "techniques": ["lh-textures"],
       "tip": "A bossa-nova bass line plays the root and 5th of each chord."
     },
     {
       "number": 27,
       "category": "minor-chord",
-      "progression": [
-        "Cm7"
-      ],
-      "scales": [
-        "C minor blues (C Eb F Gb G Bb)"
-      ],
-      "techniques": [
-        "rhythmic-variation"
-      ],
+      "progression": ["Cm7"],
+      "scales": ["C minor blues (C Eb F Gb G Bb)"],
+      "techniques": ["rhythmic-variation"],
       "tip": "Bluesy, accented minor-blues line."
     },
     {
       "number": 28,
       "category": "minor-chord",
-      "progression": [
-        "Cm7"
-      ],
-      "scales": [
-        "C dorian"
-      ],
-      "techniques": [
-        "lh-textures"
-      ],
+      "progression": ["Cm7"],
+      "scales": ["C dorian"],
+      "techniques": ["lh-textures"],
       "tip": "Paradiddle texture — the L/R/L/R pattern works over any chord or set of notes."
     },
     {
       "number": 29,
       "category": "minor-chord",
-      "progression": [
-        "Cm7"
-      ],
-      "scales": [
-        "C minor pentatonic (C Eb F G Bb)"
-      ],
-      "techniques": [
-        "lh-textures",
-        "sequence"
-      ],
+      "progression": ["Cm7"],
+      "scales": ["C minor pentatonic (C Eb F G Bb)"],
+      "techniques": ["lh-textures", "sequence"],
       "tip": "Ascending minor pentatonic in 4-note cells; the left hand plays the first note of each cell."
     },
     {
       "number": 30,
       "category": "guitar-pentatonic",
-      "progression": [
-        "Em",
-        "D"
-      ],
-      "scales": [
-        "E minor pentatonic (E G A B D)"
-      ],
-      "techniques": [
-        "sequence"
-      ],
+      "progression": ["Em", "D"],
+      "scales": ["E minor pentatonic (E G A B D)"],
+      "techniques": ["sequence"],
       "tip": "Box 1 at the twelfth fret, three fingers. Land the D on beat 3 of bar 1 and let it ring."
     },
     {
       "number": 31,
       "category": "guitar-pentatonic",
-      "progression": [
-        "Am",
-        "D"
-      ],
-      "scales": [
-        "A minor pentatonic (A C D E G)"
-      ],
-      "techniques": [
-        "sequence"
-      ],
+      "progression": ["Am", "D"],
+      "scales": ["A minor pentatonic (A C D E G)"],
+      "techniques": ["sequence"],
       "tip": "The same shape, fingers and strings at the fifth fret. Transfer, not a new lick."
     }
   ],
   "LICK_PHRASES": {
     "1": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        2
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [72, 0.5],
+      [69, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [71, 0.5],
+      [74, 0.5],
+      [77, 0.5],
+      [74, 0.5],
+      [71, 0.5],
+      [67, 0.5],
+      [71, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [67, 0.5],
+      [64, 0.5],
+      [67, 0.5],
+      [72, 0.5],
+      [76, 2]
     ],
     "2": [
-      [
-        62,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        60,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        72,
-        2
-      ]
+      [62, 0.5],
+      [64, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [69, 0.5],
+      [71, 0.5],
+      [72, 0.5],
+      [74, 0.5],
+      [76, 0.5],
+      [74, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [69, 0.5],
+      [67, 0.5],
+      [65, 0.5],
+      [64, 0.5],
+      [65, 0.5],
+      [64, 0.5],
+      [62, 0.5],
+      [60, 0.5],
+      [64, 0.5],
+      [67, 0.5],
+      [72, 2]
     ],
     "3": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        1
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        79,
-        0.5
-      ],
-      [
-        78,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        2
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [72, 1],
+      [69, 0.5],
+      [65, 0.5],
+      [79, 0.5],
+      [78, 0.5],
+      [77, 0.5],
+      [76, 0.5],
+      [74, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [69, 0.5],
+      [71, 0.5],
+      [72, 0.5],
+      [76, 2]
     ],
     "4": [
-      [
-        69,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        64,
-        1.5
-      ]
+      [69, 0.5],
+      [70, 0.5],
+      [71, 0.5],
+      [74, 0.5],
+      [72, 0.5],
+      [69, 0.5],
+      [63, 0.5],
+      [64, 0.5],
+      [71, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [71, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [67, 0.5],
+      [64, 1.5]
     ],
     "5": [
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        1
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        2
-      ]
+      [65, 0.5],
+      [69, 0.5],
+      [72, 0.5],
+      [70, 0.5],
+      [71, 1],
+      [74, 0.5],
+      [71, 0.5],
+      [69, 0.5],
+      [67, 0.5],
+      [63, 0.5],
+      [64, 0.5],
+      [67, 0.5],
+      [72, 0.5],
+      [76, 2]
     ],
     "6": [
-      [
-        66,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        60,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        61,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        72,
-        2
-      ]
+      [66, 0.5],
+      [67, 0.5],
+      [63, 0.5],
+      [64, 0.5],
+      [60, 0.5],
+      [62, 0.5],
+      [61, 0.5],
+      [62, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [73, 0.5],
+      [71, 0.5],
+      [64, 0.5],
+      [67, 0.5],
+      [72, 2]
     ],
     "7": [
-      [
-        62,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        67,
-        1.5
-      ]
+      [62, 0.5],
+      [64, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [69, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [71, 0.5],
+      [73, 0.5],
+      [74, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [67, 1.5]
     ],
     "8": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        1
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        76,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [72, 1],
+      [70, 0.5],
+      [68, 0.5],
+      [67, 0.5],
+      [65, 0.5],
+      [73, 0.5],
+      [71, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [76, 1.5]
     ],
     "9": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        1
-      ],
-      [
-        80,
-        0.5
-      ],
-      [
-        78,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        79,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [72, 1],
+      [80, 0.5],
+      [78, 0.5],
+      [75, 0.5],
+      [73, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [71, 0.5],
+      [72, 0.5],
+      [76, 0.5],
+      [79, 1.5]
     ],
     "10": [
-      [
-        62,
-        1
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        80,
-        0.5
-      ],
-      [
-        78,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        72,
-        1
-      ],
-      [
-        76,
-        1.5
-      ]
+      [62, 1],
+      [65, 0.5],
+      [69, 0.5],
+      [72, 0.5],
+      [70, 0.5],
+      [80, 0.5],
+      [78, 0.5],
+      [75, 0.5],
+      [73, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [71, 0.5],
+      [72, 1],
+      [76, 1.5]
     ],
     "11": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        78,
-        0.5
-      ],
-      [
-        80,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [72, 0.5],
+      [76, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [73, 0.5],
+      [75, 0.5],
+      [78, 0.5],
+      [80, 0.5],
+      [76, 0.5],
+      [72, 0.5],
+      [76, 1.5]
     ],
     "12": [
-      [
-        62,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        79,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        66,
-        0.5
-      ],
-      [
-        64,
-        1.5
-      ]
+      [62, 0.5],
+      [64, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [69, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [69, 0.5],
+      [67, 0.5],
+      [71, 0.5],
+      [74, 0.5],
+      [77, 0.5],
+      [76, 0.5],
+      [74, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [72, 0.5],
+      [76, 0.5],
+      [79, 0.5],
+      [76, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [69, 0.5],
+      [67, 0.5],
+      [73, 0.5],
+      [69, 0.5],
+      [66, 0.5],
+      [64, 1.5]
     ],
     "13": [
-      [
-        62,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        69,
-        1.5
-      ]
+      [62, 0.5],
+      [64, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [69, 0.5],
+      [72, 0.5],
+      [74, 0.5],
+      [70, 0.5],
+      [71, 0.5],
+      [74, 0.5],
+      [77, 0.5],
+      [74, 0.5],
+      [71, 0.5],
+      [67, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [64, 0.5],
+      [67, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [67, 0.5],
+      [64, 0.5],
+      [70, 0.5],
+      [71, 0.5],
+      [73, 0.5],
+      [69, 1.5]
     ],
     "14": [
-      [
-        69,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        80,
-        0.5
-      ],
-      [
-        78,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        79,
-        1.5
-      ]
+      [69, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [69, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [80, 0.5],
+      [78, 0.5],
+      [75, 0.5],
+      [73, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [67, 0.5],
+      [65, 0.5],
+      [64, 0.5],
+      [67, 0.5],
+      [72, 0.5],
+      [76, 0.5],
+      [69, 0.5],
+      [73, 0.5],
+      [76, 0.5],
+      [79, 1.5]
     ],
     "15": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        79,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        69,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [72, 0.5],
+      [74, 0.5],
+      [72, 0.5],
+      [69, 0.5],
+      [65, 0.5],
+      [71, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [67, 0.5],
+      [73, 0.5],
+      [71, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [72, 0.5],
+      [76, 0.5],
+      [79, 0.5],
+      [76, 0.5],
+      [70, 0.5],
+      [71, 0.5],
+      [73, 0.5],
+      [69, 1.5]
     ],
     "16": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        72,
-        1
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        79,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        66,
-        0.5
-      ],
-      [
-        64,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [72, 1],
+      [74, 0.5],
+      [69, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [71, 0.5],
+      [73, 0.5],
+      [74, 0.5],
+      [76, 0.5],
+      [77, 0.5],
+      [79, 0.5],
+      [76, 0.5],
+      [72, 0.5],
+      [71, 0.5],
+      [67, 0.5],
+      [73, 0.5],
+      [69, 0.5],
+      [66, 0.5],
+      [64, 1.5]
     ],
     "17": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        64,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        76,
-        1
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [69, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [69, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [70, 0.5],
+      [71, 0.5],
+      [74, 0.5],
+      [73, 0.5],
+      [71, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [67, 0.5],
+      [64, 0.5],
+      [67, 0.5],
+      [72, 0.5],
+      [76, 0.5],
+      [75, 0.5],
+      [76, 0.5],
+      [69, 0.5],
+      [73, 0.5],
+      [76, 1]
     ],
     "18": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        60,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [68, 0.5],
+      [72, 0.5],
+      [74, 0.5],
+      [72, 0.5],
+      [68, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [71, 0.5],
+      [74, 0.5],
+      [77, 0.5],
+      [74, 0.5],
+      [71, 0.5],
+      [67, 0.5],
+      [69, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [75, 0.5],
+      [70, 0.5],
+      [67, 0.5],
+      [63, 0.5],
+      [60, 1.5]
     ],
     "19": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        63,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [68, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [71, 0.5],
+      [74, 0.5],
+      [77, 0.5],
+      [74, 0.5],
+      [70, 0.5],
+      [67, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [63, 0.5],
+      [65, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [70, 0.5],
+      [67, 0.5],
+      [63, 1.5]
     ],
     "20": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        1
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        1
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [68, 0.5],
+      [70, 1],
+      [68, 0.5],
+      [65, 0.5],
+      [71, 0.5],
+      [73, 0.5],
+      [74, 0.5],
+      [76, 0.5],
+      [77, 0.5],
+      [73, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [75, 0.5],
+      [70, 0.5],
+      [67, 1]
     ],
     "21": [
-      [
-        61,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        66,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        71,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        76,
-        0.5
-      ],
-      [
-        77,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        63,
-        1.5
-      ]
+      [61, 0.5],
+      [62, 0.5],
+      [65, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [65, 0.5],
+      [62, 0.5],
+      [66, 0.5],
+      [67, 0.5],
+      [70, 0.5],
+      [71, 0.5],
+      [73, 0.5],
+      [74, 0.5],
+      [76, 0.5],
+      [77, 0.5],
+      [75, 0.5],
+      [72, 0.5],
+      [70, 0.5],
+      [67, 0.5],
+      [63, 1.5]
     ],
     "22": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        1
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        1
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        71,
-        1
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        1
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        63,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 1],
+      [68, 0.5],
+      [72, 0.5],
+      [70, 1],
+      [67, 0.5],
+      [71, 1],
+      [74, 0.5],
+      [70, 0.5],
+      [67, 1],
+      [70, 0.5],
+      [72, 0.5],
+      [75, 0.5],
+      [70, 0.5],
+      [63, 1.5]
     ],
     "23": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        80,
-        0.5
-      ],
-      [
-        78,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        70,
-        1
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [65, 0.5],
+      [80, 0.5],
+      [78, 0.5],
+      [75, 0.5],
+      [73, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [67, 0.5],
+      [65, 0.5],
+      [63, 0.5],
+      [65, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [75, 0.5],
+      [70, 1]
     ],
     "24": [
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        80,
-        0.5
-      ],
-      [
-        78,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        73,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        63,
-        1.5
-      ]
+      [62, 0.5],
+      [65, 0.5],
+      [68, 0.5],
+      [62, 0.5],
+      [65, 0.5],
+      [68, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [80, 0.5],
+      [78, 0.5],
+      [75, 0.5],
+      [73, 0.5],
+      [70, 0.5],
+      [68, 0.5],
+      [75, 0.5],
+      [72, 0.5],
+      [70, 0.5],
+      [67, 0.5],
+      [63, 1.5]
     ],
     "25": [
-      [
-        60,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        62,
-        0.5
-      ],
-      [
-        60,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        75,
-        1
-      ]
+      [60, 0.5],
+      [63, 0.5],
+      [62, 0.5],
+      [63, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [70, 0.5],
+      [67, 0.5],
+      [65, 0.5],
+      [63, 0.5],
+      [62, 0.5],
+      [60, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [75, 1]
     ],
     "26": [
-      [
-        63,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        69,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        1
-      ],
-      [
-        68,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        74,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        1
-      ]
+      [63, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [69, 0.5],
+      [70, 0.5],
+      [69, 0.5],
+      [67, 0.5],
+      [65, 1],
+      [68, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [74, 0.5],
+      [75, 0.5],
+      [74, 0.5],
+      [72, 0.5],
+      [70, 1]
     ],
     "27": [
-      [
-        60,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        66,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        66,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        66,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        60,
-        1.5
-      ]
+      [60, 0.5],
+      [63, 0.5],
+      [65, 0.5],
+      [66, 0.5],
+      [67, 0.5],
+      [70, 0.5],
+      [67, 0.5],
+      [66, 0.5],
+      [65, 0.5],
+      [63, 0.5],
+      [66, 0.5],
+      [65, 0.5],
+      [63, 0.5],
+      [60, 1.5]
     ],
     "28": [
-      [
-        60,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        60,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        67,
-        1
-      ]
+      [60, 0.5],
+      [63, 0.5],
+      [60, 0.5],
+      [63, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [75, 0.5],
+      [72, 0.5],
+      [70, 0.5],
+      [67, 1]
     ],
     "29": [
-      [
-        60,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        63,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        65,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        67,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        70,
-        0.5
-      ],
-      [
-        72,
-        0.5
-      ],
-      [
-        75,
-        0.5
-      ],
-      [
-        79,
-        0.5
-      ],
-      [
-        84,
-        1
-      ]
+      [60, 0.5],
+      [63, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [63, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [70, 0.5],
+      [65, 0.5],
+      [67, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [67, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [75, 0.5],
+      [70, 0.5],
+      [72, 0.5],
+      [75, 0.5],
+      [79, 0.5],
+      [84, 1]
     ],
     "30": [
       [
@@ -3714,10 +1673,7 @@
           "finger": 1
         }
       ],
-      [
-        null,
-        0.5
-      ],
+      [null, 0.5],
       [
         64,
         1,
@@ -3837,10 +1793,7 @@
           "finger": 1
         }
       ],
-      [
-        null,
-        0.5
-      ],
+      [null, 0.5],
       [
         57,
         1,

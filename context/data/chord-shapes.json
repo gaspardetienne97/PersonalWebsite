@@ -5,29 +5,10 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 2,
-    "frets": [
-      0,
-      1,
-      0,
-      2,
-      3,
-      null
-    ],
-    "fingers": [
-      null,
-      1,
-      null,
-      2,
-      3,
-      null
-    ],
-    "mutedStrings": [
-      6
-    ],
-    "openStrings": [
-      1,
-      3
-    ],
+    "frets": [0, 1, 0, 2, 3, null],
+    "fingers": [null, 1, null, 2, 3, null],
+    "mutedStrings": [6],
+    "openStrings": [1, 3],
     "commonTransitions": [
       "guitar.g-major",
       "guitar.a-minor",
@@ -42,33 +23,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 2,
-    "frets": [
-      3,
-      0,
-      0,
-      0,
-      2,
-      3
-    ],
-    "fingers": [
-      3,
-      null,
-      null,
-      null,
-      1,
-      2
-    ],
+    "frets": [3, 0, 0, 0, 2, 3],
+    "fingers": [3, null, null, null, 1, 2],
     "mutedStrings": [],
-    "openStrings": [
-      2,
-      3,
-      4
-    ],
-    "commonTransitions": [
-      "guitar.c-major",
-      "guitar.d-major",
-      "guitar.e-minor"
-    ]
+    "openStrings": [2, 3, 4],
+    "commonTransitions": ["guitar.c-major", "guitar.d-major", "guitar.e-minor"]
   },
   {
     "id": "guitar.d-major",
@@ -76,34 +35,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 2,
-    "frets": [
-      2,
-      3,
-      2,
-      0,
-      null,
-      null
-    ],
-    "fingers": [
-      2,
-      3,
-      1,
-      null,
-      null,
-      null
-    ],
-    "mutedStrings": [
-      5,
-      6
-    ],
-    "openStrings": [
-      4
-    ],
-    "commonTransitions": [
-      "guitar.g-major",
-      "guitar.a-minor",
-      "guitar.a-major"
-    ]
+    "frets": [2, 3, 2, 0, null, null],
+    "fingers": [2, 3, 1, null, null, null],
+    "mutedStrings": [5, 6],
+    "openStrings": [4],
+    "commonTransitions": ["guitar.g-major", "guitar.a-minor", "guitar.a-major"]
   },
   {
     "id": "guitar.e-minor",
@@ -111,33 +47,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 1,
-    "frets": [
-      0,
-      0,
-      0,
-      2,
-      2,
-      0
-    ],
-    "fingers": [
-      null,
-      null,
-      null,
-      3,
-      2,
-      null
-    ],
+    "frets": [0, 0, 0, 2, 2, 0],
+    "fingers": [null, null, null, 3, 2, null],
     "mutedStrings": [],
-    "openStrings": [
-      1,
-      2,
-      3,
-      6
-    ],
-    "commonTransitions": [
-      "guitar.g-major",
-      "guitar.a-minor"
-    ]
+    "openStrings": [1, 2, 3, 6],
+    "commonTransitions": ["guitar.g-major", "guitar.a-minor"]
   },
   {
     "id": "guitar.a-minor",
@@ -145,35 +59,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 2,
-    "frets": [
-      0,
-      1,
-      2,
-      2,
-      0,
-      null
-    ],
-    "fingers": [
-      null,
-      1,
-      3,
-      2,
-      null,
-      null
-    ],
-    "mutedStrings": [
-      6
-    ],
-    "openStrings": [
-      1,
-      5
-    ],
-    "commonTransitions": [
-      "guitar.c-major",
-      "guitar.e-minor",
-      "guitar.e-major",
-      "guitar.b7"
-    ]
+    "frets": [0, 1, 2, 2, 0, null],
+    "fingers": [null, 1, 3, 2, null, null],
+    "mutedStrings": [6],
+    "openStrings": [1, 5],
+    "commonTransitions": ["guitar.c-major", "guitar.e-minor", "guitar.e-major", "guitar.b7"]
   },
   {
     "id": "guitar.e-major",
@@ -181,33 +71,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 2,
-    "frets": [
-      0,
-      0,
-      1,
-      2,
-      2,
-      0
-    ],
-    "fingers": [
-      null,
-      null,
-      1,
-      3,
-      2,
-      null
-    ],
+    "frets": [0, 0, 1, 2, 2, 0],
+    "fingers": [null, null, 1, 3, 2, null],
     "mutedStrings": [],
-    "openStrings": [
-      1,
-      2,
-      6
-    ],
-    "commonTransitions": [
-      "guitar.a-major",
-      "guitar.a-minor",
-      "guitar.b7"
-    ]
+    "openStrings": [1, 2, 6],
+    "commonTransitions": ["guitar.a-major", "guitar.a-minor", "guitar.b7"]
   },
   {
     "id": "guitar.a-major",
@@ -215,34 +83,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 2,
-    "frets": [
-      0,
-      2,
-      2,
-      2,
-      0,
-      null
-    ],
-    "fingers": [
-      null,
-      3,
-      2,
-      1,
-      null,
-      null
-    ],
-    "mutedStrings": [
-      6
-    ],
-    "openStrings": [
-      1,
-      5
-    ],
-    "commonTransitions": [
-      "guitar.d-major",
-      "guitar.e-major",
-      "guitar.b-minor"
-    ]
+    "frets": [0, 2, 2, 2, 0, null],
+    "fingers": [null, 3, 2, 1, null, null],
+    "mutedStrings": [6],
+    "openStrings": [1, 5],
+    "commonTransitions": ["guitar.d-major", "guitar.e-major", "guitar.b-minor"]
   },
   {
     "id": "guitar.d-minor",
@@ -250,33 +95,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 2,
-    "frets": [
-      1,
-      3,
-      2,
-      0,
-      null,
-      null
-    ],
-    "fingers": [
-      1,
-      3,
-      2,
-      null,
-      null,
-      null
-    ],
-    "mutedStrings": [
-      5,
-      6
-    ],
-    "openStrings": [
-      4
-    ],
-    "commonTransitions": [
-      "guitar.g-major",
-      "guitar.a-minor"
-    ]
+    "frets": [1, 3, 2, 0, null, null],
+    "fingers": [1, 3, 2, null, null, null],
+    "mutedStrings": [5, 6],
+    "openStrings": [4],
+    "commonTransitions": ["guitar.g-major", "guitar.a-minor"]
   },
   {
     "id": "guitar.f-major",
@@ -284,28 +107,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 5,
-    "frets": [
-      1,
-      1,
-      2,
-      3,
-      3,
-      1
-    ],
-    "fingers": [
-      1,
-      1,
-      2,
-      4,
-      3,
-      1
-    ],
+    "frets": [1, 1, 2, 3, 3, 1],
+    "fingers": [1, 1, 2, 4, 3, 1],
     "mutedStrings": [],
     "openStrings": [],
-    "commonTransitions": [
-      "guitar.c-major",
-      "guitar.g-major"
-    ]
+    "commonTransitions": ["guitar.c-major", "guitar.g-major"]
   },
   {
     "id": "guitar.b7",
@@ -313,32 +119,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 4,
-    "frets": [
-      2,
-      0,
-      2,
-      1,
-      2,
-      null
-    ],
-    "fingers": [
-      4,
-      null,
-      3,
-      1,
-      2,
-      null
-    ],
-    "mutedStrings": [
-      6
-    ],
-    "openStrings": [
-      2
-    ],
-    "commonTransitions": [
-      "guitar.e-major",
-      "guitar.a-minor"
-    ]
+    "frets": [2, 0, 2, 1, 2, null],
+    "fingers": [4, null, 3, 1, 2, null],
+    "mutedStrings": [6],
+    "openStrings": [2],
+    "commonTransitions": ["guitar.e-major", "guitar.a-minor"]
   },
   {
     "id": "guitar.b-minor",
@@ -346,30 +131,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 5,
-    "frets": [
-      2,
-      3,
-      4,
-      4,
-      2,
-      null
-    ],
-    "fingers": [
-      1,
-      2,
-      4,
-      3,
-      1,
-      null
-    ],
-    "mutedStrings": [
-      6
-    ],
+    "frets": [2, 3, 4, 4, 2, null],
+    "fingers": [1, 2, 4, 3, 1, null],
+    "mutedStrings": [6],
     "openStrings": [],
-    "commonTransitions": [
-      "guitar.a-major",
-      "guitar.e-minor"
-    ]
+    "commonTransitions": ["guitar.a-major", "guitar.e-minor"]
   },
   {
     "id": "guitar.g7",
@@ -377,32 +143,11 @@
     "instrument": "guitar",
     "tuningId": "guitar.standard",
     "difficulty": 2,
-    "frets": [
-      1,
-      0,
-      0,
-      0,
-      2,
-      3
-    ],
-    "fingers": [
-      1,
-      null,
-      null,
-      null,
-      2,
-      3
-    ],
+    "frets": [1, 0, 0, 0, 2, 3],
+    "fingers": [1, null, null, null, 2, 3],
     "mutedStrings": [],
-    "openStrings": [
-      2,
-      3,
-      4
-    ],
-    "commonTransitions": [
-      "guitar.c-major",
-      "guitar.g-major"
-    ]
+    "openStrings": [2, 3, 4],
+    "commonTransitions": ["guitar.c-major", "guitar.g-major"]
   },
   {
     "id": "ukulele.c-major",
@@ -410,29 +155,11 @@
     "instrument": "ukulele",
     "tuningId": "ukulele.high-g",
     "difficulty": 1,
-    "frets": [
-      3,
-      0,
-      0,
-      0
-    ],
-    "fingers": [
-      3,
-      null,
-      null,
-      null
-    ],
+    "frets": [3, 0, 0, 0],
+    "fingers": [3, null, null, null],
     "mutedStrings": [],
-    "openStrings": [
-      2,
-      3,
-      4
-    ],
-    "commonTransitions": [
-      "ukulele.f-major",
-      "ukulele.g-major",
-      "ukulele.a-minor"
-    ]
+    "openStrings": [2, 3, 4],
+    "commonTransitions": ["ukulele.f-major", "ukulele.g-major", "ukulele.a-minor"]
   },
   {
     "id": "ukulele.f-major",
@@ -440,27 +167,11 @@
     "instrument": "ukulele",
     "tuningId": "ukulele.high-g",
     "difficulty": 2,
-    "frets": [
-      0,
-      1,
-      0,
-      2
-    ],
-    "fingers": [
-      null,
-      1,
-      null,
-      2
-    ],
+    "frets": [0, 1, 0, 2],
+    "fingers": [null, 1, null, 2],
     "mutedStrings": [],
-    "openStrings": [
-      1,
-      3
-    ],
-    "commonTransitions": [
-      "ukulele.c-major",
-      "ukulele.g-major"
-    ]
+    "openStrings": [1, 3],
+    "commonTransitions": ["ukulele.c-major", "ukulele.g-major"]
   },
   {
     "id": "ukulele.g-major",
@@ -468,26 +179,11 @@
     "instrument": "ukulele",
     "tuningId": "ukulele.high-g",
     "difficulty": 2,
-    "frets": [
-      2,
-      3,
-      2,
-      0
-    ],
-    "fingers": [
-      1,
-      3,
-      2,
-      null
-    ],
+    "frets": [2, 3, 2, 0],
+    "fingers": [1, 3, 2, null],
     "mutedStrings": [],
-    "openStrings": [
-      4
-    ],
-    "commonTransitions": [
-      "ukulele.c-major",
-      "ukulele.f-major"
-    ]
+    "openStrings": [4],
+    "commonTransitions": ["ukulele.c-major", "ukulele.f-major"]
   },
   {
     "id": "ukulele.a-minor",
@@ -495,27 +191,10 @@
     "instrument": "ukulele",
     "tuningId": "ukulele.high-g",
     "difficulty": 1,
-    "frets": [
-      0,
-      0,
-      0,
-      2
-    ],
-    "fingers": [
-      null,
-      null,
-      null,
-      2
-    ],
+    "frets": [0, 0, 0, 2],
+    "fingers": [null, null, null, 2],
     "mutedStrings": [],
-    "openStrings": [
-      1,
-      2,
-      3
-    ],
-    "commonTransitions": [
-      "ukulele.c-major",
-      "ukulele.f-major"
-    ]
+    "openStrings": [1, 2, 3],
+    "commonTransitions": ["ukulele.c-major", "ukulele.f-major"]
   }
 ]
