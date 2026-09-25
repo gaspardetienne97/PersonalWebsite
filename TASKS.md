@@ -8,19 +8,27 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## In progress
 
-Phase 1, domain and runtime foundation (parallel):
+Phase 2, drills and hubs (parallel, one agent per area):
 
-- A. `packages/music-core` theory, typed data index, content generators, drill catalog
-- B. `packages/music-core` scoring engines
-- C. `packages/music-core` progress engine (mastery, analytics, scheduler, rewards, coach, routine, paths, journal)
-- D. `packages/music-core` signal analysis and file formats (MPM, filters, onsets, chroma, note gate, transcription, calibration, MIDI file, MusicXML, MPC kit, WAV, backup)
-- E. `src/lib/music/runtime` browser runtime (Dexie, audio engine, Web MIDI + MPC link, microphone)
-- Shell: design tokens, layout, instrument surfaces, drill shell (builder)
+- Ear training (7 drills), note reading and sight-reading, rhythm
+- Piano and jazz: two-hand, comping (new route), voicings, licks, chord-scales
+- Guitar and ukulele: fretboard (spider, positions, note finder, interval recall), chords (build, pick, strum and identify, changes), strum a progression
+- MPC pads (rudiments, grooves), Aerophone (4 modes), Connect
+- Library (songs, reference, import, transcribe), Song Studio, Jam, Practice Lab
+- Create (beat grid, sample kits, MPC kit export, piano roll), Record, Tuner, Settings, Guide
 
 ## Done
 
-- `packages/music-core/src/types.ts`: the shared domain contract (events, scoring, skills, sessions, canonical score, devices, settings)
-- `packages/music-core/src/io`: MIDI parsing, device profiles and pad maps, MPC Controller Mode frames, input router, with tests
+- Domain contract and IO boundary in `packages/music-core` (types, MIDI parsing, device profiles and pad maps, MPC Controller Mode frames, input router)
+- Theory, content generators and the drill catalog (90 tests; the two-hand and voicing generators reproduce the verified JSON exactly; every emitted skill id exists in the seed)
+- Scoring engines (110 tests), including an order-following scale grader so a late start or tempo drift costs only the notes actually missed
+- Progress engine: mastery with decay, analytics, scheduler, rewards, coach, the one routine builder, learning paths, journal projections (50 tests)
+- Signal analysis and formats: McLeod pitch detection with the measured settings, high-pass, onsets, chroma, known-target note gate, monophonic transcription, calibration, MIDI and MusicXML/MXL, MPC kit export, WAV, backups (99 tests; the pitch fixtures reproduce the 0.85 cliff: at 0.9 hum flips A2 to A1 in 14 of 40 frames, at 0.8 a weak fundamental flips up)
+- Browser runtime: Dexie (with a proxy-safe write path), OPFS, settings, Tone audio engine (look-ahead scheduling, lights follow audio), Web MIDI with SysEx fallback, auto re-enable on load and the MPC link owned by the app shell, microphone worklet, QWERTY maps, the single input router (9 tests)
+- Notation: VexFlow staff and tab, waterfall, Aerophone fingering row, one cursor, start/end range selection (16 tests)
+- Shell: layout, practice strip, command palette, focus mode, piano, fretboard, pads, Aerophone keys, drill shell, results, practice recorder
+- Hubs: Today, Drills, Paths, Progress (what next, skills, sessions), Journal
+- Scales drill, verified in the browser through on-screen input in Practice and Check (clean check: 100%, independent evidence, personal best, ladder)
 
 ## Dropped
 
