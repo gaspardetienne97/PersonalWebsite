@@ -1,0 +1,416 @@
+[
+  {
+    "id": "minor-pentatonic-box-1",
+    "label": "Minor pentatonic box 1",
+    "family": "minor-pentatonic",
+    "offsets": [
+      {
+        "stringNumber": 6,
+        "fretOffset": 0
+      },
+      {
+        "stringNumber": 6,
+        "fretOffset": 3
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 0
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 0
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 0
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 0
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 3
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 0
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 3
+      }
+    ]
+  },
+  {
+    "id": "minor-pentatonic-box-2",
+    "label": "Minor pentatonic box 2",
+    "family": "minor-pentatonic",
+    "offsets": [
+      {
+        "stringNumber": 6,
+        "fretOffset": 3
+      },
+      {
+        "stringNumber": 6,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 4
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 3
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 3
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 5
+      }
+    ]
+  },
+  {
+    "id": "minor-pentatonic-box-3",
+    "label": "Minor pentatonic box 3",
+    "family": "minor-pentatonic",
+    "offsets": [
+      {
+        "stringNumber": 6,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 6,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 4
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 8
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 7
+      }
+    ]
+  },
+  {
+    "id": "minor-pentatonic-box-4",
+    "label": "Minor pentatonic box 4",
+    "family": "minor-pentatonic",
+    "offsets": [
+      {
+        "stringNumber": 6,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 6,
+        "fretOffset": 10
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 10
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 8
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 10
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 10
+      }
+    ]
+  },
+  {
+    "id": "minor-pentatonic-box-5",
+    "label": "Minor pentatonic box 5",
+    "family": "minor-pentatonic",
+    "offsets": [
+      {
+        "stringNumber": 6,
+        "fretOffset": 10
+      },
+      {
+        "stringNumber": 6,
+        "fretOffset": 12
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 10
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 12
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 12
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 12
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 10
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 12
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 10
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 12
+      }
+    ]
+  },
+  {
+    "id": "caged-major-e-shape",
+    "label": "CAGED E shape",
+    "family": "caged-major",
+    "offsets": [
+      {
+        "stringNumber": 6,
+        "fretOffset": 0
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 1
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 0
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 0
+      }
+    ]
+  },
+  {
+    "id": "caged-major-d-shape",
+    "label": "CAGED D shape",
+    "family": "caged-major",
+    "offsets": [
+      {
+        "stringNumber": 4,
+        "fretOffset": 2
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 4
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 4
+      }
+    ]
+  },
+  {
+    "id": "caged-major-c-shape",
+    "label": "CAGED C shape",
+    "family": "caged-major",
+    "offsets": [
+      {
+        "stringNumber": 5,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 6
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 4
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 5
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 4
+      }
+    ]
+  },
+  {
+    "id": "caged-major-a-shape",
+    "label": "CAGED A shape",
+    "family": "caged-major",
+    "offsets": [
+      {
+        "stringNumber": 5,
+        "fretOffset": 7
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 7
+      }
+    ]
+  },
+  {
+    "id": "caged-major-g-shape",
+    "label": "CAGED G shape",
+    "family": "caged-major",
+    "offsets": [
+      {
+        "stringNumber": 6,
+        "fretOffset": 12
+      },
+      {
+        "stringNumber": 5,
+        "fretOffset": 11
+      },
+      {
+        "stringNumber": 4,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 3,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 2,
+        "fretOffset": 9
+      },
+      {
+        "stringNumber": 1,
+        "fretOffset": 12
+      }
+    ]
+  }
+]

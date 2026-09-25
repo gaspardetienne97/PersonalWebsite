@@ -1,0 +1,674 @@
+{
+  "pathIds": [
+    "guitar",
+    "piano",
+    "mpc"
+  ],
+  "doneThreshold": 0.66,
+  "paths": {
+    "guitar": {
+      "id": "guitar-path",
+      "title": "Guitar Path",
+      "subtitle": "Nine steps from open shapes to a lick in a new key. Each step raises one dimension and unlocks the next.",
+      "href": "/music/learn/path",
+      "steps": [
+        {
+          "id": "G-B1",
+          "evidence": "guided-accepted",
+          "order": 1,
+          "title": "Open shapes, clean strings",
+          "summary": "Build E, A, D, G and C in the fretboard and let every string ring (span).",
+          "detail": "5 of 6 strings sound clean by pitch on 3 tries.",
+          "href": "/music/play/chord-perfect?mode=build&instrument=guitar&tuning=guitar.standard&shape=guitar.e-major&bpm=60",
+          "links": [
+            {
+              "label": "A shape",
+              "href": "/music/play/chord-perfect?mode=build&instrument=guitar&tuning=guitar.standard&shape=guitar.a-major&bpm=60"
+            },
+            {
+              "label": "C shape",
+              "href": "/music/play/chord-perfect?mode=build&instrument=guitar&tuning=guitar.standard&shape=guitar.c-major&bpm=60"
+            }
+          ],
+          "skillIds": [
+            "technique.guitar.chord-perfect"
+          ],
+          "exerciseIds": [
+            "technique.guitar.chord-perfect"
+          ],
+          "minAttempts": 3,
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        },
+        {
+          "id": "G-B2",
+          "evidence": "guided-accepted",
+          "order": 2,
+          "title": "Downstrokes on 1 2 3 4",
+          "summary": "Four on the floor over one chord, D then A, from 60 up to 84 (tempo).",
+          "detail": "90% of the strums on time at 72 BPM.",
+          "href": "/music/learn/rhythm?mode=read-and-tap&pattern=guitar-four-on-the-floor&bpm=72",
+          "requires": [
+            "G-B1"
+          ],
+          "skillIds": [
+            "rhythm.pattern.guitar-four-on-the-floor"
+          ],
+          "exerciseIds": [
+            "rhythm.pattern.guitar-four-on-the-floor"
+          ],
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        },
+        {
+          "id": "G-B3",
+          "evidence": "guided-accepted",
+          "order": 3,
+          "title": "Change on the bar",
+          "summary": "D to A, E to A and G to C against a clock (coordination).",
+          "detail": "40 changes a minute or more, unaided.",
+          "href": "/music/play/chord-perfect?mode=changes&instrument=guitar&tuning=guitar.standard&shape=guitar.d-major&to=guitar.a-major&timed=1&bpm=60&clock=4",
+          "links": [
+            {
+              "label": "E to A",
+              "href": "/music/play/chord-perfect?mode=changes&instrument=guitar&tuning=guitar.standard&shape=guitar.e-major&to=guitar.a-major&timed=1&bpm=60&clock=4"
+            },
+            {
+              "label": "G to C",
+              "href": "/music/play/chord-perfect?mode=changes&instrument=guitar&tuning=guitar.standard&shape=guitar.g-major&to=guitar.c-major&timed=1&bpm=60&clock=4"
+            }
+          ],
+          "requires": [
+            "G-B2"
+          ],
+          "skillIds": [
+            "technique.guitar.chord-changes"
+          ],
+          "exerciseIds": [
+            "technique.guitar.chord-changes"
+          ],
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        },
+        {
+          "id": "G-I1",
+          "evidence": "guided-accepted",
+          "order": 4,
+          "title": "Island strum with a mute",
+          "summary": "D DU UDU over G then C, the mute played as a rest (density and syncopation).",
+          "detail": "85% on time at 84 BPM, with the mutes landing as rests.",
+          "href": "/music/learn/rhythm?mode=read-and-tap&pattern=guitar-island-strum&bpm=84",
+          "requires": [
+            "G-B3"
+          ],
+          "skillIds": [
+            "rhythm.pattern.guitar-island-strum"
+          ],
+          "exerciseIds": [
+            "rhythm.pattern.guitar-island-strum"
+          ],
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        },
+        {
+          "id": "G-I2",
+          "order": 5,
+          "title": "Fretboard notes, strings 1 to 3",
+          "summary": "Name and find intervals from an anchor inside frets 0 to 5 (memory).",
+          "detail": "12 of 15 found in 60 seconds.",
+          "href": "/music/play/spider?mode=interval-recall&instrument=guitar&tuning=guitar.standard&interval=7&region=0",
+          "requires": [
+            "G-I1"
+          ],
+          "skillIds": [
+            "technique.guitar.intervals"
+          ],
+          "exerciseIds": [
+            "technique.guitar.interval-recall"
+          ],
+          "minAttempts": 12,
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        },
+        {
+          "id": "G-I3",
+          "evidence": "guided-accepted",
+          "order": 6,
+          "title": "Minor pentatonic box 1",
+          "summary": "The box up and down in one position, two notes a string (span).",
+          "detail": "A clean run at 90 BPM.",
+          "href": "/music/play/spider?mode=positions&instrument=guitar&tuning=guitar.standard&pattern=minor-pentatonic-box-1&rootFret=5&bpm=90",
+          "requires": [
+            "G-I2"
+          ],
+          "skillIds": [
+            "technique.guitar.spider"
+          ],
+          "exerciseIds": [
+            "technique.guitar.positions"
+          ],
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        },
+        {
+          "id": "G-I4",
+          "order": 7,
+          "title": "A lick in the box, in time",
+          "summary": "Box one at the twelfth fret over Em to D, from memory (harmony and memory).",
+          "detail": "All 14 notes, 80% of them on time at 96 BPM.",
+          "href": "/music/play/licks?category=guitar-pentatonic&lick=30&instrument=guitar&bpm=96&mode=check",
+          "requires": [
+            "G-I3"
+          ],
+          "skillIds": [
+            "harmony.ii-v-i.licks.guitar-pentatonic"
+          ],
+          "exerciseIds": [
+            "jazz.lick.playback"
+          ],
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        },
+        {
+          "id": "G-A1",
+          "evidence": "guided-accepted",
+          "order": 8,
+          "title": "Barre F and Bm",
+          "summary": "Barre shapes changing with the open ones (coordination).",
+          "detail": "30 changes a minute or more, unaided.",
+          "href": "/music/play/chord-perfect?mode=changes&instrument=guitar&tuning=guitar.standard&shape=guitar.f-major&to=guitar.c-major&timed=1&bpm=60&clock=4",
+          "links": [
+            {
+              "label": "Bm to A",
+              "href": "/music/play/chord-perfect?mode=changes&instrument=guitar&tuning=guitar.standard&shape=guitar.b-minor&to=guitar.a-major&timed=1&bpm=60&clock=4"
+            }
+          ],
+          "requires": [
+            "G-I4"
+          ],
+          "skillIds": [
+            "technique.guitar.chord-changes"
+          ],
+          "exerciseIds": [
+            "technique.guitar.chord-changes"
+          ],
+          "minSessions": 2,
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        },
+        {
+          "id": "G-A2",
+          "order": 9,
+          "title": "The same lick in a new key",
+          "summary": "Box one at the fifth fret over Am to D: same shape, new key (transfer).",
+          "detail": "The G-I4 rule again in A minor: all 14 notes, 80% on time at 96 BPM.",
+          "href": "/music/play/licks?category=guitar-pentatonic&lick=31&instrument=guitar&bpm=96&mode=check",
+          "requires": [
+            "G-I4"
+          ],
+          "skillIds": [
+            "harmony.ii-v-i.licks.guitar-pentatonic"
+          ],
+          "exerciseIds": [
+            "jazz.lick.playback"
+          ],
+          "minSessions": 2,
+          "applies": {
+            "only": [
+              "guitar"
+            ]
+          }
+        }
+      ]
+    },
+    "piano": {
+      "id": "piano-path",
+      "title": "Piano Path",
+      "subtitle": "Nine steps from one hand in C position to a sight-read two-hand phrase. Each step raises one dimension and unlocks the next.",
+      "href": "/music/learn/path",
+      "steps": [
+        {
+          "id": "P-B1",
+          "evidence": "guided-accepted",
+          "order": 1,
+          "title": "Five-finger pattern, one hand",
+          "summary": "C position, each hand on its own, one octave (span).",
+          "detail": "Every pitch right at 60 BPM.",
+          "href": "/music/play/scales?scale=major&tonic=C4&instrument=piano&bpm=60&motion=up&span=one-octave&hands=right",
+          "links": [
+            {
+              "label": "Left hand",
+              "href": "/music/play/scales?scale=major&tonic=C4&instrument=piano&bpm=60&motion=up&span=one-octave&hands=left"
+            }
+          ],
+          "skillIds": [
+            "technique.scale.major"
+          ],
+          "exerciseIds": [
+            "technique.scale"
+          ],
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        },
+        {
+          "id": "P-B2",
+          "evidence": "guided-accepted",
+          "order": 2,
+          "title": "Hands together in contrary motion",
+          "summary": "Mirror hands: both thumbs on C, the hands moving apart and back (coordination).",
+          "detail": "80% of the beats struck within 40 ms between the hands.",
+          "href": "/music/play/two-hand?pattern=contrary-five&hand=both&tonic=C4&bpm=60",
+          "requires": [
+            "P-B1"
+          ],
+          "skillIds": [
+            "technique.piano.two-hand-independence"
+          ],
+          "exerciseIds": [
+            "technique.piano.two-hand-independence"
+          ],
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        },
+        {
+          "id": "P-B3",
+          "order": 3,
+          "title": "Reading treble then bass",
+          "summary": "Flashcards in C position with the answers hidden (memory).",
+          "detail": "9 of 10 cards right.",
+          "href": "/music/learn/reading?activity=flashcards&instrument=piano&clefs=treble,bass&key=C%20major&low=60&high=72&answer=play",
+          "requires": [
+            "P-B2"
+          ],
+          "skillIds": [
+            "reading.treble.landmarks",
+            "reading.bass.landmarks"
+          ],
+          "exerciseIds": [
+            "reading.flashcard.note-id"
+          ],
+          "minAttempts": 10,
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        },
+        {
+          "id": "P-I1",
+          "order": 4,
+          "title": "Triads and inversions, one hand",
+          "summary": "Root, first and second inversion voiced in one hand and graded (harmony).",
+          "detail": "Root, first and second inversion right on three tries.",
+          "href": "/music/play/voicings?variant=inversions&instrument=piano&key=0&mode=check",
+          "requires": [
+            "P-B3"
+          ],
+          "skillIds": [
+            "harmony.ii-v-i.voice-leading"
+          ],
+          "exerciseIds": [
+            "voicing-drill"
+          ],
+          "minAttempts": 3,
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        },
+        {
+          "id": "P-I2",
+          "order": 5,
+          "title": "I IV V I with minimal movement",
+          "summary": "Closest chords over left-hand roots (harmony and coordination).",
+          "detail": "Every voice moves 2 semitones or less between bars.",
+          "href": "/music/play/voicings?variant=inversions&instrument=piano&key=0&mode=check",
+          "links": [
+            {
+              "label": "G major",
+              "href": "/music/play/voicings?variant=inversions&instrument=piano&key=7&mode=check"
+            }
+          ],
+          "requires": [
+            "P-I1"
+          ],
+          "skillIds": [
+            "harmony.ii-v-i.voice-leading"
+          ],
+          "exerciseIds": [
+            "voicing-drill"
+          ],
+          "minAttempts": 8,
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        },
+        {
+          "id": "P-I3",
+          "evidence": "guided-accepted",
+          "order": 6,
+          "title": "One-octave scale, hands together",
+          "summary": "The C major scale in both hands at 80 (tempo).",
+          "detail": "Evenness of 0.85 or better.",
+          "href": "/music/play/scales?scale=major&tonic=C4&instrument=piano&bpm=80&motion=up&span=one-octave&hands=both",
+          "requires": [
+            "P-I2"
+          ],
+          "skillIds": [
+            "technique.scale.major"
+          ],
+          "exerciseIds": [
+            "technique.scale"
+          ],
+          "minAttempts": 3,
+          "minSessions": 2,
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        },
+        {
+          "id": "P-I4",
+          "order": 7,
+          "title": "Blues lick over a C7 shell",
+          "summary": "The right-hand lick against a Charleston left hand (syncopation and memory).",
+          "detail": "All 12 notes, the left hand on beat 1 and the and of 2.",
+          "kind": "reference",
+          "href": "/music/play/two-hand?pattern=lh-pulse-rh-line&hand=both&tonic=C4&bpm=90",
+          "requires": [
+            "P-I3"
+          ],
+          "skillIds": [
+            "technique.piano.comping"
+          ],
+          "exerciseIds": [
+            "comping"
+          ],
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        },
+        {
+          "id": "P-A1",
+          "order": 8,
+          "title": "The same lick over F7 and G7",
+          "summary": "Transposed, with a rootless left hand (transfer).",
+          "detail": "Unaided in both keys.",
+          "kind": "reference",
+          "href": "/music/play/two-hand?pattern=lh-pulse-rh-line&hand=both&tonic=F4&bpm=90",
+          "requires": [
+            "P-I4"
+          ],
+          "skillIds": [
+            "technique.piano.comping"
+          ],
+          "exerciseIds": [
+            "comping"
+          ],
+          "minSessions": 2,
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        },
+        {
+          "id": "P-A2",
+          "order": 9,
+          "title": "Sight-read a four-bar phrase",
+          "summary": "A two-hand phrase from your library, wait mode first (transfer).",
+          "detail": "Wait mode through to performance mode at 60 BPM.",
+          "kind": "reference",
+          "href": "/music/library?tab=songs",
+          "requires": [
+            "P-A1"
+          ],
+          "skillIds": [
+            "reading.polyphonic"
+          ],
+          "applies": {
+            "only": [
+              "piano"
+            ]
+          }
+        }
+      ]
+    },
+    "mpc": {
+      "id": "mpc-path",
+      "title": "MPC Path",
+      "subtitle": "Eight steps from two pads on the click to a four-bar piece with a fill. Each step raises one dimension and unlocks the next.",
+      "href": "/music/learn/path",
+      "steps": [
+        {
+          "id": "M-B1",
+          "evidence": "guided-accepted",
+          "order": 1,
+          "title": "Two pads on the click",
+          "summary": "Alternating singles at eighths, from 60 to 80 (tempo).",
+          "detail": "Mean absolute error of 60 ms or less.",
+          "href": "/music/play/mpc?mode=rudiment&pattern=single-strokes&sub=2&hits=16&bpm=60",
+          "skillIds": [
+            "technique.mpc.single-strokes"
+          ],
+          "exerciseIds": [
+            "technique.mpc.single-strokes"
+          ],
+          "applies": {
+            "only": [
+              "mpc"
+            ]
+          }
+        },
+        {
+          "id": "M-B2",
+          "evidence": "guided-accepted",
+          "order": 2,
+          "title": "Singles at sixteenths",
+          "summary": "The same two pads twice as dense, and doubles at eighths (density).",
+          "detail": "60 ms or less at 70 BPM.",
+          "href": "/music/play/mpc?mode=rudiment&pattern=single-16ths&sub=4&hits=16&bpm=70",
+          "links": [
+            {
+              "label": "Doubles at eighths",
+              "href": "/music/play/mpc?mode=rudiment&pattern=double-strokes&sub=2&hits=16&bpm=70"
+            }
+          ],
+          "requires": [
+            "M-B1"
+          ],
+          "skillIds": [
+            "technique.mpc.single-strokes"
+          ],
+          "exerciseIds": [
+            "technique.mpc.single-strokes"
+          ],
+          "minAttempts": 2,
+          "minSessions": 2,
+          "applies": {
+            "only": [
+              "mpc"
+            ]
+          }
+        },
+        {
+          "id": "M-B3",
+          "order": 3,
+          "title": "Kick, snare and hat in one bar",
+          "summary": "Copy back a one-bar groove on all three pads (coordination).",
+          "detail": "No omissions and no extras.",
+          "href": "/music/play/mpc?mode=groove&groove=backbeat&bpm=80",
+          "requires": [
+            "M-B2"
+          ],
+          "skillIds": [
+            "technique.mpc.groove.backbeat"
+          ],
+          "exerciseIds": [
+            "technique.mpc.groove"
+          ],
+          "applies": {
+            "only": [
+              "mpc"
+            ]
+          }
+        },
+        {
+          "id": "M-I1",
+          "order": 4,
+          "title": "Two-bar boom bap",
+          "summary": "An open hat and an accented snare over two bars (length and voices).",
+          "detail": "1 omission at most, and the accents right on 6 of 8 snares (MIDI velocity only).",
+          "href": "/music/play/mpc?mode=groove&groove=boom-bap-2bar&bpm=80",
+          "requires": [
+            "M-B3"
+          ],
+          "skillIds": [
+            "technique.mpc.groove.boom-bap-2bar"
+          ],
+          "exerciseIds": [
+            "technique.mpc.groove"
+          ],
+          "applies": {
+            "only": [
+              "mpc"
+            ]
+          }
+        },
+        {
+          "id": "M-I2",
+          "evidence": "guided-accepted",
+          "order": 5,
+          "title": "Paradiddle at sixteenths",
+          "summary": "Paradiddle and moving accent against the click (density and coordination).",
+          "detail": "50 ms or less at 80 BPM.",
+          "href": "/music/play/mpc?mode=rudiment&pattern=paradiddle&sub=4&hits=16&bpm=80",
+          "links": [
+            {
+              "label": "Moving accent",
+              "href": "/music/play/mpc?mode=rudiment&pattern=moving-accent&sub=4&hits=16&bpm=80"
+            }
+          ],
+          "requires": [
+            "M-I1"
+          ],
+          "skillIds": [
+            "technique.mpc.paradiddles"
+          ],
+          "exerciseIds": [
+            "technique.mpc.single-strokes"
+          ],
+          "applies": {
+            "only": [
+              "mpc"
+            ]
+          }
+        },
+        {
+          "id": "M-I3",
+          "order": 6,
+          "title": "Ghost notes between the backbeats",
+          "summary": "The two-bar groove with quiet snares under it (dynamics).",
+          "detail": "Ghosts under 40% of the accent velocity, on a velocity-sensitive pad.",
+          "href": "/music/play/mpc?mode=groove&groove=boom-bap-2bar&bpm=80",
+          "requires": [
+            "M-I2"
+          ],
+          "skillIds": [
+            "technique.mpc.groove.boom-bap-2bar"
+          ],
+          "exerciseIds": [
+            "technique.mpc.groove"
+          ],
+          "minSessions": 2,
+          "applies": {
+            "only": [
+              "mpc"
+            ]
+          }
+        },
+        {
+          "id": "M-A1",
+          "order": 7,
+          "title": "Four-bar piece with a fill",
+          "summary": "Three bars of groove and a turnaround fill (length and memory).",
+          "detail": "2 omissions at most over the four bars, with the fill in time.",
+          "href": "/music/play/mpc?mode=groove&groove=turnaround-fill&bpm=80",
+          "requires": [
+            "M-I3"
+          ],
+          "skillIds": [
+            "technique.mpc.groove.turnaround-fill"
+          ],
+          "exerciseIds": [
+            "technique.mpc.groove"
+          ],
+          "applies": {
+            "only": [
+              "mpc"
+            ]
+          }
+        },
+        {
+          "id": "M-A2",
+          "order": 8,
+          "title": "The same piece, faster and from memory",
+          "summary": "Plus 8 BPM with the reference muted after bar 1 (tempo and memory).",
+          "detail": "Unaided, 2 omissions at most.",
+          "href": "/music/play/mpc?mode=groove&groove=turnaround-fill&bpm=88",
+          "requires": [
+            "M-A1"
+          ],
+          "skillIds": [
+            "technique.mpc.groove.turnaround-fill"
+          ],
+          "exerciseIds": [
+            "technique.mpc.groove"
+          ],
+          "minSessions": 2,
+          "applies": {
+            "only": [
+              "mpc"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

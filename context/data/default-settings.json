@@ -1,0 +1,35 @@
+{
+  "defaults": {
+    "echoCancellation": false,
+    "reduceMotion": false,
+    "instrumentColorCoding": true,
+    "audioInputLabel": "Default input",
+    "audioOffsetMs": 0,
+    "midiOffsetMs": 0,
+    "preferredPlaybackSound": "salamander-piano",
+    "playbackLevel": 0.8,
+    "metronomeLevel": 0.7,
+    "masterLevel": 1,
+    "muted": false,
+    "metronomeEnabled": true,
+    "countInBars": 1,
+    "activeInstrument": "piano",
+    "tempoByVariant": {}
+  },
+  "playbackSoundIds": [
+    "salamander-piano",
+    "warm-synth",
+    "synth",
+    "e-piano",
+    "square",
+    "saw"
+  ],
+  "playbackSoundLabels": {
+    "salamander-piano": "Sampled Piano",
+    "warm-synth": "Warm Synth",
+    "synth": "Synth",
+    "e-piano": "E-Piano",
+    "square": "Square",
+    "saw": "Saw"
+  }
+}

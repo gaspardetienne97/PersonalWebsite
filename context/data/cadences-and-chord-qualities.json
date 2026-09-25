@@ -1,0 +1,234 @@
+{
+  "cadences": [
+    {
+      "token": "authentic",
+      "label": "Authentic",
+      "skillId": "ear.cadences.authentic",
+      "romanProgression": [
+        "V",
+        "I"
+      ],
+      "playback": [
+        {
+          "midiNotes": [
+            55,
+            59,
+            62,
+            65
+          ],
+          "offsetSeconds": 0,
+          "durationSeconds": 1
+        },
+        {
+          "midiNotes": [
+            48,
+            52,
+            55,
+            60
+          ],
+          "offsetSeconds": 1.1,
+          "durationSeconds": 1.2
+        }
+      ]
+    },
+    {
+      "token": "plagal",
+      "label": "Plagal",
+      "skillId": "ear.cadences.plagal",
+      "romanProgression": [
+        "IV",
+        "I"
+      ],
+      "playback": [
+        {
+          "midiNotes": [
+            53,
+            57,
+            60,
+            65
+          ],
+          "offsetSeconds": 0,
+          "durationSeconds": 1
+        },
+        {
+          "midiNotes": [
+            48,
+            52,
+            55,
+            60
+          ],
+          "offsetSeconds": 1.1,
+          "durationSeconds": 1.2
+        }
+      ]
+    },
+    {
+      "token": "half",
+      "label": "Half",
+      "skillId": "ear.cadences.half",
+      "romanProgression": [
+        "I",
+        "V"
+      ],
+      "playback": [
+        {
+          "midiNotes": [
+            48,
+            52,
+            55,
+            60
+          ],
+          "offsetSeconds": 0,
+          "durationSeconds": 1
+        },
+        {
+          "midiNotes": [
+            55,
+            59,
+            62,
+            67
+          ],
+          "offsetSeconds": 1.1,
+          "durationSeconds": 1.2
+        }
+      ]
+    },
+    {
+      "token": "deceptive",
+      "label": "Deceptive",
+      "skillId": "ear.cadences.deceptive",
+      "romanProgression": [
+        "V",
+        "vi"
+      ],
+      "playback": [
+        {
+          "midiNotes": [
+            55,
+            59,
+            62,
+            65
+          ],
+          "offsetSeconds": 0,
+          "durationSeconds": 1
+        },
+        {
+          "midiNotes": [
+            57,
+            60,
+            64,
+            69
+          ],
+          "offsetSeconds": 1.1,
+          "durationSeconds": 1.2
+        }
+      ]
+    }
+  ],
+  "chordQualities": [
+    {
+      "token": "major",
+      "label": "Major",
+      "skillId": "harmony.triad.major",
+      "intervals": [
+        0,
+        4,
+        7
+      ],
+      "level": "triad"
+    },
+    {
+      "token": "minor",
+      "label": "Minor",
+      "skillId": "harmony.triad.minor",
+      "intervals": [
+        0,
+        3,
+        7
+      ],
+      "level": "triad"
+    },
+    {
+      "token": "diminished",
+      "label": "Diminished",
+      "skillId": "harmony.triad.diminished",
+      "intervals": [
+        0,
+        3,
+        6
+      ],
+      "level": "triad"
+    },
+    {
+      "token": "augmented",
+      "label": "Augmented",
+      "skillId": "harmony.triad.augmented",
+      "intervals": [
+        0,
+        4,
+        8
+      ],
+      "level": "triad"
+    },
+    {
+      "token": "major-7",
+      "label": "Major 7th",
+      "skillId": "harmony.seventh.major",
+      "intervals": [
+        0,
+        4,
+        7,
+        11
+      ],
+      "level": "seventh"
+    },
+    {
+      "token": "dominant-7",
+      "label": "Dominant 7th",
+      "skillId": "harmony.seventh.dominant",
+      "intervals": [
+        0,
+        4,
+        7,
+        10
+      ],
+      "level": "seventh"
+    },
+    {
+      "token": "minor-7",
+      "label": "Minor 7th",
+      "skillId": "harmony.seventh.minor",
+      "intervals": [
+        0,
+        3,
+        7,
+        10
+      ],
+      "level": "seventh"
+    },
+    {
+      "token": "half-diminished-7",
+      "label": "Half-Diminished 7th",
+      "skillId": "harmony.seventh.half-diminished",
+      "intervals": [
+        0,
+        3,
+        6,
+        10
+      ],
+      "level": "seventh"
+    },
+    {
+      "token": "diminished-7",
+      "label": "Diminished 7th",
+      "skillId": "harmony.seventh.diminished",
+      "intervals": [
+        0,
+        3,
+        6,
+        9
+      ],
+      "level": "seventh"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "dailyChallenges": [
+    {
+      "id": "daily-xp",
+      "title": "Hit today's XP",
+      "description": "Finish one focused block and keep the day moving.",
+      "href": "/music",
+      "defaultTarget": 100,
+      "progressSource": "XP earned in today's saved practice sessions",
+      "reason": "Based on XP earned in today's saved practice sessions."
+    },
+    {
+      "id": "weak-spot-reps",
+      "title": "<name of the weakest picked skill>",
+      "description": "Run a few reps against the skill that needs the next signal.",
+      "href": "<drill route for that skill>",
+      "defaultTarget": 3,
+      "progressSource": "count of today's scoring events tagged with the picked skill id"
+    },
+    {
+      "id": "capability-variety",
+      "title": "Cross-train two skills",
+      "description": "Touch two capability areas so practice does not collapse into one lane.",
+      "href": "/music",
+      "defaultTarget": 2,
+      "progressSource": "distinct capability areas across today's scoring events",
+      "reason": "Counts distinct capability areas from today's scoring events."
+    },
+    {
+      "id": "keep-streak",
+      "title": "Keep the streak alive",
+      "defaultTarget": 1,
+      "progressSource": "whether today's UTC date is already in the practiced-days list"
+    }
+  ],
+  "dayBoundaries": {
+    "dayMs": 86400000,
+    "weekMs": 604800000,
+    "dayKey": "UTC day, ISO date prefix (YYYY-MM-DD)"
+  },
+  "weeklySummary": ["xp", "sessions", "completedChallenges"]
+}

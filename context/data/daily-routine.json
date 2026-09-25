@@ -1,0 +1,192 @@
+{
+  "minutesPerStep": 5,
+  "defaultBudgetMinutes": 20,
+  "budgetRangeMinutes": [
+    1,
+    120
+  ],
+  "plansByInstrument": {
+    "piano": [
+      {
+        "id": "scales",
+        "label": "Scales & Technique",
+        "href": "/music/play/scales?instrument=piano",
+        "description": "Finish with a clean technique run.",
+        "minutes": 5
+      },
+      {
+        "id": "ear",
+        "label": "Ear training review",
+        "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=piano",
+        "description": "Recognition and weak-spot review.",
+        "minutes": 5
+      },
+      {
+        "id": "reading",
+        "label": "Note Reading",
+        "href": "/music/learn/reading?instrument=piano",
+        "description": "Read notes with MIDI or on-screen input.",
+        "minutes": 5
+      },
+      {
+        "id": "rhythm",
+        "label": "Rhythm",
+        "href": "/music/learn/rhythm?instrument=piano",
+        "description": "Lock timing to a steady pulse.",
+        "minutes": 5
+      }
+    ],
+    "guitar": [
+      {
+        "id": "spider",
+        "label": "String Independence",
+        "href": "/music/play/spider?instrument=guitar",
+        "description": "Run focused fretting permutations and note-finder work.",
+        "minutes": 5
+      },
+      {
+        "id": "ear",
+        "label": "Ear training review",
+        "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=guitar",
+        "description": "Recognition and weak-spot review.",
+        "minutes": 5
+      },
+      {
+        "id": "chord-perfect",
+        "label": "Chord Work",
+        "href": "/music/play/chord-perfect?instrument=guitar",
+        "description": "Clean up chord shapes, recognition, and changes.",
+        "minutes": 5
+      },
+      {
+        "id": "rhythm",
+        "label": "Rhythm",
+        "href": "/music/learn/rhythm?instrument=guitar",
+        "description": "Lock timing to a steady pulse.",
+        "minutes": 5
+      }
+    ],
+    "ukulele": [
+      {
+        "id": "spider",
+        "label": "String Independence",
+        "href": "/music/play/spider?instrument=ukulele",
+        "description": "Run focused fretting permutations and note-finder work.",
+        "minutes": 5
+      },
+      {
+        "id": "ear",
+        "label": "Ear training review",
+        "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=ukulele",
+        "description": "Recognition and weak-spot review.",
+        "minutes": 5
+      },
+      {
+        "id": "chord-perfect",
+        "label": "Chord Work",
+        "href": "/music/play/chord-perfect?instrument=ukulele",
+        "description": "Clean up chord shapes, recognition, and changes.",
+        "minutes": 5
+      },
+      {
+        "id": "rhythm",
+        "label": "Rhythm",
+        "href": "/music/learn/rhythm?instrument=ukulele",
+        "description": "Lock timing to a steady pulse.",
+        "minutes": 5
+      }
+    ],
+    "mpc": [
+      {
+        "id": "mpc",
+        "label": "MPC Rudiments",
+        "href": "/music/play/mpc?instrument=mpc",
+        "description": "Build pad timing and rudiment control.",
+        "minutes": 5
+      },
+      {
+        "id": "rhythm",
+        "label": "Rhythm",
+        "href": "/music/learn/rhythm?instrument=mpc",
+        "description": "Lock timing to a steady pulse.",
+        "minutes": 5
+      }
+    ],
+    "aerophone": [
+      {
+        "id": "aerophone",
+        "label": "Aerophone Technique",
+        "href": "/music/learn/aerophone?instrument=aerophone",
+        "description": "Shape breath, articulation, dynamics, and interval landings.",
+        "minutes": 5
+      },
+      {
+        "id": "ear",
+        "label": "Ear training review",
+        "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=aerophone",
+        "description": "Recognition and weak-spot review.",
+        "minutes": 5
+      },
+      {
+        "id": "rhythm",
+        "label": "Rhythm",
+        "href": "/music/learn/rhythm?instrument=aerophone",
+        "description": "Lock timing to a steady pulse.",
+        "minutes": 5
+      },
+      {
+        "id": "scales",
+        "label": "Scales & Technique",
+        "href": "/music/play/scales?instrument=aerophone",
+        "description": "Finish with a clean technique run.",
+        "minutes": 5
+      }
+    ],
+    "voice": [
+      {
+        "id": "ear",
+        "label": "Ear training review",
+        "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=voice&answer=voice",
+        "description": "Recognition and weak-spot review.",
+        "minutes": 5
+      },
+      {
+        "id": "rhythm",
+        "label": "Rhythm",
+        "href": "/music/learn/rhythm?instrument=voice",
+        "description": "Lock timing to a steady pulse.",
+        "minutes": 5
+      }
+    ]
+  },
+  "genericPlan": [
+    {
+      "id": "ear",
+      "label": "Ear training review",
+      "href": "/music/learn/ear/scale-degrees?level=anchor",
+      "description": "Recognition and weak-spot review.",
+      "minutes": 5
+    },
+    {
+      "id": "reading",
+      "label": "Note Reading",
+      "href": "/music/learn/reading",
+      "description": "Read notes with MIDI or on-screen input.",
+      "minutes": 5
+    },
+    {
+      "id": "rhythm",
+      "label": "Rhythm",
+      "href": "/music/learn/rhythm",
+      "description": "Lock timing to a steady pulse.",
+      "minutes": 5
+    },
+    {
+      "id": "scales",
+      "label": "Scales & Technique",
+      "href": "/music/play/scales",
+      "description": "Finish with a clean technique run.",
+      "minutes": 5
+    }
+  ]
+}

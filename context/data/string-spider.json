@@ -1,0 +1,286 @@
+{
+  "patterns": [
+    {
+      "id": "ascending-1234",
+      "label": "1-2-3-4 ascending",
+      "fretOffsets": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "group": "classic"
+    },
+    {
+      "id": "descending-4321",
+      "label": "4-3-2-1 descending",
+      "fretOffsets": [
+        3,
+        2,
+        1,
+        0
+      ],
+      "group": "classic"
+    },
+    {
+      "id": "inside-out-1324",
+      "label": "1-3-2-4 inside-out",
+      "fretOffsets": [
+        0,
+        2,
+        1,
+        3
+      ],
+      "group": "classic"
+    },
+    {
+      "id": "outside-in-1423",
+      "label": "1-4-2-3 outside-in",
+      "fretOffsets": [
+        0,
+        3,
+        1,
+        2
+      ],
+      "group": "classic"
+    },
+    {
+      "id": "perm-1243",
+      "label": "1-2-4-3",
+      "fretOffsets": [
+        0,
+        1,
+        3,
+        2
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-1342",
+      "label": "1-3-4-2",
+      "fretOffsets": [
+        0,
+        2,
+        3,
+        1
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-1432",
+      "label": "1-4-3-2",
+      "fretOffsets": [
+        0,
+        3,
+        2,
+        1
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-2134",
+      "label": "2-1-3-4",
+      "fretOffsets": [
+        1,
+        0,
+        2,
+        3
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-2143",
+      "label": "2-1-4-3",
+      "fretOffsets": [
+        1,
+        0,
+        3,
+        2
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-2314",
+      "label": "2-3-1-4",
+      "fretOffsets": [
+        1,
+        2,
+        0,
+        3
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-2341",
+      "label": "2-3-4-1",
+      "fretOffsets": [
+        1,
+        2,
+        3,
+        0
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-2413",
+      "label": "2-4-1-3",
+      "fretOffsets": [
+        1,
+        3,
+        0,
+        2
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-2431",
+      "label": "2-4-3-1",
+      "fretOffsets": [
+        1,
+        3,
+        2,
+        0
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-3124",
+      "label": "3-1-2-4",
+      "fretOffsets": [
+        2,
+        0,
+        1,
+        3
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-3142",
+      "label": "3-1-4-2",
+      "fretOffsets": [
+        2,
+        0,
+        3,
+        1
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-3214",
+      "label": "3-2-1-4",
+      "fretOffsets": [
+        2,
+        1,
+        0,
+        3
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-3241",
+      "label": "3-2-4-1",
+      "fretOffsets": [
+        2,
+        1,
+        3,
+        0
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-3412",
+      "label": "3-4-1-2",
+      "fretOffsets": [
+        2,
+        3,
+        0,
+        1
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-3421",
+      "label": "3-4-2-1",
+      "fretOffsets": [
+        2,
+        3,
+        1,
+        0
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-4123",
+      "label": "4-1-2-3",
+      "fretOffsets": [
+        3,
+        0,
+        1,
+        2
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-4132",
+      "label": "4-1-3-2",
+      "fretOffsets": [
+        3,
+        0,
+        2,
+        1
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-4213",
+      "label": "4-2-1-3",
+      "fretOffsets": [
+        3,
+        1,
+        0,
+        2
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-4231",
+      "label": "4-2-3-1",
+      "fretOffsets": [
+        3,
+        1,
+        2,
+        0
+      ],
+      "group": "permutation"
+    },
+    {
+      "id": "perm-4312",
+      "label": "4-3-1-2",
+      "fretOffsets": [
+        3,
+        2,
+        0,
+        1
+      ],
+      "group": "permutation"
+    }
+  ],
+  "spans": [
+    {
+      "id": "single",
+      "label": "Single string"
+    },
+    {
+      "id": "adjacent-2",
+      "label": "2 adjacent strings"
+    },
+    {
+      "id": "adjacent-3",
+      "label": "3 adjacent strings"
+    },
+    {
+      "id": "all",
+      "label": "All strings from start"
+    }
+  ]
+}

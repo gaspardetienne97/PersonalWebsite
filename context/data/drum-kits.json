@@ -1,0 +1,34 @@
+{
+  "BOOM_BAP_KIT": [
+    {
+      "id": "kick",
+      "name": "Kick",
+      "midi": 36
+    },
+    {
+      "id": "snare",
+      "name": "Snare",
+      "midi": 38
+    },
+    {
+      "id": "hats",
+      "name": "Hats",
+      "midi": 42
+    },
+    {
+      "id": "openhat",
+      "name": "Open Hat",
+      "midi": 46
+    },
+    {
+      "id": "808",
+      "name": "808",
+      "midi": 35
+    },
+    {
+      "id": "perc",
+      "name": "Perc",
+      "midi": 39
+    }
+  ]
+}

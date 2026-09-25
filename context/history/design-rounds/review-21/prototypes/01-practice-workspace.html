@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Practice workspace</title>
+<meta name="description" content="Prototype 1: collapsible navigation, a Two-Hand piano exercise in demo, practice and check states, live polyphonic feedback, an optional hint, and a long score in its own viewport with reachable transport and range handles. Simulated data." />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  .app { display: grid; grid-template-columns: auto minmax(0, 1fr); min-height: 100dvh; }
+  .app[data-nav="collapsed"] .rail { width: 56px; }
+  .rail { width: 240px; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--sidebar); position: sticky; top: 0; height: 100dvh; transition: width 200ms; }
+  .rail .brand { display: flex; align-items: center; gap: 0.625rem; padding: 1rem; border-bottom: 1px solid var(--border); font-family: var(--font-display); font-weight: 700; white-space: nowrap; overflow: hidden; }
+  .mark { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, var(--instr-piano), var(--instr-mpc)); flex: none; }
+  .rail nav { flex: 1; padding: 0.75rem 0.5rem; display: grid; gap: 2px; align-content: start; }
+  .rail .utilities { margin-top: auto; padding: 0.5rem; border-top: 1px solid var(--border); display: grid; gap: 2px; }
+  .rail a, .rail .toggle { display: flex; align-items: center; gap: 0.75rem; min-height: 44px; padding: 0 0.75rem; border-radius: var(--radius); color: var(--muted-foreground); text-decoration: none; font-weight: 500; font-size: 0.9375rem; position: relative; white-space: nowrap; overflow: hidden; border: 0; background: transparent; width: 100%; }
+  .rail a[aria-current="page"] { background: var(--sidebar-accent); color: var(--foreground); font-weight: 600; }
+  .rail a[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--instr, var(--instr-piano)); }
+  .rail svg { width: 18px; height: 18px; flex: none; }
+  .app[data-nav="collapsed"] .rail a, .app[data-nav="collapsed"] .rail .toggle { justify-content: center; padding: 0; }
+  .app[data-nav="collapsed"] .rail .label, .app[data-nav="collapsed"] .brand span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  main { min-width: 0; padding: 0 1.5rem 3rem; max-width: 1200px; }
+  .capsule-row { position: sticky; top: 0; z-index: 30; display: flex; overflow-x: auto; padding: 0.5rem 0; pointer-events: none; scrollbar-width: none; }
+  .capsule-row::-webkit-scrollbar { display: none; }
+  .capsule { pointer-events: auto; margin: 0 auto; flex: none; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.375rem; border-radius: 999px; background: color-mix(in oklab, var(--card) 88%, transparent); border: 1px solid var(--border); backdrop-filter: blur(8px); box-shadow: 0 6px 24px oklch(0 0 0 / 18%); }
+  .capsule button { min-height: 44px; border-radius: 999px; border: 0; background: transparent; padding: 0 0.875rem; font-weight: 600; display: inline-flex; gap: 0.5rem; align-items: center; }
+  .capsule button.on { background: var(--sidebar-accent); }
+  .capsule .bpm { font-family: var(--font-mono); }
+  .beats { display: inline-flex; gap: 4px; padding: 0 0.5rem; }
+  .beats i { width: 6px; height: 6px; border-radius: 999px; background: var(--muted-foreground); opacity: 0.35; }
+  .beats i.on { opacity: 1; background: var(--practice-accent); }
+  header.page { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; margin: 0.75rem 0 1.25rem; }
+  header.page h1 { font-size: 2rem; line-height: 1.1; }
+  header.page h1::after { content: ""; display: block; width: 40px; height: 2px; margin-top: 8px; background: var(--instr, var(--instr-piano)); }
+  .setup-line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem; padding: 0.75rem 1rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); font-weight: 600; }
+  .setup-line .eyebrow { margin-right: 0.25rem; }
+  .setup-line a { margin-left: auto; color: var(--primary); text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.75rem; border-radius: var(--radius); border: 1px solid transparent; }
+  .setup-line a:hover { border-color: var(--border); }
+  .stage { margin-top: 1rem; padding: 1.25rem; display: grid; gap: 1rem; }
+  .stage-head { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 0.75rem 1rem; }
+  .stage-head h2 { font-size: 1.375rem; }
+  .stage-head p { margin: 0.125rem 0 0; color: var(--stage-muted); }
+  .modes { display: inline-flex; gap: 3px; padding: 3px; border-radius: 12px; background: color-mix(in oklab, var(--stage-2) 80%, black); }
+  .modes button { min-height: 44px; padding: 0 0.875rem; border: 0; border-radius: 9px; background: transparent; color: var(--stage-muted); font-weight: 600; }
+  .modes button[aria-pressed="true"] { background: var(--stage-2); color: var(--stage-foreground); box-shadow: inset 0 0 0 1px var(--stage-line); }
+  .stage[data-mode="demo"] { outline: 2px dashed color-mix(in oklab, var(--info) 70%, transparent); outline-offset: -6px; }
+  .stage[data-mode="check"] .keys .key[data-state="target"], .stage[data-mode="check"] .keys .key[data-state="upcoming"] { --fill: none; }
+  .badge-mode { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.125rem 0.625rem; border-radius: 999px; font-size: 0.8125rem; font-weight: 600; }
+  .badge-mode.demo { background: color-mix(in oklab, var(--info) 18%, transparent); color: var(--stage-foreground); }
+  .badge-mode.check { background: color-mix(in oklab, var(--warn) 22%, transparent); color: var(--stage-foreground); }
+  /* Keyboard */
+  .keys { position: relative; display: grid; grid-template-columns: repeat(var(--whites), minmax(36px, 1fr)); min-width: calc(var(--whites) * 36px); touch-action: none; user-select: none; }
+  .keys-scroll { overflow-x: auto; padding-bottom: 2px; }
+  .key { position: relative; display: grid; align-items: end; justify-items: center; padding-bottom: 6px; border: 1px solid var(--piano-key-line); font-size: 10px; font-weight: 600; transition: background-color 60ms, box-shadow 60ms; }
+  .key.white { height: 128px; border-radius: 0 0 5px 5px; background: linear-gradient(180deg, var(--piano-key), color-mix(in oklab, var(--piano-key) 92%, black)); color: var(--piano-key-black); box-shadow: inset 0 -5px 0 var(--piano-key-line), inset -1px 0 0 oklch(0 0 0 / 6%); }
+  .key.black { position: absolute; top: 0; z-index: 10; height: 62%; border-radius: 0 0 3px 3px; border-color: var(--piano-key-black); background: linear-gradient(180deg, color-mix(in oklab, var(--piano-key-black) 78%, white), var(--piano-key-black) 30%); color: var(--piano-key); box-shadow: inset 0 -5px 0 oklch(0 0 0 / 45%), inset 1px 0 0 oklch(1 0 0 / 18%), 0 2px 2px oklch(0 0 0 / 35%); }
+  .key[data-state="target"].white { background: color-mix(in oklab, var(--practice-accent) 40%, var(--piano-key)); box-shadow: inset 0 0 0 1px var(--practice-accent), inset 0 -5px 0 var(--piano-key-line); }
+  .key[data-state="target"].black { box-shadow: inset 0 0 0 2px var(--practice-accent), inset 0 -5px 0 oklch(0 0 0 / 45%); }
+  .key[data-state="target"][data-hand="left"].white { background: color-mix(in oklab, var(--hand-left) 22%, var(--piano-key)); box-shadow: inset 0 0 0 3px var(--hand-left), inset 0 -5px 0 var(--piano-key-line); }
+  .key[data-state="target"][data-hand="right"].white { background: color-mix(in oklab, var(--hand-right) 72%, var(--piano-key)); color: var(--hand-right-foreground); box-shadow: inset 0 0 0 1px var(--hand-right), inset 0 -5px 0 color-mix(in oklab, var(--hand-right) 60%, black); }
+  .key[data-state="held"] { background: var(--practice-accent) !important; color: var(--practice-accent-foreground); box-shadow: inset 0 -2px 0 oklch(0 0 0 / 18%), inset 0 3px 6px oklch(0 0 0 / 22%) !important; }
+  .key[data-state="correct"] { background: var(--success) !important; color: var(--success-foreground); }
+  .key[data-state="wrong"] { background: var(--destructive) !important; color: var(--destructive-foreground); }
+  .key .hand { position: absolute; bottom: 44px; width: 16px; height: 16px; border-radius: 999px; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
+  .key .hand.left { background: var(--hand-left); color: var(--hand-left-foreground); }
+  .key .hand.right { background: var(--hand-right-foreground); color: var(--hand-right); box-shadow: inset 0 0 0 1px var(--hand-right); }
+  .key .midc { position: absolute; bottom: 16px; width: 6px; height: 6px; border-radius: 999px; background: color-mix(in oklab, var(--piano-key-black) 60%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, var(--piano-key) 70%, transparent); }
+  .stage[data-mode="check"] .key[data-state="target"], .stage[data-mode="check"] .key[data-state="upcoming"] { background: linear-gradient(180deg, var(--piano-key), color-mix(in oklab, var(--piano-key) 92%, black)); box-shadow: inset 0 -5px 0 var(--piano-key-line); color: var(--piano-key-black); }
+  .stage[data-mode="check"] .key.black[data-state="target"] { background: linear-gradient(180deg, color-mix(in oklab, var(--piano-key-black) 78%, white), var(--piano-key-black) 30%); box-shadow: inset 0 -5px 0 oklch(0 0 0 / 45%); }
+  .stage[data-mode="check"] .key .hand { display: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; font-size: 0.8125rem; color: var(--stage-muted); font-weight: 500; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+  /* Pulse lane above the keyboard */
+  .lane { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+  .lane .slot { display: grid; gap: 3px; }
+  .lane .slot span { height: 10px; border-radius: 3px; background: var(--stage-2); box-shadow: inset 0 0 0 1px var(--stage-line); }
+  .lane .slot span.l { background: color-mix(in oklab, var(--hand-left) 25%, var(--stage-2)); box-shadow: inset 0 0 0 2px var(--hand-left); }
+  .lane .slot span.r { background: var(--hand-right); }
+  .lane .slot[data-now="true"] span { outline: 2px solid var(--practice-accent); outline-offset: 1px; }
+  .lane .slot small { font-family: var(--font-mono); font-size: 10px; color: var(--stage-muted); text-align: center; }
+  .lane .slot span.hit-good { box-shadow: inset 0 0 0 2px var(--success); }
+  .lane .slot span.hit-late { box-shadow: inset 0 0 0 2px var(--warn); }
+  .lane .slot span.hit-miss { box-shadow: inset 0 0 0 2px var(--destructive); background: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in oklab, var(--destructive) 30%, transparent) 3px 6px); }
+  .hint { border: 1px dashed var(--stage-line); border-radius: var(--radius); padding: 0.75rem 1rem; }
+  .hint summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; align-items: center; gap: 0.5rem; min-height: 44px; margin: -0.5rem 0; }
+  .hint summary::-webkit-details-marker { display: none; }
+  .hint p { margin: 0.5rem 0 0; color: var(--stage-muted); }
+  .hint .chord { font-family: var(--font-mono); color: var(--stage-foreground); }
+  .status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .status .primary-action { display: flex; gap: 0.5rem; align-items: center; }
+  kbd { font: 11px var(--font-mono); padding: 1px 5px; border: 1px solid var(--stage-line); border-radius: 4px; background: var(--stage-2); }
+  .feedback { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+  .tile { padding: 0.875rem 1rem; }
+  .tile .eyebrow { margin-bottom: 0.25rem; }
+  .tile .val { font-family: var(--font-display); font-size: 1.625rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile .val.good { color: var(--success); }
+  .tile .val.late { color: var(--warn); }
+  .tile .val.small { font-size: 1.125rem; }
+  .tile.hollow { border-style: dashed; color: var(--muted-foreground); }
+  /* Score section */
+  section.score { margin-top: 2rem; }
+  .score-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .score-card { padding: 1rem; display: grid; gap: 0.75rem; }
+  .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .transport .spacer { flex: 1; }
+  .range-readout { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .range-readout .chip { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; border-radius: 6px; font-weight: 600; font-size: 0.8125rem; border: 1px solid var(--border); }
+  .range-readout .chip::before { content: ""; width: 10px; height: 10px; border-radius: 2px; }
+  .range-readout .chip.start::before { background: var(--range-start); }
+  .range-readout .chip.end::before { background: var(--range-end); }
+  .viewport { position: relative; max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+  .system { position: relative; display: grid; grid-template-columns: 2.5rem repeat(4, minmax(0, 1fr)); gap: 0; padding: 14px 16px 12px; border-bottom: 1px dashed var(--border); }
+  .system .num { font: 11px var(--font-mono); color: var(--muted-foreground); padding-top: 4px; }
+  .bar { position: relative; height: 72px; border-left: 1px solid var(--foreground); }
+  .bar::before { content: ""; position: absolute; inset: 20px 0 20px 0; background: repeating-linear-gradient(180deg, var(--foreground) 0 1px, transparent 1px 8px); opacity: 0.75; }
+  .bar:last-child { border-right: 2px solid var(--foreground); }
+  .bar .n { position: absolute; width: 9px; height: 7px; border-radius: 50%; background: var(--foreground); transform: rotate(-20deg); }
+  .bar .n::after { content: ""; position: absolute; right: -1px; bottom: 3px; width: 1px; height: 26px; background: var(--foreground); }
+  .bar.sel { background: color-mix(in oklab, var(--practice-accent) 10%, transparent); }
+  .bar .handle { position: absolute; top: -8px; bottom: -6px; width: 3px; border-radius: 2px; cursor: ew-resize; }
+  .bar .handle.start { left: -2px; background: var(--range-start); }
+  .bar .handle.end { right: -2px; background: var(--range-end); }
+  .bar .handle label { position: absolute; top: 2px; left: 6px; white-space: nowrap; font: 600 10px var(--font-body); padding: 1px 6px; border-radius: 4px; color: white; }
+  .bar .handle.start label { background: var(--range-start); }
+  .bar .handle.end label { background: var(--range-end); color: white; left: auto; right: 6px; }
+  .cursor { position: absolute; top: 8px; bottom: 6px; width: 2px; border-radius: 2px; background: var(--practice-accent); box-shadow: 0 0 6px var(--practice-accent); }
+  .empty-state { display: grid; justify-items: center; gap: 0.5rem; padding: 2rem 1rem; text-align: center; color: var(--muted-foreground); }
+  /* Device / state strip */
+  .states { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); border: 1px solid var(--border); margin-top: 1rem; }
+  .banner.warn { border-color: color-mix(in oklab, var(--warn) 50%, transparent); background: color-mix(in oklab, var(--warn) 12%, transparent); }
+  .banner.err { border-color: color-mix(in oklab, var(--destructive) 50%, transparent); background: color-mix(in oklab, var(--destructive) 10%, transparent); }
+  .banner .btn { margin-left: auto; }
+  .skeleton { height: 128px; border-radius: 8px; background: linear-gradient(90deg, var(--stage-2), color-mix(in oklab, var(--stage-2) 80%, white), var(--stage-2)); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .tabbar { display: none; }
+  .theme-toggle { min-height: 44px; }
+  @media (max-width: 767px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .rail { display: none; }
+    main { padding: 0 1rem 5rem; }
+    .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; inset: auto 0 0 0; z-index: 40; border-top: 1px solid var(--border); background: var(--background); }
+    .tabbar a { display: grid; justify-items: center; gap: 4px; padding: 8px 4px 10px; font-size: 11px; color: var(--muted-foreground); text-decoration: none; min-height: 52px; }
+    .tabbar a[aria-current="page"] { color: var(--foreground); box-shadow: inset 0 2px 0 var(--instr, var(--instr-piano)); }
+    .tabbar svg { width: 18px; height: 18px; }
+    header.page h1 { font-size: 1.625rem; }
+    .stage { padding: 0.875rem; }
+    .capsule button.txt { display: none; }
+    .viewport { max-height: 260px; }
+    .system { grid-template-columns: 1.75rem repeat(4, minmax(0, 1fr)); padding: 12px 8px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app" data-nav="expanded" style="--instr: var(--instr-piano)">
+  <aside class="rail" aria-label="Music sections">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><span>Practice OS</span></div>
+    <nav>
+      <a href="#" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l14 8-14 8z"/></svg><span class="label">Practice</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16 5l4-1v16l-4 1z"/></svg><span class="label">Library</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg><span class="label">Create</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span class="label">Progress</span></a>
+    </nav>
+    <div class="utilities">
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"/></svg><span class="label">Connect</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14l4-6M4 18a8 8 0 1 1 16 0"/></svg><span class="label">Tuner</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.8-1L14.5 3h-5l-.3 2.6a7 7 0 0 0-1.8 1l-2.3-1-2 3.4L5.1 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.8 1L9.5 21h5l.3-2.6a7 7 0 0 0 1.8-1l2.3 1 2-3.4-2-1.5a7 7 0 0 0 .1-1z"/></svg><span class="label">Settings</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg><span class="label">Guide</span></a>
+      <button class="toggle" id="navToggle" aria-pressed="false" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 10l-2 2 2 2"/></svg><span class="label">Collapse</span></button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="capsule-row">
+      <div class="capsule" role="group" aria-label="Practice controls">
+        <button class="on" aria-label="Practice instrument: Piano">🎹 <span class="txt">Piano</span></button>
+        <button aria-pressed="false" aria-label="Metronome off">♩ <span class="txt">Metronome</span></button>
+        <button class="bpm" aria-label="Tempo 72 beats per minute">72 <span class="txt" style="opacity:.7">BPM</span></button>
+        <button aria-label="Count-in one bar">⏱ <span class="txt">Count-in 1</span></button>
+        <span class="beats" aria-hidden="true" id="beats"><i></i><i></i><i></i><i></i></span>
+      </div>
+    </div>
+
+    <header class="page">
+      <div>
+        <h1>Two-Hand Independence</h1>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center"><span class="pill" id="inputPill"><span class="dot"></span>MIDI · Roland FP-30X</span><button class="btn theme-toggle" id="themeToggle" aria-label="Toggle light and dark">◐</button></div>
+    </header>
+
+    <div class="setup-line"><span class="eyebrow">Setup</span><span>Pulse + line · C major · Both hands · 72 BPM · 8 beats</span><a href="#">Edit setup</a></div>
+
+    <div id="bannerHost"></div>
+
+    <section class="stage" id="stage" data-mode="practice" aria-labelledby="stageTitle">
+      <div class="stage-head">
+        <div>
+          <p class="eyebrow" id="stageEyebrow">Ready · both hands</p>
+          <h2 id="stageTitle">Pulse + line</h2>
+          <p id="stageCopy">Left hand holds a steady pulse on C3 and G2. Right hand plays the line. Start when you are ready.</p>
+        </div>
+        <div class="modes" role="group" aria-label="Stage mode">
+          <button aria-pressed="false" data-mode="demo">Demo</button>
+          <button aria-pressed="true" data-mode="practice">Practice</button>
+          <button aria-pressed="false" data-mode="check">Check</button>
+        </div>
+      </div>
+
+      <div class="lane" id="lane" aria-label="Beat lane: left hand top row, right hand bottom row"></div>
+
+      <div class="keys-scroll">
+        <div class="keys" id="keys" role="group" aria-label="On-screen keyboard"></div>
+      </div>
+
+      <div class="legend" aria-hidden="true">
+        <span><i style="background: color-mix(in oklab, var(--hand-left) 22%, var(--piano-key)); box-shadow: inset 0 0 0 2px var(--hand-left)"></i>Left hand, outlined L</span>
+        <span><i style="background: var(--hand-right)"></i>Right hand, filled R</span>
+        <span><i style="background: var(--practice-accent)"></i>Held now</span>
+        <span><i style="background: var(--success)"></i>On time</span>
+        <span><i style="background: var(--warn)"></i>Late</span>
+      </div>
+
+      <details class="hint" id="hint">
+        <summary><span aria-hidden="true">💡</span> Show a hint <span class="note">(recorded as assisted)</span></summary>
+        <p>Next two beats: left <span class="chord">C3</span> then <span class="chord">G2</span>; right <span class="chord">E4</span> then <span class="chord">G4</span>. Say the beat numbers out loud while the left hand plays.</p>
+      </details>
+
+      <div class="status">
+        <p id="statusLine" role="status" style="margin:0">Ready. Press Start, or <kbd>Space</kbd>.</p>
+        <div class="primary-action">
+          <button class="btn primary" id="startBtn">Start</button>
+          <button class="btn ghost" id="stopBtn" hidden>Stop</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="feedback" id="feedback" aria-label="Last run">
+      <div class="card tile"><p class="eyebrow">Left hand</p><p class="val good">8 / 8</p><p class="note">All pulses on time</p></div>
+      <div class="card tile"><p class="eyebrow">Right hand</p><p class="val late">6 / 8</p><p class="note">Beats 5 and 7 late by 60 ms</p></div>
+      <div class="card tile"><p class="eyebrow">Together</p><p class="val small">5 of 8 beats</p><p class="note">Both hands landed within 40 ms</p></div>
+      <div class="card tile hollow"><p class="eyebrow">Next</p><p class="val small">Again at 72</p><p class="note">Tempo rises after two clean runs</p></div>
+    </div>
+
+    <section class="score" aria-labelledby="scoreTitle">
+      <div class="score-head">
+        <div>
+          <p class="eyebrow">Song Studio</p>
+          <h2 id="scoreTitle">Long Study in G</h2>
+        </div>
+        <div class="seg" role="group" aria-label="Notation view">
+          <button aria-pressed="true">Staff</button><button aria-pressed="false">Tab</button><button aria-pressed="false">Waterfall</button>
+        </div>
+      </div>
+      <div class="card score-card">
+        <div class="transport">
+          <button class="btn primary" id="previewBtn">▶ Play preview</button>
+          <button class="btn">Start practice</button>
+          <span class="spacer"></span>
+          <div class="range-readout" aria-live="polite">
+            <span class="chip start">Start · bar 3</span>
+            <span class="chip end">End · bar 6</span>
+            <span class="note">4 bars · 16 beats · 10 s at 96 BPM</span>
+          </div>
+        </div>
+        <p class="note" style="margin:0">Drag a green start or red end handle, or tap a bar and then another bar. Snap: <b>bars</b>.</p>
+        <div class="viewport" id="viewport" tabindex="0" aria-label="Score, scrolls inside this box">
+          <div id="systems"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="states">
+      <span class="eyebrow">Simulate a state</span>
+      <button class="btn" data-state="ok">Connected</button>
+      <button class="btn" data-state="nodevice">No device</button>
+      <button class="btn" data-state="blocked">Audio blocked</button>
+      <button class="btn" data-state="loading">Loading</button>
+      <button class="btn" data-state="error">Score error</button>
+    </div>
+  </main>
+
+  <nav class="tabbar" aria-label="Music sections mobile">
+    <a href="#" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l14 8-14 8z"/></svg>Practice</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16 5l4-1v16l-4 1z"/></svg>Library</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Create</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Progress</a>
+  </nav>
+</div>
+
+<script>
+  // ---------- Simulated data: Two-Hand "Pulse + line" in C, 8 beats ----------
+  const LEFT = [48, 43, 48, 43, 48, 43, 48, 43];       // C3 G2 alternating pulse
+  const RIGHT = [60, 62, 64, 67, 64, 62, 60, 64];     // C4 D4 E4 G4 E4 D4 C4 E4
+  const LOW = 41, HIGH = 72;                           // F2 .. C5
+  const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const isBlack = (m) => [1, 3, 6, 8, 10].includes(m % 12);
+  const name = (m) => NAMES[m % 12] + (Math.floor(m / 12) - 1);
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const keys = document.getElementById("keys");
+  const whites = [];
+  for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) whites.push(m);
+  keys.style.setProperty("--whites", whites.length);
+  const keyEls = new Map();
+  let whiteIndex = 0;
+  for (let m = LOW; m <= HIGH; m++) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "key " + (isBlack(m) ? "black" : "white");
+    b.dataset.midi = m;
+    b.setAttribute("aria-label", name(m) + (m === 60 ? ", middle C" : ""));
+    b.setAttribute("aria-pressed", "false");
+    if (isBlack(m)) {
+      const w = 100 / whites.length;
+      b.style.left = `calc(${whiteIndex * w}% - ${w * 0.3}%)`;
+      b.style.width = `${w * 0.6}%`;
+    } else {
+      whiteIndex++;
+      if (m % 12 === 0) { const s = document.createElement("span"); s.textContent = name(m); b.append(s); }
+      if (m === 60) { const d = document.createElement("i"); d.className = "midc"; b.append(d); }
+    }
+    b.addEventListener("pointerdown", (e) => { b.setPointerCapture(e.pointerId); hold(m, true); });
+    b.addEventListener("pointerup", () => hold(m, false));
+    b.addEventListener("pointercancel", () => hold(m, false));
+    b.addEventListener("lostpointercapture", () => hold(m, false));
+    keys.append(b);
+    keyEls.set(m, b);
+  }
+
+  const held = new Set();
+  function paint() {
+    const mode = stage.dataset.mode;
+    for (const [m, el] of keyEls) {
+      el.querySelector(".hand")?.remove();
+      let state = "";
+      let hand = "";
+      const shown = beatIndex >= 0 ? beatIndex : mode === "check" || running ? -1 : 0;
+      const lTarget = shown >= 0 && LEFT[shown] === m;
+      const rTarget = shown >= 0 && RIGHT[shown] === m;
+      if (lTarget || rTarget) { state = "target"; hand = lTarget ? "left" : "right"; }
+      if (held.has(m)) state = "held";
+      if (flash.get(m)) state = flash.get(m);
+      el.dataset.state = state;
+      if (hand) el.dataset.hand = hand; else delete el.dataset.hand;
+      el.setAttribute("aria-pressed", held.has(m) ? "true" : "false");
+      if (hand && mode !== "check") {
+        const h = document.createElement("span"); h.className = "hand " + hand; h.textContent = hand === "left" ? "L" : "R"; h.setAttribute("aria-hidden", "true"); el.append(h);
+      }
+    }
+  }
+  const flash = new Map();
+  function hold(m, down) {
+    if (down) held.add(m); else held.delete(m);
+    if (down && running) judge(m);
+    paint();
+  }
+  // QWERTY: home row = white keys from C4, W E T Y U = sharps.
+  const QWERTY = { a: 0, w: 1, s: 2, e: 3, d: 4, f: 5, t: 6, g: 7, y: 8, h: 9, u: 10, j: 11, k: 12, o: 13, l: 14, p: 15 };
+  const LOWER = { z: -12, x: -10, c: -8, v: -7, b: -5, n: -3, m: -1 };
+  addEventListener("keydown", (e) => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === " " && !e.target.closest("button, a, summary")) { e.preventDefault(); running ? stop() : start(); return; }
+    const semis = QWERTY[e.key.toLowerCase()] ?? LOWER[e.key.toLowerCase()];
+    if (semis === undefined) return;
+    e.preventDefault(); hold(60 + semis, true);
+  });
+  addEventListener("keyup", (e) => { const s = QWERTY[e.key.toLowerCase()] ?? LOWER[e.key.toLowerCase()]; if (s !== undefined) hold(60 + s, false); });
+  addEventListener("blur", () => { held.clear(); paint(); });
+
+  // ---------- Lane and run loop ----------
+  const lane = document.getElementById("lane");
+  const slots = [];
+  for (let i = 0; i < 8; i++) {
+    const s = document.createElement("div"); s.className = "slot";
+    const l = document.createElement("span"); l.className = "l"; l.title = "Left " + name(LEFT[i]);
+    const r = document.createElement("span"); r.className = "r"; r.title = "Right " + name(RIGHT[i]);
+    const n = document.createElement("small"); n.textContent = i + 1;
+    s.append(l, r, n); lane.append(s); slots.push({ s, l, r });
+  }
+  const stage = document.getElementById("stage");
+  const statusLine = document.getElementById("statusLine");
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const beats = document.getElementById("beats").children;
+  let beatIndex = -1, running = false, timer, results;
+  const BEAT_MS = 60000 / 72;
+
+  function start() {
+    running = true; beatIndex = -1; results = { l: [], r: [] };
+    for (const { l, r } of slots) { l.className = "l"; r.className = "r"; }
+    startBtn.hidden = true; stopBtn.hidden = false;
+    document.getElementById("stageEyebrow").textContent = { demo: "Demo · listening, not scored", practice: "Count-in · both hands", check: "Check · unaided" }[stage.dataset.mode];
+    statusLine.textContent = "Count-in: 1 … 2 … 3 … 4";
+    let count = 0;
+    timer = setInterval(() => {
+      count++;
+      for (let i = 0; i < 4; i++) beats[i].classList.toggle("on", i === (count - 1) % 4);
+      if (count <= 4) return;
+      beatIndex = count - 5;
+      if (beatIndex >= 8) { finish(); return; }
+      slots.forEach((x, i) => (x.s.dataset.now = i === beatIndex));
+      if (stage.dataset.mode === "demo") {
+        // The demo plays both hands itself and lights what sounds. Nothing is graded.
+        held.clear(); held.add(LEFT[beatIndex]); held.add(RIGHT[beatIndex]);
+        statusLine.textContent = `Beat ${beatIndex + 1}: left ${name(LEFT[beatIndex])}, right ${name(RIGHT[beatIndex])} together.`;
+      } else {
+        statusLine.textContent = `Beat ${beatIndex + 1} of 8`;
+        setTimeout(() => { if (running && beatIndex >= 0) markMiss(beatIndex); }, BEAT_MS * 0.6);
+      }
+      paint();
+    }, reduced ? BEAT_MS : BEAT_MS);
+  }
+  function judge(m) {
+    if (beatIndex < 0 || stage.dataset.mode === "demo") return;
+    const i = beatIndex;
+    const hand = LEFT[i] === m ? "l" : RIGHT[i] === m ? "r" : null;
+    if (!hand) { flash.set(m, "wrong"); setTimeout(() => { flash.delete(m); paint(); }, 220); return; }
+    const el = slots[i][hand];
+    if (el.classList.contains("hit-good") || el.classList.contains("hit-late")) return;
+    const late = Math.random() < 0.25;
+    el.classList.add(late ? "hit-late" : "hit-good");
+    results[hand][i] = late ? "late" : "good";
+    flash.set(m, "correct"); setTimeout(() => { flash.delete(m); paint(); }, 200);
+  }
+  function markMiss(i) {
+    for (const hand of ["l", "r"]) if (!results[hand][i]) { slots[i][hand].classList.add("hit-miss"); results[hand][i] = "miss"; }
+  }
+  function finish() {
+    clearInterval(timer); running = false; beatIndex = -1; slots.forEach((x) => (x.s.dataset.now = false));
+    held.clear(); paint(); startBtn.hidden = false; stopBtn.hidden = true; startBtn.textContent = "Again";
+    for (const b of beats) b.classList.remove("on");
+    if (stage.dataset.mode === "demo") { statusLine.textContent = "Demo finished. Nothing was scored. Switch to Practice to play it yourself."; return; }
+    const good = (h) => results[h].filter((x) => x === "good").length;
+    const late = (h) => results[h].filter((x) => x === "late").length;
+    statusLine.textContent = `Done. Left ${good("l") + late("l")}/8, right ${good("r") + late("r")}/8${stage.dataset.mode === "check" ? " · recorded as independent" : ""}.`;
+  }
+  function stop() { clearInterval(timer); running = false; beatIndex = -1; held.clear(); slots.forEach((x) => (x.s.dataset.now = false)); paint(); startBtn.hidden = false; stopBtn.hidden = true; statusLine.textContent = "Stopped. Nothing saved."; for (const b of beats) b.classList.remove("on"); }
+  startBtn.addEventListener("click", start);
+  stopBtn.addEventListener("click", stop);
+
+  // Modes: demo (audible model, dashed frame, unscored), practice (targets + hint), check (no targets, no hint, independent).
+  for (const b of document.querySelectorAll(".modes button")) b.addEventListener("click", () => {
+    if (running) stop();
+    document.querySelectorAll(".modes button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    stage.dataset.mode = b.dataset.mode;
+    const hint = document.getElementById("hint");
+    hint.hidden = b.dataset.mode === "check";
+    hint.open = false;
+    document.getElementById("stageCopy").textContent = {
+      demo: "Listen and watch: both hands play together, the beat lane shows what lands on each beat. Nothing you play is scored.",
+      practice: "Targets show each beat. Open the hint if you need the next notes; it is recorded as assisted.",
+      check: "No targets, no hint. Play the eight beats from memory; a clean check counts as independent mastery.",
+    }[b.dataset.mode];
+    document.getElementById("stageEyebrow").textContent = { demo: "Demo · listening", practice: "Ready · both hands", check: "Check · unaided" }[b.dataset.mode];
+    paint();
+  });
+  paint();
+
+  // ---------- Score viewport with range handles ----------
+  const systems = document.getElementById("systems");
+  let range = { start: 3, end: 6 };
+  function drawScore() {
+    systems.innerHTML = "";
+    for (let sys = 0; sys < 8; sys++) {
+      const row = document.createElement("div"); row.className = "system";
+      const num = document.createElement("span"); num.className = "num"; num.textContent = sys * 4 + 1; row.append(num);
+      for (let b = 0; b < 4; b++) {
+        const bar = sys * 4 + b + 1;
+        const el = document.createElement("div"); el.className = "bar"; el.dataset.bar = bar;
+        el.setAttribute("role", "button"); el.tabIndex = 0; el.setAttribute("aria-label", `Bar ${bar}${bar >= range.start && bar <= range.end ? ", in range" : ""}`);
+        for (let n = 0; n < 4; n++) { const nh = document.createElement("i"); nh.className = "n"; nh.style.left = `${12 + n * 22}%`; nh.style.top = `${22 + ((bar * 7 + n * 5) % 5) * 7}px`; el.append(nh); }
+        if (bar >= range.start && bar <= range.end) el.classList.add("sel");
+        if (bar === range.start) { const h = document.createElement("span"); h.className = "handle start"; h.innerHTML = "<label>Start</label>"; el.append(h); }
+        if (bar === range.end) { const h = document.createElement("span"); h.className = "handle end"; h.innerHTML = "<label>End</label>"; el.append(h); }
+        if (bar === 4) { const c = document.createElement("span"); c.className = "cursor"; c.style.left = "38%"; c.setAttribute("aria-hidden", "true"); el.append(c); }
+        el.addEventListener("click", () => tapBar(bar));
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tapBar(bar); } });
+        row.append(el);
+      }
+      systems.append(row);
+    }
+    document.querySelector(".chip.start").textContent = `Start · bar ${range.start}`;
+    document.querySelector(".chip.end").textContent = `End · bar ${range.end}`;
+    const bars = range.end - range.start + 1;
+    document.querySelector(".range-readout .note").textContent = `${bars} bars · ${bars * 4} beats · ${Math.round(bars * 4 * 60 / 96)} s at 96 BPM`;
+  }
+  let pending = null;
+  function tapBar(bar) {
+    if (pending === null) { pending = bar; range = { start: bar, end: bar }; }
+    else { range = { start: Math.min(pending, bar), end: Math.max(pending, bar) }; pending = null; }
+    drawScore();
+  }
+  drawScore();
+  document.getElementById("previewBtn").addEventListener("click", (e) => { const on = e.currentTarget.textContent.startsWith("▶"); e.currentTarget.textContent = on ? "⏸ Pause preview" : "▶ Play preview"; });
+
+  // ---------- Nav collapse, theme, states ----------
+  const app = document.getElementById("app");
+  const navToggle = document.getElementById("navToggle");
+  const savedNav = localStorage.getItem("proto.nav");
+  if (savedNav === "collapsed") setNav(true);
+  function setNav(c) { app.dataset.nav = c ? "collapsed" : "expanded"; navToggle.setAttribute("aria-pressed", c); navToggle.setAttribute("aria-label", c ? "Expand sidebar" : "Collapse sidebar"); try { localStorage.setItem("proto.nav", c ? "collapsed" : "expanded"); } catch {} }
+  navToggle.addEventListener("click", () => setNav(app.dataset.nav !== "collapsed"));
+  document.getElementById("themeToggle").addEventListener("click", () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark"; });
+  const bannerHost = document.getElementById("bannerHost");
+  const pill = document.getElementById("inputPill");
+  for (const b of document.querySelectorAll(".states button")) b.addEventListener("click", () => {
+    bannerHost.innerHTML = ""; stage.hidden = false; document.getElementById("viewport").innerHTML = ""; document.getElementById("viewport").append(systems);
+    const s = b.dataset.state;
+    pill.innerHTML = '<span class="dot"></span>MIDI · Roland FP-30X';
+    if (s === "nodevice") { pill.innerHTML = '<span class="dot" style="background:var(--muted-foreground)"></span>On-screen'; bannerHost.innerHTML = '<div class="banner warn">No MIDI device found. You can play on the screen or with the keys A to L. <button class="btn">Connect a device</button></div>'; }
+    if (s === "blocked") bannerHost.innerHTML = '<div class="banner err">Sound is off until you tap once: the browser blocks audio before a gesture. <button class="btn primary">Enable sound</button></div>';
+    if (s === "loading") { bannerHost.innerHTML = '<div class="stage" style="padding:1.25rem;display:grid;gap:1rem"><p class="eyebrow">Loading your setup</p><div class="skeleton" aria-hidden="true"></div><p class="note" role="status">Restoring the last setup and your saved progress.</p></div>'; stage.hidden = true; }
+    if (s === "error") document.getElementById("viewport").innerHTML = '<div class="empty-state"><b>This score cannot be shown as staff.</b><span>It uses a duration the staff renderer does not support (a 128th). Waterfall keeps the original timing.</span><div style="display:flex;gap:.5rem"><button class="btn">Open Waterfall</button><button class="btn ghost">Report the file</button></div></div>';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1046 @@
+[
+  {
+    "id": "quarter-pulse",
+    "label": "Quarter-note pulse",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 1,
+    "events": [
+      {
+        "id": "tap-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "tap-2",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-3",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-4",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": []
+  },
+  {
+    "id": "eighths",
+    "label": "Eighth notes",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 1,
+    "events": [
+      {
+        "id": "tap-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "tap-2",
+        "beat": 0.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-3",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-4",
+        "beat": 1.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-5",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-6",
+        "beat": 2.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-7",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-8",
+        "beat": 3.5,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": []
+  },
+  {
+    "id": "sixteenths",
+    "label": "Sixteenth notes",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 1,
+    "events": [
+      {
+        "id": "tap-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "tap-2",
+        "beat": 0.25,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-3",
+        "beat": 0.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-4",
+        "beat": 0.75,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-5",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-6",
+        "beat": 1.25,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-7",
+        "beat": 1.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-8",
+        "beat": 1.75,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-9",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-10",
+        "beat": 2.25,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-11",
+        "beat": 2.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-12",
+        "beat": 2.75,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-13",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-14",
+        "beat": 3.25,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-15",
+        "beat": 3.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-16",
+        "beat": 3.75,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": []
+  },
+  {
+    "id": "eighth-rests",
+    "label": "Eighth-note rests",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 1,
+    "events": [
+      {
+        "id": "tap-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "tap-2",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-3",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-4",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": [
+      {
+        "startBeat": 0.5,
+        "endBeat": 1
+      },
+      {
+        "startBeat": 1.5,
+        "endBeat": 2
+      },
+      {
+        "startBeat": 2.5,
+        "endBeat": 3
+      },
+      {
+        "startBeat": 3.5,
+        "endBeat": 4
+      }
+    ]
+  },
+  {
+    "id": "triplets",
+    "label": "Triplets",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 1,
+    "events": [
+      {
+        "id": "tap-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "tap-2",
+        "beat": 0.3333333333333333,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-3",
+        "beat": 0.6666666666666666,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-4",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-5",
+        "beat": 1.3333333333333333,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-6",
+        "beat": 1.6666666666666665,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-7",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-8",
+        "beat": 2.333333333333333,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-9",
+        "beat": 2.6666666666666665,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-10",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-11",
+        "beat": 3.333333333333333,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-12",
+        "beat": 3.6666666666666665,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": []
+  },
+  {
+    "id": "off-beats",
+    "label": "Off-beats (syncopation)",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 1,
+    "events": [
+      {
+        "id": "and-1",
+        "beat": 0.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "and-2",
+        "beat": 1.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "and-3",
+        "beat": 2.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "and-4",
+        "beat": 3.5,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": [
+      {
+        "startBeat": 0,
+        "endBeat": 0.5
+      },
+      {
+        "startBeat": 1,
+        "endBeat": 1.5
+      },
+      {
+        "startBeat": 2,
+        "endBeat": 2.5
+      },
+      {
+        "startBeat": 3,
+        "endBeat": 3.5
+      }
+    ],
+    "clickSchedule": [
+      {
+        "bar": 0,
+        "audible": true
+      }
+    ]
+  },
+  {
+    "id": "dotted-quarters",
+    "label": "Dotted quarters over 4/4",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 2,
+    "events": [
+      {
+        "id": "dotted-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "dotted-2",
+        "beat": 1.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "dotted-3",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "dotted-4",
+        "beat": 4.5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "dotted-5",
+        "beat": 6,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "dotted-6",
+        "beat": 7.5,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": [],
+    "clickSchedule": [
+      {
+        "bar": 0,
+        "audible": true
+      },
+      {
+        "bar": 1,
+        "audible": true
+      }
+    ]
+  },
+  {
+    "id": "swing-eighths",
+    "label": "Swing eighths",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 1,
+    "events": [
+      {
+        "id": "swing-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "swing-2",
+        "beat": 0.6666666666666666,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "swing-3",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "swing-4",
+        "beat": 1.6666666666666665,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "swing-5",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "swing-6",
+        "beat": 2.6666666666666665,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "swing-7",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "swing-8",
+        "beat": 3.6666666666666665,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": []
+  },
+  {
+    "id": "gap-click-1-on-1-off",
+    "label": "Gap click: 1 on / 1 off",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 2,
+    "events": [
+      {
+        "id": "tap-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent"
+      },
+      {
+        "id": "tap-2",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-3",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-4",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-5",
+        "beat": 4,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-6",
+        "beat": 5,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-7",
+        "beat": 6,
+        "voice": "tap",
+        "accent": "normal"
+      },
+      {
+        "id": "tap-8",
+        "beat": 7,
+        "voice": "tap",
+        "accent": "normal"
+      }
+    ],
+    "rests": [],
+    "clickSchedule": [
+      {
+        "bar": 0,
+        "audible": true
+      },
+      {
+        "bar": 1,
+        "audible": false
+      }
+    ]
+  },
+  {
+    "id": "guitar-four-on-the-floor",
+    "label": "Guitar: four on the floor (D to A)",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 4,
+    "events": [
+      {
+        "id": "strum-1",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-2",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-3",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-4",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-5",
+        "beat": 4,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-6",
+        "beat": 5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-7",
+        "beat": 6,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-8",
+        "beat": 7,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-9",
+        "beat": 8,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-10",
+        "beat": 9,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-11",
+        "beat": 10,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-12",
+        "beat": 11,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-13",
+        "beat": 12,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-14",
+        "beat": 13,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-15",
+        "beat": 14,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "strum-16",
+        "beat": 15,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 1
+      }
+    ],
+    "rests": [],
+    "clickSchedule": [
+      {
+        "bar": 0,
+        "audible": true
+      },
+      {
+        "bar": 1,
+        "audible": true
+      },
+      {
+        "bar": 2,
+        "audible": true
+      },
+      {
+        "bar": 3,
+        "audible": true
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "D",
+        "pitchClasses": [
+          2,
+          6,
+          9
+        ],
+        "startBeat": 0,
+        "durationBeats": 8
+      },
+      {
+        "symbol": "A",
+        "pitchClasses": [
+          1,
+          4,
+          9
+        ],
+        "startBeat": 8,
+        "durationBeats": 8
+      }
+    ]
+  },
+  {
+    "id": "guitar-island-strum",
+    "label": "Guitar: island strum with a mute (G to C)",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 4,
+    "events": [
+      {
+        "id": "island-1-0",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "island-1-1",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-1-1.5",
+        "beat": 1.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-1-2",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-1-2.5",
+        "beat": 2.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-1-3",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-1-3.5",
+        "beat": 3.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-2-0",
+        "beat": 4,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "island-2-1",
+        "beat": 5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-2-1.5",
+        "beat": 5.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-2-2",
+        "beat": 6,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-2-2.5",
+        "beat": 6.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-2-3",
+        "beat": 7,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-2-3.5",
+        "beat": 7.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-3-0",
+        "beat": 8,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "island-3-1",
+        "beat": 9,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-3-1.5",
+        "beat": 9.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-3-2",
+        "beat": 10,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-3-2.5",
+        "beat": 10.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-3-3",
+        "beat": 11,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-3-3.5",
+        "beat": 11.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-4-0",
+        "beat": 12,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "island-4-1",
+        "beat": 13,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-4-1.5",
+        "beat": 13.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-4-2",
+        "beat": 14,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-4-2.5",
+        "beat": 14.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-4-3",
+        "beat": 15,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "island-4-3.5",
+        "beat": 15.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      }
+    ],
+    "rests": [],
+    "clickSchedule": [
+      {
+        "bar": 0,
+        "audible": true
+      },
+      {
+        "bar": 1,
+        "audible": true
+      },
+      {
+        "bar": 2,
+        "audible": true
+      },
+      {
+        "bar": 3,
+        "audible": true
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "G",
+        "pitchClasses": [
+          2,
+          7,
+          11
+        ],
+        "startBeat": 0,
+        "durationBeats": 8
+      },
+      {
+        "symbol": "C",
+        "pitchClasses": [
+          0,
+          4,
+          7
+        ],
+        "startBeat": 8,
+        "durationBeats": 8
+      }
+    ]
+  }
+]

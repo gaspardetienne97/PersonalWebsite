@@ -1,0 +1,87 @@
+{
+  "patterns": [
+    {
+      "id": "single-strokes",
+      "label": "Single strokes",
+      "unit": [
+        "left",
+        "right"
+      ]
+    },
+    {
+      "id": "double-strokes",
+      "label": "Double strokes",
+      "unit": [
+        "left",
+        "left",
+        "right",
+        "right"
+      ]
+    },
+    {
+      "id": "paradiddle",
+      "label": "Paradiddle",
+      "unit": [
+        "left",
+        "right",
+        "left",
+        "left",
+        "right",
+        "left",
+        "right",
+        "right"
+      ]
+    },
+    {
+      "id": "moving-accent",
+      "label": "Moving accent",
+      "unit": [
+        "left",
+        "right"
+      ],
+      "accentMode": "moving"
+    },
+    {
+      "id": "single-16ths",
+      "label": "Sixteenth singles",
+      "unit": [
+        "left",
+        "right"
+      ],
+      "subdivision": 4
+    },
+    {
+      "id": "triple-strokes",
+      "label": "Triple strokes",
+      "unit": [
+        "left",
+        "left",
+        "left",
+        "right",
+        "right",
+        "right"
+      ],
+      "subdivision": 3
+    },
+    {
+      "id": "flam",
+      "label": "Flam",
+      "unit": [
+        "left",
+        "right"
+      ],
+      "flam": true
+    }
+  ],
+  "subdivisions": [
+    2,
+    3,
+    4
+  ],
+  "subdivisionLabels": {
+    "2": "Eighths",
+    "3": "Triplets",
+    "4": "Sixteenths"
+  },
+  "flamGraceMs": 30
+}

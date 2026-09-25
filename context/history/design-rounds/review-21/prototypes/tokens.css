@@ -1,0 +1,309 @@
+/* Review 21 prototypes: the app's tokens, copied from src/app.css so the
+   prototypes read as the product, not as a foreign mockup. Values are the
+   music scope (light) and .dark music scope. Simulated data throughout. */
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Fira+Mono:wght@400;500&display=swap");
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.99 0.002 247);
+  --foreground: oklch(0.13 0.028 262);
+  --card: oklch(1 0 0);
+  --muted: oklch(0.968 0.007 248);
+  --muted-foreground: oklch(0.45 0.03 257);
+  --border: oklch(0.9 0.01 255);
+  --primary: oklch(0.52 0.2 277);
+  --primary-foreground: oklch(0.99 0 0);
+  --sidebar: oklch(0.985 0.003 247);
+  --sidebar-accent: oklch(0.94 0.01 256);
+  --stage: oklch(0.94 0.006 256);
+  --stage-2: oklch(0.9 0.008 256);
+  --stage-foreground: oklch(0.2 0.03 264);
+  --stage-muted: oklch(0.48 0.02 258);
+  --stage-line: oklch(0.86 0.01 256);
+  --practice-accent: oklch(0.52 0.2 277);
+  --practice-accent-foreground: oklch(0.99 0 0);
+  --success: oklch(0.55 0.15 150);
+  --success-foreground: oklch(0.99 0 0);
+  --warn: oklch(0.7 0.16 70);
+  --warn-foreground: oklch(0.2 0.03 70);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --info: oklch(0.58 0.14 240);
+  --piano-key: oklch(0.97 0.004 258);
+  --piano-key-line: oklch(0.84 0.012 258);
+  --piano-key-black: oklch(0.26 0.02 265);
+  --hand-left: oklch(0.5 0.11 195);
+  --hand-left-foreground: oklch(0.99 0 0);
+  --hand-right: oklch(0.52 0.18 350);
+  --hand-right-foreground: oklch(0.99 0 0);
+  --instr-piano: oklch(0.55 0.2 277);
+  --instr-guitar: oklch(0.72 0.16 70);
+  --instr-mpc: oklch(0.63 0.22 12);
+  --fretboard: oklch(0.64 0.07 62);
+  --fretboard-fret: oklch(0.88 0.01 80);
+  --range-start: oklch(0.6 0.16 150);
+  --range-end: oklch(0.6 0.2 25);
+  --radius: 10px;
+  --font-display: "Outfit", system-ui, sans-serif;
+  --font-mono: "Fira Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: oklch(0.16 0.03 265);
+    --foreground: oklch(0.97 0.003 248);
+    --card: oklch(0.2 0.035 265);
+    --muted: oklch(0.279 0.041 260);
+    --muted-foreground: oklch(0.72 0.03 257);
+    --border: oklch(1 0 0 / 8%);
+    --primary: oklch(0.68 0.19 290);
+    --primary-foreground: oklch(0.14 0.03 290);
+    --sidebar: oklch(0.18 0.03 265);
+    --sidebar-accent: oklch(0.26 0.035 265);
+    --stage: oklch(0.17 0.025 265);
+    --stage-2: oklch(0.22 0.03 265);
+    --stage-foreground: oklch(0.97 0.003 248);
+    --stage-muted: oklch(0.7 0.02 257);
+    --stage-line: oklch(0.3 0.03 265);
+    --practice-accent: oklch(0.7 0.18 290);
+    --practice-accent-foreground: oklch(0.14 0.03 290);
+    --success: oklch(0.72 0.16 150);
+    --success-foreground: oklch(0.15 0.03 150);
+    --warn: oklch(0.8 0.14 70);
+    --destructive: oklch(0.68 0.19 25);
+    --destructive-foreground: oklch(0.14 0.03 25);
+    --info: oklch(0.72 0.12 240);
+    --hand-left: oklch(0.72 0.11 195);
+    --hand-left-foreground: oklch(0.18 0.03 195);
+    --hand-right: oklch(0.72 0.16 350);
+    --hand-right-foreground: oklch(0.18 0.04 350);
+    --fretboard: oklch(0.38 0.05 55);
+    --fretboard-fret: oklch(0.74 0.01 80);
+    --range-start: oklch(0.75 0.16 150);
+    --range-end: oklch(0.72 0.19 25);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.16 0.03 265);
+  --foreground: oklch(0.97 0.003 248);
+  --card: oklch(0.2 0.035 265);
+  --muted: oklch(0.279 0.041 260);
+  --muted-foreground: oklch(0.72 0.03 257);
+  --border: oklch(1 0 0 / 8%);
+  --primary: oklch(0.68 0.19 290);
+  --primary-foreground: oklch(0.14 0.03 290);
+  --sidebar: oklch(0.18 0.03 265);
+  --sidebar-accent: oklch(0.26 0.035 265);
+  --stage: oklch(0.17 0.025 265);
+  --stage-2: oklch(0.22 0.03 265);
+  --stage-foreground: oklch(0.97 0.003 248);
+  --stage-muted: oklch(0.7 0.02 257);
+  --stage-line: oklch(0.3 0.03 265);
+  --practice-accent: oklch(0.7 0.18 290);
+  --practice-accent-foreground: oklch(0.14 0.03 290);
+  --success: oklch(0.72 0.16 150);
+  --success-foreground: oklch(0.15 0.03 150);
+  --warn: oklch(0.8 0.14 70);
+  --destructive: oklch(0.68 0.19 25);
+  --destructive-foreground: oklch(0.14 0.03 25);
+  --info: oklch(0.72 0.12 240);
+  --hand-left: oklch(0.72 0.11 195);
+  --hand-left-foreground: oklch(0.18 0.03 195);
+  --hand-right: oklch(0.72 0.16 350);
+  --hand-right-foreground: oklch(0.18 0.04 350);
+  --fretboard: oklch(0.38 0.05 55);
+  --fretboard-fret: oklch(0.74 0.01 80);
+  --range-start: oklch(0.75 0.16 150);
+  --range-end: oklch(0.72 0.19 25);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font: 15px/1.45 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--practice-accent);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Shared control kit for the prototypes (mirrors @repo/ui Button sizes). */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+.btn.primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: transparent;
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn[aria-pressed="true"] {
+  background: var(--sidebar-accent);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn.icon {
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+}
+
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--card);
+}
+.seg button {
+  min-height: 44px;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--sidebar-accent);
+  color: var(--foreground);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+}
+
+.stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--stage-line);
+  border-radius: 16px;
+  background:
+    radial-gradient(
+      ellipse 70% 45% at 50% -5%,
+      color-mix(in oklab, var(--practice-accent) 20%, transparent),
+      transparent 70%
+    ),
+    var(--stage);
+  color: var(--stage-foreground);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 6%);
+}
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0 1.5rem auto;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--instr, var(--instr-piano));
+  opacity: 0.8;
+}
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--success);
+}
+
+.note {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
