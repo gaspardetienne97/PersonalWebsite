@@ -1,25 +1,32 @@
 <script lang="ts">
-  // The hero of Create: a 16-step sequencer. Rows are drum voices keyed by MIDI
-  // note; a row whose note has a kit sample plays the sample.
-  import { onDestroy, onMount } from "svelte";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
+  // The beat: a step sequencer of one to eight bars, rows are drum voices keyed
+  // by MIDI note (a row with a kit sample plays the sample). It plays on the
+  // shared Create transport, together with the piano roll.
   import Save from "lucide-svelte/icons/save";
   import Eraser from "lucide-svelte/icons/eraser";
-  import { audio, getSetting, putSetting, settings, type SequenceHandle } from "$lib/music/runtime";
+  import Plus from "lucide-svelte/icons/plus";
+  import Minus from "lucide-svelte/icons/minus";
+  import Volume from "lucide-svelte/icons/volume-2";
+  import VolumeOff from "lucide-svelte/icons/volume-off";
+  import { onMount } from "svelte";
+  import { audio, getSetting, putSetting } from "$lib/music/runtime";
   import { btnStage } from "$lib/music/components/ui";
   import { padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
-  import KitPanel from "./KitPanel.svelte";
+  import { session } from "./session.svelte";
   import {
+    addBar,
+    barsOf,
     DEFAULT_ROWS,
-    DRAFT_KEY,
+    fromPreset,
     hitCount,
     isOn,
+    MAX_BARS,
     PATTERNS_KEY,
-    patternToSequence,
+    PRESETS,
+    removeBar,
     STEPS,
-    stepSeconds,
+    stepsOf,
     toggleStep,
     type BeatPattern,
     type BeatRow,
@@ -27,29 +34,17 @@
 
   let { announce }: { announce: (msg: string) => void } = $props();
 
-  const LOOPS = 8;
-  const starter = (): BeatPattern => ({
-    id: crypto.randomUUID(),
-    name: "Pattern 1",
-    bpm: Math.min(160, Math.max(60, settings.value.bpm)),
-    steps: { 36: [0, 7, 10], 38: [4, 12], 42: [0, 2, 4, 6, 8, 10, 12, 14] },
-    updatedAt: Date.now(),
-  });
-
-  let pattern = $state<BeatPattern>(starter());
   let saved = $state<BeatPattern[]>([]);
-  let loaded = false;
-  let handle: SequenceHandle | null = null;
-  let playing = $state(false);
-  let fromStep = 0;
-  let playhead = $state(-1);
-  let raf = 0;
+  const pattern = $derived(session.pattern);
+  const playhead = $derived(session.beatStep);
+  const total = $derived(stepsOf(pattern));
 
   const kit = $derived(kits.kit);
   const kitNotes = $derived(kits.notes);
   const rows = $derived.by((): (BeatRow & { sample?: string })[] => {
     const base = DEFAULT_ROWS.map((r) => r.midi);
-    const extra = [...kitNotes].filter((n) => !base.includes(n)).sort((a, b) => a - b);
+    const used = Object.keys(pattern.steps).map(Number);
+    const extra = [...new Set([...kitNotes, ...used])].filter((n) => !base.includes(n)).sort((a, b) => a - b);
     return [...DEFAULT_ROWS, ...extra.map((midi) => ({ midi, name: padLabel(midi) }))].map((r) => {
       const p = kit?.pads.find((x) => x.note === r.midi);
       return { ...r, sample: kit && p ? sampleName(kit, p.soft ?? p.hard) : undefined };
@@ -57,86 +52,47 @@
   });
 
   onMount(async () => {
-    const [draft, list] = await Promise.all([getSetting<BeatPattern | null>(DRAFT_KEY, null), getSetting<BeatPattern[]>(PATTERNS_KEY, [])]);
-    if (draft?.steps) pattern = draft;
+    const list = await getSetting<BeatPattern[]>(PATTERNS_KEY, []);
     saved = Array.isArray(list) ? list : [];
-    loaded = true;
     await kits.ready;
   });
 
-  // Autosave the draft (debounced) so a reload lands on the same pattern.
-  let saveTimer: ReturnType<typeof setTimeout> | undefined;
-  $effect(() => {
-    const snap = $state.snapshot(pattern);
-    if (!loaded) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => void putSetting(DRAFT_KEY, snap), 300);
-  });
-
-  function tick() {
-    if (!handle) return;
-    const ms = stepSeconds(pattern.bpm) * 1000;
-    const t = performance.now() - handle.startPerf;
-    playhead = t < 0 ? -1 : (fromStep + Math.floor(t / ms)) % STEPS;
-    raf = requestAnimationFrame(tick);
-  }
-
-  function schedule(start: number) {
-    // Rotate so the sequence begins at `start`.
-    const rotated: BeatPattern = {
-      ...pattern,
-      steps: Object.fromEntries(Object.entries(pattern.steps).map(([k, s]) => [k, s.map((x) => (x - start + STEPS) % STEPS)])),
-    };
-    const notes = patternToSequence(rotated, LOOPS);
-    fromStep = start;
-    const h = audio.playSequence(notes);
-    handle = h;
-    void h.done.then(() => {
-      if (handle === h && playing) schedule(0);
-    });
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(tick);
-  }
-
   async function play() {
-    if (playing) return stop();
-    await audio.unlock();
-    if (!audio.unlocked) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
-    playing = true;
-    schedule(0);
-    announce(`Playing ${pattern.name} at ${pattern.bpm} BPM.`);
+    const was = session.playing;
+    const ok = await session.toggle();
+    if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
+    announce(was ? "Stopped." : `Playing the beat and the piano roll together at ${session.bpm} BPM.`);
   }
 
-  function stop(say = true) {
-    playing = false;
-    handle?.stop();
-    handle = null;
-    cancelAnimationFrame(raf);
-    playhead = -1;
-    if (say) announce("Stopped.");
-  }
-
-  // An edit while playing takes effect from the next step.
+  // Edits are heard on the next pass of the loop.
   function edit(next: BeatPattern) {
-    pattern = { ...next, updatedAt: Date.now() };
-    if (playing) schedule((Math.max(0, playhead) + 1) % STEPS);
+    session.pattern = { ...next, updatedAt: Date.now() };
   }
 
   function toggle(row: BeatRow, step: number) {
     const was = isOn(pattern, row.midi, step);
     edit(toggleStep(pattern, row.midi, step));
-    if (!playing && !was) {
-      void audio.unlock().then(() => audio.playKitPad(row.midi, 0.8));
-    }
+    if (!session.playing && !was) void audio.unlock().then(() => audio.playKitPad(row.midi, 0.8));
   }
 
   function audition(row: BeatRow) {
     void audio.unlock().then(() => audio.playKitPad(row.midi, 0.8));
   }
 
-  function setBpm(v: number) {
-    if (!Number.isFinite(v)) return;
-    edit({ ...pattern, bpm: Math.round(Math.min(200, Math.max(40, v))) });
+  function grow() {
+    edit(addBar(pattern));
+    announce(`${barsOf(session.pattern)} bars. The new bar starts as a copy of the last one.`);
+  }
+  function shrink() {
+    edit(removeBar(pattern));
+    announce(`${barsOf(session.pattern)} ${barsOf(session.pattern) === 1 ? "bar" : "bars"}.`);
+  }
+
+  function usePreset(id: string) {
+    const p = PRESETS.find((x) => x.id === id);
+    if (!p) return;
+    edit(fromPreset(p, session.bpm));
+    announce(`${p.name}: ${hitCount(session.pattern)} hits over ${p.bars} ${p.bars === 1 ? "bar" : "bars"}. Change anything you like.`);
   }
 
   async function savePattern() {
@@ -144,32 +100,32 @@
     const snap = { ...$state.snapshot(pattern), name, updatedAt: Date.now() };
     saved = [...saved.filter((p) => p.id !== snap.id), snap].sort((a, b) => a.name.localeCompare(b.name));
     await putSetting(PATTERNS_KEY, saved);
-    announce(`Saved ${name}.`);
+    announce(`Saved the beat ${name}.`);
   }
 
   function loadPattern(id: string) {
     const p = saved.find((x) => x.id === id);
     if (!p) return;
-    edit(structuredClone($state.snapshot(p)));
-    announce(`Loaded ${p.name}, ${hitCount(p)} hits at ${p.bpm} BPM.`);
+    edit({ ...structuredClone($state.snapshot(p)), bpm: session.bpm });
+    announce(`Loaded ${p.name}, ${hitCount(p)} hits.`);
   }
 
   function newPattern() {
-    edit({ id: crypto.randomUUID(), name: `Pattern ${saved.length + 1}`, bpm: pattern.bpm, steps: {}, updatedAt: Date.now() });
-    announce("New empty pattern. Click the steps to build a beat.");
+    edit({ id: crypto.randomUUID(), name: `Pattern ${saved.length + 1}`, bpm: session.bpm, bars: barsOf(pattern), steps: {}, updatedAt: Date.now() });
+    announce("Empty beat. Click the steps to build one, or start from a preset.");
   }
 
   // Arrow keys walk the grid; Space plays when focus is not on a control.
   function gridKey(e: KeyboardEvent) {
     const el = e.target as HTMLElement;
     const r = Number(el.dataset.row);
-    const s = Number(el.dataset.step);
-    if (!Number.isFinite(r) || !Number.isFinite(s)) return;
+    const st = Number(el.dataset.step);
+    if (!Number.isFinite(r) || !Number.isFinite(st)) return;
     const move = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[e.key];
     if (!move) return;
     e.preventDefault();
     const nr = (r + move[0] + rows.length) % rows.length;
-    const ns = (s + move[1] + STEPS) % STEPS;
+    const ns = (st + move[1] + total) % total;
     (el.closest("[data-grid]")?.querySelector(`[data-row="${nr}"][data-step="${ns}"]`) as HTMLElement | null)?.focus();
   }
 
@@ -181,12 +137,6 @@
     void play();
   }
 
-  onDestroy(() => {
-    stop(false);
-    clearTimeout(saveTimer);
-    if (loaded) void putSetting(DRAFT_KEY, $state.snapshot(pattern));
-  });
-
   const field = "min-h-11 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-3 text-sm text-ws-stage-ink";
 </script>
 
@@ -195,26 +145,22 @@
 <div class="flex flex-col gap-8">
   <section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label="Beat grid">
     <div class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
+      <h2 class="font-display text-xl font-semibold">Beat</h2>
       <button
         type="button"
-        class="flex min-h-12 items-center gap-2 rounded-full bg-instr px-5 font-display text-base font-semibold text-ws-stage hover:brightness-105"
-        aria-pressed={playing}
-        onclick={play}
+        class={btnStage}
+        aria-pressed={session.beatMuted}
+        onclick={() => {
+          session.beatMuted = !session.beatMuted;
+          announce(session.beatMuted ? "Beat muted; the melodies keep playing." : "Beat on.");
+        }}
       >
-        {#if playing}<Square class="size-5" aria-hidden="true" />Stop{:else}<Play class="size-5" aria-hidden="true" />Play{/if}
+        {#if session.beatMuted}<VolumeOff class="size-4" aria-hidden="true" />Muted{:else}<Volume class="size-4" aria-hidden="true" />Beat on{/if}
       </button>
-      <label class="flex items-center gap-2 text-sm">
-        <span class="text-ws-stage-soft">Tempo</span>
-        <input
-          type="number"
-          min="40"
-          max="200"
-          class="{field} tnum w-20"
-          value={pattern.bpm}
-          onchange={(e) => setBpm(e.currentTarget.valueAsNumber)}
-        />
-        <span class="text-ws-stage-soft">BPM</span>
-      </label>
+      <select class={field} aria-label="Start from a preset" value="" onchange={(e) => usePreset(e.currentTarget.value)}>
+        <option value="" disabled>Presets</option>
+        {#each PRESETS as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+      </select>
       <label class="flex min-w-0 flex-1 basis-36 items-center gap-2 text-sm">
         <span class="sr-only">Pattern name</span>
         <input class="{field} w-full min-w-0 font-medium" value={pattern.name} aria-label="Pattern name" onchange={(e) => edit({ ...pattern, name: e.currentTarget.value })} />
@@ -229,15 +175,22 @@
       <button type="button" class={btnStage} onclick={newPattern}><Eraser class="size-4" aria-hidden="true" />New</button>
     </div>
 
+    <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
+      <span class="text-ws-stage-soft">Length</span>
+      <button type="button" class="{btnStage} w-11 px-0" aria-label="Remove the last bar" disabled={barsOf(pattern) <= 1} onclick={shrink}><Minus class="size-4" aria-hidden="true" /></button>
+      <span class="tnum w-16 text-center font-semibold">{barsOf(pattern)} {barsOf(pattern) === 1 ? "bar" : "bars"}</span>
+      <button type="button" class={btnStage} disabled={barsOf(pattern) >= MAX_BARS} onclick={grow}><Plus class="size-4" aria-hidden="true" />Add bar</button>
+    </div>
+
     <div class="relative overflow-x-auto pb-1" data-grid>
       <table class="grid-table">
         <thead>
           <tr>
             <th scope="col" class="rowhead"><span class="sr-only">Voice</span></th>
-            {#each Array.from({ length: STEPS }, (_, i) => i) as s (s)}
-              <th scope="col" class="stephead" class:beat={s % 4 === 0} data-now={playhead === s || undefined}>
-                <span aria-hidden="true">{s % 4 === 0 ? s / 4 + 1 : ""}</span>
-                <span class="sr-only">Step {s + 1}</span>
+            {#each Array.from({ length: total }, (_, i) => i) as s (s)}
+              <th scope="col" class="stephead" class:beat={s % 4 === 0} class:bar={s % STEPS === 0} data-now={playhead === s || undefined}>
+                <span aria-hidden="true">{s % STEPS === 0 ? `${s / STEPS + 1}.1` : s % 4 === 0 ? (s % STEPS) / 4 + 1 : ""}</span>
+                <span class="sr-only">Bar {Math.floor(s / STEPS) + 1}, step {(s % STEPS) + 1}</span>
               </th>
             {/each}
           </tr>
@@ -251,9 +204,9 @@
                   <span class="text-[0.7rem] text-ws-stage-soft">{row.sample ? `Sample on ${padLabel(row.midi)}` : "Synth"}</span>
                 </button>
               </th>
-              {#each Array.from({ length: STEPS }, (_, i) => i) as s (s)}
+              {#each Array.from({ length: total }, (_, i) => i) as s (s)}
                 {@const on = isOn(pattern, row.midi, s)}
-                <td class:gap={s % 4 === 3 && s < STEPS - 1}>
+                <td class:gap={s % 4 === 3 && s < total - 1} class:bargap={s % STEPS === STEPS - 1 && s < total - 1}>
                   <button
                     type="button"
                     class="step"
@@ -263,7 +216,7 @@
                     data-row={r}
                     data-step={s}
                     aria-pressed={on}
-                    aria-label="{row.sample ? `${row.sample} on ${padLabel(row.midi)}` : row.name}, step {s + 1}"
+                    aria-label="{row.sample ? `${row.sample} on ${padLabel(row.midi)}` : row.name}, bar {Math.floor(s / STEPS) + 1} step {(s % STEPS) + 1}"
                     onclick={() => toggle(row, s)}
                     onkeydown={gridKey}
                   ></button>
@@ -275,11 +228,10 @@
       </table>
     </div>
     <p class="mt-3 text-xs text-ws-stage-soft" data-playhead={playhead}>
-      {hitCount(pattern)} hits. Arrow keys move around the grid, Enter or Space toggles a step, Space elsewhere plays.
+      {hitCount(pattern)} hits over {barsOf(pattern)} {barsOf(pattern) === 1 ? "bar" : "bars"}. The beat repeats to fill the song's loop. Arrow keys move around the grid, Enter or Space toggles a step, Space elsewhere plays.
     </p>
   </section>
 
-  <KitPanel {announce} />
 </div>
 
 <style>
@@ -333,6 +285,12 @@
   }
   td.gap {
     padding-right: 0.35rem;
+  }
+  td.bargap {
+    padding-right: 0.9rem;
+  }
+  .stephead.bar {
+    color: var(--ws-stage-ink);
   }
   .step {
     display: block;

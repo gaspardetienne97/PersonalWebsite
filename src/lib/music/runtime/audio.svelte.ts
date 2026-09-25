@@ -38,6 +38,8 @@ export interface SequenceNote {
   velocity?: number;
   /** "kit" plays the loaded sample kit's pad (synth drum when the pad is empty). */
   voice?: "piano" | "drum" | "click" | "kit";
+  /** Pitched notes: play on this sound instead of the playback sound setting. */
+  sound?: PlaybackSound;
 }
 export interface SequenceHandle {
   /** performance.now() time at which `time: 0` sounds. */
@@ -146,6 +148,27 @@ function makeVoice(t: Tone, sound: PlaybackSound): Voice {
         oscillator: { type: "sawtooth" },
         envelope: { attack: 0.005, decay: 0.2, sustain: 0.4, release: 0.4 },
         volume: -18,
+      });
+    case "bass":
+      return new t.PolySynth(t.MonoSynth, {
+        oscillator: { type: "fatsawtooth", count: 2, spread: 12 },
+        filter: { Q: 2, type: "lowpass", rolloff: -24 },
+        filterEnvelope: {
+          attack: 0.005,
+          decay: 0.25,
+          sustain: 0.35,
+          release: 0.3,
+          baseFrequency: 110,
+          octaves: 2.8,
+        },
+        envelope: { attack: 0.005, decay: 0.3, sustain: 0.7, release: 0.25 },
+        volume: -12,
+      } as never) as unknown as Voice;
+    case "pad":
+      return poly({
+        oscillator: { type: "fatsawtooth", count: 3, spread: 30 },
+        envelope: { attack: 0.35, decay: 0.6, sustain: 0.7, release: 1.8 },
+        volume: -24,
       });
   }
 }
@@ -362,7 +385,7 @@ function clickAt(t: Tone, raw: BaseAudioContext, out: ToneNS.Gain, when: number,
 function trigger(
   t: Tone,
   raw: BaseAudioContext,
-  voice: Voice,
+  voiceFor: (sound?: PlaybackSound) => Voice,
   bus: ToneNS.Gain,
   n: SequenceNote,
   when: number,
@@ -371,7 +394,22 @@ function trigger(
   if (n.voice === "drum") drumHit(t, raw, bus, n.midi, v, when);
   else if (n.voice === "kit") kitHit(t, raw, bus, n.midi, v, when);
   else if (n.voice === "click") clickAt(t, raw, bus, when, v >= 0.9);
-  else voice.triggerAttackRelease(mtof(n.midi), Math.max(0.05, n.duration), when, v);
+  else voiceFor(n.sound).triggerAttackRelease(mtof(n.midi), Math.max(0.05, n.duration), when, v);
+}
+
+/** One voice per sound for the life of a run, created on first use. */
+function runVoices(t: Tone, run: Run) {
+  const voices = new Map<PlaybackSound, Voice>();
+  run.disposers.push(() => setTimeout(() => voices.forEach((v) => v.dispose()), 2000));
+  return (sound: PlaybackSound = settings.value.preferredPlaybackSound) => {
+    let v = voices.get(sound);
+    if (!v) {
+      v = makeVoice(t, sound);
+      v.connect(run.bus);
+      voices.set(sound, v);
+    }
+    return v;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -490,9 +528,7 @@ function playSequence(
   const c = clock(t);
   const run = createRun(t, graph.playback, c.startPerf);
   currentSeq = run;
-  const voice = makeVoice(t, settings.value.preferredPlaybackSound);
-  voice.connect(run.bus);
-  run.disposers.push(() => setTimeout(() => voice.dispose(), 1300));
+  const voiceFor = runVoices(t, run);
   const raw = rawCtx(t);
   const order = notes.map((_, i) => i).sort((a, b) => notes[a].time - notes[b].time);
   const end = notes.reduce((m, n) => Math.max(m, n.time + n.duration), 0);
@@ -503,7 +539,7 @@ function playSequence(
       (k) => c.start + notes[order[k]].time,
       (k, when) => {
         const i = order[k];
-        trigger(t, raw, voice, run.bus, notes[i], when);
+        trigger(t, raw, voiceFor, run.bus, notes[i], when);
         if (opts.onNote) run.later(c.perfOf(when), () => opts.onNote!(i, c.perfOf(when)));
       },
     ),
@@ -512,6 +548,60 @@ function playSequence(
   run.later(c.perfOf(c.start + end), () => run.stop(1));
   return run;
 }
+
+/**
+ * A gapless loop on its own channel: it neither stops nor is stopped by
+ * playSequence, so a beat and a melody can run together. `notes()` and
+ * `lengthSec()` are read again at every loop start, so edits are heard on the
+ * next pass. Notes are handed to the voices 1 s ahead, like every sequence.
+ * `onLoop(perfAt, lengthSec)` fires at the performance-clock start of each pass.
+ */
+function playLoop(opts: {
+  notes: () => SequenceNote[];
+  lengthSec: () => number;
+  onLoop?: (perfAt: number, lengthSec: number) => void;
+}): SequenceHandle {
+  const t = ready();
+  if (!t || !graph) return idleHandle();
+  const c = clock(t);
+  const run = createRun(t, graph.playback, c.startPerf);
+  const voiceFor = runVoices(t, run);
+  const raw = rawCtx(t);
+  const ctx = t.getContext();
+  let loopStart = c.start;
+  let length = Math.max(0.25, opts.lengthSec());
+  let list = [...opts.notes()].sort((a, b) => a.time - b.time);
+  let i = 0;
+  opts.onLoop?.(c.perfOf(loopStart), length);
+  const top = () => {
+    const horizon = ctx.currentTime + LOOKAHEAD_S;
+    for (let guard = 0; guard < 10_000; guard++) {
+      if (i >= list.length || list[i].time >= length) {
+        // The next pass is fetched only once it is inside the look-ahead.
+        if (loopStart + length > horizon) break;
+        loopStart += length;
+        length = Math.max(0.25, opts.lengthSec());
+        list = [...opts.notes()].sort((a, b) => a.time - b.time);
+        i = 0;
+        const perfAt = c.perfOf(loopStart);
+        const len = length;
+        run.later(perfAt, () => opts.onLoop?.(perfAt, len));
+        continue;
+      }
+      const when = loopStart + list[i].time;
+      if (when > horizon) break;
+      trigger(t, raw, voiceFor, run.bus, list[i], when);
+      i++;
+    }
+  };
+  const id = ctx.setInterval(top, TOPUP_S);
+  top();
+  run.disposers.push(() => ctx.clearInterval(id));
+  loopRuns.add(run);
+  void run.done.then(() => loopRuns.delete(run));
+  return run;
+}
+const loopRuns = new Set<Run>();
 
 // ---------------------------------------------------------------------------
 // Public surface
@@ -626,6 +716,24 @@ function kitHit(
 }
 
 let droneStop: (() => void) | null = null;
+
+// Auditioning a note on another sound (a piano-roll voice) without changing the live voice.
+const previewVoices = new Map<PlaybackSound, Voice>();
+function previewNote(
+  t: Tone,
+  sound: PlaybackSound,
+  midi: number,
+  durSec: number,
+  velocity: number,
+) {
+  let v = previewVoices.get(sound);
+  if (!v) {
+    v = makeVoice(t, sound);
+    v.connect(graph!.playback);
+    previewVoices.set(sound, v);
+  }
+  v.triggerAttackRelease(mtof(midi), durSec, t.immediate(), velocity);
+}
 
 let droneAnalyser: AnalyserNode | null = null;
 
@@ -745,10 +853,19 @@ async function renderWav(notes: SequenceNote[], durationSec: number): Promise<Bl
   const rendered = await t.Offline(
     () => {
       const bus = new t.Gain(1).toDestination();
-      const voice = makeVoice(t, sound);
-      voice.connect(bus);
+      // Each voice's own sound, the playback sound for the rest.
+      const voices = new Map<PlaybackSound, Voice>();
+      const voiceFor = (x: PlaybackSound = sound) => {
+        let v = voices.get(x);
+        if (!v) {
+          v = makeVoice(t, x);
+          v.connect(bus);
+          voices.set(x, v);
+        }
+        return v;
+      };
       const raw = rawCtx(t);
-      for (const n of notes) trigger(t, raw, voice, bus, n, n.time);
+      for (const n of notes) trigger(t, raw, voiceFor, bus, n, n.time);
     },
     durationSec + 0.5, // tail so the last note rings out
     2,
@@ -815,6 +932,7 @@ function celebrate(kind: "clean" | "best") {
 function stopAll() {
   currentSeq?.stop();
   currentSeq = null;
+  loopRuns.forEach((r) => r.stop());
   metronome.stop();
   drone.stop();
   blobRuns.forEach((r) => r.stop());
@@ -851,9 +969,11 @@ export const audio = {
   },
   /** Call from a click or key handler: browsers only start audio after a gesture. */
   unlock,
-  playNote(midi: number, durSec = 0.6, velocity = 0.8) {
+  playNote(midi: number, durSec = 0.6, velocity = 0.8, sound?: PlaybackSound) {
     const t = ready();
-    if (t && live) live.triggerAttackRelease(mtof(midi), durSec, t.immediate(), velocity);
+    if (!t || !graph) return;
+    if (sound && sound !== liveSound) return previewNote(t, sound, midi, durSec, velocity);
+    live?.triggerAttackRelease(mtof(midi), durSec, t.immediate(), velocity);
   },
   /** Sound a note while it is held (on-screen keys); pair with noteOff. */
   noteOn(midi: number, velocity = 0.8) {
@@ -870,6 +990,7 @@ export const audio = {
       live.triggerAttackRelease(midis.map(mtof), durSec, t.immediate(), velocity);
   },
   playSequence,
+  playLoop,
   /** Stop the current sequence (route exit). */
   stopSequence() {
     currentSeq?.stop();

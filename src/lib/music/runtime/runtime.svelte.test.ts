@@ -345,6 +345,31 @@ async function withGesture<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 describe("audio engine (headless: clocks and handles only; nothing audible is verified)", () => {
+  it("loops gaplessly on its own channel, re-reading the notes each pass", async () => {
+    const { audio } = await import("./audio.svelte");
+    expect(await withGesture(() => audio.unlock())).toBe(true);
+    const passes: number[] = [];
+    let reads = 0;
+    const loop = audio.playLoop({
+      notes: () => {
+        reads++;
+        return [{ midi: 36, time: 0, duration: 0.1, voice: "drum" as const }];
+      },
+      lengthSec: () => 0.4,
+      onLoop: (perfAt) => passes.push(perfAt),
+    });
+    // A regular sequence starting does not stop the loop (beat plus melody).
+    const seq = audio.playSequence([{ midi: 60, time: 0, duration: 0.1 }]);
+    await expect.poll(() => passes.length, { timeout: 4000 }).toBeGreaterThanOrEqual(4);
+    expect(loop.playing).toBe(true);
+    // Passes are exactly one loop length apart on the performance clock.
+    for (let k = 1; k < passes.length; k++) expect(passes[k] - passes[k - 1]).toBeCloseTo(400, 6);
+    expect(reads).toBeGreaterThanOrEqual(passes.length);
+    loop.stop();
+    seq.stop();
+    expect(loop.playing).toBe(false);
+  });
+
   it("projects the audio start onto performance.now() and fires note callbacks on time", async () => {
     const { audio } = await import("./audio.svelte");
     expect(await withGesture(() => audio.unlock())).toBe(true);

@@ -306,7 +306,9 @@ export type PlaybackSound =
   | "synth"
   | "e-piano"
   | "square"
-  | "saw";
+  | "saw"
+  | "bass"
+  | "pad";
 
 export interface Settings {
   echoCancellation: boolean;

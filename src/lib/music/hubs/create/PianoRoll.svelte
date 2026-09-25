@@ -1,11 +1,10 @@
 <script lang="ts">
   // A multitrack note editor over the canonical score. The grid scrolls inside
   // its own box (it never widens the page); a cursor gives it a keyboard path.
-  import { onDestroy, onMount } from "svelte";
+  // It plays on the shared Create transport, together with the beat.
+  import { onMount } from "svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
   import Plus from "lucide-svelte/icons/plus";
   import Pencil from "lucide-svelte/icons/pencil";
   import MoveH from "lucide-svelte/icons/move-horizontal";
@@ -13,26 +12,31 @@
   import AudioLines from "lucide-svelte/icons/audio-lines";
   import { isBlackKey, noteName } from "@repo/music-core";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
-  import { audio, db, getSetting, putSetting, type SequenceHandle } from "$lib/music/runtime";
+  import Volume from "lucide-svelte/icons/volume-2";
+  import VolumeOff from "lucide-svelte/icons/volume-off";
+  import Save from "lucide-svelte/icons/save";
+  import { audio, db } from "$lib/music/runtime";
+  import { session } from "./session.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
   import { download } from "./files";
   import {
     BAR_BEATS,
     docToScore,
-    emptyDoc,
     mapVoice,
     newVoice,
     noteAt,
     resizeNote,
-    ROLL_KEY,
+    ROLL_SOUNDS,
+    rollNotes,
     rollRange,
+    soundOf,
     scoreToDoc,
     setVelocity,
     toggleNote,
     trackColour,
     type RollDoc,
   } from "./roll";
-  import { fileStem, scoreToSequence, STEP_BEATS, takeToScore, type MidiTake } from "$lib/music/takes";
+  import { fileStem, STEP_BEATS, takeToScore, type MidiTake } from "$lib/music/takes";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 
@@ -47,20 +51,17 @@
     { beats: 4, label: "Whole" },
   ];
 
-  const firstVoice = crypto.randomUUID();
-  let doc = $state<RollDoc>(emptyDoc(firstVoice));
-  let loaded = false;
-  let activeId = $state<string>(firstVoice);
+  // The roll edits the session's document; `doc` is read-only here, `set` writes.
+  const doc = $derived(session.doc);
+  let activeId = $state<string>(session.doc.voices[0]?.id ?? "");
   let tool = $state<"draw" | "resize">("draw");
   let noteLen = $state(0.5);
   let stepW = $state(22);
   let cursor = $state({ midi: 60, step: 0 });
-  let playing = $state(false);
-  let playBeat = $state(-1);
+  const playing = $derived(session.playing);
+  const playBeat = $derived(session.rollBeat);
   let busy = $state(false);
   let confirm = $state<"clear" | "remove" | null>(null);
-  let handle: SequenceHandle | null = null;
-  let raf = 0;
   let grid: HTMLDivElement | undefined = $state();
   let scroller: HTMLDivElement | undefined = $state();
 
@@ -76,12 +77,8 @@
   const under = $derived(noteAt(active.notes, cursor.midi, cursor.step * STEP_BEATS));
 
   onMount(async () => {
-    const stored = await getSetting<RollDoc | null>(ROLL_KEY, null);
-    if (stored?.voices?.length) {
-      doc = stored;
-      activeId = stored.voices[0].id;
-    }
-    loaded = true;
+    await session.ready;
+    if (!doc.voices.some((v) => v.id === activeId)) activeId = doc.voices[0]?.id ?? "";
     const takeId = page.url.searchParams.get("take");
     if (takeId) await openTake(takeId);
     scroller?.scrollTo({ top: y(72) - 8 });
@@ -96,21 +93,13 @@
     const voice = scoreToDoc(takeToScore(take, { bpm: doc.bpm, snap: true })).voices[0];
     const v = { ...voice, id: crypto.randomUUID(), name: take.name };
     const end = Math.max(0, ...v.notes.map((n) => n.startBeat + n.durationBeats));
-    doc = { ...doc, voices: [...doc.voices, v], lengthBeats: Math.max(doc.lengthBeats, Math.ceil(end / BAR_BEATS) * BAR_BEATS) };
+    set({ ...doc, voices: [...doc.voices, v], lengthBeats: Math.max(doc.lengthBeats, Math.ceil(end / BAR_BEATS) * BAR_BEATS) });
     activeId = v.id;
     announce(`Opened ${take.name} as a new voice, ${v.notes.length} notes snapped to sixteenths at ${doc.bpm} BPM.`);
   }
 
-  let saveTimer: ReturnType<typeof setTimeout> | undefined;
-  $effect(() => {
-    const snap = $state.snapshot(doc);
-    if (!loaded) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => void putSetting(ROLL_KEY, snap), 400);
-  });
-
   function set(next: RollDoc) {
-    doc = next;
+    session.doc = next;
     confirm = null;
   }
 
@@ -118,7 +107,7 @@
     const beat = step * STEP_BEATS;
     const had = noteAt(active.notes, midi, beat) >= 0;
     set(toggleNote(doc, active.id, midi, beat, noteLen));
-    if (!had) void audio.unlock().then(() => audio.playNote(midi, 0.4, active.velocity));
+    if (!had && !playing) void audio.unlock().then(() => audio.playNote(midi, 0.4, active.velocity, soundOf(active)));
     announce(`${had ? "Removed" : "Added"} ${where(midi, beat)} on ${active.name}.`);
   }
 
@@ -143,7 +132,7 @@
   function move(e: PointerEvent) {
     if (!drag) return;
     const c = cellOf(e);
-    doc = resizeNote(doc, active.id, drag.index, Math.ceil((c.beat - drag.start) / STEP_BEATS) * STEP_BEATS);
+    set(resizeNote(doc, active.id, drag.index, Math.ceil((c.beat - drag.start) / STEP_BEATS) * STEP_BEATS));
   }
   function up() {
     if (!drag) return;
@@ -206,38 +195,10 @@
     set(setVelocity(doc, active.id, best, 1 - (e.clientY - r.top - 4) / (LANE_H - 8)));
   }
 
-  function tick() {
-    if (!handle) return;
-    const t = (performance.now() - handle.startPerf) / 1000;
-    playBeat = t < 0 ? -1 : (t * doc.bpm) / 60;
-    raf = requestAnimationFrame(tick);
-  }
-  async function play() {
-    if (playing) return stop();
-    if (!noteCount) return announce("Add a few notes first.");
-    await audio.unlock();
-    const h = audio.playSequence(scoreToSequence(docToScore(doc, "roll")));
-    handle = h;
-    playing = true;
-    raf = requestAnimationFrame(tick);
-    announce(`Playing ${doc.title}.`);
-    void h.done.then(() => {
-      if (handle === h) stop(false);
-    });
-  }
-  function stop(say = true) {
-    handle?.stop();
-    handle = null;
-    playing = false;
-    cancelAnimationFrame(raf);
-    playBeat = -1;
-    if (say) announce("Stopped.");
-  }
-
   function exportMidi() {
     if (!noteCount) return announce("Add a few notes first.");
-    const name = `${fileStem(doc.title, "sketch")}.mid`;
-    download(scoreToMidi(docToScore(doc, crypto.randomUUID())), name, "audio/midi");
+    const name = `${fileStem(session.songName, "sketch")}.mid`;
+    download(scoreToMidi(docToScore({ ...doc, title: session.songName }, crypto.randomUUID())), name, "audio/midi");
     announce(`Downloading ${name}: ${doc.voices.length} ${doc.voices.length === 1 ? "track" : "tracks"}, ${noteCount} notes.`);
   }
   async function exportWav() {
@@ -245,8 +206,8 @@
     busy = true;
     announce("Rendering the WAV…");
     try {
-      const name = `${fileStem(doc.title, "sketch")}.wav`;
-      download(await audio.renderWav(scoreToSequence(docToScore(doc, "roll")), (doc.lengthBeats * 60) / doc.bpm), name, "audio/wav");
+      const name = `${fileStem(session.songName, "sketch")}.wav`;
+      download(await audio.renderWav(rollNotes(doc, doc.bpm), (doc.lengthBeats * 60) / doc.bpm), name, "audio/wav");
       announce(`Downloading ${name}.`);
     } catch (e) {
       announce(`The WAV could not be rendered: ${(e as Error).message}`);
@@ -276,11 +237,29 @@
     announce(`Removed ${name}.`);
   }
 
-  onDestroy(() => {
-    stop(false);
-    clearTimeout(saveTimer);
-    if (loaded) void putSetting(ROLL_KEY, $state.snapshot(doc));
-  });
+  function setSound(sound: string) {
+    const label = ROLL_SOUNDS.find((x) => x.value === sound)?.label ?? sound;
+    set(mapVoice(doc, active.id, (v) => ({ ...v, sound: sound as typeof v.sound })));
+    void audio.unlock().then(() => audio.playNote(60, 0.5, 0.8, sound as never));
+    announce(`${active.name} plays ${label}.`);
+  }
+  function toggleMute(id: string) {
+    const v = doc.voices.find((x) => x.id === id);
+    if (!v) return;
+    set(mapVoice(doc, id, (x) => ({ ...x, muted: !x.muted })));
+    announce(`${v.name} ${v.muted ? "on" : "muted"}.`);
+  }
+  async function saveVoice() {
+    if (!active.notes.length) return announce("Add some notes to this voice first.");
+    await session.saveVoice(active);
+    announce(`Saved the voice ${active.name}. Add it to any song from Saved voices.`);
+  }
+  function addSaved(id: string) {
+    const v = session.addSavedVoice(id);
+    if (!v) return;
+    activeId = v.id;
+    announce(`Added ${v.name} as a new voice.`);
+  }
 
   const field = "min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
   const lineBg = $derived(
@@ -289,21 +268,6 @@
 </script>
 
 <div class="flex flex-col gap-4">
-  <div class="flex flex-wrap items-end gap-3">
-    <label class="flex min-w-0 flex-1 basis-48 flex-col gap-1 text-sm">
-      <span class="text-ws-soft">Title</span>
-      <input class="{field} font-medium" value={doc.title} onchange={(e) => set({ ...doc, title: e.currentTarget.value || "Sketch" })} />
-    </label>
-    <label class="flex flex-col gap-1 text-sm">
-      <span class="text-ws-soft">Tempo, BPM</span>
-      <input type="number" min="40" max="240" class="{field} tnum w-24" value={doc.bpm} onchange={(e) => set({ ...doc, bpm: Math.round(Math.min(240, Math.max(40, e.currentTarget.valueAsNumber || doc.bpm))) })} />
-    </label>
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class={btn} onclick={exportMidi}><FileMusic class="size-4" aria-hidden="true" />Export MIDI</button>
-      <button type="button" class={btn} disabled={busy} onclick={exportWav}><AudioLines class="size-4" aria-hidden="true" />Export WAV</button>
-    </div>
-  </div>
-
   <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Voices">
     {#each doc.voices as v, i (v.id)}
       <button
@@ -317,16 +281,44 @@
       >
         <span class="size-3 rounded-full" style:background={trackColour(i)} aria-hidden="true"></span>{v.name}
         <span class="tnum text-xs font-normal text-ws-soft">{v.notes.length}</span>
+        {#if v.muted}<span class="text-xs font-normal text-ws-soft">muted</span>{/if}
+      </button>
+      <button
+        type="button"
+        class="-ml-1.5 grid size-11 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
+        aria-pressed={!!v.muted}
+        aria-label="{v.muted ? 'Unmute' : 'Mute'} {v.name}"
+        onclick={() => toggleMute(v.id)}
+      >
+        {#if v.muted}<VolumeOff class="size-4" aria-hidden="true" />{:else}<Volume class="size-4" aria-hidden="true" />{/if}
       </button>
     {/each}
     <button type="button" class="flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-medium text-instr-ink hover:bg-instr-wash" onclick={addVoice}><Plus class="size-4" aria-hidden="true" />Add voice</button>
+    {#if session.voices.length}
+      <select class={field} aria-label="Add a saved voice" value="" onchange={(e) => addSaved(e.currentTarget.value)}>
+        <option value="" disabled>Saved voices</option>
+        {#each session.voices as sv (sv.id)}<option value={sv.id}>{sv.name}, {ROLL_SOUNDS.find((x) => x.value === sv.sound)?.label ?? "Piano"}, {sv.notes.length} notes</option>{/each}
+      </select>
+    {/if}
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <label class="flex items-center gap-2 text-sm">
+      <span class="text-ws-soft">{active.name} plays</span>
+      <select class={field} value={soundOf(active)} onchange={(e) => setSound(e.currentTarget.value)}>
+        {#each ROLL_SOUNDS as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
+      </select>
+    </label>
+    <button type="button" class={btn} onclick={saveVoice}><Save class="size-4" aria-hidden="true" />Save this voice</button>
+    <span class="flex-1"></span>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class={btn} onclick={exportMidi}><FileMusic class="size-4" aria-hidden="true" />Export MIDI</button>
+      <button type="button" class={btn} disabled={busy} onclick={exportWav}><AudioLines class="size-4" aria-hidden="true" />Export WAV</button>
+    </div>
   </div>
 
   <section class="stage rounded-3xl p-3 sm:p-4" aria-label="Piano roll">
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <button type="button" class="flex min-h-12 items-center gap-2 rounded-full bg-instr px-5 font-display font-semibold text-ws-stage hover:brightness-105" aria-pressed={playing} onclick={play}>
-        {#if playing}<Square class="size-5" aria-hidden="true" />Stop{:else}<Play class="size-5" aria-hidden="true" />Play{/if}
-      </button>
       <div class="flex rounded-full bg-ws-stage-ink/10 p-1" role="group" aria-label="Tool">
         <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'draw' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "draw"} onclick={() => (tool = "draw")}><Pencil class="size-4" aria-hidden="true" />Draw</button>
         <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'resize' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "resize"} onclick={() => (tool = "resize")}><MoveH class="size-4" aria-hidden="true" />Resize</button>

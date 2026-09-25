@@ -1,6 +1,7 @@
 // The piano roll's document: voices of notes on a sixteenth grid, convertible
 // to and from the canonical score. Pure.
-import type { Score, ScoreNote } from "@repo/music-core";
+import type { PlaybackSound, Score, ScoreNote } from "@repo/music-core";
+import type { SequenceNote } from "$lib/music/runtime/audio.svelte";
 import { STEP_BEATS } from "$lib/music/takes";
 
 export const ROLL_KEY = "music.piano-roll";
@@ -11,6 +12,48 @@ export interface RollVoice {
   /** Velocity new notes get (0..1). */
   velocity: number;
   notes: ScoreNote[];
+  /** The instrument this voice plays (default the sampled piano). */
+  sound?: PlaybackSound;
+  muted?: boolean;
+}
+
+/** What a voice can sound like. Bass and pad are here for backing tracks. */
+export const ROLL_SOUNDS: { value: PlaybackSound; label: string }[] = [
+  { value: "salamander-piano", label: "Piano" },
+  { value: "e-piano", label: "E-Piano" },
+  { value: "warm-synth", label: "Warm synth" },
+  { value: "synth", label: "Synth" },
+  { value: "bass", label: "Bass" },
+  { value: "pad", label: "Pad" },
+  { value: "square", label: "Square lead" },
+  { value: "saw", label: "Saw lead" },
+];
+export const soundOf = (v: Pick<RollVoice, "sound">): PlaybackSound =>
+  v.sound ?? "salamander-piano";
+
+/** Every unmuted voice as sequence notes on its own sound, `loopBars` long at `bpm`. */
+export function rollNotes(
+  doc: RollDoc,
+  bpm: number,
+  loopBars = doc.lengthBeats / BAR_BEATS,
+): SequenceNote[] {
+  const beatS = 60 / bpm;
+  const end = loopBars * BAR_BEATS;
+  const out: SequenceNote[] = [];
+  const len = doc.lengthBeats;
+  for (let base = 0; base < end; base += len)
+    for (const v of doc.voices)
+      if (!v.muted)
+        for (const n of v.notes)
+          if (base + n.startBeat < end)
+            out.push({
+              midi: n.midi,
+              time: (base + n.startBeat) * beatS,
+              duration: Math.min(n.durationBeats, end - base - n.startBeat) * beatS,
+              velocity: n.velocity ?? v.velocity,
+              sound: soundOf(v),
+            });
+  return out;
 }
 export interface RollDoc {
   title: string;

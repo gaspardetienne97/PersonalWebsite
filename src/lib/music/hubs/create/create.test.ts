@@ -19,12 +19,22 @@ import {
   toExportKit,
   toRuntimeKit,
 } from "./kits";
-import { isOn, patternToSequence, toggleStep, type BeatPattern } from "./pattern";
+import {
+  addBar,
+  beatNotes,
+  isOn,
+  PRESETS,
+  removeBar,
+  stepsOf,
+  toggleStep,
+  type BeatPattern,
+} from "./pattern";
 import {
   docToScore,
   emptyDoc,
   noteAt,
   resizeNote,
+  rollNotes,
   rollRange,
   scoreToDoc,
   toggleNote,
@@ -107,21 +117,66 @@ describe("sample kits", () => {
 
 describe("beat pattern", () => {
   const p: BeatPattern = { id: "p", name: "p", bpm: 120, steps: {}, updatedAt: 0 };
-  it("toggles steps and schedules sixteenths on the kit voice", () => {
+  it("toggles steps and schedules sixteenths on the kit voice, repeating to fill the loop", () => {
     let q = toggleStep(toggleStep(p, 36, 0), 38, 4);
     expect(isOn(q, 36, 0)).toBe(true);
     q = toggleStep(q, 38, 4);
     expect(q.steps).toEqual({ 36: [0] });
-    const seq = patternToSequence(toggleStep(q, 42, 2), 2);
-    const hits = seq.filter((n) => n.midi !== 0);
-    expect(hits.map((n) => [n.midi, n.time, n.voice])).toEqual([
+    // A one-bar beat in a two-bar loop plays twice. At 120 BPM a sixteenth is 0.125 s.
+    const seq = beatNotes(toggleStep(q, 42, 2), 120, 2);
+    expect(seq.map((n) => [n.midi, n.time, n.voice])).toEqual([
       [36, 0, "kit"],
       [42, 0.25, "kit"],
       [36, 2, "kit"],
       [42, 2.25, "kit"],
     ]);
-    // The loop marker keeps the sequence a whole number of bars long.
-    expect(Math.max(...seq.map((n) => n.time + n.duration))).toBeCloseTo(4);
+  });
+  it("grows by copying the last bar and shrinks by dropping it", () => {
+    const one = { ...p, steps: { 36: [0, 8], 38: [4, 12] } };
+    const two = addBar(one);
+    expect(two.bars).toBe(2);
+    expect(stepsOf(two)).toBe(32);
+    expect(two.steps).toEqual({ 36: [0, 8, 16, 24], 38: [4, 12, 20, 28] });
+    expect(removeBar(two)).toEqual({ ...one, bars: 1 });
+    expect(removeBar(one)).toBe(one); // never below one bar
+  });
+  it("ships presets whose hits all sit inside their bars, the verified grooves among them", () => {
+    for (const pr of PRESETS)
+      for (const steps of Object.values(pr.steps))
+        for (const s of steps) expect(s).toBeLessThan(pr.bars * 16);
+    const boom = PRESETS.find((x) => x.id === "boom-bap-2bar")!;
+    expect(boom.bars).toBe(2);
+    expect(boom.steps[36]).toEqual([0, 10, 16, 24, 27]); // kick 1, 3&, then 1, 3, 3a
+  });
+});
+
+describe("piano roll voices", () => {
+  it("plays each unmuted voice on its own sound, repeating the roll to fill the loop", () => {
+    const d = {
+      ...emptyDoc("a"),
+      lengthBeats: 4,
+      voices: [
+        {
+          id: "a",
+          name: "Bass",
+          velocity: 0.8,
+          sound: "bass" as const,
+          notes: [{ midi: 36, startBeat: 0, durationBeats: 1 }],
+        },
+        {
+          id: "b",
+          name: "Lead",
+          velocity: 0.8,
+          muted: true,
+          notes: [{ midi: 72, startBeat: 1, durationBeats: 1 }],
+        },
+      ],
+    };
+    const notes = rollNotes(d, 120, 2); // a one-bar roll in a two-bar loop
+    expect(notes.map((n) => [n.midi, n.time, n.sound])).toEqual([
+      [36, 0, "bass"],
+      [36, 2, "bass"],
+    ]);
   });
 });
 
