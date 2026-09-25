@@ -14,6 +14,7 @@
   import CalibrationPanel from "$lib/music/hubs/tools/settings/CalibrationPanel.svelte";
   import DataSection from "$lib/music/hubs/tools/settings/DataSection.svelte";
   import { btn } from "$lib/music/components/ui";
+  import Hint from "$lib/music/components/Hint.svelte";
   import { audio, mic, midi, settings } from "$lib/music/runtime";
 
   const s = $derived(settings.value);
@@ -181,8 +182,7 @@
         {/each}
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p id="onscreen-l" class="font-medium">On-screen instruments make sound</p>
-            <p class="text-sm text-ws-soft">Keys, frets and pads you tap or play from the computer keyboard sound like the instrument. MIDI devices make their own sound.</p>
+            <p class="flex items-center gap-1 font-medium"><span id="onscreen-l">On-screen instruments make sound</span><Hint about="On-screen instruments make sound" text="Keys, frets and pads you tap or play from the computer keyboard sound like the instrument. MIDI devices make their own sound." /></p>
           </div>
           {@render toggle("onscreen-l", s.onscreenSound, (v) => settings.update({ onscreenSound: v }))}
         </li>
@@ -197,10 +197,10 @@
       {@render note("input")}
       <ul class={listCls}>
         <li class={rowCls}>
-          <label for="mic-device" class="min-w-0 flex-1 basis-48">
-            <span class="block font-medium">Audio input</span>
-            <span class="block text-sm text-ws-soft">Device names appear once you have allowed the microphone for this site.</span>
-          </label>
+          <div class="flex min-w-0 flex-1 basis-48 items-center gap-1">
+            <label for="mic-device" class="font-medium">Audio input</label>
+            <Hint about="audio input" text="Device names appear once you have allowed the microphone for this site." />
+          </div>
           <select
             id="mic-device"
             class="min-h-11 w-full min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm sm:w-64"
@@ -216,8 +216,7 @@
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p id="echo-l" class="font-medium">Echo cancellation</p>
-            <p class="text-sm text-ws-soft">Off is better for pitch and timing. Turn it on if the speakers bleed into the mic. Applies the next time the microphone starts.</p>
+            <p class="flex items-center gap-1 font-medium"><span id="echo-l">Echo cancellation</span><Hint about="Echo cancellation" text="Off is better for pitch and timing. Turn it on if the speakers bleed into the mic. Applies the next time the microphone starts." /></p>
           </div>
           {@render toggle("echo-l", s.echoCancellation, (v) => settings.update({ echoCancellation: v }))}
         </li>
@@ -225,16 +224,12 @@
     </section>
 
     <section id="latency" aria-labelledby="latency-h" class="scroll-mt-20">
-      {@render heading("latency-h", "Latency calibration", Timer)}
+      {@render heading("latency-h", "Latency calibration", Timer, "An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement.")}
       {@render note("latency")}
-      <p class="mb-3 max-w-prose text-sm text-ws-soft">
-        An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement.
-      </p>
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="font-medium">Browser-reported output latency</p>
-            <p class="text-sm text-ws-soft">Diagnostic only, never applied to scoring.</p>
+            <p class="flex items-center gap-1 font-medium">Browser-reported output latency<Hint about="output latency" text="Diagnostic only, never applied to scoring." /></p>
           </div>
           <p class="tnum text-sm">
             Output {ms(latency.outputLatencyMs)}, base {ms(latency.baseLatencyMs)}
@@ -293,15 +288,13 @@
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p id="motion-l" class="font-medium">Reduce motion</p>
-            <p class="text-sm text-ws-soft">Stops animations and transitions everywhere in Woodshed. Your system setting is respected either way.</p>
+            <p class="flex items-center gap-1 font-medium"><span id="motion-l">Reduce motion</span><Hint about="Reduce motion" text="Stops animations and transitions everywhere in Woodshed. Your system setting is respected either way." /></p>
           </div>
           {@render toggle("motion-l", s.reduceMotion, (v) => settings.update({ reduceMotion: v }))}
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p id="hue-l" class="font-medium">Instrument colour coding</p>
-            <p class="text-sm text-ws-soft">Each instrument gets its own colour: piano brass, guitar coral, pads magenta. Off uses one colour throughout.</p>
+            <p class="flex items-center gap-1 font-medium"><span id="hue-l">Instrument colour coding</span><Hint about="Instrument colour coding" text="Each instrument gets its own colour: piano brass, guitar coral, pads magenta. Off uses one colour throughout." /></p>
           </div>
           {@render toggle("hue-l", s.instrumentColorCoding, (v) => settings.update({ instrumentColorCoding: v }))}
         </li>
@@ -314,8 +307,7 @@
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p id="goal-l" class="font-medium">Weekly session goal</p>
-            <p class="text-sm text-ws-soft">How many sessions a week counts as a good week.</p>
+            <p class="flex items-center gap-1 font-medium"><span id="goal-l">Weekly session goal</span><Hint about="Weekly session goal" text="How many sessions a week counts as a good week." /></p>
           </div>
           <div class="flex items-center gap-1" role="group" aria-labelledby="goal-l">
             <button type="button" class="{btn} w-11 px-0" aria-label="One fewer session" disabled={s.weeklySessionGoal <= 1} onclick={() => settings.update({ weeklySessionGoal: s.weeklySessionGoal - 1 })}>−</button>
@@ -327,9 +319,8 @@
     </section>
 
     <section id="data" aria-labelledby="data-h" class="scroll-mt-20">
-      {@render heading("data-h", "Your data", Database)}
+      {@render heading("data-h", "Your data", Database, "Everything stays in this browser. Backups are files you keep; there is no account and no server copy.")}
       {@render note("data")}
-      <p class="mb-3 max-w-prose text-sm text-ws-soft">Everything stays in this browser. Backups are files you keep; there is no account and no server copy.</p>
       <DataSection announce={announceIn("data")} {rowCls} />
     </section>
 
@@ -337,10 +328,13 @@
   </div>
 </div>
 
-{#snippet heading(id: string, label: string, Icon: typeof Volume2)}
-  <h2 {id} class="mb-3 flex items-center gap-2 font-display text-xl font-semibold">
-    <span class="grid size-8 place-items-center rounded-lg bg-instr-wash text-instr-ink" aria-hidden="true"><Icon class="size-4" /></span>{label}
-  </h2>
+{#snippet heading(id: string, label: string, Icon: typeof Volume2, hint?: string)}
+  <div class="mb-3 flex items-center gap-1">
+    <h2 {id} class="flex items-center gap-2 font-display text-xl font-semibold">
+      <span class="grid size-8 place-items-center rounded-lg bg-instr-wash text-instr-ink" aria-hidden="true"><Icon class="size-4" /></span>{label}
+    </h2>
+    {#if hint}<Hint about={label.toLowerCase()} text={hint} />{/if}
+  </div>
 {/snippet}
 
 {#snippet toggle(labelId: string, on: boolean, set: (v: boolean) => void)}

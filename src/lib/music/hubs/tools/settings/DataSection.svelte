@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Hint from "$lib/music/components/Hint.svelte";
   // Your data (catalog 5.14): journal export, data backup, full backup with
   // media, restore of either, and the one place that may delete user data.
   import Download from "lucide-svelte/icons/download";
@@ -182,15 +183,13 @@
 <ul class="divide-y divide-ws-line overflow-hidden rounded-2xl border border-ws-line bg-ws-surface">
   <li class={rowCls}>
     <div class="min-w-0 flex-1 basis-56">
-      <p class="font-medium">Export journal</p>
-      <p class="text-sm text-ws-soft">Every practice session as a JSON file.</p>
+      <p class="flex items-center gap-1 font-medium">Export journal<Hint about="export journal" text="Every practice session as a JSON file." /></p>
     </div>
     <button type="button" class={btn} onclick={exportJournal}><Download class="size-4" aria-hidden="true" />Export journal</button>
   </li>
   <li class={rowCls}>
     <div class="min-w-0 flex-1 basis-56">
-      <p class="font-medium">Back up your data</p>
-      <p class="text-sm text-ws-soft">Data only is a small JSON of every table. Full adds your recordings and kit samples in a ZIP.</p>
+      <p class="flex items-center gap-1 font-medium">Back up your data<Hint about="back up your data" text="Data only is a small JSON of every table. Full adds your recordings and kit samples in a ZIP." /></p>
     </div>
     <div class="flex flex-wrap gap-2">
       <button type="button" class={btn} disabled={busy} onclick={() => prepare("data")}>Prepare data backup</button>
@@ -218,8 +217,7 @@
   {/if}
   <li class={rowCls}>
     <div class="min-w-0 flex-1 basis-56">
-      <p class="font-medium">Restore from a backup</p>
-      <p class="text-sm text-ws-soft">A data backup (.json) or a full backup (.zip). You see what changes before anything is replaced.</p>
+      <p class="flex items-center gap-1 font-medium">Restore from a backup<Hint about="restore from a backup" text="A data backup (.json) or a full backup (.zip). You see what changes before anything is replaced." /></p>
     </div>
     <label class="{btn} cursor-pointer focus-within:outline-2 focus-within:outline-instr-ink">
       <Upload class="size-4" aria-hidden="true" />Choose backup file

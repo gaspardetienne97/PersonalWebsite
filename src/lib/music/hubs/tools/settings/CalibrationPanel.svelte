@@ -4,6 +4,7 @@
 </script>
 
 <script lang="ts">
+  import Hint from "$lib/music/components/Hint.svelte";
   // Tap-along latency calibration (hardware notes 7): 20 clicks at 90 BPM, taps
   // from the panel's own source, scored by estimateOffset. The router already
   // subtracted the saved offset from MIDI and microphone events, so it is added
@@ -184,8 +185,7 @@
 <div class="flex flex-col gap-3 px-4 py-4" data-testid="cal-{id}">
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div class="min-w-0 flex-1 basis-56">
-      <p class="font-medium">{title}</p>
-      <p class="text-sm text-ws-soft">{blurb}</p>
+      <p class="flex items-center gap-1 font-medium">{title}<Hint about="{title} calibration" text={blurb} /></p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <span class="tnum rounded-full bg-ws-raised px-3 py-1 text-sm" data-testid="offset-{id}">

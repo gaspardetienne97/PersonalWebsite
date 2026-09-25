@@ -438,7 +438,13 @@ test.describe("Settings", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
     await expect(page).toHaveTitle("Settings | Woodshed");
     await expect(page.getByText("Salamander Grand Piano by Alexander Holm")).toBeVisible();
-    await expect(page.getByText("Diagnostic only, never applied to scoring.")).toBeVisible();
+    // Explanations live in hints: out of the flow, still described for screen readers.
+    const hint = page.getByRole("button", { name: "About output latency" });
+    await expect(hint).toHaveAccessibleDescription("Diagnostic only, never applied to scoring.");
+    await hint.hover();
+    await expect(
+      page.getByText("Diagnostic only, never applied to scoring.").filter({ visible: true }),
+    ).toBeVisible();
     await shootSettings(page, "settings");
   });
 
