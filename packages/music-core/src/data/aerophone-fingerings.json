@@ -1,0 +1,330 @@
+{
+  "range": {
+    "lowestMidi": 58,
+    "highestMidi": 78
+  },
+  "keys": [
+    {
+      "id": "k1",
+      "label": "LH index"
+    },
+    {
+      "id": "k2",
+      "label": "LH middle"
+    },
+    {
+      "id": "k3",
+      "label": "LH ring"
+    },
+    {
+      "id": "k4",
+      "label": "RH index"
+    },
+    {
+      "id": "k5",
+      "label": "RH middle"
+    },
+    {
+      "id": "k6",
+      "label": "RH ring"
+    },
+    {
+      "id": "bisBb",
+      "label": "Bis Bb"
+    },
+    {
+      "id": "gsharp",
+      "label": "G#"
+    },
+    {
+      "id": "lowCsharp",
+      "label": "Low C#"
+    },
+    {
+      "id": "lowB",
+      "label": "Low B"
+    },
+    {
+      "id": "lowBb",
+      "label": "Low Bb"
+    },
+    {
+      "id": "sideE",
+      "label": "Side E"
+    },
+    {
+      "id": "sideC",
+      "label": "Side C"
+    },
+    {
+      "id": "sideBb",
+      "label": "Side Bb"
+    },
+    {
+      "id": "eb",
+      "label": "Eb"
+    },
+    {
+      "id": "lowC",
+      "label": "Low C"
+    },
+    {
+      "id": "palm1",
+      "label": "Palm 1"
+    },
+    {
+      "id": "palm2",
+      "label": "Palm 2"
+    },
+    {
+      "id": "palm3",
+      "label": "Palm 3"
+    },
+    {
+      "id": "palm4",
+      "label": "Palm 4"
+    },
+    {
+      "id": "front",
+      "label": "Front"
+    },
+    {
+      "id": "blackL1",
+      "label": "Left black 1"
+    },
+    {
+      "id": "blackL2",
+      "label": "Left black 2"
+    },
+    {
+      "id": "blackL3",
+      "label": "Left black 3"
+    },
+    {
+      "id": "blackR1",
+      "label": "Right black 1"
+    },
+    {
+      "id": "blackR2",
+      "label": "Right black 2"
+    },
+    {
+      "id": "blackR3",
+      "label": "Right black 3"
+    }
+  ],
+  "fingeringsByMidi": {
+    "58": {
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowBb"],
+      "octave": false
+    },
+    "59": {
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowB"],
+      "octave": false
+    },
+    "60": {
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowC"],
+      "octave": false
+    },
+    "61": {
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowCsharp"],
+      "octave": false
+    },
+    "62": {
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6"],
+      "octave": false
+    },
+    "63": {
+      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
+      "octave": false
+    },
+    "64": {
+      "keys": ["k1", "k2", "k3", "k4", "k5"],
+      "octave": false
+    },
+    "65": {
+      "keys": ["k1", "k2", "k3", "k4"],
+      "octave": false
+    },
+    "66": {
+      "keys": ["k1", "k2", "k3", "k5"],
+      "octave": false
+    },
+    "67": {
+      "keys": ["k1", "k2", "k3"],
+      "octave": false
+    },
+    "68": {
+      "keys": ["k1", "k2", "k3", "gsharp"],
+      "octave": false
+    },
+    "69": {
+      "keys": ["k1", "k2"],
+      "octave": false
+    },
+    "70": {
+      "keys": ["k1", "bisBb"],
+      "octave": false
+    },
+    "71": {
+      "keys": ["k1"],
+      "octave": false
+    },
+    "72": {
+      "keys": ["sideC"],
+      "octave": false
+    },
+    "73": {
+      "keys": [],
+      "octave": false
+    },
+    "74": {
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6"],
+      "octave": true
+    },
+    "75": {
+      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
+      "octave": true
+    },
+    "76": {
+      "keys": ["k1", "k2", "k3", "k4", "k5"],
+      "octave": true
+    },
+    "77": {
+      "keys": ["k1", "k2", "k3", "k4"],
+      "octave": true
+    },
+    "78": {
+      "keys": ["k1", "k2", "k3", "k5"],
+      "octave": true
+    }
+  },
+  "chart": [
+    {
+      "midi": 58,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowBb"],
+      "octave": false
+    },
+    {
+      "midi": 59,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowB"],
+      "octave": false
+    },
+    {
+      "midi": 60,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowC"],
+      "octave": false
+    },
+    {
+      "midi": 61,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowCsharp"],
+      "octave": false
+    },
+    {
+      "midi": 62,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6"],
+      "octave": false
+    },
+    {
+      "midi": 63,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
+      "octave": false
+    },
+    {
+      "midi": 64,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5"],
+      "octave": false
+    },
+    {
+      "midi": 65,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4"],
+      "octave": false
+    },
+    {
+      "midi": 66,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k5"],
+      "octave": false
+    },
+    {
+      "midi": 67,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3"],
+      "octave": false
+    },
+    {
+      "midi": 68,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "gsharp"],
+      "octave": false
+    },
+    {
+      "midi": 69,
+      "inRange": true,
+      "keys": ["k1", "k2"],
+      "octave": false
+    },
+    {
+      "midi": 70,
+      "inRange": true,
+      "keys": ["k1", "bisBb"],
+      "octave": false
+    },
+    {
+      "midi": 71,
+      "inRange": true,
+      "keys": ["k1"],
+      "octave": false
+    },
+    {
+      "midi": 72,
+      "inRange": true,
+      "keys": ["sideC"],
+      "octave": false
+    },
+    {
+      "midi": 73,
+      "inRange": true,
+      "keys": [],
+      "octave": false
+    },
+    {
+      "midi": 74,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6"],
+      "octave": true
+    },
+    {
+      "midi": 75,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
+      "octave": true
+    },
+    {
+      "midi": 76,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4", "k5"],
+      "octave": true
+    },
+    {
+      "midi": 77,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k4"],
+      "octave": true
+    },
+    {
+      "midi": 78,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "k5"],
+      "octave": true
+    }
+  ]
+}

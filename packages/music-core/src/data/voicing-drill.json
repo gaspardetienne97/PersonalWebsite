@@ -1,0 +1,335 @@
+{
+  "defaultConfig": {
+    "instrument": "piano",
+    "variant": "major",
+    "startPosition": "A",
+    "strict": false,
+    "autoAdvance": true
+  },
+  "targets": [
+    {
+      "id": "C-Dm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Dm7",
+      "expectedPitchClasses": [2, 5, 9, 0, 4],
+      "expectedBassPc": 2,
+      "mode": "chord",
+      "displayMidi": [62, 65, 69, 72, 76]
+    },
+    {
+      "id": "C-G7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "G7",
+      "expectedPitchClasses": [7, 5, 9, 11, 2],
+      "expectedBassPc": 7,
+      "mode": "chord",
+      "displayMidi": [67, 77, 81, 83, 86]
+    },
+    {
+      "id": "C-Cmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Cmaj7",
+      "expectedPitchClasses": [0, 4, 7, 11, 2],
+      "expectedBassPc": 0,
+      "mode": "chord",
+      "displayMidi": [60, 64, 67, 71, 74]
+    },
+    {
+      "id": "Bb-Cm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Cm7",
+      "expectedPitchClasses": [0, 3, 7, 10, 2],
+      "expectedBassPc": 0,
+      "mode": "chord",
+      "displayMidi": [72, 75, 79, 82, 86]
+    },
+    {
+      "id": "Bb-F7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "F7",
+      "expectedPitchClasses": [5, 3, 7, 9, 0],
+      "expectedBassPc": 5,
+      "mode": "chord",
+      "displayMidi": [77, 87, 91, 93, 96]
+    },
+    {
+      "id": "Bb-Bbmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Bbmaj7",
+      "expectedPitchClasses": [10, 2, 5, 9, 0],
+      "expectedBassPc": 10,
+      "mode": "chord",
+      "displayMidi": [70, 74, 77, 81, 84]
+    },
+    {
+      "id": "Ab-Bbm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Bbm7",
+      "expectedPitchClasses": [10, 1, 5, 8, 0],
+      "expectedBassPc": 10,
+      "mode": "chord",
+      "displayMidi": [70, 73, 77, 80, 84]
+    },
+    {
+      "id": "Ab-Eb7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Eb7",
+      "expectedPitchClasses": [3, 1, 5, 7, 10],
+      "expectedBassPc": 3,
+      "mode": "chord",
+      "displayMidi": [75, 85, 89, 91, 94]
+    },
+    {
+      "id": "Ab-Abmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Abmaj7",
+      "expectedPitchClasses": [8, 0, 3, 7, 10],
+      "expectedBassPc": 8,
+      "mode": "chord",
+      "displayMidi": [68, 72, 75, 79, 82]
+    },
+    {
+      "id": "Gb-Abm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Abm7",
+      "expectedPitchClasses": [8, 11, 3, 6, 10],
+      "expectedBassPc": 8,
+      "mode": "chord",
+      "displayMidi": [68, 71, 75, 78, 82]
+    },
+    {
+      "id": "Gb-Db7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Db7",
+      "expectedPitchClasses": [1, 11, 3, 5, 8],
+      "expectedBassPc": 1,
+      "mode": "chord",
+      "displayMidi": [73, 83, 87, 89, 92]
+    },
+    {
+      "id": "Gb-Gbmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Gbmaj7",
+      "expectedPitchClasses": [6, 10, 1, 5, 8],
+      "expectedBassPc": 6,
+      "mode": "chord",
+      "displayMidi": [66, 70, 73, 77, 80]
+    },
+    {
+      "id": "E-Gbm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Gbm7",
+      "expectedPitchClasses": [6, 9, 1, 4, 8],
+      "expectedBassPc": 6,
+      "mode": "chord",
+      "displayMidi": [66, 69, 73, 76, 80]
+    },
+    {
+      "id": "E-B7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "B7",
+      "expectedPitchClasses": [11, 9, 1, 3, 6],
+      "expectedBassPc": 11,
+      "mode": "chord",
+      "displayMidi": [71, 81, 85, 87, 90]
+    },
+    {
+      "id": "E-Emaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Emaj7",
+      "expectedPitchClasses": [4, 8, 11, 3, 6],
+      "expectedBassPc": 4,
+      "mode": "chord",
+      "displayMidi": [64, 68, 71, 75, 78]
+    },
+    {
+      "id": "D-Em7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Em7",
+      "expectedPitchClasses": [4, 7, 11, 2, 6],
+      "expectedBassPc": 4,
+      "mode": "chord",
+      "displayMidi": [64, 67, 71, 74, 78]
+    },
+    {
+      "id": "D-A7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "A7",
+      "expectedPitchClasses": [9, 7, 11, 1, 4],
+      "expectedBassPc": 9,
+      "mode": "chord",
+      "displayMidi": [69, 79, 83, 85, 88]
+    },
+    {
+      "id": "D-Dmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Dmaj7",
+      "expectedPitchClasses": [2, 6, 9, 1, 4],
+      "expectedBassPc": 2,
+      "mode": "chord",
+      "displayMidi": [62, 66, 69, 73, 76]
+    },
+    {
+      "id": "C#-Ebm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Ebm7",
+      "expectedPitchClasses": [3, 6, 10, 1, 5],
+      "expectedBassPc": 3,
+      "mode": "chord",
+      "displayMidi": [63, 66, 70, 73, 77]
+    },
+    {
+      "id": "C#-Ab7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Ab7",
+      "expectedPitchClasses": [8, 6, 10, 0, 3],
+      "expectedBassPc": 8,
+      "mode": "chord",
+      "displayMidi": [68, 78, 82, 84, 87]
+    },
+    {
+      "id": "C#-C#maj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "C#maj7",
+      "expectedPitchClasses": [1, 5, 8, 0, 3],
+      "expectedBassPc": 1,
+      "mode": "chord",
+      "displayMidi": [61, 65, 68, 72, 75]
+    },
+    {
+      "id": "B-Dbm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Dbm7",
+      "expectedPitchClasses": [1, 4, 8, 11, 3],
+      "expectedBassPc": 1,
+      "mode": "chord",
+      "displayMidi": [73, 76, 80, 83, 87]
+    },
+    {
+      "id": "B-Gb7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Gb7",
+      "expectedPitchClasses": [6, 4, 8, 10, 1],
+      "expectedBassPc": 6,
+      "mode": "chord",
+      "displayMidi": [78, 88, 92, 94, 97]
+    },
+    {
+      "id": "B-Bmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Bmaj7",
+      "expectedPitchClasses": [11, 3, 6, 10, 1],
+      "expectedBassPc": 11,
+      "mode": "chord",
+      "displayMidi": [71, 75, 78, 82, 85]
+    },
+    {
+      "id": "A-Bm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Bm7",
+      "expectedPitchClasses": [11, 2, 6, 9, 1],
+      "expectedBassPc": 11,
+      "mode": "chord",
+      "displayMidi": [71, 74, 78, 81, 85]
+    },
+    {
+      "id": "A-E7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "E7",
+      "expectedPitchClasses": [4, 2, 6, 8, 11],
+      "expectedBassPc": 4,
+      "mode": "chord",
+      "displayMidi": [76, 86, 90, 92, 95]
+    },
+    {
+      "id": "A-Amaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Amaj7",
+      "expectedPitchClasses": [9, 1, 4, 8, 11],
+      "expectedBassPc": 9,
+      "mode": "chord",
+      "displayMidi": [69, 73, 76, 80, 83]
+    },
+    {
+      "id": "G-Am7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Am7",
+      "expectedPitchClasses": [9, 0, 4, 7, 11],
+      "expectedBassPc": 9,
+      "mode": "chord",
+      "displayMidi": [69, 72, 76, 79, 83]
+    },
+    {
+      "id": "G-D7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "D7",
+      "expectedPitchClasses": [2, 0, 4, 6, 9],
+      "expectedBassPc": 2,
+      "mode": "chord",
+      "displayMidi": [74, 84, 88, 90, 93]
+    },
+    {
+      "id": "G-Gmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Gmaj7",
+      "expectedPitchClasses": [7, 11, 2, 6, 9],
+      "expectedBassPc": 7,
+      "mode": "chord",
+      "displayMidi": [67, 71, 74, 78, 81]
+    },
+    {
+      "id": "F-Gm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Gm7",
+      "expectedPitchClasses": [7, 10, 2, 5, 9],
+      "expectedBassPc": 7,
+      "mode": "chord",
+      "displayMidi": [67, 70, 74, 77, 81]
+    },
+    {
+      "id": "F-C7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "C7",
+      "expectedPitchClasses": [0, 10, 2, 4, 7],
+      "expectedBassPc": 0,
+      "mode": "chord",
+      "displayMidi": [72, 82, 86, 88, 91]
+    },
+    {
+      "id": "F-Fmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Fmaj7",
+      "expectedPitchClasses": [5, 9, 0, 4, 7],
+      "expectedBassPc": 5,
+      "mode": "chord",
+      "displayMidi": [65, 69, 72, 76, 79]
+    },
+    {
+      "id": "Eb-Fm7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Fm7",
+      "expectedPitchClasses": [5, 8, 0, 3, 7],
+      "expectedBassPc": 5,
+      "mode": "chord",
+      "displayMidi": [65, 68, 72, 75, 79]
+    },
+    {
+      "id": "Eb-Bb7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Bb7",
+      "expectedPitchClasses": [10, 8, 0, 2, 5],
+      "expectedBassPc": 10,
+      "mode": "chord",
+      "displayMidi": [70, 80, 84, 86, 89]
+    },
+    {
+      "id": "Eb-Ebmaj7",
+      "skillIds": ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"],
+      "symbol": "Ebmaj7",
+      "expectedPitchClasses": [3, 7, 10, 2, 5],
+      "expectedBassPc": 3,
+      "mode": "chord",
+      "displayMidi": [63, 67, 70, 74, 77]
+    }
+  ]
+}

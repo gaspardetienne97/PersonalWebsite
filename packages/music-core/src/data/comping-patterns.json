@@ -1,0 +1,330 @@
+{
+  "patterns": [
+    {
+      "id": "blue-third-c7",
+      "label": "Blue third over a C7 shell",
+      "chord": "C7",
+      "bpm": 84,
+      "bars": 2,
+      "swing": true,
+      "lick": [
+        {
+          "startBeat": 0,
+          "midiNote": 67,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 0.5,
+          "midiNote": 70,
+          "durationBeats": 0.5,
+          "finger": 3
+        },
+        {
+          "startBeat": 1,
+          "midiNote": 72,
+          "durationBeats": 1,
+          "finger": 4
+        },
+        {
+          "startBeat": 2,
+          "midiNote": 70,
+          "durationBeats": 0.5,
+          "finger": 3
+        },
+        {
+          "startBeat": 2.5,
+          "midiNote": 67,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 3,
+          "midiNote": 64,
+          "durationBeats": 1,
+          "finger": 1
+        },
+        {
+          "startBeat": 4,
+          "midiNote": 63,
+          "durationBeats": 0.5,
+          "finger": 1
+        },
+        {
+          "startBeat": 4.5,
+          "midiNote": 64,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 5,
+          "midiNote": 67,
+          "durationBeats": 1,
+          "finger": 3
+        },
+        {
+          "startBeat": 6,
+          "midiNote": 60,
+          "durationBeats": 2,
+          "finger": 1
+        }
+      ],
+      "compRhythm": [
+        {
+          "beat": 0,
+          "durationBeats": 1
+        },
+        {
+          "beat": 1.5,
+          "durationBeats": 0.5
+        }
+      ],
+      "shellMidi": [48, 58]
+    },
+    {
+      "id": "blue-third-f7",
+      "label": "Blue third over a F7 shell",
+      "chord": "F7",
+      "bpm": 84,
+      "bars": 2,
+      "swing": true,
+      "lick": [
+        {
+          "startBeat": 0,
+          "midiNote": 72,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 0.5,
+          "midiNote": 75,
+          "durationBeats": 0.5,
+          "finger": 3
+        },
+        {
+          "startBeat": 1,
+          "midiNote": 77,
+          "durationBeats": 1,
+          "finger": 4
+        },
+        {
+          "startBeat": 2,
+          "midiNote": 75,
+          "durationBeats": 0.5,
+          "finger": 3
+        },
+        {
+          "startBeat": 2.5,
+          "midiNote": 72,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 3,
+          "midiNote": 69,
+          "durationBeats": 1,
+          "finger": 1
+        },
+        {
+          "startBeat": 4,
+          "midiNote": 68,
+          "durationBeats": 0.5,
+          "finger": 1
+        },
+        {
+          "startBeat": 4.5,
+          "midiNote": 69,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 5,
+          "midiNote": 72,
+          "durationBeats": 1,
+          "finger": 3
+        },
+        {
+          "startBeat": 6,
+          "midiNote": 65,
+          "durationBeats": 2,
+          "finger": 1
+        }
+      ],
+      "compRhythm": [
+        {
+          "beat": 0,
+          "durationBeats": 1
+        },
+        {
+          "beat": 1.5,
+          "durationBeats": 0.5
+        }
+      ],
+      "shellMidi": [41, 51]
+    },
+    {
+      "id": "blue-third-g7",
+      "label": "Blue third over a G7 shell",
+      "chord": "G7",
+      "bpm": 84,
+      "bars": 2,
+      "swing": true,
+      "lick": [
+        {
+          "startBeat": 0,
+          "midiNote": 74,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 0.5,
+          "midiNote": 77,
+          "durationBeats": 0.5,
+          "finger": 3
+        },
+        {
+          "startBeat": 1,
+          "midiNote": 79,
+          "durationBeats": 1,
+          "finger": 4
+        },
+        {
+          "startBeat": 2,
+          "midiNote": 77,
+          "durationBeats": 0.5,
+          "finger": 3
+        },
+        {
+          "startBeat": 2.5,
+          "midiNote": 74,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 3,
+          "midiNote": 71,
+          "durationBeats": 1,
+          "finger": 1
+        },
+        {
+          "startBeat": 4,
+          "midiNote": 70,
+          "durationBeats": 0.5,
+          "finger": 1
+        },
+        {
+          "startBeat": 4.5,
+          "midiNote": 71,
+          "durationBeats": 0.5,
+          "finger": 2
+        },
+        {
+          "startBeat": 5,
+          "midiNote": 74,
+          "durationBeats": 1,
+          "finger": 3
+        },
+        {
+          "startBeat": 6,
+          "midiNote": 67,
+          "durationBeats": 2,
+          "finger": 1
+        }
+      ],
+      "compRhythm": [
+        {
+          "beat": 0,
+          "durationBeats": 1
+        },
+        {
+          "beat": 1.5,
+          "durationBeats": 0.5
+        }
+      ],
+      "shellMidi": [43, 53]
+    }
+  ],
+  "leftHandVoice": "left-hand",
+  "rightHandVoice": "right-hand",
+  "blueThirdC7": {
+    "id": "blue-third-c7",
+    "label": "Blue third over a C7 shell",
+    "chord": "C7",
+    "bpm": 84,
+    "bars": 2,
+    "swing": true,
+    "lick": [
+      {
+        "startBeat": 0,
+        "midiNote": 67,
+        "durationBeats": 0.5,
+        "finger": 2
+      },
+      {
+        "startBeat": 0.5,
+        "midiNote": 70,
+        "durationBeats": 0.5,
+        "finger": 3
+      },
+      {
+        "startBeat": 1,
+        "midiNote": 72,
+        "durationBeats": 1,
+        "finger": 4
+      },
+      {
+        "startBeat": 2,
+        "midiNote": 70,
+        "durationBeats": 0.5,
+        "finger": 3
+      },
+      {
+        "startBeat": 2.5,
+        "midiNote": 67,
+        "durationBeats": 0.5,
+        "finger": 2
+      },
+      {
+        "startBeat": 3,
+        "midiNote": 64,
+        "durationBeats": 1,
+        "finger": 1
+      },
+      {
+        "startBeat": 4,
+        "midiNote": 63,
+        "durationBeats": 0.5,
+        "finger": 1
+      },
+      {
+        "startBeat": 4.5,
+        "midiNote": 64,
+        "durationBeats": 0.5,
+        "finger": 2
+      },
+      {
+        "startBeat": 5,
+        "midiNote": 67,
+        "durationBeats": 1,
+        "finger": 3
+      },
+      {
+        "startBeat": 6,
+        "midiNote": 60,
+        "durationBeats": 2,
+        "finger": 1
+      }
+    ],
+    "compRhythm": [
+      {
+        "beat": 0,
+        "durationBeats": 1
+      },
+      {
+        "beat": 1.5,
+        "durationBeats": 0.5
+      }
+    ],
+    "shellMidi": [48, 58]
+  }
+}

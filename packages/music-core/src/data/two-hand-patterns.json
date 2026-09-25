@@ -1,0 +1,848 @@
+{
+  "options": [
+    {
+      "id": "lh-pulse-rh-line",
+      "label": "Pulse + line"
+    },
+    {
+      "id": "rh-pulse-lh-line",
+      "label": "Role swap"
+    },
+    {
+      "id": "lh-shell-rh-line",
+      "label": "Shell + line"
+    },
+    {
+      "id": "alberti-rh-holds",
+      "label": "Alberti + holds"
+    },
+    {
+      "id": "contrary-motion-scale",
+      "label": "Contrary scale"
+    },
+    {
+      "id": "contrary-five",
+      "label": "Mirror hands"
+    }
+  ],
+  "handModes": [
+    {
+      "id": "both",
+      "label": "Both"
+    },
+    {
+      "id": "left",
+      "label": "Left"
+    },
+    {
+      "id": "right",
+      "label": "Right"
+    }
+  ],
+  "majorSteps": [0, 2, 4, 5, 7, 9, 11],
+  "mirrorRightSteps": [0, 2, 4, 5, 7, 5, 4, 2],
+  "mirrorLeftSteps": [0, -1, -3, -5, -7, -5, -3, -1],
+  "mirrorFingers": [1, 2, 3, 4, 5, 4, 3, 2],
+  "leftShell": [0, 7, 10, 7],
+  "rightFragment": [0, 2, 4, 7, 9, 7, 4, 2],
+  "alberti": [0, 7, 4, 7],
+  "holds": [0, 4, 7, 12],
+  "examplesTonicC4Bpm80Bars2": {
+    "lh-pulse-rh-line": {
+      "patternKind": "lh-pulse-rh-line",
+      "patternLabel": "Pulse + line",
+      "splitMidi": 48,
+      "measuresTogether": false,
+      "melodyHand": "right",
+      "togetherWindowMs": 40,
+      "targetEvents": [
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 0
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 0
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 0.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 1
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 1
+        },
+        {
+          "hand": "right",
+          "midiNote": 65,
+          "beat": 1.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 69,
+          "beat": 2.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 71,
+          "beat": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 71,
+          "beat": 3.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 69,
+          "beat": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 4.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 5
+        },
+        {
+          "hand": "right",
+          "midiNote": 65,
+          "beat": 5
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 5.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 6
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 6
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 6.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 7
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 7
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 7.5
+        }
+      ]
+    },
+    "rh-pulse-lh-line": {
+      "patternKind": "rh-pulse-lh-line",
+      "patternLabel": "Role swap",
+      "splitMidi": 48,
+      "measuresTogether": false,
+      "melodyHand": "left",
+      "togetherWindowMs": 40,
+      "targetEvents": [
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 0
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 0
+        },
+        {
+          "hand": "left",
+          "midiNote": 38,
+          "beat": 0.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 40,
+          "beat": 1
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 1
+        },
+        {
+          "hand": "left",
+          "midiNote": 41,
+          "beat": 1.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 2
+        },
+        {
+          "hand": "left",
+          "midiNote": 45,
+          "beat": 2.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 47,
+          "beat": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 3
+        },
+        {
+          "hand": "left",
+          "midiNote": 47,
+          "beat": 3.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 45,
+          "beat": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 4
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 4.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 41,
+          "beat": 5
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 5
+        },
+        {
+          "hand": "left",
+          "midiNote": 40,
+          "beat": 5.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 38,
+          "beat": 6
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 6
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 6.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 7
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 7
+        },
+        {
+          "hand": "left",
+          "midiNote": 38,
+          "beat": 7.5
+        }
+      ]
+    },
+    "lh-shell-rh-line": {
+      "patternKind": "lh-shell-rh-line",
+      "patternLabel": "Shell + line",
+      "splitMidi": 48,
+      "measuresTogether": false,
+      "melodyHand": "right",
+      "togetherWindowMs": 40,
+      "targetEvents": [
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 0
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 0
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 0.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 1
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 1
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 1.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 46,
+          "beat": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 69,
+          "beat": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 2.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 3.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 4.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 5
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 5
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 5.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 46,
+          "beat": 6
+        },
+        {
+          "hand": "right",
+          "midiNote": 69,
+          "beat": 6
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 6.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 7
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 7
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 7.5
+        }
+      ]
+    },
+    "alberti-rh-holds": {
+      "patternKind": "alberti-rh-holds",
+      "patternLabel": "Alberti + holds",
+      "splitMidi": 48,
+      "measuresTogether": false,
+      "melodyHand": "right",
+      "togetherWindowMs": 40,
+      "targetEvents": [
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 0
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 0
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 0.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 40,
+          "beat": 1
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 1
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 1.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 2
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 2.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 40,
+          "beat": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 72,
+          "beat": 3
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 3.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 4
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 4.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 40,
+          "beat": 5
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 5
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 5.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 6
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 6
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 6.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 40,
+          "beat": 7
+        },
+        {
+          "hand": "right",
+          "midiNote": 72,
+          "beat": 7
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 7.5
+        }
+      ]
+    },
+    "contrary-motion-scale": {
+      "patternKind": "contrary-motion-scale",
+      "patternLabel": "Contrary scale",
+      "splitMidi": 48,
+      "measuresTogether": false,
+      "melodyHand": "right",
+      "togetherWindowMs": 40,
+      "targetEvents": [
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 0
+        },
+        {
+          "hand": "right",
+          "midiNote": 72,
+          "beat": 0
+        },
+        {
+          "hand": "left",
+          "midiNote": 38,
+          "beat": 0.5
+        },
+        {
+          "hand": "right",
+          "midiNote": 71,
+          "beat": 0.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 40,
+          "beat": 1
+        },
+        {
+          "hand": "right",
+          "midiNote": 69,
+          "beat": 1
+        },
+        {
+          "hand": "left",
+          "midiNote": 41,
+          "beat": 1.5
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 1.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 65,
+          "beat": 2
+        },
+        {
+          "hand": "left",
+          "midiNote": 45,
+          "beat": 2.5
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 2.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 47,
+          "beat": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 3
+        },
+        {
+          "hand": "left",
+          "midiNote": 47,
+          "beat": 3.5
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 3.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 45,
+          "beat": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 4
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 4.5
+        },
+        {
+          "hand": "right",
+          "midiNote": 65,
+          "beat": 4.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 41,
+          "beat": 5
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 5
+        },
+        {
+          "hand": "left",
+          "midiNote": 40,
+          "beat": 5.5
+        },
+        {
+          "hand": "right",
+          "midiNote": 69,
+          "beat": 5.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 38,
+          "beat": 6
+        },
+        {
+          "hand": "right",
+          "midiNote": 71,
+          "beat": 6
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 6.5
+        },
+        {
+          "hand": "right",
+          "midiNote": 72,
+          "beat": 6.5
+        },
+        {
+          "hand": "left",
+          "midiNote": 36,
+          "beat": 7
+        },
+        {
+          "hand": "right",
+          "midiNote": 72,
+          "beat": 7
+        },
+        {
+          "hand": "left",
+          "midiNote": 38,
+          "beat": 7.5
+        },
+        {
+          "hand": "right",
+          "midiNote": 71,
+          "beat": 7.5
+        }
+      ]
+    },
+    "contrary-five": {
+      "patternKind": "contrary-five",
+      "patternLabel": "Mirror hands",
+      "splitMidi": 54,
+      "measuresTogether": true,
+      "melodyHand": "right",
+      "togetherWindowMs": 40,
+      "targetEvents": [
+        {
+          "hand": "left",
+          "midiNote": 48,
+          "beat": 0,
+          "finger": 1
+        },
+        {
+          "hand": "right",
+          "midiNote": 60,
+          "beat": 0,
+          "finger": 1
+        },
+        {
+          "hand": "left",
+          "midiNote": 47,
+          "beat": 1,
+          "finger": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 1,
+          "finger": 2
+        },
+        {
+          "hand": "left",
+          "midiNote": 45,
+          "beat": 2,
+          "finger": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 2,
+          "finger": 3
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 3,
+          "finger": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 65,
+          "beat": 3,
+          "finger": 4
+        },
+        {
+          "hand": "left",
+          "midiNote": 41,
+          "beat": 4,
+          "finger": 5
+        },
+        {
+          "hand": "right",
+          "midiNote": 67,
+          "beat": 4,
+          "finger": 5
+        },
+        {
+          "hand": "left",
+          "midiNote": 43,
+          "beat": 5,
+          "finger": 4
+        },
+        {
+          "hand": "right",
+          "midiNote": 65,
+          "beat": 5,
+          "finger": 4
+        },
+        {
+          "hand": "left",
+          "midiNote": 45,
+          "beat": 6,
+          "finger": 3
+        },
+        {
+          "hand": "right",
+          "midiNote": 64,
+          "beat": 6,
+          "finger": 3
+        },
+        {
+          "hand": "left",
+          "midiNote": 47,
+          "beat": 7,
+          "finger": 2
+        },
+        {
+          "hand": "right",
+          "midiNote": 62,
+          "beat": 7,
+          "finger": 2
+        }
+      ]
+    }
+  }
+}

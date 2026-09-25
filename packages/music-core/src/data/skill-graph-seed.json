@@ -1,0 +1,1530 @@
+{
+  "skills": [
+    {
+      "id": "pitch.intervals",
+      "name": "Intervals",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.m2",
+      "name": "Minor 2nd",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.M2",
+      "name": "Major 2nd",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.m3",
+      "name": "Minor 3rd",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.M3",
+      "name": "Major 3rd",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.P4",
+      "name": "Perfect 4th",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.TT",
+      "name": "Tritone",
+      "capability": "pitch",
+      "level": "early-intermediate",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.P5",
+      "name": "Perfect 5th",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.m6",
+      "name": "Minor 6th",
+      "capability": "pitch",
+      "level": "early-intermediate",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.M6",
+      "name": "Major 6th",
+      "capability": "pitch",
+      "level": "early-intermediate",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.m7",
+      "name": "Minor 7th",
+      "capability": "pitch",
+      "level": "early-intermediate",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.M7",
+      "name": "Major 7th",
+      "capability": "pitch",
+      "level": "intermediate",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.interval.P8",
+      "name": "Perfect Octave",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["interval", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degrees",
+      "name": "Functional Scale Degrees",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.1",
+      "name": "1 - Tonic",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.b2",
+      "name": "b2 - Flat 2nd",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.2",
+      "name": "2 - Supertonic",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.b3",
+      "name": "b3 - Flat 3rd",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.3",
+      "name": "3 - Mediant",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.4",
+      "name": "4 - Subdominant",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.#4",
+      "name": "#4 - Sharp 4th / Flat 5th",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.5",
+      "name": "5 - Dominant",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.b6",
+      "name": "b6 - Flat 6th",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.6",
+      "name": "6 - Submediant",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.b7",
+      "name": "b7 - Flat 7th",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "pitch.scale-degree.7",
+      "name": "7 - Leading Tone",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["scale-degree", "ear"],
+      "version": 1
+    },
+    {
+      "id": "harmony.triads",
+      "name": "Triad Qualities",
+      "capability": "harmony",
+      "level": "beginner",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.triad.major",
+      "name": "Major Triads",
+      "capability": "harmony",
+      "level": "beginner",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.triad.minor",
+      "name": "Minor Triads",
+      "capability": "harmony",
+      "level": "beginner",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.triad.diminished",
+      "name": "Diminished Triads",
+      "capability": "harmony",
+      "level": "early-intermediate",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.triad.augmented",
+      "name": "Augmented Triads",
+      "capability": "harmony",
+      "level": "early-intermediate",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.sevenths",
+      "name": "Seventh Chords",
+      "capability": "harmony",
+      "level": "early-intermediate",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.seventh.major",
+      "name": "Major 7th",
+      "capability": "harmony",
+      "level": "early-intermediate",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.seventh.dominant",
+      "name": "Dominant 7th",
+      "capability": "harmony",
+      "level": "early-intermediate",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.seventh.minor",
+      "name": "Minor 7th",
+      "capability": "harmony",
+      "level": "early-intermediate",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.seventh.half-diminished",
+      "name": "Half-Diminished 7th",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "harmony.seventh.diminished",
+      "name": "Diminished 7th",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["chord"],
+      "version": 1
+    },
+    {
+      "id": "ear.cadences",
+      "name": "Cadences",
+      "capability": "harmony",
+      "level": "beginner",
+      "tags": ["cadence", "ear"],
+      "version": 1
+    },
+    {
+      "id": "ear.cadences.authentic",
+      "name": "Authentic Cadence",
+      "capability": "harmony",
+      "level": "beginner",
+      "tags": ["cadence", "ear"],
+      "version": 1
+    },
+    {
+      "id": "ear.cadences.plagal",
+      "name": "Plagal Cadence",
+      "capability": "harmony",
+      "level": "beginner",
+      "tags": ["cadence", "ear"],
+      "version": 1
+    },
+    {
+      "id": "ear.cadences.half",
+      "name": "Half Cadence",
+      "capability": "harmony",
+      "level": "beginner",
+      "tags": ["cadence", "ear"],
+      "version": 1
+    },
+    {
+      "id": "ear.cadences.deceptive",
+      "name": "Deceptive Cadence",
+      "capability": "harmony",
+      "level": "beginner",
+      "tags": ["cadence", "ear"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i",
+      "name": "ii-V-I",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz", "progression"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.voicings.major",
+      "name": "Major ii-V-I voicings",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.voicings.minor",
+      "name": "Minor ii-V-i voicings",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.voicings.altered",
+      "name": "Altered dominant voicings",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.voice-leading",
+      "name": "Guide-tone voice leading",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.chord-scales.major",
+      "name": "Major chord-scales",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.chord-scales.minor",
+      "name": "Minor chord-scales",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.major-ii-V-I",
+      "name": "Major ii-V-I licks",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.major-ii-V-I-VI",
+      "name": "Turnaround licks",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.minor-ii-V-i",
+      "name": "Minor ii-V-i licks",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.minor-chord",
+      "name": "Minor chord licks",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.guitar-pentatonic",
+      "name": "Guitar pentatonic licks",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.pattern.guitar-four-on-the-floor",
+      "name": "Four on the Floor Strum",
+      "capability": "rhythm",
+      "level": "beginner",
+      "tags": ["guitar", "strumming", "rhythm", "pattern"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.pattern.guitar-island-strum",
+      "name": "Island Strum with a Mute",
+      "capability": "rhythm",
+      "level": "early-intermediate",
+      "tags": ["guitar", "strumming", "rhythm", "pattern", "syncopation"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.subdivisions",
+      "name": "Rhythm Subdivisions",
+      "capability": "rhythm",
+      "level": "beginner",
+      "tags": ["timing", "subdivision"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.quarter-pulse",
+      "name": "Quarter-Note Pulse",
+      "capability": "rhythm",
+      "level": "beginner",
+      "tags": ["timing"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.eighths",
+      "name": "Eighth Notes",
+      "capability": "rhythm",
+      "level": "beginner",
+      "tags": ["subdivision"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.subdivision.eighths",
+      "name": "Eighth-Note Subdivision",
+      "capability": "rhythm",
+      "level": "beginner",
+      "tags": ["rhythm", "subdivision", "eighths"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.triplets",
+      "name": "Triplets",
+      "capability": "rhythm",
+      "level": "early-intermediate",
+      "tags": ["subdivision"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.sixteenths",
+      "name": "Sixteenth Notes",
+      "capability": "rhythm",
+      "level": "early-intermediate",
+      "tags": ["subdivision"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.subdivision.sixteenths",
+      "name": "Sixteenth-Note Subdivision",
+      "capability": "rhythm",
+      "level": "early-intermediate",
+      "tags": ["rhythm", "subdivision", "sixteenths"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.gap-click",
+      "name": "Gap Click Timing",
+      "capability": "rhythm",
+      "level": "early-intermediate",
+      "tags": ["rhythm", "metronome", "gap-click", "timing"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.syncopation",
+      "name": "Off-Beat Syncopation",
+      "capability": "rhythm",
+      "level": "early-intermediate",
+      "tags": ["rhythm", "syncopation", "off-beat"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.dotted",
+      "name": "Dotted Rhythms",
+      "capability": "rhythm",
+      "level": "early-intermediate",
+      "tags": ["rhythm", "dotted", "cross-rhythm"],
+      "version": 1
+    },
+    {
+      "id": "rhythm.swing",
+      "name": "Swing Feel",
+      "capability": "rhythm",
+      "level": "intermediate",
+      "tags": ["rhythm", "swing", "jazz"],
+      "version": 1
+    },
+    {
+      "id": "reading.treble",
+      "name": "Treble Clef Reading",
+      "capability": "reading",
+      "level": "beginner",
+      "tags": ["staff"],
+      "version": 1
+    },
+    {
+      "id": "reading.treble.landmarks",
+      "name": "Treble Landmark Notes",
+      "capability": "reading",
+      "level": "beginner",
+      "tags": ["staff"],
+      "version": 1
+    },
+    {
+      "id": "reading.treble.stepwise",
+      "name": "Treble Stepwise Reading",
+      "capability": "reading",
+      "level": "beginner",
+      "tags": ["staff"],
+      "version": 1
+    },
+    {
+      "id": "reading.bass",
+      "name": "Bass Clef Reading",
+      "capability": "reading",
+      "level": "beginner",
+      "tags": ["staff"],
+      "version": 1
+    },
+    {
+      "id": "reading.bass.landmarks",
+      "name": "Bass Landmark Notes",
+      "capability": "reading",
+      "level": "beginner",
+      "tags": ["staff"],
+      "version": 1
+    },
+    {
+      "id": "reading.bass.stepwise",
+      "name": "Bass Stepwise Reading",
+      "capability": "reading",
+      "level": "beginner",
+      "tags": ["staff"],
+      "version": 1
+    },
+    {
+      "id": "reading.polyphonic",
+      "name": "Polyphonic Reading",
+      "capability": "reading",
+      "level": "intermediate",
+      "tags": ["staff", "chord"],
+      "version": 1
+    },
+    {
+      "id": "reading.rhythm.compound",
+      "name": "Compound-Meter Reading",
+      "capability": "reading",
+      "level": "intermediate",
+      "tags": ["rhythm"],
+      "version": 1
+    },
+    {
+      "id": "technique.scales",
+      "name": "Scale Fluency",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["scale"],
+      "version": 1
+    },
+    {
+      "id": "technique.scale.major",
+      "name": "Major Scale Fluency",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["scale"],
+      "version": 1
+    },
+    {
+      "id": "technique.scale.natural-minor",
+      "name": "Natural Minor Scale Fluency",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["scale"],
+      "version": 1
+    },
+    {
+      "id": "technique.scale.harmonic-minor",
+      "name": "Harmonic Minor Scale Fluency",
+      "capability": "technique",
+      "level": "early-intermediate",
+      "tags": ["scale"],
+      "version": 1
+    },
+    {
+      "id": "technique.scale.melodic-minor",
+      "name": "Melodic Minor Scale Fluency",
+      "capability": "technique",
+      "level": "intermediate",
+      "tags": ["scale"],
+      "version": 1
+    },
+    {
+      "id": "technique.scale.major-pentatonic",
+      "name": "Major Pentatonic Fluency",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["scale"],
+      "version": 1
+    },
+    {
+      "id": "technique.scale.minor-pentatonic",
+      "name": "Minor Pentatonic Fluency",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["scale"],
+      "version": 1
+    },
+    {
+      "id": "technique.aerophone",
+      "name": "Aerophone Technique",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["aerophone", "breath"],
+      "version": 1
+    },
+    {
+      "id": "technique.aerophone.breath-steadiness",
+      "name": "Aerophone Breath Steadiness",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["aerophone", "breath", "long-tone"],
+      "version": 1
+    },
+    {
+      "id": "technique.aerophone.dynamic-control",
+      "name": "Aerophone Dynamic Control",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["aerophone", "breath", "swell", "dynamics"],
+      "version": 1
+    },
+    {
+      "id": "technique.aerophone.articulation",
+      "name": "Aerophone Articulation",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["aerophone", "breath", "articulation", "staccato", "legato"],
+      "version": 1
+    },
+    {
+      "id": "technique.aerophone.interval-landing",
+      "name": "Aerophone Interval Landing",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["aerophone", "intonation", "interval", "drone"],
+      "version": 1
+    },
+    {
+      "id": "intonation.interval-landing",
+      "name": "Interval Landing",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["intonation", "interval", "drone"],
+      "version": 1
+    },
+    {
+      "id": "technique.strings",
+      "name": "String Instrument Technique",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "ukulele", "fretting"],
+      "version": 1
+    },
+    {
+      "id": "technique.strings.spider",
+      "name": "Chromatic Spider Drill",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "ukulele", "spider", "chromatic"],
+      "version": 1
+    },
+    {
+      "id": "technique.strings.spider.permutations",
+      "name": "Spider Permutations",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "ukulele", "spider", "permutation", "finger-independence"],
+      "version": 1
+    },
+    {
+      "id": "technique.strings.note-finder",
+      "name": "Fretboard Note Finder",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "ukulele", "fretboard", "note-finder"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.spider",
+      "name": "Guitar Spider Drill",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "spider", "chromatic"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.intervals",
+      "name": "Guitar Interval Recall",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["guitar", "fretboard", "intervals"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.intervals.3",
+      "name": "Guitar Minor Third Recall",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["guitar", "fretboard", "intervals"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.intervals.4",
+      "name": "Guitar Major Third Recall",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["guitar", "fretboard", "intervals"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.intervals.7",
+      "name": "Guitar Perfect Fifth Recall",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["guitar", "fretboard", "intervals"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.intervals.12",
+      "name": "Guitar Octave Recall",
+      "capability": "pitch",
+      "level": "beginner",
+      "tags": ["guitar", "fretboard", "intervals"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.note-finder",
+      "name": "Guitar Note Finder",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "fretboard", "note-finder"],
+      "version": 1
+    },
+    {
+      "id": "technique.ukulele.spider",
+      "name": "Ukulele Spider Drill",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["ukulele", "spider", "chromatic"],
+      "version": 1
+    },
+    {
+      "id": "technique.ukulele.note-finder",
+      "name": "Ukulele Note Finder",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["ukulele", "fretboard", "note-finder"],
+      "version": 1
+    },
+    {
+      "id": "technique.strings.chord-perfect",
+      "name": "Chord-Perfect Drill",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "ukulele", "chords", "fretting"],
+      "version": 1
+    },
+    {
+      "id": "technique.strings.chord-changes",
+      "name": "Chord Change Trainer",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "ukulele", "chords", "changes", "fretting"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.chord-perfect",
+      "name": "Guitar Chord-Perfect",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "chords", "fretting"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.chord-changes",
+      "name": "Guitar Chord Changes",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "chords", "changes", "fretting"],
+      "version": 1
+    },
+    {
+      "id": "technique.ukulele.chord-perfect",
+      "name": "Ukulele Chord-Perfect",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["ukulele", "chords", "fretting"],
+      "version": 1
+    },
+    {
+      "id": "technique.ukulele.chord-changes",
+      "name": "Ukulele Chord Changes",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["ukulele", "chords", "changes", "fretting"],
+      "version": 1
+    },
+    {
+      "id": "technique.strings.open-chord-id",
+      "name": "Open Chord Identification",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "ukulele", "chords", "identification"],
+      "version": 1
+    },
+    {
+      "id": "technique.guitar.open-chord-id",
+      "name": "Guitar Open Chord Identification",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["guitar", "chords", "identification"],
+      "version": 1
+    },
+    {
+      "id": "technique.ukulele.open-chord-id",
+      "name": "Ukulele Open Chord Identification",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["ukulele", "chords", "identification"],
+      "version": 1
+    },
+    {
+      "id": "technique.piano",
+      "name": "Piano Technique",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["piano", "keys", "hands"],
+      "version": 1
+    },
+    {
+      "id": "technique.piano.two-hand-independence",
+      "name": "Two-Hand Independence",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["piano", "independence", "coordination", "hands"],
+      "version": 1
+    },
+    {
+      "id": "technique.piano.independence.shell-line",
+      "name": "Piano Shell + Line Independence",
+      "capability": "technique",
+      "level": "early-intermediate",
+      "tags": ["piano", "independence", "shell", "line", "hands"],
+      "version": 1
+    },
+    {
+      "id": "technique.piano.comping",
+      "name": "Piano Comping over a Shell",
+      "capability": "technique",
+      "level": "intermediate",
+      "tags": ["piano", "comping", "shell", "swing", "syncopation"],
+      "version": 1
+    },
+    {
+      "id": "technique.mpc.groove.backbeat",
+      "name": "MPC Groove Recall: backbeat",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["mpc", "groove", "recall", "backbeat"],
+      "version": 1
+    },
+    {
+      "id": "technique.mpc.groove.eighth-hats",
+      "name": "MPC Groove Recall: eighth-hats",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["mpc", "groove", "recall", "eighth-hats"],
+      "version": 1
+    },
+    {
+      "id": "technique.mpc.groove.syncopated",
+      "name": "MPC Groove Recall: syncopated",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["mpc", "groove", "recall", "syncopated"],
+      "version": 1
+    },
+    {
+      "id": "technique.mpc.groove.boom-bap-2bar",
+      "name": "MPC Groove Recall: boom-bap-2bar",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["mpc", "groove", "recall", "boom-bap-2bar"],
+      "version": 1
+    },
+    {
+      "id": "technique.mpc.groove.turnaround-fill",
+      "name": "MPC Groove Recall: turnaround-fill",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["mpc", "groove", "recall", "turnaround-fill"],
+      "version": 1
+    },
+    {
+      "id": "technique.mpc",
+      "name": "MPC Technique",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["mpc", "pads", "finger-drumming"],
+      "version": 1
+    },
+    {
+      "id": "technique.mpc.single-strokes",
+      "name": "MPC Alternating Single Strokes",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["mpc", "pads", "rudiment", "single-strokes"],
+      "version": 1
+    },
+    {
+      "id": "technique.mpc.paradiddles",
+      "name": "MPC Paradiddles",
+      "capability": "technique",
+      "level": "beginner",
+      "tags": ["mpc", "pads", "rudiment", "paradiddle"],
+      "version": 1
+    }
+  ],
+  "relationships": [
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.voicings.major",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.voicings.minor",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.voicings.altered",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.voice-leading",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.chord-scales.major",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.chord-scales.minor",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.licks.major-ii-V-I",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.licks.major-ii-V-I-VI",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.licks.minor-ii-V-i",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.licks.minor-chord",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.ii-v-i",
+      "to": "harmony.ii-v-i.licks.guitar-pentatonic",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.m2",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.M2",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.m3",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.M3",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.P4",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.TT",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.P5",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.m6",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.M6",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.m7",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.M7",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.intervals",
+      "to": "pitch.interval.P8",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.1",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.b2",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.2",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.b3",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.3",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.4",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.#4",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.5",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.b6",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.6",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.b7",
+      "kind": "component"
+    },
+    {
+      "from": "pitch.scale-degrees",
+      "to": "pitch.scale-degree.7",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.triads",
+      "to": "harmony.triad.major",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.triads",
+      "to": "harmony.triad.minor",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.triads",
+      "to": "harmony.triad.diminished",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.triads",
+      "to": "harmony.triad.augmented",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.sevenths",
+      "to": "harmony.seventh.major",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.sevenths",
+      "to": "harmony.seventh.dominant",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.sevenths",
+      "to": "harmony.seventh.minor",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.sevenths",
+      "to": "harmony.seventh.half-diminished",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.sevenths",
+      "to": "harmony.seventh.diminished",
+      "kind": "component"
+    },
+    {
+      "from": "ear.cadences",
+      "to": "ear.cadences.authentic",
+      "kind": "component"
+    },
+    {
+      "from": "ear.cadences",
+      "to": "ear.cadences.plagal",
+      "kind": "component"
+    },
+    {
+      "from": "ear.cadences",
+      "to": "ear.cadences.half",
+      "kind": "component"
+    },
+    {
+      "from": "ear.cadences",
+      "to": "ear.cadences.deceptive",
+      "kind": "component"
+    },
+    {
+      "from": "rhythm.subdivisions",
+      "to": "rhythm.quarter-pulse",
+      "kind": "component"
+    },
+    {
+      "from": "rhythm.subdivisions",
+      "to": "rhythm.eighths",
+      "kind": "component"
+    },
+    {
+      "from": "rhythm.subdivisions",
+      "to": "rhythm.subdivision.eighths",
+      "kind": "component"
+    },
+    {
+      "from": "rhythm.subdivisions",
+      "to": "rhythm.triplets",
+      "kind": "component"
+    },
+    {
+      "from": "rhythm.subdivisions",
+      "to": "rhythm.sixteenths",
+      "kind": "component"
+    },
+    {
+      "from": "rhythm.subdivisions",
+      "to": "rhythm.subdivision.sixteenths",
+      "kind": "component"
+    },
+    {
+      "from": "rhythm.subdivisions",
+      "to": "rhythm.gap-click",
+      "kind": "component"
+    },
+    {
+      "from": "reading.treble",
+      "to": "reading.treble.landmarks",
+      "kind": "component"
+    },
+    {
+      "from": "reading.treble",
+      "to": "reading.treble.stepwise",
+      "kind": "component"
+    },
+    {
+      "from": "reading.bass",
+      "to": "reading.bass.landmarks",
+      "kind": "component"
+    },
+    {
+      "from": "reading.bass",
+      "to": "reading.bass.stepwise",
+      "kind": "component"
+    },
+    {
+      "from": "technique.scales",
+      "to": "technique.scale.major",
+      "kind": "component"
+    },
+    {
+      "from": "technique.scales",
+      "to": "technique.scale.natural-minor",
+      "kind": "component"
+    },
+    {
+      "from": "technique.scales",
+      "to": "technique.scale.harmonic-minor",
+      "kind": "component"
+    },
+    {
+      "from": "technique.scales",
+      "to": "technique.scale.melodic-minor",
+      "kind": "component"
+    },
+    {
+      "from": "technique.scales",
+      "to": "technique.scale.major-pentatonic",
+      "kind": "component"
+    },
+    {
+      "from": "technique.scales",
+      "to": "technique.scale.minor-pentatonic",
+      "kind": "component"
+    },
+    {
+      "from": "technique.aerophone",
+      "to": "technique.aerophone.breath-steadiness",
+      "kind": "component"
+    },
+    {
+      "from": "technique.aerophone",
+      "to": "technique.aerophone.dynamic-control",
+      "kind": "component"
+    },
+    {
+      "from": "technique.aerophone",
+      "to": "technique.aerophone.articulation",
+      "kind": "component"
+    },
+    {
+      "from": "technique.aerophone",
+      "to": "technique.aerophone.interval-landing",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings",
+      "to": "technique.strings.spider",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings",
+      "to": "technique.strings.note-finder",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings",
+      "to": "technique.guitar.intervals",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings",
+      "to": "technique.strings.chord-perfect",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings",
+      "to": "technique.strings.chord-changes",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings",
+      "to": "technique.strings.open-chord-id",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.spider",
+      "to": "technique.strings.spider.permutations",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.spider",
+      "to": "technique.guitar.spider",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.spider",
+      "to": "technique.ukulele.spider",
+      "kind": "component"
+    },
+    {
+      "from": "technique.guitar.intervals",
+      "to": "technique.guitar.intervals.3",
+      "kind": "component"
+    },
+    {
+      "from": "technique.guitar.intervals",
+      "to": "technique.guitar.intervals.4",
+      "kind": "component"
+    },
+    {
+      "from": "technique.guitar.intervals",
+      "to": "technique.guitar.intervals.7",
+      "kind": "component"
+    },
+    {
+      "from": "technique.guitar.intervals",
+      "to": "technique.guitar.intervals.12",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.note-finder",
+      "to": "technique.guitar.note-finder",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.note-finder",
+      "to": "technique.ukulele.note-finder",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.chord-perfect",
+      "to": "technique.guitar.chord-perfect",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.chord-perfect",
+      "to": "technique.ukulele.chord-perfect",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.chord-changes",
+      "to": "technique.guitar.chord-changes",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.chord-changes",
+      "to": "technique.ukulele.chord-changes",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.open-chord-id",
+      "to": "technique.guitar.open-chord-id",
+      "kind": "component"
+    },
+    {
+      "from": "technique.strings.open-chord-id",
+      "to": "technique.ukulele.open-chord-id",
+      "kind": "component"
+    },
+    {
+      "from": "technique.piano",
+      "to": "technique.piano.two-hand-independence",
+      "kind": "component"
+    },
+    {
+      "from": "technique.piano",
+      "to": "technique.piano.comping",
+      "kind": "component"
+    },
+    {
+      "from": "technique.piano.two-hand-independence",
+      "to": "technique.piano.independence.shell-line",
+      "kind": "component"
+    },
+    {
+      "from": "technique.mpc",
+      "to": "technique.mpc.single-strokes",
+      "kind": "component"
+    },
+    {
+      "from": "technique.mpc",
+      "to": "technique.mpc.paradiddles",
+      "kind": "component"
+    },
+    {
+      "from": "technique.mpc",
+      "to": "technique.mpc.groove.backbeat",
+      "kind": "component"
+    },
+    {
+      "from": "technique.mpc",
+      "to": "technique.mpc.groove.eighth-hats",
+      "kind": "component"
+    },
+    {
+      "from": "technique.mpc",
+      "to": "technique.mpc.groove.syncopated",
+      "kind": "component"
+    },
+    {
+      "from": "technique.mpc",
+      "to": "technique.mpc.groove.boom-bap-2bar",
+      "kind": "component"
+    },
+    {
+      "from": "technique.mpc",
+      "to": "technique.mpc.groove.turnaround-fill",
+      "kind": "component"
+    },
+    {
+      "from": "harmony.triad.major",
+      "to": "harmony.seventh.dominant",
+      "kind": "prerequisite",
+      "threshold": 0.5
+    },
+    {
+      "from": "harmony.seventh.dominant",
+      "to": "harmony.ii-v-i",
+      "kind": "prerequisite",
+      "threshold": 0.6
+    },
+    {
+      "from": "rhythm.quarter-pulse",
+      "to": "rhythm.eighths",
+      "kind": "prerequisite",
+      "threshold": 0.5
+    },
+    {
+      "from": "rhythm.eighths",
+      "to": "rhythm.sixteenths",
+      "kind": "prerequisite",
+      "threshold": 0.5
+    },
+    {
+      "from": "reading.treble.stepwise",
+      "to": "reading.polyphonic",
+      "kind": "prerequisite",
+      "threshold": 0.5
+    },
+    {
+      "from": "reading.bass.stepwise",
+      "to": "reading.polyphonic",
+      "kind": "prerequisite",
+      "threshold": 0.5
+    },
+    {
+      "from": "rhythm.eighths",
+      "to": "reading.rhythm.compound",
+      "kind": "prerequisite",
+      "threshold": 0.5
+    },
+    {
+      "from": "technique.scale.major",
+      "to": "technique.scale.natural-minor",
+      "kind": "prerequisite",
+      "threshold": 0.5
+    }
+  ]
+}

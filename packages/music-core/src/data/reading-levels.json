@@ -1,0 +1,54 @@
+[
+  {
+    "id": "primer",
+    "label": "Primer",
+    "description": "Landmark notes and stepwise motion.",
+    "rhythm": "quarters and halves",
+    "recommendedDifficulty": 0.2,
+    "recommendedClefs": ["treble"],
+    "recommendedRange": {
+      "lowestMidi": 60,
+      "highestMidi": 72
+    },
+    "recommendedKeys": ["C major"]
+  },
+  {
+    "id": "level-1",
+    "label": "Level 1",
+    "description": "Stepwise phrases in familiar keys.",
+    "rhythm": "quarters, halves, and simple eighths",
+    "recommendedDifficulty": 0.4,
+    "recommendedClefs": ["treble"],
+    "recommendedRange": {
+      "lowestMidi": 55,
+      "highestMidi": 79
+    },
+    "recommendedKeys": ["C major", "G major", "F major"]
+  },
+  {
+    "id": "level-2",
+    "label": "Level 2",
+    "description": "Wider range, bass-clef option, and quicker movement.",
+    "rhythm": "eighth-note motion",
+    "recommendedDifficulty": 0.55,
+    "recommendedClefs": ["treble", "bass"],
+    "recommendedRange": {
+      "lowestMidi": 48,
+      "highestMidi": 84
+    },
+    "recommendedKeys": ["C major", "G major", "F major", "A minor", "E minor"]
+  },
+  {
+    "id": "level-3",
+    "label": "Level 3",
+    "description": "Compound meter, syncopation, and mixed rhythmic values.",
+    "rhythm": "eighths and syncopation",
+    "recommendedDifficulty": 0.7,
+    "recommendedClefs": ["treble", "bass"],
+    "recommendedRange": {
+      "lowestMidi": 43,
+      "highestMidi": 88
+    },
+    "recommendedKeys": ["C major", "G major", "D major", "F major", "Bb major", "D minor"]
+  }
+]

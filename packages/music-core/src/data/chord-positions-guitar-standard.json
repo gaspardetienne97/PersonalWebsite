@@ -1,0 +1,1486 @@
+{
+  "guitar.c-major": [
+    {
+      "id": "guitar.c-major",
+      "name": "C major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [0, 1, 0, 2, 3, null],
+      "fingers": [null, 1, null, 2, 3, null],
+      "mutedStrings": [6],
+      "openStrings": [1, 3],
+      "commonTransitions": [
+        "guitar.g-major",
+        "guitar.a-minor",
+        "guitar.d-major",
+        "guitar.g7",
+        "guitar.f-major"
+      ],
+      "shapeId": "guitar.c-major",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.c-major@1",
+      "name": "C major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [3, 5, 5, 5, 3, null],
+      "fingers": [1, 4, 3, 2, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": [
+        "guitar.g-major",
+        "guitar.a-minor",
+        "guitar.d-major",
+        "guitar.g7",
+        "guitar.f-major"
+      ],
+      "shapeId": "guitar.c-major",
+      "positionIndex": 1,
+      "positionLabel": "Barre at fret 3",
+      "kind": "barre",
+      "baseFret": 3,
+      "barre": {
+        "fret": 3,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 2,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.c-major@2",
+      "name": "C major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [8, 5, 5, 5, 7, 8],
+      "fingers": [4, 1, 1, 1, 2, 3],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": [
+        "guitar.g-major",
+        "guitar.a-minor",
+        "guitar.d-major",
+        "guitar.g7",
+        "guitar.f-major"
+      ],
+      "shapeId": "guitar.c-major",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 5",
+      "kind": "barre",
+      "baseFret": 5,
+      "barre": {
+        "fret": 5,
+        "fromString": 2,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 4,
+        "end": 9
+      }
+    },
+    {
+      "id": "guitar.c-major@3",
+      "name": "C major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [8, 8, 9, 10, 10, 8],
+      "fingers": [1, 1, 2, 4, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": [
+        "guitar.g-major",
+        "guitar.a-minor",
+        "guitar.d-major",
+        "guitar.g7",
+        "guitar.f-major"
+      ],
+      "shapeId": "guitar.c-major",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 8",
+      "kind": "barre",
+      "baseFret": 8,
+      "barre": {
+        "fret": 8,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 7,
+        "end": 11
+      }
+    },
+    {
+      "id": "guitar.c-major@4",
+      "name": "C major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [12, 13, 12, 10, null, null],
+      "fingers": [3, 4, 2, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": [
+        "guitar.g-major",
+        "guitar.a-minor",
+        "guitar.d-major",
+        "guitar.g7",
+        "guitar.f-major"
+      ],
+      "shapeId": "guitar.c-major",
+      "positionIndex": 4,
+      "positionLabel": "Fret 10",
+      "kind": "closed",
+      "baseFret": 10,
+      "fretWindow": {
+        "start": 9,
+        "end": 14
+      }
+    }
+  ],
+  "guitar.g-major": [
+    {
+      "id": "guitar.g-major",
+      "name": "G major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [3, 0, 0, 0, 2, 3],
+      "fingers": [3, null, null, null, 1, 2],
+      "mutedStrings": [],
+      "openStrings": [2, 3, 4],
+      "commonTransitions": ["guitar.c-major", "guitar.d-major", "guitar.e-minor"],
+      "shapeId": "guitar.g-major",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.g-major@1",
+      "name": "G major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [3, 3, 4, 5, 5, 3],
+      "fingers": [1, 1, 2, 4, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.d-major", "guitar.e-minor"],
+      "shapeId": "guitar.g-major",
+      "positionIndex": 1,
+      "positionLabel": "Barre at fret 3",
+      "kind": "barre",
+      "baseFret": 3,
+      "barre": {
+        "fret": 3,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 2,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.g-major@2",
+      "name": "G major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [7, 8, 7, 5, null, null],
+      "fingers": [3, 4, 2, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.d-major", "guitar.e-minor"],
+      "shapeId": "guitar.g-major",
+      "positionIndex": 2,
+      "positionLabel": "Fret 5",
+      "kind": "closed",
+      "baseFret": 5,
+      "fretWindow": {
+        "start": 4,
+        "end": 9
+      }
+    },
+    {
+      "id": "guitar.g-major@3",
+      "name": "G major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [7, 8, 7, 9, 10, null],
+      "fingers": [1, 2, 1, 3, 4, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.d-major", "guitar.e-minor"],
+      "shapeId": "guitar.g-major",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 7",
+      "kind": "barre",
+      "baseFret": 7,
+      "barre": {
+        "fret": 7,
+        "fromString": 1,
+        "toString": 3
+      },
+      "fretWindow": {
+        "start": 6,
+        "end": 11
+      }
+    },
+    {
+      "id": "guitar.g-major@4",
+      "name": "G major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [10, 12, 12, 12, 10, null],
+      "fingers": [1, 4, 3, 2, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.d-major", "guitar.e-minor"],
+      "shapeId": "guitar.g-major",
+      "positionIndex": 4,
+      "positionLabel": "Barre at fret 10",
+      "kind": "barre",
+      "baseFret": 10,
+      "barre": {
+        "fret": 10,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 9,
+        "end": 13
+      }
+    }
+  ],
+  "guitar.d-major": [
+    {
+      "id": "guitar.d-major",
+      "name": "D major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [2, 3, 2, 0, null, null],
+      "fingers": [2, 3, 1, null, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [4],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor", "guitar.a-major"],
+      "shapeId": "guitar.d-major",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.d-major@1",
+      "name": "D major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [2, 3, 2, 4, 5, null],
+      "fingers": [1, 2, 1, 3, 4, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor", "guitar.a-major"],
+      "shapeId": "guitar.d-major",
+      "positionIndex": 1,
+      "positionLabel": "Barre at fret 2",
+      "kind": "barre",
+      "baseFret": 2,
+      "barre": {
+        "fret": 2,
+        "fromString": 1,
+        "toString": 3
+      },
+      "fretWindow": {
+        "start": 1,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.d-major@2",
+      "name": "D major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [5, 7, 7, 7, 5, null],
+      "fingers": [1, 4, 3, 2, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor", "guitar.a-major"],
+      "shapeId": "guitar.d-major",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 5",
+      "kind": "barre",
+      "baseFret": 5,
+      "barre": {
+        "fret": 5,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 4,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.d-major@3",
+      "name": "D major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [10, 7, 7, 7, 9, 10],
+      "fingers": [4, 1, 1, 1, 2, 3],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor", "guitar.a-major"],
+      "shapeId": "guitar.d-major",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 7",
+      "kind": "barre",
+      "baseFret": 7,
+      "barre": {
+        "fret": 7,
+        "fromString": 2,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 6,
+        "end": 11
+      }
+    },
+    {
+      "id": "guitar.d-major@4",
+      "name": "D major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [10, 10, 11, 12, 12, 10],
+      "fingers": [1, 1, 2, 4, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor", "guitar.a-major"],
+      "shapeId": "guitar.d-major",
+      "positionIndex": 4,
+      "positionLabel": "Barre at fret 10",
+      "kind": "barre",
+      "baseFret": 10,
+      "barre": {
+        "fret": 10,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 9,
+        "end": 13
+      }
+    }
+  ],
+  "guitar.e-minor": [
+    {
+      "id": "guitar.e-minor",
+      "name": "E minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 1,
+      "frets": [0, 0, 0, 2, 2, 0],
+      "fingers": [null, null, null, 3, 2, null],
+      "mutedStrings": [],
+      "openStrings": [1, 2, 3, 6],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.e-minor",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.e-minor@1",
+      "name": "E minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 1,
+      "frets": [3, 5, 4, 2, null, null],
+      "fingers": [2, 4, 3, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.e-minor",
+      "positionIndex": 1,
+      "positionLabel": "Fret 2",
+      "kind": "closed",
+      "baseFret": 2,
+      "fretWindow": {
+        "start": 1,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.e-minor@2",
+      "name": "E minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 1,
+      "frets": [null, 5, 4, 5, 7, null],
+      "fingers": [null, 3, 1, 2, 4, null],
+      "mutedStrings": [1, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.e-minor",
+      "positionIndex": 2,
+      "positionLabel": "Fret 4",
+      "kind": "closed",
+      "baseFret": 4,
+      "fretWindow": {
+        "start": 3,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.e-minor@3",
+      "name": "E minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 1,
+      "frets": [7, 8, 9, 9, 7, null],
+      "fingers": [1, 2, 4, 3, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.e-minor",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 7",
+      "kind": "barre",
+      "baseFret": 7,
+      "barre": {
+        "fret": 7,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 6,
+        "end": 10
+      }
+    },
+    {
+      "id": "guitar.e-minor@4",
+      "name": "E minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 1,
+      "frets": [null, 12, 9, 9, 10, 12],
+      "fingers": [null, 4, 1, 1, 2, 3],
+      "mutedStrings": [1],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.e-minor",
+      "positionIndex": 4,
+      "positionLabel": "Barre at fret 9",
+      "kind": "barre",
+      "baseFret": 9,
+      "barre": {
+        "fret": 9,
+        "fromString": 3,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 8,
+        "end": 13
+      }
+    }
+  ],
+  "guitar.a-minor": [
+    {
+      "id": "guitar.a-minor",
+      "name": "A minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [0, 1, 2, 2, 0, null],
+      "fingers": [null, 1, 3, 2, null, null],
+      "mutedStrings": [6],
+      "openStrings": [1, 5],
+      "commonTransitions": ["guitar.c-major", "guitar.e-minor", "guitar.e-major", "guitar.b7"],
+      "shapeId": "guitar.a-minor",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.a-minor@1",
+      "name": "A minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [null, 5, 2, 2, 3, 5],
+      "fingers": [null, 4, 1, 1, 2, 3],
+      "mutedStrings": [1],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.e-minor", "guitar.e-major", "guitar.b7"],
+      "shapeId": "guitar.a-minor",
+      "positionIndex": 1,
+      "positionLabel": "Barre at fret 2",
+      "kind": "barre",
+      "baseFret": 2,
+      "barre": {
+        "fret": 2,
+        "fromString": 3,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 1,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.a-minor@2",
+      "name": "A minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [5, 5, 5, 7, 7, 5],
+      "fingers": [1, 1, 1, 3, 2, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.e-minor", "guitar.e-major", "guitar.b7"],
+      "shapeId": "guitar.a-minor",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 5",
+      "kind": "barre",
+      "baseFret": 5,
+      "barre": {
+        "fret": 5,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 4,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.a-minor@3",
+      "name": "A minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [8, 10, 9, 7, null, null],
+      "fingers": [2, 4, 3, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.e-minor", "guitar.e-major", "guitar.b7"],
+      "shapeId": "guitar.a-minor",
+      "positionIndex": 3,
+      "positionLabel": "Fret 7",
+      "kind": "closed",
+      "baseFret": 7,
+      "fretWindow": {
+        "start": 6,
+        "end": 11
+      }
+    },
+    {
+      "id": "guitar.a-minor@4",
+      "name": "A minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [null, 10, 9, 10, 12, null],
+      "fingers": [null, 3, 1, 2, 4, null],
+      "mutedStrings": [1, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.e-minor", "guitar.e-major", "guitar.b7"],
+      "shapeId": "guitar.a-minor",
+      "positionIndex": 4,
+      "positionLabel": "Fret 9",
+      "kind": "closed",
+      "baseFret": 9,
+      "fretWindow": {
+        "start": 8,
+        "end": 13
+      }
+    }
+  ],
+  "guitar.e-major": [
+    {
+      "id": "guitar.e-major",
+      "name": "E major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [0, 0, 1, 2, 2, 0],
+      "fingers": [null, null, 1, 3, 2, null],
+      "mutedStrings": [],
+      "openStrings": [1, 2, 6],
+      "commonTransitions": ["guitar.a-major", "guitar.a-minor", "guitar.b7"],
+      "shapeId": "guitar.e-major",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.e-major@1",
+      "name": "E major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [4, 5, 4, 2, null, null],
+      "fingers": [3, 4, 2, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.a-minor", "guitar.b7"],
+      "shapeId": "guitar.e-major",
+      "positionIndex": 1,
+      "positionLabel": "Fret 2",
+      "kind": "closed",
+      "baseFret": 2,
+      "fretWindow": {
+        "start": 1,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.e-major@2",
+      "name": "E major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [4, 5, 4, 6, 7, null],
+      "fingers": [1, 2, 1, 3, 4, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.a-minor", "guitar.b7"],
+      "shapeId": "guitar.e-major",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 4",
+      "kind": "barre",
+      "baseFret": 4,
+      "barre": {
+        "fret": 4,
+        "fromString": 1,
+        "toString": 3
+      },
+      "fretWindow": {
+        "start": 3,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.e-major@3",
+      "name": "E major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [7, 9, 9, 9, 7, null],
+      "fingers": [1, 4, 3, 2, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.a-minor", "guitar.b7"],
+      "shapeId": "guitar.e-major",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 7",
+      "kind": "barre",
+      "baseFret": 7,
+      "barre": {
+        "fret": 7,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 6,
+        "end": 10
+      }
+    },
+    {
+      "id": "guitar.e-major@4",
+      "name": "E major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [12, 9, 9, 9, 11, 12],
+      "fingers": [4, 1, 1, 1, 2, 3],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.a-minor", "guitar.b7"],
+      "shapeId": "guitar.e-major",
+      "positionIndex": 4,
+      "positionLabel": "Barre at fret 9",
+      "kind": "barre",
+      "baseFret": 9,
+      "barre": {
+        "fret": 9,
+        "fromString": 2,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 8,
+        "end": 13
+      }
+    }
+  ],
+  "guitar.a-major": [
+    {
+      "id": "guitar.a-major",
+      "name": "A major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [0, 2, 2, 2, 0, null],
+      "fingers": [null, 3, 2, 1, null, null],
+      "mutedStrings": [6],
+      "openStrings": [1, 5],
+      "commonTransitions": ["guitar.d-major", "guitar.e-major", "guitar.b-minor"],
+      "shapeId": "guitar.a-major",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.a-major@1",
+      "name": "A major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [5, 2, 2, 2, 4, 5],
+      "fingers": [4, 1, 1, 1, 2, 3],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.d-major", "guitar.e-major", "guitar.b-minor"],
+      "shapeId": "guitar.a-major",
+      "positionIndex": 1,
+      "positionLabel": "Barre at fret 2",
+      "kind": "barre",
+      "baseFret": 2,
+      "barre": {
+        "fret": 2,
+        "fromString": 2,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 1,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.a-major@2",
+      "name": "A major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [5, 5, 6, 7, 7, 5],
+      "fingers": [1, 1, 2, 4, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.d-major", "guitar.e-major", "guitar.b-minor"],
+      "shapeId": "guitar.a-major",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 5",
+      "kind": "barre",
+      "baseFret": 5,
+      "barre": {
+        "fret": 5,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 4,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.a-major@3",
+      "name": "A major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [9, 10, 9, 7, null, null],
+      "fingers": [3, 4, 2, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.d-major", "guitar.e-major", "guitar.b-minor"],
+      "shapeId": "guitar.a-major",
+      "positionIndex": 3,
+      "positionLabel": "Fret 7",
+      "kind": "closed",
+      "baseFret": 7,
+      "fretWindow": {
+        "start": 6,
+        "end": 11
+      }
+    },
+    {
+      "id": "guitar.a-major@4",
+      "name": "A major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [9, 10, 9, 11, 12, null],
+      "fingers": [1, 2, 1, 3, 4, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.d-major", "guitar.e-major", "guitar.b-minor"],
+      "shapeId": "guitar.a-major",
+      "positionIndex": 4,
+      "positionLabel": "Barre at fret 9",
+      "kind": "barre",
+      "baseFret": 9,
+      "barre": {
+        "fret": 9,
+        "fromString": 1,
+        "toString": 3
+      },
+      "fretWindow": {
+        "start": 8,
+        "end": 13
+      }
+    }
+  ],
+  "guitar.d-minor": [
+    {
+      "id": "guitar.d-minor",
+      "name": "D minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [1, 3, 2, 0, null, null],
+      "fingers": [1, 3, 2, null, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [4],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.d-minor",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.d-minor@1",
+      "name": "D minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [null, 3, 2, 3, 5, null],
+      "fingers": [null, 3, 1, 2, 4, null],
+      "mutedStrings": [1, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.d-minor",
+      "positionIndex": 1,
+      "positionLabel": "Fret 2",
+      "kind": "closed",
+      "baseFret": 2,
+      "fretWindow": {
+        "start": 1,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.d-minor@2",
+      "name": "D minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [5, 6, 7, 7, 5, null],
+      "fingers": [1, 2, 4, 3, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.d-minor",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 5",
+      "kind": "barre",
+      "baseFret": 5,
+      "barre": {
+        "fret": 5,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 4,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.d-minor@3",
+      "name": "D minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [null, 10, 7, 7, 8, 10],
+      "fingers": [null, 4, 1, 1, 2, 3],
+      "mutedStrings": [1],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.d-minor",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 7",
+      "kind": "barre",
+      "baseFret": 7,
+      "barre": {
+        "fret": 7,
+        "fromString": 3,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 6,
+        "end": 11
+      }
+    },
+    {
+      "id": "guitar.d-minor@4",
+      "name": "D minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [10, 10, 10, 12, 12, 10],
+      "fingers": [1, 1, 1, 3, 2, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.g-major", "guitar.a-minor"],
+      "shapeId": "guitar.d-minor",
+      "positionIndex": 4,
+      "positionLabel": "Barre at fret 10",
+      "kind": "barre",
+      "baseFret": 10,
+      "barre": {
+        "fret": 10,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 9,
+        "end": 13
+      }
+    }
+  ],
+  "guitar.f-major": [
+    {
+      "id": "guitar.f-major",
+      "name": "F major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [1, 1, 2, 3, 3, 1],
+      "fingers": [1, 1, 2, 4, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.f-major",
+      "positionIndex": 0,
+      "positionLabel": "Fret 1",
+      "kind": "closed",
+      "baseFret": 1,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.f-major@1",
+      "name": "F major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [5, 6, 5, 3, null, null],
+      "fingers": [3, 4, 2, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.f-major",
+      "positionIndex": 1,
+      "positionLabel": "Fret 3",
+      "kind": "closed",
+      "baseFret": 3,
+      "fretWindow": {
+        "start": 2,
+        "end": 7
+      }
+    },
+    {
+      "id": "guitar.f-major@2",
+      "name": "F major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [5, 6, 5, 7, 8, null],
+      "fingers": [1, 2, 1, 3, 4, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.f-major",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 5",
+      "kind": "barre",
+      "baseFret": 5,
+      "barre": {
+        "fret": 5,
+        "fromString": 1,
+        "toString": 3
+      },
+      "fretWindow": {
+        "start": 4,
+        "end": 9
+      }
+    },
+    {
+      "id": "guitar.f-major@3",
+      "name": "F major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [8, 10, 10, 10, 8, null],
+      "fingers": [1, 4, 3, 2, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.f-major",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 8",
+      "kind": "barre",
+      "baseFret": 8,
+      "barre": {
+        "fret": 8,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 7,
+        "end": 11
+      }
+    },
+    {
+      "id": "guitar.f-major@4",
+      "name": "F major",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [13, 10, 10, 10, 12, 13],
+      "fingers": [4, 1, 1, 1, 2, 3],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.f-major",
+      "positionIndex": 4,
+      "positionLabel": "Barre at fret 10",
+      "kind": "barre",
+      "baseFret": 10,
+      "barre": {
+        "fret": 10,
+        "fromString": 2,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 9,
+        "end": 14
+      }
+    }
+  ],
+  "guitar.b7": [
+    {
+      "id": "guitar.b7",
+      "name": "B7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 4,
+      "frets": [2, 0, 2, 1, 2, null],
+      "fingers": [4, null, 3, 1, 2, null],
+      "mutedStrings": [6],
+      "openStrings": [2],
+      "commonTransitions": ["guitar.e-major", "guitar.a-minor"],
+      "shapeId": "guitar.b7",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.b7@1",
+      "name": "B7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 4,
+      "frets": [2, 4, 2, 4, 2, null],
+      "fingers": [1, 3, 1, 2, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.e-major", "guitar.a-minor"],
+      "shapeId": "guitar.b7",
+      "positionIndex": 1,
+      "positionLabel": "Barre at fret 2",
+      "kind": "barre",
+      "baseFret": 2,
+      "barre": {
+        "fret": 2,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 1,
+        "end": 5
+      }
+    },
+    {
+      "id": "guitar.b7@2",
+      "name": "B7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 4,
+      "frets": [5, 4, 4, 4, 6, 7],
+      "fingers": [2, 1, 1, 1, 3, 4],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.e-major", "guitar.a-minor"],
+      "shapeId": "guitar.b7",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 4",
+      "kind": "barre",
+      "baseFret": 4,
+      "barre": {
+        "fret": 4,
+        "fromString": 2,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 3,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.b7@3",
+      "name": "B7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 4,
+      "frets": [7, 7, 8, 7, 9, 7],
+      "fingers": [1, 1, 2, 1, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.e-major", "guitar.a-minor"],
+      "shapeId": "guitar.b7",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 7",
+      "kind": "barre",
+      "baseFret": 7,
+      "barre": {
+        "fret": 7,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 6,
+        "end": 10
+      }
+    },
+    {
+      "id": "guitar.b7@4",
+      "name": "B7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 4,
+      "frets": [11, 10, 11, 9, null, null],
+      "fingers": [4, 2, 3, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.e-major", "guitar.a-minor"],
+      "shapeId": "guitar.b7",
+      "positionIndex": 4,
+      "positionLabel": "Fret 9",
+      "kind": "closed",
+      "baseFret": 9,
+      "fretWindow": {
+        "start": 8,
+        "end": 12
+      }
+    }
+  ],
+  "guitar.b-minor": [
+    {
+      "id": "guitar.b-minor",
+      "name": "B minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [2, 3, 4, 4, 2, null],
+      "fingers": [1, 2, 4, 3, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.e-minor"],
+      "shapeId": "guitar.b-minor",
+      "positionIndex": 0,
+      "positionLabel": "Fret 2",
+      "kind": "closed",
+      "baseFret": 2,
+      "fretWindow": {
+        "start": 1,
+        "end": 5
+      }
+    },
+    {
+      "id": "guitar.b-minor@1",
+      "name": "B minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [null, 7, 4, 4, 5, 7],
+      "fingers": [null, 4, 1, 1, 2, 3],
+      "mutedStrings": [1],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.e-minor"],
+      "shapeId": "guitar.b-minor",
+      "positionIndex": 1,
+      "positionLabel": "Barre at fret 4",
+      "kind": "barre",
+      "baseFret": 4,
+      "barre": {
+        "fret": 4,
+        "fromString": 3,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 3,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.b-minor@2",
+      "name": "B minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [7, 7, 7, 9, 9, 7],
+      "fingers": [1, 1, 1, 3, 2, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.e-minor"],
+      "shapeId": "guitar.b-minor",
+      "positionIndex": 2,
+      "positionLabel": "Barre at fret 7",
+      "kind": "barre",
+      "baseFret": 7,
+      "barre": {
+        "fret": 7,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 6,
+        "end": 10
+      }
+    },
+    {
+      "id": "guitar.b-minor@3",
+      "name": "B minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [10, 12, 11, 9, null, null],
+      "fingers": [2, 4, 3, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.e-minor"],
+      "shapeId": "guitar.b-minor",
+      "positionIndex": 3,
+      "positionLabel": "Fret 9",
+      "kind": "closed",
+      "baseFret": 9,
+      "fretWindow": {
+        "start": 8,
+        "end": 13
+      }
+    },
+    {
+      "id": "guitar.b-minor@4",
+      "name": "B minor",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 5,
+      "frets": [null, 12, 11, 12, 14, null],
+      "fingers": [null, 3, 1, 2, 4, null],
+      "mutedStrings": [1, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.e-minor"],
+      "shapeId": "guitar.b-minor",
+      "positionIndex": 4,
+      "positionLabel": "Fret 11",
+      "kind": "closed",
+      "baseFret": 11,
+      "fretWindow": {
+        "start": 10,
+        "end": 15
+      }
+    }
+  ],
+  "guitar.g7": [
+    {
+      "id": "guitar.g7",
+      "name": "G7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [1, 0, 0, 0, 2, 3],
+      "fingers": [1, null, null, null, 2, 3],
+      "mutedStrings": [],
+      "openStrings": [2, 3, 4],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.g7",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    },
+    {
+      "id": "guitar.g7@1",
+      "name": "G7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [3, 3, 4, 3, 5, 3],
+      "fingers": [1, 1, 2, 1, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.g7",
+      "positionIndex": 1,
+      "positionLabel": "Barre at fret 3",
+      "kind": "barre",
+      "baseFret": 3,
+      "barre": {
+        "fret": 3,
+        "fromString": 1,
+        "toString": 6
+      },
+      "fretWindow": {
+        "start": 2,
+        "end": 6
+      }
+    },
+    {
+      "id": "guitar.g7@2",
+      "name": "G7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [7, 6, 7, 5, null, null],
+      "fingers": [4, 2, 3, 1, null, null],
+      "mutedStrings": [5, 6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.g7",
+      "positionIndex": 2,
+      "positionLabel": "Fret 5",
+      "kind": "closed",
+      "baseFret": 5,
+      "fretWindow": {
+        "start": 4,
+        "end": 8
+      }
+    },
+    {
+      "id": "guitar.g7@3",
+      "name": "G7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [10, 12, 10, 12, 10, null],
+      "fingers": [1, 3, 1, 2, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.g7",
+      "positionIndex": 3,
+      "positionLabel": "Barre at fret 10",
+      "kind": "barre",
+      "baseFret": 10,
+      "barre": {
+        "fret": 10,
+        "fromString": 1,
+        "toString": 5
+      },
+      "fretWindow": {
+        "start": 9,
+        "end": 13
+      }
+    },
+    {
+      "id": "guitar.g7@4",
+      "name": "G7",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [13, 12, 12, 12, 14, 15],
+      "fingers": [2, 1, 1, 1, 3, 4],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.g7",
+      "positionIndex": 4,
+      "positionLabel": "Barre at fret 12",
+      "kind": "barre",
+      "baseFret": 12,
+      "barre": {
+        "fret": 12,
+        "fromString": 2,
+        "toString": 4
+      },
+      "fretWindow": {
+        "start": 11,
+        "end": 16
+      }
+    }
+  ]
+}

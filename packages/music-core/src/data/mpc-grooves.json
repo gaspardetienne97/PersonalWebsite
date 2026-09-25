@@ -1,0 +1,606 @@
+{
+  "voices": [
+    {
+      "id": "kick",
+      "name": "Kick",
+      "midi": 36
+    },
+    {
+      "id": "snare",
+      "name": "Snare",
+      "midi": 38
+    },
+    {
+      "id": "hats",
+      "name": "Hats",
+      "midi": 42
+    },
+    {
+      "id": "openhat",
+      "name": "Open Hat",
+      "midi": 46
+    },
+    {
+      "id": "808",
+      "name": "808",
+      "midi": 35
+    },
+    {
+      "id": "perc",
+      "name": "Perc",
+      "midi": 39
+    }
+  ],
+  "catalog": [
+    {
+      "value": "backbeat",
+      "label": "Kick / snare",
+      "bars": 1,
+      "sectionLabels": ["groove"],
+      "targets": [
+        {
+          "voice": "kick",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 1,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 2,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 3,
+          "accent": "normal"
+        }
+      ]
+    },
+    {
+      "value": "eighth-hats",
+      "label": "Eighth-note hats",
+      "bars": 1,
+      "sectionLabels": ["groove"],
+      "targets": [
+        {
+          "voice": "kick",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 0.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 1,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 1,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 1.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 2,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 2,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 2.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 3,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 3,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 3.5,
+          "accent": "normal"
+        }
+      ]
+    },
+    {
+      "value": "syncopated",
+      "label": "Syncopated kick",
+      "bars": 1,
+      "sectionLabels": ["groove"],
+      "targets": [
+        {
+          "voice": "kick",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 0.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 1,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 1,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 1.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 1.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 2,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 2.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 2.75,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 3,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 3,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 3.5,
+          "accent": "normal"
+        }
+      ]
+    },
+    {
+      "value": "boom-bap-2bar",
+      "label": "Boom bap · 2 bars",
+      "bars": 2,
+      "sectionLabels": ["groove", "groove"],
+      "targets": [
+        {
+          "voice": "kick",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 0.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 1,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 1,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 1.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 2,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 2.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 2.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 3,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 3,
+          "accent": "normal"
+        },
+        {
+          "voice": "openhat",
+          "beat": 3.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 4,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 4,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 4.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 5,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 5.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 6,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 6,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 6.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 6.75,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 7,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 7,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 7.5,
+          "accent": "normal"
+        }
+      ]
+    },
+    {
+      "value": "turnaround-fill",
+      "label": "Turnaround with a fill",
+      "bars": 4,
+      "sectionLabels": ["groove", "groove", "groove", "fill"],
+      "targets": [
+        {
+          "voice": "kick",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 0,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 0.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 1,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 1,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 1.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 2,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 2.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 2.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 3,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 3,
+          "accent": "normal"
+        },
+        {
+          "voice": "openhat",
+          "beat": 3.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 4,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 4,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 4.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 5,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 5.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 6,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 6,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 6.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 6.75,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 7,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 7,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 7.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 8,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 8,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 8.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 9,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 9,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 9.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 10,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 10.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "hats",
+          "beat": 10.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 11,
+          "accent": "accent"
+        },
+        {
+          "voice": "hats",
+          "beat": 11,
+          "accent": "normal"
+        },
+        {
+          "voice": "openhat",
+          "beat": 11.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 12,
+          "accent": "accent"
+        },
+        {
+          "voice": "snare",
+          "beat": 12.25,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 12.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 12.75,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 13,
+          "accent": "accent"
+        },
+        {
+          "voice": "snare",
+          "beat": 13.25,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 13.5,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 13.75,
+          "accent": "normal"
+        },
+        {
+          "voice": "kick",
+          "beat": 14,
+          "accent": "normal"
+        },
+        {
+          "voice": "perc",
+          "beat": 14,
+          "accent": "accent"
+        },
+        {
+          "voice": "perc",
+          "beat": 14.5,
+          "accent": "accent"
+        },
+        {
+          "voice": "kick",
+          "beat": 15,
+          "accent": "normal"
+        },
+        {
+          "voice": "snare",
+          "beat": 15,
+          "accent": "accent"
+        },
+        {
+          "voice": "openhat",
+          "beat": 15.5,
+          "accent": "accent"
+        },
+        {
+          "voice": "kick",
+          "beat": 16,
+          "accent": "normal"
+        }
+      ]
+    }
+  ]
+}

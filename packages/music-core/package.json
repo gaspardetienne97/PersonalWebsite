@@ -1,0 +1,23 @@
+{
+  "name": "@repo/music-core",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "check": "tsc --noEmit --project ./tsconfig.json",
+    "test": "vp test",
+    "build": "tsc --noEmit --project ./tsconfig.json"
+  },
+  "dependencies": {
+    "@tonejs/midi": "^2.0.28",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

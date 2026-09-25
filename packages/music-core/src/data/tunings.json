@@ -1,0 +1,69 @@
+{
+  "guitar": [
+    {
+      "id": "guitar.standard",
+      "name": "Standard",
+      "instrument": "guitar",
+      "openStrings": [64, 59, 55, 50, 45, 40],
+      "fretCount": 22,
+      "notationTransposition": -12,
+      "source": "curated"
+    },
+    {
+      "id": "guitar.drop-d",
+      "name": "Drop D",
+      "instrument": "guitar",
+      "openStrings": [64, 59, 55, 50, 45, 38],
+      "fretCount": 22,
+      "notationTransposition": -12,
+      "source": "curated"
+    },
+    {
+      "id": "guitar.dadgad",
+      "name": "DADGAD",
+      "instrument": "guitar",
+      "openStrings": [62, 57, 55, 50, 45, 38],
+      "fretCount": 22,
+      "notationTransposition": -12,
+      "source": "curated"
+    },
+    {
+      "id": "guitar.open-g",
+      "name": "Open G",
+      "instrument": "guitar",
+      "openStrings": [62, 59, 55, 50, 43, 38],
+      "fretCount": 22,
+      "notationTransposition": -12,
+      "source": "curated"
+    }
+  ],
+  "ukulele": [
+    {
+      "id": "ukulele.high-g",
+      "name": "High G",
+      "instrument": "ukulele",
+      "openStrings": [69, 64, 60, 67],
+      "fretCount": 15,
+      "notationTransposition": 0,
+      "source": "curated"
+    },
+    {
+      "id": "ukulele.low-g",
+      "name": "Low G",
+      "instrument": "ukulele",
+      "openStrings": [69, 64, 60, 55],
+      "fretCount": 15,
+      "notationTransposition": 0,
+      "source": "curated"
+    },
+    {
+      "id": "ukulele.baritone",
+      "name": "Baritone DGBE",
+      "instrument": "ukulele",
+      "openStrings": [64, 59, 55, 50],
+      "fretCount": 15,
+      "notationTransposition": 0,
+      "source": "curated"
+    }
+  ]
+}
