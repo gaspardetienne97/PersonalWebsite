@@ -10,8 +10,9 @@
   // Drawn across the full card width, like the audio waveform.
   const W = 600;
   const H = 64;
-  // Bars stay readable however wide the range: at least 6 of the 64 units tall.
-  const bar = $derived(Math.max(6, (H - 8) / (hi - lo)));
+  // One semitone's height with a gap, so neighbouring pitches never touch,
+  // kept between 3 and 5 units so a wide range stays readable.
+  const bar = $derived(Math.max(3, Math.min(5, ((H - 8) / (hi - lo)) * 0.8)));
   const hue = (midi: number) => `oklch(0.77 0.15 ${(((midi % 12) + 12) % 12) * 30 + 20})`;
 </script>
 
@@ -21,9 +22,9 @@
     <rect
       {x}
       y={4 + ((hi - n.midi) / (hi - lo)) * (H - 8 - bar)}
-      width={Math.max(3, (n.durationMs / span) * W)}
+      width={Math.max(2, (n.durationMs / span) * W - 2)}
       height={bar}
-      rx="2"
+      rx="1.5"
       fill={hue(n.midi)}
       opacity={(0.5 + n.velocity * 0.5) * (progress === null || x <= progress * W ? 1 : 0.5)}
     />
