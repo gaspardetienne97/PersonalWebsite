@@ -13,6 +13,7 @@
   import Check from "lucide-svelte/icons/check";
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { onMount } from "svelte";
+  import { SectionSpy } from "$lib/music/section-spy.svelte";
 
   const TOPICS = [
     { id: "session", label: "How a session works", hue: "piano", icon: Layers },
@@ -26,28 +27,8 @@
   ] as const;
   const topic = (id: string) => TOPICS.find((t) => t.id === id)!;
 
-  // The section you are reading: the last one whose top has reached the upper
-  // part of the screen, or the last section once the page is scrolled to the end.
-  let current = $state<string>(TOPICS[0].id);
-  onMount(() => {
-    const update = () => {
-      const atEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
-      if (atEnd) return void (current = TOPICS.at(-1)!.id);
-      let id: string = TOPICS[0].id;
-      for (const t of TOPICS) {
-        const el = document.getElementById(t.id);
-        if (el && el.getBoundingClientRect().top <= innerHeight * 0.3) id = t.id;
-      }
-      current = id;
-    };
-    update();
-    addEventListener("scroll", update, { passive: true });
-    addEventListener("resize", update);
-    return () => {
-      removeEventListener("scroll", update);
-      removeEventListener("resize", update);
-    };
-  });
+  const spy = new SectionSpy(TOPICS.map((t) => t.id));
+  onMount(() => spy.watch());
 
   // Illustration data: a set, two keyboards, a result, a week.
   const SET = [
@@ -127,7 +108,7 @@
         <li>
           <a
             href="#{t.id}"
-            aria-current={current === t.id ? "location" : undefined}
+            aria-current={spy.current === t.id ? "location" : undefined}
             style:--topic="var(--hue-{t.hue})"
             class="topic flex min-h-11 items-start gap-2 rounded-full border border-ws-line px-4 py-3 text-sm leading-5 text-ws-soft hover:bg-ws-raised hover:text-ws-ink lg:rounded-lg lg:border-0 lg:px-3 lg:py-3"
           >

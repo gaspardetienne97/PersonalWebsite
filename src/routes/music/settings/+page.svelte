@@ -3,6 +3,7 @@
   // control here is read by something: the audio graph, getUserMedia, the
   // router offsets, the root attributes for motion and hue.
   import { onMount } from "svelte";
+  import { SectionSpy } from "$lib/music/section-spy.svelte";
   import { page } from "$app/state";
   import Volume2 from "lucide-svelte/icons/volume-2";
   import Mic from "lucide-svelte/icons/mic";
@@ -42,19 +43,21 @@
     { key: "masterLevel", label: "Master" },
   ] as const;
   const SECTIONS = [
-    { id: "audio", label: "Audio", icon: Volume2 },
-    { id: "input", label: "Input", icon: Mic },
-    { id: "latency", label: "Latency", icon: Timer },
-    { id: "appearance", label: "Appearance", icon: Palette },
-    { id: "goals", label: "Goals", icon: Target },
-    { id: "data", label: "Your data", icon: Database },
+    { id: "audio", label: "Audio", icon: Volume2, hue: "piano" },
+    { id: "input", label: "Input", icon: Mic, hue: "guitar" },
+    { id: "latency", label: "Latency", icon: Timer, hue: "rhythm" },
+    { id: "appearance", label: "Appearance", icon: Palette, hue: "ear" },
+    { id: "goals", label: "Goals", icon: Target, hue: "mpc" },
+    { id: "data", label: "Your data", icon: Database, hue: "aerophone" },
   ];
+  const spy = new SectionSpy(SECTIONS.map((x) => x.id));
   const rowCls = "flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3";
   const listCls = "divide-y divide-ws-line overflow-hidden rounded-2xl border border-ws-line bg-ws-surface";
 
   let latency = $state(audio.latencyInfo());
   const ms = (v: number | null) => (v === null ? "not reported" : `${v} ms`);
 
+  onMount(() => spy.watch());
   onMount(() => {
     mic.refreshDevices().catch(() => {});
     const restored = page.url.searchParams.get("restored");
@@ -120,11 +123,16 @@
   </header>
 
   <nav aria-label="Settings sections" class="hidden lg:block">
-    <ul class="sticky top-20 flex flex-col gap-1">
+    <ul class="sticky top-32 flex flex-col gap-1">
       {#each SECTIONS as sec (sec.id)}
         <li>
-          <a href="#{sec.id}" class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink">
-            <sec.icon class="size-4" aria-hidden="true" />{sec.label}
+          <a
+            href="#{sec.id}"
+            aria-current={spy.current === sec.id ? "location" : undefined}
+            style:--topic="var(--hue-{sec.hue})"
+            class="topic flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
+          >
+            <span class="grid size-6 shrink-0 place-items-center rounded-md" style:color="var(--topic)" aria-hidden="true"><sec.icon class="size-4" /></span>{sec.label}
           </a>
         </li>
       {/each}
@@ -132,7 +140,7 @@
   </nav>
 
   <div class="flex min-w-0 flex-col gap-10">
-    <section id="audio" aria-labelledby="audio-h" class="scroll-mt-20">
+    <section id="audio" aria-labelledby="audio-h" class="scroll-mt-32">
       {@render heading("audio-h", "Audio", Volume2)}
       {@render note("audio")}
       <ul class={listCls}>
@@ -192,7 +200,7 @@
       </ul>
     </section>
 
-    <section id="input" aria-labelledby="input-h" class="scroll-mt-20">
+    <section id="input" aria-labelledby="input-h" class="scroll-mt-32">
       {@render heading("input-h", "Input", Mic)}
       {@render note("input")}
       <ul class={listCls}>
@@ -223,7 +231,7 @@
       </ul>
     </section>
 
-    <section id="latency" aria-labelledby="latency-h" class="scroll-mt-20">
+    <section id="latency" aria-labelledby="latency-h" class="scroll-mt-32">
       {@render heading("latency-h", "Latency calibration", Timer, "An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement.")}
       {@render note("latency")}
       <ul class={listCls}>
@@ -282,7 +290,7 @@
       </ul>
     </section>
 
-    <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-20">
+    <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-32">
       {@render heading("appearance-h", "Appearance", Palette)}
       {@render note("appearance")}
       <ul class={listCls}>
@@ -301,7 +309,7 @@
       </ul>
     </section>
 
-    <section id="goals" aria-labelledby="goals-h" class="scroll-mt-20">
+    <section id="goals" aria-labelledby="goals-h" class="scroll-mt-32">
       {@render heading("goals-h", "Goals", Target)}
       {@render note("goals")}
       <ul class={listCls}>
@@ -318,7 +326,7 @@
       </ul>
     </section>
 
-    <section id="data" aria-labelledby="data-h" class="scroll-mt-20">
+    <section id="data" aria-labelledby="data-h" class="scroll-mt-32">
       {@render heading("data-h", "Your data", Database, "Everything stays in this browser. Backups are files you keep; there is no account and no server copy.")}
       {@render note("data")}
       <DataSection announce={announceIn("data")} {rowCls} />
@@ -331,7 +339,7 @@
 {#snippet heading(id: string, label: string, Icon: typeof Volume2, hint?: string)}
   <div class="mb-3 flex items-center gap-1">
     <h2 {id} class="flex items-center gap-2 font-display text-xl font-semibold">
-      <span class="grid size-8 place-items-center rounded-lg bg-instr-wash text-instr-ink" aria-hidden="true"><Icon class="size-4" /></span>{label}
+      <span class="grid size-8 place-items-center rounded-lg text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{SECTIONS.find((x) => `${x.id}-h` === id)?.hue ?? 'create'})" aria-hidden="true"><Icon class="size-4" /></span>{label}
     </h2>
     {#if hint}<Hint about={label.toLowerCase()} text={hint} />{/if}
   </div>
@@ -356,3 +364,12 @@
     <p class="mb-3 rounded-xl border border-ws-line bg-instr-wash px-4 py-2.5 text-sm font-medium" aria-hidden="true">{status}</p>
   {/if}
 {/snippet}
+
+<style>
+  .topic[aria-current="location"] {
+    color: var(--ws-ink);
+    font-weight: 600;
+    background: color-mix(in oklch, var(--topic) 16%, transparent);
+    box-shadow: inset 3px 0 0 var(--topic);
+  }
+</style>
