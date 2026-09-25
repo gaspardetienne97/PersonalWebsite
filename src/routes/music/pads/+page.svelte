@@ -90,10 +90,11 @@
   const strokeNow = $derived(base === null ? null : Math.round((now - base) / stepMs));
   const sixteenthNow = $derived(base === null || now < base ? null : Math.floor((now - base) / (beatMs / 4)));
 
-  // Pads sound on every hit that reaches the drill (the MPC in Controller Mode is silent).
+  // MIDI pad hits sound here (the MPC in Controller Mode is silent); on-screen
+  // taps already sound through the input layer.
   $effect(() =>
     input.subscribe((e) => {
-      if (e.kind === "noteon" && cfg.value.sound) audio.drum(e.midi, e.velocity);
+      if (e.kind === "noteon" && e.source !== "onscreen" && cfg.value.sound) audio.drum(e.midi, e.velocity);
     }),
   );
 

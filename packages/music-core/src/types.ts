@@ -335,6 +335,8 @@ export interface Settings {
   preferredSurface: Partial<Record<Instrument, PreferredSurface>>;
   frozenDays: string[];
   feedbackStyle: "every-note" | "summary";
+  /** On-screen keys, frets and pads make sound (when sound is on). */
+  onscreenSound: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -363,4 +365,5 @@ export const DEFAULT_SETTINGS: Settings = {
   preferredSurface: {},
   frozenDays: [],
   feedbackStyle: "every-note",
+  onscreenSound: true,
 };

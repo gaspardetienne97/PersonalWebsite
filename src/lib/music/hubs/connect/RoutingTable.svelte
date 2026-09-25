@@ -4,6 +4,7 @@
   import { INSTRUMENTS, type InputSource, type Instrument, type PreferredSurface } from "@repo/music-core";
   import { defaultSurface } from "@repo/music-core/io/devices";
   import { INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
+  import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { settings } from "$lib/music/runtime";
 
   let { announce }: { announce: (text: string) => void } = $props();
@@ -44,8 +45,14 @@
       {#each INSTRUMENTS as i (i)}
         {@const src = settings.value.preferredSource[i] ?? defaultSource(i)}
         {@const surf = settings.value.preferredSurface[i] ?? defaultSurface(i)}
-        <tr class="border-t border-ws-line">
-          <th scope="row" class="px-3 py-2 text-left font-medium">{INSTRUMENT_LABEL[i]}</th>
+        {@const Icon = INSTRUMENT_ICON[i]}
+        <tr class="border-t border-ws-line" style:box-shadow="inset 4px 0 0 var(--hue-{i})">
+          <th scope="row" class="px-3 py-2 text-left font-medium">
+            <span class="flex items-center gap-2">
+              <span class="grid size-7 shrink-0 place-items-center rounded-lg text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{i})" aria-hidden="true"><Icon class="size-4" /></span>
+              {INSTRUMENT_LABEL[i]}
+            </span>
+          </th>
           <td class="px-3 py-1.5">
             <select class="min-h-11 w-full rounded-lg border border-ws-line bg-ws-surface px-2" aria-label="{INSTRUMENT_LABEL[i]} preferred source" onchange={(e) => setSource(i, e.currentTarget.value as InputSource)}>
               {#each SOURCES as o (o.value)}<option value={o.value} selected={o.value === src}>{o.label}</option>{/each}

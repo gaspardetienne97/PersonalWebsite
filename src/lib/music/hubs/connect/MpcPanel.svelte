@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Drum from "lucide-svelte/icons/drum";
   // The MPC diagnostic that made the link debuggable (hardware notes 1): pick
   // the output, link it (the app shell keeps the heartbeat on every page),
   // prove the output with one lit pad, read pad order off a rainbow, and see
@@ -38,7 +39,10 @@
 
 <section class="flex flex-col gap-4 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:p-5" aria-labelledby="mpc-title">
   <div>
-    <h2 id="mpc-title" class="font-display text-xl font-semibold">MPC hardware</h2>
+    <h2 id="mpc-title" class="flex items-center gap-2.5 font-display text-xl font-semibold">
+      <span class="grid size-9 shrink-0 place-items-center rounded-xl text-[oklch(0.2_0.04_288)]" style:background="var(--hue-mpc)" aria-hidden="true"><Drum class="size-5" /></span>
+      MPC hardware
+    </h2>
     <p class="text-sm text-ws-soft">Nothing here runs by itself: every frame is sent by a button.</p>
   </div>
 

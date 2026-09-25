@@ -37,7 +37,8 @@
     input.setKeyboardMode("pads");
     // Pads, the QWERTY pad keys and a real MPC all play the kit.
     const off = input.subscribe((e) => {
-      if (e.kind === "noteon" && e.source !== "audio") audio.playKitPad(e.midi, e.velocity);
+      // On-screen taps already sound through the input layer.
+      if (e.kind === "noteon" && e.source !== "audio" && e.source !== "onscreen") audio.playKitPad(e.midi, e.velocity);
     });
     return () => {
       off();

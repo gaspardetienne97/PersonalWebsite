@@ -22,6 +22,8 @@ import { getBinary } from "./opfs";
 type Tone = typeof ToneNS;
 type Voice = {
   triggerAttackRelease(note: number | number[], dur: number, time?: number, vel?: number): unknown;
+  triggerAttack(note: number | number[], time?: number, vel?: number): unknown;
+  triggerRelease(note: number | number[], time?: number): unknown;
   releaseAll(time?: number): unknown;
   connect(node: ToneNS.Gain): unknown;
   dispose(): unknown;
@@ -834,6 +836,15 @@ export const audio = {
   playNote(midi: number, durSec = 0.6, velocity = 0.8) {
     const t = ready();
     if (t && live) live.triggerAttackRelease(mtof(midi), durSec, t.immediate(), velocity);
+  },
+  /** Sound a note while it is held (on-screen keys); pair with noteOff. */
+  noteOn(midi: number, velocity = 0.8) {
+    const t = ready();
+    if (t && live) live.triggerAttack(mtof(midi), t.immediate(), velocity);
+  },
+  noteOff(midi: number) {
+    const t = ready();
+    if (t && live) live.triggerRelease(mtof(midi), t.immediate());
   },
   playChord(midis: number[], durSec = 1.2, velocity = 0.8) {
     const t = ready();

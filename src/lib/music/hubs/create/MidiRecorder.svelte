@@ -45,10 +45,7 @@
         takes = (rows as unknown as MidiTake[]).filter((t) => Array.isArray(t.notes));
         [cmpA, cmpB] = [takes[1]?.id ?? "", takes[0]?.id ?? ""];
       });
-    // Hear the on-screen keys (hardware keyboards make their own sound).
-    return input.subscribe((e) => {
-      if (e.kind === "noteon" && e.source === "onscreen") audio.playNote(e.midi, 0.5, e.velocity);
-    });
+    // On-screen keys sound through the input layer; hardware makes its own sound.
   });
 
   async function toggle() {

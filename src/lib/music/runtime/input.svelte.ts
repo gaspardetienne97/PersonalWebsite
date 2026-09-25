@@ -14,6 +14,7 @@ import { browser } from "$app/environment";
 import { createInputRouter } from "@repo/music-core/io/router";
 import type { InputEvent, InputSource } from "@repo/music-core";
 import { settings } from "./settings.svelte";
+import { audio } from "./audio.svelte";
 
 export type KeyboardMode = "piano" | "pads" | "off";
 
@@ -24,6 +25,19 @@ let activeSource = $state<InputSource | undefined>();
 let lastEvent = $state.raw<InputEvent | undefined>();
 let keyboardMode = $state<KeyboardMode>("off");
 let octave = $state(0);
+
+// On-screen surfaces make sound, like a real instrument would. Driven by what
+// the router delivers, so suppressed taps stay silent and release-all (blur,
+// route exit) stops every held note. Pads play the kit, or synth drums.
+router.subscribe((e) => {
+  if ((e.kind !== "noteon" && e.kind !== "noteoff") || e.source !== "onscreen") return;
+  // The switch gates new notes only, so a note held when it flips still stops.
+  if (e.kind === "noteon" && !settings.value.onscreenSound) return;
+  if (keyboardMode === "pads") {
+    if (e.kind === "noteon") audio.playKitPad(e.midi, e.velocity);
+  } else if (e.kind === "noteon") audio.noteOn(e.midi, e.velocity);
+  else audio.noteOff(e.midi);
+});
 
 router.subscribe((e) => {
   lastEvent = e;

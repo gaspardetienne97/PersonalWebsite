@@ -9,10 +9,26 @@
   let { announce }: { announce: (text: string) => void } = $props();
   let mine = false;
 
+  // Device names only appear once the browser has granted the microphone.
+  void mic.refreshDevices().catch(() => {});
+  const chosen = $derived(settings.value.audioInputDeviceId ?? "");
+  // Before permission the browser lists inputs with empty ids and no names.
+  const named = $derived(mic.devices.some((d) => d.deviceId && d.deviceId !== "default"));
+
+  async function choose(deviceId: string) {
+    const d = mic.devices.find((x) => x.deviceId === deviceId);
+    await settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: d?.label || "Default input" });
+    if (mic.state === "on") {
+      mic.stop();
+      await start();
+    } else announce(`${d?.label || "The default input"} will be used for the microphone.`);
+  }
+
   async function start() {
     mine = true;
     const ok = await mic.start({ deviceId: settings.value.audioInputDeviceId });
-    announce(ok ? "Microphone on. Play a note to see the level." : mic.error || "The microphone did not start.");
+    announce(ok ? `Microphone on (${settings.value.audioInputLabel}). Play a note to see the level.` : mic.error || "The microphone did not start.");
+    if (ok) void mic.refreshDevices().catch(() => {});
   }
   function stop() {
     mic.stop();
@@ -33,6 +49,16 @@
 </script>
 
 <div class="flex flex-col gap-3">
+  <label class="flex min-w-0 flex-col gap-1 text-sm">
+    <span class="font-medium">Input device</span>
+    <select class="min-h-11 w-full max-w-md rounded-lg border border-ws-line bg-ws-surface px-3" value={chosen} onchange={(e) => void choose(e.currentTarget.value)}>
+      <option value="">Default input</option>
+      {#each mic.devices.filter((d) => d.deviceId && d.deviceId !== "default") as d (d.deviceId)}
+        <option value={d.deviceId}>{d.label}</option>
+      {/each}
+    </select>
+    {#if !named}<span class="text-ws-soft">Start the microphone once and the browser shows each device's name.</span>{/if}
+  </label>
   <div class="flex flex-wrap items-center gap-2">
     {#if mic.state === "on"}
       <button type="button" class={btn} onclick={stop}>Stop microphone</button>

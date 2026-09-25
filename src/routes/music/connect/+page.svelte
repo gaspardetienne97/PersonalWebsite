@@ -2,6 +2,12 @@
   import { detectInstrument } from "@repo/music-core/io/devices";
   import { TUNINGS } from "@repo/music-core/data/index";
   import Cable from "lucide-svelte/icons/cable";
+  import Usb from "lucide-svelte/icons/usb";
+  import RouteIcon from "lucide-svelte/icons/route";
+  import MicIcon from "lucide-svelte/icons/mic";
+  import KeyboardMusic from "lucide-svelte/icons/keyboard-music";
+  import ListChecks from "lucide-svelte/icons/list-checks";
+  import Activity from "lucide-svelte/icons/activity";
   import { btn, btnPrimary, panel } from "$lib/music/components/ui";
   import Piano from "$lib/music/components/Piano.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
@@ -71,7 +77,7 @@
       <section class={panel} aria-labelledby="midi-title">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
-            <h2 id="midi-title" class="flex items-center gap-2 font-display text-xl font-semibold"><Cable class="size-5" aria-hidden="true" />MIDI</h2>
+            {@render heading("midi-title", "MIDI", Cable, "create")}
             {#if !midi.supported}
               <p class="mt-1 text-sm">Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for MIDI devices.</p>
               <p class="mt-1 text-sm text-ws-soft">Meanwhile guitar and ukulele work through the microphone, and every other instrument has an on-screen surface.</p>
@@ -96,7 +102,7 @@
 
       {#if midi.enabled}
         <section class="flex flex-col gap-3" aria-labelledby="devices-title">
-          <h2 id="devices-title" class="font-display text-xl font-semibold">Devices</h2>
+          {@render heading("devices-title", "Devices", Usb, "piano")}
           {#if !midi.inputs.length && !offline.length}
             <p class="text-sm text-ws-soft">No MIDI inputs yet. Plug a device in; it appears here without a reload.</p>
           {/if}
@@ -111,20 +117,20 @@
       {/if}
 
       <section class={panel} aria-labelledby="routing-title">
-        <h2 id="routing-title" class="font-display text-xl font-semibold">Routing</h2>
+        {@render heading("routing-title", "Routing", RouteIcon, "rhythm")}
         <p class="mb-3 text-sm text-ws-soft">What each instrument listens to first, and the on-screen surface it falls back to.</p>
         <RoutingTable {announce} />
       </section>
 
       <section class={panel} aria-labelledby="mic-title">
-        <h2 id="mic-title" class="font-display text-xl font-semibold">Microphone</h2>
+        {@render heading("mic-title", "Microphone", MicIcon, "guitar")}
         <p class="mb-3 text-sm text-ws-soft">Guitar, ukulele and voice come in here. Echo cancellation, gain control and noise suppression stay off, because they destroy pitch.</p>
         <MicCheck {announce} />
       </section>
 
       <section class={panel} aria-labelledby="fallback-title">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="fallback-title" class="font-display text-xl font-semibold">No device?</h2>
+          {@render heading("fallback-title", "No device?", KeyboardMusic, settings.value.activeInstrument)}
           <button type="button" class={btn} aria-expanded={showFallback} aria-controls="fallback" onclick={() => (showFallback = !showFallback)}>
             {showFallback ? "Hide the on-screen surface" : "Try the on-screen surface"}
           </button>
@@ -146,7 +152,7 @@
 
     <aside class="flex min-w-0 flex-col gap-6 lg:sticky lg:top-4">
       <section class={panel} aria-labelledby="check-title">
-        <h2 id="check-title" class="font-display text-lg font-semibold">Setup checklist</h2>
+        {@render heading("check-title", "Setup checklist", ListChecks, "reading")}
         <p class="text-sm text-ws-soft">{readyCount} of {checklist.length} ready</p>
         <ul class="mt-3 flex flex-col gap-2">
           {#each checklist as c (c.label)}
@@ -159,13 +165,15 @@
       </section>
 
       <section class={panel} aria-labelledby="activity-title">
-        <h2 id="activity-title" class="font-display text-lg font-semibold">Live activity</h2>
+        {@render heading("activity-title", "Live activity", Activity, "mpc")}
         <p class="text-sm text-ws-soft">The last messages as bytes, from every port, ignored ones included.</p>
         {#if midi.rawLog.length}
           <ol class="mt-3 flex flex-col gap-1.5 text-xs" data-testid="activity">
             {#each midi.rawLog.slice(0, 14) as m, i (i + m.at)}
+              {@const inst = midi.profile(m.portId)?.instrument ?? detectInstrument(m.port, "")}
               <li class="flex min-w-0 flex-wrap items-baseline gap-x-2 border-b border-ws-line pb-1">
                 <span class="tnum text-ws-soft">{Math.max(0, (m.at - t0) / 1000).toFixed(1)} s</span>
+                <span class="size-2 shrink-0 self-center rounded-full" style:background={inst ? `var(--hue-${inst})` : "var(--ws-soft)"} aria-hidden="true"></span>
                 <span class="min-w-0 truncate font-medium">{midi.profile(m.portId)?.alias ?? m.port}</span>
                 {#if ignoredIds.has(m.portId)}<span class="rounded bg-warn/20 px-1">ignored</span>{/if}
                 <span class="w-full font-mono break-all">{m.hex}</span>
@@ -180,3 +188,10 @@
   </div>
 
 </div>
+
+{#snippet heading(id: string, label: string, Icon: typeof Cable, hue: string)}
+  <h2 {id} class="flex items-center gap-2.5 font-display text-xl font-semibold">
+    <span class="grid size-9 shrink-0 place-items-center rounded-xl text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{hue})" aria-hidden="true"><Icon class="size-5" /></span>
+    {label}
+  </h2>
+{/snippet}

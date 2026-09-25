@@ -155,6 +155,13 @@
           </div>
           {@render toggle("mute-l", s.muted, (v) => settings.update({ muted: v }))}
         </li>
+        <li class={rowCls}>
+          <div class="min-w-0 flex-1 basis-48">
+            <p id="onscreen-l" class="font-medium">On-screen instruments make sound</p>
+            <p class="text-sm text-ws-soft">Keys, frets and pads you tap or play from the computer keyboard sound like the instrument. MIDI devices make their own sound.</p>
+          </div>
+          {@render toggle("onscreen-l", s.onscreenSound, (v) => settings.update({ onscreenSound: v }))}
+        </li>
         <li class="px-4 py-3 text-sm text-ws-soft">
           Sampled piano: Salamander Grand Piano by Alexander Holm, <a class="font-medium text-instr-ink underline underline-offset-4" href="https://creativecommons.org/licenses/by/3.0/" rel="noopener noreferrer" target="_blank">CC BY 3.0</a>.
         </li>

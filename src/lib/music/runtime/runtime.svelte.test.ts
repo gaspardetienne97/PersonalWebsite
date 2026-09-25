@@ -9,6 +9,7 @@ import { midi } from "./midi.svelte";
 import { input } from "./input.svelte";
 import { settings } from "./settings.svelte";
 import { mic } from "./mic.svelte";
+import { audio } from "./audio.svelte";
 import { putBinary, getBinary, deleteBinary } from "./opfs";
 
 // A fake Web MIDI implementation, the same shape a Playwright init script would install.
@@ -92,6 +93,44 @@ describe("on-screen input", () => {
     input.setKeyboardMode("off");
     expect(input.held.size).toBe(0);
     off();
+  });
+});
+
+describe("on-screen sound", () => {
+  it("sustains on-screen notes while held, plays pads on the kit, and never leaves a note stuck", async () => {
+    await settings.ready;
+    const on = vi.spyOn(audio, "noteOn").mockImplementation(() => {});
+    const off = vi.spyOn(audio, "noteOff").mockImplementation(() => {});
+    const pad = vi.spyOn(audio, "playKitPad").mockImplementation(() => {});
+    // Past the router's 1.5 s MIDI window from earlier tests.
+    await new Promise((r) => setTimeout(r, 1600));
+
+    input.setKeyboardMode("piano");
+    input.tap(64, true);
+    input.tap(64, false);
+    expect(on).toHaveBeenCalledWith(64, 0.8);
+    expect(off).toHaveBeenCalledWith(64);
+
+    input.setKeyboardMode("pads");
+    input.tap(38, true);
+    input.tap(38, false);
+    expect(pad).toHaveBeenCalledWith(38, 0.8);
+
+    // Switched off mid-note: nothing new sounds, but the held note still stops.
+    input.setKeyboardMode("piano");
+    input.tap(67, true);
+    await settings.update({ onscreenSound: false });
+    input.tap(67, false);
+    input.tap(69, true);
+    input.tap(69, false);
+    expect(off).toHaveBeenCalledWith(67);
+    expect(on).not.toHaveBeenCalledWith(69, 0.8);
+
+    await settings.update({ onscreenSound: true });
+    input.setKeyboardMode("off");
+    on.mockRestore();
+    off.mockRestore();
+    pad.mockRestore();
   });
 });
 
