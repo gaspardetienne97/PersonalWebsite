@@ -189,7 +189,8 @@ test.describe("Record", () => {
     ]) {
       await rec.click();
       await expect(page.getByRole("status")).toContainText("Recording");
-      for (const n of notes) await midiNote(page, PORTS.keys.id, n, 90, 1, 150);
+      // Long enough notes that a pause can land before the take ends.
+      for (const n of notes) await midiNote(page, PORTS.keys.id, n, 90, 1, 450);
       await page.getByRole("button", { name: "Stop", exact: true }).click();
       await expect(page.getByRole("status")).toContainText(/Saved Take \d: 3 notes/);
     }
@@ -206,6 +207,12 @@ test.describe("Record", () => {
     await expect(page.getByRole("status")).toContainText("Playing Arpeggio");
     await take.getByRole("button", { name: "Pause Arpeggio" }).click();
     await expect(page.getByRole("status")).toContainText("Paused Arpeggio");
+    // Resume, let it finish: the button goes back to Play by itself.
+    await take.getByRole("button", { name: "Play Arpeggio" }).click();
+    await expect(take.getByRole("button", { name: "Pause Arpeggio" })).toBeVisible();
+    await expect(take.getByRole("button", { name: "Play Arpeggio" })).toBeVisible({
+      timeout: 5000,
+    });
 
     // Compare: two of three notes share pitch and position.
     await expect(page.getByRole("heading", { name: "Compare takes" })).toBeVisible();
