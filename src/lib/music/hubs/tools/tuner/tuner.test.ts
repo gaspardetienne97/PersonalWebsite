@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { degreeRole, direction, nearestString, pretty, signedCents, tracePath } from "./tuner";
+import { midiToHz } from "@repo/music-core";
+import {
+  degreeRole,
+  direction,
+  nearestString,
+  pretty,
+  signedCents,
+  tracePath,
+  centsToTarget,
+  scopePath,
+} from "./tuner";
 
 describe("tuner helpers", () => {
   it("names the direction with a ±5 cent in-tune zone", () => {
@@ -40,5 +50,26 @@ describe("tuner helpers", () => {
     );
     expect(d).toBe("M0.0 80.0L300.0 0.0M600.0 160.0");
     expect(pretty("Bb4")).toBe("B♭4");
+  });
+});
+
+describe("target notes and the scope", () => {
+  it("measures against the chosen note in the nearest octave", () => {
+    // A3 (220 Hz) against target A: in tune, octave 3.
+    expect(centsToTarget(220, 9).targetMidi).toBe(57);
+    expect(centsToTarget(220, 9).cents).toBeCloseTo(0, 6);
+    // A4 against target A: the octave follows the singer.
+    expect(centsToTarget(440, 9).targetMidi).toBe(69);
+    // A little sharp of G4 against target G.
+    const g = centsToTarget(midiToHz(67) * 2 ** (10 / 1200), 7);
+    expect(g.targetMidi).toBe(67);
+    expect(g.cents).toBeCloseTo(10, 5);
+    // Playing A while aiming for C: three semitones below the nearest C.
+    expect(Math.round(centsToTarget(440, 0).cents)).toBe(-300);
+  });
+  it("starts the scope on a rising zero crossing", () => {
+    const buf = new Float32Array(2048).map((_, i) => Math.sin((2 * Math.PI * (i - 100)) / 200));
+    const d = scopePath(buf, { width: 100, height: 100, samples: 200 });
+    expect(d.startsWith("M0.0 50.0")).toBe(true);
   });
 });

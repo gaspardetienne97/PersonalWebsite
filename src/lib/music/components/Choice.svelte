@@ -1,9 +1,12 @@
 <script lang="ts" generics="T extends string | number">
+  import * as Tooltip from "@repo/ui/tooltip";
   // A labelled setup choice: a wrapping segmented control for a few options,
   // a native select for many. Never overflows at 375 px.
   interface Option {
     value: T;
     label: string;
+    /** A short explanation shown as a tooltip and read with the button. */
+    hint?: string;
   }
   interface Props {
     label: string;
@@ -43,16 +46,34 @@
     <span id={id} class="font-medium">{label}</span>
     <div class="flex flex-wrap gap-1.5">
       {#each options as o (o.value)}
-        <button
-          type="button"
-          class="min-h-11 rounded-lg border px-3 text-sm {o.value === value
-            ? 'border-transparent bg-instr font-semibold text-ws-stage'
-            : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
-          aria-pressed={o.value === value}
-          {disabled}
-          onclick={() => set(o.value)}>{o.label}</button
-        >
+        {#if o.hint}
+          <Tooltip.Provider delayDuration={250}>
+            <Tooltip.Root>
+              <Tooltip.Trigger>
+                {#snippet child({ props })}{@render option(o, props)}{/snippet}
+              </Tooltip.Trigger>
+              <Tooltip.Content class="max-w-64">{o.hint}</Tooltip.Content>
+            </Tooltip.Root>
+          </Tooltip.Provider>
+          <span id="{id}-{o.value}-hint" class="sr-only">{o.hint}</span>
+        {:else}
+          {@render option(o, {})}
+        {/if}
       {/each}
     </div>
   </div>
 {/if}
+
+{#snippet option(o: Option, props: Record<string, unknown>)}
+  <button
+    {...props}
+    type="button"
+    class="min-h-11 rounded-lg border px-3 text-sm {o.value === value
+      ? 'border-transparent bg-instr font-semibold text-ws-stage'
+      : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+    aria-pressed={o.value === value}
+    aria-describedby={o.hint ? `${id}-${o.value}-hint` : undefined}
+    {disabled}
+    onclick={() => set(o.value)}>{o.label}</button
+  >
+{/snippet}

@@ -38,5 +38,6 @@
     <Listen {mode} onstatus={(s) => (status = s)} />
   {/if}
 
-  <p role="status" class="min-h-6 text-sm font-medium">{status}</p>
+  <!-- Announced to screen readers; the page already shows the state. -->
+  <p role="status" class="sr-only">{status}</p>
 </div>

@@ -607,9 +607,15 @@ function kitHit(
 
 let droneStop: (() => void) | null = null;
 
+let droneAnalyser: AnalyserNode | null = null;
+
 const drone = {
   get playing() {
     return dronePlaying;
+  },
+  /** A tap on the drone's output for visualisations; null when silent. */
+  get analyser() {
+    return droneAnalyser;
   },
   start(midi: number, timbre: DroneTimbre = "sine", volume = 0.4) {
     drone.stop();
@@ -639,6 +645,10 @@ const drone = {
       osc.start();
       return [osc, g] as const;
     });
+    const analyser = rawCtx(t).createAnalyser();
+    analyser.fftSize = 2048;
+    out.connect(analyser);
+    droneAnalyser = analyser;
     out.gain.rampTo(volume, 0.3);
     dronePlaying = true;
     droneStop = () => {
@@ -653,6 +663,7 @@ const drone = {
   stop() {
     droneStop?.();
     droneStop = null;
+    droneAnalyser = null;
     dronePlaying = false;
   },
 };

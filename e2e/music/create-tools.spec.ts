@@ -292,6 +292,16 @@ test.describe("Tuner", () => {
     await expect(page.getByRole("status")).toContainText("A2 in tune");
     await shots(page, "tuner-tune");
 
+    // A target note: the gauge measures against it, in the octave you're in.
+    const targets = page.getByRole("group", { name: "Target note" });
+    await targets.getByRole("button", { name: "C", exact: true }).click();
+    await expect(page.getByTestId("tuner-cents")).toContainText("A, 3 semitones below");
+    await expect(page.getByTestId("tuner-note")).toHaveText("C3");
+    await targets.getByRole("button", { name: "A", exact: true }).click();
+    await expect(page.getByTestId("tuner-cents")).toContainText("in tune");
+    await shots(page, "tuner-target");
+    await targets.getByRole("button", { name: "Any note" }).click();
+
     // Fretted instruments get the string strip; A2 is the fifth string.
     await page.getByLabel("Instrument").selectOption("guitar");
     await expect(page.getByLabel("Guitar tuning")).toBeVisible();
@@ -320,6 +330,12 @@ test.describe("Tuner", () => {
       "true",
     );
     await expect(page.getByRole("status")).toContainText("Drone on A3, sine");
+    await expect(page.getByRole("img", { name: "Waveform of the drone on A3" })).toBeVisible();
+    // Timbre explanations live on the buttons, not beside Play.
+    await page.getByRole("button", { name: "Shruti" }).hover();
+    await expect(
+      page.getByText("Stacks the fifth and the octave, like a tanpura.").first(),
+    ).toBeVisible();
     await page.getByRole("button", { name: "D, in the major scale" }).click();
     await expect(page.getByRole("status")).toContainText("Drone on D3");
     await expect(page.getByRole("button", { name: "D, tonic" })).toHaveAttribute(

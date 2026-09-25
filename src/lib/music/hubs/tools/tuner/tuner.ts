@@ -65,3 +65,43 @@ export function tracePath(
 
 /** "B♭", "F♯": note names with real accidentals. */
 export const pretty = (name: string) => name.replace("b", "♭").replace("#", "♯");
+
+/**
+ * Distance from a chosen target note, in whichever octave you are nearest
+ * (so you can sing or play it in your own register). `pc` is 0..11.
+ */
+export function centsToTarget(
+  hz: number,
+  pc: number,
+  a4 = 440,
+): { targetMidi: number; cents: number } {
+  const f = hzToMidiFloat(hz, a4);
+  const targetMidi = pc + 12 * Math.round((f - pc) / 12);
+  return { targetMidi, cents: (f - targetMidi) * 100 };
+}
+
+/**
+ * SVG path for a scope trace. Starts at the first rising zero crossing so a
+ * steady tone stands still, and scales to the loudest sample shown.
+ */
+export function scopePath(
+  buf: Float32Array,
+  { width = 600, height = 160, samples = 1024 } = {},
+): string {
+  let start = 0;
+  for (let i = 1; i < buf.length - samples; i++)
+    if (buf[i - 1] < 0 && buf[i] >= 0) {
+      start = i;
+      break;
+    }
+  const n = Math.min(samples, buf.length - start);
+  let peak = 0.05;
+  for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(buf[start + i]));
+  let d = "";
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * width;
+    const y = height / 2 - (buf[start + i] / peak) * (height / 2 - 6);
+    d += `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  return d;
+}

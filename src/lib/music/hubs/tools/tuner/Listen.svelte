@@ -16,8 +16,10 @@
   } from "@repo/music-core/signal/pitch";
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { audio, mic, settings, type MicFrame } from "$lib/music/runtime";
+  import NotePads from "./NotePads.svelte";
   import {
     A4_CHOICES,
+    centsToTarget,
     direction,
     IN_TUNE_CENTS,
     INTONATION_BAND_CENTS,
@@ -43,7 +45,30 @@
   const listening = $derived(mic.state === "on");
   const a4 = $derived(settings.value.a4Hz);
   const held = $derived(inTuneSince === null ? 0 : (lastInTuneAt - inTuneSince) / 1000);
-  const word = $derived(reading ? direction(reading.cents) : null);
+
+  // A chosen target note (pitch class), or null for "whatever note is nearest".
+  let target = $state<number | null>(null);
+  /** What the gauge shows: distance from the target note, or from the nearest note. */
+  function against(r: { hz: number; midi: number; cents: number }) {
+    if (target === null) return { midi: r.midi, cents: r.cents };
+    const t = centsToTarget(r.hz, target, a4);
+    return { midi: t.targetMidi, cents: t.cents };
+  }
+  const shown = $derived(reading ? { ...against(reading), inTune: Math.abs(against(reading).cents) <= IN_TUNE_CENTS } : null);
+  const word = $derived(shown ? direction(shown.cents) : null);
+  const semitonesOff = $derived(shown && Math.abs(shown.cents) > 50 ? Math.round(shown.cents / 100) : 0);
+
+  async function chooseTarget(pc: number | null) {
+    target = pc;
+    intonation.reset();
+    inTuneSince = null;
+    if (pc === null) return onstatus("Tuning to the nearest note.");
+    const octave = reading ? Math.floor(reading.midi / 12) - 1 : 4;
+    const midi = (octave + 1) * 12 + pc;
+    onstatus(`Target ${noteName(midi)}.`);
+    await audio.unlock();
+    audio.playNote(midi, 1.5);
+  }
 
   // Fretted instruments get a string strip.
   const instrument = $derived(settings.value.activeInstrument);
@@ -56,15 +81,17 @@
   function onFrame(f: MicFrame) {
     const fresh = f.pitch;
     const r = reader.push(fresh, f.at);
-    intonation.push(fresh, f.at);
+    intonation.push(fresh, f.at, fresh && target !== null ? centsToTarget(fresh.hz, target, a4).targetMidi : undefined);
     reading = r;
     stats = intonation.stats();
     frameAt = f.at;
-    if (fresh && r?.inTune) {
+    const view = r ? against(r) : null;
+    const ok = !!view && Math.abs(view.cents) <= IN_TUNE_CENTS;
+    if (fresh && ok) {
       inTuneSince ??= f.at;
       lastInTuneAt = f.at;
     } else if (fresh || !r) inTuneSince = null;
-    const say = r?.inTune ? `${noteName(r.midi)} in tune.` : "";
+    const say = ok && view ? `${noteName(view.midi)} in tune.` : "";
     if (say && say !== announced) onstatus(say);
     announced = say;
   }
@@ -162,6 +189,10 @@
     {/if}
   </div>
 
+  <div class="mt-4">
+    <NotePads label="Target note" noneLabel="Any note" selected={target} onselect={(p) => void chooseTarget(p)} />
+  </div>
+
   <div class="readout mx-auto mt-4 grid max-w-xl" class:intonation={mode === "intonation"} data-state={word ?? "none"}>
     <svg viewBox="0 0 300 172" class="w-full" aria-hidden="true">
       <path d={arc(-70, 70)} class="track" />
@@ -171,10 +202,10 @@
         {@const [x2, y2] = pt(angle(t), R + 6)}
         <line {x1} {y1} {x2} {y2} class="tick" />
       {/each}
-      {#if reading}
-        <text x="18" y="168" class="nb">{pretty(noteName(reading.midi - 1, "flat", false))}</text>
-        <text x="282" y="168" class="nb" text-anchor="end">{pretty(noteName(reading.midi + 1, "flat", false))}</text>
-        <g class="needle" style:transform="rotate({angle(reading.cents)}deg)">
+      {#if shown}
+        <text x="18" y="168" class="nb">{pretty(noteName(shown.midi - 1, "flat", false))}</text>
+        <text x="282" y="168" class="nb" text-anchor="end">{pretty(noteName(shown.midi + 1, "flat", false))}</text>
+        <g class="needle" style:transform="rotate({angle(shown.cents)}deg)">
           <line x1={CX} y1={CY - R + 46} x2={CX} y2={CY - R - 4} />
           <circle cx={CX} cy={CY - R} r="7" />
         </g>
@@ -185,21 +216,26 @@
     </svg>
 
     <div class="face-wrap">
-      <div class="face" style:transform="scale({reading?.inTune ? faceScale : 0.8})" aria-hidden="true"></div>
+      <div class="face" style:transform="scale({shown?.inTune ? faceScale : 0.8})" aria-hidden="true"></div>
       <p class="note font-display" data-testid="tuner-note">
-        {#if reading}{pretty(noteName(reading.midi, "flat", false))}<span class="oct">{Math.floor(reading.midi / 12) - 1}</span>{:else}<span class="idle">{listening ? "Play a note" : "Ready"}</span>{/if}
+        {#if shown}{pretty(noteName(shown.midi, "flat", false))}<span class="oct">{Math.floor(shown.midi / 12) - 1}</span>{:else if target !== null}<span class="idle">Aim for {pretty(noteName(target, "flat", false))}</span>{:else}<span class="idle">{listening ? "Play a note" : "Ready"}</span>{/if}
       </p>
     </div>
   </div>
 
   <div class="mt-2 text-center">
-    {#if reading && word}
+    {#if reading && shown && word}
       <p class="font-display text-2xl font-semibold sm:text-3xl" data-testid="tuner-cents">
-        <span class="tnum">{signedCents(reading.cents)}</span> cents,
-        {#if word === "in tune"}<span class="text-success">✓ in tune</span>{:else}{word}, tune {word === "flat" ? "up" : "down"}{/if}
+        {#if semitonesOff}
+          {pretty(noteName(reading.midi, "flat", false))}, {Math.abs(semitonesOff)} semitone{Math.abs(semitonesOff) === 1 ? "" : "s"}
+          {semitonesOff > 0 ? "above" : "below"}
+        {:else}
+          <span class="tnum">{signedCents(shown.cents)}</span> cents,
+          {#if word === "in tune"}<span class="text-success">✓ in tune</span>{:else}{word}, tune {word === "flat" ? "up" : "down"}{/if}
+        {/if}
       </p>
       <p class="tnum mt-1 text-sm text-ws-stage-soft">
-        Hearing {reading.hz.toFixed(1)} Hz, target {midiToHz(reading.midi, a4).toFixed(1)} Hz{#if held >= 0.5}. Held in tune {held.toFixed(1)} s{/if}
+        Hearing {reading.hz.toFixed(1)} Hz, target {midiToHz(shown.midi, a4).toFixed(1)} Hz{#if held >= 0.5}. Held in tune {held.toFixed(1)} s{/if}
       </p>
     {:else}
       <p class="text-sm text-ws-stage-soft">{listening ? "Nothing clear yet. One note at a time, close to the microphone." : "Start listening, then play a single note."}</p>
