@@ -10,6 +10,7 @@ test("narrow site menu supports keyboard and pointer navigation", async ({ page 
     ["About", "/about"],
     ["Gallery", "/gallery"],
     ["Blog", "/blog"],
+    ["Music", "/music"],
     ["Narrator", "/pdf"],
   ]) {
     await expect(page.getByRole("menuitem", { name, exact: true })).toHaveAttribute("href", href);
@@ -23,7 +24,7 @@ test("narrow site menu supports keyboard and pointer navigation", async ({ page 
   await expect(page.getByRole("menu")).toHaveCount(0);
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: "Home", exact: true })).toBeFocused();
-  for (const name of ["About", "Gallery", "Blog", "Narrator"]) {
+  for (const name of ["About", "Gallery", "Blog", "Music", "Narrator"]) {
     await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("menuitem", { name, exact: true })).toBeFocused();
   }

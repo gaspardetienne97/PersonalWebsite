@@ -182,7 +182,6 @@ const TONES: Record<string, number[]> = {
   m7: [3, 7, 10],
   "7": [4, 7, 10],
   maj7: [4, 7, 11],
-  m7b5: [3, 6, 10],
 };
 const dominant = (id: string) => JAZZ.DOMINANT_VOICINGS.find((v) => v.id === id)!.offsets;
 
@@ -199,7 +198,7 @@ function voicingTarget(
     id: `${key}-${symbol}`,
     skillIds,
     symbol,
-    expectedPitchClasses: displayMidi.map(pc),
+    expectedPitchClasses: [...new Set(displayMidi.map(pc))],
     expectedBassPc: pc(root),
     mode,
     displayMidi,
@@ -210,7 +209,7 @@ function voicingTarget(
  * The drill's targets through the 12-key cycle, root in the left hand (shown first).
  * Tonic = 60 + key; ii = tonic + 2, V = tonic + 7, I = tonic.
  * - major: rootless ii-V-I, positions A-B-A (or B-A-B).
- * - minor: iiø7 rootless A, V7alt (7 b9 3 b13), i-m7 rootless B.
+ * - minor: iiø7 rootless A (b3 b5 b7 1), V7alt (7 b9 3 b13), i-m7 rootless B.
  * - altered: V7b9 (3 7 b9 5), V7alt, then the II-major upper structure over a 1 3 7 shell.
  */
 export function voicingTargets(opts: {
@@ -236,7 +235,9 @@ export function voicingTargets(opts: {
       ];
     if (opts.variant === "minor")
       return [
-        t(`${name(ii)}m7b5`, ii, rootless(TONES.m7b5, "A")),
+        // iiø7 rootless A as b3 b5 b7 1 (Dm7b5: F Ab C D): a natural 9 (E) would clash
+        // with the minor key's b3 (Eb), so the root takes the 9th's place on top.
+        t(`${name(ii)}m7b5`, ii, [3, 6, 10, 12]),
         t(`${name(v)}7alt`, v, dominant("altered")),
         t(`${key}m7`, tonic, rootless(TONES.m7, "B")),
       ];

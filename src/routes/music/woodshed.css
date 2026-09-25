@@ -1,0 +1,120 @@
+/* Woodshed palette. The chrome stays quiet; the stage is a lit dark panel in
+   both themes so the instruments read as material. Instrument hue is identity
+   only; judgement uses --success / --warn / --destructive plus a glyph or text. */
+
+.woodshed {
+  --ws-bg: oklch(0.968 0.007 280);
+  --ws-surface: oklch(1 0 0);
+  --ws-raised: oklch(0.935 0.013 282);
+  --ws-line: oklch(0.25 0.04 285 / 0.13);
+  --ws-ink: oklch(0.23 0.045 287);
+  --ws-soft: oklch(0.46 0.04 287);
+  --ws-stage: oklch(0.2 0.045 288);
+  --ws-stage-2: oklch(0.255 0.05 290);
+  --ws-stage-ink: oklch(0.96 0.012 290);
+  --ws-stage-soft: oklch(0.78 0.035 290);
+
+  --hue-piano: oklch(0.79 0.14 78);
+  --hue-guitar: oklch(0.71 0.16 32);
+  --hue-ukulele: oklch(0.82 0.15 112);
+  --hue-mpc: oklch(0.68 0.22 352);
+  --hue-aerophone: oklch(0.76 0.12 192);
+  --hue-voice: oklch(0.72 0.15 305);
+  --hue-ear: oklch(0.72 0.15 300);
+  --hue-reading: oklch(0.74 0.12 238);
+  --hue-rhythm: oklch(0.77 0.16 150);
+  --hue-create: oklch(0.74 0.14 260);
+
+  --instr: var(--hue-piano);
+  /* Text-safe version of the hue on the page background. */
+  --instr-ink: color-mix(in oklch, var(--instr), black 42%);
+  --instr-wash: color-mix(in oklch, var(--instr) 16%, transparent);
+
+  /* Tone roles and hands: fixed musical identity, identical in both themes. */
+  --tone-chord: oklch(0.8 0.15 80);
+  --tone-scale: oklch(0.74 0.11 235);
+  --tone-avoid: oklch(0.6 0.04 20);
+  --hand-left: oklch(0.72 0.13 200);
+  --hand-right: oklch(0.76 0.15 60);
+
+  background: var(--ws-bg);
+  color: var(--ws-ink);
+}
+
+.dark .woodshed {
+  --ws-bg: oklch(0.185 0.035 288);
+  --ws-surface: oklch(0.225 0.04 289);
+  --ws-raised: oklch(0.27 0.045 290);
+  --ws-line: oklch(1 0 0 / 0.1);
+  --ws-ink: oklch(0.96 0.01 290);
+  --ws-soft: oklch(0.77 0.03 290);
+  --ws-stage: oklch(0.145 0.03 286);
+  --ws-stage-2: oklch(0.2 0.04 288);
+  --instr-ink: var(--instr);
+  --instr-wash: color-mix(in oklch, var(--instr) 14%, transparent);
+}
+
+.woodshed[data-hue="off"] {
+  --instr: var(--hue-create);
+}
+
+.woodshed :focus-visible {
+  outline: 2px solid var(--instr-ink);
+  outline-offset: 2px;
+}
+
+.woodshed .stage :focus-visible {
+  outline-color: var(--instr);
+}
+
+.woodshed .tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The lit stage: one spotlight in the instrument hue. */
+.woodshed .stage {
+  background:
+    radial-gradient(
+      120% 90% at 50% -10%,
+      color-mix(in oklch, var(--instr) 22%, transparent),
+      transparent 60%
+    ),
+    var(--ws-stage);
+  color: var(--ws-stage-ink);
+}
+
+/* Focus mode: a running drill owns the screen. */
+html[data-music-focus] .app > header,
+html[data-music-focus] .app > footer {
+  display: none;
+}
+
+html[data-reduce-motion] *,
+html[data-reduce-motion] *::before,
+html[data-reduce-motion] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+@keyframes ws-bloom {
+  from {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes ws-rise {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

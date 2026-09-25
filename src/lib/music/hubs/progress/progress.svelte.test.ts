@@ -1,0 +1,164 @@
+import { beforeEach, describe, expect, it } from "vite-plus/test";
+import { render } from "vitest-browser-svelte";
+import { page } from "vitest/browser";
+import "../../../../app.css";
+import "../../../../routes/music/woodshed.css";
+import type { PracticeSession, ScoringEvent } from "@repo/music-core";
+import { ingestEvents } from "@repo/music-core/progress/mastery";
+import { ingestAnalytics } from "@repo/music-core/progress/analytics";
+import { practice } from "../../practice.svelte";
+import SkillsView from "./SkillsView.svelte";
+import NextView from "./NextView.svelte";
+import JournalView from "../journal/JournalView.svelte";
+
+const now = Date.now();
+const HOUR = 3_600_000;
+
+function ev(i: number, over: Partial<ScoringEvent>): ScoringEvent {
+  return {
+    id: `ev-${over.runId}-${i}`,
+    sessionId: "s1",
+    runId: "r1",
+    exerciseId: "ear.intervals",
+    promptId: `p${i}`,
+    at: now - HOUR + i * 1000,
+    skillIds: ["pitch.interval.m3"],
+    capabilities: ["pitch"],
+    correct: i !== 2,
+    partialCredit: i !== 2 ? 1 : 0,
+    difficulty: 0.4,
+    modality: "choice",
+    source: "midi",
+    instrument: "piano",
+    assistance: "independent",
+    metrics: [],
+    target: "m3",
+    ...over,
+  } as ScoringEvent;
+}
+
+// Six checked interval answers and two practice-mode reading answers, all on piano.
+const intervals = Array.from({ length: 6 }, (_, i) => ev(i, { runId: "r1" }));
+const reading = Array.from({ length: 2 }, (_, i) =>
+  ev(i, {
+    runId: "r2",
+    exerciseId: "reading.flashcards",
+    skillIds: ["reading.treble.landmarks"],
+    capabilities: ["reading"],
+    assistance: "guided",
+    source: "onscreen",
+    target: "E4",
+  }),
+);
+const events = [...intervals, ...reading];
+
+const session: PracticeSession = {
+  id: "s1",
+  startTime: now - HOUR,
+  endTime: now - HOUR + 20 * 60_000,
+  instrument: "piano",
+  source: "drill",
+  runs: [
+    {
+      id: "r1",
+      exerciseId: "ear.intervals",
+      setupKey: "asc",
+      promptIds: intervals.map((e) => e.promptId),
+      skillIds: ["pitch.interval.m3"],
+      difficulty: 0.4,
+      instrument: "piano",
+      params: {},
+      startedAt: now - HOUR,
+      endedAt: now - HOUR + 10 * 60_000,
+      score: 5 / 6,
+      assistance: "independent",
+      xp: 180,
+    },
+    {
+      id: "r2",
+      exerciseId: "reading.flashcards",
+      setupKey: "treble",
+      promptIds: reading.map((e) => e.promptId),
+      skillIds: ["reading.treble.landmarks"],
+      difficulty: 0.4,
+      instrument: "piano",
+      params: {},
+      startedAt: now - HOUR + 10 * 60_000,
+      endedAt: now - HOUR + 20 * 60_000,
+      score: 1,
+      assistance: "guided",
+      xp: 60,
+    },
+  ],
+  eventIds: events.map((e) => e.id),
+  xp: 240,
+  tags: ["intervals"],
+};
+
+beforeEach(async () => {
+  // Let the store's own IndexedDB load settle first so it cannot overwrite the seed.
+  await practice.ready;
+  practice.events = events;
+  practice.sessions = [session];
+  practice.mastery = ingestEvents({}, [], events).state;
+  practice.stats = ingestAnalytics({}, [], events).stats;
+});
+
+describe("Progress", () => {
+  it("shows one row per touched skill with honest evidence", async () => {
+    render(SkillsView, { now });
+    await expect.element(page.getByRole("rowheader", { name: "Minor 3rd" })).toBeVisible();
+    const m3 = document.querySelector('tr[data-skill="pitch.interval.m3"]')!;
+    expect(m3.textContent).toContain("6 checked");
+    expect(m3.textContent).toContain("83%"); // accuracy, 5 of 6
+    expect(m3.textContent).toContain("Estimate");
+    // Practice-mode answers count as attempts but never move the estimate.
+    const landmarks = document.querySelector('tr[data-skill="reading.treble.landmarks"]')!;
+    expect(landmarks.textContent).toContain("0 checked");
+    expect(landmarks.textContent).toContain("No estimate yet");
+    // Untouched skills stay hidden until asked for.
+    expect(document.querySelector('tr[data-skill="pitch.interval.P5"]')).toBeNull();
+    await page.getByLabelText(/Show all \d+ skills/).click();
+    await expect.element(page.getByRole("rowheader", { name: "Perfect 5th" })).toBeVisible();
+  });
+
+  it("splits What next into measured and not measured yet", async () => {
+    render(NextView, { now });
+    await expect
+      .element(page.getByRole("heading", { name: "Where your skills stand" }))
+      .toBeVisible();
+    await expect.element(page.getByRole("link", { name: /Minor 3rd/ })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: /Treble Landmark Notes/ })).toBeVisible();
+    expect(document.body.textContent).toContain("2 practice attempts, none checked");
+  });
+});
+
+describe("Journal", () => {
+  it("expands a session to its runs and attempt evidence", async () => {
+    render(JournalView, { now });
+    const toggle = page.getByRole("button", { name: "Show 2 runs and evidence" });
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await expect
+      .element(page.getByRole("button", { name: "Hide runs and evidence" }))
+      .toHaveAttribute("aria-expanded", "true");
+    const detail = document.getElementById("s1-detail")!;
+    const text = detail.textContent!;
+    expect(text).toContain("Ear intervals");
+    expect(text).toContain("Reading flashcards");
+    // Assistance in words, input source, instrument, credit and target.
+    for (const word of [
+      "Checked",
+      "Practice",
+      "MIDI",
+      "On screen",
+      "Piano",
+      "100%",
+      "0%",
+      "m3",
+      "E4",
+    ])
+      expect(text).toContain(word);
+    expect(detail.querySelectorAll("tbody tr")).toHaveLength(8);
+  });
+});

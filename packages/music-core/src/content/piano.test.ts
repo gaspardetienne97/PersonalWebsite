@@ -100,10 +100,11 @@ describe("ii-V-I voicings", () => {
     const m = voicingTargets({ variant: "minor" });
     expect(m).toHaveLength(36);
     expect(m.slice(0, 3).map((t) => [t.symbol, t.displayMidi])).toEqual([
-      ["Dm7b5", [62, 65, 68, 72, 76]],
+      ["Dm7b5", [62, 65, 68, 72, 74]],
       ["G7alt", [67, 77, 80, 83, 87]],
       ["Cm7", [60, 70, 74, 75, 79]],
     ]);
+    expect(m[0].expectedPitchClasses).toEqual([2, 5, 8, 0]);
     expect(m[0].skillIds).toEqual(["harmony.ii-v-i", "harmony.ii-v-i.voicings.minor"]);
   });
 

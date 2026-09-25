@@ -37,6 +37,47 @@ export interface LineResult extends Graded {
   together: { count: number; beats: number } | null;
 }
 
+/** Missed notes the line matcher will skip past before it treats a note as extra. */
+const LINE_LOOKAHEAD_BEATS = 2;
+
+/**
+ * Pitch follows the order of the line, not the clock: each played note claims the
+ * next unclaimed matching note within a couple of beats of where the player is, so a
+ * late start, a skipped note or a drifting tempo never shifts every later note to
+ * "wrong". The grid for timing is anchored on the first matched note.
+ */
+function followLine(beats: LineInput["beats"], ons: NoteEvent[], beatMs: number) {
+  const flat = beats.flatMap((notes, beat) => notes.map((n) => ({ ...n, beat })));
+  const hitOf: (number | null)[] = flat.map(() => null);
+  let cursor = 0;
+  let started = false;
+  for (let h = 0; h < ons.length; h++) {
+    const reach = started ? cursor + LINE_LOOKAHEAD_BEATS : Infinity;
+    const ti = flat.findIndex(
+      (t, i) => hitOf[i] === null && t.midi === ons[h].midi && t.beat >= cursor && t.beat <= reach,
+    );
+    if (ti === -1) continue;
+    hitOf[ti] = h;
+    started = true;
+    cursor = Math.max(cursor, flat[ti].beat);
+    while (
+      flat.some((t) => t.beat === cursor) &&
+      flat.every((t, i) => t.beat !== cursor || hitOf[i] !== null)
+    )
+      cursor++;
+  }
+  const first = hitOf.findIndex((h) => h !== null);
+  const anchor =
+    first === -1 ? (ons[0]?.at ?? 0) : ons[hitOf[first]!].at - flat[first].beat * beatMs;
+  const targets = flat.map((t) => ({ ...t, at: anchor + t.beat * beatMs }));
+  const claims = hitOf.map((h, i) =>
+    h === null ? null : { hit: h, errorMs: ons[h].at - targets[i].at },
+  );
+  const used = new Set(hitOf.filter((h): h is number => h !== null));
+  const extras = ons.flatMap((_, h) => (used.has(h) ? [] : [h]));
+  return { targets, claims, extras };
+}
+
 /**
  * Pitch per expected note (each note claims the nearest same-pitch onset within a
  * beat of its grid slot), evenness per beat on a grid anchored on the first onset.
@@ -45,10 +86,7 @@ export interface LineResult extends Graded {
 export function gradeLine(input: LineInput): LineResult {
   const { beatMs } = input;
   const ons = noteOns(input.notes);
-  const targets = input.beats.flatMap((notes, beat) =>
-    notes.map((n) => ({ ...n, beat, at: (ons[0]?.at ?? 0) + beat * beatMs })),
-  );
-  const { claims, extras } = claim(targets, ons, beatMs, (t, h) => t.midi === h.midi);
+  const { targets, claims, extras } = followLine(input.beats, ons, beatMs);
   // For the confusion matrix: what was played where a note was missed.
   const missedIdx = targets.flatMap((_, i) => (claims[i] ? [] : [i]));
   const wrong = claim(

@@ -135,6 +135,19 @@
   --color-warn-foreground: var(--warn-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  /* Woodshed (music app) tokens; values live in src/routes/music/woodshed.css. */
+  --color-ws-bg: var(--ws-bg);
+  --color-ws-surface: var(--ws-surface);
+  --color-ws-raised: var(--ws-raised);
+  --color-ws-line: var(--ws-line);
+  --color-ws-ink: var(--ws-ink);
+  --color-ws-soft: var(--ws-soft);
+  --color-ws-stage: var(--ws-stage);
+  --color-ws-stage-ink: var(--ws-stage-ink);
+  --color-ws-stage-soft: var(--ws-stage-soft);
+  --color-instr: var(--instr);
+  --color-instr-ink: var(--instr-ink);
+  --color-instr-wash: var(--instr-wash);
   /* Type: one display face for titles and card headings (Outfit, self-hosted
      through @fontsource); Fira Mono for monospaced readouts. Body stays system sans. */
   --font-display:

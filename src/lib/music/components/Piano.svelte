@@ -1,0 +1,307 @@
+<script lang="ts">
+  // The one keyboard. Ivory and ebony drawn as material; every key is a real
+  // button named by its note. States with distinct lifetimes: held (while down),
+  // target (current group), demo (while the model sounds), correct/wrong
+  // (a short flash with a glyph, never a growing set).
+  import { isBlackKey, noteName } from "@repo/music-core";
+  import { onMount } from "svelte";
+  import { input } from "../runtime";
+  import { capturePointer } from "./feedback.svelte";
+  import type { CellMarks, Flashes } from "./feedback.svelte";
+
+  interface Props {
+    low?: number;
+    high?: number;
+    marks?: Record<number, CellMarks>;
+    flashes?: Flashes;
+    /** Override held notes (e.g. a replay); defaults to live input. */
+    held?: ReadonlySet<number>;
+    names?: "none" | "c" | "all";
+    interactive?: boolean;
+    label?: string;
+    /** Minimum white-key width in px; the strip scrolls sideways below it. */
+    minKey?: number;
+  }
+
+  let {
+    low = 48,
+    high = 84,
+    marks = {},
+    flashes,
+    held,
+    names = "c",
+    interactive = true,
+    label = "Piano keyboard",
+    minKey = 36,
+  }: Props = $props();
+
+  const keys = $derived(Array.from({ length: high - low + 1 }, (_, i) => low + i));
+  const whites = $derived(keys.filter((k) => !isBlackKey(k)));
+  const whiteIndex = (m: number) => whites.findIndex((w) => w === m - 1);
+  const down = $derived(held ?? input.held);
+
+  // The computer keyboard plays this surface while it is on screen.
+  onMount(() => {
+    if (!interactive) return;
+    input.setKeyboardMode("piano");
+    return () => input.setKeyboardMode("off");
+  });
+
+  let scroller: HTMLDivElement | undefined = $state();
+  const pointerNotes = new Map<number, number>();
+
+  // Keep the first target in view on narrow screens.
+  $effect(() => {
+    const first = keys.find((k) => marks[k]?.target || marks[k]?.demo);
+    if (first === undefined || !scroller) return;
+    const el = scroller.querySelector<HTMLElement>(`[data-midi="${first}"]`);
+    if (!el) return;
+    const { left, right } = el.getBoundingClientRect();
+    const box = scroller.getBoundingClientRect();
+    if (left < box.left || right > box.right) scroller.scrollLeft += left - box.left - box.width / 3;
+  });
+
+  function press(e: PointerEvent, midi: number) {
+    if (!interactive || e.button > 0) return;
+    capturePointer(e);
+    pointerNotes.set(e.pointerId, midi);
+    input.tap(midi, true);
+  }
+  function release(e: PointerEvent) {
+    const midi = pointerNotes.get(e.pointerId);
+    if (midi === undefined) return;
+    pointerNotes.delete(e.pointerId);
+    input.tap(midi, false);
+  }
+  function key(e: KeyboardEvent, midi: number, isDown: boolean) {
+    if (!interactive || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    if (isDown && e.repeat) return;
+    input.tap(midi, isDown);
+  }
+
+  function nameFor(m: number) {
+    if (names === "all" || (names === "c" && m % 12 === 0)) return noteName(m, "flat");
+    return "";
+  }
+</script>
+
+<div class="piano rounded-xl p-2 pt-0 shadow-inner" role="group" aria-label={label}>
+  <div class="felt" aria-hidden="true"></div>
+  <div bind:this={scroller} class="overflow-x-auto overscroll-x-contain pb-1">
+    <div class="relative flex select-none touch-none" style:min-width="{whites.length * minKey}px">
+      {#each whites as m (m)}
+        {@const mk = marks[m] ?? {}}
+        {@const flash = flashes?.get(m)}
+        <button
+          type="button"
+          class="white"
+          data-midi={m}
+          data-held={down.has(m) || undefined}
+          data-target={mk.target || undefined}
+          data-demo={mk.demo || undefined}
+          data-flash={flash}
+          data-role={mk.role}
+          aria-label={noteName(m, "flat") + (mk.target ? ", target" : "")}
+          aria-pressed={down.has(m)}
+          tabindex={interactive ? 0 : -1}
+          onpointerdown={(e) => press(e, m)}
+          onpointerup={release}
+          onpointercancel={release}
+          onlostpointercapture={release}
+          onkeydown={(e) => key(e, m, true)}
+          onkeyup={(e) => key(e, m, false)}
+        >
+          {#if m === 60}<span class="middle-c" aria-hidden="true"></span>{/if}
+          {@render glyphs(mk, flash)}
+          <span class="name">{nameFor(m)}</span>
+        </button>
+      {/each}
+      {#each keys.filter(isBlackKey) as m (m)}
+        {@const mk = marks[m] ?? {}}
+        {@const flash = flashes?.get(m)}
+        <button
+          type="button"
+          class="black"
+          style:left="calc({((whiteIndex(m) + 1) / whites.length) * 100}% - {(0.62 / whites.length) * 50}%)"
+          style:width="{(0.62 / whites.length) * 100}%"
+          data-midi={m}
+          data-held={down.has(m) || undefined}
+          data-target={mk.target || undefined}
+          data-demo={mk.demo || undefined}
+          data-flash={flash}
+          data-role={mk.role}
+          aria-label={noteName(m, "flat") + (mk.target ? ", target" : "")}
+          aria-pressed={down.has(m)}
+          tabindex={interactive ? 0 : -1}
+          onpointerdown={(e) => press(e, m)}
+          onpointerup={release}
+          onpointercancel={release}
+          onlostpointercapture={release}
+          onkeydown={(e) => key(e, m, true)}
+          onkeyup={(e) => key(e, m, false)}
+        >
+          {@render glyphs(mk, flash)}
+        </button>
+      {/each}
+    </div>
+  </div>
+</div>
+
+{#snippet glyphs(mk: CellMarks, flash: string | undefined)}
+  {#if flash}
+    <span class="flash" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : "✕"}</span>
+  {:else if mk.label}
+    <span class="mark-label" aria-hidden="true">{mk.label}</span>
+  {:else if mk.target}
+    <span class="dot" aria-hidden="true"></span>
+  {/if}
+{/snippet}
+
+<style>
+  .piano {
+    background: linear-gradient(#2a1d17, #16100d);
+  }
+  .felt {
+    height: 6px;
+    margin: 0 -0.5rem 0.4rem;
+    border-radius: 0.75rem 0.75rem 0 0;
+    background: linear-gradient(90deg, color-mix(in oklch, var(--instr) 70%, #300), var(--instr), color-mix(in oklch, var(--instr) 70%, #300));
+  }
+  button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    padding-bottom: 0.45rem;
+    transition:
+      transform 60ms,
+      background 60ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:focus-visible {
+    outline: 2px solid var(--instr);
+    outline-offset: -4px;
+  }
+  .white {
+    flex: 1 1 0;
+    height: 9.5rem;
+    margin-right: 2px;
+    border-radius: 0 0 6px 6px;
+    background: linear-gradient(to bottom, #f6f3ec 0%, #fffdf8 70%, #e7e1d4 100%);
+    box-shadow:
+      inset 0 -6px 0 #d8d0c0,
+      0 2px 0 #0006;
+    color: #3b3430;
+  }
+  .black {
+    position: absolute;
+    top: 0;
+    z-index: 2;
+    height: 5.9rem;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(to bottom, #18161c 0%, #34303a 85%, #0d0c10 100%);
+    box-shadow:
+      inset 0 -5px 0 #07070a,
+      inset 1px 0 0 #ffffff14,
+      0 3px 3px #0008;
+    color: #f1ece2;
+  }
+  [data-held] {
+    transform: translateY(2px);
+  }
+  .white[data-held] {
+    background: linear-gradient(to bottom, color-mix(in oklch, var(--instr) 45%, #efe7d6), color-mix(in oklch, var(--instr) 30%, #f7f1e6));
+    box-shadow:
+      inset 0 -2px 0 #cfc5b0,
+      inset 0 3px 6px #0003;
+  }
+  .black[data-held] {
+    background: linear-gradient(to bottom, color-mix(in oklch, var(--instr) 55%, #111), color-mix(in oklch, var(--instr) 35%, #1a1a1a));
+    box-shadow: inset 0 -2px 0 #000;
+  }
+  [data-target]:not([data-held]) {
+    box-shadow:
+      inset 0 0 0 3px var(--instr),
+      inset 0 -6px 0 #d8d0c0;
+  }
+  .black[data-target]:not([data-held]) {
+    box-shadow: inset 0 0 0 3px var(--instr);
+  }
+  [data-demo] {
+    background: var(--instr) !important;
+    color: #1a1208;
+  }
+  [data-role="chord"] .dot,
+  [data-role="chord"] .mark-label {
+    background: var(--tone-chord);
+  }
+  [data-role="scale"] .dot,
+  [data-role="scale"] .mark-label {
+    background: var(--tone-scale);
+  }
+  [data-role="avoid"] .dot,
+  [data-role="avoid"] .mark-label {
+    background: transparent;
+    border: 2px dashed var(--tone-avoid);
+    color: inherit;
+  }
+  [data-role="left"] .mark-label {
+    background: var(--hand-left);
+  }
+  [data-role="right"] .mark-label {
+    background: var(--hand-right);
+  }
+  .dot {
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 999px;
+    background: var(--instr);
+  }
+  .mark-label {
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #17120c;
+    background: var(--instr);
+  }
+  .name {
+    font-size: 0.68rem;
+    line-height: 1;
+    min-height: 0.7rem;
+    opacity: 0.7;
+  }
+  .middle-c {
+    position: absolute;
+    top: 0.5rem;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: #9b8f7d;
+  }
+  .flash {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: white;
+    animation: ws-rise 120ms ease-out;
+  }
+  .flash[data-kind="correct"] {
+    background: var(--success);
+    box-shadow: 0 0 0 6px color-mix(in oklch, var(--success) 35%, transparent);
+  }
+  .flash[data-kind="wrong"] {
+    background: var(--destructive);
+  }
+</style>

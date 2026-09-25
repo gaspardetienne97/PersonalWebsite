@@ -46,6 +46,20 @@ describe("gradeLine (scales, spider, positions)", () => {
     });
   });
 
+  it("follows the line's order: a late start or a drifting tempo only costs the notes actually missed", () => {
+    const late = C_MAJOR.slice(3).map((m, i) => on(m, 3000 + i * 500));
+    expect(gradeLine({ beats: line(C_MAJOR), beatMs: 500, notes: late })).toMatchObject({
+      clean: 5,
+      total: 8,
+    });
+    // 10% slow: by the last note the player is most of a beat behind the grid.
+    const slow = C_MAJOR.map((m, i) => on(m, i * 550));
+    expect(gradeLine({ beats: line(C_MAJOR), beatMs: 500, notes: slow }).pitch).toBe(1);
+    // A wrong note in the middle is one miss, not a cascade.
+    const slip = C_MAJOR.map((m, i) => on(i === 3 ? 66 : m, i * 500));
+    expect(gradeLine({ beats: line(C_MAJOR), beatMs: 500, notes: slip }).clean).toBe(7);
+  });
+
   it("pitch x 0.85 + evenness x 0.15, correct at 0.9", () => {
     const played = C_MAJOR.map((m, i) => on(i === 1 ? 61 : m, i * 500));
     const r = gradeLine({ beats: line(C_MAJOR), beatMs: 500, notes: played });

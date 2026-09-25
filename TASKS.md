@@ -56,3 +56,13 @@ Phase 1, domain and runtime foundation (parallel):
 - **Streak**: forgiving by default, one freeze granted per week of practice (cap 2), shown as a week calendar, never a flame that resets.
 - **Comping** gets its own route (catalog weakness 3), so path steps P-I4 and P-A1 open it.
 - The four "stored but unused" settings now do something (catalog weakness 1): reduce motion is applied app-wide, instrument colour coding switches the hue identity, echo cancellation and the input device are passed to `getUserMedia`.
+
+### Design
+
+- **Direction: the lit bench.** The one bold element is the instrument, drawn as material on a dark stage panel that stays dark in both themes (ivory and ebony keys under a felt strip in the instrument hue, a rosewood neck with nickel frets and thickening strings, rubber pads with LEDs, the Aerophone key layout). The stage carries one spotlight in the instrument hue; the chrome around it is quiet.
+- **Palette**: a cool mist page (light) or deep plum ink (dark), white or plum surfaces, and ten identity hues (piano brass, guitar coral, ukulele lime, MPC magenta, Aerophone teal, voice and ear violet, reading sky, rhythm green, create periwinkle). Hue means identity only; judgement is success/warn/destructive plus a glyph or a sentence. Tone roles (chord/scale/avoid) and hands have fixed colours plus a form marker (fill, ring, dashed).
+- **Type**: Outfit for titles and big numbers, the system sans for reading, tabular numerals for readouts (no monospace labels).
+- **Layout**: a left rail on desktop (collapsible, remembered), a bottom tab bar with More on phones, a sticky practice strip (instrument, metronome, tempo, count-in, beat dots, input source, search). A running drill hides the rail, the tab bar and the site header and footer.
+- **Drills**: one shell. Setup collapses to a one-line summary with "Change setup"; the stage shows the target before Start in Practice; Practice and Check are a two-way toggle; "Hear it first" is the demo and is removed in Check; Space starts, Esc stops; one `role=status` line per page. Results lead with one sentence and a big number, then the delta vs the last run with the same setup, a breakdown with "Not measured" rows, XP, the tempo ladder where relevant, and a next step. A clean Check or a personal best gets a bloom and a short chime.
+- **Today**: the set drawn as a strip of blocks sized by minutes and coloured by what you will play, then the numbered steps, one primary Start, and a side column with the streak as a week calendar (freezes shown as dashed), the coach's honest note and today's challenges.
+- **Rendering**: the music app is client-only (`ssr = false` in `src/routes/music/+layout.ts`) because everything it shows lives in IndexedDB.
