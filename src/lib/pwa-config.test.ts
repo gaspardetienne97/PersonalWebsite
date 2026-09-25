@@ -3,14 +3,14 @@ import { describe, expect, it } from "vite-plus/test";
 import { pwaOptions } from "../../pwa.config";
 
 describe("PWA configuration", () => {
-  it("installs the music route as a scoped app without overriding SSR navigation", () => {
+  it("installs the site as a scoped app without overriding SSR navigation", () => {
     expect(pwaOptions).toBeDefined();
     expect(pwaOptions?.buildBase).toBe("/");
-    expect(pwaOptions?.scope).toBe("/music");
+    expect(pwaOptions?.scope).toBe("/");
     expect(pwaOptions?.manifest).toMatchObject({
-      id: "/music",
-      start_url: "/music",
-      scope: "/music",
+      id: "/",
+      start_url: "/",
+      scope: "/",
       display: "standalone",
     });
     expect(pwaOptions?.manifest?.icons).toEqual(
@@ -23,8 +23,5 @@ describe("PWA configuration", () => {
     expect(pwaOptions?.workbox?.globIgnores).toContain(
       "client/_app/immutable/assets/web back*.svg",
     );
-    expect(pwaOptions?.includeAssets).toContain("audio/music/piano/*.mp3");
-    expect(pwaOptions?.workbox?.globIgnores).toContain("client/audio/**/*");
-    expect(pwaOptions?.workbox?.globIgnores).toContain("client/images/music/covers/**/*");
   });
 });

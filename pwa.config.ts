@@ -1,21 +1,20 @@
 import type { SvelteKitPWAOptions } from "@vite-pwa/sveltekit";
 
 export const pwaOptions = {
-  scope: "/music",
+  scope: "/",
   buildBase: "/",
   registerType: "autoUpdate",
-  includeAssets: ["favicon.svg", "audio/music/piano/*.mp3"],
+  includeAssets: ["favicon.svg"],
   kit: {
     includeVersionFile: true,
   },
   manifest: {
-    id: "/music",
-    name: "Musicianship OS",
-    short_name: "Music Practice",
-    description:
-      "A cross-instrument practice app for ear training, reading, rhythm, theory, and technique.",
-    start_url: "/music",
-    scope: "/music",
+    id: "/",
+    name: "Gaspard Etienne",
+    short_name: "Gaspard Etienne",
+    description: "Personal website and route apps.",
+    start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#0f172a",
@@ -35,12 +34,7 @@ export const pwaOptions = {
   workbox: {
     navigateFallback: undefined,
     cleanupOutdatedCaches: true,
-    globIgnores: [
-      "client/_app/immutable/assets/web back*.svg",
-      "client/audio/**/*",
-      // AI cover art is served at runtime, not precached (mirrors the audio ignore).
-      "client/images/music/covers/**/*",
-    ],
+    globIgnores: ["client/_app/immutable/assets/web back*.svg"],
     // The narrator's neural-TTS runtime (Kokoro/transformers, /pdf, opt-in) is a
     // single lazy ~2.2 MB chunk. It's consolidated via `advancedChunks` in
     // vite.config; raise the precache ceiling so the SW build doesn't fail on it.

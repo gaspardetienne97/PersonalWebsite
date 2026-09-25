@@ -15,7 +15,7 @@
 	const links = [
 		{ href: '/', label: 'Home' }, { href: '/about', label: 'About' },
 		{ href: '/gallery', label: 'Gallery' }, { href: '/blog', label: 'Blog' },
-		{ href: '/music', label: 'Music' }, { href: '/pdf', label: 'Narrator' }
+		{ href: '/pdf', label: 'Narrator' }
 	] as const;
 	const isCurrent = (href: string) => currentPath === href || (href !== '/' && currentPath.startsWith(`${href}/`));
 </script>

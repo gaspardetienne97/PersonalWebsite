@@ -6,10 +6,8 @@ SvelteKit personal website and route-app monorepo powered by VitePlus.
 
 - `src/routes/` is the single deployed SvelteKit site.
 - `/` remains the personal website.
-- `/music` serves the musicianship practice app.
 - `/pdf` serves the PDF reader app.
 - `packages/ui` contains shared ShadCN Svelte/Bits UI components and theme utilities.
-- `packages/music-core` contains reusable music domain, engines, and exercises.
 - `packages/pdf-core` contains reusable PDF reader components, services, and stores.
 
 ## Commands

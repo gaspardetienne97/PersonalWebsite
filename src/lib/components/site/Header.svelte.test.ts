@@ -18,7 +18,7 @@ describe("Header", () => {
       getComputedStyle(document.querySelector('nav[aria-label="Site navigation"]')!).display,
     ).toBe("none");
     await trigger.click();
-    for (const label of ["Home", "About", "Gallery", "Blog", "Music", "Narrator"])
+    for (const label of ["Home", "About", "Gallery", "Blog", "Narrator"])
       await expect.element(page.getByRole("menuitem", { name: label, exact: true })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await expect.element(trigger).toHaveFocus();
@@ -33,9 +33,6 @@ describe("Header", () => {
   it("links to route apps", async () => {
     render(Header);
 
-    expect(document.querySelector<HTMLAnchorElement>('a[href="/music"]')?.textContent).toContain(
-      "Music",
-    );
     expect(document.querySelector<HTMLAnchorElement>('a[href="/pdf"]')?.textContent).toContain(
       "Narrator",
     );

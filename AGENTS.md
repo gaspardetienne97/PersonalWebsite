@@ -2,6 +2,12 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
+## Music app rebuild
+
+Read `BRIEF.md` first. The music app is being rebuilt from scratch in this
+branch; `context/` holds everything known about the previous version and
+`TASKS.md` is the running status.
+
 ## Tech Stack
 
 - **Framework**: SvelteKit 2 with Svelte 5 (using runes)
@@ -90,9 +96,8 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 
 ### Monorepo Structure
 - This repo uses VitePlus workspace support, not Turborepo.
-- The root SvelteKit app is the single deployment and serves `/`, `/music`, and `/pdf`.
+- The root SvelteKit app is the single deployment and serves `/` and `/pdf`.
 - Reusable UI lives in [packages/ui/](packages/ui/).
-- Music domain, engines, and exercises live in [packages/music-core/](packages/music-core/).
 - PDF reader services, stores, and reusable components live in [packages/pdf-core/](packages/pdf-core/).
 - Site-only shell components live in [src/lib/components/site/](src/lib/components/site/).
 - Use `vp run -r <task>` for recursive workspace tasks and `vp run @repo/<package>#<task>` for package-targeted tasks.
@@ -100,17 +105,14 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 
 ### Nested Agent Guidance
 - Root-level guidance applies across the repo.
-- Music-specific work under [src/routes/music/](src/routes/music/) should also follow [src/routes/music/AGENTS.md](src/routes/music/AGENTS.md).
-- Package work in [packages/music-core/](packages/music-core/) is part of the Music app architecture and should follow the Music guidance when changes affect Music domain, engines, exercises, persistence, input, analytics, progress, or practice workflows.
 - Narrator-specific work under [src/routes/pdf/](src/routes/pdf/) (the `/pdf` read-aloud app) should also follow [src/routes/pdf/AGENTS.md](src/routes/pdf/AGENTS.md). Package work in [packages/pdf-core/](packages/pdf-core/) is part of the Narrator architecture and should follow that guidance when changes affect extraction, the narration timeline, TTS engines, the library, or reader settings.
 - If nested guidance conflicts with this file, follow the more specific nested guidance for files in that scope.
 
 ### App Boundaries
 - The personal website remains the root user experience at `/`.
-- The Music app is mounted under `/music` inside the same SvelteKit deployment.
 - The PDF app is mounted under `/pdf` inside the same SvelteKit deployment.
 - Do not move a project app to the site root unless the user explicitly changes that product decision.
-- Keep project-specific reusable logic in the matching package (`packages/music-core`, `packages/pdf-core`) and shared visual primitives in `packages/ui`.
+- Keep project-specific reusable logic in the matching package (`packages/pdf-core`) and shared visual primitives in `packages/ui`.
 
 ### Local Planning And Prototype Files
 - The repo may contain local-only planning/prototype folders such as `docs/`, `domain/`, `old prompts/`, `.codex/`, and `.superpowers/`.

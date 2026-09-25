@@ -62,9 +62,6 @@ export default defineConfig(({ isSsrBuild }) => ({
     include: [
       "lucide-svelte/icons/moon",
       "lucide-svelte/icons/sun",
-      "lucide-svelte/icons/bookmark",
-      "lucide-svelte/icons/bookmark-check",
-      "lucide-svelte/icons/ear",
       "lucide-svelte/icons/play",
       "lucide-svelte/icons/search",
       // Narrator (/pdf) icons
@@ -96,11 +93,6 @@ export default defineConfig(({ isSsrBuild }) => ({
       "lucide-svelte/icons/upload",
       "lucide-svelte/icons/x",
       "lucide-svelte/icons/zap",
-      "svguitar",
-      "tone",
-      "opensheetmusicdisplay",
-      "@spotify/basic-pitch",
-      "@repo/music-core > webmidi",
     ],
   },
   test: {

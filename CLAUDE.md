@@ -2,14 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Companion files:** [AGENTS.md](AGENTS.md) is the authoritative root guide (monorepo, packages, workflow); this file mirrors it for Claude Code. For Music-app work also read [src/routes/music/AGENTS.md](src/routes/music/AGENTS.md) and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) (untracked local plan; §5A "Phase 1.5" is the active backlog). If guidance conflicts, the more specific nested file wins for files in its scope.
+> **Companion files:** [AGENTS.md](AGENTS.md) is the authoritative root guide (monorepo, packages, workflow); this file mirrors it for Claude Code. If guidance conflicts, the more specific nested file wins for files in its scope.
+
+## Music app rebuild
+
+Read `BRIEF.md` first. The music app is being rebuilt from scratch in this branch; `context/` holds everything known about the previous version and `TASKS.md` is the running status.
 
 ## Tech Stack
 
-- **Monorepo**: **VitePlus** workspace (NOT Turborepo). One SvelteKit deployment serves `/`, `/music`, and `/pdf`. Shared code lives in `packages/*` (`@repo/ui`, `@repo/music-core`, `@repo/pdf-core`).
+- **Monorepo**: **VitePlus** workspace (NOT Turborepo). One SvelteKit deployment serves `/` and `/pdf`. Shared code lives in `packages/*` (`@repo/ui`, `@repo/pdf-core`).
 - **Framework**: SvelteKit 2 with Svelte 5 (using runes)
 - **Styling**: Tailwind CSS 4 with custom UI components (bits-ui based), surfaced via `@repo/ui`
-- **Database**: PostgreSQL with Drizzle ORM (site/auth only — the Music app is client-only, no DB)
+- **Database**: PostgreSQL with Drizzle ORM (site/auth only)
 - **Authentication**: Custom session-based auth (Oslo crypto)
 - **i18n**: Paraglide-JS with locales: en, es, fr, ht
 - **Testing**: Vitest (unit), Playwright (E2E)
@@ -95,10 +99,9 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 
 ### Monorepo Structure
 - **`packages/ui/`** (`@repo/ui`): shared bits-ui-based primitives (Avatar, Badge, Button, Card, Carousel, Dialog, Dropdown Menu, Input, Label, Popover, Progress, ScrollArea, Select, Separator, Sheet, Sidebar, Skeleton, Slider, Toggle, Toggle Group, Tooltip). Consume these instead of copying shadcn/bits-ui code into route folders.
-- **`packages/music-core/`** (`@repo/music-core`): the Music app's framework-agnostic domain, engines, exercises, and persistence. No Svelte imports in engines/domain.
 - **`packages/pdf-core/`** (`@repo/pdf-core`): PDF reader services, stores, and components.
-- **`src/lib/components/site/`**: site-only shell components (e.g. `Header`, `Footer`). The global `Header` is `sticky top-0` and `Footer` renders below all routes including `/music`.
-- App routes live in `src/routes/` (`/`, `/music`, `/pdf`).
+- **`src/lib/components/site/`**: site-only shell components (e.g. `Header`, `Footer`). The global `Header` is `sticky top-0` and `Footer` renders below all routes.
+- App routes live in `src/routes/` (`/` and `/pdf`).
 
 ### UI Components
 - Shared primitives live in **`packages/ui/src/`** and are imported as `@repo/ui/<component>` (NOT `src/lib/components/ui/`, which no longer exists).
@@ -106,7 +109,7 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 - Do not hardcode colors; drive everything from theme tokens (`bg-background`, `text-foreground`, `bg-primary`, etc.).
 
 ### Local Planning & Prototype Files
-- The repo contains local-only, often git-excluded files/folders: `IMPLEMENTATION_PLAN.md`, `music-practice-app-plan.md`, `docs/`, `old prompts/`, `.codex/`, `.superpowers/`, `.claude/`.
+- The repo contains local-only, often git-excluded files/folders: `docs/`, `old prompts/`, `.codex/`, `.superpowers/`, `.claude/`.
 - Read them for context, but do NOT stage, commit, delete, or "clean up" these unless the user explicitly asks for that exact action. They may be excluded via `.git/info/exclude` rather than `.gitignore`.
 
 ### Content & Routing

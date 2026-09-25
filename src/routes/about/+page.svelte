@@ -30,7 +30,7 @@
 
 		<p class="p-4 text-lg">
 			This website is meant as a sort of dumping ground form my personal life. The idea is to have
-			one place where I can have all of the projects, pictures, videos, art, music that I would like
+			one place where I can have all of the projects, pictures, videos, and art that I would like
 			to share with the world in one place.
 		</p>
 	</section>
