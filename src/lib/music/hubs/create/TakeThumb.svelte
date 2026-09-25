@@ -7,20 +7,23 @@
   const lo = $derived(Math.min(...notes.map((n) => n.midi), 60) - 1);
   const hi = $derived(Math.max(...notes.map((n) => n.midi), 72) + 1);
   const span = $derived(Math.max(1, durationMs));
-  const W = 160;
-  const H = 48;
+  // Drawn across the full card width, like the audio waveform.
+  const W = 600;
+  const H = 64;
+  // Bars stay readable however wide the range: at least 6 of the 64 units tall.
+  const bar = $derived(Math.max(6, (H - 8) / (hi - lo)));
   const hue = (midi: number) => `oklch(0.77 0.15 ${(((midi % 12) + 12) % 12) * 30 + 20})`;
 </script>
 
-<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-12 w-40 shrink-0 rounded-md bg-ws-stage" aria-hidden="true">
+<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-16 w-full rounded-lg bg-ws-stage" aria-hidden="true">
   {#each notes as n, i (i)}
     {@const x = (n.startMs / span) * W}
     <rect
       {x}
-      y={((hi - n.midi) / (hi - lo)) * (H - 2)}
-      width={Math.max(1.4, (n.durationMs / span) * W)}
-      height={Math.max(1.8, (H - 2) / (hi - lo))}
-      rx="0.7"
+      y={4 + ((hi - n.midi) / (hi - lo)) * (H - 8 - bar)}
+      width={Math.max(3, (n.durationMs / span) * W)}
+      height={bar}
+      rx="2"
       fill={hue(n.midi)}
       opacity={(0.5 + n.velocity * 0.5) * (progress === null || x <= progress * W ? 1 : 0.5)}
     />

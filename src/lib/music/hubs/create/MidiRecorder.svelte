@@ -218,43 +218,26 @@
     <ul class="divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
       {#each takes as take (take.id)}
         {@const isPlaying = player?.id === take.id}
-        <li class="flex flex-wrap items-start gap-3 p-3 sm:p-4" data-take={take.id}>
-          <button
-            type="button"
-            class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-ws-ink text-ws-bg' : 'bg-instr text-ws-stage hover:brightness-105'}"
-            aria-label="{isPlaying ? 'Pause' : 'Play'} {take.name}"
-            aria-pressed={isPlaying}
-            onclick={() => play(take)}
-          >
-            {#if isPlaying}<svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>{:else}<Play class="size-5" aria-hidden="true" />{/if}
-          </button>
-          <TakeThumb notes={take.notes} durationMs={take.durationMs} progress={progress(take)} />
-          <div class="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+        <li class="flex flex-col gap-3 p-3 sm:p-4" data-take={take.id}>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-ws-ink text-ws-bg' : 'bg-instr text-ws-stage hover:brightness-105'}"
+              aria-label="{isPlaying ? 'Pause' : 'Play'} {take.name}"
+              aria-pressed={isPlaying}
+              onclick={() => play(take)}
+            >
+              {#if isPlaying}<svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>{:else}<Play class="size-5" aria-hidden="true" />{/if}
+            </button>
             <input
-              class="min-h-11 min-w-0 rounded-lg border border-transparent bg-transparent px-2 font-display text-lg font-semibold hover:border-ws-line focus:border-ws-line"
+              class="min-h-11 min-w-0 flex-1 basis-40 rounded-lg border border-transparent bg-transparent px-2 font-display text-lg font-semibold hover:border-ws-line focus:border-ws-line"
               value={take.name}
               aria-label="Take name"
               onchange={(e) => patch(take, { name: e.currentTarget.value.trim() || take.name })}
             />
-            <p class="px-2 text-sm text-ws-soft">
+            <span class="text-sm text-ws-soft">
               <span class="tnum">{take.notes.length}</span> notes, <span class="tnum">{takeLength(take.durationMs)}</span>, {when(take.createdAt)}{take.instrument ? `, ${INSTRUMENT_LABEL[take.instrument]}` : ""}
-            </p>
-            <input
-              class="min-h-11 min-w-0 rounded-lg border border-ws-line bg-transparent px-2 text-sm"
-              value={take.note ?? ""}
-              placeholder="Add a note: what to fix next time"
-              aria-label="Note for {take.name}"
-              onchange={(e) => patch(take, { note: e.currentTarget.value })}
-            />
-          </div>
-          <div class="flex w-full flex-wrap gap-1.5 sm:pl-[13.5rem]">
-            <button type="button" class="{btn} px-3" onclick={() => exportMidi(take)}><FileMusic class="size-4" aria-hidden="true" />Export MIDI</button>
-            <a class="{btn} px-3" href="/music/create?mode=roll&take={take.id}">Open in piano roll</a>
-            {#if savedSong[take.id]}
-              <a class="{btn} px-3 text-instr-ink" href="/music/songs/{savedSong[take.id]}">Open in Song Studio</a>
-            {:else}
-              <button type="button" class="{btn} px-3" onclick={() => toSongStudio(take)}>Save to Song Studio</button>
-            {/if}
+            </span>
             <button
               type="button"
               class="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm {confirmDelete === take.id ? 'bg-destructive font-semibold text-white' : 'text-ws-soft hover:bg-ws-raised'}"
@@ -264,6 +247,25 @@
             >
               <Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? "Delete?" : ""}
             </button>
+          </div>
+          <TakeThumb notes={take.notes} durationMs={take.durationMs} progress={progress(take)} />
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <input
+              class="min-h-11 min-w-0 flex-1 basis-48 rounded-lg border border-ws-line bg-transparent px-2 text-sm"
+              value={take.note ?? ""}
+              placeholder="Add a note: what to fix next time"
+              aria-label="Note for {take.name}"
+              onchange={(e) => patch(take, { note: e.currentTarget.value })}
+            />
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" class="{btn} px-3" onclick={() => exportMidi(take)}><FileMusic class="size-4" aria-hidden="true" />Export MIDI</button>
+              <a class="{btn} px-3" href="/music/create?mode=roll&take={take.id}">Open in piano roll</a>
+              {#if savedSong[take.id]}
+                <a class="{btn} px-3 text-instr-ink" href="/music/songs/{savedSong[take.id]}">Open in Song Studio</a>
+              {:else}
+                <button type="button" class="{btn} px-3" onclick={() => toSongStudio(take)}>Save to Song Studio</button>
+              {/if}
+            </div>
           </div>
         </li>
       {/each}
