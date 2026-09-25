@@ -91,7 +91,7 @@
 
 <div class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12'}">
   <div class="flex items-center gap-2 overflow-x-auto overflow-y-hidden px-4 py-2 [scrollbar-width:thin] sm:px-6 lg:px-8" role="group" aria-label="Practice controls">
-    <label class="{pill} relative pr-2">
+    <label class="{pill.replace('border-ws-line', 'border-instr border-2')} relative pr-2">
       <InstrumentIcon class="size-4 shrink-0 text-instr-ink" aria-hidden="true" />
       <span class="sr-only">Instrument</span>
       <select
