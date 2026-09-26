@@ -12,7 +12,8 @@
   import Choice from "$lib/music/components/Choice.svelte";
   import PianoRoll from "$lib/music/hubs/create/PianoRoll.svelte";
   import { btn, btnPrimary, panel } from "$lib/music/components/ui";
-  import { db } from "$lib/music/runtime";
+  import { db, getBinary } from "$lib/music/runtime";
+  import { extensionFor, takeKey } from "$lib/music/hubs/create/audioTakes";
   import { recentTakes, takeLength, type MidiTake } from "$lib/music/takes";
   import { ScoreEditor } from "./score-editor.svelte";
   import { Transcriber, type Engine } from "./transcriber.svelte";
@@ -21,9 +22,16 @@
 
   let {
     from,
+    start = null,
     onstatus,
     onsaved,
-  }: { from: "audio" | "take"; onstatus?: (s: string) => void; onsaved?: (song: Song) => void } = $props();
+  }: {
+    from: "audio" | "take";
+    /** A Record take to begin with (an audio take, or a MIDI take). */
+    start?: string | null;
+    onstatus?: (s: string) => void;
+    onsaved?: (song: Song) => void;
+  } = $props();
 
   const transcriber = new Transcriber();
   let engine = $state<Engine>("chords");
@@ -41,9 +49,27 @@
   let pendingSnap = $state<(() => void | Promise<void>) | null>(null);
 
   let takes = $state.raw<MidiTake[]>([]);
+  type AudioTake = { id: string; name: string; durationMs: number; mimeType: string };
+  let audioTakes = $state.raw<AudioTake[]>([]);
   onMount(async () => {
-    if (from === "take") takes = await recentTakes(20);
+    if (from === "take") {
+      takes = await recentTakes(20);
+      const t = start && takes.find((x) => x.id === start);
+      if (t) useTake(t);
+    } else {
+      const rows = (await db.audioTakes.orderBy("createdAt").reverse().limit(12).toArray()) as unknown as AudioTake[];
+      audioTakes = rows.filter((r) => typeof r.name === "string");
+      const t = start && audioTakes.find((x) => x.id === start);
+      if (t) void transcribeTake(t);
+    }
   });
+
+  /** A recording from Record, read back from storage and transcribed like a file. */
+  async function transcribeTake(t: AudioTake) {
+    const blob = await getBinary(takeKey(t.id));
+    if (!blob) return void (error = `The audio for ${t.name} is no longer stored. Record it again.`);
+    await takeAudio(new File([blob], `${t.name}.${extensionFor(t.mimeType)}`, { type: t.mimeType }));
+  }
   onDestroy(() => {
     editor?.stop();
     transcriber.dispose();
@@ -198,6 +224,22 @@
         <span class="text-sm text-ws-soft">WAV, MP3, M4A or OGG</span>
         <input class="sr-only" type="file" accept="audio/*" aria-label="Audio file to transcribe" onchange={(e) => takeAudio(e.currentTarget.files?.[0])} />
       </label>
+      {#if audioTakes.length}
+        <div class="flex flex-col gap-2">
+          <h3 class="text-sm font-medium">Or one of your recordings from <a class="text-instr-ink underline underline-offset-4" href="/music/record">Record</a></h3>
+          <ul class="grid gap-2 sm:grid-cols-2" aria-label="Audio takes">
+            {#each audioTakes as t (t.id)}
+              <li class="flex items-center gap-3 rounded-xl border border-ws-line bg-ws-surface p-3">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-medium">{t.name}</p>
+                  <p class="text-xs text-ws-soft">{takeLength(t.durationMs)}</p>
+                </div>
+                <button type="button" class={btn} onclick={() => transcribeTake(t)}>Transcribe</button>
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
     {/if}
   </div>
 {:else}

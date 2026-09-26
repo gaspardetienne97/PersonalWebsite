@@ -3,6 +3,7 @@
   // into a draft fixed in the piano roll (TranscribeView), and save it.
   import Upload from "lucide-svelte/icons/upload";
   import type { Score } from "@repo/music-core";
+  import { page } from "$app/state";
   import TranscribeView from "./TranscribeView.svelte";
   import Staff from "$lib/music/notation/Staff.svelte";
   import { btn, btnPrimary, panel } from "$lib/music/components/ui";
@@ -21,7 +22,10 @@
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
 
-  let mode = $state<"score" | "audio" | "take">("score");
+  // Record links here with ?from=audio|take&take=<id> to start from one of its takes.
+  const from = page.url.searchParams.get("from");
+  const start = page.url.searchParams.get("take");
+  let mode = $state<"score" | "audio" | "take">(from === "audio" || from === "take" ? from : "score");
   let error = $state("");
   let busy = $state(false);
   let dragging = $state(false);
@@ -119,7 +123,7 @@
       </label>
     {:else}
       <div class="flex min-w-0 flex-col gap-4 md:col-span-2">
-        {#key mode}<TranscribeView from={mode} {onstatus} onsaved={(song) => (saved = song)} />{/key}
+        {#key mode}<TranscribeView from={mode} start={mode === from ? start : null} {onstatus} onsaved={(song) => (saved = song)} />{/key}
       </div>
     {/if}
     <div class="min-h-6">

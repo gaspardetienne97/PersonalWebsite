@@ -7,6 +7,7 @@
   import Square from "lucide-svelte/icons/square";
   import Mic from "lucide-svelte/icons/mic";
   import Download from "lucide-svelte/icons/download";
+  import FileMusic from "lucide-svelte/icons/file-music";
   import Trash from "lucide-svelte/icons/trash-2";
   import { LEVEL_FLOOR_DB, levelAdvice } from "@repo/music-core/signal/level";
   import { btn } from "$lib/music/components/ui";
@@ -332,6 +333,7 @@
               onchange={(e) => patch(take, { name: e.currentTarget.value.trim() || take.name })}
             />
             <span class="tnum text-sm text-ws-soft">{takeLength(take.durationMs)}</span>
+            <a class="{btn} px-3" href="/music/library?tab=import&from=audio&take={take.id}"><FileMusic class="size-4" aria-hidden="true" />Transcribe</a>
             <button type="button" class="{btn} px-3" onclick={() => downloadTake(take)}><Download class="size-4" aria-hidden="true" />Download</button>
             <button
               type="button"

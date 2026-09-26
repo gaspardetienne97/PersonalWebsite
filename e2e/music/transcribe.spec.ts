@@ -2,7 +2,13 @@
 // fixed in the piano roll, and any saved song's notes edited later.
 import { expect, test, type Page } from "@playwright/test";
 import { encodeWav } from "../../packages/music-core/src/io/wav";
-import { expectNoHorizontalOverflow, installFakeMidi, midiNote, PORTS } from "./fixtures";
+import {
+  expectNoHorizontalOverflow,
+  installFakeMidi,
+  installSyntheticMic,
+  midiNote,
+  PORTS,
+} from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/transcribe";
 
@@ -158,6 +164,34 @@ test.describe("transcribe", () => {
     ).toHaveCount(8);
     await page.getByRole("button", { name: "Save to songs" }).click();
     await expect(page.getByText(/is in your songs\./)).toBeVisible();
+  });
+
+  test("an audio take from Record transcribes from its own Transcribe button", async ({ page }) => {
+    test.setTimeout(120_000);
+    await installSyntheticMic(page, 220); // A3
+    await page.goto("/music/record?source=mic");
+    await page.getByRole("button", { name: "Arm microphone" }).click();
+    await expect(page.getByTestId("level-advice")).toContainText(
+      /Good level|A little hot|Clipping|Quiet/,
+      { timeout: 10_000 },
+    );
+    await page.getByRole("button", { name: "Record", exact: true }).click();
+    await page.waitForTimeout(2000);
+    await page.getByRole("button", { name: "Stop", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Saved Audio take 1");
+
+    await page
+      .locator("li[data-audio-take]")
+      .first()
+      .getByRole("link", { name: "Transcribe" })
+      .click();
+    await expect(page).toHaveURL(/tab=import&from=audio&take=/);
+    await expect(page.getByRole("heading", { name: "Draft" })).toBeVisible({ timeout: 90_000 });
+    await expect(
+      page.getByRole("region", { name: "Melody editor" }).locator('.note[data-note="57"]').first(),
+    ).toBeAttached();
+    // The take is listed there too, for next time.
+    await expect(page.getByRole("list", { name: "Audio takes" })).toContainText("Audio take 1");
   });
 
   test("an empty roll drawn by hand saves as a song", async ({ page }) => {
