@@ -222,6 +222,79 @@ test.describe("library and song studio", () => {
     ).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
   });
+
+  test("song studio review: back, metronome, steady tab, sections, fitting, hand colours, delete", async ({
+    page,
+  }) => {
+    await importOde(page);
+    await page.getByLabel("Score file").setInputFiles("e2e/music/fixtures/low-riff.mid");
+    await page.getByRole("button", { name: "Save to songs" }).click();
+    await expect(page.getByText("low-riff is in your songs.")).toBeVisible();
+    await openOde(page);
+
+    // The metronome takes the song's tempo in one tap.
+    const toSong = page.getByRole("button", { name: /^Set metronome to \d+ BPM$/ });
+    const bpm = (await toSong.textContent())!.match(/\d+/)![0];
+    await toSong.click();
+    await expect(page.getByRole("status")).toContainText(`metronome is at ${bpm} BPM`);
+    await expect(page.getByRole("button", { name: `Metronome at ${bpm} BPM` })).toBeDisabled();
+
+    // Switching to Tab does not move the view picker.
+    const views = page.getByRole("navigation", { name: "Score view" });
+    const before = (await views.boundingBox())!;
+    await views.getByRole("link", { name: "Tab" }).click();
+    await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
+    const after = (await views.boundingBox())!;
+    expect(Math.abs(after.y - before.y)).toBeLessThan(1);
+    await expect(page.getByLabel("Tuning")).toBeVisible();
+
+    // Picked sections are tinted and named on the score.
+    await page.getByRole("button", { name: "Change setup" }).click();
+    await page
+      .getByRole("group", { name: "Range" })
+      .getByRole("button", { name: "Sections" })
+      .click();
+    await page.getByRole("group", { name: "Sections" }).getByRole("button").first().click();
+    await expect(page.locator(".tint-label").first()).toBeVisible();
+    await page.getByRole("button", { name: "Done" }).click();
+
+    // Waterfall: beat lines, and the sounding key takes its hand's colour.
+    await views.getByRole("link", { name: "Waterfall" }).click();
+    await expect(page.locator(".beatline").first()).toBeAttached();
+    await page.getByRole("button", { name: "Hear it" }).click();
+    await expect(page.locator("[data-demo][data-role=right]").first()).toBeVisible({
+      timeout: 5000,
+    });
+    await page.getByRole("button", { name: "Stop preview" }).click();
+
+    // A low riff on a ukulele moves into range, and can be shown as written.
+    await page.getByRole("link", { name: "Back to your songs" }).click();
+    await expect(page).toHaveURL(/\/music\/library$/);
+    await page
+      .getByRole("link", { name: /low-riff/ })
+      .first()
+      .click();
+    await expect(page.getByRole("heading", { level: 1, name: "low-riff" })).toBeVisible();
+    await page.goto(page.url().split("?")[0] + "?view=tab");
+    await page.getByLabel("Tuning").selectOption({ label: "Ukulele, High G" });
+    await expect(page.locator("[data-fit]")).toContainText("to fit the ukulele");
+    await page.getByRole("button", { name: "Show as written" }).click();
+    await expect(page.locator("[data-fit]")).toContainText("As written");
+    await page.getByRole("button", { name: "Fit to the instrument" }).click();
+    await shoot(page, "studio-fit");
+
+    // Delete from the library takes two taps.
+    await page.getByRole("link", { name: "Back to your songs" }).click();
+    const songs = page.getByRole("list", { name: "Saved songs" });
+    await songs.getByRole("button", { name: "Delete low-riff" }).click();
+    await songs.getByRole("button", { name: "Delete low-riff? Tap again to delete" }).click();
+    await expect(songs.getByRole("link", { name: /low-riff/ })).toHaveCount(0);
+    await expect(songs.getByRole("link", { name: /Ode to Joy/ })).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole("list", { name: "Saved songs" }).getByRole("link", { name: /low-riff/ }),
+    ).toHaveCount(0);
+  });
 });
 
 test.describe("jam and lab", () => {

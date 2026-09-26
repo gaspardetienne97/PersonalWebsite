@@ -163,3 +163,44 @@ export function voiceChoices(score: Score): { id: string; label: string; voiceId
   }
   return score.voices.map((v) => ({ id: v.id, label: v.name, voiceIds: [v.id] }));
 }
+
+/**
+ * Move the selected voices by whole octaves into an instrument's range: the
+ * shift that fits the most notes (the smallest one when tied), then any note
+ * still outside folded in by octaves. `folded` counts those notes.
+ */
+export function fitToRange(
+  score: Score,
+  voiceIds: readonly string[],
+  low: number,
+  high: number,
+): { score: Score; shift: number; folded: number } {
+  const picked = (id: string) => voiceIds.includes(id);
+  const notes = score.voices.filter((v) => picked(v.id)).flatMap((v) => v.notes);
+  if (!notes.length || high - low < 11) return { score, shift: 0, folded: 0 };
+  const fits = (k: number) => notes.filter((n) => n.midi + k >= low && n.midi + k <= high).length;
+  const shift = [0, -12, 12, -24, 24, -36, 36].reduce(
+    (best, k) => (fits(k) > fits(best) ? k : best),
+    0,
+  );
+  let folded = 0;
+  const fold = (midi: number) => {
+    let m = midi + shift;
+    if (m >= low && m <= high) return m;
+    folded++;
+    while (m < low) m += 12;
+    while (m > high) m -= 12;
+    return m;
+  };
+  if (!shift && fits(0) === notes.length) return { score, shift: 0, folded: 0 };
+  const voices = score.voices.map((v) =>
+    picked(v.id) ? { ...v, notes: v.notes.map((n) => ({ ...n, midi: fold(n.midi) })) } : v,
+  );
+  return { score: { ...score, voices }, shift, folded };
+}
+
+/** The lowest open string to the top fret of the highest string. */
+export const tuningRange = (t: { openStrings: number[]; fretCount: number }) => ({
+  low: Math.min(...t.openStrings),
+  high: Math.max(...t.openStrings) + t.fretCount,
+});

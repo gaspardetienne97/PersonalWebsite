@@ -13,6 +13,8 @@
     bpm?: number;
     maxHeight?: string;
     onfallback?: (reason: string) => void;
+    /** Ranges tinted like a selection (the sections a run covers), each named at its start. */
+    highlights?: (BeatRange & { label: string })[];
   }
 </script>
 
@@ -48,6 +50,7 @@
     bpm,
     maxHeight = "62dvh",
     onfallback,
+    highlights = [],
   }: FrameProps & {
     draw: (VF: VF, host: HTMLElement, width: number) => Layout;
     fallback: (reason: string) => string;
@@ -104,6 +107,14 @@
   const interactive = $derived(!!(onselect || onbarclick));
   const list = $derived(layout ? targets(layout, snap) : []);
   const shown = $derived(picker.drag ?? selection);
+  const tinted = $derived(
+    layout && highlights.length
+      ? layout.bars.flatMap((b) => {
+          const h = highlights.find((r) => b.startBeat >= r.startBeat - 1e-6 && b.startBeat < r.endBeat - 1e-6);
+          return h ? [{ ...b, label: Math.abs(b.startBeat - h.startBeat) < 1e-6 ? h.label : "" }] : [];
+        })
+      : [],
+  );
   const span = $derived(shown ? ends(list, shown) : null);
   const cursor = $derived(layout && cursorBeat != null ? cursorAt(layout, cursorBeat) : null);
   const text = $derived(readout(list, shown, picker.pending, bpm ?? scoreBpm, snap));
@@ -201,6 +212,11 @@
       style:width={layout ? `${layout.width}px` : "100%"}
       style:height={layout ? `${layout.height}px` : undefined}
     >
+      {#each tinted as b (b.startBeat)}
+        <div class="tint" style:left="{b.x}px" style:top="{b.y}px" style:width="{b.width}px" style:height="{b.height}px">
+          {#if b.label}<span class="tint-label">{b.label}</span>{/if}
+        </div>
+      {/each}
       {#if interactive && shown}
           {#each list.filter((t) => inRange(t, shown)) as t (t.startBeat)}
             <div
@@ -366,6 +382,17 @@
     position: absolute;
     pointer-events: none;
     background: color-mix(in oklab, var(--instr, currentColor) 12%, transparent);
+  }
+  .tint-label {
+    position: absolute;
+    left: 4px;
+    top: 2px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: var(--instr, currentColor);
+    color: var(--ws-stage, #fff);
   }
   .handle {
     position: absolute;

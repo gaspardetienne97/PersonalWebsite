@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Score } from "@repo/music-core";
-  import { bars, scoreGroups, selectedVoices, whiteKeyLayout } from "./groups";
+  import { barBeats, bars, scoreGroups, selectedVoices, voiceSides, whiteKeyLayout } from "./groups";
   import type { GroupState } from "./NotationFrame.svelte";
 
   let {
@@ -27,13 +27,10 @@
   const keys = $derived(whiteKeyLayout(low, high));
   const voices = $derived(selectedVoices(score, voiceIds));
   // Hand decides colour and form; voices without a hand alternate so two lines still differ.
-  const side = $derived(
-    Object.fromEntries(
-      voices.map((v, i) => [v.id, v.hand ?? (i % 2 === 0 ? "right" : "left")] as const),
-    ),
-  );
+  const side = $derived(voiceSides(score, voiceIds));
+  const groups = $derived(scoreGroups(score, voiceIds));
   const notes = $derived(
-    scoreGroups(score, voiceIds).flatMap((g) =>
+    groups.flatMap((g) =>
       g.notes
         .filter((n) => keys[n.midi])
         .map((n) => ({ ...n, group: g.index, side: side[n.voiceId] })),
@@ -47,6 +44,25 @@
   );
   const lines = $derived(
     bars(score).filter((b) => b.startBeat > beat - 1 && b.startBeat < beat + lookaheadBeats),
+  );
+  // Beat lines between the bar lines, so a chord (one onset) reads apart from notes a hair apart.
+  const perBar = $derived(barBeats(score.meter));
+  const beatLines = $derived(
+    Array.from({ length: lookaheadBeats + 2 }, (_, i) => Math.floor(beat) - 1 + i).filter(
+      (b) => b >= 0 && b < score.lengthBeats && Math.abs(b / perBar - Math.round(b / perBar)) > 1e-6,
+    ),
+  );
+  // Notes struck together get a thin line joining them at their onset.
+  const chords = $derived(
+    groups
+      .filter((g) => g.startBeat > beat - 0.5 && g.startBeat < beat + lookaheadBeats)
+      .flatMap((g) => {
+        const boxes = g.notes.map((n) => keys[n.midi]).filter(Boolean);
+        if (boxes.length < 2) return [];
+        const left = Math.min(...boxes.map((k) => k.x + k.width / 2));
+        const right = Math.max(...boxes.map((k) => k.x + k.width / 2));
+        return right - left > 1e-6 ? [{ start: g.startBeat, left, width: right - left }] : [];
+      }),
   );
   const pct = (b: number) => `${(b / lookaheadBeats) * 100}%`;
   const legend = $derived(
@@ -62,8 +78,14 @@
 <div class="wf">
   <div class="lane" style:height aria-hidden="true">
     <div class="layer" style:transform="translateY({pct(beat)})">
+      {#each beatLines as b (b)}
+        <div class="beatline" style:bottom={pct(b)}></div>
+      {/each}
       {#each lines as l (l.number)}
         <div class="barline" style:bottom={pct(l.startBeat)}></div>
+      {/each}
+      {#each chords as c (c.start)}
+        <div class="chord" style:bottom={pct(c.start)} style:left="{c.left * 100}%" style:width="{c.width * 100}%"></div>
       {/each}
       {#each visible as n (`${n.voiceId}:${n.startBeat}:${n.midi}`)}
         {@const k = keys[n.midi]}
@@ -74,7 +96,7 @@
           style:left="{k.x * 100}%"
           style:width="{k.width * 100}%"
           style:bottom={pct(n.startBeat)}
-          style:height={pct(n.durationBeats)}
+          style:height="calc({pct(n.durationBeats)} - 3px)"
         ></div>
       {/each}
     </div>
@@ -109,13 +131,27 @@
     height: 1px;
     background: var(--ws-line, currentColor);
   }
+  .beatline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: color-mix(in oklab, var(--ws-line, currentColor) 45%, transparent);
+  }
+  .chord {
+    position: absolute;
+    height: 2px;
+    margin-bottom: -1px;
+    background: color-mix(in oklab, var(--ws-ink, currentColor) 55%, transparent);
+  }
+  /* A gap at the top of every note (height minus 3px), so repeated notes never run together. */
   .note {
     position: absolute;
     box-sizing: border-box;
     border-radius: 4px;
     padding: 0 1px;
     background-clip: content-box;
-    min-height: 6px;
+    min-height: 5px;
   }
   .note.right {
     background-color: var(--hand-right);
@@ -124,8 +160,11 @@
     border: 2px solid var(--hand-left);
     background-color: color-mix(in oklab, var(--hand-left) 25%, transparent);
   }
+  /* Black-key notes sit over the white lanes; a lane-coloured edge keeps them apart. */
   .note.black {
     z-index: 1;
+    padding: 0;
+    box-shadow: 0 0 0 2px var(--ws-surface, #000);
   }
   .note[data-state="active"] {
     outline: 2px solid var(--instr-ink, currentColor);

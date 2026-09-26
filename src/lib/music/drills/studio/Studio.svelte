@@ -10,6 +10,8 @@
   import Download from "lucide-svelte/icons/download";
   import Headphones from "lucide-svelte/icons/headphones";
   import Settings2 from "lucide-svelte/icons/sliders-horizontal";
+  import ArrowLeft from "lucide-svelte/icons/arrow-left";
+  import Timer from "lucide-svelte/icons/timer";
   import { clamp, noteName, pc, type InputEvent, type NoteEvent } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
@@ -36,10 +38,10 @@
   import { practice } from "$lib/music/practice.svelte";
   import { bench, INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
   import { audio, db, input, settings, type SequenceHandle } from "$lib/music/runtime";
-  import { barBeats, scoreGroups as viewGroupsOf, type BeatRange } from "$lib/music/notation/groups";
+  import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "$lib/music/notation/groups";
   import { barsText, durationText, scoreFacts, songSections, type Song } from "$lib/music/hubs/library/songs";
   import StudioScore, { type View } from "./StudioScore.svelte";
-  import { buildPass, planPasses, retryBpm, statesByBeat, statesFor, toScoreBeat, voiceChoices, type Pass, type RangeMode, type SectionOrder } from "./studio";
+  import { buildPass, fitToRange, planPasses, retryBpm, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Pass, type RangeMode, type SectionOrder } from "./studio";
 
   let { song }: { song: Song } = $props();
   // The page keys this component by song id, so reading the prop once is safe.
@@ -59,7 +61,8 @@
     range: "whole" as string,
     order: "sequence" as string,
     snap: "bar" as string,
-    tuning: settings.value.guitarTuningId as string,
+    tuning: (settings.value.activeInstrument === "ukulele" ? settings.value.ukuleleTuningId : settings.value.guitarTuningId) as string,
+    fit: "auto" as string,
     rangeStart: -1,
     rangeEnd: -1,
   });
@@ -74,12 +77,6 @@
   let picked = $state<string[]>(choices.map((c) => c.id));
   let pickedSections = $state<number[]>([]);
   const voiceIds = $derived(choices.filter((c) => picked.includes(c.id)).flatMap((c) => c.voiceIds));
-  const passes = $derived(
-    planPasses(score, sections, { mode: s.range as RangeMode, picked: pickedSections, order: s.order as SectionOrder, custom }).map((segs) =>
-      buildPass(score, voiceIds, segs, sections),
-    ),
-  );
-  const viewGroups = $derived(viewGroupsOf(score, voiceIds));
 
   const VIEWS = [
     { id: "staff", label: "Staff" },
@@ -88,6 +85,39 @@
     { id: "waterfall", label: "Waterfall" },
   ] as const;
   const view = $derived((VIEWS.find((v) => v.id === page.url.searchParams.get("view"))?.id ?? "staff") as View);
+
+  // On guitar or ukulele (or in Tab) the score moves by octaves into the
+  // instrument's range, so every note has a string and a fret.
+  const fretted = $derived(view === "tab" || ["guitar", "ukulele"].includes(settings.value.activeInstrument));
+  const fitted = $derived.by(() => {
+    const { low, high } = tuningRange(tuning);
+    return fitToRange(score, voiceIds, low, high);
+  });
+  const fitting = $derived(fretted && s.fit === "auto" && fitted.score !== score);
+  const played = $derived(fitting ? fitted.score : score);
+  const fitNote = $derived.by(() => {
+    const inst = tuning.instrument === "ukulele" ? "ukulele" : "guitar";
+    const moved = fitted.shift ? `Moved ${fitted.shift > 0 ? "up" : "down"} ${Math.abs(fitted.shift) / 12 === 1 ? "an octave" : `${Math.abs(fitted.shift) / 12} octaves`}` : "";
+    const folded = fitted.folded ? `${fitted.folded} note${fitted.folded === 1 ? "" : "s"} folded by an octave` : "";
+    return `${[moved, folded].filter(Boolean).join(", ").replace(/^./, (c) => c.toUpperCase())} to fit the ${inst} (${tuning.name}).`;
+  });
+
+  const passes = $derived(
+    planPasses(played, sections, { mode: s.range as RangeMode, picked: pickedSections, order: s.order as SectionOrder, custom }).map((segs) =>
+      buildPass(played, voiceIds, segs, sections),
+    ),
+  );
+  const viewGroups = $derived(viewGroupsOf(played, voiceIds));
+  const sides = $derived(voiceSides(played, voiceIds));
+  /** The hand of the selected voice sounding `midi` in the group at `beat`. */
+  const handAt = (midi: number, beat: number | null) => {
+    if (beat === null) return undefined;
+    const g = viewGroups.findLast((x) => x.startBeat <= beat + 1e-6);
+    const n = g?.notes.find((x) => x.midi === midi);
+    return n ? sides[n.voiceId] : undefined;
+  };
+  const highlights = $derived(s.range === "sections" ? pickedSections.map((i) => sections[i]).filter(Boolean) : []);
+
   let staffFailed = $state<string | null>(null);
 
   // ---- Run state ------------------------------------------------------
@@ -153,10 +183,10 @@
     const out: Record<number, CellMarks> = {};
     if (preview?.playing && previewPass && previewBeat !== null) {
       for (const g of viewGroups)
-        if (g.startBeat <= previewBeat + 1e-6 && previewBeat < g.startBeat + g.durationBeats) for (const n of g.notes) out[n.midi] = { demo: true };
+        if (g.startBeat <= previewBeat + 1e-6 && previewBeat < g.startBeat + g.durationBeats) for (const n of g.notes) out[n.midi] = { demo: true, role: sides[n.voiceId] };
       return out;
     }
-    if (live && ls) for (const m of ls.expected) out[m] = { target: true };
+    if (live && ls) for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat) };
     return out;
   });
 
@@ -179,6 +209,11 @@
     void h.done.then(() => {
       if (preview === h) stopPreview();
     });
+  }
+
+  function metronomeToSong() {
+    settings.update({ bpm });
+    status = `The metronome is at ${bpm} BPM, the song's tempo.`;
   }
 
   function exportMidi() {
@@ -519,7 +554,7 @@
   {#if !live}
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div class="min-w-0">
-        <p class="text-sm"><a class="text-ws-soft underline-offset-4 hover:underline" href="/music/library">Songs</a></p>
+        <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/library"><ArrowLeft class="size-4" aria-hidden="true" />Back to your songs</a>
         <h1 id="studio-title" class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{song.title}</h1>
         <p class="mt-1 text-ws-soft">
           {song.composer ? `${song.composer}. ` : ""}{barsText(facts.bars)} in {facts.meter}{facts.key ? `, ${facts.key}` : ""}, written at {score.bpm} BPM ({durationText(facts.seconds)}).
@@ -664,17 +699,12 @@
         {#if preview?.playing}<Square class="size-4" aria-hidden="true" />Stop preview{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
       </button>
       <button type="button" class={btn} onclick={exportMidi}><Download class="size-4" aria-hidden="true" />Export MIDI</button>
+      <button type="button" class={btn} disabled={settings.value.bpm === bpm} onclick={metronomeToSong}>
+        <Timer class="size-4" aria-hidden="true" />{settings.value.bpm === bpm ? `Metronome at ${bpm} BPM` : `Set metronome to ${bpm} BPM`}
+      </button>
       <span class="hidden text-sm text-ws-soft sm:inline">Space starts, Esc stops.</span>
     {/if}
     <div class="ml-auto flex flex-wrap items-center gap-2">
-      {#if view === "tab" && !live}
-        <label class="flex items-center gap-2 text-sm">
-          <span class="font-medium">Tuning</span>
-          <select class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm" value={tuning.id} onchange={(e) => setup.set({ tuning: e.currentTarget.value })}>
-            {#each TUNING_LIST as t (t.id)}<option value={t.id}>{t.instrument === "guitar" ? "Guitar" : "Ukulele"}, {t.name}</option>{/each}
-          </select>
-        </label>
-      {/if}
       <HubTabs param="view" tabs={VIEWS} label="Score view" />
     </div>
   </div>
@@ -737,11 +767,27 @@
         Staff preview unavailable for this score. <a class="font-semibold underline underline-offset-4" href="?view=waterfall">Open the Waterfall</a>, which shows every note.
       </p>
     {/if}
+    {#if (view === "tab" || fretted) && !live}
+      <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+        <label class="flex items-center gap-2">
+          <span class="font-medium">Tuning</span>
+          <select class="min-h-11 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-3 text-sm text-ws-stage-ink" value={tuning.id} onchange={(e) => setup.set({ tuning: e.currentTarget.value })}>
+            {#each TUNING_LIST as t (t.id)}<option value={t.id}>{t.instrument === "guitar" ? "Guitar" : "Ukulele"}, {t.name}</option>{/each}
+          </select>
+        </label>
+        {#if fitted.score !== score}
+          <p class="min-w-0 flex-1 text-ws-stage-soft" data-fit>
+            {s.fit === "auto" ? fitNote : `As written: some notes are out of the ${tuning.instrument === "ukulele" ? "ukulele" : "guitar"}'s range.`}
+            <button type="button" class="ml-1 font-semibold text-ws-stage-ink underline underline-offset-4" onclick={() => setup.set({ fit: s.fit === "auto" ? "written" : "auto" })}>{s.fit === "auto" ? "Show as written" : "Fit to the instrument"}</button>
+          </p>
+        {/if}
+      </div>
+    {/if}
     {#if view === "fingering" && settings.value.activeInstrument !== "aerophone" && !live}
       <p class="mb-2 text-sm text-ws-stage-soft">Aerophone fingerings for the top line of the selected voices.</p>
     {/if}
     <StudioScore
-      {score}
+      score={played}
       {voiceIds}
       {view}
       tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }}
@@ -754,6 +800,7 @@
       snap={s.snap === "group" ? "group" : "bar"}
       {bpm}
       compact={live}
+      {highlights}
       onfallback={(r) => (staffFailed = r)}
     />
     {#if !live && phase !== "results"}

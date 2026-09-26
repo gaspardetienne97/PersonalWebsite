@@ -70,6 +70,19 @@ export function selectedVoices(score: Score, voiceIds?: string[] | null) {
   return voiceIds?.length ? score.voices.filter((v) => voiceIds.includes(v.id)) : score.voices;
 }
 
+/** The hand colour of each selected voice: its own hand, else alternating so two lines still differ. */
+export function voiceSides(
+  score: Score,
+  voiceIds?: string[] | null,
+): Record<string, "left" | "right"> {
+  return Object.fromEntries(
+    selectedVoices(score, voiceIds).map((v, i) => [
+      v.id,
+      v.hand ?? (i % 2 === 0 ? "right" : "left"),
+    ]),
+  );
+}
+
 /** Notes grouped by onset: the units a follower waits for. Ties are not attacks. */
 export function scoreGroups(
   score: Score,

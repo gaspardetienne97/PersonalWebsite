@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Score } from "@repo/music-core";
 import {
   buildPass,
+  fitToRange,
+  tuningRange,
   planPasses,
   retryBpm,
   statesByBeat,
@@ -159,4 +161,39 @@ it("groups MusicXML voices by part", () => {
     "p-v1",
     "p-v2",
   ]);
+});
+
+describe("fitting a score to an instrument", () => {
+  const line = (midis: number[]): Score => ({
+    ...score,
+    voices: [
+      {
+        id: "a",
+        name: "A",
+        notes: midis.map((midi, i) => ({ midi, startBeat: i, durationBeats: 1 })),
+      },
+    ],
+  });
+  const uke = tuningRange({ openStrings: [67, 60, 64, 69], fretCount: 15 }); // C4..C6
+
+  it("moves a line by whole octaves when that fits it all, and leaves a fitting one alone", () => {
+    const low = line([48, 52, 55, 59]); // C3..B3, below a ukulele
+    const r = fitToRange(low, ["a"], uke.low, uke.high);
+    expect(r.shift).toBe(12);
+    expect(r.folded).toBe(0);
+    expect(r.score.voices[0].notes.map((n) => n.midi)).toEqual([60, 64, 67, 71]);
+    const ok = line([60, 64, 67]);
+    expect(fitToRange(ok, ["a"], uke.low, uke.high).score).toBe(ok);
+  });
+
+  it("folds the notes one octave shift cannot reach", () => {
+    const wide = line([40, 60, 64, 67, 72]); // an E2 bass note under a melody
+    const r = fitToRange(wide, ["a"], uke.low, uke.high);
+    expect(r.shift).toBe(0);
+    expect(r.folded).toBe(1);
+    expect(r.score.voices[0].notes[0].midi).toBe(64);
+    expect(r.score.voices[0].notes.every((n) => n.midi >= uke.low && n.midi <= uke.high)).toBe(
+      true,
+    );
+  });
 });

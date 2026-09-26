@@ -32,6 +32,7 @@
     bpm,
     onfallback,
     compact = false,
+    highlights = [],
   }: {
     score: Score;
     voiceIds: string[];
@@ -48,6 +49,8 @@
     onfallback?: (reason: string) => void;
     /** Running: a shorter viewport so the keyboard stays on screen. */
     compact?: boolean;
+    /** Sections to tint on the staff and tab. */
+    highlights?: (BeatRange & { label: string })[];
   } = $props();
 
   // Whole octaves from C, so both ends are white keys and the grids agree.
@@ -86,13 +89,13 @@
   {:else}
     <div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
       {#if view === "tab"}
-        <Tab {score} {voiceIds} {tuning} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} />
+        <Tab {score} {voiceIds} {tuning} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
       {:else if view === "fingering"}
         <div class="overflow-auto" style:max-height={maxHeight}>
           <FingeringRow {score} {voiceIds} {groupStates} />
         </div>
       {:else}
-        <Staff {score} {voiceIds} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} />
+        <Staff {score} {voiceIds} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
       {/if}
     </div>
     <Piano {low} {high} {marks} {flashes} label="Piano keyboard" />

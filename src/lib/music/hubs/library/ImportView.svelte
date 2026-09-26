@@ -160,7 +160,7 @@
       {/each}
     </div>
     <p class="text-sm text-ws-soft">
-      {mode === "score" ? "MIDI, MusicXML or compressed MusicXML (.mxl)." : "One instrument, one note at a time: a sung line, a whistle, a single-note riff."}
+      {mode === "score" ? "MusicXML (.musicxml, .xml or .mxl) is best: it keeps the parts, key and bar lines as written. MIDI works too, but its timing and voices are often rougher." : "One instrument, one note at a time: a sung line, a whistle, a single-note riff."}
     </p>
   </div>
 
@@ -186,7 +186,7 @@
       >
         <Upload class="size-7" aria-hidden="true" />
         <span class="font-display text-lg font-semibold">{busy ? "Reading the score" : "Drop a score here, or choose a file"}</span>
-        <span class="text-sm text-ws-soft">.mid, .midi, .musicxml, .xml or .mxl</span>
+        <span class="text-sm text-ws-soft">MusicXML preferred (.musicxml, .xml, .mxl); .mid and .midi work too</span>
         <input class="sr-only" type="file" accept={SCORE_ACCEPT} aria-label="Score file" data-testid="score-file" onchange={(e) => takeScore(e.currentTarget.files?.[0])} />
       </label>
     {:else}

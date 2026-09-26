@@ -5,11 +5,22 @@
   import { db } from "$lib/music/runtime";
   import { registerSearchItems } from "$lib/music/search";
   import { btnPrimary } from "$lib/music/components/ui";
+  import Trash from "lucide-svelte/icons/trash-2";
   import RollThumb from "./RollThumb.svelte";
   import { barsText, durationText, rangeText, scoreFacts, type Song } from "./songs";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
   let songs = $state.raw<Song[] | null>(null);
+  /** The song whose Delete is waiting for its second tap. */
+  let confirming = $state<string | null>(null);
+
+  async function remove(song: Song) {
+    if (confirming !== song.id) return void (confirming = song.id);
+    confirming = null;
+    await db.songs.delete(song.id);
+    songs = songs!.filter((x) => x.id !== song.id);
+    onstatus?.(`Deleted ${song.title}. ${songs.length ? `${songs.length} song${songs.length === 1 ? "" : "s"} left.` : "No saved songs now."}`);
+  }
 
   onMount(async () => {
     songs = (await db.songs.orderBy("updatedAt").reverse().toArray()) as unknown as Song[];
@@ -41,7 +52,7 @@
   <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Saved songs">
     {#each songs as song, i (song.id)}
       {@const f = scoreFacts(song.score)}
-      <li class={i === 0 ? "sm:col-span-2" : ""}>
+      <li class="relative {i === 0 ? 'sm:col-span-2' : ''}">
         <a
           href="/music/songs/{song.id}"
           class="group flex h-full flex-col overflow-hidden rounded-2xl border border-ws-line bg-ws-surface hover:border-instr-ink focus-visible:border-instr-ink"
@@ -63,6 +74,16 @@
             </dl>
           </div>
         </a>
+        <!-- Outside the card's link, over its top-left corner. -->
+        <button
+          type="button"
+          class="absolute left-2 top-2 flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold {confirming === song.id ? 'bg-destructive text-white' : 'bg-ws-stage-ink/10 text-ws-stage-soft hover:bg-ws-stage-ink/20 hover:text-ws-stage-ink'}"
+          aria-label={confirming === song.id ? `Delete ${song.title}? Tap again to delete` : `Delete ${song.title}`}
+          onblur={() => confirming === song.id && (confirming = null)}
+          onclick={() => remove(song)}
+        >
+          <Trash class="size-3.5" aria-hidden="true" />{#if confirming === song.id}Delete?{/if}
+        </button>
       </li>
     {/each}
   </ul>

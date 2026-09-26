@@ -254,6 +254,25 @@
   [data-role="right"] .mark-label {
     background: var(--hand-right);
   }
+  /* A hand on a sounding or target key paints it in that hand's colour. */
+  [data-demo][data-role="left"] {
+    background: var(--hand-left) !important;
+  }
+  [data-demo][data-role="right"] {
+    background: var(--hand-right) !important;
+  }
+  [data-target][data-role="left"]:not([data-held]) {
+    box-shadow: inset 0 0 0 3px var(--hand-left);
+  }
+  [data-target][data-role="right"]:not([data-held]) {
+    box-shadow: inset 0 0 0 3px var(--hand-right);
+  }
+  [data-role="left"] .dot {
+    background: var(--hand-left);
+  }
+  [data-role="right"] .dot {
+    background: var(--hand-right);
+  }
   .dot {
     width: 0.8rem;
     height: 0.8rem;
