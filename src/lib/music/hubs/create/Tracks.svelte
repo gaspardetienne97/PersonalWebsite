@@ -14,6 +14,7 @@
   import { kits } from "./kitStore.svelte";
   import { session, type TrackId } from "./session.svelte";
   import { barsOf, hitCount } from "./pattern";
+  import { chordsIn, KEYS, progressionVoice, PROGRESSIONS } from "./progressions";
   import { ROLL_SOUNDS, soundOf, trackColour, type RollVoice } from "./roll";
 
   let { announce }: { announce: (msg: string) => void } = $props();
@@ -54,6 +55,16 @@
   function addMelody() {
     const v = session.addMelody();
     announce(`Added ${v.name}. Draw its notes in the editor below.`);
+  }
+
+  let chordKey = $state(0);
+  function addChords(id: string) {
+    const p = PROGRESSIONS.find((x) => x.id === id);
+    if (!p) return;
+    const bars = session.bars;
+    const v = progressionVoice(p, chordKey, crypto.randomUUID());
+    session.addMelodyFrom(v);
+    announce(`Added ${v.name}: ${chordsIn(p, chordKey).join(", ")}, one chord a bar on E-Piano.${session.bars > bars ? ` The song grew to ${session.bars} bars.` : ""}`);
   }
 
   function fromLibrary(value: string) {
@@ -185,6 +196,16 @@
 
   <div class="flex flex-wrap items-center gap-2">
     <button type="button" class="flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" onclick={addMelody}><Plus class="size-4" aria-hidden="true" />Add melody</button>
+    <select class={field} aria-label="Add a chord progression" value="" onchange={(e) => { addChords(e.currentTarget.value); e.currentTarget.value = ""; }}>
+      <option value="" disabled>Add chords</option>
+      {#each PROGRESSIONS as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+    </select>
+    <label class="flex items-center gap-1.5 text-sm">
+      <span class="text-ws-soft">in</span>
+      <select class="{field} w-20" aria-label="Key for the chords" bind:value={chordKey}>
+        {#each KEYS as k, i (k)}<option value={i}>{k}</option>{/each}
+      </select>
+    </label>
     {#if session.beats.length || session.voices.length}
       <select class={field} aria-label="Add from library" value="" onchange={(e) => { fromLibrary(e.currentTarget.value); e.currentTarget.value = ""; }}>
         <option value="" disabled>Add from library</option>

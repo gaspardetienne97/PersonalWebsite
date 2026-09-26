@@ -300,6 +300,13 @@ test.describe("Create", () => {
     await expect(page.getByRole("status")).toContainText("Added Melody 1 as a new melody");
     await expect(page.getByLabel("Melody 1 instrument")).toHaveCount(2);
     await expect(song.locator("[data-save-state]")).toHaveText("Unsaved changes");
+
+    // A chord progression as its own track, in the key asked for.
+    await page.getByLabel("Key for the chords").selectOption({ label: "D" });
+    await page.getByLabel("Add a chord progression").selectOption({ label: "Jazz, ii-V-I" });
+    await expect(page.getByRole("status")).toContainText("Added Jazz in D: Em7, A7, Dmaj7, Dmaj7");
+    await expect(page.getByLabel("Jazz in D instrument")).toHaveValue("e-piano");
+    await expect(page.locator(".note[data-note]")).toHaveCount(16); // four 4-note chords
     await shoot(page, "create-song");
 
     // Take it out of your songs (two taps); it stays open.

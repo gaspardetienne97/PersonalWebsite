@@ -41,6 +41,7 @@ import {
   toggleNote,
   trackColour,
 } from "./roll";
+import { chordsIn, progressionVoice, PROGRESSIONS } from "./progressions";
 import { clock, pairNotes, takeToScore, type MidiTake } from "$lib/music/takes";
 
 const on = (midi: number, at: number, velocity = 0.8): NoteEvent => ({
@@ -299,5 +300,30 @@ describe("audio takes", () => {
     expect(suggestedBoost(-30, 6)).toBe(24);
     expect(suggestedBoost(-20, 0)).toBe(8);
     expect(suggestedBoost(-6, 0)).toBe(0);
+  });
+});
+
+describe("chord progressions", () => {
+  it("hold one chord a bar, in the key asked for, moving little between chords", () => {
+    const pop = PROGRESSIONS.find((p) => p.id === "pop")!;
+    const v = progressionVoice(pop, 0, "p");
+    const bar = (b: number) => v.notes.filter((n) => n.startBeat === b * 4).map((n) => n.midi);
+    expect(bar(0)).toEqual([52, 55, 60]); // C/E
+    expect(bar(1)).toEqual([55, 59, 62]); // G, not a leap up
+    expect(v.notes.every((n) => n.durationBeats === 4)).toBe(true);
+    expect(v.name).toBe("Pop in C");
+    expect(chordsIn(pop, 2)).toEqual(["D", "A", "Bm", "G"]);
+    expect(
+      new Set(
+        progressionVoice(pop, 2, "d")
+          .notes.slice(0, 3)
+          .map((n) => n.midi % 12),
+      ),
+    ).toEqual(new Set([2, 6, 9]));
+    const blues = progressionVoice(PROGRESSIONS.find((p) => p.id === "blues")!, 7, "b");
+    expect(Math.max(...blues.notes.map((n) => n.startBeat))).toBe(44); // twelve bars
+    expect(progressionVoice(PROGRESSIONS.find((p) => p.id === "minor")!, 9, "m").name).toBe(
+      "Minor in A minor",
+    );
   });
 });
