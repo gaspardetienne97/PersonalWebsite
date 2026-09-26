@@ -36,6 +36,7 @@ import {
   resizeNote,
   rollNotes,
   rollRange,
+  setLength,
   scoreToDoc,
   toggleNote,
   trackColour,
@@ -206,6 +207,34 @@ describe("piano roll", () => {
     expect(docToScore(d, "s").voices[0].clef).toBe("bass");
     expect(trackColour(6)).toBe(trackColour(0));
     expect(rollRange(d)).toEqual({ low: 36, high: 83 });
+  });
+});
+
+describe("song length", () => {
+  it("drops notes past a shorter end and cuts the ones across it", () => {
+    const d = {
+      ...emptyDoc("a"),
+      lengthBeats: 8,
+      voices: [
+        {
+          id: "a",
+          name: "Melody 1",
+          velocity: 0.8,
+          notes: [
+            { midi: 60, startBeat: 0, durationBeats: 1 },
+            { midi: 62, startBeat: 3, durationBeats: 2 },
+            { midi: 64, startBeat: 6, durationBeats: 1 },
+          ],
+        },
+      ],
+    };
+    const short = setLength(d, 4);
+    expect(short.lengthBeats).toBe(4);
+    expect(short.voices[0].notes.map((n) => [n.midi, n.durationBeats])).toEqual([
+      [60, 1],
+      [62, 1],
+    ]);
+    expect(setLength(d, 12).voices[0].notes).toEqual(d.voices[0].notes);
   });
 });
 

@@ -64,12 +64,12 @@ export interface RollDoc {
 
 /** Identity colours for voices; they wrap after six. Names always accompany them. */
 export const TRACK_COLOURS = [
-  "var(--hue-create)",
   "var(--hue-piano)",
   "var(--hue-aerophone)",
   "var(--hue-mpc)",
   "var(--hue-rhythm)",
   "var(--hue-guitar)",
+  "var(--hue-create)", // last: the beat wears Create's own colour
 ];
 export const trackColour = (i: number) =>
   TRACK_COLOURS[((i % TRACK_COLOURS.length) + TRACK_COLOURS.length) % TRACK_COLOURS.length];
@@ -77,7 +77,7 @@ export const trackColour = (i: number) =>
 export const BAR_BEATS = 4;
 
 export function newVoice(n: number, id: string): RollVoice {
-  return { id, name: `Voice ${n}`, velocity: 0.8, notes: [] };
+  return { id, name: `Melody ${n}`, velocity: 0.8, notes: [] };
 }
 
 export function emptyDoc(id: string): RollDoc {
@@ -216,5 +216,19 @@ export function rollRange(doc: RollDoc): { low: number; high: number } {
   return {
     low: Math.max(0, Math.floor(low / 12) * 12),
     high: Math.min(127, Math.ceil((high + 1) / 12) * 12 - 1),
+  };
+}
+
+/** Make the sketch `beats` long; notes past the new end go, notes across it are cut. */
+export function setLength(doc: RollDoc, beats: number): RollDoc {
+  return {
+    ...doc,
+    lengthBeats: beats,
+    voices: doc.voices.map((v) => ({
+      ...v,
+      notes: v.notes
+        .filter((n) => n.startBeat < beats - EPS)
+        .map((n) => ({ ...n, durationBeats: Math.min(n.durationBeats, beats - n.startBeat) })),
+    })),
   };
 }

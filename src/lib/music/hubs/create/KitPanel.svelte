@@ -149,10 +149,7 @@
 <section aria-labelledby="kit-title" class="flex flex-col gap-4">
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div class="min-w-0">
-      <h2 id="kit-title" class="font-display text-2xl font-semibold tracking-tight">Sample kit</h2>
-      <p class="max-w-prose text-sm text-ws-soft">
-        Rows whose note has a sample play it; the rest use the built-in drum synth. Kits stay in this browser.
-      </p>
+      <h2 id="kit-title" class="font-display text-2xl font-semibold tracking-tight">Pads</h2>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <label class="flex items-center gap-2 text-sm">

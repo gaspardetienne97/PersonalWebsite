@@ -28,6 +28,7 @@ const ROUTES = [
   "/music/library?tab=import",
   "/music/create",
   "/music/create?mode=roll",
+  "/music/create/kits",
   "/music/record",
   "/music/progress",
   "/music/progress?view=skills",

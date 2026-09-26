@@ -1,42 +1,16 @@
 <script lang="ts">
-  // A multitrack note editor over the canonical score. The grid scrolls inside
-  // its own box (it never widens the page); a cursor gives it a keyboard path.
-  // It plays on the shared Create transport, together with the beat.
+  // One melody's note editor, over the canonical score. The other melodies show
+  // as ghosts. The grid scrolls inside its own box (it never widens the page);
+  // a cursor gives it a keyboard path. The song bar plays it.
   import { onMount } from "svelte";
-  import { page } from "$app/state";
-  import { goto } from "$app/navigation";
-  import Plus from "lucide-svelte/icons/plus";
   import Pencil from "lucide-svelte/icons/pencil";
   import MoveH from "lucide-svelte/icons/move-horizontal";
-  import FileMusic from "lucide-svelte/icons/file-music";
-  import AudioLines from "lucide-svelte/icons/audio-lines";
   import { isBlackKey, noteName } from "@repo/music-core";
-  import { scoreToMidi } from "@repo/music-core/io/midi-file";
-  import Volume from "lucide-svelte/icons/volume-2";
-  import VolumeOff from "lucide-svelte/icons/volume-off";
-  import Save from "lucide-svelte/icons/save";
-  import { audio, db } from "$lib/music/runtime";
+  import { audio } from "$lib/music/runtime";
   import { session } from "./session.svelte";
-  import { btn, btnStage } from "$lib/music/components/ui";
-  import { download } from "./files";
-  import {
-    BAR_BEATS,
-    docToScore,
-    mapVoice,
-    newVoice,
-    noteAt,
-    resizeNote,
-    ROLL_SOUNDS,
-    rollNotes,
-    rollRange,
-    soundOf,
-    scoreToDoc,
-    setVelocity,
-    toggleNote,
-    trackColour,
-    type RollDoc,
-  } from "./roll";
-  import { fileStem, STEP_BEATS, takeToScore, type MidiTake } from "$lib/music/takes";
+  import { btnStage } from "$lib/music/components/ui";
+  import { BAR_BEATS, noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
+  import { STEP_BEATS } from "$lib/music/takes";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 
@@ -53,54 +27,29 @@
 
   // The roll edits the session's document; `doc` is read-only here, `set` writes.
   const doc = $derived(session.doc);
-  let activeId = $state<string>(session.doc.voices[0]?.id ?? "");
   let tool = $state<"draw" | "resize">("draw");
   let noteLen = $state(0.5);
   let stepW = $state(22);
   let cursor = $state({ midi: 60, step: 0 });
   const playing = $derived(session.playing);
   const playBeat = $derived(session.rollBeat);
-  let busy = $state(false);
-  let confirm = $state<"clear" | "remove" | null>(null);
   let grid: HTMLDivElement | undefined = $state();
   let scroller: HTMLDivElement | undefined = $state();
 
   const range = $derived(rollRange(doc));
   const rows = $derived(Array.from({ length: range.high - range.low + 1 }, (_, i) => range.high - i));
   const steps = $derived(Math.round(doc.lengthBeats / STEP_BEATS));
-  const active = $derived(doc.voices.find((v) => v.id === activeId) ?? doc.voices[0]);
-  const activeIndex = $derived(doc.voices.indexOf(active));
-  const noteCount = $derived(doc.voices.reduce((n, v) => n + v.notes.length, 0));
+  const activeIndex = $derived(Math.max(0, doc.voices.findIndex((v) => v.id === session.selected)));
+  const active = $derived(doc.voices[activeIndex]);
   const x = (beat: number) => (beat / STEP_BEATS) * stepW;
   const y = (midi: number) => (range.high - midi) * ROW_H;
   const where = (midi: number, beat: number) => `${noteName(midi)}, bar ${Math.floor(beat / BAR_BEATS) + 1} beat ${Math.floor(beat % BAR_BEATS) + 1}${beat % 1 ? ` and ${Math.round((beat % 1) / STEP_BEATS)} sixteenths` : ""}`;
   const under = $derived(noteAt(active.notes, cursor.midi, cursor.step * STEP_BEATS));
 
-  onMount(async () => {
-    await session.ready;
-    if (!doc.voices.some((v) => v.id === activeId)) activeId = doc.voices[0]?.id ?? "";
-    const takeId = page.url.searchParams.get("take");
-    if (takeId) await openTake(takeId);
-    scroller?.scrollTo({ top: y(72) - 8 });
-  });
-
-  async function openTake(id: string) {
-    const take = (await db.midiTakes.get(id)) as MidiTake | undefined;
-    const q = new URLSearchParams(page.url.searchParams);
-    q.delete("take");
-    void goto(`?${q}`, { replaceState: true, noScroll: true, keepFocus: true });
-    if (!take) return announce("That take is no longer in Record.");
-    const voice = scoreToDoc(takeToScore(take, { bpm: doc.bpm, snap: true })).voices[0];
-    const v = { ...voice, id: crypto.randomUUID(), name: take.name };
-    const end = Math.max(0, ...v.notes.map((n) => n.startBeat + n.durationBeats));
-    set({ ...doc, voices: [...doc.voices, v], lengthBeats: Math.max(doc.lengthBeats, Math.ceil(end / BAR_BEATS) * BAR_BEATS) });
-    activeId = v.id;
-    announce(`Opened ${take.name} as a new voice, ${v.notes.length} notes snapped to sixteenths at ${doc.bpm} BPM.`);
-  }
+  onMount(() => scroller?.scrollTo({ top: y(72) - 8 }));
 
   function set(next: RollDoc) {
     session.doc = next;
-    confirm = null;
   }
 
   function toggleAt(midi: number, step: number) {
@@ -195,137 +144,26 @@
     set(setVelocity(doc, active.id, best, 1 - (e.clientY - r.top - 4) / (LANE_H - 8)));
   }
 
-  function exportMidi() {
-    if (!noteCount) return announce("Add a few notes first.");
-    const name = `${fileStem(session.songName, "sketch")}.mid`;
-    download(scoreToMidi(docToScore({ ...doc, title: session.songName }, crypto.randomUUID())), name, "audio/midi");
-    announce(`Downloading ${name}: ${doc.voices.length} ${doc.voices.length === 1 ? "track" : "tracks"}, ${noteCount} notes.`);
-  }
-  async function exportWav() {
-    if (!noteCount) return announce("Add a few notes first.");
-    busy = true;
-    announce("Rendering the WAV…");
-    try {
-      const name = `${fileStem(session.songName, "sketch")}.wav`;
-      download(await audio.renderWav(rollNotes(doc, doc.bpm), (doc.lengthBeats * 60) / doc.bpm), name, "audio/wav");
-      announce(`Downloading ${name}.`);
-    } catch (e) {
-      announce(`The WAV could not be rendered: ${(e as Error).message}`);
-    } finally {
-      busy = false;
-    }
-  }
-
-  function addVoice() {
-    const v = newVoice(doc.voices.length + 1, crypto.randomUUID());
-    set({ ...doc, voices: [...doc.voices, v] });
-    activeId = v.id;
-    announce(`Added ${v.name}. New notes go on it.`);
-  }
-  function clearVoice() {
-    if (confirm !== "clear" && active.notes.length) return void (confirm = "clear");
-    set(mapVoice(doc, active.id, (v) => ({ ...v, notes: [] })));
-    announce(`Cleared ${active.name}.`);
-  }
-  function removeVoice() {
-    if (doc.voices.length < 2) return;
-    if (confirm !== "remove" && active.notes.length) return void (confirm = "remove");
-    const name = active.name;
-    const voices = doc.voices.filter((v) => v.id !== active.id);
-    set({ ...doc, voices });
-    activeId = voices[Math.max(0, activeIndex - 1)].id;
-    announce(`Removed ${name}.`);
-  }
-
-  function setSound(sound: string) {
-    const label = ROLL_SOUNDS.find((x) => x.value === sound)?.label ?? sound;
-    set(mapVoice(doc, active.id, (v) => ({ ...v, sound: sound as typeof v.sound })));
-    void audio.unlock().then(() => audio.playNote(60, 0.5, 0.8, sound as never));
-    announce(`${active.name} plays ${label}.`);
-  }
-  function toggleMute(id: string) {
-    const v = doc.voices.find((x) => x.id === id);
-    if (!v) return;
-    set(mapVoice(doc, id, (x) => ({ ...x, muted: !x.muted })));
-    announce(`${v.name} ${v.muted ? "on" : "muted"}.`);
-  }
-  async function saveVoice() {
-    if (!active.notes.length) return announce("Add some notes to this voice first.");
-    await session.saveVoice(active);
-    announce(`Saved the voice ${active.name}. Add it to any song from Saved voices.`);
-  }
-  function addSaved(id: string) {
-    const v = session.addSavedVoice(id);
-    if (!v) return;
-    activeId = v.id;
-    announce(`Added ${v.name} as a new voice.`);
-  }
-
-  const field = "min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
+  const field = "min-h-11 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-3 text-sm text-ws-stage-ink";
   const lineBg = $derived(
     `repeating-linear-gradient(to right, transparent 0 ${stepW * 16 - 2}px, color-mix(in oklch, var(--ws-stage-ink) 30%, transparent) ${stepW * 16 - 2}px ${stepW * 16}px), repeating-linear-gradient(to right, transparent 0 ${stepW * 4 - 1}px, color-mix(in oklch, var(--ws-stage-ink) 12%, transparent) ${stepW * 4 - 1}px ${stepW * 4}px)`,
   );
 </script>
 
-<div class="flex flex-col gap-4">
-  <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Voices">
-    {#each doc.voices as v, i (v.id)}
-      <button
-        type="button"
-        class="flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm {v.id === active.id ? 'border-ws-ink bg-ws-surface font-semibold' : 'border-ws-line text-ws-soft hover:text-ws-ink'}"
-        aria-pressed={v.id === active.id}
-        onclick={() => {
-          activeId = v.id;
-          confirm = null;
-        }}
-      >
-        <span class="size-3 rounded-full" style:background={trackColour(i)} aria-hidden="true"></span>{v.name}
-        <span class="tnum text-xs font-normal text-ws-soft">{v.notes.length}</span>
-        {#if v.muted}<span class="text-xs font-normal text-ws-soft">muted</span>{/if}
-      </button>
-      <button
-        type="button"
-        class="-ml-1.5 grid size-11 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
-        aria-pressed={!!v.muted}
-        aria-label="{v.muted ? 'Unmute' : 'Mute'} {v.name}"
-        onclick={() => toggleMute(v.id)}
-      >
-        {#if v.muted}<VolumeOff class="size-4" aria-hidden="true" />{:else}<Volume class="size-4" aria-hidden="true" />{/if}
-      </button>
-    {/each}
-    <button type="button" class="flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-medium text-instr-ink hover:bg-instr-wash" onclick={addVoice}><Plus class="size-4" aria-hidden="true" />Add voice</button>
-    {#if session.voices.length}
-      <select class={field} aria-label="Add a saved voice" value="" onchange={(e) => addSaved(e.currentTarget.value)}>
-        <option value="" disabled>Saved voices</option>
-        {#each session.voices as sv (sv.id)}<option value={sv.id}>{sv.name}, {ROLL_SOUNDS.find((x) => x.value === sv.sound)?.label ?? "Piano"}, {sv.notes.length} notes</option>{/each}
-      </select>
-    {/if}
-  </div>
-
-  <div class="flex flex-wrap items-center gap-2">
-    <label class="flex items-center gap-2 text-sm">
-      <span class="text-ws-soft">{active.name} plays</span>
-      <select class={field} value={soundOf(active)} onchange={(e) => setSound(e.currentTarget.value)}>
-        {#each ROLL_SOUNDS as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
-      </select>
-    </label>
-    <button type="button" class={btn} onclick={saveVoice}><Save class="size-4" aria-hidden="true" />Save this voice</button>
-    <span class="flex-1"></span>
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class={btn} onclick={exportMidi}><FileMusic class="size-4" aria-hidden="true" />Export MIDI</button>
-      <button type="button" class={btn} disabled={busy} onclick={exportWav}><AudioLines class="size-4" aria-hidden="true" />Export WAV</button>
-    </div>
-  </div>
-
-  <section class="stage rounded-3xl p-3 sm:p-4" aria-label="Piano roll">
+<section class="stage rounded-3xl p-3 sm:p-4" aria-label="Melody editor">
     <div class="mb-3 flex flex-wrap items-center gap-2">
+      <label class="flex min-w-0 flex-1 basis-40 items-center gap-2 text-sm">
+        <span class="size-3 shrink-0 rounded-full" style:background={trackColour(activeIndex)} aria-hidden="true"></span>
+        <span class="sr-only">Melody name</span>
+        <input class="{field} w-full min-w-0 font-display text-base font-semibold" aria-label="Melody name" value={active.name} onchange={(e) => session.updateVoice(active.id, (v) => ({ ...v, name: e.currentTarget.value || v.name }))} />
+      </label>
       <div class="flex rounded-full bg-ws-stage-ink/10 p-1" role="group" aria-label="Tool">
         <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'draw' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "draw"} onclick={() => (tool = "draw")}><Pencil class="size-4" aria-hidden="true" />Draw</button>
         <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'resize' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "resize"} onclick={() => (tool = "resize")}><MoveH class="size-4" aria-hidden="true" />Resize</button>
       </div>
       <label class="flex items-center gap-2 text-sm">
-        <span class="text-ws-stage-soft">Length</span>
-        <select class="min-h-11 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-2 text-ws-stage-ink" bind:value={noteLen}>
+        <span class="text-ws-stage-soft">Note</span>
+        <select class="{field} px-2" bind:value={noteLen}>
           {#each LENGTHS as l (l.beats)}<option value={l.beats}>{l.label}</option>{/each}
         </select>
       </label>
@@ -333,8 +171,6 @@
         <span class="text-ws-stage-soft">Zoom</span>
         <input type="range" min="12" max="48" step="2" bind:value={stepW} class="w-24 accent-[var(--instr)]" aria-valuetext="{stepW} pixels per sixteenth" />
       </label>
-      <button type="button" class={btnStage} onclick={() => set({ ...doc, lengthBeats: doc.lengthBeats + BAR_BEATS })}><Plus class="size-4" aria-hidden="true" />Add bar</button>
-      <span class="tnum text-sm text-ws-stage-soft">{doc.lengthBeats / BAR_BEATS} bars</span>
     </div>
 
     <div bind:this={scroller} class="roll relative max-h-[30rem] overflow-auto rounded-xl">
@@ -425,25 +261,17 @@
     <p id="roll-cursor" class="mt-2 text-xs text-ws-stage-soft">
       Cursor on {where(cursor.midi, cursor.step * STEP_BEATS)}{under >= 0 ? `, a note of velocity ${Math.round((active.notes[under].velocity ?? 0.8) * 127)}` : ""}. {tool === "resize" ? "Drag a note to change its length." : "Click a cell to add a note, click a note to remove it."}
     </p>
-  </section>
-
-  <div class="flex flex-wrap items-end gap-3 rounded-2xl border border-ws-line bg-ws-surface p-4">
-    <label class="flex min-w-0 flex-1 basis-40 flex-col gap-1 text-sm">
-      <span class="flex items-center gap-2 text-ws-soft"><span class="size-3 rounded-full" style:background={trackColour(activeIndex)} aria-hidden="true"></span>Voice name</span>
-      <input class="{field} font-medium" value={active.name} onchange={(e) => set(mapVoice(doc, active.id, (v) => ({ ...v, name: e.currentTarget.value || v.name })))} />
-    </label>
-    <label class="flex flex-col gap-1 text-sm">
-      <span class="text-ws-soft">Velocity for new notes <span class="tnum">{Math.round(active.velocity * 127)}</span></span>
-      <input type="range" min="0.1" max="1" step="0.05" class="min-h-11 w-40 accent-[var(--instr)]" value={active.velocity} oninput={(e) => set(mapVoice(doc, active.id, (v) => ({ ...v, velocity: e.currentTarget.valueAsNumber })))} />
-    </label>
-    <button type="button" class={btn} disabled={!active.notes.length} onclick={() => {
-      set(mapVoice(doc, active.id, (v) => ({ ...v, notes: v.notes.map((n) => ({ ...n, velocity: v.velocity })) })));
-      announce(`Every note on ${active.name} now has velocity ${Math.round(active.velocity * 127)}.`);
-    }}>Apply to all its notes</button>
-    <button type="button" class="{btn} {confirm === 'clear' ? 'border-destructive text-destructive' : ''}" disabled={!active.notes.length} onclick={clearVoice}>{confirm === "clear" ? `Clear ${active.notes.length} notes?` : "Clear voice"}</button>
-    <button type="button" class="{btn} {confirm === 'remove' ? 'border-destructive text-destructive' : ''}" disabled={doc.voices.length < 2} onclick={removeVoice}>{confirm === "remove" ? "Remove it and its notes?" : "Remove voice"}</button>
-  </div>
-</div>
+    <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
+      <label class="flex items-center gap-2">
+        <span class="text-ws-stage-soft">New notes' velocity <span class="tnum text-ws-stage-ink">{Math.round(active.velocity * 127)}</span></span>
+        <input type="range" min="0.1" max="1" step="0.05" class="min-h-11 w-36 accent-[var(--instr)]" value={active.velocity} oninput={(e) => session.updateVoice(active.id, (v) => ({ ...v, velocity: e.currentTarget.valueAsNumber }))} />
+      </label>
+      <button type="button" class={btnStage} disabled={!active.notes.length} onclick={() => {
+        session.updateVoice(active.id, (v) => ({ ...v, notes: v.notes.map((n) => ({ ...n, velocity: v.velocity })) }));
+        announce(`Every note on ${active.name} now has velocity ${Math.round(active.velocity * 127)}.`);
+      }}>Apply to all its notes</button>
+    </div>
+</section>
 
 <style>
   .roll {

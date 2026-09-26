@@ -1,40 +1,31 @@
 <script lang="ts">
-  // The beat: a step sequencer of one to eight bars, rows are drum voices keyed
-  // by MIDI note (a row with a kit sample plays the sample). It plays on the
-  // shared Create transport, together with the piano roll.
-  import Save from "lucide-svelte/icons/save";
-  import Eraser from "lucide-svelte/icons/eraser";
+  // The beat's editor: a step sequencer of one to eight bars, rows are drum
+  // voices keyed by MIDI note (a row with a kit sample plays the sample). The
+  // song bar plays it; the tracks list mutes it and picks its kit.
   import Plus from "lucide-svelte/icons/plus";
   import Minus from "lucide-svelte/icons/minus";
-  import Volume from "lucide-svelte/icons/volume-2";
-  import VolumeOff from "lucide-svelte/icons/volume-off";
-  import { onMount } from "svelte";
-  import { audio, getSetting, putSetting } from "$lib/music/runtime";
+  import { audio } from "$lib/music/runtime";
   import { btnStage } from "$lib/music/components/ui";
   import { padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { session } from "./session.svelte";
   import {
-    addBar,
     barsOf,
     DEFAULT_ROWS,
     fromPreset,
     hitCount,
     isOn,
     MAX_BARS,
-    PATTERNS_KEY,
     PRESETS,
     removeBar,
     STEPS,
     stepsOf,
     toggleStep,
-    type BeatPattern,
     type BeatRow,
   } from "./pattern";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 
-  let saved = $state<BeatPattern[]>([]);
   const pattern = $derived(session.pattern);
   const playhead = $derived(session.beatStep);
   const total = $derived(stepsOf(pattern));
@@ -51,27 +42,9 @@
     });
   });
 
-  onMount(async () => {
-    const list = await getSetting<BeatPattern[]>(PATTERNS_KEY, []);
-    saved = Array.isArray(list) ? list : [];
-    await kits.ready;
-  });
-
-  async function play() {
-    const was = session.playing;
-    const ok = await session.toggle();
-    if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
-    announce(was ? "Stopped." : `Playing the beat and the piano roll together at ${session.bpm} BPM.`);
-  }
-
-  // Edits are heard on the next pass of the loop.
-  function edit(next: BeatPattern) {
-    session.pattern = { ...next, updatedAt: Date.now() };
-  }
-
   function toggle(row: BeatRow, step: number) {
     const was = isOn(pattern, row.midi, step);
-    edit(toggleStep(pattern, row.midi, step));
+    session.setPattern(toggleStep(pattern, row.midi, step));
     if (!session.playing && !was) void audio.unlock().then(() => audio.playKitPad(row.midi, 0.8));
   }
 
@@ -79,43 +52,26 @@
     void audio.unlock().then(() => audio.playKitPad(row.midi, 0.8));
   }
 
+  const bars = (n: number) => `${n} ${n === 1 ? "bar" : "bars"}`;
   function grow() {
-    edit(addBar(pattern));
-    announce(`${barsOf(session.pattern)} bars. The new bar starts as a copy of the last one.`);
+    const song = session.bars;
+    session.growBeat();
+    const n = barsOf(session.pattern);
+    announce(`The beat is ${bars(n)}; the new bar starts as a copy of the last one.${session.bars > song ? ` The song grew to ${bars(session.bars)}.` : ""}`);
   }
   function shrink() {
-    edit(removeBar(pattern));
-    announce(`${barsOf(session.pattern)} ${barsOf(session.pattern) === 1 ? "bar" : "bars"}.`);
+    session.setPattern(removeBar(pattern));
+    announce(`The beat is ${bars(barsOf(session.pattern))}. It repeats to fill the song.`);
   }
 
   function usePreset(id: string) {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
-    edit(fromPreset(p, session.bpm));
-    announce(`${p.name}: ${hitCount(session.pattern)} hits over ${p.bars} ${p.bars === 1 ? "bar" : "bars"}. Change anything you like.`);
+    session.setPattern({ ...fromPreset(p, session.bpm), id: pattern.id });
+    announce(`${p.name}: ${hitCount(session.pattern)} hits over ${bars(p.bars)}. Change anything you like.`);
   }
 
-  async function savePattern() {
-    const name = pattern.name.trim() || "Pattern";
-    const snap = { ...$state.snapshot(pattern), name, updatedAt: Date.now() };
-    saved = [...saved.filter((p) => p.id !== snap.id), snap].sort((a, b) => a.name.localeCompare(b.name));
-    await putSetting(PATTERNS_KEY, saved);
-    announce(`Saved the beat ${name}.`);
-  }
-
-  function loadPattern(id: string) {
-    const p = saved.find((x) => x.id === id);
-    if (!p) return;
-    edit({ ...structuredClone($state.snapshot(p)), bpm: session.bpm });
-    announce(`Loaded ${p.name}, ${hitCount(p)} hits.`);
-  }
-
-  function newPattern() {
-    edit({ id: crypto.randomUUID(), name: `Pattern ${saved.length + 1}`, bpm: session.bpm, bars: barsOf(pattern), steps: {}, updatedAt: Date.now() });
-    announce("Empty beat. Click the steps to build one, or start from a preset.");
-  }
-
-  // Arrow keys walk the grid; Space plays when focus is not on a control.
+  // Arrow keys walk the grid.
   function gridKey(e: KeyboardEvent) {
     const el = e.target as HTMLElement;
     const r = Number(el.dataset.row);
@@ -129,57 +85,24 @@
     (el.closest("[data-grid]")?.querySelector(`[data-row="${nr}"][data-step="${ns}"]`) as HTMLElement | null)?.focus();
   }
 
-  function windowKey(e: KeyboardEvent) {
-    if (e.code !== "Space" || e.repeat || e.metaKey || e.ctrlKey) return;
-    const t = e.target as HTMLElement;
-    if (t !== document.body && t.closest("button, input, select, textarea, a, [contenteditable]")) return;
-    e.preventDefault();
-    void play();
-  }
-
   const field = "min-h-11 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-3 text-sm text-ws-stage-ink";
 </script>
 
-<svelte:window onkeydown={windowKey} />
-
-<div class="flex flex-col gap-8">
-  <section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label="Beat grid">
+<section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label="Beat editor">
     <div class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
-      <h2 class="font-display text-xl font-semibold">Beat</h2>
-      <button
-        type="button"
-        class={btnStage}
-        aria-pressed={session.beatMuted}
-        onclick={() => {
-          session.beatMuted = !session.beatMuted;
-          announce(session.beatMuted ? "Beat muted; the melodies keep playing." : "Beat on.");
-        }}
-      >
-        {#if session.beatMuted}<VolumeOff class="size-4" aria-hidden="true" />Muted{:else}<Volume class="size-4" aria-hidden="true" />Beat on{/if}
-      </button>
+      <label class="flex min-w-0 flex-1 basis-40 items-center gap-2 text-sm">
+        <span class="sr-only">Beat name</span>
+        <input class="{field} w-full min-w-0 font-display text-base font-semibold" value={pattern.name} aria-label="Beat name" onchange={(e) => session.setPattern({ ...pattern, name: e.currentTarget.value || pattern.name })} />
+      </label>
       <select class={field} aria-label="Start from a preset" value="" onchange={(e) => usePreset(e.currentTarget.value)}>
         <option value="" disabled>Presets</option>
         {#each PRESETS as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
       </select>
-      <label class="flex min-w-0 flex-1 basis-36 items-center gap-2 text-sm">
-        <span class="sr-only">Pattern name</span>
-        <input class="{field} w-full min-w-0 font-medium" value={pattern.name} aria-label="Pattern name" onchange={(e) => edit({ ...pattern, name: e.currentTarget.value })} />
-      </label>
-      <button type="button" class={btnStage} onclick={savePattern}><Save class="size-4" aria-hidden="true" />Save</button>
-      {#if saved.length}
-        <select class={field} aria-label="Load a saved pattern" value="" onchange={(e) => loadPattern(e.currentTarget.value)}>
-          <option value="" disabled>Load</option>
-          {#each saved as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
-        </select>
-      {/if}
-      <button type="button" class={btnStage} onclick={newPattern}><Eraser class="size-4" aria-hidden="true" />New</button>
-    </div>
-
-    <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
-      <span class="text-ws-stage-soft">Length</span>
-      <button type="button" class="{btnStage} w-11 px-0" aria-label="Remove the last bar" disabled={barsOf(pattern) <= 1} onclick={shrink}><Minus class="size-4" aria-hidden="true" /></button>
-      <span class="tnum w-16 text-center font-semibold">{barsOf(pattern)} {barsOf(pattern) === 1 ? "bar" : "bars"}</span>
-      <button type="button" class={btnStage} disabled={barsOf(pattern) >= MAX_BARS} onclick={grow}><Plus class="size-4" aria-hidden="true" />Add bar</button>
+      <div class="flex items-center gap-1 text-sm" role="group" aria-label="Beat length">
+        <button type="button" class="{btnStage} w-11 px-0" aria-label="Remove the beat's last bar" disabled={barsOf(pattern) <= 1} onclick={shrink}><Minus class="size-4" aria-hidden="true" /></button>
+        <span class="tnum w-14 text-center font-semibold">{bars(barsOf(pattern))}</span>
+        <button type="button" class="{btnStage} w-11 px-0" aria-label="Add a bar to the beat" disabled={barsOf(pattern) >= MAX_BARS} onclick={grow}><Plus class="size-4" aria-hidden="true" /></button>
+      </div>
     </div>
 
     <div class="relative overflow-x-auto pb-1" data-grid>
@@ -228,11 +151,9 @@
       </table>
     </div>
     <p class="mt-3 text-xs text-ws-stage-soft" data-playhead={playhead}>
-      {hitCount(pattern)} hits over {barsOf(pattern)} {barsOf(pattern) === 1 ? "bar" : "bars"}. The beat repeats to fill the song's loop. Arrow keys move around the grid, Enter or Space toggles a step, Space elsewhere plays.
+      {hitCount(pattern)} hits over {bars(barsOf(pattern))}{barsOf(pattern) < session.bars ? `, repeating to fill the song's ${session.bars} bars` : ""}. Rows play {kit && kitNotes.size ? `the samples in ${kit.name}, built-in drums elsewhere` : "the built-in drums"}. <a class="font-semibold text-ws-stage-ink underline underline-offset-4" href="/music/create/kits">Edit sample kits</a>. Arrow keys move around the grid, Enter or Space toggles a step.
     </p>
   </section>
-
-</div>
 
 <style>
   .grid-table {
