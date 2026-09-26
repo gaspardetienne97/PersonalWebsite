@@ -1,8 +1,8 @@
 <script lang="ts">
   // Create: a song is a beat and melodies on one loop at one tempo, so a
-  // backing track can be built and jammed over. The song bar holds what
-  // applies to the whole song, the tracks list what applies to one track, and
-  // the editor below edits the selected track. Songs save as you work.
+  // backing track can be built and jammed over. The bar plays it; the fold-out
+  // panel holds the tracks and the song's files; the beat grid and the piano
+  // roll stay on the page together. Songs are saved only on Save.
   import { onDestroy, onMount } from "svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
@@ -10,8 +10,8 @@
   import Square from "lucide-svelte/icons/square";
   import Plus from "lucide-svelte/icons/plus";
   import Minus from "lucide-svelte/icons/minus";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import * as Menu from "@repo/ui/dropdown-menu";
+  import Check from "lucide-svelte/icons/check";
+  import Settings2 from "lucide-svelte/icons/settings-2";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
   import BeatGrid from "$lib/music/hubs/create/BeatGrid.svelte";
   import PianoRoll from "$lib/music/hubs/create/PianoRoll.svelte";
@@ -22,16 +22,23 @@
   import { fileStem, takeToScore, type MidiTake } from "$lib/music/takes";
   import { audio, db } from "$lib/music/runtime";
   import { bench } from "$lib/music/bench.svelte";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
+  import Save from "lucide-svelte/icons/save";
+  import FilePlus from "lucide-svelte/icons/file-plus";
+  import FileMusic from "lucide-svelte/icons/file-music";
+  import AudioLines from "lucide-svelte/icons/audio-lines";
+  import Trash from "lucide-svelte/icons/trash-2";
+  import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
 
   let status = $state("");
   const announce = (msg: string) => (status = msg);
   let ready = $state(false);
   let confirmDelete = $state(false);
   let busy = $state(false);
+  let panelOpen = $state(false);
+  /** New or Open waiting on what to do with unsaved changes. */
+  let pending = $state<{ kind: "new" } | { kind: "open"; id: string } | null>(null);
 
   const bars = (n: number) => `${n} ${n === 1 ? "bar" : "bars"}`;
-  const melody = $derived(session.doc.voices.find((v) => v.id === session.selected));
 
   $effect(() => {
     bench.hue = "create";
@@ -60,8 +67,8 @@
   }
 
   async function playAll() {
-    const was = session.playing;
-    const ok = await session.toggle();
+    const was = session.playing && session.only === null;
+    const ok = await session.play(null);
     if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
     announce(was ? "Stopped." : `Playing ${session.songName}: ${bars(session.loopBars)} at ${session.bpm} BPM, on a loop.`);
   }
@@ -73,28 +80,45 @@
     announce(`The song is ${bars(session.bars)}.${lost ? ` ${lost} ${lost === 1 ? "note" : "notes"} past the end went with the bar.` : ""}`);
   }
 
-  async function openSong(id: string) {
-    const song = await session.openSong(id);
+  function openSong(id: string) {
+    const song = session.openSong(id);
     if (song) announce(`Opened ${song.name}.`);
   }
-  async function newSong() {
-    await session.newSong();
-    announce(`Started ${session.songName}: an empty beat and one empty melody. Your other songs are in the Songs menu.`);
+  function newSong() {
+    session.newSong();
+    announce("New song: an empty beat and one empty melody. It is not saved until you press Save.");
   }
-  async function duplicate() {
-    const copy = await session.duplicateSong();
-    announce(`Made ${copy.name}. Changes now go to the copy.`);
+  /** New and Open ask first when there are changes that would be lost. */
+  function request(next: NonNullable<typeof pending>) {
+    if (session.unsaved) return void (pending = next);
+    run(next);
   }
-  async function deleteSong(e: Event) {
-    if (!confirmDelete) {
-      e.preventDefault();
-      confirmDelete = true;
-      return;
-    }
+  function run(next: NonNullable<typeof pending>) {
+    pending = null;
+    if (next.kind === "new") newSong();
+    else openSong(next.id);
+  }
+  async function saveThen() {
+    const next = pending;
+    await save();
+    if (next) run(next);
+  }
+
+  async function save() {
+    const was = session.saved;
+    const song = await session.save();
+    announce(was ? `Saved ${song.name}.` : `Saved ${song.name} to your songs.`);
+  }
+  async function saveCopy() {
+    const song = await session.saveCopy();
+    announce(`Saved a copy, ${song.name}. Changes now go to the copy.`);
+  }
+  async function deleteSong() {
+    if (!confirmDelete) return void (confirmDelete = true);
     confirmDelete = false;
     const gone = session.songName;
     await session.deleteSong();
-    announce(`Deleted ${gone}. Opened ${session.songName}.`);
+    announce(`Took ${gone} out of your songs. It is still open; Save puts it back.`);
   }
 
   function exportMidi() {
@@ -145,56 +169,94 @@
     </p>
   </header>
 
-  <section class="z-20 sm:sticky sm:top-[7.25rem] flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-ws-line bg-ws-surface/95 p-3 shadow-sm backdrop-blur" aria-label="Song">
-    <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" aria-pressed={session.playing} onclick={playAll}>
-      {#if session.playing}<Square class="size-5" aria-hidden="true" />Stop{:else}<Play class="size-5" aria-hidden="true" />Play all{/if}
+  <section class="z-20 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-ws-line bg-ws-surface/95 p-3 shadow-sm backdrop-blur sm:sticky sm:top-[7.25rem]" aria-label="Song">
+    <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" aria-pressed={session.playing && session.only === null} onclick={playAll}>
+      {#if session.playing && session.only === null}<Square class="size-5" aria-hidden="true" />Stop{:else}<Play class="size-5" aria-hidden="true" />Play all{/if}
     </button>
-    <label class="flex min-w-0 flex-1 basis-40 items-center">
-      <span class="sr-only">Song name</span>
-      <input class="{field} w-full min-w-0 font-display text-base font-semibold" aria-label="Song name" bind:value={session.songName} />
+    <p class="flex min-w-0 flex-1 basis-40 flex-col leading-tight">
+      <span class="truncate font-display text-base font-semibold">{session.songName}</span>
+      <span class="text-xs text-ws-soft" data-save-state>{!session.saved ? "Not saved" : session.changed ? "Unsaved changes" : "Saved"}</span>
+    </p>
+    <label class="flex items-center gap-2 text-sm">
+      <span class="text-ws-soft">Tempo</span>
+      <input type="number" min="40" max="200" class="{field} tnum w-20" value={session.bpm} onchange={(e) => session.setBpm(e.currentTarget.valueAsNumber)} />
+      <span class="sr-only">BPM</span>
     </label>
-    <Menu.Root onOpenChange={(open) => !open && (confirmDelete = false)}>
-      <Menu.Trigger class={btn} aria-label="Songs">Songs<ChevronDown class="size-4" aria-hidden="true" /></Menu.Trigger>
-      <Menu.Content align="end" class="w-64">
-        <Menu.Label class="text-xs font-normal text-muted-foreground">Songs save as you work.</Menu.Label>
-        <Menu.RadioGroup value={session.songId} onValueChange={openSong}>
-          {#each session.songs as s (s.id)}
-            <Menu.RadioItem value={s.id}>{s.name}</Menu.RadioItem>
-          {/each}
-        </Menu.RadioGroup>
-        <Menu.Separator />
-        <Menu.Item onSelect={newSong}>New song</Menu.Item>
-        <Menu.Item onSelect={duplicate}>Duplicate this song</Menu.Item>
-        <Menu.Separator />
-        <Menu.Item onSelect={exportMidi}>Export melodies as MIDI</Menu.Item>
-        <Menu.Item disabled={busy} onSelect={exportWav}>Export as WAV</Menu.Item>
-        <Menu.Separator />
-        <Menu.Item variant="destructive" onSelect={deleteSong}>{confirmDelete ? `Delete ${session.songName}?` : "Delete this song"}</Menu.Item>
-      </Menu.Content>
-    </Menu.Root>
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <label class="flex items-center gap-2 text-sm">
-        <span class="text-ws-soft">Tempo</span>
-        <input type="number" min="40" max="200" class="{field} tnum w-20" value={session.bpm} onchange={(e) => session.setBpm(e.currentTarget.valueAsNumber)} />
-        <span class="sr-only">BPM</span>
-      </label>
-      <div class="flex items-center gap-1 text-sm" role="group" aria-label="Song length">
-        <button type="button" class={step} aria-label="Remove the song's last bar" disabled={session.bars <= 1} onclick={() => setBars(session.bars - 1)}><Minus class="size-4" aria-hidden="true" /></button>
-        <span class="tnum w-16 text-center font-semibold">{bars(session.bars)}</span>
-        <button type="button" class={step} aria-label="Add a bar to the song" disabled={session.bars >= MAX_SONG_BARS} onclick={() => setBars(session.bars + 1)}><Plus class="size-4" aria-hidden="true" /></button>
-      </div>
+    <div class="flex items-center gap-1 text-sm" role="group" aria-label="Song length">
+      <button type="button" class={step} aria-label="Remove the song's last bar" disabled={session.bars <= 1} onclick={() => setBars(session.bars - 1)}><Minus class="size-4" aria-hidden="true" /></button>
+      <span class="tnum w-16 text-center font-semibold">{bars(session.bars)}</span>
+      <button type="button" class={step} aria-label="Add a bar to the song" disabled={session.bars >= MAX_SONG_BARS} onclick={() => setBars(session.bars + 1)}><Plus class="size-4" aria-hidden="true" /></button>
     </div>
+    <button type="button" class={btn} disabled={session.saved && !session.changed} onclick={save}>
+      {#if session.saved && !session.changed}<Check class="size-4" aria-hidden="true" />Saved{:else}<Save class="size-4" aria-hidden="true" />Save{/if}
+    </button>
+    <button
+      type="button"
+      class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash"
+      aria-expanded={panelOpen}
+      aria-controls="create-panel"
+      onclick={() => (panelOpen = !panelOpen)}
+    >
+      <Settings2 class="size-4" aria-hidden="true" />{panelOpen ? "Done" : "Tracks and song"}
+    </button>
   </section>
+
+  {#if panelOpen}
+    <div id="create-panel" class="grid gap-6 rounded-2xl border border-ws-line bg-ws-raised/60 p-4 lg:grid-cols-[minmax(0,1fr)_17rem]">
+      <Tracks {announce} />
+      <section class="flex flex-col gap-3" aria-labelledby="song-h">
+        <h2 id="song-h" class="font-display text-lg font-semibold">Song</h2>
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="text-ws-soft">Name</span>
+          <input class="{field} font-medium" bind:value={session.songName} />
+        </label>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class={btn} onclick={saveCopy}>Save as a copy</button>
+          <button type="button" class={btn} onclick={() => request({ kind: "new" })}><FilePlus class="size-4" aria-hidden="true" />New song</button>
+        </div>
+        {#if session.songs.length}
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="text-ws-soft">Your songs</span>
+            <select class={field} value={session.saved ? session.songId : ""} onchange={(e) => { const id = e.currentTarget.value; e.currentTarget.value = session.saved ? session.songId : ""; request({ kind: "open", id }); }}>
+              <option value="" disabled>Open a song</option>
+              {#each session.songs as s (s.id)}<option value={s.id}>{s.name}, {s.bpm} BPM</option>{/each}
+            </select>
+          </label>
+        {/if}
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class={btn} onclick={exportMidi}><FileMusic class="size-4" aria-hidden="true" />MIDI</button>
+          <button type="button" class={btn} disabled={busy} onclick={exportWav}><AudioLines class="size-4" aria-hidden="true" />WAV</button>
+        </div>
+        <p class="text-xs text-ws-soft">MIDI has the melodies; WAV is one pass of everything you hear.</p>
+        {#if session.saved}
+          <button type="button" class="{btn} self-start {confirmDelete ? 'border-destructive text-destructive' : ''}" onblur={() => (confirmDelete = false)} onclick={deleteSong}>
+            <Trash class="size-4" aria-hidden="true" />{confirmDelete ? `Remove ${session.songName}?` : "Remove from your songs"}
+          </button>
+        {/if}
+      </section>
+    </div>
+  {/if}
+
+  {#if pending}
+    <div class="flex flex-wrap items-center gap-2 rounded-2xl border border-instr bg-instr-wash p-3 text-sm" role="group" aria-label="Unsaved changes">
+      <p class="min-w-0 flex-1 basis-60 font-medium">{session.songName} has changes that are not saved.</p>
+      <button type="button" class={btnPrimary} onclick={saveThen}>Save, then {pending.kind === "new" ? "start a new one" : "open"}</button>
+      <button type="button" class={btn} onclick={() => run(pending!)}>Discard changes</button>
+      <button type="button" class={btn} onclick={() => (pending = null)}>Cancel</button>
+    </div>
+  {/if}
+
   <p role="status" class="-my-2 min-h-5 text-sm font-medium">{status}</p>
 
-  <Tracks {announce} />
-  <div class="min-w-0">
-      {#if !ready}
-        <div class="stage h-80 rounded-3xl" aria-hidden="true"></div>
-      {:else if melody}
-        {#key melody.id}<PianoRoll {announce} />{/key}
-      {:else}
-        <BeatGrid {announce} />
-      {/if}
-  </div>
+  <BeatGrid {announce} />
+  {#if !ready}
+    <div class="stage h-80 rounded-3xl" aria-hidden="true"></div>
+  {:else if session.doc.voices.length}
+    <PianoRoll {announce} />
+  {:else}
+    <div class="stage flex flex-wrap items-center gap-3 rounded-3xl p-5">
+      <p class="min-w-0 flex-1 text-ws-stage-soft">No melodies in this song.</p>
+      <button type="button" class={btnStage} onclick={() => announce(`Added ${session.addMelody().name}.`)}><Plus class="size-4" aria-hidden="true" />Add a melody</button>
+    </div>
+  {/if}
 </div>

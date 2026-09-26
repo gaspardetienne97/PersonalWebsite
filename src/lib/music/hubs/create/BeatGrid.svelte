@@ -90,11 +90,8 @@
 
 <section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label="Beat editor">
     <div class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
-      <label class="flex min-w-0 flex-1 basis-40 items-center gap-2 text-sm">
-        <span class="sr-only">Beat name</span>
-        <input class="{field} w-full min-w-0 font-display text-base font-semibold" value={pattern.name} aria-label="Beat name" onchange={(e) => session.setPattern({ ...pattern, name: e.currentTarget.value || pattern.name })} />
-      </label>
-      <select class={field} aria-label="Start from a preset" value="" onchange={(e) => usePreset(e.currentTarget.value)}>
+      <h2 class="min-w-0 flex-1 basis-40 truncate font-display text-xl font-semibold">{pattern.name}</h2>
+      <select class={field} aria-label="Start from a preset" value="" onchange={(e) => { usePreset(e.currentTarget.value); e.currentTarget.value = ""; }}>
         <option value="" disabled>Presets</option>
         {#each PRESETS as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
       </select>

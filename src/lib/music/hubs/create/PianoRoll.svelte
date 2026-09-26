@@ -1,6 +1,6 @@
 <script lang="ts">
-  // One melody's note editor, over the canonical score. The other melodies show
-  // as ghosts. The grid scrolls inside its own box (it never widens the page);
+  // The melodies' note editor, over the canonical score: one melody at a time,
+  // the others as ghosts. The grid scrolls inside its own box (it never widens the page);
   // a cursor gives it a keyboard path. The song bar plays it.
   import { onMount } from "svelte";
   import Pencil from "lucide-svelte/icons/pencil";
@@ -152,11 +152,19 @@
 
 <section class="stage rounded-3xl p-3 sm:p-4" aria-label="Melody editor">
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <label class="flex min-w-0 flex-1 basis-40 items-center gap-2 text-sm">
-        <span class="size-3 shrink-0 rounded-full" style:background={trackColour(activeIndex)} aria-hidden="true"></span>
-        <span class="sr-only">Melody name</span>
-        <input class="{field} w-full min-w-0 font-display text-base font-semibold" aria-label="Melody name" value={active.name} onchange={(e) => session.updateVoice(active.id, (v) => ({ ...v, name: e.currentTarget.value || v.name }))} />
-      </label>
+      <div class="flex min-w-0 flex-1 basis-60 flex-wrap gap-1.5" role="group" aria-label="Melody to edit">
+        {#each doc.voices as v, i (v.id)}
+          <button
+            type="button"
+            class="flex min-h-10 max-w-48 items-center gap-2 rounded-full px-3 text-sm {v.id === active.id ? 'bg-ws-stage-ink/15 font-semibold text-ws-stage-ink' : 'text-ws-stage-soft hover:text-ws-stage-ink'}"
+            aria-pressed={v.id === active.id}
+            onclick={() => (session.selected = v.id)}
+          >
+            <span class="size-2.5 shrink-0 rounded-full" style:background={trackColour(i)} aria-hidden="true"></span>
+            <span class="truncate">{v.name}</span>
+          </button>
+        {/each}
+      </div>
       <div class="flex rounded-full bg-ws-stage-ink/10 p-1" role="group" aria-label="Tool">
         <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'draw' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "draw"} onclick={() => (tool = "draw")}><Pencil class="size-4" aria-hidden="true" />Draw</button>
         <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'resize' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "resize"} onclick={() => (tool = "resize")}><MoveH class="size-4" aria-hidden="true" />Resize</button>

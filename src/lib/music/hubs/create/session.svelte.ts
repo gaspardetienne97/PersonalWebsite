@@ -1,11 +1,13 @@
 // One Create session: a song is a beat plus melody tracks on one loop at one
-// tempo, so a backing track can be built and jammed over. Songs save
-// themselves as you work; the library keeps beats and melodies to reuse.
+// tempo, so a backing track can be built and jammed over. What is open is a
+// working copy (it survives a reload); it joins the songs list only on Save.
+// The library keeps beats and melodies to reuse in any song.
 import { audio, getSetting, putSetting, settings, type SequenceHandle } from "$lib/music/runtime";
 import {
   addBar,
   barsOf,
   beatNotes,
+  hitCount,
   DRAFT_KEY,
   PATTERNS_KEY,
   removeBar,
@@ -27,6 +29,9 @@ import {
 
 export const SONGS_KEY = "music.create-songs";
 export const VOICES_KEY = "music.roll-voices";
+/** The open song, saved or not, with the id of the saved song it came from. */
+const WORK_KEY = "music.create-work";
+/** Where the previous version kept the open song's id. */
 const CURRENT_KEY = "music.create-current-song";
 export const MAX_SONG_BARS = 32;
 
@@ -50,8 +55,23 @@ export interface SavedVoice {
   updatedAt: number;
 }
 
-/** The track the editor shows: the beat, or a melody's id. */
+/** A track: the beat, or a melody's id. */
 export type TrackId = "beat" | (string & {});
+
+/** A song as it opens: one tempo throughout, and at least as long as its beat. */
+const normal = (s: CreateSong): CreateSong => ({
+  ...s,
+  pattern: { ...s.pattern, bpm: s.bpm },
+  doc: {
+    ...s.doc,
+    bpm: s.bpm,
+    lengthBeats: Math.max(s.doc.lengthBeats, barsOf(s.pattern) * BAR_BEATS),
+  },
+});
+
+/** What a song is, without the fields that change on every edit. */
+const contentOf = (s: CreateSong) =>
+  JSON.stringify([s.name, s.bpm, { ...s.pattern, updatedAt: 0 }, s.doc, s.beatMuted]);
 
 function blankSong(name: string, bpm: number, starter = false): CreateSong {
   return {
@@ -78,13 +98,19 @@ class CreateSession {
   pattern = $state<BeatPattern>(blankSong("", 90).pattern);
   doc = $state<RollDoc>(emptyDoc(crypto.randomUUID()));
   beatMuted = $state(false);
-  selected = $state<TrackId>("beat");
+  /** The melody the piano roll edits. */
+  selected = $state("");
+  /** Whether the open song is in the songs list, and what it was when saved. */
+  saved = $state(false);
+  #savedContent = $state("");
 
   songs = $state<CreateSong[]>([]);
   beats = $state<BeatPattern[]>([]);
   voices = $state<SavedVoice[]>([]);
 
   playing = $state(false);
+  /** The one track playing on its own, or null when everything plays. */
+  only = $state<TrackId | null>(null);
   /** Performance-clock start of the current pass, and its length (ms). */
   passAt = $state(0);
   passMs = $state(0);
@@ -95,8 +121,9 @@ class CreateSession {
   ready = typeof window === "undefined" ? Promise.resolve() : this.#load();
 
   async #load() {
-    const [songs, current, beats, voices] = await Promise.all([
+    const [songs, work, current, beats, voices] = await Promise.all([
       getSetting<CreateSong[]>(SONGS_KEY, []),
+      getSetting<{ song: CreateSong; saved: boolean } | null>(WORK_KEY, null),
       getSetting<string | null>(CURRENT_KEY, null),
       getSetting<BeatPattern[]>(PATTERNS_KEY, []),
       getSetting<SavedVoice[]>(VOICES_KEY, []),
@@ -104,28 +131,31 @@ class CreateSession {
     this.songs = Array.isArray(songs) ? songs : [];
     this.beats = Array.isArray(beats) ? beats : [];
     this.voices = Array.isArray(voices) ? voices : [];
-    if (!this.songs.length) this.songs = [await this.#fromDrafts()];
-    this.#show(this.songs.find((s) => s.id === current) ?? this.songs[0]);
+    const listed = this.songs.find((s) => s.id === (work?.song.id ?? current));
+    if (work?.song) this.#show(work.song, listed);
+    else if (listed) this.#show(listed, listed);
+    else this.#show(await this.#fromDrafts());
 
-    // Every change to the open song is written back to the songs list.
+    // The working copy is kept as you go, so a reload loses nothing; it is
+    // not a saved song until Save.
     $effect.root(() => {
       let timer: ReturnType<typeof setTimeout> | undefined;
       $effect(() => {
-        const song = this.#snapshot();
+        const work = { song: this.#snapshot(), saved: this.saved };
         clearTimeout(timer);
-        timer = setTimeout(() => void this.#store(song), 400);
+        timer = setTimeout(() => void putSetting(WORK_KEY, work), 400);
       });
     });
   }
 
-  /** The first song: the beat and roll drafts earlier versions kept, or a starter. */
+  /** A first song: the beat and roll drafts earlier versions kept, or a starter. */
   async #fromDrafts(): Promise<CreateSong> {
     const [draft, doc] = await Promise.all([
       getSetting<BeatPattern | null>(DRAFT_KEY, null),
       getSetting<RollDoc | null>(ROLL_KEY, null),
     ]);
     const bpm = Math.min(200, Math.max(40, draft?.bpm ?? (settings.value.bpm || 90)));
-    const song = blankSong("My first song", bpm, true);
+    const song = blankSong("Untitled song", bpm, true);
     if (draft?.steps) song.pattern = { ...draft, bpm };
     if (doc?.voices?.length) song.doc = { ...doc, bpm };
     return song;
@@ -143,25 +173,27 @@ class CreateSession {
     };
   }
 
-  async #store(song: CreateSong) {
-    if (!song.id) return;
-    this.songs = this.songs.some((s) => s.id === song.id)
-      ? this.songs.map((s) => (s.id === song.id ? song : s))
-      : [...this.songs, song];
-    await putSetting(SONGS_KEY, $state.snapshot(this.songs));
-    await putSetting(CURRENT_KEY, song.id);
-  }
-
-  #show(song: CreateSong) {
-    const s = structuredClone($state.snapshot(song));
+  /** Open `song`; `listed` is its saved version, when it has one. */
+  #show(song: CreateSong, listed?: CreateSong) {
+    const s = normal(structuredClone($state.snapshot(song)));
     this.songId = s.id;
     this.songName = s.name;
-    this.pattern = { ...s.pattern, bpm: s.bpm };
-    // The song is at least as long as its beat.
-    const beats = Math.max(s.doc.lengthBeats, barsOf(s.pattern) * BAR_BEATS);
-    this.doc = { ...s.doc, bpm: s.bpm, lengthBeats: beats };
+    this.pattern = s.pattern;
+    this.doc = s.doc;
     this.beatMuted = s.beatMuted;
-    this.selected = "beat";
+    this.selected = s.doc.voices[0]?.id ?? "";
+    this.saved = !!listed;
+    this.#savedContent = listed ? contentOf(normal(listed)) : "";
+  }
+
+  /** Saved, and changed since. */
+  get changed() {
+    return !this.saved || contentOf(this.#snapshot()) !== this.#savedContent;
+  }
+  /** Anything worth keeping: a saved song with changes, or an unsaved one with notes. */
+  get unsaved() {
+    if (this.saved) return this.changed;
+    return hitCount(this.pattern) > 0 || this.doc.voices.some((v) => v.notes.length > 0);
   }
 
   // Tempo and length ---------------------------------------------------------
@@ -204,20 +236,38 @@ class CreateSession {
 
   // Transport ----------------------------------------------------------------
 
-  /** Everything that sounds in one pass. */
+  /** Everything that sounds in one pass: every unmuted track, or the one playing alone. */
   notes() {
     const bars = this.loopBars;
+    const only = this.only;
+    const beat = only ? only === "beat" : !this.beatMuted;
+    const doc = only
+      ? {
+          ...this.doc,
+          voices: this.doc.voices.filter((v) => v.id === only).map((v) => ({ ...v, muted: false })),
+        }
+      : this.doc;
     return [
-      ...(this.beatMuted ? [] : beatNotes(this.pattern, this.bpm, bars)),
-      ...rollNotes(this.doc, this.bpm, bars),
+      ...(beat ? beatNotes(this.pattern, this.bpm, bars) : []),
+      ...rollNotes(doc, this.bpm, bars),
     ];
   }
   get passSec() {
     return (this.loopBars * BAR_BEATS * 60) / this.bpm;
   }
 
-  async toggle() {
-    if (this.playing) return this.stop();
+  /** Play everything (null) or one track alone; the same again stops. */
+  async play(only: TrackId | null = null) {
+    if (this.playing && this.only === only) return this.stop();
+    if (this.playing) this.stop(); // switch straight away, not at the end of the pass
+    this.only = only;
+    return this.#start();
+  }
+  toggle() {
+    return this.playing ? this.stop() : this.play(null);
+  }
+
+  async #start() {
     await audio.unlock();
     if (!audio.unlocked) return false;
     this.playing = true;
@@ -241,6 +291,7 @@ class CreateSession {
     this.#handle?.stop();
     this.#handle = null;
     this.playing = false;
+    this.only = null;
     cancelAnimationFrame(this.#raf);
     return true;
   }
@@ -264,36 +315,48 @@ class CreateSession {
 
   // Songs --------------------------------------------------------------------
 
-  async #switchTo(song: CreateSong) {
-    await this.#store(this.#snapshot());
-    if (!this.songs.some((s) => s.id === song.id)) this.songs = [...this.songs, song];
-    this.#show(song);
-    await this.#store(this.#snapshot());
+  #writeSongs() {
+    return putSetting(SONGS_KEY, $state.snapshot(this.songs));
   }
 
-  newSong() {
-    return this.#switchTo(blankSong(`Song ${this.songs.length + 1}`, this.bpm));
-  }
-
-  async openSong(id: string) {
-    const song = this.songs.find((s) => s.id === id);
-    if (song && id !== this.songId) await this.#switchTo(song);
+  /** Save the open song into the songs list (in place when it is already there). */
+  async save() {
+    const song = { ...this.#snapshot(), name: this.songName.trim() || "Untitled song" };
+    this.songName = song.name;
+    this.songs = this.songs.some((s) => s.id === song.id)
+      ? this.songs.map((s) => (s.id === song.id ? song : s))
+      : [...this.songs, song];
+    await this.#writeSongs();
+    this.saved = true;
+    this.#savedContent = contentOf(song);
     return song;
   }
 
-  async duplicateSong() {
-    const copy = { ...this.#snapshot(), id: crypto.randomUUID(), name: `${this.songName} copy` };
-    await this.#switchTo(copy);
-    return copy;
+  /** Save as a new song, which is then the open one. */
+  async saveCopy() {
+    this.songId = crypto.randomUUID();
+    this.songName = `${this.songName} copy`;
+    this.saved = false;
+    return this.save();
   }
 
-  /** Delete the open song and open the next one (a blank one after the last). */
+  /** A blank song, not saved until Save. The open one is dropped as it is. */
+  newSong() {
+    this.#show(blankSong("Untitled song", this.bpm));
+  }
+
+  openSong(id: string) {
+    const song = this.songs.find((s) => s.id === id);
+    if (song) this.#show(song, song);
+    return song;
+  }
+
+  /** Take the open song out of the songs list; it stays open, unsaved. */
   async deleteSong() {
-    const rest = this.songs.filter((s) => s.id !== this.songId);
-    const next = rest[0] ?? blankSong("Song 1", this.bpm);
-    this.songs = rest.length ? rest : [next];
-    this.#show(next);
-    await this.#store(this.#snapshot());
+    this.songs = this.songs.filter((s) => s.id !== this.songId);
+    await this.#writeSongs();
+    this.saved = false;
+    this.#savedContent = "";
   }
 
   // Tracks -------------------------------------------------------------------
@@ -324,7 +387,8 @@ class CreateSession {
     const i = this.doc.voices.findIndex((v) => v.id === id);
     if (i < 0) return;
     this.doc = { ...this.doc, voices: this.doc.voices.filter((v) => v.id !== id) };
-    if (this.selected === id) this.selected = this.doc.voices[Math.max(0, i - 1)]?.id ?? "beat";
+    if (this.selected === id) this.selected = this.doc.voices[Math.max(0, i - 1)]?.id ?? "";
+    if (this.only === id) this.stop();
   }
 
   // Library ------------------------------------------------------------------
@@ -346,7 +410,6 @@ class CreateSession {
   useBeat(id: string) {
     const b = this.beats.find((x) => x.id === id);
     if (b) this.setPattern(structuredClone($state.snapshot(b)));
-    this.selected = "beat";
     return b;
   }
 

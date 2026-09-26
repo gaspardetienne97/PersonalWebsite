@@ -48,40 +48,61 @@ test.describe("Create", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
   });
 
-  /** Open the song bar's Songs menu and pick an item. */
-  async function songMenu(page: Page, item: string | RegExp) {
-    await page.getByRole("region", { name: "Song" }).getByRole("button", { name: "Songs" }).click();
-    await page
-      .getByRole("menuitem", { name: item })
-      .or(page.getByRole("menuitemradio", { name: item }))
-      .click();
+  /** Open the fold-out Tracks and song panel. */
+  async function openPanel(page: Page) {
+    const toggle = page.locator('[aria-controls="create-panel"]');
+    await expect(async () => {
+      if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+      await expect(page.getByRole("heading", { name: "Tracks" })).toBeVisible({ timeout: 1000 });
+    }).toPass();
   }
 
-  test("beat: build a pattern on a new song and play it", async ({ page }) => {
+  test("beat: the grid and the roll together, a new song, play all, play one track alone", async ({
+    page,
+  }) => {
     await page.goto("/music/create");
     await expect(page.getByRole("heading", { level: 1, name: "Create" })).toBeVisible();
-    await songMenu(page, "New song");
-    await expect(page.getByRole("status")).toContainText("Started Song 2");
+    // Both editors are on the page with the panel closed.
     const beat = page.getByRole("region", { name: "Beat editor" });
+    await expect(beat).toBeVisible();
+    await expect(page.getByRole("region", { name: "Melody editor" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tracks" })).toBeHidden();
+
+    // A new song over the unsaved starter asks first.
+    await openPanel(page);
+    await page.getByRole("button", { name: "New song" }).click();
+    await page.getByRole("button", { name: "Discard changes" }).click();
+    await expect(page.getByRole("status")).toContainText("New song");
     const kick = beat.getByRole("button", { name: "Kick, bar 1 step 1", exact: true });
     await kick.click();
     await expect(kick).toHaveAttribute("aria-pressed", "true");
     await beat.getByRole("button", { name: "Snare, bar 1 step 5", exact: true }).click();
     await beat.getByRole("button", { name: "Hats, bar 1 step 3", exact: true }).click();
-    await expect(page.getByRole("button", { name: /^Beat.*3 hits over 1 bar/ })).toBeVisible();
+    await expect(page.getByText("Beat, 3 hits over 1 bar")).toBeVisible();
 
     const song = page.getByRole("region", { name: "Song" });
     await song.getByRole("button", { name: "Play all" }).click();
-    await expect(page.getByRole("status")).toContainText("Playing Song 2");
-    // The playhead moves (lights follow the audio clock).
+    await expect(page.getByRole("status")).toContainText("Playing Untitled song");
     await expect
       .poll(
         async () => Number(await page.locator("[data-playhead]").getAttribute("data-playhead")),
         { timeout: 10_000 },
       )
       .toBeGreaterThan(0);
-    // Space stops it when focus is not on a control.
+    // One track alone, straight from Play all; Play all brings the rest back.
+    await page.getByRole("button", { name: "Play Beat alone" }).click();
+    await expect(page.getByRole("status")).toContainText("Playing Beat on its own");
+    await expect(page.getByRole("button", { name: "Stop Beat alone" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(song.getByRole("button", { name: "Play all" })).toBeVisible();
+    await page.getByRole("button", { name: "Stop Beat alone" }).click();
+    await expect(page.getByRole("status")).toHaveText("Stopped.");
+    // Space plays and stops when focus is not on a control.
     await page.locator("h1").click();
+    await page.keyboard.press("Space");
+    await expect(page.getByRole("status")).toContainText("Playing");
     await page.keyboard.press("Space");
     await expect(page.getByRole("status")).toHaveText("Stopped.");
     await shoot(page, "create-beat");
@@ -91,6 +112,7 @@ test.describe("Create", () => {
     page,
   }) => {
     await page.goto("/music/create");
+    await openPanel(page);
     await page.getByRole("button", { name: "Beat options" }).click();
     await page.getByRole("menuitem", { name: "Edit sample kits" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Sample kits" })).toBeVisible();
@@ -132,19 +154,18 @@ test.describe("Create", () => {
     await page.reload();
     await expect(page.getByRole("button", { name: "Pad A01, Big kick" })).toBeVisible();
     await page.getByRole("link", { name: "Create" }).first().click();
-    await expect(page.getByLabel("Beat kit")).toHaveValue(/.+/);
+    await openPanel(page);
     await expect(page.getByLabel("Beat kit").locator("option:checked")).toHaveText("Boom Bap");
     await expect(
       page.getByRole("button", { name: /^Big kick on A01, bar 1 step 1$/ }),
     ).toBeVisible();
   });
 
-  test("melodies: add notes, resize, a second melody, song length, export MIDI", async ({
+  test("melodies: add notes, resize, song length, a second melody, export MIDI, nothing saved", async ({
     page,
   }) => {
     await page.goto("/music/create");
     const song = page.getByRole("region", { name: "Song" });
-    await page.getByRole("button", { name: /^Melody 1 Melody/ }).click();
     const roll = page.getByRole("region", { name: "Melody editor" });
     const grid = roll.getByRole("application", { name: /Note grid for Melody 1/ });
 
@@ -176,38 +197,42 @@ test.describe("Create", () => {
     await expect(page.getByRole("status")).toContainText("1 note past the end went with the bar");
     await expect(roll.locator(".note[data-note]")).toHaveCount(3);
 
-    // A second melody; the first shows as ghosts behind it.
+    // A second melody from the panel; the roll switches to it, the first as ghosts.
+    await openPanel(page);
     await page.getByRole("button", { name: "Add melody" }).click();
-    await expect(page.getByRole("button", { name: /^Melody 2 Melody/ })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(
+      roll.getByRole("group", { name: "Melody to edit" }).getByRole("button", { name: "Melody 2" }),
+    ).toHaveAttribute("aria-pressed", "true");
     await expect(roll.locator(".note.ghost")).toHaveCount(3);
     const [dl] = await Promise.all([
       page.waitForEvent("download"),
-      songMenu(page, "Export melodies as MIDI"),
+      page.getByRole("button", { name: "MIDI", exact: true }).click(),
     ]);
-    expect(dl.suggestedFilename()).toBe("My-first-song.mid");
+    expect(dl.suggestedFilename()).toBe("Untitled-song.mid");
     await expect(page.getByRole("status")).toContainText("2 tracks, 3 notes");
 
-    // Delete it from its menu (two taps), then reload: the song saved itself.
+    // Delete it from its menu (two taps).
     await page.getByRole("button", { name: "Melody 2 options" }).click();
     await page.getByRole("menuitem", { name: "Delete melody" }).click();
     await page.getByRole("menuitem", { name: "Delete Melody 2?" }).click();
     await expect(page.getByRole("status")).toContainText("Deleted Melody 2");
+
+    // A reload keeps the work in progress, but nothing went into your songs.
+    await expect(song.locator("[data-save-state]")).toHaveText("Not saved");
     await page.waitForTimeout(600);
     await page.reload();
-    await page.getByRole("button", { name: /^Melody 1 Melody, 3 notes/ }).click();
     await expect(page.locator(".note[data-note]")).toHaveCount(3);
+    await openPanel(page);
+    await expect(page.getByLabel("Your songs")).toHaveCount(0);
     await shoot(page, "create-roll");
   });
 
-  test("a backing track: preset beat, a longer beat, a bass melody, playing together, songs and the library", async ({
+  test("a backing track: preset beat, a bass melody, playing alone and together, saved only on Save", async ({
     page,
   }) => {
     await page.goto("/music/create");
     const song = page.getByRole("region", { name: "Song" });
-    await songMenu(page, "New song");
+    await openPanel(page);
 
     // A preset beat, then one more bar: the song grows with it.
     await page.getByLabel("Start from a preset").selectOption({ label: "Boom bap, 2 bars" });
@@ -221,55 +246,67 @@ test.describe("Create", () => {
     // A bass line on its own instrument, saved to the library.
     await page.getByLabel("Melody 1 instrument").selectOption({ label: "Bass" });
     await expect(page.getByRole("status")).toContainText("Melody 1 plays Bass");
-    await page.getByRole("button", { name: /^Melody 1 Melody/ }).click();
     await page.getByRole("application", { name: /Note grid/ }).focus();
     await page.keyboard.press("Enter");
     await page.getByRole("button", { name: "Melody 1 options" }).click();
     await page.getByRole("menuitem", { name: "Save melody to library" }).click();
     await expect(page.getByRole("status")).toContainText("Saved Melody 1 to the library");
 
-    // Both play on one loop: the roll's playhead moves, and so does the beat's.
+    // Everything on one loop: both playheads move.
     await song.getByRole("button", { name: "Play all" }).click();
     await expect(page.getByRole("status")).toContainText("3 bars at 90 BPM");
     await expect(page.locator(".playhead")).toBeVisible();
-    // Muting the beat keeps the melody going.
-    await page.getByRole("button", { name: "Mute the beat" }).click();
-    await expect(page.getByRole("button", { name: "Unmute the beat" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await expect(page.locator(".playhead")).toBeVisible();
-    await page.getByRole("button", { name: /^Boom bap/ }).click();
     await expect
       .poll(
         async () => Number(await page.locator("[data-playhead]").getAttribute("data-playhead")),
         { timeout: 10_000 },
       )
       .toBeGreaterThan(0);
+    // The bass alone, then muting the beat keeps the melody going under Play all.
+    await page.getByRole("button", { name: "Play Melody 1 alone" }).click();
+    await expect(page.getByRole("status")).toContainText("Playing Melody 1 on its own");
+    await song.getByRole("button", { name: "Play all" }).click();
+    await page.getByRole("button", { name: "Mute the beat" }).click();
+    await expect(page.getByRole("button", { name: "Unmute the beat" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(page.locator(".playhead")).toBeVisible();
     await song.getByRole("button", { name: "Stop", exact: true }).click();
 
-    // Name it, start another, come back: songs save as you work.
-    await song.getByLabel("Song name").fill("Jam in C");
-    await page.waitForTimeout(600);
-    await songMenu(page, "New song");
-    await expect(page.getByRole("button", { name: /^Beat Beat, 0 hits over 1 bar/ })).toBeVisible();
-    await songMenu(page, "Jam in C");
+    // Save puts it in your songs; nothing else does.
+    await page.getByLabel("Name", { exact: true }).fill("Jam in C");
+    await expect(song.locator("[data-save-state]")).toHaveText("Not saved");
+    await song.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Saved Jam in C to your songs");
+    await expect(song.getByRole("button", { name: "Saved" })).toBeDisabled();
+
+    // A new song straight away (nothing to lose), then one with changes asks first.
+    await page.getByRole("button", { name: "New song" }).click();
+    await expect(page.getByText("Beat, 0 hits over 1 bar")).toBeVisible();
+    await page.getByRole("button", { name: "Kick, bar 1 step 1", exact: true }).click();
+    await page.getByLabel("Your songs").selectOption({ label: "Jam in C, 90 BPM" });
+    await expect(page.getByRole("group", { name: "Unsaved changes" })).toBeVisible();
+    await page.getByRole("button", { name: "Discard changes" }).click();
     await expect(page.getByRole("status")).toContainText("Opened Jam in C");
     await expect(
       page.getByRole("button", { name: "Kick, bar 3 step 1", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByLabel("Melody 1 instrument")).toHaveValue("bass");
+    await expect(song.locator("[data-save-state]")).toHaveText("Saved");
 
-    // The saved melody can join any song.
+    // The saved melody can join any song; that is a change to save.
     await page.getByLabel("Add from library").selectOption({ index: 1 });
     await expect(page.getByRole("status")).toContainText("Added Melody 1 as a new melody");
     await expect(page.getByLabel("Melody 1 instrument")).toHaveCount(2);
+    await expect(song.locator("[data-save-state]")).toHaveText("Unsaved changes");
     await shoot(page, "create-song");
 
-    // Delete the open song (two taps); the next one opens.
-    await songMenu(page, "Delete this song");
-    await page.getByRole("menuitem", { name: "Delete Jam in C?" }).click();
-    await expect(page.getByRole("status")).toContainText("Deleted Jam in C");
+    // Take it out of your songs (two taps); it stays open.
+    await page.getByRole("button", { name: "Remove from your songs" }).click();
+    await page.getByRole("button", { name: "Remove Jam in C?" }).click();
+    await expect(page.getByRole("status")).toContainText("Took Jam in C out of your songs");
+    await expect(song.locator("[data-save-state]")).toHaveText("Not saved");
   });
 });
 
