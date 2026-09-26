@@ -31,6 +31,23 @@ describe("transcription to a score", () => {
     expect(score.voices[0].notes.slice(0, 3).map((n) => n.startBeat)).toEqual([0, 1, 1.5]);
   });
 
+  it("reads steady eighths at 70 as 70, not 140, but keeps a real 140", () => {
+    const eighths: HeardNote[] = Array.from({ length: 128 }, (_, i) => ({
+      midi: i % 2 ? 67 : 48,
+      start: 0.2 + i * (30 / 70) + wobble(i),
+      duration: 0.3,
+      amplitude: i % 2 ? 0.5 : 1,
+    }));
+    expect(Math.abs(estimateTempo(eighths).bpm - 70)).toBeLessThanOrEqual(1);
+    const quarters: HeardNote[] = Array.from({ length: 96 }, (_, i) => ({
+      midi: 60,
+      start: 0.1 + i * (60 / 140) + wobble(i),
+      duration: 0.3,
+      amplitude: 0.8,
+    }));
+    expect(Math.abs(estimateTempo(quarters).bpm - 140)).toBeLessThanOrEqual(1);
+  });
+
   it("snaps to sixteenths, keeps one note per pitch and onset, cuts overlapping repeats, splits the hands", () => {
     const heard: HeardNote[] = [
       { midi: 72, start: 0.01, duration: 0.98, amplitude: 0.9 }, // beat 0, 2 beats at 120

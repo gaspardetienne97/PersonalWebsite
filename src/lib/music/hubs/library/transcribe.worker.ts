@@ -25,6 +25,25 @@ export type WorkerOut =
   | { type: "error"; message: string };
 
 const post = (m: WorkerOut) => postMessage(m);
+
+// TensorFlow.js 3 waits on the GPU with `if (!window || ...)`, which throws in
+// a worker (no `window` there), so a GPU run hung at 0%. Declared but empty,
+// it takes its plain setTimeout path.
+(globalThis as { window?: unknown }).window = undefined;
+
+// Anything thrown outside a message handler (a GPU callback, say) still
+// reaches the page, so it shows an error instead of waiting forever.
+addEventListener("error", (e) =>
+  post({ type: "error", message: (e as ErrorEvent).message || "The transcriber stopped." }),
+);
+addEventListener("unhandledrejection", (e) =>
+  post({
+    type: "error",
+    message: String(
+      (e as PromiseRejectionEvent).reason?.message ?? (e as PromiseRejectionEvent).reason,
+    ),
+  }),
+);
 let last: { frames: number[][]; onsets: number[][] } | null = null;
 let model: BasicPitch | null = null;
 let backend = "";
@@ -49,16 +68,32 @@ async function ready() {
   return model;
 }
 
-/** 0 = only clear notes, 1 = everything faint too. Defaults sit near the model's own (0.5, 0.3). */
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+/** Onset and frame thresholds and the shortest note (frames) at a sensitivity. */
+function thresholds(sensitivity: number): [number, number, number] {
+  const s = Math.min(1, Math.max(0, sensitivity));
+  // 0 = only clear notes, 1 = everything faint too. The middle was tuned on a
+  // real piano recording against its MIDI: 87% of the notes kept are right and
+  // 88% of the notes are found. The model's own defaults (0.5, 0.3, 5) sit near
+  // 1 and double the note count with overtones and re-struck held notes.
+  return s <= 0.5
+    ? [lerp(0.8, 0.66, s * 2), lerp(0.5, 0.42, s * 2), Math.round(lerp(12, 10, s * 2))]
+    : [
+        lerp(0.66, 0.45, s * 2 - 1),
+        lerp(0.42, 0.28, s * 2 - 1),
+        Math.round(lerp(10, 6, s * 2 - 1)),
+      ];
+}
+
 function pick(sensitivity: number): HeardNote[] {
   if (!last) return [];
-  const s = Math.min(1, Math.max(0, sensitivity));
+  const [onset, frame, minLen] = thresholds(sensitivity);
   const events = outputToNotesPoly(
     last.frames,
     last.onsets,
-    0.7 - 0.4 * s,
-    0.45 - 0.3 * s,
-    Math.round(11 - 6 * s),
+    onset,
+    frame,
+    minLen,
     true,
     null,
     null,

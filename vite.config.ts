@@ -60,6 +60,10 @@ export default defineConfig(({ isSsrBuild }) => ({
   },
   optimizeDeps: {
     include: [
+      // The transcription worker's heavy deps: pre-bundled at start, or the
+      // first transcription makes Vite re-optimise and reload the page mid-run.
+      "@spotify/basic-pitch",
+      "@tensorflow/tfjs",
       "lucide-svelte/icons/moon",
       "lucide-svelte/icons/sun",
       "lucide-svelte/icons/play",

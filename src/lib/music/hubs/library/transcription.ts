@@ -30,22 +30,39 @@ export function estimateTempo(notes: readonly HeardNote[]): { bpm: number; offse
   if (onsets.length < 4) return { bpm: 90, offset: onsets[0]?.t ?? 0 };
   const total = onsets.reduce((s, o) => s + o.w, 0);
   const sigma = 0.03;
-  let best = { score: -Infinity, bpm: 90, phase: 0 };
-  for (let bpm = 50; bpm <= 180; bpm += 0.5) {
+  /** How well the onsets sit on a grid at `bpm` (its best phase), above chance. */
+  const fit = (bpm: number) => {
     const p = 60 / bpm;
     const chance = (sigma * Math.sqrt(2 * Math.PI)) / p;
-    const prior = Math.exp(-(Math.log2(bpm / 100) ** 2) / (2 * 0.5 ** 2));
-    for (let k = 0; k < 24; k++) {
-      const phase = (k / 24) * p;
+    let out = { fit: -Infinity, phase: 0 };
+    // Phases half a tolerance apart, so no grid is missed between steps.
+    const steps = Math.ceil(p / (sigma / 2));
+    for (let k = 0; k < steps; k++) {
+      const phase = (k / steps) * p;
       let hit = 0;
       for (const o of onsets) {
         const r = (((o.t - phase) % p) + p) % p;
         const d = Math.min(r, p - r);
         hit += o.w * Math.exp(-(d * d) / (2 * sigma * sigma));
       }
-      const score = (hit / total - chance) * prior;
-      if (score > best.score) best = { score, bpm, phase };
+      if (hit / total - chance > out.fit) out = { fit: hit / total - chance, phase };
     }
+    return out;
+  };
+  let best = { score: -Infinity, bpm: 90, phase: 0, fit: 0 };
+  for (let bpm = 50; bpm <= 180; bpm += 0.5) {
+    const prior = Math.exp(-(Math.log2(bpm / 100) ** 2) / (2 * 0.5 ** 2));
+    const f = fit(bpm);
+    if (f.fit * prior > best.score)
+      best = { score: f.fit * prior, bpm, phase: f.phase, fit: f.fit };
+  }
+  // Steady eighth notes make a grid twice as fast fit best (a 70 BPM ballad
+  // reads as 140). Above 120, take the half tempo when it fits nearly as well:
+  // notes on every beat of a real 140 fit the half grid only about half as well.
+  if (best.bpm > 120) {
+    const half = fit(best.bpm / 2);
+    if (half.fit >= 0.6 * best.fit)
+      best = { ...best, bpm: best.bpm / 2, phase: half.phase, fit: half.fit };
   }
   const p = 60 / best.bpm;
   let offset = best.phase;
