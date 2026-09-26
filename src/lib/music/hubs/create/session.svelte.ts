@@ -309,14 +309,14 @@ class CreateSession {
     const t = this.now - this.passAt;
     return t < 0 ? -1 : (t / 1000) * (this.bpm / 60);
   }
-  /** The beat grid's playing step, wrapped to the pattern's own length. */
+  /** The beat grid's playing step, wrapped to the pattern's own length; -1 when the beat is not what plays. */
   get beatStep() {
-    const b = this.beat;
+    const b = this.only === null || this.only === "beat" ? this.beat : -1;
     return b < 0 ? -1 : Math.floor(b * 4) % (barsOf(this.pattern) * STEPS); // four sixteenths a beat
   }
-  /** The roll's playhead in beats. */
+  /** The roll's playhead in beats; -1 when only the beat plays. */
   get rollBeat() {
-    const b = this.beat;
+    const b = this.only === "beat" ? -1 : this.beat;
     return b < 0 ? -1 : b % this.doc.lengthBeats;
   }
 

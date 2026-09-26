@@ -102,6 +102,16 @@ test.describe("Create", () => {
     // The beat grid's own play button plays the groove alone.
     await beat.getByRole("button", { name: "Play groove" }).click();
     await expect(page.getByRole("status")).toContainText("Playing the beat on its own");
+    // Only the beat grid's playhead runs; the roll stays still.
+    await expect
+      .poll(
+        async () => Number(await page.locator("[data-playhead]").getAttribute("data-playhead")),
+        {
+          timeout: 10_000,
+        },
+      )
+      .toBeGreaterThan(0);
+    await expect(page.locator(".roll .playhead")).toHaveCount(0);
     await beat.getByRole("button", { name: "Stop" }).click();
     await expect(page.getByRole("status")).toHaveText("Stopped.");
     // Space plays and stops when focus is not on a control.
@@ -227,6 +237,9 @@ test.describe("Create", () => {
     await roll.getByRole("button", { name: "Play melodies" }).click();
     await expect(page.getByRole("status")).toContainText("Playing Melody 1 on its own");
     await expect(roll.locator(".playhead")).toBeVisible();
+    // The beat grid stays still while only melodies play.
+    await page.waitForTimeout(700);
+    await expect(page.locator("[data-playhead]")).toHaveAttribute("data-playhead", "-1");
     await roll.getByRole("button", { name: "Stop" }).click();
     await m2.click();
     await expect(m2).toHaveAttribute("aria-pressed", "true");
