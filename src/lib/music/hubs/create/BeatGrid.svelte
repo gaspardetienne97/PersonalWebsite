@@ -45,7 +45,7 @@
     const left = cell.getBoundingClientRect().left - b.getBoundingClientRect().left;
     const pinned = head.offsetWidth;
     if (left < pinned || left + cell.offsetWidth > b.clientWidth)
-      b.scrollTo({ left: b.scrollLeft + left - pinned - 4, behavior: "smooth" });
+      b.scrollLeft += left - pinned - 4; // one jump, as in the roll
   });
 
   const soloing = $derived(session.playing && session.only === "beat");

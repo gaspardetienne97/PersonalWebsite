@@ -290,6 +290,19 @@ test.describe("Create", () => {
     await expect
       .poll(() => beatGrid.evaluate((el) => el.scrollLeft), { timeout: 15_000 })
       .toBeGreaterThan(0);
+    // The playing step stays in view as the grid turns its page.
+    for (let i = 0; i < 3; i++) {
+      await page.waitForTimeout(500);
+      expect(
+        await beatGrid.evaluate((el) => {
+          const now = el.querySelector<HTMLElement>("thead th[data-now]");
+          if (!now) return true; // between passes
+          const r = now.getBoundingClientRect(),
+            b = el.getBoundingClientRect();
+          return r.left >= b.left && r.right <= b.right + 1;
+        }),
+      ).toBe(true);
+    }
     await page
       .getByRole("region", { name: "Beat editor" })
       .getByRole("button", { name: "Stop" })
@@ -365,6 +378,17 @@ test.describe("Create", () => {
     await expect
       .poll(() => roll.locator(".roll").evaluate((el) => el.scrollLeft), { timeout: 15_000 })
       .toBeGreaterThan(0);
+    // After the page turns, the playhead is inside the view, not running off it.
+    const inView = () =>
+      roll.locator(".roll").evaluate((el) => {
+        const h = el.querySelector<HTMLElement>(".playhead");
+        const x = (h?.offsetLeft ?? -1) + 56; // past the keys
+        return x >= el.scrollLeft && x <= el.scrollLeft + el.clientWidth;
+      });
+    for (let i = 0; i < 3; i++) {
+      await page.waitForTimeout(700);
+      expect(await inView()).toBe(true);
+    }
     await roll.getByRole("button", { name: "Stop" }).click();
     await shoot(page, "create-song");
 

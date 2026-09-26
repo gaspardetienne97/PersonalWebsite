@@ -68,13 +68,14 @@
   let grid: HTMLDivElement | undefined = $state();
   let scroller: HTMLDivElement | undefined = $state();
 
-  // Turn the page when the playhead reaches the edge of the view.
+  // Turn the page when the playhead reaches the edge of the view, in one jump:
+  // a smooth scroll restarted every frame only crawls, and the playhead outruns it.
   $effect(() => {
     const s = scroller;
     if (!s || playBeat < 0) return;
     const px = KEY_W + x(playBeat);
     if (px > s.scrollLeft + s.clientWidth - stepW || px < s.scrollLeft + KEY_W)
-      s.scrollTo({ left: px - KEY_W - stepW, behavior: "smooth" });
+      s.scrollLeft = px - KEY_W - stepW;
   });
 
   const soloing = $derived(host.pickedPlaying);
