@@ -17,6 +17,7 @@ catalog:
 
   # Testing
   "@playwright/test": ^1.58.2
+  "@spotify/basic-pitch": 1.0.1
   "@storybook/addon-a11y": ^10.3.4
   "@storybook/addon-docs": ^10.3.4
   "@storybook/addon-svelte-csf": ^5.1.2
@@ -31,6 +32,7 @@ catalog:
   "@tailwindcss/forms": ^0.5.11
   "@tailwindcss/typography": ^0.5.19
   "@tailwindcss/vite": ^4.1.18
+  "@tensorflow/tfjs": 3.21.0
   "@types/node": ^24
   "@vite-pwa/sveltekit": ^1.1.0
   "@vitest/browser": ^4.1.0

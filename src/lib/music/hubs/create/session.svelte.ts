@@ -19,6 +19,7 @@ import {
   emptyDoc,
   mapVoice,
   newVoice,
+  pickVoice,
   ROLL_KEY,
   rollNotes,
   setLength,
@@ -270,6 +271,14 @@ class CreateSession {
     this.only = only;
     return this.#start();
   }
+  // The piano roll's host: it plays the picked melodies.
+  get pickedPlaying() {
+    return this.playing && this.only === "melodies";
+  }
+  playPicked() {
+    return this.play("melodies");
+  }
+
   toggle() {
     return this.playing ? this.stop() : this.play(null);
   }
@@ -388,26 +397,12 @@ class CreateSession {
     this.picked = [...this.picked, v.id];
   }
 
-  /**
-   * A tap on a melody in the roll: an unpicked one is picked and drawn on; a
-   * picked one becomes the one drawn on; the one drawn on is put down (unless
-   * it is the last).
-   */
-  pick(id: string): "picked" | "editing" | "dropped" | "last" {
-    if (!this.picked.includes(id)) {
-      this.picked = [...this.picked, id];
-      this.selected = id;
-      return "picked";
-    }
-    if (this.selected !== id) {
-      this.selected = id;
-      return "editing";
-    }
-    const rest = this.picked.filter((x) => x !== id);
-    if (!rest.length) return "last";
-    this.picked = rest;
-    this.selected = rest[rest.length - 1];
-    return "dropped";
+  /** A tap on a melody in the roll (see pickVoice). */
+  pick(id: string) {
+    const r = pickVoice(this.picked, this.selected, id);
+    this.picked = r.picked;
+    this.selected = r.selected;
+    return r.result;
   }
 
   updateVoice(id: string, fn: (v: RollVoice) => RollVoice) {

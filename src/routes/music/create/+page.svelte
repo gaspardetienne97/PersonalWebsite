@@ -252,7 +252,7 @@
   {#if !ready}
     <div class="stage h-80 rounded-3xl" aria-hidden="true"></div>
   {:else if session.doc.voices.length}
-    <PianoRoll {announce} />
+    <PianoRoll host={session} {announce} />
   {:else}
     <div class="stage flex flex-wrap items-center gap-3 rounded-3xl p-5">
       <p class="min-w-0 flex-1 text-ws-stage-soft">No melodies in this song.</p>

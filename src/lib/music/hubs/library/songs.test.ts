@@ -1,14 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Score } from "@repo/music-core";
 import { scoreToMidi } from "@repo/music-core/io/midi-file";
-import {
-  importScoreFile,
-  keyName,
-  rowsToScore,
-  scoreFacts,
-  scoreToRows,
-  songSections,
-} from "./songs";
+import { importScoreFile, keyName, scoreFacts, songSections } from "./songs";
 
 import odeXml from "../../../../../e2e/music/fixtures/ode-to-joy.musicxml?raw";
 
@@ -61,20 +54,6 @@ describe("songSections", () => {
   it("keeps the score's own sections", () => {
     const sections = [{ label: "A", startBeat: 0, endBeat: 4 }];
     expect(songSections({ ...tiny, sections })).toBe(sections);
-  });
-});
-
-describe("note rows", () => {
-  it("round-trips and drops invalid rows", () => {
-    const rows = [
-      ...scoreToRows(tiny),
-      { midi: 200, startBeat: 0, durationBeats: 1 },
-      { midi: 65, startBeat: 3, durationBeats: 0 },
-    ];
-    const s = rowsToScore(rows, "", 90);
-    expect(s.voices[0].notes.map((n) => n.midi)).toEqual([60, 62, 64]);
-    expect(s.title).toBe("Transcription");
-    expect(s.lengthBeats).toBe(4);
   });
 });
 

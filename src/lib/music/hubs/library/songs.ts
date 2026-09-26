@@ -1,6 +1,6 @@
 // Saved repertoire: the db.songs row shape, file import into the canonical
 // score, and the facts a song card or Song Studio shows about a score.
-import { noteName, type Score, type ScoreNote, type ScoreSection } from "@repo/music-core";
+import { noteName, type Score, type ScoreSection } from "@repo/music-core";
 import { midiToScore } from "@repo/music-core/io/midi-file";
 import { parseMusicXml, parseMxl } from "@repo/music-core/io/musicxml";
 import { barBeats } from "$lib/music/notation/groups";
@@ -113,55 +113,6 @@ export function songSections(score: Score): ScoreSection[] {
     });
   }
   return out;
-}
-
-/** One row of the transcription note editor. */
-export interface NoteRow {
-  midi: number;
-  startBeat: number;
-  durationBeats: number;
-}
-
-export function scoreToRows(score: Score): NoteRow[] {
-  return score.voices
-    .flatMap((v) => v.notes)
-    .map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats }))
-    .sort((a, b) => a.startBeat - b.startBeat || a.midi - b.midi);
-}
-
-/** A single-voice 4/4 score from edited rows (invalid rows are dropped, not guessed). */
-export function rowsToScore(
-  rows: NoteRow[],
-  title: string,
-  bpm: number,
-  kind: "transcribed" | "generated" = "transcribed",
-): Score {
-  const notes: ScoreNote[] = rows
-    .filter(
-      (r) =>
-        Number.isFinite(r.midi) &&
-        r.midi >= 0 &&
-        r.midi <= 127 &&
-        r.startBeat >= 0 &&
-        r.durationBeats > 0,
-    )
-    .map((r) => ({
-      midi: Math.round(r.midi),
-      startBeat: r.startBeat,
-      durationBeats: r.durationBeats,
-    }))
-    .sort((a, b) => a.startBeat - b.startBeat);
-  const end = notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0);
-  const avg = notes.length ? notes.reduce((s, n) => s + n.midi, 0) / notes.length : 60;
-  return {
-    id: crypto.randomUUID(),
-    title: title.trim() || "Transcription",
-    bpm: Math.max(20, Math.round(bpm)),
-    meter: { beats: 4, beatUnit: 4 },
-    voices: [{ id: "melody", name: "Melody", clef: avg < 57 ? "bass" : "treble", notes }],
-    lengthBeats: Math.max(4, Math.ceil(end / 4 - 1e-6) * 4),
-    source: { kind },
-  };
 }
 
 export const barsText = (n: number) => `${n} bar${n === 1 ? "" : "s"}`;

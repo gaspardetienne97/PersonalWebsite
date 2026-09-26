@@ -1,15 +1,12 @@
 <script lang="ts">
-  // Import a score (MIDI, MusicXML, .mxl) or transcribe an audio file into a
-  // draft, preview it, fix it, save it to repertoire.
+  // Import a score (MIDI, MusicXML, .mxl), or turn a recording or a MIDI take
+  // into a draft fixed in the piano roll (TranscribeView), and save it.
   import Upload from "lucide-svelte/icons/upload";
-  import Plus from "lucide-svelte/icons/plus";
-  import X from "lucide-svelte/icons/x";
-  import Volume from "lucide-svelte/icons/volume-2";
-  import { noteName, parseNote, type Score } from "@repo/music-core";
-  import { transcribe } from "@repo/music-core/signal/transcribe";
+  import type { Score } from "@repo/music-core";
+  import TranscribeView from "./TranscribeView.svelte";
   import Staff from "$lib/music/notation/Staff.svelte";
   import { btn, btnPrimary, panel } from "$lib/music/components/ui";
-  import { audio, db } from "$lib/music/runtime";
+  import { db } from "$lib/music/runtime";
   import RollThumb from "./RollThumb.svelte";
   import {
     SCORE_ACCEPT,
@@ -17,17 +14,14 @@
     durationText,
     importScoreFile,
     rangeText,
-    rowsToScore,
     scoreFacts,
-    scoreToRows,
     songFromScore,
-    type NoteRow,
     type Song,
   } from "./songs";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
 
-  let mode = $state<"score" | "audio">("score");
+  let mode = $state<"score" | "audio" | "take">("score");
   let error = $state("");
   let busy = $state(false);
   let dragging = $state(false);
@@ -35,14 +29,6 @@
   let title = $state("");
   let composer = $state("");
   let saved = $state.raw<Song | null>(null);
-
-  // Transcription draft
-  let rows = $state<NoteRow[]>([]);
-  let draftOpen = $state(false);
-  let draftTitle = $state("");
-  let draftBpm = $state(90);
-  let rowError = $state("");
-  const draftScore = $derived(rowsToScore(rows, draftTitle, draftBpm));
 
   function fail(msg: string) {
     error = msg;
@@ -68,40 +54,6 @@
     }
   }
 
-  async function takeAudio(file: File | undefined) {
-    if (!file) return;
-    error = "";
-    saved = null;
-    busy = true;
-    onstatus?.(`Listening through ${file.name}.`);
-    try {
-      const ctx = new AudioContext();
-      let buf: AudioBuffer;
-      try {
-        buf = await ctx.decodeAudioData(await file.arrayBuffer());
-      } catch {
-        throw new Error(`"${file.name}" could not be decoded as audio. Try a WAV or MP3.`);
-      } finally {
-        void ctx.close();
-      }
-      const mono = new Float32Array(buf.length);
-      for (let c = 0; c < buf.numberOfChannels; c++) {
-        const ch = buf.getChannelData(c);
-        for (let i = 0; i < ch.length; i++) mono[i] += ch[i] / buf.numberOfChannels;
-      }
-      // ponytail: runs on the main thread; move to a worker if long files freeze the page.
-      const score = transcribe(mono, buf.sampleRate, { bpm: draftBpm, title: file.name.replace(/\.[^.]+$/, "") });
-      rows = scoreToRows(score);
-      draftTitle = score.title;
-      draftOpen = true;
-      onstatus?.(rows.length ? `Found ${rows.length} notes. Fix any that are wrong, then save.` : "No clear notes were found. Add them by hand below.");
-    } catch (e) {
-      fail((e as Error).message);
-    } finally {
-      busy = false;
-    }
-  }
-
   async function save(score: Score, meta: { composer?: string; source?: string }) {
     const song = songFromScore(score, meta);
     await db.songs.put(song);
@@ -115,42 +67,18 @@
     preview = null;
   }
 
-  async function saveDraft() {
-    if (!draftScore.voices[0].notes.length) return (rowError = "Add at least one note before saving.");
-    await save(draftScore, { source: "transcribed" });
-    draftOpen = false;
-    rows = [];
-  }
-
   function drop(e: DragEvent, handle: (f: File | undefined) => void) {
     e.preventDefault();
     dragging = false;
     handle(e.dataTransfer?.files[0]);
   }
 
-  function setNote(i: number, text: string) {
-    const m = parseNote(text);
-    if (m === null || m < 0 || m > 127) {
-      rowError = `Row ${i + 1}: "${text}" is not a note name. Write it like C4, F#3 or Bb5.`;
-      return;
-    }
-    rowError = "";
-    rows[i].midi = m;
-  }
-  function addRow() {
-    const last = rows.at(-1);
-    rows.push({ midi: last?.midi ?? 60, startBeat: last ? last.startBeat + last.durationBeats : 0, durationBeats: 1 });
-  }
-  async function hear(midi: number) {
-    await audio.unlock();
-    audio.playNote(midi, 0.5);
-  }
 </script>
 
 <div class="flex flex-col gap-5">
   <div class="flex flex-wrap items-center gap-3">
     <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label="What to import">
-      {#each [["score", "Score file"], ["audio", "Transcribe audio"]] as const as [id, label] (id)}
+      {#each [["score", "Score file"], ["audio", "Transcribe audio"], ["take", "From a MIDI take"]] as const as [id, label] (id)}
         <button
           type="button"
           class="min-h-10 rounded-full px-4 text-sm font-medium {mode === id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft hover:text-ws-ink'}"
@@ -160,7 +88,7 @@
       {/each}
     </div>
     <p class="text-sm text-ws-soft">
-      {mode === "score" ? "MusicXML (.musicxml, .xml or .mxl) is best: it keeps the parts, key and bar lines as written. MIDI works too, but its timing and voices are often rougher." : "One instrument, one note at a time: a sung line, a whistle, a single-note riff."}
+      {mode === "score" ? "MusicXML (.musicxml, .xml or .mxl) is best: it keeps the parts, key and bar lines as written. MIDI works too, but its timing and voices are often rougher." : mode === "audio" ? "A recording becomes a draft you fix in the piano roll." : "Something you played on a MIDI keyboard becomes a draft you fix in the piano roll."}
     </p>
   </div>
 
@@ -190,32 +118,8 @@
         <input class="sr-only" type="file" accept={SCORE_ACCEPT} aria-label="Score file" data-testid="score-file" onchange={(e) => takeScore(e.currentTarget.files?.[0])} />
       </label>
     {:else}
-      <div class="flex flex-col gap-3">
-        <p class="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">
-          <strong>Monophonic and untuned.</strong> Transcription follows one note at a time, so chords come out as a single line, and its settings have not been tuned on real recordings yet. Expect to fix notes by hand in the editor.
-        </p>
-        <div class="flex flex-wrap items-end gap-3">
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="font-medium">Tempo of the recording (BPM)</span>
-            <input class="min-h-11 w-32 rounded-lg border border-ws-line bg-ws-surface px-3" type="number" min="20" max="300" bind:value={draftBpm} />
-          </label>
-          <button type="button" class={btn} onclick={() => ((draftOpen = true), (draftTitle ||= "My transcription"), rows.length || addRow())}>Type notes by hand instead</button>
-        </div>
-        <label
-          class="drop"
-          class:dragging
-          ondragover={(e) => {
-            e.preventDefault();
-            dragging = true;
-          }}
-          ondragleave={() => (dragging = false)}
-          ondrop={(e) => drop(e, takeAudio)}
-        >
-          <Upload class="size-7" aria-hidden="true" />
-          <span class="font-display text-lg font-semibold">{busy ? "Listening" : "Drop an audio file here, or choose one"}</span>
-          <span class="text-sm text-ws-soft">WAV, MP3, M4A or OGG</span>
-          <input class="sr-only" type="file" accept="audio/*" aria-label="Audio file to transcribe" onchange={(e) => takeAudio(e.currentTarget.files?.[0])} />
-        </label>
+      <div class="flex min-w-0 flex-col gap-4 md:col-span-2">
+        {#key mode}<TranscribeView from={mode} {onstatus} onsaved={(song) => (saved = song)} />{/key}
       </div>
     {/if}
     <div class="min-h-6">
@@ -253,41 +157,6 @@
     </section>
   {/if}
 
-  {#if draftOpen && mode === "audio"}
-    <section class="{panel} flex flex-col gap-4" aria-labelledby="draft-h">
-      <h2 id="draft-h" class="font-display text-xl font-semibold">Draft notes</h2>
-      <label class="flex max-w-md flex-col gap-1 text-sm"><span class="font-medium">Title</span><input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={draftTitle} /></label>
-      <div class="stage rounded-xl p-3"><RollThumb score={draftScore} height={80} /></div>
-      <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
-      <div class="overflow-x-auto" role="region" aria-label="Note rows" tabindex="0">
-        <table class="w-full min-w-[30rem] text-sm">
-          <thead class="text-left text-ws-soft">
-            <tr><th scope="col" class="py-2 pr-2 font-medium">Note</th><th scope="col" class="px-2 font-medium">Starts on beat</th><th scope="col" class="px-2 font-medium">Beats long</th><th scope="col"><span class="sr-only">Actions</span></th></tr>
-          </thead>
-          <tbody>
-            {#each rows as r, i (i)}
-              <tr class="border-t border-ws-line">
-                <td class="py-1.5 pr-2">
-                  <input class="min-h-11 w-24 rounded-lg border border-ws-line bg-ws-surface px-2" aria-label="Row {i + 1} note" value={noteName(r.midi, "sharp")} onchange={(e) => setNote(i, e.currentTarget.value)} />
-                </td>
-                <td class="px-2"><input class="tnum min-h-11 w-24 rounded-lg border border-ws-line bg-ws-surface px-2" type="number" min="0" step="0.25" aria-label="Row {i + 1} start beat" bind:value={r.startBeat} /></td>
-                <td class="px-2"><input class="tnum min-h-11 w-24 rounded-lg border border-ws-line bg-ws-surface px-2" type="number" min="0.125" step="0.25" aria-label="Row {i + 1} length in beats" bind:value={r.durationBeats} /></td>
-                <td class="whitespace-nowrap pl-2 text-right">
-                  <button type="button" class="{btn} px-3" aria-label="Hear row {i + 1}" onclick={() => hear(r.midi)}><Volume class="size-4" aria-hidden="true" /></button>
-                  <button type="button" class="{btn} px-3" aria-label="Remove row {i + 1}" onclick={() => rows.splice(i, 1)}><X class="size-4" aria-hidden="true" /></button>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-      {#if rowError}<p class="text-sm font-medium text-destructive">{rowError}</p>{/if}
-      <div class="flex flex-wrap gap-2">
-        <button type="button" class={btn} onclick={addRow}><Plus class="size-4" aria-hidden="true" />Add a note</button>
-        <button type="button" class={btnPrimary} onclick={saveDraft}>Save to songs</button>
-      </div>
-    </section>
-  {/if}
 </div>
 
 <style>

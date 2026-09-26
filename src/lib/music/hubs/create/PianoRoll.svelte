@@ -1,3 +1,26 @@
+<script lang="ts" module>
+  import type { RollDoc as Doc, RollVoice } from "./roll";
+  /** What the roll edits and plays: Create's session, or a song being fixed. */
+  export interface RollHost {
+    doc: Doc;
+    /** The voice new notes go on. */
+    selected: string;
+    /** The voices shown and played together. */
+    picked: string[];
+    pick(id: string): "picked" | "editing" | "dropped" | "last";
+    updateVoice(id: string, fn: (v: RollVoice) => RollVoice): void;
+    readonly playing: boolean;
+    /** The playhead in beats, or -1. */
+    readonly rollBeat: number;
+    /** The picked voices are what is playing (the play button shows Stop). */
+    readonly pickedPlaying: boolean;
+    /** Play the picked voices, or stop them; false when sound is blocked. */
+    playPicked(): Promise<boolean>;
+    /** Beats in a bar; 4 when not given. */
+    readonly barBeats?: number;
+  }
+</script>
+
 <script lang="ts">
   // The melodies' note editor, over the canonical score. Tap melodies to pick
   // the ones you hear and see; you draw on one of them, the others show as
@@ -10,12 +33,18 @@
   import Square from "lucide-svelte/icons/square";
   import { isBlackKey, noteName } from "@repo/music-core";
   import { audio } from "$lib/music/runtime";
-  import { session } from "./session.svelte";
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
-  import { BAR_BEATS, noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
+  import { noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
   import { STEP_BEATS } from "$lib/music/takes";
 
-  let { announce }: { announce: (msg: string) => void } = $props();
+  let {
+    host,
+    announce,
+    noun = "melodies",
+  }: { host: RollHost; announce: (msg: string) => void; /** What the voices are called: melodies, parts. */ noun?: string } = $props();
+  const BAR_BEATS = $derived(host.barBeats ?? 4);
+  const barSteps = $derived(Math.round(BAR_BEATS / STEP_BEATS));
+  const Noun = $derived(noun.replace(/^./, (c) => c.toUpperCase()));
 
   const ROW_H = 24;
   const KEY_W = 56;
@@ -28,14 +57,14 @@
     { beats: 4, label: "Whole" },
   ];
 
-  // The roll edits the session's document; `doc` is read-only here, `set` writes.
-  const doc = $derived(session.doc);
+  // The roll edits the host's document; `doc` is read-only here, `set` writes.
+  const doc = $derived(host.doc);
   let tool = $state<"draw" | "resize">("draw");
   let noteLen = $state(0.5);
   let stepW = $state(22);
   let cursor = $state({ midi: 60, step: 0 });
-  const playing = $derived(session.playing);
-  const playBeat = $derived(session.rollBeat);
+  const playing = $derived(host.playing);
+  const playBeat = $derived(host.rollBeat);
   let grid: HTMLDivElement | undefined = $state();
   let scroller: HTMLDivElement | undefined = $state();
 
@@ -48,26 +77,26 @@
       s.scrollTo({ left: px - KEY_W - stepW, behavior: "smooth" });
   });
 
-  const soloing = $derived(session.playing && session.only === "melodies");
+  const soloing = $derived(host.pickedPlaying);
   async function playMelodies() {
-    const ok = await session.play("melodies");
+    const ok = await host.playPicked();
     if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
-    const names = doc.voices.filter((v) => session.picked.includes(v.id)).map((v) => v.name);
-    announce(session.playing ? `Playing ${names.join(" and ")} on ${names.length === 1 ? "its" : "their"} own.` : "Stopped.");
+    const names = doc.voices.filter((v) => host.picked.includes(v.id)).map((v) => v.name);
+    announce(host.playing ? `Playing ${names.join(" and ")} on ${names.length === 1 ? "its" : "their"} own.` : "Stopped.");
   }
 
   function tap(v: { id: string; name: string }) {
-    const r = session.pick(v.id);
-    if (r === "picked") announce(`${v.name} picked: you hear it with the melodies, and new notes go on it.`);
+    const r = host.pick(v.id);
+    if (r === "picked") announce(`${v.name} picked: you hear it with the ${noun}, and new notes go on it.`);
     else if (r === "editing") announce(`New notes go on ${v.name}.`);
-    else if (r === "dropped") announce(`${v.name} put down: Play melodies leaves it out.`);
-    else announce(`${v.name} is the only melody picked. Pick another before putting it down.`);
+    else if (r === "dropped") announce(`${v.name} put down: Play ${noun} leaves it out.`);
+    else announce(`${v.name} is the only one picked. Pick another before putting it down.`);
   }
 
   const range = $derived(rollRange(doc));
   const rows = $derived(Array.from({ length: range.high - range.low + 1 }, (_, i) => range.high - i));
   const steps = $derived(Math.round(doc.lengthBeats / STEP_BEATS));
-  const activeIndex = $derived(Math.max(0, doc.voices.findIndex((v) => v.id === session.selected)));
+  const activeIndex = $derived(Math.max(0, doc.voices.findIndex((v) => v.id === host.selected)));
   const active = $derived(doc.voices[activeIndex]);
   const x = (beat: number) => (beat / STEP_BEATS) * stepW;
   const y = (midi: number) => (range.high - midi) * ROW_H;
@@ -77,7 +106,7 @@
   onMount(() => scroller?.scrollTo({ top: y(72) - 8 }));
 
   function set(next: RollDoc) {
-    session.doc = next;
+    host.doc = next;
   }
 
   function toggleAt(midi: number, step: number) {
@@ -174,18 +203,18 @@
 
   const field = "min-h-11 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-3 text-sm text-ws-stage-ink";
   const lineBg = $derived(
-    `repeating-linear-gradient(to right, transparent 0 ${stepW * 16 - 2}px, color-mix(in oklch, var(--ws-stage-ink) 30%, transparent) ${stepW * 16 - 2}px ${stepW * 16}px), repeating-linear-gradient(to right, transparent 0 ${stepW * 4 - 1}px, color-mix(in oklch, var(--ws-stage-ink) 12%, transparent) ${stepW * 4 - 1}px ${stepW * 4}px)`,
+    `repeating-linear-gradient(to right, transparent 0 ${stepW * barSteps - 2}px, color-mix(in oklch, var(--ws-stage-ink) 30%, transparent) ${stepW * barSteps - 2}px ${stepW * barSteps}px), repeating-linear-gradient(to right, transparent 0 ${stepW * 4 - 1}px, color-mix(in oklch, var(--ws-stage-ink) 12%, transparent) ${stepW * 4 - 1}px ${stepW * 4}px)`,
   );
 </script>
 
 <section class="stage rounded-3xl p-3 sm:p-4" aria-label="Melody editor">
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <button type="button" class={btnPrimary} aria-pressed={soloing} onclick={playMelodies}>
-        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play melodies{/if}
+        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play {noun}{/if}
       </button>
-      <div class="flex min-w-0 flex-1 basis-60 flex-wrap gap-1.5" role="group" aria-label="Melodies to hear and see">
+      <div class="flex min-w-0 flex-1 basis-60 flex-wrap gap-1.5" role="group" aria-label="{Noun} to hear and see">
         {#each doc.voices as v, i (v.id)}
-          {@const on = session.picked.includes(v.id)}
+          {@const on = host.picked.includes(v.id)}
           {@const editing = v.id === active.id}
           <button
             type="button"
@@ -222,8 +251,8 @@
       <div class="relative" style:width="{KEY_W + steps * stepW}px">
         <div class="ruler sticky top-0 z-20 flex h-7" aria-hidden="true">
           <div class="sticky left-0 z-10 shrink-0 bg-ws-stage" style:width="{KEY_W}px"></div>
-          {#each Array.from({ length: doc.lengthBeats / BAR_BEATS }, (_, b) => b) as b (b)}
-            <div class="shrink-0 border-l border-ws-stage-ink/25 pl-1 text-xs font-semibold text-ws-stage-soft" style:width="{16 * stepW}px">{b + 1}</div>
+          {#each Array.from({ length: Math.ceil(doc.lengthBeats / BAR_BEATS) }, (_, b) => b) as b (b)}
+            <div class="shrink-0 border-l border-ws-stage-ink/25 pl-1 text-xs font-semibold text-ws-stage-soft" style:width="{barSteps * stepW}px">{b + 1}</div>
           {/each}
         </div>
         <div class="relative flex" style:height="{rows.length * ROW_H}px">
@@ -253,7 +282,7 @@
               <div class="rowbg" class:black={isBlackKey(m)} style:top="{r * ROW_H}px" style:height="{ROW_H}px"></div>
             {/each}
             {#each doc.voices as v, vi (v.id)}
-              {#if v.id !== active.id && session.picked.includes(v.id)}
+              {#if v.id !== active.id && host.picked.includes(v.id)}
                 {#each v.notes as n, ni (ni)}
                   {#if n.midi >= range.low && n.midi <= range.high}
                     <div class="note ghost" style:left="{x(n.startBeat)}px" style:top="{y(n.midi) + 3}px" style:width="{Math.max(4, x(n.durationBeats) - 1)}px" style:height="{ROW_H - 6}px" style:--c={trackColour(vi)}></div>
@@ -309,10 +338,10 @@
     <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
       <label class="flex items-center gap-2">
         <span class="text-ws-stage-soft">New notes' velocity <span class="tnum text-ws-stage-ink">{Math.round(active.velocity * 127)}</span></span>
-        <input type="range" min="0.1" max="1" step="0.05" class="min-h-11 w-36 accent-[var(--instr)]" value={active.velocity} oninput={(e) => session.updateVoice(active.id, (v) => ({ ...v, velocity: e.currentTarget.valueAsNumber }))} />
+        <input type="range" min="0.1" max="1" step="0.05" class="min-h-11 w-36 accent-[var(--instr)]" value={active.velocity} oninput={(e) => host.updateVoice(active.id, (v) => ({ ...v, velocity: e.currentTarget.valueAsNumber }))} />
       </label>
       <button type="button" class={btnStage} disabled={!active.notes.length} onclick={() => {
-        session.updateVoice(active.id, (v) => ({ ...v, notes: v.notes.map((n) => ({ ...n, velocity: v.velocity })) }));
+        host.updateVoice(active.id, (v) => ({ ...v, notes: v.notes.map((n) => ({ ...n, velocity: v.velocity })) }));
         announce(`Every note on ${active.name} now has velocity ${Math.round(active.velocity * 127)}.`);
       }}>Apply to all its notes</button>
     </div>

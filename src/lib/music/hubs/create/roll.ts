@@ -232,3 +232,20 @@ export function setLength(doc: RollDoc, beats: number): RollDoc {
     })),
   };
 }
+
+/**
+ * A tap on a voice in the roll: an unpicked one is picked and drawn on; a
+ * picked one becomes the one drawn on; the one drawn on is put down (unless
+ * it is the last picked).
+ */
+export function pickVoice(
+  picked: readonly string[],
+  selected: string,
+  id: string,
+): { picked: string[]; selected: string; result: "picked" | "editing" | "dropped" | "last" } {
+  if (!picked.includes(id)) return { picked: [...picked, id], selected: id, result: "picked" };
+  if (selected !== id) return { picked: [...picked], selected: id, result: "editing" };
+  const rest = picked.filter((x) => x !== id);
+  if (!rest.length) return { picked: [...picked], selected, result: "last" };
+  return { picked: rest, selected: rest[rest.length - 1], result: "dropped" };
+}

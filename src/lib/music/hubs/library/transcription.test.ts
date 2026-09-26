@@ -1,0 +1,51 @@
+import { describe, expect, it } from "vitest";
+import { estimateTempo, notesToScore, type HeardNote } from "./transcription";
+
+// A deterministic wobble of up to ±12 ms, like a person playing.
+const wobble = (i: number) => (((i * 7919) % 25) - 12) / 1000;
+
+describe("transcription to a score", () => {
+  it("finds the tempo and the first beat of a played line", () => {
+    const p = 60 / 80;
+    const notes: HeardNote[] = [];
+    for (let beat = 0; beat < 64; beat++) {
+      notes.push({
+        midi: 60 + (beat % 5),
+        start: 0.37 + beat * p + wobble(beat),
+        duration: p * 0.9,
+        amplitude: 0.8,
+      });
+      if (beat % 4 === 1)
+        notes.push({
+          midi: 67,
+          start: 0.37 + (beat + 0.5) * p + wobble(beat + 100),
+          duration: p / 2,
+          amplitude: 0.5,
+        });
+    }
+    const t = estimateTempo(notes);
+    expect(Math.abs(t.bpm - 80)).toBeLessThanOrEqual(1);
+    expect(Math.abs(t.offset - 0.37)).toBeLessThan(0.03);
+    const score = notesToScore(notes, { bpm: t.bpm, offset: t.offset, title: "Line" });
+    expect(score.voices).toHaveLength(1);
+    expect(score.voices[0].notes.slice(0, 3).map((n) => n.startBeat)).toEqual([0, 1, 1.5]);
+  });
+
+  it("snaps to sixteenths, keeps one note per pitch and onset, cuts overlapping repeats, splits the hands", () => {
+    const heard: HeardNote[] = [
+      { midi: 72, start: 0.01, duration: 0.98, amplitude: 0.9 }, // beat 0, 2 beats at 120
+      { midi: 72, start: 0.02, duration: 0.2, amplitude: 0.4 }, // the same onset again: dropped
+      { midi: 72, start: 0.5, duration: 0.5, amplitude: 0.9 }, // a repeat at beat 1 cuts the first
+      { midi: 48, start: 0, duration: 2, amplitude: 0.7 },
+    ];
+    const score = notesToScore(heard, { bpm: 120, title: "Hands" });
+    const [right, left] = score.voices;
+    expect(right.hand).toBe("right");
+    expect(right.notes.map((n) => [n.startBeat, n.durationBeats])).toEqual([
+      [0, 1],
+      [1, 1],
+    ]);
+    expect(left.notes.map((n) => [n.midi, n.durationBeats])).toEqual([[48, 4]]);
+    expect(notesToScore(heard, { bpm: 120, title: "One", split: false }).voices).toHaveLength(1);
+  });
+});

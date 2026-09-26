@@ -12,6 +12,7 @@
   import Settings2 from "lucide-svelte/icons/sliders-horizontal";
   import ArrowLeft from "lucide-svelte/icons/arrow-left";
   import Timer from "lucide-svelte/icons/timer";
+  import Pencil from "lucide-svelte/icons/pencil";
   import { clamp, noteName, pc, type InputEvent, type NoteEvent } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
@@ -698,6 +699,7 @@
       <button type="button" class={btn} aria-pressed={!!preview?.playing} onclick={togglePreview}>
         {#if preview?.playing}<Square class="size-4" aria-hidden="true" />Stop preview{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
       </button>
+      <a class={btn} href="/music/songs/{song.id}/edit"><Pencil class="size-4" aria-hidden="true" />Edit notes</a>
       <button type="button" class={btn} onclick={exportMidi}><Download class="size-4" aria-hidden="true" />Export MIDI</button>
       <button type="button" class={btn} disabled={settings.value.bpm === bpm} onclick={metronomeToSong}>
         <Timer class="size-4" aria-hidden="true" />{settings.value.bpm === bpm ? `Metronome at ${bpm} BPM` : `Set metronome to ${bpm} BPM`}

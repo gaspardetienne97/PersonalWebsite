@@ -231,7 +231,7 @@ test.describe("Create", () => {
     await expect(m2).toHaveAttribute("aria-pressed", "false");
     await expect(m1).toHaveAccessibleName("Melody 1 (drawing on it)");
     await m1.click();
-    await expect(page.getByRole("status")).toContainText("the only melody picked");
+    await expect(page.getByRole("status")).toContainText("the only one picked");
     await expect(m1).toHaveAttribute("aria-pressed", "true");
     // Play melodies plays the picked ones, and the roll follows the playhead.
     await roll.getByRole("button", { name: "Play melodies" }).click();

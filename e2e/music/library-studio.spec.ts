@@ -126,15 +126,12 @@ test.describe("library and song studio", () => {
     await expectNoHorizontalOverflow(page);
     await shoot(page, "songs");
 
-    // Transcribe audio: the editor path, typed by hand.
+    // Transcribe audio: the engines, and a roll to draw in by hand (e2e/music/transcribe.spec.ts runs them).
     await page.goto("/music/library?tab=import");
     await page.getByRole("button", { name: "Transcribe audio" }).click();
-    await expect(page.getByText("Monophonic and untuned.")).toBeVisible();
-    await page.getByRole("button", { name: "Type notes by hand instead" }).click();
-    await page.getByRole("button", { name: "Add a note" }).click();
-    await page.getByLabel("Row 2 note").fill("G4");
-    await page.getByLabel("Row 2 note").press("Tab");
-    await expect(page.getByLabel("Row 2 note")).toHaveValue("G4");
+    await expect(page.getByRole("button", { name: "Chords and parts" })).toBeVisible();
+    await page.getByRole("button", { name: "Start from an empty roll" }).click();
+    await expect(page.getByRole("heading", { name: "Draft" })).toBeVisible();
     await shoot(page, "transcribe");
   });
 
