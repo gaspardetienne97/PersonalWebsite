@@ -212,6 +212,27 @@ test.describe("Create", () => {
     await expect(page.getByRole("status")).toContainText("1 note past the end went with the bar");
     await expect(roll.locator(".note[data-note]")).toHaveCount(3);
 
+    // A loop repeats the melody's first bar through the whole song.
+    await openPanel(page);
+    await page.getByLabel("Melody 1 loop").selectOption({ label: "Loop 1 bar" });
+    await expect(page.getByRole("status")).toContainText(
+      "Melody 1 repeats its first 1 bar through all 2 bars",
+    );
+    await expect(page.getByText("Melody, 3 notes, looping 1 bar")).toBeVisible();
+    await expect(roll.locator(".note.repeat")).toHaveCount(3);
+    // Drawing in the repeats edits the loop: the note lands in bar 1 and repeats.
+    await roll.locator(".repeats").waitFor();
+    const g = (await grid.boundingBox())!;
+    await page.mouse.click(g.x + 22 * 16 + 22 * 10 + 4, c4.y + c4.height / 2);
+    await expect(page.getByRole("status")).toContainText("in the loop, so every repeat changes");
+    await expect(roll.locator(".note[data-note]")).toHaveCount(4);
+    await expect(roll.locator(".note.repeat")).toHaveCount(4);
+    await page.mouse.click(g.x + 22 * 16 + 22 * 10 + 4, c4.y + c4.height / 2); // and off again
+    await expect(roll.locator(".note[data-note]")).toHaveCount(3);
+    await page.getByLabel("Melody 1 loop").selectOption({ label: "No loop" });
+    await expect(roll.locator(".note.repeat")).toHaveCount(0);
+    await page.getByRole("button", { name: "Done" }).click();
+
     // A second melody from the panel; the roll switches to it, the first as ghosts.
     await openPanel(page);
     await page.getByRole("button", { name: "Add melody" }).click();

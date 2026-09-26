@@ -37,6 +37,7 @@ import {
   rollNotes,
   rollRange,
   setLength,
+  voiceNotes,
   scoreToDoc,
   toggleNote,
   trackColour,
@@ -208,6 +209,35 @@ describe("piano roll", () => {
     expect(docToScore(d, "s").voices[0].clef).toBe("bass");
     expect(trackColour(6)).toBe(trackColour(0));
     expect(rollRange(d)).toEqual({ low: 36, high: 83 });
+  });
+});
+
+describe("looped melodies", () => {
+  it("repeat their first bars to fill the song, and play as written when the loop is off or too long", () => {
+    const v = {
+      id: "a",
+      name: "Bass",
+      velocity: 0.8,
+      loopBars: 1,
+      notes: [
+        { midi: 36, startBeat: 0, durationBeats: 1 },
+        { midi: 43, startBeat: 3, durationBeats: 2 }, // runs past the loop: cut at its end
+        { midi: 50, startBeat: 5, durationBeats: 1 }, // after the loop: not heard
+      ],
+    };
+    const looped = voiceNotes(v, 12);
+    expect(looped.map((n) => [n.midi, n.startBeat, n.durationBeats])).toEqual([
+      [36, 0, 1],
+      [43, 3, 1],
+      [36, 4, 1],
+      [43, 7, 1],
+      [36, 8, 1],
+      [43, 11, 1],
+    ]);
+    expect(voiceNotes({ ...v, loopBars: undefined }, 12)).toBe(v.notes);
+    expect(voiceNotes({ ...v, loopBars: 3 }, 12)).toBe(v.notes); // as long as the song
+    const d = { ...emptyDoc("a"), lengthBeats: 8, voices: [v] };
+    expect(rollNotes(d, 60).map((n) => n.time)).toEqual([0, 3, 4, 7]);
   });
 });
 

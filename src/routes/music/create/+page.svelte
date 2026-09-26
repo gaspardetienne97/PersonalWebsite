@@ -17,7 +17,7 @@
   import PianoRoll from "$lib/music/hubs/create/PianoRoll.svelte";
   import Tracks from "$lib/music/hubs/create/Tracks.svelte";
   import { MAX_SONG_BARS, session } from "$lib/music/hubs/create/session.svelte";
-  import { docToScore, scoreToDoc } from "$lib/music/hubs/create/roll";
+  import { docToScore, expandLoops, scoreToDoc } from "$lib/music/hubs/create/roll";
   import { download } from "$lib/music/hubs/create/files";
   import { fileStem, takeToScore, type MidiTake } from "$lib/music/takes";
   import { audio, db } from "$lib/music/runtime";
@@ -122,10 +122,11 @@
   }
 
   function exportMidi() {
-    const n = session.doc.voices.reduce((k, v) => k + v.notes.length, 0);
+    const full = expandLoops(session.doc); // loops written out
+    const n = full.voices.reduce((k, v) => k + v.notes.length, 0);
     if (!n) return announce("The melodies have no notes yet. MIDI export covers the melodies.");
     const name = `${fileStem(session.songName, "song")}.mid`;
-    download(scoreToMidi(docToScore({ ...session.doc, title: session.songName }, crypto.randomUUID())), name, "audio/midi");
+    download(scoreToMidi(docToScore({ ...full, title: session.songName }, crypto.randomUUID())), name, "audio/midi");
     announce(`Downloading ${name}: ${session.doc.voices.length} ${session.doc.voices.length === 1 ? "track" : "tracks"}, ${n} notes.`);
   }
   async function exportWav() {

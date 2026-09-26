@@ -15,7 +15,7 @@
   import { session, type TrackId } from "./session.svelte";
   import { barsOf, hitCount } from "./pattern";
   import { chordsIn, KEYS, progressionVoice, PROGRESSIONS } from "./progressions";
-  import { ROLL_SOUNDS, soundOf, trackColour, type RollVoice } from "./roll";
+  import { loopBeats, ROLL_SOUNDS, soundOf, trackColour, type RollVoice } from "./roll";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 
@@ -36,6 +36,16 @@
     session.updateVoice(v.id, (x) => ({ ...x, sound: sound as RollVoice["sound"] }));
     void audio.unlock().then(() => audio.playNote(60, 0.5, 0.8, sound as RollVoice["sound"]));
     announce(`${v.name} plays ${soundLabel(sound as RollVoice["sound"])}.`);
+  }
+
+  const LOOPS = [1, 2, 4, 8];
+  function setLoop(v: RollVoice, bars: number) {
+    session.updateVoice(v.id, (x) => ({ ...x, loopBars: bars || undefined }));
+    announce(
+      bars
+        ? `${v.name} repeats its first ${count(bars, "bar")} through all ${session.bars} bars of the song. Notes after bar ${bars} are not heard.`
+        : `${v.name} plays as written, without a loop.`,
+    );
   }
 
   function toggleBeat() {
@@ -99,7 +109,7 @@
     run();
   }
 
-  const row = "grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 rounded-2xl border border-ws-line bg-ws-surface p-2 sm:grid-cols-[auto_minmax(0,1fr)_11rem_auto_auto]";
+  const row = "grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 rounded-2xl border border-ws-line bg-ws-surface p-2 sm:grid-cols-[auto_minmax(0,1fr)_18rem_auto_auto]";
   const name = "min-h-9 w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 font-semibold hover:border-ws-line focus:border-ws-line";
   const soloing = (id: TrackId) => session.playing && session.only === id;
   const field = "min-h-11 min-w-0 rounded-lg border border-ws-line bg-ws-surface px-2 text-sm";
@@ -162,11 +172,17 @@
         {@render playButton(v.id, v.name, trackColour(i))}
         <div class="flex min-w-0 flex-col">
           <input class={name} aria-label="Name of {v.name}" value={v.name} onfocus={() => (session.picked.includes(v.id) ? (session.selected = v.id) : session.pick(v.id))} onchange={(e) => session.updateVoice(v.id, (x) => ({ ...x, name: e.currentTarget.value || x.name }))} />
-          <span class="px-1.5 text-xs text-ws-soft">Melody, {count(v.notes.length, "note")}{v.muted ? ", muted" : ""}</span>
+          <span class="px-1.5 text-xs text-ws-soft">Melody, {count(v.notes.length, "note")}{loopBeats(v, session.doc.lengthBeats) ? `, looping ${count(v.loopBars!, "bar")}` : ""}{v.muted ? ", muted" : ""}</span>
         </div>
-        <select class="{field} order-last col-span-4 sm:order-none sm:col-span-1" aria-label="{v.name} instrument" value={soundOf(v)} onchange={(e) => setSound(v, e.currentTarget.value)}>
-          {#each ROLL_SOUNDS as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
-        </select>
+        <div class="order-last col-span-4 grid grid-cols-2 gap-2 sm:order-none sm:col-span-1">
+          <select class={field} aria-label="{v.name} instrument" value={soundOf(v)} onchange={(e) => setSound(v, e.currentTarget.value)}>
+            {#each ROLL_SOUNDS as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
+          </select>
+          <select class={field} aria-label="{v.name} loop" value={String(loopBeats(v, session.doc.lengthBeats) ? v.loopBars : 0)} onchange={(e) => setLoop(v, Number(e.currentTarget.value))}>
+            <option value="0">No loop</option>
+            {#each LOOPS.filter((n) => n < session.bars) as n (n)}<option value={String(n)}>Loop {count(n, "bar")}</option>{/each}
+          </select>
+        </div>
         <button type="button" class={icon} aria-pressed={!!v.muted} aria-label="{v.muted ? 'Unmute' : 'Mute'} {v.name}" onclick={() => toggleMelody(v)}>
           {#if v.muted}<VolumeOff class="size-5" aria-hidden="true" />{:else}<Volume class="size-5" aria-hidden="true" />{/if}
         </button>

@@ -15,7 +15,44 @@ export interface RollVoice {
   /** The instrument this voice plays (default the sampled piano). */
   sound?: PlaybackSound;
   muted?: boolean;
+  /** Repeat the first this-many bars to fill the song (unset: play as written). */
+  loopBars?: number;
 }
+
+/** The loop's length in beats, or null when the voice plays as written. */
+export function loopBeats(v: Pick<RollVoice, "loopBars">, lengthBeats: number): number | null {
+  const beats = (v.loopBars ?? 0) * BAR_BEATS;
+  return beats > 0 && beats < lengthBeats ? beats : null;
+}
+
+/** A voice's notes over the whole song: its loop repeated, or the notes as written. */
+export function voiceNotes(v: RollVoice, lengthBeats: number): ScoreNote[] {
+  const period = loopBeats(v, lengthBeats);
+  if (!period) return v.notes;
+  const source = v.notes
+    .filter((n) => n.startBeat < period - 1e-6)
+    .map((n) => ({ ...n, durationBeats: Math.min(n.durationBeats, period - n.startBeat) }));
+  const out: ScoreNote[] = [];
+  for (let base = 0; base < lengthBeats - 1e-6; base += period)
+    for (const n of source)
+      if (base + n.startBeat < lengthBeats - 1e-6)
+        out.push({
+          ...n,
+          startBeat: base + n.startBeat,
+          durationBeats: Math.min(n.durationBeats, lengthBeats - base - n.startBeat),
+        });
+  return out;
+}
+
+/** The document with every loop written out (for export). */
+export const expandLoops = (doc: RollDoc): RollDoc => ({
+  ...doc,
+  voices: doc.voices.map((v) => ({
+    ...v,
+    notes: voiceNotes(v, doc.lengthBeats),
+    loopBars: undefined,
+  })),
+});
 
 /** What a voice can sound like. Bass and pad are here for backing tracks. */
 export const ROLL_SOUNDS: { value: PlaybackSound; label: string }[] = [
@@ -44,7 +81,7 @@ export function rollNotes(
   for (let base = 0; base < end; base += len)
     for (const v of doc.voices)
       if (!v.muted)
-        for (const n of v.notes)
+        for (const n of voiceNotes(v, len))
           if (base + n.startBeat < end)
             out.push({
               midi: n.midi,

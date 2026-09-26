@@ -34,7 +34,7 @@
   import { isBlackKey, noteName } from "@repo/music-core";
   import { audio } from "$lib/music/runtime";
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
-  import { noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
+  import { loopBeats, voiceNotes, noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
   import { STEP_BEATS } from "$lib/music/takes";
 
   let {
@@ -102,7 +102,11 @@
   const x = (beat: number) => (beat / STEP_BEATS) * stepW;
   const y = (midi: number) => (range.high - midi) * ROW_H;
   const where = (midi: number, beat: number) => `${noteName(midi)}, bar ${Math.floor(beat / BAR_BEATS) + 1} beat ${Math.floor(beat % BAR_BEATS) + 1}${beat % 1 ? ` and ${Math.round((beat % 1) / STEP_BEATS)} sixteenths` : ""}`;
-  const under = $derived(noteAt(active.notes, cursor.midi, cursor.step * STEP_BEATS));
+  // A looped melody: notes live in its first bars; the rest of the song repeats them.
+  const period = $derived(loopBeats(active, doc.lengthBeats));
+  const fold = (beat: number) => (period ? beat % period : beat);
+  const repeats = $derived(period ? voiceNotes(active, doc.lengthBeats).filter((n) => n.startBeat >= period - 1e-6) : []);
+  const under = $derived(noteAt(active.notes, cursor.midi, fold(cursor.step * STEP_BEATS)));
 
   onMount(() => scroller?.scrollTo({ top: y(72) - 8 }));
 
@@ -111,11 +115,12 @@
   }
 
   function toggleAt(midi: number, step: number) {
-    const beat = step * STEP_BEATS;
+    // In a loop's repeats, the edit goes to the loop itself, so every repeat follows.
+    const beat = fold(step * STEP_BEATS);
     const had = noteAt(active.notes, midi, beat) >= 0;
     set(toggleNote(doc, active.id, midi, beat, noteLen));
     if (!had && !playing) void audio.unlock().then(() => audio.playNote(midi, 0.4, active.velocity, soundOf(active)));
-    announce(`${had ? "Removed" : "Added"} ${where(midi, beat)} on ${active.name}.`);
+    announce(`${had ? "Removed" : "Added"} ${where(midi, beat)} on ${active.name}${period && step * STEP_BEATS >= period ? ", in the loop, so every repeat changes" : ""}.`);
   }
 
   // Pointer: draw toggles cells; resize drags a note's length.
@@ -131,6 +136,7 @@
     const c = cellOf(e);
     cursor = { midi: c.midi, step: c.step };
     if (tool === "draw") return toggleAt(c.midi, c.step);
+    if (period && c.beat >= period) return announce(`Resize notes in the loop, the first ${period / BAR_BEATS} bars; the repeats follow.`);
     const i = noteAt(active.notes, c.midi, c.step * STEP_BEATS);
     if (i < 0) return announce("Resize mode: drag a note of the selected voice to change its length. Switch to Draw to add notes.");
     grid.setPointerCapture?.(e.pointerId);
@@ -284,16 +290,23 @@
             {/each}
             {#each doc.voices as v, vi (v.id)}
               {#if v.id !== active.id && host.picked.includes(v.id)}
-                {#each v.notes as n, ni (ni)}
+                {#each voiceNotes(v, doc.lengthBeats) as n, ni (ni)}
                   {#if n.midi >= range.low && n.midi <= range.high}
                     <div class="note ghost" style:left="{x(n.startBeat)}px" style:top="{y(n.midi) + 3}px" style:width="{Math.max(4, x(n.durationBeats) - 1)}px" style:height="{ROW_H - 6}px" style:--c={trackColour(vi)}></div>
                   {/if}
                 {/each}
               {/if}
             {/each}
+            {#if period}
+              <div class="repeats" style:left="{x(period)}px" aria-hidden="true"><span>Loop repeats</span></div>
+              {#each repeats as n, ni (ni)}
+                <div class="note repeat" style:left="{x(n.startBeat)}px" style:top="{y(n.midi) + 2}px" style:width="{Math.max(6, x(n.durationBeats) - 1)}px" style:height="{ROW_H - 4}px" style:--c={trackColour(activeIndex)} style:--v={n.velocity ?? 0.8}></div>
+              {/each}
+            {/if}
             {#each active.notes as n, ni (ni)}
               <div
                 class="note"
+                class:unheard={period !== null && n.startBeat >= period - 1e-6}
                 data-note={n.midi}
                 style:left="{x(n.startBeat)}px"
                 style:top="{y(n.midi) + 2}px"
@@ -425,6 +438,36 @@
       inset 0 0 0 1px color-mix(in oklch, var(--c) 50%, black),
       inset 0 1px 0 #fff6;
     pointer-events: none;
+  }
+  /* The part of a looped melody's lane that repeats its first bars. */
+  .repeats {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-left: 2px dashed color-mix(in oklch, var(--ws-stage-ink) 55%, transparent);
+    background: color-mix(in oklch, var(--ws-stage-ink) 5%, transparent);
+    pointer-events: none;
+  }
+  .repeats span {
+    position: sticky;
+    top: 2rem; /* below the sticky bar ruler */
+    display: inline-block;
+    margin: 0.25rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--ws-stage);
+    background: color-mix(in oklch, var(--ws-stage-ink) 70%, transparent);
+  }
+  .note.repeat {
+    opacity: 0.45;
+  }
+  /* Written past the loop: kept, but not heard while the loop is on. */
+  .note.unheard {
+    opacity: 0.2;
+    outline: 1px dashed var(--ws-stage-ink);
   }
   .note.ghost {
     background: color-mix(in oklch, var(--c) 30%, transparent);
