@@ -57,6 +57,8 @@ export interface SavedVoice {
 
 /** A track: the beat, or a melody's id. */
 export type TrackId = "beat" | (string & {});
+/** What plays alone: one track, or "melodies" for the melodies picked in the roll. */
+export type PlayTarget = TrackId | "melodies";
 
 /** A song as it opens: one tempo throughout, and at least as long as its beat. */
 const normal = (s: CreateSong): CreateSong => ({
@@ -100,6 +102,8 @@ class CreateSession {
   beatMuted = $state(false);
   /** The melody the piano roll edits. */
   selected = $state("");
+  /** The melodies picked in the roll: shown there, and what "Play melodies" plays. */
+  picked = $state<string[]>([]);
   /** Whether the open song is in the songs list, and what it was when saved. */
   saved = $state(false);
   #savedContent = $state("");
@@ -110,7 +114,7 @@ class CreateSession {
 
   playing = $state(false);
   /** The one track playing on its own, or null when everything plays. */
-  only = $state<TrackId | null>(null);
+  only = $state<PlayTarget | null>(null);
   /** Performance-clock start of the current pass, and its length (ms). */
   passAt = $state(0);
   passMs = $state(0);
@@ -182,6 +186,7 @@ class CreateSession {
     this.doc = s.doc;
     this.beatMuted = s.beatMuted;
     this.selected = s.doc.voices[0]?.id ?? "";
+    this.picked = s.doc.voices.map((v) => v.id);
     this.saved = !!listed;
     this.#savedContent = listed ? contentOf(normal(listed)) : "";
   }
@@ -241,10 +246,12 @@ class CreateSession {
     const bars = this.loopBars;
     const only = this.only;
     const beat = only ? only === "beat" : !this.beatMuted;
+    const alone = (v: RollVoice) =>
+      only === "melodies" ? this.picked.includes(v.id) : v.id === only;
     const doc = only
       ? {
           ...this.doc,
-          voices: this.doc.voices.filter((v) => v.id === only).map((v) => ({ ...v, muted: false })),
+          voices: this.doc.voices.filter(alone).map((v) => ({ ...v, muted: false })),
         }
       : this.doc;
     return [
@@ -257,7 +264,7 @@ class CreateSession {
   }
 
   /** Play everything (null) or one track alone; the same again stops. */
-  async play(only: TrackId | null = null) {
+  async play(only: PlayTarget | null = null) {
     if (this.playing && this.only === only) return this.stop();
     if (this.playing) this.stop(); // switch straight away, not at the end of the pass
     this.only = only;
@@ -365,6 +372,7 @@ class CreateSession {
     const v = newVoice(this.doc.voices.length + 1, crypto.randomUUID());
     this.doc = { ...this.doc, voices: [...this.doc.voices, v] };
     this.selected = v.id;
+    this.picked = [...this.picked, v.id];
     return v;
   }
 
@@ -377,6 +385,29 @@ class CreateSession {
       voices: [...this.doc.voices, v],
     };
     this.selected = v.id;
+    this.picked = [...this.picked, v.id];
+  }
+
+  /**
+   * A tap on a melody in the roll: an unpicked one is picked and drawn on; a
+   * picked one becomes the one drawn on; the one drawn on is put down (unless
+   * it is the last).
+   */
+  pick(id: string): "picked" | "editing" | "dropped" | "last" {
+    if (!this.picked.includes(id)) {
+      this.picked = [...this.picked, id];
+      this.selected = id;
+      return "picked";
+    }
+    if (this.selected !== id) {
+      this.selected = id;
+      return "editing";
+    }
+    const rest = this.picked.filter((x) => x !== id);
+    if (!rest.length) return "last";
+    this.picked = rest;
+    this.selected = rest[rest.length - 1];
+    return "dropped";
   }
 
   updateVoice(id: string, fn: (v: RollVoice) => RollVoice) {
@@ -387,7 +418,11 @@ class CreateSession {
     const i = this.doc.voices.findIndex((v) => v.id === id);
     if (i < 0) return;
     this.doc = { ...this.doc, voices: this.doc.voices.filter((v) => v.id !== id) };
-    if (this.selected === id) this.selected = this.doc.voices[Math.max(0, i - 1)]?.id ?? "";
+    this.picked = this.picked.filter((x) => x !== id);
+    if (this.selected === id)
+      this.selected = this.picked[0] ?? this.doc.voices[Math.max(0, i - 1)]?.id ?? "";
+    if (this.selected && !this.picked.includes(this.selected))
+      this.picked = [...this.picked, this.selected];
     if (this.only === id) this.stop();
   }
 

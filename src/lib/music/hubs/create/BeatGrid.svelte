@@ -4,8 +4,10 @@
   // song bar plays it; the tracks list mutes it and picks its kit.
   import Plus from "lucide-svelte/icons/plus";
   import Minus from "lucide-svelte/icons/minus";
+  import Play from "lucide-svelte/icons/play";
+  import Square from "lucide-svelte/icons/square";
   import { audio } from "$lib/music/runtime";
-  import { btnStage } from "$lib/music/components/ui";
+  import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { session } from "./session.svelte";
@@ -29,6 +31,29 @@
   const pattern = $derived(session.pattern);
   const playhead = $derived(session.beatStep);
   const total = $derived(stepsOf(pattern));
+  let box: HTMLDivElement | undefined = $state();
+
+  // Turn the page when the playhead reaches the edge of the view (the row
+  // names stay pinned on the left, so they are left out of it).
+  $effect(() => {
+    const s = playhead;
+    const b = box;
+    if (!b || s < 0 || b.scrollWidth <= b.clientWidth) return;
+    const cell = b.querySelector<HTMLElement>(`thead th[data-step="${s}"]`);
+    const head = b.querySelector<HTMLElement>("thead th.rowhead");
+    if (!cell || !head) return;
+    const left = cell.getBoundingClientRect().left - b.getBoundingClientRect().left;
+    const pinned = head.offsetWidth;
+    if (left < pinned || left + cell.offsetWidth > b.clientWidth)
+      b.scrollTo({ left: b.scrollLeft + left - pinned - 4, behavior: "smooth" });
+  });
+
+  const soloing = $derived(session.playing && session.only === "beat");
+  async function playGroove() {
+    const ok = await session.play("beat");
+    if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
+    announce(session.playing ? `Playing the beat on its own at ${session.bpm} BPM.` : "Stopped.");
+  }
 
   const kit = $derived(kits.kit);
   const kitNotes = $derived(kits.notes);
@@ -90,6 +115,9 @@
 
 <section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label="Beat editor">
     <div class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
+      <button type="button" class={btnPrimary} aria-pressed={soloing} onclick={playGroove}>
+        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play groove{/if}
+      </button>
       <h2 class="min-w-0 flex-1 basis-40 truncate font-display text-xl font-semibold">{pattern.name}</h2>
       <select class={field} aria-label="Start from a preset" value="" onchange={(e) => { usePreset(e.currentTarget.value); e.currentTarget.value = ""; }}>
         <option value="" disabled>Presets</option>
@@ -102,13 +130,13 @@
       </div>
     </div>
 
-    <div class="relative overflow-x-auto pb-1" data-grid>
+    <div bind:this={box} class="relative overflow-x-auto scroll-pl-28 pb-1" data-grid>
       <table class="grid-table">
         <thead>
           <tr>
             <th scope="col" class="rowhead"><span class="sr-only">Voice</span></th>
             {#each Array.from({ length: total }, (_, i) => i) as s (s)}
-              <th scope="col" class="stephead" class:beat={s % 4 === 0} class:bar={s % STEPS === 0} data-now={playhead === s || undefined}>
+              <th scope="col" class="stephead" class:beat={s % 4 === 0} class:bar={s % STEPS === 0} data-step={s} data-now={playhead === s || undefined}>
                 <span aria-hidden="true">{s % STEPS === 0 ? `${s / STEPS + 1}.1` : s % 4 === 0 ? (s % STEPS) / 4 + 1 : ""}</span>
                 <span class="sr-only">Bar {Math.floor(s / STEPS) + 1}, step {(s % STEPS) + 1}</span>
               </th>

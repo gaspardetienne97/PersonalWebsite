@@ -161,7 +161,7 @@
       <li class={row} class:opacity-70={v.muted}>
         {@render playButton(v.id, v.name, trackColour(i))}
         <div class="flex min-w-0 flex-col">
-          <input class={name} aria-label="Name of {v.name}" value={v.name} onfocus={() => (session.selected = v.id)} onchange={(e) => session.updateVoice(v.id, (x) => ({ ...x, name: e.currentTarget.value || x.name }))} />
+          <input class={name} aria-label="Name of {v.name}" value={v.name} onfocus={() => (session.picked.includes(v.id) ? (session.selected = v.id) : session.pick(v.id))} onchange={(e) => session.updateVoice(v.id, (x) => ({ ...x, name: e.currentTarget.value || x.name }))} />
           <span class="px-1.5 text-xs text-ws-soft">Melody, {count(v.notes.length, "note")}{v.muted ? ", muted" : ""}</span>
         </div>
         <select class="{field} order-last col-span-4 sm:order-none sm:col-span-1" aria-label="{v.name} instrument" value={soundOf(v)} onchange={(e) => setSound(v, e.currentTarget.value)}>

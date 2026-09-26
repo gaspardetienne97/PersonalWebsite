@@ -99,6 +99,11 @@ test.describe("Create", () => {
     await expect(song.getByRole("button", { name: "Play all" })).toBeVisible();
     await page.getByRole("button", { name: "Stop Beat alone" }).click();
     await expect(page.getByRole("status")).toHaveText("Stopped.");
+    // The beat grid's own play button plays the groove alone.
+    await beat.getByRole("button", { name: "Play groove" }).click();
+    await expect(page.getByRole("status")).toContainText("Playing the beat on its own");
+    await beat.getByRole("button", { name: "Stop" }).click();
+    await expect(page.getByRole("status")).toHaveText("Stopped.");
     // Space plays and stops when focus is not on a control.
     await page.locator("h1").click();
     await page.keyboard.press("Space");
@@ -200,10 +205,31 @@ test.describe("Create", () => {
     // A second melody from the panel; the roll switches to it, the first as ghosts.
     await openPanel(page);
     await page.getByRole("button", { name: "Add melody" }).click();
-    await expect(
-      roll.getByRole("group", { name: "Melody to edit" }).getByRole("button", { name: "Melody 2" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    const chips = roll.getByRole("group", { name: "Melodies to hear and see" });
+    const m1 = chips.getByRole("button", { name: /^Melody 1/ });
+    const m2 = chips.getByRole("button", { name: /^Melody 2/ });
+    await expect(m2).toHaveAttribute("aria-pressed", "true");
+    await expect(m2).toHaveAccessibleName("Melody 2 (drawing on it)");
     await expect(roll.locator(".note.ghost")).toHaveCount(3);
+    // Tapping a picked melody draws on it; tapping the one drawn on puts it down.
+    await m1.click();
+    await expect(m1).toHaveAccessibleName("Melody 1 (drawing on it)");
+    await expect(roll.locator(".note:not(.ghost)[data-note]")).toHaveCount(3);
+    await m2.click();
+    await m2.click();
+    await expect(page.getByRole("status")).toContainText("Melody 2 put down");
+    await expect(m2).toHaveAttribute("aria-pressed", "false");
+    await expect(m1).toHaveAccessibleName("Melody 1 (drawing on it)");
+    await m1.click();
+    await expect(page.getByRole("status")).toContainText("the only melody picked");
+    await expect(m1).toHaveAttribute("aria-pressed", "true");
+    // Play melodies plays the picked ones, and the roll follows the playhead.
+    await roll.getByRole("button", { name: "Play melodies" }).click();
+    await expect(page.getByRole("status")).toContainText("Playing Melody 1 on its own");
+    await expect(roll.locator(".playhead")).toBeVisible();
+    await roll.getByRole("button", { name: "Stop" }).click();
+    await m2.click();
+    await expect(m2).toHaveAttribute("aria-pressed", "true");
     const [dl] = await Promise.all([
       page.waitForEvent("download"),
       page.getByRole("button", { name: "MIDI", exact: true }).click(),
@@ -242,6 +268,19 @@ test.describe("Create", () => {
     await expect(
       page.getByRole("button", { name: "Kick, bar 3 step 1", exact: true }),
     ).toBeVisible();
+    // Three bars do not fit: playing turns the grid's page to follow the playhead.
+    const beatGrid = page.locator("[data-grid]");
+    await page
+      .getByRole("region", { name: "Beat editor" })
+      .getByRole("button", { name: "Play groove" })
+      .click();
+    await expect
+      .poll(() => beatGrid.evaluate((el) => el.scrollLeft), { timeout: 15_000 })
+      .toBeGreaterThan(0);
+    await page
+      .getByRole("region", { name: "Beat editor" })
+      .getByRole("button", { name: "Stop" })
+      .click();
 
     // A bass line on its own instrument, saved to the library.
     await page.getByLabel("Melody 1 instrument").selectOption({ label: "Bass" });
@@ -307,6 +346,13 @@ test.describe("Create", () => {
     await expect(page.getByRole("status")).toContainText("Added Jazz in D: Em7, A7, Dmaj7, Dmaj7");
     await expect(page.getByLabel("Jazz in D instrument")).toHaveValue("e-piano");
     await expect(page.locator(".note[data-note]")).toHaveCount(16); // four 4-note chords
+    // Four bars are wider than the roll: it follows the playhead too.
+    const roll = page.getByRole("region", { name: "Melody editor" });
+    await roll.getByRole("button", { name: "Play melodies" }).click();
+    await expect
+      .poll(() => roll.locator(".roll").evaluate((el) => el.scrollLeft), { timeout: 15_000 })
+      .toBeGreaterThan(0);
+    await roll.getByRole("button", { name: "Stop" }).click();
     await shoot(page, "create-song");
 
     // Take it out of your songs (two taps); it stays open.

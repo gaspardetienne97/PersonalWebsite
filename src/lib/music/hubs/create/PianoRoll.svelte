@@ -1,14 +1,17 @@
 <script lang="ts">
-  // The melodies' note editor, over the canonical score: one melody at a time,
-  // the others as ghosts. The grid scrolls inside its own box (it never widens the page);
-  // a cursor gives it a keyboard path. The song bar plays it.
+  // The melodies' note editor, over the canonical score. Tap melodies to pick
+  // the ones you hear and see; you draw on one of them, the others show as
+  // ghosts. The grid scrolls inside its own box (it never widens the page) and
+  // follows the playhead; a cursor gives it a keyboard path.
   import { onMount } from "svelte";
   import Pencil from "lucide-svelte/icons/pencil";
   import MoveH from "lucide-svelte/icons/move-horizontal";
+  import Play from "lucide-svelte/icons/play";
+  import Square from "lucide-svelte/icons/square";
   import { isBlackKey, noteName } from "@repo/music-core";
   import { audio } from "$lib/music/runtime";
   import { session } from "./session.svelte";
-  import { btnStage } from "$lib/music/components/ui";
+  import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { BAR_BEATS, noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
   import { STEP_BEATS } from "$lib/music/takes";
 
@@ -35,6 +38,31 @@
   const playBeat = $derived(session.rollBeat);
   let grid: HTMLDivElement | undefined = $state();
   let scroller: HTMLDivElement | undefined = $state();
+
+  // Turn the page when the playhead reaches the edge of the view.
+  $effect(() => {
+    const s = scroller;
+    if (!s || playBeat < 0) return;
+    const px = KEY_W + x(playBeat);
+    if (px > s.scrollLeft + s.clientWidth - stepW || px < s.scrollLeft + KEY_W)
+      s.scrollTo({ left: px - KEY_W - stepW, behavior: "smooth" });
+  });
+
+  const soloing = $derived(session.playing && session.only === "melodies");
+  async function playMelodies() {
+    const ok = await session.play("melodies");
+    if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
+    const names = doc.voices.filter((v) => session.picked.includes(v.id)).map((v) => v.name);
+    announce(session.playing ? `Playing ${names.join(" and ")} on ${names.length === 1 ? "its" : "their"} own.` : "Stopped.");
+  }
+
+  function tap(v: { id: string; name: string }) {
+    const r = session.pick(v.id);
+    if (r === "picked") announce(`${v.name} picked: you hear it with the melodies, and new notes go on it.`);
+    else if (r === "editing") announce(`New notes go on ${v.name}.`);
+    else if (r === "dropped") announce(`${v.name} put down: Play melodies leaves it out.`);
+    else announce(`${v.name} is the only melody picked. Pick another before putting it down.`);
+  }
 
   const range = $derived(rollRange(doc));
   const rows = $derived(Array.from({ length: range.high - range.low + 1 }, (_, i) => range.high - i));
@@ -152,16 +180,25 @@
 
 <section class="stage rounded-3xl p-3 sm:p-4" aria-label="Melody editor">
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <div class="flex min-w-0 flex-1 basis-60 flex-wrap gap-1.5" role="group" aria-label="Melody to edit">
+      <button type="button" class={btnPrimary} aria-pressed={soloing} onclick={playMelodies}>
+        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play melodies{/if}
+      </button>
+      <div class="flex min-w-0 flex-1 basis-60 flex-wrap gap-1.5" role="group" aria-label="Melodies to hear and see">
         {#each doc.voices as v, i (v.id)}
+          {@const on = session.picked.includes(v.id)}
+          {@const editing = v.id === active.id}
           <button
             type="button"
-            class="flex min-h-10 max-w-48 items-center gap-2 rounded-full px-3 text-sm {v.id === active.id ? 'bg-ws-stage-ink/15 font-semibold text-ws-stage-ink' : 'text-ws-stage-soft hover:text-ws-stage-ink'}"
-            aria-pressed={v.id === active.id}
-            onclick={() => (session.selected = v.id)}
+            class="chip flex min-h-10 max-w-48 items-center gap-2 rounded-full px-3 text-sm"
+            class:on
+            class:editing
+            style:--c={trackColour(i)}
+            aria-pressed={on}
+            onclick={() => tap(v)}
           >
-            <span class="size-2.5 shrink-0 rounded-full" style:background={trackColour(i)} aria-hidden="true"></span>
+            <span class="dot size-2.5 shrink-0 rounded-full" aria-hidden="true"></span>
             <span class="truncate">{v.name}</span>
+            {#if editing}<Pencil class="size-3.5 shrink-0" aria-hidden="true" /><span class="sr-only">(drawing on it)</span>{/if}
           </button>
         {/each}
       </div>
@@ -216,7 +253,7 @@
               <div class="rowbg" class:black={isBlackKey(m)} style:top="{r * ROW_H}px" style:height="{ROW_H}px"></div>
             {/each}
             {#each doc.voices as v, vi (v.id)}
-              {#if v.id !== active.id}
+              {#if v.id !== active.id && session.picked.includes(v.id)}
                 {#each v.notes as n, ni (ni)}
                   {#if n.midi >= range.low && n.midi <= range.high}
                     <div class="note ghost" style:left="{x(n.startBeat)}px" style:top="{y(n.midi) + 3}px" style:width="{Math.max(4, x(n.durationBeats) - 1)}px" style:height="{ROW_H - 6}px" style:--c={trackColour(vi)}></div>
@@ -282,6 +319,28 @@
 </section>
 
 <style>
+  .chip {
+    color: var(--ws-stage-soft);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ws-stage-ink) 18%, transparent);
+  }
+  .chip:hover {
+    color: var(--ws-stage-ink);
+  }
+  .chip .dot {
+    box-shadow: inset 0 0 0 2px var(--c);
+  }
+  .chip.on {
+    color: var(--ws-stage-ink);
+    background: color-mix(in oklch, var(--c) 22%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--c) 55%, transparent);
+  }
+  .chip.on .dot {
+    background: var(--c);
+  }
+  .chip.editing {
+    font-weight: 600;
+    box-shadow: inset 0 0 0 2px var(--c);
+  }
   .roll {
     background: color-mix(in oklch, var(--ws-stage) 80%, black);
     box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
