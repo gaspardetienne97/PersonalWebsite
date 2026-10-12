@@ -519,13 +519,19 @@ const blobRuns = new Set<Run>();
 
 function playSequence(
   notes: SequenceNote[],
-  opts: { onNote?: (index: number, perfAt: number) => void } = {},
+  opts: {
+    onNote?: (index: number, perfAt: number) => void;
+    /** performance.now() time for `time: 0`, to line up with a clock already running (ignored when past). */
+    startPerf?: number;
+  } = {},
 ): SequenceHandle {
   currentSeq?.stop();
   currentSeq = null;
   const t = ready();
   if (!t || !graph) return idleHandle();
-  const c = clock(t);
+  const now = clock(t);
+  const lead = opts.startPerf ? Math.max(0, (opts.startPerf - now.startPerf) / 1000) : 0;
+  const c = { ...now, start: now.start + lead, startPerf: now.startPerf + lead * 1000 };
   const run = createRun(t, graph.playback, c.startPerf);
   currentSeq = run;
   const voiceFor = runVoices(t, run);

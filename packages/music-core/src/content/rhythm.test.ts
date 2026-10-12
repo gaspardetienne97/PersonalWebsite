@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { expandRhythm, pulseTargets, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "./rhythm";
+import {
+  EAR_RHYTHM_LEVELS,
+  earRhythmPattern,
+  expandRhythm,
+  pulseTargets,
+  RHYTHM_CELLS,
+  RHYTHM_PATTERNS,
+  rhythmPattern,
+  rhythmSkills,
+} from "./rhythm";
+import { rng } from "./random";
 
 const plan = (id: string, bpm: number, bars?: number) =>
   expandRhythm(rhythmPattern(id)!, { bpm, bars });
@@ -107,5 +117,32 @@ describe("rhythm patterns", () => {
     expect(pulseTargets(40, 60)).toHaveLength(16);
     expect(pulseTargets(2, 500)[1]).toBeCloseTo(60000 / 220);
     expect(rhythmSkills("pulse")).toEqual(["rhythm.subdivisions", "rhythm.quarter-pulse"]);
+  });
+});
+
+describe("rhythm by ear", () => {
+  it("fills each level's bars with its cells, never a rest first or twice in a row", () => {
+    for (const level of EAR_RHYTHM_LEVELS)
+      for (let seed = 1; seed <= 30; seed++) {
+        const p = earRhythmPattern(rng(seed), level.id);
+        const beats = p.cells.reduce((t, c) => t + RHYTHM_CELLS[c].beats, 0);
+        expect(beats).toBe(level.bars * 4);
+        expect(p.cells.every((c) => level.cells.includes(c))).toBe(true);
+        expect(p.cells[0]).not.toBe("rest");
+        p.cells.forEach(
+          (c, i) => i && expect(c === "rest" && p.cells[i - 1] === "rest").toBe(false),
+        );
+        // Every onset sits on the dictation grid unless it is a triplet.
+        if (!p.cells.includes("triplet"))
+          for (const e of p.events) expect((e.beat * level.perBeat) % 1).toBeCloseTo(0);
+        expect(expandRhythm(p, { bpm: 90 }).events).toHaveLength(p.events.length);
+      }
+  });
+
+  it("leaves triplets out of dictation", () => {
+    for (let seed = 1; seed <= 40; seed++)
+      expect(earRhythmPattern(rng(seed), "syncopation", { dictation: true }).cells).not.toContain(
+        "triplet",
+      );
   });
 });

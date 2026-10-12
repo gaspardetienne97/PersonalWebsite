@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import patterns from "../data/rhythm-patterns.json";
-import { gradePattern, gradePulse, type RhythmPattern } from "./rhythm";
+import { gradeOnsets, gradePattern, gradePulse, type RhythmPattern } from "./rhythm";
 
 const beats = [0, 500, 1000, 1500];
 
@@ -143,5 +143,14 @@ describe("gradePattern", () => {
     const silent = gradePattern(strum, hitsAt([0, 1, 2, 3]), clock);
     expect(silent.chords).toBeNull();
     expect(silent.notMeasured).toEqual(["chords"]);
+  });
+});
+
+describe("gradeOnsets", () => {
+  it("counts misses and extras against the matched onsets", () => {
+    expect(gradeOnsets([0, 1, 1.5, 2], [0, 1, 1.5, 2])).toMatchObject({ score: 1, correct: true });
+    const g = gradeOnsets([0, 1, 1.5, 2], [0, 1, 2, 3]);
+    expect(g.score).toBeCloseTo(3 / 5);
+    expect(g.correct).toBe(false);
   });
 });

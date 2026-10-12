@@ -1,20 +1,23 @@
 <script lang="ts">
-  // Rhythm: tap the pulse, or read a written pattern and tap it. Every input
-  // counts: the big tap button (pointer or Space), MIDI, microphone onsets.
+  // Rhythm: tap the pulse, read a written pattern and tap it, or hear one and
+  // tap it back (echo) or write it down (dictation). Every input counts: the
+  // big tap button (pointer or Space), MIDI, microphone onsets.
   import { onDestroy } from "svelte";
   import { page } from "$app/state";
   import type { InputEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
-  import { expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "@repo/music-core/content/rhythm";
+  import { EAR_RHYTHM_LEVELS, earRhythmPattern, expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "@repo/music-core/content/rhythm";
+  import type { RhythmPatternDef } from "@repo/music-core/data/index";
+  import { rng } from "@repo/music-core/content/random";
   import { catalogEntry, rhythmExerciseId } from "@repo/music-core/content/catalog";
-  import { gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
+  import { gradeOnsets, gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
   import { timingVerdict } from "@repo/music-core/scoring/timing";
   import { chroma, chromaToPcs } from "@repo/music-core/signal/chroma";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
-  import { btn } from "$lib/music/components/ui";
+  import { btn, btnPrimary } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -22,7 +25,7 @@
   import RhythmGrid, { type GridHit, type GridVerdict } from "$lib/music/drills/rhythm/RhythmGrid.svelte";
   import { demoNotes, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
 
-  const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "quarter-pulse", beats: 4, mic: false as boolean });
+  const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "quarter-pulse", beats: 4, mic: false as boolean, earLevel: "quarters-eighths" });
   const s = $derived(cfg.value);
   // A path step can ask for a tempo (?bpm=72); the practice strip owns tempo, so hand it over.
   {
@@ -31,8 +34,16 @@
   }
   const bpm = $derived(clamp(settings.value.bpm, RHYTHM_LIMITS.bpm[0], RHYTHM_LIMITS.bpm[1]));
   const beatMs = $derived(60000 / bpm);
-  const pulse = $derived(s.mode !== "read-and-tap");
-  const def = $derived(rhythmPattern(s.pattern) ?? RHYTHM_PATTERNS[0]);
+  /** Echo and dictation: the pattern is heard, not read. */
+  const echo = $derived(s.mode === "echo");
+  const dictation = $derived(s.mode === "dictation");
+  const byEar = $derived(echo || dictation);
+  const pulse = $derived(s.mode !== "read-and-tap" && !byEar);
+  const earLevel = $derived(EAR_RHYTHM_LEVELS.find((l) => l.id === s.earLevel) ?? EAR_RHYTHM_LEVELS[0]);
+  // A new pattern each run; before the first, an example of the level (for the demo).
+  let earDef = $state.raw<RhythmPatternDef | null>(null);
+  const earExample = $derived(earRhythmPattern(rng(7), earLevel.id, { dictation }));
+  const def = $derived(byEar ? (earDef ?? earExample) : (rhythmPattern(s.pattern) ?? RHYTHM_PATTERNS[0]));
   const plan = $derived(expandRhythm(def, { bpm }));
   const beats = $derived(clamp(Math.round(s.beats), RHYTHM_LIMITS.beats[0], RHYTHM_LIMITS.beats[1]));
   const entry = catalogEntry("rhythm")!;
@@ -113,9 +124,15 @@
     summary = null;
     pulseResult = null;
     patternResult = null;
+    dictationResult = null;
     hits = [];
     downbeat = ctx.downbeat;
     stopClockRef = ctx.stopClock;
+    if (byEar) {
+      earDef = earRhythmPattern(Math.random, earLevel.id, { dictation });
+      marks = [];
+      writing = false;
+    }
     if (s.mic) {
       const ok = await mic.start();
       if (!ok) {
@@ -130,21 +147,44 @@
         if (frames.length > 24) frames.shift();
       });
     }
+    const earMode = byEar ? entry.modes.find((m) => m.id === s.mode)! : null;
     run = practice.beginRun({
-      exerciseId: pulse ? entry.modes.find((m) => m.id === "pulse")!.exerciseId : rhythmExerciseId(def.id),
-      setupKey: pulse ? `pulse|${beats}|${bpm}` : `pattern|${def.id}|${bpm}`,
-      skillIds: rhythmSkills(pulse ? "pulse" : def.id),
+      exerciseId: earMode ? earMode.exerciseId : pulse ? entry.modes.find((m) => m.id === "pulse")!.exerciseId : rhythmExerciseId(def.id),
+      setupKey: earMode ? `${s.mode}|${earLevel.id}|${bpm}` : pulse ? `pulse|${beats}|${bpm}` : `pattern|${def.id}|${bpm}`,
+      skillIds: earMode ? earMode.skillIds : rhythmSkills(pulse ? "pulse" : def.id),
       capabilities: ["rhythm"],
       modality: "tapped",
       assistance: assistanceFor(mode),
       difficulty: Math.min(0.9, 0.2 + (bpm - 40) / 300 + (pulse ? 0 : 0.15)),
-      params: pulse ? { mode: "pulse", beats, bpm } : { mode: "read-and-tap", pattern: def.id, bpm },
+      params: byEar ? { mode: s.mode, level: earLevel.id, bpm } : pulse ? { mode: "pulse", beats, bpm } : { mode: "read-and-tap", pattern: def.id, bpm },
     });
-    cap = capture(ctx.downbeat - windowMs, onInput);
+    if (byEar) {
+      // The call: the pattern on its own sound, from the first downbeat, over the click.
+      call = audio.playSequence(
+        demoNotes(plan).filter((n) => n.voice !== "click"),
+        { startPerf: ctx.downbeat },
+      );
+      if (dictation) {
+        status = "Listen to the pattern. Then write it down.";
+        timers.push(
+          setTimeout(() => {
+            ctx.stopClock();
+            writing = true;
+            status = "Mark every note you heard on the grid, then check it.";
+          }, Math.max(0, ctx.downbeat + plan.lengthMs - performance.now() + 150)),
+        );
+        return;
+      }
+      // Echo: your turn starts the bar after the pattern ends.
+      downbeat = ctx.downbeat + plan.lengthMs;
+      status = "Listen to the pattern. Tap it back in the next bars.";
+      timers.push(setTimeout(() => phase === "running" && (status = "Your turn: tap it back."), Math.max(0, downbeat - performance.now())));
+    }
+    cap = capture(downbeat - windowMs, onInput);
     // Silent bars (gap click): stop the click where the schedule goes quiet.
     const silent = pulse ? undefined : plan.clicks.find((c) => !c.audible);
     if (silent) timers.push(setTimeout(() => ctx.stopClock(), Math.max(0, ctx.downbeat + silent.atMs - performance.now() - 20)));
-    status = pulse ? `Tap ${beats} beats with the click.` : `Tap the pattern: ${def.label}.`;
+    if (!echo) status = pulse ? `Tap ${beats} beats with the click.` : `Tap the pattern: ${def.label}.`;
     loop();
   }
 
@@ -161,6 +201,8 @@
 
   function teardown() {
     cancelAnimationFrame(raf);
+    call?.stop();
+    call = null;
     timers.forEach(clearTimeout);
     timers = [];
     cap?.stop();
@@ -255,8 +297,60 @@
     status = summary.headline;
   }
 
+  // ---------------------------------------------------------------------------
+  // Dictation: mark the onsets on a grid, a box per eighth (or sixteenth).
+
+  let call: { stop(): void } | null = null;
+  let writing = $state(false);
+  let marks = $state<boolean[]>([]);
+  let dictationResult = $state.raw<ReturnType<typeof gradeOnsets> | null>(null);
+  const cellsPerBar = $derived(4 * earLevel.perBeat);
+  const COUNTS = { 2: ["", "&"], 4: ["", "e", "&", "a"] } as const;
+  const cellLabel = (i: number) => {
+    const sub = i % earLevel.perBeat;
+    return sub ? COUNTS[earLevel.perBeat][sub] : String(Math.floor(i / earLevel.perBeat) % 4 + 1);
+  };
+  const heardBeats = $derived(def.events.map((e) => e.beat));
+  const isHeard = (i: number) => heardBeats.some((b) => Math.abs(b - i / earLevel.perBeat) < 1e-6);
+
+  function hearAgain() {
+    stopDemo();
+    call?.stop();
+    call = audio.playSequence(demoNotes(plan));
+  }
+
+  async function checkDictation() {
+    if (!run || !writing) return;
+    writing = false;
+    call?.stop();
+    const answered = marks.flatMap((on, i) => (on ? [i / earLevel.perBeat] : []));
+    const r = gradeOnsets(heardBeats, answered);
+    dictationResult = r;
+    phase = "results";
+    await run.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: "click", target: heardBeats.join(" "), response: answered.join(" "), instrument: null });
+    const fin = await run.finish({ score: r.score, correct: r.correct, headline: pct(r.score) });
+    const right = answered.filter((b) => heardBeats.some((h) => Math.abs(h - b) < 1e-6)).length;
+    summary = {
+      headline: r.correct ? `All ${heardBeats.length} notes written right.` : `${right} of ${heardBeats.length} notes right${answered.length > right ? `, ${answered.length - right} extra` : ""}.`,
+      metric: pct(r.score),
+      metricLabel: "score",
+      delta: fin.delta,
+      best: fin.best,
+      clean: r.correct && mode === "check",
+      xp: fin.xp,
+      assistance: assistanceText(mode),
+      rows: [
+        { label: "Notes found", value: heardBeats.length ? right / heardBeats.length : 0, text: `${right} of ${heardBeats.length}` },
+        { label: "Extra marks", text: String(answered.length - right) },
+      ],
+      routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+    };
+    status = summary.headline;
+  }
+
   function stop() {
     teardown();
+    writing = false;
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
   }
@@ -296,7 +390,8 @@
   // ---------------------------------------------------------------------------
   // What the grid draws
 
-  const gridEvents = $derived(pulse ? targetsRel.map((_, i) => ({ beat: i, accent: i % 4 === 0 })) : plan.events.map((e) => ({ beat: e.beat, accent: e.accent, stroke: e.stroke, duration: e.durationMs ? e.durationMs / beatMs : undefined })));
+  const hidden = $derived(byEar && phase !== "results");
+  const gridEvents = $derived(hidden ? [] : pulse ? targetsRel.map((_, i) => ({ beat: i, accent: i % 4 === 0 })) : plan.events.map((e) => ({ beat: e.beat, accent: e.accent, stroke: e.stroke, duration: e.durationMs ? e.durationMs / beatMs : undefined })));
   const bars = $derived(pulse ? Math.ceil(beats / 4) : plan.bars);
   const perBar = $derived(pulse ? 4 : def.meter.beats);
   const chordMarks = $derived(pulse ? [] : plan.chords.map((c) => ({ symbol: c.symbol, startBeat: c.startMs / beatMs })));
@@ -341,7 +436,7 @@
   });
   const playhead = $derived(demo?.playing && lit !== null ? gridEvents[lit]?.beat ?? null : phase === "running" && mode === "practice" && now >= downbeat ? toBeat(now) : null);
 
-  const summaryLine = $derived(pulse ? `Pulse, ${beats} beats at ${bpm} BPM${s.mic ? ", microphone on" : ""}` : `${def.label}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM${s.mic ? ", microphone on" : ""}`);
+  const summaryLine = $derived(byEar ? `${echo ? "Echo" : "Dictation"}, ${earLevel.title.toLowerCase()}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM` : pulse ? `Pulse, ${beats} beats at ${bpm} BPM${s.mic ? ", microphone on" : ""}` : `${def.label}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM${s.mic ? ", microphone on" : ""}`);
 </script>
 
 <svelte:head><title>Rhythm | Woodshed</title></svelte:head>
@@ -350,7 +445,13 @@
 <DrillShell
   title="Rhythm"
   hue="rhythm"
-  blurb={pulse ? "Tap the beat with the click. You'll see whether you sit ahead, behind or in the middle." : "Read the rhythm and tap it. Rests are part of the music: a tap in one costs points."}
+  blurb={echo
+    ? "Hear a rhythm over the click, then tap it back in the bars after it."
+    : dictation
+      ? "Hear a rhythm over the click, then mark where every note fell."
+      : pulse
+        ? "Tap the beat with the click. You'll see whether you sit ahead, behind or in the middle."
+        : "Read the rhythm and tap it. Rests are part of the music: a tap in one costs points."}
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -369,11 +470,15 @@
         options={[
           { value: "pulse", label: "Pulse" },
           { value: "read-and-tap", label: "Read and tap" },
+          { value: "echo", label: "Echo" },
+          { value: "dictation", label: "Dictation" },
         ]}
-        value={pulse ? "pulse" : "read-and-tap"}
+        value={byEar ? s.mode : pulse ? "pulse" : "read-and-tap"}
         onchange={(v) => cfg.set({ mode: v })}
       />
-      {#if pulse}
+      {#if byEar}
+        <Choice label="Rhythms" select options={EAR_RHYTHM_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={earLevel.id} onchange={(v) => cfg.set({ earLevel: v })} />
+      {:else if pulse}
         <Choice label="Beats" select options={Array.from({ length: 15 }, (_, i) => ({ value: i + 2, label: `${i + 2} beats` }))} value={beats} onchange={(v) => cfg.set({ beats: v })} />
       {:else}
         <Choice label="Pattern" select options={RHYTHM_PATTERNS.map((p) => ({ value: p.id, label: p.label }))} value={def.id} onchange={(v) => cfg.set({ pattern: v })} />
@@ -394,7 +499,7 @@
   {/snippet}
 
   {#snippet hud()}
-    {#if phase === "running"}
+    {#if phase === "running" && !dictation}
       <Stat label="Taps" value={hits.length} />
       {#if mode === "practice" && hits.length}
         {@const k = liveKind(hits.at(-1)!.at)}
@@ -405,7 +510,8 @@
 
   {#snippet stage()}
     <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 md:grid-cols-[minmax(0,1fr)_auto]">
-      <div class="min-w-0">
+      <!-- By ear, the pattern and its start ride along as data (for tests and tools), never drawn until the end. -->
+      <div class="min-w-0" data-onsets={byEar ? heardBeats.join(",") : undefined} data-downbeat={byEar ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
         {#if !pulse && def.chords?.length}
           <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are graded when the mic or MIDI hears pitch.</p>
         {/if}
@@ -413,16 +519,44 @@
           {bars}
           {perBar}
           events={gridEvents}
-          rests={pulse ? [] : def.rests}
+          rests={pulse || hidden ? [] : def.rests}
           chords={chordMarks}
           hits={gridHits}
           verdicts={phase === "results" ? verdicts : []}
           {playhead}
           {lit}
-          label={pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} strokes and ${def.rests.length} rests`}
+          label={hidden ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the pattern hidden until the end` : pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} strokes and ${def.rests.length} rests`}
         />
+        {#if dictation && (writing || dictationResult)}
+          <div class="mt-3 space-y-2" role="group" aria-label="Your rhythm">
+            {#each Array.from({ length: plan.bars }, (_, b) => b) as bar (bar)}
+              <div class="grid gap-1" style:grid-template-columns="repeat({cellsPerBar}, minmax(0, 1fr))">
+                {#each Array.from({ length: cellsPerBar }, (_, k) => bar * cellsPerBar + k) as i (i)}
+                  {@const on = !!marks[i]}
+                  <button
+                    type="button"
+                    class="cell"
+                    class:beat={i % earLevel.perBeat === 0}
+                    data-state={dictationResult ? (on && isHeard(i) ? "right" : on ? "extra" : isHeard(i) ? "missed" : null) : null}
+                    aria-pressed={on}
+                    aria-label="Bar {bar + 1}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / earLevel.perBeat) + 1}"
+                    disabled={!writing}
+                    onclick={() => (marks[i] = !on)}
+                  >{cellLabel(i)}</button>
+                {/each}
+              </div>
+            {/each}
+            {#if writing}
+              <div class="flex flex-wrap gap-2 pt-1">
+                <button type="button" class={btnPrimary} onclick={checkDictation}>Check my rhythm</button>
+                <button type="button" class={btn} onclick={hearAgain}>Hear it again</button>
+                <button type="button" class={btn} onclick={() => (marks = [])}>Clear</button>
+              </div>
+            {/if}
+          </div>
+        {/if}
       </div>
-      <div class="flex flex-col items-center gap-2">
+      <div class="flex flex-col items-center gap-2" class:hidden={dictation}>
         <button
           type="button"
           class="tap"
@@ -498,6 +632,31 @@
   .tap:focus-visible {
     outline: 3px solid var(--ws-stage-ink);
     outline-offset: 4px;
+  }
+  .cell {
+    min-height: 2.6rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
+    border: 2px solid transparent;
+  }
+  .cell.beat {
+    background: color-mix(in oklch, var(--ws-stage-ink) 14%, transparent);
+    font-weight: 700;
+  }
+  .cell[aria-pressed="true"] {
+    background: var(--instr);
+    color: var(--ws-stage);
+  }
+  .cell[data-state="right"] {
+    border-color: var(--success);
+  }
+  .cell[data-state="extra"] {
+    border-color: var(--destructive);
+  }
+  .cell[data-state="missed"] {
+    border-color: var(--destructive);
+    border-style: dashed;
   }
   .chip {
     display: inline-flex;

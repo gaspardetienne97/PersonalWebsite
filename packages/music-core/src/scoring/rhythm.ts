@@ -237,3 +237,29 @@ export function gradePattern(
     chords: chords?.map(({ symbol, held, missing }) => ({ symbol, held, missing })) ?? null,
   };
 }
+
+/**
+ * A rhythm written down on a grid: the onsets (in beats) against the heard
+ * ones. Score is the matched share of everything either side has (a missing
+ * onset and an extra one both count against it); right only when equal.
+ */
+export function gradeOnsets(expected: readonly number[], answered: readonly number[]): Graded {
+  const key = (b: number) => Math.round(b * 12);
+  const want = new Set(expected.map(key));
+  const got = new Set(answered.map(key));
+  const matched = [...got].filter((b) => want.has(b)).length;
+  const union = new Set([...want, ...got]).size;
+  const score = union ? matched / union : 1;
+  return {
+    score,
+    correct: score === 1,
+    metrics: [
+      {
+        kind: "choice",
+        expected: [...want].sort((a, b) => a - b).join(),
+        actual: [...got].sort((a, b) => a - b).join(),
+      },
+    ],
+    notMeasured: ["timing"],
+  };
+}

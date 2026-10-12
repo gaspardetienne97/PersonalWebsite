@@ -649,6 +649,24 @@ APP_SKILLS.push({
   tags: ["ear", "melody", "error-detection"],
   version: 1,
 });
+APP_SKILLS.push(
+  {
+    id: "ear.rhythm-echo",
+    name: "Rhythm echo: hear it, tap it back",
+    capability: "rhythm",
+    level: "beginner",
+    tags: ["ear", "rhythm"],
+    version: 1,
+  },
+  {
+    id: "ear.rhythm-dictation",
+    name: "Rhythm dictation: hear it, write it",
+    capability: "rhythm",
+    level: "early-intermediate",
+    tags: ["ear", "rhythm", "dictation"],
+    version: 1,
+  },
+);
 const APP_RELATIONSHIPS: SkillRelationship[] = [
   ...POSITION_NAMES.map(([t]) => ({
     from: "ear.inversions",

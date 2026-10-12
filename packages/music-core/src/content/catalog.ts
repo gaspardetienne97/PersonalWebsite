@@ -146,7 +146,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "rhythm",
     route: "/music/rhythm",
     title: "Rhythm",
-    blurb: "Tap a steady pulse with the click, or read a written pattern and tap it.",
+    blurb: "Tap a steady pulse, read a pattern and tap it, or hear one and tap or write it back.",
     instruments: [...INSTRUMENTS],
     capability: "rhythm",
     modality: "tapped",
@@ -158,6 +158,11 @@ export const CATALOG: CatalogEntry[] = [
         rhythmExerciseId("quarter-pulse"),
         uniq(RHYTHM_PATTERNS.flatMap((p) => rhythmSkills(p.id))),
       ),
+      mode("echo", "Echo", "rhythm.echo", ["rhythm.subdivisions", "ear.rhythm-echo"]),
+      mode("dictation", "Dictation", "rhythm.dictation", [
+        "rhythm.subdivisions",
+        "ear.rhythm-dictation",
+      ]),
     ],
   }),
   entry({
