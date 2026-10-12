@@ -204,7 +204,8 @@ describe("full backup", () => {
 
   it("aborts on a damaged payload (hash mismatch)", async () => {
     const zipBytes = await buildFullBackup(data(), blobs());
-    const at = new TextDecoder().decode(zipBytes).indexOf("hello");
+    // A single-byte decoding keeps string and byte indices equal (UTF-8 would merge invalid bytes).
+    const at = new TextDecoder("latin1").decode(zipBytes).indexOf("hello");
     zipBytes[at] = "j".charCodeAt(0);
     expect(await readFullBackup(zipBytes)).toMatchObject({
       ok: false,
