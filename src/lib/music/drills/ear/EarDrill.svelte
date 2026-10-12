@@ -9,6 +9,7 @@
   import {
     EAR_DEFAULT_CONFIG,
     EAR_DRILLS,
+    EAR_INTERVALS,
     SCALE_DEGREE_LEVELS,
     SCALE_DEGREES,
     phrasesFromScore,
@@ -82,6 +83,7 @@
   const modes = (slug === "mixed" ? [...def.answerModes, "voice"] : def.answerModes) as AnswerMode[];
   const KIND_OF: Record<string, EarKind> = {
     intervals: "interval",
+    "interval-compare": "interval-compare",
     "chord-qualities": "chord-quality",
     cadences: "cadence",
     "scale-degrees": "scale-degree",
@@ -93,6 +95,9 @@
     level: EAR_DEFAULT_CONFIG.scaleDegreeSet as string,
     labels: EAR_DEFAULT_CONFIG.scaleDegreeLabelMode as string,
     drill: "all" as string,
+    // Intervals drill: which intervals (comma list, empty for the twelve) and which way.
+    intervals: "" as string,
+    direction: "auto" as string,
   });
   const s = $derived(cfg.value);
   const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) ? (s.answer as AnswerMode) : modes[0]);
@@ -106,6 +111,37 @@
     // Cadences have no play-back answer.
     return answer === "play-back" ? picked.filter((k) => k !== "cadence") : picked;
   });
+
+  // Practise a few intervals at a time instead of all twelve at once.
+  const TWELVE = EAR_INTERVALS.filter((i) => i.token !== "P1").map((i) => i.token as string);
+  const INTERVAL_SETS = [
+    { label: "All twelve", tokens: TWELVE },
+    { label: "Perfect", tokens: ["P1", "P4", "P5", "P8"] },
+    { label: "Thirds and sixths", tokens: ["m3", "M3", "m6", "M6"] },
+    { label: "Seconds and sevenths", tokens: ["m2", "M2", "m7", "M7"] },
+  ];
+  const DIRECTIONS = [
+    { value: "auto", label: "Mixed" },
+    { value: "ascending", label: "Up" },
+    { value: "descending", label: "Down" },
+    { value: "harmonic", label: "Together" },
+  ];
+  const pickedIntervals = $derived.by(() => {
+    const listed = s.intervals.split(",").filter((t) => EAR_INTERVALS.some((i) => i.token === t));
+    return listed.length ? EAR_INTERVALS.map((i) => i.token as string).filter((t) => listed.includes(t)) : TWELVE;
+  });
+  const focus = $derived(
+    slug === "intervals"
+      ? { intervals: pickedIntervals, direction: s.direction === "auto" ? undefined : (s.direction as "ascending" | "descending" | "harmonic") }
+      : undefined,
+  );
+  function toggleInterval(t: string) {
+    const on = pickedIntervals.includes(t);
+    if (on && pickedIntervals.length === 1) return; // keep at least one
+    const next = on ? pickedIntervals.filter((x) => x !== t) : [...pickedIntervals, t];
+    cfg.set({ intervals: EAR_INTERVALS.map((i) => i.token as string).filter((x) => next.includes(x)).join(",") });
+  }
+  const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -173,11 +209,13 @@
     }
     if (p.drill === "scale-degree" || p.drill === "melody-dictation" || p.drill === "repertoire-transfer")
       return `Tonic ${noteName(tonicOf(p), "flat", false)}${p.phrase ? `, from ${p.phrase.title}` : ""}`;
-    return p.drill === "interval" ? "Two notes" : "One chord";
+    return p.drill === "interval" ? "Two notes" : p.drill === "interval-compare" ? "Two intervals, one after the other" : "One chord";
   };
   const ask = (p: Prompt) =>
     p.drill === "interval"
       ? "What interval was that?"
+      : p.drill === "interval-compare"
+        ? "Which interval was bigger?"
       : p.drill === "chord-quality"
         ? "What quality is the chord?"
         : p.drill === "cadence"
@@ -246,7 +284,7 @@
 
   function sample(): Prompt | null {
     if (slug === "repertoire-transfer") return planPhrases[0] ? { ...repertoirePrompt(planPhrases[0]), phrase: planPhrases[0] } : null;
-    return buildSession({ kinds, level, mode: "balanced", mastery: practice.mastery, summaries: {}, now: Date.now(), rand, length: 1 })[0] ?? null;
+    return buildSession({ kinds, level, mode: "balanced", mastery: practice.mastery, summaries: {}, now: Date.now(), rand, length: 1, focus })[0] ?? null;
   }
 
   async function playDemo() {
@@ -304,6 +342,7 @@
       summaries: skillSummaries(practice.stats, { independentOnly: true }),
       now: Date.now(),
       rand,
+      focus,
     });
   }
 
@@ -606,6 +645,9 @@
     [
       MODE_LABEL[answer],
       slug === "mixed" ? (kinds.length === 4 ? "all four drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
+      slug === "intervals"
+        ? `${INTERVAL_SETS.find((x) => sameSet(x.tokens, pickedIntervals))?.label.toLowerCase() ?? pickedIntervals.join(" ")}${s.direction === "auto" ? "" : `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}`}`
+        : null,
       def.usesScaleDegreeLevel ? SCALE_DEGREE_LEVELS.find((l) => l.id === level)?.title : null,
       def.usesLabels ? (labels === "solfege" ? "solfège labels" : "degree labels") : null,
       "10 prompts",
@@ -656,6 +698,34 @@
           value={s.drill}
           onchange={(v) => cfg.set({ drill: v })}
         />
+      {/if}
+      {#if slug === "intervals"}
+        <div class="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2" role="group" aria-labelledby="iv-label">
+          <span id="iv-label" class="font-medium">Intervals to practise</span>
+          <div class="flex flex-wrap gap-1.5" role="group" aria-label="Interval sets">
+            {#each INTERVAL_SETS as set (set.label)}
+              {@const on = sameSet(set.tokens, pickedIntervals)}
+              <button type="button" class="min-h-10 rounded-full border px-3 text-sm {on ? 'border-instr bg-instr-wash font-semibold' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => cfg.set({ intervals: set.tokens.join(",") })}>{set.label}</button>
+            {/each}
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            {#each EAR_INTERVALS as iv (iv.token)}
+              {@const on = pickedIntervals.includes(iv.token)}
+              <button
+                type="button"
+                class="flex min-h-11 flex-col items-start justify-center rounded-lg border px-3 py-1 text-left {on ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-line bg-ws-surface text-ws-soft hover:bg-ws-raised'}"
+                aria-pressed={on}
+                aria-label={iv.name}
+                onclick={() => toggleInterval(iv.token)}
+              >
+                <span class="font-semibold leading-tight">{iv.token}</span>
+                <span class="text-xs leading-tight">{iv.name}</span>
+              </button>
+            {/each}
+          </div>
+          <span class="text-ws-soft">{pickedIntervals.length === 1 ? "One interval: every prompt is this one, among all the answers." : `${pickedIntervals.length} intervals: only these play, and only these are the answers.`}</span>
+        </div>
+        <Choice label="Direction" options={DIRECTIONS} value={s.direction} onchange={(v) => cfg.set({ direction: v })} />
       {/if}
       {#if def.usesScaleDegreeLevel}
         <Choice label="Degree level" select options={SCALE_DEGREE_LEVELS.map((l) => ({ value: l.id, label: `${l.title}: ${l.summary}` }))} value={level} onchange={(v) => cfg.set({ level: v })} />
@@ -710,11 +780,16 @@
         {#if showAnswer || hinted}
           <p class="answer mt-1 text-lg font-semibold">
             {#if rec && !rec.correct && step === "feedback"}
-              <span class="verdict wrong" aria-hidden="true">✕</span> It was {tokenLabel(p.drill, p.answer, labels)}{#if rec.answered}. You answered {tokenLabel(p.drill, rec.answered, labels)}{/if}.
+              <span class="verdict wrong" aria-hidden="true">✕</span>
+              {#if p.drill === "interval-compare"}
+                {tokenLabel(p.drill, p.answer)}.{#if rec.answered} You chose: {tokenLabel(p.drill, rec.answered).toLowerCase()}.{/if}
+              {:else}
+                It was {tokenLabel(p.drill, p.answer, labels)}{#if rec.answered}. You answered {tokenLabel(p.drill, rec.answered, labels)}{/if}.
+              {/if}
             {:else if rec?.correct && step === "feedback"}
               <span class="verdict right" aria-hidden="true">✓</span> Right: {tokenLabel(p.drill, p.answer, labels)}.
             {:else}
-              {hinted && !showAnswer ? "Listen for" : "It is"} {tokenLabel(p.drill, p.answer, labels)}.
+              {#if p.drill === "interval-compare"}{tokenLabel(p.drill, p.answer)}.{:else}{hinted && !showAnswer ? "Listen for" : "It is"} {tokenLabel(p.drill, p.answer, labels)}.{/if}
             {/if}
           </p>
           {#if (p.drill === "melody-dictation" || p.drill === "repertoire-transfer") && (step === "feedback" || answer === "listen-along")}

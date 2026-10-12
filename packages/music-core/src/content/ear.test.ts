@@ -6,7 +6,9 @@ import {
   degreeLabel,
   EAR_DRILLS,
   EAR_PATH,
+  intervalComparePrompt,
   intervalPrompt,
+  EAR_INTERVALS,
   melodyDictationPrompt,
   phrasesFromScore,
   rankPhrases,
@@ -162,10 +164,11 @@ describe("melody dictation", () => {
 });
 
 describe("drill definitions and path", () => {
-  it("has 7 drills and the 6-step path on the new routes", () => {
+  it("has 8 drills (interval comparison added to the table's 7) and the 6-step path", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
+        "interval-compare",
         "chord-qualities",
         "cadences",
         "scale-degrees",
@@ -235,5 +238,60 @@ describe("repertoire transfer", () => {
     const prompt = repertoirePrompt(phrases[0]);
     expect(prompt.expectedMidi).toEqual([67, 69, 71, 72]);
     expect(prompt.playback[0]).toEqual({ midi: [67], time: 0, duration: 0.5 });
+  });
+});
+
+describe("interval comparison", () => {
+  const semis = (p: ReturnType<typeof intervalComparePrompt>) => {
+    const [a, b, c, d] = p.expectedMidi!;
+    return [b - a, d - c];
+  };
+
+  it("answers which interval is bigger, from the same root early on", () => {
+    for (const r of seeds(40)) {
+      const p = intervalComparePrompt(r, { difficulty: 0.2, gap: "apart" });
+      const [a, b] = semis(p);
+      expect(Math.abs(a - b)).toBeGreaterThanOrEqual(3);
+      expect(p.answer).toBe(a > b ? "first" : "second");
+      expect(p.choices).toEqual(["first", "second"]);
+      expect(p.expectedMidi![0]).toBe(p.expectedMidi![2]); // same root
+      expect(p.playback).toHaveLength(4);
+      expect(p.skillIds).toEqual(["pitch.intervals"]);
+      expect(a >= 1 && a <= 12 && b >= 1 && b <= 12).toBe(true);
+    }
+  });
+
+  it("gets closer and adds 'same' as it gets harder", () => {
+    const hard = seeds(80).map((r) => intervalComparePrompt(r, { difficulty: 0.8, gap: "close" }));
+    for (const p of hard) {
+      const [a, b] = semis(p);
+      expect(Math.abs(a - b)).toBeLessThanOrEqual(1);
+      expect(p.answer).toBe(a === b ? "same" : a > b ? "first" : "second");
+      expect(p.choices).toContain("same");
+    }
+    expect(hard.some((p) => p.answer === "same")).toBe(true);
+    expect(hard.some((p) => p.expectedMidi![0] !== p.expectedMidi![2])).toBe(true); // roots differ
+    expect(hard.some((p) => p.playback.length === 2)).toBe(true); // played as chords sometimes
+  });
+});
+
+describe("interval choices", () => {
+  it("asks a unison, keeps a fixed direction, and narrows the answers", () => {
+    const r = seeds(1)[0];
+    const u = intervalPrompt(r, {
+      difficulty: 0.9,
+      token: "P1",
+      direction: "ascending",
+      choices: ["P1", "P5"],
+    });
+    expect(u.expectedMidi![0]).toBe(u.expectedMidi![1]);
+    expect(u.skillIds).toEqual(["pitch.intervals"]);
+    expect(u.choices).toEqual(["P1", "P5"]);
+    for (const rr of seeds(20)) {
+      const d = intervalPrompt(rr, { difficulty: 0.9, token: "M3", direction: "descending" });
+      expect(d.direction).toBe("descending");
+      expect(d.expectedMidi![0] - d.expectedMidi![1]).toBe(4);
+    }
+    expect(EAR_INTERVALS.map((i) => i.token)[0]).toBe("P1");
   });
 });

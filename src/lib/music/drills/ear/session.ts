@@ -5,9 +5,13 @@ import {
   cadencePrompt,
   chordQualityPrompt,
   degreeLabel,
+  EAR_INTERVALS,
   EAR_SESSION_LENGTH,
+  type IntervalDirection,
+  intervalComparePrompt,
   intervalPrompt,
   melodyDictationPrompt,
+  type CompareGap,
   SCALE_DEGREE_LEVELS,
   SCALE_DEGREES,
   scaleDegreePrompt,
@@ -31,6 +35,7 @@ import {
 
 export type EarKind =
   | "interval"
+  | "interval-compare"
   | "chord-quality"
   | "cadence"
   | "scale-degree"
@@ -63,11 +68,33 @@ function shuffle<T>(xs: T[], rand: Rand): T[] {
   return a;
 }
 
+/** What the interval drill is narrowed to: some intervals, one direction. */
+export interface IntervalFocus {
+  /** Interval tokens to ask (P1 to P8); empty or missing: the twelve m2 to P8. */
+  intervals?: string[];
+  direction?: IntervalDirection;
+}
+
+const focusIntervals = (f?: IntervalFocus) =>
+  f?.intervals?.length ? EAR_INTERVALS.filter((i) => f.intervals!.includes(i.token)) : INTERVALS;
+
 /** Every answerable target of one drill kind. */
-export function targetsFor(kind: EarKind, level: string): EarTarget[] {
+export function targetsFor(kind: EarKind, level: string, focus?: IntervalFocus): EarTarget[] {
   switch (kind) {
     case "interval":
-      return INTERVALS.map((i) => ({ kind, token: i.token, skillId: `pitch.interval.${i.token}` }));
+      return focusIntervals(focus).map((i) => ({
+        kind,
+        token: i.token,
+        // The unison has no skill of its own; it trains the general one.
+        skillId: i.token === "P1" ? "pitch.intervals" : `pitch.interval.${i.token}`,
+      }));
+    case "interval-compare":
+      // By how far apart the two intervals are; all train the one interval skill.
+      return (["apart", "near", "close"] as const).map((gap) => ({
+        kind,
+        token: gap,
+        skillId: "pitch.intervals",
+      }));
     case "chord-quality":
       return QUALITIES.map((q) => ({ kind, token: q.token, skillId: q.skillId }));
     case "cadence":
@@ -82,10 +109,33 @@ export function targetsFor(kind: EarKind, level: string): EarTarget[] {
   }
 }
 
-export function promptFor(t: EarTarget, difficulty: number, level: string, rand: Rand): EarPrompt {
+export function promptFor(
+  t: EarTarget,
+  difficulty: number,
+  level: string,
+  rand: Rand,
+  focus?: IntervalFocus,
+): EarPrompt {
   switch (t.kind) {
-    case "interval":
-      return intervalPrompt(rand, { difficulty, token: t.token });
+    case "interval": {
+      // The answer buttons are the intervals being practised (with two or more of them).
+      const picked = focusIntervals(focus);
+      return intervalPrompt(rand, {
+        difficulty,
+        token: t.token,
+        direction: focus?.direction,
+        // One interval alone: every interval is a possible answer (with the unison, when it is the one).
+        choices: !focus?.intervals
+          ? undefined
+          : picked.length >= 2
+            ? picked.map((i) => i.token)
+            : picked[0]?.token === "P1"
+              ? EAR_INTERVALS.map((i) => i.token)
+              : undefined,
+      });
+    }
+    case "interval-compare":
+      return intervalComparePrompt(rand, { difficulty, gap: t.token as CompareGap });
     case "chord-quality": {
       const seventh = QUALITIES.find((q) => q.token === t.token)?.level === "seventh";
       return chordQualityPrompt(rand, {
@@ -111,6 +161,7 @@ export interface SessionInput {
   now: number;
   rand: Rand;
   length?: number;
+  focus?: IntervalFocus;
 }
 
 /**
@@ -122,7 +173,7 @@ export function buildSession(inp: SessionInput): EarPrompt[] {
   const length = inp.length ?? EAR_SESSION_LENGTH;
   // Shuffled so equal priorities (a fresh start) don't always run in table order.
   const targets = shuffle(
-    inp.kinds.flatMap((k) => targetsFor(k, inp.level)),
+    inp.kinds.flatMap((k) => targetsFor(k, inp.level, inp.focus)),
     inp.rand,
   );
   const byId = new Map(targets.map((t) => [`${t.kind}:${t.token}`, t]));
@@ -155,7 +206,7 @@ export function buildSession(inp: SessionInput): EarPrompt[] {
         ? prev.drill === it.target.kind
         : prev.answer === it.target.token);
     if (!repeat || i > items.length * 3)
-      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand));
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, inp.focus));
     i++;
   }
   return out;
@@ -197,6 +248,7 @@ export function retryPrompts(events: ScoringEvent[], kinds: EarKind[], rand: Ran
 
 export const KIND_LABEL: Record<EarKind, string> = {
   interval: "Intervals",
+  "interval-compare": "Interval comparison",
   "chord-quality": "Chord qualities",
   cadence: "Cadences",
   "scale-degree": "Scale degrees",
@@ -208,7 +260,13 @@ export function tokenLabel(
   token: string,
   labels: LabelMode = "degree",
 ): string {
-  if (kind === "interval") return INTERVALS.find((i) => i.token === token)?.name ?? token;
+  if (kind === "interval") return EAR_INTERVALS.find((i) => i.token === token)?.name ?? token;
+  if (kind === "interval-compare")
+    return token === "first"
+      ? "The first is bigger"
+      : token === "second"
+        ? "The second is bigger"
+        : "They are the same size";
   if (kind === "chord-quality") return QUALITIES.find((q) => q.token === token)?.label ?? token;
   if (kind === "cadence") {
     const c = CADENCES.find((x) => x.token === token);
@@ -227,6 +285,8 @@ export function tokenLabel(
 /** Short label for confusion rows ("m6", "3 / mi", "Plagal"). */
 export function shortLabel(kind: EarKind | string, token: string, labels: LabelMode = "degree") {
   if (kind === "interval") return token;
+  if (kind === "interval-compare")
+    return token === "same" ? "Same" : token === "first" ? "First" : "Second";
   if (kind === "cadence") return CADENCES.find((x) => x.token === token)?.label ?? token;
   return tokenLabel(kind, token, labels);
 }

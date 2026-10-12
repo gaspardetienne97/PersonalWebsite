@@ -22,6 +22,31 @@ describe("ear sessions", () => {
     expect(p.every((x) => x.difficulty === FRESH_DIFFICULTY)).toBe(true);
   });
 
+  it("asks only the intervals picked, in the direction picked, with only those as answers", () => {
+    const p = buildSession({
+      ...base,
+      kinds: ["interval"],
+      mode: "balanced",
+      rand: rng(3),
+      focus: { intervals: ["P1", "M3", "P5"], direction: "descending" },
+    });
+    expect(p).toHaveLength(10);
+    expect(new Set(p.map((x) => x.answer))).toEqual(new Set(["P1", "M3", "P5"]));
+    expect(p.every((x) => x.choices.join() === "P1,M3,P5")).toBe(true);
+    expect(p.every((x) => x.expectedMidi![0] >= x.expectedMidi![1])).toBe(true);
+    expect(tokenLabel("interval", "P1")).toBe("Perfect unison");
+    // One interval alone: it repeats, and every interval stays a possible answer.
+    const one = buildSession({
+      ...base,
+      kinds: ["interval"],
+      mode: "balanced",
+      rand: rng(4),
+      focus: { intervals: ["P5"] },
+    });
+    expect(one.every((x) => x.answer === "P5")).toBe(true);
+    expect(one[0].choices).toHaveLength(12);
+  });
+
   it("uses presented difficulty once a skill has mastery", () => {
     const mastery = {
       "pitch.interval.P5": {

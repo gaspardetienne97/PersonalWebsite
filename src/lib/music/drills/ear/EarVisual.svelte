@@ -2,13 +2,15 @@
   // What the prompt sounds like, as a picture. While you listen and answer it
   // shows only the shape in time (one bar per note or chord, lit as it plays,
   // all at one height, so it never gives the answer away). Revealed, every
-  // note rises to its pitch and the drill's own picture appears: the interval
-  // as an arc, a chord's stacked gaps, a cadence's numerals, degrees in their
+  // note rises to its pitch and the drill's own picture appears: intervals on a
+  // staff, a chord's stacked gaps, a cadence's numerals, degrees in their
   // colours with a melody's contour.
-  import { pc, noteName } from "@repo/music-core";
+  import { pc } from "@repo/music-core";
   import { SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
   import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
+  import type { Score } from "@repo/music-core";
+  import Staff from "$lib/music/notation/Staff.svelte";
   import { degreeColor } from "./degrees";
 
   let {
@@ -46,14 +48,6 @@
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
   // The drill's own marks, drawn once revealed.
-  const arc = $derived.by(() => {
-    if (prompt.drill !== "interval") return null;
-    const notes = events.flatMap((e) => e.midi.map((m) => ({ m, t: e.time + e.duration / 2 })));
-    if (notes.length < 2) return null;
-    const [a, b] = [notes[0], notes[notes.length - 1]];
-    const iv = intervalBySemitones(Math.abs(b.m - a.m));
-    return { a, b, text: `${iv?.name ?? `${Math.abs(b.m - a.m)} semitones`}, ${Math.abs(b.m - a.m)} semitones` };
-  });
   const romans = $derived(
     prompt.drill === "cadence" ? (CADENCES_AND_QUALITIES.cadences.find((c) => c.token === prompt.answer)?.romanProgression ?? []) : [],
   );
@@ -73,12 +67,65 @@
           .join(" ")
       : "",
   );
+  // Intervals read best as notes on a staff: each interval its own 2/4 bar,
+  // two quarter notes (or one chord), named underneath.
+  const onStaff = $derived(prompt.drill === "interval" || prompt.drill === "interval-compare");
+  const intervals = $derived.by(() => {
+    if (!onStaff) return [];
+    const half = prompt.drill === "interval-compare" ? events.length / 2 : events.length;
+    const groups = prompt.drill === "interval-compare" ? [events.slice(0, half), events.slice(half)] : [events];
+    return groups.map((g) => {
+      const ms = g.flatMap((e) => e.midi);
+      const semis = Math.abs(ms[ms.length - 1] - ms[0]);
+      return { events: g, semis, name: semis === 0 ? "Perfect unison" : (intervalBySemitones(semis)?.name ?? `${semis} semitones`) };
+    });
+  });
+  // One small staff per interval (its own 2/4 bar), so each name sits under its notes.
+  // Both intervals of a comparison share one clef.
+  // The clef that needs the fewest ledger lines: bass covers G2 to A3, treble E4 to F5.
+  const clef = $derived.by(() => {
+    const ms = intervals.flatMap((iv) => iv.events.flatMap((e) => e.midi));
+    const off = (lo: number, hi: number) => ms.reduce((t, m) => t + Math.max(0, lo - m) + Math.max(0, m - hi), 0);
+    return off(43, 57) < off(64, 77) ? "bass" : "treble";
+  });
+  const staffScores = $derived(
+    intervals.map(
+      (iv, k): Score => ({
+        id: `${prompt.id}-${k}`,
+        title: "",
+        bpm: 60,
+        meter: { beats: 2, beatUnit: 4 },
+        voices: [
+          {
+            id: "v",
+            name: "Interval",
+            clef,
+            notes:
+              iv.events.length === 1
+                ? iv.events[0].midi.map((midi) => ({ midi, startBeat: 0, durationBeats: 2 }))
+                : iv.events.map((e, n) => ({ midi: e.midi[0], startBeat: n, durationBeats: 1 })),
+          },
+        ],
+        lengthBeats: 2,
+      }),
+    ),
+  );
   const degreeText = (m: number) => {
     const d = degreeOf(m);
     return labels === "solfege" ? (SCALE_DEGREES.find((s) => s.label === d)?.solfege ?? d) : d;
   };
 </script>
 
+{#if revealed && onStaff}
+  <div class="grid gap-3 {intervals.length > 1 ? 'sm:grid-cols-2' : ''}">
+    {#each intervals as iv, k (k)}
+      <figure class="staff-card flex flex-col items-center rounded-xl bg-ws-surface px-3 pb-2 pt-1 text-ws-ink" aria-label="{intervals.length > 1 ? (k === 0 ? 'First interval' : 'Second interval') : 'The interval'} on the staff">
+        <div class="w-full max-w-64"><Staff score={staffScores[k]} maxHeight="10rem" /></div>
+        <figcaption class="text-center text-sm font-semibold">{intervals.length > 1 ? (k === 0 ? "First: " : "Second: ") : ""}{iv.name}, {iv.semis} semitone{iv.semis === 1 ? "" : "s"}</figcaption>
+      </figure>
+    {/each}
+  </div>
+{:else}
 <div bind:clientWidth={W} class="w-full">
 <svg class="ear-visual" class:revealed width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={revealed ? "What you heard, note by note" : "What is playing, in time"}>
   <line class="base" x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom + 6} y2={H - PAD.bottom + 6} />
@@ -104,9 +151,6 @@
           />
           {#if usesDegrees}
             <text class="tag" x={x(e.time) + 4} y={yOf(m) - noteH / 2 - 4}>{degreeText(m)}</text>
-          {:else if prompt.drill === "interval"}
-            <!-- Note names sit left of their bar, clear of arcs and of neighbours above. -->
-            <text class="tag soft" x={x(e.time) - 6} y={yOf(m) + 4} text-anchor="end">{noteName(m, "flat")}</text>
           {/if}
         </g>
       {/each}
@@ -119,13 +163,6 @@
     {/if}
   {/each}
 
-  {#if revealed && arc}
-    {@const ax = x(arc.a.t)}
-    {@const bx = x(arc.b.t)}
-    {@const top = Math.min(yOf(arc.a.m), yOf(arc.b.m)) - 22}
-    <path class="arc" d="M {ax} {yOf(arc.a.m) - 8} C {ax} {top}, {bx} {top}, {bx} {yOf(arc.b.m) - 8}" />
-    <text class="arc-label" x={(ax + bx) / 2} y={Math.max(14, top + 2)} text-anchor="middle">{arc.text}</text>
-  {/if}
 
   {#if revealed}
     {#each gaps as g, gi (gi)}
@@ -134,8 +171,12 @@
   {/if}
 </svg>
 </div>
+{/if}
 
 <style>
+  .staff-card {
+    animation: fade 400ms both;
+  }
   .ear-visual {
     display: block;
     width: 100%;
@@ -170,15 +211,10 @@
   }
   .tag,
   .gap,
-  .roman,
-  .arc-label {
+  .roman {
     font-size: 13px;
     font-weight: 700;
     fill: var(--ws-stage-ink);
-  }
-  .tag.soft {
-    font-weight: 600;
-    fill: var(--ws-stage-soft);
   }
   .roman {
     font-family: var(--font-display, inherit);
@@ -186,16 +222,6 @@
   }
   .gap {
     fill: var(--instr);
-  }
-  .arc {
-    fill: none;
-    stroke: var(--instr);
-    stroke-width: 2;
-    stroke-dasharray: 4 4;
-    animation: fade 500ms 200ms both;
-  }
-  .arc-label {
-    animation: fade 500ms 300ms both;
   }
   .contour {
     fill: none;
@@ -211,16 +237,14 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .note,
-    .arc,
-    .arc-label,
-    .contour {
+    .contour,
+    .staff-card {
       animation: none;
     }
   }
   :global(html[data-reduce-motion]) .note,
-  :global(html[data-reduce-motion]) .arc,
-  :global(html[data-reduce-motion]) .arc-label,
-  :global(html[data-reduce-motion]) .contour {
+  :global(html[data-reduce-motion]) .contour,
+  :global(html[data-reduce-motion]) .staff-card {
     animation: none;
   }
 </style>

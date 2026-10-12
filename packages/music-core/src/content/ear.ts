@@ -3,11 +3,12 @@
 import { CADENCES_AND_QUALITIES, EAR_TRAINING, SCALE_DATA, type EarPathStepDef } from "../data";
 import type { Score } from "../types";
 import { clamp01, pc } from "../theory/notes";
-import { INTERVALS, intervalByToken } from "../theory/intervals";
+import { INTERVALS } from "../theory/intervals";
 import { pick, randInt, type Rand } from "./random";
 
 export type EarDrillKind =
   | "interval"
+  | "interval-compare"
   | "chord-quality"
   | "cadence"
   | "scale-degree"
@@ -42,7 +43,26 @@ const earRoute = (href: string) =>
     ? "/music?tab=paths"
     : href.replace("/music/learn/ear/", "/music/ear/");
 
-export const EAR_DRILLS = EAR_TRAINING.drills.map((d) => ({ ...d, route: `/music/ear/${d.slug}` }));
+/**
+ * The drills from the verified table, plus interval comparison, which the app
+ * adds (the table is kept as an exact copy). It sits right after Intervals.
+ */
+const INTERVAL_COMPARE = {
+  slug: "interval-compare",
+  title: "Interval comparison",
+  description: "Two intervals, one after the other: which is bigger?",
+  drill: "interval-compare",
+  answerModes: ["choice", "listen-along"],
+  usesScaleDegreeLevel: false,
+  usesLabels: false,
+  queueMode: "balanced",
+  skillIds: ["pitch.intervals"],
+} as const;
+export const EAR_DRILLS = [
+  ...EAR_TRAINING.drills.slice(0, 1),
+  INTERVAL_COMPARE as unknown as (typeof EAR_TRAINING.drills)[number],
+  ...EAR_TRAINING.drills.slice(1),
+].map((d) => ({ ...d, route: `/music/ear/${d.slug}` }));
 export const EAR_DEFAULT_CONFIG = EAR_TRAINING.defaultConfig;
 export const EAR_SESSION_LENGTH = 10;
 
@@ -164,15 +184,31 @@ const note = (midi: number | number[], time: number, duration: number): Playback
 
 export type IntervalDirection = "ascending" | "descending" | "harmonic";
 
-/** Ascending only below difficulty 0.4; above it 60 % ascending, 30 % descending, 10 % harmonic. */
+/**
+ * The intervals the ear drill can ask: the unison (the same note twice, a
+ * first step for beginners; it trains the general interval skill only) and
+ * the twelve from the theory table.
+ */
+export const EAR_INTERVALS = [
+  { token: "P1", semitones: 0, name: "Perfect unison" },
+  ...INTERVALS,
+] as const;
+
+/**
+ * Ascending only below difficulty 0.4; above it 60 % ascending, 30 % descending,
+ * 10 % harmonic, unless `direction` fixes it. `choices` narrows the answer
+ * buttons to the intervals being practised.
+ */
 export function intervalPrompt(
   rand: Rand,
-  opts: { difficulty: number; token?: string },
+  opts: { difficulty: number; token?: string; direction?: IntervalDirection; choices?: string[] },
 ): EarPrompt & { direction: IntervalDirection } {
-  const interval = (opts.token && intervalByToken(opts.token)) || pick(rand, INTERVALS);
+  const interval =
+    (opts.token && EAR_INTERVALS.find((i) => i.token === opts.token)) || pick(rand, INTERVALS);
   const root = earRoot(rand);
   const r = opts.difficulty < 0.4 ? 0 : rand();
-  const direction: IntervalDirection = r < 0.6 ? "ascending" : r < 0.9 ? "descending" : "harmonic";
+  const direction: IntervalDirection =
+    opts.direction ?? (r < 0.6 ? "ascending" : r < 0.9 ? "descending" : "harmonic");
   const [first, second] =
     direction === "descending"
       ? [root + interval.semitones, root]
@@ -180,16 +216,60 @@ export function intervalPrompt(
   return {
     id: `interval-${interval.token}-${direction}-${root}`,
     drill: "interval",
-    skillIds: ["pitch.intervals", `pitch.interval.${interval.token}`],
+    skillIds:
+      interval.token === "P1"
+        ? ["pitch.intervals"]
+        : ["pitch.intervals", `pitch.interval.${interval.token}`],
     playback:
       direction === "harmonic"
         ? [note([first, second], 0, 0.8)]
         : [note(first, 0, 0.55), note(second, 0.65, 0.55)],
     answer: interval.token,
-    choices: INTERVALS.map((i) => i.token),
+    choices: opts.choices ?? INTERVALS.map((i) => i.token),
     difficulty: opts.difficulty,
     expectedMidi: [first, second],
     direction,
+  };
+}
+
+/** How far apart the two compared intervals are: a wider gap is easier to hear. */
+export const COMPARE_GAPS = { apart: [3, 4, 5], near: [2], close: [1] } as const;
+export type CompareGap = keyof typeof COMPARE_GAPS;
+
+/**
+ * Two intervals one after the other; the answer is which is bigger ("first",
+ * "second", or "same" from difficulty 0.6, when both can be equal). Below 0.4
+ * both rise from the same root; from 0.4 the roots differ, so the top notes
+ * alone do not give it away; from 0.7 a pair can be played as chords.
+ */
+export function intervalComparePrompt(
+  rand: Rand,
+  opts: { difficulty: number; gap?: CompareGap },
+): EarPrompt & { pair: [string, string] } {
+  const gaps = COMPARE_GAPS[opts.gap ?? "apart"];
+  const withSame = opts.difficulty >= 0.6;
+  const same = withSame && rand() < 0.2;
+  const d = same ? 0 : pick(rand, gaps as readonly number[]);
+  const small = randInt(rand, 1, 12 - d);
+  const [a, b] = rand() < 0.5 ? [small, small + d] : [small + d, small];
+  const root1 = earRoot(rand);
+  const root2 = opts.difficulty < 0.4 ? root1 : root1 + randInt(rand, -4, 4);
+  const harmonic = opts.difficulty >= 0.7 && rand() < 0.3;
+  const play = (root: number, semis: number, t: number) =>
+    harmonic
+      ? [note([root, root + semis], t, 0.9)]
+      : [note(root, t, 0.5), note(root + semis, t + 0.6, 0.5)];
+  const tok = (n: number) => INTERVALS.find((i) => i.semitones === n)!.token;
+  return {
+    id: `compare-${tok(a)}-${tok(b)}-${root1}-${root2}${harmonic ? "-h" : ""}`,
+    drill: "interval-compare",
+    skillIds: ["pitch.intervals"],
+    playback: [...play(root1, a, 0), ...play(root2, b, 1.8)],
+    answer: a > b ? "first" : b > a ? "second" : "same",
+    choices: withSame ? ["first", "same", "second"] : ["first", "second"],
+    difficulty: opts.difficulty,
+    expectedMidi: [root1, root1 + a, root2, root2 + b],
+    pair: [tok(a), tok(b)],
   };
 }
 

@@ -38,6 +38,7 @@ import { INTERVALS } from "../theory/intervals";
 
 const ROUTES = [
   "/music/ear/intervals",
+  "/music/ear/interval-compare",
   "/music/ear/chord-qualities",
   "/music/ear/cadences",
   "/music/ear/scale-degrees",

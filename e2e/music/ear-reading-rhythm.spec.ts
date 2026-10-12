@@ -67,6 +67,7 @@ test.describe("ear training", () => {
   test("every ear route loads with its h1 and no overflow", async ({ page }) => {
     for (const [slug, title] of [
       ["intervals", "Intervals"],
+      ["interval-compare", "Interval comparison"],
       ["chord-qualities", "Chord qualities"],
       ["cadences", "Cadences"],
       ["scale-degrees", "Scale degrees"],
@@ -120,9 +121,10 @@ test.describe("ear training", () => {
       await page.locator("button.choice", { hasText: new RegExp(`^${pick}`) }).click();
       await waitStep(page, "feedback");
       if (i === 0) {
-        // Revealed: both notes at their pitches and the interval's arc, named.
-        await expect(card.locator("svg.ear-visual .note")).toHaveCount(2);
-        await expect(card.locator("svg.ear-visual .arc-label")).toContainText(`${names[answer]}, `);
+        // Revealed: the interval on a staff, named underneath.
+        const staff = card.locator("figure.staff-card");
+        await expect(staff.getByRole("region", { name: /^Staff notation/ })).toBeVisible();
+        await expect(staff.locator("figcaption")).toContainText(`${names[answer]}, `);
         await expect(card).toContainText("You answered");
         await shots(page, "ear-intervals-feedback");
       }
@@ -132,6 +134,73 @@ test.describe("ear training", () => {
     await expect(page.getByText("What you mixed up")).toBeVisible();
     await expect(page.getByRole("button", { name: /Retry my confusions/ })).toBeVisible();
     await shots(page, "ear-intervals-results");
+  });
+
+  test("interval comparison: which is bigger, with both intervals on the staff after", async ({
+    page,
+  }) => {
+    await page.goto("/music/ear/interval-compare?answer=choice");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Interval comparison" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    await expect(card).toContainText("Which interval was bigger?");
+    const answer = (await card.getAttribute("data-answer"))!;
+    const label = {
+      first: "The first is bigger",
+      second: "The second is bigger",
+      same: "They are the same size",
+    }[answer]!;
+    await expect(page.locator("button.choice")).toHaveCount(2); // fresh: first or second, no "same" yet
+    await page.locator("button.choice", { hasText: new RegExp(`^${label}`) }).click();
+    await waitStep(page, "feedback");
+    await expect(card).toContainText(`Right: ${label}`);
+    // Each interval on its own staff, named underneath.
+    const captions = card.locator("figure.staff-card figcaption");
+    await expect(captions).toHaveCount(2);
+    await expect(captions.nth(0)).toContainText("First: ");
+    await expect(captions.nth(1)).toContainText("Second: ");
+    await shots(page, "ear-interval-compare-feedback");
+  });
+
+  test("intervals: practise a few at a time, in one direction", async ({ page }) => {
+    await page.goto("/music/ear/intervals?answer=choice");
+    await page.getByRole("button", { name: "Change setup" }).click();
+    const sets = page.getByRole("group", { name: "Interval sets" });
+    await sets.getByRole("button", { name: "Perfect" }).click();
+    await expect(sets.getByRole("button", { name: "Perfect" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(page.getByRole("button", { name: "Perfect unison" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // Take the octave out by its chip; at least one always stays on.
+    await page.getByRole("button", { name: "Octave" }).click();
+    await expect(page.getByRole("button", { name: "Octave" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await page
+      .getByRole("group", { name: "Direction" })
+      .getByRole("button", { name: "Down" })
+      .click();
+    await expect(page.getByText("Setup:").locator("..")).toContainText("P1 P4 P5, down");
+    await shots(page, "ear-intervals-setup");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    for (let i = 0; i < 3; i++) {
+      const card = prompt(page);
+      await expect(card).toHaveAttribute("aria-label", `Question ${i + 1}`);
+      expect(["P1", "P4", "P5"]).toContain(await card.getAttribute("data-answer"));
+      const [a, b] = (await card.getAttribute("data-expected"))!.split(",").map(Number);
+      expect(a).toBeGreaterThanOrEqual(b); // down (or the same note)
+      await expect(page.locator("button.choice")).toHaveCount(3);
+      await page.locator("button.choice").first().click();
+      await waitStep(page, "feedback");
+      await page.getByRole("button", { name: "Continue" }).click();
+    }
   });
 
   test("scale degrees by play-back over fake MIDI, in check", async ({ page }) => {

@@ -57,6 +57,7 @@ const entry = (
 
 const EAR_EXERCISE: Record<string, string> = {
   intervals: "ear.intervals",
+  "interval-compare": "ear.interval-compare",
   "chord-qualities": "ear.chord-qualities",
   cadences: "ear.cadences",
   "scale-degrees": "ear.scale-degree-recognition",
@@ -73,6 +74,7 @@ const EAR_MODE_LABEL: Record<string, string> = {
 };
 const EAR_BLURB: Record<string, string> = {
   intervals: "Hear two notes and name the distance between them.",
+  "interval-compare": "Hear two intervals and say which one is bigger.",
   "chord-qualities": "Hear a chord and say whether it is major, minor or another quality.",
   cadences: "Hear two chords that end a phrase and name the cadence.",
   "scale-degrees": "Hear the tonic, then a note, and name its place in the key.",
