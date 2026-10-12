@@ -13,6 +13,7 @@
     EAR_SCALES,
     EAR_INVERSIONS,
     inversionVoicing,
+    BASS_LEVELS,
     scalePlayback,
     type ScaleDirection,
     EAR_DRILLS,
@@ -108,6 +109,7 @@
     progressions: "progression",
     scales: "scale",
     inversions: "inversion",
+    "bass-lines": "bass-line",
     "scale-degrees": "scale-degree",
     "melody-dictation": "melody-dictation",
   };
@@ -124,6 +126,7 @@
     functions: "I,IV,V" as string,
     scales: "major,natural-minor" as string,
     inversions: "root,first" as string,
+    bassLevel: "roots-primary" as string,
     scaleDirection: "auto" as string,
     keyMode: "major" as string,
     chordSize: "triads" as string,
@@ -138,7 +141,7 @@
   const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) ? (s.answer as AnswerMode) : modes[0]);
   const labels = $derived<LabelMode>(s.labels === "solfege" ? "solfege" : "degree");
   const level = $derived(SCALE_DEGREE_LEVELS.some((l) => l.id === s.level) ? s.level : "anchor");
-  const MIX = ["interval", "chord-quality", "scale-degree", "cadence", "chord-function", "progression", "scale", "inversion"] as const;
+  const MIX = ["interval", "chord-quality", "scale-degree", "cadence", "chord-function", "progression", "scale", "inversion", "bass-line"] as const;
   const kinds = $derived.by((): EarKind[] => {
     if (slug !== "mixed") return KIND_OF[slug] ? [KIND_OF[slug]] : [];
     if (answer === "voice") return ["scale-degree"];
@@ -317,9 +320,10 @@
     return out;
   });
   const focus = $derived(
-    SETS
+    SETS || slug === "bass-lines"
       ? {
-          tokens: picked,
+          tokens: SETS ? picked : undefined,
+          bassLevel: slug === "bass-lines" ? s.bassLevel : undefined,
           direction: slug === "intervals" && s.direction !== "auto" ? (s.direction as "ascending" | "descending" | "harmonic") : undefined,
           root: slug === "intervals" && s.root !== "random" ? Number(s.root) : undefined,
           minor: chordDrill && chordKind.minor,
@@ -449,7 +453,10 @@
   // Prompt helpers
 
   const tonicOf = (p: Prompt) => p.playback[0].midi[0];
+  /** Major-key degrees by semitones above the tonic. */
+  const MAJOR_DEGREE: Record<number, string> = { 0: "1", 2: "2", 4: "3", 5: "4", 7: "5", 9: "6", 11: "7" };
   const keyLine = (p: Prompt) => {
+    if (p.drill === "bass-line") return `Key of ${noteName(48 + (p.keyPc ?? 0), "flat", false)} major, ${p.answer.split(" ").length} chords from I`;
     if (p.drill === "chord-function" || p.drill === "progression") {
       const minor = parseFunction(p.answer).minor;
       const key = `Key of ${noteName(48 + (p.keyPc ?? 0), "flat", false)} ${minor ? "minor" : "major"}`;
@@ -487,6 +494,10 @@
           ? isPlayback
             ? "Play the last chord back, in any octave."
             : "Which chord of the key was the last one?"
+        : p.drill === "bass-line"
+          ? isPlayback
+            ? "Play the bass notes after the 1, one at a time."
+            : "Which bass notes came after the 1?"
         : p.drill === "progression"
           ? isPlayback
             ? `Play the chords after the ${functionLabel(p.answer.split(" ")[0])}, one at a time.`
@@ -730,6 +741,10 @@
       const d = Math.abs(g.playedSemitones ?? 0);
       const heard = (intervalBySemitones(d)?.token ?? `${d} semitones`) + (p.direction !== "harmonic" && (g.playedSemitones ?? 0) * (p.direction === "descending" ? -1 : 1) < 0 ? " (wrong way)" : "");
       void commit(g, heard, played.slice(0, 2), notes, [{ kind: "choice", expected: p.answer, actual: heard }]);
+    } else if (p.drill === "bass-line") {
+      // Each bass note fills the next slot, by its degree in the key (a note outside it as "?").
+      played = [];
+      tapChord(MAJOR_DEGREE[pc(e.midi - (p.keyPc ?? 0))] ?? "?", notes);
     } else if (p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression" || p.drill === "inversion") {
       clearTimeout(chordTimer);
       // A chord is in once all its notes are down and the hands rest a moment (or on "That's my chord").
@@ -917,7 +932,7 @@
 
   /** One results row per answer asked (an interval, a quality, a degree): this run and overall. */
   function itemRows(done: AnswerRecord[]) {
-    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation" || kinds[0] === "progression") return null;
+    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation" || kinds[0] === "progression" || kinds[0] === "bass-line") return null;
     const kind = kinds[0];
     const targets = targetsFor(kind, level, focus);
     const order = (t: string) => {
@@ -1020,10 +1035,11 @@
   const summaryLine = $derived(
     [
       MODE_LABEL[answer],
-      slug === "mixed" ? (kinds.length === MIX.length ? "all eight drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
+      slug === "mixed" ? (kinds.length === MIX.length ? "all nine drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
       SETS
         ? `${SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => (chordDrill ? kindLabel(t) : (SETS.items.find((i) => i.token === t)?.short ?? t))).join(" ")}${slug === "intervals" && s.direction !== "auto" ? `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}` : ""}`
         : null,
+      slug === "bass-lines" ? BASS_LEVELS.find((l) => l.id === s.bassLevel)?.title.toLowerCase() : null,
       chordDrill ? `${chordKind.minor ? "minor" : "major"} key, ${chordKind.seventh ? "sevenths" : "triads"}` : null,
       def.usesScaleDegreeLevel ? SCALE_DEGREE_LEVELS.find((l) => l.id === level)?.title : null,
       def.usesLabels ? (labels === "solfege" ? "solfège labels" : "degree labels") : null,
@@ -1084,7 +1100,7 @@
         <Choice
           label="Drills in the mix"
           select
-          options={[{ value: "all", label: "All eight" }, ...MIX.map((k) => ({ value: k, label: KIND_LABEL[k] }))]}
+          options={[{ value: "all", label: "All nine" }, ...MIX.map((k) => ({ value: k, label: KIND_LABEL[k] }))]}
           value={s.drill}
           onchange={(v) => cfg.set({ drill: v })}
         />
@@ -1121,6 +1137,9 @@
                 : `${picked.length} ${SETS.unit}: only these play, and only these are the answers.`}
           </span>
         </div>
+      {/if}
+      {#if slug === "bass-lines"}
+        <Choice label="Bass notes" options={BASS_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={s.bassLevel} onchange={(v) => cfg.set({ bassLevel: v })} />
       {/if}
       {#if slug === "scales"}
         <Choice
@@ -1257,7 +1276,7 @@
               disabled={answer === "listen-along" || step === "feedback"}
               onpick={choose}
             />
-          {:else if answer === "choice" && p.drill === "progression"}
+          {:else if answer === "choice" && (p.drill === "progression" || p.drill === "bass-line")}
             {@render progressionSlots(p)}
             <div class="grid grid-cols-4 gap-2 sm:grid-cols-8">
               {#each p.choices as t (t)}
@@ -1317,7 +1336,7 @@
             </div>
           </div>
         {:else}
-          {#if p.drill === "progression"}{@render progressionSlots(p)}{/if}
+          {#if p.drill === "progression" || p.drill === "bass-line"}{@render progressionSlots(p)}{/if}
           <Piano low={48} high={84} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, play your answer" />
           <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-ws-stage-soft">
             <span>You played: {played.length ? played.map((m) => noteName(m, "flat")).join(", ") : "nothing yet"}</span>
@@ -1325,7 +1344,7 @@
               <button type="button" class={btnStage} onclick={() => (played = [])}>Clear</button>
               {#if p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression" || p.drill === "inversion"}<button type="button" class={btnStage} onclick={submitChord}>That's my chord</button>{/if}
             {/if}
-            {#if p.drill === "progression" && step === "answer" && slots.length}
+            {#if (p.drill === "progression" || p.drill === "bass-line") && step === "answer" && slots.length}
               <button type="button" class={btnStage} onclick={() => (slots = slots.slice(0, -1))}>Undo last chord</button>
             {/if}
           </div>

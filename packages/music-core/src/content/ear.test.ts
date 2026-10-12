@@ -28,7 +28,9 @@ import {
   scaleDegreePrompt,
   inversionPrompt,
   inversionVoicing,
+  bassLinePrompt,
 } from "./ear";
+import { pc } from "../theory/notes";
 import { rng } from "./random";
 
 const seeds = (n: number) => Array.from({ length: n }, (_, i) => rng(i + 1));
@@ -173,6 +175,28 @@ describe("melody dictation", () => {
   });
 });
 
+describe("bass lines", () => {
+  it("writes the bass by degree: roots from the level's chords, or a line through inversions", () => {
+    for (const r of seeds(20)) {
+      const p = bassLinePrompt(r, { difficulty: 0.8, level: "roots-primary", token: "5" });
+      const bass = p.answer.split(" ");
+      expect(bass[0]).toBe("1");
+      expect(bass[1]).toBe("5");
+      expect(bass.every((d) => ["1", "4", "5"].includes(d))).toBe(true);
+      expect(p.choices).toEqual(["1", "4", "5"]);
+      // Each chord's lowest note is the bass written down.
+      p.playback.forEach((e, i) =>
+        expect(pc(e.midi[0] - p.keyPc)).toBe([0, 2, 4, 5, 7, 9, 11][Number(bass[i]) - 1]),
+      );
+    }
+    const line = bassLinePrompt(rng(1), { difficulty: 0.5, level: "inversions", token: "p7" });
+    expect(line.answer).toBe("1 7 6 5");
+    expect(line.caption).toBe("Bass 1, 7, 6, 5: I, V6, vi, iii6");
+    expect(line.skillIds).toContain("ear.bass-lines.inversions");
+    expect(Math.min(...line.playback[1].midi)).toBe(line.playback[1].midi[0]);
+  });
+});
+
 describe("inversions", () => {
   it("puts the asked chord tone in the bass, doubled an octave down", () => {
     expect(inversionVoicing(60, "major", 0)).toEqual([48, 60, 64, 67]);
@@ -308,7 +332,7 @@ describe("chords in a key", () => {
 });
 
 describe("drill definitions and path", () => {
-  it("has 12 drills (interval comparison, two chord drills, scales and inversions added to the table's 7) and a 10-step path", () => {
+  it("has 13 drills (interval comparison, two chord drills, scales, inversions and bass lines added to the table's 7) and a 10-step path", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
@@ -319,6 +343,7 @@ describe("drill definitions and path", () => {
         "progressions",
         "scales",
         "inversions",
+        "bass-lines",
         "scale-degrees",
         "melody-dictation",
         "repertoire-transfer",

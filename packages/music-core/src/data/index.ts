@@ -615,6 +615,24 @@ APP_SKILLS.push(
     version: 1,
   },
 );
+APP_SKILLS.push(
+  {
+    id: "ear.bass-lines",
+    name: "Bass lines by ear",
+    capability: "harmony",
+    level: "intermediate",
+    tags: ["ear", "bass", "dictation"],
+    version: 1,
+  },
+  {
+    id: "ear.bass-lines.inversions",
+    name: "Bass lines through inversions",
+    capability: "harmony",
+    level: "advanced",
+    tags: ["ear", "bass", "inversion"],
+    version: 1,
+  },
+);
 const APP_RELATIONSHIPS: SkillRelationship[] = [
   ...POSITION_NAMES.map(([t]) => ({
     from: "ear.inversions",

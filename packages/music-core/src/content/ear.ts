@@ -15,6 +15,7 @@ export type EarDrillKind =
   | "progression"
   | "scale"
   | "inversion"
+  | "bass-line"
   | "scale-degree"
   | "melody-dictation"
   | "repertoire-transfer";
@@ -39,6 +40,8 @@ export interface EarPrompt {
   expectedMidi?: number[];
   /** Leading playback events that only set the key (not part of the answer). */
   keyEvents?: number;
+  /** Shown under the revealed staff instead of a caption worked out from the notes. */
+  caption?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +112,17 @@ const CHORD_FUNCTION_DRILLS = [
     usesLabels: false,
     queueMode: "balanced",
     skillIds: ["ear.inversions"],
+  },
+  {
+    slug: "bass-lines",
+    title: "Bass lines",
+    description: "Chords from I: write down the bass, degree by degree.",
+    drill: "bass-line",
+    answerModes: ["choice", "play-back", "listen", "listen-along"],
+    usesScaleDegreeLevel: false,
+    usesLabels: false,
+    queueMode: "balanced",
+    skillIds: ["ear.bass-lines"],
   },
 ] as const;
 type DrillRow = (typeof EAR_TRAINING.drills)[number];
@@ -637,6 +651,123 @@ export function inversionPrompt(
 }
 
 // ---------------------------------------------------------------------------
+// Bass lines
+
+/** Roots on 1, 4 and 5; then 2 and 6 too; then stepwise lines through inversions. */
+export const BASS_LEVELS = [
+  { id: "roots-primary", title: "Roots on 1, 4 and 5", degrees: ["1", "4", "5"] },
+  { id: "roots-diatonic", title: "Roots on 1, 2, 4, 5 and 6", degrees: ["1", "2", "4", "5", "6"] },
+  {
+    id: "inversions",
+    title: "Lines through inversions",
+    degrees: ["1", "2", "3", "4", "5", "6", "7"],
+  },
+] as const;
+export type BassLevel = (typeof BASS_LEVELS)[number]["id"];
+/** Common lines that step through inversions: [chord, chord tone in the bass (0 root, 1 third, 2 fifth)]. */
+export const BASS_PATTERNS: [string, number][][] = [
+  [
+    ["I", 0],
+    ["V", 1],
+    ["I", 0],
+  ], // 1 7 1
+  [
+    ["I", 0],
+    ["V", 2],
+    ["I", 1],
+  ], // 1 2 3
+  [
+    ["I", 0],
+    ["V", 1],
+    ["vi", 0],
+  ], // 1 7 6
+  [
+    ["I", 0],
+    ["I", 1],
+    ["IV", 0],
+    ["V", 0],
+  ], // 1 3 4 5
+  [
+    ["I", 0],
+    ["ii", 1],
+    ["V", 0],
+    ["I", 0],
+  ], // 1 4 5 1
+  [
+    ["I", 0],
+    ["IV", 1],
+    ["V", 0],
+    ["I", 0],
+  ], // 1 6 5 1
+  [
+    ["I", 0],
+    ["vi", 0],
+    ["ii", 1],
+    ["V", 0],
+  ], // 1 6 4 5
+  [
+    ["I", 0],
+    ["V", 1],
+    ["vi", 0],
+    ["iii", 1],
+  ], // 1 7 6 5
+];
+const FIGURE = ["", "6", "6/4"];
+const bassDegree = (token: string, position: number) =>
+  String((((parseFunction(token).f?.degree ?? 0) + 2 * position) % 7) + 1);
+
+/**
+ * A progression from I with its bass to write down. The roots levels draw
+ * from the level's chords (three below difficulty 0.5, else four; `token` is
+ * the second bass note); the inversions level plays one of the stepwise lines
+ * (`token` "p0" to "p7").
+ */
+export function bassLinePrompt(
+  rand: Rand,
+  opts: { difficulty: number; level?: string; token?: string },
+): EarPrompt & { keyPc: number } {
+  const level = BASS_LEVELS.find((l) => l.id === opts.level) ?? BASS_LEVELS[0];
+  let chords: [string, number][];
+  if (level.id === "inversions") {
+    const i = Number(/^p(\d+)$/.exec(opts.token ?? "")?.[1] ?? NaN);
+    chords = BASS_PATTERNS[i] ?? pick(rand, BASS_PATTERNS);
+  } else {
+    const byDegree = (d: string) => CHORD_FUNCTIONS[Number(d) - 1].token;
+    const p = progressionPrompt(rand, {
+      difficulty: opts.difficulty,
+      choices: level.degrees.map(byDegree),
+      token: opts.token ? byDegree(opts.token) : undefined,
+    });
+    chords = p.answer.split(" ").map((t) => [t, 0]);
+  }
+  const keyPc = randInt(rand, 0, 11);
+  const playback = chords.map(([t, pos], i) => {
+    const [, ...upper] = functionChord(keyPc, t);
+    const bass = into(
+      keyPc + MAJOR[(CHORD_FUNCTIONS.find((f) => f.token === t)!.degree + 2 * pos) % 7],
+      43,
+    );
+    return note([bass, ...upper], i * 0.9, 0.8);
+  });
+  const degrees = chords.map(([t, pos]) => bassDegree(t, pos));
+  return {
+    id: `bass-line-${chords.map(([t, p]) => `${t}${p}`).join("_")}-${keyPc}`,
+    drill: "bass-line",
+    skillIds: [
+      "ear.bass-lines",
+      ...(level.id === "inversions" ? ["ear.bass-lines.inversions"] : []),
+    ],
+    playback,
+    answer: degrees.join(" "),
+    choices: [...level.degrees],
+    difficulty: opts.difficulty,
+    expectedMidi: playback.map((e) => e.midi[0]),
+    caption: `Bass ${degrees.join(", ")}: ${chords.map(([t, p]) => `${functionLabel(t)}${FIGURE[p]}`).join(", ")}`,
+    keyPc,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Chords in a key
 
 /**
@@ -885,7 +1016,7 @@ export function melodyDictationPrompt(
   };
 }
 
-/** The mixed review draws one of the eight recognition drills. */
+/** The mixed review draws one of the nine recognition drills. */
 export function mixedPrompt(rand: Rand, opts: { difficulty: number; level: string }): EarPrompt {
   const kind = pick(rand, [
     "interval",
@@ -896,9 +1027,11 @@ export function mixedPrompt(rand: Rand, opts: { difficulty: number; level: strin
     "progression",
     "scale",
     "inversion",
+    "bass-line",
   ] as const);
   if (kind === "interval") return intervalPrompt(rand, opts);
   if (kind === "inversion") return inversionPrompt(rand, opts);
+  if (kind === "bass-line") return bassLinePrompt(rand, { difficulty: opts.difficulty });
   if (kind === "scale") return scalePrompt(rand, opts);
   if (kind === "chord-function") return chordFunctionPrompt(rand, opts);
   if (kind === "progression") return progressionPrompt(rand, opts);

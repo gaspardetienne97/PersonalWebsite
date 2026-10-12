@@ -105,6 +105,7 @@ test.describe("ear training", () => {
       ["progressions", "Progression dictation"],
       ["scales", "Scales and modes"],
       ["inversions", "Inversions"],
+      ["bass-lines", "Bass lines"],
       ["scale-degrees", "Scale degrees"],
       ["melody-dictation", "Melody dictation"],
       ["repertoire-transfer", "Repertoire transfer"],
@@ -449,6 +450,39 @@ test.describe("ear training", () => {
     await expect(card).toContainText("Right:");
   });
 
+  test("bass lines: write the bass by degree, by tapping and by playing it", async ({ page }) => {
+    await page.goto("/music/ear/bass-lines?answer=choice");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    const bass = (await card.getAttribute("data-answer"))!.split(" ");
+    expect(bass[0]).toBe("1");
+    expect(bass.every((d) => ["1", "4", "5"].includes(d))).toBe(true);
+    const slots = page.getByRole("list", { name: "Your progression" }).getByRole("listitem");
+    const tap = (d: string) =>
+      page.locator("button.choice", { hasText: new RegExp(`^\\s*${d}\\s*$`) }).click();
+    for (const d of bass.slice(1, -1)) await tap(d);
+    await tap(bass.at(-1) === "5" ? "4" : "5");
+    await waitStep(page, "feedback");
+    await expect(slots.last()).toHaveAttribute("data-state", "wrong");
+    await expect(card.locator("figure.staff-card figcaption")).toContainText(
+      `Bass ${bass.join(", ")}: I, `,
+    );
+    await shots(page, "ear-bass-line");
+
+    // Lines through inversions offer every degree; played back over MIDI, note by note.
+    await installFakeMidi(page, [PORTS.keys]);
+    await enableMidi(page, "/music/ear/bass-lines?answer=play-back&bassLevel=inversions");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await waitStep(page, "answer");
+    const key = Number(await card.getAttribute("data-key"));
+    const line = (await card.getAttribute("data-answer"))!.split(" ");
+    const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+    for (const d of line.slice(1))
+      await midiNote(page, PORTS.keys.id, 48 + ((key + MAJOR[Number(d) - 1]) % 12));
+    await waitStep(page, "feedback");
+    await expect(card).toContainText("Right:");
+  });
+
   test("scale degrees: an easy level offers the next one", async ({ page }) => {
     await seedRecent(page, "scale-degrees", "level:anchor", 18);
     await page.goto("/music/ear/scale-degrees?answer=choice&level=anchor");
@@ -571,7 +605,7 @@ test.describe("ear training", () => {
 
     // The mixed review draws from all six drills.
     await page.goto("/music/ear/mixed?answer=choice");
-    await expect(page.getByText("Setup:").locator("..")).toContainText("all eight drills");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("all nine drills");
   });
 
   test("scale degrees by voice through the synthetic mic", async ({ page }) => {

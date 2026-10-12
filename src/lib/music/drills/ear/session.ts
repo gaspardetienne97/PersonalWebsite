@@ -21,6 +21,9 @@ import {
   EAR_SCALES,
   EAR_INVERSIONS,
   inversionPrompt,
+  BASS_LEVELS,
+  BASS_PATTERNS,
+  bassLinePrompt,
   scalePrompt,
   type ScaleDirection,
   type CompareGap,
@@ -54,6 +57,7 @@ export type EarKind =
   | "progression"
   | "scale"
   | "inversion"
+  | "bass-line"
   | "scale-degree"
   | "melody-dictation";
 export type LabelMode = "degree" | "solfege";
@@ -96,6 +100,8 @@ export interface Focus {
   sevenths?: boolean;
   /** Scales: which way they run (by difficulty when missing). */
   scaleDirection?: ScaleDirection;
+  /** Bass lines: which level (roots on 1 4 5, roots on 1 2 4 5 6, lines through inversions). */
+  bassLevel?: string;
 }
 
 /** How much more often a target is asked: 1 when always right, up to 4 when always wrong; 2 when untried. */
@@ -152,6 +158,19 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
         token: x.token,
         skillId: `ear.scale.${x.token}`,
       }));
+    case "bass-line": {
+      // Roots levels by the second bass note; the inversions level by its lines.
+      const lvl = BASS_LEVELS.find((l) => l.id === focus?.bassLevel) ?? BASS_LEVELS[0];
+      return lvl.id === "inversions"
+        ? BASS_PATTERNS.map((_, i) => ({
+            kind,
+            token: `p${i}`,
+            skillId: "ear.bass-lines.inversions",
+          }))
+        : lvl.degrees
+            .filter((d) => d !== "1")
+            .map((d) => ({ kind, token: d, skillId: "ear.bass-lines" }));
+    }
     case "inversion":
       return focusInversions(focus).map((x) => ({
         kind,
@@ -241,6 +260,8 @@ export function promptFor(
         choices: focus?.tokens && picked.length >= 2 ? picked.map((x) => x.token) : undefined,
       });
     }
+    case "bass-line":
+      return bassLinePrompt(rand, { difficulty, level: focus?.bassLevel, token: t.token });
     case "inversion": {
       // Answers of the same size only: a triad's buttons are triad positions.
       const seventh = EAR_INVERSIONS.find((x) => x.token === t.token)?.seventh;
@@ -396,6 +417,7 @@ export const KIND_LABEL: Record<EarKind, string> = {
   "chord-function": "Chords in a key",
   scale: "Scales and modes",
   inversion: "Inversions",
+  "bass-line": "Bass lines",
   progression: "Progressions",
   "scale-degree": "Scale degrees",
   "melody-dictation": "Melody dictation",
@@ -419,6 +441,7 @@ export function tokenLabel(
     return c ? `${c.label} (${c.romanProgression.join(" to ")})` : token;
   }
   if (kind === "chord-function") return functionLabel(token);
+  if (kind === "bass-line") return token.split(" ").join(", ");
   if (kind === "inversion") return EAR_INVERSIONS.find((x) => x.token === token)?.name ?? token;
   if (kind === "scale") return EAR_SCALES.find((x) => x.token === token)?.name ?? token;
   if (kind === "progression") return token.split(" ").map(functionLabel).join(", ");
