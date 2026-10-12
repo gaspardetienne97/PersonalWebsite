@@ -13,6 +13,7 @@
     { id: "mpc", hue: "mpc" },
     { id: "ear", hue: "ear" },
     { id: "jazz", hue: "piano" },
+    { id: "studio", hue: "create" },
   ];
   const preferred = $derived(
     ({ piano: "piano", guitar: "guitar", ukulele: "guitar", mpc: "mpc", aerophone: "ear", voice: "ear" } as const)[

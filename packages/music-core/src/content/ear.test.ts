@@ -382,7 +382,7 @@ describe("chords in a key", () => {
 });
 
 describe("drill definitions and path", () => {
-  it("has 15 drills (the table's 7 and 8 the app adds) and a 10-step path", () => {
+  it("has 15 drills (the table's 7 and 8 the app adds) and a 17-step path in the research's order", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
@@ -402,19 +402,33 @@ describe("drill definitions and path", () => {
         "mixed",
       ].map((s) => `/music/ear/${s}`),
     );
-    // The table's six steps, two interval steps before the closing review and two chord steps after it.
-    expect(EAR_PATH.steps).toHaveLength(10);
-    expect(EAR_PATH.steps.map((s) => s.id).slice(4)).toEqual([
+    // The table's six steps and the eleven the app adds (aural-skills research order).
+    expect(EAR_PATH.steps.map((s) => s.id)).toEqual([
+      "anchor-tonic",
+      "diatonic-degrees",
+      "sing-and-play-back",
+      "echo-rhythm",
+      "spot-the-wrong-note",
+      "melody-transfer",
+      "rhythm-dictation",
       "chromatic-color",
       "interval-size",
       "interval-names",
+      "sing-intervals",
+      "scales-and-modes",
       "harmony-and-interval-labels",
       "chords-in-a-key",
+      "follow-the-bass",
+      "inversions-by-ear",
       "progressions",
     ]);
-    expect(EAR_PATH.steps.map((s) => s.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(EAR_PATH.steps.map((s) => s.order)).toEqual(EAR_PATH.steps.map((_, i) => i + 1));
     const hrefs = EAR_PATH.steps.flatMap((s) => [s.href, ...(s.links ?? []).map((l) => l.href)]);
-    expect(hrefs.every((h) => h.startsWith("/music/ear/"))).toBe(true);
+    expect(hrefs.every((h) => h.startsWith("/music/ear/") || h.startsWith("/music/rhythm?"))).toBe(
+      true,
+    );
+    // The fine-pitch warm-up rides on the table's singing step.
+    expect(EAR_PATH.steps[2].links?.at(-1)?.href).toBe("/music/ear/fine-pitch?startCents=50");
     expect(EAR_PATH.steps[0].href).toBe(
       "/music/ear/scale-degrees?answer=listen-along&level=anchor",
     );

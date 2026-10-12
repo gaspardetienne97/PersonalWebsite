@@ -52,7 +52,9 @@ export interface EarPrompt {
 const earRoute = (href: string) =>
   href === "/music/learn/ear"
     ? "/music?tab=paths"
-    : href.replace("/music/learn/ear/", "/music/ear/");
+    : href
+        .replace("/music/learn/ear/", "/music/ear/")
+        .replace("/music/learn/rhythm", "/music/rhythm");
 
 /**
  * The drills from the verified table, plus interval comparison, which the app
@@ -172,12 +174,81 @@ const intervalsHref = (set: string, direction = "ascending") =>
   `/music/learn/ear/intervals?answer=choice&intervals=${set}&direction=${direction}`;
 
 /**
- * Steps the app adds to the verified path. Two interval steps before the
- * closing review (hear interval size first, then name intervals a few at a
- * time), and two chord steps after it (chords in a key, then progressions).
- * Their orders fall between and after the table's; every path is renumbered.
+ * Steps the app adds to the verified path, placed by the aural-skills research
+ * (EarMaster's order, Karpinski's manual): rhythm echo and error detection
+ * before melody dictation, rhythm dictation after it; interval size, names
+ * and singing, then scales, before the closing review; then chords in a key,
+ * bass lines, inversions and progressions. Their orders fall between and
+ * after the table's; every path is renumbered. Criteria: 66% with four or
+ * more answers, 80% with two or three, 75% for dictation and singing.
  */
 export const EAR_ADDED_STEPS: EarPathStepDef[] = [
+  {
+    id: "echo-rhythm",
+    order: 3.3,
+    title: "Echo a rhythm",
+    summary:
+      "A bar of quarters and eighths over the click: tap it straight back. Then two bars with rests and halves.",
+    detail: "Eight unaided echoes over two sessions, averaging 75% or higher.",
+    kind: "drill",
+    goal: "Hold a heard rhythm in your head long enough to play it back.",
+    practiceMode: "Rhythm echo, quarters and eighths first.",
+    currentSupport: "built",
+    recommendedDrill: "rhythm-echo",
+    href: "/music/learn/rhythm?mode=echo&earLevel=quarters-eighths",
+    links: [
+      {
+        label: "Rests and half notes",
+        href: "/music/learn/rhythm?mode=echo&earLevel=rests-halves",
+      },
+    ],
+    exerciseIds: ["rhythm.echo"],
+    skillIds: ["ear.rhythm-echo"],
+    minAttempts: 8,
+    minSessions: 2,
+    threshold: 0.75,
+  },
+  {
+    id: "spot-the-wrong-note",
+    order: 3.6,
+    title: "Spot the wrong note",
+    summary: "A short melody written in degrees, played with one note changed: find it.",
+    detail: "Twenty unaided answers averaging 66% or higher.",
+    kind: "drill",
+    goal: "Follow a written melody by ear, note by note, before writing one down.",
+    practiceMode: "Spot the wrong note on the first five degrees.",
+    currentSupport: "built",
+    recommendedDrill: "error-detect",
+    href: "/music/learn/ear/wrong-note?level=major-pentachord",
+    links: [
+      { label: "All seven degrees", href: "/music/learn/ear/wrong-note?level=major-diatonic" },
+    ],
+    exerciseIds: ["ear.error-detection"],
+    skillIds: ["ear.error-detection"],
+    minAttempts: 20,
+  },
+  {
+    id: "rhythm-dictation",
+    order: 4.5,
+    title: "Write a rhythm down",
+    summary: "Hear two bars over the click, then mark every note on the grid.",
+    detail: "Eight unaided dictations averaging 75% or higher.",
+    kind: "drill",
+    goal: "Turn a heard rhythm into where its notes fall in the bar.",
+    practiceMode: "Rhythm dictation, rests and halves, then dotted quarters.",
+    currentSupport: "built",
+    recommendedDrill: "rhythm-dictation",
+    href: "/music/learn/rhythm?mode=dictation&earLevel=rests-halves",
+    links: [
+      { label: "Dotted quarters", href: "/music/learn/rhythm?mode=dictation&earLevel=dotted" },
+      { label: "Sixteenths", href: "/music/learn/rhythm?mode=dictation&earLevel=sixteenths" },
+    ],
+    exerciseIds: ["rhythm.dictation"],
+    skillIds: ["ear.rhythm-dictation"],
+    minAttempts: 8,
+    minSessions: 2,
+    threshold: 0.75,
+  },
   {
     id: "interval-size",
     order: 5.5,
@@ -220,6 +291,56 @@ export const EAR_ADDED_STEPS: EarPathStepDef[] = [
     skillIds: ["pitch.interval.M3", "pitch.interval.P5", "pitch.interval.P8"],
   },
   {
+    id: "sing-intervals",
+    order: 5.8,
+    title: "Sing intervals back",
+    summary: "Hear an interval, sing its second note, in any octave. The same few intervals first.",
+    detail: "Twenty unaided sung answers averaging 75% or higher.",
+    kind: "drill",
+    goal: "Hear an interval well enough to produce it.",
+    practiceMode: "Intervals by singing, the major 3rd, perfect 5th and octave going up.",
+    currentSupport: "built",
+    recommendedDrill: "interval",
+    href: intervalsHref("M3,P5,P8").replace("answer=choice", "answer=voice"),
+    links: [{ label: "Warm up: fine pitch", href: "/music/learn/ear/fine-pitch?startCents=50" }],
+    modalities: ["sung"],
+    exerciseIds: ["ear.intervals"],
+    skillIds: ["pitch.intervals"],
+    minAttempts: 20,
+    threshold: 0.75,
+  },
+  {
+    id: "scales-and-modes",
+    order: 5.9,
+    title: "Hear scales and modes",
+    summary: "Major or minor first, then the minors, pentatonics and blues. The modes come after.",
+    detail: "Twenty unaided answers averaging 80% or higher (two or three choices).",
+    kind: "drill",
+    goal: "Tell a scale by its colour over the tonic.",
+    practiceMode: "Scales and modes by choice, major and minor first.",
+    currentSupport: "built",
+    recommendedDrill: "scale",
+    href: "/music/learn/ear/scales?answer=choice&scales=major,natural-minor",
+    links: [
+      {
+        label: "Pentatonics and blues",
+        href: "/music/learn/ear/scales?answer=choice&scales=major-pentatonic,minor-pentatonic,blues",
+      },
+      {
+        label: "Bright modes",
+        href: "/music/learn/ear/scales?answer=choice&scales=major,lydian,mixolydian",
+      },
+      {
+        label: "Dark modes",
+        href: "/music/learn/ear/scales?answer=choice&scales=natural-minor,dorian,phrygian,locrian",
+      },
+    ],
+    exerciseIds: ["ear.scales"],
+    skillIds: ["ear.scale.major", "ear.scale.natural-minor"],
+    minAttempts: 20,
+    threshold: 0.8,
+  },
+  {
     id: "chords-in-a-key",
     order: 7,
     title: "Hear chords in a key",
@@ -237,6 +358,10 @@ export const EAR_ADDED_STEPS: EarPathStepDef[] = [
         href: "/music/learn/ear/chord-functions?answer=choice&functions=I,IV,V,vi",
       },
       { label: "All seven", href: "/music/learn/ear/chord-functions?answer=choice&functions=" },
+      {
+        label: "Minor: i, iv, V",
+        href: "/music/learn/ear/chord-functions?answer=choice&functions=I,IV,V&keyMode=minor",
+      },
     ],
     modalities: ["heard"],
     exerciseIds: ["ear.chord-functions"],
@@ -257,14 +382,88 @@ export const EAR_ADDED_STEPS: EarPathStepDef[] = [
     modalities: ["heard", "written"],
     exerciseIds: ["ear.progressions"],
     skillIds: ["ear.progressions"],
+    links: [
+      {
+        label: "In minor",
+        href: "/music/learn/ear/progressions?answer=choice&functions=I,IV,V&keyMode=minor",
+      },
+      {
+        label: "With sevenths, from V7",
+        href: "/music/learn/ear/progressions?answer=choice&functions=I,ii,V&chordSize=sevenths",
+      },
+    ],
+  },
+  {
+    id: "follow-the-bass",
+    order: 7.3,
+    title: "Follow the bass",
+    summary: "Chords from I: write the bass down by degree. Roots on 1, 4 and 5 first.",
+    detail: "Twenty unaided bass lines averaging 75% or higher.",
+    kind: "drill",
+    goal: "Hear the lowest line under the chords, the way harmony is usually heard.",
+    practiceMode: "Bass lines by choice, roots on 1, 4 and 5.",
+    currentSupport: "built",
+    recommendedDrill: "bass-line",
+    href: "/music/learn/ear/bass-lines?answer=choice&bassLevel=roots-primary",
+    links: [
+      {
+        label: "Roots on 1, 2, 4, 5 and 6",
+        href: "/music/learn/ear/bass-lines?answer=choice&bassLevel=roots-diatonic",
+      },
+      {
+        label: "Lines through inversions",
+        href: "/music/learn/ear/bass-lines?answer=choice&bassLevel=inversions",
+      },
+    ],
+    exerciseIds: ["ear.bass-lines"],
+    skillIds: ["ear.bass-lines"],
+    minAttempts: 20,
+    threshold: 0.75,
+  },
+  {
+    id: "inversions-by-ear",
+    order: 7.6,
+    title: "Hear inversions",
+    summary: "Root position or first inversion, then second; seventh chords last.",
+    detail: "Twenty unaided answers averaging 80% or higher (two or three choices).",
+    kind: "drill",
+    goal: "Hear which chord tone is in the bass.",
+    practiceMode: "Inversions by choice, root and first first.",
+    currentSupport: "built",
+    recommendedDrill: "inversion",
+    href: "/music/learn/ear/inversions?answer=choice&inversions=root,first",
+    links: [
+      {
+        label: "All three",
+        href: "/music/learn/ear/inversions?answer=choice&inversions=root,first,second",
+      },
+      {
+        label: "Sevenths",
+        href: "/music/learn/ear/inversions?answer=choice&inversions=7-root,7-first,7-second,7-third",
+      },
+    ],
+    exerciseIds: ["ear.inversions"],
+    skillIds: ["ear.inversion.root", "ear.inversion.first"],
+    minAttempts: 20,
+    threshold: 0.8,
   },
 ];
 
 const def = EAR_TRAINING.learningPathDefinition;
+/** Links the app adds to the table's steps: a fine-pitch warm-up before singing degrees. */
+const TABLE_LINKS: Record<string, { label: string; href: string }[]> = {
+  "sing-and-play-back": [
+    { label: "Warm up: fine pitch", href: "/music/learn/ear/fine-pitch?startCents=50" },
+  ],
+};
+/** The table's steps (kept as an exact copy), with the app's links added. */
+export const EAR_TABLE_STEPS = (def.steps as EarPathStepDef[]).map((s) =>
+  TABLE_LINKS[s.id] ? { ...s, links: [...(s.links ?? []), ...TABLE_LINKS[s.id]] } : s,
+);
 export const EAR_PATH = {
   ...def,
   href: earRoute(def.href),
-  steps: [...(def.steps as EarPathStepDef[]), ...EAR_ADDED_STEPS]
+  steps: [...EAR_TABLE_STEPS, ...EAR_ADDED_STEPS]
     .sort((a, b) => a.order - b.order)
     .map(
       (s, i): EarPathStepDef => ({

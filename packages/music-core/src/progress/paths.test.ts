@@ -13,16 +13,39 @@ const statuses = (id: keyof typeof LEARNING_PATHS, events: ScoringEvent[]) =>
   );
 
 describe("path content", () => {
-  it("normalises five paths", () => {
-    expect(Object.keys(LEARNING_PATHS)).toEqual(["ear", "jazz", "guitar", "piano", "mpc"]);
+  it("normalises six paths", () => {
+    expect(Object.keys(LEARNING_PATHS)).toEqual([
+      "ear",
+      "jazz",
+      "guitar",
+      "piano",
+      "mpc",
+      "studio",
+    ]);
     expect(LEARNING_PATHS.jazz.steps).toHaveLength(10);
-    expect(LEARNING_PATHS.guitar.steps).toHaveLength(9);
-    expect(LEARNING_PATHS.piano.steps).toHaveLength(9);
-    expect(LEARNING_PATHS.mpc.steps).toHaveLength(8);
-    // The table's six plus the app's two interval steps, numbered in order.
-    expect(LEARNING_PATHS.ear.steps).toHaveLength(10);
+    // The tables' steps plus the ear steps the research adds to each instrument path.
+    expect(LEARNING_PATHS.guitar.steps).toHaveLength(10);
+    expect(LEARNING_PATHS.piano.steps).toHaveLength(10);
+    expect(LEARNING_PATHS.mpc.steps).toHaveLength(12);
+    expect(LEARNING_PATHS.studio.steps).toHaveLength(6);
+    expect(LEARNING_PATHS.mpc.steps.map((s) => s.id)).toEqual([
+      "M-B1",
+      "M-E1",
+      "M-B2",
+      "M-E2",
+      "M-B3",
+      "M-I1",
+      "M-E3",
+      "M-I2",
+      "M-I3",
+      "M-A1",
+      "M-A2",
+      "M-S1",
+    ]);
+    // The table's six plus the eleven the app adds, numbered in order.
+    expect(LEARNING_PATHS.ear.steps).toHaveLength(17);
     expect(LEARNING_PATHS.ear.steps.find((s) => s.id === "interval-names")).toMatchObject({
-      order: 7,
+      order: 10,
       href: "/music/ear/intervals?answer=choice&intervals=M3%2CP5%2CP8&direction=ascending",
       skillIds: ["pitch.interval.M3", "pitch.interval.P5", "pitch.interval.P8"],
     });
@@ -147,5 +170,49 @@ describe("pathProgress", () => {
       reps(1, { skillIds: ["harmony.ii-v-i.voicings.altered"], modality: "played" }),
     );
     expect(s).toMatchObject({ intervals: "next", "altered-voicings": "in-progress" });
+  });
+});
+
+describe("app-added steps", () => {
+  const ev = (over: Partial<ScoringEvent>): ScoringEvent => ({
+    id: Math.random().toString(36),
+    sessionId: "s1",
+    exerciseId: "studio.peak",
+    promptId: "p",
+    at: 0,
+    skillIds: ["studio.ears", "studio.eq-peak"],
+    capabilities: ["ear"],
+    correct: true,
+    partialCredit: 1,
+    difficulty: 0.2,
+    modality: "heard",
+    source: "click",
+    assistance: "independent",
+    metrics: [],
+    ...over,
+  });
+
+  it("asks for a harder setup and its own threshold", () => {
+    // Ten right on 3 bands: the first step is done, the 5-band step has no evidence yet.
+    const easy = Array.from({ length: 10 }, () => ev({}));
+    expect(statuses("studio", easy)["S-1"]).toBe("done");
+    expect(statuses("studio", easy)["S-2"]).toBe("next");
+    // Twenty on 5 bands at 75%: under S-2's 80%.
+    const five = Array.from({ length: 20 }, (_, i) =>
+      ev({ difficulty: 0.4, partialCredit: i % 4 ? 1 : 0 }),
+    );
+    expect(statuses("studio", [...easy, ...five])["S-2"]).toBe("in-progress");
+  });
+
+  it("links ear drills beside the instrument steps they support", () => {
+    const link = (path: keyof typeof LEARNING_PATHS, id: string) =>
+      LEARNING_PATHS[path].steps.find((s) => s.id === id)!.links.map((l) => l.href);
+    expect(link("piano", "P-I1")).toContain(
+      "/music/ear/inversions?answer=choice&inversions=root%2Cfirst%2Csecond",
+    );
+    expect(link("jazz", "chord-scales").at(-1)).toMatch(/^\/music\/ear\/scales\?/);
+    expect(link("guitar", "G-B1")).toContain(
+      "/music/ear/chord-qualities?answer=choice&qualities=major%2Cminor",
+    );
   });
 });

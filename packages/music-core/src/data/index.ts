@@ -251,6 +251,11 @@ export interface EarPathStepDef {
   links?: Link[];
   skillIds?: string[];
   minSessions?: number;
+  minAttempts?: number;
+  /** Mean credit for done when not the paths' usual 0.66 (higher with only 2 or 3 answers). */
+  threshold?: number;
+  /** Only runs at least this hard count (a harder setup counts for easier steps too). */
+  minDifficulty?: number;
 }
 export const EAR_TRAINING = earTrainingJson as {
   capabilities: {

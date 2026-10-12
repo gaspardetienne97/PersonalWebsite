@@ -155,7 +155,8 @@
       capabilities: ["rhythm"],
       modality: "tapped",
       assistance: assistanceFor(mode),
-      difficulty: Math.min(0.9, 0.2 + (bpm - 40) / 300 + (pulse ? 0 : 0.15)),
+      // By ear, each rhythm level adds 0.08, so a path step can ask for a level or harder.
+      difficulty: Math.min(0.95, 0.2 + (bpm - 40) / 300 + (pulse ? 0 : 0.15) + (byEar ? EAR_RHYTHM_LEVELS.indexOf(earLevel) * 0.08 : 0)),
       params: byEar ? { mode: s.mode, level: earLevel.id, bpm } : pulse ? { mode: "pulse", beats, bpm } : { mode: "read-and-tap", pattern: def.id, bpm },
     });
     if (byEar) {
