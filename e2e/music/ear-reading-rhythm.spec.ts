@@ -627,6 +627,49 @@ test.describe("ear training", () => {
     await expect(page.getByRole("status")).toContainText("All 10 right.");
   });
 
+  test("intervals and melodies sung back through the synthetic mic, in any octave", async ({
+    page,
+  }) => {
+    await installSyntheticMic(page, 0);
+    await page.goto("/music/ear/intervals?answer=voice&intervals=M3,P5,P8&direction=ascending");
+    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    for (let i = 0; i < 10; i++) {
+      await expect(prompt(page)).toHaveAttribute("aria-label", `Question ${i + 1}`, {
+        timeout: 8000,
+      });
+      await page.evaluate(() => (window as any).__mic.set(0));
+      await waitStep(page, "answer");
+      const [, second] = (await prompt(page).getAttribute("data-expected"))!.split(",").map(Number);
+      // An octave down, the way a lower voice sings it.
+      await page.evaluate((f) => (window as any).__mic.set(f, 0.4), hz(second - 12));
+      if (i === 0) await shots(page, "ear-interval-voice");
+    }
+    await expect(page.getByRole("status")).toContainText("All 10 right.");
+
+    // A melody, note by note.
+    await page.goto("/music/ear/melody-dictation?answer=voice&level=major-pentachord");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await waitStep(page, "answer");
+    const notes = (await prompt(page).getAttribute("data-expected"))!.split(",").map(Number);
+    for (const [i, m] of notes.entries()) {
+      await page.evaluate((f) => (window as any).__mic.set(f, 0.4), hz(m));
+      if (i < notes.length - 1) {
+        await expect(page.getByText(/^\s*Sung: /)).toContainText(
+          new RegExp(
+            `Sung: ${Array(i + 1)
+              .fill("[^,]+ / [^,]+") // a degree and its syllable, never "nothing yet"
+              .join(", ")}\\s*(Start over)?$`,
+          ),
+        );
+        await page.evaluate(() => (window as any).__mic.set(0));
+        await page.waitForTimeout(300);
+      }
+    }
+    await waitStep(page, "feedback");
+    await expect(prompt(page)).toContainText("Right:");
+  });
+
   test("cadences by pocket recall record self-rated answers", async ({ page }) => {
     await page.goto("/music/ear/cadences?answer=listen");
     await page.getByRole("button", { name: "Start", exact: true }).click();

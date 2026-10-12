@@ -477,7 +477,11 @@
   };
   const ask = (p: Prompt) =>
     p.drill === "interval"
-      ? "What interval was that?"
+      ? answer === "voice"
+        ? p.direction === "harmonic"
+          ? "Sing the higher note, in any octave."
+          : "Sing the second note back, in any octave."
+        : "What interval was that?"
       : p.drill === "interval-compare"
         ? "Which interval was bigger?"
       : p.drill === "chord-quality"
@@ -508,7 +512,9 @@
               : isPlayback
                 ? "Play the second note back."
                 : "Which degree was the second note?"
-            : "Play the phrase back in order.";
+            : answer === "voice"
+              ? "Sing the phrase back in order, in any octave."
+              : "Play the phrase back in order.";
 
   function notesOf(p: Prompt) {
     return p.playback.flatMap((ev) => ev.midi.map((m) => ({ midi: m, time: ev.time, duration: ev.duration })));
@@ -642,6 +648,8 @@
     prompts = queued ?? makeSession();
     queued = null;
     records = [];
+    // Not open for answers until the first prompt has played (the microphone may take a moment to start).
+    step = "playing";
     if (!prompts.length) {
       phase = "ready";
       status = "Nothing to ask with this setup.";
@@ -722,6 +730,24 @@
     if (!p) return;
     if (answer === "voice") {
       if (e.source !== "audio") return;
+      if (p.drill === "interval") {
+        // The second note (the higher one when played together), in any octave.
+        const [a, b] = p.expectedMidi!;
+        const [from, to] = p.direction === "harmonic" ? [Math.min(a, b), Math.max(a, b)] : [a, b];
+        const g = gradeScaleDegree(from, to - from, { midi: e.midi, cents: e.cents });
+        const semis = pc(p.direction === "descending" ? from - e.midi : e.midi - from);
+        const heard = g.correct ? p.answer : (EAR_INTERVALS.find((i) => i.semitones === semis)?.token ?? "another note");
+        void commit(g, heard, e.midi, [e]);
+        return;
+      }
+      if (p.drill === "melody-dictation") {
+        played = [...played, e.midi];
+        if (played.length < (p.expectedMidi?.length ?? 3)) return;
+        const tonic = tonicOf(p);
+        const heard = played.map((m) => SCALE_DEGREES[pc(m - tonic)].label).join(" ");
+        void commit(gradeMelodyDictation(p.expectedMidi!, played), heard, played, [e]);
+        return;
+      }
       const tonic = tonicOf(p);
       const g = gradeScaleDegree(tonic, (p.expectedMidi?.[0] ?? tonic) - tonic, { midi: e.midi, cents: e.cents });
       void commit(g, SCALE_DEGREES[pc(e.midi - tonic)].label, e.midi, [e]);
@@ -1314,24 +1340,32 @@
             {/if}
           </div>
         {:else if answer === "voice"}
-          <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-4 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+          <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-4 {p.drill === 'interval' ? '' : 'md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]'}">
             <!-- The wheel lights the degree you are singing, relative to this prompt's tonic. -->
+            {#if p.drill !== "interval"}
             <DegreeWheel
               available={levelDegrees(level)}
               {labels}
               center={noteName(tonicOf(p), "flat", false)}
               lit={step === "answer" ? vocalDegree : null}
               expected={showAnswer ? p.answer : null}
-              answered={showAnswer && rec && !rec.correct ? (rec.answered ?? null) : null}
+              answered={showAnswer && rec && !rec.correct && p.drill === "scale-degree" ? (rec.answered ?? null) : null}
             />
+            {/if}
             <div class="voice rounded-2xl p-4" aria-label="Microphone">
               <p class="text-sm text-ws-stage-soft">
                 {step === "playing" ? "Listen first. The mic opens when the prompt ends." : step === "answer" ? "Sing now. Hold the note until it locks." : "Got it."}
               </p>
               <div class="meter mt-2" aria-hidden="true"><span style:width="{Math.max(0, Math.min(100, ((mic.level + 60) / 60) * 100))}%"></span></div>
               <p class="mt-2 font-display text-2xl font-semibold tnum">
-                {#if mic.pitch && vocalDegree}{noteName(mic.pitch.midi, "flat")}, {tokenLabel("scale-degree", vocalDegree, labels)}{:else}No pitch yet{/if}
+                {#if mic.pitch && p.drill === "interval"}{noteName(mic.pitch.midi, "flat")}{:else if mic.pitch && vocalDegree}{noteName(mic.pitch.midi, "flat")}, {tokenLabel("scale-degree", vocalDegree, labels)}{:else}No pitch yet{/if}
               </p>
+              {#if p.drill === "melody-dictation"}
+                <p class="mt-1 text-sm text-ws-stage-soft">
+                  Sung: {played.length ? played.map((m) => tokenLabel("scale-degree", SCALE_DEGREES[pc(m - tonicOf(p))].label, labels)).join(", ") : "nothing yet"}
+                  {#if step === "answer" && played.length}<button type="button" class="{btnStage} ml-2" onclick={() => (played = [])}>Start over</button>{/if}
+                </p>
+              {/if}
               {#if mic.advice}<p class="text-sm text-ws-stage-soft">{mic.advice.label}</p>{/if}
             </div>
           </div>

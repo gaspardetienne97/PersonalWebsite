@@ -126,13 +126,21 @@ const CHORD_FUNCTION_DRILLS = [
   },
 ] as const;
 type DrillRow = (typeof EAR_TRAINING.drills)[number];
+const SUNG = ["intervals", "melody-dictation"];
 export const EAR_DRILLS = [
   ...EAR_TRAINING.drills.slice(0, 1),
   INTERVAL_COMPARE as unknown as DrillRow,
   ...EAR_TRAINING.drills.slice(1, 3),
   ...(CHORD_FUNCTION_DRILLS as unknown as DrillRow[]),
   ...EAR_TRAINING.drills.slice(3),
-].map((d) => ({ ...d, route: `/music/ear/${d.slug}` }));
+].map((d) => ({
+  ...d,
+  // The app adds singing back to intervals (the second note) and melody dictation (the phrase).
+  answerModes: (SUNG.includes(d.slug)
+    ? [...d.answerModes, "voice"]
+    : d.answerModes) as readonly string[],
+  route: `/music/ear/${d.slug}`,
+}));
 export const EAR_DEFAULT_CONFIG = EAR_TRAINING.defaultConfig;
 export const EAR_SESSION_LENGTH = 10;
 
