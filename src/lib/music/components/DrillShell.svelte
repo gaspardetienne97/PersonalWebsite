@@ -18,6 +18,8 @@
   // with the metric. One route-owned status line (role=status) per page.
   import type { Snippet } from "svelte";
   import { onDestroy, tick } from "svelte";
+  import ArrowLeft from "lucide-svelte/icons/arrow-left";
+  import { backFor } from "$lib/music/came-from.svelte";
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
   import Headphones from "lucide-svelte/icons/headphones";
@@ -83,6 +85,8 @@
     modeNotes = { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
   }: Props = $props();
 
+  // Back to where the drill was opened from (Today, Drills, Paths...).
+  const back = $derived(backFor(page.url.pathname));
   let setupOpen = $state(false);
   let clockHandle: { stop(): void } | null = null;
   let heading: HTMLElement | undefined = $state();
@@ -195,6 +199,9 @@
   {#if !live}
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div class="min-w-0">
+        <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href={back.href}>
+          <ArrowLeft class="size-4" aria-hidden="true" />Back to {back.label}
+        </a>
         <h1 id="drill-title" bind:this={heading} tabindex="-1" class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
           {title}
         </h1>

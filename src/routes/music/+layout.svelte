@@ -2,6 +2,8 @@
   import "./woodshed.css";
   import { page } from "$app/state";
   import { onMount } from "svelte";
+  import { afterNavigate } from "$app/navigation";
+  import { noteNavigation } from "$lib/music/came-from.svelte";
   import House from "lucide-svelte/icons/house";
   import Library from "lucide-svelte/icons/library";
   import Grid from "lucide-svelte/icons/grid-3x3";
@@ -41,6 +43,9 @@
     path === item.href ||
     (item.href !== "/music" && path.startsWith(item.href + "/")) ||
     (item.owns ?? []).some((p) => path === p || path.startsWith(p + "/"));
+
+  // Remember where each page was opened from (drills show "Back to ...").
+  afterNavigate((nav) => noteNavigation(nav.from?.url, nav.to?.url));
 
   let collapsed = $state(false);
   let moreOpen = $state(false);
