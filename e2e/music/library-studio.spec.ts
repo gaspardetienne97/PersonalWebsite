@@ -3,7 +3,7 @@
 // runs wait and performance passes over fake MIDI, views survive reload and
 // Back, Jam reports on a chorus, and a Lab take survives a reload.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, expectNoHorizontalOverflow, installFakeMidi } from "./fixtures";
+import { PORTS, expectNoHorizontalOverflow, installFakeMidi, choose } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/library-studio";
 const ODE = "e2e/music/fixtures/ode-to-joy.musicxml";
@@ -273,7 +273,7 @@ test.describe("library and song studio", () => {
       .click();
     await expect(page.getByRole("heading", { level: 1, name: "low-riff" })).toBeVisible();
     await page.goto(page.url().split("?")[0] + "?view=tab");
-    await page.getByLabel("Tuning").selectOption({ label: "Ukulele, High G" });
+    await choose(page, page.getByLabel("Tuning"), "Ukulele, High G");
     await expect(page.locator("[data-fit]")).toContainText("to fit the ukulele");
     await page.getByRole("button", { name: "Show as written" }).click();
     await expect(page.locator("[data-fit]")).toContainText("As written");

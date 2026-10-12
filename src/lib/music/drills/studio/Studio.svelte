@@ -43,6 +43,7 @@
   import { barsText, durationText, scoreFacts, songSections, type Song } from "$lib/music/hubs/library/songs";
   import StudioScore, { type View } from "./StudioScore.svelte";
   import { buildPass, fitToRange, planPasses, retryBpm, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Pass, type RangeMode, type SectionOrder } from "./studio";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { song }: { song: Song } = $props();
   // The page keys this component by song id, so reading the prop once is safe.
@@ -771,12 +772,10 @@
     {/if}
     {#if (view === "tab" || fretted) && !live}
       <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-        <label class="flex items-center gap-2">
+        <div class="flex items-center gap-2">
           <span class="font-medium">Tuning</span>
-          <select class="min-h-11 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-3 text-sm text-ws-stage-ink" value={tuning.id} onchange={(e) => setup.set({ tuning: e.currentTarget.value })}>
-            {#each TUNING_LIST as t (t.id)}<option value={t.id}>{t.instrument === "guitar" ? "Guitar" : "Ukulele"}, {t.name}</option>{/each}
-          </select>
-        </label>
+          <Picker class="w-auto" tone="stage" label="Tuning" value={tuning.id} options={TUNING_LIST.map((t) => ({ value: t.id, label: `${t.instrument === "guitar" ? "Guitar" : "Ukulele"}, ${t.name}` }))} onchange={(v) => setup.set({ tuning: v })} />
+        </div>
         {#if fitted.score !== score}
           <p class="min-w-0 flex-1 text-ws-stage-soft" data-fit>
             {s.fit === "auto" ? fitNote : `As written: some notes are out of the ${tuning.instrument === "ukulele" ? "ukulele" : "guitar"}'s range.`}

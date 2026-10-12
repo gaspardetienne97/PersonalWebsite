@@ -36,6 +36,7 @@
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { loopBeats, voiceNotes, noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
   import { STEP_BEATS } from "$lib/music/takes";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let {
     host,
@@ -242,12 +243,10 @@
         <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'draw' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "draw"} onclick={() => (tool = "draw")}><Pencil class="size-4" aria-hidden="true" />Draw</button>
         <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'resize' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "resize"} onclick={() => (tool = "resize")}><MoveH class="size-4" aria-hidden="true" />Resize</button>
       </div>
-      <label class="flex items-center gap-2 text-sm">
+      <div class="flex items-center gap-2 text-sm">
         <span class="text-ws-stage-soft">Note</span>
-        <select class="{field} px-2" bind:value={noteLen}>
-          {#each LENGTHS as l (l.beats)}<option value={l.beats}>{l.label}</option>{/each}
-        </select>
-      </label>
+        <Picker class="w-24" tone="stage" label="Note" value={String(noteLen)} options={LENGTHS.map((l) => ({ value: String(l.beats), label: l.label }))} onchange={(v) => (noteLen = Number(v))} />
+      </div>
       <label class="flex items-center gap-2 text-sm">
         <span class="text-ws-stage-soft">Zoom</span>
         <input type="range" min="12" max="48" step="2" bind:value={stepW} class="w-24 accent-[var(--instr)]" aria-valuetext="{stepW} pixels per sixteenth" />

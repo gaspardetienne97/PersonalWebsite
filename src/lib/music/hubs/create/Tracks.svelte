@@ -10,6 +10,7 @@
   import type { Snippet } from "svelte";
   import { goto } from "$app/navigation";
   import * as Menu from "@repo/ui/dropdown-menu";
+  import Picker from "$lib/music/components/Picker.svelte";
   import { audio } from "$lib/music/runtime";
   import { kits } from "./kitStore.svelte";
   import { session, type TrackId } from "./session.svelte";
@@ -112,7 +113,6 @@
   const row = "grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 rounded-2xl border border-ws-line bg-ws-surface p-2 sm:grid-cols-[auto_minmax(0,1fr)_18rem_auto_auto]";
   const name = "min-h-9 w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 font-semibold hover:border-ws-line focus:border-ws-line";
   const soloing = (id: TrackId) => session.playing && session.only === id;
-  const field = "min-h-11 min-w-0 rounded-lg border border-ws-line bg-ws-surface px-2 text-sm";
   const icon = "grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink";
 </script>
 
@@ -145,9 +145,7 @@
         <input class={name} aria-label="Beat name" value={session.pattern.name} onchange={(e) => session.setPattern({ ...session.pattern, name: e.currentTarget.value || session.pattern.name })} />
         <span class="px-1.5 text-xs text-ws-soft">Beat, {count(hitCount(session.pattern), "hit")} over {count(barsOf(session.pattern), "bar")}{session.beatMuted ? ", muted" : ""}</span>
       </div>
-      <select class="{field} order-last col-span-4 sm:order-none sm:col-span-1" aria-label="Beat kit" value={kits.kit?.id} onchange={(e) => pickKit(e.currentTarget.value)}>
-        {#each kits.kits as k (k.id)}<option value={k.id}>{k.name}</option>{/each}
-      </select>
+      <Picker class="order-last col-span-4 sm:order-none sm:col-span-1" label="Beat kit" value={kits.kit?.id} options={kits.kits.map((k) => ({ value: k.id, label: k.name }))} onchange={pickKit} />
       <button type="button" class={icon} aria-pressed={session.beatMuted} aria-label="{session.beatMuted ? 'Unmute' : 'Mute'} the beat" onclick={toggleBeat}>
         {#if session.beatMuted}<VolumeOff class="size-5" aria-hidden="true" />{:else}<Volume class="size-5" aria-hidden="true" />{/if}
       </button>
@@ -175,13 +173,13 @@
           <span class="px-1.5 text-xs text-ws-soft">Melody, {count(v.notes.length, "note")}{loopBeats(v, session.doc.lengthBeats) ? `, looping ${count(v.loopBars!, "bar")}` : ""}{v.muted ? ", muted" : ""}</span>
         </div>
         <div class="order-last col-span-4 grid grid-cols-2 gap-2 sm:order-none sm:col-span-1">
-          <select class={field} aria-label="{v.name} instrument" value={soundOf(v)} onchange={(e) => setSound(v, e.currentTarget.value)}>
-            {#each ROLL_SOUNDS as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
-          </select>
-          <select class={field} aria-label="{v.name} loop" value={String(loopBeats(v, session.doc.lengthBeats) ? v.loopBars : 0)} onchange={(e) => setLoop(v, Number(e.currentTarget.value))}>
-            <option value="0">No loop</option>
-            {#each LOOPS.filter((n) => n < session.bars) as n (n)}<option value={String(n)}>Loop {count(n, "bar")}</option>{/each}
-          </select>
+          <Picker label="{v.name} instrument" value={soundOf(v)} options={ROLL_SOUNDS} onchange={(s) => setSound(v, s)} />
+          <Picker
+            label="{v.name} loop"
+            value={String(loopBeats(v, session.doc.lengthBeats) ? v.loopBars : 0)}
+            options={[{ value: "0", label: "No loop" }, ...LOOPS.filter((n) => n < session.bars).map((n) => ({ value: String(n), label: `Loop ${count(n, "bar")}` }))]}
+            onchange={(n) => setLoop(v, Number(n))}
+          />
         </div>
         <button type="button" class={icon} aria-pressed={!!v.muted} aria-label="{v.muted ? 'Unmute' : 'Mute'} {v.name}" onclick={() => toggleMelody(v)}>
           {#if v.muted}<VolumeOff class="size-5" aria-hidden="true" />{:else}<Volume class="size-5" aria-hidden="true" />{/if}
@@ -212,30 +210,23 @@
 
   <div class="flex flex-wrap items-center gap-2">
     <button type="button" class="flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" onclick={addMelody}><Plus class="size-4" aria-hidden="true" />Add melody</button>
-    <select class={field} aria-label="Add a chord progression" value="" onchange={(e) => { addChords(e.currentTarget.value); e.currentTarget.value = ""; }}>
-      <option value="" disabled>Add chords</option>
-      {#each PROGRESSIONS as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
-    </select>
+    <Picker class="w-auto" action label="Add a chord progression" placeholder="Add chords" options={PROGRESSIONS.map((p) => ({ value: p.id, label: p.name }))} onchange={addChords} />
     <label class="flex items-center gap-1.5 text-sm">
       <span class="text-ws-soft">in</span>
-      <select class="{field} w-20" aria-label="Key for the chords" bind:value={chordKey}>
-        {#each KEYS as k, i (k)}<option value={i}>{k}</option>{/each}
-      </select>
+      <Picker class="w-20" label="Key for the chords" value={String(chordKey)} options={KEYS.map((k, i) => ({ value: String(i), label: k }))} onchange={(k) => (chordKey = Number(k))} />
     </label>
     {#if session.beats.length || session.voices.length}
-      <select class={field} aria-label="Add from library" value="" onchange={(e) => { fromLibrary(e.currentTarget.value); e.currentTarget.value = ""; }}>
-        <option value="" disabled>Add from library</option>
-        {#if session.beats.length}
-          <optgroup label="Beats (replaces this song's beat)">
-            {#each session.beats as b (b.id)}<option value="beat:{b.id}">{b.name}, {count(barsOf(b), "bar")}</option>{/each}
-          </optgroup>
-        {/if}
-        {#if session.voices.length}
-          <optgroup label="Melodies">
-            {#each session.voices as sv (sv.id)}<option value="melody:{sv.id}">{sv.name}, {soundLabel(sv.sound)}, {count(sv.notes.length, "note")}</option>{/each}
-          </optgroup>
-        {/if}
-      </select>
+      <Picker
+        class="w-auto"
+        action
+        label="Add from library"
+        placeholder="Add from library"
+        options={[
+          ...session.beats.map((b) => ({ value: `beat:${b.id}`, label: `${b.name}, ${count(barsOf(b), "bar")}`, group: "Beats (replaces this song's beat)" })),
+          ...session.voices.map((sv) => ({ value: `melody:${sv.id}`, label: `${sv.name}, ${soundLabel(sv.sound)}, ${count(sv.notes.length, "note")}`, group: "Melodies" })),
+        ]}
+        onchange={fromLibrary}
+      />
     {/if}
   </div>
 </section>

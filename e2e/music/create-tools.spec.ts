@@ -8,6 +8,7 @@ import {
   installSyntheticMic,
   midiNote,
   PORTS,
+  choose,
 } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/create-tools";
@@ -140,7 +141,7 @@ test.describe("Create", () => {
     await expect(page.getByRole("button", { name: "Pad A01, Kick_01" })).toBeVisible();
 
     // Assign it to another pad through that pad's native select, and through "Assign to pad".
-    await page.getByLabel("Sample on pad A05").selectOption({ label: "Kick_01" });
+    await choose(page, page.getByLabel("Sample on pad A05"), "Kick_01");
     await expect(page.getByRole("status")).toContainText("Pad A05 plays Kick_01");
     await page.getByRole("button", { name: "Assign to pad" }).click();
     await page.getByRole("button", { name: /^Pad A09, empty/ }).click();
@@ -170,7 +171,7 @@ test.describe("Create", () => {
     await expect(page.getByRole("button", { name: "Pad A01, Big kick" })).toBeVisible();
     await page.getByRole("link", { name: "Create" }).first().click();
     await openPanel(page);
-    await expect(page.getByLabel("Beat kit").locator("option:checked")).toHaveText("Boom Bap");
+    await expect(page.getByLabel("Beat kit")).toHaveText("Boom Bap");
     await expect(
       page.getByRole("button", { name: /^Big kick on A01, bar 1 step 1$/ }),
     ).toBeVisible();
@@ -214,7 +215,7 @@ test.describe("Create", () => {
 
     // A loop repeats the melody's first bar through the whole song.
     await openPanel(page);
-    await page.getByLabel("Melody 1 loop").selectOption({ label: "Loop 1 bar" });
+    await choose(page, page.getByLabel("Melody 1 loop"), "Loop 1 bar");
     await expect(page.getByRole("status")).toContainText(
       "Melody 1 repeats its first 1 bar through all 2 bars",
     );
@@ -222,14 +223,17 @@ test.describe("Create", () => {
     await expect(roll.locator(".note.repeat")).toHaveCount(3);
     // Drawing in the repeats edits the loop: the note lands in bar 1 and repeats.
     await roll.locator(".repeats").waitFor();
+    // The panel above pushed the roll down (off the screen): bring it back and measure again.
+    await roll.locator(".repeats").scrollIntoViewIfNeeded();
     const g = (await grid.boundingBox())!;
-    await page.mouse.click(g.x + 22 * 16 + 22 * 10 + 4, c4.y + c4.height / 2);
+    const row = (await roll.locator('.note[data-note="60"]').first().boundingBox())!;
+    await page.mouse.click(g.x + 22 * 16 + 22 * 10 + 4, row.y + row.height / 2);
     await expect(page.getByRole("status")).toContainText("in the loop, so every repeat changes");
     await expect(roll.locator(".note[data-note]")).toHaveCount(4);
     await expect(roll.locator(".note.repeat")).toHaveCount(4);
-    await page.mouse.click(g.x + 22 * 16 + 22 * 10 + 4, c4.y + c4.height / 2); // and off again
+    await page.mouse.click(g.x + 22 * 16 + 22 * 10 + 4, row.y + row.height / 2); // and off again
     await expect(roll.locator(".note[data-note]")).toHaveCount(3);
-    await page.getByLabel("Melody 1 loop").selectOption({ label: "No loop" });
+    await choose(page, page.getByLabel("Melody 1 loop"), "No loop");
     await expect(roll.locator(".note.repeat")).toHaveCount(0);
     await page.getByRole("button", { name: "Done" }).click();
 
@@ -295,7 +299,7 @@ test.describe("Create", () => {
     await openPanel(page);
 
     // A preset beat, then one more bar: the song grows with it.
-    await page.getByLabel("Start from a preset").selectOption({ label: "Boom bap, 2 bars" });
+    await choose(page, page.getByLabel("Start from a preset"), "Boom bap, 2 bars");
     await expect(page.getByRole("status")).toContainText("Boom bap, 2 bars");
     await page.getByRole("button", { name: "Add a bar to the beat" }).click();
     await expect(page.getByRole("status")).toContainText("The song grew to 3 bars");
@@ -330,7 +334,7 @@ test.describe("Create", () => {
       .click();
 
     // A bass line on its own instrument, saved to the library.
-    await page.getByLabel("Melody 1 instrument").selectOption({ label: "Bass" });
+    await choose(page, page.getByLabel("Melody 1 instrument"), "Bass");
     await expect(page.getByRole("status")).toContainText("Melody 1 plays Bass");
     await page.getByRole("application", { name: /Note grid/ }).focus();
     await page.keyboard.press("Enter");
@@ -371,27 +375,27 @@ test.describe("Create", () => {
     await page.getByRole("button", { name: "New song" }).click();
     await expect(page.getByText("Beat, 0 hits over 1 bar")).toBeVisible();
     await page.getByRole("button", { name: "Kick, bar 1 step 1", exact: true }).click();
-    await page.getByLabel("Your songs").selectOption({ label: "Jam in C, 90 BPM" });
+    await choose(page, page.getByLabel("Your songs"), "Jam in C, 90 BPM");
     await expect(page.getByRole("group", { name: "Unsaved changes" })).toBeVisible();
     await page.getByRole("button", { name: "Discard changes" }).click();
     await expect(page.getByRole("status")).toContainText("Opened Jam in C");
     await expect(
       page.getByRole("button", { name: "Kick, bar 3 step 1", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByLabel("Melody 1 instrument")).toHaveValue("bass");
+    await expect(page.getByLabel("Melody 1 instrument")).toHaveAttribute("data-value", "bass");
     await expect(song.locator("[data-save-state]")).toHaveText("Saved");
 
     // The saved melody can join any song; that is a change to save.
-    await page.getByLabel("Add from library").selectOption({ index: 1 });
+    await choose(page, page.getByLabel("Add from library"), /^Melody 1, Bass/);
     await expect(page.getByRole("status")).toContainText("Added Melody 1 as a new melody");
     await expect(page.getByLabel("Melody 1 instrument")).toHaveCount(2);
     await expect(song.locator("[data-save-state]")).toHaveText("Unsaved changes");
 
     // A chord progression as its own track, in the key asked for.
-    await page.getByLabel("Key for the chords").selectOption({ label: "D" });
-    await page.getByLabel("Add a chord progression").selectOption({ label: "Jazz, ii-V-I" });
+    await choose(page, page.getByLabel("Key for the chords"), "D");
+    await choose(page, page.getByLabel("Add a chord progression"), "Jazz, ii-V-I");
     await expect(page.getByRole("status")).toContainText("Added Jazz in D: Em7, A7, Dmaj7, Dmaj7");
-    await expect(page.getByLabel("Jazz in D instrument")).toHaveValue("e-piano");
+    await expect(page.getByLabel("Jazz in D instrument")).toHaveAttribute("data-value", "e-piano");
     await expect(page.locator(".note[data-note]")).toHaveCount(16); // four 4-note chords
     // Four bars are wider than the roll: it follows the playhead too.
     const roll = page.getByRole("region", { name: "Melody editor" });
@@ -570,7 +574,7 @@ test.describe("Tuner", () => {
     await targets.getByRole("button", { name: "Any note" }).click();
 
     // Fretted instruments get the string strip; A2 is the fifth string.
-    await page.getByLabel("Instrument").selectOption("guitar");
+    await choose(page, page.getByLabel("Instrument", { exact: true }), "Guitar");
     await expect(page.getByLabel("Guitar tuning")).toBeVisible();
     await expect(page.getByRole("button", { name: /String 5, A2, nearest/ })).toBeVisible();
     await shots(page, "tuner-tune-guitar");
@@ -628,14 +632,14 @@ test.describe("Tuner", () => {
 
   test("the A4 reference changes the target", async ({ page }) => {
     await page.goto("/music/tuner");
-    await page.getByLabel("Reference A4").selectOption("442");
+    await choose(page, page.getByLabel("Reference A4"), "442 Hz");
     await page.getByRole("button", { name: "Start listening" }).click();
     // 110 Hz against A4 = 442 is A2 about 8 cents flat.
     await expect(page.getByTestId("tuner-cents")).toContainText(/−8 cents, flat, tune up/, {
       timeout: 10_000,
     });
     await expect(page.getByText(/target 110\.5 Hz/)).toBeVisible();
-    await page.getByLabel("Reference A4").selectOption("440");
+    await choose(page, page.getByLabel("Reference A4"), "440 Hz (standard)");
   });
 });
 

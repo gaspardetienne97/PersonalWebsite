@@ -15,6 +15,7 @@
   import { BANK_IDS, bankNotes, padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { canPickFolder, download, writeToFolder } from "./files";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 
@@ -142,8 +143,6 @@
   }
 
   const kb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
-  const select =
-    "min-h-11 w-full min-w-0 rounded-lg border border-ws-line bg-ws-surface px-2 text-sm text-ws-ink";
 </script>
 
 <section aria-labelledby="kit-title" class="flex flex-col gap-4">
@@ -152,12 +151,10 @@
       <h2 id="kit-title" class="font-display text-2xl font-semibold tracking-tight">Pads</h2>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <label class="flex items-center gap-2 text-sm">
+      <div class="flex items-center gap-2 text-sm">
         <span class="text-ws-soft">Kit</span>
-        <select class="min-h-11 rounded-full border border-ws-line bg-ws-surface px-3 text-sm" value={kit?.id} onchange={(e) => kits.select(e.currentTarget.value)}>
-          {#each kits.kits as k (k.id)}<option value={k.id}>{k.name}</option>{/each}
-        </select>
-      </label>
+        <Picker class="w-auto min-w-40" label="Kit" value={kit?.id} options={kits.kits.map((k) => ({ value: k.id, label: k.name }))} onchange={(id) => kits.select(id)} />
+      </div>
       <button type="button" class={btn} onclick={newKit}><Plus class="size-4" aria-hidden="true" />New kit</button>
     </div>
   </div>
@@ -220,15 +217,7 @@
                 </span>
                 <span class="truncate text-xs font-semibold">{name ?? (kits.broken.includes(note) ? "Missing file" : "")}</span>
               </button>
-              <select
-                class="pad-select"
-                aria-label="Sample on pad {padLabel(note)}"
-                value={p?.soft ?? ""}
-                onchange={(e) => choose(note, "soft", e.currentTarget.value)}
-              >
-                <option value="">Empty</option>
-                {#each kit.samples as s (s.id)}<option value={s.id}>{s.name}</option>{/each}
-              </select>
+              <Picker class="min-h-11 rounded-md px-2 text-xs" tone="stage" label="Sample on pad {padLabel(note)}" value={p?.soft ?? ""} options={[{ value: "", label: "Empty" }, ...kit.samples.map((s) => ({ value: s.id, label: s.name }))]} onchange={(v) => choose(note, "soft", v)} />
             </div>
           {/each}
         </div>
@@ -236,27 +225,18 @@
         <div class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="pad-edit-title">
           <h3 id="pad-edit-title" class="font-display text-lg font-semibold">Pad {padLabel(selected)} <span class="text-sm font-normal text-ws-soft">MIDI note {selected}</span></h3>
           <div class="mt-3 grid gap-3 sm:grid-cols-2">
-            <label class="flex min-w-0 flex-col gap-1 text-sm">
+            <div class="flex min-w-0 flex-col gap-1 text-sm">
               <span class="text-ws-soft">Soft hits, velocity 0 to 80</span>
-              <select class={select} value={selPad?.soft ?? ""} onchange={(e) => choose(selected, "soft", e.currentTarget.value)}>
-                <option value="">None</option>
-                {#each kit.samples as s (s.id)}<option value={s.id}>{s.name}</option>{/each}
-              </select>
-            </label>
-            <label class="flex min-w-0 flex-col gap-1 text-sm">
+              <Picker label="Soft hits, velocity 0 to 80" value={selPad?.soft ?? ""} options={[{ value: "", label: "None" }, ...kit.samples.map((s) => ({ value: s.id, label: s.name }))]} onchange={(v) => choose(selected, "soft", v)} />
+            </div>
+            <div class="flex min-w-0 flex-col gap-1 text-sm">
               <span class="text-ws-soft">Hard hits, velocity 81 to 127</span>
-              <select class={select} value={selPad?.hard ?? ""} onchange={(e) => choose(selected, "hard", e.currentTarget.value)}>
-                <option value="">Same as soft</option>
-                {#each kit.samples as s (s.id)}<option value={s.id}>{s.name}</option>{/each}
-              </select>
-            </label>
-            <label class="flex min-w-0 flex-col gap-1 text-sm">
+              <Picker label="Hard hits, velocity 81 to 127" value={selPad?.hard ?? ""} options={[{ value: "", label: "Same as soft" }, ...kit.samples.map((s) => ({ value: s.id, label: s.name }))]} onchange={(v) => choose(selected, "hard", v)} />
+            </div>
+            <div class="flex min-w-0 flex-col gap-1 text-sm">
               <span class="text-ws-soft">Choke group: pads in one group cut each other off</span>
-              <select class={select} value={String(selPad?.chokeGroup ?? 0)} onchange={(e) => kits.setPad(selected, { chokeGroup: Number(e.currentTarget.value) || undefined })}>
-                <option value="0">None</option>
-                {#each Array.from({ length: 16 }, (_, i) => i + 1) as g (g)}<option value={String(g)}>Group {g}</option>{/each}
-              </select>
-            </label>
+              <Picker label="Choke group: pads in one group cut each other off" value={String(selPad?.chokeGroup ?? 0)} options={[{ value: "0", label: "None" }, ...Array.from({ length: 16 }, (_, i) => ({ value: String(i + 1), label: `Group ${i + 1}` }))]} onchange={(v) => kits.setPad(selected, { chokeGroup: Number(v) || undefined })} />
+            </div>
             <div class="flex flex-wrap items-end gap-2">
               <button type="button" class={btn} onclick={async () => (await audio.unlock(), audio.playKitPad(selected, 0.4))}>Play soft</button>
               <button type="button" class={btn} onclick={async () => (await audio.unlock(), audio.playKitPad(selected, 1))}>Play hard</button>
@@ -388,17 +368,6 @@
   }
   .pad[data-held] .led {
     background: white;
-  }
-  .pad-select {
-    min-height: 2.75rem;
-    width: 100%;
-    min-width: 0;
-    border-radius: 0.45rem;
-    border: 1px solid #ffffff1f;
-    background: #1d1b21;
-    color: #d9d4df;
-    font-size: 0.72rem;
-    padding: 0 0.25rem;
   }
   .pad-select:focus-visible {
     outline: 2px solid var(--instr);

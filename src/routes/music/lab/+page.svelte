@@ -24,6 +24,7 @@
   import { audio, mic, settings, type SequenceHandle } from "$lib/music/runtime";
   import { importTrack, listTracks, playTrack, type BackingTrack } from "$lib/music/drills/jam/tracks";
   import { pairNotes, recentTakes, saveTake, takeToSequence, takeStats, type MidiTake } from "$lib/music/takes";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   const cfg = new DrillSetup("lab", { track: "", mic: false as boolean });
   const s = $derived(cfg.value);
@@ -212,10 +213,7 @@
       <div class="flex flex-col gap-1 text-sm">
         <span class="font-medium">Backing track</span>
         <div class="flex flex-wrap items-center gap-2">
-          <select class="min-h-11 min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3" aria-label="Backing track" value={s.track} onchange={(e) => cfg.set({ track: e.currentTarget.value })}>
-            <option value="">None</option>
-            {#each tracks as t (t.id)}<option value={t.id}>{t.name}</option>{/each}
-          </select>
+          <Picker class="w-auto min-w-40" label="Backing track" value={s.track} options={[{ value: "", label: "None" }, ...tracks.map((t) => ({ value: t.id, label: t.name }))]} onchange={(v) => cfg.set({ track: v })} />
           <label class="{btn} cursor-pointer focus-within:outline-2">
             <Upload class="size-4" aria-hidden="true" />Import
             <input class="sr-only" type="file" accept="audio/*" aria-label="Import a backing track" onchange={(e) => addTrack(e.currentTarget.files?.[0])} />

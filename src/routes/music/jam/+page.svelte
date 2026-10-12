@@ -28,6 +28,7 @@
   import { backingNotes, chordVoicing, degreeLabel, positionAt, BEATS_PER_BAR, type BackingMode } from "$lib/music/drills/jam/backing";
   import { importTrack, listTracks, playTrack, type BackingTrack } from "$lib/music/drills/jam/tracks";
   import { pairNotes, saveTake, takeToSequence, type MidiTake } from "$lib/music/takes";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   const cfg = new DrillSetup("jam", { progression: "ii-v-i", backing: "both", bpm: 0, transpose: 0, track: "" });
   const s = $derived(cfg.value);
@@ -287,19 +288,10 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <label class="flex min-w-0 flex-col gap-1 text-sm">
+      <div class="flex min-w-0 flex-col gap-1 text-sm">
         <span class="font-medium">Progression</span>
-        <select class="min-h-11 w-full rounded-lg border border-ws-line bg-ws-surface px-3" value={s.progression} onchange={(e) => cfg.set({ progression: e.currentTarget.value, bpm: 0 })}>
-          {#each JAM_GROUPS as g (g.id)}
-            {@const list = PROGRESSIONS.filter((p) => p.group === g.id)}
-            {#if list.length}
-              <optgroup label={g.label}>
-                {#each list as p (p.id)}<option value={p.id}>{p.name} ({p.difficulty})</option>{/each}
-              </optgroup>
-            {/if}
-          {/each}
-        </select>
-      </label>
+        <Picker label="Progression" value={s.progression} options={JAM_GROUPS.flatMap((g) => PROGRESSIONS.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: `${p.name} (${p.difficulty})`, group: g.label })))} onchange={(v) => cfg.set({ progression: v, bpm: 0 })} />
+      </div>
       <Choice
         label="Backing"
         select
@@ -330,10 +322,7 @@
       <p class="text-sm text-ws-soft">Audio files you bring (the jazz tracks in the Reference aren't shipped). They stay in this browser.</p>
       <div class="mt-2 flex flex-wrap items-center gap-2">
         {#if tracks.length}
-          <select class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm" aria-label="Backing track" value={s.track} onchange={(e) => cfg.set({ track: e.currentTarget.value, backing: "track" })}>
-            <option value="">Choose a track</option>
-            {#each tracks as t (t.id)}<option value={t.id}>{t.name}</option>{/each}
-          </select>
+          <Picker class="w-auto min-w-40" label="Backing track" placeholder="Choose a track" value={s.track} options={tracks.map((t) => ({ value: t.id, label: t.name }))} onchange={(v) => cfg.set({ track: v, backing: "track" })} />
         {/if}
         <label class="{btn} cursor-pointer focus-within:outline-2">
           <Upload class="size-4" aria-hidden="true" />Import a track

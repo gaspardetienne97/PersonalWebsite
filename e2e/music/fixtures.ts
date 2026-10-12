@@ -1,7 +1,7 @@
 // Shared end-to-end fixtures for the music app: a fake Web MIDI device driven
 // through the real app (the technique that caught the real MIDI bugs before),
 // and a synthetic microphone fed through the real getUserMedia path.
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Locator } from "@playwright/test";
 
 export interface FakePort {
   id: string;
@@ -155,4 +155,19 @@ export async function muteHmr(page: Page) {
     () => true,
     () => {},
   );
+}
+
+/**
+ * Pick an option in one of the app's dropdowns (Picker: a button that opens a
+ * listbox drawn at the app's root, so it is found on the page, not in the
+ * trigger's container).
+ */
+export async function choose(page: Page, trigger: Locator, option: string | RegExp) {
+  await trigger.click();
+  await page
+    .getByRole("listbox")
+    .getByRole("option", { name: option, exact: typeof option === "string" })
+    .click();
+  // The list fades out; wait until it has gone so the next click lands on the page.
+  await expect(page.getByRole("listbox")).toHaveCount(0);
 }

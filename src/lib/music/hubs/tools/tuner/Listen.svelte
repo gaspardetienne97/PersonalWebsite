@@ -17,6 +17,7 @@
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { audio, mic, settings, type MicFrame } from "$lib/music/runtime";
   import NotePads from "./NotePads.svelte";
+  import Picker from "$lib/music/components/Picker.svelte";
   import {
     A4_CHOICES,
     centsToTarget,
@@ -145,27 +146,15 @@
 </script>
 
 <div class="flex flex-wrap items-end gap-3">
-  <label class="flex flex-col gap-1 text-sm">
+  <div class="flex flex-col gap-1 text-sm">
     <span class="font-medium">Reference A4</span>
-    <select
-      class="tnum min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3"
-      value={String(a4)}
-      onchange={(e) => settings.update({ a4Hz: Number(e.currentTarget.value) })}
-    >
-      {#each A4_CHOICES as hz (hz)}<option value={String(hz)}>{hz} Hz{hz === 440 ? " (standard)" : ""}</option>{/each}
-    </select>
-  </label>
+    <Picker class="tnum" label="Reference A4" value={String(a4)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: `${hz} Hz${hz === 440 ? " (standard)" : ""}` }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
+  </div>
   {#if fretted}
-    <label class="flex flex-col gap-1 text-sm">
+    <div class="flex flex-col gap-1 text-sm">
       <span class="font-medium">{instrument === "ukulele" ? "Ukulele" : "Guitar"} tuning</span>
-      <select
-        class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3"
-        value={tuning.id}
-        onchange={(e) => settings.update({ [tuningKey]: e.currentTarget.value })}
-      >
-        {#each tunings as t (t.id)}<option value={t.id}>{t.name}</option>{/each}
-      </select>
-    </label>
+      <Picker label="{instrument === 'ukulele' ? 'Ukulele' : 'Guitar'} tuning" value={tuning.id} options={tunings.map((t) => ({ value: t.id, label: t.name }))} onchange={(v) => settings.update({ [tuningKey]: v })} />
+    </div>
   {/if}
   <p class="min-w-64 flex-1 text-sm text-ws-soft">
     In tune means within {IN_TUNE_CENTS} cents. {mode === "intonation"

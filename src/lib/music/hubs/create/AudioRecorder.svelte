@@ -16,6 +16,7 @@
   import { download } from "./files";
   import { autoGainDb, BOOST_RANGE, clipWarning, envelope, ENVELOPE_BUCKETS, extensionFor, GAIN_RANGE, peakDbOf, signedDb, suggestedBoost, takeKey } from "./audioTakes";
   import { clock, fileStem, takeLength, TAKE_LIMIT_MS } from "$lib/music/takes";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 
@@ -231,21 +232,21 @@
 
 <section class="stage relative flex flex-col gap-5 overflow-hidden rounded-3xl p-4 sm:p-6" aria-label="Microphone recorder">
   <div class="flex flex-wrap items-end gap-3">
-    <label class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
+    <div class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
       <span class="text-ws-stage-soft">Input</span>
-      <select
-        class="min-h-11 min-w-0 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-2 text-ws-stage-ink"
-        bind:value={deviceId}
+      <Picker
+        tone="stage"
+        label="Input"
+        value={deviceId}
         disabled={live}
-        onchange={() => {
-          const d = mic.devices.find((x) => x.deviceId === deviceId);
-          void settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: d?.label ?? "Default input" });
+        options={[{ value: "", label: "Default input" }, ...mic.devices.filter((d) => d.deviceId && d.deviceId !== "default").map((d) => ({ value: d.deviceId, label: d.label }))]}
+        onchange={(v) => {
+          deviceId = v;
+          const d = mic.devices.find((x) => x.deviceId === v);
+          void settings.update({ audioInputDeviceId: v || undefined, audioInputLabel: d?.label ?? "Default input" });
         }}
-      >
-        <option value="">Default input</option>
-        {#each mic.devices as d (d.deviceId)}{#if d.deviceId && d.deviceId !== "default"}<option value={d.deviceId}>{d.label}</option>{/if}{/each}
-      </select>
-    </label>
+      />
+    </div>
     <button type="button" class="flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold {live ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/10 text-ws-stage-ink hover:bg-ws-stage-ink/20'}" aria-pressed={live} onclick={arm}>
       <Mic class="size-4" aria-hidden="true" />{live ? "Microphone on" : mic.state === "starting" ? "Starting…" : "Arm microphone"}
     </button>

@@ -11,6 +11,7 @@
   import { bench, INSTRUMENT_LABEL } from "../bench.svelte";
   import { audio, input, midi, mic, settings } from "../runtime";
   import { palette } from "./palette.svelte";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   const TEMPOS = [60, 72, 80, 90, 100, 120, 140];
   let previewing = $state(false);
@@ -80,20 +81,19 @@
 
 <div class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12'}">
   <div class="flex items-center gap-2 overflow-x-auto overflow-y-hidden px-4 py-2 [scrollbar-width:thin] sm:px-6 lg:px-8" role="group" aria-label="Practice controls">
-    <label class="{pill.replace('border-ws-line', 'border-instr border-2')} relative pr-2">
+    <div class="{pill.replace('border-ws-line', 'border-instr border-2')} relative pr-2">
       <InstrumentIcon class="size-4 shrink-0 text-instr-ink" aria-hidden="true" />
       <span class="sr-only">Instrument</span>
-      <select
-        class="min-h-9 cursor-pointer appearance-none border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium focus:ring-0 disabled:cursor-not-allowed"
+      <Picker
+        class="w-auto min-w-28 pr-1"
+        tone="bare"
+        label="Instrument"
         value={s.activeInstrument}
         disabled={bench.locked}
-        onchange={(e) => settings.update({ activeInstrument: e.currentTarget.value as Instrument })}
-      >
-        {#each INSTRUMENTS as i (i)}
-          <option value={i}>{INSTRUMENT_LABEL[i]}</option>
-        {/each}
-      </select>
-    </label>
+        options={INSTRUMENTS.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] }))}
+        onchange={(v) => settings.update({ activeInstrument: v as Instrument })}
+      />
+    </div>
 
     <button type="button" class={pill} aria-pressed={metronomeOn} onclick={toggleMetronome}>
       <Timer class="size-4" aria-hidden="true" />

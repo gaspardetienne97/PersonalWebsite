@@ -6,6 +6,7 @@
   import { INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { settings } from "$lib/music/runtime";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (text: string) => void } = $props();
 
@@ -54,14 +55,10 @@
             </span>
           </th>
           <td class="px-3 py-1.5">
-            <select class="min-h-11 w-full rounded-lg border border-ws-line bg-ws-surface px-2" aria-label="{INSTRUMENT_LABEL[i]} preferred source" onchange={(e) => setSource(i, e.currentTarget.value as InputSource)}>
-              {#each SOURCES as o (o.value)}<option value={o.value} selected={o.value === src}>{o.label}</option>{/each}
-            </select>
+            <Picker label="{INSTRUMENT_LABEL[i]} preferred source" value={src} options={SOURCES} onchange={(v) => setSource(i, v as InputSource)} />
           </td>
           <td class="px-3 py-1.5">
-            <select class="min-h-11 w-full rounded-lg border border-ws-line bg-ws-surface px-2" aria-label="{INSTRUMENT_LABEL[i]} on-screen surface" onchange={(e) => setSurface(i, e.currentTarget.value as PreferredSurface)}>
-              {#each SURFACES as o (o.value)}<option value={o.value} selected={o.value === surf}>{o.label}</option>{/each}
-            </select>
+            <Picker label="{INSTRUMENT_LABEL[i]} on-screen surface" value={surf} options={SURFACES} onchange={(v) => setSurface(i, v as PreferredSurface)} />
           </td>
         </tr>
       {/each}

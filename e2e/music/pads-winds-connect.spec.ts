@@ -3,7 +3,7 @@
 // Akai Classic notes on channel 10), the controller link, a full reload, and an
 // Aerophone sending breath on CC 2.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, expectNoHorizontalOverflow, installFakeMidi, midiNote } from "./fixtures";
+import { PORTS, expectNoHorizontalOverflow, installFakeMidi, midiNote, choose } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/pads-winds-connect";
 const HEARTBEAT = [0xf0, 0x47, 0x00, 0x56, 0x52, 0x00, 0x04, 0x41, 0x67, 0x16, 0x00, 0xf7];
@@ -67,8 +67,11 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
 
   const priv = page.getByTestId(`device-${PORTS.mpcPrivate.id}`);
   const pub = page.getByTestId(`device-${PORTS.mpcPublic.id}`);
-  await priv.getByTestId("pad-map").selectOption("akai-classic");
-  await expect(priv.getByTestId("pad-map")).toHaveValue("akai-classic");
+  await choose(page, priv.getByLabel("Pad notes (what your drum program sends)"), /^Akai/);
+  await expect(priv.getByLabel("Pad notes (what your drum program sends)")).toHaveAttribute(
+    "data-value",
+    "akai-classic",
+  );
   await pub.getByRole("button", { name: "Ignore this port" }).click();
   await expect(pub.getByRole("button", { name: "Stop ignoring" })).toBeVisible();
 

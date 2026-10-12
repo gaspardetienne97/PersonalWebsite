@@ -17,6 +17,7 @@
   import TakeThumb from "./TakeThumb.svelte";
   import { download } from "./files";
   import { clock, fileStem, takeLength, pairNotes, TAKE_LIMIT_MS, takeToScore, takeToSequence, type MidiTake } from "$lib/music/takes";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 
@@ -281,16 +282,10 @@
     <p class="max-w-prose text-sm text-ws-soft">Lines the second take up with the first (a slower or faster take is stretched to fit) and counts the notes that match in pitch and time.</p>
     <div class="mt-3 flex flex-wrap items-end gap-3">
       {#each [["First", "a"], ["Second", "b"]] as [label, which] (which)}
-        <label class="flex min-w-0 flex-col gap-1 text-sm">
+        <div class="flex min-w-0 flex-col gap-1 text-sm">
           <span class="text-ws-soft">{label}</span>
-          <select
-            class="min-h-11 min-w-40 rounded-lg border border-ws-line bg-ws-surface px-2"
-            value={which === "a" ? cmpA : cmpB}
-            onchange={(e) => (which === "a" ? (cmpA = e.currentTarget.value) : (cmpB = e.currentTarget.value))}
-          >
-            {#each takes as t (t.id)}<option value={t.id}>{t.name}</option>{/each}
-          </select>
-        </label>
+          <Picker class="min-w-40" {label} value={which === "a" ? cmpA : cmpB} options={takes.map((t) => ({ value: t.id, label: t.name }))} onchange={(v) => (which === "a" ? (cmpA = v) : (cmpB = v))} />
+        </div>
       {/each}
       {#if cmp}
         <p class="flex items-baseline gap-2">

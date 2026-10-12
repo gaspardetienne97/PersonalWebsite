@@ -28,6 +28,7 @@
   import AudioLines from "lucide-svelte/icons/audio-lines";
   import Trash from "lucide-svelte/icons/trash-2";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let status = $state("");
   const announce = (msg: string) => (status = msg);
@@ -216,13 +217,10 @@
           <button type="button" class={btn} onclick={() => request({ kind: "new" })}><FilePlus class="size-4" aria-hidden="true" />New song</button>
         </div>
         {#if session.songs.length}
-          <label class="flex flex-col gap-1 text-sm">
+          <div class="flex flex-col gap-1 text-sm">
             <span class="text-ws-soft">Your songs</span>
-            <select class={field} value={session.saved ? session.songId : ""} onchange={(e) => { const id = e.currentTarget.value; e.currentTarget.value = session.saved ? session.songId : ""; request({ kind: "open", id }); }}>
-              <option value="" disabled>Open a song</option>
-              {#each session.songs as s (s.id)}<option value={s.id}>{s.name}, {s.bpm} BPM</option>{/each}
-            </select>
-          </label>
+            <Picker label="Your songs" placeholder="Open a song" value={session.saved ? session.songId : ""} options={session.songs.map((s) => ({ value: s.id, label: `${s.name}, ${s.bpm} BPM` }))} onchange={(id) => request({ kind: "open", id })} />
+          </div>
         {/if}
         <div class="flex flex-wrap gap-2">
           <button type="button" class={btn} onclick={exportMidi}><FileMusic class="size-4" aria-hidden="true" />MIDI</button>

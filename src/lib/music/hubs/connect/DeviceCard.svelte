@@ -9,6 +9,7 @@
   import { padLabel } from "$lib/music/drills/pads/midi-status";
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import Cable from "lucide-svelte/icons/cable";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { port, announce }: { port: PortInfo; announce: (text: string) => void } = $props();
 
@@ -108,34 +109,31 @@
         }}
       />
     </label>
-    <label class="flex min-w-0 flex-col gap-1 text-sm">
+    <div class="flex min-w-0 flex-col gap-1 text-sm">
       <span class="font-medium">Instrument</span>
-      <select
-        class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3"
-        onchange={(e) => {
-          const v = e.currentTarget.value;
+      <Picker
+        label="Instrument"
+        value={profile?.instrument ?? "auto"}
+        options={[{ value: "auto", label: `Auto${detected ? ` (${INSTRUMENT_LABEL[detected]})` : ", not recognised"}` }, ...INSTRUMENTS.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] }))]}
+        onchange={(v) => {
           void save({ instrument: v === "auto" ? undefined : (v as Instrument) });
           announce(`${title} plays ${v === "auto" ? "whatever its name suggests" : INSTRUMENT_LABEL[v as Instrument]}.`);
         }}
-      >
-        <option value="auto" selected={!profile?.instrument}>Auto{detected ? ` (${INSTRUMENT_LABEL[detected]})` : ", not recognised"}</option>
-        {#each INSTRUMENTS as i (i)}<option value={i} selected={profile?.instrument === i}>{INSTRUMENT_LABEL[i]}</option>{/each}
-      </select>
-    </label>
-    <label class="flex min-w-0 flex-col gap-1 text-sm">
+      />
+    </div>
+    <div class="flex min-w-0 flex-col gap-1 text-sm">
       <span class="font-medium">MIDI channel</span>
-      <select
-        class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3"
-        onchange={(e) => {
-          const v = Number(e.currentTarget.value);
+      <Picker
+        label="MIDI channel"
+        value={String(profile?.channel ?? 0)}
+        options={[{ value: "0", label: "Any channel" }, ...Array.from({ length: 16 }, (_, i) => ({ value: String(i + 1), label: `Channel ${i + 1}` }))]}
+        onchange={(raw) => {
+          const v = Number(raw);
           void save({ channel: v || undefined });
           announce(v ? `${title} listens on channel ${v} only.` : `${title} listens on every channel.`);
         }}
-      >
-        <option value="0" selected={!profile?.channel}>Any channel</option>
-        {#each Array.from({ length: 16 }, (_, i) => i + 1) as c (c)}<option value={c} selected={profile?.channel === c}>Channel {c}</option>{/each}
-      </select>
-    </label>
+      />
+    </div>
   </div>
 
   <p class="text-sm">
@@ -151,14 +149,10 @@
   {#if instrument === "mpc"}
     <section class="flex flex-col gap-3 rounded-xl bg-ws-raised/60 p-3" aria-label="Pad notes for {title}">
       <div class="flex flex-wrap items-end gap-3">
-        <label class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
+        <div class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
           <span class="font-medium">Pad notes (what your drum program sends)</span>
-          <select class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" onchange={(e) => setMap(e.currentTarget.value)} data-testid="pad-map">
-            <option value="none" selected={mapId === "none"}>No map: notes pass through</option>
-            {#each Object.entries(PAD_PRESETS) as [id, p] (id)}<option value={id} selected={mapId === id}>{p.label}</option>{/each}
-            {#if mapId === "learned"}<option value="learned" selected>Learned from this device</option>{/if}
-          </select>
-        </label>
+          <Picker label="Pad notes (what your drum program sends)" value={mapId} options={[{ value: "none", label: "No map: notes pass through" }, ...Object.entries(PAD_PRESETS).map(([id, p]) => ({ value: id, label: p.label })), ...(mapId === "learned" ? [{ value: "learned", label: "Learned from this device" }] : [])]} onchange={setMap} />
+        </div>
         {#if learning}
           <button type="button" class={btn} onclick={() => cancelLearn?.()}>Cancel learning</button>
         {:else}

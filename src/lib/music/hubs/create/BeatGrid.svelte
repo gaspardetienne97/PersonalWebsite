@@ -11,6 +11,7 @@
   import { padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { session } from "./session.svelte";
+  import Picker from "$lib/music/components/Picker.svelte";
   import {
     barsOf,
     DEFAULT_ROWS,
@@ -119,10 +120,7 @@
         {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play groove{/if}
       </button>
       <h2 class="min-w-0 flex-1 basis-40 truncate font-display text-xl font-semibold">{pattern.name}</h2>
-      <select class={field} aria-label="Start from a preset" value="" onchange={(e) => { usePreset(e.currentTarget.value); e.currentTarget.value = ""; }}>
-        <option value="" disabled>Presets</option>
-        {#each PRESETS as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
-      </select>
+      <Picker class="w-auto min-w-44" tone="stage" action label="Start from a preset" placeholder="Presets" options={PRESETS.map((p) => ({ value: p.id, label: p.name }))} onchange={usePreset} />
       <div class="flex items-center gap-1 text-sm" role="group" aria-label="Beat length">
         <button type="button" class="{btnStage} w-11 px-0" aria-label="Remove the beat's last bar" disabled={barsOf(pattern) <= 1} onclick={shrink}><Minus class="size-4" aria-hidden="true" /></button>
         <span class="tnum w-14 text-center font-semibold">{bars(barsOf(pattern))}</span>

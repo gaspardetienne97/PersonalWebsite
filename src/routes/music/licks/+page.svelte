@@ -21,6 +21,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { page } from "$app/state";
   import { settings } from "$lib/music/runtime";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   const TEMPO = { min: 40, max: 220 };
   const CATEGORY_LABEL: Record<string, string> = {
@@ -285,18 +286,14 @@
       </div>
       {#if phase !== "running" && phase !== "countin"}
         <div class="flex flex-wrap items-end gap-2 lg:justify-end">
-          <label class="flex flex-col gap-1 text-xs text-ws-stage-soft">
+          <div class="flex flex-col gap-1 text-xs text-ws-stage-soft">
             First note
-            <select class="stage-select min-h-11 min-w-32 rounded-lg border border-ws-stage-ink/25 px-2 text-sm" value={lo} onchange={(e) => setChunk(Number(e.currentTarget.value), hi)}>
-              {#each noteOptions as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
-            </select>
-          </label>
-          <label class="flex flex-col gap-1 text-xs text-ws-stage-soft">
+            <Picker class="min-w-32" tone="stage" label="First note" value={String(lo)} options={noteOptions.map((o) => ({ value: String(o.value), label: o.label }))} onchange={(v) => setChunk(Number(v), hi)} />
+          </div>
+          <div class="flex flex-col gap-1 text-xs text-ws-stage-soft">
             Last note
-            <select class="stage-select min-h-11 min-w-32 rounded-lg border border-ws-stage-ink/25 px-2 text-sm" value={hi} onchange={(e) => setChunk(lo, Number(e.currentTarget.value))}>
-              {#each noteOptions as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
-            </select>
-          </label>
+            <Picker class="min-w-32" tone="stage" label="Last note" value={String(hi)} options={noteOptions.map((o) => ({ value: String(o.value), label: o.label }))} onchange={(v) => setChunk(lo, Number(v))} />
+          </div>
           {#if mode === "practice"}
             <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => demo(0.5)}>Half speed</button>
             <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10 disabled:opacity-50" disabled={whole} onclick={() => demo(1, 3)}>Loop chunk 3 times</button>

@@ -1,5 +1,6 @@
 <script lang="ts" generics="T extends string | number">
   import * as Tooltip from "@repo/ui/tooltip";
+  import Picker from "$lib/music/components/Picker.svelte";
   // A labelled setup choice: a wrapping segmented control for a few options,
   // a native select for many. Never overflows at 375 px.
   interface Option {
@@ -26,21 +27,19 @@
 </script>
 
 {#if select || options.length > 5}
-  <label class="flex min-w-0 flex-col gap-1 text-sm">
+  <div class="flex min-w-0 flex-col gap-1 text-sm">
     <span class="font-medium">{label}</span>
-    <select
-      class="min-h-11 w-full min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm"
+    <Picker
+      {label}
       {disabled}
       value={String(value)}
-      onchange={(e) => {
-        const raw = e.currentTarget.value;
+      options={options.map((o) => ({ value: String(o.value), label: o.label }))}
+      onchange={(raw) => {
         const hit = options.find((o) => String(o.value) === raw);
         if (hit) set(hit.value);
       }}
-    >
-      {#each options as o (o.value)}<option value={String(o.value)}>{o.label}</option>{/each}
-    </select>
-  </label>
+    />
+  </div>
 {:else}
   <div class="flex min-w-0 flex-col gap-1 text-sm" role="group" aria-labelledby={id}>
     <span id={id} class="font-medium">{label}</span>

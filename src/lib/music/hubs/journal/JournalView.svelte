@@ -13,6 +13,7 @@
   import { parseTags, plural, signed } from "../progress/model";
   import Heatmap from "./Heatmap.svelte";
   import SessionEntry from "./SessionEntry.svelte";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { announce = () => {}, now = Date.now() }: { announce?: (msg: string) => void; now?: number } = $props();
 
@@ -216,20 +217,14 @@
           </p>
         </div>
         <form class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Filter sessions" onsubmit={(e) => e.preventDefault()}>
-          <label class="flex min-w-0 flex-col gap-1 text-sm">
+          <div class="flex min-w-0 flex-col gap-1 text-sm">
             <span class="font-medium">Skill</span>
-            <select class={field} bind:value={skill}>
-              <option value="">Any skill</option>
-              {#each skillOptions as o (o.id)}<option value={o.id}>{o.name}</option>{/each}
-            </select>
-          </label>
-          <label class="flex min-w-0 flex-col gap-1 text-sm">
+            <Picker label="Skill" value={skill} options={[{ value: "", label: "Any skill" }, ...skillOptions.map((o) => ({ value: o.id, label: o.name }))]} onchange={(v) => (skill = v)} />
+          </div>
+          <div class="flex min-w-0 flex-col gap-1 text-sm">
             <span class="font-medium">Instrument</span>
-            <select class={field} bind:value={instrument}>
-              <option value="">Any instrument</option>
-              {#each INSTRUMENTS as i (i)}<option value={i}>{INSTRUMENT_LABEL[i]}</option>{/each}
-            </select>
-          </label>
+            <Picker label="Instrument" value={instrument} options={[{ value: "", label: "Any instrument" }, ...INSTRUMENTS.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] }))]} onchange={(v) => (instrument = v as typeof instrument)} />
+          </div>
           <label class="flex min-w-0 flex-col gap-1 text-sm">
             <span class="font-medium">From</span>
             <input type="date" class={field} bind:value={from} max={to || undefined} />

@@ -8,6 +8,7 @@
   import { PAD_COLORS } from "@repo/music-core/io/mpc-sysex";
   import { btn, btnPrimary } from "$lib/music/components/ui";
   import { midi } from "$lib/music/runtime";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (text: string) => void } = $props();
 
@@ -51,13 +52,10 @@
     {stateLine}
   </p>
 
-  <label class="flex max-w-md flex-col gap-1 text-sm">
+  <div class="flex max-w-md flex-col gap-1 text-sm">
     <span class="font-medium">Output (Private carries the pad lights)</span>
-    <select class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" onchange={(e) => (chosen = e.currentTarget.value)} disabled={!midi.outputs.length}>
-      {#if !midi.outputs.length}<option value="">No outputs{midi.enabled ? "" : " (MIDI is off)"}</option>{/if}
-      {#each midi.outputs as o (o.id)}<option value={o.id} selected={o.id === outputId}>{o.name}{o.manufacturer ? `, ${o.manufacturer}` : ""}</option>{/each}
-    </select>
-  </label>
+    <Picker label="Output (Private carries the pad lights)" value={outputId ?? ""} placeholder="No outputs{midi.enabled ? '' : ' (MIDI is off)'}" disabled={!midi.outputs.length} options={midi.outputs.map((o) => ({ value: o.id, label: `${o.name}${o.manufacturer ? `, ${o.manufacturer}` : ""}` }))} onchange={(v) => (chosen = v)} />
+  </div>
 
   <div class="flex flex-wrap gap-2">
     <button

@@ -5,6 +5,7 @@
   import { noteName } from "@repo/music-core";
   import { btn, btnPrimary } from "$lib/music/components/ui";
   import { mic, settings } from "$lib/music/runtime";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (text: string) => void } = $props();
   let mine = false;
@@ -49,16 +50,11 @@
 </script>
 
 <div class="flex flex-col gap-3">
-  <label class="flex min-w-0 flex-col gap-1 text-sm">
+  <div class="flex min-w-0 flex-col gap-1 text-sm">
     <span class="font-medium">Input device</span>
-    <select class="min-h-11 w-full max-w-md rounded-lg border border-ws-line bg-ws-surface px-3" value={chosen} onchange={(e) => void choose(e.currentTarget.value)}>
-      <option value="">Default input</option>
-      {#each mic.devices.filter((d) => d.deviceId && d.deviceId !== "default") as d (d.deviceId)}
-        <option value={d.deviceId}>{d.label}</option>
-      {/each}
-    </select>
+    <Picker class="max-w-md" label="Input device" value={chosen} options={[{ value: "", label: "Default input" }, ...mic.devices.filter((d) => d.deviceId && d.deviceId !== "default").map((d) => ({ value: d.deviceId, label: d.label }))]} onchange={(v) => void choose(v)} />
     {#if !named}<span class="text-ws-soft">Start the microphone once and the browser shows each device's name.</span>{/if}
-  </label>
+  </div>
   <div class="flex flex-wrap items-center gap-2">
     {#if mic.state === "on"}
       <button type="button" class={btn} onclick={stop}>Stop microphone</button>

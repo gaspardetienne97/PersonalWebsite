@@ -17,6 +17,7 @@
   import { btn } from "$lib/music/components/ui";
   import Hint from "$lib/music/components/Hint.svelte";
   import { audio, mic, midi, settings } from "$lib/music/runtime";
+  import Picker from "$lib/music/components/Picker.svelte";
 
   const s = $derived(settings.value);
   // One live region for screen readers; the same message is also shown
@@ -157,18 +158,11 @@
           </div>
         </li>
         <li class={rowCls}>
-          <label for="sound" class="min-w-0 flex-1 basis-48">
+          <div class="min-w-0 flex-1 basis-48">
             <span class="block font-medium">Playback sound</span>
             {#if sampleNote}<span class="block text-sm {audio.sampleState === 'error' ? 'text-warn' : 'text-ws-soft'}">{sampleNote}</span>{/if}
-          </label>
-          <select
-            id="sound"
-            class="min-h-11 rounded-lg border border-ws-line bg-ws-surface pl-3 pr-9 text-sm"
-            value={s.preferredPlaybackSound}
-            onchange={(e) => settings.update({ preferredPlaybackSound: e.currentTarget.value as PlaybackSound })}
-          >
-            {#each SOUNDS as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
-          </select>
+          </div>
+          <Picker class="w-auto" label="Playback sound" value={s.preferredPlaybackSound} options={SOUNDS} onchange={(v) => settings.update({ preferredPlaybackSound: v as PlaybackSound })} />
         </li>
         {#each LEVELS as l (l.key)}
           <li class={rowCls}>
@@ -206,21 +200,10 @@
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="flex min-w-0 flex-1 basis-48 items-center gap-1">
-            <label for="mic-device" class="font-medium">Audio input</label>
+            <span class="font-medium">Audio input</span>
             <Hint about="audio input" text="Device names appear once you have allowed the microphone for this site." />
           </div>
-          <select
-            id="mic-device"
-            class="min-h-11 w-full min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm sm:w-64"
-            value={s.audioInputDeviceId ?? ""}
-            onchange={(e) => pickDevice(e.currentTarget.value)}
-          >
-            <option value="">Default input</option>
-            {#each mic.devices.filter((d) => d.deviceId && d.deviceId !== "default") as d (d.deviceId)}<option value={d.deviceId}>{d.label}</option>{/each}
-            {#if s.audioInputDeviceId && !mic.devices.some((d) => d.deviceId === s.audioInputDeviceId)}
-              <option value={s.audioInputDeviceId}>{s.audioInputLabel} (not connected)</option>
-            {/if}
-          </select>
+          <Picker class="sm:w-64" label="Audio input" value={s.audioInputDeviceId ?? ""} options={[{ value: "", label: "Default input" }, ...mic.devices.filter((d) => d.deviceId && d.deviceId !== "default").map((d) => ({ value: d.deviceId, label: d.label })), ...(s.audioInputDeviceId && !mic.devices.some((d) => d.deviceId === s.audioInputDeviceId) ? [{ value: s.audioInputDeviceId, label: `${s.audioInputLabel} (not connected)` }] : [])]} onchange={pickDevice} />
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">

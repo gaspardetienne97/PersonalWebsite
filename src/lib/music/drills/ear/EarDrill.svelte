@@ -46,6 +46,7 @@
   import { audio, db, mic } from "$lib/music/runtime";
   import DegreeWheel from "./DegreeWheel.svelte";
   import { degreeColor } from "./degrees";
+  import Picker from "$lib/music/components/Picker.svelte";
   import {
     buildSession,
     confusions,
@@ -825,12 +826,10 @@
             <p class="font-display text-xl font-semibold">Free-play warmup</p>
             <p class="text-sm text-ws-stage-soft">Hold the tonic as a drone and tap any degree to hear it against home. Nothing here is scored or saved.</p>
             <div class="flex flex-wrap items-end gap-2">
-              <label class="flex flex-col gap-1 text-sm">
+              <div class="flex flex-col gap-1 text-sm">
                 <span>Tonic</span>
-                <select class="min-h-11 min-w-24 rounded-lg bg-ws-stage-ink/10 px-3" bind:value={droneTonic} onchange={() => droneOn && (audio.drone.stop(), audio.drone.start(droneTonic, "sine", 0.3))}>
-                  {#each Array.from({ length: 12 }, (_, i) => 48 + i) as m (m)}<option value={m} class="text-black">{noteName(m, "flat", false)}</option>{/each}
-                </select>
-              </label>
+                <Picker class="min-w-24" tone="stage" label="Tonic" value={String(droneTonic)} options={Array.from({ length: 12 }, (_, i) => ({ value: String(48 + i), label: noteName(48 + i, "flat", false) }))} onchange={(v) => { droneTonic = Number(v); if (droneOn) { audio.drone.stop(); audio.drone.start(droneTonic, "sine", 0.3); } }} />
+              </div>
               <button type="button" class={btnStage} aria-pressed={droneOn} onclick={toggleDrone}>{droneOn ? "Stop drone" : "Start drone"}</button>
             </div>
             {#if demo}<p class="text-sm">Demo: {tokenLabel(demo.kind, demo.answer, labels)}</p>{/if}
