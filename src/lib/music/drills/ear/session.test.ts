@@ -95,6 +95,18 @@ describe("ear sessions", () => {
     expect(p.filter((x) => x.answer === "minor").length).toBeGreaterThanOrEqual(3);
   });
 
+  it("narrows cadences to the ones picked", () => {
+    const p = buildSession({
+      ...base,
+      kinds: ["cadence"],
+      mode: "balanced",
+      rand: rng(6),
+      focus: { tokens: ["authentic", "plagal"] },
+    });
+    expect(new Set(p.map((x) => x.answer))).toEqual(new Set(["authentic", "plagal"]));
+    expect(p.every((x) => x.choices.join() === "authentic,plagal")).toBe(true);
+  });
+
   it("uses presented difficulty once a skill has mastery", () => {
     const mastery = {
       "pitch.interval.P5": {

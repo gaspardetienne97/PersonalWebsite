@@ -85,6 +85,8 @@ const focusIntervals = (f?: Focus) =>
   f?.tokens?.length ? EAR_INTERVALS.filter((i) => f.tokens!.includes(i.token)) : INTERVALS;
 const focusQualities = (f?: Focus) =>
   f?.tokens?.length ? QUALITIES.filter((q) => f.tokens!.includes(q.token)) : QUALITIES;
+const focusCadences = (f?: Focus) =>
+  f?.tokens?.length ? CADENCES.filter((c) => f.tokens!.includes(c.token)) : CADENCES;
 
 /** Every answerable target of one drill kind. */
 export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarget[] {
@@ -106,7 +108,7 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
     case "chord-quality":
       return focusQualities(focus).map((q) => ({ kind, token: q.token, skillId: q.skillId }));
     case "cadence":
-      return CADENCES.map((c) => ({ kind, token: c.token, skillId: c.skillId }));
+      return focusCadences(focus).map((c) => ({ kind, token: c.token, skillId: c.skillId }));
     case "scale-degree":
     case "melody-dictation":
       return levelDegrees(level).map((d) => ({
@@ -155,8 +157,14 @@ export function promptFor(
         choices: focus?.tokens && picked.length >= 2 ? picked.map((q) => q.token) : undefined,
       });
     }
-    case "cadence":
-      return cadencePrompt(rand, { difficulty, token: t.token });
+    case "cadence": {
+      const picked = focusCadences(focus);
+      return cadencePrompt(rand, {
+        difficulty,
+        token: t.token,
+        choices: focus?.tokens && picked.length >= 2 ? picked.map((c) => c.token) : undefined,
+      });
+    }
     case "scale-degree":
       return scaleDegreePrompt(rand, { difficulty, level, degree: t.token });
     case "melody-dictation":

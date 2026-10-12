@@ -100,6 +100,7 @@
     // Intervals drill: which intervals (comma list, empty for the twelve) and which way.
     intervals: "M3,P5,P8" as string,
     qualities: "major,minor" as string,
+    cadences: "authentic,plagal" as string,
     direction: "auto" as string,
     root: "random" as string,
   });
@@ -133,9 +134,13 @@
     "diminished-7": "dim7",
   };
   interface ItemSets {
-    key: "intervals" | "qualities";
+    key: "intervals" | "qualities" | "cadences";
     title: string;
+    /** "intervals", and one of them: "interval". */
     unit: string;
+    one: string;
+    /** How the next item is offered: "the perfect 4th", "diminished chords". */
+    phrase: (name: string) => string;
     items: { token: string; short: string; name: string }[];
     /** When nothing is listed. */
     fallback: string[];
@@ -149,6 +154,8 @@
           key: "intervals",
           title: "Intervals to practise",
           unit: "intervals",
+          one: "interval",
+          phrase: (name) => `the ${name.toLowerCase()}`,
           items: EAR_INTERVALS.map((i) => ({ token: i.token, short: i.token, name: i.name })),
           fallback: TWELVE,
           sets: [
@@ -167,6 +174,8 @@
             key: "qualities",
             title: "Chord qualities to practise",
             unit: "qualities",
+            one: "quality",
+            phrase: (name) => `${name.toLowerCase()} chords`,
             items: QUALITIES.map((q) => ({ token: q.token, short: QUALITY_SHORT[q.token] ?? q.token, name: q.label })),
             fallback: QUALITIES.map((q) => q.token),
             sets: [
@@ -177,7 +186,23 @@
             ],
             ladder: ["major", "minor", "diminished", "augmented", "dominant-7", "major-7", "minor-7", "half-diminished-7", "diminished-7"],
           }
-        : null;
+        : slug === "cadences"
+          ? {
+              key: "cadences",
+              title: "Cadences to practise",
+              unit: "cadences",
+              one: "cadence",
+              phrase: (name) => `${name.toLowerCase()} cadences`,
+              items: CADENCES.map((c) => ({ token: c.token, short: c.romanProgression.join("-"), name: c.label })),
+              fallback: CADENCES.map((c) => c.token),
+              sets: [
+                { label: "Authentic and plagal", tokens: ["authentic", "plagal"] },
+                { label: "Ending or pausing", tokens: ["authentic", "half"] },
+                { label: "All four", tokens: CADENCES.map((c) => c.token) },
+              ],
+              ladder: ["authentic", "plagal", "half", "deceptive"],
+            }
+          : null;
   const itemName = (t: string) => SETS?.items.find((i) => i.token === t)?.name ?? t;
   const picked = $derived.by(() => {
     if (!SETS) return [];
@@ -722,7 +747,7 @@
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
     status = summary.headline;
-    if (SETS && answer === "choice" && !pocket) void checkUnlock(done);
+    if ((SETS || levelSteps) && answer !== "listen" && !pocket) void checkUnlock(done);
   }
 
   /** One results row per answer asked (an interval, a quality, a degree): this run and overall. */
@@ -745,26 +770,47 @@
       });
   }
 
-  // Once a set feels easy (about 90% of the last 20 answers), offer the next item.
+  // Once what you practise feels easy (about 90% of the last 20 answers), offer
+  // the next step: one more item in a set, or the next degree level.
   const RECENT_KEY = `music.ear-${slug}.recent`;
-  let unlockNext = $state<string | null>(null);
-  /** "the perfect 4th", "diminished chords". */
-  const itemPhrase = (t: string) => (slug === "intervals" ? `the ${itemName(t).toLowerCase()}` : `${itemName(t).toLowerCase()} chords`);
+  const LEVEL_LADDER = ["anchor", "major-pentachord", "major-diatonic", "minor-diatonic", "chromatic-color"];
+  const levelSteps = def.usesScaleDegreeLevel && slug !== "mixed" && slug !== "repertoire-transfer";
+  let offer = $state<{ region: string; text: string; button: string; apply: () => void } | null>(null);
   async function checkUnlock(done: AnswerRecord[]) {
-    if (!SETS) return;
-    const set = picked.join(",");
+    const set = SETS ? picked.join(",") : `level:${level}`;
     const saved = await getSetting<{ set: string; results: boolean[] }>(RECENT_KEY, { set, results: [] });
     const results = [...(saved.set === set ? saved.results : []), ...done.map((r) => r.correct)].slice(-20);
     await putSetting(RECENT_KEY, { set, results });
-    const right = results.filter(Boolean).length;
-    unlockNext = results.length >= 20 && right / results.length >= 0.9 ? (SETS.ladder.find((t) => !picked.includes(t)) ?? null) : null;
-  }
-  function addNext() {
-    if (!unlockNext || !SETS) return;
-    const next = [...picked, unlockNext];
-    setItems(next);
-    status = `Added ${itemPhrase(unlockNext)}. ${next.length} ${SETS.unit} now.`;
-    unlockNext = null;
+    const easy = results.length >= 20 && results.filter(Boolean).length / results.length >= 0.9;
+    offer = null;
+    if (!easy) return;
+    if (SETS) {
+      const next = SETS.ladder.find((t) => !picked.includes(t));
+      if (!next) return;
+      const phrase = SETS.phrase(itemName(next));
+      offer = {
+        region: `Ready for the next ${SETS.one}`,
+        text: `Ready for ${phrase}?`,
+        button: `Add ${phrase}`,
+        apply: () => {
+          const all = [...picked, next];
+          setItems(all);
+          status = `Added ${phrase}. ${all.length} ${SETS.unit} now.`;
+        },
+      };
+    } else {
+      const next = SCALE_DEGREE_LEVELS.find((l) => l.id === LEVEL_LADDER[LEVEL_LADDER.indexOf(level) + 1]);
+      if (!next) return;
+      offer = {
+        region: "Ready for the next level",
+        text: `Ready for the next level, ${next.title}? ${next.summary}`,
+        button: `Move up to ${next.title}`,
+        apply: () => {
+          cfg.set({ level: next.id });
+          status = `Moved up to ${next.title}: ${levelDegrees(next.id).join(", ")}.`;
+        },
+      };
+    }
   }
 
   function stop() {
@@ -867,7 +913,7 @@
       {#if SETS}
         <div class="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2" role="group" aria-labelledby="items-label">
           <span id="items-label" class="font-medium">{SETS.title}</span>
-          <div class="flex flex-wrap gap-1.5" role="group" aria-label="{slug === 'intervals' ? 'Interval' : 'Quality'} sets">
+          <div class="flex flex-wrap gap-1.5" role="group" aria-label="{SETS.one.replace(/^./, (c) => c.toUpperCase())} sets">
             {#each SETS.sets as set (set.label)}
               {@const on = sameSet(set.tokens, picked)}
               <button type="button" class="min-h-10 rounded-full border px-3 text-sm {on ? 'border-instr bg-instr-wash font-semibold' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => setItems(set.tokens)}>{set.label}</button>
@@ -1135,13 +1181,12 @@
           {/if}
         {/snippet}
       </Results>
-      {#if unlockNext}
-        <section class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-instr bg-instr-wash p-4" aria-label="Ready for the next {slug === 'intervals' ? 'interval' : 'quality'}">
-          <p class="min-w-0 flex-1 basis-60">
-            <strong>These are sounding easy:</strong> at least 18 of your last 20 answers were right. Ready for {itemPhrase(unlockNext)}?
-          </p>
-          <button type="button" class={btnPrimary} onclick={addNext}>Add {itemPhrase(unlockNext)}</button>
-          <button type="button" class={btn} onclick={() => (unlockNext = null)}>Not yet</button>
+      {#if offer}
+        {@const o = offer}
+        <section class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-instr bg-instr-wash p-4" aria-label={o.region}>
+          <p class="min-w-0 flex-1 basis-60"><strong>This is sounding easy:</strong> at least 18 of your last 20 answers were right. {o.text}</p>
+          <button type="button" class={btnPrimary} onclick={() => { o.apply(); offer = null; }}>{o.button}</button>
+          <button type="button" class={btn} onclick={() => (offer = null)}>Not yet</button>
         </section>
       {/if}
       {#if confused.length}

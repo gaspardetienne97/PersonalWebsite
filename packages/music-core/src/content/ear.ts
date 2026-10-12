@@ -361,7 +361,10 @@ export function chordQualityPrompt(
 }
 
 /** Two block chords from the data, transposed by -5..+6 so the answer is functional. */
-export function cadencePrompt(rand: Rand, opts: { difficulty: number; token?: string }): EarPrompt {
+export function cadencePrompt(
+  rand: Rand,
+  opts: { difficulty: number; token?: string; choices?: string[] },
+): EarPrompt {
   const all = CADENCES_AND_QUALITIES.cadences;
   const cadence = all.find((c) => c.token === opts.token) ?? pick(rand, all);
   const shift = randInt(rand, -5, 6);
@@ -377,7 +380,7 @@ export function cadencePrompt(rand: Rand, opts: { difficulty: number; token?: st
       ),
     ),
     answer: cadence.token,
-    choices: all.map((c) => c.token),
+    choices: opts.choices ?? all.map((c) => c.token),
     difficulty: opts.difficulty,
   };
 }

@@ -59,6 +59,37 @@ async function shots(page: Page, name: string) {
 }
 
 const prompt = (page: Page) => page.locator("article[data-drill]");
+
+/** Put a recent-answers history in place, once the app has made its database. */
+async function seedRecent(page: Page, slug: string, set: string, right: number) {
+  await page.goto("/music");
+  await page.waitForLoadState("networkidle");
+  await expect(async () => {
+    await page.evaluate(
+      ([key, value]) =>
+        new Promise<void>((resolve, reject) => {
+          const open = indexedDB.open("woodshed");
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            try {
+              const tx = open.result.transaction("settings", "readwrite");
+              tx.objectStore("settings").put({ id: key, value });
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error);
+            } catch (e) {
+              reject(e);
+            } finally {
+              open.result.close();
+            }
+          };
+        }),
+      [
+        `music.ear-${slug}.recent`,
+        { set, results: Array.from({ length: 20 }, (_, i) => i < right) },
+      ] as const,
+    );
+  }).toPass({ timeout: 10_000 });
+}
 async function waitStep(page: Page, step: string) {
   await expect(prompt(page)).toHaveAttribute("data-step", step, { timeout: 8000 });
 }
@@ -170,33 +201,8 @@ test.describe("ear training", () => {
   });
 
   test("intervals: a set that feels easy offers the next interval", async ({ page }) => {
-    // 18 of the last 20 already right on the First steps set (once the app has made its database).
-    await page.goto("/music");
-    await page.waitForLoadState("networkidle");
-    await expect(async () => {
-      await page.evaluate(
-        () =>
-          new Promise<void>((resolve, reject) => {
-            const open = indexedDB.open("woodshed");
-            open.onerror = () => reject(open.error);
-            open.onsuccess = () => {
-              try {
-                const tx = open.result.transaction("settings", "readwrite");
-                tx.objectStore("settings").put({
-                  id: "music.ear-intervals.recent",
-                  value: { set: "M3,P5,P8", results: [...Array(18).fill(true), false, false] },
-                });
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-              } catch (e) {
-                reject(e);
-              } finally {
-                open.result.close();
-              }
-            };
-          }),
-      );
-    }).toPass({ timeout: 10_000 });
+    // 18 of the last 20 already right on the First steps set.
+    await seedRecent(page, "intervals", "M3,P5,P8", 18);
     await page.goto("/music/ear/intervals?answer=choice&intervals=M3,P5,P8&direction=ascending");
     await page.getByRole("button", { name: "Check", exact: true }).click();
     await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -279,6 +285,44 @@ test.describe("ear training", () => {
     await waitStep(page, "feedback");
     await expect(card.getByText(/^Played: /)).toBeVisible();
     await expect(card.getByText(new RegExp(`^You chose: ${wrongDegree}`))).toBeVisible();
+  });
+
+  test("cadences: start on authentic and plagal, pick a set", async ({ page }) => {
+    await page.goto("/music/ear/cadences?answer=choice");
+    await page.getByRole("button", { name: "Change setup" }).click();
+    const sets = page.getByRole("group", { name: "Cadence sets" });
+    await expect(sets.getByRole("button", { name: "Authentic and plagal" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByRole("button", { name: "Half", exact: true }).click();
+    await expect(page.getByText("Setup:").locator("..")).toContainText("V-I IV-I I-V");
+    await sets.getByRole("button", { name: "Authentic and plagal" }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.locator("button.choice")).toHaveCount(2);
+    expect(["authentic", "plagal"]).toContain(await prompt(page).getAttribute("data-answer"));
+  });
+
+  test("scale degrees: an easy level offers the next one", async ({ page }) => {
+    await seedRecent(page, "scale-degrees", "level:anchor", 18);
+    await page.goto("/music/ear/scale-degrees?answer=choice&level=anchor");
+    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    for (let i = 0; i < 10; i++) {
+      const card = prompt(page);
+      await expect(card).toHaveAttribute("aria-label", `Question ${i + 1}`);
+      const degree = (await card.getAttribute("data-answer"))!;
+      await page
+        .getByRole("group", { name: "Scale degrees" })
+        .getByRole("button", { name: new RegExp(`^${degree} `) })
+        .click();
+    }
+    const offer = page.getByRole("region", { name: "Ready for the next level" });
+    await expect(offer).toContainText("Ready for the next level, Major pentachord?");
+    await offer.getByRole("button", { name: "Move up to Major pentachord" }).click();
+    await expect(page.getByRole("status")).toContainText(
+      "Moved up to Major pentachord: 1, 2, 3, 4, 5.",
+    );
   });
 
   test("intervals: practise a few at a time, in one direction", async ({ page }) => {
