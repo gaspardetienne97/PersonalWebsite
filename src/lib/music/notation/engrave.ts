@@ -198,8 +198,12 @@ export interface StaffRow {
   notes: ScoreNote[];
 }
 
-/** Hands decide the staff; then an explicit clef; otherwise pitch (grand staff split at middle C). */
-export function staffRows(score: Score, voiceIds?: string[] | null): StaffRow[] {
+/**
+ * Hands decide the staff; then an explicit clef; otherwise pitch (grand staff
+ * split at middle C). With `grand`, both staves are always drawn and every
+ * note without a hand or clef goes above or below middle C.
+ */
+export function staffRows(score: Score, voiceIds?: string[] | null, grand = false): StaffRow[] {
   const treble: ScoreNote[] = [];
   const bass: ScoreNote[] = [];
   const loose: ScoreNote[] = [];
@@ -218,13 +222,13 @@ export function staffRows(score: Score, voiceIds?: string[] | null): StaffRow[] 
   }
   if (loose.length) {
     const midis = loose.map((n) => n.midi);
-    if (Math.max(...midis) < 60) bass.push(...loose);
-    else if (Math.min(...midis) >= 53) treble.push(...loose);
+    if (!grand && Math.max(...midis) < 60) bass.push(...loose);
+    else if (!grand && Math.min(...midis) >= 53) treble.push(...loose);
     else for (const n of loose) (n.midi >= 60 ? treble : bass).push(n);
   }
   const rows: StaffRow[] = [];
-  if (treble.length || !bass.length) rows.push({ clef: "treble", notes: treble });
-  if (bass.length) rows.push({ clef: "bass", notes: bass });
+  if (grand || treble.length || !bass.length) rows.push({ clef: "treble", notes: treble });
+  if (grand || bass.length) rows.push({ clef: "bass", notes: bass });
   return rows;
 }
 
@@ -455,18 +459,27 @@ export interface DrawOptions {
   voiceIds?: string[] | null;
   range?: BeatRange | null;
   width: number;
+  /** Always a grand staff (treble and bass, split at middle C). */
+  grand?: boolean;
 }
 
 export function drawStaff(
   VF: VF,
   host: HTMLElement,
-  { score, voiceIds, range, width, revealLabels = false }: DrawOptions & { revealLabels?: boolean },
+  {
+    score,
+    voiceIds,
+    range,
+    width,
+    revealLabels = false,
+    grand = false,
+  }: DrawOptions & { revealLabels?: boolean },
 ): Layout {
   const barList = barsIn(bars(score), range);
   const groups = scoreGroups(score, voiceIds, range);
   const fifths = score.keyFifths ?? 0;
   const key = keySpec(fifths);
-  const rows: RowSpec[] = staffRows(score, voiceIds).map((row) => ({
+  const rows: RowSpec[] = staffRows(score, voiceIds, grand).map((row) => ({
     height: revealLabels ? 112 : 92,
     keySpec: key,
     beams: true,

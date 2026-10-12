@@ -80,14 +80,8 @@
       return { events: g, semis, name: semis === 0 ? "Perfect unison" : (intervalBySemitones(semis)?.name ?? `${semis} semitones`) };
     });
   });
-  // One small staff per interval (its own 2/4 bar), so each name sits under its notes.
-  // Both intervals of a comparison share one clef.
-  // The clef that needs the fewest ledger lines: bass covers G2 to A3, treble E4 to F5.
-  const clef = $derived.by(() => {
-    const ms = intervals.flatMap((iv) => iv.events.flatMap((e) => e.midi));
-    const off = (lo: number, hi: number) => ms.reduce((t, m) => t + Math.max(0, lo - m) + Math.max(0, m - hi), 0);
-    return off(43, 57) < off(64, 77) ? "bass" : "treble";
-  });
+  // One small grand staff per interval (its own 2/4 bar), split at middle C as a
+  // pianist reads it, so each name sits under its notes.
   const staffScores = $derived(
     intervals.map(
       (iv, k): Score => ({
@@ -99,7 +93,6 @@
           {
             id: "v",
             name: "Interval",
-            clef,
             notes:
               iv.events.length === 1
                 ? iv.events[0].midi.map((midi) => ({ midi, startBeat: 0, durationBeats: 2 }))
@@ -120,7 +113,7 @@
   <div class="grid gap-3 {intervals.length > 1 ? 'sm:grid-cols-2' : ''}">
     {#each intervals as iv, k (k)}
       <figure class="staff-card flex flex-col items-center rounded-xl bg-ws-surface px-3 pb-2 pt-1 text-ws-ink" aria-label="{intervals.length > 1 ? (k === 0 ? 'First interval' : 'Second interval') : 'The interval'} on the staff">
-        <div class="w-full max-w-64"><Staff score={staffScores[k]} maxHeight="10rem" /></div>
+        <div class="w-full max-w-64"><Staff score={staffScores[k]} grand maxHeight="14rem" /></div>
         <figcaption class="text-center text-sm font-semibold">{intervals.length > 1 ? (k === 0 ? "First: " : "Second: ") : ""}{iv.name}, {iv.semis} semitone{iv.semis === 1 ? "" : "s"}</figcaption>
       </figure>
     {/each}

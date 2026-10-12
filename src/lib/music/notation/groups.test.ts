@@ -95,6 +95,30 @@ describe("engraving model", () => {
     expect(ticks[2]).toEqual([expect.objectContaining({ vf: "h", dots: 1, midis: [] })]);
   });
 
+  it("draws a forced grand staff split at middle C, with an empty staff when one side has no notes", () => {
+    const one = (midis: number[]) => ({
+      ...score,
+      voices: [
+        {
+          id: "x",
+          name: "X",
+          notes: midis.map((midi, i) => ({ midi, startBeat: i, durationBeats: 1 })),
+        },
+      ],
+    });
+    expect(
+      staffRows(one([64, 67]), null, true).map((r) => [r.clef, r.notes.map((n) => n.midi)]),
+    ).toEqual([
+      ["treble", [64, 67]],
+      ["bass", []],
+    ]);
+    expect(staffRows(one([55, 64]), null, true).map((r) => r.notes.map((n) => n.midi))).toEqual([
+      [64],
+      [55],
+    ]);
+    expect(staffRows(one([64, 67])).map((r) => r.clef)).toEqual(["treble"]); // not forced: one staff
+  });
+
   it("puts hands on their staves and spells for the key", () => {
     expect(staffRows(score).map((r) => r.clef)).toEqual(["treble", "bass"]);
     const loose = {

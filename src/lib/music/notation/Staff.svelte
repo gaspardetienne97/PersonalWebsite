@@ -9,6 +9,7 @@
     voiceIds,
     range,
     revealLabels = false,
+    grand = false,
     selection = $bindable(null),
     ...rest
   }: FrameProps & {
@@ -18,6 +19,8 @@
     range?: BeatRange | null;
     /** Note names under the notes (off by default: the staff is the prompt). */
     revealLabels?: boolean;
+    /** Always treble and bass, split at middle C. */
+    grand?: boolean;
   } = $props();
 </script>
 
@@ -26,6 +29,6 @@
   bind:selection
   label="Staff notation, {score.title}"
   scoreBpm={score.bpm}
-  draw={(VF, host, width) => drawStaff(VF, host, { score, voiceIds, range, width, revealLabels })}
+  draw={(VF, host, width) => drawStaff(VF, host, { score, voiceIds, range, width, revealLabels, grand })}
   fallback={(reason) => `The staff can't draw this score: ${reason}. Waterfall shows every note.`}
 />
