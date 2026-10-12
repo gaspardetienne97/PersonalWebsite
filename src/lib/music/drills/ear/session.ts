@@ -3,7 +3,10 @@
 // the mixed review); this file maps its skills back to prompts.
 import {
   cadencePrompt,
+  CHORD_FUNCTIONS,
+  chordFunctionPrompt,
   chordQualityPrompt,
+  functionLabel,
   degreeLabel,
   EAR_INTERVALS,
   EAR_SESSION_LENGTH,
@@ -11,6 +14,7 @@ import {
   intervalComparePrompt,
   intervalPrompt,
   melodyDictationPrompt,
+  progressionPrompt,
   type CompareGap,
   SCALE_DEGREE_LEVELS,
   SCALE_DEGREES,
@@ -38,6 +42,8 @@ export type EarKind =
   | "interval-compare"
   | "chord-quality"
   | "cadence"
+  | "chord-function"
+  | "progression"
   | "scale-degree"
   | "melody-dictation";
 export type LabelMode = "degree" | "solfege";
@@ -87,6 +93,9 @@ const focusQualities = (f?: Focus) =>
   f?.tokens?.length ? QUALITIES.filter((q) => f.tokens!.includes(q.token)) : QUALITIES;
 const focusCadences = (f?: Focus) =>
   f?.tokens?.length ? CADENCES.filter((c) => f.tokens!.includes(c.token)) : CADENCES;
+const focusFunctions = (f?: Focus) =>
+  f?.tokens?.length ? CHORD_FUNCTIONS.filter((c) => f.tokens!.includes(c.token)) : CHORD_FUNCTIONS;
+const functionSkill = (token: string) => `ear.chord-function.${token}`;
 
 /** Every answerable target of one drill kind. */
 export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarget[] {
@@ -109,6 +118,21 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
       return focusQualities(focus).map((q) => ({ kind, token: q.token, skillId: q.skillId }));
     case "cadence":
       return focusCadences(focus).map((c) => ({ kind, token: c.token, skillId: c.skillId }));
+    case "chord-function":
+      return focusFunctions(focus).map((f) => ({
+        kind,
+        token: f.token,
+        skillId: functionSkill(f.token),
+      }));
+    case "progression": {
+      // By the chord after the opening I; with only I picked, I it is.
+      const after = focusFunctions(focus).filter((f) => f.token !== "I");
+      return (after.length ? after : CHORD_FUNCTIONS.slice(0, 1)).map((f) => ({
+        kind,
+        token: f.token,
+        skillId: functionSkill(f.token),
+      }));
+    }
     case "scale-degree":
     case "melody-dictation":
       return levelDegrees(level).map((d) => ({
@@ -165,6 +189,20 @@ export function promptFor(
         choices: focus?.tokens && picked.length >= 2 ? picked.map((c) => c.token) : undefined,
       });
     }
+    case "chord-function": {
+      const picked = focusFunctions(focus);
+      return chordFunctionPrompt(rand, {
+        difficulty,
+        token: t.token,
+        choices: focus?.tokens && picked.length >= 2 ? picked.map((f) => f.token) : undefined,
+      });
+    }
+    case "progression":
+      return progressionPrompt(rand, {
+        difficulty,
+        token: t.token,
+        choices: focusFunctions(focus).map((f) => f.token),
+      });
     case "scale-degree":
       return scaleDegreePrompt(rand, { difficulty, level, degree: t.token });
     case "melody-dictation":
@@ -301,6 +339,8 @@ export const KIND_LABEL: Record<EarKind, string> = {
   "interval-compare": "Interval comparison",
   "chord-quality": "Chord qualities",
   cadence: "Cadences",
+  "chord-function": "Chords in a key",
+  progression: "Progressions",
   "scale-degree": "Scale degrees",
   "melody-dictation": "Melody dictation",
 };
@@ -322,6 +362,8 @@ export function tokenLabel(
     const c = CADENCES.find((x) => x.token === token);
     return c ? `${c.label} (${c.romanProgression.join(" to ")})` : token;
   }
+  if (kind === "chord-function") return functionLabel(token);
+  if (kind === "progression") return token.split(" ").map(functionLabel).join(", ");
   if (kind === "scale-degree" && SCALE_DEGREES.some((d) => d.label === token))
     return degreeLabel(token, labels);
   if (kind === "melody-dictation" || kind === "repertoire-transfer")

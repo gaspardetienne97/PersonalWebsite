@@ -5,8 +5,8 @@
   // note rises to its pitch and the drill's own picture appears: intervals,
   // chords and cadences on a grand staff (named underneath), degrees in their
   // colours with a melody's contour.
-  import { pc } from "@repo/music-core";
-  import { SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
+  import { noteName, pc } from "@repo/music-core";
+  import { CHORD_FUNCTIONS, functionLabel, SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
   import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
   import type { Score } from "@repo/music-core";
@@ -64,16 +64,33 @@
   // gets one staff per interval.
   const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
   const CADENCES = CADENCES_AND_QUALITIES.cadences;
-  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence"].includes(prompt.drill));
+  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence", "chord-function", "progression"].includes(prompt.drill));
+  // Chords that only set the key are heard, not drawn.
   const groups = $derived(
-    !onStaff ? [] : prompt.drill === "interval-compare" ? [events.slice(0, events.length / 2), events.slice(events.length / 2)] : [events],
+    !onStaff
+      ? []
+      : prompt.drill === "interval-compare"
+        ? [events.slice(0, events.length / 2), events.slice(events.length / 2)]
+        : [events.slice(prompt.keyEvents ?? 0)],
   );
+  /** "Am", "B°": a chord of the key from its numeral and its root (the bass). */
+  const symbol = (token: string, bass: number) => {
+    const q = CHORD_FUNCTIONS.find((f) => f.token === token)?.quality;
+    return `${noteName(bass, "flat", false)}${q === "minor" ? "m" : q === "diminished" ? "°" : ""}`;
+  };
   function describe(g: EarPrompt["playback"]): string {
     const ms = g.flatMap((e) => e.midi);
     if (prompt.drill === "chord-quality") {
       const s = [...ms].sort((a, b) => a - b);
       const name = QUALITIES.find((q) => q.token === prompt.answer)?.label ?? prompt.answer;
       return `${name}: ${s.slice(1).map((m, i) => shortInterval(m - s[i])).join(", ")}`;
+    }
+    if (prompt.drill === "chord-function" || prompt.drill === "progression") {
+      // Every chord here has its root in the bass, and the first event is the key's I.
+      const key = `${noteName(events[0].midi[0], "flat", false)} major`;
+      const tokens = prompt.answer.split(" ");
+      const names = g.map((e, i) => symbol(tokens[i] ?? "", e.midi[0]));
+      return `${tokens.map(functionLabel).join(", ")} in ${key}: ${names.join(", ")}`;
     }
     if (prompt.drill === "cadence") {
       const c = CADENCES.find((x) => x.token === prompt.answer);
@@ -83,6 +100,12 @@
     const name = semis === 0 ? "Perfect unison" : (intervalBySemitones(semis)?.name ?? `${semis} semitones`);
     return `${name}, ${semis} semitone${semis === 1 ? "" : "s"}`;
   }
+  // Chords of a key are drawn in it: its signature, its spelling (Eb major's IV is Ab, not G#).
+  const keyed = $derived(prompt.drill === "chord-function" || prompt.drill === "progression");
+  const keyFifths = $derived.by(() => {
+    const f = (pc(events[0].midi[0]) * 7) % 12;
+    return f > 5 ? f - 12 : f;
+  });
   const lead = (k: number) => (prompt.drill === "interval-compare" ? (k === 0 ? "First" : "Second") : prefix);
   const staffScores = $derived(
     groups.map((g, k): Score => {
@@ -91,6 +114,7 @@
         id: `${prompt.id}-${k}`,
         title: "",
         bpm: 60,
+        keyFifths: keyed ? keyFifths : undefined,
         meter: { beats: one ? 2 : Math.max(2, g.length), beatUnit: 4 },
         voices: [
           {

@@ -20,7 +20,7 @@ describe("path content", () => {
     expect(LEARNING_PATHS.piano.steps).toHaveLength(9);
     expect(LEARNING_PATHS.mpc.steps).toHaveLength(8);
     // The table's six plus the app's two interval steps, numbered in order.
-    expect(LEARNING_PATHS.ear.steps).toHaveLength(8);
+    expect(LEARNING_PATHS.ear.steps).toHaveLength(10);
     expect(LEARNING_PATHS.ear.steps.find((s) => s.id === "interval-names")).toMatchObject({
       order: 7,
       href: "/music/ear/intervals?answer=choice&intervals=M3%2CP5%2CP8&direction=ascending",

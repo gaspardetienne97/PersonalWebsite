@@ -477,9 +477,54 @@ export const SCALE_DATA = scalesJson as {
 // ---------------------------------------------------------------------------
 // Skill graph
 
-export const SKILL_GRAPH_SEED = skillGraphJson as {
-  skills: Skill[];
-  relationships: SkillRelationship[];
+const FUNCTION_NAMES: [string, string][] = [
+  ["I", "I chord in a key"],
+  ["ii", "ii chord in a key"],
+  ["iii", "iii chord in a key"],
+  ["IV", "IV chord in a key"],
+  ["V", "V chord in a key"],
+  ["vi", "vi chord in a key"],
+  ["vii", "vii° chord in a key"],
+];
+/**
+ * Skills the app adds to the verified seed (kept as an exact copy): chords
+ * heard by their place in a key, one per numeral, and progressions of them.
+ */
+const APP_SKILLS: Skill[] = [
+  {
+    id: "ear.chord-functions",
+    name: "Chords in a key",
+    capability: "harmony",
+    level: "early-intermediate",
+    tags: ["ear", "function"],
+    version: 1,
+  },
+  ...FUNCTION_NAMES.map(([t, name]) => ({
+    id: `ear.chord-function.${t}`,
+    name,
+    capability: "harmony" as const,
+    level: "early-intermediate" as const,
+    tags: ["ear", "function"],
+    version: 1,
+  })),
+  {
+    id: "ear.progressions",
+    name: "Progression dictation",
+    capability: "harmony",
+    level: "intermediate",
+    tags: ["ear", "function", "progression"],
+    version: 1,
+  },
+];
+const APP_RELATIONSHIPS: SkillRelationship[] = FUNCTION_NAMES.map(([t]) => ({
+  from: "ear.chord-functions",
+  to: `ear.chord-function.${t}`,
+  kind: "component",
+}));
+
+export const SKILL_GRAPH_SEED = {
+  skills: [...(skillGraphJson.skills as Skill[]), ...APP_SKILLS],
+  relationships: [...(skillGraphJson.relationships as SkillRelationship[]), ...APP_RELATIONSHIPS],
 };
 
 // ---------------------------------------------------------------------------

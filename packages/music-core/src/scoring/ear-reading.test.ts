@@ -6,6 +6,7 @@ import {
   gradeIntervalPlayback,
   gradeMelodyDictation,
   gradeScaleDegree,
+  gradeSequence,
 } from "./ear";
 import { gradeFlashcard } from "./reading";
 
@@ -16,6 +17,17 @@ describe("ear", () => {
       score: 0,
       metrics: [{ kind: "choice", expected: "m6", actual: "P5" }],
     });
+  });
+
+  it("sequences get partial credit per slot", () => {
+    expect(gradeSequence(["IV", "V", "I"], ["IV", "V", "I"])).toMatchObject({
+      score: 1,
+      correct: true,
+    });
+    const g = gradeSequence(["IV", "V", "I"], ["IV", "vi", "I"]);
+    expect(g.score).toBeCloseTo(2 / 3);
+    expect(g.correct).toBe(false);
+    expect(g.metrics[1]).toEqual({ kind: "choice", expected: "V", actual: "vi" });
   });
 
   it("played intervals must match direction unless harmonic", () => {

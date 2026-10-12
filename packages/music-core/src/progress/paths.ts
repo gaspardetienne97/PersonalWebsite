@@ -3,7 +3,7 @@
 import { isMasteryEligible, type Instrument, type Modality, type ScoringEvent } from "../types";
 import pathData from "../data/learning-paths.json";
 import earData from "../data/ear-training.json";
-import { EAR_INTERVAL_STEPS } from "../content/ear";
+import { EAR_ADDED_STEPS } from "../content/ear";
 import jazzData from "../data/jazz.json";
 import { SKILL_GRAPH, withDescendants, type SkillGraph } from "./graph";
 
@@ -172,7 +172,7 @@ const ear = earData.learningPathDefinition;
 export const LEARNING_PATHS: Record<PathId, LearningPath> = {
   ear: path("ear", ear.title, ear.subtitle, [
     ...(ear.steps as RawStep[]),
-    ...(EAR_INTERVAL_STEPS as RawStep[]),
+    ...(EAR_ADDED_STEPS as RawStep[]),
   ]),
   jazz: path(
     "jazz",

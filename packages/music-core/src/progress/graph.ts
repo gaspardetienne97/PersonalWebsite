@@ -1,6 +1,6 @@
 // Skill graph: seed, unlocking, umbrella aggregation, capability summaries (catalog 5.3).
 import type { Capability, Skill, SkillMastery, SkillRelationship } from "../types";
-import seed from "../data/skill-graph-seed.json";
+import { SKILL_GRAPH_SEED } from "../data";
 import { decayMastery } from "./mastery";
 
 export interface SkillGraph {
@@ -8,7 +8,8 @@ export interface SkillGraph {
   relationships: SkillRelationship[];
 }
 
-export const SKILL_GRAPH: SkillGraph = seed as SkillGraph;
+/** The seed graph plus the skills the app adds. */
+export const SKILL_GRAPH: SkillGraph = SKILL_GRAPH_SEED;
 
 export const DEFAULT_UNLOCK_THRESHOLD = 0.6;
 export const MASTERED = 0.8;

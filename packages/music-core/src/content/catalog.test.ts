@@ -4,11 +4,14 @@ import { tuningById } from "../theory/fretboard";
 import { CATALOG, exerciseIdFor, rhythmExerciseId } from "./catalog";
 import {
   cadencePrompt,
+  CHORD_FUNCTIONS,
+  chordFunctionPrompt,
   chordQualityPrompt,
   EAR_DRILLS,
   EAR_PATH,
   intervalPrompt,
   melodyDictationPrompt,
+  progressionPrompt,
   SCALE_DEGREE_LEVELS,
   scaleDegreePrompt,
 } from "./ear";
@@ -41,6 +44,8 @@ const ROUTES = [
   "/music/ear/interval-compare",
   "/music/ear/chord-qualities",
   "/music/ear/cadences",
+  "/music/ear/chord-functions",
+  "/music/ear/progressions",
   "/music/ear/scale-degrees",
   "/music/ear/melody-dictation",
   "/music/ear/repertoire-transfer",
@@ -125,6 +130,10 @@ describe("skill ids", () => {
       ...CADENCES_AND_QUALITIES.cadences.flatMap(
         (c) => cadencePrompt(r, { difficulty: 0.5, token: c.token }).skillIds,
       ),
+      ...CHORD_FUNCTIONS.flatMap((f) => [
+        ...chordFunctionPrompt(r, { difficulty: 0.5, token: f.token }).skillIds,
+        ...progressionPrompt(r, { difficulty: 0.9, token: f.token }).skillIds,
+      ]),
       ...SCALE_DEGREE_LEVELS.flatMap((l) =>
         l.degrees.flatMap((d) => [
           ...scaleDegreePrompt(r, { difficulty: 0.5, level: l.id, degree: d }).skillIds,

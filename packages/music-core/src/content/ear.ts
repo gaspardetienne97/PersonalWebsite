@@ -11,6 +11,8 @@ export type EarDrillKind =
   | "interval-compare"
   | "chord-quality"
   | "cadence"
+  | "chord-function"
+  | "progression"
   | "scale-degree"
   | "melody-dictation"
   | "repertoire-transfer";
@@ -33,6 +35,8 @@ export interface EarPrompt {
   difficulty: number;
   /** What a play-back answer must produce, in order (not needed for choice answers). */
   expectedMidi?: number[];
+  /** Leading playback events that only set the key (not part of the answer). */
+  keyEvents?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,10 +62,38 @@ const INTERVAL_COMPARE = {
   queueMode: "balanced",
   skillIds: ["pitch.intervals"],
 } as const;
+/** Chords by their place in a key, and progressions of them: also added by the app, after Cadences. */
+const CHORD_FUNCTION_DRILLS = [
+  {
+    slug: "chord-functions",
+    title: "Chords in a key",
+    description: "The key is set with I, IV, V, I; then one chord. Which is it, I to vii°?",
+    drill: "chord-function",
+    answerModes: ["choice", "listen", "listen-along"],
+    usesScaleDegreeLevel: false,
+    usesLabels: false,
+    queueMode: "balanced",
+    skillIds: ["ear.chord-functions"],
+  },
+  {
+    slug: "progressions",
+    title: "Progression dictation",
+    description: "Three or four chords starting on I: write down the rest.",
+    drill: "progression",
+    answerModes: ["choice", "listen", "listen-along"],
+    usesScaleDegreeLevel: false,
+    usesLabels: false,
+    queueMode: "balanced",
+    skillIds: ["ear.progressions"],
+  },
+] as const;
+type DrillRow = (typeof EAR_TRAINING.drills)[number];
 export const EAR_DRILLS = [
   ...EAR_TRAINING.drills.slice(0, 1),
-  INTERVAL_COMPARE as unknown as (typeof EAR_TRAINING.drills)[number],
-  ...EAR_TRAINING.drills.slice(1),
+  INTERVAL_COMPARE as unknown as DrillRow,
+  ...EAR_TRAINING.drills.slice(1, 3),
+  ...(CHORD_FUNCTION_DRILLS as unknown as DrillRow[]),
+  ...EAR_TRAINING.drills.slice(3),
 ].map((d) => ({ ...d, route: `/music/ear/${d.slug}` }));
 export const EAR_DEFAULT_CONFIG = EAR_TRAINING.defaultConfig;
 export const EAR_SESSION_LENGTH = 10;
@@ -70,11 +102,12 @@ const intervalsHref = (set: string, direction = "ascending") =>
   `/music/learn/ear/intervals?answer=choice&intervals=${set}&direction=${direction}`;
 
 /**
- * Two interval steps the app adds to the verified path, before the closing
- * review: hear interval size first, then name intervals a few at a time.
- * Their orders fall between the table's 5 and 6; every path is renumbered.
+ * Steps the app adds to the verified path. Two interval steps before the
+ * closing review (hear interval size first, then name intervals a few at a
+ * time), and two chord steps after it (chords in a key, then progressions).
+ * Their orders fall between and after the table's; every path is renumbered.
  */
-export const EAR_INTERVAL_STEPS: EarPathStepDef[] = [
+export const EAR_ADDED_STEPS: EarPathStepDef[] = [
   {
     id: "interval-size",
     order: 5.5,
@@ -116,13 +149,52 @@ export const EAR_INTERVAL_STEPS: EarPathStepDef[] = [
     exerciseIds: ["ear.intervals"],
     skillIds: ["pitch.interval.M3", "pitch.interval.P5", "pitch.interval.P8"],
   },
+  {
+    id: "chords-in-a-key",
+    order: 7,
+    title: "Hear chords in a key",
+    summary: "The key is set with I, IV, V, I, then one chord: name it. Starts with I, IV and V.",
+    detail: "Unaided choice answers for I, IV and V, each averaging 66% or higher.",
+    kind: "drill",
+    goal: "Hear a chord by its place in the key, the way a song's harmony is heard.",
+    practiceMode: "Chords in a key by choice, I, IV and V first.",
+    currentSupport: "built",
+    recommendedDrill: "chord-function",
+    href: "/music/learn/ear/chord-functions?answer=choice&functions=I,IV,V",
+    links: [
+      {
+        label: "Add vi",
+        href: "/music/learn/ear/chord-functions?answer=choice&functions=I,IV,V,vi",
+      },
+      { label: "All seven", href: "/music/learn/ear/chord-functions?answer=choice&functions=" },
+    ],
+    modalities: ["heard"],
+    exerciseIds: ["ear.chord-functions"],
+    skillIds: ["ear.chord-function.I", "ear.chord-function.IV", "ear.chord-function.V"],
+  },
+  {
+    id: "progressions",
+    order: 8,
+    title: "Write down progressions",
+    summary: "Three or four chords starting on I: tap the rest in order. Starts with I, IV and V.",
+    detail: "Unaided progression answers averaging 66% or higher.",
+    kind: "drill",
+    goal: "Follow a chord progression by ear, chord by chord.",
+    practiceMode: "Progression dictation by choice, I, IV and V first.",
+    currentSupport: "built",
+    recommendedDrill: "progression",
+    href: "/music/learn/ear/progressions?answer=choice&functions=I,IV,V",
+    modalities: ["heard", "written"],
+    exerciseIds: ["ear.progressions"],
+    skillIds: ["ear.progressions"],
+  },
 ];
 
 const def = EAR_TRAINING.learningPathDefinition;
 export const EAR_PATH = {
   ...def,
   href: earRoute(def.href),
-  steps: [...(def.steps as EarPathStepDef[]), ...EAR_INTERVAL_STEPS]
+  steps: [...(def.steps as EarPathStepDef[]), ...EAR_ADDED_STEPS]
     .sort((a, b) => a.order - b.order)
     .map(
       (s, i): EarPathStepDef => ({
@@ -382,6 +454,102 @@ export function cadencePrompt(
     answer: cadence.token,
     choices: opts.choices ?? all.map((c) => c.token),
     difficulty: opts.difficulty,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Chords in a key
+
+/** The seven triads of a major key, by numeral. vii° is written "vii" in tokens and skill ids. */
+export const CHORD_FUNCTIONS = [
+  { token: "I", label: "I", name: "Tonic", degree: 0, quality: "major" },
+  { token: "ii", label: "ii", name: "Supertonic", degree: 1, quality: "minor" },
+  { token: "iii", label: "iii", name: "Mediant", degree: 2, quality: "minor" },
+  { token: "IV", label: "IV", name: "Subdominant", degree: 3, quality: "major" },
+  { token: "V", label: "V", name: "Dominant", degree: 4, quality: "major" },
+  { token: "vi", label: "vi", name: "Submediant", degree: 5, quality: "minor" },
+  { token: "vii", label: "vii°", name: "Leading tone", degree: 6, quality: "diminished" },
+] as const;
+const functionOf = (token: string) =>
+  CHORD_FUNCTIONS.find((f) => f.token === token) ?? CHORD_FUNCTIONS[0];
+export const functionLabel = (token: string) =>
+  CHORD_FUNCTIONS.find((f) => f.token === token)?.label ?? token;
+const functionSkill = (token: string) => `ear.chord-function.${token}`;
+/** `n` mapped into the octave starting at `from`. */
+const into = (n: number, from: number) => from + ((((n - from) % 12) + 12) % 12);
+
+/**
+ * One triad of the key whose tonic pitch class is `keyPc`: the root in the
+ * bass (G2 to F#3), the three chord tones close together from middle C up,
+ * so every chord sits in the same place and only its sound changes.
+ */
+export function functionChord(keyPc: number, token: string): number[] {
+  const d = functionOf(token).degree;
+  const tones = [0, 2, 4].map((k) => keyPc + MAJOR[(d + k) % 7]);
+  return [into(tones[0], 43), ...tones.map((t) => into(t, 60)).sort((a, b) => a - b)];
+}
+
+/** Chords one after another, 0.9 s apart. */
+export function functionPlayback(keyPc: number, tokens: string[], start = 0): PlaybackEvent[] {
+  return tokens.map((t, i) => note(functionChord(keyPc, t), start + i * 0.9, 0.8));
+}
+
+const KEY_SETTING = ["I", "IV", "V", "I"];
+
+/** I, IV, V, I to set the key, a breath, then the chord to name. */
+export function chordFunctionPrompt(
+  rand: Rand,
+  opts: { difficulty: number; token?: string; choices?: string[] },
+): EarPrompt & { keyPc: number } {
+  const f =
+    CHORD_FUNCTIONS.find((x) => x.token === opts.token) ??
+    pick(rand, CHORD_FUNCTIONS as readonly (typeof CHORD_FUNCTIONS)[number][]);
+  const keyPc = randInt(rand, 0, 11);
+  return {
+    id: `chord-function-${f.token}-${keyPc}`,
+    drill: "chord-function",
+    skillIds: ["ear.chord-functions", functionSkill(f.token)],
+    playback: [
+      ...functionPlayback(keyPc, KEY_SETTING),
+      note(functionChord(keyPc, f.token), KEY_SETTING.length * 0.9 + 0.6, 1.1),
+    ],
+    keyEvents: KEY_SETTING.length,
+    answer: f.token,
+    choices: opts.choices ?? CHORD_FUNCTIONS.map((x) => x.token),
+    difficulty: opts.difficulty,
+    keyPc,
+  };
+}
+
+/**
+ * Three chords below difficulty 0.5, else four, always starting on I (that
+ * sets the key). The rest come from `choices` (all seven when missing) with no
+ * chord twice in a row; `token` is the second chord, so a session can aim at it.
+ */
+export function progressionPrompt(
+  rand: Rand,
+  opts: { difficulty: number; token?: string; choices?: string[] },
+): EarPrompt & { keyPc: number } {
+  const pool: string[] = opts.choices?.length
+    ? [...new Set(["I", ...opts.choices])]
+    : CHORD_FUNCTIONS.map((f) => f.token);
+  const length = opts.difficulty < 0.5 ? 3 : 4;
+  const chords = ["I"];
+  if (opts.token && opts.token !== "I" && pool.includes(opts.token)) chords.push(opts.token);
+  while (chords.length < length) {
+    const fresh = pool.filter((t) => t !== chords.at(-1));
+    chords.push(pick(rand, fresh.length ? fresh : pool));
+  }
+  const keyPc = randInt(rand, 0, 11);
+  return {
+    id: `progression-${chords.join("_")}-${keyPc}`,
+    drill: "progression",
+    skillIds: ["ear.progressions", ...new Set(chords.map(functionSkill))],
+    playback: functionPlayback(keyPc, chords),
+    answer: chords.join(" "),
+    choices: pool,
+    difficulty: opts.difficulty,
+    keyPc,
   };
 }
 

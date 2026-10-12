@@ -16,6 +16,18 @@ export function gradeChoice(expected: string, actual: string | undefined): Grade
   return binary(actual === expected, [{ kind: "choice", expected, actual }]);
 }
 
+/** Answers given in order (a progression's chords): partial credit per slot. */
+export function gradeSequence(expected: readonly string[], actual: readonly string[]): Graded {
+  const right = expected.filter((t, i) => actual[i] === t).length;
+  const score = expected.length ? right / expected.length : 0;
+  return {
+    score,
+    correct: score === 1,
+    metrics: expected.map((t, i) => ({ kind: "choice", expected: t, actual: actual[i] })),
+    notMeasured: [],
+  };
+}
+
 /** Played interval: the first two notes; any starting pitch, direction must match unless harmonic. */
 export function gradeIntervalPlayback(
   prompt: { semitones: number; direction: "ascending" | "descending" | "harmonic" },

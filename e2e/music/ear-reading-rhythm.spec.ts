@@ -101,6 +101,8 @@ test.describe("ear training", () => {
       ["interval-compare", "Interval comparison"],
       ["chord-qualities", "Chord qualities"],
       ["cadences", "Cadences"],
+      ["chord-functions", "Chords in a key"],
+      ["progressions", "Progression dictation"],
       ["scale-degrees", "Scale degrees"],
       ["melody-dictation", "Melody dictation"],
       ["repertoire-transfer", "Repertoire transfer"],
@@ -301,6 +303,65 @@ test.describe("ear training", () => {
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.locator("button.choice")).toHaveCount(2);
     expect(["authentic", "plagal"]).toContain(await prompt(page).getAttribute("data-answer"));
+  });
+
+  test("chords in a key: I, IV and V to start, a wrong chord shown in the same key", async ({
+    page,
+  }) => {
+    await page.goto("/music/ear/chord-functions?answer=choice");
+    await page.getByRole("button", { name: "Change setup" }).click();
+    await expect(
+      page.getByRole("group", { name: "Chord sets" }).getByRole("button", { name: "I, IV and V" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    await expect(card).toContainText(/Key of \S+ major: I, IV, V, I, then one chord/);
+    const chord = (await card.getAttribute("data-answer"))!;
+    expect(["I", "IV", "V"]).toContain(chord);
+    await expect(page.locator("button.choice")).toHaveCount(3);
+    const wrong = chord === "IV" ? "V" : "IV";
+    await page.locator("button.choice", { hasText: new RegExp(`^\\s*${wrong}\\s*$`) }).click();
+    await waitStep(page, "feedback");
+    const captions = card.locator("figure.staff-card figcaption");
+    await expect(captions).toHaveCount(2);
+    await expect(captions.nth(0)).toContainText(new RegExp(`^Played: ${chord} in \\S+ major: `));
+    await expect(captions.nth(1)).toContainText(new RegExp(`^You chose: ${wrong} in \\S+ major: `));
+    await expect(card.getByRole("button", { name: /^Hear both again: / })).toBeVisible();
+    await shots(page, "ear-chord-function-mistake");
+  });
+
+  test("progressions: tap the chords after I into slots, judged chord by chord", async ({
+    page,
+  }) => {
+    await page.goto("/music/ear/progressions?answer=choice");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    const chords = (await card.getAttribute("data-answer"))!.split(" ");
+    expect(chords[0]).toBe("I");
+    const slots = page.getByRole("list", { name: "Your progression" }).getByRole("listitem");
+    await expect(slots).toHaveCount(chords.length);
+    await expect(slots.nth(0)).toHaveText("I");
+    const tap = (t: string) =>
+      page.locator("button.choice", { hasText: new RegExp(`^${t}$`) }).click();
+
+    // A tap fills the next slot; Undo takes it back.
+    await tap("IV");
+    await expect(slots.nth(1)).toHaveText("IV");
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(slots.nth(1)).toHaveText("?");
+
+    // Right until the last chord, then a wrong one.
+    for (const c of chords.slice(1, -1)) await tap(c);
+    const last = chords.at(-1)!;
+    await tap(last === "V" ? "IV" : "V");
+    await waitStep(page, "feedback");
+    await expect(slots.nth(1)).toHaveAttribute("data-state", chords.length > 2 ? "right" : "wrong");
+    await expect(slots.last()).toHaveAttribute("data-state", "wrong");
+    await expect(slots.last()).toContainText(`✕ ${last}`);
+    await expect(card.locator("figure.staff-card figcaption").nth(1)).toContainText(
+      /^You chose: I, /,
+    );
+    await shots(page, "ear-progression-mistake");
   });
 
   test("scale degrees: an easy level offers the next one", async ({ page }) => {

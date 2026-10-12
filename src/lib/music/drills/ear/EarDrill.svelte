@@ -8,9 +8,13 @@
   import { noteName, pc } from "@repo/music-core";
   import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
   import {
+    CHORD_FUNCTIONS,
     EAR_DEFAULT_CONFIG,
     EAR_DRILLS,
     EAR_INTERVALS,
+    functionChord,
+    functionLabel,
+    functionPlayback,
     SCALE_DEGREE_LEVELS,
     SCALE_DEGREES,
     phrasesFromScore,
@@ -30,6 +34,7 @@
     gradeIntervalPlayback,
     gradeMelodyDictation,
     gradeScaleDegree,
+    gradeSequence,
   } from "@repo/music-core/scoring/ear";
   import type { Graded } from "@repo/music-core/scoring/grade";
   import { skillSummaries } from "@repo/music-core/progress/analytics";
@@ -70,7 +75,7 @@
   const slug = untrack(() => slugProp);
 
   type AnswerMode = "choice" | "play-back" | "voice" | "listen" | "listen-along";
-  type Prompt = EarPrompt & { direction?: "ascending" | "descending" | "harmonic"; phrase?: RankedPhrase };
+  type Prompt = EarPrompt & { direction?: "ascending" | "descending" | "harmonic"; phrase?: RankedPhrase; keyPc?: number };
 
   const def = EAR_DRILLS.find((d) => d.slug === slug)!;
   const entry = catalogEntry(`ear-${slug}`)!;
@@ -88,6 +93,8 @@
     "interval-compare": "interval-compare",
     "chord-qualities": "chord-quality",
     cadences: "cadence",
+    "chord-functions": "chord-function",
+    progressions: "progression",
     "scale-degrees": "scale-degree",
     "melody-dictation": "melody-dictation",
   };
@@ -101,6 +108,7 @@
     intervals: "M3,P5,P8" as string,
     qualities: "major,minor" as string,
     cadences: "authentic,plagal" as string,
+    functions: "I,IV,V" as string,
     direction: "auto" as string,
     root: "random" as string,
   });
@@ -134,13 +142,13 @@
     "diminished-7": "dim7",
   };
   interface ItemSets {
-    key: "intervals" | "qualities" | "cadences";
+    key: "intervals" | "qualities" | "cadences" | "functions";
     title: string;
     /** "intervals", and one of them: "interval". */
     unit: string;
     one: string;
-    /** How the next item is offered: "the perfect 4th", "diminished chords". */
-    phrase: (name: string) => string;
+    /** How the next item is offered, from its token: "the perfect 4th", "diminished chords". */
+    phrase: (token: string) => string;
     items: { token: string; short: string; name: string }[];
     /** When nothing is listed. */
     fallback: string[];
@@ -155,7 +163,7 @@
           title: "Intervals to practise",
           unit: "intervals",
           one: "interval",
-          phrase: (name) => `the ${name.toLowerCase()}`,
+          phrase: (t) => `the ${itemName(t).toLowerCase()}`,
           items: EAR_INTERVALS.map((i) => ({ token: i.token, short: i.token, name: i.name })),
           fallback: TWELVE,
           sets: [
@@ -175,7 +183,7 @@
             title: "Chord qualities to practise",
             unit: "qualities",
             one: "quality",
-            phrase: (name) => `${name.toLowerCase()} chords`,
+            phrase: (t) => `${itemName(t).toLowerCase()} chords`,
             items: QUALITIES.map((q) => ({ token: q.token, short: QUALITY_SHORT[q.token] ?? q.token, name: q.label })),
             fallback: QUALITIES.map((q) => q.token),
             sets: [
@@ -192,7 +200,7 @@
               title: "Cadences to practise",
               unit: "cadences",
               one: "cadence",
-              phrase: (name) => `${name.toLowerCase()} cadences`,
+              phrase: (t) => `${itemName(t).toLowerCase()} cadences`,
               items: CADENCES.map((c) => ({ token: c.token, short: c.romanProgression.join("-"), name: c.label })),
               fallback: CADENCES.map((c) => c.token),
               sets: [
@@ -202,8 +210,25 @@
               ],
               ladder: ["authentic", "plagal", "half", "deceptive"],
             }
-          : null;
-  const itemName = (t: string) => SETS?.items.find((i) => i.token === t)?.name ?? t;
+          : slug === "chord-functions" || slug === "progressions"
+            ? {
+                key: "functions",
+                title: "Chords to practise",
+                unit: "chords",
+                one: "chord",
+                phrase: (t) => `the ${functionLabel(t)} chord`,
+                items: CHORD_FUNCTIONS.map((f) => ({ token: f.token, short: f.label, name: f.name })),
+                fallback: CHORD_FUNCTIONS.map((f) => f.token),
+                sets: [
+                  { label: "I, IV and V", tokens: ["I", "IV", "V"] },
+                  { label: "Add vi", tokens: ["I", "IV", "V", "vi"] },
+                  { label: "Add ii and vi", tokens: ["I", "ii", "IV", "V", "vi"] },
+                  { label: "All seven", tokens: CHORD_FUNCTIONS.map((f) => f.token) },
+                ],
+                ladder: ["I", "V", "IV", "vi", "ii", "iii", "vii"],
+              }
+            : null;
+  const itemName = (t: string): string => SETS?.items.find((i) => i.token === t)?.name ?? t;
   const picked = $derived.by(() => {
     if (!SETS) return [];
     const listed = s[SETS.key].split(",").filter((t) => SETS.items.some((i) => i.token === t));
@@ -250,6 +275,8 @@
   let step = $state<"playing" | "answer" | "feedback" | "revealed">("answer");
   let records = $state<AnswerRecord[]>([]);
   let played = $state<number[]>([]);
+  /** A progression's chords after the opening I, as tapped. */
+  let slots = $state<string[]>([]);
   let hinted = $state(false);
   let summary = $state<RunSummary | null>(null);
   let listened = $state(0);
@@ -292,6 +319,11 @@
       const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
       return c ? c.playback.map((e) => ({ midi: e.midiNotes.map((m) => m + shift), time: e.offsetSeconds, duration: e.durationSeconds })) : null;
     }
+    if (p.drill === "chord-function" && p.keyPc !== undefined) {
+      const last = p.playback.at(-1)!;
+      return [...p.playback.slice(0, -1), { ...last, midi: functionChord(p.keyPc, token) }];
+    }
+    if (p.drill === "progression" && p.keyPc !== undefined) return functionPlayback(p.keyPc, token.split(" "));
     if (p.drill === "scale-degree") {
       const semis = SCALE_DEGREES.find((d) => d.label === token)?.semitones;
       const tonic = tonicOf(p);
@@ -303,10 +335,13 @@
     const chosen = asChosen(p, token);
     if (!chosen) return;
     const after = Math.max(...p.playback.map((e) => e.time + e.duration)) + 0.9;
+    // The key is set once: the chosen version follows without its key-setting chords.
+    const tail = chosen.slice(p.keyEvents ?? 0);
+    const t0 = tail[0]?.time ?? 0;
     mistake = {
       token,
       chosen: { ...p, id: `${p.id}-chose-${token}`, answer: token, playback: chosen },
-      both: { ...p, id: `${p.id}-vs-${token}`, playback: [...p.playback, ...chosen.map((e) => ({ ...e, time: e.time + after }))] },
+      both: { ...p, id: `${p.id}-vs-${token}`, playback: [...p.playback, ...tail.map((e) => ({ ...e, time: e.time - t0 + after }))] },
     };
     setTimeout(() => mistake && playPrompt(mistake.both), 500);
   }
@@ -347,6 +382,10 @@
 
   const tonicOf = (p: Prompt) => p.playback[0].midi[0];
   const keyLine = (p: Prompt) => {
+    if (p.drill === "chord-function" || p.drill === "progression") {
+      const key = `Key of ${noteName(48 + (p.keyPc ?? 0), "flat", false)} major`;
+      return p.drill === "chord-function" ? `${key}: I, IV, V, I, then one chord` : `${key}, ${p.answer.split(" ").length} chords from I`;
+    }
     if (p.drill === "cadence") {
       const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
       return `Key of ${noteName(48 + shift, "flat", false)} major`;
@@ -364,6 +403,10 @@
         ? "What quality is the chord?"
         : p.drill === "cadence"
           ? "Which cadence ends the phrase?"
+        : p.drill === "chord-function"
+          ? "Which chord of the key was the last one?"
+        : p.drill === "progression"
+          ? "Which chords came after the I?"
           : p.drill === "scale-degree"
             ? answer === "voice"
               ? "Sing the second note back."
@@ -543,6 +586,7 @@
     clearTimeout(advanceTimer);
     qi = i;
     played = [];
+    slots = [];
     hinted = false;
     mistake = null;
     flashes.clear();
@@ -625,6 +669,16 @@
   function choose(token: string) {
     if (phase !== "running" || (step !== "answer" && step !== "playing")) return;
     void commit(gradeChoice(current.answer, token), token, token, []);
+  }
+
+  /** One chord into the next slot of a progression; the last slot answers it. */
+  function tapChord(token: string) {
+    if (phase !== "running" || (step !== "answer" && step !== "playing")) return;
+    const want = current.answer.split(" ").slice(1);
+    slots = [...slots, token];
+    if (slots.length < want.length) return;
+    const answered = ["I", ...slots].join(" ");
+    void commit(gradeSequence(want, slots), answered, answered, []);
   }
 
   async function commit(g: Graded, answered: string, response: Label, notes: NoteEvent[], extra: Metric[] = []) {
@@ -752,7 +806,7 @@
 
   /** One results row per answer asked (an interval, a quality, a degree): this run and overall. */
   function itemRows(done: AnswerRecord[]) {
-    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation") return null;
+    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation" || kinds[0] === "progression") return null;
     const kind = kinds[0];
     const targets = targetsFor(kind, level, focus);
     const order = (t: string) => {
@@ -787,7 +841,7 @@
     if (SETS) {
       const next = SETS.ladder.find((t) => !picked.includes(t));
       if (!next) return;
-      const phrase = SETS.phrase(itemName(next));
+      const phrase = SETS.phrase(next);
       offer = {
         region: `Ready for the next ${SETS.one}`,
         text: `Ready for ${phrase}?`,
@@ -934,7 +988,13 @@
               </button>
             {/each}
           </div>
-          <span class="text-ws-soft">{picked.length === 1 ? `One picked: every prompt is this one, among all the answers.` : `${picked.length} ${SETS.unit}: only these play, and only these are the answers.`}</span>
+          <span class="text-ws-soft">
+            {slug === "progressions"
+              ? `Every progression starts on I; the rest use only these ${picked.length} chords.`
+              : picked.length === 1
+                ? `One picked: every prompt is this one, among all the answers.`
+                : `${picked.length} ${SETS.unit}: only these play, and only these are the answers.`}
+          </span>
         </div>
       {/if}
       {#if slug === "intervals"}
@@ -1053,6 +1113,24 @@
               disabled={answer === "listen-along" || step === "feedback"}
               onpick={choose}
             />
+          {:else if answer === "choice" && p.drill === "progression"}
+            {@const want = p.answer.split(" ")}
+            <ol class="mb-3 flex flex-wrap gap-2" aria-label="Your progression">
+              {#each want as w, i (i)}
+                {@const got = i === 0 ? "I" : slots[i - 1]}
+                {@const judged = showAnswer && step === "feedback" && i > 0 && got !== undefined}
+                <li class="slot" data-state={judged ? (got === w ? "right" : "wrong") : got ? "filled" : null}>
+                  <span class="font-display text-xl font-semibold">{got ? functionLabel(got) : "?"}</span>
+                  {#if judged}<span class="text-xs">{got === w ? "✓" : `✕ ${functionLabel(w)}`}</span>{/if}
+                </li>
+              {/each}
+            </ol>
+            <div class="grid grid-cols-4 gap-2 sm:grid-cols-8">
+              {#each p.choices as t (t)}
+                <button type="button" class="choice min-h-12 rounded-xl px-3 font-display text-lg font-semibold" disabled={step === "feedback"} onclick={() => tapChord(t)}>{functionLabel(t)}</button>
+              {/each}
+              <button type="button" class="choice min-h-12 rounded-xl px-3 text-sm" disabled={step === "feedback" || !slots.length} onclick={() => (slots = slots.slice(0, -1))}>Undo</button>
+            </div>
           {:else if answer === "choice"}
             <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {#each choiceTokens as t (t)}
@@ -1248,6 +1326,25 @@
     border-radius: 0.8rem;
     background: var(--deg);
     color: oklch(0.2 0.04 287);
+  }
+  .slot {
+    display: grid;
+    justify-items: center;
+    min-width: 3.4rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 0.8rem;
+    border: 2px dashed color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);
+  }
+  .slot[data-state="filled"] {
+    border-style: solid;
+    border-color: var(--instr);
+  }
+  .slot[data-state="right"] {
+    border-style: solid;
+    border-color: var(--success);
+  }
+  .slot[data-state="wrong"] {
+    border-color: var(--destructive);
   }
   .voice {
     background: color-mix(in oklch, var(--ws-stage-ink) 7%, transparent);

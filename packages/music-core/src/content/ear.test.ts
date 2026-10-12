@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { Score, ScoreNote } from "../types";
 import {
   cadencePrompt,
+  CHORD_FUNCTIONS,
+  chordFunctionPrompt,
   chordQualityPrompt,
+  functionChord,
   degreeLabel,
   EAR_DRILLS,
   EAR_PATH,
@@ -11,6 +14,7 @@ import {
   EAR_INTERVALS,
   melodyDictationPrompt,
   phrasesFromScore,
+  progressionPrompt,
   rankPhrases,
   repertoirePlan,
   repertoirePrompt,
@@ -163,29 +167,84 @@ describe("melody dictation", () => {
   });
 });
 
+describe("chords in a key", () => {
+  it("builds each triad of the key: root in the bass, close chord tones from middle C", () => {
+    // C major: vi is A minor, vii° is B diminished.
+    expect(functionChord(0, "I")).toEqual([48, 60, 64, 67]);
+    expect(functionChord(0, "vi")).toEqual([45, 60, 64, 69]);
+    expect(functionChord(0, "vii")).toEqual([47, 62, 65, 71]);
+    // G major: V is D major.
+    expect(functionChord(7, "V")).toEqual([50, 62, 66, 69]);
+    for (const f of CHORD_FUNCTIONS)
+      for (let k = 0; k < 12; k++) {
+        const [bass, ...upper] = functionChord(k, f.token);
+        expect(bass).toBeGreaterThanOrEqual(43);
+        expect(bass).toBeLessThan(55);
+        expect(Math.min(...upper)).toBeGreaterThanOrEqual(60);
+        expect(Math.max(...upper)).toBeLessThan(72);
+      }
+  });
+
+  it("sets the key with I IV V I, then plays the chord asked", () => {
+    for (const r of seeds(20)) {
+      const p = chordFunctionPrompt(r, { difficulty: 0.3, token: "vi" });
+      expect(p.answer).toBe("vi");
+      expect(p.keyEvents).toBe(4);
+      expect(p.playback).toHaveLength(5);
+      expect(p.playback[0].midi).toEqual(functionChord(p.keyPc, "I"));
+      expect(p.playback[4].midi).toEqual(functionChord(p.keyPc, "vi"));
+      expect(p.skillIds).toEqual(["ear.chord-functions", "ear.chord-function.vi"]);
+      expect(p.choices).toHaveLength(7);
+    }
+    expect(chordFunctionPrompt(rng(3), { difficulty: 0.3, choices: ["I", "V"] }).choices).toEqual([
+      "I",
+      "V",
+    ]);
+  });
+
+  it("starts progressions on I, uses only the chords picked, never repeats one in a row", () => {
+    for (const r of seeds(40)) {
+      const p = progressionPrompt(r, { difficulty: 0.8, choices: ["IV", "V", "vi"], token: "vi" });
+      const chords = p.answer.split(" ");
+      expect(chords).toHaveLength(4);
+      expect(chords[0]).toBe("I");
+      expect(chords[1]).toBe("vi");
+      expect(chords.every((c) => ["I", "IV", "V", "vi"].includes(c))).toBe(true);
+      for (let i = 1; i < chords.length; i++) expect(chords[i]).not.toBe(chords[i - 1]);
+      expect(p.playback.map((e) => e.midi)).toEqual(chords.map((c) => functionChord(p.keyPc, c)));
+      expect(p.skillIds[0]).toBe("ear.progressions");
+    }
+    expect(progressionPrompt(rng(1), { difficulty: 0.2 }).answer.split(" ")).toHaveLength(3);
+  });
+});
+
 describe("drill definitions and path", () => {
-  it("has 8 drills (interval comparison added to the table's 7) and an 8-step path", () => {
+  it("has 10 drills (interval comparison and the two chord drills added to the table's 7) and a 10-step path", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
         "interval-compare",
         "chord-qualities",
         "cadences",
+        "chord-functions",
+        "progressions",
         "scale-degrees",
         "melody-dictation",
         "repertoire-transfer",
         "mixed",
       ].map((s) => `/music/ear/${s}`),
     );
-    // The table's six steps plus two interval steps before the closing review, numbered 1 to 8.
-    expect(EAR_PATH.steps).toHaveLength(8);
+    // The table's six steps, two interval steps before the closing review and two chord steps after it.
+    expect(EAR_PATH.steps).toHaveLength(10);
     expect(EAR_PATH.steps.map((s) => s.id).slice(4)).toEqual([
       "chromatic-color",
       "interval-size",
       "interval-names",
       "harmony-and-interval-labels",
+      "chords-in-a-key",
+      "progressions",
     ]);
-    expect(EAR_PATH.steps.map((s) => s.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(EAR_PATH.steps.map((s) => s.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     const hrefs = EAR_PATH.steps.flatMap((s) => [s.href, ...(s.links ?? []).map((l) => l.href)]);
     expect(hrefs.every((h) => h.startsWith("/music/ear/"))).toBe(true);
     expect(EAR_PATH.steps[0].href).toBe(
