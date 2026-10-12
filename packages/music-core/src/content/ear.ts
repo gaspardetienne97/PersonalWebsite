@@ -13,6 +13,7 @@ export type EarDrillKind =
   | "cadence"
   | "chord-function"
   | "progression"
+  | "scale"
   | "scale-degree"
   | "melody-dictation"
   | "repertoire-transfer";
@@ -85,6 +86,17 @@ const CHORD_FUNCTION_DRILLS = [
     usesLabels: false,
     queueMode: "balanced",
     skillIds: ["ear.progressions"],
+  },
+  {
+    slug: "scales",
+    title: "Scales and modes",
+    description: "A scale over its tonic: major, the minors, pentatonics, blues and the modes.",
+    drill: "scale",
+    answerModes: ["choice", "listen", "listen-along"],
+    usesScaleDegreeLevel: false,
+    usesLabels: false,
+    queueMode: "balanced",
+    skillIds: ["ear.scales"],
   },
 ] as const;
 type DrillRow = (typeof EAR_TRAINING.drills)[number];
@@ -458,6 +470,74 @@ export function cadencePrompt(
 }
 
 // ---------------------------------------------------------------------------
+// Scales and modes
+
+/** The scales the ear drill asks, in the order they are offered (major and minor first, Locrian last). */
+export const EAR_SCALES = [
+  { token: "major", name: "Major", short: "Major" },
+  { token: "natural-minor", name: "Natural minor", short: "Minor" },
+  { token: "harmonic-minor", name: "Harmonic minor", short: "Harm. min" },
+  { token: "major-pentatonic", name: "Major pentatonic", short: "Maj pent" },
+  { token: "minor-pentatonic", name: "Minor pentatonic", short: "Min pent" },
+  { token: "blues", name: "Blues", short: "Blues" },
+  { token: "melodic-minor", name: "Melodic minor", short: "Mel. min" },
+  { token: "mixolydian", name: "Mixolydian", short: "Mixo" },
+  { token: "dorian", name: "Dorian", short: "Dorian" },
+  { token: "lydian", name: "Lydian", short: "Lydian" },
+  { token: "phrygian", name: "Phrygian", short: "Phrygian" },
+  { token: "locrian", name: "Locrian", short: "Locrian" },
+] as const;
+export type ScaleDirection = "ascending" | "both" | "descending";
+const SCALE_STEP = 0.3;
+
+/** A low tonic held under the scale, then the scale itself, a note every 0.3 s. */
+export function scalePlayback(
+  tonic: number,
+  token: string,
+  direction: ScaleDirection,
+): PlaybackEvent[] {
+  const up = (
+    SCALE_DATA.semitonesByKind[token as keyof typeof SCALE_DATA.semitonesByKind] ?? MAJOR
+  ).map((s) => tonic + s);
+  const run =
+    direction === "ascending"
+      ? up
+      : direction === "descending"
+        ? [...up].reverse()
+        : [...up, ...up.slice(0, -1).reverse()];
+  return [
+    note(tonic - 12, 0, run.length * SCALE_STEP + 0.4),
+    ...run.map((m, i) => note(m, 0.2 + i * SCALE_STEP, SCALE_STEP - 0.03)),
+  ];
+}
+
+/** Up only below difficulty 0.5, up and down below 0.8, then any direction, unless `direction` fixes it. */
+export function scalePrompt(
+  rand: Rand,
+  opts: { difficulty: number; token?: string; choices?: string[]; direction?: ScaleDirection },
+): EarPrompt & { direction: ScaleDirection } {
+  const scale = EAR_SCALES.find((x) => x.token === opts.token) ?? pick(rand, EAR_SCALES);
+  const tonic = earRoot(rand);
+  const direction: ScaleDirection =
+    opts.direction ??
+    (opts.difficulty < 0.5
+      ? "ascending"
+      : opts.difficulty < 0.8
+        ? "both"
+        : pick(rand, ["ascending", "both", "descending"] as const));
+  return {
+    id: `scale-${scale.token}-${direction}-${tonic}`,
+    drill: "scale",
+    skillIds: ["ear.scales", `ear.scale.${scale.token}`],
+    playback: scalePlayback(tonic, scale.token, direction),
+    answer: scale.token,
+    choices: opts.choices ?? EAR_SCALES.map((x) => x.token),
+    difficulty: opts.difficulty,
+    direction,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Chords in a key
 
 /**
@@ -706,7 +786,7 @@ export function melodyDictationPrompt(
   };
 }
 
-/** The mixed review draws one of the six recognition drills. */
+/** The mixed review draws one of the seven recognition drills. */
 export function mixedPrompt(rand: Rand, opts: { difficulty: number; level: string }): EarPrompt {
   const kind = pick(rand, [
     "interval",
@@ -715,8 +795,10 @@ export function mixedPrompt(rand: Rand, opts: { difficulty: number; level: strin
     "cadence",
     "chord-function",
     "progression",
+    "scale",
   ] as const);
   if (kind === "interval") return intervalPrompt(rand, opts);
+  if (kind === "scale") return scalePrompt(rand, opts);
   if (kind === "chord-function") return chordFunctionPrompt(rand, opts);
   if (kind === "progression") return progressionPrompt(rand, opts);
   if (kind === "chord-quality") return chordQualityPrompt(rand, opts);

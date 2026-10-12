@@ -18,6 +18,9 @@ import {
   intervalPrompt,
   melodyDictationPrompt,
   progressionPrompt,
+  EAR_SCALES,
+  scalePrompt,
+  type ScaleDirection,
   type CompareGap,
   SCALE_DEGREE_LEVELS,
   SCALE_DEGREES,
@@ -47,6 +50,7 @@ export type EarKind =
   | "cadence"
   | "chord-function"
   | "progression"
+  | "scale"
   | "scale-degree"
   | "melody-dictation";
 export type LabelMode = "degree" | "solfege";
@@ -87,6 +91,8 @@ export interface Focus {
   /** Chords in a key and progressions: a minor key, seventh chords. */
   minor?: boolean;
   sevenths?: boolean;
+  /** Scales: which way they run (by difficulty when missing). */
+  scaleDirection?: ScaleDirection;
 }
 
 /** How much more often a target is asked: 1 when always right, up to 4 when always wrong; 2 when untried. */
@@ -99,6 +105,8 @@ const focusQualities = (f?: Focus) =>
   f?.tokens?.length ? QUALITIES.filter((q) => f.tokens!.includes(q.token)) : QUALITIES;
 const focusCadences = (f?: Focus) =>
   f?.tokens?.length ? CADENCES.filter((c) => f.tokens!.includes(c.token)) : CADENCES;
+const focusScales = (f?: Focus) =>
+  f?.tokens?.length ? EAR_SCALES.filter((x) => f.tokens!.includes(x.token)) : EAR_SCALES;
 const focusFunctions = (f?: Focus) =>
   f?.tokens?.length ? CHORD_FUNCTIONS.filter((c) => f.tokens!.includes(c.token)) : CHORD_FUNCTIONS;
 /** The picked chords as prompt tokens, in the focus's key and chord size ("IV" becomes "m:IV7"). */
@@ -131,6 +139,12 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
         kind,
         token,
         skillId: functionSkill(token),
+      }));
+    case "scale":
+      return focusScales(focus).map((x) => ({
+        kind,
+        token: x.token,
+        skillId: `ear.scale.${x.token}`,
       }));
     case "progression": {
       // By the chord after the opening I; with only I picked, I it is.
@@ -204,6 +218,15 @@ export function promptFor(
         difficulty,
         token: t.token,
         choices: focus?.tokens && picked.length >= 2 ? picked : undefined,
+      });
+    }
+    case "scale": {
+      const picked = focusScales(focus);
+      return scalePrompt(rand, {
+        difficulty,
+        token: t.token,
+        direction: focus?.scaleDirection,
+        choices: focus?.tokens && picked.length >= 2 ? picked.map((x) => x.token) : undefined,
       });
     }
     case "progression":
@@ -349,6 +372,7 @@ export const KIND_LABEL: Record<EarKind, string> = {
   "chord-quality": "Chord qualities",
   cadence: "Cadences",
   "chord-function": "Chords in a key",
+  scale: "Scales and modes",
   progression: "Progressions",
   "scale-degree": "Scale degrees",
   "melody-dictation": "Melody dictation",
@@ -372,6 +396,7 @@ export function tokenLabel(
     return c ? `${c.label} (${c.romanProgression.join(" to ")})` : token;
   }
   if (kind === "chord-function") return functionLabel(token);
+  if (kind === "scale") return EAR_SCALES.find((x) => x.token === token)?.name ?? token;
   if (kind === "progression") return token.split(" ").map(functionLabel).join(", ");
   if (kind === "scale-degree" && SCALE_DEGREES.some((d) => d.label === token))
     return degreeLabel(token, labels);

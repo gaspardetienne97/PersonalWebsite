@@ -103,6 +103,7 @@ test.describe("ear training", () => {
       ["cadences", "Cadences"],
       ["chord-functions", "Chords in a key"],
       ["progressions", "Progression dictation"],
+      ["scales", "Scales and modes"],
       ["scale-degrees", "Scale degrees"],
       ["melody-dictation", "Melody dictation"],
       ["repertoire-transfer", "Repertoire transfer"],
@@ -382,6 +383,40 @@ test.describe("ear training", () => {
     await shots(page, "ear-progression-mistake");
   });
 
+  test("scales and modes: major and minor first, a wrong scale heard beside the right one", async ({
+    page,
+  }) => {
+    await page.goto("/music/ear/scales?answer=choice");
+    await page.getByRole("button", { name: "Change setup" }).click();
+    const sets = page.getByRole("group", { name: "Scale sets" });
+    await expect(sets.getByRole("button", { name: "Major and minor" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    await expect(card).toContainText(/Tonic \S+, held underneath/);
+    const scale = (await card.getAttribute("data-answer"))!;
+    expect(["major", "natural-minor"]).toContain(scale);
+    await expect(page.locator("button.choice")).toHaveCount(2);
+    const wrong = scale === "major" ? "Natural minor" : "Major";
+    await page.locator("button.choice", { hasText: new RegExp(`^\\s*${wrong}\\s*$`) }).click();
+    await waitStep(page, "feedback");
+    await expect(card.getByText(/^Played: (Major|Natural minor)$/)).toBeVisible();
+    await expect(card.getByText(`You chose: ${wrong}`)).toBeVisible();
+    await shots(page, "ear-scales-mistake");
+
+    // Another set narrows the answers to it.
+    await page.goto(
+      "/music/ear/scales?answer=choice&scales=major-pentatonic,minor-pentatonic,blues",
+    );
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.locator("button.choice")).toHaveCount(3);
+    expect(["major-pentatonic", "minor-pentatonic", "blues"]).toContain(
+      await prompt(page).getAttribute("data-answer"),
+    );
+  });
+
   test("scale degrees: an easy level offers the next one", async ({ page }) => {
     await seedRecent(page, "scale-degrees", "level:anchor", 18);
     await page.goto("/music/ear/scale-degrees?answer=choice&level=anchor");
@@ -504,7 +539,7 @@ test.describe("ear training", () => {
 
     // The mixed review draws from all six drills.
     await page.goto("/music/ear/mixed?answer=choice");
-    await expect(page.getByText("Setup:").locator("..")).toContainText("all six drills");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("all seven drills");
   });
 
   test("scale degrees by voice through the synthetic mic", async ({ page }) => {

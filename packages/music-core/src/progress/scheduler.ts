@@ -92,6 +92,7 @@ export const EAR_DRILLS = [
   "cadence",
   "chord-function",
   "progression",
+  "scale",
 ] as const;
 
 /**

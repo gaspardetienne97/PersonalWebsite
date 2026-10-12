@@ -19,6 +19,7 @@ import {
   phrasesFromScore,
   progressionPrompt,
   rankPhrases,
+  scalePrompt,
   repertoirePlan,
   repertoirePrompt,
   SCALE_DEGREE_LEVELS,
@@ -170,6 +171,24 @@ describe("melody dictation", () => {
   });
 });
 
+describe("scales and modes", () => {
+  it("plays the scale over a low tonic, up, up and down, or down", () => {
+    const up = scalePrompt(rng(1), { difficulty: 0.2, token: "dorian" });
+    const tonic = up.playback[1].midi[0];
+    expect(up.direction).toBe("ascending");
+    expect(up.playback[0].midi).toEqual([tonic - 12]);
+    expect(up.playback.slice(1).map((e) => e.midi[0] - tonic)).toEqual([0, 2, 3, 5, 7, 9, 10, 12]);
+    expect(up.playback[0].duration).toBeGreaterThan(up.playback.at(-1)!.time);
+    expect(up.skillIds).toEqual(["ear.scales", "ear.scale.dorian"]);
+    const both = scalePrompt(rng(1), { difficulty: 0.6, token: "major-pentatonic" });
+    expect(both.playback.slice(1).map((e) => e.midi[0] - both.playback[1].midi[0])).toEqual([
+      0, 2, 4, 7, 9, 12, 9, 7, 4, 2, 0,
+    ]);
+    const down = scalePrompt(rng(1), { difficulty: 0.2, token: "blues", direction: "descending" });
+    expect(down.playback[1].midi[0] - down.playback.at(-1)!.midi[0]).toBe(12);
+  });
+});
+
 describe("chords in a key", () => {
   it("builds each triad of the key: root in the bass, close chord tones from middle C", () => {
     // C major: vi is A minor, vii° is B diminished.
@@ -266,7 +285,7 @@ describe("chords in a key", () => {
 });
 
 describe("drill definitions and path", () => {
-  it("has 10 drills (interval comparison and the two chord drills added to the table's 7) and a 10-step path", () => {
+  it("has 11 drills (interval comparison, two chord drills and scales added to the table's 7) and a 10-step path", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
@@ -275,6 +294,7 @@ describe("drill definitions and path", () => {
         "cadences",
         "chord-functions",
         "progressions",
+        "scales",
         "scale-degrees",
         "melody-dictation",
         "repertoire-transfer",

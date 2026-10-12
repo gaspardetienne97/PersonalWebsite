@@ -551,7 +551,44 @@ APP_SKILLS.push(
     version: 1,
   },
 );
+const SCALE_NAMES: [string, string][] = [
+  ["major", "Major scale by ear"],
+  ["natural-minor", "Natural minor scale by ear"],
+  ["harmonic-minor", "Harmonic minor scale by ear"],
+  ["major-pentatonic", "Major pentatonic by ear"],
+  ["minor-pentatonic", "Minor pentatonic by ear"],
+  ["blues", "Blues scale by ear"],
+  ["melodic-minor", "Melodic minor scale by ear"],
+  ["mixolydian", "Mixolydian by ear"],
+  ["dorian", "Dorian by ear"],
+  ["lydian", "Lydian by ear"],
+  ["phrygian", "Phrygian by ear"],
+  ["locrian", "Locrian by ear"],
+];
+APP_SKILLS.push(
+  {
+    id: "ear.scales",
+    name: "Scales and modes by ear",
+    capability: "harmony",
+    level: "early-intermediate",
+    tags: ["ear", "scale"],
+    version: 1,
+  },
+  ...SCALE_NAMES.map(([t, name]) => ({
+    id: `ear.scale.${t}`,
+    name,
+    capability: "harmony" as const,
+    level: "early-intermediate" as const,
+    tags: ["ear", "scale"],
+    version: 1,
+  })),
+);
 const APP_RELATIONSHIPS: SkillRelationship[] = [
+  ...SCALE_NAMES.map(([t]) => ({
+    from: "ear.scales",
+    to: `ear.scale.${t}`,
+    kind: "component" as const,
+  })),
   ...FUNCTION_NAMES.map(([t]) => ({
     from: "ear.chord-functions",
     to: `ear.chord-function.${t}`,

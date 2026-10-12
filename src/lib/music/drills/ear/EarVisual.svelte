@@ -48,7 +48,7 @@
 
   const tonic = $derived(events[0]?.midi[0] ?? 60);
   const degreeOf = (m: number) => SCALE_DEGREES[pc(m - tonic)].label;
-  const usesDegrees = $derived(["scale-degree", "melody-dictation", "repertoire-transfer"].includes(prompt.drill));
+  const usesDegrees = $derived(["scale-degree", "melody-dictation", "repertoire-transfer", "scale"].includes(prompt.drill));
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
   const contour = $derived(
