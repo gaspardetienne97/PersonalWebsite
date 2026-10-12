@@ -26,6 +26,8 @@ import {
   SCALE_DEGREES,
   scaleContext,
   scaleDegreePrompt,
+  inversionPrompt,
+  inversionVoicing,
 } from "./ear";
 import { rng } from "./random";
 
@@ -171,6 +173,27 @@ describe("melody dictation", () => {
   });
 });
 
+describe("inversions", () => {
+  it("puts the asked chord tone in the bass, doubled an octave down", () => {
+    expect(inversionVoicing(60, "major", 0)).toEqual([48, 60, 64, 67]);
+    expect(inversionVoicing(60, "major", 1)).toEqual([52, 64, 67, 72]);
+    expect(inversionVoicing(60, "minor", 2)).toEqual([55, 67, 72, 75]);
+    expect(inversionVoicing(60, "dominant-7", 3)).toEqual([58, 70, 72, 76, 79]);
+  });
+
+  it("spells the chord out from the bass at first, then plays it together", () => {
+    const easy = inversionPrompt(rng(1), { difficulty: 0.2, token: "first" });
+    expect(easy.playback).toHaveLength(5);
+    expect(easy.playback.at(-1)!.midi).toEqual(easy.expectedMidi);
+    expect(easy.choices).toEqual(["root", "first", "second"]);
+    expect(easy.skillIds).toEqual(["ear.inversions", "ear.inversion.first"]);
+    const hard = inversionPrompt(rng(1), { difficulty: 0.9, token: "7-third" });
+    expect(hard.playback).toHaveLength(1);
+    expect(hard.choices).toHaveLength(4);
+    expect(hard.skillIds).toContain("ear.inversion.sevenths");
+  });
+});
+
 describe("scales and modes", () => {
   it("plays the scale over a low tonic, up, up and down, or down", () => {
     const up = scalePrompt(rng(1), { difficulty: 0.2, token: "dorian" });
@@ -285,7 +308,7 @@ describe("chords in a key", () => {
 });
 
 describe("drill definitions and path", () => {
-  it("has 11 drills (interval comparison, two chord drills and scales added to the table's 7) and a 10-step path", () => {
+  it("has 12 drills (interval comparison, two chord drills, scales and inversions added to the table's 7) and a 10-step path", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
@@ -295,6 +318,7 @@ describe("drill definitions and path", () => {
         "chord-functions",
         "progressions",
         "scales",
+        "inversions",
         "scale-degrees",
         "melody-dictation",
         "repertoire-transfer",

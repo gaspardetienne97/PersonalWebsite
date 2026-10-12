@@ -583,7 +583,44 @@ APP_SKILLS.push(
     version: 1,
   })),
 );
+const POSITION_NAMES: [string, string][] = [
+  ["root", "Root position by ear"],
+  ["first", "First inversion by ear"],
+  ["second", "Second inversion by ear"],
+  ["third", "Third inversion by ear"],
+];
+APP_SKILLS.push(
+  {
+    id: "ear.inversions",
+    name: "Inversions by ear",
+    capability: "harmony",
+    level: "intermediate",
+    tags: ["ear", "inversion"],
+    version: 1,
+  },
+  ...POSITION_NAMES.map(([t, name]) => ({
+    id: `ear.inversion.${t}`,
+    name,
+    capability: "harmony" as const,
+    level: "intermediate" as const,
+    tags: ["ear", "inversion"],
+    version: 1,
+  })),
+  {
+    id: "ear.inversion.sevenths",
+    name: "Seventh-chord inversions by ear",
+    capability: "harmony",
+    level: "advanced",
+    tags: ["ear", "inversion", "seventh"],
+    version: 1,
+  },
+);
 const APP_RELATIONSHIPS: SkillRelationship[] = [
+  ...POSITION_NAMES.map(([t]) => ({
+    from: "ear.inversions",
+    to: `ear.inversion.${t}`,
+    kind: "component" as const,
+  })),
   ...SCALE_NAMES.map(([t]) => ({
     from: "ear.scales",
     to: `ear.scale.${t}`,

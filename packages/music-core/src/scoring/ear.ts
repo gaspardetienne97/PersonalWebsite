@@ -62,6 +62,28 @@ export function classifyChord(midis: readonly number[]): { token: string; rootPc
   return null;
 }
 
+/** The chord's quality, root and which chord tone is in the bass (0 root, 1 third, 2 fifth, 3 seventh). */
+export function inversionOf(
+  midis: readonly number[],
+): { token: string; rootPc: number; position: number } | null {
+  const found = classifyChord(midis);
+  if (!found || !midis.length) return null;
+  const q = data.chordQualities.find((x) => x.token === found.token)!;
+  const bass = pc(Math.min(...midis) - found.rootPc);
+  const position = q.intervals.findIndex((i) => pc(i) === bass);
+  return position < 0 ? null : { ...found, position };
+}
+
+/** A chord played back in a given inversion: the same notes in any octave, the same note in the bass. */
+export function gradeInversionPlayback(
+  expectedMidi: readonly number[],
+  played: readonly number[],
+): Graded {
+  const g = gradeChordPlayback(expectedMidi, played);
+  const bassRight = played.length > 0 && pc(Math.min(...played)) === pc(Math.min(...expectedMidi));
+  return { ...g, score: g.correct && bassRight ? 1 : 0, correct: g.correct && bassRight };
+}
+
 /** Played chord quality: binary on pitch-class shape, inversion-agnostic, any root. */
 export function gradeChordQualityPlayback(
   expectedToken: string,

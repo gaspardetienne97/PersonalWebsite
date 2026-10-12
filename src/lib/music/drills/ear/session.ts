@@ -19,6 +19,8 @@ import {
   melodyDictationPrompt,
   progressionPrompt,
   EAR_SCALES,
+  EAR_INVERSIONS,
+  inversionPrompt,
   scalePrompt,
   type ScaleDirection,
   type CompareGap,
@@ -51,6 +53,7 @@ export type EarKind =
   | "chord-function"
   | "progression"
   | "scale"
+  | "inversion"
   | "scale-degree"
   | "melody-dictation";
 export type LabelMode = "degree" | "solfege";
@@ -107,6 +110,9 @@ const focusCadences = (f?: Focus) =>
   f?.tokens?.length ? CADENCES.filter((c) => f.tokens!.includes(c.token)) : CADENCES;
 const focusScales = (f?: Focus) =>
   f?.tokens?.length ? EAR_SCALES.filter((x) => f.tokens!.includes(x.token)) : EAR_SCALES;
+const focusInversions = (f?: Focus) =>
+  f?.tokens?.length ? EAR_INVERSIONS.filter((x) => f.tokens!.includes(x.token)) : EAR_INVERSIONS;
+const POSITION_SKILL = ["root", "first", "second", "third"];
 const focusFunctions = (f?: Focus) =>
   f?.tokens?.length ? CHORD_FUNCTIONS.filter((c) => f.tokens!.includes(c.token)) : CHORD_FUNCTIONS;
 /** The picked chords as prompt tokens, in the focus's key and chord size ("IV" becomes "m:IV7"). */
@@ -145,6 +151,12 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
         kind,
         token: x.token,
         skillId: `ear.scale.${x.token}`,
+      }));
+    case "inversion":
+      return focusInversions(focus).map((x) => ({
+        kind,
+        token: x.token,
+        skillId: `ear.inversion.${POSITION_SKILL[x.position]}`,
       }));
     case "progression": {
       // By the chord after the opening I; with only I picked, I it is.
@@ -227,6 +239,16 @@ export function promptFor(
         token: t.token,
         direction: focus?.scaleDirection,
         choices: focus?.tokens && picked.length >= 2 ? picked.map((x) => x.token) : undefined,
+      });
+    }
+    case "inversion": {
+      // Answers of the same size only: a triad's buttons are triad positions.
+      const seventh = EAR_INVERSIONS.find((x) => x.token === t.token)?.seventh;
+      const same = focusInversions(focus).filter((x) => x.seventh === seventh);
+      return inversionPrompt(rand, {
+        difficulty,
+        token: t.token,
+        choices: focus?.tokens && same.length >= 2 ? same.map((x) => x.token) : undefined,
       });
     }
     case "progression":
@@ -373,6 +395,7 @@ export const KIND_LABEL: Record<EarKind, string> = {
   cadence: "Cadences",
   "chord-function": "Chords in a key",
   scale: "Scales and modes",
+  inversion: "Inversions",
   progression: "Progressions",
   "scale-degree": "Scale degrees",
   "melody-dictation": "Melody dictation",
@@ -396,6 +419,7 @@ export function tokenLabel(
     return c ? `${c.label} (${c.romanProgression.join(" to ")})` : token;
   }
   if (kind === "chord-function") return functionLabel(token);
+  if (kind === "inversion") return EAR_INVERSIONS.find((x) => x.token === token)?.name ?? token;
   if (kind === "scale") return EAR_SCALES.find((x) => x.token === token)?.name ?? token;
   if (kind === "progression") return token.split(" ").map(functionLabel).join(", ");
   if (kind === "scale-degree" && SCALE_DEGREES.some((d) => d.label === token))

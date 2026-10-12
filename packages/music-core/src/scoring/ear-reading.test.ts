@@ -3,6 +3,8 @@ import {
   classifyChord,
   gradeChoice,
   gradeChordPlayback,
+  gradeInversionPlayback,
+  inversionOf,
   gradeChordQualityPlayback,
   gradeIntervalPlayback,
   gradeMelodyDictation,
@@ -26,6 +28,15 @@ describe("ear", () => {
     expect(gradeChordPlayback(fMajor, [53, 57, 60, 72]).correct).toBe(true);
     expect(gradeChordPlayback(fMajor, [53, 57]).metrics[0]).toMatchObject({ missing: [0] });
     expect(gradeChordPlayback(fMajor, [53, 57, 60, 64]).metrics[0]).toMatchObject({ extra: [4] });
+  });
+
+  it("finds the inversion of any voicing, and grades a played one by its bass", () => {
+    expect(inversionOf([52, 60, 67])).toEqual({ token: "major", rootPc: 0, position: 1 });
+    expect(inversionOf([58, 64, 67, 72])).toMatchObject({ token: "dominant-7", position: 3 });
+    expect(inversionOf([60, 61])).toBeNull();
+    const firstInv = [52, 64, 67, 72];
+    expect(gradeInversionPlayback(firstInv, [40, 60, 67]).correct).toBe(true);
+    expect(gradeInversionPlayback(firstInv, [48, 64, 67]).correct).toBe(false);
   });
 
   it("sequences get partial credit per slot", () => {

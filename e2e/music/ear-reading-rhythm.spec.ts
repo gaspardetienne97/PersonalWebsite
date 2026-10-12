@@ -104,6 +104,7 @@ test.describe("ear training", () => {
       ["chord-functions", "Chords in a key"],
       ["progressions", "Progression dictation"],
       ["scales", "Scales and modes"],
+      ["inversions", "Inversions"],
       ["scale-degrees", "Scale degrees"],
       ["melody-dictation", "Melody dictation"],
       ["repertoire-transfer", "Repertoire transfer"],
@@ -417,6 +418,37 @@ test.describe("ear training", () => {
     );
   });
 
+  test("inversions: root and first to start, the chosen bass shown beside the right one, and by play-back", async ({
+    page,
+  }) => {
+    await page.goto("/music/ear/inversions?answer=choice");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    const inv = (await card.getAttribute("data-answer"))!;
+    expect(["root", "first"]).toContain(inv);
+    await expect(page.locator("button.choice")).toHaveCount(2);
+    const wrong = inv === "root" ? "First inversion" : "Root position";
+    await page.locator("button.choice", { hasText: new RegExp(`^\\s*${wrong}\\s*$`) }).click();
+    await waitStep(page, "feedback");
+    const captions = card.locator("figure.staff-card figcaption");
+    await expect(captions.nth(0)).toContainText(
+      new RegExp(
+        `^Played: .*${inv === "root" ? "root position" : "first inversion"}: \\S+ in the bass`,
+      ),
+    );
+    await expect(captions.nth(1)).toContainText(new RegExp(`^You chose: .*${wrong.toLowerCase()}`));
+    await shots(page, "ear-inversion-mistake");
+
+    await installFakeMidi(page, [PORTS.keys]);
+    await enableMidi(page, "/music/ear/inversions?answer=play-back");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await waitStep(page, "answer");
+    const notes = (await card.getAttribute("data-expected"))!.split(",").map(Number);
+    for (const m of notes.slice(1)) await midiNote(page, PORTS.keys.id, m);
+    await waitStep(page, "feedback");
+    await expect(card).toContainText("Right:");
+  });
+
   test("scale degrees: an easy level offers the next one", async ({ page }) => {
     await seedRecent(page, "scale-degrees", "level:anchor", 18);
     await page.goto("/music/ear/scale-degrees?answer=choice&level=anchor");
@@ -539,7 +571,7 @@ test.describe("ear training", () => {
 
     // The mixed review draws from all six drills.
     await page.goto("/music/ear/mixed?answer=choice");
-    await expect(page.getByText("Setup:").locator("..")).toContainText("all seven drills");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("all eight drills");
   });
 
   test("scale degrees by voice through the synthetic mic", async ({ page }) => {

@@ -14,6 +14,7 @@ export type EarDrillKind =
   | "chord-function"
   | "progression"
   | "scale"
+  | "inversion"
   | "scale-degree"
   | "melody-dictation"
   | "repertoire-transfer";
@@ -97,6 +98,17 @@ const CHORD_FUNCTION_DRILLS = [
     usesLabels: false,
     queueMode: "balanced",
     skillIds: ["ear.scales"],
+  },
+  {
+    slug: "inversions",
+    title: "Inversions",
+    description: "A chord with its root, third, fifth or seventh in the bass: which inversion?",
+    drill: "inversion",
+    answerModes: ["choice", "play-back", "listen", "listen-along"],
+    usesScaleDegreeLevel: false,
+    usesLabels: false,
+    queueMode: "balanced",
+    skillIds: ["ear.inversions"],
   },
 ] as const;
 type DrillRow = (typeof EAR_TRAINING.drills)[number];
@@ -538,6 +550,93 @@ export function scalePrompt(
 }
 
 // ---------------------------------------------------------------------------
+// Inversions
+
+/** Triad positions, then seventh-chord positions ("7-" tokens), in the order they are offered. */
+export const EAR_INVERSIONS = [
+  { token: "root", name: "Root position", short: "Root", position: 0, seventh: false },
+  { token: "first", name: "First inversion", short: "1st", position: 1, seventh: false },
+  { token: "second", name: "Second inversion", short: "2nd", position: 2, seventh: false },
+  { token: "7-root", name: "Seventh, root position", short: "7 root", position: 0, seventh: true },
+  {
+    token: "7-first",
+    name: "Seventh, first inversion",
+    short: "7 1st",
+    position: 1,
+    seventh: true,
+  },
+  {
+    token: "7-second",
+    name: "Seventh, second inversion",
+    short: "7 2nd",
+    position: 2,
+    seventh: true,
+  },
+  {
+    token: "7-third",
+    name: "Seventh, third inversion",
+    short: "7 3rd",
+    position: 3,
+    seventh: true,
+  },
+] as const;
+const POSITION_SKILL = ["root", "first", "second", "third"];
+
+/**
+ * The chord's tones from `root`, rotated so the asked tone is lowest, close
+ * together, with that bass doubled an octave below. Augmented and diminished
+ * sevenths are left out: their inversions sound alike.
+ */
+export function inversionVoicing(root: number, quality: string, position: number): number[] {
+  const q = CADENCES_AND_QUALITIES.chordQualities.find((x) => x.token === quality)!;
+  const tones = q.intervals.map((i) => root + i);
+  const rotated = [...tones.slice(position), ...tones.slice(0, position).map((m) => m + 12)];
+  return [rotated[0] - 12, ...rotated];
+}
+
+/**
+ * Triads are major or minor below difficulty 0.5, then diminished too;
+ * sevenths are dominant below 0.6, then major, minor and half-diminished
+ * too. Below 0.4 the chord is spelled out from the bass up before it sounds
+ * together.
+ */
+export function inversionPrompt(
+  rand: Rand,
+  opts: { difficulty: number; token?: string; choices?: string[] },
+): EarPrompt {
+  const inv =
+    EAR_INVERSIONS.find((x) => x.token === opts.token) ?? pick(rand, EAR_INVERSIONS.slice(0, 3));
+  const qualities = inv.seventh
+    ? opts.difficulty < 0.6
+      ? ["dominant-7"]
+      : ["dominant-7", "major-7", "minor-7", "half-diminished-7"]
+    : opts.difficulty < 0.5
+      ? ["major", "minor"]
+      : ["major", "minor", "diminished"];
+  const quality = pick(rand, qualities);
+  const root = earRoot(rand);
+  const midi = inversionVoicing(root, quality, inv.position);
+  const arpeggio = opts.difficulty < 0.4;
+  const spread = midi.map((m, i) => note(m, i * 0.22, 0.2));
+  const blockAt = arpeggio ? midi.length * 0.22 + 0.2 : 0;
+  return {
+    id: `inversion-${inv.token}-${quality}-${root}`,
+    drill: "inversion",
+    skillIds: [
+      "ear.inversions",
+      `ear.inversion.${POSITION_SKILL[inv.position]}`,
+      ...(inv.seventh ? ["ear.inversion.sevenths"] : []),
+    ],
+    playback: [...(arpeggio ? spread : []), note(midi, blockAt, 1.2)],
+    answer: inv.token,
+    choices:
+      opts.choices ?? EAR_INVERSIONS.filter((x) => x.seventh === inv.seventh).map((x) => x.token),
+    difficulty: opts.difficulty,
+    expectedMidi: midi,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Chords in a key
 
 /**
@@ -786,7 +885,7 @@ export function melodyDictationPrompt(
   };
 }
 
-/** The mixed review draws one of the seven recognition drills. */
+/** The mixed review draws one of the eight recognition drills. */
 export function mixedPrompt(rand: Rand, opts: { difficulty: number; level: string }): EarPrompt {
   const kind = pick(rand, [
     "interval",
@@ -796,8 +895,10 @@ export function mixedPrompt(rand: Rand, opts: { difficulty: number; level: strin
     "chord-function",
     "progression",
     "scale",
+    "inversion",
   ] as const);
   if (kind === "interval") return intervalPrompt(rand, opts);
+  if (kind === "inversion") return inversionPrompt(rand, opts);
   if (kind === "scale") return scalePrompt(rand, opts);
   if (kind === "chord-function") return chordFunctionPrompt(rand, opts);
   if (kind === "progression") return progressionPrompt(rand, opts);

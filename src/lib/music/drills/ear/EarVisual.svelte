@@ -9,6 +9,7 @@
   import { functionLabel, functionSymbol, parseFunction, SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
   import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
+  import { inversionOf } from "@repo/music-core/scoring/ear";
   import type { Score } from "@repo/music-core";
   import Staff from "$lib/music/notation/Staff.svelte";
   import { degreeColor } from "./degrees";
@@ -64,14 +65,16 @@
   // gets one staff per interval.
   const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
   const CADENCES = CADENCES_AND_QUALITIES.cadences;
-  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence", "chord-function", "progression"].includes(prompt.drill));
+  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence", "chord-function", "progression", "inversion"].includes(prompt.drill));
   // Chords that only set the key are heard, not drawn.
   const groups = $derived(
     !onStaff
       ? []
       : prompt.drill === "interval-compare"
         ? [events.slice(0, events.length / 2), events.slice(events.length / 2)]
-        : [events.slice(prompt.keyEvents ?? 0)],
+        : prompt.drill === "inversion"
+          ? [events.slice(-1)] // the chord itself, not the notes spelled out before it
+          : [events.slice(prompt.keyEvents ?? 0)],
   );
   // The first chord is always the key's I (or i), root in the bass.
   const tonicPc = $derived(pc(events[0].midi[0]));
@@ -82,6 +85,15 @@
       const s = [...ms].sort((a, b) => a - b);
       const name = QUALITIES.find((q) => q.token === prompt.answer)?.label ?? prompt.answer;
       return `${name}: ${s.slice(1).map((m, i) => shortInterval(m - s[i])).join(", ")}`;
+    }
+    if (prompt.drill === "inversion") {
+      const found = inversionOf(ms);
+      if (!found) return tokenLabel(prompt.drill, prompt.answer);
+      const name = QUALITIES.find((q) => q.token === found.token)?.label ?? found.token;
+      const where = ["Root position", "First inversion", "Second inversion", "Third inversion"][found.position];
+      // Sharp names for the roots whose major chords are spelled with sharps (B major's third is D#).
+      const prefer = [2, 4, 7, 9, 11].includes(found.rootPc) ? "sharp" : "flat";
+      return `${noteName(48 + found.rootPc, "flat", false)} ${name.toLowerCase()}, ${where.toLowerCase()}: ${noteName(Math.min(...ms), prefer, false)} in the bass`;
     }
     if (prompt.drill === "chord-function" || prompt.drill === "progression") {
       const key = `${noteName(48 + tonicPc, "flat", false)} ${minorKey ? "minor" : "major"}`;

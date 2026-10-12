@@ -11,6 +11,8 @@
     CHORD_FUNCTIONS,
     EAR_DEFAULT_CONFIG,
     EAR_SCALES,
+    EAR_INVERSIONS,
+    inversionVoicing,
     scalePlayback,
     type ScaleDirection,
     EAR_DRILLS,
@@ -37,6 +39,8 @@
     classifyChord,
     gradeChoice,
     gradeChordPlayback,
+    gradeInversionPlayback,
+    inversionOf,
     gradeChordQualityPlayback,
     gradeIntervalPlayback,
     gradeMelodyDictation,
@@ -103,6 +107,7 @@
     "chord-functions": "chord-function",
     progressions: "progression",
     scales: "scale",
+    inversions: "inversion",
     "scale-degrees": "scale-degree",
     "melody-dictation": "melody-dictation",
   };
@@ -118,6 +123,7 @@
     cadences: "authentic,plagal" as string,
     functions: "I,IV,V" as string,
     scales: "major,natural-minor" as string,
+    inversions: "root,first" as string,
     scaleDirection: "auto" as string,
     keyMode: "major" as string,
     chordSize: "triads" as string,
@@ -132,7 +138,7 @@
   const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) ? (s.answer as AnswerMode) : modes[0]);
   const labels = $derived<LabelMode>(s.labels === "solfege" ? "solfege" : "degree");
   const level = $derived(SCALE_DEGREE_LEVELS.some((l) => l.id === s.level) ? s.level : "anchor");
-  const MIX = ["interval", "chord-quality", "scale-degree", "cadence", "chord-function", "progression", "scale"] as const;
+  const MIX = ["interval", "chord-quality", "scale-degree", "cadence", "chord-function", "progression", "scale", "inversion"] as const;
   const kinds = $derived.by((): EarKind[] => {
     if (slug !== "mixed") return KIND_OF[slug] ? [KIND_OF[slug]] : [];
     if (answer === "voice") return ["scale-degree"];
@@ -159,7 +165,7 @@
     "diminished-7": "dim7",
   };
   interface ItemSets {
-    key: "intervals" | "qualities" | "cadences" | "functions" | "scales";
+    key: "intervals" | "qualities" | "cadences" | "functions" | "scales" | "inversions";
     title: string;
     /** "intervals", and one of them: "interval". */
     unit: string;
@@ -264,7 +270,23 @@
                   // Major and minor first, then the colours a player meets soonest, Locrian last.
                   ladder: EAR_SCALES.map((x) => x.token),
                 }
-              : null;
+              : slug === "inversions"
+                ? {
+                    key: "inversions",
+                    title: "Inversions to practise",
+                    unit: "positions",
+                    one: "position",
+                    phrase: (t) => itemName(t).toLowerCase(),
+                    items: EAR_INVERSIONS.map((x) => ({ token: x.token, short: x.short, name: x.name })),
+                    fallback: ["root", "first", "second"],
+                    sets: [
+                      { label: "Root and first", tokens: ["root", "first"] },
+                      { label: "All three", tokens: ["root", "first", "second"] },
+                      { label: "Sevenths", tokens: ["7-root", "7-first", "7-second", "7-third"] },
+                    ],
+                    ladder: EAR_INVERSIONS.map((x) => x.token),
+                  }
+                : null;
   const itemName = (t: string): string => SETS?.items.find((i) => i.token === t)?.name ?? t;
   const picked = $derived.by(() => {
     if (!SETS) return [];
@@ -364,6 +386,11 @@
       return [...p.playback.slice(0, -1), { ...last, midi: functionChord(p.keyPc, token) }];
     }
     if (p.drill === "progression" && p.keyPc !== undefined) return functionPlayback(p.keyPc, token.split(" "));
+    if (p.drill === "inversion") {
+      const m = /^inversion-(?:7-)?\w+-(.+)-(\d+)$/.exec(p.id);
+      const inv = EAR_INVERSIONS.find((x) => x.token === token);
+      return m && inv ? [{ midi: inversionVoicing(Number(m[2]), m[1], inv.position), time: 0, duration: 1.2 }] : null;
+    }
     if (p.drill === "scale" && p.direction && p.direction !== "harmonic") return scalePlayback(p.playback[0].midi[0] + 12, token, p.direction);
     if (p.drill === "scale-degree") {
       const semis = SCALE_DEGREES.find((d) => d.label === token)?.semitones;
@@ -431,6 +458,7 @@
         ? `${key}: ${minor ? "i, iv, V, i" : "I, IV, V, I"}, then one chord`
         : `${key}, ${p.answer.split(" ").length} chords from ${one}`;
     }
+    if (p.drill === "inversion") return "One chord";
     if (p.drill === "scale") return `Tonic ${noteName(p.playback[0].midi[0], "flat", false)}, held underneath`;
     if (p.drill === "cadence") {
       const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
@@ -451,6 +479,10 @@
           ? "Which cadence ends the phrase?"
         : p.drill === "scale"
           ? "Which scale was that?"
+        : p.drill === "inversion"
+          ? isPlayback
+            ? "Play the chord back with the same note in the bass."
+            : "Which note of the chord is in the bass?"
         : p.drill === "chord-function"
           ? isPlayback
             ? "Play the last chord back, in any octave."
@@ -698,10 +730,17 @@
       const d = Math.abs(g.playedSemitones ?? 0);
       const heard = (intervalBySemitones(d)?.token ?? `${d} semitones`) + (p.direction !== "harmonic" && (g.playedSemitones ?? 0) * (p.direction === "descending" ? -1 : 1) < 0 ? " (wrong way)" : "");
       void commit(g, heard, played.slice(0, 2), notes, [{ kind: "choice", expected: p.answer, actual: heard }]);
-    } else if (p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression") {
+    } else if (p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression" || p.drill === "inversion") {
       clearTimeout(chordTimer);
       // A chord is in once all its notes are down and the hands rest a moment (or on "That's my chord").
-      const needed = p.drill === "chord-quality" ? (p.expectedMidi?.length ?? 3) : parseFunction(p.answer).seventh ? 4 : 3;
+      const needed =
+        p.drill === "chord-quality"
+          ? (p.expectedMidi?.length ?? 3)
+          : p.drill === "inversion"
+            ? new Set(p.expectedMidi!.map(pc)).size
+            : parseFunction(p.answer).seventh
+              ? 4
+              : 3;
       if (new Set(played.map(pc)).size >= needed) chordTimer = setTimeout(() => submitChord(), 350);
     } else if ((p.drill === "melody-dictation" || p.drill === "repertoire-transfer") && played.length >= (p.expectedMidi?.length ?? 3)) {
       const g = gradeMelodyDictation(p.expectedMidi!, played);
@@ -714,6 +753,14 @@
   function submitChord() {
     const p = current;
     if (!p || step !== "answer" || !played.length) return;
+    if (p.drill === "inversion") {
+      const found = inversionOf(played);
+      const seventh = new Set(played.map(pc)).size === 4;
+      const heard = found ? (EAR_INVERSIONS.find((x) => x.position === found.position && x.seventh === seventh)?.token ?? "another chord") : "another chord";
+      const notes = cap?.notes.filter((n) => n.kind === "noteon" && n.at >= openAt) ?? [];
+      void commit(gradeInversionPlayback(p.expectedMidi!, played), heard, played, notes);
+      return;
+    }
     if (p.drill === "chord-function" || p.drill === "progression") {
       const token = functionOfNotes(p.keyPc ?? 0, played, parseFunction(p.answer));
       const notes = cap?.notes.filter((n) => n.kind === "noteon" && n.at >= openAt) ?? [];
@@ -973,7 +1020,7 @@
   const summaryLine = $derived(
     [
       MODE_LABEL[answer],
-      slug === "mixed" ? (kinds.length === MIX.length ? "all seven drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
+      slug === "mixed" ? (kinds.length === MIX.length ? "all eight drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
       SETS
         ? `${SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => (chordDrill ? kindLabel(t) : (SETS.items.find((i) => i.token === t)?.short ?? t))).join(" ")}${slug === "intervals" && s.direction !== "auto" ? `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}` : ""}`
         : null,
@@ -1037,7 +1084,7 @@
         <Choice
           label="Drills in the mix"
           select
-          options={[{ value: "all", label: "All seven" }, ...MIX.map((k) => ({ value: k, label: KIND_LABEL[k] }))]}
+          options={[{ value: "all", label: "All eight" }, ...MIX.map((k) => ({ value: k, label: KIND_LABEL[k] }))]}
           value={s.drill}
           onchange={(v) => cfg.set({ drill: v })}
         />
@@ -1276,7 +1323,7 @@
             <span>You played: {played.length ? played.map((m) => noteName(m, "flat")).join(", ") : "nothing yet"}</span>
             {#if step === "answer" && played.length}
               <button type="button" class={btnStage} onclick={() => (played = [])}>Clear</button>
-              {#if p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression"}<button type="button" class={btnStage} onclick={submitChord}>That's my chord</button>{/if}
+              {#if p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression" || p.drill === "inversion"}<button type="button" class={btnStage} onclick={submitChord}>That's my chord</button>{/if}
             {/if}
             {#if p.drill === "progression" && step === "answer" && slots.length}
               <button type="button" class={btnStage} onclick={() => (slots = slots.slice(0, -1))}>Undo last chord</button>

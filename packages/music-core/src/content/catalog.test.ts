@@ -14,6 +14,8 @@ import {
   melodyDictationPrompt,
   progressionPrompt,
   EAR_SCALES,
+  EAR_INVERSIONS,
+  inversionPrompt,
   scalePrompt,
   SCALE_DEGREE_LEVELS,
   scaleDegreePrompt,
@@ -50,6 +52,7 @@ const ROUTES = [
   "/music/ear/chord-functions",
   "/music/ear/progressions",
   "/music/ear/scales",
+  "/music/ear/inversions",
   "/music/ear/scale-degrees",
   "/music/ear/melody-dictation",
   "/music/ear/repertoire-transfer",
@@ -139,6 +142,9 @@ describe("skill ids", () => {
           ...chordFunctionPrompt(r, { difficulty: 0.5, token: functionToken(f.token, k) }).skillIds,
           ...progressionPrompt(r, { difficulty: 0.9, token: functionToken(f.token, k) }).skillIds,
         ]),
+      ),
+      ...EAR_INVERSIONS.flatMap(
+        (x) => inversionPrompt(r, { difficulty: 0.9, token: x.token }).skillIds,
       ),
       ...EAR_SCALES.flatMap((x) => scalePrompt(r, { difficulty: 0.5, token: x.token }).skillIds),
       ...SCALE_DEGREE_LEVELS.flatMap((l) =>
