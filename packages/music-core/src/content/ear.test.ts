@@ -164,7 +164,7 @@ describe("melody dictation", () => {
 });
 
 describe("drill definitions and path", () => {
-  it("has 8 drills (interval comparison added to the table's 7) and the 6-step path", () => {
+  it("has 8 drills (interval comparison added to the table's 7) and an 8-step path", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
@@ -177,7 +177,15 @@ describe("drill definitions and path", () => {
         "mixed",
       ].map((s) => `/music/ear/${s}`),
     );
-    expect(EAR_PATH.steps).toHaveLength(6);
+    // The table's six steps plus two interval steps before the closing review, numbered 1 to 8.
+    expect(EAR_PATH.steps).toHaveLength(8);
+    expect(EAR_PATH.steps.map((s) => s.id).slice(4)).toEqual([
+      "chromatic-color",
+      "interval-size",
+      "interval-names",
+      "harmony-and-interval-labels",
+    ]);
+    expect(EAR_PATH.steps.map((s) => s.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     const hrefs = EAR_PATH.steps.flatMap((s) => [s.href, ...(s.links ?? []).map((l) => l.href)]);
     expect(hrefs.every((h) => h.startsWith("/music/ear/"))).toBe(true);
     expect(EAR_PATH.steps[0].href).toBe(
@@ -293,5 +301,22 @@ describe("interval choices", () => {
       expect(d.expectedMidi![0] - d.expectedMidi![1]).toBe(4);
     }
     expect(EAR_INTERVALS.map((i) => i.token)[0]).toBe("P1");
+    // A fixed first note: every prompt starts on it, whichever way it goes.
+    for (const rr of seeds(10)) {
+      const up = intervalPrompt(rr, {
+        difficulty: 0.9,
+        token: "P5",
+        root: 60,
+        direction: "ascending",
+      });
+      const down = intervalPrompt(rr, {
+        difficulty: 0.9,
+        token: "P5",
+        root: 60,
+        direction: "descending",
+      });
+      expect(up.expectedMidi).toEqual([60, 67]);
+      expect(down.expectedMidi).toEqual([60, 53]);
+    }
   });
 });

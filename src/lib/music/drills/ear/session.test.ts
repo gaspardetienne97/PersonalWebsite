@@ -9,6 +9,7 @@ import {
   retryPrompts,
   targetForSkill,
   tokenLabel,
+  weaknessWeight,
 } from "./session";
 
 const base = { mastery: {}, summaries: {}, now: Date.now(), level: "anchor" };
@@ -45,6 +46,37 @@ describe("ear sessions", () => {
     });
     expect(one.every((x) => x.answer === "P5")).toBe(true);
     expect(one[0].choices).toHaveLength(12);
+  });
+
+  it("asks every picked interval once, then the weak ones more often, never twice in a row", () => {
+    const focus = { intervals: ["M3", "P5", "P8"], accuracy: { M3: 0.2, P5: 1, P8: 1 } };
+    let weak = 0;
+    let total = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const p = buildSession({
+        ...base,
+        kinds: ["interval"],
+        mode: "balanced",
+        rand: rng(seed),
+        focus,
+      });
+      expect(new Set(p.slice(0, 3).map((x) => x.answer))).toEqual(new Set(["M3", "P5", "P8"]));
+      p.slice(3).forEach((x, i) => expect(x.answer).not.toBe(p[i + 2].answer));
+      weak += p.slice(3).filter((x) => x.answer === "M3").length;
+      total += p.length - 3;
+    }
+    // M3 weighs 3.4 against 1 and 1: well over a third of the rest.
+    expect(weak / total).toBeGreaterThan(0.45);
+    expect(weaknessWeight(undefined)).toBe(2);
+    // A fixed first note carries through.
+    const fixed = buildSession({
+      ...base,
+      kinds: ["interval"],
+      mode: "balanced",
+      rand: rng(9),
+      focus: { intervals: ["M3", "P5"], root: 62 },
+    });
+    expect(fixed.every((x) => x.expectedMidi![0] === 62)).toBe(true);
   });
 
   it("uses presented difficulty once a skill has mastery", () => {

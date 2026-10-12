@@ -3,6 +3,7 @@
 import { isMasteryEligible, type Instrument, type Modality, type ScoringEvent } from "../types";
 import pathData from "../data/learning-paths.json";
 import earData from "../data/ear-training.json";
+import { EAR_INTERVAL_STEPS } from "../content/ear";
 import jazzData from "../data/jazz.json";
 import { SKILL_GRAPH, withDescendants, type SkillGraph } from "./graph";
 
@@ -158,14 +159,21 @@ const path = (id: PathId, title: string, subtitle: string, steps: RawStep[]): Le
   id,
   title,
   subtitle,
-  steps: steps.map(normaliseStep).sort((a, b) => a.order - b.order),
+  // Sorted, then numbered 1, 2, 3 (steps the app adds sit between the table's).
+  steps: steps
+    .map(normaliseStep)
+    .sort((a, b) => a.order - b.order)
+    .map((s, i) => ({ ...s, order: i + 1 })),
 });
 
 const { guitar, piano, mpc } = pathData.paths;
 const ear = earData.learningPathDefinition;
 
 export const LEARNING_PATHS: Record<PathId, LearningPath> = {
-  ear: path("ear", ear.title, ear.subtitle, ear.steps as RawStep[]),
+  ear: path("ear", ear.title, ear.subtitle, [
+    ...(ear.steps as RawStep[]),
+    ...(EAR_INTERVAL_STEPS as RawStep[]),
+  ]),
   jazz: path(
     "jazz",
     "Jazz Path",

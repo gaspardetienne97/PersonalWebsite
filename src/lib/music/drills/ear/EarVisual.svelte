@@ -18,12 +18,15 @@
     revealed,
     active = -1,
     labels = "numbers",
+    chosen,
   }: {
     prompt: EarPrompt;
     revealed: boolean;
     /** The playback event sounding now, or -1. */
     active?: number;
     labels?: "numbers" | "solfege";
+    /** After a wrong interval: the one you chose, from the same first note, shown beside what was played. */
+    chosen?: EarPrompt["playback"];
   } = $props();
 
   // Drawn at the box's own pixel width; taller when the notes span more pitches.
@@ -73,7 +76,12 @@
   const intervals = $derived.by(() => {
     if (!onStaff) return [];
     const half = prompt.drill === "interval-compare" ? events.length / 2 : events.length;
-    const groups = prompt.drill === "interval-compare" ? [events.slice(0, half), events.slice(half)] : [events];
+    const groups =
+      prompt.drill === "interval-compare"
+        ? [events.slice(0, half), events.slice(half)]
+        : chosen
+          ? [events, chosen]
+          : [events];
     return groups.map((g) => {
       const ms = g.flatMap((e) => e.midi);
       const semis = Math.abs(ms[ms.length - 1] - ms[0]);
@@ -112,9 +120,9 @@
 {#if revealed && onStaff}
   <div class="grid gap-3 {intervals.length > 1 ? 'sm:grid-cols-2' : ''}">
     {#each intervals as iv, k (k)}
-      <figure class="staff-card flex flex-col items-center rounded-xl bg-ws-surface px-3 pb-2 pt-1 text-ws-ink" aria-label="{intervals.length > 1 ? (k === 0 ? 'First interval' : 'Second interval') : 'The interval'} on the staff">
+      <figure class="staff-card flex flex-col items-center rounded-xl bg-ws-surface px-3 pb-2 pt-1 text-ws-ink" aria-label="{intervals.length > 1 ? (chosen ? (k === 0 ? 'Played interval' : 'Interval you chose') : k === 0 ? 'First interval' : 'Second interval') : 'The interval'} on the staff">
         <div class="w-full max-w-64"><Staff score={staffScores[k]} grand maxHeight="14rem" /></div>
-        <figcaption class="text-center text-sm font-semibold">{intervals.length > 1 ? (k === 0 ? "First: " : "Second: ") : ""}{iv.name}, {iv.semis} semitone{iv.semis === 1 ? "" : "s"}</figcaption>
+        <figcaption class="text-center text-sm font-semibold">{intervals.length > 1 ? (chosen ? (k === 0 ? "Played: " : "You chose: ") : k === 0 ? "First: " : "Second: ") : ""}{iv.name}, {iv.semis} semitone{iv.semis === 1 ? "" : "s"}</figcaption>
       </figure>
     {/each}
   </div>

@@ -91,7 +91,8 @@ test.describe("ear training", () => {
   });
 
   test("intervals by choice, practice feedback, to results with a confusion", async ({ page }) => {
-    await page.goto("/music/ear/intervals?answer=choice");
+    // All twelve (a new user starts on "First steps": M3, P5, P8).
+    await page.goto("/music/ear/intervals?answer=choice&intervals=");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     for (let i = 0; i < 10; i++) {
       const card = prompt(page);
@@ -121,10 +122,14 @@ test.describe("ear training", () => {
       await page.locator("button.choice", { hasText: new RegExp(`^${pick}`) }).click();
       await waitStep(page, "feedback");
       if (i === 0) {
-        // Revealed: the interval on a staff, named underneath.
-        const staff = card.locator("figure.staff-card");
-        await expect(staff.getByRole("region", { name: /^Staff notation/ })).toBeVisible();
-        await expect(staff.locator("figcaption")).toContainText(`${names[answer]}, `);
+        // A wrong answer: what was played and what you chose, each on its staff, and heard back to back.
+        const captions = card.locator("figure.staff-card figcaption");
+        await expect(captions).toHaveCount(2);
+        await expect(captions.nth(0)).toContainText(`Played: ${names[answer]}, `);
+        await expect(captions.nth(1)).toContainText(`You chose: ${pick}, `);
+        await expect(
+          card.getByRole("button", { name: `Hear both again: ${names[answer]}, then ${pick}` }),
+        ).toBeVisible();
         await expect(card).toContainText("You answered");
         await shots(page, "ear-intervals-feedback");
       }
@@ -162,6 +167,52 @@ test.describe("ear training", () => {
     await expect(captions.nth(0)).toContainText("First: ");
     await expect(captions.nth(1)).toContainText("Second: ");
     await shots(page, "ear-interval-compare-feedback");
+  });
+
+  test("intervals: a set that feels easy offers the next interval", async ({ page }) => {
+    // 18 of the last 20 already right on the First steps set (once the app has made its database).
+    await page.goto("/music");
+    await page.waitForLoadState("networkidle");
+    await expect(async () => {
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            const open = indexedDB.open("woodshed");
+            open.onerror = () => reject(open.error);
+            open.onsuccess = () => {
+              try {
+                const tx = open.result.transaction("settings", "readwrite");
+                tx.objectStore("settings").put({
+                  id: "music.ear-intervals.recent",
+                  value: { set: "M3,P5,P8", results: [...Array(18).fill(true), false, false] },
+                });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+              } catch (e) {
+                reject(e);
+              } finally {
+                open.result.close();
+              }
+            };
+          }),
+      );
+    }).toPass({ timeout: 10_000 });
+    await page.goto("/music/ear/intervals?answer=choice&intervals=M3,P5,P8&direction=ascending");
+    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    for (let i = 0; i < 10; i++) {
+      const card = prompt(page);
+      await expect(card).toHaveAttribute("aria-label", `Question ${i + 1}`);
+      const answer = (await card.getAttribute("data-answer"))!;
+      const name = { M3: "Major 3rd", P5: "Perfect 5th", P8: "Octave" }[answer]!;
+      await page.locator("button.choice", { hasText: new RegExp(`^${name}`) }).click();
+    }
+    const offer = page.getByRole("region", { name: "Ready for the next interval" });
+    await expect(offer).toContainText("Ready for the perfect 4th?");
+    // Results: a row per interval, this run and the overall accuracy.
+    await expect(page.getByText(/^\d+ of \d+, \d+% overall$/).first()).toBeVisible();
+    await offer.getByRole("button", { name: "Add the perfect 4th" }).click();
+    await expect(page.getByRole("status")).toContainText("Added the perfect 4th. 4 intervals now.");
   });
 
   test("intervals: practise a few at a time, in one direction", async ({ page }) => {

@@ -73,7 +73,15 @@ export interface IntervalFocus {
   /** Interval tokens to ask (P1 to P8); empty or missing: the twelve m2 to P8. */
   intervals?: string[];
   direction?: IntervalDirection;
+  /** Fixed first note (MIDI), so only the distance changes. */
+  root?: number;
+  /** Past accuracy (0..1) per interval token: weaker intervals are asked more. */
+  accuracy?: Record<string, number>;
 }
+
+/** How much more often an interval is asked: 1 when always right, up to 4 when always wrong; 2 when untried. */
+export const weaknessWeight = (acc: number | undefined) =>
+  acc === undefined ? 2 : 1 + 3 * (1 - acc);
 
 const focusIntervals = (f?: IntervalFocus) =>
   f?.intervals?.length ? EAR_INTERVALS.filter((i) => f.intervals!.includes(i.token)) : INTERVALS;
@@ -124,6 +132,7 @@ export function promptFor(
         difficulty,
         token: t.token,
         direction: focus?.direction,
+        root: focus?.root,
         // One interval alone: every interval is a possible answer (with the unison, when it is the one).
         choices: !focus?.intervals
           ? undefined
@@ -195,6 +204,29 @@ export function buildSession(inp: SessionInput): EarPrompt[] {
     : targets.map((t) => ({ target: t, difficulty: FRESH_DIFFICULTY }));
 
   const out: EarPrompt[] = [];
+  // Intervals with a track record: every one once, then the rest drawn by weakness.
+  if (
+    inp.focus?.accuracy &&
+    inp.kinds.length === 1 &&
+    inp.kinds[0] === "interval" &&
+    items.length > 1
+  ) {
+    const acc = inp.focus.accuracy;
+    const weightOf = (it: (typeof items)[number]) => weaknessWeight(acc[it.target.token]);
+    const pickWeighted = (avoid?: string) => {
+      const pool = items.filter((it) => it.target.token !== avoid);
+      let r = inp.rand() * pool.reduce((t, it) => t + weightOf(it), 0);
+      for (const it of pool) if ((r -= weightOf(it)) <= 0) return it;
+      return pool[pool.length - 1];
+    };
+    for (const it of shuffle(items, inp.rand).slice(0, length))
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, inp.focus));
+    while (out.length < length) {
+      const it = pickWeighted(out.at(-1)?.answer);
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, inp.focus));
+    }
+    return out;
+  }
   let i = 0;
   while (out.length < length && items.length) {
     const it = items[i % items.length];

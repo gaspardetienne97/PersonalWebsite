@@ -66,17 +66,72 @@ export const EAR_DRILLS = [
 export const EAR_DEFAULT_CONFIG = EAR_TRAINING.defaultConfig;
 export const EAR_SESSION_LENGTH = 10;
 
+const intervalsHref = (set: string, direction = "ascending") =>
+  `/music/learn/ear/intervals?answer=choice&intervals=${set}&direction=${direction}`;
+
+/**
+ * Two interval steps the app adds to the verified path, before the closing
+ * review: hear interval size first, then name intervals a few at a time.
+ * Their orders fall between the table's 5 and 6; every path is renumbered.
+ */
+export const EAR_INTERVAL_STEPS: EarPathStepDef[] = [
+  {
+    id: "interval-size",
+    order: 5.5,
+    title: "Hear interval size",
+    summary:
+      "Two intervals, one after the other: which is bigger? They start far apart and end a semitone apart.",
+    detail: "Unaided comparison answers averaging 66% or higher.",
+    kind: "drill",
+    goal: "Hear how far apart two notes are before putting a name on it.",
+    practiceMode: "Interval comparison by choice, with feedback.",
+    currentSupport: "built",
+    recommendedDrill: "interval-compare",
+    // Written like the table's hrefs, so both path readers rewrite them the same way.
+    href: "/music/learn/ear/interval-compare?answer=choice",
+    modalities: ["heard"],
+    exerciseIds: ["ear.interval-compare"],
+    skillIds: ["pitch.intervals"],
+  },
+  {
+    id: "interval-names",
+    order: 5.7,
+    title: "Name intervals, a few at a time",
+    summary:
+      "Starts with the major 3rd, perfect 5th and octave going up. Add a set once these feel easy.",
+    detail:
+      "Unaided choice answers for the major 3rd, perfect 5th and octave, each averaging 66% or higher.",
+    kind: "drill",
+    goal: "Name intervals by ear, three or four at a time, instead of all twelve at once.",
+    practiceMode: "Intervals by choice, narrowed to a set, ascending first.",
+    currentSupport: "built",
+    recommendedDrill: "interval",
+    href: intervalsHref("M3,P5,P8"),
+    links: [
+      { label: "Perfect intervals", href: intervalsHref("P1,P4,P5,P8") },
+      { label: "Thirds and sixths", href: intervalsHref("m3,M3,m6,M6") },
+      { label: "All twelve, every direction", href: intervalsHref("", "auto") },
+    ],
+    modalities: ["heard"],
+    exerciseIds: ["ear.intervals"],
+    skillIds: ["pitch.interval.M3", "pitch.interval.P5", "pitch.interval.P8"],
+  },
+];
+
 const def = EAR_TRAINING.learningPathDefinition;
 export const EAR_PATH = {
   ...def,
   href: earRoute(def.href),
-  steps: def.steps.map(
-    (s): EarPathStepDef => ({
-      ...s,
-      href: earRoute(s.href),
-      links: s.links?.map((l) => ({ ...l, href: earRoute(l.href) })),
-    }),
-  ),
+  steps: [...(def.steps as EarPathStepDef[]), ...EAR_INTERVAL_STEPS]
+    .sort((a, b) => a.order - b.order)
+    .map(
+      (s, i): EarPathStepDef => ({
+        ...s,
+        order: i + 1,
+        href: earRoute(s.href),
+        links: s.links?.map((l) => ({ ...l, href: earRoute(l.href) })),
+      }),
+    ),
 };
 
 // ---------------------------------------------------------------------------
@@ -201,17 +256,26 @@ export const EAR_INTERVALS = [
  */
 export function intervalPrompt(
   rand: Rand,
-  opts: { difficulty: number; token?: string; direction?: IntervalDirection; choices?: string[] },
+  opts: {
+    difficulty: number;
+    token?: string;
+    direction?: IntervalDirection;
+    choices?: string[];
+    /** Fix the first note heard (the lower note when played together), so only the distance changes. */
+    root?: number;
+  },
 ): EarPrompt & { direction: IntervalDirection } {
   const interval =
     (opts.token && EAR_INTERVALS.find((i) => i.token === opts.token)) || pick(rand, INTERVALS);
-  const root = earRoot(rand);
+  const root = opts.root ?? earRoot(rand);
   const r = opts.difficulty < 0.4 ? 0 : rand();
   const direction: IntervalDirection =
     opts.direction ?? (r < 0.6 ? "ascending" : r < 0.9 ? "descending" : "harmonic");
   const [first, second] =
     direction === "descending"
-      ? [root + interval.semitones, root]
+      ? opts.root !== undefined
+        ? [root, root - interval.semitones]
+        : [root + interval.semitones, root]
       : [root, root + interval.semitones];
   return {
     id: `interval-${interval.token}-${direction}-${root}`,

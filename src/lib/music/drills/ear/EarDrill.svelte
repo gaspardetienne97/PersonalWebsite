@@ -44,7 +44,7 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { audio, db, mic } from "$lib/music/runtime";
+  import { audio, db, getSetting, mic, putSetting } from "$lib/music/runtime";
   import DegreeWheel from "./DegreeWheel.svelte";
   import EarVisual from "./EarVisual.svelte";
   import { degreeColor } from "./degrees";
@@ -96,8 +96,9 @@
     labels: EAR_DEFAULT_CONFIG.scaleDegreeLabelMode as string,
     drill: "all" as string,
     // Intervals drill: which intervals (comma list, empty for the twelve) and which way.
-    intervals: "" as string,
+    intervals: "M3,P5,P8" as string,
     direction: "auto" as string,
+    root: "random" as string,
   });
   const s = $derived(cfg.value);
   const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) ? (s.answer as AnswerMode) : modes[0]);
@@ -114,12 +115,30 @@
 
   // Practise a few intervals at a time instead of all twelve at once.
   const TWELVE = EAR_INTERVALS.filter((i) => i.token !== "P1").map((i) => i.token as string);
+  // Small, far-apart sets first (the way most trainers start), then wider ones.
   const INTERVAL_SETS = [
-    { label: "All twelve", tokens: TWELVE },
+    { label: "Starter", tokens: ["P5", "P8"] },
+    { label: "First steps", tokens: ["M3", "P5", "P8"] },
     { label: "Perfect", tokens: ["P1", "P4", "P5", "P8"] },
     { label: "Thirds and sixths", tokens: ["m3", "M3", "m6", "M6"] },
     { label: "Seconds and sevenths", tokens: ["m2", "M2", "m7", "M7"] },
+    { label: "Major scale", tokens: ["M2", "M3", "P4", "P5", "M6", "M7", "P8"] },
+    { label: "All twelve", tokens: TWELVE },
   ];
+  /** The order intervals are offered once a set feels easy. */
+  const LADDER = ["P8", "P5", "M3", "P4", "m3", "M6", "M2", "m7", "m6", "M7", "m2", "TT"];
+  const ROOTS = [{ value: "random", label: "Random" }, ...Array.from({ length: 24 }, (_, i) => ({ value: String(48 + i), label: noteName(48 + i, "flat") }))];
+  const intervalName = (t: string) => EAR_INTERVALS.find((i) => i.token === t)?.name ?? t;
+  /** Accuracy so far per interval, practice and check together, to ask the weak ones more. */
+  const intervalAccuracy = $derived.by(() => {
+    const all = skillSummaries(practice.stats);
+    const out: Record<string, number> = {};
+    for (const t of TWELVE) {
+      const sum = all[`pitch.interval.${t}`];
+      if (sum?.attempts) out[t] = sum.accuracy;
+    }
+    return out;
+  });
   const DIRECTIONS = [
     { value: "auto", label: "Mixed" },
     { value: "ascending", label: "Up" },
@@ -132,7 +151,12 @@
   });
   const focus = $derived(
     slug === "intervals"
-      ? { intervals: pickedIntervals, direction: s.direction === "auto" ? undefined : (s.direction as "ascending" | "descending" | "harmonic") }
+      ? {
+          intervals: pickedIntervals,
+          direction: s.direction === "auto" ? undefined : (s.direction as "ascending" | "descending" | "harmonic"),
+          root: s.root === "random" ? undefined : Number(s.root),
+          accuracy: intervalAccuracy,
+        }
       : undefined,
   );
   function toggleInterval(t: string) {
@@ -166,6 +190,25 @@
   let litDegree = $state<string | null>(null);
   /** The playback event sounding now (for the picture), or -1. */
   let sounding = $state(-1);
+  /** After a wrong interval: what was played, then what you chose from the same first note. */
+  let mistake = $state.raw<{ token: string; chosen: Prompt["playback"]; both: Prompt } | null>(null);
+  function showMistake(p: Prompt, chosenToken: string) {
+    const semis = EAR_INTERVALS.find((i) => i.token === chosenToken)?.semitones;
+    if (semis === undefined || !p.expectedMidi) return;
+    const first = p.expectedMidi[0];
+    const dir = p.direction ?? "ascending";
+    const second = dir === "descending" ? first - semis : first + semis;
+    const end = Math.max(...p.playback.map((e) => e.time + e.duration)) + 0.9;
+    const chosen =
+      dir === "harmonic"
+        ? [{ midi: [first, second], time: end, duration: 0.8 }]
+        : [
+            { midi: [first], time: end, duration: 0.55 },
+            { midi: [second], time: end + 0.65, duration: 0.55 },
+          ];
+    mistake = { token: chosenToken, chosen, both: { ...p, id: `${p.id}-vs-${chosenToken}`, playback: [...p.playback, ...chosen] } };
+    setTimeout(() => mistake && playPrompt(mistake.both), 500);
+  }
   let demo = $state<{ answer: string; kind: string } | null>(null);
   let demoPlaying = $state(false);
   const flashes = new Flashes();
@@ -399,6 +442,7 @@
     qi = i;
     played = [];
     hinted = false;
+    mistake = null;
     flashes.clear();
     step = "playing";
     openAt = Infinity;
@@ -487,6 +531,7 @@
     step = "feedback";
     clearTimeout(chordTimer);
     records[i] = { kind: p.drill, expected: p.answer, answered, correct: g.correct, scored: true };
+    if (!g.correct && p.drill === "interval" && answer === "choice" && mode === "practice") showMistake(p, answered);
     const src: InputSource | "mixed" = answer === "choice" ? "click" : answer === "voice" ? "audio" : runSource(notes);
     await run?.attempt({
       promptId: p.id,
@@ -596,10 +641,40 @@
         : mode === "check"
           ? "Test run: no feedback during the run, so it counts toward mastery."
           : "Practice run with feedback after each answer. Switch to Check to count it.",
-      rows: byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
+      rows:
+        slug === "intervals"
+          ? pickedIntervals
+              .map((t) => ({ t, here: done.filter((r) => r.expected === t) }))
+              .filter((x) => x.here.length)
+              .map(({ t, here }) => {
+                const ok = here.filter((r) => r.correct).length;
+                const all = intervalAccuracy[t];
+                return { label: intervalName(t), value: ok / here.length, text: `${ok} of ${here.length}${all !== undefined ? `, ${Math.round(all * 100)}% overall` : ""}` };
+              })
+          : byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
     status = summary.headline;
+    if (slug === "intervals" && answer === "choice" && !pocket) void checkUnlock(done);
+  }
+
+  // Once a set feels easy (about 90% of the last 20 answers), offer the next interval.
+  const RECENT_KEY = "music.ear-intervals.recent";
+  let unlockNext = $state<string | null>(null);
+  async function checkUnlock(done: AnswerRecord[]) {
+    const set = pickedIntervals.join(",");
+    const saved = await getSetting<{ set: string; results: boolean[] }>(RECENT_KEY, { set, results: [] });
+    const results = [...(saved.set === set ? saved.results : []), ...done.map((r) => r.correct)].slice(-20);
+    await putSetting(RECENT_KEY, { set, results });
+    const right = results.filter(Boolean).length;
+    unlockNext = results.length >= 20 && right / results.length >= 0.9 ? (LADDER.find((t) => !pickedIntervals.includes(t)) ?? null) : null;
+  }
+  function addNext() {
+    if (!unlockNext) return;
+    const next = [...pickedIntervals, unlockNext];
+    cfg.set({ intervals: EAR_INTERVALS.map((i) => i.token as string).filter((t) => next.includes(t)).join(",") });
+    status = `Added the ${intervalName(unlockNext).toLowerCase()}. ${next.length} intervals now.`;
+    unlockNext = null;
   }
 
   function stop() {
@@ -726,6 +801,11 @@
           <span class="text-ws-soft">{pickedIntervals.length === 1 ? "One interval: every prompt is this one, among all the answers." : `${pickedIntervals.length} intervals: only these play, and only these are the answers.`}</span>
         </div>
         <Choice label="Direction" options={DIRECTIONS} value={s.direction} onchange={(v) => cfg.set({ direction: v })} />
+        <div class="flex min-w-0 flex-col gap-1 text-sm">
+          <span class="font-medium">Starting note</span>
+          <Picker label="Starting note" value={s.root} options={ROOTS} onchange={(v) => cfg.set({ root: v })} />
+          <span class="text-ws-soft">{s.root === "random" ? "A new first note each time." : "Every interval starts on this note, so only the distance changes."}</span>
+        </div>
       {/if}
       {#if def.usesScaleDegreeLevel}
         <Choice label="Degree level" select options={SCALE_DEGREE_LEVELS.map((l) => ({ value: l.id, label: `${l.title}: ${l.summary}` }))} value={level} onchange={(v) => cfg.set({ level: v })} />
@@ -774,7 +854,18 @@
         </div>
 
         <div class="mt-3">
-          <EarVisual prompt={p} revealed={showAnswer || hinted} active={sounding} labels={labels === "solfege" ? "solfege" : "numbers"} />
+          <EarVisual
+            prompt={p}
+            revealed={showAnswer || hinted}
+            active={sounding}
+            labels={labels === "solfege" ? "solfege" : "numbers"}
+            chosen={mistake && step === "feedback" ? mistake.chosen : undefined}
+          />
+          {#if mistake && step === "feedback"}
+            <button type="button" class="{btnStage} mt-2" onclick={() => mistake && playPrompt(mistake.both)}>
+              Hear both again: {intervalName(p.answer)}, then {intervalName(mistake.token)}
+            </button>
+          {/if}
         </div>
 
         {#if showAnswer || hinted}
@@ -952,6 +1043,15 @@
           {/if}
         {/snippet}
       </Results>
+      {#if unlockNext}
+        <section class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-instr bg-instr-wash p-4" aria-label="Ready for the next interval">
+          <p class="min-w-0 flex-1 basis-60">
+            <strong>These are sounding easy:</strong> at least 18 of your last 20 answers were right. Ready for the {intervalName(unlockNext).toLowerCase()}?
+          </p>
+          <button type="button" class={btnPrimary} onclick={addNext}>Add the {intervalName(unlockNext).toLowerCase()}</button>
+          <button type="button" class={btn} onclick={() => (unlockNext = null)}>Not yet</button>
+        </section>
+      {/if}
       {#if confused.length}
         <section class="mt-3 rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="confusions-title">
           <h3 id="confusions-title" class="font-display text-lg font-semibold">What you mixed up</h3>
