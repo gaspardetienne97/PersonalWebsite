@@ -854,9 +854,16 @@ const metronome = {
 };
 
 async function renderWav(notes: SequenceNote[], durationSec: number): Promise<Blob> {
+  const rendered = await renderNotes(notes, durationSec + 0.5); // tail so the last note rings out
+  const wav = encodeWav([rendered.getChannelData(0), rendered.getChannelData(1)], 44100);
+  return new Blob([wav as Uint8Array<ArrayBuffer>], { type: "audio/wav" });
+}
+
+/** Notes rendered offline to a stereo 44.1 kHz buffer, each on its own sound. */
+async function renderNotes(notes: SequenceNote[], durationSec: number) {
   const t = T ?? (await loadTone());
   const sound = settings.value.preferredPlaybackSound;
-  const rendered = await t.Offline(
+  return t.Offline(
     () => {
       const bus = new t.Gain(1).toDestination();
       // Each voice's own sound, the playback sound for the rest.
@@ -873,12 +880,192 @@ async function renderWav(notes: SequenceNote[], durationSec: number): Promise<Bl
       const raw = rawCtx(t);
       for (const n of notes) trigger(t, raw, voiceFor, bus, n, n.time);
     },
-    durationSec + 0.5, // tail so the last note rings out
+    durationSec,
     2,
     44100,
   );
-  const wav = encodeWav([rendered.getChannelData(0), rendered.getChannelData(1)], 44100);
-  return new Blob([wav as Uint8Array<ArrayBuffer>], { type: "audio/wav" });
+}
+
+// ---------------------------------------------------------------------------
+// Studio ears: a loop through a bell EQ, a panner and a gain, heard flat or
+// changed. Changes glide over about 50 ms (no clicks); the source sits 12 dB
+// down so a +12 dB boost never clips, and nothing compresses what is judged.
+
+export interface StudioChange {
+  eq?: { freq: number; gainDb: number; q: number };
+  pan?: number;
+  levelDb?: number;
+}
+export interface StudioLoop {
+  /** What Changed applies; `trimDb` (Changed only) matches loudness when the task asks for it. */
+  set(change: StudioChange, trimDb?: number): void;
+  show(changed: boolean): void;
+  stop(): void;
+}
+
+/** Pink noise (Paul Kellet's filter), RMS-normalised, seconds long. */
+function pinkNoise(sampleRate: number, seconds = 8): AudioBuffer {
+  const n = Math.round(sampleRate * seconds);
+  const buf = new AudioBuffer({ length: n, sampleRate, numberOfChannels: 1 });
+  const d = buf.getChannelData(0);
+  let [b0, b1, b2, b3, b4, b5, b6] = [0, 0, 0, 0, 0, 0, 0];
+  for (let i = 0; i < n; i++) {
+    const w = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + w * 0.0555179;
+    b1 = 0.99332 * b1 + w * 0.0750759;
+    b2 = 0.969 * b2 + w * 0.153852;
+    b3 = 0.8665 * b3 + w * 0.3104856;
+    b4 = 0.55 * b4 + w * 0.5329522;
+    b5 = -0.7616 * b5 - w * 0.016898;
+    d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+    b6 = w * 0.115926;
+  }
+  normalise(buf);
+  return buf;
+}
+
+/** Scale to an RMS of -18 dBFS, so every material plays at one level. */
+function normalise(buf: AudioBuffer) {
+  let sum = 0;
+  let count = 0;
+  for (let c = 0; c < buf.numberOfChannels; c++)
+    for (const x of buf.getChannelData(c)) {
+      sum += x * x;
+      count++;
+    }
+  const k = 10 ** (-18 / 20) / Math.sqrt(sum / count || 1);
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < d.length; i++) d[i] *= k;
+  }
+}
+
+/** Two bars of a groove at 90 BPM: kick, snare, hats; with bass and chords for "music". */
+function studioNotes(kind: "drums" | "music"): { notes: SequenceNote[]; seconds: number } {
+  const beat = 60 / 90;
+  const drums: SequenceNote[] = [];
+  for (let b = 0; b < 8; b++) {
+    if (b % 4 === 0)
+      drums.push({ midi: 36, time: b * beat, duration: 0.2, velocity: 0.9, voice: "drum" });
+    if (b % 2 === 1)
+      drums.push({ midi: 38, time: b * beat, duration: 0.2, velocity: 0.85, voice: "drum" });
+    for (const h of [0, 0.5])
+      drums.push({
+        midi: 42,
+        time: (b + h) * beat,
+        duration: 0.05,
+        velocity: h ? 0.45 : 0.6,
+        voice: "drum",
+      });
+  }
+  for (const b of [2.5, 6.5])
+    drums.push({ midi: 36, time: b * beat, duration: 0.2, velocity: 0.8, voice: "drum" });
+  if (kind === "drums") return { notes: drums, seconds: 8 * beat };
+  // I - vi - IV - V in C, a bar of two chords each, bass on the roots.
+  const chords = [
+    [60, 64, 67],
+    [57, 60, 64],
+    [53, 57, 60],
+    [55, 59, 62],
+  ];
+  const band: SequenceNote[] = chords.flatMap((c, i) => [
+    ...c.map((m) => ({ midi: m, time: i * 2 * beat, duration: 2 * beat * 0.95, velocity: 0.55 })),
+    { midi: c[0] - 24, time: i * 2 * beat, duration: beat * 0.9, velocity: 0.8 },
+    { midi: c[0] - 24, time: (i * 2 + 1.5) * beat, duration: beat * 0.4, velocity: 0.7 },
+  ]);
+  return { notes: [...drums, ...band], seconds: 8 * beat };
+}
+
+const studioCache = new Map<string, AudioBuffer>();
+/** The loop for a material, made once per page. */
+async function studioMaterial(kind: "noise" | "drums" | "music"): Promise<AudioBuffer> {
+  const hit = studioCache.get(kind);
+  if (hit) return hit;
+  const t = ready() ?? (await loadTone());
+  let buf: AudioBuffer;
+  if (kind === "noise") buf = pinkNoise(rawCtx(t).sampleRate);
+  else {
+    const { notes, seconds } = studioNotes(kind);
+    buf = (await renderNotes(notes, seconds)).get()!;
+    normalise(buf);
+  }
+  studioCache.set(kind, buf);
+  return buf;
+}
+
+/** The loudness (RMS dB) of two seconds of `buf` through `change`, rendered offline. */
+async function studioLoudness(buf: AudioBuffer, change: StudioChange): Promise<number> {
+  const len = Math.min(buf.length, buf.sampleRate * 2);
+  const ctx = new OfflineAudioContext(buf.numberOfChannels, len, buf.sampleRate);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const eq = ctx.createBiquadFilter();
+  eq.type = "peaking";
+  if (change.eq) {
+    eq.frequency.value = change.eq.freq;
+    eq.Q.value = change.eq.q;
+    eq.gain.value = change.eq.gainDb;
+  }
+  src.connect(eq).connect(ctx.destination);
+  src.start();
+  const out = await ctx.startRendering();
+  let sum = 0;
+  for (let c = 0; c < out.numberOfChannels; c++)
+    for (const x of out.getChannelData(c)) sum += x * x;
+  return 10 * Math.log10(sum / (out.length * out.numberOfChannels) || 1e-12);
+}
+
+function studioLoop(buf: AudioBuffer): StudioLoop {
+  const t = ready();
+  if (!t || !graph) throw new Error("Enable audio first: browsers only allow sound after a tap.");
+  const raw = rawCtx(t) as AudioContext;
+  const src = raw.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  const headroom = raw.createGain();
+  headroom.gain.value = 10 ** (-12 / 20);
+  const eq = raw.createBiquadFilter();
+  eq.type = "peaking";
+  eq.gain.value = 0;
+  const pan = raw.createStereoPanner();
+  const level = raw.createGain();
+  src.connect(headroom).connect(eq).connect(pan).connect(level);
+  const out = new t.Gain(0);
+  t.connect(level, out);
+  out.connect(graph.master);
+  out.gain.rampTo(1, 0.05);
+  src.start();
+  let change: StudioChange = {};
+  let trim = 0;
+  let changed = true;
+  const glide = (p: AudioParam, v: number) => p.setTargetAtTime(v, raw.currentTime, 0.01);
+  const apply = () => {
+    if (change.eq) {
+      glide(eq.frequency, change.eq.freq);
+      glide(eq.Q, change.eq.q);
+    }
+    glide(eq.gain, changed ? (change.eq?.gainDb ?? 0) : 0);
+    glide(pan.pan, changed ? (change.pan ?? 0) : 0);
+    glide(level.gain, changed ? 10 ** (((change.levelDb ?? 0) + trim) / 20) : 1);
+  };
+  return {
+    set(c, trimDb = 0) {
+      change = c;
+      trim = trimDb;
+      apply();
+    },
+    show(on) {
+      changed = on;
+      apply();
+    },
+    stop() {
+      out.gain.rampTo(0, 0.05);
+      setTimeout(() => {
+        src.stop();
+        out.dispose();
+      }, 120);
+    },
+  };
 }
 
 /** Play a recorded take or backing track. Does not stop other blobs (take over backing is normal). */
@@ -1015,5 +1202,6 @@ export const audio = {
   latencyInfo,
   renderWav,
   playBlob,
+  studio: { material: studioMaterial, loudness: studioLoudness, loop: studioLoop },
   celebrate,
 };

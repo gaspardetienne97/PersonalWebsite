@@ -4,6 +4,7 @@
 
 import { INSTRUMENTS, type Capability, type Instrument, type Modality } from "../types";
 import { EAR_DRILLS } from "./ear";
+import { STUDIO_EXERCISES } from "./studio";
 import { RHYTHM_PATTERNS, rhythmSkills } from "./rhythm";
 import { LICK_CATEGORIES, lickSkills } from "./piano";
 import { chordShapeSkills } from "./technique";
@@ -371,6 +372,18 @@ export const CATALOG: CatalogEntry[] = [
         aerophoneSkills("interval-landing"),
       ),
     ],
+  }),
+  entry({
+    id: "listening",
+    route: "/music/listening",
+    title: "Studio ears",
+    blurb: "Hear a loop flat and changed, and name the change: an EQ band, a level, a pan.",
+    instruments: [...INSTRUMENTS],
+    capability: "ear",
+    modality: "heard",
+    modes: STUDIO_EXERCISES.map((e) =>
+      mode(e.id, e.title, `studio.${e.id}`, ["studio.ears", e.skillId]),
+    ),
   }),
   entry({
     id: "lab",

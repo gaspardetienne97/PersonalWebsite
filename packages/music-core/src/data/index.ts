@@ -667,7 +667,37 @@ APP_SKILLS.push(
     version: 1,
   },
 );
+const STUDIO_NAMES: [string, string][] = [
+  ["eq-peak", "Finding a boosted EQ band"],
+  ["eq-cut", "Finding a cut EQ band"],
+  ["boost-or-cut", "Telling a boost from a cut"],
+  ["level", "Level differences in dB"],
+  ["pan", "Pan position"],
+];
+APP_SKILLS.push(
+  {
+    id: "studio.ears",
+    name: "Studio ears",
+    capability: "ear",
+    level: "intermediate",
+    tags: ["studio", "eq", "mixing"],
+    version: 1,
+  },
+  ...STUDIO_NAMES.map(([t, name]) => ({
+    id: `studio.${t}`,
+    name,
+    capability: "ear" as const,
+    level: "intermediate" as const,
+    tags: ["studio", "mixing"],
+    version: 1,
+  })),
+);
 const APP_RELATIONSHIPS: SkillRelationship[] = [
+  ...STUDIO_NAMES.map(([t]) => ({
+    from: "studio.ears",
+    to: `studio.${t}`,
+    kind: "component" as const,
+  })),
   ...POSITION_NAMES.map(([t]) => ({
     from: "ear.inversions",
     to: `ear.inversion.${t}`,

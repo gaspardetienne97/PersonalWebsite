@@ -77,6 +77,7 @@ const ROUTES = [
   "/music/strum",
   "/music/pads",
   "/music/aerophone",
+  "/music/listening",
   "/music/lab",
   "/music/jam",
   "/music/library?tab=songs",
