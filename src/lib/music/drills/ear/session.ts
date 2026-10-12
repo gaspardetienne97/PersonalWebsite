@@ -5,6 +5,9 @@ import {
   cadencePrompt,
   CHORD_FUNCTIONS,
   chordFunctionPrompt,
+  functionSkill,
+  functionToken,
+  parseFunction,
   chordQualityPrompt,
   functionLabel,
   degreeLabel,
@@ -81,6 +84,9 @@ export interface Focus {
   direction?: IntervalDirection;
   /** Fixed first note (MIDI), so only the distance changes. */
   root?: number;
+  /** Chords in a key and progressions: a minor key, seventh chords. */
+  minor?: boolean;
+  sevenths?: boolean;
 }
 
 /** How much more often a target is asked: 1 when always right, up to 4 when always wrong; 2 when untried. */
@@ -95,7 +101,9 @@ const focusCadences = (f?: Focus) =>
   f?.tokens?.length ? CADENCES.filter((c) => f.tokens!.includes(c.token)) : CADENCES;
 const focusFunctions = (f?: Focus) =>
   f?.tokens?.length ? CHORD_FUNCTIONS.filter((c) => f.tokens!.includes(c.token)) : CHORD_FUNCTIONS;
-const functionSkill = (token: string) => `ear.chord-function.${token}`;
+/** The picked chords as prompt tokens, in the focus's key and chord size ("IV" becomes "m:IV7"). */
+const focusFunctionTokens = (f?: Focus) =>
+  focusFunctions(f).map((x) => functionToken(x.token, { minor: f?.minor, seventh: f?.sevenths }));
 
 /** Every answerable target of one drill kind. */
 export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarget[] {
@@ -119,18 +127,19 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
     case "cadence":
       return focusCadences(focus).map((c) => ({ kind, token: c.token, skillId: c.skillId }));
     case "chord-function":
-      return focusFunctions(focus).map((f) => ({
+      return focusFunctionTokens(focus).map((token) => ({
         kind,
-        token: f.token,
-        skillId: functionSkill(f.token),
+        token,
+        skillId: functionSkill(token),
       }));
     case "progression": {
       // By the chord after the opening I; with only I picked, I it is.
-      const after = focusFunctions(focus).filter((f) => f.token !== "I");
-      return (after.length ? after : CHORD_FUNCTIONS.slice(0, 1)).map((f) => ({
+      const all = focusFunctionTokens(focus);
+      const after = all.filter((t) => parseFunction(t).f?.token !== "I");
+      return (after.length ? after : all.slice(0, 1)).map((token) => ({
         kind,
-        token: f.token,
-        skillId: functionSkill(f.token),
+        token,
+        skillId: functionSkill(token),
       }));
     }
     case "scale-degree":
@@ -190,18 +199,18 @@ export function promptFor(
       });
     }
     case "chord-function": {
-      const picked = focusFunctions(focus);
+      const picked = focusFunctionTokens(focus);
       return chordFunctionPrompt(rand, {
         difficulty,
         token: t.token,
-        choices: focus?.tokens && picked.length >= 2 ? picked.map((f) => f.token) : undefined,
+        choices: focus?.tokens && picked.length >= 2 ? picked : undefined,
       });
     }
     case "progression":
       return progressionPrompt(rand, {
         difficulty,
         token: t.token,
-        choices: focusFunctions(focus).map((f) => f.token),
+        choices: focusFunctionTokens(focus),
       });
     case "scale-degree":
       return scaleDegreePrompt(rand, { difficulty, level, degree: t.token });

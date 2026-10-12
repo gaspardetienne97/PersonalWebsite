@@ -2,7 +2,7 @@
 
 import { CADENCES_AND_QUALITIES, EAR_TRAINING, SCALE_DATA, type EarPathStepDef } from "../data";
 import type { Score } from "../types";
-import { clamp01, pc } from "../theory/notes";
+import { clamp01, noteName, pc } from "../theory/notes";
 import { INTERVALS } from "../theory/intervals";
 import { pick, randInt, type Rand } from "./random";
 
@@ -460,68 +460,149 @@ export function cadencePrompt(
 // ---------------------------------------------------------------------------
 // Chords in a key
 
-/** The seven triads of a major key, by numeral. vii° is written "vii" in tokens and skill ids. */
+/**
+ * The seven chords of a key, by degree. The token is the major-key numeral;
+ * in prompts it carries the key and chord size too: "IV", "IV7" (sevenths),
+ * "m:IV" (a minor key, iv), "m:IV7" (iv7). vii° is written "vii".
+ */
 export const CHORD_FUNCTIONS = [
-  { token: "I", label: "I", name: "Tonic", degree: 0, quality: "major" },
-  { token: "ii", label: "ii", name: "Supertonic", degree: 1, quality: "minor" },
-  { token: "iii", label: "iii", name: "Mediant", degree: 2, quality: "minor" },
-  { token: "IV", label: "IV", name: "Subdominant", degree: 3, quality: "major" },
-  { token: "V", label: "V", name: "Dominant", degree: 4, quality: "major" },
-  { token: "vi", label: "vi", name: "Submediant", degree: 5, quality: "minor" },
-  { token: "vii", label: "vii°", name: "Leading tone", degree: 6, quality: "diminished" },
+  { token: "I", name: "Tonic", degree: 0 },
+  { token: "ii", name: "Supertonic", degree: 1 },
+  { token: "iii", name: "Mediant", degree: 2 },
+  { token: "IV", name: "Subdominant", degree: 3 },
+  { token: "V", name: "Dominant", degree: 4 },
+  { token: "vi", name: "Submediant", degree: 5 },
+  { token: "vii", name: "Leading tone", degree: 6 },
 ] as const;
-const functionOf = (token: string) =>
-  CHORD_FUNCTIONS.find((f) => f.token === token) ?? CHORD_FUNCTIONS[0];
-export const functionLabel = (token: string) =>
-  CHORD_FUNCTIONS.find((f) => f.token === token)?.label ?? token;
-const functionSkill = (token: string) => `ear.chord-function.${token}`;
+/** Numerals and chord-symbol suffixes by degree. Minor uses the natural minor with a major V (the raised leading tone) and the subtonic VII. */
+const FUNCTION_TABLE = {
+  major: {
+    labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
+    suffix: ["", "m", "m", "", "", "m", "°"],
+  },
+  major7: {
+    labels: ["Imaj7", "ii7", "iii7", "IVmaj7", "V7", "vi7", "viiø7"],
+    suffix: ["maj7", "m7", "m7", "maj7", "7", "m7", "ø7"],
+  },
+  minor: {
+    labels: ["i", "ii°", "III", "iv", "V", "VI", "VII"],
+    suffix: ["m", "°", "", "m", "", "", ""],
+  },
+  minor7: {
+    labels: ["i7", "iiø7", "IIImaj7", "iv7", "V7", "VImaj7", "VII7"],
+    suffix: ["m7", "ø7", "maj7", "m7", "7", "maj7", "7"],
+  },
+} as const;
+
+export interface FunctionKind {
+  minor?: boolean;
+  seventh?: boolean;
+}
+export const functionToken = (base: string, k: FunctionKind = {}) =>
+  `${k.minor ? "m:" : ""}${base}${k.seventh ? "7" : ""}`;
+/** A prompt token's degree, key and chord size; `f` is undefined for anything else ("?"). */
+export function parseFunction(token: string) {
+  const minor = token.startsWith("m:");
+  const rest = minor ? token.slice(2) : token;
+  const seventh = rest.endsWith("7");
+  const f = CHORD_FUNCTIONS.find((x) => x.token === (seventh ? rest.slice(0, -1) : rest));
+  return { f, minor, seventh };
+}
+const tableOf = (k: FunctionKind) =>
+  FUNCTION_TABLE[`${k.minor ? "minor" : "major"}${k.seventh ? "7" : ""}`];
+/** "IV", "iv7", "viiø7"; anything that is not a chord of a key stays as it is. */
+export function functionLabel(token: string): string {
+  const p = parseFunction(token);
+  return p.f ? tableOf(p).labels[p.f.degree] : token;
+}
+/** Every token of one key and chord size, I to vii. */
+export const functionTokens = (k: FunctionKind = {}) =>
+  CHORD_FUNCTIONS.map((f) => functionToken(f.token, k));
+export function functionSkill(token: string): string {
+  const p = parseFunction(token);
+  const base = p.f?.token ?? token;
+  return p.minor ? `ear.chord-function.minor.${base}` : `ear.chord-function.${base}`;
+}
+const functionSkills = (tokens: string[]) => {
+  const k = parseFunction(tokens[0]);
+  return [
+    ...new Set(tokens.map(functionSkill)),
+    ...(k.seventh ? ["ear.chord-function.sevenths"] : []),
+  ];
+};
 /** `n` mapped into the octave starting at `from`. */
 const into = (n: number, from: number) => from + ((((n - from) % 12) + 12) % 12);
 
+/** The chord's notes above the tonic, root first (minor V and V7 take the raised leading tone). */
+function functionSemitones(token: string): number[] {
+  const p = parseFunction(token);
+  const d = p.f?.degree ?? 0;
+  const scale = p.minor ? MINOR : MAJOR;
+  return (p.seventh ? [0, 2, 4, 6] : [0, 2, 4]).map((k) => {
+    const s = scale[(d + k) % 7];
+    return p.minor && d === 4 && s === 10 ? 11 : s;
+  });
+}
+
 /**
- * One triad of the key whose tonic pitch class is `keyPc`: the root in the
- * bass (G2 to F#3), the three chord tones close together from middle C up,
- * so every chord sits in the same place and only its sound changes.
+ * One chord of the key whose tonic pitch class is `keyPc`: the root in the
+ * bass (G2 to F#3), the chord tones close together from middle C up, so every
+ * chord sits in the same place and only its sound changes.
  */
 export function functionChord(keyPc: number, token: string): number[] {
-  const d = functionOf(token).degree;
-  const tones = [0, 2, 4].map((k) => keyPc + MAJOR[(d + k) % 7]);
+  const tones = functionSemitones(token).map((s) => keyPc + s);
   return [into(tones[0], 43), ...tones.map((t) => into(t, 60)).sort((a, b) => a - b)];
 }
 
-/** Chords one after another, 0.9 s apart. */
+/** "Am", "Bø7", "Ebmaj7": the chord's symbol in the key whose tonic pitch class is `keyPc`. */
+export function functionSymbol(keyPc: number, token: string): string {
+  const p = parseFunction(token);
+  if (!p.f) return token;
+  const root = keyPc + functionSemitones(token)[0];
+  return `${noteName(48 + pc(root), "flat", false)}${tableOf(p).suffix[p.f.degree]}`;
+}
+
 const pcKey = (ms: readonly number[]) => [...new Set(ms.map(pc))].sort((a, b) => a - b).join();
 /** Which chord of the key these notes make, in any octave or inversion (none when they make none). */
-export const functionOfNotes = (keyPc: number, midis: readonly number[]) =>
-  CHORD_FUNCTIONS.find((f) => pcKey(functionChord(keyPc, f.token)) === pcKey(midis))?.token;
+export const functionOfNotes = (keyPc: number, midis: readonly number[], k: FunctionKind = {}) =>
+  functionTokens(k).find((t) => pcKey(functionChord(keyPc, t)) === pcKey(midis));
 
+/** Chords one after another, 0.9 s apart. */
 export function functionPlayback(keyPc: number, tokens: string[], start = 0): PlaybackEvent[] {
   return tokens.map((t, i) => note(functionChord(keyPc, t), start + i * 0.9, 0.8));
 }
 
-const KEY_SETTING = ["I", "IV", "V", "I"];
+type FunctionOpts = FunctionKind & {
+  difficulty: number;
+  /** A full token ("m:IV7"): its key and size win over `minor` and `seventh`. */
+  token?: string;
+  choices?: string[];
+};
+const kindOf = (opts: FunctionOpts): FunctionKind =>
+  opts.token && parseFunction(opts.token).f ? parseFunction(opts.token) : opts;
 
-/** I, IV, V, I to set the key, a breath, then the chord to name. */
-export function chordFunctionPrompt(
-  rand: Rand,
-  opts: { difficulty: number; token?: string; choices?: string[] },
-): EarPrompt & { keyPc: number } {
-  const f =
-    CHORD_FUNCTIONS.find((x) => x.token === opts.token) ??
-    pick(rand, CHORD_FUNCTIONS as readonly (typeof CHORD_FUNCTIONS)[number][]);
+/** I, IV, V, I (i, iv, V, i in minor) to set the key, a breath, then the chord to name. */
+export function chordFunctionPrompt(rand: Rand, opts: FunctionOpts): EarPrompt & { keyPc: number } {
+  const k = kindOf(opts);
+  const token =
+    opts.token && parseFunction(opts.token).f ? opts.token : pick(rand, functionTokens(k));
   const keyPc = randInt(rand, 0, 11);
+  const setting = ["I", "IV", "V", "I"].map((t) => functionToken(t, { minor: k.minor }));
   return {
-    id: `chord-function-${f.token}-${keyPc}`,
+    id: `chord-function-${token}-${keyPc}`,
     drill: "chord-function",
-    skillIds: ["ear.chord-functions", functionSkill(f.token)],
-    playback: [
-      ...functionPlayback(keyPc, KEY_SETTING),
-      note(functionChord(keyPc, f.token), KEY_SETTING.length * 0.9 + 0.6, 1.1),
+    skillIds: [
+      k.minor ? "ear.chord-functions.minor" : "ear.chord-functions",
+      ...functionSkills([token]),
     ],
-    keyEvents: KEY_SETTING.length,
-    expectedMidi: functionChord(keyPc, f.token),
-    answer: f.token,
-    choices: opts.choices ?? CHORD_FUNCTIONS.map((x) => x.token),
+    playback: [
+      ...functionPlayback(keyPc, setting),
+      note(functionChord(keyPc, token), setting.length * 0.9 + 0.6, 1.1),
+    ],
+    keyEvents: setting.length,
+    expectedMidi: functionChord(keyPc, token),
+    answer: token,
+    choices: opts.choices ?? functionTokens(k),
     difficulty: opts.difficulty,
     keyPc,
   };
@@ -532,16 +613,15 @@ export function chordFunctionPrompt(
  * sets the key). The rest come from `choices` (all seven when missing) with no
  * chord twice in a row; `token` is the second chord, so a session can aim at it.
  */
-export function progressionPrompt(
-  rand: Rand,
-  opts: { difficulty: number; token?: string; choices?: string[] },
-): EarPrompt & { keyPc: number } {
+export function progressionPrompt(rand: Rand, opts: FunctionOpts): EarPrompt & { keyPc: number } {
+  const k = kindOf(opts);
+  const tonic = functionToken("I", k);
   const pool: string[] = opts.choices?.length
-    ? [...new Set(["I", ...opts.choices])]
-    : CHORD_FUNCTIONS.map((f) => f.token);
+    ? [...new Set([tonic, ...opts.choices])]
+    : functionTokens(k);
   const length = opts.difficulty < 0.5 ? 3 : 4;
-  const chords = ["I"];
-  if (opts.token && opts.token !== "I" && pool.includes(opts.token)) chords.push(opts.token);
+  const chords = [tonic];
+  if (opts.token && opts.token !== tonic && pool.includes(opts.token)) chords.push(opts.token);
   while (chords.length < length) {
     const fresh = pool.filter((t) => t !== chords.at(-1));
     chords.push(pick(rand, fresh.length ? fresh : pool));
@@ -550,7 +630,7 @@ export function progressionPrompt(
   return {
     id: `progression-${chords.join("_")}-${keyPc}`,
     drill: "progression",
-    skillIds: ["ear.progressions", ...new Set(chords.map(functionSkill))],
+    skillIds: ["ear.progressions", ...functionSkills(chords)],
     playback: functionPlayback(keyPc, chords),
     answer: chords.join(" "),
     choices: pool,

@@ -6,7 +6,7 @@
   // chords and cadences on a grand staff (named underneath), degrees in their
   // colours with a melody's contour.
   import { noteName, pc } from "@repo/music-core";
-  import { CHORD_FUNCTIONS, functionLabel, SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
+  import { functionLabel, functionSymbol, parseFunction, SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
   import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
   import type { Score } from "@repo/music-core";
@@ -73,11 +73,9 @@
         ? [events.slice(0, events.length / 2), events.slice(events.length / 2)]
         : [events.slice(prompt.keyEvents ?? 0)],
   );
-  /** "Am", "B°": a chord of the key from its numeral and its root (the bass). */
-  const symbol = (token: string, bass: number) => {
-    const q = CHORD_FUNCTIONS.find((f) => f.token === token)?.quality;
-    return `${noteName(bass, "flat", false)}${q === "minor" ? "m" : q === "diminished" ? "°" : ""}`;
-  };
+  // The first chord is always the key's I (or i), root in the bass.
+  const tonicPc = $derived(pc(events[0].midi[0]));
+  const minorKey = $derived(parseFunction(prompt.answer.split(" ")[0]).minor);
   function describe(g: EarPrompt["playback"]): string {
     const ms = g.flatMap((e) => e.midi);
     if (prompt.drill === "chord-quality") {
@@ -86,10 +84,9 @@
       return `${name}: ${s.slice(1).map((m, i) => shortInterval(m - s[i])).join(", ")}`;
     }
     if (prompt.drill === "chord-function" || prompt.drill === "progression") {
-      // Every chord here has its root in the bass, and the first event is the key's I.
-      const key = `${noteName(events[0].midi[0], "flat", false)} major`;
+      const key = `${noteName(48 + tonicPc, "flat", false)} ${minorKey ? "minor" : "major"}`;
       const tokens = prompt.answer.split(" ");
-      const names = g.map((e, i) => symbol(tokens[i] ?? "", e.midi[0]));
+      const names = tokens.map((t) => functionSymbol(tonicPc, t));
       return `${tokens.map(functionLabel).join(", ")} in ${key}: ${names.join(", ")}`;
     }
     if (prompt.drill === "cadence") {
@@ -100,10 +97,11 @@
     const name = semis === 0 ? "Perfect unison" : (intervalBySemitones(semis)?.name ?? `${semis} semitones`);
     return `${name}, ${semis} semitone${semis === 1 ? "" : "s"}`;
   }
-  // Chords of a key are drawn in it: its signature, its spelling (Eb major's IV is Ab, not G#).
+  // Chords of a key are drawn in it: its signature (a minor key's is its relative major's)
+  // and its spelling (Eb major's IV is Ab, not G#).
   const keyed = $derived(prompt.drill === "chord-function" || prompt.drill === "progression");
   const keyFifths = $derived.by(() => {
-    const f = (pc(events[0].midi[0]) * 7) % 12;
+    const f = (((tonicPc + (minorKey ? 3 : 0)) % 12) * 7) % 12;
     return f > 5 ? f - 12 : f;
   });
   const lead = (k: number) => (prompt.drill === "interval-compare" ? (k === 0 ? "First" : "Second") : prefix);

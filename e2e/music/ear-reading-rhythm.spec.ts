@@ -311,7 +311,9 @@ test.describe("ear training", () => {
     await page.goto("/music/ear/chord-functions?answer=choice");
     await page.getByRole("button", { name: "Change setup" }).click();
     await expect(
-      page.getByRole("group", { name: "Chord sets" }).getByRole("button", { name: "I, IV and V" }),
+      page
+        .getByRole("group", { name: "Chord sets" })
+        .getByRole("button", { name: "Primary three" }),
     ).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = prompt(page);
@@ -328,6 +330,22 @@ test.describe("ear training", () => {
     await expect(captions.nth(1)).toContainText(new RegExp(`^You chose: ${wrong} in \\S+ major: `));
     await expect(card.getByRole("button", { name: /^Hear both again: / })).toBeVisible();
     await shots(page, "ear-chord-function-mistake");
+
+    // A minor key with sevenths: i7, iv7 and V7, named and drawn in the minor key.
+    await page.goto("/music/ear/chord-functions?answer=choice&keyMode=minor&chordSize=sevenths");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(card).toContainText(/Key of \S+ minor: i, iv, V, i, then one chord/);
+    await expect(page.locator("button.choice")).toHaveText([/i7/, /iv7/, /V7/]);
+    const minorAnswer = (await card.getAttribute("data-answer"))!;
+    expect(["m:I7", "m:IV7", "m:V7"]).toContain(minorAnswer);
+    const right = { "m:I7": "i7", "m:IV7": "iv7", "m:V7": "V7" }[minorAnswer]!;
+    await page.locator("button.choice", { hasText: new RegExp(`^\\s*${right}\\s*$`) }).click();
+    await waitStep(page, "feedback");
+    await expect(card).toContainText(`Right: ${right}.`);
+    await expect(card.locator("figure.staff-card figcaption")).toContainText(
+      new RegExp(`^${right} in \\S+ minor: `),
+    );
+    await shots(page, "ear-chord-function-minor-sevenths");
   });
 
   test("progressions: tap the chords after I into slots, judged chord by chord", async ({

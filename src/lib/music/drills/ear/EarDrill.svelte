@@ -15,6 +15,8 @@
     functionChord,
     functionLabel,
     functionOfNotes,
+    functionToken,
+    parseFunction,
     functionPlayback,
     SCALE_DEGREE_LEVELS,
     SCALE_DEGREES,
@@ -111,10 +113,16 @@
     qualities: "major,minor" as string,
     cadences: "authentic,plagal" as string,
     functions: "I,IV,V" as string,
+    keyMode: "major" as string,
+    chordSize: "triads" as string,
     direction: "auto" as string,
     root: "random" as string,
   });
   const s = $derived(cfg.value);
+  const chordDrill = slug === "chord-functions" || slug === "progressions";
+  /** Chords in a key and progressions: which key and chord size the picked numerals are heard in. */
+  const chordKind = $derived({ minor: s.keyMode === "minor", seventh: s.chordSize === "sevenths" });
+  const kindLabel = (t: string) => functionLabel(functionToken(t, chordKind));
   const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) ? (s.answer as AnswerMode) : modes[0]);
   const labels = $derived<LabelMode>(s.labels === "solfege" ? "solfege" : "degree");
   const level = $derived(SCALE_DEGREE_LEVELS.some((l) => l.id === s.level) ? s.level : "anchor");
@@ -219,13 +227,13 @@
                 title: "Chords to practise",
                 unit: "chords",
                 one: "chord",
-                phrase: (t) => `the ${functionLabel(t)} chord`,
+                phrase: (t) => `the ${kindLabel(t)} chord`,
                 items: CHORD_FUNCTIONS.map((f) => ({ token: f.token, short: f.label, name: f.name })),
                 fallback: CHORD_FUNCTIONS.map((f) => f.token),
                 sets: [
-                  { label: "I, IV and V", tokens: ["I", "IV", "V"] },
-                  { label: "Add vi", tokens: ["I", "IV", "V", "vi"] },
-                  { label: "Add ii and vi", tokens: ["I", "ii", "IV", "V", "vi"] },
+                  { label: "Primary three", tokens: ["I", "IV", "V"] },
+                  { label: "Add the sixth", tokens: ["I", "IV", "V", "vi"] },
+                  { label: "Add the second and sixth", tokens: ["I", "ii", "IV", "V", "vi"] },
                   { label: "All seven", tokens: CHORD_FUNCTIONS.map((f) => f.token) },
                 ],
                 ladder: ["I", "V", "IV", "vi", "ii", "iii", "vii"],
@@ -266,6 +274,8 @@
           tokens: picked,
           direction: slug === "intervals" && s.direction !== "auto" ? (s.direction as "ascending" | "descending" | "harmonic") : undefined,
           root: slug === "intervals" && s.root !== "random" ? Number(s.root) : undefined,
+          minor: chordDrill && chordKind.minor,
+          sevenths: chordDrill && chordKind.seventh,
         }
       : undefined,
   );
@@ -386,8 +396,12 @@
   const tonicOf = (p: Prompt) => p.playback[0].midi[0];
   const keyLine = (p: Prompt) => {
     if (p.drill === "chord-function" || p.drill === "progression") {
-      const key = `Key of ${noteName(48 + (p.keyPc ?? 0), "flat", false)} major`;
-      return p.drill === "chord-function" ? `${key}: I, IV, V, I, then one chord` : `${key}, ${p.answer.split(" ").length} chords from I`;
+      const minor = parseFunction(p.answer).minor;
+      const key = `Key of ${noteName(48 + (p.keyPc ?? 0), "flat", false)} ${minor ? "minor" : "major"}`;
+      const one = minor ? "i" : "I";
+      return p.drill === "chord-function"
+        ? `${key}: ${minor ? "i, iv, V, i" : "I, IV, V, I"}, then one chord`
+        : `${key}, ${p.answer.split(" ").length} chords from ${one}`;
     }
     if (p.drill === "cadence") {
       const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
@@ -412,8 +426,8 @@
             : "Which chord of the key was the last one?"
         : p.drill === "progression"
           ? isPlayback
-            ? "Play the chords after the I, one at a time."
-            : "Which chords came after the I?"
+            ? `Play the chords after the ${functionLabel(p.answer.split(" ")[0])}, one at a time.`
+            : `Which chords came after the ${functionLabel(p.answer.split(" ")[0])}?`
           : p.drill === "scale-degree"
             ? answer === "voice"
               ? "Sing the second note back."
@@ -656,7 +670,7 @@
     } else if (p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression") {
       clearTimeout(chordTimer);
       // A chord is in once all its notes are down and the hands rest a moment (or on "That's my chord").
-      const needed = p.drill === "chord-quality" ? (p.expectedMidi?.length ?? 3) : 3;
+      const needed = p.drill === "chord-quality" ? (p.expectedMidi?.length ?? 3) : parseFunction(p.answer).seventh ? 4 : 3;
       if (new Set(played.map(pc)).size >= needed) chordTimer = setTimeout(() => submitChord(), 350);
     } else if ((p.drill === "melody-dictation" || p.drill === "repertoire-transfer") && played.length >= (p.expectedMidi?.length ?? 3)) {
       const g = gradeMelodyDictation(p.expectedMidi!, played);
@@ -670,7 +684,7 @@
     const p = current;
     if (!p || step !== "answer" || !played.length) return;
     if (p.drill === "chord-function" || p.drill === "progression") {
-      const token = functionOfNotes(p.keyPc ?? 0, played);
+      const token = functionOfNotes(p.keyPc ?? 0, played, parseFunction(p.answer));
       const notes = cap?.notes.filter((n) => n.kind === "noteon" && n.at >= openAt) ?? [];
       if (p.drill === "progression") {
         // Each chord fills the next slot; a chord outside the key fills it as "?".
@@ -696,7 +710,7 @@
     const want = current.answer.split(" ").slice(1);
     slots = [...slots, token];
     if (slots.length < want.length) return;
-    const answered = ["I", ...slots].join(" ");
+    const answered = [current.answer.split(" ")[0], ...slots].join(" ");
     void commit(gradeSequence(want, slots), answered, answered, notes);
   }
 
@@ -930,8 +944,9 @@
       MODE_LABEL[answer],
       slug === "mixed" ? (kinds.length === MIX.length ? "all six drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
       SETS
-        ? `${SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => SETS.items.find((i) => i.token === t)?.short ?? t).join(" ")}${slug === "intervals" && s.direction !== "auto" ? `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}` : ""}`
+        ? `${SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => (chordDrill ? kindLabel(t) : (SETS.items.find((i) => i.token === t)?.short ?? t))).join(" ")}${slug === "intervals" && s.direction !== "auto" ? `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}` : ""}`
         : null,
+      chordDrill ? `${chordKind.minor ? "minor" : "major"} key, ${chordKind.seventh ? "sevenths" : "triads"}` : null,
       def.usesScaleDegreeLevel ? SCALE_DEGREE_LEVELS.find((l) => l.id === level)?.title : null,
       def.usesLabels ? (labels === "solfege" ? "solfège labels" : "degree labels") : null,
       "10 prompts",
@@ -1002,19 +1017,23 @@
                 aria-label={it.name}
                 onclick={() => toggleItem(it.token)}
               >
-                <span class="font-semibold leading-tight">{it.short}</span>
+                <span class="font-semibold leading-tight">{chordDrill ? kindLabel(it.token) : it.short}</span>
                 <span class="text-xs leading-tight">{it.name}</span>
               </button>
             {/each}
           </div>
           <span class="text-ws-soft">
             {slug === "progressions"
-              ? `Every progression starts on I; the rest use only these ${picked.length} chords.`
+              ? `Every progression starts on ${kindLabel("I")}; the rest use only these ${picked.length} chords.`
               : picked.length === 1
                 ? `One picked: every prompt is this one, among all the answers.`
                 : `${picked.length} ${SETS.unit}: only these play, and only these are the answers.`}
           </span>
         </div>
+      {/if}
+      {#if chordDrill}
+        <Choice label="Key" options={[{ value: "major", label: "Major" }, { value: "minor", label: "Minor" }]} value={s.keyMode} onchange={(v) => cfg.set({ keyMode: v })} />
+        <Choice label="Chords" options={[{ value: "triads", label: "Triads" }, { value: "sevenths", label: "Sevenths" }]} value={s.chordSize} onchange={(v) => cfg.set({ chordSize: v })} />
       {/if}
       {#if slug === "intervals"}
         <Choice label="Direction" options={DIRECTIONS} value={s.direction} onchange={(v) => cfg.set({ direction: v })} />
@@ -1049,7 +1068,7 @@
   {#snippet progressionSlots(p: Prompt)}
     <ol class="mb-3 flex flex-wrap gap-2" aria-label="Your progression">
       {#each p.answer.split(" ") as w, i (i)}
-        {@const got = i === 0 ? "I" : slots[i - 1]}
+        {@const got = i === 0 ? w : slots[i - 1]}
         {@const judged = showAnswer && step === "feedback" && i > 0 && got !== undefined}
         <li class="slot" data-state={judged ? (got === w ? "right" : "wrong") : got ? "filled" : null}>
           <span class="font-display text-xl font-semibold">{got && got !== "?" ? functionLabel(got) : "?"}</span>

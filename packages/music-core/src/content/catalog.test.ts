@@ -6,6 +6,7 @@ import {
   cadencePrompt,
   CHORD_FUNCTIONS,
   chordFunctionPrompt,
+  functionToken,
   chordQualityPrompt,
   EAR_DRILLS,
   EAR_PATH,
@@ -130,10 +131,12 @@ describe("skill ids", () => {
       ...CADENCES_AND_QUALITIES.cadences.flatMap(
         (c) => cadencePrompt(r, { difficulty: 0.5, token: c.token }).skillIds,
       ),
-      ...CHORD_FUNCTIONS.flatMap((f) => [
-        ...chordFunctionPrompt(r, { difficulty: 0.5, token: f.token }).skillIds,
-        ...progressionPrompt(r, { difficulty: 0.9, token: f.token }).skillIds,
-      ]),
+      ...CHORD_FUNCTIONS.flatMap((f) =>
+        [{}, { minor: true }, { seventh: true }, { minor: true, seventh: true }].flatMap((k) => [
+          ...chordFunctionPrompt(r, { difficulty: 0.5, token: functionToken(f.token, k) }).skillIds,
+          ...progressionPrompt(r, { difficulty: 0.9, token: functionToken(f.token, k) }).skillIds,
+        ]),
+      ),
       ...SCALE_DEGREE_LEVELS.flatMap((l) =>
         l.degrees.flatMap((d) => [
           ...scaleDegreePrompt(r, { difficulty: 0.5, level: l.id, degree: d }).skillIds,

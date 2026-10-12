@@ -6,7 +6,9 @@ import {
   chordFunctionPrompt,
   chordQualityPrompt,
   functionChord,
+  functionLabel,
   functionOfNotes,
+  functionSymbol,
   degreeLabel,
   EAR_DRILLS,
   EAR_PATH,
@@ -184,6 +186,42 @@ describe("chords in a key", () => {
         expect(Math.min(...upper)).toBeGreaterThanOrEqual(60);
         expect(Math.max(...upper)).toBeLessThan(72);
       }
+  });
+
+  it("builds minor keys and sevenths, labelled and spelled for their key", () => {
+    // C minor: i, iv, V (raised leading tone), VII (the subtonic).
+    expect(functionChord(0, "m:I")).toEqual([48, 60, 63, 67]);
+    expect(functionChord(0, "m:IV")).toEqual([53, 60, 65, 68]);
+    expect(functionChord(0, "m:V")).toEqual([43, 62, 67, 71]);
+    expect(functionChord(0, "m:vii")).toEqual([46, 62, 65, 70]);
+    // Sevenths: C major's V7 and ii7, C minor's V7 and iiø7.
+    expect(functionChord(0, "V7")).toEqual([43, 62, 65, 67, 71]);
+    expect(functionChord(0, "ii7")).toEqual([50, 60, 62, 65, 69]);
+    expect(functionChord(0, "m:V7")).toEqual([43, 62, 65, 67, 71]);
+    expect(functionChord(0, "m:ii7")).toEqual([50, 60, 62, 65, 68]);
+    expect(["IV", "m:IV", "vii7", "m:iii7", "?"].map(functionLabel)).toEqual([
+      "IV",
+      "iv",
+      "viiø7",
+      "IIImaj7",
+      "?",
+    ]);
+    expect(functionSymbol(0, "m:vi")).toBe("Ab");
+    expect(functionSymbol(2, "vii7")).toBe("Dbø7"); // C# half-diminished in D, spelled by its flat name
+    expect(functionSymbol(0, "m:iii7")).toBe("Ebmaj7");
+  });
+
+  it("asks minor and seventh prompts in their own key, with their own skills", () => {
+    const p = chordFunctionPrompt(rng(2), { difficulty: 0.5, minor: true, seventh: true });
+    expect(p.answer).toMatch(/^m:.+7$/);
+    expect(p.playback[0].midi).toEqual(functionChord(p.keyPc, "m:I")); // the key is set with triads
+    expect(p.choices).toHaveLength(7);
+    expect(p.skillIds).toContain("ear.chord-functions.minor");
+    expect(p.skillIds).toContain("ear.chord-function.sevenths");
+    const q = progressionPrompt(rng(4), { difficulty: 0.8, minor: true, choices: ["m:IV", "m:V"] });
+    expect(q.answer.split(" ")[0]).toBe("m:I");
+    expect(q.answer.split(" ").every((t) => ["m:I", "m:IV", "m:V"].includes(t))).toBe(true);
+    expect(functionOfNotes(0, [55, 59, 62, 65], { minor: true, seventh: true })).toBe("m:V7");
   });
 
   it("names the chord of the key some notes make, in any inversion", () => {

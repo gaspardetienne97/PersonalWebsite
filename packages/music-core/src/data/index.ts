@@ -516,11 +516,53 @@ const APP_SKILLS: Skill[] = [
     version: 1,
   },
 ];
-const APP_RELATIONSHIPS: SkillRelationship[] = FUNCTION_NAMES.map(([t]) => ({
-  from: "ear.chord-functions",
-  to: `ear.chord-function.${t}`,
-  kind: "component",
-}));
+const MINOR_NAMES: [string, string][] = [
+  ["I", "i chord in a minor key"],
+  ["ii", "ii° chord in a minor key"],
+  ["iii", "III chord in a minor key"],
+  ["IV", "iv chord in a minor key"],
+  ["V", "V chord in a minor key"],
+  ["vi", "VI chord in a minor key"],
+  ["vii", "VII chord in a minor key"],
+];
+APP_SKILLS.push(
+  {
+    id: "ear.chord-functions.minor",
+    name: "Chords in a minor key",
+    capability: "harmony",
+    level: "intermediate",
+    tags: ["ear", "function", "minor"],
+    version: 1,
+  },
+  ...MINOR_NAMES.map(([t, name]) => ({
+    id: `ear.chord-function.minor.${t}`,
+    name,
+    capability: "harmony" as const,
+    level: "intermediate" as const,
+    tags: ["ear", "function", "minor"],
+    version: 1,
+  })),
+  {
+    id: "ear.chord-function.sevenths",
+    name: "Seventh chords in a key",
+    capability: "harmony",
+    level: "intermediate",
+    tags: ["ear", "function", "seventh"],
+    version: 1,
+  },
+);
+const APP_RELATIONSHIPS: SkillRelationship[] = [
+  ...FUNCTION_NAMES.map(([t]) => ({
+    from: "ear.chord-functions",
+    to: `ear.chord-function.${t}`,
+    kind: "component" as const,
+  })),
+  ...MINOR_NAMES.map(([t]) => ({
+    from: "ear.chord-functions.minor",
+    to: `ear.chord-function.minor.${t}`,
+    kind: "component" as const,
+  })),
+];
 
 export const SKILL_GRAPH_SEED = {
   skills: [...(skillGraphJson.skills as Skill[]), ...APP_SKILLS],
