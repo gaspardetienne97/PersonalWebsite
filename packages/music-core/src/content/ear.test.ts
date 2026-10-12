@@ -32,6 +32,7 @@ import {
   CENT_STEPS,
   finePitchPrompt,
   staircase,
+  errorDetectPrompt,
 } from "./ear";
 import { pc } from "../theory/notes";
 import { rng } from "./random";
@@ -174,6 +175,30 @@ describe("melody dictation", () => {
       expect([labels[0], labels[2], labels[3]]).toEqual(["5", "5", "1"]);
       const tonic = p.playback[0].midi[0];
       expect(p.expectedMidi![3]).toBe(tonic);
+    }
+  });
+});
+
+describe("spot the wrong note", () => {
+  it("plays the written melody after its tonic with one note changed, never the first", () => {
+    for (const r of seeds(40)) {
+      const p = errorDetectPrompt(r, { difficulty: 0.3, level: "major-diatonic" });
+      expect(p.written).toHaveLength(4);
+      const heard = p.playback.slice(1).map((e) => e.midi[0]);
+      const diff = heard.map((m, i) => m !== p.expectedMidi![i]);
+      expect(diff.filter(Boolean)).toHaveLength(1);
+      expect(String(diff.indexOf(true) + 1)).toBe(p.answer);
+      expect(p.answer).not.toBe("1");
+      expect(p.choices).toEqual(["1", "2", "3", "4"]);
+    }
+    const hard = seeds(60).map((r) =>
+      errorDetectPrompt(r, { difficulty: 0.9, level: "major-diatonic" }),
+    );
+    expect(hard[0].written).toHaveLength(8);
+    expect(hard.some((p) => p.answer === "none")).toBe(true);
+    for (const p of hard.filter((x) => x.answer !== "none")) {
+      const k = Number(p.answer) - 1;
+      expect(Math.abs(p.playback[k + 1].midi[0] - p.expectedMidi![k])).toBe(1);
     }
   });
 });
@@ -357,7 +382,7 @@ describe("chords in a key", () => {
 });
 
 describe("drill definitions and path", () => {
-  it("has 14 drills (the table's 7 and 7 the app adds) and a 10-step path", () => {
+  it("has 15 drills (the table's 7 and 8 the app adds) and a 10-step path", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
@@ -370,6 +395,7 @@ describe("drill definitions and path", () => {
         "inversions",
         "bass-lines",
         "fine-pitch",
+        "wrong-note",
         "scale-degrees",
         "melody-dictation",
         "repertoire-transfer",

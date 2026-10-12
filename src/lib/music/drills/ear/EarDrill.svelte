@@ -90,7 +90,7 @@
   const slug = untrack(() => slugProp);
 
   type AnswerMode = "choice" | "play-back" | "voice" | "listen" | "listen-along";
-  type Prompt = EarPrompt & { direction?: "ascending" | "descending" | "harmonic" | "both"; phrase?: RankedPhrase; keyPc?: number };
+  type Prompt = EarPrompt & { direction?: "ascending" | "descending" | "harmonic" | "both"; phrase?: RankedPhrase; keyPc?: number; written?: string[] };
 
   const def = EAR_DRILLS.find((d) => d.slug === slug)!;
   const entry = catalogEntry(`ear-${slug}`)!;
@@ -114,13 +114,15 @@
     inversions: "inversion",
     "bass-lines": "bass-line",
     "fine-pitch": "pitch-compare",
+    "wrong-note": "error-detect",
     "scale-degrees": "scale-degree",
     "melody-dictation": "melody-dictation",
   };
 
   const cfg = new DrillSetup(`ear-${slug}`, {
     answer: def.answerModes[0] as string,
-    level: EAR_DEFAULT_CONFIG.scaleDegreeSet as string,
+    // A wrong note needs a few degrees to choose from: the first five to start.
+    level: (slug === "wrong-note" ? "major-pentachord" : EAR_DEFAULT_CONFIG.scaleDegreeSet) as string,
     labels: EAR_DEFAULT_CONFIG.scaleDegreeLabelMode as string,
     drill: "all" as string,
     // Intervals drill: which intervals (comma list, empty for the twelve) and which way.
@@ -477,6 +479,7 @@
       const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
       return `Key of ${noteName(48 + shift, "flat", false)} major`;
     }
+    if (p.drill === "error-detect") return `Tonic ${noteName(tonicOf(p), "flat", false)}, then the melody as written`;
     if (p.drill === "scale-degree" || p.drill === "melody-dictation" || p.drill === "repertoire-transfer")
       return `Tonic ${noteName(tonicOf(p), "flat", false)}${p.phrase ? `, from ${p.phrase.title}` : ""}`;
     return p.drill === "interval" ? "Two notes" : p.drill === "interval-compare" ? "Two intervals, one after the other" : "One chord";
@@ -496,6 +499,10 @@
           ? "Which cadence ends the phrase?"
         : p.drill === "scale"
           ? "Which scale was that?"
+        : p.drill === "error-detect"
+          ? p.choices.includes("none")
+            ? "Which note was played wrong, if any?"
+            : "Which note was played wrong?"
         : p.drill === "pitch-compare"
           ? p.choices.includes("same")
             ? "Was the second note higher, lower or in tune?"
@@ -1005,7 +1012,7 @@
 
   /** One results row per answer asked (an interval, a quality, a degree): this run and overall. */
   function itemRows(done: AnswerRecord[]) {
-    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation" || kinds[0] === "progression" || kinds[0] === "bass-line") return null;
+    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation" || kinds[0] === "progression" || kinds[0] === "bass-line" || kinds[0] === "error-detect") return null;
     const kind = kinds[0];
     const targets = targetsFor(kind, level, focus);
     const order = (t: string) => {
@@ -1357,6 +1364,30 @@
               disabled={answer === "listen-along" || step === "feedback"}
               onpick={choose}
             />
+          {:else if answer === "choice" && p.drill === "error-detect" && p.written}
+            <!-- The melody as written: tap the note that sounded different. -->
+            <ol class="flex flex-wrap gap-2" aria-label="The melody as written">
+              {#each p.written as d, i (i)}
+                {@const t = String(i + 1)}
+                <li>
+                  <button
+                    type="button"
+                    class="written-note"
+                    style:--deg={degreeColor(d)}
+                    data-state={showAnswer && t === p.answer ? "expected" : showAnswer && rec && !rec.correct && rec.answered === t ? "answered" : null}
+                    aria-label="Note {t}, written {tokenLabel('scale-degree', d, labels)}"
+                    disabled={step === "feedback"}
+                    onclick={() => choose(t)}
+                  >
+                    <span class="font-semibold">{labels === "solfege" ? tokenLabel("scale-degree", d, "solfege") : d}</span>
+                    <span class="text-xs">{showAnswer && t === p.answer ? "✓ wrong" : showAnswer && rec?.answered === t ? "✕" : t}</span>
+                  </button>
+                </li>
+              {/each}
+              {#if p.choices.includes("none")}
+                <li><button type="button" class="choice min-h-12 rounded-xl px-3 text-sm font-semibold" disabled={step === "feedback"} onclick={() => choose("none")}>No wrong note</button></li>
+              {/if}
+            </ol>
           {:else if answer === "choice" && (p.drill === "progression" || p.drill === "bass-line")}
             {@render progressionSlots(p)}
             <div class="grid grid-cols-4 gap-2 sm:grid-cols-8">
@@ -1572,6 +1603,27 @@
     border-radius: 0.8rem;
     background: var(--deg);
     color: oklch(0.2 0.04 287);
+  }
+  .written-note {
+    display: grid;
+    justify-items: center;
+    min-width: 3.2rem;
+    min-height: 3.2rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.8rem;
+    border: 2px solid transparent;
+    background: var(--deg);
+    color: oklch(0.2 0.04 287);
+  }
+  .written-note:not(:disabled):hover {
+    filter: brightness(1.1);
+  }
+  .written-note[data-state="expected"] {
+    border-color: var(--success);
+  }
+  .written-note[data-state="answered"] {
+    border-color: var(--destructive);
+    border-style: dashed;
   }
   .slot {
     display: grid;

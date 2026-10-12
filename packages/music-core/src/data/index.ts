@@ -641,6 +641,14 @@ APP_SKILLS.push({
   tags: ["ear", "intonation"],
   version: 1,
 });
+APP_SKILLS.push({
+  id: "ear.error-detection",
+  name: "Spotting a wrong note",
+  capability: "pitch",
+  level: "early-intermediate",
+  tags: ["ear", "melody", "error-detection"],
+  version: 1,
+});
 const APP_RELATIONSHIPS: SkillRelationship[] = [
   ...POSITION_NAMES.map(([t]) => ({
     from: "ear.inversions",

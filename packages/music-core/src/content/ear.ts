@@ -17,6 +17,7 @@ export type EarDrillKind =
   | "inversion"
   | "bass-line"
   | "pitch-compare"
+  | "error-detect"
   | "scale-degree"
   | "melody-dictation"
   | "repertoire-transfer";
@@ -135,6 +136,17 @@ const CHORD_FUNCTION_DRILLS = [
     usesLabels: false,
     queueMode: "balanced",
     skillIds: ["ear.fine-pitch"],
+  },
+  {
+    slug: "wrong-note",
+    title: "Spot the wrong note",
+    description: "A written melody plays with one note changed: which one?",
+    drill: "error-detect",
+    answerModes: ["choice"],
+    usesScaleDegreeLevel: true,
+    usesLabels: true,
+    queueMode: "balanced",
+    skillIds: ["ear.error-detection"],
   },
 ] as const;
 type DrillRow = (typeof EAR_TRAINING.drills)[number];
@@ -1071,6 +1083,50 @@ export function melodyDictationPrompt(
     choices: [],
     difficulty: opts.difficulty,
     expectedMidi: midi,
+  };
+}
+
+/**
+ * A melody written in degrees (`written`), heard after its tonic with one
+ * note changed; the answer is that note's place, 1-based. Four notes below
+ * difficulty 0.4, six below 0.7, else eight. The change is a step to the
+ * level's next degree below 0.7, else a semitone; from 0.6 one melody in
+ * five is played as written ("none").
+ */
+export function errorDetectPrompt(
+  rand: Rand,
+  opts: { difficulty: number; level: string },
+): EarPrompt & { written: string[] } {
+  const degrees = levelDegrees(opts.level);
+  const length = opts.difficulty < 0.4 ? 4 : opts.difficulty < 0.7 ? 6 : 8;
+  const written: string[] = [pick(rand, degrees.includes("1") ? ["1"] : degrees)];
+  while (written.length < length) {
+    const fresh = degrees.filter((d) => d !== written.at(-1));
+    written.push(pick(rand, fresh.length ? fresh : degrees));
+  }
+  const tonic = earRoot(rand);
+  const midi = written.map((d) => tonic + degreeOf(d).semitones);
+  const none = opts.difficulty >= 0.6 && rand() < 0.2;
+  const at = none ? -1 : randInt(rand, 1, length - 1); // never the first note, which follows the tonic
+  const heard = [...midi];
+  if (at >= 0) {
+    if (opts.difficulty < 0.7 && degrees.length > 1) {
+      // The level's neighbouring degree, up or down.
+      const i = degrees.indexOf(written[at] as DegreeLabel);
+      const j = i <= 0 ? 1 : i >= degrees.length - 1 ? i - 1 : rand() < 0.5 ? i - 1 : i + 1;
+      heard[at] = tonic + degreeOf(degrees[j]).semitones;
+    } else heard[at] = midi[at] + (rand() < 0.5 ? -1 : 1);
+  }
+  return {
+    id: `wrong-note-${written.join("_")}-${at}-${tonic}`,
+    drill: "error-detect",
+    skillIds: ["ear.error-detection"],
+    playback: phrasePlayback(tonic, heard),
+    answer: none ? "none" : String(at + 1),
+    choices: [...written.map((_, i) => String(i + 1)), ...(opts.difficulty >= 0.6 ? ["none"] : [])],
+    difficulty: opts.difficulty,
+    expectedMidi: midi,
+    written,
   };
 }
 

@@ -107,6 +107,7 @@ test.describe("ear training", () => {
       ["inversions", "Inversions"],
       ["bass-lines", "Bass lines"],
       ["fine-pitch", "Fine pitch"],
+      ["wrong-note", "Spot the wrong note"],
       ["scale-degrees", "Scale degrees"],
       ["melody-dictation", "Melody dictation"],
       ["repertoire-transfer", "Repertoire transfer"],
@@ -505,6 +506,31 @@ test.describe("ear training", () => {
     await answerIt(false);
     await expect(card).toContainText("50 cents off");
     await shots(page, "ear-fine-pitch");
+  });
+
+  test("spot the wrong note: tap the written note that sounded different", async ({ page }) => {
+    await page.goto("/music/ear/wrong-note");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    await waitStep(page, "answer");
+    const written = page.getByRole("list", { name: "The melody as written" }).getByRole("button");
+    await expect(written).toHaveCount(4);
+    const wrongAt = (await card.getAttribute("data-answer"))!;
+    // Tap a note that was played right first.
+    const other = wrongAt === "2" ? "3" : "2";
+    await page.getByRole("button", { name: new RegExp(`^Note ${other}, written`) }).click();
+    await waitStep(page, "feedback");
+    await expect(card).toContainText(`It was Note ${wrongAt}. You answered Note ${other}.`);
+    await expect(
+      page.getByRole("button", { name: new RegExp(`^Note ${wrongAt}, written`) }),
+    ).toContainText("✓ wrong");
+    await shots(page, "ear-wrong-note");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await waitStep(page, "answer");
+    const next = (await card.getAttribute("data-answer"))!;
+    await page.getByRole("button", { name: new RegExp(`^Note ${next}, written`) }).click();
+    await waitStep(page, "feedback");
+    await expect(card).toContainText(`Right: Note ${next}.`);
   });
 
   test("scale degrees: an easy level offers the next one", async ({ page }) => {

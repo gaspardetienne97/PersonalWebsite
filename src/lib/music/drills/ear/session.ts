@@ -25,6 +25,7 @@ import {
   BASS_PATTERNS,
   bassLinePrompt,
   CENT_STEPS,
+  errorDetectPrompt,
   finePitchPrompt,
   scalePrompt,
   type ScaleDirection,
@@ -61,6 +62,7 @@ export type EarKind =
   | "inversion"
   | "bass-line"
   | "pitch-compare"
+  | "error-detect"
   | "scale-degree"
   | "melody-dictation";
 export type LabelMode = "degree" | "solfege";
@@ -161,6 +163,8 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
         token: x.token,
         skillId: `ear.scale.${x.token}`,
       }));
+    case "error-detect":
+      return [{ kind, token: "melody", skillId: "ear.error-detection" }];
     case "pitch-compare":
       // One target: the drill page steps the cents itself (a staircase).
       return [{ kind, token: "pitch", skillId: "ear.fine-pitch" }];
@@ -266,6 +270,8 @@ export function promptFor(
         choices: focus?.tokens && picked.length >= 2 ? picked.map((x) => x.token) : undefined,
       });
     }
+    case "error-detect":
+      return errorDetectPrompt(rand, { difficulty, level });
     case "pitch-compare":
       return finePitchPrompt(rand, { difficulty, cents: CENT_STEPS[0] });
     case "bass-line":
@@ -427,6 +433,7 @@ export const KIND_LABEL: Record<EarKind, string> = {
   inversion: "Inversions",
   "bass-line": "Bass lines",
   "pitch-compare": "Fine pitch",
+  "error-detect": "Spot the wrong note",
   progression: "Progressions",
   "scale-degree": "Scale degrees",
   "melody-dictation": "Melody dictation",
@@ -450,6 +457,7 @@ export function tokenLabel(
     return c ? `${c.label} (${c.romanProgression.join(" to ")})` : token;
   }
   if (kind === "chord-function") return functionLabel(token);
+  if (kind === "error-detect") return token === "none" ? "No wrong note" : `Note ${token}`;
   if (kind === "pitch-compare")
     return token === "higher" ? "Higher" : token === "lower" ? "Lower" : "In tune";
   if (kind === "bass-line") return token.split(" ").join(", ");
