@@ -215,6 +215,72 @@ test.describe("ear training", () => {
     await expect(page.getByRole("status")).toContainText("Added the perfect 4th. 4 intervals now.");
   });
 
+  test("chords, cadences and degrees: a wrong answer is shown and played beside the right one", async ({
+    page,
+  }) => {
+    // Chord qualities start on major and minor; a set picks more.
+    await page.goto("/music/ear/chord-qualities?answer=choice");
+    await page.getByRole("button", { name: "Change setup" }).click();
+    await expect(
+      page
+        .getByRole("group", { name: "Quality sets" })
+        .getByRole("button", { name: "Major and minor" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page
+      .getByRole("group", { name: "Quality sets" })
+      .getByRole("button", { name: "Triads" })
+      .click();
+    await expect(page.getByText("Setup:").locator("..")).toContainText("triads");
+    await page
+      .getByRole("group", { name: "Quality sets" })
+      .getByRole("button", { name: "Major and minor" })
+      .click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    let card = prompt(page);
+    const chord = (await card.getAttribute("data-answer"))!;
+    await expect(page.locator("button.choice")).toHaveCount(2);
+    const wrongChord = chord === "major" ? "Minor" : "Major";
+    await page.locator("button.choice", { hasText: new RegExp(`^${wrongChord}`) }).click();
+    await waitStep(page, "feedback");
+    let captions = card.locator("figure.staff-card figcaption");
+    await expect(captions).toHaveCount(2);
+    await expect(captions.nth(0)).toContainText(
+      `Played: ${chord === "major" ? "Major: M3, m3" : "Minor: m3, M3"}`,
+    );
+    await expect(captions.nth(1)).toContainText(
+      `You chose: ${wrongChord === "Major" ? "Major: M3, m3" : "Minor: m3, M3"}`,
+    );
+    await expect(card.getByRole("button", { name: /^Hear both again: / })).toBeVisible();
+    await shots(page, "ear-chord-mistake");
+
+    // Cadences: in the same key.
+    await page.goto("/music/ear/cadences?answer=choice");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    card = prompt(page);
+    const cadence = (await card.getAttribute("data-answer"))!;
+    const other = cadence === "authentic" ? "Plagal" : "Authentic";
+    await page.locator("button.choice", { hasText: new RegExp(`^${other}`) }).click();
+    await waitStep(page, "feedback");
+    captions = card.locator("figure.staff-card figcaption");
+    await expect(captions.nth(1)).toContainText(
+      `You chose: ${other}, ${other === "Plagal" ? "IV to I" : "V to I"}`,
+    );
+
+    // Scale degrees: over the same tonic, as pictures with their captions.
+    await page.goto("/music/ear/scale-degrees?answer=choice&level=major-diatonic");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    card = prompt(page);
+    const degree = (await card.getAttribute("data-answer"))!;
+    const wrongDegree = degree === "5" ? "4" : "5";
+    await page
+      .getByRole("group", { name: "Scale degrees" })
+      .getByRole("button", { name: new RegExp(`^${wrongDegree} `) })
+      .click();
+    await waitStep(page, "feedback");
+    await expect(card.getByText(/^Played: /)).toBeVisible();
+    await expect(card.getByText(new RegExp(`^You chose: ${wrongDegree}`))).toBeVisible();
+  });
+
   test("intervals: practise a few at a time, in one direction", async ({ page }) => {
     await page.goto("/music/ear/intervals?answer=choice");
     await page.getByRole("button", { name: "Change setup" }).click();

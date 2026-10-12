@@ -2,8 +2,8 @@
   // What the prompt sounds like, as a picture. While you listen and answer it
   // shows only the shape in time (one bar per note or chord, lit as it plays,
   // all at one height, so it never gives the answer away). Revealed, every
-  // note rises to its pitch and the drill's own picture appears: intervals on a
-  // staff, a chord's stacked gaps, a cadence's numerals, degrees in their
+  // note rises to its pitch and the drill's own picture appears: intervals,
+  // chords and cadences on a grand staff (named underneath), degrees in their
   // colours with a melody's contour.
   import { pc } from "@repo/music-core";
   import { SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
@@ -12,21 +12,22 @@
   import type { Score } from "@repo/music-core";
   import Staff from "$lib/music/notation/Staff.svelte";
   import { degreeColor } from "./degrees";
+  import { tokenLabel } from "./session";
 
   let {
     prompt,
     revealed,
     active = -1,
     labels = "numbers",
-    chosen,
+    prefix,
   }: {
     prompt: EarPrompt;
     revealed: boolean;
     /** The playback event sounding now, or -1. */
     active?: number;
     labels?: "numbers" | "solfege";
-    /** After a wrong interval: the one you chose, from the same first note, shown beside what was played. */
-    chosen?: EarPrompt["playback"];
+    /** Leads the caption, e.g. "Played" or "You chose" when a mistake is shown beside the answer. */
+    prefix?: string;
   } = $props();
 
   // Drawn at the box's own pixel width; taller when the notes span more pitches.
@@ -50,18 +51,6 @@
   const usesDegrees = $derived(["scale-degree", "melody-dictation", "repertoire-transfer"].includes(prompt.drill));
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
-  // The drill's own marks, drawn once revealed.
-  const romans = $derived(
-    prompt.drill === "cadence" ? (CADENCES_AND_QUALITIES.cadences.find((c) => c.token === prompt.answer)?.romanProgression ?? []) : [],
-  );
-  const gaps = $derived(
-    prompt.drill === "chord-quality"
-      ? events.flatMap((e) => {
-          const s = [...e.midi].sort((a, b) => a - b);
-          return s.slice(1).map((m, i) => ({ t: e.time + e.duration, lo: s[i], hi: m, label: shortInterval(m - s[i]) }));
-        })
-      : [],
-  );
   const contour = $derived(
     usesDegrees && events.length > 2
       ? events
@@ -70,46 +59,49 @@
           .join(" ")
       : "",
   );
-  // Intervals read best as notes on a staff: each interval its own 2/4 bar,
-  // two quarter notes (or one chord), named underneath.
-  const onStaff = $derived(prompt.drill === "interval" || prompt.drill === "interval-compare");
-  const intervals = $derived.by(() => {
-    if (!onStaff) return [];
-    const half = prompt.drill === "interval-compare" ? events.length / 2 : events.length;
-    const groups =
-      prompt.drill === "interval-compare"
-        ? [events.slice(0, half), events.slice(half)]
-        : chosen
-          ? [events, chosen]
-          : [events];
-    return groups.map((g) => {
-      const ms = g.flatMap((e) => e.midi);
-      const semis = Math.abs(ms[ms.length - 1] - ms[0]);
-      return { events: g, semis, name: semis === 0 ? "Perfect unison" : (intervalBySemitones(semis)?.name ?? `${semis} semitones`) };
-    });
-  });
-  // One small grand staff per interval (its own 2/4 bar), split at middle C as a
-  // pianist reads it, so each name sits under its notes.
+  // Intervals, chords and cadences read best as notes: a small grand staff each
+  // (split at middle C, as a pianist reads it), named underneath. A comparison
+  // gets one staff per interval.
+  const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
+  const CADENCES = CADENCES_AND_QUALITIES.cadences;
+  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence"].includes(prompt.drill));
+  const groups = $derived(
+    !onStaff ? [] : prompt.drill === "interval-compare" ? [events.slice(0, events.length / 2), events.slice(events.length / 2)] : [events],
+  );
+  function describe(g: EarPrompt["playback"]): string {
+    const ms = g.flatMap((e) => e.midi);
+    if (prompt.drill === "chord-quality") {
+      const s = [...ms].sort((a, b) => a - b);
+      const name = QUALITIES.find((q) => q.token === prompt.answer)?.label ?? prompt.answer;
+      return `${name}: ${s.slice(1).map((m, i) => shortInterval(m - s[i])).join(", ")}`;
+    }
+    if (prompt.drill === "cadence") {
+      const c = CADENCES.find((x) => x.token === prompt.answer);
+      return c ? `${c.label}, ${c.romanProgression.join(" to ")}` : prompt.answer;
+    }
+    const semis = Math.abs(ms[ms.length - 1] - ms[0]);
+    const name = semis === 0 ? "Perfect unison" : (intervalBySemitones(semis)?.name ?? `${semis} semitones`);
+    return `${name}, ${semis} semitone${semis === 1 ? "" : "s"}`;
+  }
+  const lead = (k: number) => (prompt.drill === "interval-compare" ? (k === 0 ? "First" : "Second") : prefix);
   const staffScores = $derived(
-    intervals.map(
-      (iv, k): Score => ({
+    groups.map((g, k): Score => {
+      const one = g.length === 1;
+      return {
         id: `${prompt.id}-${k}`,
         title: "",
         bpm: 60,
-        meter: { beats: 2, beatUnit: 4 },
+        meter: { beats: one ? 2 : Math.max(2, g.length), beatUnit: 4 },
         voices: [
           {
             id: "v",
-            name: "Interval",
-            notes:
-              iv.events.length === 1
-                ? iv.events[0].midi.map((midi) => ({ midi, startBeat: 0, durationBeats: 2 }))
-                : iv.events.map((e, n) => ({ midi: e.midi[0], startBeat: n, durationBeats: 1 })),
+            name: "Notes",
+            notes: g.flatMap((e, n) => e.midi.map((midi) => ({ midi, startBeat: one ? 0 : n, durationBeats: one ? 2 : 1 }))),
           },
         ],
-        lengthBeats: 2,
-      }),
-    ),
+        lengthBeats: one ? 2 : Math.max(2, g.length),
+      };
+    }),
   );
   const degreeText = (m: number) => {
     const d = degreeOf(m);
@@ -118,11 +110,11 @@
 </script>
 
 {#if revealed && onStaff}
-  <div class="grid gap-3 {intervals.length > 1 ? 'sm:grid-cols-2' : ''}">
-    {#each intervals as iv, k (k)}
-      <figure class="staff-card flex flex-col items-center rounded-xl bg-ws-surface px-3 pb-2 pt-1 text-ws-ink" aria-label="{intervals.length > 1 ? (chosen ? (k === 0 ? 'Played interval' : 'Interval you chose') : k === 0 ? 'First interval' : 'Second interval') : 'The interval'} on the staff">
-        <div class="w-full max-w-64"><Staff score={staffScores[k]} grand maxHeight="14rem" /></div>
-        <figcaption class="text-center text-sm font-semibold">{intervals.length > 1 ? (chosen ? (k === 0 ? "Played: " : "You chose: ") : k === 0 ? "First: " : "Second: ") : ""}{iv.name}, {iv.semis} semitone{iv.semis === 1 ? "" : "s"}</figcaption>
+  <div class="grid gap-3 {groups.length > 1 ? 'sm:grid-cols-2' : ''}">
+    {#each groups as g, k (k)}
+      <figure class="staff-card flex flex-col items-center rounded-xl bg-ws-surface px-3 pb-2 pt-1 text-ws-ink" aria-label="{lead(k) ?? 'The notes'} on the staff">
+        <div class="w-full max-w-72"><Staff score={staffScores[k]} grand maxHeight="14rem" /></div>
+        <figcaption class="text-center text-sm font-semibold">{lead(k) ? `${lead(k)}: ` : ""}{describe(g)}</figcaption>
       </figure>
     {/each}
   </div>
@@ -155,9 +147,6 @@
           {/if}
         </g>
       {/each}
-      {#if romans[ei]}
-        <text class="roman" x={x(e.time + e.duration / 2)} y={H - 6} text-anchor="middle">{romans[ei]}</text>
-      {/if}
     {:else}
       <!-- One bar per event, whatever it holds: the shape in time, not the notes. -->
       <rect class="shape" class:on x={x(e.time)} y={mid - 9} width={Math.max(8, x(e.time + e.duration) - x(e.time) - 3)} height="18" rx="9" />
@@ -165,12 +154,8 @@
   {/each}
 
 
-  {#if revealed}
-    {#each gaps as g, gi (gi)}
-      <text class="gap" x={x(g.t) + 6} y={(yOf(g.lo) + yOf(g.hi)) / 2 + 4}>{g.label}</text>
-    {/each}
-  {/if}
 </svg>
+{#if revealed && prefix}<p class="mt-1 text-center text-sm font-semibold">{prefix}: {tokenLabel(prompt.drill, prompt.answer, labels === "solfege" ? "solfege" : "degree")}</p>{/if}
 </div>
 {/if}
 
@@ -210,19 +195,10 @@
   .note rect.on {
     filter: drop-shadow(0 0 8px currentColor) brightness(1.25);
   }
-  .tag,
-  .gap,
-  .roman {
+  .tag {
     font-size: 13px;
     font-weight: 700;
     fill: var(--ws-stage-ink);
-  }
-  .roman {
-    font-family: var(--font-display, inherit);
-    font-size: 15px;
-  }
-  .gap {
-    fill: var(--instr);
   }
   .contour {
     fill: none;

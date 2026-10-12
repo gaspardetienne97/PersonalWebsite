@@ -29,7 +29,7 @@ describe("ear sessions", () => {
       kinds: ["interval"],
       mode: "balanced",
       rand: rng(3),
-      focus: { intervals: ["P1", "M3", "P5"], direction: "descending" },
+      focus: { tokens: ["P1", "M3", "P5"], direction: "descending" },
     });
     expect(p).toHaveLength(10);
     expect(new Set(p.map((x) => x.answer))).toEqual(new Set(["P1", "M3", "P5"]));
@@ -42,14 +42,15 @@ describe("ear sessions", () => {
       kinds: ["interval"],
       mode: "balanced",
       rand: rng(4),
-      focus: { intervals: ["P5"] },
+      focus: { tokens: ["P5"] },
     });
     expect(one.every((x) => x.answer === "P5")).toBe(true);
     expect(one[0].choices).toHaveLength(12);
   });
 
   it("asks every picked interval once, then the weak ones more often, never twice in a row", () => {
-    const focus = { intervals: ["M3", "P5", "P8"], accuracy: { M3: 0.2, P5: 1, P8: 1 } };
+    const focus = { tokens: ["M3", "P5", "P8"] };
+    const accuracy = { "pitch.interval.M3": 0.2, "pitch.interval.P5": 1, "pitch.interval.P8": 1 };
     let weak = 0;
     let total = 0;
     for (let seed = 1; seed <= 30; seed++) {
@@ -59,6 +60,7 @@ describe("ear sessions", () => {
         mode: "balanced",
         rand: rng(seed),
         focus,
+        accuracy,
       });
       expect(new Set(p.slice(0, 3).map((x) => x.answer))).toEqual(new Set(["M3", "P5", "P8"]));
       p.slice(3).forEach((x, i) => expect(x.answer).not.toBe(p[i + 2].answer));
@@ -74,9 +76,23 @@ describe("ear sessions", () => {
       kinds: ["interval"],
       mode: "balanced",
       rand: rng(9),
-      focus: { intervals: ["M3", "P5"], root: 62 },
+      focus: { tokens: ["M3", "P5"], root: 62 },
     });
     expect(fixed.every((x) => x.expectedMidi![0] === 62)).toBe(true);
+  });
+
+  it("narrows chord qualities to the ones picked, sevenths included, and weights the weak ones", () => {
+    const p = buildSession({
+      ...base,
+      kinds: ["chord-quality"],
+      mode: "balanced",
+      rand: rng(5),
+      focus: { tokens: ["major", "minor", "dominant-7"] },
+      accuracy: { "harmony.triad.minor": 0 },
+    });
+    expect(new Set(p.map((x) => x.answer))).toEqual(new Set(["major", "minor", "dominant-7"]));
+    expect(p.every((x) => x.choices.join() === "major,minor,dominant-7")).toBe(true);
+    expect(p.filter((x) => x.answer === "minor").length).toBeGreaterThanOrEqual(3);
   });
 
   it("uses presented difficulty once a skill has mastery", () => {

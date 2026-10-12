@@ -6,6 +6,7 @@
   import { page } from "$app/state";
   import type { Assistance, InputSource, Label, Metric, NoteEvent } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
+  import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
   import {
     EAR_DEFAULT_CONFIG,
     EAR_DRILLS,
@@ -57,6 +58,7 @@
     perKind,
     retryPrompts,
     shortLabel,
+    targetsFor,
     tokenLabel,
     type AnswerRecord,
     type EarKind,
@@ -97,6 +99,7 @@
     drill: "all" as string,
     // Intervals drill: which intervals (comma list, empty for the twelve) and which way.
     intervals: "M3,P5,P8" as string,
+    qualities: "major,minor" as string,
     direction: "auto" as string,
     root: "random" as string,
   });
@@ -113,59 +116,106 @@
     return answer === "play-back" ? picked.filter((k) => k !== "cadence") : picked;
   });
 
-  // Practise a few intervals at a time instead of all twelve at once.
+  // Practise a few items at a time (intervals, chord qualities) instead of all at once:
+  // small, far-apart sets first, the way most trainers start, then wider ones.
+  const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
+  const CADENCES = CADENCES_AND_QUALITIES.cadences;
   const TWELVE = EAR_INTERVALS.filter((i) => i.token !== "P1").map((i) => i.token as string);
-  // Small, far-apart sets first (the way most trainers start), then wider ones.
-  const INTERVAL_SETS = [
-    { label: "Starter", tokens: ["P5", "P8"] },
-    { label: "First steps", tokens: ["M3", "P5", "P8"] },
-    { label: "Perfect", tokens: ["P1", "P4", "P5", "P8"] },
-    { label: "Thirds and sixths", tokens: ["m3", "M3", "m6", "M6"] },
-    { label: "Seconds and sevenths", tokens: ["m2", "M2", "m7", "M7"] },
-    { label: "Major scale", tokens: ["M2", "M3", "P4", "P5", "M6", "M7", "P8"] },
-    { label: "All twelve", tokens: TWELVE },
-  ];
-  /** The order intervals are offered once a set feels easy. */
-  const LADDER = ["P8", "P5", "M3", "P4", "m3", "M6", "M2", "m7", "m6", "M7", "m2", "TT"];
-  const ROOTS = [{ value: "random", label: "Random" }, ...Array.from({ length: 24 }, (_, i) => ({ value: String(48 + i), label: noteName(48 + i, "flat") }))];
-  const intervalName = (t: string) => EAR_INTERVALS.find((i) => i.token === t)?.name ?? t;
-  /** Accuracy so far per interval, practice and check together, to ask the weak ones more. */
-  const intervalAccuracy = $derived.by(() => {
-    const all = skillSummaries(practice.stats);
-    const out: Record<string, number> = {};
-    for (const t of TWELVE) {
-      const sum = all[`pitch.interval.${t}`];
-      if (sum?.attempts) out[t] = sum.accuracy;
-    }
-    return out;
+  const QUALITY_SHORT: Record<string, string> = {
+    major: "maj",
+    minor: "min",
+    diminished: "dim",
+    augmented: "aug",
+    "major-7": "maj7",
+    "dominant-7": "7",
+    "minor-7": "m7",
+    "half-diminished-7": "m7♭5",
+    "diminished-7": "dim7",
+  };
+  interface ItemSets {
+    key: "intervals" | "qualities";
+    title: string;
+    unit: string;
+    items: { token: string; short: string; name: string }[];
+    /** When nothing is listed. */
+    fallback: string[];
+    sets: { label: string; tokens: string[] }[];
+    /** The order items are offered once a set feels easy. */
+    ladder: string[];
+  }
+  const SETS: ItemSets | null =
+    slug === "intervals"
+      ? {
+          key: "intervals",
+          title: "Intervals to practise",
+          unit: "intervals",
+          items: EAR_INTERVALS.map((i) => ({ token: i.token, short: i.token, name: i.name })),
+          fallback: TWELVE,
+          sets: [
+            { label: "Starter", tokens: ["P5", "P8"] },
+            { label: "First steps", tokens: ["M3", "P5", "P8"] },
+            { label: "Perfect", tokens: ["P1", "P4", "P5", "P8"] },
+            { label: "Thirds and sixths", tokens: ["m3", "M3", "m6", "M6"] },
+            { label: "Seconds and sevenths", tokens: ["m2", "M2", "m7", "M7"] },
+            { label: "Major scale", tokens: ["M2", "M3", "P4", "P5", "M6", "M7", "P8"] },
+            { label: "All twelve", tokens: TWELVE },
+          ],
+          ladder: ["P8", "P5", "M3", "P4", "m3", "M6", "M2", "m7", "m6", "M7", "m2", "TT"],
+        }
+      : slug === "chord-qualities"
+        ? {
+            key: "qualities",
+            title: "Chord qualities to practise",
+            unit: "qualities",
+            items: QUALITIES.map((q) => ({ token: q.token, short: QUALITY_SHORT[q.token] ?? q.token, name: q.label })),
+            fallback: QUALITIES.map((q) => q.token),
+            sets: [
+              { label: "Major and minor", tokens: ["major", "minor"] },
+              { label: "Triads", tokens: ["major", "minor", "diminished", "augmented"] },
+              { label: "Sevenths", tokens: ["major-7", "dominant-7", "minor-7", "half-diminished-7", "diminished-7"] },
+              { label: "Everything", tokens: QUALITIES.map((q) => q.token) },
+            ],
+            ladder: ["major", "minor", "diminished", "augmented", "dominant-7", "major-7", "minor-7", "half-diminished-7", "diminished-7"],
+          }
+        : null;
+  const itemName = (t: string) => SETS?.items.find((i) => i.token === t)?.name ?? t;
+  const picked = $derived.by(() => {
+    if (!SETS) return [];
+    const listed = s[SETS.key].split(",").filter((t) => SETS.items.some((i) => i.token === t));
+    return listed.length ? SETS.items.map((i) => i.token).filter((t) => listed.includes(t)) : SETS.fallback;
   });
+  function setItems(tokens: string[]) {
+    if (SETS) cfg.set({ [SETS.key]: SETS.items.map((i) => i.token).filter((t) => tokens.includes(t)).join(",") });
+  }
+  function toggleItem(t: string) {
+    const on = picked.includes(t);
+    if (on && picked.length === 1) return; // keep at least one
+    setItems(on ? picked.filter((x) => x !== t) : [...picked, t]);
+  }
+  const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
+
+  const ROOTS = [{ value: "random", label: "Random" }, ...Array.from({ length: 24 }, (_, i) => ({ value: String(48 + i), label: noteName(48 + i, "flat") }))];
   const DIRECTIONS = [
     { value: "auto", label: "Mixed" },
     { value: "ascending", label: "Up" },
     { value: "descending", label: "Down" },
     { value: "harmonic", label: "Together" },
   ];
-  const pickedIntervals = $derived.by(() => {
-    const listed = s.intervals.split(",").filter((t) => EAR_INTERVALS.some((i) => i.token === t));
-    return listed.length ? EAR_INTERVALS.map((i) => i.token as string).filter((t) => listed.includes(t)) : TWELVE;
+  /** Accuracy so far by skill, practice and check together: the weak ones are asked more. */
+  const accuracy = $derived.by(() => {
+    const out: Record<string, number> = {};
+    for (const [id, sum] of Object.entries(skillSummaries(practice.stats))) if (sum.attempts) out[id] = sum.accuracy;
+    return out;
   });
   const focus = $derived(
-    slug === "intervals"
+    SETS
       ? {
-          intervals: pickedIntervals,
-          direction: s.direction === "auto" ? undefined : (s.direction as "ascending" | "descending" | "harmonic"),
-          root: s.root === "random" ? undefined : Number(s.root),
-          accuracy: intervalAccuracy,
+          tokens: picked,
+          direction: slug === "intervals" && s.direction !== "auto" ? (s.direction as "ascending" | "descending" | "harmonic") : undefined,
+          root: slug === "intervals" && s.root !== "random" ? Number(s.root) : undefined,
         }
       : undefined,
   );
-  function toggleInterval(t: string) {
-    const on = pickedIntervals.includes(t);
-    if (on && pickedIntervals.length === 1) return; // keep at least one
-    const next = on ? pickedIntervals.filter((x) => x !== t) : [...pickedIntervals, t];
-    cfg.set({ intervals: EAR_INTERVALS.map((i) => i.token as string).filter((x) => next.includes(x)).join(",") });
-  }
-  const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -190,23 +240,49 @@
   let litDegree = $state<string | null>(null);
   /** The playback event sounding now (for the picture), or -1. */
   let sounding = $state(-1);
-  /** After a wrong interval: what was played, then what you chose from the same first note. */
-  let mistake = $state.raw<{ token: string; chosen: Prompt["playback"]; both: Prompt } | null>(null);
-  function showMistake(p: Prompt, chosenToken: string) {
-    const semis = EAR_INTERVALS.find((i) => i.token === chosenToken)?.semitones;
-    if (semis === undefined || !p.expectedMidi) return;
-    const first = p.expectedMidi[0];
-    const dir = p.direction ?? "ascending";
-    const second = dir === "descending" ? first - semis : first + semis;
-    const end = Math.max(...p.playback.map((e) => e.time + e.duration)) + 0.9;
-    const chosen =
-      dir === "harmonic"
-        ? [{ midi: [first, second], time: end, duration: 0.8 }]
+  /** After a wrong answer: what was played, then what you chose, from the same note, root, key or tonic. */
+  let mistake = $state.raw<{ token: string; chosen: Prompt; both: Prompt } | null>(null);
+  /** The prompt the chosen answer would have been, built from the same starting point. */
+  function asChosen(p: Prompt, token: string): Prompt["playback"] | null {
+    if (p.drill === "interval") {
+      const semis = EAR_INTERVALS.find((i) => i.token === token)?.semitones;
+      if (semis === undefined || !p.expectedMidi) return null;
+      const first = p.expectedMidi[0];
+      const dir = p.direction ?? "ascending";
+      const second = dir === "descending" ? first - semis : first + semis;
+      return dir === "harmonic"
+        ? [{ midi: [first, second], time: 0, duration: 0.8 }]
         : [
-            { midi: [first], time: end, duration: 0.55 },
-            { midi: [second], time: end + 0.65, duration: 0.55 },
+            { midi: [first], time: 0, duration: 0.55 },
+            { midi: [second], time: 0.65, duration: 0.55 },
           ];
-    mistake = { token: chosenToken, chosen, both: { ...p, id: `${p.id}-vs-${chosenToken}`, playback: [...p.playback, ...chosen] } };
+    }
+    if (p.drill === "chord-quality") {
+      const q = QUALITIES.find((x) => x.token === token);
+      const root = p.expectedMidi ? Math.min(...p.expectedMidi) : null;
+      return q && root !== null ? [{ midi: q.intervals.map((i) => root + i), time: 0, duration: 0.9 }] : null;
+    }
+    if (p.drill === "cadence") {
+      const c = CADENCES.find((x) => x.token === token);
+      const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
+      return c ? c.playback.map((e) => ({ midi: e.midiNotes.map((m) => m + shift), time: e.offsetSeconds, duration: e.durationSeconds })) : null;
+    }
+    if (p.drill === "scale-degree") {
+      const semis = SCALE_DEGREES.find((d) => d.label === token)?.semitones;
+      const tonic = tonicOf(p);
+      return semis === undefined ? null : [p.playback[0], { midi: [tonic + semis], time: p.playback[1].time, duration: p.playback[1].duration }];
+    }
+    return null;
+  }
+  function showMistake(p: Prompt, token: string) {
+    const chosen = asChosen(p, token);
+    if (!chosen) return;
+    const after = Math.max(...p.playback.map((e) => e.time + e.duration)) + 0.9;
+    mistake = {
+      token,
+      chosen: { ...p, id: `${p.id}-chose-${token}`, answer: token, playback: chosen },
+      both: { ...p, id: `${p.id}-vs-${token}`, playback: [...p.playback, ...chosen.map((e) => ({ ...e, time: e.time + after }))] },
+    };
     setTimeout(() => mistake && playPrompt(mistake.both), 500);
   }
   let demo = $state<{ answer: string; kind: string } | null>(null);
@@ -327,7 +403,7 @@
 
   function sample(): Prompt | null {
     if (slug === "repertoire-transfer") return planPhrases[0] ? { ...repertoirePrompt(planPhrases[0]), phrase: planPhrases[0] } : null;
-    return buildSession({ kinds, level, mode: "balanced", mastery: practice.mastery, summaries: {}, now: Date.now(), rand, length: 1, focus })[0] ?? null;
+    return buildSession({ kinds, level, mode: "balanced", mastery: practice.mastery, summaries: {}, now: Date.now(), rand, length: 1, focus, accuracy })[0] ?? null;
   }
 
   async function playDemo() {
@@ -386,6 +462,7 @@
       now: Date.now(),
       rand,
       focus,
+      accuracy,
     });
   }
 
@@ -531,7 +608,7 @@
     step = "feedback";
     clearTimeout(chordTimer);
     records[i] = { kind: p.drill, expected: p.answer, answered, correct: g.correct, scored: true };
-    if (!g.correct && p.drill === "interval" && answer === "choice" && mode === "practice") showMistake(p, answered);
+    if (!g.correct && answer === "choice" && mode === "practice") showMistake(p, answered);
     const src: InputSource | "mixed" = answer === "choice" ? "click" : answer === "voice" ? "audio" : runSource(notes);
     await run?.attempt({
       promptId: p.id,
@@ -641,39 +718,52 @@
         : mode === "check"
           ? "Test run: no feedback during the run, so it counts toward mastery."
           : "Practice run with feedback after each answer. Switch to Check to count it.",
-      rows:
-        slug === "intervals"
-          ? pickedIntervals
-              .map((t) => ({ t, here: done.filter((r) => r.expected === t) }))
-              .filter((x) => x.here.length)
-              .map(({ t, here }) => {
-                const ok = here.filter((r) => r.correct).length;
-                const all = intervalAccuracy[t];
-                return { label: intervalName(t), value: ok / here.length, text: `${ok} of ${here.length}${all !== undefined ? `, ${Math.round(all * 100)}% overall` : ""}` };
-              })
-          : byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
+      rows: itemRows(done) ?? byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
     status = summary.headline;
-    if (slug === "intervals" && answer === "choice" && !pocket) void checkUnlock(done);
+    if (SETS && answer === "choice" && !pocket) void checkUnlock(done);
   }
 
-  // Once a set feels easy (about 90% of the last 20 answers), offer the next interval.
-  const RECENT_KEY = "music.ear-intervals.recent";
+  /** One results row per answer asked (an interval, a quality, a degree): this run and overall. */
+  function itemRows(done: AnswerRecord[]) {
+    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation") return null;
+    const kind = kinds[0];
+    const targets = targetsFor(kind, level, focus);
+    const order = (t: string) => {
+      const i = targets.findIndex((x) => x.token === t);
+      return i < 0 ? 99 : i;
+    };
+    return [...new Set(done.map((r) => r.expected))]
+      .sort((a, b) => order(a) - order(b))
+      .map((t) => {
+        const here = done.filter((r) => r.expected === t);
+        const ok = here.filter((r) => r.correct).length;
+        const skill = targets.find((x) => x.token === t)?.skillId ?? targets[0]?.skillId;
+        const all = skill ? accuracy[skill] : undefined;
+        return { label: tokenLabel(kind, t, labels), value: ok / here.length, text: `${ok} of ${here.length}${all !== undefined ? `, ${Math.round(all * 100)}% overall` : ""}` };
+      });
+  }
+
+  // Once a set feels easy (about 90% of the last 20 answers), offer the next item.
+  const RECENT_KEY = `music.ear-${slug}.recent`;
   let unlockNext = $state<string | null>(null);
+  /** "the perfect 4th", "diminished chords". */
+  const itemPhrase = (t: string) => (slug === "intervals" ? `the ${itemName(t).toLowerCase()}` : `${itemName(t).toLowerCase()} chords`);
   async function checkUnlock(done: AnswerRecord[]) {
-    const set = pickedIntervals.join(",");
+    if (!SETS) return;
+    const set = picked.join(",");
     const saved = await getSetting<{ set: string; results: boolean[] }>(RECENT_KEY, { set, results: [] });
     const results = [...(saved.set === set ? saved.results : []), ...done.map((r) => r.correct)].slice(-20);
     await putSetting(RECENT_KEY, { set, results });
     const right = results.filter(Boolean).length;
-    unlockNext = results.length >= 20 && right / results.length >= 0.9 ? (LADDER.find((t) => !pickedIntervals.includes(t)) ?? null) : null;
+    unlockNext = results.length >= 20 && right / results.length >= 0.9 ? (SETS.ladder.find((t) => !picked.includes(t)) ?? null) : null;
   }
   function addNext() {
-    if (!unlockNext) return;
-    const next = [...pickedIntervals, unlockNext];
-    cfg.set({ intervals: EAR_INTERVALS.map((i) => i.token as string).filter((t) => next.includes(t)).join(",") });
-    status = `Added the ${intervalName(unlockNext).toLowerCase()}. ${next.length} intervals now.`;
+    if (!unlockNext || !SETS) return;
+    const next = [...picked, unlockNext];
+    setItems(next);
+    status = `Added ${itemPhrase(unlockNext)}. ${next.length} ${SETS.unit} now.`;
     unlockNext = null;
   }
 
@@ -720,8 +810,8 @@
     [
       MODE_LABEL[answer],
       slug === "mixed" ? (kinds.length === 4 ? "all four drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
-      slug === "intervals"
-        ? `${INTERVAL_SETS.find((x) => sameSet(x.tokens, pickedIntervals))?.label.toLowerCase() ?? pickedIntervals.join(" ")}${s.direction === "auto" ? "" : `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}`}`
+      SETS
+        ? `${SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => SETS.items.find((i) => i.token === t)?.short ?? t).join(" ")}${slug === "intervals" && s.direction !== "auto" ? `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}` : ""}`
         : null,
       def.usesScaleDegreeLevel ? SCALE_DEGREE_LEVELS.find((l) => l.id === level)?.title : null,
       def.usesLabels ? (labels === "solfege" ? "solfège labels" : "degree labels") : null,
@@ -774,32 +864,34 @@
           onchange={(v) => cfg.set({ drill: v })}
         />
       {/if}
-      {#if slug === "intervals"}
-        <div class="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2" role="group" aria-labelledby="iv-label">
-          <span id="iv-label" class="font-medium">Intervals to practise</span>
-          <div class="flex flex-wrap gap-1.5" role="group" aria-label="Interval sets">
-            {#each INTERVAL_SETS as set (set.label)}
-              {@const on = sameSet(set.tokens, pickedIntervals)}
-              <button type="button" class="min-h-10 rounded-full border px-3 text-sm {on ? 'border-instr bg-instr-wash font-semibold' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => cfg.set({ intervals: set.tokens.join(",") })}>{set.label}</button>
+      {#if SETS}
+        <div class="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2" role="group" aria-labelledby="items-label">
+          <span id="items-label" class="font-medium">{SETS.title}</span>
+          <div class="flex flex-wrap gap-1.5" role="group" aria-label="{slug === 'intervals' ? 'Interval' : 'Quality'} sets">
+            {#each SETS.sets as set (set.label)}
+              {@const on = sameSet(set.tokens, picked)}
+              <button type="button" class="min-h-10 rounded-full border px-3 text-sm {on ? 'border-instr bg-instr-wash font-semibold' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => setItems(set.tokens)}>{set.label}</button>
             {/each}
           </div>
           <div class="flex flex-wrap gap-1.5">
-            {#each EAR_INTERVALS as iv (iv.token)}
-              {@const on = pickedIntervals.includes(iv.token)}
+            {#each SETS.items as it (it.token)}
+              {@const on = picked.includes(it.token)}
               <button
                 type="button"
                 class="flex min-h-11 flex-col items-start justify-center rounded-lg border px-3 py-1 text-left {on ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-line bg-ws-surface text-ws-soft hover:bg-ws-raised'}"
                 aria-pressed={on}
-                aria-label={iv.name}
-                onclick={() => toggleInterval(iv.token)}
+                aria-label={it.name}
+                onclick={() => toggleItem(it.token)}
               >
-                <span class="font-semibold leading-tight">{iv.token}</span>
-                <span class="text-xs leading-tight">{iv.name}</span>
+                <span class="font-semibold leading-tight">{it.short}</span>
+                <span class="text-xs leading-tight">{it.name}</span>
               </button>
             {/each}
           </div>
-          <span class="text-ws-soft">{pickedIntervals.length === 1 ? "One interval: every prompt is this one, among all the answers." : `${pickedIntervals.length} intervals: only these play, and only these are the answers.`}</span>
+          <span class="text-ws-soft">{picked.length === 1 ? `One picked: every prompt is this one, among all the answers.` : `${picked.length} ${SETS.unit}: only these play, and only these are the answers.`}</span>
         </div>
+      {/if}
+      {#if slug === "intervals"}
         <Choice label="Direction" options={DIRECTIONS} value={s.direction} onchange={(v) => cfg.set({ direction: v })} />
         <div class="flex min-w-0 flex-col gap-1 text-sm">
           <span class="font-medium">Starting note</span>
@@ -854,17 +946,17 @@
         </div>
 
         <div class="mt-3">
-          <EarVisual
-            prompt={p}
-            revealed={showAnswer || hinted}
-            active={sounding}
-            labels={labels === "solfege" ? "solfege" : "numbers"}
-            chosen={mistake && step === "feedback" ? mistake.chosen : undefined}
-          />
           {#if mistake && step === "feedback"}
+            <!-- What was played beside what you chose, from the same starting point. -->
+            <div class="grid gap-3 sm:grid-cols-2">
+              <EarVisual prompt={p} revealed prefix="Played" labels={labels === "solfege" ? "solfege" : "numbers"} />
+              <EarVisual prompt={mistake.chosen} revealed prefix="You chose" labels={labels === "solfege" ? "solfege" : "numbers"} />
+            </div>
             <button type="button" class="{btnStage} mt-2" onclick={() => mistake && playPrompt(mistake.both)}>
-              Hear both again: {intervalName(p.answer)}, then {intervalName(mistake.token)}
+              Hear both again: {tokenLabel(p.drill, p.answer, labels)}, then {tokenLabel(p.drill, mistake.token, labels)}
             </button>
+          {:else}
+            <EarVisual prompt={p} revealed={showAnswer || hinted} active={sounding} labels={labels === "solfege" ? "solfege" : "numbers"} />
           {/if}
         </div>
 
@@ -1044,11 +1136,11 @@
         {/snippet}
       </Results>
       {#if unlockNext}
-        <section class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-instr bg-instr-wash p-4" aria-label="Ready for the next interval">
+        <section class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-instr bg-instr-wash p-4" aria-label="Ready for the next {slug === 'intervals' ? 'interval' : 'quality'}">
           <p class="min-w-0 flex-1 basis-60">
-            <strong>These are sounding easy:</strong> at least 18 of your last 20 answers were right. Ready for the {intervalName(unlockNext).toLowerCase()}?
+            <strong>These are sounding easy:</strong> at least 18 of your last 20 answers were right. Ready for {itemPhrase(unlockNext)}?
           </p>
-          <button type="button" class={btnPrimary} onclick={addNext}>Add the {intervalName(unlockNext).toLowerCase()}</button>
+          <button type="button" class={btnPrimary} onclick={addNext}>Add {itemPhrase(unlockNext)}</button>
           <button type="button" class={btn} onclick={() => (unlockNext = null)}>Not yet</button>
         </section>
       {/if}

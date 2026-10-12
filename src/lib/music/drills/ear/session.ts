@@ -68,26 +68,26 @@ function shuffle<T>(xs: T[], rand: Rand): T[] {
   return a;
 }
 
-/** What the interval drill is narrowed to: some intervals, one direction. */
-export interface IntervalFocus {
-  /** Interval tokens to ask (P1 to P8); empty or missing: the twelve m2 to P8. */
-  intervals?: string[];
+/** What a drill is narrowed to: some of its answers (intervals, chord qualities), and for intervals a direction and a starting note. */
+export interface Focus {
+  /** Answer tokens to ask; empty or missing: the drill's usual set (for intervals, the twelve m2 to P8). */
+  tokens?: string[];
   direction?: IntervalDirection;
   /** Fixed first note (MIDI), so only the distance changes. */
   root?: number;
-  /** Past accuracy (0..1) per interval token: weaker intervals are asked more. */
-  accuracy?: Record<string, number>;
 }
 
-/** How much more often an interval is asked: 1 when always right, up to 4 when always wrong; 2 when untried. */
+/** How much more often a target is asked: 1 when always right, up to 4 when always wrong; 2 when untried. */
 export const weaknessWeight = (acc: number | undefined) =>
   acc === undefined ? 2 : 1 + 3 * (1 - acc);
 
-const focusIntervals = (f?: IntervalFocus) =>
-  f?.intervals?.length ? EAR_INTERVALS.filter((i) => f.intervals!.includes(i.token)) : INTERVALS;
+const focusIntervals = (f?: Focus) =>
+  f?.tokens?.length ? EAR_INTERVALS.filter((i) => f.tokens!.includes(i.token)) : INTERVALS;
+const focusQualities = (f?: Focus) =>
+  f?.tokens?.length ? QUALITIES.filter((q) => f.tokens!.includes(q.token)) : QUALITIES;
 
 /** Every answerable target of one drill kind. */
-export function targetsFor(kind: EarKind, level: string, focus?: IntervalFocus): EarTarget[] {
+export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarget[] {
   switch (kind) {
     case "interval":
       return focusIntervals(focus).map((i) => ({
@@ -104,7 +104,7 @@ export function targetsFor(kind: EarKind, level: string, focus?: IntervalFocus):
         skillId: "pitch.intervals",
       }));
     case "chord-quality":
-      return QUALITIES.map((q) => ({ kind, token: q.token, skillId: q.skillId }));
+      return focusQualities(focus).map((q) => ({ kind, token: q.token, skillId: q.skillId }));
     case "cadence":
       return CADENCES.map((c) => ({ kind, token: c.token, skillId: c.skillId }));
     case "scale-degree":
@@ -122,7 +122,7 @@ export function promptFor(
   difficulty: number,
   level: string,
   rand: Rand,
-  focus?: IntervalFocus,
+  focus?: Focus,
 ): EarPrompt {
   switch (t.kind) {
     case "interval": {
@@ -134,7 +134,7 @@ export function promptFor(
         direction: focus?.direction,
         root: focus?.root,
         // One interval alone: every interval is a possible answer (with the unison, when it is the one).
-        choices: !focus?.intervals
+        choices: !focus?.tokens
           ? undefined
           : picked.length >= 2
             ? picked.map((i) => i.token)
@@ -147,9 +147,12 @@ export function promptFor(
       return intervalComparePrompt(rand, { difficulty, gap: t.token as CompareGap });
     case "chord-quality": {
       const seventh = QUALITIES.find((q) => q.token === t.token)?.level === "seventh";
+      const picked = focusQualities(focus);
       return chordQualityPrompt(rand, {
         difficulty: seventh ? Math.max(difficulty, SEVENTH_FLOOR) : difficulty,
         token: t.token,
+        // The answer buttons are the qualities being practised (with two or more of them).
+        choices: focus?.tokens && picked.length >= 2 ? picked.map((q) => q.token) : undefined,
       });
     }
     case "cadence":
@@ -170,7 +173,9 @@ export interface SessionInput {
   now: number;
   rand: Rand;
   length?: number;
-  focus?: IntervalFocus;
+  focus?: Focus;
+  /** Past accuracy (0..1) by skill id: with it, weaker targets are asked more. */
+  accuracy?: Record<string, number>;
 }
 
 /**
@@ -202,17 +207,22 @@ export function buildSession(inp: SessionInput): EarPrompt[] {
         difficulty: inp.mastery[q.skillId] ? q.difficulty : FRESH_DIFFICULTY,
       }))
     : targets.map((t) => ({ target: t, difficulty: FRESH_DIFFICULTY }));
+  // Items the user picked are asked even when the skill graph has them locked.
+  if (inp.focus?.tokens?.length)
+    for (const t of targets)
+      if (!items.some((it) => it.target === t))
+        items.push({ target: t, difficulty: FRESH_DIFFICULTY });
 
   const out: EarPrompt[] = [];
-  // Intervals with a track record: every one once, then the rest drawn by weakness.
+  // One drill with a track record: every target once, then the rest drawn by weakness.
   if (
-    inp.focus?.accuracy &&
+    inp.accuracy &&
     inp.kinds.length === 1 &&
-    inp.kinds[0] === "interval" &&
-    items.length > 1
+    items.length > 1 &&
+    items.some((it) => inp.accuracy![it.target.skillId] !== undefined)
   ) {
-    const acc = inp.focus.accuracy;
-    const weightOf = (it: (typeof items)[number]) => weaknessWeight(acc[it.target.token]);
+    const acc = inp.accuracy;
+    const weightOf = (it: (typeof items)[number]) => weaknessWeight(acc[it.target.skillId]);
     const pickWeighted = (avoid?: string) => {
       const pool = items.filter((it) => it.target.token !== avoid);
       let r = inp.rand() * pool.reduce((t, it) => t + weightOf(it), 0);

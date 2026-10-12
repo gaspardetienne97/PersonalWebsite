@@ -340,12 +340,12 @@ export function intervalComparePrompt(
 /** Only the four triads are offered below difficulty 0.65. */
 export function chordQualityPrompt(
   rand: Rand,
-  opts: { difficulty: number; token?: string },
+  opts: { difficulty: number; token?: string; choices?: string[] },
 ): EarPrompt {
-  const offered = CADENCES_AND_QUALITIES.chordQualities.filter(
-    (q) => opts.difficulty >= 0.65 || q.level === "triad",
-  );
-  const quality = offered.find((q) => q.token === opts.token) ?? pick(rand, offered);
+  const all = CADENCES_AND_QUALITIES.chordQualities;
+  const offered = all.filter((q) => opts.difficulty >= 0.65 || q.level === "triad");
+  // A named quality is asked even below 0.65 (the user picked it); a random one is a triad there.
+  const quality = all.find((q) => q.token === opts.token) ?? pick(rand, offered);
   const root = earRoot(rand);
   const midi = quality.intervals.map((i) => root + i);
   return {
@@ -354,7 +354,7 @@ export function chordQualityPrompt(
     skillIds: [quality.level === "triad" ? "harmony.triads" : "harmony.sevenths", quality.skillId],
     playback: [note(midi, 0, 0.9)],
     answer: quality.token,
-    choices: offered.map((q) => q.token),
+    choices: opts.choices ?? offered.map((q) => q.token),
     difficulty: opts.difficulty,
     expectedMidi: midi,
   };
