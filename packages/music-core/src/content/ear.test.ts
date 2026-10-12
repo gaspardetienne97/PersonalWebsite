@@ -6,6 +6,7 @@ import {
   chordFunctionPrompt,
   chordQualityPrompt,
   functionChord,
+  functionOfNotes,
   degreeLabel,
   EAR_DRILLS,
   EAR_PATH,
@@ -183,6 +184,14 @@ describe("chords in a key", () => {
         expect(Math.min(...upper)).toBeGreaterThanOrEqual(60);
         expect(Math.max(...upper)).toBeLessThan(72);
       }
+  });
+
+  it("names the chord of the key some notes make, in any inversion", () => {
+    expect(functionOfNotes(0, [57, 60, 64])).toBe("vi");
+    expect(functionOfNotes(0, [65, 69, 72, 77])).toBe("IV");
+    expect(functionOfNotes(7, [62, 66, 69])).toBe("V");
+    expect(functionOfNotes(0, [62, 66, 69])).toBeUndefined(); // D major is not in C major
+    expect(functionOfNotes(0, [60, 64])).toBeUndefined();
   });
 
   it("sets the key with I IV V I, then plays the chord asked", () => {

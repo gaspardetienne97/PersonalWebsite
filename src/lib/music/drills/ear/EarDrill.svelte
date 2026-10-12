@@ -14,6 +14,7 @@
     EAR_INTERVALS,
     functionChord,
     functionLabel,
+    functionOfNotes,
     functionPlayback,
     SCALE_DEGREE_LEVELS,
     SCALE_DEGREES,
@@ -30,6 +31,7 @@
   import {
     classifyChord,
     gradeChoice,
+    gradeChordPlayback,
     gradeChordQualityPlayback,
     gradeIntervalPlayback,
     gradeMelodyDictation,
@@ -116,10 +118,11 @@
   const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) ? (s.answer as AnswerMode) : modes[0]);
   const labels = $derived<LabelMode>(s.labels === "solfege" ? "solfege" : "degree");
   const level = $derived(SCALE_DEGREE_LEVELS.some((l) => l.id === s.level) ? s.level : "anchor");
+  const MIX = ["interval", "chord-quality", "scale-degree", "cadence", "chord-function", "progression"] as const;
   const kinds = $derived.by((): EarKind[] => {
     if (slug !== "mixed") return KIND_OF[slug] ? [KIND_OF[slug]] : [];
     if (answer === "voice") return ["scale-degree"];
-    const all: EarKind[] = ["interval", "chord-quality", "scale-degree", "cadence"];
+    const all: EarKind[] = [...MIX];
     const picked = all.includes(s.drill as EarKind) ? [s.drill as EarKind] : all;
     // Cadences have no play-back answer.
     return answer === "play-back" ? picked.filter((k) => k !== "cadence") : picked;
@@ -404,9 +407,13 @@
         : p.drill === "cadence"
           ? "Which cadence ends the phrase?"
         : p.drill === "chord-function"
-          ? "Which chord of the key was the last one?"
+          ? isPlayback
+            ? "Play the last chord back, in any octave."
+            : "Which chord of the key was the last one?"
         : p.drill === "progression"
-          ? "Which chords came after the I?"
+          ? isPlayback
+            ? "Play the chords after the I, one at a time."
+            : "Which chords came after the I?"
           : p.drill === "scale-degree"
             ? answer === "voice"
               ? "Sing the second note back."
@@ -646,9 +653,11 @@
       const d = Math.abs(g.playedSemitones ?? 0);
       const heard = (intervalBySemitones(d)?.token ?? `${d} semitones`) + (p.direction !== "harmonic" && (g.playedSemitones ?? 0) * (p.direction === "descending" ? -1 : 1) < 0 ? " (wrong way)" : "");
       void commit(g, heard, played.slice(0, 2), notes, [{ kind: "choice", expected: p.answer, actual: heard }]);
-    } else if (p.drill === "chord-quality") {
+    } else if (p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression") {
       clearTimeout(chordTimer);
-      if (new Set(played.map(pc)).size >= (p.expectedMidi?.length ?? 3)) chordTimer = setTimeout(() => submitChord(), 350);
+      // A chord is in once all its notes are down and the hands rest a moment (or on "That's my chord").
+      const needed = p.drill === "chord-quality" ? (p.expectedMidi?.length ?? 3) : 3;
+      if (new Set(played.map(pc)).size >= needed) chordTimer = setTimeout(() => submitChord(), 350);
     } else if ((p.drill === "melody-dictation" || p.drill === "repertoire-transfer") && played.length >= (p.expectedMidi?.length ?? 3)) {
       const g = gradeMelodyDictation(p.expectedMidi!, played);
       const tonic = tonicOf(p);
@@ -660,6 +669,16 @@
   function submitChord() {
     const p = current;
     if (!p || step !== "answer" || !played.length) return;
+    if (p.drill === "chord-function" || p.drill === "progression") {
+      const token = functionOfNotes(p.keyPc ?? 0, played);
+      const notes = cap?.notes.filter((n) => n.kind === "noteon" && n.at >= openAt) ?? [];
+      if (p.drill === "progression") {
+        // Each chord fills the next slot; a chord outside the key fills it as "?".
+        played = [];
+        tapChord(token ?? "?", notes);
+      } else void commit(gradeChordPlayback(p.expectedMidi!, played), token ?? "another chord", played, notes);
+      return;
+    }
     const g = gradeChordQualityPlayback(p.answer, played);
     const heard = g.detected ?? classifyChord(played)?.token ?? "another chord";
     const notes = cap?.notes.filter((n) => n.kind === "noteon" && n.at >= openAt) ?? [];
@@ -672,13 +691,13 @@
   }
 
   /** One chord into the next slot of a progression; the last slot answers it. */
-  function tapChord(token: string) {
+  function tapChord(token: string, notes: NoteEvent[] = []) {
     if (phase !== "running" || (step !== "answer" && step !== "playing")) return;
     const want = current.answer.split(" ").slice(1);
     slots = [...slots, token];
     if (slots.length < want.length) return;
     const answered = ["I", ...slots].join(" ");
-    void commit(gradeSequence(want, slots), answered, answered, []);
+    void commit(gradeSequence(want, slots), answered, answered, notes);
   }
 
   async function commit(g: Graded, answered: string, response: Label, notes: NoteEvent[], extra: Metric[] = []) {
@@ -909,7 +928,7 @@
   const summaryLine = $derived(
     [
       MODE_LABEL[answer],
-      slug === "mixed" ? (kinds.length === 4 ? "all four drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
+      slug === "mixed" ? (kinds.length === MIX.length ? "all six drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
       SETS
         ? `${SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => SETS.items.find((i) => i.token === t)?.short ?? t).join(" ")}${slug === "intervals" && s.direction !== "auto" ? `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}` : ""}`
         : null,
@@ -959,7 +978,7 @@
         <Choice
           label="Drills in the mix"
           select
-          options={[{ value: "all", label: "All four" }, ...(["interval", "chord-quality", "scale-degree", "cadence"] as const).map((k) => ({ value: k, label: KIND_LABEL[k] }))]}
+          options={[{ value: "all", label: "All six" }, ...MIX.map((k) => ({ value: k, label: KIND_LABEL[k] }))]}
           value={s.drill}
           onchange={(v) => cfg.set({ drill: v })}
         />
@@ -1027,6 +1046,19 @@
     {/if}
   {/snippet}
 
+  {#snippet progressionSlots(p: Prompt)}
+    <ol class="mb-3 flex flex-wrap gap-2" aria-label="Your progression">
+      {#each p.answer.split(" ") as w, i (i)}
+        {@const got = i === 0 ? "I" : slots[i - 1]}
+        {@const judged = showAnswer && step === "feedback" && i > 0 && got !== undefined}
+        <li class="slot" data-state={judged ? (got === w ? "right" : "wrong") : got ? "filled" : null}>
+          <span class="font-display text-xl font-semibold">{got && got !== "?" ? functionLabel(got) : "?"}</span>
+          {#if judged}<span class="text-xs">{got === w ? "✓" : `✕ ${functionLabel(w)}`}</span>{/if}
+        </li>
+      {/each}
+    </ol>
+  {/snippet}
+
   {#snippet stage()}
     {#if phase === "running" && current}
       {@const p = current}
@@ -1036,6 +1068,7 @@
         data-drill={p.drill}
         data-answer={p.answer}
         data-expected={p.expectedMidi?.join(",") ?? ""}
+        data-key={p.keyPc ?? ""}
         data-step={step}
       >
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -1114,17 +1147,7 @@
               onpick={choose}
             />
           {:else if answer === "choice" && p.drill === "progression"}
-            {@const want = p.answer.split(" ")}
-            <ol class="mb-3 flex flex-wrap gap-2" aria-label="Your progression">
-              {#each want as w, i (i)}
-                {@const got = i === 0 ? "I" : slots[i - 1]}
-                {@const judged = showAnswer && step === "feedback" && i > 0 && got !== undefined}
-                <li class="slot" data-state={judged ? (got === w ? "right" : "wrong") : got ? "filled" : null}>
-                  <span class="font-display text-xl font-semibold">{got ? functionLabel(got) : "?"}</span>
-                  {#if judged}<span class="text-xs">{got === w ? "✓" : `✕ ${functionLabel(w)}`}</span>{/if}
-                </li>
-              {/each}
-            </ol>
+            {@render progressionSlots(p)}
             <div class="grid grid-cols-4 gap-2 sm:grid-cols-8">
               {#each p.choices as t (t)}
                 <button type="button" class="choice min-h-12 rounded-xl px-3 font-display text-lg font-semibold" disabled={step === "feedback"} onclick={() => tapChord(t)}>{functionLabel(t)}</button>
@@ -1183,12 +1206,16 @@
             </div>
           </div>
         {:else}
+          {#if p.drill === "progression"}{@render progressionSlots(p)}{/if}
           <Piano low={48} high={84} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, play your answer" />
           <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-ws-stage-soft">
             <span>You played: {played.length ? played.map((m) => noteName(m, "flat")).join(", ") : "nothing yet"}</span>
             {#if step === "answer" && played.length}
               <button type="button" class={btnStage} onclick={() => (played = [])}>Clear</button>
-              {#if p.drill === "chord-quality"}<button type="button" class={btnStage} onclick={submitChord}>That's my chord</button>{/if}
+              {#if p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression"}<button type="button" class={btnStage} onclick={submitChord}>That's my chord</button>{/if}
+            {/if}
+            {#if p.drill === "progression" && step === "answer" && slots.length}
+              <button type="button" class={btnStage} onclick={() => (slots = slots.slice(0, -1))}>Undo last chord</button>
             {/if}
           </div>
         {/if}

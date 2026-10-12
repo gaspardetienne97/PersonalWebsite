@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyChord,
   gradeChoice,
+  gradeChordPlayback,
   gradeChordQualityPlayback,
   gradeIntervalPlayback,
   gradeMelodyDictation,
@@ -17,6 +18,14 @@ describe("ear", () => {
       score: 0,
       metrics: [{ kind: "choice", expected: "m6", actual: "P5" }],
     });
+  });
+
+  it("a chord of a key played back counts in any octave or inversion, with nothing missing or extra", () => {
+    const fMajor = [41, 60, 65, 69];
+    expect(gradeChordPlayback(fMajor, [57, 60, 65]).correct).toBe(true);
+    expect(gradeChordPlayback(fMajor, [53, 57, 60, 72]).correct).toBe(true);
+    expect(gradeChordPlayback(fMajor, [53, 57]).metrics[0]).toMatchObject({ missing: [0] });
+    expect(gradeChordPlayback(fMajor, [53, 57, 60, 64]).metrics[0]).toMatchObject({ extra: [4] });
   });
 
   it("sequences get partial credit per slot", () => {

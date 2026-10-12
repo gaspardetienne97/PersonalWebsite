@@ -85,10 +85,17 @@ export function buildQueue(
   return items.sort((a, b) => b.priority - a.priority);
 }
 
-export const EAR_DRILLS = ["interval", "chord-quality", "scale-degree", "cadence"] as const;
+export const EAR_DRILLS = [
+  "interval",
+  "chord-quality",
+  "scale-degree",
+  "cadence",
+  "chord-function",
+  "progression",
+] as const;
 
 /**
- * balanced: round-robin over the four ear drill types, each in priority order.
+ * balanced: round-robin over the ear drill types, each in priority order.
  * adaptive: priority order, never the same drill twice in a row (items that would force a
  * repeat once only one drill type remains are dropped).
  */

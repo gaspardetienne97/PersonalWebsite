@@ -88,6 +88,20 @@ export function gradeChordQualityPlayback(
   };
 }
 
+/** A chord of a key played back: its notes in any octave, voicing or inversion. */
+export function gradeChordPlayback(
+  expectedMidi: readonly number[],
+  played: readonly number[],
+): Graded {
+  const expectedPcs = pcSet(expectedMidi);
+  const actualPcs = pcSet(played);
+  const missing = expectedPcs.filter((p) => !actualPcs.includes(p));
+  const extra = actualPcs.filter((p) => !expectedPcs.includes(p));
+  return binary(!missing.length && !extra.length, [
+    { kind: "chord", expectedPcs, actualPcs, missing, extra },
+  ]);
+}
+
 /** Melody dictation and repertoire transfer: position-wise pitch-class match, correct only at 1.0. */
 export function gradeMelodyDictation(
   expected: readonly number[],

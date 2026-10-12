@@ -69,7 +69,7 @@ const CHORD_FUNCTION_DRILLS = [
     title: "Chords in a key",
     description: "The key is set with I, IV, V, I; then one chord. Which is it, I to vii°?",
     drill: "chord-function",
-    answerModes: ["choice", "listen", "listen-along"],
+    answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
     usesLabels: false,
     queueMode: "balanced",
@@ -80,7 +80,7 @@ const CHORD_FUNCTION_DRILLS = [
     title: "Progression dictation",
     description: "Three or four chords starting on I: write down the rest.",
     drill: "progression",
-    answerModes: ["choice", "listen", "listen-along"],
+    answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
     usesLabels: false,
     queueMode: "balanced",
@@ -490,6 +490,11 @@ export function functionChord(keyPc: number, token: string): number[] {
 }
 
 /** Chords one after another, 0.9 s apart. */
+const pcKey = (ms: readonly number[]) => [...new Set(ms.map(pc))].sort((a, b) => a - b).join();
+/** Which chord of the key these notes make, in any octave or inversion (none when they make none). */
+export const functionOfNotes = (keyPc: number, midis: readonly number[]) =>
+  CHORD_FUNCTIONS.find((f) => pcKey(functionChord(keyPc, f.token)) === pcKey(midis))?.token;
+
 export function functionPlayback(keyPc: number, tokens: string[], start = 0): PlaybackEvent[] {
   return tokens.map((t, i) => note(functionChord(keyPc, t), start + i * 0.9, 0.8));
 }
@@ -514,6 +519,7 @@ export function chordFunctionPrompt(
       note(functionChord(keyPc, f.token), KEY_SETTING.length * 0.9 + 0.6, 1.1),
     ],
     keyEvents: KEY_SETTING.length,
+    expectedMidi: functionChord(keyPc, f.token),
     answer: f.token,
     choices: opts.choices ?? CHORD_FUNCTIONS.map((x) => x.token),
     difficulty: opts.difficulty,
@@ -620,10 +626,19 @@ export function melodyDictationPrompt(
   };
 }
 
-/** The mixed review draws one of the four recognition drills. */
+/** The mixed review draws one of the six recognition drills. */
 export function mixedPrompt(rand: Rand, opts: { difficulty: number; level: string }): EarPrompt {
-  const kind = pick(rand, ["interval", "chord-quality", "scale-degree", "cadence"] as const);
+  const kind = pick(rand, [
+    "interval",
+    "chord-quality",
+    "scale-degree",
+    "cadence",
+    "chord-function",
+    "progression",
+  ] as const);
   if (kind === "interval") return intervalPrompt(rand, opts);
+  if (kind === "chord-function") return chordFunctionPrompt(rand, opts);
+  if (kind === "progression") return progressionPrompt(rand, opts);
   if (kind === "chord-quality") return chordQualityPrompt(rand, opts);
   if (kind === "cadence") return cadencePrompt(rand, opts);
   return scaleDegreePrompt(rand, opts);

@@ -445,6 +445,50 @@ test.describe("ear training", () => {
     await shots(page, "ear-degrees-results");
   });
 
+  test("chords in a key and progressions by play-back over fake MIDI, and both in the mix", async ({
+    page,
+  }) => {
+    await installFakeMidi(page, [PORTS.keys]);
+    // Chords in a key: the chord asked, played an octave up in first inversion.
+    await enableMidi(page, "/music/ear/chord-functions?answer=play-back");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await waitStep(page, "answer");
+    const [, root, third, fifth] = (await prompt(page).getAttribute("data-expected"))!
+      .split(",")
+      .map(Number);
+    for (const m of [third, fifth, root + 12]) await midiNote(page, PORTS.keys.id, m);
+    await waitStep(page, "feedback");
+    await expect(prompt(page)).toContainText("Right:");
+
+    // Progressions: each chord fills the next slot; the last one is played wrong.
+    await page.goto("/music/ear/progressions?answer=play-back");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await waitStep(page, "answer");
+    const key = Number(await prompt(page).getAttribute("data-key"));
+    const chords = (await prompt(page).getAttribute("data-answer"))!.split(" ");
+    const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+    const DEGREE: Record<string, number> = { I: 0, ii: 1, iii: 2, IV: 3, V: 4, vi: 5, vii: 6 };
+    const play = async (c: string) => {
+      const d = DEGREE[c];
+      for (const k of [0, 2, 4])
+        await midiNote(page, PORTS.keys.id, 60 + ((key + MAJOR[(d + k) % 7]) % 12));
+    };
+    const slots = page.getByRole("list", { name: "Your progression" }).getByRole("listitem");
+    for (const [i, c] of chords.slice(1, -1).entries()) {
+      await play(c);
+      await expect(slots.nth(i + 1)).toHaveText(c);
+    }
+    const last = chords.at(-1)!;
+    await play(last === "V" ? "IV" : "V");
+    await waitStep(page, "feedback");
+    await expect(slots.nth(1)).toHaveAttribute("data-state", "right");
+    await expect(slots.last()).toHaveAttribute("data-state", "wrong");
+
+    // The mixed review draws from all six drills.
+    await page.goto("/music/ear/mixed?answer=choice");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("all six drills");
+  });
+
   test("scale degrees by voice through the synthetic mic", async ({ page }) => {
     await installSyntheticMic(page, 0);
     await page.goto("/music/ear/scale-degrees?answer=voice&level=anchor");
