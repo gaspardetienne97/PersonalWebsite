@@ -24,6 +24,8 @@ import {
   BASS_LEVELS,
   BASS_PATTERNS,
   bassLinePrompt,
+  CENT_STEPS,
+  finePitchPrompt,
   scalePrompt,
   type ScaleDirection,
   type CompareGap,
@@ -58,6 +60,7 @@ export type EarKind =
   | "scale"
   | "inversion"
   | "bass-line"
+  | "pitch-compare"
   | "scale-degree"
   | "melody-dictation";
 export type LabelMode = "degree" | "solfege";
@@ -158,6 +161,9 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
         token: x.token,
         skillId: `ear.scale.${x.token}`,
       }));
+    case "pitch-compare":
+      // One target: the drill page steps the cents itself (a staircase).
+      return [{ kind, token: "pitch", skillId: "ear.fine-pitch" }];
     case "bass-line": {
       // Roots levels by the second bass note; the inversions level by its lines.
       const lvl = BASS_LEVELS.find((l) => l.id === focus?.bassLevel) ?? BASS_LEVELS[0];
@@ -260,6 +266,8 @@ export function promptFor(
         choices: focus?.tokens && picked.length >= 2 ? picked.map((x) => x.token) : undefined,
       });
     }
+    case "pitch-compare":
+      return finePitchPrompt(rand, { difficulty, cents: CENT_STEPS[0] });
     case "bass-line":
       return bassLinePrompt(rand, { difficulty, level: focus?.bassLevel, token: t.token });
     case "inversion": {
@@ -418,6 +426,7 @@ export const KIND_LABEL: Record<EarKind, string> = {
   scale: "Scales and modes",
   inversion: "Inversions",
   "bass-line": "Bass lines",
+  "pitch-compare": "Fine pitch",
   progression: "Progressions",
   "scale-degree": "Scale degrees",
   "melody-dictation": "Melody dictation",
@@ -441,6 +450,8 @@ export function tokenLabel(
     return c ? `${c.label} (${c.romanProgression.join(" to ")})` : token;
   }
   if (kind === "chord-function") return functionLabel(token);
+  if (kind === "pitch-compare")
+    return token === "higher" ? "Higher" : token === "lower" ? "Lower" : "In tune";
   if (kind === "bass-line") return token.split(" ").join(", ");
   if (kind === "inversion") return EAR_INVERSIONS.find((x) => x.token === token)?.name ?? token;
   if (kind === "scale") return EAR_SCALES.find((x) => x.token === token)?.name ?? token;

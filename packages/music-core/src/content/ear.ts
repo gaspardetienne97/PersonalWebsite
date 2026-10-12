@@ -16,6 +16,7 @@ export type EarDrillKind =
   | "scale"
   | "inversion"
   | "bass-line"
+  | "pitch-compare"
   | "scale-degree"
   | "melody-dictation"
   | "repertoire-transfer";
@@ -123,6 +124,17 @@ const CHORD_FUNCTION_DRILLS = [
     usesLabels: false,
     queueMode: "balanced",
     skillIds: ["ear.bass-lines"],
+  },
+  {
+    slug: "fine-pitch",
+    title: "Fine pitch",
+    description: "Two notes a few cents apart: is the second higher or lower?",
+    drill: "pitch-compare",
+    answerModes: ["choice"],
+    usesScaleDegreeLevel: false,
+    usesLabels: false,
+    queueMode: "balanced",
+    skillIds: ["ear.fine-pitch"],
   },
 ] as const;
 type DrillRow = (typeof EAR_TRAINING.drills)[number];
@@ -656,6 +668,44 @@ export function inversionPrompt(
     difficulty: opts.difficulty,
     expectedMidi: midi,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Fine pitch
+
+/** The cent steps of the staircase, widest first (musicians reach about 5; 50 is a quarter tone). */
+export const CENT_STEPS = [50, 35, 25, 18, 12, 8, 5] as const;
+
+/**
+ * A reference note, then the same note `cents` higher or lower (as a
+ * fractional MIDI number). From difficulty 0.6 it can also be in tune, and
+ * "same" becomes an answer.
+ */
+export function finePitchPrompt(
+  rand: Rand,
+  opts: { difficulty: number; cents: number },
+): EarPrompt & { cents: number } {
+  const ref = 57 + randInt(rand, 0, 15);
+  const withSame = opts.difficulty >= 0.6;
+  const answer = withSame && rand() < 0.2 ? "same" : rand() < 0.5 ? "higher" : "lower";
+  const off = answer === "same" ? 0 : (answer === "higher" ? 1 : -1) * (opts.cents / 100);
+  return {
+    id: `fine-pitch-${answer}-${opts.cents}-${ref}`,
+    drill: "pitch-compare",
+    skillIds: ["ear.fine-pitch"],
+    playback: [note(ref, 0, 0.8), note(ref + off, 1.1, 0.8)],
+    answer,
+    choices: withSame ? ["lower", "same", "higher"] : ["lower", "higher"],
+    difficulty: opts.difficulty,
+    cents: opts.cents,
+  };
+}
+
+/** 2-down, 1-up: two right in a row move to the next smaller step, a miss moves back one. */
+export function staircase(step: number, streak: number, correct: boolean) {
+  if (!correct) return { step: Math.max(0, step - 1), streak: 0 };
+  if (streak + 1 >= 2) return { step: Math.min(CENT_STEPS.length - 1, step + 1), streak: 0 };
+  return { step, streak: streak + 1 };
 }
 
 // ---------------------------------------------------------------------------

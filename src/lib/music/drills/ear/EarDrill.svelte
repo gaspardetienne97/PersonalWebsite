@@ -14,6 +14,9 @@
     EAR_INVERSIONS,
     inversionVoicing,
     BASS_LEVELS,
+    CENT_STEPS,
+    finePitchPrompt,
+    staircase,
     scalePlayback,
     type ScaleDirection,
     EAR_DRILLS,
@@ -110,6 +113,7 @@
     scales: "scale",
     inversions: "inversion",
     "bass-lines": "bass-line",
+    "fine-pitch": "pitch-compare",
     "scale-degrees": "scale-degree",
     "melody-dictation": "melody-dictation",
   };
@@ -127,6 +131,7 @@
     scales: "major,natural-minor" as string,
     inversions: "root,first" as string,
     bassLevel: "roots-primary" as string,
+    startCents: "auto" as string,
     scaleDirection: "auto" as string,
     keyMode: "major" as string,
     chordSize: "triads" as string,
@@ -466,6 +471,7 @@
         : `${key}, ${p.answer.split(" ").length} chords from ${one}`;
     }
     if (p.drill === "inversion") return "One chord";
+    if (p.drill === "pitch-compare") return `A note, then the same note ${centsOf(p)} cents off${p.choices.includes("same") ? " or in tune" : ""}`;
     if (p.drill === "scale") return `Tonic ${noteName(p.playback[0].midi[0], "flat", false)}, held underneath`;
     if (p.drill === "cadence") {
       const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
@@ -490,6 +496,10 @@
           ? "Which cadence ends the phrase?"
         : p.drill === "scale"
           ? "Which scale was that?"
+        : p.drill === "pitch-compare"
+          ? p.choices.includes("same")
+            ? "Was the second note higher, lower or in tune?"
+            : "Was the second note higher or lower?"
         : p.drill === "inversion"
           ? isPlayback
             ? "Play the chord back with the same note in the bass."
@@ -620,7 +630,21 @@
   // ---------------------------------------------------------------------------
   // The run
 
+  // Fine pitch: a 2-down, 1-up staircase over the cent steps, picked up where the last run ended.
+  const STAIR_KEY = "music.ear-fine-pitch.step";
+  let stair = { at: 0, streak: 0 };
+  let rememberedStep = $state(0);
+  if (slug === "fine-pitch") void getSetting<number>(STAIR_KEY, 0).then((v) => (rememberedStep = v));
+  const centsPrompt = (at: number): Prompt => ({ ...finePitchPrompt(rand, { difficulty: at / (CENT_STEPS.length - 1), cents: CENT_STEPS[at] }) });
+  const centsOf = (p: Prompt) => Number(/^fine-pitch-\w+-(\d+)-/.exec(p.id)?.[1] ?? 0);
+
   function makeSession(): Prompt[] {
+    if (slug === "fine-pitch") {
+      // Where it ended last time, one step back to warm up; or the step picked in setup.
+      const at = s.startCents === "auto" ? Math.max(0, rememberedStep - 1) : Math.max(0, CENT_STEPS.indexOf(Number(s.startCents) as (typeof CENT_STEPS)[number]));
+      stair = { at, streak: 0 };
+      return Array.from({ length: 10 }, () => centsPrompt(at));
+    }
     if (slug === "repertoire-transfer") return planPhrases.slice(0, 10).map((ph) => ({ ...repertoirePrompt(ph), phrase: ph }));
     return buildSession({
       kinds,
@@ -855,6 +879,12 @@
       assistance: hinted ? "hinted" : undefined,
       instrument: answer === "voice" ? "voice" : isPlayback ? (runInstrument(notes) ?? null) : null,
     });
+    if (p.drill === "pitch-compare") {
+      // The next prompt follows the staircase.
+      const next = staircase(stair.at, stair.streak, g.correct);
+      stair = { at: next.step, streak: next.streak };
+      if (i + 1 < prompts.length) prompts = prompts.map((x, k) => (k === i + 1 ? centsPrompt(stair.at) : x));
+    }
     if (mode === "practice") {
       status = g.correct
         ? `Right: ${tokenLabel(p.drill, p.answer, labels)}.`
@@ -949,11 +979,28 @@
         : mode === "check"
           ? "Test run: no feedback during the run, so it counts toward mastery."
           : "Practice run with feedback after each answer. Switch to Check to count it.",
-      rows: itemRows(done) ?? byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
+      rows: centsRows(done) ?? itemRows(done) ?? byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
+    if (slug === "fine-pitch") {
+      summary.headline += ` Next time starts near ${CENT_STEPS[stair.at]} cents.`;
+      void putSetting(STAIR_KEY, stair.at);
+    }
     status = summary.headline;
     if ((SETS || levelSteps) && answer !== "listen" && !pocket) void checkUnlock(done);
+  }
+
+  /** Fine pitch: one row per cent step asked, widest first. */
+  function centsRows(done: AnswerRecord[]) {
+    if (slug !== "fine-pitch") return null;
+    const asked = prompts.slice(0, done.length).map(centsOf);
+    return [...new Set(asked)]
+      .sort((a, b) => b - a)
+      .map((c) => {
+        const here = done.filter((_, k) => asked[k] === c);
+        const ok = here.filter((r) => r.correct).length;
+        return { label: `${c} cents`, value: ok / here.length, text: `${ok} of ${here.length}` };
+      });
   }
 
   /** One results row per answer asked (an interval, a quality, a degree): this run and overall. */
@@ -1163,6 +1210,14 @@
                 : `${picked.length} ${SETS.unit}: only these play, and only these are the answers.`}
           </span>
         </div>
+      {/if}
+      {#if slug === "fine-pitch"}
+        <Choice
+          label="Start at"
+          options={[{ value: "auto", label: "Where I left off" }, ...[50, 25, 12].map((c) => ({ value: String(c), label: `${c} cents` }))]}
+          value={s.startCents}
+          onchange={(v) => cfg.set({ startCents: v })}
+        />
       {/if}
       {#if slug === "bass-lines"}
         <Choice label="Bass notes" options={BASS_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={s.bassLevel} onchange={(v) => cfg.set({ bassLevel: v })} />

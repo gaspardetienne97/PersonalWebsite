@@ -633,6 +633,14 @@ APP_SKILLS.push(
     version: 1,
   },
 );
+APP_SKILLS.push({
+  id: "ear.fine-pitch",
+  name: "Fine pitch (cents)",
+  capability: "pitch",
+  level: "intermediate",
+  tags: ["ear", "intonation"],
+  version: 1,
+});
 const APP_RELATIONSHIPS: SkillRelationship[] = [
   ...POSITION_NAMES.map(([t]) => ({
     from: "ear.inversions",

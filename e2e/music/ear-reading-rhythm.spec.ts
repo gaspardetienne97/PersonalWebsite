@@ -106,6 +106,7 @@ test.describe("ear training", () => {
       ["scales", "Scales and modes"],
       ["inversions", "Inversions"],
       ["bass-lines", "Bass lines"],
+      ["fine-pitch", "Fine pitch"],
       ["scale-degrees", "Scale degrees"],
       ["melody-dictation", "Melody dictation"],
       ["repertoire-transfer", "Repertoire transfer"],
@@ -481,6 +482,29 @@ test.describe("ear training", () => {
       await midiNote(page, PORTS.keys.id, 48 + ((key + MAJOR[Number(d) - 1]) % 12));
     await waitStep(page, "feedback");
     await expect(card).toContainText("Right:");
+  });
+
+  test("fine pitch: two right step down to fewer cents, a miss steps back", async ({ page }) => {
+    await page.goto("/music/ear/fine-pitch?startCents=50");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    const answerIt = async (right: boolean) => {
+      await waitStep(page, "answer");
+      const a = (await card.getAttribute("data-answer"))!;
+      const pickLabel = right ? a : a === "higher" ? "lower" : "higher";
+      const label = { higher: "Higher", lower: "Lower", same: "In tune" }[pickLabel]!;
+      await page.locator("button.choice", { hasText: new RegExp(`^\\s*${label}\\s*$`) }).click();
+      await waitStep(page, "feedback");
+      await page.getByRole("button", { name: "Continue" }).click();
+    };
+    await expect(card).toContainText("50 cents off");
+    await answerIt(true);
+    await expect(card).toContainText("50 cents off");
+    await answerIt(true);
+    await expect(card).toContainText("35 cents off");
+    await answerIt(false);
+    await expect(card).toContainText("50 cents off");
+    await shots(page, "ear-fine-pitch");
   });
 
   test("scale degrees: an easy level offers the next one", async ({ page }) => {

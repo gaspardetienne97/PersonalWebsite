@@ -18,6 +18,7 @@ import {
   inversionPrompt,
   BASS_LEVELS,
   bassLinePrompt,
+  finePitchPrompt,
   scalePrompt,
   SCALE_DEGREE_LEVELS,
   scaleDegreePrompt,
@@ -56,6 +57,7 @@ const ROUTES = [
   "/music/ear/scales",
   "/music/ear/inversions",
   "/music/ear/bass-lines",
+  "/music/ear/fine-pitch",
   "/music/ear/scale-degrees",
   "/music/ear/melody-dictation",
   "/music/ear/repertoire-transfer",
@@ -146,6 +148,7 @@ describe("skill ids", () => {
           ...progressionPrompt(r, { difficulty: 0.9, token: functionToken(f.token, k) }).skillIds,
         ]),
       ),
+      ...finePitchPrompt(r, { difficulty: 0.5, cents: 25 }).skillIds,
       ...BASS_LEVELS.flatMap((l) => bassLinePrompt(r, { difficulty: 0.5, level: l.id }).skillIds),
       ...EAR_INVERSIONS.flatMap(
         (x) => inversionPrompt(r, { difficulty: 0.9, token: x.token }).skillIds,
