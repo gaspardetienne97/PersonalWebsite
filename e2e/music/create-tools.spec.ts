@@ -713,8 +713,11 @@ test.describe("Settings", () => {
     const hint = page.getByRole("button", { name: "About output latency" });
     await expect(hint).toHaveAccessibleDescription("Diagnostic only, never applied to scoring.");
     await hint.hover();
+    // The tooltip itself (its hidden screen-reader twin can count as visible mid-fade).
     await expect(
-      page.getByText("Diagnostic only, never applied to scoring.").filter({ visible: true }),
+      page
+        .locator("[data-tooltip-content]")
+        .getByText("Diagnostic only, never applied to scoring."),
     ).toBeVisible();
     await shootSettings(page, "settings");
   });
