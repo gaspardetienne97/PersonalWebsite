@@ -14,6 +14,7 @@
   import Heatmap from "./Heatmap.svelte";
   import SessionEntry from "./SessionEntry.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
+  import { instrumentOptions } from "$lib/music/components/instrument-icons";
 
   let { announce = () => {}, now = Date.now() }: { announce?: (msg: string) => void; now?: number } = $props();
 
@@ -223,7 +224,7 @@
           </div>
           <div class="flex min-w-0 flex-col gap-1 text-sm">
             <span class="font-medium">Instrument</span>
-            <Picker label="Instrument" value={instrument} options={[{ value: "", label: "Any instrument" }, ...INSTRUMENTS.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] }))]} onchange={(v) => (instrument = v as typeof instrument)} />
+            <Picker label="Instrument" value={instrument} options={[{ value: "", label: "Any instrument" }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]} onchange={(v) => (instrument = v as typeof instrument)} />
           </div>
           <label class="flex min-w-0 flex-col gap-1 text-sm">
             <span class="font-medium">From</span>

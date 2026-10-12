@@ -1,10 +1,14 @@
 <script lang="ts" module>
+  import type LucideIcon from "lucide-svelte/icons/piano";
   export interface PickOption {
     value: string;
     label: string;
     /** Options sharing a group are listed under its heading. */
     group?: string;
     disabled?: boolean;
+    /** A small icon before the label, tinted with `hue` (a CSS colour, e.g. an instrument's). */
+    icon?: typeof LucideIcon;
+    hue?: string;
   }
 </script>
 
@@ -77,7 +81,7 @@
     aria-label={label}
     data-value={action ? undefined : value}
     class={cn(
-      "min-h-11 w-full min-w-0 justify-between gap-2 rounded-lg px-3 text-sm font-medium shadow-none transition-colors data-[size=default]:h-auto [&_svg]:opacity-70",
+      "min-h-11 w-full min-w-0 justify-between gap-2 rounded-lg px-3 text-sm font-medium shadow-none transition-colors data-[size=default]:h-auto [&>svg]:opacity-70",
       tone === "stage"
         ? "border-ws-stage-ink/15 bg-ws-stage-ink/8 text-ws-stage-ink hover:bg-ws-stage-ink/15 dark:bg-ws-stage-ink/8 [&_svg:not([class*='text-'])]:text-ws-stage-ink"
         : tone === "bare"
@@ -86,7 +90,10 @@
       className,
     )}
   >
-    <span class="truncate" class:opacity-70={!shown}>{shown?.label ?? placeholder}</span>
+    <span class="flex min-w-0 items-center gap-2">
+      {#if shown?.icon}<span class="glyph flex shrink-0" style:--c={shown.hue ?? "currentColor"} aria-hidden="true"><shown.icon class="size-4 text-current" /></span>{/if}
+      <span class="truncate" class:opacity-70={!shown}>{shown?.label ?? placeholder}</span>
+    </span>
   </Select.Trigger>
   <Select.Content
     portalProps={{ to: portalTo }}
@@ -111,7 +118,22 @@
       value={o.value}
       label={o.label}
       disabled={o.disabled}
-      class="min-h-10 rounded-lg px-3 text-sm data-[highlighted]:bg-instr-wash data-[highlighted]:text-ws-ink data-[selected]:font-semibold [&_svg]:text-instr-ink"
-    />
+      class="min-h-10 rounded-lg px-3 text-sm data-[highlighted]:bg-instr-wash data-[highlighted]:text-ws-ink data-[selected]:font-semibold [&>span:first-child_svg]:text-instr-ink"
+    >
+      {#snippet children()}
+        {#if o.icon}<span class="glyph flex shrink-0" style:--c={o.hue ?? "currentColor"} aria-hidden="true"><o.icon class="size-4 text-current" /></span>{/if}
+        {o.label}
+      {/snippet}
+    </Select.Item>
   {/each}
 {/snippet}
+
+<style>
+  /* An option's icon in its own hue: deepened on the light theme so it reads on white. */
+  :global(.woodshed) :global(.glyph) {
+    color: color-mix(in oklch, var(--c), black 35%);
+  }
+  :global(.dark .woodshed) :global(.glyph) {
+    color: var(--c);
+  }
+</style>

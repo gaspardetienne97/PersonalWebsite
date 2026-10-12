@@ -6,7 +6,7 @@
   import Timer from "lucide-svelte/icons/timer";
   import Volume from "lucide-svelte/icons/volume-2";
   import VolumeOff from "lucide-svelte/icons/volume-off";
-  import { INSTRUMENT_ICON } from "./instrument-icons";
+  import { instrumentOptions } from "./instrument-icons";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
   import { bench, INSTRUMENT_LABEL } from "../bench.svelte";
   import { audio, input, midi, mic, settings } from "../runtime";
@@ -18,7 +18,6 @@
   let preview: { stop(): void } | null = null;
 
   const s = $derived(settings.value);
-  const InstrumentIcon = $derived(INSTRUMENT_ICON[s.activeInstrument]);
   const sourceLabel = $derived.by(() => {
     const src = input.activeSource;
     if (src === "midi") return "MIDI";
@@ -82,15 +81,13 @@
 <div class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12'}">
   <div class="flex items-center gap-2 overflow-x-auto overflow-y-hidden px-4 py-2 [scrollbar-width:thin] sm:px-6 lg:px-8" role="group" aria-label="Practice controls">
     <div class="{pill.replace('border-ws-line', 'border-instr border-2')} relative pr-2">
-      <InstrumentIcon class="size-4 shrink-0 text-instr-ink" aria-hidden="true" />
-      <span class="sr-only">Instrument</span>
       <Picker
         class="w-auto min-w-28 pr-1"
         tone="bare"
         label="Instrument"
         value={s.activeInstrument}
         disabled={bench.locked}
-        options={INSTRUMENTS.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] }))}
+        options={instrumentOptions((i) => INSTRUMENT_LABEL[i])}
         onchange={(v) => settings.update({ activeInstrument: v as Instrument })}
       />
     </div>

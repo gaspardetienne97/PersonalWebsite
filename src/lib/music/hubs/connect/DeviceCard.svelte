@@ -7,7 +7,7 @@
   import { btn } from "$lib/music/components/ui";
   import { midi, settings, type PortInfo } from "$lib/music/runtime";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
-  import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
+  import { INSTRUMENT_ICON, instrumentOptions } from "$lib/music/components/instrument-icons";
   import Cable from "lucide-svelte/icons/cable";
   import Picker from "$lib/music/components/Picker.svelte";
 
@@ -114,7 +114,7 @@
       <Picker
         label="Instrument"
         value={profile?.instrument ?? "auto"}
-        options={[{ value: "auto", label: `Auto${detected ? ` (${INSTRUMENT_LABEL[detected]})` : ", not recognised"}` }, ...INSTRUMENTS.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] }))]}
+        options={[{ value: "auto", label: `Auto${detected ? ` (${INSTRUMENT_LABEL[detected]})` : ", not recognised"}` }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]}
         onchange={(v) => {
           void save({ instrument: v === "auto" ? undefined : (v as Instrument) });
           announce(`${title} plays ${v === "auto" ? "whatever its name suggests" : INSTRUMENT_LABEL[v as Instrument]}.`);
