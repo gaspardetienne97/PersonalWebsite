@@ -111,9 +111,18 @@ test.describe("ear training", () => {
         P8: "Octave",
       };
       const pick = i === 0 ? (answer === "P5" ? "Perfect 4th" : "Perfect 5th") : names[answer];
+      // The picture shows only timing until the answer is in: no pitches, no arc.
+      if (i === 0) {
+        // Two bars for a melodic interval, one for a harmonic (both notes at once).
+        expect(await card.locator("svg.ear-visual .shape").count()).toBeGreaterThan(0);
+        await expect(card.locator("svg.ear-visual .note, svg.ear-visual .arc")).toHaveCount(0);
+      }
       await page.locator("button.choice", { hasText: new RegExp(`^${pick}`) }).click();
       await waitStep(page, "feedback");
       if (i === 0) {
+        // Revealed: both notes at their pitches and the interval's arc, named.
+        await expect(card.locator("svg.ear-visual .note")).toHaveCount(2);
+        await expect(card.locator("svg.ear-visual .arc-label")).toContainText(`${names[answer]}, `);
         await expect(card).toContainText("You answered");
         await shots(page, "ear-intervals-feedback");
       }

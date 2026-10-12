@@ -45,6 +45,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { audio, db, mic } from "$lib/music/runtime";
   import DegreeWheel from "./DegreeWheel.svelte";
+  import EarVisual from "./EarVisual.svelte";
   import { degreeColor } from "./degrees";
   import Picker from "$lib/music/components/Picker.svelte";
   import {
@@ -127,6 +128,8 @@
   let seq = $state.raw<{ stop(): void; playing: boolean } | null>(null);
   let lit = $state<number[]>([]);
   let litDegree = $state<string | null>(null);
+  /** The playback event sounding now (for the picture), or -1. */
+  let sounding = $state(-1);
   let demo = $state<{ answer: string; kind: string } | null>(null);
   let demoPlaying = $state(false);
   const flashes = new Flashes();
@@ -203,6 +206,7 @@
       clearTimeout(guard);
       lit = [];
       litDegree = null;
+      sounding = -1;
       opts.onend?.();
     };
     // The prompt always ends on the wall clock too: a stalled audio clock must not strand a question.
@@ -215,8 +219,10 @@
     try {
       handle = audio.playSequence(notes, {
         onNote: (i) => {
-          if (!opts.light || ended) return;
+          if (ended) return;
           const t = notes[i].time;
+          sounding = p.playback.findIndex((ev) => Math.abs(ev.time - t) < 1e-6);
+          if (!opts.light) return;
           lit = notes.filter((n) => n.time === t).map((n) => n.midi);
           if (p.drill === "scale-degree") litDegree = i === 0 ? "1" : p.answer;
         },
@@ -697,10 +703,8 @@
           </div>
         </div>
 
-        <div class="mt-3 flex min-h-8 items-center gap-2" aria-hidden="true">
-          {#if step === "playing" || (seq?.playing && step !== "feedback")}
-            <span class="listening"><i></i><i></i><i></i><i></i></span><span class="text-sm text-ws-stage-soft">Listening</span>
-          {/if}
+        <div class="mt-3">
+          <EarVisual prompt={p} revealed={showAnswer || hinted} active={sounding} labels={labels === "solfege" ? "solfege" : "numbers"} />
         </div>
 
         {#if showAnswer || hinted}
@@ -932,36 +936,6 @@
     border-radius: 0.8rem;
     background: var(--deg);
     color: oklch(0.2 0.04 287);
-  }
-  .listening {
-    display: inline-flex;
-    gap: 3px;
-    align-items: end;
-    height: 1.2rem;
-  }
-  .listening i {
-    width: 4px;
-    border-radius: 2px;
-    background: var(--instr);
-    animation: ws-eq 900ms ease-in-out infinite;
-  }
-  .listening i:nth-child(2) {
-    animation-delay: -300ms;
-  }
-  .listening i:nth-child(3) {
-    animation-delay: -600ms;
-  }
-  .listening i:nth-child(4) {
-    animation-delay: -150ms;
-  }
-  @keyframes ws-eq {
-    0%,
-    100% {
-      height: 30%;
-    }
-    50% {
-      height: 100%;
-    }
   }
   .voice {
     background: color-mix(in oklch, var(--ws-stage-ink) 7%, transparent);
