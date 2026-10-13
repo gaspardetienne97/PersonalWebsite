@@ -782,6 +782,24 @@ APP_SKILLS.push(
     version: 1,
   })),
 );
+APP_SKILLS.push(
+  {
+    id: "technique.arpeggios",
+    name: "Arpeggios",
+    capability: "technique",
+    level: "early-intermediate",
+    tags: ["piano", "arpeggios"],
+    version: 1,
+  },
+  {
+    id: "technique.chord-inversions",
+    name: "Broken and blocked chords through their inversions",
+    capability: "technique",
+    level: "beginner",
+    tags: ["piano", "chords"],
+    version: 1,
+  },
+);
 APP_SKILLS.push({
   id: "technique.aerophone.fingering",
   name: "Aerophone fingerings, in Roland's lesson order",

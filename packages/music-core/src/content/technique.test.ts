@@ -14,6 +14,9 @@ import {
   positionTargets,
   RECALL_REGIONS,
   scaleDrillTargets,
+  scaleSetupKey,
+  gradeSpeed,
+  ABRSM_SPEEDS,
   scaleSkills,
   shapePcs,
   SPIDER_PATTERNS,
@@ -60,6 +63,72 @@ describe("scale drill", () => {
     });
     expect(scaleSkills("major")).toEqual(["technique.scales", "technique.scale.major"]);
     expect(scaleSkills("dorian")).toEqual(["technique.scales"]);
+  });
+});
+
+describe("arpeggios and chords through their inversions", () => {
+  const base = {
+    kind: "major" as const,
+    tonic: 60,
+    motion: "up" as const,
+    hands: "right" as const,
+    bpm: 60,
+  };
+  it("arpeggiates, breaks and blocks the tonic chord", () => {
+    const arp = scaleDrillTargets({ ...base, pattern: "arpeggio", span: "two-octave" });
+    expect(arp.map((s) => s.notes[0].midi)).toEqual([60, 64, 67, 72, 76, 79, 84]);
+    // Broken: each inversion's notes in turn, ending on the root position an octave up.
+    const broken = scaleDrillTargets({
+      ...base,
+      pattern: "broken",
+      span: "one-octave",
+      chord: "minor",
+    });
+    expect(broken.map((s) => s.notes[0].midi)).toEqual([
+      60, 63, 67, 63, 67, 72, 67, 72, 75, 72, 75, 79,
+    ]);
+    const blocked = scaleDrillTargets({
+      ...base,
+      pattern: "blocked",
+      span: "one-octave",
+      motion: "up-down",
+    });
+    expect(blocked.map((s) => s.notes.map((n) => n.midi))).toEqual([
+      [60, 64, 67],
+      [64, 67, 72],
+      [67, 72, 76],
+      [72, 76, 79],
+      [67, 72, 76],
+      [64, 67, 72],
+      [60, 64, 67],
+    ]);
+    // A seventh chord has four inversions; both hands double it an octave down.
+    const dom = scaleDrillTargets({
+      ...base,
+      pattern: "blocked",
+      span: "one-octave",
+      chord: "dominant-7",
+      hands: "both",
+    });
+    expect(dom).toHaveLength(5);
+    expect(dom[0].notes.filter((n) => n.hand === "left").map((n) => n.midi)).toEqual([
+      48, 52, 55, 58,
+    ]);
+  });
+
+  it("puts two or four notes to a click at the ABRSM grade speeds", () => {
+    const fast = scaleDrillTargets({ ...base, span: "one-octave", perBeat: 2 });
+    expect(fast.map((s) => s.atBeat).slice(0, 4)).toEqual([0, 0.5, 1, 1.5]);
+    expect(gradeSpeed("Grade 1", "scale")).toEqual([60, 2]);
+    expect(gradeSpeed("Grade 5", "arpeggio")).toEqual([44, 4]);
+    expect(gradeSpeed("Grade 5", "blocked")).toBeUndefined();
+    expect(ABRSM_SPEEDS).toHaveLength(9);
+    // Old scale ladders keep their keys; the new patterns get their own.
+    expect(scaleSetupKey({ ...base, span: "one-octave" })).toBe("major|60|up|one-octave|right");
+    expect(
+      scaleSetupKey({ ...base, span: "one-octave", pattern: "arpeggio", chord: "minor" }),
+    ).toBe("arpeggio|minor|60|up|one-octave|right|1");
+    expect(scaleSkills("major", "arpeggio")).toEqual(["technique.arpeggios"]);
   });
 });
 

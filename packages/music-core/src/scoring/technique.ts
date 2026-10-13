@@ -35,7 +35,12 @@ export interface LineResult extends Graded {
   /** Mean absolute error of each beat's onset against the grid anchored on the first onset. */
   meanTimingErrorMs: number;
   together: { count: number; beats: number } | null;
+  /** Blocked chords: how many struck with each hand's notes within CHORD_TOGETHER_MS, and their mean spread. */
+  chordTogether: { count: number; chords: number; meanSpreadMs: number } | null;
 }
+
+/** A blocked chord's notes count as struck together inside this spread. */
+export const CHORD_TOGETHER_MS = 40;
 
 /** Missed notes the line matcher will skip past before it treats a note as extra. */
 const LINE_LOOKAHEAD_BEATS = 2;
@@ -124,6 +129,25 @@ export function gradeLine(input: LineInput): LineResult {
     };
   }
 
+  // Blocked chords: the spread of each hand's notes within a step (informative, not in the score).
+  let chordTogether: LineResult["chordTogether"] = null;
+  const chordSteps = input.beats.flatMap((notes, beat) =>
+    (["left", "right"] as const).flatMap((h) => {
+      const mine = notes.filter((n) => (n.hand ?? "right") === h);
+      if (mine.length < 2) return [];
+      const ats = targets.flatMap((t, i) =>
+        t.beat === beat && (t.hand ?? "right") === h && claims[i] ? [ons[claims[i]!.hit].at] : [],
+      );
+      return ats.length === mine.length ? [Math.max(...ats) - Math.min(...ats)] : [];
+    }),
+  );
+  if (chordSteps.length && measuredTogether)
+    chordTogether = {
+      count: chordSteps.filter((d) => d <= CHORD_TOGETHER_MS).length,
+      chords: chordSteps.length,
+      meanSpreadMs: mean(chordSteps),
+    };
+
   const score = ons.length ? pitch * 0.85 + even.score * 0.15 : 0;
   const metrics: Metric[] = [
     ...targets.map((t, i) => ({
@@ -150,6 +174,7 @@ export function gradeLine(input: LineInput): LineResult {
     total: targets.length,
     meanTimingErrorMs: mean(points.map((p) => Math.abs(p.actual - p.expected))),
     together,
+    chordTogether,
   };
 }
 

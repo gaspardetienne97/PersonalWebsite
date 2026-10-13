@@ -179,7 +179,9 @@ describe("skill ids", () => {
       ...rhythmSkills("pulse"),
       ...(
         Object.keys(SCALE_DATA.semitonesByKind) as (keyof typeof SCALE_DATA.semitonesByKind)[]
-      ).flatMap(scaleSkills),
+      ).flatMap((k) => scaleSkills(k)),
+      ...scaleSkills("major", "arpeggio"),
+      ...scaleSkills("major", "blocked"),
       ...(["guitar", "ukulele"] as const).flatMap((i) =>
         (["build", "pick", "strum", "changes"] as const).flatMap((m) => chordShapeSkills(i, m)),
       ),

@@ -13,7 +13,6 @@ import {
 } from "../data";
 import { noteName, pc } from "../theory/notes";
 import {
-  handLines,
   scaleLine,
   type ScaleHands,
   type ScaleKind,
@@ -33,10 +32,78 @@ import { pick, type Rand } from "./random";
 // ---------------------------------------------------------------------------
 // Scales
 
-export const SCALE_TEMPO = { min: 60, max: 180, default: 100 };
+export const SCALE_TEMPO = { min: 40, max: 180, default: 100 };
+
+/** What the drill plays: the scale, or the tonic chord as an arpeggio, broken through its inversions, or blocked. */
+export type ScalePattern = "scale" | "arpeggio" | "broken" | "blocked";
+export type ChordKind = "major" | "minor" | "dominant-7" | "diminished-7";
+export const CHORD_KINDS: { id: ChordKind; label: string; intervals: number[] }[] = [
+  { id: "major", label: "Major", intervals: [0, 4, 7] },
+  { id: "minor", label: "Minor", intervals: [0, 3, 7] },
+  { id: "dominant-7", label: "Dominant 7th", intervals: [0, 4, 7, 10] },
+  { id: "diminished-7", label: "Diminished 7th", intervals: [0, 3, 6, 9] },
+];
+
+/**
+ * ABRSM 2025-26 piano speeds ("a general guide", spec p. 14), in quavers:
+ * Initial to Grade 4 a crotchet beat (two notes a click), Grades 5 to 8 a
+ * minim (four). Arpeggios and broken chords use the arpeggio column.
+ */
+export const ABRSM_SPEEDS: { grade: string; scale: [number, 2 | 4]; arpeggio: [number, 2 | 4] }[] =
+  [
+    { grade: "Initial", scale: [54, 2], arpeggio: [52, 2] },
+    { grade: "Grade 1", scale: [60, 2], arpeggio: [58, 2] },
+    { grade: "Grade 2", scale: [66, 2], arpeggio: [63, 2] },
+    { grade: "Grade 3", scale: [80, 2], arpeggio: [72, 2] },
+    { grade: "Grade 4", scale: [100, 2], arpeggio: [80, 2] },
+    { grade: "Grade 5", scale: [60, 4], arpeggio: [44, 4] },
+    { grade: "Grade 6", scale: [72, 4], arpeggio: [50, 4] },
+    { grade: "Grade 7", scale: [80, 4], arpeggio: [56, 4] },
+    { grade: "Grade 8", scale: [88, 4], arpeggio: [66, 4] },
+  ];
+/** A grade's speed for a pattern: [clicks per minute, notes per click]; none for blocked chords. */
+export const gradeSpeed = (grade: string, pattern: ScalePattern) => {
+  const g = ABRSM_SPEEDS.find((x) => x.grade === grade);
+  if (!g || pattern === "blocked") return undefined;
+  return pattern === "scale" ? g.scale : g.arpeggio;
+};
+
+/**
+ * The tonic chord as steps (each a list of right-hand pitches): an arpeggio
+ * over one or two octaves, broken through each inversion in turn, or blocked
+ * inversion by inversion. Down and up-down mirror it, as scales do.
+ */
+export function chordSteps(
+  kind: ChordKind,
+  tonic: number,
+  pattern: Exclude<ScalePattern, "scale">,
+  octaves: 1 | 2,
+  motion: ScaleMotion,
+): number[][] {
+  const iv = CHORD_KINDS.find((c) => c.id === kind)!.intervals;
+  const n = iv.length;
+  const tone = (t: number) => tonic + iv[t % n] + 12 * Math.floor(t / n);
+  const inversion = (k: number) => Array.from({ length: n }, (_, j) => tone(k + j));
+  let up: number[][];
+  if (pattern === "arpeggio") up = Array.from({ length: n * octaves + 1 }, (_, t) => [tone(t)]);
+  else {
+    const chords = Array.from({ length: n * octaves + 1 }, (_, k) => inversion(k));
+    up = pattern === "blocked" ? chords : chords.flatMap((c) => c.map((m) => [m]));
+  }
+  const down = [...up].reverse();
+  if (motion === "up") return up;
+  if (motion === "down") return down;
+  return [...up, ...down.slice(1)];
+}
 
 export interface ScaleSetup {
   kind: ScaleKind;
+  /** Default "scale". */
+  pattern?: ScalePattern;
+  /** The chord for arpeggios and broken or blocked chords (default major). */
+  chord?: ChordKind;
+  /** Notes per click (default 1). */
+  perBeat?: 1 | 2 | 4;
   tonic: number;
   span: ScaleSpan;
   motion: ScaleMotion;
@@ -63,33 +130,61 @@ export interface ScaleStep {
   atBeat: number;
 }
 
-/** One expected step per beat of the line. */
+/** One expected step per note-time of the line (`perBeat` of them to a click). */
 export function scaleDrillTargets(setup: ScaleSetup): ScaleStep[] {
-  const line = scaleLine(setup.kind, setup.tonic, setup.span, setup.motion);
-  return handLines(line, setup.hands).map((midis, index) => ({
+  const pattern = setup.pattern ?? "scale";
+  const right =
+    pattern === "scale"
+      ? scaleLine(setup.kind, setup.tonic, setup.span, setup.motion).map((m) => [m])
+      : chordSteps(
+          setup.chord ?? "major",
+          setup.tonic,
+          pattern,
+          setup.span === "two-octave" ? 2 : 1,
+          setup.motion,
+        );
+  const per = setup.perBeat ?? 1;
+  return right.map((midis, index) => ({
     index,
-    atBeat: index,
-    notes: midis.map((midi, i) => ({
-      midi,
-      hand:
-        setup.hands === "both"
-          ? i === 0
-            ? "left"
-            : "right"
-          : setup.hands === "left"
-            ? "left"
-            : "right",
-    })),
+    atBeat: index / per,
+    notes:
+      setup.hands === "both"
+        ? [
+            ...midis.map((m) => ({ midi: m - 12, hand: "left" as const })),
+            ...midis.map((m) => ({ midi: m, hand: "right" as const })),
+          ]
+        : midis.map((m) => ({
+            midi: setup.hands === "left" ? m - 12 : m,
+            hand: setup.hands === "left" ? ("left" as const) : ("right" as const),
+          })),
   }));
 }
 
-export const scaleSkills = (kind: ScaleKind) =>
-  ["technique.scales", `technique.scale.${kind}`].filter((id) => SKILL_IDS.has(id));
+export const scaleSkills = (kind: ScaleKind, pattern: ScalePattern = "scale") =>
+  pattern === "arpeggio"
+    ? ["technique.arpeggios"]
+    : pattern !== "scale"
+      ? ["technique.chord-inversions"]
+      : ["technique.scales", `technique.scale.${kind}`].filter((id) => SKILL_IDS.has(id));
 
-/** Stable setup key for the tempo ladder (scale, tonic, motion, span, hands). */
+/** Stable setup key for the tempo ladder (pattern, scale or chord, tonic, motion, span, hands, notes a click). */
 export const scaleSetupKey = (
-  s: Pick<ScaleSetup, "kind" | "tonic" | "motion" | "span" | "hands">,
-) => [s.kind, s.tonic, s.motion, s.span, s.hands].join("|");
+  s: Pick<
+    ScaleSetup,
+    "kind" | "tonic" | "motion" | "span" | "hands" | "pattern" | "chord" | "perBeat"
+  >,
+) => {
+  const base = [s.kind, s.tonic, s.motion, s.span, s.hands];
+  const pattern = s.pattern ?? "scale";
+  // Scales one note a click keep their old keys, so stored ladders still apply.
+  if (pattern === "scale" && (s.perBeat ?? 1) === 1) return base.join("|");
+  return [
+    pattern,
+    pattern === "scale" ? s.kind : (s.chord ?? "major"),
+    ...base.slice(1),
+    s.perBeat ?? 1,
+  ].join("|");
+};
 
 // ---------------------------------------------------------------------------
 // Fretted targets

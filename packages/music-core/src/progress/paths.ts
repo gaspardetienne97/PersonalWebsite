@@ -88,6 +88,7 @@ const PATH_MAP: Record<string, string> = {
   "/music/library": "/music/library",
   "/music/listening": "/music/listening",
   "/music/circle": "/music/circle",
+  "/music/scales": "/music/scales",
 };
 
 export function rewriteHref(href: string): string {
@@ -456,6 +457,31 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
       exerciseIds: ["ear.error-detection"],
       skillIds: ["ear.error-detection"],
       minAttempts: 20,
+    },
+    // The graded syllabi's other technique (ABRSM, RCM): chords through their
+    // inversions from the first grades, arpeggios soon after.
+    {
+      id: "P-T1",
+      order: 3.5,
+      title: "Broken chords through the inversions",
+      summary:
+        "C major broken through root position, first and second inversion and back, one hand.",
+      detail: "Three runs averaging 66% or higher.",
+      href: "/music/scales?pattern=broken&chord=major&tonic=60&span=one-octave&motion=up-down&hands=right&perBeat=1&grade=&bpm=60",
+      exerciseIds: ["technique.scale"],
+      skillIds: ["technique.chord-inversions"],
+      minAttempts: 3,
+    },
+    {
+      id: "P-T2",
+      order: 6.5,
+      title: "Arpeggios, two octaves",
+      summary: "The C major arpeggio over two octaves, up and down, each hand alone.",
+      detail: "Three runs averaging 66% or higher.",
+      href: "/music/scales?pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=right&perBeat=1&grade=&bpm=72",
+      exerciseIds: ["technique.scale"],
+      skillIds: ["technique.arpeggios"],
+      minAttempts: 3,
     },
   ],
 };

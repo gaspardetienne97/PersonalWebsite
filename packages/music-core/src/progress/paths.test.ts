@@ -27,7 +27,7 @@ describe("path content", () => {
     expect(LEARNING_PATHS.jazz.steps).toHaveLength(10);
     // The tables' steps plus the ear steps the research adds to each instrument path.
     expect(LEARNING_PATHS.guitar.steps).toHaveLength(10);
-    expect(LEARNING_PATHS.piano.steps).toHaveLength(10);
+    expect(LEARNING_PATHS.piano.steps).toHaveLength(12);
     expect(LEARNING_PATHS.mpc.steps).toHaveLength(19);
     expect(LEARNING_PATHS.studio.steps).toHaveLength(7);
     expect(LEARNING_PATHS.mpc.steps.map((s) => s.id)).toEqual([

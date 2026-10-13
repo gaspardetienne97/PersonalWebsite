@@ -177,6 +177,42 @@ test.describe("piano drills over fake MIDI", () => {
     await shoot(page, "two-hand-results");
   });
 
+  test("scales: blocked chords through the inversions, notes struck together", async ({ page }) => {
+    await page.goto(
+      "/music/scales?pattern=blocked&chord=major&tonic=60&span=one-octave&motion=up&hands=right&perBeat=1&grade=&bpm=60",
+    );
+    await expect(page.getByText("Setup:").locator("..")).toContainText("C4 major blocked chords");
+    const chords = [
+      [60, 64, 67],
+      [64, 67, 72],
+      [67, 72, 76],
+      [72, 76, 79],
+    ];
+    await runTimed(
+      page,
+      chords.map((notes, i) => ({ at: i * 1000, notes, hold: 600 })),
+    );
+    await expect(page.getByText("Chord notes together (40 ms)")).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText(/^4 of 4, \d+ ms apart on average$/)).toBeVisible();
+    await shoot(page, "scales-blocked-results");
+  });
+
+  test("scales: an arpeggio at the ABRSM Grade 1 speed, two notes a click", async ({ page }) => {
+    await page.goto(
+      "/music/scales?pattern=arpeggio&chord=major&tonic=60&span=one-octave&motion=up&hands=right&perBeat=2&grade=Grade%201&bpm=58",
+    );
+    await expect(page.getByText("Setup:").locator("..")).toContainText("two notes a click");
+    const step = 60000 / 58 / 2;
+    await runTimed(
+      page,
+      [60, 64, 67, 72].map((n, i) => ({ at: Math.round(i * step), notes: [n], hold: 200 })),
+    );
+    await expect(page.getByRole("status")).toContainText("Clean and even at Grade 1 speed.", {
+      timeout: 8000,
+    });
+    await expect(page.getByText("Grade 1 speed (ABRSM, 58 with two notes a click)")).toBeVisible();
+  });
+
   test("voicings: one major ii-V-I", async ({ page }) => {
     await page.goto("/music/voicings?variant=major&key=0&keys=1&strict=1");
     await startDrill(page);

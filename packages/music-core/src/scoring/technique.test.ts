@@ -28,6 +28,30 @@ const on = (midi: number, at: number, extra: Partial<NoteEvent> = {}): NoteEvent
 const C_MAJOR = [60, 62, 64, 65, 67, 69, 71, 72];
 const line = (midis: number[]) => midis.map((midi) => [{ midi }]);
 
+describe("blocked chords", () => {
+  it("reports how many chords landed with their notes together", () => {
+    const beats = [
+      [60, 64, 67],
+      [64, 67, 72],
+    ].map((c) => c.map((midi) => ({ midi, hand: "right" as const })));
+    const notes = [
+      on(60, 1000),
+      on(64, 1010),
+      on(67, 1020), // 20 ms spread: together
+      on(64, 1500),
+      on(67, 1560),
+      on(72, 1600), // 100 ms spread: rolled
+    ];
+    const r = gradeLine({ beats, beatMs: 500, notes });
+    expect(r.pitch).toBe(1);
+    expect(r.chordTogether).toEqual({ count: 1, chords: 2, meanSpreadMs: 60 });
+    // Single-note lines have nothing to report.
+    expect(
+      gradeLine({ beats: [[{ midi: 60 }]], beatMs: 500, notes: [on(60, 0)] }).chordTogether,
+    ).toBeNull();
+  });
+});
+
 describe("gradeLine (scales, spider, positions)", () => {
   it("a clean even run scores 1", () => {
     const r = gradeLine({
