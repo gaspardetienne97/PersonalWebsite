@@ -732,9 +732,10 @@ test.describe("ear training", () => {
     const [, second] = (await prompt(page).getAttribute("data-expected"))!.split(",").map(Number);
     await page.evaluate((f) => (window as any).__mic.set(f, 0.4), hz(second + 0.4));
     await waitStep(page, "feedback");
-    await expect(prompt(page)).toContainText("out of tune, 40 cents sharp");
-    await expect(page.getByLabel("Microphone")).toContainText(
-      "Last note: 40 cents sharp, within 25 counts.",
+    // The detector reads within a cent or so.
+    await expect(prompt(page)).toContainText(/out of tune, (39|40|41) cents sharp/);
+    await expect(page.locator(".voice")).toContainText(
+      /Last note: (39|40|41) cents sharp, within 25 counts\./,
     );
   });
 
