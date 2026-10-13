@@ -16,6 +16,7 @@ import {
   scaleDrillTargets,
   scaleSetupKey,
   gradeSpeed,
+  GUITAR_GRADE_TEMPOS,
   ABRSM_SPEEDS,
   scaleSkills,
   shapePcs,
@@ -320,5 +321,17 @@ describe("chord-perfect and changes", () => {
     expect(pairs).toContainEqual({ from: "guitar.c-major", to: "guitar.g-major" });
     expect(pairs).toContainEqual({ from: "guitar.d-major", to: "guitar.a-major" });
     expect(chordChangePairs("ukulele").every((p) => p.from.startsWith("ukulele."))).toBe(true);
+  });
+});
+
+describe("guitar grade tempos", () => {
+  it("lists the Rockschool and Trinity exam clicks", () => {
+    expect(GUITAR_GRADE_TEMPOS).toHaveLength(18);
+    expect(GUITAR_GRADE_TEMPOS.find((g) => g.id === "rsl-grade-3")).toEqual({
+      id: "rsl-grade-3",
+      label: "Rockschool Grade 3",
+      bpm: 90,
+    });
+    expect(GUITAR_GRADE_TEMPOS.find((g) => g.id === "trinity-grade-8")!.bpm).toBe(136);
   });
 });

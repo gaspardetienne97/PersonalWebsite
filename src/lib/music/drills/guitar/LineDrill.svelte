@@ -14,6 +14,7 @@
     SPIDER_PATTERNS,
     SPIDER_SPANS,
     SPIDER_TEMPOS,
+    GUITAR_GRADE_TEMPOS,
     spiderMaxStartFret,
     spiderTargets,
     type FretTarget,
@@ -49,6 +50,9 @@
     startFret: 5,
     crossing: false as boolean,
     rootFret: 5,
+    perBeat: 1,
+    /** A grade whose exam click was picked ("" for none). */
+    grade: "" as string,
   });
   const s = $derived(cfg.value);
   const entry = catalogEntry("fretboard")!.modes.find((m) => m.id === (isSpider ? "spider" : "positions"))!;
@@ -58,6 +62,11 @@
   const tuning = $derived(isSpider ? tunings.pick(s.tuning, instr) : TUNINGS.guitar[0]);
   const unavailable = $derived(!isSpider && instr === "ukulele");
   const bpm = () => Math.min(200, Math.max(40, settings.value.bpm));
+  const perBeat = $derived([1, 2, 4].includes(s.perBeat) ? s.perBeat : 1);
+  /** One note's time: the click divided by the notes to a click. */
+  const stepMs = () => 60000 / bpm() / perBeat;
+  const target = $derived(GUITAR_GRADE_TEMPOS.find((g) => g.id === s.grade));
+  const PER: Record<number, string> = { 1: "one note a click", 2: "two notes a click", 4: "four notes a click" };
 
   const spiderPattern = $derived(SPIDER_PATTERNS.find((p) => p.id === s.pattern) ?? SPIDER_PATTERNS[0]);
   const box = $derived(POSITION_PATTERNS.find((p) => p.id === s.pattern) ?? POSITION_PATTERNS[0]);
@@ -75,8 +84,8 @@
   });
   const key = $derived(
     isSpider
-      ? `spider:${spiderPattern.id}:${tuning.id}:s${Math.min(s.string, stringCount)}:${s.span}:f${startFret}:${s.crossing ? "x" : "-"}:${bpm()}`
-      : `positions:${box.id}:r${rootFret}:${bpm()}`,
+      ? `spider:${spiderPattern.id}:${tuning.id}:s${Math.min(s.string, stringCount)}:${s.span}:f${startFret}:${s.crossing ? "x" : "-"}:${bpm()}${perBeat > 1 ? `x${perBeat}` : ""}`
+      : `positions:${box.id}:r${rootFret}:${bpm()}${perBeat > 1 ? `x${perBeat}` : ""}`,
   );
   const frets = $derived(steps.map((t) => t.fret));
   const from = $derived(Math.min(...frets) <= 1 ? 0 : Math.min(...frets) - 1);
@@ -110,8 +119,8 @@
 
   const summaryLine = $derived(
     isSpider
-      ? `${spiderPattern.label}, ${tuning.name}, string ${Math.min(s.string, stringCount)}, ${SPIDER_SPANS.find((x) => x.id === s.span)?.label.toLowerCase()}, from fret ${startFret}${s.crossing ? ", crossing strings" : ""}, ${bpm()} BPM`
-      : `${box.label}, root at fret ${rootFret} (${noteName(tuning.openStrings[5] + rootFret, "sharp", false)}), ${bpm()} BPM`,
+      ? `${spiderPattern.label}, ${tuning.name}, string ${Math.min(s.string, stringCount)}, ${SPIDER_SPANS.find((x) => x.id === s.span)?.label.toLowerCase()}, from fret ${startFret}${s.crossing ? ", crossing strings" : ""}, ${bpm()} BPM${perBeat > 1 ? `, ${PER[perBeat]}` : ""}`
+      : `${box.label}, root at fret ${rootFret} (${noteName(tuning.openStrings[5] + rootFret, "sharp", false)}), ${bpm()} BPM${perBeat > 1 ? `, ${PER[perBeat]}` : ""}`,
   );
 
   function stopDemo() {
@@ -123,7 +132,7 @@
   async function playDemo() {
     if (demo?.playing) return stopDemo();
     await audio.unlock();
-    const beatS = 60 / bpm();
+    const beatS = stepMs() / 1000;
     const handle = audio.playSequence(
       steps.map((t, i) => ({ midi: t.midi, time: i * beatS, duration: beatS * 0.9 })),
       { onNote: (i: number) => (demoStep = i) },
@@ -164,12 +173,12 @@
       difficulty: isSpider ? (spiderPattern.group === "classic" ? 0.3 : 0.4) + (s.crossing ? 0.15 : 0) + (s.span === "single" ? 0 : 0.1) : box.family === "caged-major" ? 0.5 : 0.45,
       instrument: instr,
       params: isSpider
-        ? { bpm: ctx.bpm, pattern: spiderPattern.id, tuning: tuning.id, string: s.string, span: s.span, startFret, crossing: s.crossing }
-        : { bpm: ctx.bpm, pattern: box.id, rootFret },
+        ? { bpm: ctx.bpm, perBeat, pattern: spiderPattern.id, tuning: tuning.id, string: s.string, span: s.span, startFret, crossing: s.crossing }
+        : { bpm: ctx.bpm, perBeat, pattern: box.id, rootFret },
     });
     // Scored only after the count-in, so the speakers can't bleed into the take.
     cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
-    timer = setTimeout(() => void finish(), Math.max(0, ctx.downbeat - performance.now()) + (steps.length + 4) * ctx.beatMs);
+    timer = setTimeout(() => void finish(), Math.max(0, ctx.downbeat - performance.now()) + steps.length * stepMs() + 4 * ctx.beatMs);
     stopClockRef = ctx.stopClock;
   }
 
@@ -180,7 +189,7 @@
     cap?.stop();
     mic.stop();
     const notes = cap?.notes ?? [];
-    const r = gradeLine({ beats: steps.map((t) => [{ midi: t.midi }]), beatMs: 60000 / bpm(), notes });
+    const r = gradeLine({ beats: steps.map((t) => [{ midi: t.midi }]), beatMs: stepMs(), notes });
     result = r;
     phase = "results";
     await run!.attempt({
@@ -222,6 +231,15 @@
         taps.length && taps.length === ons.length
           ? { label: "On the written string and fret", value: taps.length ? onString / taps.length : 0, text: `${onString} of ${taps.length} taps` }
           : { label: "String and fret", notMeasured: true },
+        ...(target
+          ? [
+              {
+                label: `${target.label} click, ${target.bpm} BPM`,
+                value: Math.min(1, bpm() / target.bpm),
+                text: bpm() >= target.bpm ? (r.correct ? "reached, clean" : "at tempo, not clean yet") : `${bpm()} of ${target.bpm} BPM`,
+              },
+            ]
+          : []),
       ],
     };
     status = summary.headline;
@@ -317,6 +335,28 @@
         <p class="text-sm text-ws-soft sm:col-span-2 lg:col-span-1">Shapes are written for standard tuning with the root on string 6.</p>
       {/if}
       <Choice label="Tempo" options={SPIDER_TEMPOS.map((t) => ({ value: t, label: `${t}` }))} value={bpm()} onchange={(v) => settings.update({ bpm: v })} />
+      <Choice
+        label="Notes a click"
+        options={[
+          { value: 1, label: "One" },
+          { value: 2, label: "Two" },
+          { value: 4, label: "Four" },
+        ]}
+        value={perBeat}
+        onchange={(v) => cfg.set({ perBeat: v })}
+      />
+      <Choice
+        label="Grade tempo"
+        select
+        options={[{ value: "", label: "None" }, ...GUITAR_GRADE_TEMPOS.map((g) => ({ value: g.id, label: `${g.label}: ${g.bpm} BPM` }))]}
+        value={s.grade}
+        onchange={(v) => {
+          cfg.set({ grade: v });
+          const g = GUITAR_GRADE_TEMPOS.find((x) => x.id === v);
+          if (g) settings.update({ bpm: g.bpm });
+        }}
+      />
+      <p class="text-sm text-ws-soft sm:col-span-2 lg:col-span-3">Grade tempos are the exam click (Rockschool Electric 2018, Trinity classical minimums); the syllabi extracts don't say how many notes fall on a click, so pick that yourself.</p>
     </div>
   {/snippet}
 

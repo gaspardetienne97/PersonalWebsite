@@ -113,6 +113,23 @@ test.describe("guitar drills", () => {
     await shoot(page, "spider-results", 375, true);
   });
 
+  test("Spider at the Rockschool Grade 3 click, two notes a click", async ({ page }) => {
+    await page.goto(
+      "/music/fretboard?mode=spider&pattern=ascending-1234&tuning=guitar.standard&string=6&span=single&startFret=5&crossing=0&instrument=guitar&bpm=90&perBeat=2&grade=rsl-grade-3",
+    );
+    await expect(page.getByText("Setup:").locator("..")).toContainText("90 BPM, two notes a click");
+    await startDrill(page, "Practice");
+    for (const f of [5, 6, 7, 8]) {
+      await tap(page, fret(6, f));
+      await page.waitForTimeout(333);
+    }
+    await expect(
+      page.getByRole("article").getByText("Rockschool Grade 3 click, 90 BPM"),
+    ).toBeVisible({
+      timeout: 8000,
+    });
+  });
+
   test("Positions box 1 runs by synthetic microphone", async ({ page }) => {
     await page.goto(
       "/music/fretboard?mode=positions&pattern=minor-pentatonic-box-1&rootFret=5&instrument=guitar&bpm=60",

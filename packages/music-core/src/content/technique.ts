@@ -198,6 +198,48 @@ export interface FretTarget extends FretPosition {
 export const SPIDER_PATTERNS = STRING_SPIDER.patterns;
 export const SPIDER_SPANS = STRING_SPIDER.spans;
 export const SPIDER_TEMPOS = [60, 80, 100, 120];
+
+/**
+ * Exam click tempos for guitar scales: Rockschool (RSL) Electric 2018 and the
+ * Trinity Classical Guitar minimum scale tempos (Apr 2023). Neither extract
+ * says how many notes fall on a click, so these set the click only.
+ */
+export const GUITAR_GRADE_TEMPOS: { id: string; label: string; bpm: number }[] = [
+  ...(
+    [
+      ["Debut", 70],
+      ["Grade 1", 70],
+      ["Grade 2", 80],
+      ["Grade 3", 90],
+      ["Grade 4", 80],
+      ["Grade 5", 80],
+      ["Grade 6", 100],
+      ["Grade 7", 100],
+      ["Grade 8", 100],
+    ] as const
+  ).map(([g, bpm]) => ({
+    id: `rsl-${g.toLowerCase().replace(" ", "-")}`,
+    label: `Rockschool ${g}`,
+    bpm,
+  })),
+  ...(
+    [
+      ["Initial", 88],
+      ["Grade 1", 56],
+      ["Grade 2", 62],
+      ["Grade 3", 70],
+      ["Grade 4", 82],
+      ["Grade 5", 92],
+      ["Grade 6", 106],
+      ["Grade 7", 122],
+      ["Grade 8", 136],
+    ] as const
+  ).map(([g, bpm]) => ({
+    id: `trinity-${g.toLowerCase().replace(" ", "-")}`,
+    label: `Trinity classical ${g}`,
+    bpm,
+  })),
+];
 export const SPIDER_DEFAULTS = { bpm: 80, startFret: 5 };
 /** Starting frets offered: 0..min(9, fretCount - 3). */
 export const spiderMaxStartFret = (t: Tuning) => Math.min(9, t.fretCount - 3);
