@@ -5,12 +5,13 @@
   import { KEY_CYCLE } from "@repo/music-core/content/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
-  import { Transport, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
+  import { Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { gradeItem, voicingItems, type ItemGrade, type Variant, type VoicingItem } from "$lib/music/drills/piano/voicings";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -340,6 +341,9 @@
       {/each}
       {#if items.length > group.length}<li class="self-center text-sm text-ws-stage-soft">{group[0]?.group} of {new Set(items.map((i) => i.group)).size} keys</li>{/if}
     </ol>
+    {#if mode === "practice" || transport.playing || phase === "results"}
+      <div class="mb-3"><LineNotation notes={toWritten(demoNotes).map((n) => (monophonic ? n : { ...n, durationBeats: 2 }))} title={`voicings-${group[0]?.group}`} cursorBeat={transport.beat ?? (phase === "running" && current ? group.indexOf(current) * 2 : null)} /></div>
+    {/if}
     {#if current && mode === "practice"}
       <div class="mb-3 text-sm">
         <p class="font-medium">{current.name}</p>

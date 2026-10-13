@@ -27,7 +27,7 @@
   import MicPanel from "./MicPanel.svelte";
   import ModeTabs from "./ModeTabs.svelte";
   import PositionStepper from "./PositionStepper.svelte";
-  import LineTab from "$lib/music/notation/LineTab.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import { tuningById } from "@repo/music-core/theory/fretboard";
   import ShapeBoard from "./ShapeBoard.svelte";
   import { CHORD_MODES } from "./modes";
@@ -290,7 +290,7 @@
     {#if isPick && (mode === "practice" || phase === "results")}
       {@const tt = tuningById(shape.tuningId)!}
       <div class="mb-3">
-        <LineTab
+        <LineNotation
           notes={pickTab}
           tuning={{ openStrings: tt.openStrings, fretCount: tt.fretCount, name: tt.name }}
           title={key}

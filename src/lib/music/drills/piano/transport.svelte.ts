@@ -67,6 +67,10 @@ export class Transport {
   }
 }
 
+/** Timed notes as a written line (LineNotation), hands kept for the grand staff. */
+export const toWritten = (notes: readonly TimedNote[]) =>
+  notes.map((n) => ({ midi: n.midi, startBeat: n.beat, durationBeats: n.dur, hand: n.hand }));
+
 /** Notes sounding at `beat` (a short gap before each next note keeps repeats visible). */
 export const sounding = <N extends TimedNote>(notes: readonly N[], beat: number | null) =>
   beat === null

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { CHORD_SHAPES, type Tuning } from "../data";
+import { CHORD_SHAPES, TUNINGS, type Tuning } from "../data";
 import {
   chordPositions,
   CURATED_TUNINGS,
+  positionLine,
   midiAt,
   positionsOf,
   shapeNotes,
@@ -80,5 +81,19 @@ describe("fretboard", () => {
     expect(shapeNotes(tuningById("ukulele.high-g")!, uke.frets).map((n) => n.midi)).toEqual([
       60, 64, 67, 72,
     ]);
+  });
+});
+
+describe("positionLine", () => {
+  const guitar = TUNINGS.guitar[0];
+  it("fingers a scale in one hand position", () => {
+    const pos = positionLine(guitar, [60, 62, 64, 65, 67, 69, 71, 72]);
+    const frets = pos.map((p) => p!.fret);
+    expect(Math.min(...frets)).toBe(5);
+    expect(Math.max(...frets)).toBe(8);
+    expect(pos[0]).toEqual({ string: 3, fret: 5 });
+    // An open position when the line fits there.
+    expect(positionLine(guitar, [52, 55, 57]).map((p) => p!.fret)).toEqual([2, 0, 2]);
+    expect(positionLine(guitar, [20])).toEqual([null]);
   });
 });

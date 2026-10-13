@@ -7,7 +7,9 @@
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
   import { gradeChordScales, type ChordScaleResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
+  import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -59,6 +61,21 @@
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let ctxRef: RunContext | null = null;
+
+  // Each chord's go-to scale written out (the demo's line), on the strip's instrument, an octave up where the stage moves it.
+  const inst = $derived(settings.value.activeInstrument);
+  const stageLine = $derived(targets.flatMap((t) => [t.midi[0], t.midi[0] + 12]));
+  const lift = $derived(fitShift(stageLine, inst));
+  const written = $derived.by(() => {
+    // Plain values (a nine-note scale over eight beats would be tuplets): the longest that fits, rests after.
+    // Each chord's scale in its own hand position on a fretted instrument.
+    return targets.flatMap((tg, i) => {
+      const line = [...tg.midi, tg.midi[0] + 12].map((m) => m + lift);
+      const dur = [1, 0.5, 0.25].find((d) => d * line.length <= perChord) ?? 0.25;
+      const at = linePositions(inst, line);
+      return line.map((midi, k) => ({ midi, startBeat: i * perChord + k * dur, durationBeats: dur, ...at.get(midi) }));
+    });
+  });
 
   // A change is anticipated by half a beat: a note just before the bar line belongs to the next chord.
   const chordIndexAt = (beat: number) => Math.min(targets.length - 1, Math.max(0, Math.floor((beat + 0.5) / perChord)));
@@ -277,7 +294,10 @@
     {:else if mode === "check" && phase !== "results"}
       <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the scale names and the colour key are hidden. Play what fits each chord.</p>
     {/if}
-    <InstrumentStage line={targets.flatMap((t) => [t.midi[0], t.midi[0] + 12])} {low} {high} {marks} {flashes} fit />
+    {#if mode === "practice" || transport.playing || phase === "results"}
+      <div class="mb-3"><LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} /></div>
+    {/if}
+    <InstrumentStage line={current ? [...current.midi, current.midi[0] + 12] : stageLine} {low} {high} {marks} {flashes} fit />
     <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-label="Colour key">
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="chord" aria-hidden="true">3</span>Chord tone (filled, named R 3 5 7)</li>
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="scale" aria-hidden="true">9</span>Scale tone (filled, named as a tension)</li>

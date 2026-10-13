@@ -53,6 +53,37 @@ export function positionsOf(tuning: Tuning, midi: number, window?: FretWindow): 
   return out;
 }
 
+/**
+ * A line laid out the way it is fingered: in one hand position (five frets,
+ * one finger a fret with a stretch) chosen so the most notes fit, lowest
+ * position on a tie; inside it each note takes its lowest fret. Notes that
+ * fit nowhere in the position take the place nearest it; a note off the neck
+ * is null. C4 to C5 on a guitar lands on frets 5 to 8, the usual C major shape.
+ */
+export function positionLine(
+  tuning: Pick<Tuning, "openStrings" | "fretCount">,
+  midis: readonly number[],
+): (FretPosition | null)[] {
+  const t = tuning as Tuning;
+  const all = midis.map((m) => positionsOf(t, m));
+  const place = (start: number) =>
+    all.map((cands) => {
+      if (!cands.length) return { pos: null, miss: 0 };
+      const by = (c: FretPosition) =>
+        c.fret < start ? start - c.fret : c.fret > start + 4 ? c.fret - (start + 4) : 0;
+      const best = [...cands].sort((a, b) => by(a) - by(b) || a.fret - b.fret)[0];
+      return { pos: best, miss: by(best) };
+    });
+  let pick = place(0);
+  let cost = pick.reduce((s, x) => s + x.miss, 0);
+  for (let start = 1; start <= Math.max(0, tuning.fretCount - 4) && cost > 0; start++) {
+    const next = place(start);
+    const c = next.reduce((s, x) => s + x.miss, 0);
+    if (c < cost) [pick, cost] = [next, c];
+  }
+  return pick.map((x) => x.pos);
+}
+
 /** Every string/fret whose pitch class is `targetPc` inside a window. */
 export function pcPositions(
   tuning: Tuning,

@@ -24,7 +24,10 @@
     type LineResult,
   } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import InstrumentStage, { fitShift } from "$lib/music/components/InstrumentStage.svelte";
+  import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
+  import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -182,6 +185,19 @@
     }
   }
   let stepStart = 0;
+
+  // The line written out above the instrument (tab on guitar and ukulele, a staff otherwise), its cursor on the step.
+  const frets = $derived(linePositions(inst, all));
+  const written = $derived(steps.flatMap((st) => st.notes.map((n) => ({ midi: n.midi, startBeat: st.atBeat, durationBeats: 1 / perBeat, hand: onPiano ? n.hand : undefined, ...frets.get(n.midi) }))));
+  const signature = $derived(pattern === "scale" ? signatureFor(s.tonic % 12, s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
+  const cursor = $derived(demoStep !== null ? (steps[demoStep]?.atBeat ?? null) : phase === "running" ? (steps[Math.min(stepIndex, steps.length - 1)]?.atBeat ?? null) : null);
+  const lineStates = $derived.by(() => {
+    const out: Record<number, GroupState> = {};
+    if (phase !== "running") return out;
+    for (let i = 0; i < Math.min(stepIndex, steps.length); i++) out[i] = "correct";
+    if (stepIndex < steps.length) out[stepIndex] = "active";
+    return out;
+  });
 
   async function start(ctx: RunContext) {
     stopDemo();
@@ -431,6 +447,11 @@
   {/snippet}
 
   {#snippet stage()}
+    {#if mode === "practice" || phase === "results"}
+      <div class="mb-3">
+        <LineNotation notes={written} tuning={fretTuning(inst)} title={key} cursorBeat={cursor} groupStates={lineStates} keyFifths={signature} />
+      </div>
+    {/if}
     <InstrumentStage line={all} {low} {high} {marks} {flashes} />
     {#if mode === "check" && phase !== "results"}
       <p class="mt-3 text-sm text-ws-stage-soft">Check mode: no targets. Held keys still light.</p>

@@ -481,6 +481,7 @@ export function drawStaff(
     width,
     revealLabels = false,
     grand = false,
+    fill = false,
   }: DrawOptions & { revealLabels?: boolean },
 ): Layout {
   const barList = barsIn(bars(score), range);
@@ -518,7 +519,7 @@ export function drawStaff(
       return n;
     },
   }));
-  return engrave(VF, host, score, barList, groups, rows, width);
+  return engrave(VF, host, score, barList, groups, rows, width, fill);
 }
 
 export function tabFit(

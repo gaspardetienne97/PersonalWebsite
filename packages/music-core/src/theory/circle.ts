@@ -100,3 +100,29 @@ export const accidentalCount = (fifths: number) =>
   fifths === 0
     ? "no sharps or flats"
     : `${Math.abs(fifths)} ${fifths > 0 ? "sharp" : "flat"}${Math.abs(fifths) === 1 ? "" : "s"}`;
+
+/** Semitones from a scale's tonic to its parent major's (D dorian is C major's). */
+const PARENT_MAJOR: Record<string, number> = {
+  major: 0,
+  "major-pentatonic": 0,
+  "bebop-major": 0,
+  lydian: 7,
+  mixolydian: 5,
+  "bebop-dominant": 5,
+  dorian: 10,
+  phrygian: 8,
+  "natural-minor": 3,
+  "harmonic-minor": 3,
+  "melodic-minor": 3,
+  "minor-pentatonic": 3,
+  blues: 3,
+  locrian: 1,
+};
+
+/** The key signature (fifths) a scale is written in; 0 for the symmetric ones (accidentals in the line). */
+export function signatureFor(tonicPc: number, kind: string): number {
+  const off = PARENT_MAJOR[kind];
+  if (off === undefined) return 0;
+  const i = CIRCLE.findIndex((k) => k.pc === (((tonicPc + off) % 12) + 12) % 12);
+  return i <= 6 ? i : i - 12;
+}

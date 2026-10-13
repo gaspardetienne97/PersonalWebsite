@@ -27,8 +27,12 @@ test.describe("instrument views", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await pick(page, "Piano");
     await expect(page.getByLabel(/^Piano keyboard/)).toBeVisible();
+    // The scale written out above: a staff on piano, tab on guitar.
+    await expect(page.getByTestId("line-staff").locator("svg")).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/scales-piano-1280.png`, fullPage: true });
     await pick(page, "Guitar");
     await expect(page.getByLabel(/^guitar fretboard/)).toBeVisible();
+    await expect(page.getByTestId("line-tab").locator("svg")).toBeVisible();
     await expect(page.getByText("Setup:").locator("..")).toContainText("on guitar");
     await page.screenshot({ path: `${SHOTS}/scales-guitar-1280.png`, fullPage: true });
     await pick(page, "Ukulele");
@@ -38,6 +42,7 @@ test.describe("instrument views", () => {
     await expect(page.getByLabel(/^ukulele fretboard/)).toBeVisible();
     await expect(page.getByText(/out of the ukulele's range/)).toHaveCount(0);
     await pick(page, "Aerophone");
+    await expect(page.getByTestId("line-staff").locator("svg")).toBeVisible();
     await page.getByRole("button", { name: "Hear it first" }).click();
     await expect(page.getByTestId("aerophone-fingering")).toContainText(/A4|B4|C#5/, {
       timeout: 10_000,
@@ -82,5 +87,33 @@ test.describe("instrument views", () => {
     await pick(page, "Aerophone");
     for (const name of ["Scales", "Note reading", "Jazz licks"])
       await expect(page.getByRole("link", { name: new RegExp(name) }).first()).toBeVisible();
+  });
+
+  test("the line is written out above the instrument: staff on piano and Aerophone, tab on guitar", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    for (const path of [
+      "/music/two-hand",
+      "/music/comping",
+      "/music/voicings?variant=cadence",
+      "/music/pedal",
+      "/music/licks",
+      "/music/chord-scales",
+    ]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await pick(page, "Piano");
+      await expect(page.getByTestId("line-staff").locator("svg"), path).toBeVisible();
+    }
+    await page.screenshot({ path: `${SHOTS}/chord-scales-staff-1280.png`, fullPage: true });
+    await pick(page, "Guitar");
+    await expect(page.getByTestId("line-tab").locator("svg")).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/chord-scales-tab-1280.png`, fullPage: true });
+    await page.goto("/music/pedal");
+    await page.screenshot({ path: `${SHOTS}/pedal-staff-1280.png`, fullPage: true });
+    await page.goto("/music/aerophone?mode=scales&scale=major&key=7");
+    await expect(page.getByTestId("line-staff").locator("svg")).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/aero-scales-staff-1280.png`, fullPage: true });
   });
 });

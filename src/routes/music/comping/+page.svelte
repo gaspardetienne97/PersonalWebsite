@@ -7,6 +7,7 @@
   import { gradeComping, type CompingResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
@@ -51,6 +52,11 @@
         lhMidi.map((midi, k) => ({ midi, beat: feel(bar * BEATS_PER_BAR + hit.beat), dur: hit.durationBeats, hand: "left" as const, finger: lhFingers[k], velocity: 0.6 })),
       ),
     ).flat(),
+  ]);
+  // Written straight, the way swing is written; the swing is in the playing.
+  const written = $derived([
+    ...p.lick.map((n) => ({ midi: n.midiNote, startBeat: n.startBeat, durationBeats: n.durationBeats, hand: "right" as const })),
+    ...Array.from({ length: p.bars }, (_, bar) => p.compRhythm.flatMap((hit) => lhMidi.map((midi) => ({ midi, startBeat: bar * BEATS_PER_BAR + hit.beat, durationBeats: hit.durationBeats, hand: "left" as const })))).flat(),
   ]);
   const span = $derived(spanOf(notes.map((n) => n.midi)));
   const scale = $derived(goToScale(p.chord));
@@ -305,6 +311,9 @@
         <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => playDemo(0.6)}>Hear it at 60%</button>
       {/if}
     </div>
+    {#if mode === "practice" || transport.playing || phase === "results"}
+      <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} /></div>
+    {/if}
     <BeatLane
       rows={lanes}
       beats={totalBeats}

@@ -3,6 +3,20 @@
   import { AEROPHONE_RANGE as AE } from "@repo/music-core/content/winds-pads";
   import { tunings as T } from "$lib/music/drills/guitar/instrument.svelte";
   import { settings as S } from "$lib/music/runtime";
+  import { positionLine } from "@repo/music-core/theory/fretboard";
+
+  /** The strip's tuning when it has picked a fretted instrument (tab and the fretboard), else null. */
+  export const fretTuning = (inst: Inst) =>
+    inst === "guitar" ? T.pick(S.value.guitarTuningId, "guitar") : inst === "ukulele" ? T.pick(S.value.ukuleleTuningId, "ukulele") : null;
+
+  /** Where each pitch of a line sits in one hand position on the strip's fretted instrument (empty off it). */
+  export function linePositions(inst: Inst, midis: readonly number[]): Map<number, { string: number; fret: number }> {
+    const tuning = fretTuning(inst);
+    if (!tuning) return new Map();
+    const pitches = [...new Set(midis)];
+    const at = positionLine(tuning, pitches);
+    return new Map(pitches.flatMap((m, i) => (at[i] ? [[m, at[i]!] as const] : [])));
+  }
 
   /** Octaves up a line must move so `inst` can reach its lowest note (0 when it fits, or on piano). */
   export function fitShift(line: readonly number[], inst: Inst): number {
@@ -20,8 +34,6 @@
   import type { Instrument } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
   import { AEROPHONE_RANGE, fingeringFor } from "@repo/music-core/content/winds-pads";
-  import { assignTab } from "$lib/music/notation/groups";
-  import { tunings } from "$lib/music/drills/guitar/instrument.svelte";
   import { input, settings } from "$lib/music/runtime";
   import Piano from "./Piano.svelte";
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
@@ -54,14 +66,9 @@
   const pianoLow = $derived(low ?? Math.floor((span.lo - 2) / 12) * 12);
   const pianoHigh = $derived(high ?? Math.max(pianoLow + 24, Math.ceil((span.hi + 2) / 12) * 12));
 
-  const tuning = $derived(inst === "guitar" ? tunings.pick(settings.value.guitarTuningId, "guitar") : inst === "ukulele" ? tunings.pick(settings.value.ukuleleTuningId, "ukulele") : null);
-  // One place per pitch: the line laid out low on the neck, the way the tab draws it.
-  const placed = $derived.by(() => {
-    if (!tuning) return new Map<number, { string: number; fret: number }>();
-    const pitches = [...new Set([...line, ...Object.keys(marks).map(Number)])];
-    const at = assignTab(pitches.map((midi, i) => ({ midi, startBeat: i })), tuning, 12);
-    return new Map(pitches.flatMap((m, i) => (at[i] ? [[m, at[i]!] as const] : [])));
-  });
+  const tuning = $derived(fretTuning(inst));
+  // One place per pitch: the line in one hand position, as the tab above it writes it.
+  const placed = $derived(linePositions(inst, [...line, ...Object.keys(marks).map(Number)]));
   const unplayable = $derived(tuning ? line.filter((m) => !placed.has(m)) : inst === "aerophone" ? line.filter((m) => m < AEROPHONE_RANGE.lowestMidi || m > AEROPHONE_RANGE.highestMidi) : []);
   const frets = $derived.by(() => {
     const fs = line.flatMap((m) => (placed.has(m) ? [placed.get(m)!.fret] : []));

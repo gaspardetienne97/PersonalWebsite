@@ -30,6 +30,8 @@
   import { gradeLine, type LineResult } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import AerophoneKeys from "$lib/music/components/AerophoneKeys.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -67,6 +69,8 @@
   const line = $derived(skill === "scales" ? scaleLine(s.scale, s.key) : skill === "tonguing" ? scaleLine("major", s.key) : skill === "register" ? crossingLine(s.pair) : []);
   const marks = $derived(skill === "tonguing" ? tonguingMarks(s.tongue, line.length) : []);
   const timed = $derived(line.length > 0);
+  /** The written line's key signature: the scale's own (arpeggios their key's), the major key for tonguing, none for crossings. */
+  const signature = $derived(skill === "scales" ? (s.scale === "chromatic" ? 0 : signatureFor(s.key, s.scale === "major-arpeggio" ? "major" : s.scale === "minor-arpeggio" ? "natural-minor" : s.scale)) : skill === "tonguing" ? signatureFor(s.key, "major") : 0);
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>(benchFromUrl({ min: 40, max: 160 }));
@@ -341,6 +345,9 @@
           {/each}
         </div>
         {#if timed}
+          {#if mode === "practice" || phase === "results"}
+            <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryLine} cursorBeat={stepNow === null ? null : stepNow / perBeat} keyFifths={signature} />
+          {/if}
           <ol class="flex flex-wrap gap-1.5" aria-label="The line">
             {#each line as n, i (i)}
               {@const nowHere = stepNow === i}

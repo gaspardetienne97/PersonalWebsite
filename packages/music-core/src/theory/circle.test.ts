@@ -3,6 +3,7 @@ import {
   ALL_KEYS,
   accidentalCount,
   CIRCLE,
+  signatureFor,
   diatonicChords,
   keyAt,
   keyByMajor,
@@ -92,5 +93,17 @@ describe("circle of fifths", () => {
     expect(neighbour(0, -1).major).toBe("F");
     expect(opposite(1).major).toBe("Db"); // G7 and its tritone sub Db7
     expect([0, 1, -3].map(accidentalCount)).toEqual(["no sharps or flats", "1 sharp", "3 flats"]);
+  });
+});
+
+describe("signatureFor", () => {
+  it("writes a scale in its parent major's signature", () => {
+    expect(signatureFor(7, "major")).toBe(1);
+    expect(signatureFor(10, "major")).toBe(-2);
+    expect(signatureFor(2, "dorian")).toBe(0);
+    expect(signatureFor(9, "natural-minor")).toBe(0);
+    expect(signatureFor(4, "harmonic-minor")).toBe(1);
+    expect(signatureFor(5, "lydian")).toBe(0);
+    expect(signatureFor(0, "whole-tone")).toBe(0);
   });
 });

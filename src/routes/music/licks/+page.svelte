@@ -7,9 +7,10 @@
   import { transposeSymbol } from "@repo/music-core/theory/chords";
   import { gradeLick, type LickResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
+  import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
+  import { signatureFor } from "@repo/music-core/theory/circle";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
-  import LineTab from "$lib/music/notation/LineTab.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
@@ -114,6 +115,11 @@
     return fs.length ? { from: Math.max(0, Math.min(...fs) - 1), to: Math.max(...fs) + 1 } : { from: 0, to: 5 };
   });
   const span = $derived(spanOf(all.map((n) => n.midi)));
+  // A piano lick written out on the strip's instrument: a staff, or tab in one hand position, an octave up where the stage moves it.
+  const inst = $derived(settings.value.activeInstrument);
+  const lift = $derived(fitShift(all.map((n) => n.midi), inst));
+  const liftedPos = $derived(linePositions(inst, all.map((n) => n.midi + lift)));
+  const written = $derived(chunk.map((n) => ({ midi: n.midi + lift, startBeat: n.startBeat, durationBeats: n.durationBeats, ...liftedPos.get(n.midi + lift) })));
 
   const summaryLine = $derived(
     `Lick ${lick.number}, ${CATEGORY_LABEL[lick.category] ?? lick.category}, ${progression.join(" ")}${transpose ? ` in ${s.key}` : ""}${whole ? "" : `, notes ${lo + 1} to ${hi + 1}`}, ${bpm} BPM`,
@@ -335,13 +341,17 @@
     />
     {#if fretted && (mode === "practice" || transport.playing || phase === "results")}
       <div class="mb-3">
-        <LineTab
+        <LineNotation
           notes={chunk.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))}
           tuning={{ openStrings: GUITAR.openStrings, fretCount: GUITAR.fretCount, name: GUITAR.name }}
           title={setupKey}
           cursorBeat={transport.playing ? transport.beat : null}
           groupStates={tabStates}
         />
+      </div>
+    {:else if !fretted && (mode === "practice" || transport.playing || phase === "results")}
+      <div class="mb-3">
+        <LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.playing ? transport.beat : null} groupStates={tabStates} keyFifths={signatureFor(pcOf(s.key) ?? 0, "major")} />
       </div>
     {/if}
     {#if fretted}

@@ -28,7 +28,7 @@
   import { gradeLine, legatoAttacks, type LineResult } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
-  import LineTab from "$lib/music/notation/LineTab.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -479,7 +479,7 @@
     {:else}
       {#if mode === "practice" || phase === "results"}
         <div class="mb-3">
-          <LineTab notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} />
+          <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} />
         </div>
       {/if}
       <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />

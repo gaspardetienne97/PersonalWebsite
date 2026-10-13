@@ -10,6 +10,8 @@
   import { gradePedal, PEDAL, type PedalResult, type PedalVerdict } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -60,6 +62,8 @@
   });
 
   const keyName = $derived(FLAT_NAMES[pc(s.key)]);
+  /** The chords written out, a bar each: the root in the left hand, the chord in the right. */
+  const written = $derived(bars.flatMap((b, k) => [{ midi: b.leftHand, startBeat: k * 4, durationBeats: 4, hand: "left" as const }, ...b.rightHand.map((midi) => ({ midi, startBeat: k * 4, durationBeats: 4, hand: "right" as const }))]));
   const summaryLine = $derived(`${progression.label} in ${keyName}, ${bars.length} chords, a chord a bar at ${bpm} BPM`);
 
   function onEvent(e: InputEvent) {
@@ -272,6 +276,9 @@
         </li>
       {/each}
     </ol>
+    {#if mode === "practice" || phase === "results"}
+      <div class="mb-3"><LineNotation notes={written} title={summaryLine} cursorBeat={barIndex === null ? null : (now - downbeat) / beatMs} keyFifths={signatureFor(pc(s.key), "major")} /></div>
+    {/if}
     <figure class="mb-3">
       <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-11 w-full" role="img" aria-label="The pedal over the bars: a line where it was down, a gap where it was up">
         {#each bars as _, k (k)}
