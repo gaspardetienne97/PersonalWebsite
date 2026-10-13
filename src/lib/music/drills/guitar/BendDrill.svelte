@@ -15,14 +15,13 @@
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
-  import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
+  import { pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { mic } from "$lib/music/runtime";
   import { exerciseFor } from "./fretted";
-  import { fretted, tunings } from "./instrument.svelte";
+  import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
-  import ModeTabs from "./ModeTabs.svelte";
-  import { FRETBOARD_MODES } from "./modes";
+  import { FRETBOARD_MODES, openMode } from "./modes";
 
   const EXERCISES = [
     { value: "whole", label: "Bend a whole step" },
@@ -38,10 +37,10 @@
   /** Judge a bend once it has been held this long. */
   const SETTLED_MS = BEND.holdMs + 350;
 
-  const cfg = new DrillSetup("fretboard-bends", { exercise: "whole" as string, string: 3, fret: 7, reps: 4, tuning: "guitar.standard" });
+  const cfg = new DrillSetup("fretboard-bends", { exercise: "whole" as string, string: 3, fret: 7, reps: 4 });
   const s = $derived(cfg.value);
   const instr = $derived(fretted());
-  const tuning = $derived(tunings.pick(s.tuning, instr));
+  const tuning = $derived(tuningFor(instr));
   const exercise = $derived((EXERCISES.some((e) => e.value === s.exercise) ? s.exercise : "whole") as "whole" | "half" | "vibrato");
   const vibrato = $derived(exercise === "vibrato");
   const string = $derived(Math.min(Math.max(1, s.string), tuning.openStrings.length));
@@ -52,6 +51,7 @@
   const entry = catalogEntry("fretboard")!.modes.find((m) => m.id === "bends")!;
 
   let phase = $state<Phase>("ready");
+  // No hidden-target variant: the string, fret and target line are always shown.
   let mode = $state<DrillMode>("practice");
   let status = $state("");
   let summary = $state<RunSummary | null>(null);
@@ -65,9 +65,11 @@
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let judging = false;
 
-  const summaryLine = $derived(
-    `${EXERCISES.find((e) => e.value === exercise)!.label} on string ${string}, fret ${fret}: ${noteName(fromMidi)}${vibrato ? "" : ` to ${noteName(toMidi)}`}, ${reps} times`,
-  );
+  const summaryLine = $derived([
+    { text: EXERCISES.find((e) => e.value === exercise)!.label, focus: "exercise" },
+    { text: `string ${string}, fret ${fret} (${noteName(fromMidi)}${vibrato ? "" : ` to ${noteName(toMidi)}`})` },
+    { text: `${reps} times`, focus: "reps" },
+  ]);
 
   function prompt() {
     trace = [];
@@ -133,7 +135,7 @@
       skillIds: vibrato ? ["technique.vibrato"] : ["technique.bends"],
       capabilities: ["technique"],
       modality: "played",
-      assistance: assistanceFor(mode),
+      assistance: "guided",
       difficulty: exercise === "half" ? 0.4 : exercise === "whole" ? 0.5 : 0.45,
       instrument: instr,
       params: { exercise, string, fret, reps },
@@ -162,7 +164,7 @@
         delta: fin.delta,
         best: fin.best,
         xp: fin.xp,
-        assistance: "Vibrato is described, not graded: no one publishes norms for it.",
+        assistance: "A try counts when vibrato is heard. Its rate and width are described, not judged: no published norm says what they should be.",
         rows: vibratos.map((v, i) => ({
           label: `Try ${i + 1}`,
           text: v.rateHz === null ? "no vibrato heard" : `${v.rateHz.toFixed(1)} a second, ${Math.round(v.widthCents!)} cents wide, evenness ${pct(v.evenness ?? 0)}`,
@@ -186,9 +188,9 @@
         metricLabel: "in tune",
         delta: fin.delta,
         best: fin.best,
-        clean: correct && mode === "check",
+        clean: correct,
         xp: fin.xp,
-        assistance: assistanceText(mode),
+        assistance: "The string, fret and target stay on screen; the microphone judges where each bend settles.",
         rows: [
           { label: `In tune (within ${BEND.inTune} cents)`, value: inTune / Math.max(1, bends.length), text: `${inTune} of ${bends.length}` },
           ...bends.map((b, i) => ({ label: `Bend ${i + 1}`, text: b.verdict === "not-held" ? "not held" : `${b.verdict.replace("-", " ")}, ${centsText(b.errorCents!)}` })),
@@ -241,6 +243,10 @@
   hue={instr}
   blurb="Bend to pitch and hold it, judged in cents where it settles; or hold a note with vibrato, its rate and width measured. Needs the microphone."
   summary={summaryLine}
+  tabs={FRETBOARD_MODES}
+  tab="bends"
+  ontab={(id) => openMode(FRETBOARD_MODES, id)}
+  checkable={false}
   bind:phase
   bind:mode
   bind:status
@@ -249,11 +255,9 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Choice label="Exercise" options={EXERCISES} value={exercise} onchange={(v) => cfg.set({ exercise: v })} />
-      <Choice label="String" options={tuning.openStrings.map((m, i) => ({ value: i + 1, label: `${i + 1} (${noteName(m, "flat", false)})` }))} value={string} onchange={(v) => cfg.set({ string: v })} />
-      <Choice label="Fret" select options={Array.from({ length: 15 }, (_, i) => ({ value: i + 1, label: `Fret ${i + 1}, ${noteName(midiAt(tuning, string, i + 1))}` }))} value={fret} onchange={(v) => cfg.set({ fret: v })} />
-      <Choice label="Tries" options={[2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={reps} onchange={(v) => cfg.set({ reps: v })} />
+    <div class="grid gap-4 sm:grid-cols-2">
+      <Choice label="Exercise" setupKey="exercise" options={EXERCISES} value={exercise} onchange={(v) => cfg.set({ exercise: v })} />
+      <Choice label="Tries" setupKey="reps" options={[2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={reps} onchange={(v) => cfg.set({ reps: v })} />
     </div>
     <p class="mt-3 text-sm text-ws-soft">In tune is within {BEND.inTune} cents, close within {BEND.close}: starting values, since no norms for bends are published.</p>
   {/snippet}
@@ -266,7 +270,6 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if phase === "ready" || phase === "results"}<ModeTabs tabs={FRETBOARD_MODES} label="Fretboard drills" />{/if}
     <figure class="mb-3 rounded-xl bg-ws-stage-ink/6 p-3">
       <svg viewBox="0 0 {W} {H}" class="h-36 w-full" preserveAspectRatio="none" role="img" aria-label="Pitch over the last four seconds, cents above {noteName(fromMidi)}{vibrato ? '' : `; the dashed line is ${noteName(toMidi)}`}">
         <line x1="0" x2={W} y1={yOf(0)} y2={yOf(0)} class="base" vector-effect="non-scaling-stroke" />
@@ -275,7 +278,16 @@
       </svg>
       <figcaption class="flex justify-between text-xs text-ws-stage-soft"><span>{noteName(fromMidi)} (the fretted note)</span>{#if !vibrato}<span>dashed: {noteName(toMidi)}</span>{/if}</figcaption>
     </figure>
-    <Fretboard openStrings={tuning.openStrings} from={Math.max(0, fret - 2)} to={Math.min(tuning.fretCount, fret + 3)} marks={[{ string, fret, label: vibrato ? "~" : "↑" }]} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard, string {string} fret {fret}" />
+    {@const picking = phase === "ready"}
+    <Fretboard
+      openStrings={tuning.openStrings}
+      from={picking ? 0 : Math.max(0, fret - 2)}
+      to={picking ? Math.min(tuning.fretCount, Math.max(12, fret + 1)) : Math.min(tuning.fretCount, fret + 3)}
+      marks={[{ string, fret, label: vibrato ? "~" : "↑", spoken: "the note to bend" }]}
+      onpick={picking ? (st, f) => cfg.set({ string: st, fret: Math.max(1, f) }) : undefined}
+      label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard, string {string} fret {fret}"
+    />
+    {#if picking}<p class="mt-2 text-sm text-ws-stage-soft">Tap the neck to choose the string and fret.</p>{/if}
     <div class="mt-3"><MicPanel disabled={phase === "running"} hint="Bends are judged from the microphone: play close to it." /></div>
   {/snippet}
 

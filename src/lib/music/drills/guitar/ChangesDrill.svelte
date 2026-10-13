@@ -1,14 +1,15 @@
 <script lang="ts">
   // Chord changes between two shapes (catalog 4.5, scoring rules 9): clusters
-  // split by 350 ms of silence, graded per arrival. Round trips or a timed
-  // minute, optionally against a clock (BPM and beats per chord). Taps and MIDI
+  // split by 350 ms of silence, graded per arrival. With no clock a cluster
+  // counts as a change only when it sounds like the other chord (groupChanges).
+  // Round trips or a timed minute, optionally against a clock (BPM and beats per chord). Taps and MIDI
   // give notes; with the microphone on, each strum is read as chroma instead.
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { CHANGES_SETUP, shapePcs } from "@repo/music-core/content/technique";
   import { gradeChanges, type ChangesResult } from "@repo/music-core/scoring/technique";
-  import { CHANGE_GAP_MS, clusterByGap } from "@repo/music-core/scoring/timing";
+  import { CHANGE_GAP_MS } from "@repo/music-core/scoring/timing";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -21,13 +22,13 @@
   import { practice } from "$lib/music/practice.svelte";
   import { mic, settings } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
-  import { fretted } from "./instrument.svelte";
-  import { chordSymbol, mergePairRuns, PAIR_HISTORY_KEY, pairKey, shapesFor, type PairRun } from "./chords";
+  import { fretted, tuningFor } from "./instrument.svelte";
+  import { chordId, chordLabel, chordRef, groupChanges, groupedNotes, mergePairRuns, PAIR_HISTORY_KEY, pairKey, positionsOn, shapesFor, type ChordRef, type PairRun } from "./chords";
   import { ChordListener } from "./strum.svelte";
   import MicPanel from "./MicPanel.svelte";
-  import ModeTabs from "./ModeTabs.svelte";
+  import ChordPicker from "./ChordPicker.svelte";
   import ShapeBoard from "./ShapeBoard.svelte";
-  import { CHORD_MODES } from "./modes";
+  import { CHORD_MODES, openMode } from "./modes";
 
   const IDLE_MS = 20_000;
   const CLOCK_STEPS = [{ label: "A change every bar" }, { label: "A change every 2 beats" }, { label: "A change every beat" }];
@@ -35,15 +36,27 @@
   const s = $derived(cfg.value);
   const entry = catalogEntry("chords")!.modes.find((m) => m.id === "changes")!;
   const instr = $derived(fretted());
-  const shapes = $derived(shapesFor(instr));
-  const from = $derived(shapes.find((x) => x.id === s.shape) ?? shapes[0]);
-  const toShape = $derived.by(() => {
-    const pick = shapes.find((x) => x.id === s.to && x.id !== from.id);
-    return pick ?? shapes.find((x) => from.commonTransitions.includes(x.id)) ?? shapes.find((x) => x.id !== from.id)!;
+  const tuning = $derived(tuningFor(instr));
+  const C: ChordRef = { root: 0, quality: "maj" };
+  // Root and quality of each chord, from the setup's shape ids (curated, generated, or the other instrument's).
+  const fromRef = $derived(chordRef(s.shape) ?? C);
+  const fromId = $derived(chordId(instr, fromRef));
+  const toRef = $derived.by((): ChordRef => {
+    const r = chordRef(s.to);
+    if (r && chordId(instr, r) !== fromId) return r;
+    // The curated shape's authored transition, else any other chord.
+    const next = shapesFor(instr).find((x) => x.id === fromId)?.commonTransitions[0] ?? shapesFor(instr).find((x) => x.id !== fromId)!.id;
+    return chordRef(next) ?? C;
   });
+  const toId = $derived(chordId(instr, toRef));
+  // Each chord's first position on the strip's tuning: the curated open shape where there is one.
+  const from = $derived(positionsOn(fromId, tuning)[0] ?? shapesFor(instr)[0]);
+  const toShape = $derived(positionsOn(toId, tuning)[0] ?? shapesFor(instr)[1]);
   const pair = $derived([from, toShape]);
-  const names = $derived(pair.map((x) => chordSymbol(x)));
-  const trips = $derived(Math.min(CHANGES_SETUP.roundTrips[1], Math.max(CHANGES_SETUP.roundTrips[0], s.trips)));
+  const pcs = $derived([shapePcs(from, tuning), shapePcs(toShape, tuning)] as const);
+  const names = $derived([chordLabel(fromRef), chordLabel(toRef)]);
+  /** Round trips: 1, 2, 4 or 8 (an older setup's count rounds up). */
+  const trips = $derived([1, 2, 4, 8].find((n) => n >= s.trips) ?? CHANGES_SETUP.roundTrips[1]);
   const beatsPerChord = $derived([0, 1, 2, 4].includes(s.clock) ? s.clock : CHANGES_SETUP.beatsPerChord);
   const bpm = () => Math.min(160, Math.max(30, settings.value.bpm));
   const key = $derived(`changes:${pairKey(from.id, toShape.id)}:${s.timed ? "60s" : `${trips}x`}:${beatsPerChord ? `${bpm()}/${beatsPerChord}` : "free"}`);
@@ -71,19 +84,27 @@
   void readKeyed<PairRun[]>(PAIR_HISTORY_KEY).then((h) => (history = h));
 
   const live = $derived(phase === "running" || phase === "countin");
-  const clusters = $derived(clusterByGap(notes));
-  const closed = $derived(clusters.filter((c) => now - c.end > CHANGE_GAP_MS).length);
-  const target = $derived<0 | 1>(periodMs ? (Math.max(0, Math.floor((now - downbeat) / periodMs)) % 2 as 0 | 1) : ((closed % 2) as 0 | 1));
+  // No clock: one group per chord played, however many pauses it took.
+  const groups = $derived(periodMs ? [] : groupChanges(notes, pcs));
+  const graded = $derived(periodMs ? notes : groupedNotes(groups));
+  /** The chord to play now: with no clock, the other one once the current one has every tone and a pause. */
+  const target = $derived.by((): 0 | 1 => {
+    if (periodMs) return (Math.max(0, Math.floor((now - downbeat) / periodMs)) % 2) as 0 | 1;
+    const g = groups.at(-1);
+    if (!g) return 0;
+    const done = pcs[g.target].every((p) => g.midis.some((m) => m % 12 === p)) && now - g.end > CHANGE_GAP_MS;
+    return done ? ((1 - g.target) as 0 | 1) : g.target;
+  });
   const liveGrade = $derived(live ? grade(Math.max(1, now - downbeat)) : null);
   const shown = $derived(pair[target]);
   const pairRuns = $derived(history[pairKey(from.id, toShape.id)] ?? []);
 
   function grade(durationMs: number) {
     return gradeChanges({
-      from: { id: from.id, pcs: shapePcs(from) },
-      to: { id: toShape.id, pcs: shapePcs(toShape) },
-      tuningId: from.tuningId,
-      notes,
+      from: { id: from.id, pcs: pcs[0] },
+      to: { id: toShape.id, pcs: pcs[1] },
+      tuningId: tuning.id,
+      notes: graded,
       durationMs,
       clock: periodMs ? { bpm: bpm(), beatsPerChord, anchorAt: downbeat } : undefined,
     });
@@ -96,7 +117,7 @@
     notes = [...notes, { midi: e.midi, at: e.at }];
     lastNoteAt = e.at;
     if (mode === "practice" && e.string !== undefined && e.fret !== undefined) {
-      const ok = shapePcs(pair[target]).includes(e.midi % 12);
+      const ok = pcs[target].includes(e.midi % 12);
       flashes.add(e.string * 100 + e.fret, ok ? "correct" : "wrong");
     }
   }
@@ -104,11 +125,10 @@
   function tick() {
     now = performance.now();
     if (phase !== "running") return;
-    const open = clusters.length > closed;
     if (now >= endAt) return void finish();
     if (!periodMs && !s.timed) {
       const g = grade(1);
-      if (g.completed >= trips * 2 && !open) return void finish();
+      if (g.completed >= trips * 2 && now - (groups.at(-1)?.end ?? now) > CHANGE_GAP_MS) return void finish();
       if (lastNoteAt && now - lastNoteAt > IDLE_MS) return void finish();
     }
   }
@@ -154,19 +174,17 @@
     stopClockRef?.();
     cap?.stop();
     listener.stop();
-    mic.stop();
   }
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
     halt();
-    const cl = clusterByGap(notes);
     const durationMs = s.timed
       ? CHANGES_SETUP.timedSeconds * 1000
       : periodMs
         ? endAt - downbeat
-        : cl.length > 1
-          ? cl[cl.length - 1].start - cl[0].start
+        : groups.length > 1
+          ? groups[groups.length - 1].start - groups[0].start
           : 0;
     const r = grade(Math.max(1, durationMs));
     result = r;
@@ -222,12 +240,16 @@
     status = "Stopped. Nothing was recorded.";
   }
 
-  onDestroy(halt);
+  onDestroy(() => {
+    halt();
+    mic.stop();
+  });
 
-  const summaryLine = $derived(
-    `${names[0]} and ${names[1]}, ${s.timed ? "one timed minute" : `${trips} round trip${trips > 1 ? "s" : ""}`}, ${beatsPerChord ? `change every ${beatsPerChord} beat${beatsPerChord > 1 ? "s" : ""} at ${bpm()} BPM` : "no clock"}`,
-  );
-  const chordOptions = $derived(shapes.map((x) => ({ value: x.id, label: `${chordSymbol(x)}, ${x.name}` })));
+  const summaryLine = $derived([
+    { text: `${names[0]} and ${names[1]}`, focus: "from" },
+    { text: s.timed ? "one timed minute" : `${trips} round trip${trips > 1 ? "s" : ""}`, focus: "length" },
+    { text: beatsPerChord ? `change every ${beatsPerChord === 4 ? "bar" : beatsPerChord === 1 ? "beat" : "2 beats"}` : "no clock", focus: "clock" },
+  ]);
   const maxRun = $derived(Math.max(1, ...pairRuns.map((x) => x.perMinute)));
 </script>
 
@@ -236,6 +258,9 @@
   hue={instr}
   blurb="Move between two chords and back. Each arrival counts when its target notes are there, and the pair keeps a history of changes per minute."
   summary={summaryLine}
+  tabs={CHORD_MODES}
+  tab="changes"
+  ontab={(id) => openMode(CHORD_MODES, id)}
   bind:phase
   bind:mode
   bind:status
@@ -246,32 +271,30 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="From" select options={chordOptions} value={from.id} onchange={(v) => cfg.set({ shape: v })} />
-      <Choice label="To" select options={chordOptions.filter((o) => o.value !== from.id)} value={toShape.id} onchange={(v) => cfg.set({ to: v })} />
+      <ChordPicker label="From" instrument={instr} value={fromId} onchange={(id) => cfg.set({ shape: id })} setupKey="from" />
+      <ChordPicker label="To" instrument={instr} value={toId} onchange={(id) => id !== fromId && cfg.set({ to: id })} setupKey="to" />
       <Choice
-        label="Length"
+        label="Stop after"
+        setupKey="length"
         options={[
-          { value: 0, label: "Round trips" },
-          { value: 1, label: "One timed minute" },
+          ...[1, 2, 4, 8].map((n) => ({ value: n, label: `${n} round trip${n > 1 ? "s" : ""}` })),
+          { value: 0, label: "One minute" },
         ]}
-        value={s.timed ? 1 : 0}
-        onchange={(v) => cfg.set({ timed: v === 1 })}
+        value={s.timed ? 0 : trips}
+        onchange={(v) => cfg.set(v === 0 ? { timed: true } : { timed: false, trips: v })}
       />
-      {#if !s.timed}
-        <Choice label="Round trips" select options={Array.from({ length: 8 }, (_, i) => ({ value: i + 1, label: `${i + 1}` }))} value={trips} onchange={(v) => cfg.set({ trips: v })} />
-      {/if}
       <Choice
-        label="Clock"
+        label="A change every"
+        setupKey="clock"
         options={[
-          { value: 0, label: "Off" },
-          { value: 1, label: "Every beat" },
-          { value: 2, label: "Every 2 beats" },
-          { value: 4, label: "Every bar" },
+          { value: 0, label: "No clock" },
+          { value: 1, label: "Beat" },
+          { value: 2, label: "2 beats" },
+          { value: 4, label: "Bar" },
         ]}
         value={beatsPerChord}
         onchange={(v) => cfg.set({ clock: v })}
       />
-      {#if beatsPerChord}<p class="self-end text-sm text-ws-soft">Tempo comes from the practice strip ({bpm()} BPM).</p>{/if}
     </div>
   {/snippet}
 
@@ -286,20 +309,19 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if !live}<ModeTabs tabs={CHORD_MODES} label="Chord drills" />{/if}
     <div class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <p class="font-display text-5xl font-bold leading-none">{live ? names[target] : names[0]}</p>
       <p class="text-lg text-ws-stage-soft">then {live ? names[1 - target] : names[1]}</p>
     </div>
-    <ShapeBoard shape={live ? shown : from} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" />
+    <ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" />
     {#if phase === "running" && !periodMs && !s.timed}
       <div class="mt-3 flex flex-wrap items-center gap-3">
         <button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button>
-        <span class="text-sm text-ws-stage-soft">Pause briefly between chords: a gap of a third of a second starts the next one.</span>
+        <span class="text-sm text-ws-stage-soft">Pause briefly between chords. The change counts when the next chord's notes sound.</span>
       </div>
     {/if}
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">A change counts as having every note when the target notes of the arriving chord are all there and nothing else is. Which string sounded each note is not measured.</p>
-    <div class="mt-3"><MicPanel disabled={live} hint="Optional: strum into the microphone, or tap each string of the chord here." /></div>
+    <div class="mt-3"><MicPanel disabled={live} hint="Optional: strum into the microphone, or tap the chord's strings here." /></div>
   {/snippet}
 
   {#snippet results()}

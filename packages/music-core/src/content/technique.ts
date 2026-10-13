@@ -408,10 +408,15 @@ const SPAN_SIZE: Record<SpiderSpanId, number> = {
   all: Infinity,
 };
 
-/** Strings in a span, from the start string toward string 1. */
-// ponytail: a span that runs past string 1 is cut short rather than shifted.
-export const spiderStrings = (start: number, span: SpiderSpanId) =>
-  Array.from({ length: Math.min(SPAN_SIZE[span], start) }, (_, i) => start - i);
+/**
+ * Strings in a span, from the start string toward string 1. A span that would
+ * run past string 1 moves toward the bass so it keeps its size; "all" is every string.
+ */
+export const spiderStrings = (start: number, span: SpiderSpanId, count = 6) => {
+  const size = Math.min(SPAN_SIZE[span], count);
+  const first = Math.min(count, Math.max(start, size));
+  return Array.from({ length: size }, (_, i) => first - i);
+};
 
 /**
  * Spider: the pattern's four frets on each string of the span in turn. With
@@ -427,17 +432,21 @@ export function spiderTargets(opts: {
 }): FretTarget[] {
   const pattern = SPIDER_PATTERNS.find((p) => p.id === opts.patternId) ?? SPIDER_PATTERNS[0];
   const start = Math.min(Math.max(0, Math.round(opts.startFret)), spiderMaxStartFret(opts.tuning));
-  const strings = spiderStrings(Math.min(opts.string, opts.tuning.openStrings.length), opts.span);
+  const count = opts.tuning.openStrings.length;
+  const strings = spiderStrings(Math.min(opts.string, count), opts.span, count);
+  // Crossing needs two strings or more.
+  const crossing = opts.crossing && strings.length > 1;
   const at = (string: number, offset: number): FretTarget => {
     const fret = start + offset;
     return {
       string,
       fret,
       midi: midiAt(opts.tuning, string, fret),
-      finger: fret === 0 ? 0 : offset + 1,
+      // From the nut, the index takes fret 1: one finger per fret, open strings 0.
+      finger: fret === 0 ? 0 : start === 0 ? offset : offset + 1,
     };
   };
-  if (!opts.crossing) return strings.flatMap((s) => pattern.fretOffsets.map((o) => at(s, o)));
+  if (!crossing) return strings.flatMap((s) => pattern.fretOffsets.map((o) => at(s, o)));
   return strings.flatMap((_, pass) =>
     pattern.fretOffsets.map((o, step) => at(strings[(pass + step) % strings.length], o)),
   );
@@ -548,13 +557,21 @@ export function intervalRecallPrompt(
 // ---------------------------------------------------------------------------
 // Chord-perfect and chord changes
 
-/** Per-string targets of a shape (or one of its positions), in ascending pitch order. */
-export function chordPerfectTargets(shape: Pick<ChordShape, "frets" | "fingers" | "tuningId">) {
-  const tuning = tuningById(shape.tuningId)!;
-  return shapeNotes(tuning, shape.frets).map((n) => ({
-    ...n,
-    finger: shape.fingers[n.string - 1] ?? undefined,
-  }));
+/**
+ * Per-string targets of a shape (or one of its positions) in string order, the
+ * lowest string first, as the strings are picked. On a re-entrant ukulele that
+ * is not pitch order (string 4 is high). `tuning` defaults to the shape's own.
+ */
+export function chordPerfectTargets(
+  shape: Pick<ChordShape, "frets" | "fingers" | "tuningId">,
+  tuning: Tuning = tuningById(shape.tuningId)!,
+) {
+  return shapeNotes(tuning, shape.frets)
+    .sort((a, b) => b.string - a.string)
+    .map((n) => ({
+      ...n,
+      finger: shape.fingers[n.string - 1] ?? undefined,
+    }));
 }
 
 export const chordShapeSkills = (
@@ -579,6 +596,7 @@ export function chordChangePairs(instrument: "guitar" | "ukulele") {
 }
 
 /** Pitch classes a shape sounds (for strum-and-identify verification). */
-export const shapePcs = (shape: Pick<ChordShape, "frets" | "tuningId">) => [
-  ...new Set(shapeNotes(tuningById(shape.tuningId)!, shape.frets).map((n) => pc(n.midi))),
-];
+export const shapePcs = (
+  shape: Pick<ChordShape, "frets" | "tuningId">,
+  tuning: Tuning = tuningById(shape.tuningId)!,
+) => [...new Set(shapeNotes(tuning, shape.frets).map((n) => pc(n.midi)))];

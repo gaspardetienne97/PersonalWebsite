@@ -6,12 +6,10 @@
   import { onDestroy } from "svelte";
   import { FLAT_NAMES } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import { shapePcs } from "@repo/music-core/content/technique";
-  import { chordPositions, chordShapeById } from "@repo/music-core/theory/fretboard";
+  import { chordPerfectTargets, shapePcs } from "@repo/music-core/content/technique";
   import { identifyChord } from "@repo/music-core/theory/chords";
   import { gradeStrumIdentify } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -20,15 +18,15 @@
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
-  import { fretted } from "./instrument.svelte";
-  import { chordSymbol, shapesFor } from "./chords";
+  import { fretted, tuningFor } from "./instrument.svelte";
+  import { chordId, chordLabel, chordRef, positionsOn, shapesFor } from "./chords";
   import { ChordListener, type Heard } from "./strum.svelte";
   import MicPanel from "./MicPanel.svelte";
-  import ModeTabs from "./ModeTabs.svelte";
-  import PositionStepper from "./PositionStepper.svelte";
+  import ChordPicker from "./ChordPicker.svelte";
+  import PositionPicker from "./PositionPicker.svelte";
   import ShapeBoard from "./ShapeBoard.svelte";
   import ToneMap from "./ToneMap.svelte";
-  import { CHORD_MODES } from "./modes";
+  import { CHORD_MODES, openMode } from "./modes";
 
   /** The first frame this loud after Start is the strum's attack. */
   const TRIGGER_DB = -45;
@@ -38,16 +36,16 @@
   const s = $derived(cfg.value);
   const entry = catalogEntry("chords")!.modes.find((m) => m.id === "strum")!;
   const instr = $derived(fretted());
-  const onInstrument = <T extends { instrument: string }>(x: T | undefined) => (x && x.instrument === instr ? x : undefined);
-  const shapes = $derived(shapesFor(instr));
-  // A curated shape, or any chord from the chord finder ("gen.guitar.0.maj"), on this instrument.
-  const base = $derived(shapes.find((x) => x.id === s.shape) ?? onInstrument(chordShapeById(s.shape)) ?? shapes[0]);
-  const choices = $derived(shapes.some((x) => x.id === base.id) ? shapes : [...shapes, base]);
-  const positions = $derived(chordPositions(base.id));
+  const tuning = $derived(tuningFor(instr));
+  const ref = $derived(chordRef(s.shape) ?? { root: 0, quality: "maj" });
+  const baseId = $derived(chordId(instr, ref));
+  const positions = $derived(positionsOn(baseId, tuning));
   const posIndex = $derived(Math.min(s.position, Math.max(0, positions.length - 1)));
-  const shape = $derived(positions[posIndex] ?? base);
-  const symbol = $derived(chordSymbol(shape));
-  const expected = $derived(shapePcs(shape).sort((a, b) => a - b));
+  const shape = $derived(positions[posIndex] ?? positions[0] ?? shapesFor(instr)[0]);
+  const symbol = $derived(chordLabel(ref));
+  const expected = $derived(shapePcs(shape, tuning).sort((a, b) => a - b));
+  /** Tones a strum must show before it is named: three, or two for a power chord. */
+  const need = $derived(Math.min(3, expected.length));
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -71,9 +69,9 @@
       return;
     }
     await audio.unlock();
-    const notes = shapePcs(shape);
+    // The voicing on the stage, strummed low string to high.
     const handle = audio.playSequence(
-      notes.map((pc, i) => ({ midi: 48 + pc + (i ? 12 : 0), time: i * 0.02, duration: 2 })),
+      chordPerfectTargets(shape, tuning).map((t, i) => ({ midi: t.midi, time: i * 0.02, duration: 2 })),
       {},
     );
     demo = handle;
@@ -107,7 +105,6 @@
   function halt() {
     clearTimeout(timer);
     listener.stop();
-    mic.stop();
   }
 
   async function grade(h: Heard | null) {
@@ -115,14 +112,14 @@
     halt();
     heard = h;
     phase = "results";
-    if (!h || h.pcs.length < 3) {
+    if (!h || h.pcs.length < need) {
       // Not enough evidence to grade: nothing is recorded.
       const n = h?.pcs.length ?? 0;
       ungraded = !h
-        ? "No strum was heard in eight seconds. Start the microphone again, then strum a little harder."
+        ? "No strum was heard in eight seconds. Strum a little harder, close to the microphone."
         : n === 0
           ? "The strum was too quiet to read any tones. Nothing was recorded; move closer and strum again."
-          : `Not enough tones to name a chord: heard ${n === 1 ? "only one tone" : "two tones"} (${h.pcs.map((p) => FLAT_NAMES[p]).join(", ")}). A chord needs three, so nothing was recorded.`;
+          : `Not enough tones to name a chord: heard ${n === 1 ? "only one tone" : "two tones"} (${h.pcs.map((p) => FLAT_NAMES[p]).join(", ")}). ${symbol} needs ${need}, so nothing was recorded.`;
       status = ungraded;
       return;
     }
@@ -174,7 +171,7 @@
         { label: "Tone cleanliness", notMeasured: true },
       ],
       // The chord's positions up the neck, low to high.
-      advance: await nextRun(`${instr}.chords.strum.${base.id}`, { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex }, { score: g.score, correct: g.correct }, ({ step }) => step !== undefined && cfg.set({ position: step })),
+      advance: await nextRun(`${instr}.chords.strum.${baseId}`, { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex }, { score: g.score, correct: g.correct }, ({ step }) => step !== undefined && cfg.set({ position: step })),
     };
     status = summary.headline;
   }
@@ -188,6 +185,7 @@
   onDestroy(() => {
     halt();
     demo?.stop();
+    mic.stop();
   });
 </script>
 
@@ -195,7 +193,10 @@
   title="Strum and identify"
   hue={instr}
   blurb="Strum the chord once into the microphone. The app names what it heard and checks each chord tone."
-  summary="{symbol} ({base.name}), {shape.positionLabel ?? 'Open position'}, one strum"
+  summary={[{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? "Open position" }, { text: "one strum" }]}
+  tabs={CHORD_MODES}
+  tab="strum"
+  ontab={(id) => openMode(CHORD_MODES, id)}
   bind:phase
   bind:mode
   bind:status
@@ -208,8 +209,7 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Chord" select options={choices.map((x) => ({ value: x.id, label: x.id.startsWith("gen.") ? x.name : `${chordSymbol(x)}, ${x.name}` }))} value={base.id} onchange={(v) => cfg.set({ shape: v, position: 0 })} />
-      <a class="self-end text-sm font-medium text-instr-ink underline underline-offset-4" href="/music/library?tab=reference&section=fretted-chords">Any chord in any position: the chord finder</a>
+      <ChordPicker label="Chord" instrument={instr} value={baseId} onchange={(id) => cfg.set({ shape: id, position: 0 })} setupKey="chord" />
     </div>
   {/snippet}
 
@@ -223,15 +223,12 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if !live}<ModeTabs tabs={CHORD_MODES} label="Chord drills" />{/if}
-    <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
-      <p class="font-display text-5xl font-bold leading-none">{symbol}</p>
-      {#if !live && phase !== "results"}<PositionStepper {positions} index={posIndex} onchange={(i) => cfg.set({ position: i })} />{/if}
-    </div>
-    <ShapeBoard {shape} show={mode === "practice" || phase === "results"} label="{symbol} on the {instr} neck" interactive={false} />
+    <p class="mb-3 font-display text-5xl font-bold leading-none">{symbol}</p>
+    {#if !live && phase !== "results"}<div class="mb-3"><PositionPicker {positions} index={posIndex} {symbol} onchange={(i) => cfg.set({ position: i })} /></div>{/if}
+    <ShapeBoard {shape} {tuning} show={mode === "practice" || phase === "results"} label="{symbol} on the {instr} neck" interactive={false} />
     <div class="mt-4 grid gap-2">
       <p class="text-sm font-medium">{phase === "results" ? "What the strum held" : "Chord tones"}</p>
-      <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? (heard?.pcs ?? []) : live ? listener.live : []} label="Chord tones of {symbol}" />
+      <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? (heard?.pcs ?? []) : live ? listener.live : []} plain={phase === "ready"} label="Chord tones of {symbol}" />
     </div>
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">
       The microphone hears which notes ring, not which string rang them or how clean each one was. Inversions read as the same chord.
@@ -243,7 +240,7 @@
     {#if ungraded}
       <article class="rounded-2xl border border-ws-line bg-ws-surface p-5 sm:p-6">
         <p class="font-display text-xl font-semibold leading-snug sm:text-2xl">{ungraded}</p>
-        <p class="mt-1 text-sm text-ws-soft">Nothing was graded, so no score, XP or mastery changed. Start the microphone and strum again.</p>
+        <p class="mt-1 text-sm text-ws-soft">Nothing was graded, so no score, XP or mastery changed. Strum again when you are ready.</p>
       </article>
     {:else if summary}<Results {summary} />{/if}
   {/snippet}

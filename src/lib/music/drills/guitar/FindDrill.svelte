@@ -27,11 +27,9 @@
   import { practice } from "$lib/music/practice.svelte";
   import { mic } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
-  import { fretted, tunings } from "./instrument.svelte";
+  import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
-  import ModeTabs from "./ModeTabs.svelte";
-  import TuningPicker from "./TuningPicker.svelte";
-  import { FRETBOARD_MODES } from "./modes";
+  import { FRETBOARD_MODES, openMode } from "./modes";
 
   let { kind }: { kind: "note-finder" | "interval-recall" } = $props();
   // svelte-ignore state_referenced_locally
@@ -40,18 +38,19 @@
   const REVEAL_MS = 900;
   const cfg = new DrillSetup(isRecall ? "fretboard-interval-recall" : "fretboard-note-finder", {
     region: 0,
-    tuning: "guitar.standard",
     interval: 7,
     questions: 8,
   });
   const s = $derived(cfg.value);
   const entry = catalogEntry("fretboard")!.modes.find((m) => m.id === (isRecall ? "interval-recall" : "note-finder"))!;
   const instr = $derived(fretted());
-  const tuning = $derived(tunings.pick(s.tuning, instr));
+  const tuning = $derived(tuningFor(instr));
   const regionIdx = $derived(Math.min(Math.max(0, s.region), RECALL_REGIONS.length - 1));
   const region = $derived(RECALL_REGIONS[regionIdx]);
   const to = $derived(Math.min(tuning.fretCount, region.end));
   const intervalLabel = (st: number) => RECALL_INTERVALS.find((i) => i.semitones === st)?.label ?? `${st} semitones`;
+  /** "a major third", "an octave". */
+  const aOrAn = (label: string) => `${/^[aeiou]/i.test(label) ? "an" : "a"} ${label.toLowerCase()}`;
   const key = $derived(isRecall ? `interval-recall:${tuning.id}:r${regionIdx}:i${s.interval}` : `note-finder:${tuning.id}:r${regionIdx}`);
 
   interface Question {
@@ -99,21 +98,25 @@
   const marks = $derived.by((): FretMark[] => {
     const out: FretMark[] = [];
     if (!question || phase === "results") return out;
-    if (question.anchor) out.push({ string: question.anchor.string, fret: question.anchor.fret, role: "root" });
+    if (question.anchor) out.push({ string: question.anchor.string, fret: question.anchor.fret, role: "root", spoken: "starting note" });
     if (revealing || (mode === "practice" && phase === "running"))
       for (const a of question.acceptable) out.push({ string: a.string, fret: a.fret, label: revealing ? noteName(a.midi, "sharp", false) : undefined });
     return out;
   });
 
   const summaryLine = $derived(
-    `${isRecall ? (s.interval ? intervalLabel(s.interval) : "Mixed intervals") : "Named notes"}, frets ${region.start} to ${to}, ${tuning.name}, ${s.questions} questions`,
+    [
+      ...(isRecall ? [{ text: s.interval ? intervalLabel(s.interval) : "Mixed intervals", focus: "interval" }] : [{ text: "Named notes" }]),
+      { text: `frets ${region.start} to ${to}`, focus: "region" },
+      { text: `${s.questions} questions`, focus: "questions" },
+    ],
   );
 
   function ask() {
     question = nextQuestion();
     revealing = false;
     askedAt = performance.now();
-    status = `Question ${answers.length + 1}: ${isRecall ? `find a ${question.label.toLowerCase()} above the square` : `find ${question.label}`}.`;
+    status = `Question ${answers.length + 1}: ${isRecall ? `find ${aOrAn(question.label)} above the square` : `find ${question.label}`}.`;
   }
 
   function onNote(e: NoteEvent) {
@@ -145,7 +148,7 @@
     revealing = true;
     status = g.correct
       ? `Yes, ${noteName(e.midi, "sharp")}.`
-      : `That was ${noteName(e.midi, "sharp")}. ${q.acceptable.length > 1 ? "The lit frets are" : "The lit fret is"} ${isRecall ? `a ${q.label.toLowerCase()} up` : q.label}.`;
+      : `That was ${noteName(e.midi, "sharp")}. ${q.acceptable.length > 1 ? "The lit frets are" : "The lit fret is"} ${isRecall ? `${aOrAn(q.label)} up` : q.label}.`;
     revealTimer = setTimeout(() => {
       if (phase !== "running") return;
       if (answers.length >= s.questions) void finish();
@@ -178,7 +181,6 @@
     if (phase !== "running") return;
     clearTimeout(revealTimer);
     cap?.stop();
-    mic.stop();
     question = null;
     phase = "results";
     await pending;
@@ -227,7 +229,6 @@
   function stop() {
     clearTimeout(revealTimer);
     cap?.stop();
-    mic.stop();
     question = null;
     phase = "ready";
     status = "Stopped. Answers so far were kept.";
@@ -250,6 +251,9 @@
     ? "From the square, find the note a set interval up, inside a five-fret window. No timing, no fingering, just where it lives."
     : "A note is named. Find it on the neck inside a five-fret window, on any string."}
   summary={summaryLine}
+  tabs={FRETBOARD_MODES}
+  tab={kind}
+  ontab={(id) => openMode(FRETBOARD_MODES, id)}
   bind:phase
   bind:mode
   bind:status
@@ -259,10 +263,11 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="Region" options={RECALL_REGIONS.map((r, i) => ({ value: i, label: `Frets ${r.start} to ${r.end}` }))} value={regionIdx} onchange={(v) => cfg.set({ region: v })} />
+      <Choice label="Region" setupKey="region" options={RECALL_REGIONS.map((r, i) => ({ value: i, label: `Frets ${r.start} to ${r.end}` }))} value={regionIdx} onchange={(v) => cfg.set({ region: v })} />
       {#if isRecall}
         <Choice
           label="Interval"
+          setupKey="interval"
           options={[...RECALL_INTERVALS.map((i) => ({ value: i.semitones as number, label: i.label })), { value: 0, label: "Mixed" }]}
           value={s.interval}
           onchange={(v) => cfg.set({ interval: v })}
@@ -270,6 +275,7 @@
       {/if}
       <Choice
         label="Questions"
+        setupKey="questions"
         options={[
           { value: 5, label: "5" },
           { value: 8, label: "8" },
@@ -278,7 +284,6 @@
         value={s.questions}
         onchange={(v) => cfg.set({ questions: v })}
       />
-      <TuningPicker instrument={instr} value={tuning.id} onchange={(id) => cfg.set({ tuning: id })} />
     </div>
   {/snippet}
 
@@ -290,7 +295,6 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if phase === "ready" || phase === "results"}<ModeTabs tabs={FRETBOARD_MODES} label="Fretboard drills" />{/if}
     <div class="mb-3 flex min-h-20 flex-wrap items-end gap-x-4 gap-y-1">
       {#if question}
         <p class="font-display text-5xl font-bold leading-none sm:text-6xl" aria-hidden="true">{question.label}</p>
@@ -305,7 +309,7 @@
       {/if}
     </div>
     <Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
-          <div class="mt-3"><MicPanel disabled={phase === "running"} hint="Optional: answer on your instrument into the microphone, or tap the neck here." /></div>
+    <div class="mt-3"><MicPanel disabled={phase === "running"} hint="Optional: answer on your instrument into the microphone, or tap the neck here." /></div>
   {/snippet}
 
   {#snippet results()}

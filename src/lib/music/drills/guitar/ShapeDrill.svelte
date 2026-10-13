@@ -8,10 +8,8 @@
   import { noteName } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
-  import { chordPositions, chordShapeById } from "@repo/music-core/theory/fretboard";
   import { gradeChordStrings, gradeLine } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
@@ -22,15 +20,14 @@
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
-  import { fretted } from "./instrument.svelte";
-  import { chordSymbol, shapesFor } from "./chords";
+  import { fretted, tuningFor } from "./instrument.svelte";
+  import { chordId, chordLabel, chordRef, positionsOn, shapesFor, toneName } from "./chords";
   import MicPanel from "./MicPanel.svelte";
-  import ModeTabs from "./ModeTabs.svelte";
-  import PositionStepper from "./PositionStepper.svelte";
+  import ChordPicker from "./ChordPicker.svelte";
+  import PositionPicker from "./PositionPicker.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
-  import { tuningById } from "@repo/music-core/theory/fretboard";
   import ShapeBoard from "./ShapeBoard.svelte";
-  import { CHORD_MODES } from "./modes";
+  import { CHORD_MODES, openMode } from "./modes";
 
   let { kind }: { kind: "build" | "pick" } = $props();
   // svelte-ignore state_referenced_locally
@@ -41,16 +38,15 @@
   const s = $derived(cfg.value);
   const entry = catalogEntry("chords")!.modes.find((m) => m.id === kind)!;
   const instr = $derived(fretted());
-  const onInstrument = <T extends { instrument: string }>(x: T | undefined) => (x && x.instrument === instr ? x : undefined);
-  const shapes = $derived(shapesFor(instr));
-  // A curated shape, or any chord from the chord finder ("gen.guitar.0.maj"), on this instrument.
-  const base = $derived(shapes.find((x) => x.id === s.shape) ?? onInstrument(chordShapeById(s.shape)) ?? shapes[0]);
-  const choices = $derived(shapes.some((x) => x.id === base.id) ? shapes : [...shapes, base]);
-  const positions = $derived(chordPositions(base.id));
+  const tuning = $derived(tuningFor(instr));
+  // Root and quality from the setup's shape id (curated, generated, or the other instrument's), on this instrument.
+  const ref = $derived(chordRef(s.shape) ?? { root: 0, quality: "maj" });
+  const baseId = $derived(chordId(instr, ref));
+  const positions = $derived(positionsOn(baseId, tuning));
   const posIndex = $derived(Math.min(s.position, Math.max(0, positions.length - 1)));
-  const shape = $derived(positions[posIndex] ?? base);
-  const symbol = $derived(chordSymbol(shape));
-  const targets = $derived(chordPerfectTargets(shape));
+  const shape = $derived(positions[posIndex] ?? positions[0] ?? shapesFor(instr)[0]);
+  const symbol = $derived(chordLabel(ref));
+  const targets = $derived(chordPerfectTargets(shape, tuning));
   const key = $derived(`${kind}:${shape.id}`);
   const bpm = () => Math.min(160, Math.max(40, settings.value.bpm));
 
@@ -72,15 +68,8 @@
   let stopClockRef: (() => void) | null = null;
 
   const cursor = $derived(isPick ? beat : matched.findIndex((m) => !m));
-  // Pick: the strings one a click as tab, then the chord strummed, the cursor on the click or the demo.
-  const pickTab = $derived(
-    isPick
-      ? [
-          ...targets.map((t, i) => ({ midi: t.midi, startBeat: i, durationBeats: 1, string: t.string, fret: t.fret })),
-          ...targets.map((t) => ({ midi: t.midi, startBeat: targets.length, durationBeats: 1, string: t.string, fret: t.fret })),
-        ]
-      : [],
-  );
+  // Pick: the strings one a click as tab, the cursor on the click or the demo.
+  const pickTab = $derived(isPick ? targets.map((t, i) => ({ midi: t.midi, startBeat: i, durationBeats: 1, string: t.string, fret: t.fret })) : []);
   const pickCursor = $derived(demoMidi !== null ? Math.max(0, targets.findIndex((t) => t.midi === demoMidi)) : phase === "running" && beat >= 0 ? beat : null);
   const live = $derived(phase === "running" || phase === "countin");
 
@@ -95,12 +84,13 @@
     await audio.unlock();
     const gap = isPick ? 60 / bpm() : 0.45;
     const notes = targets.map((t, i) => ({ midi: t.midi, time: i * gap, duration: 1.4 }));
-    const strum = targets.map((t, i) => ({ midi: t.midi, time: targets.length * gap + 0.3 + i * 0.02, duration: 1.6 }));
+    // Build ends on the chord strummed; Pick is the strings only, as it is graded.
+    const strum = isPick ? [] : targets.map((t, i) => ({ midi: t.midi, time: targets.length * gap + 0.3 + i * 0.02, duration: 1.6 }));
     const handle = audio.playSequence([...notes, ...strum], {
       onNote: (i: number) => (demoMidi = i < targets.length ? targets[i].midi : null),
     });
     demo = handle;
-    status = `Listen: ${symbol}, string by string low to high, then strummed.`;
+    status = `Listen: ${symbol}, string by string${isPick ? "" : ", then strummed"}.`;
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -164,7 +154,6 @@
     clearInterval(beatTimer);
     stopClockRef?.();
     cap?.stop();
-    mic.stop();
     beat = -1;
   }
 
@@ -190,7 +179,7 @@
       response: ons.map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${symbol}: ${r.matched} of ${r.total} target notes` });
-    missedStrings = targets.filter((t) => !r.strings.some((x) => x.midi === t.midi && x.matched)).map((t) => `string ${t.string} (${noteName(t.midi)})`);
+    missedStrings = targets.filter((t) => !r.strings.some((x) => x.midi === t.midi && x.matched)).map((t) => `string ${t.string} (${toneName(t.midi, ref)})`);
     summary = {
       headline: !ons.length
         ? "Nothing was heard during the run. Tap the strings, play into the microphone, or connect MIDI, then try again."
@@ -225,8 +214,8 @@
   function advanceAfter(score: number, correct: boolean) {
     const plan = { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex };
     const setPos = (i: number) => cfg.set({ position: i });
-    if (isPick) return nextRun(`${instr}.chords.pick.${base.id}`, { ...plan, bpm: bpm(), tempo: { min: 40, goal: 100, max: 160 } }, { score, correct }, tempoAnd(setPos));
-    return nextRun(`${instr}.chords.build.${base.id}`, plan, { score, correct }, ({ step }) => step !== undefined && setPos(step));
+    if (isPick) return nextRun(`${instr}.chords.pick.${baseId}`, { ...plan, bpm: bpm(), tempo: { min: 40, goal: 100, max: 160 } }, { score, correct }, tempoAnd(setPos));
+    return nextRun(`${instr}.chords.build.${baseId}`, plan, { score, correct }, ({ step }) => step !== undefined && setPos(step));
   }
 
   function stop() {
@@ -238,9 +227,10 @@
   onDestroy(() => {
     halt();
     stopDemo();
+    mic.stop();
   });
 
-  const summaryLine = $derived(`${symbol} (${base.name}), ${shape.positionLabel ?? "Open position"}${isPick ? `, one string per click at ${bpm()} BPM` : ", untimed"}`);
+  const summaryLine = $derived([{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? "Open position" }, { text: isPick ? "one string per click" : "untimed" }]);
   const showShape = $derived(mode === "practice" || phase === "results");
 </script>
 
@@ -248,9 +238,12 @@
   title={isPick ? "Pick it clean" : "Build the chord"}
   hue={instr}
   blurb={isPick
-    ? "Hold the shape and pick one string per click, low to high, so every note speaks."
-    : "Fret the shape, then sound each string from low to high. Each target note ticks off as it is heard."}
+    ? `Hold the shape and pick one string per click, string ${targets[0]?.string} to string ${targets.at(-1)?.string}, so every note speaks.`
+    : `Fret the shape, then sound each string, string ${targets[0]?.string} to string ${targets.at(-1)?.string}. Each target note ticks off as it is heard.`}
   summary={summaryLine}
+  tabs={CHORD_MODES}
+  tab={kind}
+  ontab={(id) => openMode(CHORD_MODES, id)}
   bind:phase
   bind:mode
   bind:status
@@ -263,11 +256,7 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Chord" select options={choices.map((x) => ({ value: x.id, label: x.id.startsWith("gen.") ? x.name : `${chordSymbol(x)}, ${x.name}` }))} value={base.id} onchange={(v) => cfg.set({ shape: v, position: 0 })} />
-      <a class="self-end text-sm font-medium text-instr-ink underline underline-offset-4" href="/music/library?tab=reference&section=fretted-chords">Any chord in any position: the chord finder</a>
-      <p class="self-end text-sm text-ws-soft">
-        Shapes are written for {instr === "guitar" ? "standard tuning" : "high-G tuning"}. {isPick ? "Tempo comes from the practice strip." : ""}
-      </p>
+      <ChordPicker label="Chord" instrument={instr} value={baseId} onchange={(id) => cfg.set({ shape: id, position: 0 })} setupKey="chord" />
     </div>
   {/snippet}
 
@@ -280,27 +269,23 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if !live}<ModeTabs tabs={CHORD_MODES} label="Chord drills" />{/if}
-    <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
-      <p class="font-display text-5xl font-bold leading-none">{symbol}</p>
-      {#if !live && phase !== "results"}
-        <PositionStepper {positions} index={posIndex} onchange={(i) => cfg.set({ position: i })} />
-      {/if}
-    </div>
+    <p class="mb-3 font-display text-5xl font-bold leading-none">{symbol}</p>
+    {#if !live && phase !== "results"}
+      <div class="mb-3"><PositionPicker {positions} index={posIndex} {symbol} onchange={(i) => cfg.set({ position: i })} /></div>
+    {/if}
     {#if isPick && (mode === "practice" || phase === "results")}
-      {@const tt = tuningById(shape.tuningId)!}
       <div class="mb-3">
         <LineNotation
           notes={pickTab}
-          tuning={{ openStrings: tt.openStrings, fretCount: tt.fretCount, name: tt.name }}
+          tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }}
           title={key}
           cursorBeat={pickCursor}
           groupStates={Object.fromEntries(matched.flatMap((m, i) => (m ? [[i, "correct" as const]] : [])))}
         />
       </div>
     {/if}
-    <ShapeBoard {shape} show={showShape} demo={demoMidi} {flashes} label="{symbol} on the {instr} neck" />
-    <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Strings, low to high">
+    <ShapeBoard {shape} {tuning} show={showShape} demo={demoMidi} {flashes} label="{symbol} on the {instr} neck" />
+    <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Strings in playing order">
       {#each targets as t, i (t.string)}
         {@const done = matched[i]}
         <li
@@ -311,7 +296,7 @@
               : 'border-ws-stage-ink/25 text-ws-stage-soft'}"
         >
           <span>String {t.string}</span>
-          <span class="font-semibold">{showShape || done ? noteName(t.midi) : "?"}</span>
+          <span class="font-semibold">{showShape || done ? toneName(t.midi, ref) : "?"}</span>
           {#if done}<span aria-hidden="true">✓</span><span class="sr-only">matched</span>{:else if live && i === cursor}<span class="sr-only">next</span>{/if}
         </li>
       {/each}
@@ -323,7 +308,7 @@
       Pitch matching checks which notes you sounded, not which string they came from or how clean they rang.
       {mode === "check" && phase !== "results" ? " Check hides the shape: play it from memory." : ""}
     </p>
-          <div class="mt-3"><MicPanel disabled={live} hint="Optional: pluck your {instr} into the microphone, one string at a time, or tap the strings here." /></div>
+    <div class="mt-3"><MicPanel disabled={live} hint="Optional: pluck your {instr} into the microphone, one string at a time, or tap the strings here." /></div>
   {/snippet}
 
   {#snippet results()}

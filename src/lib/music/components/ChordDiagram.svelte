@@ -8,6 +8,7 @@
     frets: (number | null)[];
     fingers?: (number | null)[];
     barre?: { fret: number; fromString: number; toString: number };
+    /** Empty when a parent (a button) names the chord. */
     label: string;
   }
   let { frets, fingers = [], barre, label }: Props = $props();
@@ -28,7 +29,7 @@
   const yOf = (f: number) => T + (f - first + 0.5) * rowH;
 </script>
 
-<svg viewBox="0 0 {W} {H}" class="h-auto w-full" role="img" aria-label={label}>
+<svg viewBox="0 0 {W} {H}" class="h-auto w-full" role={label ? "img" : undefined} aria-label={label || undefined} aria-hidden={label ? undefined : "true"}>
   {#if first === 1}
     <rect x={L - 2} y={T - 5} width={(n - 1) * gap + 4} height="6" rx="1.5" class="nut" />
   {:else}

@@ -20,10 +20,11 @@
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
   import { exerciseFor } from "$lib/music/drills/guitar/fretted";
-  import { applyBenchParams, fretted } from "$lib/music/drills/guitar/instrument.svelte";
-  import { chordSymbol, shapesFor } from "$lib/music/drills/guitar/chords";
+  import { applyBenchParams, fretted, tuningFor } from "$lib/music/drills/guitar/instrument.svelte";
+  import { chordId, positionsOn, symbolRef } from "$lib/music/drills/guitar/chords";
   import { ChordListener, type Heard } from "$lib/music/drills/guitar/strum.svelte";
   import MicPanel from "$lib/music/drills/guitar/MicPanel.svelte";
+  import ShapeBoard from "$lib/music/drills/guitar/ShapeBoard.svelte";
   import ToneMap from "$lib/music/drills/guitar/ToneMap.svelte";
 
   const cfg = new DrillSetup("strum-progression", { progression: "guitar-g-d-em-c", strictness: "relaxed", choruses: 1 });
@@ -31,7 +32,16 @@
   onMount(() => void applyBenchParams());
 
   const instr = $derived(fretted());
-  const prog = $derived(PROGRESSIONS.find((p) => p.id === s.progression) ?? PROGRESSIONS.find((p) => p.id === "guitar-g-d-em-c")!);
+  const tuning = $derived(tuningFor(instr));
+  /** A chart symbol's first shape on this instrument and tuning, or undefined (G7alt, slash chords). */
+  const shapeOf = (symbol: string) => {
+    const ref = symbolRef(symbol);
+    return ref ? positionsOn(chordId(instr, ref), tuning)[0] : undefined;
+  };
+  const DIFFICULTIES = ["beginner", "intermediate", "advanced"] as const;
+  /** Only progressions whose every chord has a shape to show and a voicing a strum can cover. */
+  const playable = $derived(PROGRESSIONS.filter((p) => p.chords.every((c) => shapeOf(c.symbol))));
+  const prog = $derived(playable.find((p) => p.id === s.progression) ?? playable.find((p) => p.id === "guitar-g-d-em-c") ?? playable[0]);
   const strictness = $derived((["relaxed", "normal", "strict"].includes(s.strictness) ? s.strictness : "relaxed") as Strictness);
   const choruses = $derived(Math.min(4, Math.max(1, s.choruses)));
   const bpm = () => Math.min(160, Math.max(40, settings.value.bpm));
@@ -47,7 +57,7 @@
       });
   });
   /** The progressions from beginner to advanced, for the next run. */
-  const LADDER = (["beginner", "intermediate", "advanced"] as const).flatMap((d) => PROGRESSIONS.filter((p) => p.difficulty === d));
+  const LADDER = $derived(DIFFICULTIES.flatMap((d) => playable.filter((p) => p.difficulty === d)));
   const totalBeats = $derived(chart.reduce((n, c) => n + c.durationBeats, 0));
 
   let phase = $state<Phase>("ready");
@@ -73,10 +83,10 @@
     return chart.findIndex((c) => b >= c.startBeat && b < c.startBeat + c.durationBeats);
   });
 
-  /** The instrument's own shape when there is one, else a close triad. */
+  /** The chord's shape on this instrument when there is one, else a close triad. */
   function voicing(symbol: string) {
-    const shape = shapesFor(instr).find((x) => chordSymbol(x) === symbol);
-    if (shape) return chordPerfectTargets(shape).map((t) => t.midi);
+    const shape = shapeOf(symbol);
+    if (shape) return chordPerfectTargets(shape, tuning).map((t) => t.midi);
     const p = parseChordSymbol(symbol);
     return p ? p.intervals.slice(0, 4).map((i) => 48 + p.rootPc + i) : [];
   }
@@ -127,7 +137,6 @@
     clearTimeout(timer);
     stopClockRef?.();
     listener.stop();
-    mic.stop();
   }
 
   async function finish() {
@@ -200,9 +209,12 @@
   onDestroy(() => {
     halt();
     stopDemo();
+    mic.stop();
   });
 
-  const tones = $derived(current >= 0 ? chart[current]?.pcs ?? [] : (chart[0]?.pcs ?? []));
+  const shownIndex = $derived(current >= 0 ? current : 0);
+  const tones = $derived(chart[shownIndex]?.pcs ?? []);
+  const shownShape = $derived(chart[shownIndex] ? shapeOf(chart[shownIndex].symbol) : undefined);
 </script>
 
 <svelte:head><title>Strum a progression | Woodshed</title></svelte:head>
@@ -211,7 +223,11 @@
   title="Strum a progression"
   hue={instr}
   blurb="Strum the chart in time while the microphone follows each chord. A practice run: it keeps a record, not a skill score."
-  summary="{prog.name} in {prog.key}, {choruses} chorus{choruses > 1 ? 'es' : ''}, {strictness} timing, {bpm()} BPM"
+  summary={[
+    { text: `${prog.name} in ${prog.key}`, focus: "progression" },
+    { text: `${choruses} chorus${choruses > 1 ? "es" : ""}`, focus: "choruses" },
+    { text: `${strictness} timing`, focus: "timing" },
+  ]}
   bind:phase
   bind:status
   checkable={false}
@@ -225,19 +241,27 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice
-        label="Progression"
-        select
-        options={PROGRESSIONS.map((p) => ({ value: p.id, label: `${p.name} (${p.key})` }))}
-        value={prog.id}
-        onchange={(v) => {
-          cfg.set({ progression: v });
-          const p = PROGRESSIONS.find((x) => x.id === v);
-          if (p) settings.update({ bpm: p.bpm });
-        }}
-      />
+      <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" role="group" aria-label="Progression" data-setup="progression">
+        <p class="text-sm font-medium">Progression</p>
+        {#each DIFFICULTIES as d (d)}
+          {@const list = playable.filter((p) => p.difficulty === d)}
+          {#if list.length}
+            <Choice
+              label={d[0].toUpperCase() + d.slice(1)}
+              options={list.map((p) => ({ value: p.id, label: `${p.name} in ${p.key}`, detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") }))}
+              value={prog.id}
+              onchange={(v) => {
+                cfg.set({ progression: v });
+                const p = PROGRESSIONS.find((x) => x.id === v);
+                if (p) settings.update({ bpm: p.bpm });
+              }}
+            />
+          {/if}
+        {/each}
+      </div>
       <Choice
         label="Timing window"
+        setupKey="timing"
         options={[
           { value: "relaxed", label: "Relaxed" },
           { value: "normal", label: "Normal" },
@@ -248,6 +272,7 @@
       />
       <Choice
         label="Choruses"
+        setupKey="choruses"
         options={[
           { value: 1, label: "1" },
           { value: 2, label: "2" },
@@ -290,9 +315,12 @@
         </li>
       {/each}
     </ol>
+    {#if shownShape}
+      <div class="mt-4"><ShapeBoard shape={shownShape} {tuning} interactive={false} label="{chart[shownIndex].symbol} on the {instr} neck" /></div>
+    {/if}
     <div class="mt-4 grid gap-2">
-      <p class="text-sm font-medium">Tones of {current >= 0 ? chart[current].symbol : chart[0].symbol}{live ? ", against what the microphone hears" : ""}</p>
-      <ToneMap expected={tones} heard={live ? listener.live : []} label="Detected tones" />
+      <p class="text-sm font-medium">Tones of {chart[shownIndex]?.symbol}{live ? ", against what the microphone hears" : ""}</p>
+      <ToneMap expected={tones} heard={live ? listener.live : []} plain={!live} label="Detected tones" />
       {#if live}<p class="text-sm text-ws-stage-soft">Heard now: {listener.live.length ? listener.live.map((p) => FLAT_NAMES[p]).join(" ") : "nothing"}</p>{/if}
     </div>
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">

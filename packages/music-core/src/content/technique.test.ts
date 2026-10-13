@@ -27,6 +27,7 @@ import {
   shapePcs,
   SPIDER_PATTERNS,
   spiderMaxStartFret,
+  spiderStrings,
   spiderTargets,
 } from "./technique";
 
@@ -206,6 +207,8 @@ describe("spider", () => {
       crossing: false,
     });
     expect(t[0]).toEqual({ string: 1, fret: 0, midi: 64, finger: 0 });
+    // From the nut, frets 1 to 3 take fingers 1 to 3.
+    expect(t.map((n) => n.finger)).toEqual([0, 1, 2, 3]);
     expect(
       spiderTargets({
         patternId: "ascending-1234",
@@ -216,6 +219,37 @@ describe("spider", () => {
         crossing: false,
       })[0].fret,
     ).toBe(9);
+  });
+});
+
+describe("spider spans", () => {
+  it("keeps a span's size by moving it toward the bass, and 'all' is every string", () => {
+    expect(spiderStrings(1, "adjacent-3", 6)).toEqual([3, 2, 1]);
+    expect(spiderStrings(5, "adjacent-2", 6)).toEqual([5, 4]);
+    expect(spiderStrings(3, "all", 6)).toEqual([6, 5, 4, 3, 2, 1]);
+    expect(spiderStrings(4, "all", 4)).toEqual([4, 3, 2, 1]);
+    const t = spiderTargets({
+      patternId: "ascending-1234",
+      tuning: std,
+      string: 1,
+      span: "adjacent-3",
+      startFret: 5,
+      crossing: false,
+    });
+    expect(new Set(t.map((n) => n.string))).toEqual(new Set([3, 2, 1]));
+  });
+
+  it("ignores crossing on a single string", () => {
+    const opts = {
+      patternId: "ascending-1234",
+      tuning: std,
+      string: 6,
+      span: "single" as const,
+      startFret: 5,
+    };
+    expect(spiderTargets({ ...opts, crossing: true })).toEqual(
+      spiderTargets({ ...opts, crossing: false }),
+    );
   });
 });
 
@@ -311,6 +345,20 @@ describe("chord-perfect and changes", () => {
     expect(
       shapePcs(CHORD_SHAPES.find((s) => s.id === "ukulele.f-major")!).sort((a, b) => a - b),
     ).toEqual([0, 5, 9]);
+  });
+
+  it("orders ukulele targets by string, string 4 first, not by pitch", () => {
+    const c = CHORD_SHAPES.find((s) => s.id === "ukulele.c-major")!;
+    expect(chordPerfectTargets(c).map((n) => [n.string, n.midi])).toEqual([
+      [4, 67],
+      [3, 60],
+      [2, 64],
+      [1, 72],
+    ]);
+    // On another tuning the same frets sound that tuning's notes.
+    const lowG = { ...uke, id: "ukulele.low-g", openStrings: [69, 64, 60, 55] };
+    expect(chordPerfectTargets(c, lowG)[0].midi).toBe(55);
+    expect(shapePcs(c, lowG).sort((a, b) => a - b)).toEqual([0, 4, 7]);
   });
 
   it("pairs shapes with their authored transitions", () => {

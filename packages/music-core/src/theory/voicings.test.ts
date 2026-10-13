@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { chordPositions, chordShapeById, tuningById } from "./fretboard";
-import { chordVoicings, generatedChord, generatedChordId, VOICING_QUALITIES } from "./voicings";
+import {
+  chordVoicings,
+  generatedChord,
+  generatedChordId,
+  generatedPositions,
+  VOICING_QUALITIES,
+} from "./voicings";
 
 const guitar = tuningById("guitar.standard")!;
 const uke = tuningById("ukulele.high-g")!;
@@ -89,5 +95,13 @@ describe("generated chords as drill shapes", () => {
     expect(generatedChord("gen.guitar.0.nope")).toBeUndefined();
     // Curated shapes keep their own positions.
     expect(chordPositions("guitar.c-major")[0].id).toBe("guitar.c-major");
+    // Another tuning: the same chord voiced for that tuning's strings.
+    const lowG = tuningById("ukulele.low-g")!;
+    const onLowG = generatedPositions(id, lowG);
+    expect(onLowG[0].tuningId).toBe("ukulele.low-g");
+    for (const p of onLowG)
+      expect(
+        new Set(p.frets.flatMap((f, i) => (f === null ? [] : [(lowG.openStrings[i] + f) % 12]))),
+      ).toEqual(new Set([10, 2, 5]));
   });
 });

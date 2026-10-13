@@ -1,7 +1,8 @@
 <script lang="ts">
   // A fret window, not the whole neck: rosewood, nickel fret wire, position
   // dots, strings that thicken toward the bass. String 1 (highest) on top, as
-  // in tab. Every cell is a real, visibly focusable button "String n fret f, note".
+  // in tab. Every cell is a real, visibly focusable button "String n fret f, note";
+  // the neck is one tab stop and the arrow keys move along it.
   import { noteName } from "@repo/music-core";
   import { input } from "../runtime";
   import { capturePointer } from "./feedback.svelte";
@@ -12,6 +13,8 @@
     fret: number;
     label?: string;
     role?: "chord" | "scale" | "avoid" | "root";
+    /** How the mark is read aloud (default "target"; a root mark is "starting note"). */
+    spoken?: string;
     demo?: boolean;
   }
 
@@ -30,6 +33,8 @@
     label?: string;
     /** Flashes keyed by pitch (a drill written for the keyboard) instead of string and fret. */
     flashByPitch?: boolean;
+    /** Also called with the string and fret of a tap (a drill's setup on the neck). */
+    onpick?: (string: number, fret: number) => void;
   }
 
   let {
@@ -43,6 +48,7 @@
     showHeldPitches = true,
     label = "Fretboard",
     flashByPitch = false,
+    onpick,
   }: Props = $props();
 
   const strings = $derived(openStrings.map((_, i) => i + 1));
@@ -60,6 +66,7 @@
   function down(s: number, f: number) {
     tapped[s * 100 + f] = true;
     input.tap(midiAt(s, f), true, { string: s, fret: f });
+    onpick?.(s, f);
   }
   function up(s: number, f: number) {
     delete tapped[s * 100 + f];
@@ -77,7 +84,22 @@
     pointer.delete(e.pointerId);
     up(sf[0], sf[1]);
   }
+  // Roving tab stop: the last focused cell, else string 1 at the window's first fret.
+  let focusAt = $state<number | null>(null);
+  const tabCell = $derived(focusAt !== null && frets.includes(focusAt % 100) && strings.includes(Math.floor(focusAt / 100)) ? focusAt : 100 + from);
+  let neck: HTMLElement | undefined = $state();
+  const ARROWS: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1], Home: [0, -99], End: [0, 99] };
+
   function key(e: KeyboardEvent, s: number, f: number, isDown: boolean) {
+    const move = isDown ? ARROWS[e.key] : undefined;
+    if (move) {
+      e.preventDefault();
+      const ns = Math.min(strings.length, Math.max(1, s + move[0]));
+      const nf = Math.min(to, Math.max(from, f + move[1]));
+      focusAt = ns * 100 + nf;
+      neck?.querySelector<HTMLElement>(`[data-cell="${focusAt}"]`)?.focus();
+      return;
+    }
     if (!interactive || (e.key !== "Enter" && e.key !== " ")) return;
     e.preventDefault();
     if (isDown && e.repeat) return;
@@ -93,7 +115,7 @@
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);
 </script>
 
-<div class="neck-wrap" role="group" aria-label="{label}, frets {from} to {to}">
+<div class="neck-wrap" role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
   <div class="fret-numbers" aria-hidden="true" style:grid-template-columns={cols}>
     {#each frets as f (f)}<span>{f === 0 ? "open" : f}</span>{/each}
   </div>
@@ -116,9 +138,11 @@
             data-demo={mk?.demo || undefined}
             data-target={mk ? "" : undefined}
             data-flash={flash}
-            tabindex={interactive ? 0 : -1}
+            data-cell={s * 100 + f}
+            tabindex={interactive && tabCell === s * 100 + f ? 0 : -1}
             aria-pressed={held}
-            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? ', target' : ''}"
+            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? `, ${mk.spoken ?? 'target'}${mk.label ? `, ${mk.label}` : ''}` : ''}"
+            onfocus={() => (focusAt = s * 100 + f)}
             onpointerdown={(e) => press(e, s, f)}
             onpointerup={release}
             onpointercancel={release}

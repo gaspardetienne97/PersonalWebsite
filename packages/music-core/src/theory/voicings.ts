@@ -261,13 +261,17 @@ export function parseGeneratedId(id: string) {
 
 const posCache = new Map<string, ChordPosition[]>();
 
-/** A generated chord's voicings as positions; empty for an id that isn't generated. */
-export function generatedPositions(id: string): ChordPosition[] {
-  const hit = posCache.get(id);
-  if (hit) return hit;
+/**
+ * A generated chord's voicings as positions; empty for an id that isn't generated.
+ * On the instrument's standard tuning unless `tuning` (curated or the player's own) is given.
+ */
+export function generatedPositions(id: string, tuning?: Tuning): ChordPosition[] {
   const g = parseGeneratedId(id);
   if (!g) return [];
-  const tuning = TUNINGS[g.instrument][0];
+  tuning ??= TUNINGS[g.instrument][0];
+  const cacheKey = `${id}|${tuning.id}|${tuning.openStrings.join(",")}|${tuning.fretCount}`;
+  const hit = posCache.get(cacheKey);
+  if (hit) return hit;
   const name = `${chordName(g.rootPc, g.quality.suffix)}, ${FLAT_NAMES[g.rootPc]} ${QUALITY_NAMES[g.quality.quality] ?? g.quality.quality}`;
   const out = chordVoicings(tuning, g.rootPc, g.quality.intervals).map((v, i): ChordPosition => {
     const fretted = v.frets.filter((f): f is number => f !== null && f > 0);
@@ -292,7 +296,7 @@ export function generatedPositions(id: string): ChordPosition[] {
       fretWindow: { start, end: Math.max(start + 4, ...fretted, 0) },
     };
   });
-  posCache.set(id, out);
+  posCache.set(cacheKey, out);
   return out;
 }
 

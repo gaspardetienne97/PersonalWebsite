@@ -72,6 +72,18 @@ describe("fretboard", () => {
     }
   });
 
+  it("fingers every curated position within reach: finger n at most n frets above the lowest", () => {
+    for (const shape of CHORD_SHAPES)
+      for (const p of chordPositions(shape.id)) {
+        const fretted = p.frets.filter((f): f is number => f !== null && f > 0);
+        const low = Math.min(...fretted);
+        p.frets.forEach((f, i) => {
+          const finger = p.fingers[i];
+          if (f && finger) expect(f - low, `${p.id} string ${i + 1}`).toBeLessThanOrEqual(finger);
+        });
+      }
+  });
+
   it("lists a shape's sounding notes in ascending pitch order", () => {
     const c = CHORD_SHAPES.find((s) => s.id === "guitar.c-major")!;
     expect(shapeNotes(tuningById("guitar.standard")!, c.frets).map((n) => n.midi)).toEqual([

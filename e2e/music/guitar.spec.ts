@@ -135,7 +135,9 @@ test.describe("guitar drills", () => {
     await page.goto(
       "/music/fretboard?mode=spider&pattern=ascending-1234&tuning=guitar.standard&string=6&span=single&startFret=5&crossing=0&instrument=guitar&bpm=90&perBeat=2&grade=rsl-grade-3",
     );
-    await expect(page.getByText("Setup:").locator("..")).toContainText("90 BPM, two notes a click");
+    await expect(page.getByText("Setup:").locator("..")).toContainText(
+      "two notes a click, aiming for Rockschool Grade 3",
+    );
     await startDrill(page, "Practice");
     for (const f of [5, 6, 7, 8]) {
       await tap(page, fret(6, f));
@@ -206,8 +208,10 @@ test.describe("guitar drills", () => {
       "/music/fretboard?mode=bends&exercise=whole&string=3&fret=7&reps=2&instrument=guitar",
     );
     await expect(page.getByText("Setup:").locator("..")).toContainText(
-      "Bend a whole step on string 3, fret 7: D4 to E4",
+      "Bend a whole step, string 3, fret 7 (D4 to E4)",
     );
+    // Bends have no Check: the string, fret and target are always shown.
+    await expect(page.getByRole("button", { name: "Check", exact: true })).toHaveCount(0);
     await startMic(page);
     const set = (midi: number, cents = 0) =>
       page.evaluate(
@@ -215,7 +219,6 @@ test.describe("guitar drills", () => {
         440 * 2 ** ((midi - 69 + cents / 100) / 12),
       );
     await set(62);
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("1 of 2: pick D4");
     await page.waitForTimeout(300);
@@ -245,7 +248,6 @@ test.describe("guitar drills", () => {
         (window as any).__mic.set(440 * 2 ** ((67 - 69 + c / 100) / 12));
       }, 20);
     });
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText(/Vibrato at about \d\.\d a second/, {
       timeout: 15_000,
@@ -264,7 +266,7 @@ test.describe("guitar drills", () => {
       "/music/fretboard?mode=legato&pattern=hammer-pull&string=3&startFret=5&instrument=guitar&bpm=60&perBeat=2",
     );
     await expect(page.getByText("Setup:").locator("..")).toContainText(
-      "Hammer on, pull off: 0 2 0 on string 3 from fret 5",
+      "Hammer on, pull off: 0 2 0, on string 3 from fret 5",
     );
     await startMic(page);
     await page.evaluate(() => (window as any).__mic.set(0));
@@ -301,8 +303,8 @@ test.describe("guitar drills", () => {
       .first()
       .textContent();
     expect(Number(notes!.split(" ")[0])).toBeGreaterThanOrEqual(10);
-    // The microphone stops on results.
-    await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "off");
+    // The microphone stays on between runs.
+    await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "on");
     await shoot(page, "positions-mic-results", 1280);
   });
 
@@ -313,7 +315,7 @@ test.describe("guitar drills", () => {
     await startDrill(page, "Practice");
     for (let i = 0; i < 5; i++) {
       await expect(page.getByRole("status")).toContainText(`Question ${i + 1}`);
-      await tap(page, 'button[aria-label$=", target"]');
+      await tap(page, "button[data-target]");
       await page.waitForTimeout(1100);
     }
     await expect(page.getByRole("article").getByText(/All 5 found/)).toBeVisible({ timeout: 5000 });
@@ -345,7 +347,7 @@ test.describe("guitar drills", () => {
     await page.goto("/music/chords?mode=build&shape=ukulele.c-major&position=0&instrument=ukulele");
     await expect(page.getByRole("group", { name: /on the ukulele neck/ })).toBeVisible();
     await startDrill(page, "Check");
-    // High-G C: C4 (3 open), E4 (2 open), G4 (4 open), C5 (1 fret 3), low to high by pitch.
+    // High-G C: C4 (3 open), E4 (2 open), G4 (4 open), C5 (1 fret 3); Build matches by pitch, in any order.
     await tapChord(page, [
       [3, 0],
       [2, 0],
@@ -416,7 +418,7 @@ test.describe("guitar drills", () => {
     await expect(
       page.getByRole("article").getByText(/Not enough tones to name a chord/),
     ).toBeVisible({ timeout: 8000 });
-    await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "off");
+    await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "on");
     await shoot(page, "strum-identify-results", 1280);
   });
 
@@ -438,7 +440,7 @@ test.describe("guitar drills", () => {
     await expect(
       page.getByRole("article").getByText(/does not count toward any skill/),
     ).toBeVisible();
-    await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "off");
+    await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "on");
     await shoot(page, "strum-results", 1280);
   });
 });
