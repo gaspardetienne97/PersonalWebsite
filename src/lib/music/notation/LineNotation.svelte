@@ -20,8 +20,11 @@
     beatsPerBar?: number;
     /** The staff's key signature, in fifths (flats negative). */
     keyFifths?: number;
+    /** The written time signature when it isn't beatsPerBar/4 (6/8, 3/8). */
+    meter?: [number, number];
   }
-  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0 }: Props = $props();
+  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter }: Props = $props();
+  const barBeats = $derived(meter ? (meter[0] * 4) / meter[1] : beatsPerBar);
 
   const end = $derived(notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0));
   const voices = $derived.by((): ScoreVoice[] => {
@@ -36,10 +39,10 @@
     id: `line-${title}-${notes.map((n) => `${n.midi}.${n.string}.${n.fret}@${n.startBeat}`).join(",")}`,
     title,
     bpm: 90,
-    meter: { beats: beatsPerBar, beatUnit: 4 },
+    meter: meter ? { beats: meter[0], beatUnit: meter[1] } : { beats: beatsPerBar, beatUnit: 4 },
     keyFifths,
     voices,
-    lengthBeats: Math.max(beatsPerBar, Math.ceil(end / beatsPerBar) * beatsPerBar),
+    lengthBeats: Math.max(barBeats, Math.ceil(end / barBeats - 1e-9) * barBeats),
     source: { kind: "generated" },
   });
   let width = $state(0);

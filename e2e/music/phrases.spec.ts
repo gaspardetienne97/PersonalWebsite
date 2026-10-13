@@ -2,6 +2,7 @@
 // line is a staff on piano and the Aerophone, tab on guitar and ukulele.
 import { expect, test, type Page } from "@playwright/test";
 import { choose, installFakeMidi, PORTS } from "./fixtures";
+import { PHRASES } from "../../packages/music-core/src/content/phrases";
 
 const SHOTS = "docs/screenshots/rebuild/phrases";
 
@@ -133,5 +134,32 @@ test.describe("phrases", () => {
     );
     await expect(page.getByRole("status")).toContainText("Clean", { timeout: 20_000 });
     await page.screenshot({ path: `${SHOTS}/mpc-son-clave-1280.png`, fullPage: true });
+  });
+
+  test("every phrase on every instrument draws its staff or tab", async ({ page }) => {
+    test.setTimeout(240_000);
+    await setup(page, "/music/phrases");
+    const labels = {
+      piano: "Piano",
+      guitar: "Guitar",
+      ukulele: "Ukulele",
+      aerophone: "Aerophone",
+    } as const;
+    for (const inst of ["piano", "guitar", "ukulele", "aerophone"] as const) {
+      await pick(page, labels[inst]);
+      for (const p of PHRASES.filter((x) => x.instrument === inst)) {
+        await page.goto(`/music/phrases?phrase=${p.id}`);
+        await expect(page.getByTestId("phrase"), p.id).toContainText(p.title);
+        await expect(
+          page
+            .getByTestId(inst === "guitar" || inst === "ukulele" ? "line-tab" : "line-staff")
+            .locator("svg"),
+          p.id,
+        ).toBeVisible();
+        await expect(page.getByText(/can't (draw|show)/), p.id).toHaveCount(0);
+      }
+    }
+    await page.goto("/music/phrases?phrase=aerophone.morning-mood");
+    await page.screenshot({ path: `${SHOTS}/aerophone-morning-mood-1280.png`, fullPage: true });
   });
 });

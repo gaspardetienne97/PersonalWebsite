@@ -212,7 +212,8 @@
         {/if}
       </div>
       {#if mode === "practice" || transport.playing || phase === "results"}
-        <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))} tuning={fretTuning(own)} title={phrase.id} beatsPerBar={phrase.beatsPerBar} keyFifths={phrase.keyFifths} cursorBeat={transport.beat} groupStates={states} /></div>
+        <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))} tuning={fretTuning(own)} title={phrase.id} beatsPerBar={phrase.beatsPerBar}
+          meter={phrase.meter} keyFifths={phrase.keyFifths} cursorBeat={transport.beat} groupStates={states} /></div>
       {:else}
         <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Hear it, then play it from memory.</p>
       {/if}
