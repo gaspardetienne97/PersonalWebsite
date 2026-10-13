@@ -63,4 +63,33 @@ test.describe("studio ears", () => {
       .click();
     await expect(card).toContainText(`Right: ${a === "boost" ? "Boost" : "Cut"}.`);
   });
+
+  test("the Drills tab lists every drill in small groups, and a mode chip opens that mode", async ({
+    page,
+  }) => {
+    await page.goto("/music?tab=drills");
+    await page.getByRole("button", { name: "Everything" }).click();
+    const jump = page.getByRole("navigation", { name: "Jump to" });
+    await expect(jump.getByRole("link")).toHaveText([
+      /^Pitch and melody by ear \(7\)$/,
+      /^Chords and harmony by ear \(7\)$/,
+      /^Review and studio ears \(2\)$/,
+      /^Reading and rhythm \(2\)$/,
+      /^Piano and jazz/,
+      /^Guitar and ukulele/,
+      /^Pads and wind/,
+      /^Play freely/,
+    ]);
+    await expect(page.getByRole("link", { name: "Studio ears", exact: true })).toHaveAttribute(
+      "href",
+      "/music/listening",
+    );
+    await page.screenshot({ path: `${SHOTS}/drills-tab.png`, fullPage: true });
+    await page.getByRole("link", { name: "Rhythm: Echo" }).click();
+    await expect(page).toHaveURL(/\/music\/rhythm\?mode=echo$/);
+    await expect(page.getByText("Setup:").locator("..")).toContainText("Echo");
+    await page.goto("/music?tab=drills");
+    await page.getByRole("link", { name: "Intervals: Sing it" }).click();
+    await expect(page).toHaveURL(/\/music\/ear\/intervals\?answer=voice$/);
+  });
 });
