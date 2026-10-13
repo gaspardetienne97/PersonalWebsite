@@ -21,6 +21,7 @@ const BY_STYLE: Record<string, { chords: string[]; keys: "e-piano" | "pad" | "sy
   Trap: { chords: ["Cm", "Ab", "Fm", "G"], keys: "pad" },
   "Drum and bass": { chords: ["Am9", "Fmaj7"], keys: "pad" },
   Afrobeats: { chords: ["F#m7", "Bm7", "E", "A"], keys: "synth" },
+  Afrobeat: { chords: ["Am7", "D9"], keys: "e-piano" },
 };
 
 /** The chords a style plays over, a bar each. */

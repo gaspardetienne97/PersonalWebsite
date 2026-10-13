@@ -263,6 +263,23 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     feel: "Ghosts on the a of 2, the e of 3 and the a of 4: soft, under 40% of the backbeat.",
     fingers: SPLIT,
   },
+  {
+    // Ethan Hein's transcription (notation and waveform), 2026; the sixteenths are a tambourine on the record.
+    groove: gridGroove(
+      "think",
+      "Think (Lyn Collins)",
+      { kick: "X...............", snare: "....X..g..g.X...", hats: "xxxxxxxxxxxxxxxx" },
+      { swing: 54 },
+    ),
+    level: 3,
+    style: "Funk break",
+    topic: "ghosts",
+    swing: 54,
+    bpm: { start: 95, target: 113 },
+    feel: 'The "Yeah! Woo!" break: one kick, the snare on 2 and 4 with ghosts on the a of 2 and the & of 3, and sixteenths (a tambourine on the record) a little behind the beat.',
+    fingers:
+      "Right index and middle alternate the sixteenths on the hats; left index the snare and ghosts, left middle the kick.",
+  },
   // Level 4
   {
     groove: gridGroove("independence", "Four kicks under one hat", {
@@ -441,6 +458,29 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     feel: "Kick on 1 and the & of 3, snare on 2 and 4, fast.",
     fingers: SPLIT,
   },
+  {
+    // One common version (BeatCraft's); afrobeats has no single canonical pattern.
+    groove: gridGroove(
+      "afrobeats",
+      "Afrobeats",
+      {
+        kick: "X.....x...x.....",
+        perc: "....x.......x...",
+        rim: "...x..x....x..x.",
+        hats: "XxxxXxxxXxxxXxxx",
+        "tom-high": "..x..x..x....x..",
+      },
+      { swing: 56 },
+    ),
+    level: 5,
+    style: "Afrobeats",
+    topic: "dance",
+    swing: 56,
+    bpm: { start: 95, target: 106 },
+    feel: "Kick on 1 with pushes on the & of 2 and 3; the rim answers on the a of 1 and the & of 2 (the 3-3-2), a clap on 2 and 4, shaker sixteenths. One common version: producers vary it.",
+    fingers:
+      "Right hand the shaker (hats) sixteenths; left index kick, left middle rim; the clap and conga (high tom) where they fall.",
+  },
   // Level 6
   {
     groove: gridGroove("amen", "Amen break", {
@@ -455,6 +495,22 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     bpm: { start: 110, target: 138 },
     feel: "Four bars: the third delays the last snare, the fourth rearranges everything and crashes.",
     fingers: "Right index on the ride; left index the snare and ghosts, left middle the kick.",
+  },
+  {
+    // Tony Allen's own "first pattern" of afrobeat, as he demonstrated it (Joe the Drummer's notation).
+    groove: gridGroove("tony-allen", "Afrobeat (Tony Allen)", {
+      kick: "XX......xx......",
+      snare: "...x.xx.....xxx.",
+      hats: "x.xxx.xxx.xxx.xx",
+      pedalhat: "..x...x...x...x.",
+    }),
+    level: 6,
+    style: "Afrobeat",
+    topic: "independence",
+    bpm: { start: 85, target: 110 },
+    feel: "Fela's drummer: kicks in pairs, a snare line of its own, the hand on the hats and the foot on the pedal hat all independent. Tempo approximate.",
+    fingers:
+      "Right index and middle the hats, left index the snare, left middle the kick, left ring the pedal hat. Learn it in Wait mode first.",
   },
   {
     groove: gridGroove("apache", "Apache break", {

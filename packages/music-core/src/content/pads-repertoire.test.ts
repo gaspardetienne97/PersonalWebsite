@@ -41,6 +41,21 @@ describe("finger-drumming repertoire", () => {
       (t) => t.voice === "hats" && t.beat >= 3,
     );
     expect(trap.map((t) => t.beat)).toEqual([3, 3.125, 3.25, 3.375, 3.5, 3.625, 3.75, 3.875]);
+    // Think: one kick, the backbeat with ghosts on the a of 2 and the & of 3.
+    const think = repertoireFor("think")!.groove.targets;
+    expect(think.filter((t) => t.voice === "kick").map((t) => t.beat)).toEqual([0]);
+    // (lightly swung, so the off-sixteenth ghost sits a little late: compare the written step)
+    expect(
+      think
+        .filter((t) => t.voice === "snare")
+        .map((t) => `${Math.round(t.beat * 4) / 4}:${t.accent}`),
+    ).toEqual(["1:accent", "1.75:ghost", "2.5:ghost", "3:accent"]);
+    // Tony Allen: kicks in pairs, on 1 and 1e, 3 and 3e.
+    expect(
+      repertoireFor("tony-allen")!
+        .groove.targets.filter((t) => t.voice === "kick")
+        .map((t) => t.beat),
+    ).toEqual([0, 0.25, 2, 2.25]);
     // Swing 62: the off-sixteenth hats land late.
     const sw = repertoireFor("swing-62")!.groove.targets.filter((t) => t.voice === "hats");
     expect(sw[1].beat).toBeCloseTo(0.31);
