@@ -6,7 +6,7 @@
   import { page } from "$app/state";
   import type { InputEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
-  import { EAR_RHYTHM_LEVELS, earGroove, earRhythmPattern, GROOVE_LANES, GROOVE_LEVELS, grooveAsPattern, grooveKeys, type Groove, expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "@repo/music-core/content/rhythm";
+  import { EAR_RHYTHM_LEVELS, earGroove, earRhythmPattern, GROOVE_LANES, GROOVE_LEVELS, grooveAsPattern, grooveKeys, type Groove, expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills, STRUM_LADDER, strumLadderAfter, type StrumLadder } from "@repo/music-core/content/rhythm";
   import { rng } from "@repo/music-core/content/random";
   import { catalogEntry, rhythmExerciseId } from "@repo/music-core/content/catalog";
   import { gradeOnsets, gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
@@ -18,7 +18,7 @@
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, pct, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
   import RhythmGrid, { type GridHit, type GridVerdict } from "$lib/music/drills/rhythm/RhythmGrid.svelte";
@@ -62,6 +62,11 @@
   let now = $state(0);
   let pulseResult = $state.raw<PulseResult | null>(null);
   let patternResult = $state.raw<PatternResult | null>(null);
+  // Strum patterns climb a tempo ladder: two runs at 90% or better offer 5 BPM more.
+  const STRUM_LADDER_KEY = "rhythm.strum-ladder.v1";
+  let strumLadders = $state<Record<string, StrumLadder>>({});
+  let strumNext = $state<number | null>(null);
+  void readKeyed<StrumLadder>(STRUM_LADDER_KEY).then((l) => (strumLadders = l));
   let summary = $state<RunSummary | null>(null);
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let cap: Capture | null = null;
@@ -271,6 +276,23 @@
       await run!.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: src, instrument: instrument ?? null });
       const fin = await run!.finish({ score: r.score, correct: r.correct, headline: pct(r.score) });
       const total = r.grid.length;
+      let ladderRow: { label: string; text: string }[] = [];
+      strumNext = null;
+      if (def.chords?.length) {
+        const after = strumLadderAfter(strumLadders[def.id], { bpm, score: r.score });
+        strumLadders = await writeKeyed(STRUM_LADDER_KEY, def.id, after, (_a, b) => b);
+        strumNext = after.next;
+        ladderRow = [
+          {
+            label: "Tempo ladder",
+            text: after.next
+              ? `${STRUM_LADDER.runs} runs at ${Math.round(STRUM_LADDER.pass * 100)}% or better at ${bpm} BPM: try ${after.next}`
+              : after.streak
+                ? `${after.streak} of ${STRUM_LADDER.runs} runs at ${Math.round(STRUM_LADDER.pass * 100)}% or better at ${bpm} BPM`
+                : `${Math.round(STRUM_LADDER.pass * 100)}% or better twice moves the tempo up`,
+          },
+        ];
+      }
       summary = {
         headline:
           r.correct && !r.restHits
@@ -295,6 +317,7 @@
                   : { label: "Chords", text: "Timing only: no pitch was heard" },
               ]
             : []),
+          ...ladderRow,
         ],
         routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
       };
@@ -549,7 +572,7 @@
   {#snippet stage()}
     <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 md:grid-cols-[minmax(0,1fr)_auto]">
       <!-- By ear, the pattern and its start ride along as data (for tests and tools), never drawn until the end. -->
-      <div class="min-w-0" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={byEar ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
+      <div class="min-w-0" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={phase !== "ready" ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
         {#if !pulse && def.chords?.length}
           <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are graded when the mic or MIDI hears pitch.</p>
         {/if}
@@ -644,6 +667,7 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
+          {#if strumNext}<button type="button" class={btn} onclick={() => settings.update({ bpm: strumNext! })}>Up to {strumNext} BPM</button>{/if}
           <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm + 8, 40, 220) })}>Faster</button>
           <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm - 8, 40, 220) })}>Slower</button>
         {/snippet}

@@ -54,10 +54,12 @@ async function playGroove(page: Page) {
   await page.evaluate(
     ({ targets, downbeat, port }) => {
       for (const [pad, at, kind] of targets) {
-        const wait = downbeat + at - performance.now();
+        // Sent a little early, stamped with the hit's exact time: timers under load can't skew it.
+        const when = downbeat + at;
+        const wait = when - 60 - performance.now();
         const vel = kind === "a" ? 110 : kind === "g" ? 30 : 70;
-        setTimeout(() => (window as any).__midi.send(port, [0x90, pad, vel]), wait);
-        setTimeout(() => (window as any).__midi.send(port, [0x80, pad, 0]), wait + 30);
+        setTimeout(() => (window as any).__midi.send(port, [0x90, pad, vel], when), wait);
+        setTimeout(() => (window as any).__midi.send(port, [0x80, pad, 0], when + 30), wait + 30);
       }
     },
     { targets, downbeat, port: PORTS.keys.id },

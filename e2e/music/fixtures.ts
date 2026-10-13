@@ -16,7 +16,7 @@ export const PORTS = {
   aerophone: { id: "in-ae", name: "Aerophone AE-10", manufacturer: "Roland" },
 } satisfies Record<string, FakePort>;
 
-/** Install before the app loads. `window.__midi.send(portId, bytes)` fires a message; sent frames land in `window.__midi.sent`. */
+/** Install before the app loads. `window.__midi.send(portId, bytes, at?)` fires a message; sent frames land in `window.__midi.sent`. */
 export async function installFakeMidi(
   page: Page,
   inputs: FakePort[] = Object.values(PORTS),
@@ -47,10 +47,11 @@ export async function installFakeMidi(
       ]);
       (window as any).__midi = {
         sent: [] as { port: string; bytes: number[] }[],
-        send(id: string, bytes: number[]) {
+        /** `at`: the message's timestamp (performance.now() when left out), so a test can stamp a stroke exactly. */
+        send(id: string, bytes: number[], at?: number) {
           ins
             .get(id)
-            ?.onmidimessage?.({ data: new Uint8Array(bytes), timeStamp: performance.now() });
+            ?.onmidimessage?.({ data: new Uint8Array(bytes), timeStamp: at ?? performance.now() });
         },
       };
       Object.defineProperty(navigator, "requestMIDIAccess", {

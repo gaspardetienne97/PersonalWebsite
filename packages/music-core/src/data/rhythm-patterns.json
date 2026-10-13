@@ -1026,5 +1026,749 @@
         "durationBeats": 8
       }
     ]
+  },
+  {
+    "id": "guitar-old-faithful",
+    "label": "Guitar: Old Faithful, D DU UDU (G C D G)",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 4,
+    "rests": [],
+    "clickSchedule": [
+      {
+        "bar": 0,
+        "audible": true
+      },
+      {
+        "bar": 1,
+        "audible": true
+      },
+      {
+        "bar": 2,
+        "audible": true
+      },
+      {
+        "bar": 3,
+        "audible": true
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "G",
+        "pitchClasses": [2, 7, 11],
+        "startBeat": 0,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "C",
+        "pitchClasses": [0, 4, 7],
+        "startBeat": 4,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "D",
+        "pitchClasses": [2, 6, 9],
+        "startBeat": 8,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "G",
+        "pitchClasses": [2, 7, 11],
+        "startBeat": 12,
+        "durationBeats": 4
+      }
+    ],
+    "events": [
+      {
+        "id": "guitar-old-faithful-1-0",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "guitar-old-faithful-1-1",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-1-1.5",
+        "beat": 1.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 1.0
+      },
+      {
+        "id": "guitar-old-faithful-1-2.5",
+        "beat": 2.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-1-3",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-1-3.5",
+        "beat": 3.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-2-0",
+        "beat": 4,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "guitar-old-faithful-2-1",
+        "beat": 5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-2-1.5",
+        "beat": 5.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 1.0
+      },
+      {
+        "id": "guitar-old-faithful-2-2.5",
+        "beat": 6.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-2-3",
+        "beat": 7,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-2-3.5",
+        "beat": 7.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-3-0",
+        "beat": 8,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "guitar-old-faithful-3-1",
+        "beat": 9,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-3-1.5",
+        "beat": 9.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 1.0
+      },
+      {
+        "id": "guitar-old-faithful-3-2.5",
+        "beat": 10.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-3-3",
+        "beat": 11,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-3-3.5",
+        "beat": 11.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-4-0",
+        "beat": 12,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "guitar-old-faithful-4-1",
+        "beat": 13,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-4-1.5",
+        "beat": 13.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 1.0
+      },
+      {
+        "id": "guitar-old-faithful-4-2.5",
+        "beat": 14.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-4-3",
+        "beat": 15,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "guitar-old-faithful-4-3.5",
+        "beat": 15.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      }
+    ]
+  },
+  {
+    "id": "ukulele-island-strum",
+    "label": "Ukulele: island strum, D DU UDU (C Am F G)",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 4,
+    "rests": [],
+    "clickSchedule": [
+      {
+        "bar": 0,
+        "audible": true
+      },
+      {
+        "bar": 1,
+        "audible": true
+      },
+      {
+        "bar": 2,
+        "audible": true
+      },
+      {
+        "bar": 3,
+        "audible": true
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "C",
+        "pitchClasses": [0, 4, 7],
+        "startBeat": 0,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "Am",
+        "pitchClasses": [0, 4, 9],
+        "startBeat": 4,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "F",
+        "pitchClasses": [0, 5, 9],
+        "startBeat": 8,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "G",
+        "pitchClasses": [2, 7, 11],
+        "startBeat": 12,
+        "durationBeats": 4
+      }
+    ],
+    "events": [
+      {
+        "id": "ukulele-island-strum-1-0",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-island-strum-1-1",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-1-1.5",
+        "beat": 1.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 1.0
+      },
+      {
+        "id": "ukulele-island-strum-1-2.5",
+        "beat": 2.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-1-3",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-1-3.5",
+        "beat": 3.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-2-0",
+        "beat": 4,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-island-strum-2-1",
+        "beat": 5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-2-1.5",
+        "beat": 5.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 1.0
+      },
+      {
+        "id": "ukulele-island-strum-2-2.5",
+        "beat": 6.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-2-3",
+        "beat": 7,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-2-3.5",
+        "beat": 7.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-3-0",
+        "beat": 8,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-island-strum-3-1",
+        "beat": 9,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-3-1.5",
+        "beat": 9.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 1.0
+      },
+      {
+        "id": "ukulele-island-strum-3-2.5",
+        "beat": 10.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-3-3",
+        "beat": 11,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-3-3.5",
+        "beat": 11.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-4-0",
+        "beat": 12,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-island-strum-4-1",
+        "beat": 13,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-4-1.5",
+        "beat": 13.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 1.0
+      },
+      {
+        "id": "ukulele-island-strum-4-2.5",
+        "beat": 14.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-4-3",
+        "beat": 15,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-island-strum-4-3.5",
+        "beat": 15.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      }
+    ]
+  },
+  {
+    "id": "ukulele-chuck",
+    "label": "Ukulele: chuck on 2 and 4 (C Am F G)",
+    "meter": {
+      "beats": 4,
+      "beatUnit": 4
+    },
+    "defaultBars": 4,
+    "rests": [],
+    "clickSchedule": [
+      {
+        "bar": 0,
+        "audible": true
+      },
+      {
+        "bar": 1,
+        "audible": true
+      },
+      {
+        "bar": 2,
+        "audible": true
+      },
+      {
+        "bar": 3,
+        "audible": true
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "C",
+        "pitchClasses": [0, 4, 7],
+        "startBeat": 0,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "Am",
+        "pitchClasses": [0, 4, 9],
+        "startBeat": 4,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "F",
+        "pitchClasses": [0, 5, 9],
+        "startBeat": 8,
+        "durationBeats": 4
+      },
+      {
+        "symbol": "G",
+        "pitchClasses": [2, 7, 11],
+        "startBeat": 12,
+        "durationBeats": 4
+      }
+    ],
+    "events": [
+      {
+        "id": "ukulele-chuck-1-0",
+        "beat": 0,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-chuck-1-1",
+        "beat": 1,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-chuck-1-2",
+        "beat": 2,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-1-2.5",
+        "beat": 2.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-1-3",
+        "beat": 3,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-1-3.5",
+        "beat": 3.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-2-0",
+        "beat": 4,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-chuck-2-1",
+        "beat": 5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-chuck-2-2",
+        "beat": 6,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-2-2.5",
+        "beat": 6.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-2-3",
+        "beat": 7,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-2-3.5",
+        "beat": 7.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-3-0",
+        "beat": 8,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-chuck-3-1",
+        "beat": 9,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-chuck-3-2",
+        "beat": 10,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-3-2.5",
+        "beat": 10.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-3-3",
+        "beat": 11,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-3-3.5",
+        "beat": 11.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-4-0",
+        "beat": 12,
+        "voice": "tap",
+        "accent": "accent",
+        "stroke": "down",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-chuck-4-1",
+        "beat": 13,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 1
+      },
+      {
+        "id": "ukulele-chuck-4-2",
+        "beat": 14,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "down",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-4-2.5",
+        "beat": 14.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-4-3",
+        "beat": 15,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "mute",
+        "durationBeats": 0.5
+      },
+      {
+        "id": "ukulele-chuck-4-3.5",
+        "beat": 15.5,
+        "voice": "tap",
+        "accent": "normal",
+        "stroke": "up",
+        "durationBeats": 0.5
+      }
+    ]
   }
 ]

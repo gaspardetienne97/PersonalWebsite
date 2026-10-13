@@ -12,6 +12,7 @@ import {
   RHYTHM_PATTERNS,
   rhythmPattern,
   rhythmSkills,
+  strumLadderAfter,
 } from "./rhythm";
 import { rng } from "./random";
 
@@ -19,7 +20,7 @@ const plan = (id: string, bpm: number, bars?: number) =>
   expandRhythm(rhythmPattern(id)!, { bpm, bars });
 
 describe("rhythm patterns", () => {
-  it("has the 11 catalog patterns with their event counts", () => {
+  it("has the 14 catalog patterns with their event counts", () => {
     expect(RHYTHM_PATTERNS.map((p) => `${p.id}:${p.defaultBars}:${p.events.length}`)).toEqual([
       "quarter-pulse:1:4",
       "eighths:1:8",
@@ -32,6 +33,9 @@ describe("rhythm patterns", () => {
       "gap-click-1-on-1-off:2:8",
       "guitar-four-on-the-floor:4:16",
       "guitar-island-strum:4:28",
+      "guitar-old-faithful:4:24",
+      "ukulele-island-strum:4:24",
+      "ukulele-chuck:4:24",
     ]);
   });
 
@@ -191,5 +195,38 @@ describe("groove dictation", () => {
 
   it("keeps the lanes apart when graded together", () => {
     expect(grooveKeys({ kick: [0], snare: [0] })).toEqual([100, 200]);
+  });
+});
+
+describe("the strumming tempo ladder", () => {
+  it("offers 5 BPM more after two runs at 90% or better at one tempo", () => {
+    let l = strumLadderAfter(undefined, { bpm: 80, score: 0.95 });
+    expect(l).toMatchObject({ streak: 1, next: null });
+    l = strumLadderAfter(l, { bpm: 80, score: 0.92 });
+    expect(l).toMatchObject({ streak: 2, next: 85, best: 80 });
+    // A slip, or a new tempo, starts the count again.
+    expect(strumLadderAfter(l, { bpm: 80, score: 0.7 })).toMatchObject({
+      streak: 0,
+      next: null,
+      best: 80,
+    });
+    expect(strumLadderAfter(l, { bpm: 85, score: 0.95 })).toMatchObject({ streak: 1, next: null });
+  });
+
+  it("has the new strum patterns with their chords", () => {
+    for (const id of ["guitar-old-faithful", "ukulele-island-strum", "ukulele-chuck"]) {
+      const p = RHYTHM_PATTERNS.find((x) => x.id === id)!;
+      expect(p.events).toHaveLength(24);
+      expect(p.chords).toHaveLength(4);
+      expect(rhythmSkills(id)).toContain("technique.strumming");
+    }
+    // The chuck sits on 2 and 4.
+    const chuck = RHYTHM_PATTERNS.find((x) => x.id === "ukulele-chuck")!;
+    expect(
+      chuck.events
+        .filter((e) => e.stroke === "mute")
+        .map((e) => e.beat)
+        .slice(0, 2),
+    ).toEqual([1, 3]);
   });
 });

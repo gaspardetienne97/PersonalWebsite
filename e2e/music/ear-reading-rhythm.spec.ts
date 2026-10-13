@@ -936,6 +936,58 @@ test.describe("rhythm", () => {
     await shots(page, "rhythm-strum-ready");
   });
 
+  test("strumming: Old Faithful twice at 90% or better offers 5 BPM more", async ({ page }) => {
+    test.setTimeout(90_000);
+    await installFakeMidi(page, [PORTS.keys]);
+    await enableMidi(page, "/music/rhythm?mode=read-and-tap&pattern=guitar-old-faithful&bpm=80");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("Old Faithful");
+    const strokes = [0, 1, 1.5, 2.5, 3, 3.5];
+    const chords = [
+      [55, 59, 62], // G
+      [48, 52, 55], // C
+      [50, 54, 57], // D
+      [55, 59, 62], // G
+    ];
+    const stage = page.locator("[data-beat-ms]");
+    for (let run = 1; run <= 2; run++) {
+      const before = await stage.getAttribute("data-downbeat");
+      await page.getByRole("button", { name: run === 1 ? "Start" : "Again", exact: true }).click();
+      await expect(stage).not.toHaveAttribute("data-downbeat", before ?? "none");
+      const downbeat = Number(await stage.getAttribute("data-downbeat"));
+      await page.evaluate(
+        ({ port, strokes, chords, downbeat }) => {
+          const midi = (window as any).__midi;
+          const beat = 60000 / 80;
+          chords.forEach((notes, bar) =>
+            strokes.forEach((b) => {
+              // Sent a little early, stamped with the stroke's exact time: timers under load can't skew it.
+              const at = downbeat + (bar * 4 + b) * beat;
+              setTimeout(
+                () => {
+                  for (const n of notes) midi.send(port, [0x90, n, 90], at);
+                  setTimeout(
+                    () => notes.forEach((n) => midi.send(port, [0x80, n, 0], at + 150)),
+                    150,
+                  );
+                },
+                at - 100 - performance.now(),
+              );
+            }),
+          );
+        },
+        { port: PORTS.keys.id, strokes, chords, downbeat },
+      );
+      await expect(page.locator("article").first()).toContainText(
+        run === 1
+          ? "1 of 2 runs at 90% or better at 80 BPM"
+          : "2 runs at 90% or better at 80 BPM: try 85",
+        { timeout: 20_000 },
+      );
+    }
+    await expect(page.getByRole("button", { name: "Up to 85 BPM" })).toBeVisible();
+    await shots(page, "rhythm-strum-ladder");
+  });
+
   test("pulse with the tap button after the count-in", async ({ page }) => {
     await page.goto("/music/rhythm?mode=pulse&beats=4");
     await page.getByRole("button", { name: "Start", exact: true }).click();

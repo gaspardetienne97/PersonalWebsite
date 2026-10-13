@@ -792,6 +792,14 @@ APP_SKILLS.push(
     version: 1,
   },
   {
+    id: "technique.strumming",
+    name: "Strumming patterns in time (guitar and ukulele)",
+    capability: "rhythm",
+    level: "beginner",
+    tags: ["guitar", "ukulele", "strumming"],
+    version: 1,
+  },
+  {
     id: "technique.pedal",
     name: "Legato (syncopated) pedalling",
     capability: "technique",

@@ -28,7 +28,36 @@ const PATTERN_SKILLS: Record<string, string[]> = {
   "gap-click-1-on-1-off": ["rhythm.gap-click"],
   "guitar-four-on-the-floor": ["rhythm.pattern.guitar-four-on-the-floor"],
   "guitar-island-strum": ["rhythm.pattern.guitar-island-strum"],
+  "guitar-old-faithful": ["technique.strumming"],
+  "ukulele-island-strum": ["technique.strumming"],
+  "ukulele-chuck": ["technique.strumming"],
 };
+
+/**
+ * The strumming tempo ladder (Rocksmith and Yousician step tempo with success):
+ * two runs at 90% or better at one tempo offer the next, 5 BPM up.
+ */
+export const STRUM_LADDER = { pass: 0.9, runs: 2, step: 5, max: 200 } as const;
+export interface StrumLadder {
+  bpm: number;
+  streak: number;
+  /** The fastest tempo passed twice. */
+  best: number;
+}
+export function strumLadderAfter(
+  prev: StrumLadder | undefined,
+  run: { bpm: number; score: number },
+): StrumLadder & { next: number | null } {
+  const pass = run.score >= STRUM_LADDER.pass;
+  const streak = pass ? (prev && prev.bpm === run.bpm ? prev.streak + 1 : 1) : 0;
+  const climbed = streak >= STRUM_LADDER.runs;
+  return {
+    bpm: run.bpm,
+    streak,
+    best: Math.max(prev?.best ?? 0, climbed ? run.bpm : 0),
+    next: climbed ? Math.min(STRUM_LADDER.max, run.bpm + STRUM_LADDER.step) : null,
+  };
+}
 /** Skills a pattern (or "pulse") exercises. */
 export const rhythmSkills = (patternId: string | "pulse") => [
   "rhythm.subdivisions",
