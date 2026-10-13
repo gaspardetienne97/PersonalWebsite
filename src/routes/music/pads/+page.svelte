@@ -34,6 +34,7 @@
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
   import NoteHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/NoteHighway.svelte";
   import { laneColor, starsFor, type Judgement } from "$lib/music/drills/pads/lanes";
+  import { backingChords, backingFor } from "$lib/music/drills/pads/backing";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
 
   const cfg = new DrillSetup("pads", {
@@ -50,6 +51,8 @@
     // Practice tools, as play-along apps have them: play it more than once, or wait for each note.
     plays: 1,
     wait: false as boolean,
+    // A small band under the groove (chords by style, bass on the kick).
+    backing: false as boolean,
   });
   const s = $derived(cfg.value);
   // Path steps carry their tempo (?bpm=); the practice strip owns it from then on.
@@ -127,6 +130,9 @@
   let cap: Capture | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let clickTimer: ReturnType<typeof setTimeout> | undefined;
+  let band: { stop(): void } | null = null;
+  /** The band plays under grooves, never under Hold the tempo (it would carry the tempo) or Wait mode. */
+  const withBacking = $derived(!!s.backing && isGroove && !isSteady && !waitMode);
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let stopClockRef: (() => void) | null = null;
 
@@ -342,10 +348,11 @@
     if (demo?.playing) return stopDemo();
     await audio.unlock();
     const notes = isGroove
-      ? groove.targets.map((t) => ({ midi: t.pad, time: t.atMs / 1000, duration: 0.12, velocity: t.accent ? 1 : 0.7, voice: "drum" as const }))
+      ? [...groove.targets.map((t) => ({ midi: t.pad, time: t.atMs / 1000, duration: 0.12, velocity: t.accent ? 1 : 0.7, voice: "drum" as const })), ...(withBacking ? backingFor(entry.style, groove.targets, groove.groove.bars, beatMs) : [])]
       : hits.map((h) => ({ midi: h.pad, time: (h.atMs + 30) / 1000, duration: 0.1, velocity: h.grace ? 0.4 : h.accent || !hits.some((x) => x.accent) ? 0.95 : 0.55, voice: "drum" as const }));
     const handle = audio.playSequence(notes, {
       onNote: (i: number) => {
+        if (notes[i].voice !== "drum") return;
         const m = notes[i].midi;
         demoLit = { ...demoLit, [m]: true };
         setTimeout(() => (demoLit = { ...demoLit, [m]: false }), 110);
@@ -420,6 +427,7 @@
       params: isGroove ? { bpm, groove: entry.groove.value, mode: s.mode } : { bpm, pattern: pattern.id, sub: perBeat, hits: s.hits, padL: pads[0], padR: pads[1] },
     });
     const wait = Math.max(0, ctx.downbeat - performance.now());
+    if (withBacking) band = audio.playSequence(backingFor(entry.style, groove.targets, groove.groove.bars, beatMs), { startPerf: ctx.downbeat });
     if (isGroove) {
       // Scored input opens after the count-in; the grader's window catches an early first hit.
       cap = capture(ctx.downbeat - groove.matchWindowMs, (e) => e.kind === "noteon" && onHit(e));
@@ -445,6 +453,8 @@
     if (phase !== "running" && phase !== "countin") return;
     clearTimeout(timer);
     clearTimeout(clickTimer);
+    band?.stop();
+    band = null;
     stopClockRef?.();
     cap?.stop();
     const notes = cap?.notes ?? [];
@@ -610,6 +620,8 @@
   function stop() {
     clearTimeout(timer);
     clearTimeout(clickTimer);
+    band?.stop();
+    band = null;
     cap?.stop();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
@@ -631,6 +643,8 @@
 
   onDestroy(() => {
     clearTimeout(timer);
+    clearTimeout(clickTimer);
+    band?.stop();
     cap?.stop();
     stopDemo();
   });
@@ -704,6 +718,15 @@
         <Choice label="Wait mode (learn it)" options={[{ value: "off", label: "Off" }, { value: "on", label: "On: no click, notes wait" }]} value={s.wait ? "on" : "off"} onchange={(v) => cfg.set({ wait: v === "on" })} />
       {/if}
       {#if isGroove && !isSteady}
+        <Choice
+          label="Backing"
+          options={[
+            { value: "off", label: "Click only" },
+            { value: "on", label: `Band: ${backingChords(entry.style).join(" ")}` },
+          ]}
+          value={s.backing ? "on" : "off"}
+          onchange={(v) => cfg.set({ backing: v === "on" })}
+        />
         <Choice label="Plays" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "Once" : `${n} times` }))} value={s.plays} onchange={(v) => cfg.set({ plays: v })} />
       {/if}
       {#if !isGroove}
@@ -755,7 +778,8 @@
           {/each}
         </div>
       {/if}
-      <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+      <!-- The notes on top, the pads under them, as play-along apps stack them. -->
+      <div class="grid grid-cols-[minmax(0,1fr)] items-start gap-5">
         <div class="min-w-0">
           {#if (phase === "running" || phase === "countin" || demo?.playing) && (mode === "practice" || demo?.playing)}
             <!-- While it plays: the notes come at you, judged as they pass. -->

@@ -157,4 +157,32 @@ test.describe("finger-drumming repertoire", () => {
       { timeout: 10_000 },
     );
   });
+
+  test("the preview is one line that scrolls, the pads sit under it, and a band can play along", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await installFakeMidi(page, [PORTS.keys]);
+    await enableMidi(page, "/music/pads?mode=groove&groove=amen&bpm=110&backing=true");
+    const preview = page.getByRole("region", { name: "The groove, 4 bars, scroll sideways" });
+    await expect(preview).toBeVisible();
+    const { scroll, client } = await preview.evaluate((el) => ({
+      scroll: el.scrollWidth,
+      client: el.clientWidth,
+    }));
+    expect(scroll).toBeGreaterThan(client);
+    // Notes on top, pads below.
+    const gridBox = (await preview.boundingBox())!;
+    const padsBox = (await page.getByRole("group", { name: /^MPC pads, bank A/ }).boundingBox())!;
+    expect(padsBox.y).toBeGreaterThan(gridBox.y + gridBox.height - 1);
+    await page.getByRole("button", { name: "Change setup" }).click();
+    await expect(page.getByText("Band: Gm7 C9")).toBeVisible();
+    await page.getByRole("button", { name: "Done" }).click();
+    await shots(page, "amen-ready");
+    await page.getByRole("button", { name: /^Start/ }).click();
+    await playGroove(page);
+    await expect(page.getByRole("status")).toContainText("Passed level 6 at 110 BPM", {
+      timeout: 20_000,
+    });
+  });
 });

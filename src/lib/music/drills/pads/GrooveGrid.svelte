@@ -27,6 +27,20 @@
   });
   // A bar-5 downbeat target (turnaround fill) gets one extra column on the last bar.
   const tail = $derived(targets.some((t) => t.beat >= bars * 4));
+  const total = $derived(bars * 16 + (tail ? 1 : 0));
+  const cols = $derived(Array.from({ length: total }, (_, g) => g));
+  const colsOf = (bar: number) => 16 + (tail && bar === bars - 1 ? 1 : 0);
+
+  // Keep a moving playhead in view: a page turn when it nears the right edge.
+  let scroller = $state<HTMLElement | null>(null);
+  $effect(() => {
+    if (playhead === null || !scroller) return;
+    const cell = scroller.querySelector<HTMLElement>(`[data-col="${playhead}"]`);
+    if (!cell) return;
+    const x = cell.offsetLeft;
+    const view = scroller.clientWidth;
+    if (x > scroller.scrollLeft + view * 0.85 || x < scroller.scrollLeft + 60) scroller.scrollLeft = Math.max(0, x - view * 0.15);
+  });
 
   function verdict(i: number) {
     if (!outcomes) return null;
@@ -37,48 +51,85 @@
   }
 </script>
 
-<div class="flex flex-col gap-3">
-  {#each Array.from({ length: bars }, (_, b) => b) as bar (bar)}
-    {@const cols = 16 + (tail && bar === bars - 1 ? 1 : 0)}
-    <div class="bar" style:--cols={cols}>
-      <p class="col-span-full text-xs text-ws-stage-soft">
+<!-- One line, all the bars side by side, scrolling sideways; the drum names stay put. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable region must be reachable by keyboard -->
+<div class="scroll" bind:this={scroller} role="region" aria-label="The groove, {bars} bar{bars > 1 ? 's' : ''}, scroll sideways" tabindex="0">
+  <div class="grid" style:--cols={total}>
+    <span class="name corner"></span>
+    {#each Array.from({ length: bars }, (_, b) => b) as bar (bar)}
+      <p class="bar-label" style:grid-column="span {colsOf(bar)}">
         Bar {bar + 1}{#if sectionLabels.length > 1 || sectionLabels[0] !== "groove"}, {sectionLabels[Math.min(bar, sectionLabels.length - 1)]}{/if}
       </p>
-      <span></span>
-      {#each Array.from({ length: cols }, (_, c) => c) as c (c)}
-        <span class="count" class:beat={c % 4 === 0} class:now={playhead === bar * 16 + c}>{c === 16 ? "1" : c % 4 === 0 ? c / 4 + 1 : COUNTS[c % 4]}</span>
+    {/each}
+    <span class="name corner"></span>
+    {#each cols as g (g)}
+      {@const c = g % 16}
+      <span class="count" class:beat={c % 4 === 0} class:barline={c === 0 && g > 0} class:now={playhead === g}>{g === bars * 16 ? "1" : c % 4 === 0 ? c / 4 + 1 : COUNTS[c % 4]}</span>
+    {/each}
+    {#each voices as v (v.id)}
+      <span class="name" title="{v.name}, pad {padLabel(v.midi)}">{v.name}</span>
+      {#each cols as g (g)}
+        {@const c = g % 16}
+        {@const i = at.get(`${v.id}:${g}`)}
+        {@const t = i === undefined ? null : targets[i]}
+        {@const vd = i === undefined ? null : verdict(i)}
+        <span
+          class="cell"
+          class:beat={c % 4 === 0}
+          class:barline={c === 0 && g > 0}
+          class:now={playhead === g}
+          data-col={g}
+          data-hit={t ? (t.accent ? "accent" : t.ghost ? "ghost" : "normal") : undefined}
+          data-kind={vd?.kind}
+          title={t ? `${v.name}, bar ${Math.floor(g / 16) + 1} on ${Math.floor(c / 4) + 1}${COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}${t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}${vd ? `: ${vd.word}` : ""}` : undefined}
+        >
+          {#if t}
+            <span class="dot" aria-hidden="true">{vd ? vd.glyph : t.accent ? ">" : t.ghost ? "( )" : ""}</span>
+            <span class="sr-only">{v.name}, bar {Math.floor(g / 16) + 1}, beat {Math.floor(c / 4) + 1}{COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}{t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}{vd ? `, ${vd.word}` : ""}</span>
+          {/if}
+        </span>
       {/each}
-      {#each voices as v (v.id)}
-        <span class="name" title="{v.name}, pad {padLabel(v.midi)}">{v.name}</span>
-        {#each Array.from({ length: cols }, (_, c) => c) as c (c)}
-          {@const i = at.get(`${v.id}:${bar * 16 + c}`)}
-          {@const t = i === undefined ? null : targets[i]}
-          {@const vd = i === undefined ? null : verdict(i)}
-          <span
-            class="cell"
-            class:beat={c % 4 === 0}
-            class:now={playhead === bar * 16 + c}
-            data-hit={t ? (t.accent ? "accent" : t.ghost ? "ghost" : "normal") : undefined}
-            data-kind={vd?.kind}
-            title={t ? `${v.name} on ${Math.floor(c / 4) + 1}${COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}${t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}${vd ? `: ${vd.word}` : ""}` : undefined}
-          >
-            {#if t}
-              <span class="dot" aria-hidden="true">{vd ? vd.glyph : t.accent ? ">" : ""}</span>
-              <span class="sr-only">{v.name}, beat {Math.floor(c / 4) + 1}{COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}{t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}{vd ? `, ${vd.word}` : ""}</span>
-            {/if}
-          </span>
-        {/each}
-      {/each}
-    </div>
-  {/each}
+    {/each}
+  </div>
 </div>
 
 <style>
-  .bar {
+  .scroll {
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+    scrollbar-width: thin;
+  }
+  .scroll:focus-visible {
+    outline: 2px solid var(--instr);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  .grid {
     display: grid;
-    grid-template-columns: 3.4rem repeat(var(--cols), minmax(0, 1fr));
+    grid-template-columns: 4.6rem repeat(var(--cols), 1.75rem);
     gap: 2px;
     align-items: center;
+    width: max-content;
+  }
+  .bar-label {
+    font-size: 0.72rem;
+    color: var(--ws-stage-soft);
+    padding-left: 2px;
+  }
+  /* The drum names stay put while the bars scroll under them. */
+  .name,
+  .corner {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding-right: 0.3rem;
+    background: var(--ws-stage);
+  }
+  .barline {
+    margin-left: 6px;
   }
   .count {
     text-align: center;
