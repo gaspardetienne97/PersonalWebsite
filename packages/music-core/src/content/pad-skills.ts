@@ -54,8 +54,12 @@ export const PAD_FILLS: PadFill[] = [
   },
 ];
 
-/** The fill's groove: 3 bars of rock, the fill, and the landing (crash and kick) on beat 17. */
-export function fillGroove(id: string): GrooveDef & { landing: number[] } {
+/**
+ * The fill's groove: 3 bars of rock, the fill, and the landing (crash and kick)
+ * on beat 17. `fill` indexes the fill's own notes: what the fill bar plays that
+ * the groove bar would not (its kick on the one and hats are the groove's).
+ */
+export function fillGroove(id: string): GrooveDef & { landing: number[]; fill: number[] } {
   const fill = PAD_FILLS.find((f) => f.id === id) ?? PAD_FILLS[0];
   const voices = [...new Set([...Object.keys(ROCK), ...Object.keys(fill.bar)])] as (keyof Lanes)[];
   const lanes: Lanes = {};
@@ -71,20 +75,21 @@ export function fillGroove(id: string): GrooveDef & { landing: number[] } {
     { voice: "crash" as const, beat: 16, accent: "accent" as const },
     { voice: "kick" as const, beat: 16, accent: "accent" as const },
   ];
-  return { ...g, targets, landing: [targets.length - 2, targets.length - 1] };
+  const inRock = (t: { voice: string; beat: number }) =>
+    (ROCK[t.voice as keyof Lanes]?.[Math.round((t.beat - 12) * 4)] ?? ".") !== ".";
+  const own = targets.flatMap((t, i) => (t.beat >= 12 && t.beat < 16 && !inRock(t) ? [i] : []));
+  return { ...g, targets, landing: [targets.length - 2, targets.length - 1], fill: own };
 }
 
 /**
- * How the fill went: its notes' mean signed error (negative = rushed; students
- * rush fills) and how far the landing was from the one.
+ * How the fill went: its own notes' mean signed error (negative = rushed;
+ * students rush fills) and how far the landing was from the one.
  */
 export function fillReport(
-  g: GrooveDef & { landing: number[] },
+  g: GrooveDef & { landing: number[]; fill: number[] },
   perTarget: readonly (number | null)[],
 ) {
-  const inFill = g.targets.flatMap((t, i) =>
-    t.beat >= 12 && t.beat < 16 && perTarget[i] !== null ? [perTarget[i]!] : [],
-  );
+  const inFill = g.fill.flatMap((i) => (perTarget[i] !== null ? [perTarget[i]!] : []));
   const land = g.landing.map((i) => perTarget[i]).filter((e): e is number => e !== null);
   const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
   const fillMean = mean(inFill);
@@ -106,15 +111,18 @@ const PARADIDDLE: Stroke[] = ["R", "L", "R", "R", "L", "R", "L", "L"];
 export const ORCHESTRATIONS = [
   {
     id: "hats-snare",
-    label: "Paradiddle: right on the hats, left on the snare, kick under the accents",
+    label: "Hats and snare",
+    detail: "Right on the hats, left on the snare, kick under the accents",
   },
   {
     id: "ride-snare",
-    label: "Paradiddle: right on the ride, left on the snare, kick under the accents",
+    label: "Ride and snare",
+    detail: "Right on the ride, left on the snare, kick under the accents",
   },
   {
     id: "toms-lead",
-    label: "Paradiddle: each group's first stroke on a tom, the rest hats and snare",
+    label: "Toms lead",
+    detail: "Each group's first stroke on a tom, the rest hats and snare",
   },
 ] as const;
 
@@ -140,7 +148,7 @@ export function orchestrationGroove(id: string): GrooveDef {
   }
   return {
     value: `orch-${o.id}`,
-    label: o.label,
+    label: `Paradiddle: ${o.label.toLowerCase()}`,
     bars: 2,
     sectionLabels: ["paradiddles", "paradiddles"],
     targets,

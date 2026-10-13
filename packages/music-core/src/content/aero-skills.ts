@@ -102,6 +102,20 @@ export function joinTypes(
   });
 }
 
+/**
+ * The line's grade with the tonguing folded in, half and half. Without breath
+ * (CC 2) the joins are read from gaps alone, which is a guess: then the
+ * tonguing is not measured and the line's grade stands on its own.
+ */
+export function tonguingVerdict(
+  line: { score: number; correct: boolean },
+  tonguing: number,
+  breathSeen: boolean,
+) {
+  if (!breathSeen) return { score: line.score, correct: line.correct };
+  return { score: line.score * 0.5 + tonguing * 0.5, correct: line.correct && tonguing >= 0.8 };
+}
+
 /** Share of joins (after the first note) that matched the pattern. */
 export function tonguingScore(want: readonly ("T" | "S")[], got: readonly ("T" | "S")[]) {
   const n = Math.min(want.length, got.length);
@@ -115,12 +129,12 @@ export function tonguingScore(want: readonly ("T" | "S")[], got: readonly ("T" |
 // (Patchman); pairs across the break, played back and forth.
 
 export const REGISTER_PAIRS = [
-  { id: "cs5-d5", label: "C#5 to D5 (all open to the octave key)", notes: [73, 74] },
-  { id: "c5-d5", label: "C5 to D5", notes: [72, 74] },
-  { id: "a4-d5", label: "A4 to D5", notes: [69, 74] },
-  { id: "d4-d5", label: "D4 to D5 (the octave key alone)", notes: [62, 74] },
-  { id: "g4-g5", label: "G4 to G5 (the octave key alone)", notes: [67, 79] },
-  { id: "b4-e5", label: "B4 to E5", notes: [71, 76] },
+  { id: "cs5-d5", label: "C#5 to D5", detail: "all open to the octave key", notes: [73, 74] },
+  { id: "c5-d5", label: "C5 to D5", detail: "", notes: [72, 74] },
+  { id: "a4-d5", label: "A4 to D5", detail: "", notes: [69, 74] },
+  { id: "d4-d5", label: "D4 to D5", detail: "the octave key alone", notes: [62, 74] },
+  { id: "g4-g5", label: "G4 to G5", detail: "the octave key alone", notes: [67, 79] },
+  { id: "b4-e5", label: "B4 to E5", detail: "", notes: [71, 76] },
 ] as const;
 export const crossingLine = (id: string, notes = 16) => {
   const p = REGISTER_PAIRS.find((x) => x.id === id) ?? REGISTER_PAIRS[0];
@@ -135,12 +149,12 @@ export const glitches = (notes: readonly NoteEvent[], wanted: readonly number[])
 // Trills: two fingerings back and forth as fast and even as you can.
 
 export const TRILL_PAIRS = [
-  { id: "g4-a4", label: "G4 and A4 (ring finger)", notes: [67, 69] },
-  { id: "a4-b4", label: "A4 and B4 (middle finger)", notes: [69, 71] },
-  { id: "f4-g4", label: "F4 and G4 (index finger, right hand)", notes: [65, 67] },
-  { id: "b4-c5", label: "B4 and C5 (across the left hand)", notes: [71, 72] },
-  { id: "c5-d5", label: "C5 and D5 (across the break)", notes: [72, 74] },
-  { id: "e4-fs4", label: "E4 and F#4", notes: [64, 66] },
+  { id: "g4-a4", label: "G4 A4", detail: "ring finger", notes: [67, 69] },
+  { id: "a4-b4", label: "A4 B4", detail: "middle finger", notes: [69, 71] },
+  { id: "f4-g4", label: "F4 G4", detail: "index finger, right hand", notes: [65, 67] },
+  { id: "b4-c5", label: "B4 C5", detail: "across the left hand", notes: [71, 72] },
+  { id: "c5-d5", label: "C5 D5", detail: "across the break", notes: [72, 74] },
+  { id: "e4-fs4", label: "E4 F#4", detail: "", notes: [64, 66] },
 ] as const;
 export const TRILL_SECONDS = 4;
 

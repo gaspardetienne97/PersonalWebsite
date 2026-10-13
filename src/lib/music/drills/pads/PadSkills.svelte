@@ -33,7 +33,7 @@
     type VelocityRange,
   } from "@repo/music-core/content/pad-skills";
   import { PAD_REPERTOIRE } from "@repo/music-core/content/pads-repertoire";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -66,7 +66,7 @@
   /** The short drum phrases (clave cells, tags, fills, builds), easiest first: the Phrases drill on the MPC. */
   const PAD_PHRASES = PAD_REPERTOIRE.filter((r) => r.topic === "phrases").sort((a, b) => a.level - b.level);
   const padPhrase = $derived(PAD_PHRASES.find((r) => r.groove.value === s.phrase) ?? PAD_PHRASES[0]);
-  const bpm = $derived(clamp(settings.value.bpm, 40, 200));
+  const bpm = $derived(clamp(settings.value.bpm, 30, 240));
   const beatMs = $derived(60000 / bpm);
   const barMs = $derived(4 * beatMs);
   const voicePads = Object.fromEntries(GROOVE_VOICES.map((v) => [v.id, v.midi]));
@@ -106,13 +106,18 @@
   let calSoft = $state<number[]>([]);
   let calLoud = $state<number[]>([]);
   let calStop: (() => void) | null = null;
+  let demo = $state<{ stop(): void; playing: boolean } | null>(null);
   function calibrate() {
     calibrating = "soft";
     calSoft = [];
     calLoud = [];
     calStop?.();
     const c = capture(performance.now(), (e) => {
-      if (e.kind !== "noteon" || !e.velocityMeasured) return;
+      if (e.kind !== "noteon") return;
+      if (!e.velocityMeasured) {
+        status = "Calibration needs the MPC: on-screen pads carry no velocity.";
+        return;
+      }
       if (calibrating === "soft") {
         calSoft.push(e.velocity);
         if (calSoft.length >= 4) calibrating = "loud";
@@ -147,22 +152,23 @@
     return out;
   });
 
-  const label = $derived(
-    skill === "phrases"
-      ? `${padPhrase.groove.label} (${padPhrase.style})`
+  const orch = $derived(ORCHESTRATIONS.find((o) => o.id === s.orch) ?? ORCHESTRATIONS[0]);
+  const summaryLine = $derived<SetupClause[]>([
+    ...(skill === "phrases"
+      ? [{ text: `${padPhrase.groove.label} (${padPhrase.style})`, focus: "phrase" }]
       : skill === "fills"
-      ? `Fill: ${PAD_FILLS.find((f) => f.id === s.fill)?.label ?? ""}, after three bars of rock, landing on the one`
-      : skill === "orchestrate"
-        ? (ORCHESTRATIONS.find((o) => o.id === s.orch)?.label ?? "")
-        : skill === "ostinato"
-          ? `Hats eighths, then a snare line: ${READING_LINES.find((r) => r.id === s.line)?.label ?? ""}`
-          : skill === "echo"
-            ? `Play it back: ${ECHO_LEVELS.find((l) => l.id === s.echo)?.label ?? ""}, four rounds`
-            : skill === "dynamics"
-              ? dyn.label
-              : `Improvise over ${improBars} bars of the band`,
-  );
-  const summaryLine = $derived(`${label}, ${bpm} BPM`);
+        ? [{ text: `Fill: ${PAD_FILLS.find((f) => f.id === s.fill)?.label ?? ""}`, focus: "fill" }, { text: "after three bars of rock, landing on the one" }]
+        : skill === "orchestrate"
+          ? [{ text: `Paradiddle: ${orch.label.toLowerCase()}`, focus: "orch" }]
+          : skill === "ostinato"
+            ? [{ text: "Hats eighths" }, { text: `then a snare line: ${READING_LINES.find((r) => r.id === s.line)?.label ?? ""}`, focus: "line" }]
+            : skill === "echo"
+              ? [{ text: `Play it back: ${ECHO_LEVELS.find((l) => l.id === s.echo)?.label ?? ""}`, focus: "echo" }, { text: "four rounds" }]
+              : skill === "dynamics"
+                ? [{ text: dyn.label, focus: "dyn" }]
+                : [{ text: `Improvise over ${improBars} bars of the band`, focus: "bars" }]),
+    { text: `${bpm} BPM` },
+  ]);
 
   function hearCalls(fromPerf: number) {
     if (skill !== "echo" || !grooveDef || !("calls" in grooveDef)) return null;
@@ -172,15 +178,25 @@
     );
   }
 
+  function stopDemo() {
+    demo?.stop();
+    demo = null;
+  }
+
   async function playDemo() {
+    if (demo?.playing) return stopDemo();
     await audio.unlock();
     const notes = gt
       ? (skill === "echo" ? (grooveDef as ReturnType<typeof echoGroove>).calls : grooveDef!.targets).map((t) => ({ midi: voicePads[t.voice], time: (t.beat * beatMs) / 1000, duration: 0.12, velocity: t.accent === "accent" ? 1 : t.accent === "ghost" ? 0.35 : 0.75, voice: "drum" as const }))
       : skill === "dynamics"
         ? dynSlots.map((at, i) => ({ midi: 38, time: at / 1000, duration: 0.1, velocity: s.dyn === "ladder" ? 0.2 + ladderBand(i)[0] * 0.8 : s.dyn === "crescendo" ? 0.15 + (i / 15) * 0.85 : 0.6, voice: "drum" as const }))
         : backingFor("Funk", [{ beat: 0, voice: "kick" }, { beat: 2.5, voice: "kick" }].flatMap((k) => Array.from({ length: improBars }, (_, b) => ({ ...k, beat: k.beat + b * 4 }))), improBars, beatMs);
-    audio.playSequence(notes);
+    const handle = audio.playSequence(notes);
+    demo = handle;
     status = skill === "echo" ? "Listen: the four calls. In the run, each is followed by a bar for your answer." : "Listen: how it goes. Not scored.";
+    void handle.done.then(() => {
+      if (demo === handle) stopDemo();
+    });
   }
 
   function onHit(e: NoteEvent) {
@@ -192,6 +208,7 @@
   }
 
   function start(ctx: RunContext) {
+    stopDemo();
     summary = null;
     grv = null;
     levels = [];
@@ -265,7 +282,7 @@
         const f = fillReport(grooveDef as ReturnType<typeof fillGroove>, r.perTarget);
         correct = r.correct && f.landed && !f.rushed;
         rows.push({ label: "The fill", text: f.fillMeanMs === null ? "not played" : `${ms(f.fillMeanMs)} on average${f.rushed ? ": rushed" : ""}` }, { label: "Landing on the one", text: f.landingMs === null ? "missed" : `${ms(f.landingMs)}${f.landed ? ", landed" : ""}` });
-        headline = f.landingMs === null ? "The fill never landed: crash and kick together on the one after it." : f.rushed ? `The fill rushed (${ms(f.fillMeanMs)}): keep the sixteenths the same size as the groove's.` : f.landed ? `Landed on the one (${ms(f.landingMs)}).` : `Off the one by ${ms(f.landingMs)}: aim the crash at the click.`;
+        headline = f.landingMs === null ? "The fill never landed: crash and kick together on the one after it." : f.rushed ? `The fill rushed (${ms(f.fillMeanMs)}): keep its notes the same size as the groove's.` : f.landed ? `Landed on the one (${ms(f.landingMs)}).` : `Off the one by ${ms(f.landingMs)}: aim the crash at the click.`;
       } else if (skill === "ostinato") {
         const o = ostinatoReport(grooveDef, r.perTarget);
         correct = r.correct && o.held;
@@ -284,7 +301,7 @@
     } else if (skill === "dynamics") {
       const measured = ons.length > 0 && ons.every((n) => n.velocityMeasured);
       if (!measured || !range) {
-        headline = !range ? "Set your range first: Calibrate, then run it." : "Dynamics need velocity: play on the MPC (with Full Level off), not the screen.";
+        headline = !range ? "Set your range first: Calibrate, then run it." : !ons.length ? "No hits arrived. Check the line under the stage for why." : "Dynamics need velocity: play on the MPC (with Full Level off), not the screen.";
         rows = [{ label: "Velocity", notMeasured: true }];
       } else {
         const slotMs = beatMs / dyn.perBeat;
@@ -306,8 +323,6 @@
     } else {
       take = ons.map((n) => ({ at: n.at, midi: n.midi, velocity: n.velocity }));
       const rep = improviseReport(take, downbeat, beatMs);
-      score = rep.hits ? 1 : 0;
-      correct = rep.hits > 0;
       rows = [
         { label: "Hits", text: String(rep.hits) },
         { label: "Distance from the sixteenth grid", text: rep.timingSpreadMs === null ? "too few hits" : `${Math.round(rep.timingSpreadMs)} ms spread` },
@@ -317,9 +332,15 @@
       ];
       headline = rep.hits ? `${rep.hits} hits on ${rep.pads.length} pads. Hear it back, then nudged half way to the grid.` : "Nothing was played.";
     }
+    // Improvising is described, not graded, and dynamics the app could not measure are not a fail: neither is recorded.
+    if (!graded(ons.length)) {
+      summary = { headline, metric: skill === "improvise" ? String(ons.length) : pct(score), metricLabel: skill === "improvise" ? "hits" : "score", assistance: skill === "improvise" ? "Improvising is described, not graded: nothing is recorded." : "Nothing to measure, so nothing is recorded.", rows, recorded: false };
+      status = headline;
+      return;
+    }
     await run!.attempt({ promptId: `${skill}:${grooveDef?.value ?? s.dyn}`, correct, partialCredit: score, metrics: grv?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
     const fin = await run!.finish({ score, correct, headline });
-    summary = { headline, metric: pct(score), metricLabel: skill === "improvise" ? "played" : "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: skill === "improvise" ? "Improvising is described, not graded." : assistanceText(mode), rows, advance: graded(ons.length) ? await advanceAfter(score, correct) : undefined };
+    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: await advanceAfter(score, correct) };
     status = headline;
   }
 
@@ -357,6 +378,7 @@
     band?.stop();
     cap?.stop();
     calStop?.();
+    stopDemo();
   });
 </script>
 
@@ -365,40 +387,43 @@
   hue="mpc"
   blurb={skill === "phrases" ? "Short drum phrases drummers know by name: clave cells, a tag ending, a fill and landing, a build. Hear one, then play it on the pads." : skill === "dynamics" ? "Velocity on purpose: levels, a crescendo, even hits, against your own soft-to-loud range." : skill === "fills" ? "Three bars of groove, a fill, and the crash and kick back on the one, without rushing." : skill === "echo" ? "Hear a bar, play it back in the next: four rounds, scored on the answers." : skill === "ostinato" ? "The right hand keeps the hats while the left reads a line; the hats are measured against playing them alone." : skill === "orchestrate" ? "A rudiment spread across the kit: the sticking becomes a groove." : "Improvise over the band; the take is described, then played back as it was and nudged to the grid."}
   summary={summaryLine}
+  tabs={modes.map(([id, label]) => ({ id, label }))}
+  tab={skill}
+  ontab={onmode}
+  modeNotes={{ practice: "The grid and the pads show what is due. Practice, not a test.", check: "From memory, no grid. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
   progress={phase === "running" && now >= downbeat ? clamp((now - downbeat) / lengthMs, 0, 1) : 0}
   clock={{ bpm, beatsPerBar: 4 }}
   ondemo={playDemo}
+  demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
   blocked={skill === "dynamics" && !range ? "Set your soft-to-loud range first: press Calibrate." : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#if modes.length}<Choice label="Mode" select options={modes.map(([value, l]) => ({ value, label: l }))} value={skill} onchange={onmode} />{/if}
       {#if skill === "phrases"}
-        <Choice label="Phrase" select options={PAD_PHRASES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${r.style})`, group: `Level ${r.level}` }))} value={padPhrase.groove.value} onchange={(v) => {
+        <Choice label="Phrase" select options={PAD_PHRASES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${r.style})`, group: `Level ${r.level}` }))} value={padPhrase.groove.value} setupKey="phrase" onchange={(v) => {
           cfg.set({ phrase: v });
           const r = PAD_PHRASES.find((x) => x.groove.value === v);
           if (r) settings.update({ bpm: r.bpm.start });
         }} />
       {:else if skill === "fills"}
-        <Choice label="Fill" select options={PAD_FILLS.map((f) => ({ value: f.id, label: f.label }))} value={s.fill} onchange={(v) => cfg.set({ fill: v })} />
+        <Choice label="Fill" options={PAD_FILLS.map((f) => ({ value: f.id, label: f.label }))} value={s.fill} onchange={(v) => cfg.set({ fill: v })} setupKey="fill" />
       {:else if skill === "orchestrate"}
-        <Choice label="Orchestration" select options={ORCHESTRATIONS.map((o) => ({ value: o.id as string, label: o.label }))} value={s.orch} onchange={(v) => cfg.set({ orch: v })} />
+        <Choice label="Orchestration" options={ORCHESTRATIONS.map((o) => ({ value: o.id as string, label: o.label, detail: o.detail }))} value={s.orch} onchange={(v) => cfg.set({ orch: v })} setupKey="orch" />
       {:else if skill === "ostinato"}
-        <Choice label="Reading line" select options={READING_LINES.map((r) => ({ value: r.id as string, label: r.label }))} value={s.line} onchange={(v) => cfg.set({ line: v })} />
+        <Choice label="Reading line" options={READING_LINES.map((r) => ({ value: r.id as string, label: r.label }))} value={s.line} onchange={(v) => cfg.set({ line: v })} setupKey="line" />
       {:else if skill === "echo"}
-        <Choice label="Level" options={ECHO_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))} value={s.echo} onchange={(v) => cfg.set({ echo: v })} />
+        <Choice label="Level" options={ECHO_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))} value={s.echo} onchange={(v) => cfg.set({ echo: v })} setupKey="echo" />
       {:else if skill === "dynamics"}
-        <Choice label="Exercise" select options={DYNAMICS_EXERCISES.map((d) => ({ value: d.id as string, label: d.label }))} value={s.dyn} onchange={(v) => cfg.set({ dyn: v })} />
+        <Choice label="Exercise" options={DYNAMICS_EXERCISES.map((d) => ({ value: d.id as string, label: d.label }))} value={s.dyn} onchange={(v) => cfg.set({ dyn: v })} setupKey="dyn" />
       {:else}
-        <Choice label="Bars" options={[4, 8].map((n) => ({ value: n, label: String(n) }))} value={improBars} onchange={(v) => cfg.set({ bars: v })} />
+        <Choice label="Bars" options={[4, 8].map((n) => ({ value: n, label: String(n) }))} value={improBars} onchange={(v) => cfg.set({ bars: v })} setupKey="bars" />
       {/if}
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. Thresholds here are starting values to tune on your controller.</p>
   {/snippet}
 
   {#snippet hud()}
@@ -414,15 +439,11 @@
       {#if skill === "phrases"}
         <p class="text-sm"><span class="font-semibold">{padPhrase.groove.label}.</span> <span class="text-ws-stage-soft">{padPhrase.feel} {padPhrase.fingers}</span></p>
       {/if}
-      {#if modes.length && (phase === "ready" || phase === "results")}
-        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Pads mode">
-          {#each modes as [id, l] (id)}
-            <button type="button" class="min-h-11 rounded-full px-4 text-sm font-semibold {skill === id ? 'bg-instr text-ws-stage' : 'bg-ws-stage-ink/10 text-ws-stage-ink hover:bg-ws-stage-ink/20'}" aria-pressed={skill === id} onclick={() => onmode(id)}>{l}</button>
-          {/each}
-        </div>
+      {#if skill === "orchestrate"}
+        <p class="text-sm"><span class="font-semibold">Paradiddle, {orch.label.toLowerCase()}.</span> <span class="text-ws-stage-soft">{orch.detail}. Two bars of sixteenths, the accents on each group's first stroke.</span></p>
       {/if}
       {#if gt && grooveDef && (skill !== "echo" || phase === "results") && (mode === "practice" || phase === "results")}
-        <GrooveGrid targets={gt.targets} bars={grooveDef.bars} sectionLabels={grooveDef.sectionLabels} playhead={sixteenthNow} outcomes={grv?.perTarget} windowMs={gt.matchWindowMs} />
+        <GrooveGrid targets={gt.targets} bars={grooveDef.bars} sectionLabels={grooveDef.sectionLabels} playhead={sixteenthNow} outcomes={grv?.perTarget} windowMs={gt.matchWindowMs / 2} />
       {:else if skill === "echo"}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm" aria-live="polite">{phase === "running" ? (inCallBar ? "Listen…" : "Your turn: play it back.") : "Each call is a bar on the kit; play it back in the bar after. The grid shows after the run."}</p>
       {:else if skill === "dynamics"}

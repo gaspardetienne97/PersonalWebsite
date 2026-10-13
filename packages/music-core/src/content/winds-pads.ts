@@ -254,6 +254,17 @@ export const RUDIMENTS: RudimentDef[] = [
   },
 ];
 export const RUDIMENT_TEMPOS = [60, 80, 100, 120];
+/** Names for every grid a rudiment can be on (the rolls go past sixteenths). */
+export const SUBDIVISION_NAMES: Record<number, string> = {
+  2: "eighths",
+  3: "triplets",
+  4: "sixteenths",
+  6: "sixteenth triplets",
+  8: "thirty-seconds",
+};
+/** The grid a rudiment is timed on: its own, a pyramid's closest spacing, else the chosen one. */
+export const rudimentPerBeat = (p: RudimentDef, chosen: 2 | 3 | 4) =>
+  p.subdivision ?? (p.perBeat ? Math.max(...p.perBeat) : chosen);
 export const RUDIMENT_HIT_COUNTS = [8, 16, 32] as const;
 export const RUDIMENT_DEFAULTS = {
   bpm: 80,

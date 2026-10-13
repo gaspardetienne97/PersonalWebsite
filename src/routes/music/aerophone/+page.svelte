@@ -31,22 +31,21 @@
   } from "@repo/music-core/scoring/aerophone";
   import { BREATH_LEVELS, inBandShare } from "@repo/music-core/content/aero-skills";
   import AeroSkills from "$lib/music/drills/aerophone/AeroSkills.svelte";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import AerophoneKeys from "$lib/music/components/AerophoneKeys.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { btnStage } from "$lib/music/components/ui";
   import { capturePointer } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { audio, input } from "$lib/music/runtime";
+  import { audio, input, settings } from "$lib/music/runtime";
   import BreathTrace from "$lib/music/drills/aerophone/BreathTrace.svelte";
   import PitchLane from "$lib/music/drills/aerophone/PitchLane.svelte";
   import AttackGrid from "$lib/music/drills/aerophone/AttackGrid.svelte";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
-  import { nextRun } from "$lib/music/advance.svelte";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const LANDING_HOLD_MS = 3000;
   const NO_NOTE_MS = 15000;
@@ -57,7 +56,6 @@
     seconds: 5,
     swellSeconds: 6,
     style: "staccato" as string,
-    artBpm: 90,
     count: 8,
     interval: 7,
     direction: "up" as string,
@@ -84,7 +82,9 @@
         : clamp(s.target, AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi),
   );
   const holdMs = $derived(m === "long-tone" ? s.seconds * 1000 : m === "swell" ? s.swellSeconds * 1000 : LANDING_HOLD_MS);
-  const beatMs = $derived(60000 / s.artBpm);
+  // Articulation is timed on the practice strip's tempo.
+  const bpm = $derived(clamp(settings.value.bpm, 30, 240));
+  const beatMs = $derived(60000 / bpm);
   const fingering = $derived(fingeringFor(targetMidi));
   const intervalLabel = $derived(LANDING_INTERVALS.find((i) => i.semitones === s.interval)?.label ?? `${s.interval} semitones`);
 
@@ -141,25 +141,26 @@
       : m === "swell"
         ? `swell:${targetMidi}:${s.swellSeconds}`
         : m === "articulation"
-          ? `articulation:${targetMidi}:${style}:${s.artBpm}:${s.count}`
+          ? `articulation:${targetMidi}:${style}:${bpm}:${s.count}`
           : `interval-landing:${s.drone}:${s.interval}:${s.direction}`,
   );
   const SKILL_MODES = ["scales", "tonguing", "register", "trills", "vibrato"] as const;
   const skillMode = $derived(SKILL_MODES.find((x) => x === s.mode) ?? null);
   /** Breath inside the level's band while the note was held; null when no level is set. */
   let levelShare = $state<number | null>(null);
-  const summaryLine = $derived(
+  const summaryLine = $derived<SetupClause[]>(
     m === "fingering"
-      ? `Fingering: ${lesson.label}, up and back down`
+      ? [{ text: `Fingering: ${lesson.label}`, focus: "lesson" }, { text: "up and back down" }]
       : m === "long-tone"
-      ? `Long tone on ${noteName(targetMidi)}, hold ${s.seconds} s${level ? ` at ${level.id}` : ""}`
-      : m === "swell"
-        ? `Swell on ${noteName(targetMidi)} over ${s.swellSeconds} s`
-        : m === "articulation"
-          ? `Articulation: ${s.count} ${style} ${noteName(targetMidi)}s at ${s.artBpm} BPM`
-          : `Land a ${intervalLabel.toLowerCase()} ${s.direction} from a ${noteName(s.drone)} drone, hold 3 s`,
+        ? [{ text: `Long tone on ${chartName(targetMidi)}` }, { text: `hold ${s.seconds} s`, focus: "seconds" }, ...(level ? [{ text: `at ${level.id}`, focus: "level" }] : [])]
+        : m === "swell"
+          ? [{ text: `Swell on ${chartName(targetMidi)}` }, { text: `over ${s.swellSeconds} s`, focus: "swellSeconds" }]
+          : m === "articulation"
+            ? [{ text: `Articulation: ${s.count} ${style} ${chartName(targetMidi)}s`, focus: "style" }, { text: `${bpm} BPM` }]
+            : [{ text: `Land a ${intervalLabel.toLowerCase()} ${s.direction}`, focus: "interval" }, { text: `from a ${chartName(s.drone)} drone`, focus: "drone" }, { text: "hold 3 s" }],
   );
-  const blocked = $derived(m === "interval-landing" && landing === undefined ? `That interval leaves the fingering chart (${noteName(AEROPHONE_RANGE.lowestMidi, "flat")} to ${noteName(AEROPHONE_RANGE.highestMidi)}). Pick another drone or direction.` : null);
+  const summaryText = $derived(summaryLine.map((c) => c.text).join(", "));
+  const blocked = $derived(m === "interval-landing" && landing === undefined ? `That interval leaves the fingering chart (${chartName(AEROPHONE_RANGE.lowestMidi)} to ${chartName(AEROPHONE_RANGE.highestMidi)}). Pick another drone or direction.` : null);
 
   const holdProgress = $derived(
     phase === "results" && result && "progress" in result
@@ -201,7 +202,7 @@
     if (m === "interval-landing") audio.drone.start(s.drone);
     const handle = audio.playSequence(notes);
     demo = handle;
-    status = m === "interval-landing" ? `Listen: the ${noteName(s.drone)} drone, then ${noteName(targetMidi)} landing on it. Not scored.` : "Listen: how it should sound. Not scored.";
+    status = m === "interval-landing" ? `Listen: the ${chartName(s.drone)} drone, then ${chartName(targetMidi)} landing on it. Not scored.` : "Listen: how it should sound. Not scored.";
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -223,7 +224,7 @@
       capabilities: ["technique"],
       modality: "played",
       assistance: assistanceFor(mode),
-      difficulty: m === "long-tone" ? 0.25 + s.seconds / 40 : m === "swell" ? 0.45 : m === "articulation" ? 0.35 + (s.artBpm - 70) / 200 : 0.5,
+      difficulty: m === "long-tone" ? 0.25 + s.seconds / 40 : m === "swell" ? 0.45 : m === "articulation" ? 0.35 + (bpm - 70) / 200 : 0.5,
       instrument: "aerophone",
       params: { mode: m, target: targetMidi, ...(m === "interval-landing" ? { drone: s.drone, interval: s.interval, direction: s.direction } : {}) },
     });
@@ -258,10 +259,10 @@
       return;
     }
     if (m === "interval-landing") audio.drone.start(s.drone);
-    status = `Play and hold ${noteName(targetMidi)} when you're ready.`;
-    // The hold starts at the first note; nothing arriving ends the run with nothing scored as held.
+    status = `Play and hold ${chartName(targetMidi)} when you're ready.`;
+    // The hold starts at the first target note (a fumbled fingering first costs nothing); nothing arriving ends the run with nothing scored as held.
     cap = capture(ctx.downbeat, (e) => {
-      if (e.kind === "noteon" && windowStart === null) {
+      if (e.kind === "noteon" && e.midi === targetMidi && windowStart === null) {
         windowStart = e.at;
         clearTimeout(timer);
         timer = setTimeout(() => void finish(), e.at + holdMs - performance.now() + 120);
@@ -290,7 +291,7 @@
       target: seq,
       response: ons.map((n) => n.midi),
     });
-    const fin = await run!.finish({ score, correct, headline: `${pct(score)} ${summaryLine}` });
+    const fin = await run!.finish({ score, correct, headline: `${pct(score)} ${summaryText}` });
     summary = {
       headline: correct
         ? `${lesson.label}: every note right on the first try.`
@@ -320,7 +321,7 @@
     if (m === "long-tone") return nextRun(`aero.long-tone.${targetMidi}.${s.level}`, at(holds.map((x) => `Hold ${x} s`), holds.indexOf(s.seconds)), run, set((i) => ({ seconds: holds[i] })));
     if (m === "swell") return nextRun(`aero.swell.${targetMidi}`, at(swells.map((x) => `Swell over ${x} s`), swells.indexOf(s.swellSeconds)), run, set((i) => ({ swellSeconds: swells[i] })));
     if (m === "articulation")
-      return nextRun(`aero.articulation.${targetMidi}.${style}`, { bpm: s.artBpm, tempo: { min: 60, goal: 110, max: 140 }, ...at(counts.map((x) => `${x} notes`), counts.indexOf(s.count)) }, run, ({ bpm, step }) => cfg.set({ ...(bpm !== undefined && { artBpm: bpm }), ...(step !== undefined && { count: counts[step] }) }));
+      return nextRun(`aero.articulation.${targetMidi}.${style}`, { bpm, tempo: { min: 60, goal: 110, max: 140 }, ...at(counts.map((x) => `${x} notes`), counts.indexOf(s.count)) }, run, tempoAnd((i) => cfg.set({ count: counts[i] })));
     return nextRun(`aero.landing.${s.drone}.${s.direction}`, at(LANDING_INTERVALS.map((x) => x.label), LANDING_INTERVALS.findIndex((x) => x.semitones === s.interval)), run, set((i) => ({ interval: LANDING_INTERVALS[i].semitones })));
   }
 
@@ -342,8 +343,8 @@
           : m === "interval-landing"
             ? gradeIntervalLanding(w)
             : gradeArticulation({ targetMidi, count: s.count, style, beatMs, notes });
-    // A level: half the score is the share of breath inside the band, and it must be mostly there.
-    const inHold = controls.filter((c) => c.kind === "cc" && c.controller === 2 && windowStart !== null && c.at >= windowStart && c.at <= endAt).map((c) => c.value);
+    // A level: half the score is the share of breath inside the band, and it must be mostly there (the release after the hold does not count).
+    const inHold = controls.filter((c) => c.kind === "cc" && c.controller === 2 && windowStart !== null && c.at >= windowStart && c.at <= windowStart + holdMs).map((c) => c.value);
     levelShare = level && inHold.length ? inBandShare(inHold, level.band) : null;
     const r = levelShare === null ? graded : { ...graded, score: graded.score * 0.5 + levelShare * 0.5, correct: graded.correct && levelShare >= 0.7 };
     result = r;
@@ -359,7 +360,7 @@
       target: targetMidi,
       response: ons.map((n) => n.midi),
     });
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} ${summaryLine}` });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} ${summaryText}` });
     const told = describe(r, ons);
     if (level && levelShare !== null) {
       told.rows = [...(told.rows ?? []), { label: `Breath at ${level.id}`, value: levelShare, text: `${pct(levelShare)} of the hold in the band` }];
@@ -387,18 +388,18 @@
     if (!ons.length) return { headline: `No note arrived, so nothing was held. The line under the stage says why.`, rows: [] };
     if ("articulation" in r) {
       const rows: ResultRow[] = [
-        { label: "Pitch", value: r.pitch, text: `${Math.round(r.pitch * s.count)} of ${s.count} on ${noteName(targetMidi)}` },
+        { label: "Pitch", value: r.pitch, text: `${Math.round(r.pitch * s.count)} of ${s.count} on ${chartName(targetMidi)}` },
         r.articulation === null
           ? { label: `Articulation (${onScreen(ons) ? "taps have no real note length" : "no note-offs arrived"})`, notMeasured: true }
           : { label: `Articulation, target ${Math.round(ARTICULATION_TARGET[style] * 100)}% of the beat`, value: r.articulation, text: `${Math.round((r.meanSoundingFraction ?? 0) * 100)}% sounding` },
       ];
       const headline =
         r.pitch < 1
-          ? `${Math.round(r.pitch * s.count)} of ${s.count} notes were ${noteName(targetMidi)}. Keep the fingering still between attacks.`
+          ? `${Math.round(r.pitch * s.count)} of ${s.count} notes were ${chartName(targetMidi)}. Keep the fingering still between attacks.`
           : r.articulation === null
             ? `Every pitch right. Articulation needs the Aerophone to be measured.`
             : r.correct
-              ? `Clean ${style}: every ${noteName(targetMidi)} right, ${Math.round((r.meanSoundingFraction ?? 0) * 100)}% of each beat sounding.`
+              ? `Clean ${style}: every ${chartName(targetMidi)} right, ${Math.round((r.meanSoundingFraction ?? 0) * 100)}% of each beat sounding.`
               : (r.meanSoundingFraction ?? 0) > ARTICULATION_TARGET[style]
                 ? `Right notes, but they ran long (${Math.round((r.meanSoundingFraction ?? 0) * 100)}% of the beat). Stop the air sooner.`
                 : `Right notes, but they were clipped (${Math.round((r.meanSoundingFraction ?? 0) * 100)}% of the beat). Let each one ring.`;
@@ -411,20 +412,20 @@
     } else {
       rows.push(r.steadiness === null ? { label: `Breath steadiness (${whyNot(ons)})`, notMeasured: true } : { label: "Breath steadiness", value: r.steadiness });
     }
-    rows.push({ label: "Pitch", value: r.pitchCorrect ? 1 : 0, text: r.pitchCorrect ? `${noteName(targetMidi)}, right` : `${played !== undefined ? noteName(played) : "none"}, wanted ${noteName(targetMidi)}` });
+    rows.push({ label: "Pitch", value: r.pitchCorrect ? 1 : 0, text: r.pitchCorrect ? `${chartName(targetMidi)}, right` : `${played !== undefined ? chartName(played) : "none"}, wanted ${chartName(targetMidi)}` });
     rows.push({ label: "Held", value: r.progress, text: `${((r.progress * holdMs) / 1000).toFixed(1)} of ${holdMs / 1000} s` });
     const secs = ((r.progress * holdMs) / 1000).toFixed(1);
     let headline: string;
     if (!r.pitchCorrect) {
       const hint = played === undefined ? null : fingeringSlip(targetMidi, played);
-      headline = `That was ${played !== undefined ? noteName(played) : "no note"}; the target is ${noteName(targetMidi)}. ${hint ? `${hint.text}.` : "Check the fingering on the right."}`;
+      headline = `That was ${played !== undefined ? chartName(played) : "no note"}; the target is ${chartName(targetMidi)}. ${hint ? `${hint.text}.` : "Check the fingering on the right."}`;
     }
     else if (r.progress < 1) headline = `Right note, but it stopped at ${secs} of ${holdMs / 1000} seconds.`;
     else if ("shape" in r && r.shape !== null && !r.correct)
-      headline = r.shape < 0.8 ? `Full swell on ${noteName(targetMidi)}, but the curve missed the shape (${pct(r.shape)}). Peak in the middle.` : `The shape was there; the air moved in steps (smoothness ${pct(r.smoothness ?? 0)}).`;
+      headline = r.shape < 0.8 ? `Full swell on ${chartName(targetMidi)}, but the curve missed the shape (${pct(r.shape)}). Peak in the middle.` : `The shape was there; the air moved in steps (smoothness ${pct(r.smoothness ?? 0)}).`;
     else if (r.steadiness !== null && !r.correct) headline = `Right note, full hold, but the breath wobbled (steadiness ${pct(r.steadiness)}).`;
-    else if (r.notMeasured.length) headline = `${noteName(targetMidi)} held for ${holdMs / 1000} s. Breath needs the Aerophone to be measured.`;
-    else headline = m === "interval-landing" ? `Landed the ${intervalLabel.toLowerCase()} and held it steady.` : m === "swell" ? `A smooth swell on ${noteName(targetMidi)}.` : `Steady ${noteName(targetMidi)} for ${holdMs / 1000} seconds.`;
+    else if (r.notMeasured.length) headline = `${chartName(targetMidi)} held for ${holdMs / 1000} s. Breath needs the Aerophone to be measured.`;
+    else headline = m === "interval-landing" ? `Landed the ${intervalLabel.toLowerCase()} and held it steady.` : m === "swell" ? `A smooth swell on ${chartName(targetMidi)}.` : `Steady ${chartName(targetMidi)} for ${holdMs / 1000} seconds.`;
     return { headline, rows };
   }
 
@@ -436,10 +437,10 @@
     status = "Stopped. Nothing was recorded.";
   }
 
-  function stepTarget(d: number) {
-    const i = AEROPHONE_CHART.findIndex((c) => c.midi === targetMidi);
-    const next = AEROPHONE_CHART[clamp(i + d, 0, AEROPHONE_CHART.length - 1)];
-    cfg.set({ target: next.midi });
+  /** Before a run, a chart note tapped becomes the target (holds, swells and articulation). */
+  const picksTarget = $derived(phase === "ready" && m !== "fingering" && m !== "interval-landing");
+  function pickTarget(midi: number) {
+    if (picksTarget && midi !== targetMidi) cfg.set({ target: midi });
   }
 
   // On-screen chart: a real input surface (pitch only).
@@ -448,6 +449,7 @@
     if (e.button > 0) return;
     capturePointer(e);
     pointers.set(e.pointerId, midi);
+    pickTarget(midi);
     input.tap(midi, true);
   }
   function release(e: PointerEvent) {
@@ -460,6 +462,7 @@
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
     if (down && e.repeat) return;
+    if (down) pickTarget(midi);
     input.tap(midi, down);
   }
 
@@ -471,6 +474,13 @@
 
   const envelope = Array.from({ length: TRACE_SAMPLES }, (_, i) => swellEnvelope(i / (TRACE_SAMPLES - 1)));
   const showTargets = $derived(mode === "practice" || phase === "results");
+  const BLURB: Record<string, string> = {
+    fingering: "Fingerings in Roland's lesson order: each note waits until it is right, and a slip says which key to move.",
+    "long-tone": "Hold one note steady: the breath read from CC 2 should sit still, at a level if you set one.",
+    swell: "One note from soft to loud and back: the breath should rise and fall in a smooth arc.",
+    articulation: "Repeated attacks on one note at the strip's tempo: staccato sounds a third of each beat, legato nearly all of it.",
+    "interval-landing": "A drone sounds; land the interval on it and hold it in tune for three seconds.",
+  };
 </script>
 
 <svelte:head><title>Aerophone | Woodshed</title></svelte:head>
@@ -481,13 +491,17 @@
 <DrillShell
   title="Aerophone"
   hue="aerophone"
-  blurb="Fingerings in Roland's lesson order, then breath control: hold, swell, tongue and land notes. Breath is read from CC 2."
+  blurb={BLURB[m]}
   summary={summaryLine}
+  tabs={AEROPHONE_MODES}
+  tab={s.mode}
+  ontab={(v) => cfg.set({ mode: v })}
+  modeNotes={{ practice: "The fingering and the target shown. Practice, not a test.", check: "Fingering hidden. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
   progress={m === "fingering" ? (phase === "results" ? 1 : step / seq.length) : m === "articulation" ? (artBeat === null ? 0 : clamp(artBeat / s.count, 0, 1)) : holdProgress}
-  clock={m === "articulation" ? { bpm: s.artBpm, beatsPerBar: 4 } : null}
+  clock={m === "articulation" ? { bpm, beatsPerBar: 4 } : null}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}
@@ -496,27 +510,23 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="Mode" options={AEROPHONE_MODES.map((x) => ({ value: x.id as string, label: x.label }))} value={s.mode} onchange={(v) => cfg.set({ mode: v })} />
       {#if m === "fingering"}
-        <Choice label="Lesson" select options={FINGERING_LESSONS.map((l, i) => ({ value: l.id as string, label: `${i + 1}. ${l.label}` }))} value={s.lesson} onchange={(v) => cfg.set({ lesson: v })} />
-      {:else if m !== "interval-landing"}
-        <Choice label="Target note" select options={AEROPHONE_CHART.map((c) => ({ value: c.midi, label: `${c.name}${c.verified ? "" : " (best-effort fingering)"}` }))} value={targetMidi} onchange={(v) => cfg.set({ target: v })} />
-      {/if}
-      {#if m === "long-tone"}
-        <Choice label="Hold" options={AEROPHONE_MODES[1].seconds.map((x) => ({ value: x as number, label: `${x} s` }))} value={s.seconds} onchange={(v) => cfg.set({ seconds: v })} />
-        <Choice label="Level" options={[{ value: "any", label: "Any" }, ...BREATH_LEVELS.map((l) => ({ value: l.id as string, label: l.id }))]} value={s.level} onchange={(v) => cfg.set({ level: v })} />
+        <Choice label="Lesson" select options={FINGERING_LESSONS.map((l, i) => ({ value: l.id as string, label: `${i + 1}. ${l.label}` }))} value={s.lesson} onchange={(v) => cfg.set({ lesson: v })} setupKey="lesson" />
+      {:else if m === "long-tone"}
+        <Choice label="Hold" options={AEROPHONE_MODES[1].seconds.map((x) => ({ value: x as number, label: `${x} s` }))} value={s.seconds} onchange={(v) => cfg.set({ seconds: v })} setupKey="seconds" />
+        <Choice label="Level" options={[{ value: "any", label: "Any" }, ...BREATH_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))]} value={s.level} onchange={(v) => cfg.set({ level: v })} setupKey="level" />
       {:else if m === "swell"}
-        <Choice label="Swell length" options={AEROPHONE_MODES[2].seconds.map((x) => ({ value: x as number, label: `${x} s` }))} value={s.swellSeconds} onchange={(v) => cfg.set({ swellSeconds: v })} />
+        <Choice label="Swell length" options={AEROPHONE_MODES[2].seconds.map((x) => ({ value: x as number, label: `${x} s` }))} value={s.swellSeconds} onchange={(v) => cfg.set({ swellSeconds: v })} setupKey="swellSeconds" />
       {:else if m === "articulation"}
-        <Choice label="Style" options={[{ value: "staccato", label: "Staccato" }, { value: "legato", label: "Legato" }]} value={s.style} onchange={(v) => cfg.set({ style: v })} />
-        <Choice label="Tempo" options={AEROPHONE_MODES[3].bpm.map((x) => ({ value: x as number, label: `${x} BPM` }))} value={s.artBpm} onchange={(v) => cfg.set({ artBpm: v })} />
-        <Choice label="Notes" options={[4, 8, 12].map((x) => ({ value: x, label: String(x) }))} value={s.count} onchange={(v) => cfg.set({ count: v })} />
-      {:else}
-        <Choice label="Interval" select options={LANDING_INTERVALS.map((x) => ({ value: x.semitones as number, label: x.label }))} value={s.interval} onchange={(v) => cfg.set({ interval: v })} />
-        <Choice label="Direction" options={[{ value: "up", label: "Up" }, { value: "down", label: "Down" }]} value={s.direction} onchange={(v) => cfg.set({ direction: v })} />
-        <Choice label="Drone" options={[60, 65, 67, 72].map((x) => ({ value: x, label: noteName(x) }))} value={s.drone} onchange={(v) => cfg.set({ drone: v })} />
+        <Choice label="Style" options={[{ value: "staccato", label: "Staccato" }, { value: "legato", label: "Legato" }]} value={s.style} onchange={(v) => cfg.set({ style: v })} setupKey="style" />
+        <Choice label="Notes" options={[4, 8, 12].map((x) => ({ value: x, label: String(x) }))} value={s.count} onchange={(v) => cfg.set({ count: v })} setupKey="count" />
+      {:else if m === "interval-landing"}
+        <Choice label="Interval" options={LANDING_INTERVALS.map((x) => ({ value: x.semitones as number, label: x.label }))} value={s.interval} onchange={(v) => cfg.set({ interval: v })} setupKey="interval" />
+        <Choice label="Direction" options={[{ value: "up", label: "Up" }, { value: "down", label: "Down" }]} value={s.direction} onchange={(v) => cfg.set({ direction: v })} setupKey="direction" />
+        <Choice label="Drone" options={[60, 65, 67, 72].map((x) => ({ value: x, label: chartName(x) }))} value={s.drone} onchange={(v) => cfg.set({ drone: v })} setupKey="drone" />
       {/if}
     </div>
+    {#if m !== "fingering" && m !== "interval-landing"}<p class="mt-3 text-sm text-ws-soft">The target note: tap it on the chart under the stage (now {chartName(targetMidi)}).</p>{/if}
   {/snippet}
 
   {#snippet hud()}
@@ -560,7 +570,7 @@
         {/if}
         {#if m === "long-tone" && showTargets}
           <div class="rounded-xl bg-ws-stage-ink/6 p-3">
-            <div class="flex items-baseline justify-between text-xs text-ws-stage-soft"><span>Hold {noteName(targetMidi)}</span><span class="tnum">{s.seconds} s</span></div>
+            <div class="flex items-baseline justify-between text-xs text-ws-stage-soft"><span>Hold {chartName(targetMidi)}</span><span class="tnum">{s.seconds} s</span></div>
             <div class="mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10"><div class="h-full rounded-full bg-instr" style:width="{holdProgress * 100}%"></div></div>
           </div>
         {/if}
@@ -574,34 +584,29 @@
         {#if m === "articulation"}
           <AttackGrid count={s.count} target={ARTICULATION_TARGET[style]} played={artPlayed} current={artBeat} {style} />
         {/if}
-        <PitchLane values={pitch} target={targetMidi} drone={m === "interval-landing" ? s.drone : null} label="Pitch, last 64 samples, target {noteName(targetMidi)}" />
+        <PitchLane values={pitch} target={targetMidi} drone={m === "interval-landing" ? s.drone : null} label="Pitch, last 64 samples, target {chartName(targetMidi)}" />
       </div>
       <div class="flex flex-col items-center gap-2">
         {#if showTargets}
           <AerophoneKeys midi={targetMidi} heldMidi={sounding} compact />
-          <p class="text-center font-display text-2xl font-semibold">{noteName(targetMidi)}</p>
+          <p class="text-center font-display text-2xl font-semibold">{chartName(targetMidi)}</p>
           <p class="text-center text-xs text-ws-stage-soft">
             {fingering?.verified ? "Fingering verified on your instrument." : "Best-effort fingering, not yet confirmed on the unit."}
           </p>
         {:else}
-          <p class="rounded-xl bg-ws-stage-ink/8 p-3 text-center text-sm text-ws-stage-soft">Check: fingering hidden. Target {noteName(targetMidi)}.</p>
-        {/if}
-        {#if phase === "ready" && m !== "interval-landing" && m !== "fingering"}
-          <div class="flex gap-2">
-            <button type="button" class={btnStage} aria-label="Lower target note" onclick={() => stepTarget(-1)}>−</button>
-            <button type="button" class={btnStage} aria-label="Higher target note" onclick={() => stepTarget(1)}>+</button>
-          </div>
+          <p class="rounded-xl bg-ws-stage-ink/8 p-3 text-center text-sm text-ws-stage-soft">Check: fingering hidden. Target {chartName(targetMidi)}.</p>
         {/if}
       </div>
     </div>
     <div class="mt-4">
-      <p class="mb-2 text-xs text-ws-stage-soft">Play from the chart: taps choose the pitch and score pitch only. Breath and articulation need the Aerophone.</p>
+      <p class="mb-2 text-xs text-ws-stage-soft">{picksTarget ? "Tap a note to make it the target. " : ""}Play from the chart: taps choose the pitch and score pitch only. Breath and articulation need the Aerophone.</p>
       <div class="flex flex-wrap gap-1" role="group" aria-label="Fingering chart notes">
         {#each AEROPHONE_CHART as c (c.midi)}
           <button
             type="button"
-            class="min-h-11 min-w-11 rounded-lg px-1.5 text-xs font-semibold {sounding === c.midi ? 'bg-instr text-ws-stage' : 'bg-ws-stage-ink/10 hover:bg-ws-stage-ink/20'}"
+            class="min-h-11 min-w-11 rounded-lg px-1.5 text-xs font-semibold {sounding === c.midi ? 'bg-instr text-ws-stage' : 'bg-ws-stage-ink/10 hover:bg-ws-stage-ink/20'} {c.midi === targetMidi && m !== 'fingering' ? 'ring-2 ring-instr' : ''}"
             aria-label="Play {c.name}"
+            aria-current={c.midi === targetMidi && m !== "fingering" ? "true" : undefined}
             aria-pressed={sounding === c.midi}
             onpointerdown={(e) => press(e, c.midi)}
             onpointerup={release}

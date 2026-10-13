@@ -336,32 +336,58 @@ export function gradeGroove(input: GrooveInput): GrooveResult | { error: string 
 
 /**
  * How the tempo held once the click stopped (from `fromBeat`): a straight
- * line through the hits against the grid. Its slope is the tempo played
- * (rushing makes it steeper than 1 in tempo, dragging shallower); the last
- * bar's mean error is how far off the grid the player ended. Null with
- * fewer than four hits to go on.
+ * line through the raw hits against the grid. The grid matches cannot be
+ * used, since a player who rushes steadily leaves the match window within a
+ * bar or two; instead each target claims the hit nearest where the line so
+ * far predicts it, and the line is refitted as it goes, so it follows a
+ * steady drift. Its slope is the tempo played (rushing makes it steeper
+ * than 1 in tempo, dragging shallower); the last bar's mean error is how
+ * far off the grid the player ended. Null with fewer than four hits to go on.
  */
 export function tempoDrift(
-  targets: readonly { beat: number }[],
-  perTarget: readonly (number | null)[],
+  targets: readonly { beat: number; pad: number }[],
+  hits: readonly NoteEvent[],
   beatMs: number,
+  startAt: number,
   fromBeat: number,
 ): { bpmPlayed: number; driftBpm: number; endOffsetMs: number } | null {
-  const pts = targets.flatMap((t, i) => {
-    const e = perTarget[i];
-    return t.beat >= fromBeat - 1e-6 && e !== null
-      ? [{ x: t.beat * beatMs, y: t.beat * beatMs + e, beat: t.beat, e }]
-      : [];
-  });
+  const grid = targets.filter((t) => t.beat >= fromBeat - 1e-6).sort((a, b) => a.beat - b.beat);
+  const ons = noteOns(hits)
+    .filter((h) => h.at >= startAt + (fromBeat - 0.5) * beatMs)
+    .sort((a, b) => a.at - b.at);
+  const window = grooveWindowMs(beatMs);
+  const used = new Set<number>();
+  const pts: { x: number; y: number; beat: number }[] = [];
+  let slope = 1;
+  let intercept = 0;
+  const fit = () => {
+    const mx = mean(pts.map((p) => p.x));
+    const my = mean(pts.map((p) => p.y));
+    const cov = pts.reduce((t, p) => t + (p.x - mx) * (p.y - my), 0);
+    const varx = pts.reduce((t, p) => t + (p.x - mx) ** 2, 0);
+    // ponytail: the slope is clamped to a fifth either way so two close points cannot throw the prediction.
+    slope = varx ? Math.min(1.25, Math.max(0.8, cov / varx)) : 1;
+    intercept = my - slope * mx;
+  };
+  for (const t of grid) {
+    const x = t.beat * beatMs;
+    const predicted = slope * x + intercept;
+    let best = -1;
+    let err = Infinity;
+    ons.forEach((h, i) => {
+      if (used.has(i) || h.midi !== t.pad) return;
+      const d = h.at - startAt - predicted;
+      if (Math.abs(d) <= window && Math.abs(d) < Math.abs(err)) [best, err] = [i, d];
+    });
+    if (best < 0) continue;
+    used.add(best);
+    pts.push({ x, y: ons[best].at - startAt, beat: t.beat });
+    if (pts.length >= 2 && x - pts[0].x >= beatMs) fit();
+  }
   if (pts.length < 4) return null;
-  const mx = mean(pts.map((p) => p.x));
-  const my = mean(pts.map((p) => p.y));
-  const cov = pts.reduce((t, p) => t + (p.x - mx) * (p.y - my), 0);
-  const varx = pts.reduce((t, p) => t + (p.x - mx) ** 2, 0);
-  const slope = varx ? cov / varx : 1;
   const bpm = 60000 / beatMs;
   const bpmPlayed = bpm / slope;
   const lastBar = Math.floor(Math.max(...pts.map((p) => p.beat)) / 4);
   const tail = pts.filter((p) => Math.floor(p.beat / 4) === lastBar);
-  return { bpmPlayed, driftBpm: bpmPlayed - bpm, endOffsetMs: mean(tail.map((p) => p.e)) };
+  return { bpmPlayed, driftBpm: bpmPlayed - bpm, endOffsetMs: mean(tail.map((p) => p.y - p.x)) };
 }

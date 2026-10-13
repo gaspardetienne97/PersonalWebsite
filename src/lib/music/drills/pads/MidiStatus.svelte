@@ -6,7 +6,12 @@
   import { midi } from "$lib/music/runtime";
   import { explainNote, waitingReason } from "./midi-status";
 
-  let { instrument }: { instrument: Instrument } = $props();
+  interface Props {
+    instrument: Instrument;
+    /** Pads: whether the app sounds hardware hits (off when the MPC makes its own). A device setting, so it lives here. */
+    sound?: { value: boolean; onchange: (v: boolean) => void };
+  }
+  let { instrument, sound }: Props = $props();
 
   let last = $state<{ text: string; used: boolean } | null>(null);
 
@@ -41,6 +46,16 @@
   </p>
   {#if midi.supported && !midi.enabled}
     <button type="button" class="min-h-11 rounded-full px-3 font-medium text-instr-ink hover:bg-instr-wash" onclick={() => midi.enable()}>Turn on MIDI</button>
+  {/if}
+  {#if sound}
+    <button
+      type="button"
+      class="min-h-11 rounded-full px-3 font-medium text-instr-ink hover:bg-instr-wash"
+      role="switch"
+      aria-checked={sound.value}
+      title="Off when the MPC makes its own sound"
+      onclick={() => sound.onchange(!sound.value)}>Pad sounds: {sound.value ? "on" : "off"}</button
+    >
   {/if}
   <a href="/music/connect" class="flex min-h-11 items-center rounded-full px-3 font-medium text-instr-ink hover:bg-instr-wash">Connect</a>
 </div>

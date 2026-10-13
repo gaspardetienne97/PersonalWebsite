@@ -12,6 +12,7 @@ import {
   scaleTonic,
   tonguingMarks,
   tonguingScore,
+  tonguingVerdict,
 } from "./aero-skills";
 import { fingeringFor } from "./winds-pads";
 
@@ -65,6 +66,15 @@ describe("aerophone skills", () => {
     expect(joinTypes(notes, breath)).toEqual(["T", "T", "S", "T"]);
     expect(tonguingMarks("slur2-tongue2", 8).join("")).toBe("TSTTTSTT");
     expect(tonguingScore(["T", "S", "T", "T"], ["T", "S", "T", "S"])).toBeCloseTo(2 / 3);
+    // With breath the tonguing is half the grade; without it the line's grade stands alone.
+    expect(tonguingVerdict({ score: 1, correct: true }, 0.5, true)).toEqual({
+      score: 0.75,
+      correct: false,
+    });
+    expect(tonguingVerdict({ score: 1, correct: true }, 0.5, false)).toEqual({
+      score: 1,
+      correct: true,
+    });
   });
 
   it("counts the glitches a register crossing makes", () => {

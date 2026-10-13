@@ -14,9 +14,10 @@
     playhead?: number | null;
     /** Per target: error ms (positive late) or null when missed; undefined before results. */
     outcomes?: (number | null)[];
+    /** A hit this far off or less shows as on time: the same window the results call good. */
     windowMs?: number;
   }
-  let { targets, bars, sectionLabels, playhead = null, outcomes, windowMs = 60 }: Props = $props();
+  let { targets, bars, sectionLabels, playhead = null, outcomes, windowMs = 30 }: Props = $props();
 
   const COUNTS = ["", "e", "&", "a"];
   const voices = $derived(GROOVE_VOICES.filter((v) => targets.some((t) => t.voice === v.id)));
@@ -46,7 +47,7 @@
     if (!outcomes) return null;
     const e = outcomes[i];
     if (e === null || e === undefined) return { glyph: "✕", word: "missed", kind: "miss" };
-    if (Math.abs(e) <= windowMs / 2) return { glyph: "✓", word: `on time, ${Math.round(e)} ms`, kind: "ok" };
+    if (Math.abs(e) <= windowMs) return { glyph: "✓", word: `on time, ${Math.round(e)} ms`, kind: "ok" };
     return e > 0 ? { glyph: "›", word: `late by ${Math.round(e)} ms`, kind: "off" } : { glyph: "‹", word: `early by ${Math.round(-e)} ms`, kind: "off" };
   }
 </script>

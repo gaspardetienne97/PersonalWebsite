@@ -237,16 +237,46 @@ describe("gradeGroove", () => {
 });
 
 describe("tempo drift", () => {
+  const beatMs = 500; // 120 BPM
+  const targets = Array.from({ length: 16 }, (_, i) => ({ beat: i, pad: 36 }));
+  const played = (errAt: (beat: number) => number) =>
+    targets.map((t) => on(36, 1000 + t.beat * beatMs + errAt(t.beat)));
+
   it("reads the tempo played after the click stops", () => {
-    const beatMs = 500; // 120 BPM
-    const targets = Array.from({ length: 16 }, (_, i) => ({ beat: i }));
-    const steady = targets.map(() => 0);
-    expect(tempoDrift(targets, steady, beatMs, 4)).toMatchObject({ driftBpm: 0, endOffsetMs: 0 });
+    expect(
+      tempoDrift(
+        targets,
+        played(() => 0),
+        beatMs,
+        1000,
+        4,
+      ),
+    ).toMatchObject({
+      driftBpm: 0,
+      endOffsetMs: 0,
+    });
     // Each beat 5 ms early from the click's end: rushing to about 121.2 BPM.
-    const rushing = targets.map((t) => (t.beat < 4 ? 0 : -(t.beat - 3) * 5));
-    const r = tempoDrift(targets, rushing, beatMs, 4)!;
+    const r = tempoDrift(
+      targets,
+      played((b) => (b < 4 ? 0 : -(b - 3) * 5)),
+      beatMs,
+      1000,
+      4,
+    )!;
     expect(r.bpmPlayed).toBeCloseTo(121.2, 1);
     expect(r.endOffsetMs).toBeLessThan(-50);
-    expect(tempoDrift(targets.slice(0, 3), [0, 0, 0], beatMs, 0)).toBeNull();
+    expect(
+      tempoDrift(targets.slice(0, 3), played(() => 0).slice(0, 3), beatMs, 1000, 0),
+    ).toBeNull();
+  });
+
+  it("follows a steady rush past the match window, where the grid matches would stop", () => {
+    // 12 bars of eighths, 20 ms early per beat on your own: 800 ms ahead by the end, far past the 62 ms window.
+    const eighths = Array.from({ length: 96 }, (_, i) => ({ beat: i / 2, pad: 42 }));
+    const hits = eighths.map((t) => on(42, 1000 + t.beat * beatMs - Math.max(0, t.beat - 4) * 20));
+    const r = tempoDrift(eighths, hits, beatMs, 1000, 4)!;
+    expect(r).not.toBeNull();
+    expect(r.bpmPlayed).toBeCloseTo(125, 0);
+    expect(r.endOffsetMs).toBeLessThan(-700);
   });
 });

@@ -7,15 +7,20 @@
 
   interface Props {
     hits: PadHit[];
-    /** Strokes per beat, for the beat grouping. */
-    perBeat: number;
+    /** One beat in ms: a stroke on a beat starts a group (a pyramid's beats hold 1, 2, 3, 4 strokes). */
+    beatMs: number;
     current?: number | null;
     outcomes?: ({ errorMs: number; rightPad: boolean } | null)[];
     windowMs?: number;
   }
-  let { hits, perBeat, current = null, outcomes, windowMs = 60 }: Props = $props();
+  let { hits, beatMs, current = null, outcomes, windowMs = 60 }: Props = $props();
   const main = $derived(hits.filter((h) => !h.grace));
   const flam = $derived(hits.some((h) => h.grace));
+  /** The beat a stroke starts, 1-based, or null off the beat. */
+  const beatOf = (h: PadHit) => {
+    const b = h.atMs / beatMs;
+    return Math.abs(b - Math.round(b)) < 1e-6 ? Math.round(b) + 1 : null;
+  };
 
   function verdict(i: number) {
     if (!outcomes) return null;
@@ -31,14 +36,15 @@
 <ol class="lane" aria-label="Sticking, {main.length} strokes">
   {#each main as h, i (i)}
     {@const v = verdict(i)}
+    {@const beat = beatOf(h)}
     <li
       class="stroke"
-      class:beat={i % perBeat === 0}
+      class:beat={beat !== null}
       class:now={current === i}
       data-hand={h.hand}
       data-kind={v?.kind}
     >
-      <span class="count">{i % perBeat === 0 ? i / perBeat + 1 : ""}</span>
+      <span class="count">{beat ?? ""}</span>
       <span class="hand">{h.hand === "left" ? "L" : "R"}{#if h.accent}<span aria-label=", accent">&gt;</span>{/if}</span>
       <span class="pad">{flam ? "flam " : ""}{padLabel(h.pad)}</span>
       {#if v}<span class="v tnum"><span aria-hidden="true">{v.glyph}</span> {v.kind === "miss" ? v.text : `${v.text} ms`}</span>{/if}

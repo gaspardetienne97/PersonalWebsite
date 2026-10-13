@@ -128,9 +128,9 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
     { timeout: 10_000 },
   );
   expect(count(await sent(page), IDENTITY)).toBe(1);
-  await expect(
-    page.getByText("Rudiment: Single strokes, eighths, 8 hits, pads A01 and A06, 100 BPM"),
-  ).toBeVisible();
+  await expect(page.getByText("Setup:").locator("..")).toContainText(
+    "Rudiment: Single strokes, eighths, 8 hits, pads A01 and A06, 100 BPM",
+  );
   await shoot(page, "pads-rudiment-ready");
 
   // Single strokes: hardware 37 / 38 become A01 / A06. The ignored port plays along and must not count.

@@ -21,9 +21,20 @@ describe("pad skills", () => {
     expect(g.bars).toBe(4);
     expect(g.landing.map((i) => g.targets[i].voice).sort()).toEqual(["crash", "kick"]);
     expect(g.targets[g.landing[0]].beat).toBe(16);
-    const fillIdx = g.targets.flatMap((t, i) => (t.beat >= 12 && t.beat < 16 ? [i] : []));
+    // The fill's own notes: the sixteenths from beat 3 on, not the bar's kick on the one or its hats.
+    expect(g.fill.every((i) => g.targets[i].beat >= 14)).toBe(true);
+    expect(g.fill.map((i) => g.targets[i].voice).sort()).toEqual([
+      "snare",
+      "snare",
+      "snare",
+      "snare",
+      "tom-low",
+      "tom-low",
+      "tom-mid",
+      "tom-mid",
+    ]);
     const per = g.targets.map((_, i) =>
-      fillIdx.includes(i) ? -30 : g.landing.includes(i) ? 10 : 0,
+      g.fill.includes(i) ? -30 : g.landing.includes(i) ? 10 : 0,
     );
     expect(fillReport(g, per)).toMatchObject({
       rushed: true,
@@ -31,6 +42,11 @@ describe("pad skills", () => {
       fillMeanMs: -30,
       landingMs: 10,
     });
+    // The groove notes of the fill bar rushing does not make the fill rushed.
+    const barOnly = g.targets.map((t, i) =>
+      t.beat >= 12 && t.beat < 16 && !g.fill.includes(i) ? -30 : 0,
+    );
+    expect(fillReport(g, barOnly).rushed).toBe(false);
     expect(
       fillReport(
         g,

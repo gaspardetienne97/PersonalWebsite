@@ -7,18 +7,19 @@
     GROOVE_VOICES,
     GROOVES,
     RUDIMENT_HIT_COUNTS,
-    RUDIMENT_TEMPOS,
     RUDIMENTS,
+    SUBDIVISION_NAMES,
     grooveSkills,
     grooveTargetsFor,
     rudimentHits,
+    rudimentPerBeat,
     rudimentSkills,
   } from "@repo/music-core/content/winds-pads";
   import { gradeGroove, gradeRudiment, grooveCaptureEnd, tempoDrift, type GrooveResult, type RudimentResult } from "@repo/music-core/scoring/pads";
   import { closestGapMs, gradeTier, measuredSwing, PAD_LEVELS, PAD_REPERTOIRE, repertoireFor, TIERS, topicSkill } from "@repo/music-core/content/pads-repertoire";
   import { getSetting, putSetting } from "$lib/music/runtime";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -55,8 +56,6 @@
     wait: false as boolean,
     // A small band under the groove (chords by style, bass on the kick).
     backing: false as boolean,
-    // The groove list: by level (difficulty) or by style (rock, funk, Latin and Caribbean...).
-    listBy: "level" as string,
   });
   const s = $derived(cfg.value);
   // Path steps carry their tempo (?bpm=); the practice strip owns it from then on.
@@ -70,7 +69,9 @@
   const isSteady = $derived(s.mode === "steady");
   const isGroove = $derived(s.mode === "groove" || isSteady);
   const pattern = $derived(RUDIMENTS.find((r) => r.id === s.pattern) ?? RUDIMENTS[0]);
-  const perBeat = $derived(("subdivision" in pattern && pattern.subdivision) || (s.sub as 2 | 3 | 4));
+  /** The rudiment's own grid wins; a pyramid is timed on its closest spacing (four a beat). */
+  const perBeat = $derived(rudimentPerBeat(pattern, s.sub as 2 | 3 | 4));
+  const fixedGrid = $derived(!!pattern.subdivision || !!pattern.perBeat);
   const stepMs = $derived(beatMs / perBeat);
   const pads = $derived<[number, number]>(s.padL === s.padR ? [36, 38] : [s.padL, s.padR]);
   const hits = $derived(rudimentHits({ patternId: pattern.id, subdivision: s.sub as 2 | 3 | 4, hits: s.hits, bpm, pads }));
@@ -120,7 +121,7 @@
     cfg.set({ [key]: id });
     const r = repertoireFor(id);
     if (!r) return;
-    const saved = key === "steady" ? r.bpm.start : await getSetting<number>(ladderKey(id), r.bpm.start);
+    const saved = await getSetting<number>(ladderKey(id), r.bpm.start);
     void settings.update({ bpm: saved });
   }
   let downbeat = $state(0);
@@ -152,7 +153,14 @@
     return () => cancelAnimationFrame(raf);
   });
   const base = $derived(demo?.playing ? demo.startPerf : phase === "running" ? downbeat : null);
-  const strokeNow = $derived(base === null ? null : Math.round((now - base) / stepMs));
+  /** The stroke due now: the one whose half-gap window holds the clock (a pyramid's gaps vary). */
+  const strokeNow = $derived.by(() => {
+    if (base === null) return null;
+    const rel = now - base;
+    let i = -1;
+    for (const [k, h] of strokes.entries()) if (rel >= h.atMs - (k ? (h.atMs - strokes[k - 1].atMs) / 2 : stepMs / 2)) i = k;
+    return i;
+  });
   const sixteenthNow = $derived(base === null || now < base ? null : Math.floor((now - base) / (beatMs / 4)));
 
   // MIDI pad hits sound here (the MPC in Controller Mode is silent); on-screen
@@ -160,6 +168,22 @@
   $effect(() =>
     input.subscribe((e) => {
       if (e.kind === "noteon" && e.source !== "onscreen" && cfg.value.sound) audio.drum(e.midi, e.velocity);
+    }),
+  );
+
+  // Technique, before a run: tapping a pad makes it the left hand's, the next tap the right's (one-pad rolls take one tap).
+  let assign = $state<"left" | "right">("left");
+  $effect(() =>
+    input.subscribe((e) => {
+      if (e.kind !== "noteon" || phase !== "ready" || isGroove || demo?.playing || e.midi < 36 || e.midi > 51) return;
+      const m = e.midi;
+      if (pattern.onePad || assign === "right") {
+        cfg.set(m === pads[0] ? { padR: m, padL: pads[1] } : { padR: m });
+        assign = "left";
+      } else {
+        cfg.set(m === pads[1] ? { padL: m, padR: pads[0] } : { padL: m });
+        assign = "right";
+      }
     }),
   );
 
@@ -328,12 +352,23 @@
     return out;
   });
 
-  const summaryLine = $derived(
+  const summaryLine = $derived<SetupClause[]>(
     isSteady
-      ? `Hold the tempo: ${entry.groove.label}, ${CLICK_BARS} bars with the click and ${STEADY_BARS - CLICK_BARS} on your own, ${bpm} BPM`
+      ? [{ text: `Hold the tempo: ${entry.groove.label}`, focus: "steady" }, { text: `${CLICK_BARS} bars with the click and ${STEADY_BARS - CLICK_BARS} on your own` }, { text: `${bpm} BPM` }]
       : isGroove
-      ? `Level ${entry.level}: ${groove.groove.label}, ${groove.groove.bars} bar${groove.groove.bars > 1 ? "s" : ""}, ${bpm} BPM (aim for ${entry.bpm.target})${entry.swing ? `, swing ${entry.swing}%` : ""}`
-      : `Rudiment: ${pattern.label}, ${({ 2: "eighths", 3: "triplets", 4: "sixteenths" } as Record<number, string>)[perBeat]}, ${s.hits} hits, pads ${padLabel(pads[0])} and ${padLabel(pads[1])}, ${bpm} BPM`,
+        ? [
+            { text: `Level ${entry.level}: ${groove.groove.label}`, focus: "groove" },
+            { text: `${groove.groove.bars} bar${groove.groove.bars > 1 ? "s" : ""}` },
+            { text: `${bpm} BPM (aim for ${entry.bpm.target})` },
+            ...(entry.swing ? [{ text: `swing ${entry.swing}%` }] : []),
+          ]
+        : [
+            { text: `Rudiment: ${pattern.label}`, focus: "pattern" },
+            { text: SUBDIVISION_NAMES[perBeat], focus: "sub" },
+            { text: `${s.hits} hits`, focus: "hits" },
+            { text: pattern.onePad ? `pad ${padLabel(pads[1])}` : `pads ${padLabel(pads[0])} and ${padLabel(pads[1])}` },
+            { text: `${bpm} BPM` },
+          ],
   );
   const setupKey = $derived(
     isSteady ? `steady:${s.steady}:${bpm}` : isGroove ? `groove:${s.groove}:${bpm}` : `rudiment:${pattern.id}:${perBeat}:${s.hits}:${pads.join("-")}:${bpm}`,
@@ -479,13 +514,15 @@
       }
       grv = r;
       const tier = gradeTier(r.perTarget, levelOf.tier, closestGapMs(groove.targets, beatMs));
-      const drift = isSteady ? tempoDrift(groove.targets, r.perTarget, beatMs, CLICK_BARS * 4) : null;
+      // On your own: the tempo read from the raw hits, since a steady drift leaves the match window.
+      const drift = isSteady ? tempoDrift(groove.targets, notes, beatMs, downbeat, CLICK_BARS * 4) : null;
       // Early (negative) or late per drum: each finger has its own lean.
       const bias = [...new Set(groove.targets.map((t) => t.voice))].map((voice) => {
         const errs = groove.targets.flatMap((t, i) => (t.voice === voice && r.perTarget[i] !== null ? [r.perTarget[i]!] : []));
         return { voice, ms: errs.length ? Math.round(errs.reduce((a, b) => a + b, 0) / errs.length) : null };
       });
-      const steadyOk = !drift || Math.abs(drift.driftBpm) < 3;
+      // No readable tempo once the click stopped is not steady either, unless nothing was played.
+      const steadyOk = !isSteady || (drift ? Math.abs(drift.driftBpm) < 3 : !ons.length);
       extra = { tier, swing: entry.swing ? measuredSwing(groove.targets, r.perTarget, beatMs) : null, drift, bias, pass: tier.pass && steadyOk };
       // Holding the tempo counts in the score: drifting 3 BPM or more costs 40%.
       graded = { ...r, score: steadyOk ? r.score : r.score * 0.6, correct: tier.pass && steadyOk };
@@ -539,9 +576,9 @@
     if (isSteady) return nextRun(`pads.steady.${s.steady}`, { bpm, tempo: { min: 40, goal: entry.bpm.target } }, run);
     if (isGroove)
       return nextRun("pads.groove", { bpm, tempo: { min: Math.min(bpm, entry.bpm.start), goal: entry.bpm.target }, steps: GROOVE_STEPS.map((r) => ({ label: `Level ${r.level}, ${r.groove.label}`, goal: r.bpm.target, start: r.bpm.start })), step: GROOVE_STEPS.indexOf(entry) }, run, tempoAnd((i) => cfg.set({ groove: GROOVE_STEPS[i].groove.value })));
-    const tempo = { min: 40, goal: Math.max(...RUDIMENT_TEMPOS) };
+    const tempo = { min: 40, goal: 120 };
     // A rudiment with its own subdivision grows in length instead.
-    if (("subdivision" in pattern && pattern.subdivision) || pattern.perBeat)
+    if (fixedGrid)
       return nextRun(`pads.rudiment.${pattern.id}`, { bpm, tempo, steps: RUDIMENT_HIT_COUNTS.map((n) => ({ label: `${n} hits` })), step: Math.max(0, RUDIMENT_HIT_COUNTS.indexOf(s.hits as 8)) }, run, tempoAnd((i) => cfg.set({ hits: RUDIMENT_HIT_COUNTS[i] })));
     return nextRun(`pads.rudiment.${pattern.id}.${s.hits}`, { bpm, tempo, steps: SUB_STEPS, step: Math.max(0, [2, 3, 4].indexOf(s.sub)) }, run, tempoAnd((i) => cfg.set({ sub: [2, 3, 4][i] })));
   }
@@ -602,7 +639,8 @@
       const d = x.drift;
       const way = Math.abs(d.driftBpm) < 0.5 ? "held it" : d.driftBpm > 0 ? `rushed to ${d.bpmPlayed.toFixed(1)}` : `dragged to ${d.bpmPlayed.toFixed(1)}`;
       headline = `On your own you ${way} (${bpm} BPM asked), and ended ${Math.abs(Math.round(d.endOffsetMs))} ms ${d.endOffsetMs < 0 ? "ahead of" : "behind"} the grid. ${x.pass ? "Steady." : Math.abs(d.driftBpm) >= 3 ? "Aim to stay within 3 BPM." : ""}`.trim();
-    } else if (ons.length && !isSteady)
+    } else if (ons.length && isSteady) headline = `${headline} Too few hits landed on your own to read the tempo.`;
+    else if (ons.length && !isSteady)
       headline = x.pass
         ? `Passed level ${entry.level} at ${bpm} BPM: ${Math.round(x.tier.perfect * 100)}% perfect, ${Math.round(x.tier.good * 100)}% good.${bpm < entry.bpm.target ? "" : " At the target tempo."}`
         : `${headline} ${Math.round(x.tier.good * 100)}% good of the 90% to pass, ${Math.round(x.tier.perfect * 100)}% perfect of 70%.`;
@@ -671,12 +709,21 @@
   ] as const;
   const SKILL_MODES = ["dynamics", "fills", "echo", "ostinato", "orchestrate", "improvise"] as const;
   const skillMode = $derived(SKILL_MODES.find((m) => m === s.mode) ?? null);
-  const grooveOptions = $derived(PAD_REPERTOIRE.map((r) => ({
-    value: r.groove.value,
-    label: `${r.groove.label}${r.groove.bars > 1 ? ` (${r.groove.bars} bars)` : ""}${bestStars[r.groove.value] ? ` ${starText(bestStars[r.groove.value])}` : ""}`,
-    group: s.listBy === "style" ? r.style : `Level ${r.level}: ${PAD_LEVELS.find((l) => l.level === r.level)!.title}`,
-  })).sort((a, b) => (s.listBy === "style" ? a.group.localeCompare(b.group) : 0)));
-  const padOptions = Array.from({ length: 16 }, (_, i) => ({ value: 36 + i, label: `${padLabel(36 + i)} (${36 + i})` }));
+  /** The grooves by level (the drum phrases have their own drill), style and tempo on the line under, stars earned as the badge. */
+  const grooveItems = $derived(
+    PAD_REPERTOIRE.filter((r) => r.topic !== "phrases").map((r) => ({
+      value: r.groove.value,
+      title: r.groove.label,
+      meta: `${r.style}, ${r.groove.bars} bar${r.groove.bars > 1 ? "s" : ""}, ${r.bpm.start} to ${r.bpm.target} BPM${r.swing ? `, swing ${r.swing}%` : ""}`,
+      group: `Level ${r.level}: ${PAD_LEVELS.find((l) => l.level === r.level)!.title}`,
+      badge: bestStars[r.groove.value] ? starText(bestStars[r.groove.value]) : undefined,
+      keywords: r.feel,
+    })),
+  );
+  /** Rudiments grouped as the skills are: singles and doubles, rolls, accents, paradiddles. */
+  const rudimentOptions = ["Singles and doubles", "Rolls", "Accents", "Paradiddles"].flatMap((group) =>
+    RUDIMENTS.filter((r) => (rudimentSkills(r.id)[1] === "technique.mpc.paradiddles" ? "Paradiddles" : rudimentSkills(r.id)[1] === "technique.mpc.rolls" ? "Rolls" : rudimentSkills(r.id)[1] === "technique.mpc.accents" ? "Accents" : "Singles and doubles") === group).map((r) => ({ value: r.id, label: r.label, group })),
+  );
   const voiceName = (id: string) => GROOVE_VOICES.find((v) => v.id === id)?.name ?? id;
 </script>
 
@@ -694,6 +741,10 @@
       ? "Play the groove as the notes come at you. Each level tightens the timing; a pass moves the tempo up."
       : "Finger technique on the click: strokes, rolls, accents and ghosts."}
   summary={summaryLine}
+  tabs={MODES.map(([id, label]) => ({ id, label }))}
+  tab={s.mode}
+  ontab={setMode}
+  modeNotes={{ practice: "The notes come at you, judged as they pass. Practice, not a test.", check: "From memory, no notes shown. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -706,39 +757,34 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="Mode" options={MODES.map(([value, label]) => ({ value, label }))} value={s.mode} onchange={setMode} />
       {#if isSteady}
-        <div class="flex min-w-0 flex-col gap-1 text-sm">
-          <span class="font-medium">Groove to hold</span>
-          <Picker label="Groove to hold" value={s.steady} options={grooveOptions.filter((o) => (repertoireFor(o.value)?.level ?? 9) <= 3)} onchange={(v) => pickGroove(v, "steady")} />
+        <div class="sm:col-span-2">
+          <CatalogPicker label="Groove to hold" items={grooveItems.filter((o) => (repertoireFor(o.value)?.level ?? 9) <= 3)} value={s.steady} onchange={(v) => pickGroove(v, "steady")} recentKey="pads-steady" noun="groove" setupKey="steady" />
         </div>
       {:else if isGroove}
-        <Choice label="List grooves by" options={[{ value: "level", label: "Level" }, { value: "style", label: "Style" }]} value={s.listBy} onchange={(v) => cfg.set({ listBy: v })} />
-        <div class="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2">
-          <span class="font-medium">Groove</span>
-          <Picker label="Groove" value={entry.groove.value} options={grooveOptions} onchange={(v) => pickGroove(v)} />
+        <div class="sm:col-span-2">
+          <CatalogPicker label="Groove" items={grooveItems} value={entry.groove.value} onchange={(v) => pickGroove(v)} recentKey="pads-groove" noun="groove" setupKey="groove" />
         </div>
       {:else}
-        <Choice label="Rudiment" select options={RUDIMENTS.map((r) => ({ value: r.id, label: r.label }))} value={s.pattern} onchange={(v) => cfg.set({ pattern: v })} />
+        <Choice label="Rudiment" options={rudimentOptions} value={s.pattern} onchange={(v) => cfg.set({ pattern: v })} setupKey="pattern" />
         <Choice
-          label="Subdivision{'subdivision' in pattern && pattern.subdivision ? ' (this rudiment sets its own)' : ''}"
+          label="Subdivision{fixedGrid ? ` (the rudiment sets it: ${SUBDIVISION_NAMES[perBeat]})` : ''}"
           options={[
             { value: 2, label: "Eighths" },
             { value: 3, label: "Triplets" },
             { value: 4, label: "Sixteenths" },
           ]}
           value={perBeat}
-          disabled={"subdivision" in pattern && !!pattern.subdivision}
+          disabled={fixedGrid}
           onchange={(v) => cfg.set({ sub: v })}
+          setupKey="sub"
         />
-        <Choice label="Hits" options={RUDIMENT_HIT_COUNTS.map((n) => ({ value: n as number, label: String(n) }))} value={s.hits} onchange={(v) => cfg.set({ hits: v })} />
-        <Choice label="Left-hand pad" select options={padOptions} value={pads[0]} onchange={(v) => cfg.set(v === pads[1] ? { padL: v, padR: pads[0] } : { padL: v })} />
-        <Choice label="Right-hand pad" select options={padOptions} value={pads[1]} onchange={(v) => cfg.set(v === pads[0] ? { padR: v, padL: pads[1] } : { padR: v })} />
+        <Choice label="Hits" options={RUDIMENT_HIT_COUNTS.map((n) => ({ value: n as number, label: String(n) }))} value={s.hits} onchange={(v) => cfg.set({ hits: v })} setupKey="hits" />
       {/if}
-      {#if !isSteady}
+      {#if !isSteady && mode !== "check"}
         <Choice label="Wait mode (learn it)" options={[{ value: "off", label: "Off" }, { value: "on", label: "On: no click, notes wait" }]} value={s.wait ? "on" : "off"} onchange={(v) => cfg.set({ wait: v === "on" })} />
       {/if}
-      {#if isGroove && !isSteady}
+      {#if isGroove && !isSteady && !waitMode}
         <Choice
           label="Backing"
           options={[
@@ -750,19 +796,8 @@
         />
         <Choice label="Plays" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "Once" : `${n} times` }))} value={s.plays} onchange={(v) => cfg.set({ plays: v })} />
       {/if}
-      {#if !isGroove}
-        <Choice label="Tempo (BPM)" options={RUDIMENT_TEMPOS.map((t) => ({ value: t, label: String(t) }))} value={bpm} onchange={(v) => settings.update({ bpm: v })} />
-      {/if}
-      <Choice
-        label="Pad sounds"
-        options={[
-          { value: "on", label: "On" },
-          { value: "off", label: "Off (the MPC makes its own)" },
-        ]}
-        value={s.sound ? "on" : "off"}
-        onchange={(v) => cfg.set({ sound: v === "on" })}
-      />
     </div>
+    {#if !isGroove}<p class="mt-3 text-sm text-ws-soft">The pads: tap one on the stage to set the {pattern.onePad ? "pad" : "left hand, then the right"}.</p>{/if}
   {/snippet}
 
   {#snippet hud()}
@@ -787,18 +822,6 @@
 
   {#snippet stage()}
     <div class="flex flex-col gap-4" data-downbeat={phase === "running" || phase === "countin" ? downbeat : undefined} data-targets={isGroove ? JSON.stringify(groove.targets.map((t) => [t.pad, Math.round(t.atMs), t.accent ? "a" : t.ghost ? "g" : "n"])) : undefined} data-testid="pads-stage">
-      {#if phase === "ready" || phase === "results"}
-        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Pads mode">
-          {#each MODES as [id, label] (id)}
-            <button
-              type="button"
-              class="min-h-11 rounded-full px-4 text-sm font-semibold {s.mode === id ? 'bg-instr text-ws-stage' : 'bg-ws-stage-ink/10 text-ws-stage-ink hover:bg-ws-stage-ink/20'}"
-              aria-pressed={s.mode === id}
-              onclick={() => setMode(id)}>{label}</button
-            >
-          {/each}
-        </div>
-      {/if}
       <!-- The notes on top, the pads under them, as play-along apps stack them. -->
       <div class="grid grid-cols-[minmax(0,1fr)] items-start gap-5">
         <div class="min-w-0">
@@ -819,7 +842,7 @@
           {:else if mode === "check" && phase !== "results"}
             <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm text-ws-stage-soft">
               Check: from memory, no grid.
-              {#if isGroove}{groove.groove.label}, {groove.groove.bars} bar{groove.groove.bars > 1 ? "s" : ""} after the count-in.{:else}{pattern.label}, left on {padLabel(pads[0])}, right on {padLabel(pads[1])}.{/if}
+              {#if isGroove}{groove.groove.label}, {groove.groove.bars} bar{groove.groove.bars > 1 ? "s" : ""} after the count-in.{:else if pattern.onePad}{pattern.label} on {padLabel(pads[1])}.{:else}{pattern.label}, left on {padLabel(pads[0])}, right on {padLabel(pads[1])}.{/if}
             </p>
           {:else if isGroove}
             {#if phase !== "running" && phase !== "countin"}
@@ -840,11 +863,12 @@
               sectionLabels={groove.groove.sectionLabels}
               playhead={sixteenthNow}
               outcomes={grv?.perTarget}
-              windowMs={groove.matchWindowMs}
+              windowMs={judgeWindow.good}
             />
           {:else}
-            <StickingLane hits={hits} {perBeat} current={phase === "running" ? strokeNow : demo?.playing ? strokeNow : null} outcomes={rud?.perStroke} windowMs={Math.min(60, stepMs / 3)} />
+            <StickingLane hits={hits} {beatMs} current={phase === "running" ? strokeNow : demo?.playing ? strokeNow : null} outcomes={rud?.perStroke} windowMs={Math.min(60, stepMs / 3)} />
             {#if hits.some((h) => h.grace)}<p class="mt-2 text-xs text-ws-stage-soft">Flam: a grace note on the other pad just before each stroke. Only the main strokes are graded.</p>{/if}
+            {#if phase === "ready"}<p class="mt-2 text-xs text-ws-stage-soft">{pattern.onePad ? `One pad, both fingers: tap a pad to pick it (now ${padLabel(pads[1])}).` : `Tap a pad to set the ${assign} hand (left ${padLabel(pads[0])}, right ${padLabel(pads[1])}).`}</p>{/if}
           {/if}
         </div>
         <Pads {marks} {flashes} {names} colors={padColors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
@@ -911,7 +935,7 @@
   {/snippet}
 
   {#snippet actions()}
-    <div class="w-full"><MidiStatus instrument="mpc" /></div>
+    <div class="w-full"><MidiStatus instrument="mpc" sound={{ value: s.sound, onchange: (v) => cfg.set({ sound: v }) }} /></div>
   {/snippet}
 </DrillShell>
 {/if}

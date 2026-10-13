@@ -148,14 +148,13 @@ test.describe("finger-drumming repertoire", () => {
 
   test("the groove list is by level, and a two-finger roll stays on one pad", async ({ page }) => {
     await page.goto("/music/pads?mode=groove");
-    await page.getByRole("button", { name: "Change setup" }).click();
-    await page
-      .getByRole("combobox", { name: "Groove" })
-      .or(page.getByLabel("Groove", { exact: true }))
-      .first()
-      .click();
-    await expect(page.getByText("Level 6: The breaks")).toBeVisible();
-    await expect(page.getByRole("option", { name: "Amen break (4 bars)" })).toBeVisible();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    // The groove picker is a sheet: search, level chips, the list grouped by level, no phrases.
+    await page.getByRole("button", { name: /Change$/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Groove" });
+    await expect(sheet.getByRole("button", { name: "Level 6: The breaks" })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /^Amen break/ })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /^Son clave/ })).toHaveCount(0);
     await page.keyboard.press("Escape");
 
     await page.goto("/music/pads?mode=rudiment&pattern=roll-32&hits=32&bpm=70");
@@ -208,9 +207,9 @@ test.describe("finger-drumming repertoire", () => {
     const gridBox = (await preview.boundingBox())!;
     const padsBox = (await page.getByRole("group", { name: /^MPC pads, bank A/ }).boundingBox())!;
     expect(padsBox.y).toBeGreaterThan(gridBox.y + gridBox.height - 1);
-    await page.getByRole("button", { name: "Change setup" }).click();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
     await expect(page.getByText("Band: Gm7 C9")).toBeVisible();
-    await page.getByRole("button", { name: "Done" }).click();
+    await page.getByRole("button", { name: "Hide setup" }).click();
     await shots(page, "amen-ready");
     await page.getByRole("button", { name: /^Start/ }).click();
     await playGroove(page);

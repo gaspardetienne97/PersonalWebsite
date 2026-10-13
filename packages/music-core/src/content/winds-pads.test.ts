@@ -12,7 +12,10 @@ import {
   LANDING_INTERVALS,
   landingTarget,
   rudimentHits,
+  rudimentPerBeat,
   rudimentSkills,
+  RUDIMENTS,
+  SUBDIVISION_NAMES,
 } from "./winds-pads";
 
 describe("aerophone", () => {
@@ -171,6 +174,14 @@ describe("MPC grooves", () => {
 });
 
 describe("finger-drumming rudiments", () => {
+  it("times every rudiment on a named grid: its own, a pyramid's closest spacing, else the chosen one", () => {
+    for (const p of RUDIMENTS) expect(SUBDIVISION_NAMES[rudimentPerBeat(p, 3)], p.id).toBeDefined();
+    expect(rudimentPerBeat(RUDIMENTS.find((p) => p.id === "pyramid")!, 2)).toBe(4);
+    expect(rudimentPerBeat(RUDIMENTS.find((p) => p.id === "roll-32")!, 2)).toBe(8);
+    expect(rudimentPerBeat(RUDIMENTS.find((p) => p.id === "single-strokes")!, 3)).toBe(3);
+    expect(SUBDIVISION_NAMES[6]).toBe("sixteenth triplets");
+  });
+
   it("rolls two fingers on one pad, at sixteenths, thirty-seconds and sixteenth triplets", () => {
     const roll = rudimentHits({
       patternId: "roll-32",

@@ -86,7 +86,7 @@
           <span class="num">A{String(i + 1).padStart(2, "0")}</span>
           {#if keyHints}<kbd>{KEYS[i].toUpperCase()}</kbd>{/if}
         </span>
-        <span class="name">{names[midi] ?? midi}</span>
+        <span class="name">{names[midi] ?? ""}</span>
         {#if flash}
           <span class="glyph" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : "✕"}</span>
         {:else if mk.label}

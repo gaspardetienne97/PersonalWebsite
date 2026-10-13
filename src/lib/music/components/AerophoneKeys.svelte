@@ -104,7 +104,7 @@
 </script>
 
 <figure class="flex w-full flex-col items-center gap-2" class:max-w-52={compact} class:max-w-64={!compact}>
-  <svg viewBox="0 0 224 820" class="h-auto max-h-[36rem] w-full" role="img" aria-label={label ?? `Fingering for ${description}`}>
+  <svg viewBox="0 0 224 820" class="h-auto w-full {compact ? 'max-h-[24rem]' : 'max-h-[36rem]'}" role="img" aria-label={label ?? `Fingering for ${description}`}>
     <defs>
       <linearGradient id="{uid}-col" x1="0" x2="1">
         <stop offset="0" stop-color="oklch(0.84 0.01 290)" />
