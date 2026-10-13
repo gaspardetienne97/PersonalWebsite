@@ -12,11 +12,11 @@ const ROUTES = [
   },
   { path: "/music/comping?pattern=blue-third-c7&bpm=90", name: "comping", h1: "Comping" },
   { path: "/music/pedal?progression=I-vi-IV-V&key=0", name: "pedal", h1: "Pedal" },
-  { path: "/music/voicings?variant=major&key=0&keys=1", name: "voicings", h1: "ii-V-I voicings" },
+  { path: "/music/voicings?variant=major&key=0&keys=1", name: "voicings", h1: "Voicings" },
   {
     path: "/music/voicings?variant=inversions&key=0",
     name: "voicings-closest",
-    h1: "ii-V-I voicings",
+    h1: "Voicings",
   },
   { path: "/music/licks?lick=1&key=C", name: "licks", h1: "Jazz licks" },
   { path: "/music/licks?lick=30&instrument=guitar&bpm=96", name: "licks-guitar", h1: "Jazz licks" },
@@ -182,7 +182,7 @@ test.describe("piano drills over fake MIDI", () => {
     await page.goto(
       "/music/scales?pattern=blocked&chord=major&tonic=60&span=one-octave&motion=up&hands=right&perBeat=1&grade=&bpm=60",
     );
-    await expect(page.getByText("Setup:").locator("..")).toContainText("C4 major blocked chords");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("C major blocked chords");
     const chords = [
       [60, 64, 67],
       [64, 67, 72],

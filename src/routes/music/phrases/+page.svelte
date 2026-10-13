@@ -11,7 +11,8 @@
   import InstrumentStage, { fretTuning } from "$lib/music/components/InstrumentStage.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
+  import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
+  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
@@ -69,7 +70,19 @@
     if (phase === "running") events.forEach((_, i) => (i < played ? (out[i] = "correct") : i === played && (out[i] = "active")));
     return out;
   });
-  const summaryLine = $derived(phrase ? `${phrase.title} (${phrase.style}) on the ${own}, ${bpm} BPM; it goes at about ${phrase.bpm}` : `No phrases for the ${own} yet`);
+  const summaryLine = $derived<SetupClause[] | string>(phrase ? [{ text: `${phrase.title} (${phrase.style})`, focus: "phrase" }, { text: `it goes at about ${phrase.bpm} BPM` }] : `No phrases for the ${own} yet`);
+  const items = $derived(list.map((p) => ({ value: p.id, title: p.title, meta: `${p.style}, about ${p.bpm} BPM`, group: `Level ${p.level}`, keywords: p.source })));
+  /** Picking a phrase starts it at three quarters of its own tempo, and says so. */
+  function pickPhrase(id: string) {
+    cfg.set({ phrase: id });
+    const p = list.find((x) => x.id === id);
+    if (!p) return;
+    const start = Math.max(TEMPO.min, Math.round(p.bpm * 0.75));
+    if (start !== bpm) {
+      settings.update({ bpm: start });
+      status = `Tempo set to ${start} BPM, three quarters of the phrase's ${p.bpm}.`;
+    }
+  }
 
   async function demo(speed = 1) {
     if (transport.playing) return transport.stop();
@@ -195,11 +208,7 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Phrase" select options={list.map((p) => ({ value: p.id, label: `${p.title} (${p.style})`, group: `Level ${p.level}` }))} value={phrase?.id ?? ""} onchange={(v) => {
-        cfg.set({ phrase: v });
-        const p = list.find((x) => x.id === v);
-        if (p) settings.update({ bpm: Math.max(TEMPO.min, Math.round(p.bpm * 0.75)) });
-      }} />
+      <CatalogPicker label="Phrase" setupKey="phrase" noun="phrase" recentKey="phrases.{own}" {items} value={phrase?.id ?? ""} onchange={pickPhrase} />
       <p class="self-end text-sm text-ws-soft">Picking a phrase starts it at three quarters of its tempo. The instrument comes from the practice strip; on MPC pads the phrases are drum phrases.</p>
     </div>
   {/snippet}

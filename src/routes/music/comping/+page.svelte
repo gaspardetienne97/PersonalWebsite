@@ -2,13 +2,16 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
-  import { COMPING_PATTERNS, goToScale } from "@repo/music-core/content/piano";
+  import { COMPING_PATTERNS } from "@repo/music-core/content/piano";
+  import { parseChordSymbol } from "@repo/music-core/theory/chords";
+  import { signatureFor } from "@repo/music-core/theory/circle";
   import { JAZZ } from "@repo/music-core/data/index";
   import { gradeComping, type CompingResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
+  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
@@ -59,7 +62,9 @@
     ...Array.from({ length: p.bars }, (_, bar) => p.compRhythm.flatMap((hit) => lhMidi.map((midi) => ({ midi, startBeat: bar * BEATS_PER_BAR + hit.beat, durationBeats: hit.durationBeats, hand: "left" as const })))).flat(),
   ]);
   const span = $derived(spanOf(notes.map((n) => n.midi)));
-  const scale = $derived(goToScale(p.chord));
+  const root = $derived(parseChordSymbol(p.chord)!);
+  // A dominant's line sits in its mixolydian (C7 in F major's signature), so the 7th reads as a flat.
+  const keyFifths = $derived(signatureFor(root.rootPc, "mixolydian"));
   const approach = JAZZ.IMPROV_TECHNIQUES.find((t) => t.id === "half-step-below");
 
   let phase = $state<Phase>("ready");
@@ -110,9 +115,11 @@
     },
   ]);
 
-  const summaryLine = $derived(
-    `${p.label}, ${s.lh === "guide" ? "guide tones (3rd and 7th)" : "shell (root and 7th)"} in the left hand, ${swing ? "swung" : "straight"} eighths, ${bpm} BPM`,
-  );
+  const summaryLine = $derived<SetupClause[]>([
+    { text: p.label, focus: "pattern" },
+    { text: `${s.lh === "guide" ? "guide tones (3rd and 7th)" : "shell (root and 7th)"} in the left hand`, focus: "lh" },
+    { text: `${swing ? "swung" : "straight"} eighths`, focus: "feel" },
+  ]);
   const setupKey = $derived(`comping:${p.id}:${s.lh}:${s.feel}:${bpm}`);
 
   async function playDemo(speed = 1) {
@@ -266,15 +273,17 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-3">
-      <Choice label="Chord" options={COMPING_PATTERNS.map((x) => ({ value: x.id, label: x.chord }))} value={p.id} onchange={(v) => cfg.set({ pattern: v })} />
+      <Choice label="Key" setupKey="pattern" options={COMPING_PATTERNS.map((x) => ({ value: x.id, label: parseChordSymbol(x.chord)!.rootName, detail: x.chord }))} value={p.id} onchange={(v) => cfg.set({ pattern: v })} />
       <Choice
         label="Left hand"
+        setupKey="lh"
         options={LH_STEPS.map((x) => ({ value: x.id, label: x.label }))}
         value={s.lh}
         onchange={(v) => cfg.set({ lh: v })}
       />
       <Choice
         label="Eighths"
+        setupKey="feel"
         options={[
           { value: "swing", label: "Swung" },
           { value: "straight", label: "Straight" },
@@ -302,7 +311,7 @@
         {#if mode === "practice"}
           <p class="text-ws-stage-soft">
             Slide from the {noteName(p.lick[6].midiNote, "flat", false)} into the {noteName(p.lick[7].midiNote, "flat", false)}: the blue third, a minor third over a dominant chord, resolving up to the major third.
-            {#if scale}Go-to scale over {p.chord}: {scale.label}{scale.hint ? `, ${scale.hint.toLowerCase()}` : ""}{/if}
+            The rest of the line stays in {root.rootName} mixolydian.
           </p>
           {#if approach}<p class="mt-1 text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{approach.name}.</span> {approach.summary}</p>{/if}
         {/if}
@@ -312,7 +321,7 @@
       {/if}
     </div>
     {#if mode === "practice" || transport.playing || phase === "results"}
-      <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} /></div>
+      <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} /></div>
     {/if}
     <BeatLane
       rows={lanes}

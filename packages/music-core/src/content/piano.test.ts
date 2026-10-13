@@ -15,7 +15,9 @@ import {
   lickScore,
   lickWindow,
   LICKS,
+  lickTip,
   nearestVoicing,
+  transposeText,
   twoHandPattern,
   voiceLeadingTargets,
   voicingTargets,
@@ -85,14 +87,41 @@ describe("comping", () => {
 });
 
 describe("ii-V-I voicings", () => {
-  it("reproduces all 36 default targets exactly", () => {
+  it("builds all 36 major targets with the pitch classes of the reference data", () => {
+    const t = voicingTargets({ variant: "major", startPosition: "A" });
     expect(VOICING_DRILL.targets).toHaveLength(36);
-    expect(voicingTargets({ variant: "major", startPosition: "A" })).toEqual(VOICING_DRILL.targets);
+    expect(t.map((x) => [x.symbol, [...x.expectedPitchClasses].sort()])).toEqual(
+      VOICING_DRILL.targets.map((x) => [x.symbol, [...x.expectedPitchClasses].sort()]),
+    );
+  });
+
+  it("keeps the root low and each voicing near the last, in every key", () => {
+    for (const variant of ["major", "minor", "altered"] as const) {
+      const t = voicingTargets({ variant });
+      for (const x of t) {
+        expect(x.displayMidi[0], x.id).toBeGreaterThanOrEqual(41);
+        expect(x.displayMidi[0], x.id).toBeLessThanOrEqual(52);
+        for (const m of x.displayMidi.slice(1)) {
+          expect(m, x.id).toBeGreaterThanOrEqual(50);
+          expect(m, x.id).toBeLessThanOrEqual(81);
+        }
+      }
+    }
+    // Dm7 G7 Cmaj7 in C: A, B, A moving by step (F A C E, F A B D, E G B D).
+    expect(
+      voicingTargets({ variant: "major" })
+        .slice(0, 3)
+        .map((t) => t.displayMidi),
+    ).toEqual([
+      [50, 53, 57, 60, 64],
+      [43, 53, 57, 59, 62],
+      [48, 52, 55, 59, 62],
+    ]);
   });
 
   it("starts on B when asked, arpeggiates on a monophonic instrument", () => {
     const b = voicingTargets({ variant: "major", startPosition: "B" });
-    expect(b[0].displayMidi).toEqual([62, 72, 76, 77, 81]);
+    expect(b[0].displayMidi).toEqual([50, 60, 64, 65, 69]);
     expect(
       voicingTargets({ variant: "major", mode: "arpeggio" }).every((t) => t.mode === "arpeggio"),
     ).toBe(true);
@@ -102,9 +131,9 @@ describe("ii-V-I voicings", () => {
     const m = voicingTargets({ variant: "minor" });
     expect(m).toHaveLength(36);
     expect(m.slice(0, 3).map((t) => [t.symbol, t.displayMidi])).toEqual([
-      ["Dm7b5", [62, 65, 68, 72, 74]],
-      ["G7alt", [67, 77, 80, 83, 87]],
-      ["Cm7", [60, 70, 74, 75, 79]],
+      ["Dm7b5", [50, 65, 68, 72, 74]],
+      ["G7alt", [43, 65, 68, 71, 75]],
+      ["Cm7", [48, 70, 74, 75, 79]],
     ]);
     expect(m[0].expectedPitchClasses).toEqual([2, 5, 8, 0]);
     expect(m[0].skillIds).toEqual(["harmony.ii-v-i", "harmony.ii-v-i.voicings.minor"]);
@@ -114,9 +143,9 @@ describe("ii-V-I voicings", () => {
     const a = voicingTargets({ variant: "altered" });
     expect(a).toHaveLength(36);
     expect(a.slice(0, 3).map((t) => [t.symbol, t.displayMidi])).toEqual([
-      ["G7b9", [67, 71, 77, 80, 86]],
-      ["G7alt", [67, 77, 80, 83, 87]],
-      ["G13#11", [67, 71, 77, 81, 85, 88]],
+      ["G7b9", [43, 59, 65, 68, 74]],
+      ["G7alt", [43, 65, 68, 71, 75]],
+      ["G13#11", [43, 59, 65, 69, 73, 76]],
     ]);
     for (const t of a) {
       const chord = parseChordSymbol(t.symbol)!;
@@ -214,7 +243,7 @@ describe("chord-scale drill", () => {
   it("uses the go-to scale per chord", () => {
     expect(chordScaleTargets("major").map((t) => t.scaleLabel)).toEqual([
       "D Dorian",
-      "G Lydian dominant",
+      "G Mixolydian",
       "C Lydian",
     ]);
     expect(chordScaleTargets("minor").map((t) => t.scaleLabel)).toEqual([
@@ -227,6 +256,21 @@ describe("chord-scale drill", () => {
     expect(goToScale("C6")?.label).toBe("Major (Ionian)");
     expect(goToScale("CmMaj7")?.label).toBe("Melodic minor");
     expect(goToScale("Cdim7")?.semitones).toEqual([0, 2, 3, 5, 6, 8, 9, 11, 12]);
+    expect(goToScale("G7b9")?.label).toBe("Diminished (half-whole)");
+    expect(goToScale("G13#11")?.label).toBe("Lydian dominant");
+  });
+
+  it("accepts the scales listed beside the go-to, and only the fitting ones", () => {
+    const [dm7, g7, cmaj7] = chordScaleTargets("major");
+    // Over Cmaj7, Ionian's F counts; over G7, mixolydian's C does.
+    expect(cmaj7.accepted).toContain(5);
+    expect(g7.accepted).toContain(0);
+    expect(g7.others).toEqual(["Lydian dominant", "Dominant bebop"]);
+    expect(dm7.accepted).not.toContain(1);
+    const [m7b5, alt] = chordScaleTargets("minor");
+    // An altered dominant does not list mixolydian; Locrian #2 is the sixth mode of melodic minor (D E F G Ab Bb C).
+    expect(alt.others).toEqual(["Diminished (half-whole)"]);
+    expect(m7b5.accepted).toEqual([0, 2, 3, 4, 5, 7, 8, 10]);
   });
 
   it("labels chord, scale and avoid tones", () => {
@@ -236,6 +280,26 @@ describe("chord-scale drill", () => {
     expect(byRole("scale")).toEqual([4, 7, 11]);
     expect(byRole("avoid")).toEqual([1, 3, 6, 8, 10]);
     expect(chordScaleTargets("major", 2)[0].symbol).toBe("Em7");
+  });
+});
+
+describe("lick text in another key", () => {
+  it("moves note names and chord roots, not words", () => {
+    expect(
+      transposeText("Half-step-below approach into the changes: Bb→B and Eb→E.", 2, true),
+    ).toBe("Half-step-below approach into the changes: C→C# and F→F#.");
+    expect(transposeText("G altered (Ab melodic minor)", -2)).toBe("F altered (Gb melodic minor)");
+    expect(transposeText("A sequence: the A7 resolves back to Dm7 over Cmaj7.", 5)).toBe(
+      "A sequence: the D7 resolves back to Gm7 over Fmaj7.",
+    );
+    expect(transposeText("End lines on 1 3 5 or 7 (C E G B).", 0)).toBe(
+      "End lines on 1 3 5 or 7 (C E G B).",
+    );
+  });
+
+  it("drops the left-hand claims from the tips", () => {
+    for (const l of LICKS)
+      expect(lickTip(l), String(l.number)).not.toMatch(/left.hand|stride|—|–/i);
   });
 });
 

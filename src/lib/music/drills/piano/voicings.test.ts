@@ -7,8 +7,18 @@ describe("voicingItems", () => {
   it("major: one key is Dm7 G7 Cmaj7, root in the left hand", () => {
     const items = voicingItems({ variant: "major", keyPc: 0, keys: 1 });
     expect(items.map((i) => i.symbol)).toEqual(["Dm7", "G7", "Cmaj7"]);
-    expect(items[0].show[0]).toEqual({ midi: 62, hand: "left" });
+    expect(items[0].show[0]).toEqual({ midi: 50, hand: "left" });
     expect(items[0].hint).toContain("Dorian");
+    expect(items[0]).toMatchObject({ keyPc: 0, minor: false });
+  });
+  it("altered: the b9 chord's scale is half-whole diminished, one period per sentence", () => {
+    const [b9] = voicingItems({ variant: "altered", keyPc: 0, keys: 1 });
+    expect(b9.hint).toBe(
+      "Diminished tension. Go-to scale: Diminished (half-whole). Gives b9 #9 #11 over V7.",
+    );
+    for (const v of ["major", "minor", "altered", "voice-leading", "cadence"] as const)
+      for (const i of voicingItems({ variant: v, keyPc: 0, keys: 12 }))
+        expect(i.hint ?? "", i.id).not.toContain("..");
   });
   it("starts the cycle at the requested key", () => {
     expect(voicingItems({ variant: "major", keyPc: 10, keys: 2 }).map((i) => i.group)).toEqual([
@@ -47,6 +57,11 @@ describe("gradeItem", () => {
     const r = gradeItem(f, [41, 65, 69, 72], opts);
     expect(r.correct).toBe(false);
     expect(r.note).toBe("wrong inversion");
+  });
+  it("closest chords, notes collected: a stray or repeated key keeps the closest move", () => {
+    const loose = { strict: false, arpeggio: false };
+    expect(gradeItem(f, [41, 60, 62, 65, 69, 65], loose)).toMatchObject({ correct: true });
+    expect(gradeItem(f, [41, 60, 62, 65, 69, 65], opts).correct).toBe(false);
   });
   it("closest chords: without the left-hand root the score is capped at half", () => {
     const r = gradeItem(f, [60, 65, 69], opts);

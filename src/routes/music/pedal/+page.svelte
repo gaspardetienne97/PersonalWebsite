@@ -5,19 +5,21 @@
   // draws what the pedal did.
   import { onDestroy } from "svelte";
   import type { InputEvent, NoteEvent } from "@repo/music-core";
-  import { FLAT_NAMES, noteName, pc, pcOf } from "@repo/music-core";
-  import { KEY_CYCLE, PEDAL_PROGRESSIONS, pedalChords } from "@repo/music-core/content/piano";
+  import { FLAT_NAMES, noteName, pc } from "@repo/music-core";
+  import { PEDAL_PROGRESSIONS, pedalChords } from "@repo/music-core/content/piano";
   import { gradePedal, PEDAL, type PedalResult, type PedalVerdict } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
+  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn } from "$lib/music/components/ui";
-  import { benchFromUrl } from "$lib/music/drills/piano/transport.svelte";
+  import { benchFromUrl, spanOf } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -64,7 +66,8 @@
   const keyName = $derived(FLAT_NAMES[pc(s.key)]);
   /** The chords written out, a bar each: the root in the left hand, the chord in the right. */
   const written = $derived(bars.flatMap((b, k) => [{ midi: b.leftHand, startBeat: k * 4, durationBeats: 4, hand: "left" as const }, ...b.rightHand.map((midi) => ({ midi, startBeat: k * 4, durationBeats: 4, hand: "right" as const }))]));
-  const summaryLine = $derived(`${progression.label} in ${keyName}, ${bars.length} chords, a chord a bar at ${bpm} BPM`);
+  const summaryLine = $derived<SetupClause[]>([{ text: `${progression.label} in ${keyName}`, focus: "progression" }, { text: `${bars.length} chords`, focus: "rounds" }, { text: "a chord a bar" }]);
+  const keys = $derived(spanOf(once.flatMap((b) => [b.leftHand, ...b.rightHand])));
 
   function onEvent(e: InputEvent) {
     if (e.kind === "cc" && e.controller === 64) {
@@ -92,7 +95,7 @@
       modality: "played",
       assistance: assistanceFor(mode),
       difficulty: 0.4 + (bpm - 40) / 400,
-      instrument: settings.value.activeInstrument,
+      instrument: "piano",
       params: { key: pc(s.key), progression: progression.id, bars: bars.length, bpm },
     });
     // A pedal pressed before the downbeat counts toward the first chord.
@@ -248,9 +251,12 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-3">
-      <Choice label="Progression" options={PEDAL_PROGRESSIONS.map((p) => ({ value: p.id, label: p.label }))} value={progression.id} onchange={(v) => cfg.set({ progression: v })} />
-      <Choice label="Key" select options={KEY_CYCLE.map((k) => ({ value: pcOf(k) ?? 0, label: k }))} value={pc(s.key)} onchange={(v) => cfg.set({ key: v })} />
-      <Choice label="Times through" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.rounds} onchange={(v) => cfg.set({ rounds: v })} />
+      <Choice label="Progression" setupKey="progression" options={PEDAL_PROGRESSIONS.map((p) => ({ value: p.id, label: p.label }))} value={progression.id} onchange={(v) => cfg.set({ progression: v })} />
+      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
+        <span class="font-medium">Key</span>
+        <KeyPicker label="Key" value={pc(s.key)} name={(p) => FLAT_NAMES[p]} onchange={(p) => cfg.set({ key: p })} />
+      </div>
+      <Choice label="Times through" setupKey="rounds" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.rounds} onchange={(v) => cfg.set({ rounds: v })} />
     </div>
     <p class="mt-3 text-sm text-ws-soft">
       Tempo comes from the practice strip ({TEMPO.min} to {TEMPO.max}). Lift within {PEDAL.liftWithinMs} ms after the chord and be back down within {PEDAL.repressWithinMs} ms: starting values, since no one publishes pedal timing.
@@ -277,8 +283,9 @@
       {/each}
     </ol>
     {#if mode === "practice" || phase === "results"}
-      <div class="mb-3"><LineNotation notes={written} title={summaryLine} cursorBeat={barIndex === null ? null : (now - downbeat) / beatMs} keyFifths={signatureFor(pc(s.key), "major")} /></div>
+      <div class="mb-3"><LineNotation notes={written} title="pedal-{progression.id}-{pc(s.key)}-{bars.length}" cursorBeat={barIndex === null ? null : (now - downbeat) / beatMs} keyFifths={signatureFor(pc(s.key), "major")} /></div>
     {/if}
+    {#if phase !== "ready"}
     <figure class="mb-3">
       <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-11 w-full" role="img" aria-label="The pedal over the bars: a line where it was down, a gap where it was up">
         {#each bars as _, k (k)}
@@ -290,7 +297,8 @@
       </svg>
       <figcaption class="text-xs text-ws-stage-soft">Pedal line: down where the line runs, up in the gaps. Each gap should sit just after a bar line.</figcaption>
     </figure>
-    <Piano low={36} high={84} {marks} {flashes} label="Piano keyboard, {noteName(36)} to {noteName(84)}. Left hand root marked L, right hand chord R." />
+    {/if}
+    <Piano low={keys.low} high={keys.high} {marks} {flashes} label="Piano keyboard, {noteName(keys.low)} to {noteName(keys.high)}. Left hand root marked L, right hand chord R." />
   {/snippet}
 
   {#snippet results()}

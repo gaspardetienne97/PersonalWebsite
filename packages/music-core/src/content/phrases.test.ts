@@ -17,7 +17,9 @@ describe("phrases", () => {
     for (const p of PHRASES) {
       const notes = phraseNotes(p);
       expect(notes.length, p.id).toBeGreaterThanOrEqual(4);
-      expect(phraseBeats(p), p.id).toBeLessThanOrEqual(p.beatsPerBar * 4);
+      // A pickup's leading rest is not part of the phrase's length.
+      const lead = p.steps[0][0] === null ? p.steps[0][1] : 0;
+      expect(phraseBeats(p) - lead, p.id).toBeLessThanOrEqual(p.beatsPerBar * 4);
       // Plain note values the staff can draw.
       for (const [, beats] of p.steps)
         expect([0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4], `${p.id} ${beats}`).toContain(beats);
@@ -34,6 +36,21 @@ describe("phrases", () => {
           expect(open[n.string! - 1] + n.fret!, `${p.id} note ${n.index}`).toBe(n.midi);
         }
       }
+    }
+  });
+
+  it("puts a pickup's first strong note on beat 1 of a bar", () => {
+    const strong: Record<string, number> = {
+      "piano.happy-birthday": 2, // "birth"
+      "ukulele.happy-birthday": 2,
+      "piano.greensleeves": 1, // "las"
+      "guitar.amazing-grace": 1, // "ma"
+      "ukulele.amazing-grace": 1,
+      "ukulele.oh-susanna": 2, // "from"
+    };
+    for (const [id, index] of Object.entries(strong)) {
+      const p = PHRASES.find((x) => x.id === id)!;
+      expect(phraseNotes(p)[index].startBeat % p.beatsPerBar, id).toBe(0);
     }
   });
 });

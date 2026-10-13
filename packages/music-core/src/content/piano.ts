@@ -14,7 +14,7 @@ import {
   type VoicingTarget,
 } from "../data";
 import type { Score, ScoreNote } from "../types";
-import { FLAT_NAMES, pc, pcOf } from "../theory/notes";
+import { FLAT_NAMES, SHARP_NAMES, pc, pcOf } from "../theory/notes";
 import { parseChordSymbol, toneRoles, transposeSymbol, type ToneRole } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
 
@@ -188,26 +188,51 @@ const dominant = (id: string) => JAZZ.DOMINANT_VOICINGS.find((v) => v.id === id)
 function voicingTarget(
   key: string,
   symbol: string,
-  root: number,
-  offsets: number[],
+  rootPc: number,
+  rightHand: number[],
   skillIds: string[],
   mode: VoicingTarget["mode"],
 ): VoicingTarget {
-  const displayMidi = [root, ...offsets.filter((o) => o !== 0).map((o) => root + o)];
+  const displayMidi = [leftRoot(rootPc), ...rightHand];
   return {
     id: `${key}-${symbol}`,
     skillIds,
     symbol,
     expectedPitchClasses: [...new Set(displayMidi.map(pc))],
-    expectedBassPc: pc(root),
+    expectedBassPc: pc(rootPc),
     mode,
     displayMidi,
   };
 }
 
+/** A left-hand root, F2 to E3. */
+const leftRoot = (rootPc: number) => 41 + pc(rootPc - 5);
+
+/** The right hand's register for rootless voicings: E3 to G5. */
+export const VOICING_REGISTER: [number, number] = [52, 79];
+
 /**
- * The drill's targets through the 12-key cycle, root in the left hand (shown first).
- * Tonic = 60 + key; ii = tonic + 2, V = tonic + 7, I = tonic.
+ * A voicing's shape (offsets above the root) moved by whole octaves to sit
+ * nearest the chord before it (or around E4 to start), inside E3 to G5 where it fits.
+ * The shape stays as written, so "rootless A" is still 3 5 7 9.
+ */
+function placeVoicing(rootPc: number, offsets: number[], prev?: number[]): number[] {
+  const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
+  const target = prev ? mean(prev) : 64;
+  const [lo, hi] = VOICING_REGISTER;
+  let best: { midi: number[]; cost: number } | undefined;
+  for (let octave = 2; octave <= 6; octave++) {
+    const midi = offsets.map((o) => pc(rootPc) + o + 12 * octave);
+    const outside = Math.max(0, lo - midi[0]) + Math.max(0, midi[midi.length - 1] - hi);
+    const cost = outside * 100 + Math.abs(mean(midi) - target);
+    if (!best || cost < best.cost) best = { midi, cost };
+  }
+  return best!.midi;
+}
+
+/**
+ * The drill's targets through the 12-key cycle, root in the left hand (F2 to E3,
+ * shown first) and the voicing in the right, each placed nearest the one before.
  * - major: rootless ii-V-I, positions A-B-A (or B-A-B).
  * - minor: iiø7 rootless A (b3 b5 b7 1), V7alt (7 b9 3 b13), i-m7 rootless B.
  * - altered: V7b9 (3 7 b9 5), V7alt, then the II-major upper structure over a 1 3 7 shell.
@@ -220,13 +245,21 @@ export function voicingTargets(opts: {
   const mode = opts.mode ?? "chord";
   const skills = ["harmony.ii-v-i", `harmony.ii-v-i.voicings.${opts.variant}`];
   const [p1, p2]: Position[] = opts.startPosition === "B" ? ["B", "A"] : ["A", "B"];
+  let prev: number[] | undefined;
   return KEY_CYCLE.flatMap((key) => {
-    const tonic = 60 + pcOf(key)!;
-    const ii = tonic + 2;
-    const v = tonic + 7;
-    const name = (m: number) => FLAT_NAMES[pc(m)];
-    const t = (symbol: string, root: number, offsets: number[]) =>
-      voicingTarget(key, symbol, root, offsets, skills, mode);
+    const tonic = pcOf(key)!;
+    const ii = pc(tonic + 2);
+    const v = pc(tonic + 7);
+    const name = (p: number) => FLAT_NAMES[p];
+    const t = (symbol: string, root: number, offsets: number[]) => {
+      const rh = placeVoicing(
+        root,
+        offsets.filter((o) => o !== 0),
+        prev,
+      );
+      prev = rh;
+      return voicingTarget(key, symbol, root, rh, skills, mode);
+    };
     if (opts.variant === "major")
       return [
         t(`${name(ii)}m7`, ii, rootless(TONES.m7, p1)),
@@ -366,7 +399,7 @@ export function closestChords(keyPc = 0, register: [number, number] = [55, 76]):
       bar: bar + 1,
       symbol: FLAT_NAMES[root],
       rightHand: rh,
-      leftHand: 36 + pc(root - 5) + 5,
+      leftHand: leftRoot(root),
       inversion: pcs.indexOf(pc(rh[0])),
       expectedBassPc: pc(rh[0]),
       movement: next.movement,
@@ -410,7 +443,7 @@ function voiceLed(
       roman,
       symbol: `${FLAT_NAMES[root]}${quality}`,
       rightHand: rh,
-      leftHand: 36 + pc(root - 5) + 5,
+      leftHand: leftRoot(root),
       inversion: lowest === 0 ? 0 : lowest === 3 || lowest === 4 ? 1 : lowest === 7 ? 2 : 3,
       expectedBassPc: pc(rh[0]),
       movement: next.movement,
@@ -517,6 +550,39 @@ export interface LickNote {
   finger?: number;
 }
 
+/**
+ * Tips rewritten where the source described a left hand the drill never plays,
+ * or joined with dashes.
+ */
+const LICK_TIPS: Record<number, string> = {
+  8: "Diminished line over G7.",
+  9: "Altered scale over G7.",
+  16: "Diminished over G7.",
+  19: "The standard minor ii-V-i scale set: D locrian, G diminished or altered, C dorian.",
+  20: "Locrian, diminished, then dorian: a new scale on each chord.",
+  23: "Altered scale over G7.",
+  26: "Dorian over each chord: C dorian, then F dorian.",
+  28: "Paradiddle texture, played here as one line.",
+  29: "Ascending minor pentatonic in 4-note cells.",
+};
+export const lickTip = (lick: { number: number; tip: string }) =>
+  LICK_TIPS[lick.number] ?? lick.tip;
+
+/**
+ * A lick's text in another key: note names and chord roots move by `semitones`,
+ * spelled with sharps or flats. A lone capital A before a lowercase word is the
+ * article ("A sequence"), not the note.
+ */
+export function transposeText(text: string, semitones: number, sharps = false): string {
+  if (!pc(semitones)) return text;
+  const names = sharps ? SHARP_NAMES : FLAT_NAMES;
+  return text.replace(
+    /(?<![\w#])([A-G])([#b]?)(?=$|[^a-z]|m(?:aj|[^a-z]|$))/g,
+    (m: string, _l: string, _a: string, at: number, all: string) =>
+      m === "A" && /^ [a-z]/.test(all.slice(at + 1)) ? m : names[pc(pcOf(m)! + semitones)],
+  );
+}
+
 /** A lick's playable notes (rests advance time only). Transposing drops the fretted positions. */
 export function lickNotes(lickNumber: number, transpose = 0): LickNote[] {
   let beat = 0;
@@ -593,15 +659,53 @@ export function chordFamily(symbol: string): string | undefined {
   return undefined;
 }
 
-/** The go-to (recommended) scale for a chord; a 7alt chord takes the altered scale. */
+/**
+ * The go-to scale for a chord: the family's recommended one, except a dominant,
+ * which takes mixolydian when plain, lydian dominant with a #11, half-whole
+ * diminished with a b9, and the altered scale when "alt".
+ */
 export function goToScale(symbol: string): (ChordScaleRow & { semitones: number[] }) | undefined {
   const family = chordFamily(symbol);
-  const alt = symbol.includes("alt");
-  const row = JAZZ.CHORD_SCALE_MAP.find((r) =>
-    alt ? r.family === "dom7" && r.scale === "altered" : r.family === family && r.recommended,
+  const dom = (scale: string) => (r: ChordScaleRow) => r.family === "dom7" && r.scale === scale;
+  const row = JAZZ.CHORD_SCALE_MAP.find(
+    family !== "dom7"
+      ? (r) => r.family === family && r.recommended
+      : symbol.includes("alt")
+        ? dom("altered")
+        : /b9/.test(symbol)
+          ? dom("half-whole diminished")
+          : /#11/.test(symbol)
+            ? dom("lydian dominant")
+            : dom("mixolydian"),
   );
-  const semitones = row && scaleSemitones(row.scale);
+  const semitones = row && rowSemitones(row);
   return row && semitones ? { ...row, semitones } : undefined;
+}
+
+/** A row's notes: by its label where that names a scale ("Locrian #2"), else by its scale. */
+const rowSemitones = (row: ChordScaleRow) => scaleSemitones(row.label) ?? scaleSemitones(row.scale);
+
+const TENSION = ["altered", "half-whole diminished", "whole tone"];
+
+/**
+ * The other scales that fit a chord, beside the go-to: the rest of its family's
+ * list. A dominant splits in two: a plain one keeps the mixolydian kind (no
+ * altered tensions), an altered or b9 one only the altered and half-whole
+ * diminished scales (mixolydian's natural 9 and 13 clash with it).
+ */
+export function otherScales(symbol: string): (ChordScaleRow & { semitones: number[] })[] {
+  const go = goToScale(symbol);
+  if (!go) return [];
+  const tense = symbol.includes("alt") || /b9/.test(symbol);
+  return JAZZ.CHORD_SCALE_MAP.flatMap((r) => {
+    const semitones = rowSemitones(r);
+    const fits =
+      r.family === go.family &&
+      r.label !== go.label &&
+      (go.family !== "dom7" ||
+        (tense ? TENSION.slice(0, 2).includes(r.scale) : !TENSION.includes(r.scale)));
+    return fits && semitones ? [{ ...r, semitones }] : [];
+  });
 }
 
 export interface ChordScaleTarget {
@@ -611,6 +715,10 @@ export interface ChordScaleTarget {
   /** The scale up one octave from the chord root at octave 4. */
   midi: number[];
   roles: ToneRole[];
+  /** The other scales that fit (shown as "Also works"). */
+  others: string[];
+  /** Pitch classes graded as inside: the go-to scale and the others together. */
+  accepted: number[];
   skillIds: string[];
 }
 
@@ -620,6 +728,7 @@ export function chordScaleTargets(changes: "major" | "minor", transpose = 0): Ch
     const symbol = transposeSymbol(original, transpose);
     const chord = parseChordSymbol(symbol)!;
     const scale = goToScale(symbol)!;
+    const others = otherScales(symbol);
     return {
       symbol,
       rootPc: chord.rootPc,
@@ -629,6 +738,10 @@ export function chordScaleTargets(changes: "major" | "minor", transpose = 0): Ch
         chord.pcs,
         scale.semitones.map((s) => chord.rootPc + s),
       ),
+      others: others.map((o) => o.label),
+      accepted: [
+        ...new Set([scale, ...others].flatMap((x) => x.semitones.map((s) => pc(chord.rootPc + s)))),
+      ].sort((a, b) => a - b),
       skillIds: [`harmony.ii-v-i.chord-scales.${changes}`],
     };
   });

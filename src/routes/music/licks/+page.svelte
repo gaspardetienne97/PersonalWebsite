@@ -2,9 +2,8 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
-  import { KEY_CYCLE, LICKS, LICK_CATEGORIES, LICK_CATEGORY_LABEL, cycleTranspose, lickChunk, lickNotes, lickSkills, type LickNote } from "@repo/music-core/content/piano";
+  import { KEY_CYCLE, LICKS, LICK_CATEGORY_LABEL, cycleTranspose, lickChunk, lickNotes, lickSkills, lickTip, transposeText, type LickNote } from "@repo/music-core/content/piano";
   import { JAZZ, TUNINGS } from "@repo/music-core/data/index";
-  import { transposeSymbol } from "@repo/music-core/theory/chords";
   import { gradeLick, type LickResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
@@ -12,7 +11,8 @@
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
+  import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
+  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
@@ -23,26 +23,31 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { page } from "$app/state";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
 
   const TEMPO = { min: 40, max: 220 };
   const CATEGORY_LABEL = LICK_CATEGORY_LABEL;
   const GUITAR = TUNINGS.guitar.find((t) => t.id === "standard") ?? TUNINGS.guitar[0];
 
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
-  const urlCategory = page.url.searchParams.get("category");
-  const cfg = new DrillSetup("licks", {
-    lick: page.url.searchParams.has("lick") ? 1 : (LICKS.find((l) => l.category === urlCategory)?.number ?? 1),
-    key: "C",
-  });
+  // `category` is a setup key, so a category link (the drill's modes) lands on that category's first lick over any saved one.
+  const cfg = new DrillSetup("licks", { lick: 1, key: "C", category: "" as string });
   const s = $derived(cfg.value);
-  const lick = $derived(LICKS.find((l) => l.number === s.lick) ?? LICKS[0]);
+  const lick = $derived.by(() => {
+    const picked = LICKS.find((l) => l.number === s.lick) ?? LICKS[0];
+    return s.category && picked.category !== s.category ? (LICKS.find((l) => l.category === s.category) ?? picked) : picked;
+  });
   const original = $derived(lickNotes(lick.number));
   const fretted = $derived(original.some((n) => n.string !== undefined));
-  const transpose = $derived(fretted ? 0 : cycleTranspose(KEY_CYCLE.includes(s.key) ? s.key : "C"));
+  const keyName = $derived(fretted || !KEY_CYCLE.includes(s.key) ? "C" : s.key);
+  const transpose = $derived(fretted ? 0 : cycleTranspose(keyName));
+  const minor = $derived(lick.category.startsWith("minor"));
+  // Spelled the way the key's signature is: sharps in sharp keys, flats otherwise.
+  const keyFifths = $derived(signatureFor(pcOf(keyName) ?? 0, minor ? "natural-minor" : "major"));
+  const sharps = $derived(keyFifths > 0);
+  const tx = (text: string) => transposeText(text, transpose, sharps);
+  const spell = (m: number) => noteName(m, sharps ? "sharp" : "flat", false);
   const all = $derived(lickNotes(lick.number, transpose));
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
 
@@ -58,10 +63,21 @@
   const chunk = $derived(lickChunk(all, lo, hi));
   const whole = $derived(lo === 0 && hi === all.length - 1);
   const t0 = $derived(all[lo]?.startBeat ?? 0);
-  const chunkBeats = $derived(Math.max(1, Math.ceil(chunk.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0))));
+  // The lane ends on the beat of the last attack (a held last note doesn't add an empty beat).
+  const chunkBeats = $derived(Math.max(1, Math.floor(chunk.reduce((m, n) => Math.max(m, n.startBeat), 0)) + 1));
+  /** First and last note of each bar: the chunks offered on the stage. */
+  const barChunks = $derived.by(() => {
+    const out: [number, number][] = [];
+    for (const n of all) {
+      const b = Math.floor(n.startBeat / 4);
+      if (out[b]) out[b][1] = n.index;
+      else out[b] = [n.index, n.index];
+    }
+    return out.filter(Boolean);
+  });
 
   const timed = $derived<(TimedNote & { index: number })[]>(chunk.map((n) => ({ midi: n.midi, beat: n.startBeat, dur: n.durationBeats, finger: n.finger, index: n.index })));
-  const progression = $derived(lick.progression.map((c) => transposeSymbol(c, transpose)));
+  const progression = $derived(lick.progression.map(tx));
   // ponytail: the data has no chord timing, so the chart assumes one chord per bar with the last one held.
   const chordAt = (beat: number) => progression[Math.min(progression.length - 1, Math.floor(beat / 4))];
   const laneChords = $derived.by(() => {
@@ -69,7 +85,8 @@
     for (let b = Math.ceil(t0 / 4) * 4; b < t0 + chunkBeats; b += 4) if (b > t0 && chordAt(b) !== out[out.length - 1].symbol) out.push({ beat: b - t0, symbol: chordAt(b) });
     return out;
   });
-  const techniques = $derived(lick.techniques.map((id) => JAZZ.IMPROV_TECHNIQUES.find((t) => t.id === id)).filter((t) => !!t));
+  // The drill plays the line only, so the left-hand textures are left out.
+  const techniques = $derived(lick.techniques.flatMap((id) => JAZZ.IMPROV_TECHNIQUES.filter((t) => t.id === id && id !== "lh-textures")));
 
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -115,9 +132,11 @@
   const liftedPos = $derived(linePositions(inst, all.map((n) => n.midi + lift)));
   const written = $derived(chunk.map((n) => ({ midi: n.midi + lift, startBeat: n.startBeat, durationBeats: n.durationBeats, ...liftedPos.get(n.midi + lift) })));
 
-  const summaryLine = $derived(
-    `Lick ${lick.number}, ${CATEGORY_LABEL[lick.category] ?? lick.category}, ${progression.join(" ")}${transpose ? ` in ${s.key}` : ""}${whole ? "" : `, notes ${lo + 1} to ${hi + 1}`}, ${bpm} BPM`,
-  );
+  const summaryLine = $derived<SetupClause[]>([
+    { text: `Lick ${lick.number}, ${CATEGORY_LABEL[lick.category] ?? lick.category}`, focus: "lick" },
+    fretted ? { text: progression.join(" ") } : { text: `${progression.join(" ")}${transpose ? ` in ${keyName}` : ""}`, focus: "key" },
+    ...(whole ? [] : [{ text: `notes ${lo + 1} to ${hi + 1}` }]),
+  ]);
   const setupKey = $derived(`lick:${lick.number}:${transpose}:${lo}-${hi}:${bpm}`);
 
   async function demo(speed: number, times = 1) {
@@ -204,7 +223,7 @@
           ? mode === "check"
             ? `All ${r.total} notes in order, from memory.`
             : `${r.matched} of ${r.total} in order. Try it in Check with the notes hidden.`
-          : `${r.matched} of ${r.total} right. It slipped at note ${lo + (r.firstWrong ?? 0) + 1}${wrong ? `, the ${noteName(wrong.midi, "flat", false)}` : ""}.`,
+          : `${r.matched} of ${r.total} right. It slipped at note ${lo + (r.firstWrong ?? 0) + 1}${wrong ? `, the ${spell(wrong.midi)}` : ""}.`,
       metric: pct(r.score),
       metricLabel: "notes in order",
       delta: fin.delta,
@@ -249,8 +268,7 @@
     transport.stop();
   });
 
-  const lickOptions = LICKS.map((l) => ({ value: l.number, label: `${l.number}. ${CATEGORY_LABEL[l.category] ?? l.category}: ${l.progression.join(" ")}` }));
-  const noteOptions = $derived(all.map((n) => ({ value: n.index, label: `${n.index + 1}, ${noteName(n.midi)}` })));
+  const lickItems = LICKS.map((l) => ({ value: l.number, title: `Lick ${l.number}: ${l.progression.join(" ")}`, meta: lickTip(l), group: CATEGORY_LABEL[l.category] ?? l.category, keywords: l.scales.join(" ") }));
 </script>
 
 <svelte:head><title>Jazz licks | Woodshed</title></svelte:head>
@@ -272,23 +290,23 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Lick" select options={lickOptions} value={lick.number} onchange={(v) => cfg.set({ lick: v })} />
+      <CatalogPicker label="Lick" setupKey="lick" noun="lick" recentKey="licks" items={lickItems} value={lick.number} onchange={(v) => cfg.set({ lick: v, category: LICKS.find((l) => l.number === v)?.category ?? "" })} />
       {#if fretted}
         <p class="self-end text-sm text-ws-soft">A guitar lick on its fretboard position; it stays in its own key. Lick 31 is lick 30's shape moved to the fifth fret.</p>
       {:else}
-<div class="flex min-w-0 flex-col gap-1 text-sm">
+      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
         <span class="font-medium">Key</span>
         <KeyPicker label="Key" value={pcOf(KEY_CYCLE.includes(s.key) ? s.key : "C")!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
       </div>
       {/if}
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Categories: {LICK_CATEGORIES.map((c) => CATEGORY_LABEL[c] ?? c).join(", ")}. Tempo comes from the practice strip.</p>
+    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. The licks are written in C; the key moves the line, the chords and the text together.</p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Note" value="{Math.min(played + 1, chunk.length)} of {chunk.length}" />
-      {#if mode === "practice" && next}<Stat label="Next" value={noteName(next.midi)} />{/if}
+      {#if mode === "practice" && next}<Stat label="Next" value={spell(next.midi)} />{/if}
     {:else if result}
       <Stat label="In order" value="{result.matched}/{result.total}" tone={result.correct ? "success" : "warn"} />
       <Stat label="On time" value="{result.onTime}/{result.total}" />
@@ -299,34 +317,32 @@
     <div class="mb-3 grid gap-3 text-sm lg:grid-cols-[1fr_auto]">
       <div class="min-w-0">
         <p class="font-display text-xl font-semibold">{progression.join("  ")}</p>
-        <p class="text-ws-stage-soft">Scales: {lick.scales.join(", ")}.</p>
-        <p class="mt-1"><span class="font-semibold">Tip:</span> {lick.tip}</p>
+        <p class="text-ws-stage-soft">Scales: {lick.scales.map(tx).join(", ")}.</p>
+        <p class="mt-1"><span class="font-semibold">Tip:</span> {tx(lickTip(lick))}</p>
         {#each techniques as t (t.id)}
-          <p class="text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{t.name}.</span> {t.summary}</p>
+          <p class="text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{t.name}.</span> {tx(t.summary)}</p>
         {/each}
       </div>
       {#if phase !== "running" && phase !== "countin"}
         <div class="flex flex-wrap items-end gap-2 lg:justify-end">
-          <div class="flex flex-col gap-1 text-xs text-ws-stage-soft">
-            First note
-            <Picker class="min-w-32" tone="stage" label="First note" value={String(lo)} options={noteOptions.map((o) => ({ value: String(o.value), label: o.label }))} onchange={(v) => setChunk(Number(v), hi)} />
-          </div>
-          <div class="flex flex-col gap-1 text-xs text-ws-stage-soft">
-            Last note
-            <Picker class="min-w-32" tone="stage" label="Last note" value={String(hi)} options={noteOptions.map((o) => ({ value: String(o.value), label: o.label }))} onchange={(v) => setChunk(lo, Number(v))} />
-          </div>
+          {#if barChunks.length > 1}
+            <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Chunk">
+              <span class="text-xs text-ws-stage-soft">Chunk</span>
+              {#each barChunks as [a, b], i (i)}
+                <button type="button" class="min-h-11 rounded-full border px-3 font-medium {lo === a && hi === b ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-stage-ink/25 hover:bg-ws-stage-ink/10'}" aria-pressed={lo === a && hi === b} onclick={() => setChunk(a, b)}>Bar {i + 1}</button>
+              {/each}
+              <button type="button" class="min-h-11 rounded-full border px-3 font-medium {whole ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-stage-ink/25 hover:bg-ws-stage-ink/10'}" aria-pressed={whole} onclick={() => (chunkSel = null)}>Whole lick</button>
+            </div>
+          {/if}
           {#if mode === "practice"}
             <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => demo(0.5)}>Half speed</button>
             <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10 disabled:opacity-50" disabled={whole} onclick={() => demo(1, 3)}>Loop chunk 3 times</button>
-          {/if}
-          {#if !whole}
-            <button type="button" class="min-h-11 rounded-full px-3 font-medium underline-offset-4 hover:underline" onclick={() => (chunkSel = null)}>Whole lick</button>
           {/if}
         </div>
       {/if}
     </div>
     <BeatLane
-      rows={[{ id: "line", mark: fretted ? "♪" : "R", label: "The line", hand: fretted ? undefined : "right", notes: timed.map((n) => ({ beat: n.beat, dur: n.dur, text: noteName(n.midi, "flat", false) })) }]}
+      rows={[{ id: "line", mark: fretted ? "♪" : "R", label: "The line", hand: fretted ? undefined : "right", notes: timed.map((n) => ({ beat: n.beat, dur: n.dur, text: spell(n.midi) })) }]}
       beats={chunkBeats}
       beat={transport.beat}
       chords={laneChords}
@@ -345,7 +361,7 @@
       </div>
     {:else if !fretted && (mode === "practice" || transport.playing || phase === "results")}
       <div class="mb-3">
-        <LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.playing ? transport.beat : null} groupStates={tabStates} keyFifths={signatureFor(pcOf(s.key) ?? 0, "major")} />
+        <LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.playing ? transport.beat : null} groupStates={tabStates} {keyFifths} />
       </div>
     {/if}
     {#if fretted}
@@ -373,10 +389,3 @@
     {/if}
   {/snippet}
 </DrillShell>
-
-<style>
-  .stage-select {
-    background: var(--ws-stage-2);
-    color: var(--ws-stage-ink);
-  }
-</style>

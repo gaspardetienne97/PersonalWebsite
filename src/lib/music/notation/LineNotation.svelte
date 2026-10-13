@@ -47,18 +47,20 @@
   });
   let width = $state(0);
   // Measured: a line engraves at about 90 px plus 25 a note (Spider's 16 notes 521 px,
-  // Fingerpicking's 32 notes 896 px). The engraver doesn't stretch a short last line,
-  // so the line is drawn to fill; the zoom only sizes the glyphs, never below a note's natural room.
+  // Fingerpicking's 32 notes 896 px). A short line is zoomed up to fill the stage; a
+  // long one down (to 0.7) so it fits on fewer systems instead of spilling a near-empty one.
   const attacks = $derived(new Set(notes.map((n) => n.startBeat)).size);
-  const zoom = $derived(width ? Math.min(1.6, Math.max(1, width / (90 + 25 * attacks))) : 1);
+  const zoom = $derived(width ? Math.min(1.6, Math.max(0.7, width / (90 + 25 * attacks))) : 1);
+  // The visible height is capped whatever the zoom (a grand staff at 20rem); taller scrolls.
+  const maxHeight = $derived(`${((voices.length > 1 ? 20 : 16) / zoom).toFixed(2)}rem`);
 </script>
 
 <div class="line-notation" data-testid={tuning ? "line-tab" : "line-staff"} bind:clientWidth={width}>
   <div style:zoom={zoom}>
     {#if tuning}
-      <Tab {score} {tuning} {cursorBeat} {groupStates} fill maxHeight="24rem" />
+      <Tab {score} {tuning} {cursorBeat} {groupStates} fill {maxHeight} />
     {:else}
-      <Staff {score} {cursorBeat} {groupStates} fill maxHeight={voices.length > 1 ? "32rem" : "24rem"} />
+      <Staff {score} {cursorBeat} {groupStates} fill {maxHeight} />
     {/if}
   </div>
 </div>

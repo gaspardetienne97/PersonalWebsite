@@ -3,7 +3,6 @@
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
   import { KEY_CYCLE, chordScaleTargets, cycleTranspose, goToScale } from "@repo/music-core/content/piano";
-  import { JAZZ } from "@repo/music-core/data/index";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
   import { gradeChordScales, type ChordScaleResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
@@ -11,6 +10,7 @@
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
+  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -42,8 +42,7 @@
     chordScaleTargets(changes, cycleTranspose(key)).map((t) => {
       const chord = parseChordSymbol(t.symbol)!;
       const sc = goToScale(t.symbol);
-      const others = JAZZ.CHORD_SCALE_MAP.filter((r) => sc && r.family === sc.family && r.scale !== sc.scale).map((r) => r.label);
-      return { ...t, chord, hint: sc?.hint?.replace(/\s*\(JT\d+\)/g, ""), others };
+      return { ...t, chord, hint: sc?.hint?.replace(/\s*\(JT\d+\)/g, "") };
     }),
   );
   const totalBeats = $derived(targets.length * perChord);
@@ -98,7 +97,11 @@
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (transport.playing) {
-      for (const n of sounding(demoNotes, transport.beat)) if (n.hand === "right") out[n.midi] = { demo: true, label: toneLabel(n.midi - current.chord.rootPc, current.chord.intervals), role: current.roles[pc(n.midi)] };
+      // Each sounding note is named by its own chord, not the one the chart is about to change to.
+      for (const n of sounding(demoNotes, transport.beat)) {
+        const own = targets[Math.min(targets.length - 1, Math.floor(n.beat / perChord))];
+        if (n.hand === "right") out[n.midi] = { demo: true, label: toneLabel(n.midi - own.chord.rootPc, own.chord.intervals), role: own.roles[pc(n.midi)] };
+      }
     }
     const showKey = transport.playing || (mode === "practice" && phase !== "results");
     if (!showKey || !current) return out;
@@ -109,7 +112,10 @@
     return out;
   });
 
-  const summaryLine = $derived(`${changes === "major" ? "Major ii-V-I" : "Minor ii-V-i"} in ${key} (${targets.map((t) => t.symbol).join(" ")}), ${perChord === 8 ? "two bars" : "one bar"} per chord, ${bpm} BPM`);
+  const summaryLine = $derived<SetupClause[]>([
+    { text: `${changes === "major" ? "Major ii-V-I" : "Minor ii-V-i"} in ${key} (${targets.map((t) => t.symbol).join(" ")})`, focus: "key" },
+    { text: `${perChord === 8 ? "two bars" : "one bar"} per chord`, focus: "beats" },
+  ]);
   const setupKey = $derived(`chord-scales:${changes}:${key}:${perChord}:${bpm}`);
 
   async function playDemo() {
@@ -156,7 +162,7 @@
     const ons = (cap?.notes ?? []).filter((n) => n.kind === "noteon");
     const byChord = targets.map(() => [] as number[]);
     for (const n of ons) byChord[chordIndexAt((n.at - ctx.downbeat) / ctx.beatMs)].push(n.midi);
-    const r = gradeChordScales(targets.map((t, i) => ({ symbol: t.symbol, chordPcs: t.chord.pcs, scalePcs: t.midi, played: byChord[i] })));
+    const r = gradeChordScales(targets.map((t, i) => ({ symbol: t.symbol, chordPcs: t.chord.pcs, scalePcs: t.accepted, played: byChord[i] })));
     result = r;
     phase = "results";
     const source = runSource(ons);
@@ -225,6 +231,12 @@
   hue="piano"
   blurb="As the ii-V-I moves, play the go-to scale for the chord you're on. Every note is judged against that chord's scale."
   summary={summaryLine}
+  tabs={[
+    { id: "major", label: "Major ii-V-I" },
+    { id: "minor", label: "Minor ii-V-i" },
+  ]}
+  tab={changes}
+  ontab={(id) => cfg.set({ changes: id })}
   bind:phase
   bind:mode
   bind:status
@@ -236,22 +248,14 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <div class="grid gap-4 sm:grid-cols-3">
-      <Choice
-        label="Changes"
-        options={[
-          { value: "major", label: "Major ii-V-I" },
-          { value: "minor", label: "Minor ii-V-i" },
-        ]}
-        value={changes}
-        onchange={(v) => cfg.set({ changes: v })}
-      />
-<div class="flex min-w-0 flex-col gap-1 text-sm">
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
         <span class="font-medium">Key</span>
         <KeyPicker label="Key" value={pcOf(key)!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
       </div>
       <Choice
         label="Each chord lasts"
+        setupKey="beats"
         options={[
           { value: 4, label: "One bar" },
           { value: 8, label: "Two bars" },
@@ -289,7 +293,7 @@
     {#if mode === "practice" && current}
       <p class="mb-3 text-sm text-ws-stage-soft">
         <span class="font-semibold text-ws-stage-ink">{current.symbol}: {current.scaleLabel}.</span>
-        {current.hint ?? ""}{current.others.length ? ` Also works: ${current.others.join(", ")}.` : ""}
+        {current.hint ?? ""}{current.others.length ? ` Also works, and graded as inside: ${current.others.join(", ")}.` : ""}
       </p>
     {:else if mode === "check" && phase !== "results"}
       <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the scale names and the colour key are hidden. Play what fits each chord.</p>

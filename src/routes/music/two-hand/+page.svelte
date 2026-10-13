@@ -10,6 +10,7 @@
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
+  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
@@ -24,14 +25,14 @@
 
   const TEMPO = { min: 50, max: 140 };
   const BARS = 2;
-  const ABOUT: Record<TwoHandPatternId, string> = {
+  const ABOUT = (tonicName: string): Record<TwoHandPatternId, string> => ({
     "lh-pulse-rh-line": "Left hand holds the root on every beat while the right hand runs eighths up and down the scale.",
     "rh-pulse-lh-line": "Roles swapped: the right hand keeps the pulse, the left hand runs the eighth-note line.",
     "lh-shell-rh-line": "Left hand walks root, fifth, seventh, fifth; the right hand plays an eighth-note fragment over it.",
     "alberti-rh-holds": "Left hand plays an Alberti figure in eighths; the right hand holds one note per beat.",
     "contrary-motion-scale": "Both hands run the scale in eighths, moving in opposite directions.",
-    "contrary-five": "Both thumbs on C, an octave apart. Walk outward, then back, same finger in both hands on every beat.",
-  };
+    "contrary-five": `Both thumbs on ${tonicName}, an octave apart. Walk outward, then back, same finger in both hands on every beat.`,
+  });
 
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
   const cfg = new DrillSetup("two-hand", {
@@ -119,9 +120,13 @@
   const eighths = $derived(notes.some((n) => n.beat % 1 !== 0));
 
   const patternLabel = $derived(TWO_HAND_PATTERNS.find((p) => p.id === pattern)?.label ?? pattern);
-  const summaryLine = $derived(
-    `${patternLabel} from ${s.tonic}, ${hand === "both" ? "both hands" : `${hand} hand`}, ${bpm} BPM${s.dynamics ? ", dynamics on" : ""}`,
-  );
+  const tonicName = $derived(noteName(tonic, "flat", false));
+  const about = $derived(ABOUT(tonicName));
+  const summaryLine = $derived<SetupClause[]>([
+    { text: `${patternLabel} from ${tonicName}`, focus: "pattern" },
+    { text: hand === "both" ? "both hands" : `${hand} hand only`, focus: "hand" },
+    ...(s.dynamics ? [{ text: "melody louder" }] : []),
+  ]);
   const setupKey = $derived(`two-hand:${pattern}:${s.tonic}:${hand}:${s.dynamics ? "dyn" : "flat"}:${bpm}`);
 
   async function playDemo() {
@@ -282,21 +287,12 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Choice label="Pattern" select options={TWO_HAND_PATTERNS.map((p) => ({ value: p.id as string, label: p.label }))} value={pattern} onchange={(v) => cfg.set({ pattern: v })} />
-      <Choice label="Tonic" options={TWO_HAND_TONICS.map((t) => ({ value: t.name, label: t.name }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
-      <Choice label="Hands" options={TWO_HAND_MODES.map((m) => ({ value: m.id as string, label: m.label }))} value={hand} onchange={(v) => cfg.set({ hand: v })} />
-      <Choice
-        label="Dynamics"
-        options={[
-          { value: "off", label: "Off" },
-          { value: "on", label: "Melody louder" },
-        ]}
-        value={s.dynamics ? "on" : "off"}
-        onchange={(v) => cfg.set({ dynamics: v === "on" })}
-      />
+    <div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
+      <Choice label="Pattern" setupKey="pattern" options={TWO_HAND_PATTERNS.map((p) => ({ value: p.id as string, label: p.label, hint: about[p.id] }))} value={pattern} onchange={(v) => cfg.set({ pattern: v })} />
+      <Choice label="Tonic" options={TWO_HAND_TONICS.map((t) => ({ value: t.name, label: noteName(t.midi, "flat", false) }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
+      <Choice label="Practise" setupKey="hand" options={TWO_HAND_MODES.map((m) => ({ value: m.id as string, label: m.id === "both" ? "Both hands" : `${m.label} only` }))} value={hand} onchange={(v) => cfg.set({ hand: v })} />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. Mirror hands starts at 60 to 66 BPM.</p>
+    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. Mirror hands starts at 60 to 66 BPM. Dynamics sits on the stage.</p>
   {/snippet}
 
   {#snippet hud()}
@@ -312,7 +308,7 @@
 
   {#snippet stage()}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-      <p class="max-w-prose text-ws-stage-soft">{ABOUT[pattern]}</p>
+      <p class="max-w-prose text-ws-stage-soft">{about[pattern]}</p>
       <div class="flex flex-wrap items-center gap-2">
         <button
           type="button"

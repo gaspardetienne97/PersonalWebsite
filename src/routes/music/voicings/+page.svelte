@@ -3,10 +3,13 @@
   import type { NoteEvent } from "@repo/music-core";
   import { FLAT_NAMES, noteName, pc, pcOf } from "@repo/music-core";
   import { KEY_CYCLE } from "@repo/music-core/content/piano";
+  import { signatureFor } from "@repo/music-core/theory/circle";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
+  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
@@ -19,14 +22,14 @@
   import { settings } from "$lib/music/runtime";
   import { nextRun } from "$lib/music/advance.svelte";
 
-  const VARIANTS: { value: Variant; label: string }[] = [
-    { value: "major", label: "Major ii-V-I" },
-    { value: "minor", label: "Minor ii-V-i" },
-    { value: "altered", label: "Altered dominants" },
-    { value: "inversions", label: "Closest chords, I IV V I" },
-    { value: "voice-leading", label: "Guide tones through the keys" },
-    { value: "cadence", label: "Cadences I IV I V7 I" },
-    { value: "cadence-minor", label: "Minor cadences i iv i V7 i" },
+  const VARIANTS: { value: Variant; label: string; tab: string }[] = [
+    { value: "major", label: "Major ii-V-I", tab: "Major ii-V-I" },
+    { value: "minor", label: "Minor ii-V-i", tab: "Minor ii-V-i" },
+    { value: "altered", label: "Altered dominants", tab: "Altered" },
+    { value: "inversions", label: "Closest chords, I IV V I", tab: "Closest chords" },
+    { value: "voice-leading", label: "Guide tones through the keys", tab: "Guide tones" },
+    { value: "cadence", label: "Cadences I IV I V7 I", tab: "Cadences" },
+    { value: "cadence-minor", label: "Minor cadences i iv i V7 i", tab: "Minor cadences" },
   ];
   const KEY_STEPS = [
     { value: 1, label: "One key" },
@@ -39,7 +42,6 @@
     variant: "major" as string,
     key: 0,
     keys: 3,
-    strict: false as boolean,
     position: "A" as string,
   });
   const s = $derived(cfg.value);
@@ -89,12 +91,16 @@
   });
 
   const variantLabel = $derived(VARIANTS.find((v) => v.value === variant)!.label);
-  const summaryLine = $derived(
-    variant === "inversions"
-      ? `${variantLabel} in ${FLAT_NAMES[pc(s.key)]}, ${s.strict ? "strict" : "notes collected"}`
-      : `${variantLabel} from ${FLAT_NAMES[pc(s.key)]}, ${s.keys === 12 ? "all 12 keys" : `${s.keys} key${s.keys > 1 ? "s" : ""}`}, ${s.strict ? "strict" : "notes collected"}${monophonic ? ", arpeggio" : ""}`,
-  );
-  const setupKey = $derived(`voicings:${variant}:${pc(s.key)}:${variant === "inversions" ? 1 : s.keys}:${s.strict ? "strict" : "collected"}:${monophonic ? "arp" : "chord"}:${s.position}`);
+  const keyName = (p: number) => KEY_CYCLE.find((k) => pcOf(k) === pc(p)) ?? FLAT_NAMES[pc(p)];
+  const summaryLine = $derived<SetupClause[]>([
+    { text: `${variantLabel} ${variant === "inversions" ? "in" : "from"} ${keyName(s.key)}`, focus: "key" },
+    ...(variant === "inversions" ? [] : [{ text: s.keys === 12 ? "all 12 keys" : `${s.keys} key${s.keys > 1 ? "s" : ""}`, focus: "keys" }]),
+    ...(variant === "major" ? [{ text: `starting in position ${s.position}`, focus: "position" }] : []),
+    ...(monophonic ? [{ text: "as arpeggios" }] : []),
+  ]);
+  const setupKey = $derived(`voicings:${variant}:${pc(s.key)}:${variant === "inversions" ? 1 : s.keys}:${monophonic ? "arp" : "chord"}:${s.position}`);
+  // The staff in the current key's signature (minor variants in the minor key's).
+  const keyFifths = $derived(group[0] ? signatureFor(group[0].keyPc, group[0].minor ? "natural-minor" : "major") : 0);
   const skills = $derived([...new Set(items.flatMap((i) => i.skillIds))]);
 
   async function playDemo() {
@@ -106,7 +112,8 @@
   function prompt() {
     collected = [];
     peak = [];
-    collectedMode = !s.strict || monophonic;
+    // Held and strict on MIDI; on-screen keys and one-note instruments collect the notes instead.
+    collectedMode = monophonic;
     promptAt = performance.now();
     if (current) status = `Play ${current.symbol}.`;
   }
@@ -140,7 +147,7 @@
     const item = current;
     if (!item || advance) return;
     clearTimeout(settle);
-    const g = gradeItem(item, played, { strict: s.strict && !collectedMode, arpeggio: monophonic });
+    const g = gradeItem(item, played, { strict: !collectedMode, arpeggio: monophonic });
     grades[index] = g;
     if (mode === "practice") for (const m of new Set(played)) flashes.add(m, item.pcs.includes(pc(m)) ? "correct" : "wrong", 600);
     status = g.correct ? `${item.symbol}: right.` : `${item.symbol}: ${g.note}.`;
@@ -187,7 +194,7 @@
       assistance: assistanceFor(mode),
       difficulty: variant === "altered" ? 0.75 : variant === "minor" ? 0.65 : variant === "inversions" ? 0.35 : variant === "cadence" ? 0.45 : variant === "cadence-minor" ? 0.5 : 0.55,
       instrument: settings.value.activeInstrument,
-      params: { variant, key: pc(s.key), keys: s.keys, strict: s.strict, arpeggio: monophonic },
+      params: { variant, key: pc(s.key), keys: s.keys, arpeggio: monophonic },
     });
     cap = capture(performance.now(), (e) => (e.kind === "noteon" || e.kind === "noteoff") && onEvent(e));
     prompt();
@@ -225,14 +232,14 @@
         { label: "Right notes", value: done.length ? done.filter((g) => g.missing.length === 0).length / items.length : 0, text: `${done.filter((g) => g.missing.length === 0).length} of ${items.length} chords` },
         monophonic
           ? { label: "Held together (arpeggio mode)", notMeasured: true }
-          : onScreen || !s.strict
-            ? { label: onScreen ? "Held together (on-screen keys)" : "Held together (notes collected)", notMeasured: true }
+          : onScreen
+            ? { label: "Held together (on-screen keys)", notMeasured: true }
             : { label: "Held together", text: "Strict: graded on the held chord" },
       ],
       // Untimed: the ladder is one key, three, then all 12. Inversions has one key only.
       advance:
         variant !== "inversions" && notes.some((n) => n.kind === "noteon")
-          ? await nextRun(`voicings.${variant}.${pc(s.key)}.${s.strict ? "strict" : "collected"}.${monophonic ? "arp" : "chord"}.${s.position}`, { steps: KEY_STEPS, step: Math.max(0, KEY_STEPS.findIndex((k) => k.value === s.keys)) }, { score, correct }, ({ step }) => step !== undefined && cfg.set({ keys: KEY_STEPS[step].value }))
+          ? await nextRun(`voicings.${variant}.${pc(s.key)}.${monophonic ? "arp" : "chord"}.${s.position}`, { steps: KEY_STEPS, step: Math.max(0, KEY_STEPS.findIndex((k) => k.value === s.keys)) }, { score, correct }, ({ step }) => step !== undefined && cfg.set({ keys: KEY_STEPS[step].value }))
           : undefined,
     };
     status = summary.headline;
@@ -261,10 +268,13 @@
 <svelte:head><title>Voicings | Woodshed</title></svelte:head>
 
 <DrillShell
-  title="ii-V-I voicings"
+  title="Voicings"
   hue="piano"
   blurb="Rootless jazz voicings through the keys, closest-chord inversions, cadences in every key, and guide-tone voice leading. Untimed: take the time to find each chord."
   summary={summaryLine}
+  tabs={VARIANTS.map((v) => ({ id: v.value, label: v.tab }))}
+  tab={variant}
+  ontab={(id) => cfg.set({ variant: id })}
   bind:phase
   bind:mode
   bind:status
@@ -275,12 +285,15 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Choice label="Variant" select options={VARIANTS} value={variant} onchange={(v) => cfg.set({ variant: v })} />
-      <Choice label="Start key" select options={KEY_CYCLE.map((k) => ({ value: pcOf(k) ?? 0, label: k }))} value={pc(s.key)} onchange={(v) => cfg.set({ key: v })} />
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
+        <span class="font-medium">{variant === "inversions" ? "Key" : "Start key"}</span>
+        <KeyPicker label={variant === "inversions" ? "Key" : "Start key"} value={pc(s.key)} name={keyName} onchange={(p) => cfg.set({ key: p })} />
+      </div>
       {#if variant !== "inversions"}
         <Choice
           label="Keys"
+          setupKey="keys"
           options={[
             { value: 1, label: "One" },
             { value: 3, label: "Three" },
@@ -290,18 +303,10 @@
           onchange={(v) => cfg.set({ keys: v })}
         />
       {/if}
-      <Choice
-        label="Chord mode"
-        options={[
-          { value: "strict", label: "Strict, held" },
-          { value: "collected", label: "Notes collected" },
-        ]}
-        value={s.strict ? "strict" : "collected"}
-        onchange={(v) => cfg.set({ strict: v === "strict" })}
-      />
       {#if variant === "major"}
         <Choice
           label="First position"
+          setupKey="position"
           options={[
             { value: "A", label: "A (3 5 7 9)" },
             { value: "B", label: "B (7 9 3 5)" },
@@ -312,7 +317,7 @@
       {/if}
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      Strict grades the chord you hold, with no extra notes. Notes collected tolerates extras and doesn't need the notes held together.
+      Over MIDI each chord is graded as you hold it, with no extra notes. On-screen keys collect the notes one at a time; a one-note instrument plays each voicing as an arpeggio.
     </p>
   {/snippet}
 
@@ -342,7 +347,7 @@
       {#if items.length > group.length}<li class="self-center text-sm text-ws-stage-soft">{group[0]?.group} of {new Set(items.map((i) => i.group)).size} keys</li>{/if}
     </ol>
     {#if mode === "practice" || transport.playing || phase === "results"}
-      <div class="mb-3"><LineNotation notes={toWritten(demoNotes).map((n) => (monophonic ? n : { ...n, durationBeats: 2 }))} title={`voicings-${group[0]?.group}`} cursorBeat={transport.beat ?? (phase === "running" && current ? group.indexOf(current) * 2 : null)} /></div>
+      <div class="mb-3"><LineNotation notes={toWritten(demoNotes).map((n) => (monophonic ? n : { ...n, durationBeats: 2 }))} title={`voicings-${group[0]?.group}`} {keyFifths} cursorBeat={transport.beat ?? (phase === "running" && current ? group.indexOf(current) * 2 : null)} /></div>
     {/if}
     {#if current && mode === "practice"}
       <div class="mb-3 text-sm">
@@ -361,7 +366,7 @@
         {#if monophonic}
           Arpeggio mode: {settings.value.activeInstrument === "aerophone" ? "the Aerophone" : "your voice"} plays one note at a time, so each voicing is graded as an arpeggio. Play the root first, then the other tones in any order.
         {:else if phase === "running" && collectedMode}
-          Notes collected: {collected.length ? collected.map(nameOf).join(" ") : "nothing yet"}. Held together is not measured{s.strict ? " for on-screen keys" : ""}.
+          Notes collected: {collected.length ? collected.map(nameOf).join(" ") : "nothing yet"}. On-screen keys play one at a time, so held together is not measured.
         {:else}
           Keys show L for the left-hand root and R for the right hand. Voicings carry no authored fingering.
         {/if}

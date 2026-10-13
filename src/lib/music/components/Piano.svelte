@@ -50,15 +50,17 @@
   let scroller: HTMLDivElement | undefined = $state();
   const pointerNotes = new Map<number, number>();
 
-  // Keep the first target in view on narrow screens.
+  // On narrow screens, centre the marked keys (both hands of a chord), not just the lowest one.
   $effect(() => {
-    const first = keys.find((k) => marks[k]?.target || marks[k]?.demo);
-    if (first === undefined || !scroller) return;
-    const el = scroller.querySelector<HTMLElement>(`[data-midi="${first}"]`);
-    if (!el) return;
-    const { left, right } = el.getBoundingClientRect();
+    const lit = keys.filter((k) => marks[k]?.target || marks[k]?.demo);
+    if (!lit.length || !scroller) return;
+    const lo = scroller.querySelector<HTMLElement>(`[data-midi="${lit[0]}"]`);
+    const hi = scroller.querySelector<HTMLElement>(`[data-midi="${lit[lit.length - 1]}"]`);
+    if (!lo || !hi) return;
+    const left = lo.getBoundingClientRect().left;
+    const right = hi.getBoundingClientRect().right;
     const box = scroller.getBoundingClientRect();
-    if (left < box.left || right > box.right) scroller.scrollLeft += left - box.left - box.width / 3;
+    if (left < box.left || right > box.right) scroller.scrollLeft += (left + right) / 2 - (box.left + box.width / 2);
   });
 
   function press(e: PointerEvent, midi: number) {

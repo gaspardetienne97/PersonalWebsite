@@ -26,6 +26,9 @@ export interface VoicingItem {
   symbol: string;
   /** Key name the item belongs to (the chord chart groups by it). */
   group: string;
+  /** That key's tonic and mode (the staff's key signature). */
+  keyPc: number;
+  minor: boolean;
   kind: "voicing" | "closest" | "guide";
   show: Shown[];
   /** How the voicing is built (hidden in Check). */
@@ -45,12 +48,17 @@ export interface VoicingItem {
 export const CLOSEST_REGISTER: [number, number] = [55, 76];
 const CLOSEST_SPLIT = 55;
 const strip = (t?: string) => t?.replace(/\s*\(JT\d+\)/g, "").trim();
+/** Hints as one text, each sentence ending in a single period. */
+function joinHints(...hints: (string | undefined)[]) {
+  const parts = hints.flatMap((h) => (h ? [h.trim().replace(/\.+$/, "")] : []));
+  return parts.length ? `${parts.join(". ")}.` : undefined;
+}
 const DOM = Object.fromEntries(JAZZ.DOMINANT_VOICINGS.map((v) => [v.id, v]));
 const US_II = JAZZ.UPPER_STRUCTURES.find((u) => u.id === "us-II")!;
 
 function scaleHint(symbol: string) {
   const sc = goToScale(symbol);
-  return sc ? `Go-to scale: ${sc.label}${sc.hint ? `. ${strip(sc.hint)}` : ""}` : undefined;
+  return sc ? joinHints(`Go-to scale: ${sc.label}`, strip(sc.hint)) : undefined;
 }
 
 /** Keys of the cycle from `startPc`, `count` of them. */
@@ -80,6 +88,8 @@ export function voicingItems(opts: {
         id: b.id,
         symbol: b.symbol,
         group,
+        keyPc: pcOf(key)!,
+        minor,
         kind: "closest" as const,
         show: [
           { midi: b.leftHand, hand: "left" as const },
@@ -111,6 +121,8 @@ export function voicingItems(opts: {
       id: b.id,
       symbol: b.symbol,
       group: `I IV V I in ${bars[0].symbol}`,
+      keyPc: pc(opts.keyPc),
+      minor: false,
       kind: "closest",
       show: [
         { midi: b.leftHand, hand: "left" },
@@ -144,6 +156,8 @@ export function voicingItems(opts: {
       id: t.id,
       symbol: t.symbol,
       group: KEY_CYCLE[Math.floor((j0 + i + 1) / 3) % 12],
+      keyPc: pcOf(KEY_CYCLE[Math.floor((j0 + i + 1) / 3) % 12])!,
+      minor: false,
       kind: "guide",
       show: t.targetMidi.map((midi) => ({ midi, hand: "right" as const })),
       name: `The 3rd and 7th of ${t.symbol}, moving ${t.minimumSemitones} semitone${t.minimumSemitones === 1 ? "" : "s"} at best.`,
@@ -187,13 +201,15 @@ export function voicingItems(opts: {
         id: t.id,
         symbol: t.symbol,
         group: key,
+        keyPc: pcOf(key)!,
+        minor: variant === "minor",
         kind: "voicing" as const,
         show: t.displayMidi.map((midi, j) => ({
           midi,
           hand: j === 0 ? ("left" as const) : ("right" as const),
         })),
         name: `${names[variant][i]}. Root in the left hand.`,
-        hint: [hints[variant][i], scaleHint(t.symbol)].filter(Boolean).join(". "),
+        hint: joinHints(hints[variant][i], scaleHint(t.symbol)),
         pcs: t.expectedPitchClasses,
         count: t.displayMidi.length,
         skillIds: t.skillIds,
@@ -217,6 +233,17 @@ export interface ItemGrade {
  * root and the voice leading from the previous bar all have to be right; the
  * score is the mean of the chord and the movement, capped at half without the root.
  */
+/**
+ * Collected notes for a voice-leading check: the last one played of each target
+ * pitch class, so a stray or repeated key doesn't spoil the move.
+ */
+export function lastOfEach(played: readonly number[], pcs: readonly number[]): number[] {
+  return pcs.flatMap((p) => {
+    const hit = [...played].reverse().find((m) => pc(m) === pc(p));
+    return hit === undefined ? [] : [hit];
+  });
+}
+
 export function gradeItem(
   item: VoicingItem,
   played: readonly number[],
@@ -246,7 +273,7 @@ export function gradeItem(
     };
   }
   if (item.kind === "guide") {
-    const notes = [...new Set(played)];
+    const notes = opts.strict ? [...new Set(played)] : lastOfEach(played, item.pcs);
     const r = gradeVoiceLeading({
       fromMidi: item.guide!.fromMidi,
       targetPcs: item.pcs,
@@ -279,7 +306,7 @@ export function gradeItem(
           fromMidi: c.from,
           targetPcs: c.rightHand,
           register: CLOSEST_REGISTER,
-          played: rh,
+          played: opts.strict ? rh : lastOfEach(rh, c.rightHand),
         })
       : null;
   let score = c.from ? (chord.score + (vl?.score ?? 0)) / 2 : chord.score;

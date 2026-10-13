@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
-  import { SCALE_GROUPS, SCALE_TONICS, type ScaleKind } from "@repo/music-core/theory/scales";
+  import { SCALE_GROUPS, type ScaleKind } from "@repo/music-core/theory/scales";
   import {
     ABRSM_SPEEDS,
     CHORD_KINDS,
@@ -29,6 +29,9 @@
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
+  import Picker from "$lib/music/components/Picker.svelte";
+  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
@@ -54,11 +57,11 @@
     /** An ABRSM grade whose speed was picked ("" for none). */
     grade: "" as string,
   });
-  const PATTERNS: { value: ScalePattern; label: string }[] = [
+  const PATTERNS: { value: ScalePattern; label: string; hint?: string }[] = [
     { value: "scale", label: "Scale" },
     { value: "arpeggio", label: "Arpeggio" },
-    { value: "broken", label: "Broken chords" },
-    { value: "blocked", label: "Blocked chords" },
+    { value: "broken", label: "Broken", hint: "Broken chords through the inversions" },
+    { value: "blocked", label: "Blocked", hint: "Blocked chords through the inversions" },
   ];
   const s = $derived(cfg.value);
   const pattern = $derived((PATTERNS.some((p) => p.value === s.pattern) ? s.pattern : "scale") as ScalePattern);
@@ -76,7 +79,7 @@
     // One line off the piano: hands are a keyboard idea.
     hands: (onPiano ? s.hands : "right") as "right" | "left" | "both",
     bpm: bpm(),
-    minEvenness: s.preset ? HANDS_TOGETHER_PRESET.minEvenness : undefined,
+    minEvenness: s.preset && onPiano ? HANDS_TOGETHER_PRESET.minEvenness : undefined,
   });
   // Up an octave when the instrument can't reach the line's low notes (ukulele, Aerophone).
   const steps = $derived.by(() => {
@@ -93,11 +96,26 @@
   const stepMs = () => 60000 / bpm() / perBeat;
   const target = $derived(s.grade ? gradeSpeed(s.grade, pattern) : undefined);
   const PER = { 1: "one note a click", 2: "two notes a click", 4: "four notes a click" } as const;
-  function pickGrade(grade: string) {
-    const sp = gradeSpeed(grade, pattern);
-    cfg.set({ grade, ...(sp ? { perBeat: sp[1] } : {}), preset: false });
-    if (sp) settings.update({ bpm: sp[0] });
+  /** One menu for the setups that set tempo and notes a click together: the hands-together preset, a plain start, or an ABRSM grade's speed. */
+  function pickPreset(v: string) {
+    if (v === "together") {
+      cfg.set({ pattern: "scale", perBeat: 1, grade: "", span: HANDS_TOGETHER_PRESET.span, motion: HANDS_TOGETHER_PRESET.motion, hands: HANDS_TOGETHER_PRESET.hands, preset: true });
+      settings.update({ bpm: HANDS_TOGETHER_PRESET.bpm });
+    } else if (v === "plain") cfg.set({ perBeat: 1, grade: "", preset: false });
+    else {
+      const sp = gradeSpeed(v, pattern);
+      cfg.set({ grade: v, ...(sp ? { perBeat: sp[1] } : {}), preset: false });
+      if (sp) settings.update({ bpm: sp[0] });
+    }
   }
+  const presetOptions = $derived([
+    ...(onPiano ? [{ value: "together", label: "Hands together, one octave, up, 80" }] : []),
+    { value: "plain", label: "One note a click, no grade target" },
+    ...ABRSM_SPEEDS.map((g) => {
+      const sp = gradeSpeed(g.grade, pattern);
+      return { value: g.grade, label: sp ? `${g.grade}: ${sp[0]}, ${PER[sp[1]]}` : `${g.grade} (no speed for blocked chords)`, group: "ABRSM grade speeds", disabled: !sp };
+    }),
+  ]);
 
   // Keyboard spans the line, snapped out to whole octaves from C.
   const all = $derived(steps.flatMap((st) => st.notes.map((n) => n.midi)));
@@ -126,22 +144,28 @@
     const show = demoStep ?? (mode === "practice" && phase !== "results" ? stepIndex : null);
     if (show === null || !steps[show]) return out;
     for (const n of steps[show].notes)
-      out[n.midi] = demoStep !== null ? { demo: true } : { target: true, label: s.hands === "both" ? (n.hand === "left" ? "L" : "R") : undefined, role: s.hands === "both" ? n.hand : undefined };
+      out[n.midi] = demoStep !== null ? { demo: true } : { target: true, label: scaleSetup.hands === "both" ? (n.hand === "left" ? "L" : "R") : undefined, role: scaleSetup.hands === "both" ? n.hand : undefined };
     return out;
   });
 
   const scaleLabel = (k: string) => k.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
   const chordLabel = $derived(CHORD_KINDS.find((c) => c.id === s.chord)?.label.toLowerCase() ?? "major");
+  const tonicName = (p: number) => noteName(p, "flat", false);
   const what = $derived(
     pattern === "scale"
-      ? `${noteName(s.tonic)} ${scaleLabel(s.kind).toLowerCase()}`
+      ? `${tonicName(s.tonic)} ${scaleLabel(s.kind).toLowerCase()} scale`
       : pattern === "arpeggio"
-        ? `${noteName(s.tonic)} ${chordLabel} arpeggio`
-        : `${noteName(s.tonic)} ${chordLabel} ${pattern} chords`,
+        ? `${tonicName(s.tonic)} ${chordLabel} arpeggio`
+        : `${tonicName(s.tonic)} ${chordLabel} ${pattern} chords`,
   );
-  const summaryLine = $derived(
-    `${what}, ${scaleSetup.span.replace("-", " ")}, ${s.motion === "up-down" ? "up and down" : s.motion}, ${!onPiano ? `on ${inst}` : s.hands === "both" ? "hands together" : `${s.hands} hand`}, ${bpm()} BPM${perBeat > 1 ? `, ${PER[perBeat]}` : ""}`,
-  );
+  const setupLine = $derived<SetupClause[]>([
+    { text: what, focus: "kind" },
+    { text: scaleSetup.span === "pentascale" ? "five notes" : scaleSetup.span.replace("-", " "), focus: "span" },
+    { text: s.motion === "up-down" ? "up and down" : s.motion, focus: "motion" },
+    onPiano ? { text: scaleSetup.hands === "both" ? "hands together" : `${scaleSetup.hands} hand`, focus: "hands" } : { text: `on ${inst}` },
+    ...(perBeat > 1 ? [{ text: PER[perBeat], focus: "preset" }] : []),
+    ...(target ? [{ text: `aiming for ${s.grade} speed (${target[0]}, ${PER[target[1]]})`, focus: "preset" }] : []),
+  ]);
 
   function stopDemo() {
     demo?.stop();
@@ -214,9 +238,9 @@
       capabilities: ["technique"],
       modality: "played",
       assistance: assistanceFor(mode),
-      difficulty: Math.min(1, (s.span === "two-octave" ? 0.6 : s.hands === "both" ? 0.5 : 0.35) + (perBeat - 1) * 0.05 + (pattern === "scale" ? 0 : 0.05)),
+      difficulty: Math.min(1, (s.span === "two-octave" ? 0.6 : scaleSetup.hands === "both" ? 0.5 : 0.35) + (perBeat - 1) * 0.05 + (pattern === "scale" ? 0 : 0.05)),
       instrument: settings.value.activeInstrument,
-      params: { bpm: ctx.bpm, kind: s.kind, tonic: s.tonic, span: scaleSetup.span, motion: s.motion, hands: s.hands, pattern, chord: s.chord, perBeat },
+      params: { bpm: ctx.bpm, kind: s.kind, tonic: s.tonic, span: scaleSetup.span, motion: s.motion, hands: scaleSetup.hands, pattern, chord: s.chord, perBeat },
     });
     // Input is scored only after the count-in, so speakers can't bleed into the take.
     cap = capture(ctx.downbeat - beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
@@ -235,7 +259,7 @@
       beats: steps.map((st) => st.notes),
       beatMs: stepMs(),
       notes,
-      handsTogether: s.hands === "both",
+      handsTogether: scaleSetup.hands === "both",
       minEvenness: scaleSetup.minEvenness,
     });
     result = r;
@@ -296,7 +320,7 @@
             ]
           : []),
         ...(target ? [{ label: `${s.grade} speed (ABRSM, ${target[0]} with ${PER[target[1]]})`, value: atSpeed ? 1 : (bpm() * perBeat) / (target[0] * target[1]), text: atSpeed ? "reached" : `${Math.round(((bpm() * perBeat) / (target[0] * target[1])) * 100)}% of it` }] : []),
-        ...(s.hands === "both"
+        ...(scaleSetup.hands === "both"
           ? [
               r.together
                 ? { label: "Hands together (40 ms)", value: r.together.beats ? r.together.count / r.together.beats : 0, text: `${r.together.count} of ${r.together.beats} beats` }
@@ -315,7 +339,7 @@
     const col = (n: 2 | 4) => Math.max(...ABRSM_SPEEDS.map((g) => (pattern === "scale" ? g.scale : g.arpeggio)).filter((x) => x[1] === n).map((x) => x[0]));
     const goals = pattern === "blocked" ? [120, 100, 80] : [120, col(2), col(4)];
     const steps = ([1, 2, 4] as const).map((n, i) => ({ label: PER[n].replace(/^./, (c) => c.toUpperCase()), goal: goals[i] }));
-    const id = `scales.${pattern}.${pattern === "scale" ? s.kind : s.chord}.${scaleSetup.span}.${s.motion}.${s.hands}.${s.tonic}`;
+    const id = `scales.${pattern}.${pattern === "scale" ? s.kind : s.chord}.${scaleSetup.span}.${s.motion}.${scaleSetup.hands}.${s.tonic}`;
     return nextRun(id, { bpm: bpm(), tempo: { min: SCALE_TEMPO.min, goal: 120, max: SCALE_TEMPO.max }, steps, step: [1, 2, 4].indexOf(perBeat) }, { score, correct }, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i], preset: false })));
   }
 
@@ -338,7 +362,7 @@
     stopDemo();
   });
 
-  const scaleOptions = [...SCALE_GROUPS.modes, ...SCALE_GROUPS.jazz].map((k) => ({ value: k, label: scaleLabel(k) + (SCALE_GROUPS.jazz.includes(k) ? " (jazz)" : "") }));
+  const scaleOptions = [...SCALE_GROUPS.modes.map((k) => ({ value: k, label: scaleLabel(k), group: "Modes" })), ...SCALE_GROUPS.jazz.map((k) => ({ value: k, label: scaleLabel(k), group: "Jazz" }))];
 </script>
 
 <svelte:head><title>Scales | Woodshed</title></svelte:head>
@@ -347,7 +371,7 @@
   title="Scales"
   hue="piano"
   blurb="Scales, arpeggios and chords through their inversions, evenly at the click. Clean checks climb the tempo ladder, or aim for an ABRSM grade's speed."
-  summary={summaryLine}
+  summary={setupLine}
   bind:phase
   bind:mode
   bind:status
@@ -359,80 +383,63 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="Play" options={PATTERNS} value={pattern} onchange={(v) => cfg.set({ pattern: v, preset: false })} />
-      {#if pattern === "scale"}
-        <Choice label="Scale" select options={scaleOptions} value={s.kind} onchange={(v) => cfg.set({ kind: v, preset: false })} />
-      {:else}
-        <Choice label="Chord" select options={CHORD_KINDS.map((c) => ({ value: c.id as string, label: c.label }))} value={s.chord} onchange={(v) => cfg.set({ chord: v })} />
-      {/if}
-      <Choice label="Tonic" select options={SCALE_TONICS.map((t) => ({ value: t.midi, label: t.name }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
-      <Choice
-        label="Span"
-        options={[
-          ...(pattern === "scale" ? [{ value: "pentascale", label: "Five notes" }] : []),
-          { value: "one-octave", label: "One octave" },
-          { value: "two-octave", label: "Two octaves" },
-        ]}
-        value={scaleSetup.span}
-        onchange={(v) => cfg.set({ span: v, preset: false })}
-      />
-      <Choice
-        label="Direction"
-        options={[
-          { value: "up", label: "Up" },
-          { value: "down", label: "Down" },
-          { value: "up-down", label: "Up and down" },
-        ]}
-        value={s.motion}
-        onchange={(v) => cfg.set({ motion: v, preset: false })}
-      />
-      {#if onPiano}
-      <Choice
-        label="Hands"
-        options={[
-          { value: "right", label: "Right" },
-          { value: "left", label: "Left" },
-          { value: "both", label: "Both" },
-        ]}
-        value={s.hands}
-        onchange={(v) => cfg.set({ hands: v, preset: false })}
-      />
-      {/if}
-      <Choice
-        label="Notes a click"
-        options={[
-          { value: 1, label: "One" },
-          { value: 2, label: "Two" },
-          { value: 4, label: "Four" },
-        ]}
-        value={perBeat}
-        onchange={(v) => cfg.set({ perBeat: v, preset: false })}
-      />
-      <Choice
-        label="Grade speed (ABRSM)"
-        select
-        options={[{ value: "", label: "None" }, ...ABRSM_SPEEDS.map((g) => {
-          const sp = gradeSpeed(g.grade, pattern);
-          return { value: g.grade, label: sp ? `${g.grade}: ${sp[0]}, ${sp[1]} a click` : `${g.grade} (no speed for blocked chords)` };
-        })]}
-        value={s.grade}
-        onchange={pickGrade}
-      />
-      <div class="flex flex-col justify-end gap-1 text-sm">
-        {#if onPiano}
-        <button
-          type="button"
-          class={btn}
-          aria-pressed={s.preset}
-          onclick={() => {
-            cfg.set({ pattern: "scale", perBeat: 1, grade: "", span: HANDS_TOGETHER_PRESET.span, motion: HANDS_TOGETHER_PRESET.motion, hands: HANDS_TOGETHER_PRESET.hands, preset: true });
-            settings.update({ bpm: HANDS_TOGETHER_PRESET.bpm });
-          }}>{HANDS_TOGETHER_PRESET.label}</button
-        >
+    <div class="flex flex-col gap-5">
+      <fieldset class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-ws-soft">What</legend>
+        <Choice label="Play" options={PATTERNS} value={pattern} onchange={(v) => cfg.set({ pattern: v, preset: false })} />
+        {#if pattern === "scale"}
+          <Choice label="Scale" setupKey="kind" options={scaleOptions} value={s.kind} onchange={(v) => cfg.set({ kind: v, preset: false })} />
+        {:else}
+          <Choice label="Chord" setupKey="kind" options={CHORD_KINDS.map((c) => ({ value: c.id as string, label: c.label }))} value={s.chord} onchange={(v) => cfg.set({ chord: v })} />
         {/if}
-        <span class="text-ws-soft">Tempo comes from the practice strip (40 to 180). ABRSM's speeds are "a general guide".</span>
-      </div>
+        <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="tonic">
+          <span class="font-medium">Tonic</span>
+          <KeyPicker label="Tonic" value={s.tonic % 12} name={tonicName} onchange={(p) => cfg.set({ tonic: 60 + p })} />
+        </div>
+      </fieldset>
+      <fieldset class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-ws-soft">How</legend>
+        <Choice
+          label="Span"
+          setupKey="span"
+          options={[
+            ...(pattern === "scale" ? [{ value: "pentascale", label: "Five notes" }] : []),
+            { value: "one-octave", label: "One octave" },
+            { value: "two-octave", label: "Two octaves" },
+          ]}
+          value={scaleSetup.span}
+          onchange={(v) => cfg.set({ span: v, preset: false })}
+        />
+        <Choice
+          label="Direction"
+          setupKey="motion"
+          options={[
+            { value: "up", label: "Up" },
+            { value: "down", label: "Down" },
+            { value: "up-down", label: "Up and down" },
+          ]}
+          value={s.motion}
+          onchange={(v) => cfg.set({ motion: v, preset: false })}
+        />
+        {#if onPiano}
+          <Choice
+            label="Hands"
+            setupKey="hands"
+            options={[
+              { value: "right", label: "Right" },
+              { value: "left", label: "Left" },
+              { value: "both", label: "Both" },
+            ]}
+            value={scaleSetup.hands}
+            onchange={(v) => cfg.set({ hands: v, preset: false })}
+          />
+        {/if}
+        <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="preset">
+          <span class="font-medium">Preset</span>
+          <Picker label="Preset" action placeholder="Tempo and notes a click" options={presetOptions} onchange={pickPreset} />
+        </div>
+      </fieldset>
+      <p class="text-sm text-ws-soft">Tempo comes from the practice strip (40 to 180). After a clean run the ladder moves you from one note a click to two, then four. ABRSM's speeds are "a general guide".</p>
     </div>
   {/snippet}
 

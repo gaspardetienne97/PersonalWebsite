@@ -147,6 +147,8 @@ const PIANO: Omit<Phrase, "instrument">[] = [
     beatsPerBar: 3,
     keyFifths: 0,
     steps: [
+      // The pickup: the first strong syllable falls on beat 1.
+      r(2),
       [55, 0.75],
       [55, 0.25],
       [57, 1],
@@ -195,6 +197,8 @@ const PIANO: Omit<Phrase, "instrument">[] = [
     beatsPerBar: 3,
     keyFifths: 0,
     steps: [
+      // The pickup: the first strong syllable falls on beat 1.
+      r(2),
       [69, 1],
       [72, 2],
       [74, 1],
@@ -454,6 +458,8 @@ const GUITAR: Omit<Phrase, "instrument">[] = [
     beatsPerBar: 3,
     keyFifths: 1,
     steps: [
+      // The pickup: the first strong syllable falls on beat 1.
+      r(2),
       f(50, 1, 4, 0),
       f(55, 2, 3, 0),
       f(59, 0.5, 2, 0),
@@ -890,6 +896,8 @@ const UKULELE: Omit<Phrase, "instrument">[] = [
     beatsPerBar: 3,
     keyFifths: 0,
     steps: [
+      // The pickup: the first strong syllable falls on beat 1.
+      r(2),
       f(67, 0.75, 4, 0),
       f(67, 0.25, 4, 0),
       f(69, 1, 1, 0),
@@ -937,6 +945,8 @@ const UKULELE: Omit<Phrase, "instrument">[] = [
     beatsPerBar: 2,
     keyFifths: 0,
     steps: [
+      // The pickup: the first strong syllable falls on beat 1.
+      r(1.5),
       f(60, 0.25, 3, 0),
       f(62, 0.25, 3, 2),
       f(64, 0.5, 2, 0),
@@ -991,6 +1001,8 @@ const UKULELE: Omit<Phrase, "instrument">[] = [
     beatsPerBar: 3,
     keyFifths: -1,
     steps: [
+      // The pickup: the first strong syllable falls on beat 1.
+      r(2),
       f(60, 1, 3, 0),
       f(65, 2, 2, 1),
       f(69, 0.5, 1, 0),
