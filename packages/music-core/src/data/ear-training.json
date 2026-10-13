@@ -165,7 +165,7 @@
     {
       "slug": "mixed",
       "title": "Ear training review",
-      "description": "A short adaptive mix of intervals, chord qualities, scale degrees and cadences.",
+      "description": "A short adaptive mix of the nine ear drills. Pick which ones go in.",
       "drill": "mixed",
       "answerModes": ["choice", "play-back", "listen", "listen-along"],
       "usesScaleDegreeLevel": true,

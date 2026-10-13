@@ -202,7 +202,8 @@ export function studioPrompt(
       };
     }
     case "pan": {
-      const spots = PAN_SETS[setup.pans].filter((p) => p !== 0).map(String);
+      // Centre is an answer too: Changed then sounds where Flat does.
+      const spots = PAN_SETS[setup.pans].map(String);
       const p = Number(weighted(spots));
       return {
         ...base,

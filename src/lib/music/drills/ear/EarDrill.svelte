@@ -56,7 +56,7 @@
   import { skillSummaries } from "@repo/music-core/progress/analytics";
   import { decayMastery, isDueForReview } from "@repo/music-core/progress/mastery";
   import type { Score, ScoringEvent } from "@repo/music-core";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -71,12 +71,16 @@
   import EarVisual from "./EarVisual.svelte";
   import { degreeColor } from "./degrees";
   import type { NextRun } from "$lib/music/advance.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import {
     buildSession,
+    cadenceShift,
     confusions,
     KIND_LABEL,
     levelDegrees,
+    MIX_KINDS,
+    mixKinds,
+    NO_PLAYBACK,
     perKind,
     retryPrompts,
     shortLabel,
@@ -105,6 +109,9 @@
   };
   // The daily routine sends ?answer=voice to the mixed review: it narrows to scale degrees.
   const modes = (slug === "mixed" ? [...def.answerModes, "voice"] : def.answerModes) as AnswerMode[];
+  // Scored answers first, in the order a beginner picks them; the two listen modes apart.
+  const SCORED = (["choice", "play-back", "voice"] as const).filter((m) => modes.includes(m));
+  const LISTEN = (["listen", "listen-along"] as const).filter((m) => modes.includes(m));
   const KIND_OF: Record<string, EarKind> = {
     intervals: "interval",
     "interval-compare": "interval-compare",
@@ -125,7 +132,7 @@
     answer: def.answerModes[0] as string,
     // A wrong note needs a few degrees to choose from: the first five to start.
     level: (slug === "wrong-note" ? "major-pentachord" : EAR_DEFAULT_CONFIG.scaleDegreeSet) as string,
-    labels: EAR_DEFAULT_CONFIG.scaleDegreeLabelMode as string,
+    // Mixed review: "all", or a comma list of the drills in the mix.
     drill: "all" as string,
     // Intervals drill: which intervals (comma list, empty for the twelve) and which way.
     intervals: "M3,P5,P8" as string,
@@ -147,22 +154,32 @@
     root: "random" as string,
   });
   const s = $derived(cfg.value);
+  // Degree or solfège labels: one preference for every ear drill.
+  const labelPref = new DrillSetup("ear-labels", { labels: EAR_DEFAULT_CONFIG.scaleDegreeLabelMode as string });
   const chordDrill = slug === "chord-functions" || slug === "progressions";
   /** Chords in a key and progressions: which key and chord size the picked numerals are heard in. */
   const chordKind = $derived({ minor: s.keyMode === "minor", seventh: s.chordSize === "sevenths" });
   const kindLabel = (t: string) => functionLabel(functionToken(t, chordKind));
   const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) ? (s.answer as AnswerMode) : modes[0]);
-  const labels = $derived<LabelMode>(s.labels === "solfege" ? "solfege" : "degree");
-  const level = $derived(SCALE_DEGREE_LEVELS.some((l) => l.id === s.level) ? s.level : "anchor");
-  const MIX = ["interval", "chord-quality", "scale-degree", "cadence", "chord-function", "progression", "scale", "inversion", "bass-line"] as const;
+  const labels = $derived<LabelMode>(labelPref.value.labels === "solfege" ? "solfege" : "degree");
+  /** The levels offered (the full set is the chromatic one, kept for old links). */
+  const LEVELS = SCALE_DEGREE_LEVELS.filter((l) => l.id !== "full-current");
+  const level = $derived(s.level === "full-current" ? "chromatic-color" : LEVELS.some((l) => l.id === s.level) ? s.level : "anchor");
   const kinds = $derived.by((): EarKind[] => {
     if (slug !== "mixed") return KIND_OF[slug] ? [KIND_OF[slug]] : [];
-    if (answer === "voice") return ["scale-degree"];
-    const all: EarKind[] = [...MIX];
-    const picked = all.includes(s.drill as EarKind) ? [s.drill as EarKind] : all;
-    // Cadences have no play-back answer.
-    return answer === "play-back" ? picked.filter((k) => k !== "cadence") : picked;
+    return mixKinds(s.drill, answer);
   });
+  /** Mixed review: the drills ticked, before the answer mode leaves any out. */
+  const mixPicked = $derived(mixKinds(s.drill, "choice"));
+  function toggleMix(k: EarKind) {
+    const on = mixPicked.includes(k);
+    if (on && mixPicked.length === 1) return;
+    const next = MIX_KINDS.filter((x) => (x === k ? !on : mixPicked.includes(x)));
+    cfg.set({ drill: next.length === MIX_KINDS.length ? "all" : next.join(",") });
+  }
+  /** Scale degrees are in this run: the level and the labels matter. */
+  const usesDegrees = $derived(slug !== "mixed" || kinds.includes("scale-degree"));
+  const showLevel = $derived(def.usesScaleDegreeLevel && usesDegrees && !(slug === "wrong-note" && s.source === "songs"));
 
   // Practise a few items at a time (intervals, chord qualities) instead of all at once:
   // small, far-apart sets first, the way most trainers start, then wider ones.
@@ -312,6 +329,11 @@
   function setItems(tokens: string[]) {
     if (SETS) cfg.set({ [SETS.key]: SETS.items.map((i) => i.token).filter((t) => tokens.includes(t)).join(",") });
   }
+  /** "Pick your own" stays open once opened; it opens by itself for a pick no preset covers. */
+  let pickOwn = $state(false);
+  $effect(() => {
+    if (SETS && (!SETS.sets.some((x) => sameSet(x.tokens, picked)) || SETS.items.length <= 4)) untrack(() => (pickOwn = true));
+  });
   function toggleItem(t: string) {
     const on = picked.includes(t);
     if (on && picked.length === 1) return; // keep at least one
@@ -319,9 +341,17 @@
   }
   const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
-  const ROOTS = [{ value: "random", label: "Random" }, ...Array.from({ length: 24 }, (_, i) => ({ value: String(48 + i), label: noteName(48 + i, "flat") }))];
+  const SCALE_DIRECTIONS = [
+    { value: "auto", label: "Auto", hint: "Up at first, then both ways as you improve." },
+    { value: "ascending", label: "Up" },
+    { value: "both", label: "Up and down" },
+    { value: "descending", label: "Down" },
+  ];
+  /** A fixed first note: middle C, so even an octave down stays on the keys. */
+  const FIXED_ROOT = 60;
   const DIRECTIONS = [
-    { value: "auto", label: "Mixed" },
+    { value: "auto", label: "Auto", hint: "Up at first, then every way as you improve." },
+    { value: "mixed", label: "Mixed", hint: "Up, down or together, from the first prompt." },
     { value: "ascending", label: "Up" },
     { value: "descending", label: "Down" },
     { value: "harmonic", label: "Together" },
@@ -337,8 +367,8 @@
       ? {
           tokens: SETS ? picked : undefined,
           bassLevel: slug === "bass-lines" ? s.bassLevel : undefined,
-          direction: slug === "intervals" && s.direction !== "auto" ? (s.direction as "ascending" | "descending" | "harmonic") : undefined,
-          root: slug === "intervals" && s.root !== "random" ? Number(s.root) : undefined,
+          direction: slug === "intervals" && s.direction !== "auto" ? (s.direction as "ascending" | "descending" | "harmonic" | "mixed") : undefined,
+          root: slug === "intervals" && s.root !== "random" ? FIXED_ROOT : undefined,
           minor: chordDrill && chordKind.minor,
           sevenths: chordDrill && chordKind.seventh,
           scaleDirection: slug === "scales" && s.scaleDirection !== "auto" ? (s.scaleDirection as ScaleDirection) : undefined,
@@ -401,7 +431,7 @@
     }
     if (p.drill === "cadence") {
       const c = CADENCES.find((x) => x.token === token);
-      const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
+      const shift = cadenceShift(p.id);
       return c ? c.playback.map((e) => ({ midi: e.midiNotes.map((m) => m + shift), time: e.offsetSeconds, duration: e.durationSeconds })) : null;
     }
     if (p.drill === "chord-function" && p.keyPc !== undefined) {
@@ -490,7 +520,7 @@
     if (p.drill === "pitch-compare") return `A note, then the same note ${centsOf(p)} cents off${p.choices.includes("same") ? " or in tune" : ""}`;
     if (p.drill === "scale") return `Tonic ${noteName(p.playback[0].midi[0], "flat", false)}, held underneath`;
     if (p.drill === "cadence") {
-      const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
+      const shift = cadenceShift(p.id);
       return `Key of ${noteName(48 + shift, "flat", false)} major`;
     }
     if (p.drill === "error-detect") return `Tonic ${noteName(tonicOf(p), "flat", false)}, then the melody as written${p.songTitle ? `, from ${p.songTitle}` : ""}`;
@@ -504,11 +534,15 @@
         ? p.direction === "harmonic"
           ? "Sing the higher note, in any octave."
           : "Sing the second note back, in any octave."
-        : "What interval was that?"
+        : isPlayback
+          ? "Play the two notes back, from any note."
+          : "What interval was that?"
       : p.drill === "interval-compare"
         ? "Which interval was bigger?"
       : p.drill === "chord-quality"
-        ? "What quality is the chord?"
+        ? isPlayback
+          ? "Play a chord of the same quality, from any root."
+          : "What quality is the chord?"
         : p.drill === "cadence"
           ? "Which cadence ends the phrase?"
         : p.drill === "scale"
@@ -954,9 +988,9 @@
     next();
   }
 
-  function useHint() {
+  function showAnswerNow() {
     hinted = true;
-    status = `Hint: listen for ${tokenLabel(current.drill, current.answer, labels)}. This answer now counts as hinted.`;
+    status = `The answer is ${tokenLabel(current.drill, current.answer, labels)}. Listen for it, then answer: this one counts as hinted.`;
   }
 
   function next() {
@@ -1019,6 +1053,7 @@
     };
     if (slug === "fine-pitch") {
       summary.headline += ` Next time starts near ${CENT_STEPS[stair.at]} cents.`;
+      rememberedStep = stair.at;
       void putSetting(STAIR_KEY, stair.at);
     }
     status = summary.headline;
@@ -1062,7 +1097,7 @@
   // the next step as the next run: one more item in a set, or the next degree level.
   const RECENT_KEY = `music.ear-${slug}.recent`;
   const LEVEL_LADDER = ["anchor", "major-pentachord", "major-diatonic", "minor-diatonic", "chromatic-color"];
-  const levelSteps = def.usesScaleDegreeLevel && slug !== "mixed" && slug !== "repertoire-transfer";
+  const levelSteps = $derived(def.usesScaleDegreeLevel && slug !== "mixed" && slug !== "repertoire-transfer" && !fromSongs);
   async function checkUnlock(done: AnswerRecord[]): Promise<NextRun | undefined> {
     const set = SETS ? picked.join(",") : `level:${level}`;
     const saved = await getSetting<{ set: string; results: boolean[] }>(RECENT_KEY, { set, results: [] });
@@ -1122,21 +1157,25 @@
   const degreeChoices = $derived(current?.drill === "scale-degree" && answer === "choice");
   const isPhrase = (p: Prompt) => p.drill === "melody-dictation" || p.drill === "repertoire-transfer";
   const showAnswer = $derived(answer === "listen-along" || step === "revealed" || (step === "feedback" && (mode === "practice" || (!!current && isPhrase(current)))));
-  const summaryLine = $derived(
+  const summaryLine = $derived<SetupClause[]>(
     [
-      MODE_LABEL[answer],
-      slug === "mixed" ? (kinds.length === MIX.length ? "all nine drills" : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", ")) : null,
-      SETS
-        ? `${SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => (chordDrill ? kindLabel(t) : (SETS.items.find((i) => i.token === t)?.short ?? t))).join(" ")}${slug === "intervals" && s.direction !== "auto" ? `, ${DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase()}` : ""}`
+      { text: MODE_LABEL[answer], focus: (LISTEN as readonly string[]).includes(answer) ? "listen" : "answer" },
+      slug === "mixed" && answer !== "voice"
+        ? { text: kinds.length === MIX_KINDS.length ? "all nine drills" : kinds.length > 3 ? `${kinds.length} drills` : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", "), focus: "mix" }
         : null,
-      slug === "bass-lines" ? BASS_LEVELS.find((l) => l.id === s.bassLevel)?.title.toLowerCase() : null,
-      chordDrill ? `${chordKind.minor ? "minor" : "major"} key, ${chordKind.seventh ? "sevenths" : "triads"}` : null,
-      def.usesScaleDegreeLevel ? SCALE_DEGREE_LEVELS.find((l) => l.id === level)?.title : null,
-      def.usesLabels ? (labels === "solfege" ? "solfège labels" : "degree labels") : null,
-      "10 prompts",
-    ]
-      .filter(Boolean)
-      .join(", "),
+      SETS
+        ? { text: SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => (chordDrill ? kindLabel(t) : (SETS.items.find((i) => i.token === t)?.short ?? t))).join(" "), focus: "items" }
+        : null,
+      slug === "intervals" && s.direction !== "auto" ? { text: DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase() ?? "", focus: "direction" } : null,
+      slug === "scales" && s.scaleDirection !== "auto" ? { text: SCALE_DIRECTIONS.find((d) => d.value === s.scaleDirection)?.label.toLowerCase() ?? "", focus: "scaleDirection" } : null,
+      slug === "bass-lines" ? { text: BASS_LEVELS.find((l) => l.id === s.bassLevel)?.title.toLowerCase() ?? "", focus: "bass" } : null,
+      chordDrill ? { text: `${chordKind.minor ? "minor" : "major"} key`, focus: "key" } : null,
+      chordDrill ? { text: chordKind.seventh ? "sevenths" : "triads", focus: "size" } : null,
+      fromSongs ? { text: "from my songs", focus: "source" } : null,
+      showLevel ? { text: LEVELS.find((l) => l.id === level)?.title ?? "", focus: "level" } : null,
+      def.usesLabels && usesDegrees ? { text: labels === "solfege" ? "solfège labels" : "degree labels", focus: "labels" } : null,
+      { text: "10 prompts" },
+    ].filter((c): c is SetupClause => !!c),
   );
   const blocked = $derived(
     (slug === "repertoire-transfer" && songCount !== null && planPhrases.length === 0) || (fromSongs && songCount !== null && ranked.length === 0)
@@ -1184,19 +1223,43 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       {#if modes.length > 1}
-        <Choice label="Answer by" options={modes.map((m) => ({ value: m, label: MODE_LABEL[m] }))} value={answer} onchange={(v) => cfg.set({ answer: v })} />
+        <Choice label="Answer by" setupKey="answer" options={SCORED.map((m) => ({ value: m as AnswerMode, label: MODE_LABEL[m] }))} value={answer} onchange={(v) => cfg.set({ answer: v })} />
       {/if}
-      {#if slug === "mixed" && answer !== "voice"}
+      {#if LISTEN.length}
         <Choice
-          label="Drills in the mix"
-          select
-          options={[{ value: "all", label: "All nine" }, ...MIX.map((k) => ({ value: k, label: KIND_LABEL[k] }))]}
-          value={s.drill}
-          onchange={(v) => cfg.set({ drill: v })}
+          label="Or just listen"
+          setupKey="listen"
+          options={LISTEN.map((m) => ({
+            value: m as AnswerMode,
+            label: MODE_LABEL[m],
+            hint: m === "listen" ? "Answer in your head, reveal, then rate yourself. Never moves mastery." : "The answers are shown and the prompts move on by themselves. Not scored.",
+          }))}
+          value={answer}
+          onchange={(v) => cfg.set({ answer: v })}
         />
       {/if}
+      {#if slug === "mixed" && answer !== "voice"}
+        <div class="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2" role="group" aria-labelledby="mix-label" data-setup="mix">
+          <span id="mix-label" class="font-medium">Drills in the mix</span>
+          <div class="flex flex-wrap gap-1.5">
+            {#each MIX_KINDS as k (k)}
+              {@const out = isPlayback && NO_PLAYBACK.includes(k)}
+              {@const on = mixPicked.includes(k) && !out}
+              <button
+                type="button"
+                class="min-h-10 rounded-full border px-3 text-sm disabled:opacity-45 {on ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+                aria-pressed={on}
+                disabled={out}
+                onclick={() => toggleMix(k)}>{KIND_LABEL[k]}</button
+              >
+            {/each}
+          </div>
+          {#if isPlayback}<span class="text-ws-soft">Cadences and scales have no play-back answer, so they sit out.</span>{/if}
+        </div>
+      {/if}
       {#if SETS}
-        <div class="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2" role="group" aria-labelledby="items-label">
+        {@const custom = !SETS.sets.some((x) => sameSet(x.tokens, picked))}
+        <div class="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2" role="group" aria-labelledby="items-label" data-setup="items">
           <span id="items-label" class="font-medium">{SETS.title}</span>
           <div class="flex flex-wrap gap-1.5" role="group" aria-label="{SETS.one.replace(/^./, (c) => c.toUpperCase())} sets">
             {#each SETS.sets as set (set.label)}
@@ -1204,21 +1267,40 @@
               <button type="button" class="min-h-10 rounded-full border px-3 text-sm {on ? 'border-instr bg-instr-wash font-semibold' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => setItems(set.tokens)}>{set.label}</button>
             {/each}
           </div>
-          <div class="flex flex-wrap gap-1.5">
-            {#each SETS.items as it (it.token)}
-              {@const on = picked.includes(it.token)}
-              <button
-                type="button"
-                class="flex min-h-11 flex-col items-start justify-center rounded-lg border px-3 py-1 text-left {on ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-line bg-ws-surface text-ws-soft hover:bg-ws-raised'}"
-                aria-pressed={on}
-                aria-label={it.name}
-                onclick={() => toggleItem(it.token)}
-              >
-                <span class="font-semibold leading-tight">{chordDrill ? kindLabel(it.token) : it.short}</span>
-                <span class="text-xs leading-tight">{it.name}</span>
-              </button>
-            {/each}
-          </div>
+          <!-- Opens on its own when the pick is one no preset covers, and stays as the player leaves it. -->
+          <details class="group" bind:open={pickOwn}>
+            <summary class="flex min-h-10 w-fit cursor-pointer items-center rounded-lg px-1 font-medium text-instr-ink hover:bg-instr-wash">Pick your own</summary>
+            <div class="mt-2 flex flex-col gap-2">
+              <div class="flex flex-wrap gap-1.5">
+                {#each SETS.items as it (it.token)}
+                  {@const on = picked.includes(it.token)}
+                  {@const name = chordDrill && chordKind.minor && it.token === "vii" ? "Subtonic" : it.name}
+                  {@const short = chordDrill ? kindLabel(it.token) : it.short}
+                  <button
+                    type="button"
+                    class="flex min-h-11 flex-col items-start justify-center rounded-lg border px-3 py-1 text-left {on ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-line bg-ws-surface text-ws-soft hover:bg-ws-raised'}"
+                    aria-pressed={on}
+                    aria-label={name}
+                    onclick={() => toggleItem(it.token)}
+                  >
+                    <span class="font-semibold leading-tight">{short}</span>
+                    {#if short !== name}<span class="text-xs leading-tight">{name}</span>{/if}
+                  </button>
+                {/each}
+              </div>
+              {#if slug === "intervals"}
+                <Choice
+                  label="First note"
+                  options={[
+                    { value: "random", label: "Random" },
+                    { value: String(FIXED_ROOT), label: "Always middle C", hint: "Only the distance changes." },
+                  ]}
+                  value={s.root === "random" ? "random" : String(FIXED_ROOT)}
+                  onchange={(v) => cfg.set({ root: v })}
+                />
+              {/if}
+            </div>
+          </details>
           <span class="text-ws-soft">
             {slug === "progressions"
               ? `Every progression starts on ${kindLabel("I")}; the rest use only these ${picked.length} chords.`
@@ -1243,9 +1325,10 @@
       {#if slug === "wrong-note"}
         <Choice
           label="Melodies"
+          setupKey="source"
           options={[
             { value: "made-up", label: "Made up for the level" },
-            { value: "songs", label: "From my songs" },
+            { value: "songs", label: songCount === null ? "From my songs" : `From my songs (${songCount})` },
           ]}
           value={s.source}
           onchange={(v) => cfg.set({ source: v })}
@@ -1260,46 +1343,40 @@
         />
       {/if}
       {#if slug === "bass-lines"}
-        <Choice label="Bass notes" options={BASS_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={s.bassLevel} onchange={(v) => cfg.set({ bassLevel: v })} />
+        <Choice label="Bass notes" setupKey="bass" options={BASS_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={s.bassLevel} onchange={(v) => cfg.set({ bassLevel: v })} />
       {/if}
       {#if slug === "scales"}
-        <Choice
-          label="Direction"
-          options={[
-            { value: "auto", label: "By level" },
-            { value: "ascending", label: "Up" },
-            { value: "both", label: "Up and down" },
-            { value: "descending", label: "Down" },
-          ]}
-          value={s.scaleDirection}
-          onchange={(v) => cfg.set({ scaleDirection: v })}
-        />
+        <Choice label="Direction" setupKey="scaleDirection" options={SCALE_DIRECTIONS} value={s.scaleDirection} onchange={(v) => cfg.set({ scaleDirection: v })} />
       {/if}
       {#if chordDrill}
-        <Choice label="Key" options={[{ value: "major", label: "Major" }, { value: "minor", label: "Minor" }]} value={s.keyMode} onchange={(v) => cfg.set({ keyMode: v })} />
-        <Choice label="Chords" options={[{ value: "triads", label: "Triads" }, { value: "sevenths", label: "Sevenths" }]} value={s.chordSize} onchange={(v) => cfg.set({ chordSize: v })} />
+        <Choice label="Key" setupKey="key" options={[{ value: "major", label: "Major" }, { value: "minor", label: "Minor" }]} value={s.keyMode} onchange={(v) => cfg.set({ keyMode: v })} />
+        <Choice label="Chord size" setupKey="size" options={[{ value: "triads", label: "Triads" }, { value: "sevenths", label: "Sevenths" }]} value={s.chordSize} onchange={(v) => cfg.set({ chordSize: v })} />
       {/if}
       {#if slug === "intervals"}
-        <Choice label="Direction" options={DIRECTIONS} value={s.direction} onchange={(v) => cfg.set({ direction: v })} />
-        <div class="flex min-w-0 flex-col gap-1 text-sm">
-          <span class="font-medium">Starting note</span>
-          <Picker label="Starting note" value={s.root} options={ROOTS} onchange={(v) => cfg.set({ root: v })} />
-          <span class="text-ws-soft">{s.root === "random" ? "A new first note each time." : "Every interval starts on this note, so only the distance changes."}</span>
+        <Choice label="Direction" setupKey="direction" options={DIRECTIONS} value={s.direction} onchange={(v) => cfg.set({ direction: v })} />
+      {/if}
+      {#if showLevel}
+        <div class="sm:col-span-2">
+          <Choice label="Degree level" setupKey="level" options={LEVELS.map((l) => ({ value: l.id, label: l.title, detail: l.degrees.join(" "), hint: l.summary }))} value={level} onchange={(v) => cfg.set({ level: v })} />
         </div>
       {/if}
-      {#if def.usesScaleDegreeLevel}
-        <Choice label="Degree level" select options={SCALE_DEGREE_LEVELS.map((l) => ({ value: l.id, label: `${l.title}: ${l.summary}` }))} value={level} onchange={(v) => cfg.set({ level: v })} />
-      {/if}
-      {#if def.usesLabels}
-        <Choice label="Labels" options={[{ value: "degree", label: "Degree (3 / mi)" }, { value: "solfege", label: "Solfège (mi)" }]} value={labels} onchange={(v) => cfg.set({ labels: v })} />
+      {#if def.usesLabels && usesDegrees}
+        <Choice
+          label="Labels (every ear drill)"
+          setupKey="labels"
+          options={[{ value: "degree", label: "Degree (3 / mi)" }, { value: "solfege", label: "Solfège (mi)" }]}
+          value={labels}
+          onchange={(v) => labelPref.set({ labels: v })}
+        />
       {/if}
     </div>
-    <p class="mt-3 text-sm text-ws-soft">
-      {#if answer === "listen"}Pocket recall: think or sing, reveal, then rate yourself. Self-rated answers are saved but never move mastery.
-      {:else if answer === "listen-along"}Listen along: the answers are shown and the prompts move on by themselves. Nothing is scored.
-      {:else if answer === "voice"}Sing it: the microphone starts when you press Start and stops at the end. Headphones keep the prompt out of the mic.
-      {:else}Practice gives feedback after each answer and waits for Continue. Check gives none and moves on.{/if}
-    </p>
+    {#if answer === "listen" || answer === "listen-along" || answer === "voice"}
+      <p class="mt-3 text-sm text-ws-soft">
+        {#if answer === "listen"}Pocket recall: think or sing, reveal, then rate yourself. Self-rated answers are saved but never move mastery.
+        {:else if answer === "listen-along"}Listen along: the answers are shown and the prompts move on by themselves. Nothing is scored.
+        {:else}Sing it: the microphone starts when you press Start and stops at the end. Headphones keep the prompt out of the mic.{/if}
+      </p>
+    {/if}
   {/snippet}
 
   {#snippet hud()}
@@ -1330,7 +1407,7 @@
           <div class="flex flex-wrap gap-2">
             <button type="button" class={btnStage} onclick={() => replay()} disabled={step === "feedback" && mode === "check"}>Hear it again</button>
             {#if mode === "practice" && answer !== "listen" && answer !== "listen-along" && step !== "feedback" && !hinted}
-              <button type="button" class={btnStage} onclick={useHint}>Hint</button>
+              <button type="button" class={btnStage} onclick={showAnswerNow}>Show answer</button>
             {/if}
           </div>
         </div>
@@ -1525,7 +1602,7 @@
             <div class="flex flex-wrap items-end gap-2">
               <div class="flex flex-col gap-1 text-sm">
                 <span>Tonic</span>
-                <Picker class="min-w-24" tone="stage" label="Tonic" value={String(droneTonic)} options={Array.from({ length: 12 }, (_, i) => ({ value: String(48 + i), label: noteName(48 + i, "flat", false) }))} onchange={(v) => { droneTonic = Number(v); if (droneOn) { audio.drone.stop(); audio.drone.start(droneTonic, "sine", 0.3); } }} />
+                <KeyPicker class="min-w-24" tone="stage" label="Tonic" value={droneTonic - 48} name={(pc) => noteName(48 + pc, "flat", false)} onchange={(pc) => { droneTonic = 48 + pc; if (droneOn) { audio.drone.stop(); audio.drone.start(droneTonic, "sine", 0.3); } }} />
               </div>
               <button type="button" class={btnStage} aria-pressed={droneOn} onclick={toggleDrone}>{droneOn ? "Stop drone" : "Start drone"}</button>
             </div>

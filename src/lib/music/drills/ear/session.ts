@@ -37,7 +37,7 @@ import {
 } from "@repo/music-core/content/ear";
 import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
 import { INTERVALS } from "@repo/music-core/theory/intervals";
-import type { Rand } from "@repo/music-core/content/random";
+import { pick, type Rand } from "@repo/music-core/content/random";
 import type { ScoringEvent, SkillMastery } from "@repo/music-core";
 import {
   ingestAnalytics,
@@ -97,7 +97,8 @@ function shuffle<T>(xs: T[], rand: Rand): T[] {
 export interface Focus {
   /** Answer tokens to ask; empty or missing: the drill's usual set (for intervals, the twelve m2 to P8). */
   tokens?: string[];
-  direction?: IntervalDirection;
+  /** Missing: up at first, every way as the skill grows. "mixed": any way from the first prompt. */
+  direction?: IntervalDirection | "mixed";
   /** Fixed first note (MIDI), so only the distance changes. */
   root?: number;
   /** Chords in a key and progressions: a minor key, seventh chords. */
@@ -221,7 +222,10 @@ export function promptFor(
       return intervalPrompt(rand, {
         difficulty,
         token: t.token,
-        direction: focus?.direction,
+        direction:
+          focus?.direction === "mixed"
+            ? pick(rand, ["ascending", "descending", "harmonic"] as const)
+            : focus?.direction,
         root: focus?.root,
         // One interval alone: every interval is a possible answer (with the unison, when it is the one).
         choices: !focus?.tokens
@@ -298,6 +302,34 @@ export function promptFor(
       return melodyDictationPrompt(rand, { difficulty, level, degree: t.token });
   }
 }
+
+/** The nine drills the mixed review can draw from. */
+export const MIX_KINDS = [
+  "interval",
+  "chord-quality",
+  "scale-degree",
+  "cadence",
+  "chord-function",
+  "progression",
+  "scale",
+  "inversion",
+  "bass-line",
+] as const satisfies readonly EarKind[];
+/** Drills with no play-back answer: they sit out a played mix. */
+export const NO_PLAYBACK: readonly EarKind[] = ["cadence", "scale"];
+
+/** The mixed review's drills: the picked ones ("all" or a comma list), less those the answer mode cannot take. */
+export function mixKinds(drill: string, answer: string): EarKind[] {
+  if (answer === "voice") return ["scale-degree"];
+  const listed = MIX_KINDS.filter((k) => drill.split(",").includes(k));
+  const picked: EarKind[] = listed.length ? listed : [...MIX_KINDS];
+  if (answer !== "play-back") return picked;
+  const playable = picked.filter((k) => !NO_PLAYBACK.includes(k));
+  return playable.length ? playable : MIX_KINDS.filter((k) => !NO_PLAYBACK.includes(k));
+}
+
+/** A cadence prompt's transposition, from its id ("cadence-half-4" is up 4, "cadence-half--3" down 3). */
+export const cadenceShift = (id: string) => Number(/-(-?\d+)$/.exec(id)?.[1] ?? 0);
 
 export interface SessionInput {
   kinds: EarKind[];

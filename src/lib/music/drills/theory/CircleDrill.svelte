@@ -19,7 +19,7 @@
   import { accidentalCount, diatonicChords, keyAt, wheelIndex } from "@repo/music-core/theory/circle";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import type { Score } from "@repo/music-core";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -40,6 +40,15 @@
   const band = $derived((KEY_BANDS.find((b) => b.id === s.band) ?? KEY_BANDS[0]).id as KeyBand);
   const clefs = $derived((s.clefs === "both" ? ["treble", "bass"] : [s.clefs === "bass" ? "bass" : "treble"]) as ("treble" | "bass")[]);
   const usesMinor = $derived(modeId === "count" || modeId === "signature");
+  /** Short names for the tab row. */
+  const TAB: Record<CircleMode, string> = { order: "Order", count: "Signatures", signature: "Read it", neighbours: "Neighbours", chords: "Chords", wheel: "Blank wheel" };
+  /** Each key band as the "Up to" button reads it, and as the setup sentence says it. */
+  const BAND_TEXT: Record<KeyBand, { label: string; clause: string }> = {
+    near: { label: "C, G and F", clause: "keys C, G and F" },
+    two: { label: "2 sharps or flats", clause: "up to 2 sharps or flats" },
+    four: { label: "4 sharps or flats", clause: "up to 4 sharps or flats" },
+    all: { label: "All 15 keys", clause: "all 15 keys" },
+  };
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -129,7 +138,7 @@
     const median = times.length ? [...times].sort((a, b) => a - b)[Math.floor(times.length / 2)] : 0;
     const fin = await run!.finish({ score, correct: fluent === LENGTH, headline: `${fluent} of ${LENGTH} fluent` });
     // The keys that cost the most: missed, then slow.
-    const slowKeys = [...new Set(records.filter((r) => !r.correct || r.slow).map((r) => keyName(r.prompt.fifths)))].slice(0, 6);
+    const slowKeys = modeId === "order" ? [] : [...new Set(records.filter((r) => !r.correct || r.slow).map((r) => keyName(r.prompt.fifths)))].slice(0, 6);
     summary = {
       headline:
         fluent === LENGTH
@@ -213,10 +222,14 @@
     voices: [{ id: "v", name: "Signature", clef: p.staff!.clef, notes: [] }],
     lengthBeats: 4,
   });
-  const summaryLine = $derived(
-    [meta.title, KEY_BANDS.find((b) => b.id === band)?.title.toLowerCase(), usesMinor && s.minor === "both" ? "major and minor" : null, modeId === "signature" ? (s.clefs === "both" ? "treble and bass" : `${s.clefs} clef`) : null, `${LENGTH} prompts`, `aim for ${meta.targetMs / 1000} s`]
-      .filter(Boolean)
-      .join(", "),
+  const summaryLine = $derived<SetupClause[]>(
+    [
+      modeId !== "order" ? { text: BAND_TEXT[band].clause, focus: "band" } : null,
+      usesMinor ? { text: s.minor === "both" ? "major and minor" : "major only", focus: "minor" } : null,
+      modeId === "signature" ? { text: s.clefs === "both" ? "treble and bass" : `${s.clefs} clef`, focus: "clefs" } : null,
+      { text: `${LENGTH} prompts` },
+      { text: `aim for ${meta.targetMs / 1000} s` },
+    ].filter((c): c is SetupClause => !!c),
   );
 </script>
 
@@ -228,6 +241,10 @@
   hue="reading"
   blurb="Key signatures and their order, at speed. Fast and right is fluent; right but slow means you are still working it out."
   summary={summaryLine}
+  tabs={CIRCLE_MODES.map((m) => ({ id: m.id, label: TAB[m.id] }))}
+  tab={modeId}
+  ontab={(id) => cfg.set({ mode: id })}
+  modeNotes={{ practice: "The wheel and the rule after each answer.", check: "Wheel hidden, no help. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -237,19 +254,18 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Drill" select options={CIRCLE_MODES.map((m) => ({ value: m.id, label: m.title }))} value={modeId} onchange={(v) => cfg.set({ mode: v })} />
       {#if modeId !== "order"}
-        <Choice label="Keys" select options={KEY_BANDS.map((b) => ({ value: b.id, label: b.title }))} value={band} onchange={(v) => cfg.set({ band: v })} />
+        <Choice label="Up to" setupKey="band" options={KEY_BANDS.map((b) => ({ value: b.id as KeyBand, label: BAND_TEXT[b.id].label }))} value={band} onchange={(v) => cfg.set({ band: v })} />
       {/if}
       {#if usesMinor}
-        <Choice label="Keys asked" options={[{ value: "major", label: "Major" }, { value: "both", label: "Major and minor" }]} value={s.minor} onchange={(v) => cfg.set({ minor: v })} />
+        <Choice label="Keys asked" setupKey="minor" options={[{ value: "major", label: "Major" }, { value: "both", label: "Major and minor" }]} value={s.minor} onchange={(v) => cfg.set({ minor: v })} />
       {/if}
       {#if modeId === "signature"}
-        <Choice label="Clef" options={[{ value: "treble", label: "Treble" }, { value: "bass", label: "Bass" }, { value: "both", label: "Both" }]} value={s.clefs} onchange={(v) => cfg.set({ clefs: v })} />
+        <Choice label="Clef" setupKey="clefs" options={[{ value: "treble", label: "Treble" }, { value: "bass", label: "Bass" }, { value: "both", label: "Both" }]} value={s.clefs} onchange={(v) => cfg.set({ clefs: v })} />
       {/if}
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      Answer with the buttons or the number keys (1 for the first). Practice shows the wheel and the rule after each answer; Check hides the wheel so the circle comes from memory. The <a class="underline underline-offset-4" href="/music/library?tab=reference&section=circle">circle in the Library</a> has every key's signature and chords.
+      Answer with the buttons or the number keys (1 for the first). The <a class="underline underline-offset-4" href="/music/library?tab=reference&section=circle">circle in the Library</a> has every key's signature and chords.
     </p>
   {/snippet}
 
@@ -272,7 +288,7 @@
         {#if p.mode === "wheel"}
           <div class="mt-3">
             <CircleOfFifths
-              blank={() => step === "answer"}
+              blank={(slot) => step === "answer" && slot !== 0}
               numerals={false}
               onpick={step === "answer" ? (f) => choose(String(wheelIndex(f))) : undefined}
               marks={r ? { [Number(p.answer)]: "right", ...(r.correct ? {} : { [Number(r.answered)]: "wrong" }) } : {}}

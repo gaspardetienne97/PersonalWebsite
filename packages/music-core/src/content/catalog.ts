@@ -97,7 +97,7 @@ const EAR_BLURB: Record<string, string> = {
   "scale-degrees": "Hear the tonic, then a note, and name its place in the key.",
   "melody-dictation": "Hear a three or four note phrase and play it back in order.",
   "repertoire-transfer": "Hear a short phrase from one of your saved songs and play it back.",
-  mixed: "A short adaptive mix of intervals, chords, scale degrees and cadences.",
+  mixed: "A short adaptive mix of the nine ear drills; pick which go in.",
 };
 
 const earEntries = EAR_DRILLS.map((d) =>
@@ -229,7 +229,7 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "voicings",
     route: "/music/voicings",
-    title: "ii-V-I voicings",
+    title: "Voicings",
     blurb: "Play rootless jazz voicings through a ii-V-I in all twelve keys.",
     instruments: ["piano"],
     capability: "harmony",
@@ -480,7 +480,8 @@ export const CATALOG: CatalogEntry[] = [
     id: "listening",
     route: "/music/listening",
     title: "Studio ears",
-    blurb: "Hear a loop flat and changed, and name the change: an EQ band, a level, a pan.",
+    blurb:
+      "Hear a loop flat and changed, and name the change: an EQ band, a level, a pan, compression or a delay.",
     instruments: [...INSTRUMENTS],
     capability: "ear",
     modality: "heard",

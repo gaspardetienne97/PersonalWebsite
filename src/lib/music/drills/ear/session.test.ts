@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { rng } from "@repo/music-core/content/random";
 import type { ScoringEvent } from "@repo/music-core";
+import { cadencePrompt } from "@repo/music-core/content/ear";
 import {
   buildSession,
+  cadenceShift,
   confusions,
+  mixKinds,
+  MIX_KINDS,
   FRESH_DIFFICULTY,
   perKind,
   retryPrompts,
@@ -196,5 +200,44 @@ describe("ear sessions", () => {
     ]);
     expect(tokenLabel("scale-degree", "3", "solfege")).toBe("mi");
     expect(tokenLabel("cadence", "authentic")).toBe("Authentic (V to I)");
+  });
+
+  it("reads a cadence's shift from its id, up as well as down", () => {
+    expect(cadenceShift("cadence-half-4")).toBe(4);
+    expect(cadenceShift("cadence-authentic--5")).toBe(-5);
+    expect(cadenceShift("cadence-plagal-0")).toBe(0);
+    for (let seed = 1; seed < 40; seed++) {
+      const p = cadencePrompt(rng(seed), { difficulty: 0.3 });
+      const shift = cadenceShift(p.id);
+      expect(shift).toBeGreaterThanOrEqual(-5);
+      expect(shift).toBeLessThanOrEqual(6);
+    }
+  });
+
+  it("mixes the picked drills, and leaves cadences and scales out of a played mix", () => {
+    expect(mixKinds("all", "choice")).toEqual([...MIX_KINDS]);
+    expect(mixKinds("interval,scale", "choice")).toEqual(["interval", "scale"]);
+    expect(mixKinds("all", "play-back")).not.toContain("scale");
+    expect(mixKinds("all", "play-back")).not.toContain("cadence");
+    expect(mixKinds("interval,scale", "play-back")).toEqual(["interval"]);
+    // Only drills with no play-back picked: the rest of the mix plays instead of hanging.
+    expect(mixKinds("cadence,scale", "play-back")).toHaveLength(7);
+    expect(mixKinds("interval", "voice")).toEqual(["scale-degree"]);
+    // A saved single pick from before still reads.
+    expect(mixKinds("chord-quality", "choice")).toEqual(["chord-quality"]);
+  });
+
+  it("mixed direction asks intervals every way from the first prompt", () => {
+    const p = buildSession({
+      ...base,
+      kinds: ["interval"],
+      mode: "balanced",
+      rand: rng(5),
+      length: 30,
+      focus: { tokens: ["M3", "P5"], direction: "mixed" },
+    });
+    expect(p.every((x) => x.difficulty === FRESH_DIFFICULTY)).toBe(true);
+    const dirs = new Set(p.map((x) => (x as { direction?: string }).direction));
+    expect(dirs).toEqual(new Set(["ascending", "descending", "harmonic"]));
   });
 });

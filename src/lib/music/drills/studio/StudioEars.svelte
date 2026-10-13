@@ -23,7 +23,7 @@
     type StudioPrompt,
   } from "@repo/music-core/content/studio";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -73,6 +73,8 @@
     pan: { key: "pans", steps: [{ value: "3", label: "Three positions" }, { value: "5", label: "Five positions" }] },
     delay: { key: "delays", steps: [{ value: "3", label: "Three echo times" }, { value: "4", label: "Four echo times" }] },
   };
+  /** Short names for the tab row. */
+  const TAB: Record<StudioExercise, string> = { peak: "Boost", cut: "Cut", "boost-or-cut": "Boost or cut", level: "Level", pan: "Pan", compression: "Compression", delay: "Delay" };
   const MATERIALS = [
     { value: "noise", label: "Pink noise" },
     { value: "drums", label: "Drum loop" },
@@ -98,7 +100,8 @@
   let misses: Record<string, number> = {};
   const rand = Math.random;
 
-  const setup = () => ({ exercise, bands, gainDb, levels: levels.length ? levels : [6, 3], pans, delays });
+  // Boost or cut names no band: it draws from a fixed five, whatever Bands says for the other two.
+  const setup = () => ({ exercise, bands: exercise === "boost-or-cut" ? ("5" as BandSet) : bands, gainDb, levels: levels.length ? levels : [6, 3], pans, delays });
   const label = (p: StudioPrompt | null, t: string) =>
     !p
       ? t
@@ -160,6 +163,13 @@
     introTimer = setTimeout(() => step === "answer" && show(true), 1500);
     clearInterval(flipTimer);
     if (s.flip === "auto") flipTimer = setInterval(() => show(!changed), 2000);
+  }
+
+  /** Auto flip, switched on the stage while listening. */
+  function setAutoFlip(on: boolean) {
+    cfg.set({ flip: on ? "auto" : "manual" });
+    clearInterval(flipTimer);
+    if (on && step === "answer") flipTimer = setInterval(() => show(!changed), 2000);
   }
 
   async function choose(t: string) {
@@ -279,14 +289,21 @@
     }
     return pts.join(" ");
   });
-  const summaryLine = $derived(
-    [
-      meta.title,
-      MATERIALS.find((m) => m.value === material)?.label.toLowerCase(),
-      exercise === "peak" || exercise === "cut" ? `${BAND_SETS[bands].length} bands, ${exercise === "cut" ? "-" : "+"}${gainDb} dB` : exercise === "boost-or-cut" ? `${gainDb} dB` : exercise === "level" ? `${levels.join(", ")} dB steps` : exercise === "compression" ? "none, light or heavy" : exercise === "delay" ? `${delays} echo times` : `${PAN_SETS[pans].length} positions`,
-      `${LENGTH} prompts`,
-    ].join(", "),
-  );
+  const summaryLine = $derived<SetupClause[]>([
+    { text: MATERIALS.find((m) => m.value === material)?.label.toLowerCase() ?? material, focus: "material" },
+    exercise === "peak" || exercise === "cut"
+      ? { text: `${BAND_SETS[bands].length} bands, ${exercise === "cut" ? "-" : "+"}${gainDb} dB`, focus: "bands" }
+      : exercise === "boost-or-cut"
+        ? { text: `${gainDb} dB`, focus: "gain" }
+        : exercise === "level"
+          ? { text: `${levels.join(", ")} dB steps`, focus: "levels" }
+          : exercise === "compression"
+            ? { text: "none, light or heavy" }
+            : exercise === "delay"
+              ? { text: `${delays} echo times`, focus: "delays" }
+              : { text: `${PAN_SETS[pans].length} positions`, focus: "pans" },
+    { text: `${LENGTH} prompts` },
+  ]);
 </script>
 
 <svelte:head><title>Studio ears | Woodshed</title></svelte:head>
@@ -297,6 +314,10 @@
   hue="ear"
   blurb="Hear a loop flat and changed, and name the change. Keep the volume comfortable and the same throughout."
   summary={summaryLine}
+  tabs={STUDIO_EXERCISES.map((e) => ({ id: e.id, label: TAB[e.id] }))}
+  tab={exercise}
+  ontab={(id) => cfg.set({ exercise: id })}
+  modeNotes={{ practice: "The answer named after each prompt.", check: "No feedback until the end. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -306,26 +327,25 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Exercise" select options={STUDIO_EXERCISES.map((e) => ({ value: e.id, label: e.title }))} value={exercise} onchange={(v) => cfg.set({ exercise: v })} />
-      <Choice label="Loop" options={needsHits ? MATERIALS.slice(1) : MATERIALS} value={material} onchange={(v) => cfg.set({ material: v })} />
+      <Choice label="Loop" setupKey="material" options={needsHits ? MATERIALS.slice(1) : MATERIALS} value={material} onchange={(v) => cfg.set({ material: v })} />
       {#if exercise === "delay"}
-        <Choice label="Echo times" options={[{ value: "3", label: "1/16, 1/8, 1/4" }, { value: "4", label: "With dotted 1/8" }]} value={delays} onchange={(v) => cfg.set({ delays: v })} />
+        <Choice label="Echo times" setupKey="delays" options={[{ value: "3", label: "1/16, 1/8, 1/4" }, { value: "4", label: "With dotted 1/8" }]} value={delays} onchange={(v) => cfg.set({ delays: v })} />
       {/if}
       {#if exercise === "peak" || exercise === "cut"}
-        <Choice label="Bands" options={[{ value: "3", label: "3" }, { value: "5", label: "5" }, { value: "9", label: "9 octaves" }]} value={bands} onchange={(v) => cfg.set({ bands: v })} />
+        <Choice label="Bands" setupKey="bands" options={KNOBS.peak!.steps} value={bands} onchange={(v) => cfg.set({ bands: v })} />
       {/if}
       {#if eqTask}
-        <Choice label="How much" options={GAINS.map((g) => ({ value: String(g), label: `${g} dB` }))} value={String(gainDb)} onchange={(v) => cfg.set({ gain: v })} />
+        <Choice label={exercise === "peak" ? "Boost size" : exercise === "cut" ? "Cut size" : "Amount"} setupKey="gain" options={GAINS.map((g) => ({ value: String(g), label: `${g} dB` }))} value={String(gainDb)} onchange={(v) => cfg.set({ gain: v })} />
       {/if}
       {#if exercise === "level"}
-        <Choice label="Steps" options={LEVEL_OPTIONS} value={s.levels} onchange={(v) => cfg.set({ levels: v })} />
+        <Choice label="Steps" setupKey="levels" options={LEVEL_OPTIONS} value={s.levels} onchange={(v) => cfg.set({ levels: v })} />
       {/if}
       {#if exercise === "pan"}
-        <Choice label="Positions" options={[{ value: "3", label: "Left, centre, right" }, { value: "5", label: "Five" }]} value={pans} onchange={(v) => cfg.set({ pans: v })} />
+        <Choice label="Positions" setupKey="pans" options={[{ value: "3", label: "Left, centre, right" }, { value: "5", label: "Five" }]} value={pans} onchange={(v) => cfg.set({ pans: v })} />
       {/if}
-      <Choice label="Flipping" options={[{ value: "manual", label: "I flip" }, { value: "auto", label: "Every 2 seconds" }]} value={s.flip} onchange={(v) => cfg.set({ flip: v })} />
     </div>
     <p class="mt-3 text-sm text-ws-soft">
+      {#if needsHits}{meta.title} needs hits to hear, so it plays on the drum or band loop.{/if}
       Use the same headphones or speakers every time, at a level you could listen to all day. Short runs work best: rest your ears between them.
     </p>
   {/snippet}
@@ -346,6 +366,10 @@
         <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Listen to">
           <button type="button" class="flip" aria-pressed={!changed} onclick={() => show(false)}>Flat <kbd>A</kbd></button>
           <button type="button" class="flip" aria-pressed={changed} onclick={() => show(true)}>Changed <kbd>B</kbd></button>
+          <label class="ml-auto flex min-h-11 items-center gap-2 text-sm">
+            <input type="checkbox" class="size-4 accent-[var(--instr)]" checked={s.flip === "auto"} onchange={(e) => setAutoFlip(e.currentTarget.checked)} />
+            Flip every 2 s
+          </label>
         </div>
         {#if eqTask}
           <svg class="mt-3 w-full" viewBox="0 0 {W} {H}" role="img" aria-label={step === "feedback" && p.change.eq ? `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb} dB at ${bandLabel(p.change.eq.freq)}` : "The frequency range, before the answer"}>

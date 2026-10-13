@@ -114,7 +114,10 @@ test.describe("studio ears", () => {
     await page.screenshot({ path: `${SHOTS}/drills-tab.png`, fullPage: true });
     await page.getByRole("link", { name: "Rhythm: Echo" }).click();
     await expect(page).toHaveURL(/\/music\/rhythm\?mode=echo$/);
-    await expect(page.getByText("Setup:").locator("..")).toContainText("Echo");
+    // The exercise is the tab row now, not part of the setup sentence.
+    await expect(
+      page.getByRole("group", { name: "Exercise" }).getByRole("button", { name: "Echo" }),
+    ).toHaveAttribute("aria-pressed", "true");
     // Pads and the Aerophone are split by what their modes practise; a split row opens its first mode.
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "Everything" }).click();

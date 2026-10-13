@@ -241,7 +241,8 @@ export function circlePrompt(
       };
     }
     case "wheel": {
-      const f = weighted(keys);
+      // C stays on the wheel as the anchor ("from C at the top"), so it is never asked.
+      const f = weighted(keys.length > 1 ? keys.filter((k) => k !== 0) : keys);
       // The wheel shows one spelling per slot; the outermost keys use their slot's.
       const slot = wheelIndex(f);
       return {

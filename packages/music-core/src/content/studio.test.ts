@@ -58,8 +58,13 @@ describe("studio ears", () => {
     const lvl = studioPrompt(rng(2), setup({ exercise: "level", levels: [6, 3, 2, 1] }));
     expect(lvl.change.levelDb).toBe(Number(lvl.answer));
     const pan = studioPrompt(rng(2), setup({ exercise: "pan", pans: "5" }));
-    expect(pan.answer).not.toBe("0");
+    expect(pan.change.pan).toBe(Number(pan.answer));
     expect(pan.choices).toEqual(["-1", "-0.5", "0", "0.5", "1"]);
+    // Every choice can be the answer, centre included (Changed then sounds like Flat).
+    const answers = new Set<string>();
+    for (let seed = 1; seed < 60; seed++)
+      answers.add(studioPrompt(rng(seed), setup({ exercise: "pan" })).answer);
+    expect([...answers].sort()).toEqual(["-1", "0", "1"]);
   });
 
   it("draws the bell at its gain in the centre, falling away an octave out", () => {
