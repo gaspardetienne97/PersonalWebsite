@@ -118,6 +118,10 @@ let candidateAt = 0;
 let candidateRun = 0;
 let silentRun = 0;
 let sounding: number | undefined;
+let soundingAt = 0;
+/** A re-attack closer than this to the note's start is the same stroke. */
+const RESTRIKE_MS = 120;
+let restrike: { at: number; midi: number; frames: number } | null = null;
 let onsets: ReturnType<typeof createOnsetDetector> | null = null;
 
 function noteOff(at: number) {
@@ -156,6 +160,32 @@ function onFrame(msg: { frame: Float32Array; wide: Float32Array; end: number }) 
       midi: heard?.midi,
     });
 
+  // The same pitch struck again (a re-picked note) never drops out, so only the
+  // attack says it is a new note. But a new note's attack often arrives while the
+  // pitch still reads as the old one, so the re-strike waits until the same pitch
+  // holds for a couple more frames, and is dropped if the pitch moves on.
+  if (onset && heard && sounding === heard.midi && onset.at - soundingAt > RESTRIKE_MS)
+    restrike = { at: onset.at, midi: heard.midi, frames: 0 };
+  else if (restrike) {
+    if (heard?.midi !== restrike.midi) restrike = null;
+    else if (++restrike.frames >= STABLE_FRAMES) {
+      noteOff(restrike.at);
+      sounding = heard.midi;
+      soundingAt = restrike.at;
+      input.router.push({
+        kind: "noteon",
+        midi: heard.midi,
+        velocity: clamp((db + 60) / 60, 0, 1),
+        at: restrike.at,
+        source: "audio",
+        confidence: clamp(heard.clarity, 0, 1),
+        cents: heard.cents,
+        velocityMeasured: false,
+      });
+      restrike = null;
+    }
+  }
+
   if (heard) {
     silentRun = 0;
     if (heard.midi === candidate) candidateRun++;
@@ -167,6 +197,7 @@ function onFrame(msg: { frame: Float32Array; wide: Float32Array; end: number }) 
     if (candidateRun >= STABLE_FRAMES && sounding !== heard.midi) {
       noteOff(candidateAt);
       sounding = heard.midi;
+      soundingAt = candidateAt;
       input.router.push({
         kind: "noteon",
         midi: heard.midi,
@@ -273,6 +304,7 @@ function stop() {
   stream = null;
   onsets = null;
   candidate = undefined;
+  restrike = null;
   candidateRun = silentRun = 0;
   pitch = null;
   level = peak = LEVEL_FLOOR_DB;

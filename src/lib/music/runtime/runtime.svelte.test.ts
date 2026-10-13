@@ -333,6 +333,27 @@ describe("microphone (synthetic audio)", () => {
   });
 });
 
+describe("microphone re-attacks", () => {
+  it("hears the same note picked three times as three notes", async () => {
+    const seen: InputEvent[] = [];
+    const off = input.subscribe((e) => seen.push(e));
+    // A3 plucked every 600 ms: a sharp attack, then a decay that never reaches silence.
+    expect(
+      await withGesture(() =>
+        mic.startSynthetic((t) => {
+          const since = t % 0.6;
+          return 0.5 * Math.exp(-since * 3) * Math.sin(2 * Math.PI * 220 * t);
+        }, 1.8),
+      ),
+    ).toBe(true);
+    await new Promise((r) => setTimeout(r, 1700));
+    mic.stop();
+    off();
+    const ons = seen.filter((e) => e.kind === "noteon" && e.midi === 57);
+    expect(ons.length, ons.map((e) => Math.round(e.at)).join(" ")).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("microphone on a two-input interface", () => {
   it("follows the guitar on input 2 when input 1 is silent", async () => {
     // A Scarlett Solo style stream: nothing on channel 1, a G3 on channel 2.
