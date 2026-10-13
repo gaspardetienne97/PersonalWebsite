@@ -792,6 +792,14 @@ APP_SKILLS.push(
     version: 1,
   },
   {
+    id: "technique.legato",
+    name: "Hammer-ons and pull-offs",
+    capability: "technique",
+    level: "early-intermediate",
+    tags: ["guitar", "ukulele", "legato"],
+    version: 1,
+  },
+  {
     id: "technique.bends",
     name: "Bends to pitch",
     capability: "technique",

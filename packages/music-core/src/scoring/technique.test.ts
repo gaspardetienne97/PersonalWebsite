@@ -6,6 +6,7 @@ import {
   gradeChordStrings,
   gradeFretFind,
   gradeLine,
+  legatoAttacks,
   gradeStrumIdentify,
   ladderAfterRun,
   ladderProjection,
@@ -347,5 +348,19 @@ describe("tempo ladder", () => {
       b: { unlockedBpm: 100, streak: 1 },
       c: { unlockedBpm: 130, streak: 0 },
     });
+  });
+});
+
+describe("legato", () => {
+  it("calls a hammered note picked only when an attack lands with it", () => {
+    const labels = ["P", "h", "p", "h"];
+    const at = [0, 500, 1000, undefined];
+    // Attacks at the pick (0) and with the pull-off (1010): the hammer-on was clean.
+    expect(legatoAttacks(labels, at, [{ at: 0 }, { at: 1010 }])).toEqual([
+      null,
+      "legato",
+      "picked",
+      "missed",
+    ]);
   });
 });

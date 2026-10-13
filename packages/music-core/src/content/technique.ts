@@ -198,6 +198,70 @@ export interface FretTarget extends FretPosition {
 }
 
 // ---------------------------------------------------------------------------
+// Legato: hammer-ons and pull-offs on one string. Only the first note of each
+// group is picked (P); h hammers on, p pulls off.
+
+export interface LegatoPattern {
+  id: string;
+  label: string;
+  /** Frets above the start fret, and how each note sounds. */
+  steps: [number, "P" | "h" | "p"][];
+}
+export const LEGATO_PATTERNS: LegatoPattern[] = [
+  {
+    id: "hammer-pull",
+    label: "Hammer on, pull off: 0 2 0",
+    steps: [
+      [0, "P"],
+      [2, "h"],
+      [0, "p"],
+    ],
+  },
+  {
+    id: "trill",
+    label: "Trill: 0 2 0 2",
+    steps: [
+      [0, "P"],
+      [2, "h"],
+      [0, "p"],
+      [2, "h"],
+    ],
+  },
+  {
+    id: "three-note",
+    label: "Three notes: 0 2 3 2",
+    steps: [
+      [0, "P"],
+      [2, "h"],
+      [3, "h"],
+      [2, "p"],
+    ],
+  },
+];
+
+/** The pattern on `string` from `startFret`, `repeats` times. */
+export function legatoTargets(opts: {
+  patternId: string;
+  tuning: Tuning;
+  string: number;
+  startFret: number;
+  repeats?: number;
+}): FretTarget[] {
+  const pattern = LEGATO_PATTERNS.find((p) => p.id === opts.patternId) ?? LEGATO_PATTERNS[0];
+  return Array.from({ length: opts.repeats ?? 4 }, () => pattern.steps).flatMap((steps) =>
+    steps.map(([off, how]) => {
+      const fret = opts.startFret + off;
+      return {
+        string: opts.string,
+        fret,
+        midi: midiAt(opts.tuning, opts.string, fret),
+        label: how,
+      };
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Fingerpicking: a picking pattern over chord shapes, a string per eighth.
 // "B" is the chord's bass string (its lowest sounding string), "A" the
 // alternate bass (string 4 under a string-6 root, else the next string up).

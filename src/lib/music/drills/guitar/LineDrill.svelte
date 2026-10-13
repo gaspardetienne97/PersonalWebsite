@@ -17,13 +17,15 @@
     SPIDER_TEMPOS,
     GUITAR_GRADE_TEMPOS,
     FINGERPICK_PATTERNS,
+    LEGATO_PATTERNS,
+    legatoTargets,
     fingerpickable,
     fingerpickTargets,
     spiderMaxStartFret,
     spiderTargets,
     type FretTarget,
   } from "@repo/music-core/content/technique";
-  import { gradeLine, type LineResult } from "@repo/music-core/scoring/technique";
+  import { gradeLine, legatoAttacks, type LineResult } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -43,28 +45,30 @@
   import { CHORD_MODES, FRETBOARD_MODES } from "./modes";
   import { chordSymbol, shapesFor } from "./chords";
 
-  let { kind }: { kind: "spider" | "positions" | "fingerpick" } = $props();
+  let { kind }: { kind: "spider" | "positions" | "fingerpick" | "legato" } = $props();
 
   // svelte-ignore state_referenced_locally
   const isSpider = kind === "spider";
   // svelte-ignore state_referenced_locally
   const isPick = kind === "fingerpick";
-  const cfg = new DrillSetup(isPick ? "chords-fingerpick" : isSpider ? "fretboard-spider" : "fretboard-positions", {
-    pattern: isPick ? "travis" : isSpider ? "ascending-1234" : "minor-pentatonic-box-1",
+  // svelte-ignore state_referenced_locally
+  const isLegato = kind === "legato";
+  const cfg = new DrillSetup(isPick ? "chords-fingerpick" : isLegato ? "fretboard-legato" : isSpider ? "fretboard-spider" : "fretboard-positions", {
+    pattern: isPick ? "travis" : isLegato ? "hammer-pull" : isSpider ? "ascending-1234" : "minor-pentatonic-box-1",
     shape: "guitar.c-major",
     to: "guitar.a-minor",
     tuning: "guitar.standard",
-    string: 6,
+    string: isLegato ? 3 : 6,
     span: "single",
     startFret: 5,
     crossing: false as boolean,
     rootFret: 5,
-    perBeat: isPick ? 2 : 1,
+    perBeat: isPick || isLegato ? 2 : 1,
     /** A grade whose exam click was picked ("" for none). */
     grade: "" as string,
   });
   const s = $derived(cfg.value);
-  const entry = isPick ? catalogEntry("chords")!.modes.find((m) => m.id === "fingerpick")! : catalogEntry("fretboard")!.modes.find((m) => m.id === (isSpider ? "spider" : "positions"))!;
+  const entry = isPick ? catalogEntry("chords")!.modes.find((m) => m.id === "fingerpick")! : catalogEntry("fretboard")!.modes.find((m) => m.id === (isLegato ? "legato" : isSpider ? "spider" : "positions"))!;
 
   const instr = $derived(fretted());
   // Box and CAGED shapes are written for standard guitar tuning, root on string 6.
@@ -73,8 +77,9 @@
   const pickShapes = $derived(shapesFor(instr).filter((x) => fingerpickable(pickPattern, x)));
   const chordA = $derived(pickShapes.find((x) => x.id === s.shape) ?? pickShapes[0]);
   const chordB = $derived(pickShapes.find((x) => x.id === s.to && x.id !== chordA.id) ?? pickShapes.find((x) => chordA.commonTransitions.includes(x.id)) ?? pickShapes[1] ?? chordA);
-  const tuning = $derived(isPick ? tuningById(chordA.tuningId)! : isSpider ? tunings.pick(s.tuning, instr) : TUNINGS.guitar[0]);
-  const unavailable = $derived(!isSpider && instr === "ukulele");
+  const tuning = $derived(isPick ? tuningById(chordA.tuningId)! : isSpider || isLegato ? tunings.pick(s.tuning, instr) : TUNINGS.guitar[0]);
+  const unavailable = $derived(kind === "positions" && instr === "ukulele");
+  const legatoPattern = $derived(LEGATO_PATTERNS.find((p) => p.id === s.pattern) ?? LEGATO_PATTERNS[0]);
   const bpm = () => Math.min(200, Math.max(40, settings.value.bpm));
   const perBeat = $derived([1, 2, 4].includes(s.perBeat) ? s.perBeat : 1);
   /** One note's time: the click divided by the notes to a click. */
@@ -90,6 +95,7 @@
 
   const steps = $derived.by((): FretTarget[] => {
     if (isPick) return fingerpickTargets({ pattern: pickPattern, shapes: [chordA, chordB], tuning, rounds: 2 });
+    if (isLegato) return legatoTargets({ patternId: legatoPattern.id, tuning, string: Math.min(s.string, stringCount), startFret: Math.max(1, Math.min(s.startFret, tuning.fretCount - 4)), repeats: 4 });
     if (isSpider)
       return spiderTargets({ patternId: spiderPattern.id, tuning, string: Math.min(s.string, stringCount), span: s.span as never, startFret, crossing: s.crossing });
     const line = positionTargets({ patternId: box.id, tuning, rootFret });
@@ -100,6 +106,8 @@
   const key = $derived(
     isPick
       ? `fingerpick:${pickPattern.id}:${chordA.id}>${chordB.id}:${bpm()}x${perBeat}`
+      : isLegato
+      ? `legato:${legatoPattern.id}:${tuning.id}:s${Math.min(s.string, stringCount)}:f${s.startFret}:${bpm()}x${perBeat}`
       : isSpider
       ? `spider:${spiderPattern.id}:${tuning.id}:s${Math.min(s.string, stringCount)}:${s.span}:f${startFret}:${s.crossing ? "x" : "-"}:${bpm()}${perBeat > 1 ? `x${perBeat}` : ""}`
       : `positions:${box.id}:r${rootFret}:${bpm()}${perBeat > 1 ? `x${perBeat}` : ""}`,
@@ -121,6 +129,8 @@
   let timer: ReturnType<typeof setTimeout> | undefined;
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let stopClockRef: (() => void) | null = null;
+  /** When each step was first played (legato: to look for a pick attack at it). */
+  let hitAt: (number | undefined)[] = [];
 
   const finger = (t: FretTarget) => t.label ?? (t.finger ? String(t.finger) : undefined);
   const marks = $derived.by((): FretMark[] => {
@@ -137,6 +147,8 @@
   const summaryLine = $derived(
     isPick
       ? `${pickPattern.label}, ${chordSymbol(chordA)} then ${chordSymbol(chordB)}, a bar each, twice, ${bpm()} BPM, ${PER[perBeat]}`
+      : isLegato
+      ? `${legatoPattern.label} on string ${Math.min(s.string, stringCount)} from fret ${steps[0]?.fret}, four times, ${bpm()} BPM, ${PER[perBeat]}`
       : isSpider
       ? `${spiderPattern.label}, ${tuning.name}, string ${Math.min(s.string, stringCount)}, ${SPIDER_SPANS.find((x) => x.id === s.span)?.label.toLowerCase()}, from fret ${startFret}${s.crossing ? ", crossing strings" : ""}, ${bpm()} BPM${perBeat > 1 ? `, ${PER[perBeat]}` : ""}`
       : `${box.label}, root at fret ${rootFret} (${noteName(tuning.openStrings[5] + rootFret, "sharp", false)}), ${bpm()} BPM${perBeat > 1 ? `, ${PER[perBeat]}` : ""}`,
@@ -169,6 +181,7 @@
     const k = steps.findIndex((t, i) => i >= stepIndex && i <= stepIndex + 2 && t.midi === e.midi);
     if (k >= 0) {
       if (mode === "practice") flashes.add(steps[k].string * 100 + steps[k].fret, "correct");
+      hitAt[k] = e.at;
       stepIndex = k + 1;
       if (stepIndex >= steps.length) void finish();
     } else if (mode === "practice" && e.string !== undefined && e.fret !== undefined) {
@@ -181,6 +194,7 @@
     summary = null;
     result = null;
     stepIndex = 0;
+    hitAt = [];
     flashes.clear();
     run = practice.beginRun({
       exerciseId: exerciseFor(entry.exerciseId, instr),
@@ -189,10 +203,12 @@
       capabilities: ["technique"],
       modality: "played",
       assistance: assistanceFor(mode),
-      difficulty: isPick ? (pickPattern.id === "travis" ? 0.5 : 0.4) : isSpider ? (spiderPattern.group === "classic" ? 0.3 : 0.4) + (s.crossing ? 0.15 : 0) + (s.span === "single" ? 0 : 0.1) : box.family === "caged-major" ? 0.5 : 0.45,
+      difficulty: isPick ? (pickPattern.id === "travis" ? 0.5 : 0.4) : isLegato ? (legatoPattern.id === "three-note" ? 0.5 : 0.4) : isSpider ? (spiderPattern.group === "classic" ? 0.3 : 0.4) + (s.crossing ? 0.15 : 0) + (s.span === "single" ? 0 : 0.1) : box.family === "caged-major" ? 0.5 : 0.45,
       instrument: instr,
       params: isPick
         ? { bpm: ctx.bpm, perBeat, pattern: pickPattern.id, shapes: `${chordA.id}>${chordB.id}` }
+        : isLegato
+        ? { bpm: ctx.bpm, perBeat, pattern: legatoPattern.id, string: s.string, startFret: s.startFret }
         : isSpider
         ? { bpm: ctx.bpm, perBeat, pattern: spiderPattern.id, tuning: tuning.id, string: s.string, span: s.span, startFret, crossing: s.crossing }
         : { bpm: ctx.bpm, perBeat, pattern: box.id, rootFret },
@@ -252,6 +268,15 @@
         taps.length && taps.length === ons.length
           ? { label: "On the written string and fret", value: taps.length ? onString / taps.length : 0, text: `${onString} of ${taps.length} taps` }
           : { label: "String and fret", notMeasured: true },
+        ...(isLegato
+          ? (() => {
+              const fromMic = ons.length > 0 && ons.every((n) => n.source === "audio");
+              if (!fromMic) return [{ label: "Hammer-ons and pull-offs (the microphone hears the pick)", notMeasured: true }];
+              const v = legatoAttacks(steps.map((t) => t.label), hitAt, (cap?.onsets ?? []).filter((o) => o.source === "audio")).filter((x) => x !== null);
+              const legato = v.filter((x) => x === "legato").length;
+              return [{ label: "Hammered and pulled with no new pick attack", value: v.length ? legato / v.length : 0, text: `${legato} of ${v.length}, ${v.filter((x) => x === "picked").length} sounded picked` }];
+            })()
+          : []),
         ...(target
           ? [
               {
@@ -277,8 +302,8 @@
   function again(patch: { bpm?: number; next?: boolean }) {
     if (patch.bpm) settings.update({ bpm: Math.min(200, Math.max(40, patch.bpm)) });
     if (patch.next) {
-      const list = isPick ? FINGERPICK_PATTERNS.filter((p) => p.instrument === instr) : isSpider ? SPIDER_PATTERNS : POSITION_PATTERNS;
-      const i = list.findIndex((p) => p.id === (isPick ? pickPattern.id : isSpider ? spiderPattern.id : box.id));
+      const list = isPick ? FINGERPICK_PATTERNS.filter((p) => p.instrument === instr) : isLegato ? LEGATO_PATTERNS : isSpider ? SPIDER_PATTERNS : POSITION_PATTERNS;
+      const i = list.findIndex((p) => p.id === (isPick ? pickPattern.id : isLegato ? legatoPattern.id : isSpider ? spiderPattern.id : box.id));
       cfg.set({ pattern: list[(i + 1) % list.length].id });
     }
     phase = "ready";
@@ -298,9 +323,11 @@
 </script>
 
 <DrillShell
-  title={isPick ? "Fingerpicking" : isSpider ? "Spider" : "Positions"}
+  title={isPick ? "Fingerpicking" : isLegato ? "Hammer-ons and pull-offs" : isSpider ? "Spider" : "Positions"}
   hue={instr}
-  blurb={isPick
+  blurb={isLegato
+    ? "Pick only the first note (P); hammer on (h) and pull off (p) the rest. With the microphone, each hammered or pulled note is checked for a new pick attack."
+    : isPick
     ? "A picking pattern over two chords, a bar each: p thumb, i index, m middle, a ring. The microphone hears the notes, not which string they came from."
     : isSpider
     ? "One finger per fret, one note per click. The pattern walks your fingers until each lands on its own."
@@ -323,6 +350,11 @@
         <Choice label="Pattern" select options={FINGERPICK_PATTERNS.filter((p) => p.instrument === instr).map((p) => ({ value: p.id, label: p.label }))} value={pickPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
         <Choice label="First chord" select options={pickShapes.map((x) => ({ value: x.id, label: x.name }))} value={chordA.id} onchange={(v) => cfg.set({ shape: v })} />
         <Choice label="Second chord" select options={pickShapes.filter((x) => x.id !== chordA.id).map((x) => ({ value: x.id, label: x.name }))} value={chordB.id} onchange={(v) => cfg.set({ to: v })} />
+      {:else if isLegato}
+        <Choice label="Pattern" options={LEGATO_PATTERNS.map((p) => ({ value: p.id, label: p.label }))} value={legatoPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
+        <TuningPicker instrument={instr} value={tuning.id} onchange={(id) => cfg.set({ tuning: id })} />
+        <Choice label="String" options={stringOptions} value={Math.min(s.string, stringCount)} onchange={(v) => cfg.set({ string: v })} />
+        <Choice label="Start fret" select options={Array.from({ length: Math.max(1, tuning.fretCount - 4) }, (_, f) => ({ value: f + 1, label: `Fret ${f + 1}` }))} value={Math.max(1, s.startFret)} onchange={(v) => cfg.set({ startFret: v })} />
       {:else if isSpider}
         <Choice
           label="Pattern"
@@ -407,7 +439,7 @@
     {:else}
       <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
       <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
-        {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? "Letters are the picking hand: p thumb, i index, m middle, a ring." : "Numbers are fingers: 1 index to 4 pinky."}</p>{/if}
+        {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? "Letters are the picking hand: p thumb, i index, m middle, a ring." : isLegato ? "P is picked, h hammered on, p pulled off." : "Numbers are fingers: 1 index to 4 pinky."}</p>{/if}
       </div>
               <div class="mt-3"><MicPanel disabled={phase === "running" || phase === "countin"} hint="Optional: play on your {instr} into the microphone, or tap the frets here." /></div>
     {/if}
@@ -419,7 +451,7 @@
         {#snippet actions()}
           <button type="button" class={btn} onclick={() => again({ bpm: bpm() + 10 })}>Faster, {bpm() + 10} BPM</button>
           <button type="button" class={btn} onclick={() => again({ bpm: bpm() - 10 })}>Slower</button>
-          <button type="button" class={btn} onclick={() => again({ next: true })}>Next {isSpider || isPick ? "pattern" : "shape"}</button>
+          <button type="button" class={btn} onclick={() => again({ next: true })}>Next {kind === "positions" ? "shape" : "pattern"}</button>
         {/snippet}
       </Results>
     {/if}

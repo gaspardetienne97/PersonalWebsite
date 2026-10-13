@@ -481,3 +481,31 @@ export function mergeLadders(
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Legato: was a hammered or pulled note sounded without a new pick attack?
+// Partly measurable (docs/research/guitar-ukulele-drills.md): a hard hammer-on
+// can trip the onset detector like a pick does, so this is reported, not scored.
+
+/** An attack within this of a note's start belongs to it. */
+export const LEGATO_ATTACK_MS = 50;
+
+export type LegatoVerdict = "legato" | "picked" | "missed";
+
+/**
+ * For each note marked h or p: "picked" when an onset landed within
+ * LEGATO_ATTACK_MS of the note starting, "legato" when none did, "missed"
+ * when the note wasn't played. Picked notes (P) get null.
+ */
+export function legatoAttacks(
+  labels: readonly (string | undefined)[],
+  startedAt: readonly (number | undefined)[],
+  onsets: readonly { at: number }[],
+): (LegatoVerdict | null)[] {
+  return labels.map((l, i) => {
+    if (l !== "h" && l !== "p") return null;
+    const at = startedAt[i];
+    if (at === undefined) return "missed";
+    return onsets.some((o) => Math.abs(o.at - at) <= LEGATO_ATTACK_MS) ? "picked" : "legato";
+  });
+}

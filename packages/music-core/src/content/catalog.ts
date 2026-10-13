@@ -303,6 +303,7 @@ export const CATALOG: CatalogEntry[] = [
         "technique.guitar.intervals.7",
         "technique.guitar.intervals.12",
       ]),
+      mode("legato", "Hammer-ons and pull-offs", "technique.guitar.legato", ["technique.legato"]),
       mode("bends", "Bends and vibrato", "technique.guitar.bends", [
         "technique.bends",
         "technique.vibrato",

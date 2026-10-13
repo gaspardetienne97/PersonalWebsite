@@ -455,8 +455,25 @@ test.describe("Record", () => {
     ]) {
       await rec.click();
       await expect(page.getByRole("status")).toContainText("Recording");
-      // Long enough notes that a pause can land before the take ends.
-      for (const n of notes) await midiNote(page, PORTS.keys.id, n, 90, 1, 450);
+      // Long enough notes that a pause can land before the take ends; stamped exactly,
+      // so the two takes' rhythms match however busy the machine is.
+      await page.evaluate(
+        ({ port, notes }) =>
+          new Promise<void>((resolve) => {
+            const midi = (window as any).__midi;
+            const t0 = performance.now() + 50;
+            notes.forEach((n, i) => {
+              const on = t0 + i * 500;
+              setTimeout(() => midi.send(port, [0x90, n, 90], on), on - performance.now());
+              setTimeout(
+                () => midi.send(port, [0x80, n, 0], on + 450),
+                on + 450 - performance.now(),
+              );
+            });
+            setTimeout(resolve, notes.length * 500 + 100);
+          }),
+        { port: PORTS.keys.id, notes },
+      );
       await page.getByRole("button", { name: "Stop", exact: true }).click();
       await expect(page.getByRole("status")).toContainText(/Saved Take \d: 3 notes/);
     }

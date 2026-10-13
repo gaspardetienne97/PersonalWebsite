@@ -17,7 +17,7 @@
 
 {#if ready}
   {#key mode}
-    {#if mode === "spider" || mode === "positions"}
+    {#if mode === "spider" || mode === "positions" || mode === "legato"}
       <LineDrill kind={mode} />
     {:else if mode === "bends"}
       <BendDrill />

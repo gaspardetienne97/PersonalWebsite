@@ -16,6 +16,8 @@ import {
   scaleDrillTargets,
   scaleSetupKey,
   gradeSpeed,
+  LEGATO_PATTERNS,
+  legatoTargets,
   FINGERPICK_PATTERNS,
   fingerpickable,
   fingerpickTargets,
@@ -381,5 +383,20 @@ describe("fingerpicking", () => {
     });
     // High-G: string 4 (G4) is above string 3 (C4).
     expect(t.slice(0, 4).map((x) => x.midi)).toEqual([67, 60, 64, 72]);
+  });
+});
+
+describe("legato patterns", () => {
+  it("lays hammer-ons and pull-offs on one string from the start fret", () => {
+    const t = legatoTargets({
+      patternId: "three-note",
+      tuning: std,
+      string: 3,
+      startFret: 5,
+      repeats: 1,
+    });
+    expect(t.map((x) => `${x.fret}${x.label}`)).toEqual(["5P", "7h", "8h", "7p"]);
+    expect(t.map((x) => x.midi)).toEqual([60, 62, 63, 62]);
+    expect(LEGATO_PATTERNS).toHaveLength(3);
   });
 });

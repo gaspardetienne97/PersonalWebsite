@@ -952,7 +952,13 @@ test.describe("rhythm", () => {
     for (let run = 1; run <= 2; run++) {
       const before = await stage.getAttribute("data-downbeat");
       await page.getByRole("button", { name: run === 1 ? "Start" : "Again", exact: true }).click();
-      await expect(stage).not.toHaveAttribute("data-downbeat", before ?? "none");
+      // The page sets its downbeat a moment after the phase changes: wait for the new one.
+      await expect
+        .poll(async () => {
+          const v = await stage.getAttribute("data-downbeat");
+          return v !== null && v !== before && Number(v) > 0;
+        })
+        .toBe(true);
       const downbeat = Number(await stage.getAttribute("data-downbeat"));
       await page.evaluate(
         ({ port, strokes, chords, downbeat }) => {

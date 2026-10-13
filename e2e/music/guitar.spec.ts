@@ -153,10 +153,25 @@ test.describe("guitar drills", () => {
       [2, 1],
     ];
     const line = [...C, ...C, ...Am, ...Am, ...C, ...C, ...Am, ...Am];
-    for (const [st, f] of line) {
-      await tap(page, fret(st, f));
-      await page.waitForTimeout(240);
-    }
+    // Every tap scheduled in the page from one start, a note every 250 ms (120 BPM, two a
+    // click), so a busy machine delays single taps but never lets them drift.
+    await page.evaluate(
+      (sels) => {
+        const t0 = performance.now();
+        sels.forEach((sel, i) => {
+          const o = { bubbles: true, pointerId: 9, button: 0 };
+          setTimeout(
+            () => {
+              const el = document.querySelector(sel)!;
+              el.dispatchEvent(new PointerEvent("pointerdown", o));
+              setTimeout(() => el.dispatchEvent(new PointerEvent("pointerup", o)), 40);
+            },
+            t0 + i * 250 - performance.now(),
+          );
+        });
+      },
+      line.map(([st, f]) => fret(st, f)),
+    );
     await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
     // Taps drift against the click in a headless browser; most of the line still lands.
     const right = await page
@@ -221,6 +236,33 @@ test.describe("guitar drills", () => {
       clearInterval((window as any).__wobble);
       (window as any).__mic.set(0);
     });
+  });
+
+  test("Hammer-ons and pull-offs by synthetic microphone: no new attack reads as legato", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.goto(
+      "/music/fretboard?mode=legato&pattern=hammer-pull&string=3&startFret=5&instrument=guitar&bpm=60&perBeat=2",
+    );
+    await expect(page.getByText("Setup:").locator("..")).toContainText(
+      "Hammer on, pull off: 0 2 0 on string 3 from fret 5",
+    );
+    await startMic(page);
+    await page.evaluate(() => (window as any).__mic.set(0));
+    await startDrill(page, "Practice");
+    // One unbroken tone moving C4 D4 C4 four times, a note every 500 ms: no new attacks.
+    await page.evaluate(() => {
+      const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
+      const notes = [60, 62, 60, 60, 62, 60, 60, 62, 60, 60, 62, 60];
+      notes.forEach((m, i) => setTimeout(() => (window as any).__mic.set(hz(m)), i * 500));
+      setTimeout(() => (window as any).__mic.set(0), notes.length * 500);
+    });
+    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 15_000 });
+    await expect(page.getByRole("article")).toContainText(
+      "Hammered and pulled with no new pick attack",
+    );
+    await shoot(page, "legato-results", 1280);
   });
 
   test("Positions box 1 runs by synthetic microphone", async ({ page }) => {
