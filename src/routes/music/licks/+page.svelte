@@ -7,7 +7,7 @@
   import { transposeSymbol } from "@repo/music-core/theory/chords";
   import { gradeLick, type LickResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
+  import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import LineTab from "$lib/music/notation/LineTab.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
@@ -350,8 +350,8 @@
         Numbers on the dots are the authored fingers, never graded. Taps on the fretboard also check the string and fret; MIDI and the microphone only know the pitch.
       </p>
     {:else}
-      <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}" />
-      <p class="mt-3 text-sm text-ws-stage-soft">The licks carry no authored piano fingering. Any octave counts; the order is what's graded.</p>
+      <InstrumentStage line={all.map((n) => n.midi)} low={span.low} high={span.high} {marks} {flashes} fit />
+      <p class="mt-3 text-sm text-ws-stage-soft">The licks carry no authored fingering. Any octave counts; the order is what's graded.</p>
     {/if}
     {#if mode === "check" && phase !== "results"}<p class="mt-1 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Play the line from memory.</p>{/if}
   {/snippet}

@@ -7,7 +7,7 @@
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
   import { gradeChordScales, type ChordScaleResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
+  import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -277,7 +277,7 @@
     {:else if mode === "check" && phase !== "results"}
       <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the scale names and the colour key are hidden. Play what fits each chord.</p>
     {/if}
-    <Piano {low} {high} {marks} {flashes} names="c" label="Piano keyboard, {noteName(low)} to {noteName(high)}, keys labelled by their role over the current chord" />
+    <InstrumentStage line={targets.flatMap((t) => [t.midi[0], t.midi[0] + 12])} {low} {high} {marks} {flashes} fit />
     <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-label="Colour key">
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="chord" aria-hidden="true">3</span>Chord tone (filled, named R 3 5 7)</li>
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="scale" aria-hidden="true">9</span>Scale tone (filled, named as a tension)</li>

@@ -7,7 +7,8 @@
   import type { DrillSetup } from "$lib/music/setup.svelte";
   import type { ReadingSetup } from "./reading";
 
-  let { cfg, activity, fretted }: { cfg: DrillSetup<ReadingSetup>; activity: "flashcards" | "sight-reading"; fretted: boolean } = $props();
+  /** `oneLine`: one treble staff (fretted instruments and the Aerophone). */
+  let { cfg, activity, fretted, oneLine = fretted }: { cfg: DrillSetup<ReadingSetup>; activity: "flashcards" | "sight-reading"; fretted: boolean; oneLine?: boolean } = $props();
   const s = $derived(cfg.value);
   const notes = Array.from({ length: 88 }, (_, i) => 21 + i).map((m) => ({ value: m, label: noteName(m) }));
 </script>
@@ -20,6 +21,7 @@
       { value: "piano", label: "Piano" },
       { value: "guitar", label: "Guitar" },
       { value: "ukulele", label: "Ukulele" },
+      { value: "aerophone", label: "Aerophone" },
     ]}
     value={s.instrument}
     onchange={(v) => cfg.set({ instrument: v })}
@@ -29,7 +31,7 @@
     cfg.set({ level: v, clefs: l.recommendedClefs.join(","), key: l.recommendedKeys.includes(s.key) ? s.key : l.recommendedKeys[0], low: l.recommendedRange.lowestMidi, high: l.recommendedRange.highestMidi });
   }} />
   <Choice label="Key" select options={KEY_SIGNATURES.map((k) => ({ value: k.name, label: k.name }))} value={s.key} onchange={(v) => cfg.set({ key: v })} />
-  {#if !fretted}
+  {#if !oneLine}
     <Choice
       label="Clefs"
       options={[
@@ -75,7 +77,7 @@
         // The climb plays in time, four bars a phrase, from the rung the level and key are on.
         const at = Math.max(0, READING_RUNGS.findIndex((r) => r.level === s.level && r.key === s.key));
         const r = READING_RUNGS[at];
-        cfg.set({ climb: true, follower: "performance", measures: CLIMB.measures, level: r.level, key: r.key, clefs: fretted ? "treble" : r.clefs.join(",") });
+        cfg.set({ climb: true, follower: "performance", measures: CLIMB.measures, level: r.level, key: r.key, clefs: oneLine ? "treble" : r.clefs.join(",") });
       }}
     />
     <Choice

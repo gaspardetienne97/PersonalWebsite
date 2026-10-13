@@ -21,6 +21,7 @@
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
+  import Pads from "$lib/music/components/Pads.svelte";
   import RhythmGrid, { type GridHit, type GridVerdict } from "$lib/music/drills/rhythm/RhythmGrid.svelte";
   import { demoNotes, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -41,6 +42,8 @@
   const groove = $derived(s.mode === "groove");
   /** The modes that end with writing the rhythm down. */
   const writes = $derived(dictation || groove);
+  /** With the MPC on the practice strip, the stage is its pads instead of a Tap button. */
+  const onPads = $derived(settings.value.activeInstrument === "mpc");
   const byEar = $derived(echo || writes);
   const grooveLevel = $derived(GROOVE_LEVELS.find((l) => l.id === s.grooveLevel) ?? GROOVE_LEVELS[0]);
   let grooveDef = $state.raw<Groove | null>(null);
@@ -93,6 +96,8 @@
   }
 
   function onInput(e: InputEvent) {
+    // A tapped on-screen pad (the MPC's surface) is a tap; it sounds its own drum.
+    if (e.kind === "noteon" && e.source === "onscreen" && onPads) return addHit({ at: e.at, source: "onscreen" });
     if (e.kind === "noteon" && e.source === "midi") {
       const last = hits.at(-1);
       if (last?.source === "midi" && e.at - last.at <= STROKE_MS) {
@@ -629,6 +634,10 @@
         {/if}
       </div>
       <div class="flex flex-col items-center gap-2" class:hidden={writes}>
+        {#if onPads}
+          <div class="w-72 max-w-full"><Pads label="Pads: any pad is a tap" /></div>
+          <p class="text-center text-xs text-ws-stage-soft">Any pad counts, on the MPC or here{s.mic ? ", and the mic" : ""}. Space too.</p>
+        {:else}
         <button
           type="button"
           class="tap"
@@ -652,6 +661,7 @@
           <span class="text-xs opacity-80">or Space</span>
         </button>
         <p class="text-center text-xs text-ws-stage-soft">MIDI keys and pads count too{s.mic ? ", and the mic" : ""}.</p>
+        {/if}
       </div>
     </div>
   {/snippet}

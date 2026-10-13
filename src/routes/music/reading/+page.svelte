@@ -12,10 +12,10 @@
   const activity = $derived(cfg.value.activity === "sight-reading" ? "sight-reading" : "flashcards");
   const instrument = $derived.by(() => {
     const pick = cfg.value.instrument === "auto" ? settings.value.activeInstrument : cfg.value.instrument;
-    return pick === "guitar" || pick === "ukulele" ? pick : "piano";
+    return pick === "guitar" || pick === "ukulele" || pick === "aerophone" ? pick : "piano";
   });
   const tuning = $derived(
-    instrument === "piano"
+    instrument === "piano" || instrument === "aerophone"
       ? null
       : (TUNINGS[instrument].find((t) => t.id === (instrument === "guitar" ? settings.value.guitarTuningId : settings.value.ukuleleTuningId)) ?? TUNINGS[instrument][0]),
   );

@@ -24,7 +24,7 @@
     type LineResult,
   } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
+  import InstrumentStage, { fitShift } from "$lib/music/components/InstrumentStage.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -60,6 +60,8 @@
   const s = $derived(cfg.value);
   const pattern = $derived((PATTERNS.some((p) => p.value === s.pattern) ? s.pattern : "scale") as ScalePattern);
   const perBeat = $derived(([1, 2, 4].includes(s.perBeat) ? s.perBeat : 1) as 1 | 2 | 4);
+  const inst = $derived(settings.value.activeInstrument);
+  const onPiano = $derived(inst === "piano");
   const scaleSetup = $derived({
     pattern,
     chord: s.chord as ChordKind,
@@ -68,11 +70,17 @@
     tonic: s.tonic,
     span: (pattern !== "scale" && s.span === "pentascale" ? "one-octave" : s.span) as "pentascale" | "one-octave" | "two-octave",
     motion: s.motion as "up" | "down" | "up-down",
-    hands: s.hands as "right" | "left" | "both",
+    // One line off the piano: hands are a keyboard idea.
+    hands: (onPiano ? s.hands : "right") as "right" | "left" | "both",
     bpm: bpm(),
     minEvenness: s.preset ? HANDS_TOGETHER_PRESET.minEvenness : undefined,
   });
-  const steps = $derived(scaleDrillTargets(scaleSetup));
+  // Up an octave when the instrument can't reach the line's low notes (ukulele, Aerophone).
+  const steps = $derived.by(() => {
+    const raw = scaleDrillTargets(scaleSetup);
+    const shift = fitShift(raw.flatMap((st) => st.notes.map((n) => n.midi)), inst);
+    return shift ? raw.map((st) => ({ ...st, notes: st.notes.map((n) => ({ ...n, midi: n.midi + shift })) })) : raw;
+  });
   const key = $derived(scaleSetupKey(scaleSetup));
 
   function bpm() {
@@ -129,7 +137,7 @@
         : `${noteName(s.tonic)} ${chordLabel} ${pattern} chords`,
   );
   const summaryLine = $derived(
-    `${what}, ${scaleSetup.span.replace("-", " ")}, ${s.motion === "up-down" ? "up and down" : s.motion}, ${s.hands === "both" ? "hands together" : `${s.hands} hand`}, ${bpm()} BPM${perBeat > 1 ? `, ${PER[perBeat]}` : ""}`,
+    `${what}, ${scaleSetup.span.replace("-", " ")}, ${s.motion === "up-down" ? "up and down" : s.motion}, ${!onPiano ? `on ${inst}` : s.hands === "both" ? "hands together" : `${s.hands} hand`}, ${bpm()} BPM${perBeat > 1 ? `, ${PER[perBeat]}` : ""}`,
   );
 
   function stopDemo() {
@@ -363,6 +371,7 @@
         value={s.motion}
         onchange={(v) => cfg.set({ motion: v, preset: false })}
       />
+      {#if onPiano}
       <Choice
         label="Hands"
         options={[
@@ -373,6 +382,7 @@
         value={s.hands}
         onchange={(v) => cfg.set({ hands: v, preset: false })}
       />
+      {/if}
       <Choice
         label="Notes a click"
         options={[
@@ -394,6 +404,7 @@
         onchange={pickGrade}
       />
       <div class="flex flex-col justify-end gap-1 text-sm">
+        {#if onPiano}
         <button
           type="button"
           class={btn}
@@ -403,6 +414,7 @@
             settings.update({ bpm: HANDS_TOGETHER_PRESET.bpm });
           }}>{HANDS_TOGETHER_PRESET.label}</button
         >
+        {/if}
         <span class="text-ws-soft">Tempo comes from the practice strip (40 to 180). ABRSM's speeds are "a general guide".</span>
       </div>
     </div>
@@ -419,7 +431,7 @@
   {/snippet}
 
   {#snippet stage()}
-    <Piano {low} {high} {marks} {flashes} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
+    <InstrumentStage line={all} {low} {high} {marks} {flashes} />
     {#if mode === "check" && phase !== "results"}
       <p class="mt-3 text-sm text-ws-stage-soft">Check mode: no targets. Held keys still light.</p>
     {/if}

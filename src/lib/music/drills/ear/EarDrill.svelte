@@ -57,7 +57,7 @@
   import { decayMastery, isDueForReview } from "@repo/music-core/progress/mastery";
   import type { Score, ScoringEvent } from "@repo/music-core";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
+  import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -1105,6 +1105,8 @@
   // ---------------------------------------------------------------------------
   // Surfaces
 
+  /** The prompt's notes and what is lit: where the fretboard window sits on guitar and ukulele. */
+  const earLine = $derived([...(current?.expectedMidi ?? []), ...lit]);
   const pianoMarks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     for (const m of lit) out[m] = { demo: true };
@@ -1445,7 +1447,7 @@
             </div>
           {/if}
           {#if answer === "listen-along" && p.drill !== "scale-degree"}
-            <Piano low={48} high={84} marks={pianoMarks} interactive={false} label="Piano, lit as the prompt sounds" />
+            <InstrumentStage line={earLine} low={48} high={84} marks={pianoMarks} interactive={false} />
           {/if}
         {:else if answer === "listen"}
           <div class="flex flex-wrap gap-2">
@@ -1489,7 +1491,7 @@
           </div>
         {:else}
           {#if p.drill === "progression" || p.drill === "bass-line"}{@render progressionSlots(p)}{/if}
-          <Piano low={48} high={84} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, play your answer" />
+          <InstrumentStage line={earLine} low={48} high={84} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} />
           <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-ws-stage-soft">
             <span>You played: {played.length ? played.map((m) => noteName(m, "flat")).join(", ") : "nothing yet"}</span>
             {#if step === "answer" && played.length}
@@ -1553,7 +1555,7 @@
             {/if}
             {#if demo}<p class="font-semibold">That was {tokenLabel(demo.kind, demo.answer, labels)}.</p>{/if}
           </div>
-          <Piano low={48} high={84} marks={pianoMarks} interactive={isPlayback} names="c" label="Piano, lit as the demo sounds" />
+          <InstrumentStage line={earLine} low={48} high={84} marks={pianoMarks} interactive={isPlayback} />
         {/if}
       </div>
     {/if}

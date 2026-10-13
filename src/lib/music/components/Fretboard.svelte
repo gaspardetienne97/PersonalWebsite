@@ -28,6 +28,8 @@
     /** Light up every position of held pitches (MIDI or microphone input). */
     showHeldPitches?: boolean;
     label?: string;
+    /** Flashes keyed by pitch (a drill written for the keyboard) instead of string and fret. */
+    flashByPitch?: boolean;
   }
 
   let {
@@ -40,6 +42,7 @@
     interactive = true,
     showHeldPitches = true,
     label = "Fretboard",
+    flashByPitch = false,
   }: Props = $props();
 
   const strings = $derived(openStrings.map((_, i) => i + 1));
@@ -84,7 +87,7 @@
 
   const heldHere = (s: number, f: number) =>
     tapped[s * 100 + f] || (showHeldPitches && input.activeSource !== "onscreen" && input.held.has(midiAt(s, f)));
-  const flashAt = (s: number, f: number): FlashKind | undefined => flashes?.get(s * 100 + f);
+  const flashAt = (s: number, f: number): FlashKind | undefined => flashes?.get(flashByPitch ? midiAt(s, f) : s * 100 + f);
   /** A string is ringing while a note on it is held, tapped, or lit by the demo. */
   const ringing = (s: number) => frets.some((f) => heldHere(s, f) || markAt(s, f)?.demo);
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);

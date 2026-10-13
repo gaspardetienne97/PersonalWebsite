@@ -12,6 +12,8 @@
   import type { ReadingLevelId, Tuning } from "@repo/music-core/data/index";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
+  import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
+  import { AEROPHONE_RANGE } from "@repo/music-core/content/winds-pads";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -29,7 +31,7 @@
 
   interface Props {
     cfg: DrillSetup<ReadingSetup>;
-    instrument: "piano" | "guitar" | "ukulele";
+    instrument: "piano" | "guitar" | "ukulele" | "aerophone";
     tuning: Tuning | null;
   }
   let { cfg, instrument, tuning }: Props = $props();
@@ -38,8 +40,10 @@
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
   const level = $derived(readingLevel((["primer", "level-1", "level-2", "level-3"].includes(s.level) ? s.level : "primer") as ReadingLevelId));
   const fretted = $derived(instrument !== "piano" && !!tuning);
-  const clefs = $derived<Clef[]>(fretted ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
-  const range = $derived(fretted ? clampRange([s.low, s.high], playableWrittenRange(tuning!)) : clampRange([s.low, s.high], [21, 108]));
+  // The Aerophone reads one treble line in its own written range, by exact pitch like the piano.
+  const aero = $derived(instrument === "aerophone");
+  const clefs = $derived<Clef[]>(fretted || aero ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
+  const range = $derived(fretted ? clampRange([s.low, s.high], playableWrittenRange(tuning!)) : aero ? clampRange([s.low, s.high], [AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi]) : clampRange([s.low, s.high], [21, 108]));
   const transpose = $derived(fretted ? tuning!.notationTransposition : 0);
   const byPlay = $derived(s.answer === "play");
   const useMic = $derived(byPlay && fretted && s.input === "mic");
@@ -141,7 +145,7 @@
     const g = gradeFlashcard(p.midi, response);
     // Played on piano: the exact key (the staff names an octave). Fretted: pitch class,
     // since the same note sits in several places and the mic can slip an octave.
-    const correct = typeof response === "string" || instrument === "piano" ? g.correct : flashcardCorrect(p, response);
+    const correct = typeof response === "string" || instrument === "piano" || aero ? g.correct : flashcardCorrect(p, response);
     const submitted = typeof response === "string" ? response.split("-").map((n) => parseNote(n) ?? 60) : response;
     const name = typeof response === "string" ? response : response.map((m) => noteName(m, key.fifths < 0 ? "flat" : "sharp")).join("-");
     answered = { correct, submitted, name };
@@ -265,7 +269,7 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <SetupFields {cfg} activity="flashcards" {fretted} />
+    <SetupFields {cfg} activity="flashcards" {fretted} oneLine={fretted || aero} />
   {/snippet}
 
   {#snippet hud()}
@@ -319,6 +323,8 @@
           </div>
         {:else if fretted && tuning}
           <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} {flashes} label="{instrument} fretboard" />
+        {:else if aero}
+          <InstrumentStage instrument="aerophone" line={card?.midi ?? []} marks={pianoMarks} {flashes} />
         {:else}
           <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
         {/if}

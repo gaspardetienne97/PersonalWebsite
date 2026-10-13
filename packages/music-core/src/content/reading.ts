@@ -137,7 +137,7 @@ const MAX_STEP: Record<ReadingLevelId, number> = {
 
 export interface SightReadingOptions {
   level: ReadingLevelId;
-  instrument: "piano" | "guitar" | "ukulele";
+  instrument: "piano" | "guitar" | "ukulele" | "aerophone";
   clefs?: Clef[];
   key?: string;
   range?: [number, number];

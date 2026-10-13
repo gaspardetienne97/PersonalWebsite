@@ -25,6 +25,8 @@
   import { keyByName, KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
+  import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
+  import { AEROPHONE_RANGE } from "@repo/music-core/content/winds-pads";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -44,16 +46,18 @@
 
   interface Props {
     cfg: DrillSetup<ReadingSetup>;
-    instrument: "piano" | "guitar" | "ukulele";
+    instrument: "piano" | "guitar" | "ukulele" | "aerophone";
     tuning: Tuning | null;
   }
   let { cfg, instrument, tuning }: Props = $props();
 
   const s = $derived(cfg.value);
   const fretted = $derived(instrument !== "piano" && !!tuning);
+  // The Aerophone reads one treble line in its own written range, by exact pitch like the piano.
+  const aero = $derived(instrument === "aerophone");
   const levelId = $derived((["primer", "level-1", "level-2", "level-3"].includes(s.level) ? s.level : "primer") as ReadingLevelId);
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
-  const clefs = $derived<Clef[]>(fretted ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
+  const clefs = $derived<Clef[]>(fretted || aero ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
   const bpm = $derived(Math.min(200, Math.max(40, settings.value.bpm)));
   const climbing = $derived(!!s.climb);
   const follower = $derived<"wait" | "performance">(climbing || s.follower === "performance" ? "performance" : "wait");
@@ -76,7 +80,11 @@
       meter: s.meter === "compound" ? "compound" : "simple",
       bpm,
       // Fretted instruments read in their own written range.
-      range: fretted ? [Math.max(readingLevel(levelId).recommendedRange.lowestMidi, 55), Math.min(readingLevel(levelId).recommendedRange.highestMidi, 79)] : undefined,
+      range: fretted
+        ? [Math.max(readingLevel(levelId).recommendedRange.lowestMidi, 55), Math.min(readingLevel(levelId).recommendedRange.highestMidi, 79)]
+        : aero
+          ? [Math.max(readingLevel(levelId).recommendedRange.lowestMidi, AEROPHONE_RANGE.lowestMidi), Math.min(readingLevel(levelId).recommendedRange.highestMidi, AEROPHONE_RANGE.highestMidi)]
+          : undefined,
     }),
   );
   const score = $derived(override && override.from === generated.id ? override.score : generated);
@@ -155,7 +163,7 @@
   const rungOf = (level: string, keyName: string) => Math.max(0, READING_RUNGS.findIndex((r) => r.level === level && r.key === keyName));
   function goToRung(i: number) {
     const r = READING_RUNGS[i];
-    cfg.set({ level: r.level, key: r.key, clefs: fretted ? "treble" : r.clefs.join(",") });
+    cfg.set({ level: r.level, key: r.key, clefs: fretted || aero ? "treble" : r.clefs.join(",") });
   }
   function nextPhrase() {
     if (climb && !climb.over) goToRung(climb.rung);
@@ -185,7 +193,7 @@
       status = mic.error || "The microphone could not start.";
       return;
     }
-    const octaveExact = instrument === "piano";
+    const octaveExact = instrument === "piano" || aero;
     startAt = ctx.downbeat;
     fs = follower === "wait" ? waitStart(groups, octaveExact) : performanceStart(groups, { bpm, startAt, strictness, octaveExact });
     stopClockRef = ctx.stopClock;
@@ -207,7 +215,7 @@
     loop();
   }
 
-  const keyOf = (m: number) => (instrument === "piano" ? m : pc(m));
+  const keyOf = (m: number) => (instrument === "piano" || aero ? m : pc(m));
 
   function onNote(e: NoteEvent) {
     if (!fs || phase !== "running") return;
@@ -454,7 +462,7 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <SetupFields {cfg} activity="sight-reading" {fretted} />
+    <SetupFields {cfg} activity="sight-reading" {fretted} oneLine={fretted || aero} />
   {/snippet}
 
   {#snippet hud()}
@@ -504,6 +512,8 @@
         </div>
       {:else if fretted && tuning}
         <Fretboard openStrings={tuning.openStrings} from={fretFrom} to={fretTo} marks={fretMarks} {flashes} label="{instrument} fretboard" />
+      {:else if aero}
+        <InstrumentStage instrument="aerophone" line={allSounding} marks={pianoMarks} {flashes} />
       {:else}
         <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
       {/if}
