@@ -28,20 +28,27 @@ describe("path content", () => {
     // The tables' steps plus the ear steps the research adds to each instrument path.
     expect(LEARNING_PATHS.guitar.steps).toHaveLength(10);
     expect(LEARNING_PATHS.piano.steps).toHaveLength(10);
-    expect(LEARNING_PATHS.mpc.steps).toHaveLength(12);
+    expect(LEARNING_PATHS.mpc.steps).toHaveLength(19);
     expect(LEARNING_PATHS.studio.steps).toHaveLength(7);
     expect(LEARNING_PATHS.mpc.steps.map((s) => s.id)).toEqual([
       "M-B1",
       "M-E1",
+      "M-T1",
       "M-B2",
       "M-E2",
+      "M-T2",
       "M-B3",
       "M-I1",
       "M-E3",
       "M-I2",
+      "M-T3",
       "M-I3",
+      "M-T4",
       "M-A1",
+      "M-T5",
       "M-A2",
+      "M-T6",
+      "M-T7",
       "M-S1",
     ]);
     // The table's six plus the eleven the app adds, numbered in order.

@@ -172,7 +172,10 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
     { port: PORTS.mpcPrivate.id, midi: 42, atMs: 3 * beat },
     { port: PORTS.mpcPublic.id, midi: 38, atMs: 0.5 * beat },
   ]);
-  await expect(page.getByRole("status")).toContainText("Clean: all 4 hits", { timeout: 15_000 });
+  // Backbeat is a level-1 groove now: the verdict is the level's pass.
+  await expect(page.getByRole("status")).toContainText("Passed level 1 at 90 BPM", {
+    timeout: 15_000,
+  });
   await expect(page.getByRole("table").first()).toContainText("Kick");
   await shoot(page, "pads-groove-results");
 });

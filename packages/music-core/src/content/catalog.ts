@@ -6,6 +6,7 @@ import { INSTRUMENTS, type Capability, type Instrument, type Modality } from "..
 import { EAR_DRILLS } from "./ear";
 import { STUDIO_EXERCISES } from "./studio";
 import { CIRCLE_MODES } from "./circle";
+import { TOPICS, topicSkill } from "./pads-repertoire";
 import { RHYTHM_PATTERNS, rhythmSkills } from "./rhythm";
 import { LICK_CATEGORIES, lickSkills } from "./piano";
 import { chordShapeSkills } from "./technique";
@@ -333,23 +334,30 @@ export const CATALOG: CatalogEntry[] = [
     id: "pads",
     route: "/music/pads",
     title: "Pads",
-    blurb: "Alternate two pads on the click, or copy back a drum groove across the kit.",
+    blurb:
+      "Finger-drumming technique, a repertoire of grooves in six levels, and holding the tempo without a click.",
     instruments: ["mpc"],
     capability: "technique",
     modality: "played",
     modes: [
       // The path data records every rudiment (singles, sixteenths, paradiddles) under this id.
-      mode("rudiment", "Rudiments", "technique.mpc.single-strokes", [
+      mode("rudiment", "Technique", "technique.mpc.single-strokes", [
         "technique.mpc",
         "technique.mpc.single-strokes",
         "technique.mpc.paradiddles",
+        "technique.mpc.rolls",
+        "technique.mpc.accents",
       ]),
       mode(
         "groove",
         "Grooves",
         "technique.mpc.groove",
-        uniq(GROOVES.flatMap((g) => grooveSkills(g.value))),
+        uniq([...GROOVES.flatMap((g) => grooveSkills(g.value)), ...TOPICS.map(topicSkill)]),
       ),
+      mode("steady", "Hold the tempo", "technique.mpc.steadiness", [
+        "technique.mpc",
+        "technique.mpc.steadiness",
+      ]),
     ],
   }),
   entry({

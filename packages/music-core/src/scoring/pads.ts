@@ -134,12 +134,16 @@ export function gradeRudiment(input: {
 // ---------------------------------------------------------------------------
 // Grooves.
 
-export type Accent = "accent" | "normal";
+export type Accent = "accent" | "normal" | "ghost";
 
-/** MIDI velocity bands: accent 90..127, normal 50..89. */
+/** MIDI velocity bands: accent 90..127, normal 50..89, ghost 1..49. */
 export function inAccentBand(accent: Accent, velocity: number): boolean {
   const v = Math.round(velocity * 127);
-  return accent === "accent" ? v >= 90 : v >= 50 && v <= 89;
+  return accent === "accent"
+    ? v >= 90
+    : accent === "ghost"
+      ? v >= 1 && v <= 49
+      : v >= 50 && v <= 89;
 }
 
 /** Path check (M-I3): ghosts under 40% of the accent velocity. */
@@ -248,7 +252,8 @@ export function gradeGroove(input: GrooveInput): GrooveResult | { error: string 
   const velOf = (accent: Accent) =>
     claims.flatMap((c, i) => (c && targets[i].accent === accent ? [hits[c.hit].velocity] : []));
   const accents = velOf("accent");
-  const ghosts = velOf("normal");
+  // Marked ghosts when the groove has them, else its normal notes (the table's grooves).
+  const ghosts = velOf("ghost").length ? velOf("ghost") : velOf("normal");
   const ghostRatio =
     assessable && accents.length && ghosts.length ? mean(ghosts) / mean(accents) : null;
 
@@ -285,7 +290,12 @@ export function gradeGroove(input: GrooveInput): GrooveResult | { error: string 
               ? [
                   {
                     kind: "velocity" as const,
-                    expected: targets[i].accent === "accent" ? 90 / 127 : 50 / 127,
+                    expected:
+                      targets[i].accent === "accent"
+                        ? 90 / 127
+                        : targets[i].accent === "ghost"
+                          ? 30 / 127
+                          : 50 / 127,
                     actual: hits[c.hit].velocity,
                   },
                 ]
@@ -322,4 +332,36 @@ export function gradeGroove(input: GrooveInput): GrooveResult | { error: string 
       ),
     })),
   };
+}
+
+/**
+ * How the tempo held once the click stopped (from `fromBeat`): a straight
+ * line through the hits against the grid. Its slope is the tempo played
+ * (rushing makes it steeper than 1 in tempo, dragging shallower); the last
+ * bar's mean error is how far off the grid the player ended. Null with
+ * fewer than four hits to go on.
+ */
+export function tempoDrift(
+  targets: readonly { beat: number }[],
+  perTarget: readonly (number | null)[],
+  beatMs: number,
+  fromBeat: number,
+): { bpmPlayed: number; driftBpm: number; endOffsetMs: number } | null {
+  const pts = targets.flatMap((t, i) => {
+    const e = perTarget[i];
+    return t.beat >= fromBeat - 1e-6 && e !== null
+      ? [{ x: t.beat * beatMs, y: t.beat * beatMs + e, beat: t.beat, e }]
+      : [];
+  });
+  if (pts.length < 4) return null;
+  const mx = mean(pts.map((p) => p.x));
+  const my = mean(pts.map((p) => p.y));
+  const cov = pts.reduce((t, p) => t + (p.x - mx) * (p.y - my), 0);
+  const varx = pts.reduce((t, p) => t + (p.x - mx) ** 2, 0);
+  const slope = varx ? cov / varx : 1;
+  const bpm = 60000 / beatMs;
+  const bpmPlayed = bpm / slope;
+  const lastBar = Math.floor(Math.max(...pts.map((p) => p.beat)) / 4);
+  const tail = pts.filter((p) => Math.floor(p.beat / 4) === lastBar);
+  return { bpmPlayed, driftBpm: bpmPlayed - bpm, endOffsetMs: mean(tail.map((p) => p.e)) };
 }

@@ -9,6 +9,7 @@ import {
   inAccentBand,
   type Accent,
   type GrooveResult,
+  tempoDrift,
 } from "./pads";
 
 const on = (midi: number, at: number, extra: Partial<NoteEvent> = {}): NoteEvent => ({
@@ -232,5 +233,20 @@ describe("gradeGroove", () => {
   it("an empty run scores 0", () => {
     const g = groove("backbeat");
     expect(gradeGroove({ ...base, ...g, hits: [] })).toMatchObject({ score: 0, correct: false });
+  });
+});
+
+describe("tempo drift", () => {
+  it("reads the tempo played after the click stops", () => {
+    const beatMs = 500; // 120 BPM
+    const targets = Array.from({ length: 16 }, (_, i) => ({ beat: i }));
+    const steady = targets.map(() => 0);
+    expect(tempoDrift(targets, steady, beatMs, 4)).toMatchObject({ driftBpm: 0, endOffsetMs: 0 });
+    // Each beat 5 ms early from the click's end: rushing to about 121.2 BPM.
+    const rushing = targets.map((t) => (t.beat < 4 ? 0 : -(t.beat - 3) * 5));
+    const r = tempoDrift(targets, rushing, beatMs, 4)!;
+    expect(r.bpmPlayed).toBeCloseTo(121.2, 1);
+    expect(r.endOffsetMs).toBeLessThan(-50);
+    expect(tempoDrift(targets.slice(0, 3), [0, 0, 0], beatMs, 0)).toBeNull();
   });
 });

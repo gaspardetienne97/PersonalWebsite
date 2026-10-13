@@ -8,6 +8,7 @@ import {
   LANDING_INTERVALS,
   landingTarget,
   rudimentHits,
+  rudimentSkills,
 } from "./winds-pads";
 
 describe("aerophone", () => {
@@ -138,5 +139,38 @@ describe("MPC grooves", () => {
     ).toMatchObject({ pad: 46, atMs: 3500 });
     expect(grooveTargets("backbeat", 60).matchWindowMs).toBe(125);
     expect(grooveTargets("backbeat", 20).matchWindowMs).toBe(180);
+  });
+});
+
+describe("finger-drumming rudiments", () => {
+  it("rolls two fingers on one pad, at sixteenths, thirty-seconds and sixteenth triplets", () => {
+    const roll = rudimentHits({
+      patternId: "roll-32",
+      subdivision: 2,
+      hits: 8,
+      bpm: 120,
+      pads: [36, 42],
+    });
+    expect(new Set(roll.map((h) => h.pad))).toEqual(new Set([42]));
+    expect(roll[1].atMs).toBeCloseTo(62.5);
+    const t = rudimentHits({ patternId: "roll-16t", subdivision: 2, hits: 6, bpm: 120 });
+    expect(t[5].atMs).toBeCloseTo((5 * 500) / 6);
+    expect(rudimentSkills("finger-roll")).toContain("technique.mpc.rolls");
+  });
+
+  it("walks the pyramid: one note in a beat, then two, three, four", () => {
+    const p = rudimentHits({ patternId: "pyramid", subdivision: 2, hits: 10, bpm: 60 });
+    expect(p.map((h) => Math.round(h.atMs))).toEqual([
+      0, 1000, 1500, 2000, 2333, 2667, 3000, 3250, 3500, 3750,
+    ]);
+  });
+
+  it("marks accents and taps with velocity bands", () => {
+    const a = rudimentHits({ patternId: "accents-ghosts", subdivision: 4, hits: 8, bpm: 90 });
+    expect(a.map((h) => h.accent)).toEqual([true, false, false, false, true, false, false, false]);
+    expect(a.every((h) => h.velocityBand)).toBe(true);
+    const six = rudimentHits({ patternId: "six-stroke", subdivision: 2, hits: 6, bpm: 90 });
+    expect(six.map((h) => h.hand[0]).join("")).toBe("rllrrl");
+    expect(six.map((h) => h.accent)).toEqual([true, false, false, false, false, true]);
   });
 });

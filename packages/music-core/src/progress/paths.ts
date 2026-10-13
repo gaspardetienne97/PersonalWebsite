@@ -180,6 +180,7 @@ function normaliseStep(raw: RawStep): PathStep {
 // What the aural-skills research adds to the instrument paths: ear steps where a
 // skill is about to be needed, and ear links beside the steps they support.
 
+const PADS = (q: string) => `/music/play/mpc?${q}`;
 const EAR = (drill: string, q: string) => `/music/learn/ear/${drill}?answer=choice&${q}`;
 const ADDED_LINKS: Record<string, PathLink[]> = {
   "G-B1": [
@@ -196,6 +197,10 @@ const ADDED_LINKS: Record<string, PathLink[]> = {
       label: "Play a heard phrase back",
       href: "/music/learn/ear/melody-dictation?answer=play-back&level=major-pentachord",
     },
+  ],
+  "M-I3": [
+    { label: "Funky Drummer", href: PADS("mode=groove&groove=funky-drummer&bpm=80") },
+    { label: "Boom bap with ghosts", href: PADS("mode=groove&groove=ghost-boom-bap&bpm=80") },
   ],
   "P-I1": [{ label: "Inversions by ear", href: EAR("inversions", "inversions=root,first,second") }],
   "P-B3": [{ label: "Key signatures", href: "/music/circle?mode=signature&band=two&clefs=both" }],
@@ -251,6 +256,113 @@ const ADDED_LINKS: Record<string, PathLink[]> = {
 const ECHO = (level: string) => `/music/learn/rhythm?mode=echo&earLevel=${level}`;
 const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
   mpc: [
+    // Finger drumming, from the research (docs/research/finger-drumming.md).
+    {
+      id: "M-T1",
+      order: 1.7,
+      title: "Hold the tempo",
+      summary: "Basic rock for four bars with the click, then eight bars on your own.",
+      detail: "Three runs over two days within 3 BPM of the tempo, averaging 80% or higher.",
+      href: PADS("mode=steady&steady=basic-rock&bpm=80"),
+      exerciseIds: ["technique.mpc.steadiness"],
+      skillIds: ["technique.mpc.steadiness"],
+      minAttempts: 3,
+      minSessions: 2,
+      threshold: 0.8,
+    },
+    {
+      id: "M-T2",
+      order: 2.6,
+      title: "Two-finger rolls",
+      summary:
+        "Index and middle alternating on one pad: sixteenths, then thirty-seconds and triplets for trap hats.",
+      detail: "Three runs averaging 80% or higher.",
+      href: PADS("mode=rudiment&pattern=finger-roll&hits=32&bpm=90"),
+      links: [
+        { label: "Thirty-seconds", href: PADS("mode=rudiment&pattern=roll-32&hits=32&bpm=70") },
+        { label: "Triplets, 1/16T", href: PADS("mode=rudiment&pattern=roll-16t&hits=32&bpm=80") },
+      ],
+      exerciseIds: ["technique.mpc.single-strokes"],
+      skillIds: ["technique.mpc.rolls"],
+      minAttempts: 3,
+      threshold: 0.8,
+    },
+    {
+      id: "M-T3",
+      order: 5.5,
+      title: "Accents and ghosts",
+      summary:
+        "A sixteenth stream with the beat loud and the rest soft; then the accent moving through.",
+      detail: "Three runs averaging 80% or higher, on velocity-sensitive pads (Full Level off).",
+      href: PADS("mode=rudiment&pattern=accents-ghosts&hits=32&bpm=80"),
+      links: [
+        {
+          label: "Moving accent",
+          href: PADS("mode=rudiment&pattern=moving-accent&sub=4&hits=16&bpm=80"),
+        },
+      ],
+      exerciseIds: ["technique.mpc.single-strokes"],
+      skillIds: ["technique.mpc.accents"],
+      minAttempts: 3,
+      threshold: 0.8,
+    },
+    {
+      id: "M-T4",
+      order: 6.5,
+      title: "Four kicks under one hat",
+      summary: "The hats never change while the kick takes a new pattern every bar.",
+      detail: "Three runs averaging 85% or higher.",
+      href: PADS("mode=groove&groove=independence&bpm=75"),
+      exerciseIds: ["technique.mpc.groove"],
+      skillIds: ["technique.mpc.independence"],
+      minAttempts: 3,
+      threshold: 0.85,
+    },
+    {
+      id: "M-T5",
+      order: 7.5,
+      title: "Swing by hand",
+      summary: "Boom bap with the off-sixteenths late: 56%, then 62%, then the Dilla feel.",
+      detail: "Three runs averaging 85% or higher; the results say the swing you played.",
+      href: PADS("mode=groove&groove=swing-56&bpm=80"),
+      links: [
+        { label: "Swing 62%", href: PADS("mode=groove&groove=swing-62&bpm=80") },
+        { label: "Dilla feel", href: PADS("mode=groove&groove=dilla&bpm=78") },
+      ],
+      exerciseIds: ["technique.mpc.groove"],
+      skillIds: ["technique.mpc.swing"],
+      minAttempts: 3,
+      threshold: 0.85,
+    },
+    {
+      id: "M-T6",
+      order: 8.2,
+      title: "House, trap and drum and bass",
+      summary: "Four on the floor at 124, trap at 140 with its rolls, two-step at 172.",
+      detail: "Three runs averaging 85% or higher.",
+      href: PADS("mode=groove&groove=house&bpm=110"),
+      links: [
+        { label: "Trap", href: PADS("mode=groove&groove=trap-32&bpm=120") },
+        { label: "Drum and bass", href: PADS("mode=groove&groove=dnb&bpm=140") },
+      ],
+      exerciseIds: ["technique.mpc.groove"],
+      skillIds: ["technique.mpc.dance"],
+      minAttempts: 3,
+      threshold: 0.85,
+    },
+    {
+      id: "M-T7",
+      order: 8.4,
+      title: "The breaks",
+      summary: "The Amen break, all four bars, then Apache.",
+      detail: "Three runs averaging 85% or higher.",
+      href: PADS("mode=groove&groove=amen&bpm=110"),
+      links: [{ label: "Apache", href: PADS("mode=groove&groove=apache&bpm=95") }],
+      exerciseIds: ["technique.mpc.groove"],
+      skillIds: ["technique.mpc.breaks"],
+      minAttempts: 3,
+      threshold: 0.85,
+    },
     {
       id: "M-E1",
       order: 1.5,

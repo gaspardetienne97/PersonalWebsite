@@ -106,6 +106,7 @@ describe("drill catalog", () => {
     expect(CATALOG.find((e) => e.id === "pads")!.modes.map((m) => m.id)).toEqual([
       "rudiment",
       "groove",
+      "steady",
     ]);
   });
 

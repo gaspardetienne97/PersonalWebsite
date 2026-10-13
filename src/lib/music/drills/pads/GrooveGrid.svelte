@@ -58,13 +58,13 @@
             class="cell"
             class:beat={c % 4 === 0}
             class:now={playhead === bar * 16 + c}
-            data-hit={t ? (t.accent ? "accent" : "normal") : undefined}
+            data-hit={t ? (t.accent ? "accent" : t.ghost ? "ghost" : "normal") : undefined}
             data-kind={vd?.kind}
-            title={t ? `${v.name} on ${Math.floor(c / 4) + 1}${COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}${t.accent ? ", accent" : ""}${vd ? `: ${vd.word}` : ""}` : undefined}
+            title={t ? `${v.name} on ${Math.floor(c / 4) + 1}${COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}${t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}${vd ? `: ${vd.word}` : ""}` : undefined}
           >
             {#if t}
               <span class="dot" aria-hidden="true">{vd ? vd.glyph : t.accent ? ">" : ""}</span>
-              <span class="sr-only">{v.name}, beat {Math.floor(c / 4) + 1}{COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}{t.accent ? ", accent" : ""}{vd ? `, ${vd.word}` : ""}</span>
+              <span class="sr-only">{v.name}, beat {Math.floor(c / 4) + 1}{COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}{t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}{vd ? `, ${vd.word}` : ""}</span>
             {/if}
           </span>
         {/each}
@@ -121,6 +121,13 @@
     font-weight: 800;
     color: #140a10;
     background: color-mix(in oklch, var(--instr) 70%, var(--ws-stage-ink));
+  }
+  /* A ghost note: small and hollow, played soft. */
+  [data-hit="ghost"] .dot {
+    width: 45%;
+    height: 45%;
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--instr) 80%, var(--ws-stage-ink));
   }
   [data-hit="accent"] .dot {
     width: 90%;

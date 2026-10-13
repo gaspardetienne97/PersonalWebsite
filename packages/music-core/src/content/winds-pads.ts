@@ -1,6 +1,13 @@
 // Aerophone fingerings and technique setups; MPC rudiments and grooves as timed hits.
 
-import { AEROPHONE_FINGERINGS, MPC_GROOVES, MPC_RUDIMENTS, type DrumVoiceId } from "../data";
+import {
+  AEROPHONE_FINGERINGS,
+  MPC_GROOVES,
+  MPC_RUDIMENTS,
+  type DrumVoiceId,
+  type GrooveDef,
+  type RudimentDef,
+} from "../data";
 import { clamp, octaveOf, pc, SHARP_NAMES } from "../theory/notes";
 
 // ---------------------------------------------------------------------------
@@ -95,9 +102,85 @@ export function articulationTargets(opts: {
 // ---------------------------------------------------------------------------
 // MPC rudiments
 
-export const RUDIMENTS = MPC_RUDIMENTS.patterns;
+/**
+ * The table's rudiments, then the finger-drumming ones the app adds from the
+ * research (Melodics' exercises, the PAS rudiments): two-finger rolls on one
+ * pad, a one-pad pyramid, accents and ghosts, and three more PAS stickings.
+ */
+export const RUDIMENTS: RudimentDef[] = [
+  ...MPC_RUDIMENTS.patterns,
+  {
+    id: "finger-roll",
+    label: "Two-finger roll",
+    unit: ["right", "left"],
+    subdivision: 4,
+    onePad: true,
+  },
+  {
+    id: "roll-32",
+    label: "Thirty-second roll (trap)",
+    unit: ["right", "left"],
+    subdivision: 8,
+    onePad: true,
+  },
+  {
+    id: "roll-16t",
+    label: "Triplet roll, 1/16T (trap)",
+    unit: ["right", "left"],
+    subdivision: 6,
+    onePad: true,
+  },
+  {
+    id: "pyramid",
+    label: "One-pad pyramid (1 2 3 4 3 2)",
+    unit: ["right", "left"],
+    onePad: true,
+    perBeat: [1, 2, 3, 4, 3, 2],
+  },
+  {
+    id: "accents-ghosts",
+    label: "Accents and ghosts",
+    unit: ["right", "left", "right", "left"],
+    subdivision: 4,
+    accents: [0],
+  },
+  {
+    id: "six-stroke",
+    label: "Six-stroke roll",
+    unit: ["right", "left", "left", "right", "right", "left"],
+    subdivision: 3,
+    accents: [0, 5],
+  },
+  {
+    id: "paradiddle-diddle",
+    label: "Paradiddle-diddle",
+    unit: ["right", "left", "right", "right", "left", "left"],
+    subdivision: 3,
+    accents: [0],
+  },
+  {
+    id: "double-paradiddle",
+    label: "Double paradiddle",
+    unit: [
+      "right",
+      "left",
+      "right",
+      "left",
+      "right",
+      "right",
+      "left",
+      "right",
+      "left",
+      "right",
+      "left",
+      "left",
+    ],
+    subdivision: 3,
+    accents: [0, 6],
+  },
+];
 export const RUDIMENT_TEMPOS = [60, 80, 100, 120];
-export const RUDIMENT_HIT_COUNTS = [8, 16] as const;
+export const RUDIMENT_HIT_COUNTS = [8, 16, 32] as const;
 export const RUDIMENT_DEFAULTS = {
   bpm: 80,
   hits: 16,
@@ -120,10 +203,19 @@ export interface PadHit {
   velocityBand?: [number, number];
 }
 
-export const rudimentSkills = (patternId: string) => [
-  "technique.mpc",
-  patternId === "paradiddle" ? "technique.mpc.paradiddles" : "technique.mpc.single-strokes",
-];
+export const rudimentSkills = (patternId: string) => {
+  const p = RUDIMENTS.find((r) => r.id === patternId);
+  return [
+    "technique.mpc",
+    /paradiddle/.test(patternId)
+      ? "technique.mpc.paradiddles"
+      : p?.onePad || patternId === "six-stroke"
+        ? "technique.mpc.rolls"
+        : p?.accents
+          ? "technique.mpc.accents"
+          : "technique.mpc.single-strokes",
+  ];
+};
 
 /**
  * Expand a rudiment to timed hits from the downbeat. The pattern's own grid wins over
@@ -139,23 +231,38 @@ export function rudimentHits(opts: {
   pads?: [number, number];
 }): PadHit[] {
   const p = RUDIMENTS.find((r) => r.id === opts.patternId) ?? RUDIMENTS[0];
-  const [leftPad, rightPad] = opts.pads ?? RUDIMENT_DEFAULTS.pads;
-  if (leftPad === rightPad) throw new Error("A rudiment needs two different pads.");
+  const [leftPad, chosenRight] = opts.pads ?? RUDIMENT_DEFAULTS.pads;
+  if (leftPad === chosenRight) throw new Error("A rudiment needs two different pads.");
+  // A roll is two fingers on one pad: the right-hand pad.
+  const rightPad = chosenRight;
+  const padOf = (hand: "left" | "right") =>
+    p.onePad ? rightPad : hand === "left" ? leftPad : rightPad;
   const sub = p.subdivision ?? opts.subdivision;
-  const step = 60000 / clamp(opts.bpm, 30, 240) / sub;
+  const beatMs = 60000 / clamp(opts.bpm, 30, 240);
+  const step = beatMs / sub;
+  // A pyramid changes notes per beat; everything else keeps one grid.
+  const times: number[] = [];
+  if (p.perBeat)
+    for (let beat = 0; times.length < opts.hits; beat++) {
+      const n = p.perBeat[beat % p.perBeat.length];
+      for (let k = 0; k < n && times.length < opts.hits; k++) times.push((beat + k / n) * beatMs);
+    }
   const out: PadHit[] = [];
   for (let i = 0; i < opts.hits; i++) {
     const hand = p.unit[i % p.unit.length];
     const moving = p.accentMode === "moving";
-    const accent = moving && i % sub === Math.floor(i / sub) % sub;
-    const atMs = i * step;
+    const marked = !!p.accents;
+    const accent = moving
+      ? i % sub === Math.floor(i / sub) % sub
+      : marked && p.accents!.includes(i % p.unit.length);
+    const atMs = p.perBeat ? times[i] : i * step;
     if (p.flam) {
       const other = hand === "left" ? "right" : "left";
       out.push({
         index: -1,
         atMs: atMs - MPC_RUDIMENTS.flamGraceMs,
         hand: other,
-        pad: other === "left" ? leftPad : rightPad,
+        pad: padOf(other),
         accent: false,
         grace: true,
       });
@@ -164,10 +271,12 @@ export function rudimentHits(opts: {
       index: i,
       atMs,
       hand,
-      pad: hand === "left" ? leftPad : rightPad,
+      pad: padOf(hand),
       accent,
       grace: false,
-      ...(moving ? { velocityBand: accent ? VELOCITY_BANDS.accent : VELOCITY_BANDS.tap } : {}),
+      ...(moving || marked
+        ? { velocityBand: accent ? VELOCITY_BANDS.accent : VELOCITY_BANDS.tap }
+        : {}),
     });
   }
   return out;
@@ -177,7 +286,17 @@ export function rudimentHits(opts: {
 // MPC grooves
 
 export const GROOVES = MPC_GROOVES.catalog;
-export const GROOVE_VOICES = MPC_GROOVES.voices;
+/** The table's six voices, and the ones the repertoire adds on their General MIDI notes in bank A. */
+export const GROOVE_VOICES = [
+  ...MPC_GROOVES.voices,
+  { id: "rim", name: "Rim", midi: 37 },
+  { id: "pedalhat", name: "Pedal hat", midi: 44 },
+  { id: "tom-low", name: "Low tom", midi: 41 },
+  { id: "tom-mid", name: "Mid tom", midi: 45 },
+  { id: "tom-high", name: "High tom", midi: 48 },
+  { id: "crash", name: "Crash", midi: 49 },
+  { id: "ride", name: "Ride", midi: 51 },
+] as { id: DrumVoiceId; name: string; midi: number }[];
 const kitNotes = GROOVE_VOICES.map((v) => v.midi);
 /** Accepted pad range, widened for the 808 below bank A. */
 export const GROOVE_PAD_RANGE: [number, number] = [
@@ -199,7 +318,9 @@ export interface GrooveTarget {
   voice: DrumVoiceId;
   pad: number;
   accent: boolean;
-  section: "groove" | "fill";
+  /** A soft note under the groove. */
+  ghost: boolean;
+  section: string;
 }
 
 /**
@@ -208,7 +329,11 @@ export interface GrooveTarget {
  * to the last section). Match window = min(180 ms, beat / 8).
  */
 export function grooveTargets(grooveId: string, bpm: number) {
-  const g = GROOVES.find((x) => x.value === grooveId) ?? GROOVES[0];
+  return grooveTargetsFor(GROOVES.find((x) => x.value === grooveId) ?? GROOVES[0], bpm);
+}
+
+/** The same for any groove (the repertoire's too). */
+export function grooveTargetsFor(g: GrooveDef, bpm: number) {
   const beat = 60000 / bpm;
   const pad = (v: DrumVoiceId) => GROOVE_VOICES.find((x) => x.id === v)!.midi;
   const targets: GrooveTarget[] = g.targets.map((t, index) => {
@@ -221,6 +346,7 @@ export function grooveTargets(grooveId: string, bpm: number) {
       voice: t.voice,
       pad: pad(t.voice),
       accent: t.accent === "accent",
+      ghost: t.accent === "ghost",
       section: g.sectionLabels[Math.min(bar, g.sectionLabels.length - 1)],
     };
   });

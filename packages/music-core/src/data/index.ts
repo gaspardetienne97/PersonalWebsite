@@ -7,6 +7,7 @@ import type {
   PlaybackSound,
   Settings,
   Skill,
+  SkillLevel,
   SkillRelationship,
 } from "../types";
 import aerophoneJson from "./aerophone-fingerings.json";
@@ -187,7 +188,21 @@ export const DEFAULT_SETTINGS_DATA = defaultSettingsJson as {
 // ---------------------------------------------------------------------------
 // Drums
 
-export type DrumVoiceId = "kick" | "snare" | "hats" | "openhat" | "808" | "perc";
+export type DrumVoiceId =
+  | "kick"
+  | "snare"
+  | "hats"
+  | "openhat"
+  | "808"
+  | "perc"
+  // Voices the app adds for the repertoire, on their General MIDI notes in bank A.
+  | "rim"
+  | "pedalhat"
+  | "tom-low"
+  | "tom-mid"
+  | "tom-high"
+  | "crash"
+  | "ride";
 export interface DrumVoice {
   id: DrumVoiceId;
   name: string;
@@ -199,8 +214,9 @@ export interface GrooveDef {
   value: string;
   label: string;
   bars: number;
-  sectionLabels: ("groove" | "fill")[];
-  targets: { voice: DrumVoiceId; beat: number; accent: "normal" | "accent" }[];
+  sectionLabels: string[];
+  /** "ghost": a soft note under the groove (MIDI velocity below 50). */
+  targets: { voice: DrumVoiceId; beat: number; accent: "normal" | "accent" | "ghost" }[];
 }
 export const MPC_GROOVES = mpcGroovesJson as { voices: DrumVoice[]; catalog: GrooveDef[] };
 
@@ -209,8 +225,15 @@ export interface RudimentDef {
   label: string;
   unit: Hand[];
   accentMode?: "moving";
-  subdivision?: 2 | 3 | 4;
+  /** Notes a beat; the app's rolls go to 6 (sixteenth triplets) and 8 (thirty-seconds). */
+  subdivision?: 2 | 3 | 4 | 6 | 8;
   flam?: boolean;
+  /** Both hands (two fingers) on one pad: a roll. */
+  onePad?: boolean;
+  /** Accented positions in the unit; the rest are taps (velocity bands). */
+  accents?: number[];
+  /** Notes in each beat, cycling (a pyramid: 1 2 3 4 3 2); overrides the subdivision. */
+  perBeat?: number[];
 }
 export const MPC_RUDIMENTS = mpcRudimentsJson as {
   patterns: RudimentDef[];
@@ -730,6 +753,30 @@ APP_SKILLS.push(
     capability: "reading" as const,
     level: "beginner" as const,
     tags: ["theory", "keys"],
+    version: 1,
+  })),
+);
+// Finger drumming (docs/research/finger-drumming.md): technique and the repertoire's topics.
+const PAD_SKILLS: [string, string, SkillLevel][] = [
+  ["rolls", "Finger rolls on one pad", "intermediate"],
+  ["accents", "Accents and ghosts", "early-intermediate"],
+  ["steadiness", "Holding the tempo without a click", "early-intermediate"],
+  ["basics", "First grooves", "beginner"],
+  ["hiphop", "Boom bap and the first breaks", "beginner"],
+  ["ghosts", "Ghost-note grooves", "early-intermediate"],
+  ["independence", "Independence: the hats steady while the kick moves", "intermediate"],
+  ["fills", "Fills across the pads", "intermediate"],
+  ["swing", "Swing by hand", "intermediate"],
+  ["dance", "House, trap and drum and bass", "advanced"],
+  ["breaks", "The classic breaks", "advanced"],
+];
+APP_SKILLS.push(
+  ...PAD_SKILLS.map(([t, name, level]) => ({
+    id: `technique.mpc.${t}`,
+    name,
+    capability: "technique" as const,
+    level,
+    tags: ["mpc", "finger-drumming"],
     version: 1,
   })),
 );
