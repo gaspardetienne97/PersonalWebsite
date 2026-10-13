@@ -637,7 +637,7 @@
         aria-controls="studio-setup"
         onclick={() => (setupOpen = !setupOpen)}
       >
-        <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Done" : "Change setup"}
+        <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
       </button>
     </div>
 

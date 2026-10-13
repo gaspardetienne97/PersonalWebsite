@@ -11,6 +11,12 @@
     stopClock(): void;
   }
 
+  /** One clause of the setup sentence; `focus` names the control (its setupKey) a click opens. */
+  export interface SetupClause {
+    text: string;
+    focus?: string;
+  }
+
   /** Lets Results start the next run (the "Next run" button) without a prop through every drill. */
   export const SHELL_KEY = Symbol("drill-shell");
   export interface ShellApi {
@@ -30,7 +36,7 @@
   import Square from "lucide-svelte/icons/square";
   import Headphones from "lucide-svelte/icons/headphones";
   import Settings2 from "lucide-svelte/icons/sliders-horizontal";
-  import { bench, type Hue } from "../bench.svelte";
+  import { bench, INSTRUMENT_LABEL, type Hue } from "../bench.svelte";
   import { audio, input, settings } from "../runtime";
   import { page } from "$app/state";
   import { CATALOG } from "@repo/music-core/content/catalog";
@@ -39,8 +45,12 @@
     title: string;
     hue: Hue;
     blurb?: string;
-    /** One line describing the current setup, shown when setup is collapsed. */
-    summary: string;
+    /** The current setup as one line, or as clauses that each open their own control. */
+    summary: string | readonly SetupClause[];
+    /** The drill's exercises as a tab row under the title (one place for "which exercise"). */
+    tabs?: readonly { id: string; label: string }[];
+    tab?: string;
+    ontab?: (id: string) => void;
     phase?: Phase;
     mode?: DrillMode;
     /** Drills with no hidden-target variant (free play) set this false. */
@@ -88,24 +98,41 @@
     onstop,
     startLabel = "Start",
     blocked = null,
+    tabs,
+    tab,
+    ontab,
     modeNotes = { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
   }: Props = $props();
 
   // Back to where the drill was opened from (Today, Drills, Paths...).
   const back = $derived(backFor(page.url.pathname));
   let setupOpen = $state(false);
+  const clauses = $derived<readonly SetupClause[]>(typeof summary === "string" ? [{ text: summary }] : summary);
+  /** Open the panel on one control: the clause's setupKey. */
+  async function openAt(focus?: string) {
+    setupOpen = true;
+    if (!focus) return;
+    await tick();
+    const el = document.querySelector<HTMLElement>(`#drill-setup [data-setup="${focus}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+    el?.querySelector<HTMLElement>("button, input, select, [tabindex]")?.focus();
+  }
   let clockHandle: { stop(): void } | null = null;
   let heading: HTMLElement | undefined = $state();
   let resultsHeading: HTMLElement | undefined = $state();
 
   // A drill for one family of instruments switches the practice strip to it, so
   // the strip, the stage and the recorded instrument agree (Pads shows MPC).
+  // It runs again when the strip changes, and says so when it switches.
   $effect(() => {
     const entry = CATALOG.find((e) => page.url.pathname === e.route.split("?")[0]);
     const ok = entry?.instruments;
+    void settings.value.activeInstrument;
     void settings.ready.then(() => {
-      if (ok?.length && !bench.locked && !ok.includes(settings.value.activeInstrument))
+      if (ok?.length && !bench.locked && !ok.includes(settings.value.activeInstrument)) {
         void settings.update({ activeInstrument: ok[0] });
+        if (phase === "ready") status = `${title} is for ${ok.map((i) => INSTRUMENT_LABEL[i]).join(", ")}: switched to ${INSTRUMENT_LABEL[ok[0]]}.`;
+      }
     });
   });
 
@@ -217,15 +244,18 @@
       </div>
       <div class="flex flex-wrap items-center gap-2">
         {#if checkable}
-          <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label="Mode">
-            {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
-              <button
-                type="button"
-                class="min-h-10 rounded-full px-4 text-sm font-medium {mode === id ? 'bg-instr text-ws-stage' : 'text-ws-soft hover:text-ws-ink'}"
-                aria-pressed={mode === id}
-                onclick={() => (mode = id)}>{label}</button
-              >
-            {/each}
+          <div class="flex flex-col items-end gap-0.5">
+            <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label="Mode" aria-describedby="mode-note">
+              {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
+                <button
+                  type="button"
+                  class="min-h-10 rounded-full px-4 text-sm font-medium {mode === id ? 'bg-instr text-ws-stage' : 'text-ws-soft hover:text-ws-ink'}"
+                  aria-pressed={mode === id}
+                  onclick={() => (mode = id)}>{label}</button
+                >
+              {/each}
+            </div>
+            <p id="mode-note" class="max-w-64 text-right text-xs text-ws-soft">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
           </div>
         {/if}
         {#if ondemo && mode !== "check"}
@@ -241,13 +271,24 @@
       </div>
     </header>
 
+    {#if tabs && tabs.length > 1}
+      <div class="-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" role="group" aria-label="Exercise">
+        {#each tabs as x (x.id)}
+          <button
+            type="button"
+            class="min-h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-medium {tab === x.id ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+            aria-pressed={tab === x.id}
+            onclick={() => ontab?.(x.id)}>{x.label}</button
+          >
+        {/each}
+      </div>
+    {/if}
+
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-ws-line bg-ws-surface px-4 py-2">
-      <p class="min-w-0 flex-1 basis-full text-sm sm:basis-0"><span class="text-ws-soft">Setup:</span> <span class="font-medium">{summary}</span></p>
-      {#if checkable}
-        <p class="text-sm text-ws-soft">
-          {mode === "check" ? modeNotes.check : modeNotes.practice}
-        </p>
-      {/if}
+      <p class="min-w-0 flex-1 basis-full text-sm sm:basis-0" data-testid="setup-line">
+        <span class="text-ws-soft">Setup:</span>
+        {#each clauses as c, i (i)}{#if setup && c.focus}<button type="button" class="clause font-medium" onclick={() => openAt(c.focus)}>{c.text}</button>{:else}<span class="font-medium">{c.text}</span>{/if}{#if i < clauses.length - 1}<span class="text-ws-soft">, </span>{/if}{/each}
+      </p>
       {#if setup}
         <button
           type="button"
@@ -256,7 +297,7 @@
           aria-controls="drill-setup"
           onclick={() => (setupOpen = !setupOpen)}
         >
-          <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Done" : "Change setup"}
+          <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
         </button>
       {/if}
     </div>
@@ -317,6 +358,16 @@
 </section>
 
 <style>
+  .clause {
+    border-radius: 0.25rem;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in oklch, currentColor 45%, transparent);
+  }
+  .clause:hover {
+    color: var(--instr-ink);
+    text-decoration-style: solid;
+  }
   .stage.dim {
     opacity: 0.55;
   }
