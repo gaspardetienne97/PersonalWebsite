@@ -333,6 +333,32 @@ describe("microphone (synthetic audio)", () => {
   });
 });
 
+describe("microphone on a two-input interface", () => {
+  it("follows the guitar on input 2 when input 1 is silent", async () => {
+    // A Scarlett Solo style stream: nothing on channel 1, a G3 on channel 2.
+    const gen = await withGesture(async () => {
+      const c = new AudioContext();
+      await c.resume();
+      return c;
+    });
+    const osc = gen.createOscillator();
+    osc.frequency.value = 196;
+    const level = gen.createGain();
+    level.gain.value = 0.4;
+    const merge = gen.createChannelMerger(2);
+    const dest = gen.createMediaStreamDestination();
+    dest.channelCount = 2;
+    osc.connect(level).connect(merge, 0, 1);
+    merge.connect(dest);
+    osc.start();
+    expect(await withGesture(() => mic.start({ stream: dest.stream }))).toBe(true);
+    await expect.poll(() => mic.pitch?.midi, { timeout: 3000 }).toBe(55);
+    mic.stop();
+    osc.stop();
+    await gen.close();
+  });
+});
+
 /** Run `fn` inside a real click so the browser grants audio, as it would for a user. */
 async function withGesture<T>(fn: () => Promise<T>): Promise<T> {
   const button = document.body.appendChild(document.createElement("button"));

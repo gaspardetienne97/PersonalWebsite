@@ -1,5 +1,6 @@
 // Microphone capture (hardware notes 4, 5). getUserMedia with every processing
-// stage off, an AudioWorklet running the 40 Hz high-pass and posting 2048-sample
+// stage off, an AudioWorklet following whichever of two input channels has
+// the signal and running the 40 Hz high-pass and posting 2048-sample
 // frames plus a rolling 4096-sample wide window, analysis on the main thread,
 // notes and onsets pushed into the shared router.
 //
@@ -59,10 +60,25 @@ class WoodshedCapture extends AudioWorkletProcessor {
     this.frame = new Float32Array(${FRAME});
     this.prev = new Float32Array(${FRAME});
     this.n = 0;
+    this.chan = 0;
+    this.energy = [0, 0];
   }
   process(inputs) {
-    const ch = inputs[0] && inputs[0][0];
-    if (!ch) return true;
+    const input = inputs[0];
+    if (!input || !input.length) return true;
+    // Interfaces put a guitar on input 2 as often as input 1: follow the channel
+    // carrying the signal (energy over about half a second, a 6 dB margin to switch).
+    if (input.length > 1) {
+      for (let c = 0; c < 2; c++) {
+        const x = input[c];
+        let e = 0;
+        for (let i = 0; i < x.length; i++) e += x[i] * x[i];
+        this.energy[c] = this.energy[c] * 0.995 + e;
+      }
+      const other = 1 - this.chan;
+      if (this.energy[other] > this.energy[this.chan] * 4) this.chan = other;
+    }
+    const ch = input[Math.min(this.chan, input.length - 1)];
     for (let i = 0; i < ch.length; i++) {
       this.frame[this.n++] = this.hp.process(ch[i]);
       if (this.n === ${FRAME}) {
@@ -201,6 +217,8 @@ async function start(opts: { deviceId?: string; stream?: MediaStream } = {}): Pr
           echoCancellation: settings.value.echoCancellation,
           autoGainControl: false,
           noiseSuppression: false,
+          // Both inputs of a two-input interface; the capture follows the live one.
+          channelCount: { ideal: 2 },
           ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
         },
       });
