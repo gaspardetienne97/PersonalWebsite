@@ -93,6 +93,24 @@ test.describe("guitar drills", () => {
     });
   }
 
+  test("tab above the fretboard wherever notes are played in time", async ({ page }) => {
+    for (const url of [
+      "/music/fretboard?mode=spider&instrument=guitar",
+      "/music/fretboard?mode=positions&instrument=guitar",
+      "/music/fretboard?mode=legato&instrument=ukulele",
+      "/music/chords?mode=fingerpick&instrument=guitar",
+      "/music/chords?mode=pick&shape=guitar.g-major&instrument=guitar",
+      "/music/licks?lick=30&instrument=guitar&bpm=96",
+    ]) {
+      await page.goto(url);
+      await expect(page.getByTestId("line-tab").locator("svg"), url).toBeVisible();
+    }
+    // Check mode hides it, like the targets.
+    await page.goto("/music/fretboard?mode=spider&instrument=guitar");
+    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await expect(page.getByTestId("line-tab")).toHaveCount(0);
+  });
+
   test("Spider runs by fret taps to results", async ({ page }) => {
     await page.goto(
       "/music/fretboard?mode=spider&pattern=ascending-1234&tuning=guitar.standard&string=6&span=single&startFret=5&crossing=0&instrument=guitar&bpm=80",

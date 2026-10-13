@@ -28,6 +28,8 @@
   import { gradeLine, legatoAttacks, type LineResult } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
+  import LineTab from "$lib/music/notation/LineTab.svelte";
+  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -121,6 +123,22 @@
   let status = $state("");
   let stepIndex = $state(0);
   let demoStep = $state<number | null>(null);
+  // The tab: the line as it will be played, a cursor that runs with the click
+  // (or the demo), so the next notes can be read ahead.
+  let runDownbeat = $state(0);
+  let now = $state(0);
+  let raf = 0;
+  const tabNotes = $derived(steps.map((t, i) => ({ midi: t.midi, startBeat: i / perBeat, durationBeats: 1 / perBeat, string: t.string, fret: t.fret })));
+  const tabCursor = $derived(
+    demoStep !== null ? demoStep / perBeat : phase === "running" && now >= runDownbeat ? Math.min(steps.length / perBeat, (now - runDownbeat) / (60000 / bpm())) : null,
+  );
+  const tabStates = $derived.by(() => {
+    const out: Record<number, GroupState> = {};
+    if (phase !== "running") return out;
+    for (let i = 0; i < Math.min(stepIndex, steps.length); i++) out[i] = "correct";
+    if (stepIndex < steps.length) out[stepIndex] = "active";
+    return out;
+  });
   let demo: { stop(): void; playing: boolean } | null = $state(null);
   let summary = $state<RunSummary | null>(null);
   let result = $state<LineResult | null>(null);
@@ -217,6 +235,13 @@
     cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
     timer = setTimeout(() => void finish(), Math.max(0, ctx.downbeat - performance.now()) + steps.length * stepMs() + 4 * ctx.beatMs);
     stopClockRef = ctx.stopClock;
+    runDownbeat = ctx.downbeat;
+    cancelAnimationFrame(raf);
+    const tick = () => {
+      now = performance.now();
+      if (phase === "running" || phase === "countin") raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
   }
 
   async function finish() {
@@ -311,6 +336,7 @@
   }
 
   onDestroy(() => {
+    cancelAnimationFrame(raf);
     clearTimeout(timer);
     cap?.stop();
     stopDemo();
@@ -437,6 +463,11 @@
         <button type="button" class={btnStage} onclick={() => settings.update({ activeInstrument: "guitar" })}>Switch to guitar</button>
       </div>
     {:else}
+      {#if mode === "practice" || phase === "results"}
+        <div class="mb-3">
+          <LineTab notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} />
+        </div>
+      {/if}
       <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
       <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
         {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? "Letters are the picking hand: p thumb, i index, m middle, a ring." : isLegato ? "P is picked, h hammered on, p pulled off." : "Numbers are fingers: 1 index to 4 pinky."}</p>{/if}

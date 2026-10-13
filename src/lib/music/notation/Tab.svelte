@@ -9,6 +9,7 @@
     voiceIds,
     range,
     tuning,
+    fill = false,
     selection = $bindable(null),
     ...rest
   }: FrameProps & {
@@ -17,6 +18,8 @@
     range?: BeatRange | null;
     /** openStrings string 1 (highest) first; `name` is used in messages. */
     tuning: TabTuning & { name?: string };
+    /** Spread a short line across the whole width. */
+    fill?: boolean;
   } = $props();
 </script>
 
@@ -25,7 +28,7 @@
   bind:selection
   label="Tab, {score.title}"
   scoreBpm={score.bpm}
-  draw={(VF, host, width) => drawTab(VF, host, { score, voiceIds, range, width, tuning })}
+  draw={(VF, host, width) => drawTab(VF, host, { score, voiceIds, range, width, tuning, fill })}
   fallback={(reason) =>
     `Tab can't show this score honestly for ${tuning.name ?? "this tuning"}: ${reason}. The staff and waterfall show every note.`}
 />

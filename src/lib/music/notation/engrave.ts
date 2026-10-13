@@ -258,6 +258,8 @@ function engrave(
   groups: ScoreGroup[],
   rows: RowSpec[],
   width: number,
+  /** Stretch a short last line to the width too (a one-line exercise reads better spread out). */
+  fill = false,
 ): Layout {
   const time = `${score.meter.beats}/${score.meter.beatUnit}`;
   const beamGroups = VF.Beam.getDefaultBeamGroups(time);
@@ -323,7 +325,7 @@ function engrave(
   const widths = systems.map((sys, si) => {
     const extra = si === 0 ? modFirst : modNext;
     let scale = (avail - extra) / sys.reduce((a, b) => a + natural[b], 0);
-    if (si === systems.length - 1 && scale > 1.4) scale = 1;
+    if (!fill && si === systems.length - 1 && scale > 1.4) scale = 1;
     return sys.map((b, k) => Math.max(least[b], natural[b] * scale) + (k === 0 ? extra : 0));
   });
   host.replaceChildren();
@@ -465,6 +467,8 @@ export interface DrawOptions {
   width: number;
   /** Always a grand staff (treble and bass, split at middle C). */
   grand?: boolean;
+  /** Stretch the last line to the width too. */
+  fill?: boolean;
 }
 
 export function drawStaff(
@@ -537,7 +541,7 @@ export function tabFit(
 export function drawTab(
   VF: VF,
   host: HTMLElement,
-  { score, voiceIds, range, width, tuning }: DrawOptions & { tuning: TabTuning },
+  { score, voiceIds, range, width, tuning, fill }: DrawOptions & { tuning: TabTuning },
 ): Layout {
   const { barList, notes, at, outOfRange } = tabFit(score, voiceIds, range, tuning);
   if (notes.length && outOfRange > notes.length / 3)
@@ -568,7 +572,7 @@ export function drawTab(
         : new VF.GhostNote({ duration: t.vf, dots: t.dots });
     },
   };
-  const layout = engrave(VF, host, score, barList, groups, [row], width);
+  const layout = engrave(VF, host, score, barList, groups, [row], width, fill);
   if (outOfRange)
     layout.notice = `${outOfRange} ${outOfRange === 1 ? "note is" : "notes are"} outside this tuning and ${outOfRange === 1 ? "shows" : "show"} as a gap.`;
   return layout;

@@ -26,6 +26,8 @@
   import MicPanel from "./MicPanel.svelte";
   import ModeTabs from "./ModeTabs.svelte";
   import PositionStepper from "./PositionStepper.svelte";
+  import LineTab from "$lib/music/notation/LineTab.svelte";
+  import { tuningById } from "@repo/music-core/theory/fretboard";
   import ShapeBoard from "./ShapeBoard.svelte";
   import { CHORD_MODES } from "./modes";
 
@@ -69,6 +71,16 @@
   let stopClockRef: (() => void) | null = null;
 
   const cursor = $derived(isPick ? beat : matched.findIndex((m) => !m));
+  // Pick: the strings one a click as tab, then the chord strummed, the cursor on the click or the demo.
+  const pickTab = $derived(
+    isPick
+      ? [
+          ...targets.map((t, i) => ({ midi: t.midi, startBeat: i, durationBeats: 1, string: t.string, fret: t.fret })),
+          ...targets.map((t) => ({ midi: t.midi, startBeat: targets.length, durationBeats: 1, string: t.string, fret: t.fret })),
+        ]
+      : [],
+  );
+  const pickCursor = $derived(demoMidi !== null ? Math.max(0, targets.findIndex((t) => t.midi === demoMidi)) : phase === "running" && beat >= 0 ? beat : null);
   const live = $derived(phase === "running" || phase === "countin");
 
   function stopDemo() {
@@ -265,6 +277,18 @@
         <PositionStepper {positions} index={posIndex} onchange={(i) => cfg.set({ position: i })} />
       {/if}
     </div>
+    {#if isPick && (mode === "practice" || phase === "results")}
+      {@const tt = tuningById(shape.tuningId)!}
+      <div class="mb-3">
+        <LineTab
+          notes={pickTab}
+          tuning={{ openStrings: tt.openStrings, fretCount: tt.fretCount, name: tt.name }}
+          title={key}
+          cursorBeat={pickCursor}
+          groupStates={Object.fromEntries(matched.flatMap((m, i) => (m ? [[i, "correct" as const]] : [])))}
+        />
+      </div>
+    {/if}
     <ShapeBoard {shape} show={showShape} demo={demoMidi} {flashes} label="{symbol} on the {instr} neck" />
     <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Strings, low to high">
       {#each targets as t, i (t.string)}

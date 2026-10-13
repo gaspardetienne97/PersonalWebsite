@@ -9,6 +9,8 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
+  import LineTab from "$lib/music/notation/LineTab.svelte";
+  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -88,6 +90,12 @@
   const next = $derived<LickNote | undefined>(phase === "running" ? chunk[played] : phase === "ready" || phase === "countin" ? chunk[0] : undefined);
   const lit = $derived(transport.playing ? sounding(timed, transport.beat) : []);
   const showTargets = $derived(mode === "practice" && phase !== "results");
+  /** Tab marks while running: notes played so far, and the one up next. */
+  const tabStates = $derived.by(() => {
+    const out: Record<number, GroupState> = {};
+    if (phase === "running") chunk.forEach((_, i) => (i < played ? (out[i] = "correct") : i === played && (out[i] = "active")));
+    return out;
+  });
 
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
@@ -316,6 +324,17 @@
       hidden={mode === "check" && !transport.playing}
       label="Beat lane: {chunk.length} notes over {progression.join(', ')}."
     />
+    {#if fretted && (mode === "practice" || transport.playing || phase === "results")}
+      <div class="mb-3">
+        <LineTab
+          notes={chunk.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))}
+          tuning={{ openStrings: GUITAR.openStrings, fretCount: GUITAR.fretCount, name: GUITAR.name }}
+          title={setupKey}
+          cursorBeat={transport.playing ? transport.beat : null}
+          groupStates={tabStates}
+        />
+      </div>
+    {/if}
     {#if fretted}
       <Fretboard openStrings={GUITAR.openStrings} from={frets.from} to={frets.to} marks={fretMarks} {flashes} label="Guitar fretboard, standard tuning" />
       <p class="mt-3 text-sm text-ws-stage-soft">
