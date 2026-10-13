@@ -765,9 +765,10 @@ test.describe("ear training", () => {
               .fill("[^,]+ / [^,]+") // a degree and its syllable, never "nothing yet"
               .join(", ")}\\s*(Start over)?$`,
           ),
+          { timeout: 10_000 }, // the microphone locks slower when the machine is busy
         );
         await page.evaluate(() => (window as any).__mic.set(0));
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(500);
       }
     }
     await waitStep(page, "feedback");

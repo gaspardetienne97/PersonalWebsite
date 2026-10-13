@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { rng } from "./random";
-import { BAND_SETS, bellDb, gradeStudio, OCTAVE_Q, studioPrompt, type StudioSetup } from "./studio";
+import {
+  BAND_SETS,
+  bellDb,
+  delayLabel,
+  gradeStudio,
+  OCTAVE_Q,
+  studioPrompt,
+  type StudioSetup,
+} from "./studio";
 
 const setup = (over: Partial<StudioSetup> = {}): StudioSetup => ({
   exercise: "peak",
@@ -58,5 +66,32 @@ describe("studio ears", () => {
     const eq = { freq: 1000, gainDb: 12, q: OCTAVE_Q };
     expect(bellDb(1000, eq)).toBeCloseTo(12);
     expect(bellDb(2000, eq)).toBeLessThan(3);
+  });
+
+  it("compression is none, light or heavy, and none changes nothing", () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed < 40; seed++) {
+      const p = studioPrompt(rng(seed), setup({ exercise: "compression" }));
+      seen.add(p.answer);
+      expect(p.change.comp ?? "none").toBe(p.answer);
+      expect(p.choices).toEqual(["none", "light", "heavy"]);
+    }
+    expect(seen.size).toBe(3);
+    const heavy = studioPrompt(rng(1), setup({ exercise: "compression" }), (a) =>
+      a === "heavy" ? 100 : 0.001,
+    );
+    expect(gradeStudio(heavy, "light")).toMatchObject({ score: 0.5, near: true });
+  });
+
+  it("delay times are note values at the loops' 90 BPM", () => {
+    const p = studioPrompt(rng(2), setup({ exercise: "delay", delays: "4" }));
+    expect(p.choices).toEqual(["167", "333", "500", "667"]);
+    expect(p.change.delayMs).toBe(Number(p.answer));
+    expect(["167", "333", "500", "667"].map((x) => delayLabel(Number(x)))).toEqual([
+      "1/16, 167 ms",
+      "1/8, 333 ms",
+      "Dotted 1/8, 500 ms",
+      "1/4, 667 ms",
+    ]);
   });
 });

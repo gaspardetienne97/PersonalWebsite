@@ -9,6 +9,8 @@
     BAND_SETS,
     bandLabel,
     bellDb,
+    compLabel,
+    delayLabel,
     GAINS,
     gradeStudio,
     PAN_SETS,
@@ -40,12 +42,17 @@
     gain: "12" as string,
     levels: "6,3" as string,
     pans: "3" as string,
+    delays: "3" as string,
     flip: "manual" as string,
   });
   const s = $derived(cfg.value);
   const exercise = $derived((STUDIO_EXERCISES.find((e) => e.id === s.exercise) ?? STUDIO_EXERCISES[0]).id as StudioExercise);
   const meta = $derived(STUDIO_EXERCISES.find((e) => e.id === exercise)!);
-  const material = $derived((["noise", "drums", "music"].includes(s.material) ? s.material : "noise") as StudioMaterial);
+  /** Compression and delay need transients to hear: on pink noise they use the drum loop. */
+  const needsHits = $derived(exercise === "compression" || exercise === "delay");
+  const picked = $derived((["noise", "drums", "music"].includes(s.material) ? s.material : "noise") as StudioMaterial);
+  const material = $derived(needsHits && picked === "noise" ? "drums" : picked);
+  const delays = $derived((s.delays === "4" ? "4" : "3") as "3" | "4");
   const bands = $derived((s.bands in BAND_SETS ? s.bands : "3") as BandSet);
   const gainDb = $derived(GAINS.includes(Number(s.gain) as (typeof GAINS)[number]) ? Number(s.gain) : 12);
   const levels = $derived(s.levels.split(",").map(Number).filter((n) => n > 0));
@@ -76,7 +83,7 @@
   let misses: Record<string, number> = {};
   const rand = Math.random;
 
-  const setup = () => ({ exercise, bands, gainDb, levels: levels.length ? levels : [6, 3], pans });
+  const setup = () => ({ exercise, bands, gainDb, levels: levels.length ? levels : [6, 3], pans, delays });
   const label = (p: StudioPrompt | null, t: string) =>
     !p
       ? t
@@ -86,7 +93,11 @@
           ? t === "boost" ? "Boost" : "Cut"
           : p.exercise === "level"
             ? `${t} dB`
-            : panLabel(Number(t));
+            : p.exercise === "compression"
+              ? compLabel(t)
+              : p.exercise === "delay"
+                ? delayLabel(Number(t))
+                : panLabel(Number(t));
 
   function show(on: boolean) {
     changed = on;
@@ -107,7 +118,7 @@
     loop = audio.studio.loop(buffer);
     run = practice.beginRun({
       exerciseId: entry.modes.find((m) => m.id === exercise)!.exerciseId,
-      setupKey: `${exercise}|${material}|${bands}|${gainDb}|${levels.join(",")}|${pans}`,
+      setupKey: `${exercise}|${material}|${bands}|${gainDb}|${levels.join(",")}|${pans}|${delays}`,
       skillIds: ["studio.ears", meta.skillId],
       capabilities: ["ear"],
       modality: "heard",
@@ -123,7 +134,9 @@
     const p = studioPrompt(rand, setup(), (a) => 1 + 2 * (misses[a] ?? 0));
     current = p;
     // Boost or cut is judged at matched loudness: Changed is trimmed back to Flat's level.
-    const trim = p.exercise === "boost-or-cut" && buffer ? flatDb - (await audio.studio.loudness(buffer, p.change)) : 0;
+    // Boost or cut and compression are judged at matched loudness: Changed is trimmed back to Flat's level.
+    const matched = (p.exercise === "boost-or-cut" || (p.exercise === "compression" && p.change.comp)) && buffer;
+    const trim = matched ? flatDb - (await audio.studio.loudness(buffer!, p.change)) : 0;
     loop?.set(p.change, trim);
     step = "answer";
     status = `Prompt ${qi + 1} of ${LENGTH}: Flat, then Changed. Flip between them as often as you like.`;
@@ -241,7 +254,7 @@
     [
       meta.title,
       MATERIALS.find((m) => m.value === material)?.label.toLowerCase(),
-      exercise === "peak" || exercise === "cut" ? `${BAND_SETS[bands].length} bands, ${exercise === "cut" ? "-" : "+"}${gainDb} dB` : exercise === "boost-or-cut" ? `${gainDb} dB` : exercise === "level" ? `${levels.join(", ")} dB steps` : `${PAN_SETS[pans].length} positions`,
+      exercise === "peak" || exercise === "cut" ? `${BAND_SETS[bands].length} bands, ${exercise === "cut" ? "-" : "+"}${gainDb} dB` : exercise === "boost-or-cut" ? `${gainDb} dB` : exercise === "level" ? `${levels.join(", ")} dB steps` : exercise === "compression" ? "none, light or heavy" : exercise === "delay" ? `${delays} echo times` : `${PAN_SETS[pans].length} positions`,
       `${LENGTH} prompts`,
     ].join(", "),
   );
@@ -265,7 +278,10 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       <Choice label="Exercise" select options={STUDIO_EXERCISES.map((e) => ({ value: e.id, label: e.title }))} value={exercise} onchange={(v) => cfg.set({ exercise: v })} />
-      <Choice label="Loop" options={MATERIALS} value={material} onchange={(v) => cfg.set({ material: v })} />
+      <Choice label="Loop" options={needsHits ? MATERIALS.slice(1) : MATERIALS} value={material} onchange={(v) => cfg.set({ material: v })} />
+      {#if exercise === "delay"}
+        <Choice label="Echo times" options={[{ value: "3", label: "1/16, 1/8, 1/4" }, { value: "4", label: "With dotted 1/8" }]} value={delays} onchange={(v) => cfg.set({ delays: v })} />
+      {/if}
       {#if exercise === "peak" || exercise === "cut"}
         <Choice label="Bands" options={[{ value: "3", label: "3" }, { value: "5", label: "5" }, { value: "9", label: "9 octaves" }]} value={bands} onchange={(v) => cfg.set({ bands: v })} />
       {/if}

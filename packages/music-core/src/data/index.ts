@@ -686,6 +686,8 @@ const STUDIO_NAMES: [string, string][] = [
   ["boost-or-cut", "Telling a boost from a cut"],
   ["level", "Level differences in dB"],
   ["pan", "Pan position"],
+  ["compression", "How hard something is compressed"],
+  ["delay", "Delay time"],
 ];
 APP_SKILLS.push(
   {

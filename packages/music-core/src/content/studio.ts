@@ -6,7 +6,14 @@
 
 import { pick, type Rand } from "./random";
 
-export type StudioExercise = "peak" | "cut" | "boost-or-cut" | "level" | "pan";
+export type StudioExercise =
+  | "peak"
+  | "cut"
+  | "boost-or-cut"
+  | "level"
+  | "pan"
+  | "compression"
+  | "delay";
 export type StudioMaterial = "noise" | "drums" | "music";
 
 /** Octave centres in Hz: 3, 5 or 9 of them. */
@@ -23,6 +30,29 @@ export const GAINS = [12, 6, 3] as const;
 export const LEVEL_STEPS = [6, 3, 2, 1] as const;
 /** Pan positions, -1 hard left to 1 hard right: 3 of them, or 5. */
 export const PAN_SETS = { "3": [-1, 0, 1], "5": [-1, -0.5, 0, 0.5, 1] } as const;
+/** How hard Changed is compressed (none: Changed is Flat). */
+export const COMP_LEVELS = ["none", "light", "heavy"] as const;
+export type CompLevel = (typeof COMP_LEVELS)[number];
+/** The loops run at 90 BPM: delay times as note values there, in ms. */
+export const LOOP_BPM = 90;
+const BEAT_MS = 60000 / LOOP_BPM;
+export const DELAY_SETS = {
+  "3": [BEAT_MS / 4, BEAT_MS / 2, BEAT_MS],
+  "4": [BEAT_MS / 4, BEAT_MS / 2, (BEAT_MS * 3) / 4, BEAT_MS],
+} as const;
+/** "1/8, 333 ms" */
+export const delayLabel = (ms: number) => {
+  const beats = ms / BEAT_MS;
+  const name = [
+    [0.25, "1/16"],
+    [0.5, "1/8"],
+    [0.75, "Dotted 1/8"],
+    [1, "1/4"],
+  ].find(([b]) => Math.abs((b as number) - beats) < 0.01)?.[1];
+  return `${name ? `${name}, ` : ""}${Math.round(ms)} ms`;
+};
+export const compLabel = (c: string) =>
+  c === "none" ? "None" : c === "light" ? "Light (2.5:1)" : "Heavy (12:1)";
 
 export const STUDIO_EXERCISES: {
   id: StudioExercise;
@@ -55,6 +85,18 @@ export const STUDIO_EXERCISES: {
     ask: "Where was Changed panned?",
     skillId: "studio.pan",
   },
+  {
+    id: "compression",
+    title: "How compressed",
+    ask: "How hard is Changed compressed? (The levels are matched.)",
+    skillId: "studio.compression",
+  },
+  {
+    id: "delay",
+    title: "Delay time",
+    ask: "How long is the echo on Changed?",
+    skillId: "studio.delay",
+  },
 ];
 
 export const bandLabel = (hz: number) => (hz >= 1000 ? `${hz / 1000} kHz` : `${hz} Hz`);
@@ -65,6 +107,8 @@ export interface StudioChange {
   eq?: { freq: number; gainDb: number; q: number };
   pan?: number;
   levelDb?: number;
+  comp?: "light" | "heavy";
+  delayMs?: number;
 }
 export interface StudioPrompt {
   id: string;
@@ -80,6 +124,7 @@ export interface StudioSetup {
   gainDb: number;
   levels: number[];
   pans: "3" | "5";
+  delays?: "3" | "4";
 }
 
 /**
@@ -135,6 +180,27 @@ export function studioPrompt(
         choices: steps,
       };
     }
+    case "compression": {
+      const c = weighted(COMP_LEVELS) as CompLevel;
+      return {
+        ...base,
+        id: `studio-compression-${c}`,
+        change: c === "none" ? {} : { comp: c },
+        answer: c,
+        choices: [...COMP_LEVELS],
+      };
+    }
+    case "delay": {
+      const times = DELAY_SETS[setup.delays ?? "3"].map((ms) => String(Math.round(ms)));
+      const ms = Number(weighted(times));
+      return {
+        ...base,
+        id: `studio-delay-${ms}`,
+        change: { delayMs: ms },
+        answer: String(ms),
+        choices: times,
+      };
+    }
     case "pan": {
       const spots = PAN_SETS[setup.pans].filter((p) => p !== 0).map(String);
       const p = Number(weighted(spots));
@@ -161,6 +227,8 @@ export function gradeStudio(
   const scaled =
     p.exercise === "pan" ||
     p.exercise === "level" ||
+    p.exercise === "compression" ||
+    p.exercise === "delay" ||
     ((p.exercise === "peak" || p.exercise === "cut") &&
       p.choices.every((c, k) => !k || Number(c) / Number(p.choices[k - 1]) < 2.5));
   const near = scaled && j >= 0 && Math.abs(i - j) === 1;

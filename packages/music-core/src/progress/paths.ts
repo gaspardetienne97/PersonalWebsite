@@ -296,6 +296,8 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
       href: "/music/listening?exercise=peak&bands=5&material=drums",
       links: [
         { label: "How many dB louder", href: "/music/listening?exercise=level&material=drums" },
+        { label: "How compressed", href: "/music/listening?exercise=compression&material=drums" },
+        { label: "Delay time", href: "/music/listening?exercise=delay&material=drums" },
       ],
       exerciseIds: ["studio.peak"],
       skillIds: ["studio.eq-peak"],
@@ -337,7 +339,7 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
 
 // Studio ears: its own path (timbre and frequency memory, not pitch), in the
 // research's order: 3 bands on noise, 5 then 9, loops, cuts, smaller gains,
-// then boost or cut, level and pan. Thresholds stay under the ~78% trained
+// then boost or cut, level and pan, then compression and delay. Thresholds stay under the ~78% trained
 // students reach on 9 bands of music (Marui and Kamekawa 2018).
 const L = (q: string) => `/music/listening?${q}`;
 const STUDIO_STEPS: RawStep[] = [
@@ -426,6 +428,23 @@ const STUDIO_STEPS: RawStep[] = [
     skillIds: ["studio.boost-or-cut", "studio.level", "studio.pan"],
     minAttempts: 10,
     threshold: 0.8,
+  },
+  {
+    id: "S-7",
+    order: 7,
+    title: "Compression and delay",
+    summary:
+      "How hard a drum loop is squashed (at matched loudness), and how long its echo is in note values.",
+    detail: "Ten unaided answers each, at 75% or higher.",
+    href: L("exercise=compression&material=drums"),
+    links: [
+      { label: "Delay time", href: L("exercise=delay&material=drums") },
+      { label: "With dotted 1/8", href: L("exercise=delay&delays=4&material=music") },
+    ],
+    exerciseIds: ["studio.compression", "studio.delay"],
+    skillIds: ["studio.compression", "studio.delay"],
+    minAttempts: 10,
+    threshold: 0.75,
   },
 ];
 

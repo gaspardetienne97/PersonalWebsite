@@ -64,6 +64,33 @@ test.describe("studio ears", () => {
     await expect(card).toContainText(`Right: ${a === "boost" ? "Boost" : "Cut"}.`);
   });
 
+  test("compression (level-matched) and delay time on the drum loop", async ({ page }) => {
+    // Pink noise is picked, but these two need hits: the drum loop plays.
+    await page.goto("/music/listening?exercise=compression&material=noise");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    await expect(card).toHaveAttribute("data-step", "answer", { timeout: 20_000 });
+    await expect(card).toContainText("Drum loop");
+    const answers = page.getByRole("group", { name: "Answers" }).getByRole("button");
+    await expect(answers).toHaveText(["None", "Light (2.5:1)", "Heavy (12:1)"]);
+    const c = (await card.getAttribute("data-answer"))!;
+    await answers.nth(["none", "light", "heavy"].indexOf(c)).click();
+    await expect(card).toContainText("Right:");
+
+    await page.goto("/music/listening?exercise=delay&delays=4&material=drums");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(card).toHaveAttribute("data-step", "answer", { timeout: 20_000 });
+    await expect(answers).toHaveText([
+      "1/16, 167 ms",
+      "1/8, 333 ms",
+      "Dotted 1/8, 500 ms",
+      "1/4, 667 ms",
+    ]);
+    const d = (await card.getAttribute("data-answer"))!;
+    await answers.nth(["167", "333", "500", "667"].indexOf(d)).click();
+    await expect(card).toContainText("Right:");
+  });
+
   test("the Drills tab lists every drill in small groups, and a mode chip opens that mode", async ({
     page,
   }) => {

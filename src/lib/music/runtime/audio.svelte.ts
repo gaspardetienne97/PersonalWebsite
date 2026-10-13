@@ -16,6 +16,7 @@ import { untrack } from "svelte";
 import type * as ToneNS from "tone";
 import type { PlaybackSound } from "@repo/music-core";
 import { encodeWav } from "@repo/music-core/io/wav";
+import type { StudioChange } from "@repo/music-core/content/studio";
 import { settings } from "./settings.svelte";
 import { getBinary } from "./opfs";
 
@@ -891,11 +892,7 @@ async function renderNotes(notes: SequenceNote[], durationSec: number) {
 // changed. Changes glide over about 50 ms (no clicks); the source sits 12 dB
 // down so a +12 dB boost never clips, and nothing compresses what is judged.
 
-export interface StudioChange {
-  eq?: { freq: number; gainDb: number; q: number };
-  pan?: number;
-  levelDb?: number;
-}
+export type { StudioChange };
 export interface StudioLoop {
   /** What Changed applies; `trimDb` (Changed only) matches loudness when the task asks for it. */
   set(change: StudioChange, trimDb?: number): void;
@@ -993,6 +990,20 @@ async function studioMaterial(kind: "noise" | "drums" | "music"): Promise<AudioB
   return buf;
 }
 
+/** Compressor settings: light glues, heavy squashes (fast attack, high ratio). */
+const COMP = {
+  light: { threshold: -20, ratio: 2.5, attack: 0.02, release: 0.2, knee: 6 },
+  heavy: { threshold: -38, ratio: 12, attack: 0.002, release: 0.08, knee: 2 },
+} as const;
+function setComp(c: DynamicsCompressorNode, kind: "light" | "heavy") {
+  const k = COMP[kind];
+  c.threshold.value = k.threshold;
+  c.ratio.value = k.ratio;
+  c.attack.value = k.attack;
+  c.release.value = k.release;
+  c.knee.value = k.knee;
+}
+
 /** The loudness (RMS dB) of two seconds of `buf` through `change`, rendered offline. */
 async function studioLoudness(buf: AudioBuffer, change: StudioChange): Promise<number> {
   const len = Math.min(buf.length, buf.sampleRate * 2);
@@ -1006,7 +1017,15 @@ async function studioLoudness(buf: AudioBuffer, change: StudioChange): Promise<n
     eq.Q.value = change.eq.q;
     eq.gain.value = change.eq.gainDb;
   }
-  src.connect(eq).connect(ctx.destination);
+  // The same 12 dB of headroom as the loop, so the compressor sees the level it will hear.
+  const headroom = ctx.createGain();
+  headroom.gain.value = 10 ** (-12 / 20);
+  src.connect(headroom).connect(eq);
+  if (change.comp) {
+    const comp = ctx.createDynamicsCompressor();
+    setComp(comp, change.comp);
+    eq.connect(comp).connect(ctx.destination);
+  } else eq.connect(ctx.destination);
   src.start();
   const out = await ctx.startRendering();
   let sum = 0;
@@ -1029,7 +1048,23 @@ function studioLoop(buf: AudioBuffer): StudioLoop {
   eq.gain.value = 0;
   const pan = raw.createStereoPanner();
   const level = raw.createGain();
-  src.connect(headroom).connect(eq).connect(pan).connect(level);
+  // Dry and compressed paths side by side, crossfaded; a delay sent from their sum.
+  const dry = raw.createGain();
+  const comp = raw.createDynamicsCompressor();
+  const wet = raw.createGain();
+  wet.gain.value = 0;
+  const sum = raw.createGain();
+  const delay = raw.createDelay(2);
+  const feedback = raw.createGain();
+  feedback.gain.value = 0.3;
+  const echo = raw.createGain();
+  echo.gain.value = 0;
+  src.connect(headroom).connect(eq);
+  eq.connect(dry).connect(sum);
+  eq.connect(comp).connect(wet).connect(sum);
+  sum.connect(pan).connect(level);
+  sum.connect(delay).connect(feedback).connect(delay);
+  delay.connect(echo).connect(pan);
   const out = new t.Gain(0);
   t.connect(level, out);
   out.connect(graph.master);
@@ -1046,6 +1081,12 @@ function studioLoop(buf: AudioBuffer): StudioLoop {
     }
     glide(eq.gain, changed ? (change.eq?.gainDb ?? 0) : 0);
     glide(pan.pan, changed ? (change.pan ?? 0) : 0);
+    if (change.comp) setComp(comp, change.comp);
+    const squash = changed && !!change.comp;
+    glide(dry.gain, squash ? 0 : 1);
+    glide(wet.gain, squash ? 1 : 0);
+    if (change.delayMs) delay.delayTime.setValueAtTime(change.delayMs / 1000, raw.currentTime);
+    glide(echo.gain, changed && change.delayMs ? 0.45 : 0);
     glide(level.gain, changed ? 10 ** (((change.levelDb ?? 0) + trim) / 20) : 1);
   };
   return {
