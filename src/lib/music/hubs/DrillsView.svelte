@@ -13,7 +13,7 @@
     { id: "pitch", title: "Pitch and melody by ear", test: ear("intervals", "interval-compare", "fine-pitch", "scale-degrees", "melody-dictation", "wrong-note", "repertoire-transfer") },
     { id: "harmony", title: "Chords and harmony by ear", test: ear("chord-qualities", "cadences", "chord-functions", "progressions", "scales", "inversions", "bass-lines") },
     { id: "review", title: "Review and studio ears", test: (e) => e.route === "/music/ear/mixed" || e.route === "/music/listening" },
-    { id: "time", title: "Reading and rhythm", test: (e) => /\/music\/(reading|rhythm)/.test(e.route) },
+    { id: "time", title: "Reading, rhythm and theory", test: (e) => /\/music\/(reading|rhythm|circle)/.test(e.route) },
     { id: "piano", title: "Piano and jazz", test: (e) => /\/music\/(scales|two-hand|comping|voicings|licks|chord-scales)/.test(e.route) },
     { id: "guitar", title: "Guitar and ukulele", test: (e) => /\/music\/(fretboard|chords|strum)/.test(e.route) },
     { id: "pads", title: "Pads and wind", test: (e) => /\/music\/(pads|aerophone)/.test(e.route) },
@@ -35,7 +35,7 @@
     [/^\/music\/licks/, "category"],
     [/^\/music\/chord-scales/, "changes"],
     [/^\/music\/listening/, "exercise"],
-    [/^\/music\/(rhythm|fretboard|chords|pads|aerophone)/, "mode"],
+    [/^\/music\/(rhythm|fretboard|chords|pads|aerophone|circle)/, "mode"],
   ];
   const modeHref = (e: CatalogEntry, mode: string) => {
     const key = MODE_KEY.find(([r]) => r.test(e.route))?.[1];

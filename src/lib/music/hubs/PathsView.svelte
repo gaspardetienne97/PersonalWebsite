@@ -13,6 +13,7 @@
     { id: "mpc", hue: "mpc" },
     { id: "ear", hue: "ear" },
     { id: "jazz", hue: "piano" },
+    { id: "theory", hue: "reading" },
     { id: "studio", hue: "create" },
   ];
   const preferred = $derived(

@@ -448,9 +448,14 @@ describe("drill definitions and path", () => {
     ]);
     expect(EAR_PATH.steps.map((s) => s.order)).toEqual(EAR_PATH.steps.map((_, i) => i + 1));
     const hrefs = EAR_PATH.steps.flatMap((s) => [s.href, ...(s.links ?? []).map((l) => l.href)]);
-    expect(hrefs.every((h) => h.startsWith("/music/ear/") || h.startsWith("/music/rhythm?"))).toBe(
-      true,
-    );
+    expect(
+      hrefs.every(
+        (h) =>
+          h.startsWith("/music/ear/") ||
+          h.startsWith("/music/rhythm?") ||
+          h.startsWith("/music/circle?"),
+      ),
+    ).toBe(true);
     // The fine-pitch warm-up rides on the table's singing step.
     expect(EAR_PATH.steps[2].links?.at(-1)?.href).toBe("/music/ear/fine-pitch?startCents=50");
     expect(EAR_PATH.steps[0].href).toBe(

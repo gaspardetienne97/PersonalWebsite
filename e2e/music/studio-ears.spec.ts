@@ -101,7 +101,7 @@ test.describe("studio ears", () => {
       /^Pitch and melody by ear \(7\)$/,
       /^Chords and harmony by ear \(7\)$/,
       /^Review and studio ears \(2\)$/,
-      /^Reading and rhythm \(2\)$/,
+      /^Reading, rhythm and theory \(3\)$/,
       /^Piano and jazz/,
       /^Guitar and ukulele/,
       /^Pads and wind/,

@@ -7,7 +7,7 @@ import { EAR_ADDED_STEPS, EAR_TABLE_STEPS } from "../content/ear";
 import jazzData from "../data/jazz.json";
 import { SKILL_GRAPH, withDescendants, type SkillGraph } from "./graph";
 
-export type PathId = "ear" | "jazz" | "guitar" | "piano" | "mpc" | "studio";
+export type PathId = "ear" | "jazz" | "guitar" | "piano" | "mpc" | "studio" | "theory";
 
 export interface PathLink {
   label: string;
@@ -68,6 +68,7 @@ export const NEW_ROUTES = [
   "/music/jam",
   "/music/library",
   "/music/listening",
+  "/music/circle",
 ] as const;
 
 const PATH_MAP: Record<string, string> = {
@@ -86,6 +87,7 @@ const PATH_MAP: Record<string, string> = {
   "/music/jam": "/music/jam",
   "/music/library": "/music/library",
   "/music/listening": "/music/listening",
+  "/music/circle": "/music/circle",
 };
 
 export function rewriteHref(href: string): string {
@@ -196,6 +198,11 @@ const ADDED_LINKS: Record<string, PathLink[]> = {
     },
   ],
   "P-I1": [{ label: "Inversions by ear", href: EAR("inversions", "inversions=root,first,second") }],
+  "P-B3": [{ label: "Key signatures", href: "/music/circle?mode=signature&band=two&clefs=both" }],
+  "P-I3": [
+    { label: "Scales round the circle", href: "/music/library?tab=reference&section=circle" },
+  ],
+  "G-B3": [{ label: "The chords of a key", href: "/music/circle?mode=chords&band=two" }],
   "P-I2": [
     { label: "Follow the bass", href: EAR("bass-lines", "bassLevel=roots-primary") },
     { label: "I, IV, V progressions by ear", href: EAR("progressions", "functions=I,IV,V") },
@@ -220,6 +227,10 @@ const ADDED_LINKS: Record<string, PathLink[]> = {
     { label: "Modes by ear", href: EAR("scales", "scales=mixolydian,dorian,lydian,locrian") },
   ],
   "rootless-voicings": [
+    {
+      label: "ii-V-I moves counter-clockwise",
+      href: "/music/library?tab=reference&section=circle",
+    },
     {
       label: "ii7, V7, Imaj7 by ear",
       href: EAR("progressions", "functions=I,ii,V&chordSize=sevenths"),
@@ -341,6 +352,140 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
 // research's order: 3 bands on noise, 5 then 9, loops, cuts, smaller gains,
 // then boost or cut, level and pan, then compression and delay. Thresholds stay under the ~78% trained
 // students reach on 9 bands of music (Marui and Kamekawa 2018).
+// The circle of fifths, in the research's order (Open Music Theory, Levine,
+// LearnMusicTheory.net): the order of sharps and flats, keys by how many
+// accidentals both ways, signatures on the staff, relative minors, a key's
+// chords, the circle from memory, then the circle on the instrument.
+// Fluency is right and fast (recall, not working it out): 95% over 20
+// prompts on two days.
+const CIRCLE = (q: string) => `/music/circle?${q}`;
+const THEORY_STEPS: RawStep[] = [
+  {
+    id: "T-1",
+    order: 1,
+    title: "The order of sharps and flats",
+    summary:
+      "F C G D A E B for sharps (Father Charles Goes Down And Ends Battle), backwards for flats.",
+    detail: "Twenty prompts over two days, 95% right within 2 seconds.",
+    href: CIRCLE("mode=order"),
+    exerciseIds: ["theory.circle.order"],
+    skillIds: ["theory.circle.order"],
+    minAttempts: 20,
+    minSessions: 2,
+    threshold: 0.95,
+  },
+  {
+    id: "T-2",
+    order: 2,
+    title: "Keys up to two sharps or flats",
+    summary: "C, G, F, D and Bb: from the key to its count, and from the count to the key.",
+    detail: "Twenty prompts over two days, 95% right within 2 seconds.",
+    href: CIRCLE("mode=count&band=two"),
+    links: [{ label: "Start with C, G and F", href: CIRCLE("mode=count&band=near") }],
+    exerciseIds: ["theory.circle.count"],
+    skillIds: ["theory.circle.count"],
+    minAttempts: 20,
+    minSessions: 2,
+    threshold: 0.95,
+    minDifficulty: 0.35,
+  },
+  {
+    id: "T-3",
+    order: 3,
+    title: "Every key, both ways",
+    summary: "Up to four, then all fifteen with the enharmonic keys, sharps and flats mixed.",
+    detail: "Twenty prompts on all fifteen keys over two days, 95% right within 2 seconds.",
+    href: CIRCLE("mode=count&band=all"),
+    links: [{ label: "Up to four", href: CIRCLE("mode=count&band=four") }],
+    exerciseIds: ["theory.circle.count"],
+    skillIds: ["theory.circle.count"],
+    minAttempts: 20,
+    minSessions: 2,
+    threshold: 0.95,
+    minDifficulty: 0.75,
+  },
+  {
+    id: "T-4",
+    order: 4,
+    title: "Read signatures on the staff",
+    summary: "Name the key from its signature, treble clef first, then bass.",
+    detail: "Twenty prompts on keys up to four over two days, 95% right within 3 seconds.",
+    href: CIRCLE("mode=signature&band=four&clefs=treble"),
+    links: [{ label: "Bass and treble", href: CIRCLE("mode=signature&band=all&clefs=both") }],
+    exerciseIds: ["theory.circle.signature"],
+    skillIds: ["theory.circle.signature"],
+    minAttempts: 20,
+    minSessions: 2,
+    threshold: 0.95,
+    minDifficulty: 0.55,
+  },
+  {
+    id: "T-5",
+    order: 5,
+    title: "Neighbours and relative minors",
+    summary:
+      "One more sharp, one more flat, the relative minor a minor third down, and the key across.",
+    detail: "Twenty prompts on keys up to four, 95% right within 2.5 seconds.",
+    href: CIRCLE("mode=neighbours&band=four"),
+    links: [{ label: "Minor keys' signatures", href: CIRCLE("mode=count&band=four&minor=both") }],
+    exerciseIds: ["theory.circle.neighbours"],
+    skillIds: ["theory.circle.neighbours"],
+    minAttempts: 20,
+    threshold: 0.95,
+    minDifficulty: 0.55,
+  },
+  {
+    id: "T-6",
+    order: 6,
+    title: "A key's chords",
+    summary:
+      "Read them off the wedge: IV, I and V outside, ii, vi and iii inside, vii° at the centre.",
+    detail: "Twenty prompts on keys up to four, 95% right within 5 seconds.",
+    href: CIRCLE("mode=chords&band=four"),
+    exerciseIds: ["theory.circle.chords"],
+    skillIds: ["theory.circle.chords"],
+    minAttempts: 20,
+    threshold: 0.95,
+    minDifficulty: 0.55,
+  },
+  {
+    id: "T-7",
+    order: 7,
+    title: "The circle from memory",
+    summary: "A blank wheel: put each key in its place.",
+    detail: "Twenty prompts on all fifteen keys, 95% right within 3 seconds.",
+    href: CIRCLE("mode=wheel&band=all"),
+    exerciseIds: ["theory.circle.wheel"],
+    skillIds: ["theory.circle.wheel"],
+    minAttempts: 20,
+    threshold: 0.95,
+    minDifficulty: 0.75,
+  },
+  {
+    id: "T-8",
+    order: 8,
+    title: "Round the circle on your instrument",
+    summary:
+      "Scales clockwise from C (C G D A E share a fingering on piano); ii-V-I counter-clockwise, the way the changes move; chord changes by fourths on guitar.",
+    kind: "reference",
+    href: "/music/library?tab=reference&section=circle",
+    links: [
+      {
+        label: "Scales",
+        href: "/music/play/scales?scale=major&tonic=G4&instrument=piano&bpm=72&motion=up&span=one-octave&hands=both",
+      },
+      {
+        label: "ii-V-I voicings",
+        href: "/music/play/voicings?variant=major&instrument=piano&key=0&mode=check",
+      },
+      {
+        label: "Chord changes",
+        href: "/music/play/chord-perfect?mode=changes&instrument=guitar&tuning=guitar.standard&shape=guitar.c-major&to=guitar.f-major&timed=1&bpm=60&clock=4",
+      },
+    ],
+  },
+];
+
 const L = (q: string) => `/music/listening?${q}`;
 const STUDIO_STEPS: RawStep[] = [
   {
@@ -482,6 +627,12 @@ export const LEARNING_PATHS: Record<PathId, LearningPath> = {
     ...ADDED_STEPS.piano!,
   ]),
   mpc: path("mpc", mpc.title, mpc.subtitle, [...(mpc.steps as RawStep[]), ...ADDED_STEPS.mpc!]),
+  theory: path(
+    "theory",
+    "Circle of Fifths Path",
+    "Key signatures and the circle, until they come from memory: right and fast, then round the circle on your instrument.",
+    THEORY_STEPS,
+  ),
   studio: path(
     "studio",
     "Studio Ears Path",

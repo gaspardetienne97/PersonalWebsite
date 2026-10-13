@@ -358,6 +358,7 @@ export const EAR_ADDED_STEPS: EarPathStepDef[] = [
         href: "/music/learn/ear/chord-functions?answer=choice&functions=I,IV,V,vi",
       },
       { label: "All seven", href: "/music/learn/ear/chord-functions?answer=choice&functions=" },
+      { label: "Read them off the circle", href: "/music/circle?mode=chords&band=two" },
       {
         label: "Minor: i, iv, V",
         href: "/music/learn/ear/chord-functions?answer=choice&functions=I,IV,V&keyMode=minor",

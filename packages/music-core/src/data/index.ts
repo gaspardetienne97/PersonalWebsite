@@ -707,7 +707,38 @@ APP_SKILLS.push(
     version: 1,
   })),
 );
+const CIRCLE_NAMES: [string, string][] = [
+  ["order", "Order of sharps and flats"],
+  ["count", "Keys and their signatures"],
+  ["signature", "Reading key signatures"],
+  ["neighbours", "Neighbouring and relative keys"],
+  ["chords", "The chords of a key"],
+  ["wheel", "The circle from memory"],
+];
+APP_SKILLS.push(
+  {
+    id: "theory.circle",
+    name: "Circle of fifths",
+    capability: "reading",
+    level: "beginner",
+    tags: ["theory", "keys"],
+    version: 1,
+  },
+  ...CIRCLE_NAMES.map(([t, name]) => ({
+    id: `theory.circle.${t}`,
+    name,
+    capability: "reading" as const,
+    level: "beginner" as const,
+    tags: ["theory", "keys"],
+    version: 1,
+  })),
+);
 const APP_RELATIONSHIPS: SkillRelationship[] = [
+  ...CIRCLE_NAMES.map(([t]) => ({
+    from: "theory.circle",
+    to: `theory.circle.${t}`,
+    kind: "component" as const,
+  })),
   ...STUDIO_NAMES.map(([t]) => ({
     from: "studio.ears",
     to: `studio.${t}`,

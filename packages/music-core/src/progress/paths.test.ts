@@ -13,15 +13,17 @@ const statuses = (id: keyof typeof LEARNING_PATHS, events: ScoringEvent[]) =>
   );
 
 describe("path content", () => {
-  it("normalises six paths", () => {
+  it("normalises seven paths", () => {
     expect(Object.keys(LEARNING_PATHS)).toEqual([
       "ear",
       "jazz",
       "guitar",
       "piano",
       "mpc",
+      "theory",
       "studio",
     ]);
+    expect(LEARNING_PATHS.theory.steps).toHaveLength(8);
     expect(LEARNING_PATHS.jazz.steps).toHaveLength(10);
     // The tables' steps plus the ear steps the research adds to each instrument path.
     expect(LEARNING_PATHS.guitar.steps).toHaveLength(10);

@@ -207,7 +207,10 @@ export function staffRows(score: Score, voiceIds?: string[] | null, grand = fals
   const treble: ScoreNote[] = [];
   const bass: ScoreNote[] = [];
   const loose: ScoreNote[] = [];
+  // A voice set to the bass clef keeps its staff even with no notes (a key signature on its own).
+  let bassClef = false;
   for (const v of selectedVoices(score, voiceIds)) {
+    if (v.clef === "bass" || v.hand === "left") bassClef = true;
     const notes = mergeTies(v.notes);
     const to = v.hand
       ? v.hand === "left"
@@ -227,8 +230,9 @@ export function staffRows(score: Score, voiceIds?: string[] | null, grand = fals
     else for (const n of loose) (n.midi >= 60 ? treble : bass).push(n);
   }
   const rows: StaffRow[] = [];
-  if (grand || treble.length || !bass.length) rows.push({ clef: "treble", notes: treble });
-  if (grand || bass.length) rows.push({ clef: "bass", notes: bass });
+  if (grand || treble.length || !(bass.length || bassClef))
+    rows.push({ clef: "treble", notes: treble });
+  if (grand || bass.length || bassClef) rows.push({ clef: "bass", notes: bass });
   return rows;
 }
 

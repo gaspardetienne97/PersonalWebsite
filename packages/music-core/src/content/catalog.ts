@@ -5,6 +5,7 @@
 import { INSTRUMENTS, type Capability, type Instrument, type Modality } from "../types";
 import { EAR_DRILLS } from "./ear";
 import { STUDIO_EXERCISES } from "./studio";
+import { CIRCLE_MODES } from "./circle";
 import { RHYTHM_PATTERNS, rhythmSkills } from "./rhythm";
 import { LICK_CATEGORIES, lickSkills } from "./piano";
 import { chordShapeSkills } from "./technique";
@@ -376,6 +377,18 @@ export const CATALOG: CatalogEntry[] = [
         aerophoneSkills("interval-landing"),
       ),
     ],
+  }),
+  entry({
+    id: "circle",
+    route: "/music/circle",
+    title: "Circle of fifths",
+    blurb: "Key signatures, the order of sharps and flats, neighbours and each key's chords, fast.",
+    instruments: [...INSTRUMENTS],
+    capability: "reading",
+    modality: "recognized",
+    modes: CIRCLE_MODES.map((m) =>
+      mode(m.id, m.title, `theory.circle.${m.id}`, ["theory.circle", m.skillId]),
+    ),
   }),
   entry({
     id: "listening",

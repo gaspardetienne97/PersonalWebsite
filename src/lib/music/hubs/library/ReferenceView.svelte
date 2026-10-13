@@ -16,11 +16,17 @@
   import { btn, btnStage } from "$lib/music/components/ui";
   import { audio, type SequenceHandle } from "$lib/music/runtime";
   import { chordVoicing } from "$lib/music/drills/jam/backing";
+  import CircleOfFifths from "$lib/music/components/CircleOfFifths.svelte";
+  import Staff from "$lib/music/notation/Staff.svelte";
+  import { accidentalCount, diatonicChords, keyAt, neighbour, opposite } from "@repo/music-core/theory/circle";
+  import { functionChord } from "@repo/music-core/content/ear";
+  import type { Score } from "@repo/music-core";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
 
   const SECTIONS = [
     { id: "explorer", label: "Chords and scales" },
+    { id: "circle", label: "Circle of fifths" },
     { id: "vocabulary", label: "Chord vocabulary" },
     { id: "chord-scales", label: "Chord-scale map" },
     { id: "voicings", label: "Voicing recipes" },
@@ -90,6 +96,33 @@
     void h.done.then(() => {
       if (handle === h) stop();
     });
+  }
+
+  // ---- Circle of fifths ---------------------------------------------------
+  let circleKey = $state(0);
+  const ck = $derived(keyAt(circleKey));
+  const ckChords = $derived(diatonicChords(circleKey));
+  const TOKENS = ["I", "ii", "iii", "IV", "V", "vi", "vii"];
+  // The signature on a staff, with the tonic chord, spelled in the key.
+  const ckScore = $derived<Score>({
+    id: `circle-${circleKey}`,
+    title: `${ck.major} major`,
+    bpm: 60,
+    keyFifths: circleKey,
+    meter: { beats: 4, beatUnit: 4 },
+    voices: [{ id: "v", name: "Tonic chord", notes: functionChord(ck.pc, "I").slice(1).map((midi) => ({ midi, startBeat: 0, durationBeats: 4 })) }],
+    lengthBeats: 4,
+  });
+  async function hearCircle(what: "scale" | "cadence" | number) {
+    stop();
+    await audio.unlock();
+    const tonic = 60 + ck.pc;
+    const notes =
+      what === "scale"
+        ? [0, 2, 4, 5, 7, 9, 11, 12].map((s, i) => ({ midi: tonic + s, time: i * 0.3, duration: 0.28 }))
+        : (what === "cadence" ? ["I", "IV", "V", "I"] : [TOKENS[what]]).flatMap((t, i) => functionChord(ck.pc, t).map((midi) => ({ midi, time: i * 0.8, duration: 0.75 })));
+    audio.playSequence(notes);
+    onstatus?.(what === "scale" ? `${ck.major} major scale.` : what === "cadence" ? `I, IV, V, I in ${ck.major} major.` : `${ckChords[what].name}, the ${ckChords[what].numeral} of ${ck.major} major.`);
   }
 
   // Chord-scale matches for the chord on show.
@@ -230,6 +263,44 @@
           </ul>
         </div>
       {/if}
+    </section>
+
+    <section id="circle" class="scroll-mt-24" aria-labelledby="h-circle">
+      <h2 id="h-circle" tabindex="-1" class="font-display text-2xl font-semibold">Circle of fifths</h2>
+      <p class="mt-1 max-w-prose text-ws-soft">
+        Each step clockwise is a fifth up and one more sharp; counter-clockwise is a fourth up and one more flat, the way ii-V-I chains move. A key's chords are the wedge around it: I, IV and V on the outside, ii, vi and iii inside, vii° at the centre.
+      </p>
+      <div class="mt-4 grid items-start gap-6 md:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        <CircleOfFifths selected={circleKey} onpick={(f) => (circleKey = f)} label="Circle of fifths: pick a key" />
+        <div class="min-w-0 space-y-4">
+          <div>
+            <p class="font-display text-2xl font-semibold">{ck.major} major <span class="text-ws-soft">· {ck.minor} minor</span></p>
+            <p class="text-sm text-ws-soft">
+              {accidentalCount(circleKey).replace(/^./, (c) => c.toUpperCase())}{ck.accidentals.length ? `: ${ck.accidentals.join(" ")}` : ""}.
+              {#if circleKey > 0}The last sharp, {ck.accidentals.at(-1)}, is a half step below {ck.major}.{:else if circleKey < -1}The second-to-last flat, {ck.accidentals.at(-2)}, names the key.{/if}
+            </p>
+          </div>
+          <div class="max-w-72 rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink"><Staff score={ckScore} maxHeight="9rem" /></div>
+          <div>
+            <p class="text-sm font-medium">Its chords</p>
+            <ul class="mt-1 flex flex-wrap gap-1.5">
+              {#each ckChords as c, i (c.numeral)}
+                <li><button type="button" class={btn} onclick={() => hearCircle(i)}><span class="text-xs text-ws-soft">{c.numeral}</span> {c.name}</button></li>
+              {/each}
+            </ul>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class={btn} onclick={() => hearCircle("scale")}><Play class="size-4" aria-hidden="true" />Scale</button>
+            <button type="button" class={btn} onclick={() => hearCircle("cadence")}><Play class="size-4" aria-hidden="true" />I, IV, V, I</button>
+          </div>
+          <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+            <dt class="text-ws-soft">One more sharp</dt><dd>{circleKey < 7 ? `${neighbour(circleKey, 1).major} major (its V)` : "None: 7 is the most"}</dd>
+            <dt class="text-ws-soft">One more flat</dt><dd>{circleKey > -7 ? `${neighbour(circleKey, -1).major} major (its IV)` : "None: 7 is the most"}</dd>
+            <dt class="text-ws-soft">Across the circle</dt><dd>{opposite(circleKey).major}: its dominant is the tritone substitute for {neighbour(circleKey, 1).major}7</dd>
+          </dl>
+          <p class="text-sm"><a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/circle">Practise the circle</a>: key signatures, the order of sharps and flats, and the chords of each key.</p>
+        </div>
+      </div>
     </section>
 
     <section id="vocabulary" class="scroll-mt-24" aria-labelledby="h-vocabulary">
