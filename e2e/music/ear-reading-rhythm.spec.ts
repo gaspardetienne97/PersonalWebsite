@@ -720,6 +720,24 @@ test.describe("ear training", () => {
     await expect(prompt(page)).toContainText("Right:");
   });
 
+  test("a tighter singing tolerance marks a note sung 40 cents sharp out of tune", async ({
+    page,
+  }) => {
+    await installSyntheticMic(page, 0);
+    await page.goto(
+      "/music/ear/intervals?answer=voice&intervals=P5,P8&direction=ascending&tune=25",
+    );
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await waitStep(page, "answer");
+    const [, second] = (await prompt(page).getAttribute("data-expected"))!.split(",").map(Number);
+    await page.evaluate((f) => (window as any).__mic.set(f, 0.4), hz(second + 0.4));
+    await waitStep(page, "feedback");
+    await expect(prompt(page)).toContainText("out of tune, 40 cents sharp");
+    await expect(page.getByLabel("Microphone")).toContainText(
+      "Last note: 40 cents sharp, within 25 counts.",
+    );
+  });
+
   test("cadences by pocket recall record self-rated answers", async ({ page }) => {
     await page.goto("/music/ear/cadences?answer=listen");
     await page.getByRole("button", { name: "Start", exact: true }).click();

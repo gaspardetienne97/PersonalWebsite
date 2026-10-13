@@ -134,6 +134,8 @@
     inversions: "root,first" as string,
     bassLevel: "roots-primary" as string,
     startCents: "auto" as string,
+    // Sung answers: how close to the note counts (the mic rounds to the nearest note, so 50 is any).
+    tune: "50" as string,
     scaleDirection: "auto" as string,
     keyMode: "major" as string,
     chordSize: "triads" as string,
@@ -348,6 +350,12 @@
   let step = $state<"playing" | "answer" | "feedback" | "revealed">("answer");
   let records = $state<AnswerRecord[]>([]);
   let played = $state<number[]>([]);
+  /** Cents off the nearest note for each note sung on this prompt. */
+  let sungCents = $state<number[]>([]);
+  const tune = $derived(Number(s.tune) || 50);
+  const centsText = (c: number) => (Math.abs(c) < 3 ? "in tune" : `${Math.abs(Math.round(c))} cents ${c > 0 ? "sharp" : "flat"}`);
+  /** A sung note outside the tolerance is wrong, whatever note it was. */
+  const tuned = (g: Graded, cents: number): Graded => (Math.abs(cents) > tune ? { ...g, score: 0, correct: false } : g);
   /** A progression's chords after the opening I, as tapped. */
   let slots = $state<string[]>([]);
   let hinted = $state(false);
@@ -720,6 +728,7 @@
     clearTimeout(advanceTimer);
     qi = i;
     played = [];
+    sungCents = [];
     slots = [];
     hinted = false;
     mistake = null;
@@ -761,13 +770,17 @@
     if (!p) return;
     if (answer === "voice") {
       if (e.source !== "audio") return;
+      const cents = e.cents ?? 0;
+      sungCents = [...sungCents, cents];
+      const off = Math.abs(cents) > tune ? `out of tune, ${centsText(cents)}` : null;
       if (p.drill === "interval") {
         // The second note (the higher one when played together), in any octave.
         const [a, b] = p.expectedMidi!;
         const [from, to] = p.direction === "harmonic" ? [Math.min(a, b), Math.max(a, b)] : [a, b];
-        const g = gradeScaleDegree(from, to - from, { midi: e.midi, cents: e.cents });
+        const right = gradeScaleDegree(from, to - from, { midi: e.midi, cents: e.cents });
+        const g = tuned(right, cents);
         const semis = pc(p.direction === "descending" ? from - e.midi : e.midi - from);
-        const heard = g.correct ? p.answer : (EAR_INTERVALS.find((i) => i.semitones === semis)?.token ?? "another note");
+        const heard = right.correct && off ? off : g.correct ? p.answer : (EAR_INTERVALS.find((i) => i.semitones === semis)?.token ?? "another note");
         void commit(g, heard, e.midi, [e]);
         return;
       }
@@ -775,13 +788,15 @@
         played = [...played, e.midi];
         if (played.length < (p.expectedMidi?.length ?? 3)) return;
         const tonic = tonicOf(p);
-        const heard = played.map((m) => SCALE_DEGREES[pc(m - tonic)].label).join(" ");
-        void commit(gradeMelodyDictation(p.expectedMidi!, played), heard, played, [e]);
+        // A note sung outside the tolerance counts as missed ("?").
+        const ok = sungCents.map((c) => Math.abs(c) <= tune);
+        const heard = played.map((m, i) => (ok[i] ? SCALE_DEGREES[pc(m - tonic)].label : "?")).join(" ");
+        void commit(gradeMelodyDictation(p.expectedMidi!, played.map((m, i) => (ok[i] ? m : NaN))), heard, played, [e]);
         return;
       }
       const tonic = tonicOf(p);
-      const g = gradeScaleDegree(tonic, (p.expectedMidi?.[0] ?? tonic) - tonic, { midi: e.midi, cents: e.cents });
-      void commit(g, SCALE_DEGREES[pc(e.midi - tonic)].label, e.midi, [e]);
+      const right = gradeScaleDegree(tonic, (p.expectedMidi?.[0] ?? tonic) - tonic, { midi: e.midi, cents: e.cents });
+      void commit(tuned(right, cents), right.correct && off ? off : SCALE_DEGREES[pc(e.midi - tonic)].label, e.midi, [e]);
       return;
     }
     if (!isPlayback) return;
@@ -1218,6 +1233,18 @@
           </span>
         </div>
       {/if}
+      {#if answer === "voice"}
+        <Choice
+          label="Singing tolerance"
+          options={[
+            { value: "50", label: "The right note" },
+            { value: "35", label: "Within 35 cents" },
+            { value: "25", label: "Within 25 cents" },
+          ]}
+          value={String(tune)}
+          onchange={(v) => cfg.set({ tune: v })}
+        />
+      {/if}
       {#if slug === "fine-pitch"}
         <Choice
           label="Start at"
@@ -1452,6 +1479,7 @@
                   {#if step === "answer" && played.length}<button type="button" class="{btnStage} ml-2" onclick={() => (played = [])}>Start over</button>{/if}
                 </p>
               {/if}
+              {#if sungCents.length}<p class="text-sm text-ws-stage-soft">Last note: {centsText(sungCents.at(-1)!)}{tune < 50 ? `, within ${tune} counts` : ""}.</p>{/if}
               {#if mic.advice}<p class="text-sm text-ws-stage-soft">{mic.advice.label}</p>{/if}
             </div>
           </div>
