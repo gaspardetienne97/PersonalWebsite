@@ -11,6 +11,7 @@ const ROUTES = [
     h1: "Two hands",
   },
   { path: "/music/comping?pattern=blue-third-c7&bpm=90", name: "comping", h1: "Comping" },
+  { path: "/music/pedal?progression=I-vi-IV-V&key=0", name: "pedal", h1: "Pedal" },
   { path: "/music/voicings?variant=major&key=0&keys=1", name: "voicings", h1: "ii-V-I voicings" },
   {
     path: "/music/voicings?variant=inversions&key=0",
@@ -211,6 +212,56 @@ test.describe("piano drills over fake MIDI", () => {
       timeout: 8000,
     });
     await expect(page.getByText("Grade 1 speed (ABRSM, 58 with two notes a click)")).toBeVisible();
+  });
+
+  test("pedal: four chords, each change lifted just after the chord and pressed again", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.goto("/music/pedal?progression=I-IV-V-I&key=0&rounds=1&bpm=60");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("I IV V I in C, 4 chords");
+    const chords = [
+      [48, 60, 64, 67], // C
+      [41, 60, 65, 69], // F: C F A
+      [43, 59, 62, 67], // G: B D G
+      [48, 60, 64, 67], // C
+    ];
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    // From "Go.": a chord every bar (4 s at 60 BPM), the pedal down after the first,
+    // then up 80 ms after each new chord and down again 120 ms later.
+    const going = page.evaluate(
+      ({ chords, port }) =>
+        new Promise<void>((resolve) => {
+          const midi = (window as any).__midi;
+          const status = document.querySelector('[role="status"]')!;
+          const run = () => {
+            chords.forEach((notes, k) => {
+              const at = k * 4000;
+              setTimeout(() => notes.forEach((n) => midi.send(port, [0x90, n, 90])), at);
+              setTimeout(() => notes.forEach((n) => midi.send(port, [0x80, n, 0])), at + 3500);
+              if (k === 0) setTimeout(() => midi.send(port, [0xb0, 64, 127]), at + 150);
+              else {
+                setTimeout(() => midi.send(port, [0xb0, 64, 0]), at + 80);
+                setTimeout(() => midi.send(port, [0xb0, 64, 127]), at + 200);
+              }
+            });
+            setTimeout(resolve, chords.length * 4000);
+          };
+          const obs = new MutationObserver(() => {
+            if (status.textContent?.trim() === "Go.") {
+              obs.disconnect();
+              run();
+            }
+          });
+          obs.observe(status, { childList: true, characterData: true, subtree: true });
+        }),
+      { chords, port: PORTS.keys.id },
+    );
+    await page.getByRole("button", { name: /^Start/ }).click();
+    await going;
+    await expect(page.getByRole("status")).toContainText("Every change clean", { timeout: 10_000 });
+    await expect(page.getByText("4 of 4", { exact: true }).first()).toBeVisible();
+    await shoot(page, "pedal-results");
   });
 
   test("voicings: one major ii-V-I", async ({ page }) => {

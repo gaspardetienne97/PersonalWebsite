@@ -68,6 +68,7 @@ const ROUTES = [
   "/music/rhythm",
   "/music/scales",
   "/music/two-hand",
+  "/music/pedal",
   "/music/comping",
   "/music/voicings",
   "/music/licks",

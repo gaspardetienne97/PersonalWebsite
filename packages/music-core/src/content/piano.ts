@@ -379,6 +379,48 @@ export interface CadenceChord extends ClosestChordBar {
   roman: string;
 }
 
+/** A progression to voice: [roman numeral, scale degree in semitones, chord intervals]. */
+type Plan = [string, number, number[]][];
+
+/**
+ * Chords through `plan` in a key, the root in the left hand (F2..E3) and three
+ * notes in the right moving the shortest way from a root-position tonic.
+ */
+function voiceLed(
+  keyPc: number,
+  plan: Plan,
+  prefix: string,
+  register: [number, number],
+): CadenceChord[] {
+  const tonic = register[0] + pc(keyPc - register[0]);
+  let rh: number[] = [];
+  return plan.map(([roman, degree, iv], bar) => {
+    const root = pc(keyPc + degree);
+    const pcs = iv.map((i) => pc(root + i));
+    const next =
+      bar === 0
+        ? { midi: iv.map((i) => tonic + i), movement: 0 }
+        : nearestVoicing(rh, pcs, register);
+    rh = next.midi;
+    const lowest = pc(rh[0] - root);
+    const quality = roman === "V7" ? "7" : iv[1] === 3 ? "m" : "";
+    return {
+      id: `${prefix}-${FLAT_NAMES[pc(keyPc)]}-${bar + 1}`,
+      bar: bar + 1,
+      roman,
+      symbol: `${FLAT_NAMES[root]}${quality}`,
+      rightHand: rh,
+      leftHand: 36 + pc(root - 5) + 5,
+      inversion: lowest === 0 ? 0 : lowest === 3 || lowest === 4 ? 1 : lowest === 7 ? 2 : 3,
+      expectedBassPc: pc(rh[0]),
+      movement: next.movement,
+    };
+  });
+}
+
+const MAJ = [0, 4, 7];
+const MIN = [0, 3, 7];
+
 /**
  * The keyboard cadence piano proficiency exams ask for in every key: I IV I V7 I
  * (i iv i V7 i in harmonic minor), the root in the left hand and three notes in
@@ -390,38 +432,66 @@ export function cadenceChords(
   minor = false,
   register: [number, number] = [55, 76],
 ): CadenceChord[] {
-  const third = minor ? 3 : 4;
-  const plan: [string, number, number[]][] = [
-    [minor ? "i" : "I", 0, [0, third, 7]],
-    [minor ? "iv" : "IV", 5, [0, third, 7]],
-    [minor ? "i" : "I", 0, [0, third, 7]],
-    ["V7", 7, [0, 4, 10]],
-    [minor ? "i" : "I", 0, [0, third, 7]],
-  ];
-  const tonic = register[0] + pc(keyPc - register[0]);
-  let rh: number[] = [];
-  return plan.map(([roman, degree, iv], bar) => {
-    const root = pc(keyPc + degree);
-    const pcs = iv.map((i) => pc(root + i));
-    const next =
-      bar === 0
-        ? { midi: [0, third, 7].map((i) => tonic + i), movement: 0 }
-        : nearestVoicing(rh, pcs, register);
-    rh = next.midi;
-    const lowest = pc(rh[0] - root);
-    return {
-      id: `cadence-${minor ? "minor" : "major"}-${FLAT_NAMES[pc(keyPc)]}-${bar + 1}`,
-      bar: bar + 1,
-      roman,
-      symbol: `${FLAT_NAMES[root]}${roman === "V7" ? "7" : minor ? "m" : ""}`,
-      rightHand: rh,
-      leftHand: 36 + pc(root - 5) + 5,
-      inversion: lowest === 0 ? 0 : lowest === 3 || lowest === 4 ? 1 : lowest === 7 ? 2 : 3,
-      expectedBassPc: pc(rh[0]),
-      movement: next.movement,
-    };
-  });
+  const t = minor ? MIN : MAJ;
+  const i = minor ? "i" : "I";
+  return voiceLed(
+    keyPc,
+    [
+      [i, 0, t],
+      [minor ? "iv" : "IV", 5, t],
+      [i, 0, t],
+      ["V7", 7, [0, 4, 10]],
+      [i, 0, t],
+    ],
+    `cadence-${minor ? "minor" : "major"}`,
+    register,
+  );
 }
+
+/** Progressions for the pedal drill: a chord a bar, voiced as the cadences are. */
+export const PEDAL_PROGRESSIONS: { id: string; label: string; plan: Plan }[] = [
+  {
+    id: "I-IV-V-I",
+    label: "I IV V I",
+    plan: [
+      ["I", 0, MAJ],
+      ["IV", 5, MAJ],
+      ["V", 7, MAJ],
+      ["I", 0, MAJ],
+    ],
+  },
+  {
+    id: "I-vi-IV-V",
+    label: "I vi IV V",
+    plan: [
+      ["I", 0, MAJ],
+      ["vi", 9, MIN],
+      ["IV", 5, MAJ],
+      ["V", 7, MAJ],
+    ],
+  },
+  {
+    id: "I-V-vi-IV",
+    label: "I V vi IV",
+    plan: [
+      ["I", 0, MAJ],
+      ["V", 7, MAJ],
+      ["vi", 9, MIN],
+      ["IV", 5, MAJ],
+    ],
+  },
+];
+export const pedalChords = (
+  keyPc: number,
+  progressionId: string,
+  register: [number, number] = [55, 76],
+) =>
+  voiceLed(
+    keyPc,
+    (PEDAL_PROGRESSIONS.find((p) => p.id === progressionId) ?? PEDAL_PROGRESSIONS[0]).plan,
+    `pedal-${progressionId}`,
+    register,
+  );
 
 // ---------------------------------------------------------------------------
 // Licks

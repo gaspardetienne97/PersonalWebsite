@@ -14,7 +14,7 @@
     { id: "harmony", title: "Chords and harmony by ear", test: ear("chord-qualities", "cadences", "chord-functions", "progressions", "scales", "inversions", "bass-lines") },
     { id: "review", title: "Review and studio ears", test: (e) => e.route === "/music/ear/mixed" || e.route === "/music/listening" },
     { id: "time", title: "Reading, rhythm and theory", test: (e) => /\/music\/(reading|rhythm|circle)/.test(e.route) },
-    { id: "piano", title: "Piano and jazz", test: (e) => /\/music\/(scales|two-hand|comping|voicings|licks|chord-scales)/.test(e.route) },
+    { id: "piano", title: "Piano and jazz", test: (e) => /\/music\/(scales|two-hand|pedal|comping|voicings|licks|chord-scales)/.test(e.route) },
     { id: "guitar", title: "Guitar and ukulele", test: (e) => /\/music\/(fretboard|chords|strum)/.test(e.route) },
     { id: "pads", title: "Pads and wind", test: (e) => /\/music\/(pads|aerophone)/.test(e.route) },
     { id: "free", title: "Play freely", test: (e) => /\/music\/(lab|jam|library)/.test(e.route) },

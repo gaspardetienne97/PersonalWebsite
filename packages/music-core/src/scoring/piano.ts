@@ -583,3 +583,96 @@ export function gradeChordScales(
     graded,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Pedal: syncopated (legato) pedalling, the sustain pedal lifted just after
+// each new chord sounds and pressed again straight away. No published timing
+// windows exist (docs/research/piano-drills.md), so these are tuning knobs.
+
+export const PEDAL = {
+  /** CC 64 at or above this is down (half-pedal counts as down). */
+  downAt: 0.5,
+  /** A lift this far before the chord still counts as with it. */
+  earlyToleranceMs: 30,
+  /** The lift must come within this after the chord's first note. */
+  liftWithinMs: 400,
+  /** And the pedal back down within this after the chord. */
+  repressWithinMs: 600,
+} as const;
+
+export type PedalVerdict = "clean" | "early" | "blurred" | "late" | "no-chord";
+
+export interface PedalResult extends Graded {
+  verdicts: PedalVerdict[];
+  /** Lift time after each chord (ms, negative = before it), null when there was none. */
+  liftMs: (number | null)[];
+  clean: number;
+  /** Pedal down and up, as changes of state. */
+  transitions: { at: number; down: boolean }[];
+}
+
+/** CC 64 values to the moments the pedal went down or came up. */
+export function pedalTransitions(values: readonly { at: number; value: number }[]) {
+  const out: { at: number; down: boolean }[] = [];
+  let down = false;
+  for (const v of [...values].sort((a, b) => a.at - b.at)) {
+    const now = v.value >= PEDAL.downAt;
+    if (now !== down) out.push({ at: v.at, down: now });
+    down = now;
+  }
+  return out;
+}
+
+/**
+ * One verdict per chord. The first chord only needs the pedal down by the
+ * window's end. Every later one: the lift between the chords that is nearest
+ * this chord must come no earlier than just before it (else "early", a gap in
+ * the sound) and within the window after it (none at all: "blurred"), and the
+ * pedal must go down again within the re-press window (else "late").
+ * score = clean / chords; not measured when no pedal arrived at all.
+ */
+export function gradePedal(input: {
+  chordOnsets: readonly (number | undefined)[];
+  pedal: readonly { at: number; value: number }[];
+}): PedalResult {
+  const t = pedalTransitions(input.pedal);
+  const liftMs: (number | null)[] = [];
+  const verdicts = input.chordOnsets.map((at, k): PedalVerdict => {
+    liftMs.push(null);
+    if (at === undefined) return "no-chord";
+    if (k === 0)
+      return t.some((x) => x.down && x.at <= at + PEDAL.repressWithinMs) ? "clean" : "late";
+    const prev = input.chordOnsets.slice(0, k).findLast((x) => x !== undefined) ?? -Infinity;
+    const lift = t.findLast(
+      (x) => !x.down && x.at > prev + PEDAL.earlyToleranceMs && x.at <= at + PEDAL.liftWithinMs,
+    );
+    if (!lift) return "blurred";
+    liftMs[k] = lift.at - at;
+    if (lift.at < at - PEDAL.earlyToleranceMs) return "early";
+    const back = t.find((x) => x.down && x.at > lift.at);
+    return back && back.at <= at + PEDAL.repressWithinMs ? "clean" : "late";
+  });
+  const clean = verdicts.filter((v) => v === "clean").length;
+  const score = verdicts.length ? clean / verdicts.length : 0;
+  return {
+    score,
+    correct: score >= 0.9,
+    metrics: input.chordOnsets.flatMap((at, k) =>
+      at !== undefined && liftMs[k] !== null
+        ? [
+            {
+              kind: "timing" as const,
+              expectedMs: at,
+              actualMs: at + liftMs[k]!,
+              errorMs: liftMs[k]!,
+            },
+          ]
+        : [],
+    ),
+    notMeasured: t.length ? [] : ["pedal"],
+    verdicts,
+    liftMs,
+    clean,
+    transitions: t,
+  };
+}

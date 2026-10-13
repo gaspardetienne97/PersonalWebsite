@@ -6,6 +6,8 @@ import {
   gradeChordScales,
   gradeComping,
   gradeLick,
+  gradePedal,
+  pedalTransitions,
   gradeTwoHand,
   gradeVoiceLeading,
   gradeVoicing,
@@ -299,5 +301,46 @@ describe("chord-scales", () => {
       { symbol: "G7", chord: 0, scale: 0, avoid: 0, score: 0 },
     ]);
     expect(r).toMatchObject({ graded: 1, score: 0.375, correct: false });
+  });
+});
+
+describe("pedal", () => {
+  // Chords a second apart; the pedal as CC 64 values (1 down, 0 up).
+  const cc = (pairs: [number, number][]) => pairs.map(([at, value]) => ({ at, value }));
+  it("judges each change: clean, early, blurred, late, no chord", () => {
+    const r = gradePedal({
+      chordOnsets: [0, 1000, 2000, 3000, 4000, undefined],
+      pedal: cc([
+        [100, 1], // down after the first chord
+        [1080, 0], // lifted 80 ms after chord 2
+        [1200, 1], // and back: clean
+        [1900, 0], // lifted 100 ms before chord 3: early (a gap)
+        [2150, 1],
+        // held straight through chord 4: blurred
+        [4100, 0], // lifted after chord 5 ...
+        [4900, 1], // ... but back 900 ms later: late
+      ]),
+    });
+    expect(r.verdicts).toEqual(["clean", "clean", "early", "blurred", "late", "no-chord"]);
+    expect(r.liftMs).toEqual([null, 80, -100, null, 100, null]);
+    expect(r.clean).toBe(2);
+    expect(r.score).toBeCloseTo(2 / 6);
+    expect(r.notMeasured).toEqual([]);
+  });
+
+  it("says when no pedal arrived, and reads half-pedal as down", () => {
+    expect(gradePedal({ chordOnsets: [0, 1000], pedal: [] }).notMeasured).toEqual(["pedal"]);
+    expect(
+      pedalTransitions(
+        cc([
+          [0, 0.6],
+          [10, 0.7],
+          [20, 0.2],
+        ]),
+      ),
+    ).toEqual([
+      { at: 0, down: true },
+      { at: 20, down: false },
+    ]);
   });
 });

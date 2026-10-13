@@ -204,6 +204,18 @@ export const CATALOG: CatalogEntry[] = [
     skillIds: ["technique.piano.two-hand-independence", "technique.piano.independence.shell-line"],
   }),
   entry({
+    id: "pedal",
+    route: "/music/pedal",
+    title: "Pedal",
+    blurb:
+      "Legato pedalling: lift the sustain pedal just after each chord and press it straight back.",
+    instruments: ["piano"],
+    capability: "technique",
+    modality: "played",
+    exerciseId: "technique.pedal",
+    skillIds: ["technique.pedal"],
+  }),
+  entry({
     id: "comping",
     route: "/music/comping",
     title: "Comping",

@@ -5,6 +5,7 @@ import { pc } from "../theory/notes";
 import {
   chordScaleTargets,
   cadenceChords,
+  pedalChords,
   closestChords,
   compingScore,
   cycleTranspose,
@@ -269,5 +270,18 @@ describe("keyboard cadences", () => {
         expect(b.leftHand).toBeLessThanOrEqual(52);
       }
     }
+  });
+});
+
+describe("pedal progressions", () => {
+  it("voices I vi IV V with the least movement, a minor vi", () => {
+    const bars = pedalChords(0, "I-vi-IV-V");
+    expect(bars.map((b) => b.symbol)).toEqual(["C", "Am", "F", "G"]);
+    expect(bars.map((b) => b.rightHand)).toEqual([
+      [60, 64, 67],
+      [60, 64, 69],
+      [60, 65, 69],
+      [59, 62, 67],
+    ]);
   });
 });

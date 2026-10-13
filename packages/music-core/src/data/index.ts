@@ -792,6 +792,14 @@ APP_SKILLS.push(
     version: 1,
   },
   {
+    id: "technique.pedal",
+    name: "Legato (syncopated) pedalling",
+    capability: "technique",
+    level: "early-intermediate",
+    tags: ["piano", "pedal"],
+    version: 1,
+  },
+  {
     id: "harmony.keyboard-cadences",
     name: "Cadences at the keyboard in every key",
     capability: "harmony",

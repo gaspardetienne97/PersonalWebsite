@@ -59,6 +59,7 @@ export const NEW_ROUTES = [
   "/music/fretboard",
   "/music/chords",
   "/music/two-hand",
+  "/music/pedal",
   "/music/comping",
   "/music/pads",
   "/music/aerophone",
@@ -90,6 +91,7 @@ const PATH_MAP: Record<string, string> = {
   "/music/circle": "/music/circle",
   "/music/scales": "/music/scales",
   "/music/voicings": "/music/voicings",
+  "/music/pedal": "/music/pedal",
 };
 
 export function rewriteHref(href: string): string {
@@ -485,6 +487,19 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
       skillIds: ["harmony.keyboard-cadences"],
       minAttempts: 60,
       threshold: 0.8,
+    },
+    {
+      id: "P-T4",
+      order: 6.7,
+      title: "Legato pedal",
+      summary:
+        "I vi IV V twice: lift the sustain pedal just after each chord and press it straight back.",
+      detail: "Three runs averaging 75% or higher (a sustain pedal plugged into the keyboard).",
+      href: "/music/pedal?progression=I-vi-IV-V&key=0&rounds=2&bpm=60",
+      exerciseIds: ["technique.pedal"],
+      skillIds: ["technique.pedal"],
+      minAttempts: 3,
+      threshold: 0.75,
     },
     {
       id: "P-T2",

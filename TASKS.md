@@ -42,6 +42,7 @@ Nothing. The build is complete; what remains is the owner's hardware pass (below
 - Circle of fifths (research in docs/research/circle-of-fifths.md, local): a vivid interactive wheel (majors, relative minors, vii°; a picked key's chords as a wedge) in the Library reference; a fluency drill at `/music/circle` (order of sharps and flats, keys and counts, signatures on the staff, neighbours, a key's chords, a blank wheel; timed, weak keys asked more); a Circle of Fifths Path with links from Piano, Guitar, Jazz and Ear; the circle as the key picker in the Library explorer, Create, Chord scales and Jazz licks
 - Finger drumming (research in docs/research/finger-drumming.md, local): technique (rolls, pyramid, accents and ghosts, more PAS stickings), 27 grooves in six levels with timing tiers, stars and a tempo ladder, Hold the tempo, seven new MPC path steps; the drill plays like Melodics (note highway, live Perfect/Early/Late, streak, count-in, glowing pads, Plays and Wait mode)
 - Aerophone: a new AE-20 drawing from Roland's front photo (mouthpiece to foot, Roland's 22 key names, the four thumb octave keys as crescents, keys coloured by hand and lit when pressed; the old trace had its sides mirrored), a Fingering mode with Roland's 12 lessons in order (flash cards, a slip named from the fingering difference), the chart up to C#6; research in docs/research/aerophone.md (local)
+- Piano (research in docs/research/piano-drills.md, local): arpeggios, broken and blocked chords through the inversions and ABRSM grade speeds (two or four notes a click) in Scales; cadences I IV I V7 I and minor in every key in Voicings; a sight-reading level climb (80% up a rung, three strikes); fix the trouble spot in Song Studio (loop the slip slower until three clean, then full tempo, then wider); a legato pedal drill on CC 64; four new piano path steps. Scales now takes the tempo from path links.
 - Latin, Caribbean and Brazilian grooves: reggaeton, tamborzão and funk 150, kompa (provisional), one drop, steppers, dancehall, soca, zouk, cumbia, bossa nova, samba, each with a backing style; a cowbell voice on A12; the groove list by level or by style. Merengue skipped (no reliable pad grid)
 - Transcribe: runs in a worker with progress and Cancel (it froze the page before); a polyphonic engine (Basic Pitch) beside the melody one; tempo found from the notes; two hands split at middle C; a sensitivity that only redoes the note picking; MIDI takes from Record become songs; drafts fixed in the piano roll; any saved song's notes edited at `/music/songs/[id]/edit`
 
@@ -87,6 +88,9 @@ The owner's checks, grouped by instrument. Everything below passed in the browse
 - Lick timing "on time within min(180 ms, beat/4)" at real tempos.
 - Song Studio performance counts (early, on time, late) look plausible; the wait-mode cursor follows.
 - Record: a real take records the right durations; Save to Song Studio and Open in piano roll look right.
+- Pedal: the timing windows (lift within 400 ms after the chord, down again within 600 ms, 30 ms early allowed) feel fair on your keyboard and pedal; half-pedal reads as down.
+- Blocked chords "together within 40 ms" and the ABRSM grade speeds with two and four notes a click feel right at real tempos.
+- Fix the trouble spot: three clean in a row, 85% tempo to start, 5% slower after a slip.
 
 **Guitar and ukulele (microphone)**
 - Tuner: low E2 and A2 read steadily with no octave flips, and the cents agree with a trusted tuner; the nearest-string highlight follows, including high-G ukulele.
