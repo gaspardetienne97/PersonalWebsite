@@ -1,7 +1,10 @@
 // The beat grid's pattern: 16 sixteenth-note steps per bar, one or more bars,
 // rows keyed by MIDI note so a row plays the kit pad with that note, or the
 // synth kit. Pure.
-import { DRUM_KITS, MPC_GROOVES } from "@repo/music-core/data/index";
+import { DRUM_KITS, type GrooveDef } from "@repo/music-core/data/index";
+import { PAD_LEVELS, PAD_REPERTOIRE } from "@repo/music-core/content/pads-repertoire";
+import { swungBeat } from "@repo/music-core/content/pads-grid";
+import { GROOVE_VOICES } from "@repo/music-core/content/winds-pads";
 import type { SequenceNote } from "$lib/music/runtime/audio.svelte";
 
 export const STEPS = 16;
@@ -105,66 +108,55 @@ export function beatNotes(p: BeatPattern, bpm: number, loopBars = barsOf(p)): Se
 }
 
 // ---------------------------------------------------------------------------
-// Presets: the verified MPC grooves, plus a few common feels.
+// Presets: the finger-drumming repertoire, the same grooves the Pads drills
+// teach, by level. Swing is written straight; a groove with hits between the
+// sixteenths (trap rolls, a pushed snare) can't sit on the grid and is left out.
 
-const VOICE_NOTE = Object.fromEntries(MPC_GROOVES.voices.map((v) => [v.id, v.midi]));
-function fromGroove(id: string, name: string): BeatPreset {
-  const g = MPC_GROOVES.catalog.find((x) => x.value === id)!;
+const VOICE_NOTE = Object.fromEntries(GROOVE_VOICES.map((v) => [v.id, v.midi]));
+
+/** A groove as grid steps per MIDI note, or null when a hit falls between sixteenths. */
+export function grooveSteps(g: GrooveDef, swing = 50): Record<string, number[]> | null {
   const steps: Record<string, number[]> = {};
   for (const t of g.targets) {
-    const step = Math.round(t.beat * 4);
-    if (step >= g.bars * STEPS) continue; // a closing downbeat belongs to the next bar
-    (steps[VOICE_NOTE[t.voice]] ??= []).push(step);
+    const bar = Math.floor(t.beat / 4 + 1e-6);
+    if (bar >= g.bars) continue; // a closing downbeat belongs to the next bar
+    const near = Math.round((t.beat - bar * 4) * 4);
+    const step = [near - 1, near, near + 1].find(
+      (k) => k >= 0 && k < STEPS && Math.abs(bar * 4 + swungBeat(k, swing) - t.beat) < 1e-6,
+    );
+    if (step === undefined) return null;
+    (steps[VOICE_NOTE[t.voice]] ??= []).push(bar * STEPS + step);
   }
-  for (const k of Object.keys(steps)) steps[k].sort((a, b) => a - b);
-  return { id, name, bars: g.bars, steps };
+  for (const k of Object.keys(steps)) steps[k] = [...new Set(steps[k])].sort((a, b) => a - b);
+  return steps;
 }
-const every = (n: number, from = 0, bars = 1) =>
-  Array.from({ length: (bars * STEPS) / n }, (_, i) => from + i * n).filter(
-    (x) => x < bars * STEPS,
-  );
 
 export interface BeatPreset {
   id: string;
   name: string;
+  /** The repertoire level it is taught at, for grouping. */
+  group: string;
   bars: number;
   steps: Record<string, number[]>;
 }
 
-export const PRESETS: BeatPreset[] = [
-  fromGroove("eighth-hats", "Backbeat with eighth hats"),
-  fromGroove("syncopated", "Syncopated kick"),
-  fromGroove("boom-bap-2bar", "Boom bap, 2 bars"),
-  fromGroove("turnaround-fill", "Turnaround with a fill, 4 bars"),
-  {
-    id: "four-floor",
-    name: "Four on the floor",
-    bars: 1,
-    steps: { 36: every(4), 38: [4, 12], 42: every(4, 2), 46: [14] },
-  },
-  {
-    id: "rock",
-    name: "Rock eighths",
-    bars: 1,
-    steps: { 36: [0, 6, 8], 38: [4, 12], 42: every(2) },
-  },
-  {
-    id: "funk",
-    name: "Funk sixteenths",
-    bars: 1,
-    steps: { 36: [0, 3, 10], 38: [4, 7, 12, 15], 42: every(1) },
-  },
-  {
-    id: "bossa",
-    name: "Bossa nova, 2 bars",
-    bars: 2,
-    steps: {
-      36: [0, 3, 4, 8, 11, 12, 16, 19, 20, 24, 27, 28],
-      39: [0, 6, 12, 20, 26],
-      42: every(2, 0, 2),
-    },
-  },
-];
+export const PRESETS: BeatPreset[] = [...PAD_REPERTOIRE]
+  .sort((a, b) => a.level - b.level)
+  .flatMap((r) => {
+    const steps = r.groove.bars <= MAX_BARS ? grooveSteps(r.groove, r.swing) : null;
+    const level = PAD_LEVELS.find((l) => l.level === r.level);
+    return steps
+      ? [
+          {
+            id: r.groove.value,
+            name: r.groove.label,
+            group: `Level ${r.level}: ${level?.title ?? ""}`,
+            bars: r.groove.bars,
+            steps,
+          },
+        ]
+      : [];
+  });
 
 export function fromPreset(preset: BeatPreset, bpm: number): BeatPattern {
   return {

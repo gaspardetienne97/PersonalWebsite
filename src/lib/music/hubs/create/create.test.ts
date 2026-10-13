@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { NoteEvent } from "@repo/music-core";
 import { buildKitFiles } from "@repo/music-core/io/mpc-kit";
+import { PAD_REPERTOIRE } from "@repo/music-core/content/pads-repertoire";
 import {
   autoGainDb,
   clipWarning,
@@ -24,6 +25,7 @@ import {
   beatNotes,
   isOn,
   PRESETS,
+  grooveSteps,
   removeBar,
   stepsOf,
   toggleStep,
@@ -147,6 +149,12 @@ describe("beat pattern", () => {
     for (const pr of PRESETS)
       for (const steps of Object.values(pr.steps))
         for (const s of steps) expect(s).toBeLessThan(pr.bars * 16);
+    // One list: every repertoire groove is a preset, except the three whose hits fall between sixteenths.
+    const left = PAD_REPERTOIRE.filter((r) => !PRESETS.some((p) => p.id === r.groove.value));
+    expect(left.map((r) => r.groove.value)).toEqual(["dilla", "trap-32", "trap-triplet"]);
+    expect(left.every((r) => grooveSteps(r.groove, r.swing) === null)).toBe(true);
+    // Swing is written straight: Think's sixteenths land on every step.
+    expect(PRESETS.find((x) => x.id === "think")!.steps[42]).toHaveLength(16);
     const boom = PRESETS.find((x) => x.id === "boom-bap-2bar")!;
     expect(boom.bars).toBe(2);
     expect(boom.steps[36]).toEqual([0, 10, 16, 24, 27]); // kick 1, 3&, then 1, 3, 3a

@@ -120,7 +120,7 @@
         {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play groove{/if}
       </button>
       <h2 class="min-w-0 flex-1 basis-40 truncate font-display text-xl font-semibold">{pattern.name}</h2>
-      <Picker class="w-auto min-w-44" tone="stage" action label="Start from a preset" placeholder="Presets" options={PRESETS.map((p) => ({ value: p.id, label: p.name }))} onchange={usePreset} />
+      <Picker class="w-auto min-w-44" tone="stage" action label="Start from a preset" placeholder="Presets" options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
       <div class="flex items-center gap-1 text-sm" role="group" aria-label="Beat length">
         <button type="button" class="{btnStage} w-11 px-0" aria-label="Remove the beat's last bar" disabled={barsOf(pattern) <= 1} onclick={shrink}><Minus class="size-4" aria-hidden="true" /></button>
         <span class="tnum w-14 text-center font-semibold">{bars(barsOf(pattern))}</span>

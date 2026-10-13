@@ -281,6 +281,20 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     fingers:
       "Right index and middle alternate the sixteenths on the hats; left index the snare and ghosts, left middle the kick.",
   },
+  {
+    groove: gridGroove("funk-sixteenths", "Funk sixteenths", {
+      kick: "X..x......x.....",
+      snare: "....X..g....X..g",
+      hats: "xxxxxxxxxxxxxxxx",
+    }),
+    level: 3,
+    style: "Funk",
+    topic: "ghosts",
+    bpm: { start: 80, target: 96 },
+    feel: "Sixteenth hats over a kick on 1, the a of 1 and the & of 3; ghosts on the a of 2 and the a of 4.",
+    fingers:
+      "Right index and middle alternate the sixteenths on the hats; left index the snare and ghosts, left middle the kick.",
+  },
   // Level 4
   {
     groove: gridGroove("independence", "Four kicks under one hat", {
