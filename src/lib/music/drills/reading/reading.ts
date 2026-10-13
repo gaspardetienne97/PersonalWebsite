@@ -117,5 +117,7 @@ export const READING_SETUP = {
   meter: "simple",
   measures: 2,
   input: "keys",
+  /** Sight-reading as a level climb (Piano Marvel's assessment). */
+  climb: false,
 };
 export type ReadingSetup = typeof READING_SETUP;

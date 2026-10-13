@@ -898,6 +898,32 @@ test.describe("note reading and sight-reading", () => {
     await expect(page.getByRole("button", { name: /Practice the notes you missed/ })).toBeVisible();
     await shots(page, "reading-sight-results");
   });
+
+  test("the level climb: a missed phrase is a strike, the next phrase stays on the rung", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.goto(
+      "/music/reading?activity=sight-reading&instrument=piano&climb=1&follower=performance&measures=4&level=level-1&key=G%20major&clefs=treble",
+    );
+    await expect(page.getByText("Setup:").locator("..")).toContainText(
+      "Level climb from Level 1, G major",
+    );
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.getByText("Rung").locator("..")).toContainText("3 of 15");
+    // Nothing played: 0%, strike one.
+    await expect(page.getByRole("status")).toContainText("strike 1 of 3", { timeout: 30_000 });
+    await expect(page.locator("article").first()).toContainText(
+      "rung 3 of 15, 1 of 3 strikes, 1 phrase",
+    );
+    await shots(page, "reading-climb-strike");
+    // A part phrase cannot count toward the climb.
+    await expect(page.getByRole("button", { name: /Practice the notes you missed/ })).toHaveCount(
+      0,
+    );
+    await page.getByRole("button", { name: "Next phrase" }).click();
+    await expect(page.getByText("Strikes").locator("..")).toContainText("1 of 3");
+  });
 });
 
 test.describe("rhythm", () => {

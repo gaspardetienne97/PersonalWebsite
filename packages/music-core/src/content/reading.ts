@@ -282,3 +282,51 @@ export function practiceMissedScore(score: Score, missed: ScoreGroup[]): Score {
     chords: undefined,
   };
 }
+
+// ---------------------------------------------------------------------------
+// The level climb: sight-reading as Piano Marvel's assessment runs it (SASR):
+// short phrases played in time, a pass at 80% moves up a rung, anything less
+// is a strike, three strikes end it. Rungs are each level through its keys.
+
+export const CLIMB = { pass: 0.8, strikes: 3, measures: 4 } as const;
+export const READING_RUNGS = READING_LEVELS.flatMap((l) =>
+  l.recommendedKeys.map((key) => ({
+    level: l.id,
+    key,
+    clefs: l.recommendedClefs,
+    label: `${l.label}, ${key}`,
+  })),
+);
+
+export interface ClimbState {
+  rung: number;
+  strikes: number;
+  /** The highest rung passed this climb, -1 for none. */
+  best: number;
+  phrases: number;
+  over: boolean;
+}
+export const startClimb = (rung = 0): ClimbState => ({
+  rung: Math.max(0, Math.min(READING_RUNGS.length - 1, rung)),
+  strikes: 0,
+  best: -1,
+  phrases: 0,
+  over: false,
+});
+
+/** After a phrase scored `score`: up a rung on a pass (the top rung stays), a strike otherwise. */
+export function climbAfter(s: ClimbState, score: number): ClimbState {
+  const phrases = s.phrases + 1;
+  if (score >= CLIMB.pass) {
+    const top = s.rung === READING_RUNGS.length - 1;
+    return {
+      ...s,
+      phrases,
+      best: Math.max(s.best, s.rung),
+      rung: top ? s.rung : s.rung + 1,
+      over: top,
+    };
+  }
+  const strikes = s.strikes + 1;
+  return { ...s, phrases, strikes, over: strikes >= CLIMB.strikes };
+}

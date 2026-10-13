@@ -7,6 +7,9 @@ import { pcOf } from "../theory/notes";
 import { rng } from "./random";
 import {
   barQuarters,
+  climbAfter,
+  READING_RUNGS,
+  startClimb,
   flashcardCorrect,
   flashcardPrompt,
   practiceMissedScore,
@@ -223,5 +226,28 @@ describe("sight-reading", () => {
     ]);
     expect(retry.lengthBeats).toBe(4);
     expectExactBars(retry);
+  });
+});
+
+describe("the level climb", () => {
+  it("climbs a rung on 80%, strikes below it, and ends on three strikes or the top", () => {
+    expect(READING_RUNGS.map((r) => r.label).slice(0, 4)).toEqual([
+      "Primer, C major",
+      "Level 1, C major",
+      "Level 1, G major",
+      "Level 1, F major",
+    ]);
+    let c = startClimb();
+    c = climbAfter(c, 0.9);
+    expect(c).toMatchObject({ rung: 1, best: 0, strikes: 0, over: false });
+    c = climbAfter(c, 0.79);
+    c = climbAfter(c, 0.5);
+    expect(c).toMatchObject({ rung: 1, strikes: 2, over: false });
+    c = climbAfter(c, 0.85);
+    expect(c).toMatchObject({ rung: 2, best: 1, strikes: 2 });
+    c = climbAfter(c, 0);
+    expect(c).toMatchObject({ over: true, best: 1, phrases: 5 });
+    const top = climbAfter(startClimb(READING_RUNGS.length - 1), 1);
+    expect(top).toMatchObject({ over: true, best: READING_RUNGS.length - 1 });
   });
 });

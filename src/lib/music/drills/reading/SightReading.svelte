@@ -6,7 +6,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent, Score, ScoreGroup, Strictness } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
-  import { barQuarters, practiceMissedScore, readingLevel, sightReadingScore, sightReadingSkills, type Clef } from "@repo/music-core/content/reading";
+  import { barQuarters, CLIMB, climbAfter, practiceMissedScore, READING_RUNGS, readingLevel, sightReadingScore, sightReadingSkills, startClimb, type ClimbState, type Clef } from "@repo/music-core/content/reading";
   import {
     followerInput,
     followerResult,
@@ -37,7 +37,7 @@
   import type { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { audio, mic, settings } from "$lib/music/runtime";
+  import { audio, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
   import { handLabel, soundingScore, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
 
@@ -54,7 +54,9 @@
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
   const clefs = $derived<Clef[]>(fretted ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
   const bpm = $derived(Math.min(200, Math.max(40, settings.value.bpm)));
-  const follower = $derived<"wait" | "performance">(s.follower === "performance" ? "performance" : "wait");
+  const climbing = $derived(!!s.climb);
+  const follower = $derived<"wait" | "performance">(climbing || s.follower === "performance" ? "performance" : "wait");
+  const measures = $derived(climbing ? CLIMB.measures : s.measures);
   const strictness = $derived<Strictness>((["relaxed", "normal", "strict"] as const).find((x) => x === s.strictness) ?? "normal");
   const transpose = $derived(fretted ? tuning!.notationTransposition : 0);
   const useMic = $derived(fretted && s.input === "mic");
@@ -69,7 +71,7 @@
       instrument,
       clefs: clefs.length ? clefs : undefined,
       key: key.name,
-      measures: s.measures,
+      measures,
       meter: s.meter === "compound" ? "compound" : "simple",
       bpm,
       // Fretted instruments read in their own written range.
@@ -143,8 +145,36 @@
 
   // ---------------------------------------------------------------------------
 
+  // The level climb: where it stands, and the best rung ever reached on this instrument.
+  let climb = $state<ClimbState | null>(null);
+  let climbBest = $state(-1);
+  let climbSeed = -1;
+  const BEST_KEY = $derived(`reading.climb-best.${instrument}`);
+  $effect(() => void getSetting<number>(BEST_KEY, -1).then((b) => (climbBest = b)));
+  const rungOf = (level: string, keyName: string) => Math.max(0, READING_RUNGS.findIndex((r) => r.level === level && r.key === keyName));
+  function goToRung(i: number) {
+    const r = READING_RUNGS[i];
+    cfg.set({ level: r.level, key: r.key, clefs: fretted ? "treble" : r.clefs.join(",") });
+  }
+  function nextPhrase() {
+    if (climb && !climb.over) goToRung(climb.rung);
+    newPhrase();
+  }
+  function climbAgain() {
+    climb = null;
+    newPhrase();
+  }
+
   async function start(ctx: RunContext) {
     stopPreview();
+    if (climbing && (!climb || climb.over)) climb = startClimb(rungOf(levelId, key.name));
+    // Every climb phrase is read fresh at the climb's rung, whichever button started it.
+    else if (climbing && climb && (seed === climbSeed || rungOf(levelId, key.name) !== climb.rung)) {
+      goToRung(climb.rung);
+      override = null;
+      seed = (seed * 7 + 13) % 2 ** 31;
+    }
+    climbSeed = climbing ? seed : -1;
     summary = null;
     result = null;
     flashes.clear();
@@ -160,7 +190,7 @@
     stopClockRef = ctx.stopClock;
     run = practice.beginRun({
       exerciseId: modeDef.exerciseId,
-      setupKey: `sight|${instrument}|${levelId}|${clefs.join(",")}|${key.name}|${s.measures}|${s.meter}|${follower}|${follower === "performance" ? `${bpm}|${strictness}` : "-"}`,
+      setupKey: `sight|${instrument}|${levelId}|${clefs.join(",")}|${key.name}|${measures}|${s.meter}|${follower}|${follower === "performance" ? `${bpm}|${strictness}` : "-"}`,
       skillIds: sightReadingSkills(score),
       capabilities: ["reading"],
       modality: "read",
@@ -168,7 +198,7 @@
       assistance: follower === "wait" ? "guided" : assistanceFor(mode),
       difficulty: readingLevel(levelId).recommendedDifficulty,
       instrument,
-      params: { instrument, level: levelId, key: key.name, follower, bpm, measures: s.measures, meter: s.meter },
+      params: { instrument, level: levelId, key: key.name, follower, bpm, measures, meter: s.meter, climb: climbing },
     });
     // Scored input starts at the downbeat (after any count-in).
     cap = capture(follower === "performance" ? ctx.downbeat - beatMs / 2 : performance.now(), (e) => e.kind === "noteon" && onNote(e));
@@ -275,6 +305,30 @@
             { label: "Timing", notMeasured: true },
           ],
     };
+    if (climbing && climb) {
+      const was = climb;
+      climb = climbAfter(was, r.score);
+      const here = READING_RUNGS[was.rung].label;
+      const passed = r.score >= CLIMB.pass;
+      if (climb.best > climbBest) {
+        climbBest = climb.best;
+        void putSetting(BEST_KEY, climbBest);
+      }
+      summary.headline = climb.over
+        ? climb.best < 0
+          ? `Three strikes on ${here}. Start the climb a level lower, or slow the tempo.`
+          : passed
+            ? `The top rung, ${here}, passed. Nothing higher to climb.`
+            : `Three strikes. Your level: ${READING_RUNGS[climb.best].label}, rung ${climb.best + 1} of ${READING_RUNGS.length}.`
+        : passed
+          ? `${pct(r.score)} on ${here}: up a rung to ${READING_RUNGS[climb.rung].label}.`
+          : `${pct(r.score)} on ${here}: strike ${climb.strikes} of ${CLIMB.strikes}. A new phrase at the same rung.`;
+      summary.rows = [
+        ...(summary.rows ?? []),
+        { label: "Climb", text: `rung ${climb.rung + 1} of ${READING_RUNGS.length}, ${climb.strikes} of ${CLIMB.strikes} strikes, ${climb.phrases} phrase${climb.phrases === 1 ? "" : "s"}` },
+        ...(climbBest >= 0 ? [{ label: "Best rung on this instrument", text: `${climbBest + 1}, ${READING_RUNGS[climbBest].label}` }] : []),
+      ];
+    }
     status = summary.headline;
   }
 
@@ -361,7 +415,7 @@
   const hand = $derived(instrument === "piano" ? handLabel(current ?? groups[0]) : null);
 
   const summaryLine = $derived(
-    `${readingLevel(levelId).label}, ${key.name}, ${clefs.join(" and ")} clef, ${s.measures} bar${s.measures > 1 ? "s" : ""} of ${s.meter === "compound" ? "6/8" : "4/4"}, ${follower === "wait" ? "waits for you" : `keeps time at ${bpm} BPM`}, ${instrument}${useMic ? " by microphone" : ""}`,
+    `${climbing ? "Level climb from " : ""}${readingLevel(levelId).label}, ${key.name}, ${clefs.join(" and ")} clef, ${measures} bar${measures > 1 ? "s" : ""} of ${s.meter === "compound" ? "6/8" : "4/4"}, ${follower === "wait" ? "waits for you" : `keeps time at ${bpm} BPM`}, ${instrument}${useMic ? " by microphone" : ""}`,
   );
 </script>
 
@@ -385,6 +439,10 @@
   {/snippet}
 
   {#snippet hud()}
+    {#if climbing && climb && !climb.over}
+      <Stat label="Rung" value={`${climb.rung + 1} of ${READING_RUNGS.length}`} />
+      <Stat label="Strikes" value={`${climb.strikes} of ${CLIMB.strikes}`} />
+    {/if}
     {#if phase === "running" && live}
       <Stat label="Group" value="{Math.min(live.index + 1, groups.length)} of {groups.length}" />
       {#if hand}<Stat label="Now" value={hand} />{/if}
@@ -437,9 +495,12 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
+          {#if climbing && climb}
+            {#if climb.over}<button type="button" class={btn} onclick={climbAgain}>Climb again</button>{:else}<button type="button" class={btn} onclick={nextPhrase}>Next phrase</button>{/if}
+          {/if}
           <button type="button" class={btn} onclick={() => retempo(10)}>Faster</button>
           <button type="button" class={btn} onclick={() => retempo(-10)}>Slower</button>
-          {#if missed.length}<button type="button" class={btn} onclick={practiceMissed}>Practice the notes you missed ({missed.length})</button>{/if}
+          {#if missed.length && !climbing}<button type="button" class={btn} onclick={practiceMissed}>Practice the notes you missed ({missed.length})</button>{/if}
           <button type="button" class={btn} onclick={newPhrase}>New phrase</button>
         {/snippet}
       </Results>

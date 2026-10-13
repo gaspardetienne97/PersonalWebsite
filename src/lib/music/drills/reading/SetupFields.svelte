@@ -1,7 +1,7 @@
 <script lang="ts">
   // The reading setup, shared by flashcards and sight-reading.
   import { noteName } from "@repo/music-core";
-  import { READING_LEVELS } from "@repo/music-core/content/reading";
+  import { CLIMB, READING_LEVELS, READING_RUNGS } from "@repo/music-core/content/reading";
   import { KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
   import Choice from "$lib/music/components/Choice.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
@@ -64,6 +64,21 @@
     />
   {:else}
     <Choice
+      label="Session"
+      options={[
+        { value: "one", label: "One phrase" },
+        { value: "climb", label: "Climb the levels" },
+      ]}
+      value={s.climb ? "climb" : "one"}
+      onchange={(v) => {
+        if (v === "one") return cfg.set({ climb: false });
+        // The climb plays in time, four bars a phrase, from the rung the level and key are on.
+        const at = Math.max(0, READING_RUNGS.findIndex((r) => r.level === s.level && r.key === s.key));
+        const r = READING_RUNGS[at];
+        cfg.set({ climb: true, follower: "performance", measures: CLIMB.measures, level: r.level, key: r.key, clefs: fretted ? "treble" : r.clefs.join(",") });
+      }}
+    />
+    <Choice
       label="Follower"
       options={[
         { value: "wait", label: "Wait for me" },
@@ -107,4 +122,9 @@
     />
   {/if}
 </div>
-{#if activity === "sight-reading"}<p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip (40 to 200 BPM).</p>{/if}
+{#if activity === "sight-reading"}
+  <p class="mt-3 text-sm text-ws-soft">
+    Tempo comes from the practice strip (40 to 200 BPM).{#if s.climb}
+      The climb keeps time, four bars a phrase: {Math.round(CLIMB.pass * 100)}% or better moves up a rung of {READING_RUNGS.length}, less is a strike, {CLIMB.strikes} strikes end it.{/if}
+  </p>
+{/if}
