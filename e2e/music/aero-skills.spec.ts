@@ -39,7 +39,7 @@ async function enableMidi(page: Page, url: string) {
 /** Start, then play the stage's line in time; `tongue` marks which notes start with a stop. */
 async function playLine(page: Page, tongue?: string) {
   const stage = page.getByTestId("aero-skills");
-  await page.getByRole("button", { name: /^Start/ }).click();
+  await page.getByRole("button", { name: /^(Start|Again)/ }).click();
   await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
   const line = (await stage.getAttribute("data-line"))!.split(",").map(Number);
   const stepMs = Number(await stage.getAttribute("data-step-ms"));
@@ -79,6 +79,23 @@ test.describe("aerophone skills", () => {
       timeout: 20_000,
     });
     await page.screenshot({ path: `${SHOTS}/scales-1280.png`, fullPage: true });
+  });
+
+  test("next run: two clean scales at the goal move on to two notes a click", async ({ page }) => {
+    test.setTimeout(90_000);
+    await enableMidi(page, "/music/aerophone?mode=scales&scale=major&key=0&perBeat=1&bpm=120");
+    await playLine(page);
+    await expect(page.getByTestId("next-run")).toContainText("1 more clean run to move on", {
+      timeout: 20_000,
+    });
+    await playLine(page);
+    const move = page.getByRole("button", { name: "Move on: Two notes a click at 69 BPM" });
+    await expect(move).toBeVisible({ timeout: 20_000 });
+    await page.screenshot({ path: `${SHOTS}/next-run-1280.png`, fullPage: true });
+    await move.click();
+    // The run starts at once: two notes a click at 69 BPM is a 435 ms step.
+    await expect(page.getByTestId("aero-skills")).toHaveAttribute("data-step-ms", "435");
+    await expect(page.getByRole("button", { name: /^Stop/ })).toBeVisible();
   });
 
   test("tonguing: slur two, tongue two, read from the breath", async ({ page }) => {

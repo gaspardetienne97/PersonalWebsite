@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import type { NextRun } from "../advance.svelte";
   export interface ResultRow {
     label: string;
     /** 0..1 drawn as a bar; null with `notMeasured` reads "Not measured". */
@@ -21,13 +22,17 @@
     next?: { label: string; href: string; reason?: string };
     routine?: { label: string; href: string };
     assistance?: string;
+    /** The next run by the shared rule (progress/advance). */
+    advance?: NextRun;
     /** False for runs that write nothing (listen-along, unrecorded strums). */
     recorded?: boolean;
   }
 </script>
 
 <script lang="ts">
-  import { onMount, type Snippet } from "svelte";
+  import { getContext, onMount, tick, type Snippet } from "svelte";
+  import { SHELL_KEY, type ShellApi } from "./DrillShell.svelte";
+  import { btnPrimary } from "./ui";
   import { gradeTone } from "@repo/music-core";
   import { audio } from "../runtime";
 
@@ -38,6 +43,15 @@
     if (celebrate) audio.celebrate?.(summary.best ? "best" : "clean");
   });
 
+  const shell = getContext<ShellApi | undefined>(SHELL_KEY);
+  const moves = $derived(!!summary.advance && summary.advance.kind !== "same" && summary.advance.kind !== "top");
+  const VERB: Record<string, string> = { faster: "Speed up to", slower: "Slow down to", harder: "Move on:", easier: "Step back:" };
+  async function goNext() {
+    summary.advance?.go();
+    await tick();
+    await shell?.start();
+  }
+
   const toneClass = { success: "bg-success", warn: "bg-warn", error: "bg-destructive" } as const;
 </script>
 
@@ -47,6 +61,11 @@
     <div class="min-w-0 flex-1 basis-72">
       <p class="font-display text-xl font-semibold leading-snug sm:text-2xl">{summary.headline}</p>
       {#if summary.assistance}<p class="mt-1 text-sm text-ws-soft">{summary.assistance}</p>{/if}
+      {#if summary.advance && !moves}
+        <p class="mt-3 text-sm" data-testid="next-run" data-kind={summary.advance.kind}>
+          <span class="text-ws-soft">Next run:</span> <span class="font-semibold">same again</span><span class="text-ws-soft">, {summary.advance.reason}.</span>
+        </p>
+      {/if}
       {#if summary.next}
         <p class="mt-3 text-sm">
           <span class="text-ws-soft">Next up:</span>
@@ -111,6 +130,13 @@
   {/if}
 
   <div class="relative mt-5 flex flex-wrap gap-2">
+    {#if moves && summary.advance}
+      {@const a = summary.advance}
+      <div class="flex basis-full flex-wrap items-center gap-x-3 gap-y-1" data-testid="next-run" data-kind={a.kind}>
+        <button type="button" class={btnPrimary} onclick={goNext}>{VERB[a.kind]} {a.label}</button>
+        <span class="text-sm text-ws-soft">{a.reason[0].toUpperCase()}{a.reason.slice(1)}.</span>
+      </div>
+    {/if}
     {#if actions}{@render actions()}{/if}
     {#if summary.routine}
       <a

@@ -10,6 +10,12 @@
     bpm: number;
     stopClock(): void;
   }
+
+  /** Lets Results start the next run (the "Next run" button) without a prop through every drill. */
+  export const SHELL_KEY = Symbol("drill-shell");
+  export interface ShellApi {
+    start(): Promise<void>;
+  }
 </script>
 
 <script lang="ts">
@@ -17,7 +23,7 @@
   // stage shows the target before Start; a run owns the screen; results lead
   // with the metric. One route-owned status line (role=status) per page.
   import type { Snippet } from "svelte";
-  import { onDestroy, tick } from "svelte";
+  import { onDestroy, setContext, tick } from "svelte";
   import ArrowLeft from "lucide-svelte/icons/arrow-left";
   import { backFor } from "$lib/music/came-from.svelte";
   import Play from "lucide-svelte/icons/play";
@@ -169,6 +175,8 @@
     heading?.focus();
     await onstart({ mode, downbeat: handle.downbeatPerf, beatMs, bpm: clock.bpm, stopClock });
   }
+
+  setContext<ShellApi>(SHELL_KEY, { start });
 
   function stop() {
     stopClock();

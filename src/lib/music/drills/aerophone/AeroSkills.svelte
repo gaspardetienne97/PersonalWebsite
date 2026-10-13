@@ -37,6 +37,7 @@
   import { benchFromUrl } from "$lib/music/drills/piano/transport.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { audio, settings } from "$lib/music/runtime";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
   import { aerophoneSkills, type AerophoneMode } from "@repo/music-core/content/winds-pads";
@@ -237,8 +238,25 @@
     }
     await run!.attempt({ promptId: `aero:${skill}`, correct, partialCredit: score, metrics: lineResult?.metrics ?? [], source: runSource(notes), instrument: runInstrument(notes, "aerophone") ?? null });
     const fin = await run!.finish({ score, correct, headline });
-    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows };
+    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
     status = headline;
+  }
+
+  /** Scales climb the tempo, then notes a click; the others move through their lists. */
+  const PER_BEAT_STEPS = [
+    { label: "One note a click", goal: 120 },
+    { label: "Two notes a click", goal: 92 },
+    { label: "Four notes a click", goal: 72 },
+  ];
+  function advanceAfter(score: number, correct: boolean) {
+    const run = { score, correct };
+    const list = <T extends { id: string; label: string }>(xs: readonly T[], at: string) => ({ steps: xs.map((x) => ({ label: x.label })), step: Math.max(0, xs.findIndex((x) => x.id === at)) });
+    if (skill === "scales")
+      return nextRun(`aero.scales.${s.scale}.${s.key}`, { bpm, tempo: { min: 40, goal: 120 }, steps: PER_BEAT_STEPS, step: [1, 2, 4].indexOf(perBeat) }, run, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i] })));
+    if (skill === "tonguing") return nextRun(`aero.tonguing.${s.key}`, { bpm, tempo: { min: 40, goal: 120 }, ...list(TONGUING, s.tongue) }, run, tempoAnd((i) => cfg.set({ tongue: TONGUING[i].id })));
+    if (skill === "register") return nextRun("aero.register", { bpm, tempo: { min: 40, goal: 100 }, ...list(REGISTER_PAIRS, s.pair) }, run, tempoAnd((i) => cfg.set({ pair: REGISTER_PAIRS[i].id })));
+    if (skill === "trills") return nextRun("aero.trills", list(TRILL_PAIRS, s.trill), run, ({ step }) => step !== undefined && cfg.set({ trill: TRILL_PAIRS[step].id }));
+    return nextRun(`aero.vibrato.${s.vibNote}`, list(VIBRATO_SETS, s.vib), run, ({ step }) => step !== undefined && cfg.set({ vib: VIBRATO_SETS[step].id }));
   }
 
   function stop() {
