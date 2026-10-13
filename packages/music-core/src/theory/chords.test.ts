@@ -12,7 +12,7 @@ import {
 } from "./chords";
 
 describe("chord qualities and templates", () => {
-  it("has the 9 ear qualities and 18 identification templates", () => {
+  it("has the 9 ear qualities and 19 identification templates", () => {
     expect(EAR_CHORD_QUALITIES.map((q) => `${q.token}:${q.intervals.join(" ")}`)).toEqual([
       "major:0 4 7",
       "minor:0 3 7",
@@ -43,6 +43,7 @@ describe("chord qualities and templates", () => {
       "9",
       "maj9",
       "m9",
+      "5",
     ]);
   });
 

@@ -26,6 +26,8 @@ export const CHORD_TEMPLATES = [
   { quality: "9", suffix: "9", intervals: [0, 2, 4, 7, 10] },
   { quality: "maj9", suffix: "maj9", intervals: [0, 2, 4, 7, 11] },
   { quality: "m9", suffix: "m9", intervals: [0, 2, 3, 7, 10] },
+  // Last, so a triad heard with its 3rd still names the triad on a tie.
+  { quality: "5", suffix: "5", intervals: [0, 7] },
 ] as const;
 
 export interface ChordCandidate {

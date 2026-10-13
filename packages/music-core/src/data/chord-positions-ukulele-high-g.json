@@ -456,5 +456,189 @@
         "end": 10
       }
     }
+  ],
+  "ukulele.d-minor": [
+    {
+      "id": "ukulele.d-minor",
+      "name": "D minor",
+      "instrument": "ukulele",
+      "tuningId": "ukulele.high-g",
+      "difficulty": 2,
+      "frets": [0, 1, 2, 2],
+      "fingers": [null, 1, 3, 2],
+      "mutedStrings": [],
+      "openStrings": [1],
+      "commonTransitions": ["ukulele.c-major", "ukulele.f-major", "ukulele.g7", "ukulele.a-minor"],
+      "shapeId": "ukulele.d-minor",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "ukulele.c7": [
+    {
+      "id": "ukulele.c7",
+      "name": "C7",
+      "instrument": "ukulele",
+      "tuningId": "ukulele.high-g",
+      "difficulty": 1,
+      "frets": [1, 0, 0, 0],
+      "fingers": [1, null, null, null],
+      "mutedStrings": [],
+      "openStrings": [2, 3, 4],
+      "commonTransitions": ["ukulele.f-major", "ukulele.c-major"],
+      "shapeId": "ukulele.c7",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "ukulele.g7": [
+    {
+      "id": "ukulele.g7",
+      "name": "G7",
+      "instrument": "ukulele",
+      "tuningId": "ukulele.high-g",
+      "difficulty": 2,
+      "frets": [2, 1, 2, 0],
+      "fingers": [3, 1, 2, null],
+      "mutedStrings": [],
+      "openStrings": [4],
+      "commonTransitions": ["ukulele.c-major", "ukulele.a-minor", "ukulele.d-minor"],
+      "shapeId": "ukulele.g7",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "ukulele.a-major": [
+    {
+      "id": "ukulele.a-major",
+      "name": "A major",
+      "instrument": "ukulele",
+      "tuningId": "ukulele.high-g",
+      "difficulty": 2,
+      "frets": [0, 0, 1, 2],
+      "fingers": [null, null, 1, 2],
+      "mutedStrings": [],
+      "openStrings": [1, 2],
+      "commonTransitions": ["ukulele.d-major", "ukulele.e7"],
+      "shapeId": "ukulele.a-major",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "ukulele.d-major": [
+    {
+      "id": "ukulele.d-major",
+      "name": "D major",
+      "instrument": "ukulele",
+      "tuningId": "ukulele.high-g",
+      "difficulty": 2,
+      "frets": [0, 2, 2, 2],
+      "fingers": [null, 3, 2, 1],
+      "mutedStrings": [],
+      "openStrings": [1],
+      "commonTransitions": ["ukulele.a-major", "ukulele.g-major", "ukulele.a7"],
+      "shapeId": "ukulele.d-major",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "ukulele.g-minor": [
+    {
+      "id": "ukulele.g-minor",
+      "name": "G minor",
+      "instrument": "ukulele",
+      "tuningId": "ukulele.high-g",
+      "difficulty": 3,
+      "frets": [1, 3, 2, 0],
+      "fingers": [1, 3, 2, null],
+      "mutedStrings": [],
+      "openStrings": [4],
+      "commonTransitions": ["ukulele.c7", "ukulele.f-major", "ukulele.d-minor"],
+      "shapeId": "ukulele.g-minor",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "ukulele.a7": [
+    {
+      "id": "ukulele.a7",
+      "name": "A7",
+      "instrument": "ukulele",
+      "tuningId": "ukulele.high-g",
+      "difficulty": 1,
+      "frets": [0, 0, 1, 0],
+      "fingers": [null, null, 1, null],
+      "mutedStrings": [],
+      "openStrings": [1, 2, 4],
+      "commonTransitions": ["ukulele.d-major", "ukulele.d-minor"],
+      "shapeId": "ukulele.a7",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "ukulele.e7": [
+    {
+      "id": "ukulele.e7",
+      "name": "E7",
+      "instrument": "ukulele",
+      "tuningId": "ukulele.high-g",
+      "difficulty": 3,
+      "frets": [2, 0, 2, 1],
+      "fingers": [3, null, 2, 1],
+      "mutedStrings": [],
+      "openStrings": [2],
+      "commonTransitions": ["ukulele.a-major", "ukulele.a-minor"],
+      "shapeId": "ukulele.e7",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
   ]
 }

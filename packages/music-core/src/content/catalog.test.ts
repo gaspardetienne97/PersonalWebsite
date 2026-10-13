@@ -221,6 +221,6 @@ describe("skill ids", () => {
     ];
     const unknown = [...new Set(emitted)].filter((id) => !SKILL_IDS.has(id));
     expect(unknown).toEqual([]);
-    expect(CHORD_SHAPES.length).toBe(16);
+    expect(CHORD_SHAPES.length).toBe(31);
   });
 });

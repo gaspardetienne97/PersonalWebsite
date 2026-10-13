@@ -18,12 +18,27 @@ describe("chord shapes", () => {
       "guitar.b7": "B7",
       "guitar.b-minor": "Bm",
       "guitar.g7": "G7",
+      "guitar.f-barre": "F",
+      "guitar.b-flat-barre": "Bb",
+      "guitar.f-sharp-minor-barre": "Gbm",
+      "guitar.e5": "E5",
+      "guitar.a5": "A5",
+      "guitar.g5": "G5",
+      "guitar.d5": "D5",
     });
     expect(names("ukulele")).toEqual({
       "ukulele.c-major": "C",
       "ukulele.f-major": "F",
       "ukulele.g-major": "G",
       "ukulele.a-minor": "Am",
+      "ukulele.d-minor": "Dm",
+      "ukulele.c7": "C7",
+      "ukulele.g7": "G7",
+      "ukulele.a-major": "A",
+      "ukulele.d-major": "D",
+      "ukulele.g-minor": "Gm",
+      "ukulele.a7": "A7",
+      "ukulele.e7": "E7",
     });
   });
 

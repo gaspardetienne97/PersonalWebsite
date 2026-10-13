@@ -188,6 +188,23 @@ test.describe("guitar drills", () => {
     await expect(page.getByRole("article").getByText(/counts toward mastery/)).toBeVisible();
   });
 
+  test("Ukulele G7, one of the London College syllabus chords, builds by taps", async ({
+    page,
+  }) => {
+    await page.goto("/music/chords?mode=build&shape=ukulele.g7&position=0&instrument=ukulele");
+    await startDrill(page, "Check");
+    // G7 on high-G: D4 (3 fret 2), F4 (2 fret 1), G4 (4 open), B4 (1 fret 2).
+    await tapChord(page, [
+      [3, 2],
+      [2, 1],
+      [4, 0],
+      [1, 2],
+    ]);
+    await expect(
+      page.getByRole("article").getByText(/All 4 target notes of G7 matched from memory/),
+    ).toBeVisible({ timeout: 5000 });
+  });
+
   test("Changes, untimed, one round trip, by taps", async ({ page }) => {
     await page.goto(
       "/music/chords?mode=changes&shape=guitar.c-major&to=guitar.g-major&timed=0&trips=1&clock=0&instrument=guitar",
