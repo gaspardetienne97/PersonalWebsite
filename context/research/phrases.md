@@ -37,7 +37,7 @@ No copyrighted songs or recordings.
 
 ## Decisions
 
-- **Single-note phrases only for now**, because the grader matches notes in order. Turnarounds, double-stop intros, boom-chuck, the island strum and the Hawaiian vamp need a chord grader.
+- **Chords:** a chord grader (scoring/phrases) treats notes that start together as one step, so the turnaround, double-stop intro, boom-chuck, boogie shuffle, island strum and Hawaiian vamp are in, with piano chord phrases (I-vi-IV-V, Pachelbel's Canon chords, a left-hand shuffle).
 - **MPC pads:** phrase material is short cells, not the long grooves. They were added to the groove repertoire under a "phrases" topic:
   - clave cells
   - tresillo

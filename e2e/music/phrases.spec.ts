@@ -162,4 +162,39 @@ test.describe("phrases", () => {
     await page.goto("/music/phrases?phrase=aerophone.morning-mood");
     await page.screenshot({ path: `${SHOTS}/aerophone-morning-mood-1280.png`, fullPage: true });
   });
+
+  test("chords count as one step: the blues turnaround's double stops on guitar", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await setup(page, "/music/phrases?phrase=guitar.blues-turnaround&bpm=80");
+    await pick(page, "Guitar");
+    const stage = page.getByTestId("phrase");
+    await expect(stage).toContainText("Blues turnaround in A");
+    await expect(page.getByTestId("line-tab").locator("svg")).toBeVisible();
+    await page.getByRole("button", { name: /^Start/ }).click();
+    await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
+    const notes = JSON.parse((await stage.getAttribute("data-notes"))!) as [number, number][];
+    const downbeat = Number(await stage.getAttribute("data-downbeat"));
+    const beatMs = Number(await stage.getAttribute("data-beat-ms"));
+    // Each double stop's two notes arrive together (higher first), as a MIDI guitar would send them.
+    await page.evaluate(
+      ({ notes, downbeat, beatMs, port }) => {
+        for (const [midi, beat] of [...notes].reverse()) {
+          const at = downbeat + beat * beatMs;
+          setTimeout(
+            () => {
+              (window as any).__midi.send(port, [0x90, midi, 90], at);
+              (window as any).__midi.send(port, [0x80, midi, 0], at + beatMs * 0.4);
+            },
+            at - 80 - performance.now(),
+          );
+        }
+      },
+      { notes, downbeat, beatMs, port: PORTS.keys.id },
+    );
+    await expect(page.getByRole("status")).toContainText("7 of 7 in order", { timeout: 20_000 });
+    await expect(page.locator("article").first()).toContainText("Notes and chords in order");
+    await page.screenshot({ path: `${SHOTS}/guitar-turnaround-1280.png`, fullPage: true });
+  });
 });

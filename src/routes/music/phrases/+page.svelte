@@ -6,7 +6,7 @@
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
   import { phraseBeats, phraseNotes, phrasesFor, type PhraseInstrument } from "@repo/music-core/content/phrases";
-  import { gradeLick, type LickResult } from "@repo/music-core/scoring/piano";
+  import { gradePhrase, matchEvents, phraseEvents, type PhraseResult } from "@repo/music-core/scoring/phrases";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import InstrumentStage, { fretTuning } from "$lib/music/components/InstrumentStage.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
@@ -37,12 +37,16 @@
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
   const fretted = $derived(own === "guitar" || own === "ukulele");
   const positions = $derived(fretted ? new Map(notes.flatMap((n) => (n.string !== undefined && n.fret !== undefined ? [[n.midi, { string: n.string, fret: n.fret }] as const] : []))) : undefined);
+  /** Notes that start together are one step: a chord or a double stop. */
+  const events = $derived(phraseEvents(notes));
+  const spell = (midis: number[]) => midis.map((m) => noteName(m, phrase?.keyFifths < 0 ? "flat" : "sharp", false)).join(" ");
   const timed = $derived<TimedNote[]>(notes.map((n) => ({ midi: n.midi, beat: n.startBeat, dur: n.durationBeats })));
 
   let phase = $state<Phase>("ready");
   let status = $state("");
   let summary = $state<RunSummary | null>(null);
-  let result = $state<LickResult | null>(null);
+  let result = $state<PhraseResult | null>(null);
+  /** Steps settled so far in the run: right, or with a wrong note in them. */
   let played = $state(0);
   const transport = new Transport();
   const flashes = new Flashes();
@@ -52,17 +56,17 @@
   let ctxRef: RunContext | null = null;
   let downbeat = $state(0);
 
-  const next = $derived(phase === "running" ? notes[played] : phase === "ready" || phase === "countin" ? notes[0] : undefined);
+  const next = $derived(phase === "running" ? events[played] : phase === "ready" || phase === "countin" ? events[0] : undefined);
   const lit = $derived(transport.playing ? sounding(timed, transport.beat) : []);
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (transport.playing) for (const n of lit) out[n.midi] = { demo: true };
-    else if (mode === "practice" && phase !== "results" && next) out[next.midi] = { target: true };
+    else if (mode === "practice" && phase !== "results" && next) for (const n of next.notes) out[n.midi] = { target: true };
     return out;
   });
   const states = $derived.by(() => {
     const out: Record<number, GroupState> = {};
-    if (phase === "running") notes.forEach((_, i) => (i < played ? (out[i] = "correct") : i === played && (out[i] = "active")));
+    if (phase === "running") events.forEach((_, i) => (i < played ? (out[i] = "correct") : i === played && (out[i] = "active")));
     return out;
   });
   const summaryLine = $derived(phrase ? `${phrase.title} (${phrase.style}) on the ${own}, ${bpm} BPM; it goes at about ${phrase.bpm}` : `No phrases for the ${own} yet`);
@@ -75,10 +79,12 @@
 
   function onNote(e: NoteEvent) {
     if (e.kind !== "noteon" || phase !== "running") return;
-    const want = notes[played];
-    played += 1;
-    if (want && mode === "practice") flashes.add(fretted && e.string !== undefined ? e.string * 100 + (e.fret ?? 0) : e.midi, pc(e.midi) === pc(want.midi) ? "correct" : "wrong");
-    if (played >= notes.length) {
+    const want = events[played];
+    if (want && mode === "practice") flashes.add(fretted && e.string !== undefined ? e.string * 100 + (e.fret ?? 0) : e.midi, want.notes.some((n) => pc(n.midi) === pc(e.midi)) ? "correct" : "wrong");
+    // A step is settled once it is complete or has a wrong note in it.
+    const m = matchEvents(events, cap?.notes ?? []);
+    played = m.filter((x, i) => x.right || x.played.some((q) => !events[i].notes.some((n) => pc(n.midi) === pc(q.midi)))).length;
+    if (played >= events.length) {
       clearTimeout(timer);
       timer = setTimeout(() => void finish(), 350);
     }
@@ -116,22 +122,30 @@
     transport.stop();
     cap?.stop();
     const got = cap?.notes ?? [];
-    const r = gradeLick({ expected: notes, notes: got, beatMs: ctxRef!.beatMs, startAt: ctxRef!.downbeat });
+    const r = gradePhrase({ events, notes: got, beatMs: ctxRef!.beatMs, startAt: ctxRef!.downbeat });
     result = r;
     phase = "results";
     await run!.attempt({ promptId: phrase.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: runSource(got), instrument: runInstrument(got, own) ?? null, target: notes.map((n) => n.midi), response: got.filter((n) => n.kind === "noteon").map((n) => n.midi) });
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} notes` });
+    const chords = events.some((e) => e.notes.length > 1);
+    const what = chords ? "steps" : "notes";
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} ${what}` });
     const rows: ResultRow[] = [
-      { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
+      { label: chords ? "Notes and chords in order" : "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
       { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.total : 0, text: `${r.onTime} of ${r.total}` },
     ];
     if (fretted) rows.push(r.positions === null ? { label: "String and fret (MIDI and microphone can't see them)", notMeasured: true } : { label: "String and fret", value: r.positions / r.total, text: `${r.positions} of ${r.total}` });
-    const wrong = r.firstWrong === null ? null : notes[r.firstWrong];
+    const wrong = r.firstWrong === null ? null : events[r.firstWrong];
     const any = got.some((n) => n.kind === "noteon");
     summary = {
-      headline: !r.matched ? "No notes matched. Hear it at half speed, then try again." : r.correct ? (mode === "check" ? `All ${r.total} notes, from memory.` : `${r.matched} of ${r.total} in order. Try it in Check with the notes hidden.`) : `${r.matched} of ${r.total} right. It slipped at note ${(r.firstWrong ?? 0) + 1}${wrong ? `, the ${noteName(wrong.midi, phrase.keyFifths < 0 ? "flat" : "sharp", false)}` : ""}.`,
+      headline: !r.matched
+        ? "Nothing matched. Hear it at half speed, then try again."
+        : r.correct
+          ? mode === "check"
+            ? `All ${r.total} ${what}, from memory.`
+            : `${r.matched} of ${r.total} in order. Try it in Check with the notes hidden.`
+          : `${r.matched} of ${r.total} right. It slipped at ${chords ? "step" : "note"} ${(r.firstWrong ?? 0) + 1}${wrong ? `, ${wrong.notes.length > 1 ? `the chord ${spell(wrong.notes.map((n) => n.midi))}` : `the ${spell([wrong.notes[0].midi])}`}` : ""}.`,
       metric: pct(r.score),
-      metricLabel: "notes in order",
+      metricLabel: `${what} in order`,
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
@@ -171,7 +185,7 @@
   bind:phase
   bind:mode
   bind:status
-  progress={notes.length ? Math.min(1, played / notes.length) : 0}
+  progress={events.length ? Math.min(1, played / events.length) : 0}
   clock={{ bpm, beatsPerBar: phrase?.beatsPerBar ?? 4 }}
   ondemo={() => demo(1)}
   demoPlaying={transport.playing}
@@ -192,8 +206,8 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Note" value="{Math.min(played + 1, notes.length)} of {notes.length}" />
-      {#if mode === "practice" && next}<Stat label="Next" value={noteName(next.midi)} />{/if}
+      <Stat label="Step" value="{Math.min(played + 1, events.length)} of {events.length}" />
+      {#if mode === "practice" && next}<Stat label="Next" value={spell(next.notes.map((n) => n.midi))} />{/if}
     {:else if result}
       <Stat label="In order" value="{result.matched}/{result.total}" tone={result.correct ? "success" : "warn"} />
       <Stat label="On time" value="{result.onTime}/{result.total}" />

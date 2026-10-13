@@ -550,3 +550,16 @@ Every rule below has unit tests in `packages/music-core`. Thresholds without a p
 
 - Re-strike: an onset with the same pitch sounding, more than 120 ms after that note began, then the same pitch stable for 2 frames, emits note-off and note-on.
 - The capture follows the louder channel (decay 0.995, switch at 4×).
+
+## Phrases with chords (scoring/phrases.ts)
+
+- **Steps:** notes that start on the same beat form one step (`phraseEvents`).
+- **Matching** (`matchEvents`): played note-ons are walked through the steps in order.
+  - A step takes notes while their pitch class is in it, up to its note count.
+  - Once every pitch class is in, a doubled note only joins if it is within `CHORD_SPREAD_MS` (150 ms) of the step's first note.
+  - A note outside the step is a wrong step of its own, so later steps stay aligned.
+- **Score** (`gradePhrase`): steps right divided by all steps; correct at 0.9.
+- **On time:** a step's first note is within min(180 ms, beat/4) of the count-in grid.
+- **String and fret:** checked only for on-screen taps.
+- **Known gap:** tapping a doubled string slowly can spill into the next step.
+

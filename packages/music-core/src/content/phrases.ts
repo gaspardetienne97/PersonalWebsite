@@ -7,8 +7,13 @@ import type { LickNote } from "./piano";
 
 export type PhraseInstrument = "piano" | "guitar" | "ukulele" | "aerophone";
 
-/** [midi or null for a rest, beats, string, fret]; string and fret on guitar and ukulele. */
-export type PhraseStep = [midi: number | null, beats: number, string?: number, fret?: number];
+/**
+ * A note: [midi or null for a rest, beats, string, fret]; string and fret on
+ * guitar and ukulele. A chord: [midis, beats, [string, fret] per note].
+ */
+export type PhraseStep =
+  | [midi: number | null, beats: number, string?: number, fret?: number]
+  | [chord: number[], beats: number, positions?: [string: number, fret: number][]];
 
 export interface Phrase {
   id: string;
@@ -34,15 +39,21 @@ export interface Phrase {
 export function phraseNotes(p: Phrase): LickNote[] {
   let beat = 0;
   const out: LickNote[] = [];
-  for (const [midi, beats, string, fret] of p.steps) {
-    if (midi !== null)
-      out.push({
-        index: out.length,
-        midi,
-        startBeat: beat,
-        durationBeats: beats,
-        ...(string !== undefined && fret !== undefined ? { string, fret } : {}),
-      });
+  const add = (midi: number, beats: number, string?: number, fret?: number) =>
+    out.push({
+      index: out.length,
+      midi,
+      startBeat: beat,
+      durationBeats: beats,
+      ...(string !== undefined && fret !== undefined ? { string, fret } : {}),
+    });
+  for (const step of p.steps) {
+    const [head, beats] = step;
+    if (Array.isArray(head)) {
+      const at = step[2] as [number, number][] | undefined;
+      head.forEach((midi, k) => add(midi, beats, at?.[k]?.[0], at?.[k]?.[1]));
+    } else if (head !== null)
+      add(head, beats, step[2] as number | undefined, step[3] as number | undefined);
     beat += beats;
   }
   return out;
@@ -59,6 +70,12 @@ const f = (midi: number, beats: number, string: number, fret: number): PhraseSte
   fret,
 ];
 const r = (beats: number): PhraseStep => [null, beats];
+/** A chord: midis with a [string, fret] each on guitar and ukulele. */
+const ch = (beats: number, notes: [midi: number, string?: number, fret?: number][]): PhraseStep => [
+  notes.map((n) => n[0]),
+  beats,
+  notes[0][1] === undefined ? undefined : notes.map((n) => [n[1]!, n[2]!] as [number, number]),
+];
 
 const PIANO: Omit<Phrase, "instrument">[] = [
   {
@@ -303,6 +320,70 @@ const PIANO: Omit<Phrase, "instrument">[] = [
     beatsPerBar: 4,
     keyFifths: 0,
     steps: [...each(0.5, 67, 70, 72, 75, 77, 78), [79, 1], [75, 0.5], [72, 1.5], r(2)],
+  },
+  // Chords (graded as events: every note of the chord, any order).
+  {
+    id: "piano.i-vi-iv-v",
+    title: "I, vi, IV, V",
+    style: "Pop and doo-wop chords",
+    why: "The four chords under a thousand songs, voiced close so the hand barely moves.",
+    source: "Harmony vocabulary",
+    level: 1,
+    bpm: 90,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [
+      ch(2, [[60], [64], [67]]),
+      ch(2, [[60], [64], [69]]),
+      ch(2, [[60], [65], [69]]),
+      ch(2, [[59], [62], [67]]),
+    ],
+  },
+  {
+    id: "piano.canon-chords",
+    title: "Canon chords",
+    style: "Baroque progression",
+    why: "Pachelbel's eight chords, the most borrowed progression there is, a chord a beat.",
+    source: "Pachelbel (about 1694), in C",
+    level: 2,
+    bpm: 80,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [
+      ch(1, [[60], [64], [67]]),
+      ch(1, [[59], [62], [67]]),
+      ch(1, [[60], [64], [69]]),
+      ch(1, [[59], [64], [67]]),
+      ch(1, [[60], [65], [69]]),
+      ch(1, [[60], [64], [67]]),
+      ch(1, [[60], [65], [69]]),
+      ch(1, [[59], [62], [67]]),
+    ],
+  },
+  {
+    id: "piano.blues-shuffle-lh",
+    title: "Left-hand blues shuffle",
+    style: "Blues",
+    why: "Fifths and sixths rocking under a twelve-bar: the left hand of every blues piano player, on C then F.",
+    source: "Blues vocabulary",
+    level: 2,
+    bpm: 110,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [
+      ...[0, 1].flatMap(() => [
+        ch(0.5, [[48], [55]]),
+        ch(0.5, [[48], [55]]),
+        ch(0.5, [[48], [57]]),
+        ch(0.5, [[48], [57]]),
+      ]),
+      ...[0, 1].flatMap(() => [
+        ch(0.5, [[53], [60]]),
+        ch(0.5, [[53], [60]]),
+        ch(0.5, [[53], [62]]),
+        ch(0.5, [[53], [62]]),
+      ]),
+    ],
   },
 ];
 
@@ -552,6 +633,142 @@ const GUITAR: Omit<Phrase, "instrument">[] = [
       f(64, 1, 1, 0),
       f(67, 1, 1, 3),
       f(71, 1, 1, 7),
+    ],
+  },
+  // Chords and double stops (graded as events: every string of it, any order).
+  {
+    id: "guitar.boom-chuck",
+    title: "Boom-chuck, G to C",
+    style: "Country and folk",
+    why: "Bass note, strum, bass note, strum: the first picking-and-strumming pattern.",
+    source: "Country vocabulary",
+    level: 1,
+    bpm: 100,
+    beatsPerBar: 4,
+    keyFifths: 1,
+    steps: [
+      f(43, 1, 6, 3),
+      ch(1, [
+        [50, 4, 0],
+        [55, 3, 0],
+        [59, 2, 0],
+        [67, 1, 3],
+      ]),
+      f(50, 1, 4, 0),
+      ch(1, [
+        [50, 4, 0],
+        [55, 3, 0],
+        [59, 2, 0],
+        [67, 1, 3],
+      ]),
+      f(48, 1, 5, 3),
+      ch(1, [
+        [52, 4, 2],
+        [55, 3, 0],
+        [60, 2, 1],
+        [64, 1, 0],
+      ]),
+      f(43, 1, 6, 3),
+      ch(1, [
+        [52, 4, 2],
+        [55, 3, 0],
+        [60, 2, 1],
+        [64, 1, 0],
+      ]),
+    ],
+  },
+  {
+    id: "guitar.boogie-shuffle",
+    title: "Boogie shuffle in E",
+    style: "Rock and roll and blues",
+    why: "The fifth rocking to the sixth on the low strings: the first rhythm riff.",
+    source: "Blues vocabulary",
+    level: 1,
+    bpm: 120,
+    beatsPerBar: 4,
+    keyFifths: 4,
+    steps: [0, 1, 2, 3].flatMap(() => [
+      ch(0.5, [
+        [40, 6, 0],
+        [47, 5, 2],
+      ]),
+      ch(0.5, [
+        [40, 6, 0],
+        [47, 5, 2],
+      ]),
+      ch(0.5, [
+        [40, 6, 0],
+        [49, 5, 4],
+      ]),
+      ch(0.5, [
+        [40, 6, 0],
+        [49, 5, 4],
+      ]),
+    ]),
+  },
+  {
+    id: "guitar.blues-turnaround",
+    title: "Blues turnaround in A",
+    style: "Blues",
+    why: "The descending double stops over a held A that end every twelve-bar.",
+    source: "Blues vocabulary",
+    level: 2,
+    bpm: 80,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [
+      ch(1, [
+        [67, 2, 8],
+        [69, 1, 5],
+      ]),
+      ch(1, [
+        [66, 2, 7],
+        [69, 1, 5],
+      ]),
+      ch(1, [
+        [65, 2, 6],
+        [69, 1, 5],
+      ]),
+      ch(1, [
+        [64, 2, 5],
+        [69, 1, 5],
+      ]),
+      f(57, 1, 4, 7),
+      f(56, 1, 4, 6),
+      f(52, 2, 5, 7),
+    ],
+  },
+  {
+    id: "guitar.double-stop-intro",
+    title: "Rock and roll double-stop intro",
+    style: "Rock and roll",
+    why: "Two strings at the fifth fret, hammered in eighths, then walking down: the shared rock and roll intro.",
+    source: "Rock and roll vocabulary",
+    level: 2,
+    bpm: 140,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [
+      ...[0, 1, 2, 3].map(() =>
+        ch(0.5, [
+          [64, 2, 5],
+          [69, 1, 5],
+        ]),
+      ),
+      ...[0, 1].map(() =>
+        ch(0.5, [
+          [62, 3, 7],
+          [67, 2, 8],
+        ]),
+      ),
+      ...[0, 1].map(() =>
+        ch(0.5, [
+          [60, 3, 5],
+          [64, 2, 5],
+        ]),
+      ),
+      f(57, 2, 4, 7),
+      r(2),
     ],
   },
 ];
@@ -812,6 +1029,96 @@ const UKULELE: Omit<Phrase, "instrument">[] = [
       f(60, 0.5, 3, 0),
       f(65, 0.5, 2, 1),
       f(69, 0.5, 1, 0),
+    ],
+  },
+  // Chords (graded as events: every pitch of the chord, any order).
+  {
+    id: "ukulele.island-strum",
+    title: "Island strum on C",
+    style: "Hawaiian pop",
+    why: "Down, down-up, up-down-up: the signature ukulele strum, on one chord.",
+    source: "Ukulele vocabulary",
+    level: 1,
+    bpm: 90,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [0, 1].flatMap(() =>
+      [1, 0.5, 1, 0.5, 0.5, 0.5].map((b) =>
+        ch(b, [
+          [67, 4, 0],
+          [60, 3, 0],
+          [64, 2, 0],
+          [72, 1, 3],
+        ]),
+      ),
+    ),
+  },
+  {
+    id: "ukulele.four-chords",
+    title: "C, Am, F, G",
+    style: "Pop chords",
+    why: "The four first ukulele chords, two beats each.",
+    source: "Harmony vocabulary",
+    level: 1,
+    bpm: 90,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [
+      ch(2, [
+        [67, 4, 0],
+        [60, 3, 0],
+        [64, 2, 0],
+        [72, 1, 3],
+      ]),
+      ch(2, [
+        [69, 4, 2],
+        [60, 3, 0],
+        [64, 2, 0],
+        [69, 1, 0],
+      ]),
+      ch(2, [
+        [69, 4, 2],
+        [60, 3, 0],
+        [65, 2, 1],
+        [69, 1, 0],
+      ]),
+      ch(2, [
+        [67, 4, 0],
+        [62, 3, 2],
+        [67, 2, 3],
+        [71, 1, 2],
+      ]),
+    ],
+  },
+  {
+    id: "ukulele.hawaiian-vamp",
+    title: "Hawaiian vamp",
+    style: "Hawaiian",
+    why: "D7, G7, C: the stock intro and ending of a Hawaiian tune.",
+    source: "Hawaiian vocabulary",
+    level: 2,
+    bpm: 100,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [
+      ch(2, [
+        [69, 4, 2],
+        [60, 3, 0],
+        [66, 2, 2],
+        [69, 1, 0],
+      ]),
+      ch(2, [
+        [67, 4, 0],
+        [62, 3, 2],
+        [65, 2, 1],
+        [71, 1, 2],
+      ]),
+      ch(4, [
+        [67, 4, 0],
+        [60, 3, 0],
+        [64, 2, 0],
+        [72, 1, 3],
+      ]),
     ],
   },
 ];
