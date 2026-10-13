@@ -1294,22 +1294,42 @@ export function melodyDictationPrompt(
  */
 export function errorDetectPrompt(
   rand: Rand,
-  opts: { difficulty: number; level: string },
-): EarPrompt & { written: string[] } {
+  opts: {
+    difficulty: number;
+    level: string;
+    /** A phrase from a saved song instead of a made-up melody. */
+    phrase?: Pick<RepertoirePhrase, "id" | "title" | "midi" | "degrees" | "tonicMidi">;
+  },
+): EarPrompt & { written: string[]; songTitle?: string } {
   const degrees = levelDegrees(opts.level);
-  const length = opts.difficulty < 0.4 ? 4 : opts.difficulty < 0.7 ? 6 : 8;
-  const written: string[] = [pick(rand, degrees.includes("1") ? ["1"] : degrees)];
-  while (written.length < length) {
-    const fresh = degrees.filter((d) => d !== written.at(-1));
-    written.push(pick(rand, fresh.length ? fresh : degrees));
+  let written: string[];
+  let tonic: number;
+  let midi: number[];
+  if (opts.phrase) {
+    written = [...opts.phrase.degrees];
+    tonic = opts.phrase.tonicMidi;
+    midi = [...opts.phrase.midi];
+  } else {
+    const length = opts.difficulty < 0.4 ? 4 : opts.difficulty < 0.7 ? 6 : 8;
+    written = [pick(rand, degrees.includes("1") ? ["1"] : degrees)];
+    while (written.length < length) {
+      const fresh = degrees.filter((d) => d !== written.at(-1));
+      written.push(pick(rand, fresh.length ? fresh : degrees));
+    }
+    tonic = earRoot(rand);
+    midi = written.map((d) => tonic + degreeOf(d).semitones);
   }
-  const tonic = earRoot(rand);
-  const midi = written.map((d) => tonic + degreeOf(d).semitones);
   const none = opts.difficulty >= 0.6 && rand() < 0.2;
-  const at = none ? -1 : randInt(rand, 1, length - 1); // never the first note, which follows the tonic
+  const at = none ? -1 : randInt(rand, 1, written.length - 1); // never the first note, which follows the tonic
   const heard = [...midi];
   if (at >= 0) {
-    if (opts.difficulty < 0.7 && degrees.length > 1) {
+    if (opts.difficulty < 0.7 && opts.phrase) {
+      // The neighbouring note of the major scale, up or down.
+      const s = pc(midi[at] - tonic);
+      const up = MAJOR.find((x) => x > s)! - s;
+      const down = [...MAJOR].reverse().find((x) => x < s);
+      heard[at] = midi[at] + (down !== undefined && rand() < 0.5 ? down - s : up);
+    } else if (opts.difficulty < 0.7 && degrees.length > 1) {
       // The level's neighbouring degree, up or down.
       const i = degrees.indexOf(written[at] as DegreeLabel);
       const j = i <= 0 ? 1 : i >= degrees.length - 1 ? i - 1 : rand() < 0.5 ? i - 1 : i + 1;
@@ -1317,7 +1337,9 @@ export function errorDetectPrompt(
     } else heard[at] = midi[at] + (rand() < 0.5 ? -1 : 1);
   }
   return {
-    id: `wrong-note-${written.join("_")}-${at}-${tonic}`,
+    id: opts.phrase
+      ? `wrong-note-song-${opts.phrase.id}-${at}`
+      : `wrong-note-${written.join("_")}-${at}-${tonic}`,
     drill: "error-detect",
     skillIds: ["ear.error-detection"],
     playback: phrasePlayback(tonic, heard),
@@ -1326,6 +1348,7 @@ export function errorDetectPrompt(
     difficulty: opts.difficulty,
     expectedMidi: midi,
     written,
+    songTitle: opts.phrase?.title,
   };
 }
 

@@ -33,6 +33,7 @@ import {
   finePitchPrompt,
   staircase,
   errorDetectPrompt,
+  type DegreeLabel,
 } from "./ear";
 import { pc } from "../theory/notes";
 import { rng } from "./random";
@@ -199,6 +200,29 @@ describe("spot the wrong note", () => {
     for (const p of hard.filter((x) => x.answer !== "none")) {
       const k = Number(p.answer) - 1;
       expect(Math.abs(p.playback[k + 1].midi[0] - p.expectedMidi![k])).toBe(1);
+    }
+  });
+});
+
+describe("spot the wrong note in a song", () => {
+  it("takes the phrase as written and steps one note to its scale neighbour", () => {
+    const phrase = {
+      id: "song-1:0",
+      title: "Test tune",
+      midi: [67, 69, 71, 72],
+      degrees: ["1", "2", "3", "4"] as DegreeLabel[],
+      tonicMidi: 67,
+    };
+    for (const r of seeds(20)) {
+      const p = errorDetectPrompt(r, { difficulty: 0.3, level: "anchor", phrase });
+      expect(p.written).toEqual(["1", "2", "3", "4"]);
+      expect(p.expectedMidi).toEqual(phrase.midi);
+      expect(p.songTitle).toBe("Test tune");
+      const k = Number(p.answer) - 1;
+      const heard = p.playback[k + 1].midi[0];
+      // G major: a neighbour is in the scale, so never a raised or lowered step off it.
+      expect([0, 2, 4, 5, 7, 9, 11]).toContain(pc(heard - 67));
+      expect(heard).not.toBe(phrase.midi[k]);
     }
   });
 });

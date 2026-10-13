@@ -90,6 +90,44 @@ async function seedRecent(page: Page, slug: string, set: string, right: number) 
     );
   }).toPass({ timeout: 10_000 });
 }
+/** A saved song ("Test tune", a C major melody of twelve notes), once the app has made its database. */
+async function seedSong(page: Page) {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open("woodshed");
+        open.onsuccess = () => {
+          const tx = open.result.transaction("songs", "readwrite");
+          const melody = [60, 62, 64, 65, 67, 65, 64, 62, 60, 64, 67, 72];
+          tx.objectStore("songs").put({
+            id: "song-test",
+            title: "Test tune",
+            createdAt: 1,
+            updatedAt: 1,
+            score: {
+              id: "song-test",
+              title: "Test tune",
+              bpm: 90,
+              meter: { beats: 4, beatUnit: 4 },
+              keyFifths: 0,
+              keyMode: "major",
+              voices: [
+                {
+                  id: "v",
+                  name: "Melody",
+                  notes: melody.map((midi, i) => ({ midi, startBeat: i, durationBeats: 1 })),
+                },
+              ],
+              lengthBeats: 12,
+            },
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+  );
+}
+
 async function waitStep(page: Page, step: string) {
   await expect(prompt(page)).toHaveAttribute("data-step", step, { timeout: 8000 });
 }
@@ -485,6 +523,22 @@ test.describe("ear training", () => {
     await expect(card).toContainText("Right:");
   });
 
+  test("spot the wrong note in phrases from a saved song", async ({ page }) => {
+    await page.goto("/music/ear/wrong-note?source=songs");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await page.waitForTimeout(500);
+    await seedSong(page);
+    await page.reload();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    await waitStep(page, "answer");
+    await expect(card).toContainText("from Test tune");
+    const k = (await card.getAttribute("data-answer"))!;
+    await page.getByRole("button", { name: new RegExp(`^Note ${k}, written`) }).click();
+    await waitStep(page, "feedback");
+    await expect(card).toContainText(`Right: Note ${k}.`);
+  });
+
   test("fine pitch: two right step down to fewer cents, a miss steps back", async ({ page }) => {
     await page.goto("/music/ear/fine-pitch?startCents=50");
     await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -758,40 +812,7 @@ test.describe("ear training", () => {
   }) => {
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(page, "/music/ear/repertoire-transfer?level=full-current");
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve, reject) => {
-          const open = indexedDB.open("woodshed");
-          open.onsuccess = () => {
-            const tx = open.result.transaction("songs", "readwrite");
-            const melody = [60, 62, 64, 65, 67, 65, 64, 62, 60, 64, 67, 72];
-            tx.objectStore("songs").put({
-              id: "song-test",
-              title: "Test tune",
-              createdAt: 1,
-              updatedAt: 1,
-              score: {
-                id: "song-test",
-                title: "Test tune",
-                bpm: 90,
-                meter: { beats: 4, beatUnit: 4 },
-                keyFifths: 0,
-                keyMode: "major",
-                voices: [
-                  {
-                    id: "v",
-                    name: "Melody",
-                    notes: melody.map((midi, i) => ({ midi, startBeat: i, durationBeats: 1 })),
-                  },
-                ],
-                lengthBeats: 12,
-              },
-            });
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error);
-          };
-        }),
-    );
+    await seedSong(page);
     await page.reload();
     await expect(page.getByText("Test tune").first()).toBeVisible();
     await page.getByRole("button", { name: "Start", exact: true }).click();

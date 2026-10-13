@@ -16,6 +16,7 @@
     BASS_LEVELS,
     CENT_STEPS,
     finePitchPrompt,
+    errorDetectPrompt,
     staircase,
     scalePlayback,
     type ScaleDirection,
@@ -90,7 +91,7 @@
   const slug = untrack(() => slugProp);
 
   type AnswerMode = "choice" | "play-back" | "voice" | "listen" | "listen-along";
-  type Prompt = EarPrompt & { direction?: "ascending" | "descending" | "harmonic" | "both"; phrase?: RankedPhrase; keyPc?: number; written?: string[] };
+  type Prompt = EarPrompt & { direction?: "ascending" | "descending" | "harmonic" | "both"; phrase?: RankedPhrase; keyPc?: number; written?: string[]; songTitle?: string };
 
   const def = EAR_DRILLS.find((d) => d.slug === slug)!;
   const entry = catalogEntry(`ear-${slug}`)!;
@@ -136,6 +137,8 @@
     startCents: "auto" as string,
     // Sung answers: how close to the note counts (the mic rounds to the nearest note, so 50 is any).
     tune: "50" as string,
+    // Spot the wrong note: made-up melodies, or phrases from saved songs.
+    source: "made-up" as string,
     scaleDirection: "auto" as string,
     keyMode: "major" as string,
     chordSize: "triads" as string,
@@ -443,7 +446,8 @@
 
   // ---------------------------------------------------------------------------
   // Repertoire: phrases from saved songs, ranked by the weakest degree.
-  let songCount = $state<number | null>(slug === "repertoire-transfer" ? null : 0);
+  const usesSongs = slug === "repertoire-transfer" || slug === "wrong-note";
+  let songCount = $state<number | null>(usesSongs ? null : 0);
   let ranked = $state.raw<RankedPhrase[]>([]);
   const plan = $derived(repertoirePlan(ranked.filter((p) => p.degrees.every((d) => levelDegrees(level).includes(d))).length ? ranked.filter((p) => p.degrees.every((d) => levelDegrees(level).includes(d))) : ranked));
   const planPhrases = $derived([...plan.warmup, ...plan.review, ...plan.new, ...plan.stretch]);
@@ -462,7 +466,8 @@
       },
     );
   }
-  if (slug === "repertoire-transfer") void loadSongs();
+  if (usesSongs) void loadSongs();
+  const fromSongs = $derived(slug === "wrong-note" && s.source === "songs");
 
   // ---------------------------------------------------------------------------
   // Prompt helpers
@@ -487,7 +492,7 @@
       const shift = Number(/(-?\d+)$/.exec(p.id)?.[1] ?? 0);
       return `Key of ${noteName(48 + shift, "flat", false)} major`;
     }
-    if (p.drill === "error-detect") return `Tonic ${noteName(tonicOf(p), "flat", false)}, then the melody as written`;
+    if (p.drill === "error-detect") return `Tonic ${noteName(tonicOf(p), "flat", false)}, then the melody as written${p.songTitle ? `, from ${p.songTitle}` : ""}`;
     if (p.drill === "scale-degree" || p.drill === "melody-dictation" || p.drill === "repertoire-transfer")
       return `Tonic ${noteName(tonicOf(p), "flat", false)}${p.phrase ? `, from ${p.phrase.title}` : ""}`;
     return p.drill === "interval" ? "Two notes" : p.drill === "interval-compare" ? "Two intervals, one after the other" : "One chord";
@@ -661,6 +666,13 @@
       return Array.from({ length: 10 }, () => centsPrompt(at));
     }
     if (slug === "repertoire-transfer") return planPhrases.slice(0, 10).map((ph) => ({ ...repertoirePrompt(ph), phrase: ph }));
+    if (fromSongs && ranked.length) {
+      // The usual session's difficulties, each on a phrase from a saved song (weakest degrees first, then shuffled).
+      const pool = [...ranked].sort(() => rand() - 0.5);
+      return buildSession({ kinds, level, mode: "balanced", mastery: practice.mastery, summaries: {}, now: Date.now(), rand }).map((p, i) =>
+        errorDetectPrompt(rand, { difficulty: p.difficulty, level, phrase: pool[i % pool.length] }),
+      );
+    }
     return buildSession({
       kinds,
       level,
@@ -1144,7 +1156,7 @@
       .join(", "),
   );
   const blocked = $derived(
-    slug === "repertoire-transfer" && songCount !== null && planPhrases.length === 0
+    (slug === "repertoire-transfer" && songCount !== null && planPhrases.length === 0) || (fromSongs && songCount !== null && ranked.length === 0)
       ? "Save a song with a score first."
       : answer === "voice" && mic.state === "denied"
         ? "Allow the microphone to sing answers."
@@ -1243,6 +1255,17 @@
           ]}
           value={String(tune)}
           onchange={(v) => cfg.set({ tune: v })}
+        />
+      {/if}
+      {#if slug === "wrong-note"}
+        <Choice
+          label="Melodies"
+          options={[
+            { value: "made-up", label: "Made up for the level" },
+            { value: "songs", label: "From my songs" },
+          ]}
+          value={s.source}
+          onchange={(v) => cfg.set({ source: v })}
         />
       {/if}
       {#if slug === "fine-pitch"}
