@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { Score } from "@repo/music-core";
 import {
   buildPass,
+  firstSlip,
   fitToRange,
+  spotAfter,
+  spotRange,
+  startSpot,
   tuningRange,
   planPasses,
   retryBpm,
@@ -195,5 +199,32 @@ describe("fitting a score to an instrument", () => {
     expect(r.score.voices[0].notes.every((n) => n.midi >= uke.low && n.midi <= uke.high)).toBe(
       true,
     );
+  });
+});
+
+describe("fix the trouble spot", () => {
+  it("loops the slip's bar and its run-up, slower, then full tempo, then wider, then done", () => {
+    const pass = buildPass(score, ["p-v1"], [{ label: "Whole score", startBeat: 0, endBeat: 16 }]);
+    // Groups 0..5 clean, group 6 (beat 6, bar 2) slipped.
+    expect(firstSlip(pass, (i) => i < 6)).toBe(6);
+    expect(firstSlip(pass, () => true)).toBeNull();
+    const bounds = { startBeat: 0, endBeat: 16 };
+    expect(spotRange(6, 4, bounds)).toEqual({ startBeat: 0, endBeat: 8 });
+    expect(spotRange(13, 4, bounds)).toEqual({ startBeat: 8, endBeat: 16 });
+    let s = startSpot({ startBeat: 4, endBeat: 12 }, bounds, 100);
+    expect(s.bpm).toBe(85);
+    // A slip eases the tempo and resets the streak.
+    s = spotAfter(s, false, 4);
+    expect(s).toMatchObject({ bpm: 81, streak: 0, stage: "slow" });
+    for (let i = 0; i < 3; i++) s = spotAfter(s, true, 4);
+    expect(s).toMatchObject({ bpm: 100, stage: "tempo", streak: 0 });
+    for (let i = 0; i < 3; i++) s = spotAfter(s, true, 4);
+    expect(s).toMatchObject({ range: { startBeat: 0, endBeat: 16 }, stage: "wide" });
+    for (let i = 0; i < 3; i++) s = spotAfter(s, true, 4);
+    expect(s).toMatchObject({ stage: "done", takes: 10 });
+    // Never below half the target.
+    let slow = startSpot(bounds, bounds, 60);
+    for (let i = 0; i < 30; i++) slow = spotAfter(slow, false, 4);
+    expect(slow.bpm).toBe(30);
   });
 });

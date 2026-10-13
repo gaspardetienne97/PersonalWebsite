@@ -204,3 +204,81 @@ export const tuningRange = (t: { openStrings: number[]; fretCount: number }) => 
   low: Math.min(...t.openStrings),
   high: Math.max(...t.openStrings) + t.fretCount,
 });
+
+// ---------------------------------------------------------------------------
+// Fix the trouble spot: what the best practisers do (Duke, Simmons and Cash
+// 2009): find the exact place it went wrong, loop it a little slower until it
+// is clean several times running, then bring the tempo back and widen it.
+
+export const SPOT = { slower: 0.85, clean: 3, backoff: 0.95, floor: 0.5, widenBars: 1 } as const;
+
+export interface SpotDrill {
+  /** The loop, in score beats. */
+  range: BeatRange;
+  /** Where the loop may grow to (the pass the slip came from). */
+  bounds: BeatRange;
+  bpm: number;
+  targetBpm: number;
+  streak: number;
+  stage: "slow" | "tempo" | "wide" | "done";
+  takes: number;
+}
+
+/** The score beat of the first group that was not clean, or null when every one was. */
+export function firstSlip(pass: Pass, clean: (i: number) => boolean): number | null {
+  const i = pass.groups.findIndex((_, k) => !clean(k));
+  return i === -1 ? null : pass.scoreBeat[i];
+}
+
+/** The segment of the pass holding `beat`, in score beats. */
+export const segmentAt = (pass: Pass, beat: number): BeatRange =>
+  pass.segments.find((s) => beat >= s.startBeat - 1e-6 && beat < s.endBeat - 1e-6) ??
+  pass.segments[0];
+
+/** The loop for a slip at `beat`: its bar and the bar before (the run-up), inside `bounds`. */
+export function spotRange(beat: number, barLen: number, bounds: BeatRange): BeatRange {
+  const bar = Math.floor(beat / barLen + 1e-6) * barLen;
+  return {
+    startBeat: Math.max(bounds.startBeat, bar - barLen),
+    endBeat: Math.min(bounds.endBeat, bar + barLen),
+  };
+}
+
+export const startSpot = (range: BeatRange, bounds: BeatRange, targetBpm: number): SpotDrill => ({
+  range,
+  bounds,
+  targetBpm,
+  bpm: Math.max(20, Math.round(targetBpm * SPOT.slower)),
+  streak: 0,
+  stage: "slow",
+  takes: 0,
+});
+
+/**
+ * After a take: a slip resets the streak and eases the tempo 5% (no lower than
+ * half the target); three clean in a row move on: back to full tempo, then a
+ * bar wider on each side, then done.
+ */
+export function spotAfter(s: SpotDrill, clean: boolean, barLen: number): SpotDrill {
+  const takes = s.takes + 1;
+  if (!clean)
+    return {
+      ...s,
+      takes,
+      streak: 0,
+      bpm: Math.max(Math.round(s.targetBpm * SPOT.floor), Math.round(s.bpm * SPOT.backoff)),
+    };
+  const streak = s.streak + 1;
+  if (streak < SPOT.clean) return { ...s, takes, streak };
+  if (s.bpm < s.targetBpm) return { ...s, takes, streak: 0, bpm: s.targetBpm, stage: "tempo" };
+  if (s.stage !== "wide") {
+    const w = SPOT.widenBars * barLen;
+    const range = {
+      startBeat: Math.max(s.bounds.startBeat, s.range.startBeat - w),
+      endBeat: Math.min(s.bounds.endBeat, s.range.endBeat + w),
+    };
+    const grew = range.startBeat < s.range.startBeat || range.endBeat > s.range.endBeat;
+    if (grew) return { ...s, takes, streak: 0, range, stage: "wide" };
+  }
+  return { ...s, takes, streak, stage: "done" };
+}

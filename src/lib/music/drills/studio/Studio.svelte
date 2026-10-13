@@ -42,7 +42,7 @@
   import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "$lib/music/notation/groups";
   import { barsText, durationText, scoreFacts, songSections, type Song } from "$lib/music/hubs/library/songs";
   import StudioScore, { type View } from "./StudioScore.svelte";
-  import { buildPass, fitToRange, planPasses, retryBpm, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Pass, type RangeMode, type SectionOrder } from "./studio";
+  import { buildPass, firstSlip, fitToRange, planPasses, retryBpm, segmentAt, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
   import Picker from "$lib/music/components/Picker.svelte";
 
   let { song }: { song: Song } = $props();
@@ -350,6 +350,7 @@
     active = null;
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
+    if (spot) endSpot("Stopped the loop. Your range and tempo are back.");
   }
 
   // ---- Results --------------------------------------------------------
@@ -458,6 +459,7 @@
         ],
       };
     }
+    if (spot) summary.headline = spotTake(all);
     status = summary.headline;
     fstate = all.at(-1)?.state ?? null;
     active = all.at(-1) ? passes[all.at(-1)!.pass] : null;
@@ -488,6 +490,67 @@
     return [...acc].filter(([, a]) => a.total).map(([label, a]) => ({ label, value: a.hit / a.total, text: `${a.hit} of ${a.total}` }));
   }
 
+  // ---- Fix the trouble spot ---------------------------------------------
+  /** Whether group `i` of a take was clean: hit in time, or found with no wrong note. */
+  const cleanAt = (d: Done) => (i: number) =>
+    isPerf(d.result) ? d.result.groupVerdicts[i] === "hit" : (d.state as WaitState).wrongCounts[i] === 0 && i < (d.state as WaitState).index;
+  let spot = $state<SpotDrill | null>(null);
+  let spotRestore: { range: string; rangeStart: number; rangeEnd: number; bpm: number; takes: number } | null = null;
+  const barsOf = (r: BeatRange) => {
+    const a = Math.floor(r.startBeat / barLen + 1e-6) + 1;
+    const b = Math.ceil(r.endBeat / barLen - 1e-6);
+    return a === b ? `bar ${a}` : `bars ${a} to ${b}`;
+  };
+  /** Where the last take first went wrong, as a loop to fix. */
+  const trouble = $derived.by(() => {
+    if (phase !== "results" || spot) return null;
+    const d = done.at(-1);
+    if (!d) return null;
+    const pass = passes[d.pass];
+    const beat = firstSlip(pass, cleanAt(d));
+    if (beat === null) return null;
+    const bounds = segmentAt(pass, beat);
+    return { range: spotRange(beat, barLen, bounds), bounds };
+  });
+  function applySpot(sp: SpotDrill) {
+    setup.set({ range: "custom", rangeStart: sp.range.startBeat, rangeEnd: sp.range.endBeat, bpm: sp.bpm, takes: 1 });
+  }
+  function fixSpot() {
+    if (!trouble) return;
+    spotRestore = { range: s.range, rangeStart: s.rangeStart, rangeEnd: s.rangeEnd, bpm: s.bpm, takes: s.takes };
+    spot = startSpot(trouble.range, trouble.bounds, bpm);
+    applySpot(spot);
+    void start();
+  }
+  function endSpot(message?: string) {
+    clearTimers();
+    spot = null;
+    if (spotRestore) setup.set(spotRestore);
+    spotRestore = null;
+    if (message) status = message;
+  }
+  /** Score the loop's take, say where it stands, and go round again unless it is fixed. */
+  function spotTake(all: Done[]): string {
+    const d = all.at(-1)!;
+    const pass = passes[d.pass];
+    const clean = pass.groups.every((_, i) => cleanAt(d)(i));
+    const was = spot!;
+    const next = spotAfter(was, clean, barLen);
+    spot = next;
+    let line: string;
+    if (next.stage === "done") {
+      line = `Fixed: ${barsOf(next.range)} clean ${SPOT.clean} times running at ${next.targetBpm} BPM.`;
+      endSpot();
+      return line;
+    }
+    if (!clean) line = `Not clean yet: ${barsOf(next.range)} again at ${next.bpm} BPM.`;
+    else if (next.stage !== was.stage) line = next.stage === "tempo" ? `${SPOT.clean} clean in a row. Back to full tempo, ${next.bpm} BPM.` : `Clean at full tempo. The loop widens to ${barsOf(next.range)}.`;
+    else line = `Clean ${next.streak} of ${SPOT.clean} at ${next.bpm} BPM.`;
+    applySpot(next);
+    timers.push(setTimeout(() => void start(), 1500));
+    return `${line} The next try starts in a moment.`;
+  }
+
   function retry(delta: number) {
     setup.set({ bpm: retryBpm(bpm, delta) });
     void start();
@@ -513,6 +576,7 @@
   }
 
   onDestroy(() => {
+    if (spot && spotRestore) setup.set(spotRestore);
     clearTimers();
     cap?.stop();
     metro?.stop();
@@ -717,6 +781,11 @@
       <h2 id="studio-results" tabindex="-1" class="sr-only">Results</h2>
       <Results {summary}>
         {#snippet actions()}
+          {#if spot}
+            <button type="button" class={btn} onclick={() => endSpot("Ended the loop. Your range and tempo are back.")}>End the loop</button>
+          {:else if trouble}
+            <button type="button" class={btn} onclick={fixSpot}>Fix the trouble spot, {barsOf(trouble.range)}</button>
+          {/if}
           <button type="button" class={btn} onclick={() => retry(8)}>Again at {retryBpm(bpm, 8)} BPM</button>
           <button type="button" class={btn} onclick={() => retry(0)}>Same tempo</button>
           <button type="button" class={btn} onclick={() => retry(-8)}>Slower, {retryBpm(bpm, -8)} BPM</button>
@@ -761,6 +830,7 @@
         {#if ls && fstate}<Stat label="Group" value="{Math.min(ls.index + 1, fstate.groups.length)} of {fstate.groups.length}" />{/if}
         {#if ls?.expected.length}<Stat label="Next" value={ls.expected.map((m) => noteName(m)).join(" ")} />{/if}
         <Stat label="Tempo" value="{bpm} BPM" />
+        {#if spot}<Stat label="Loop, {barsOf(spot.range)}" value={`${spot.streak} of ${SPOT.clean} clean`} />{/if}
       </div>
     {:else if preview?.playing}
       <p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored. The cursor follows the sound.</p>

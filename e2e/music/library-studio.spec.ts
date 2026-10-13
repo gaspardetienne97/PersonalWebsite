@@ -191,6 +191,38 @@ test.describe("library and song studio", () => {
     await shoot(page, "studio-performance-results");
   });
 
+  test("song studio: fix the trouble spot loops the bar until it is clean", async ({ page }) => {
+    test.setTimeout(60_000);
+    await importOde(page);
+    await openOde(page, "?mode=wait&range=whole");
+    await page.getByRole("button", { name: "Start in wait mode" }).click();
+    await expect(page.getByRole("status")).toContainText("Wait mode");
+    // A wrong note on the very first group: the slip is in bar 1.
+    await play(page, [
+      { at: 0, notes: [70] },
+      ...ODE_NOTES.map((m, i) => ({ at: 250 + i * 160, notes: [m], hold: 80 })),
+    ]);
+    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
+    await page.getByRole("button", { name: "Fix the trouble spot, bar 1" }).click();
+    // The loop: bar 1 alone (E E F G), three clean in a row, then the tempo comes back.
+    for (let k = 1; k <= 3; k++) {
+      await expect(page.getByRole("status")).toContainText("Wait mode", { timeout: 6000 });
+      await expect(page.getByText(/^Loop, bar 1$/)).toBeVisible();
+      await play(
+        page,
+        ODE_NOTES.slice(0, 4).map((m, i) => ({ at: 100 + i * 160, notes: [m], hold: 80 })),
+      );
+      await expect(page.getByRole("status")).toContainText(
+        k < 3 ? `Clean ${k} of 3` : "3 clean in a row. Back to full tempo",
+        { timeout: 6000 },
+      );
+    }
+    await shoot(page, "studio-fix-spot");
+    await page.getByRole("button", { name: "End the loop" }).click();
+    await expect(page.getByRole("status")).toContainText("Ended the loop");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("whole score");
+  });
+
   test("song studio: views survive reload and Back", async ({ page }) => {
     await importOde(page);
     await openOde(page);
