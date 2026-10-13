@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   AEROPHONE_CHART,
+  AEROPHONE_KEYS,
+  FINGERING_LESSONS,
+  fingeringSlip,
+  lessonSequence,
   articulationTargets,
   fingeringFor,
   GROOVE_PAD_RANGE,
@@ -12,9 +16,9 @@ import {
 } from "./winds-pads";
 
 describe("aerophone", () => {
-  it("charts Bb3..F#5 with the verified set flagged", () => {
+  it("charts Bb3..C#6 with the verified set flagged", () => {
     expect(AEROPHONE_CHART.map((c) => c.midi)).toEqual(
-      Array.from({ length: 21 }, (_, i) => 58 + i),
+      Array.from({ length: 28 }, (_, i) => 58 + i),
     );
     expect(AEROPHONE_CHART.filter((c) => c.verified).map((c) => c.name)).toEqual([
       "C4",
@@ -38,6 +42,30 @@ describe("aerophone", () => {
     expect(fingeringFor(74)?.octave).toBe(true);
     expect(fingeringFor(73)?.keys).toEqual([]);
     expect(fingeringFor(57)).toBeUndefined();
+    // Middle C is key 2 alone; G5 is G4 with the octave key.
+    expect(fingeringFor(72)?.keys).toEqual(["k2"]);
+    expect(fingeringFor(79)).toMatchObject({ keys: ["k1", "k2", "k3"], octave: true });
+    expect(fingeringFor(86)).toBeUndefined();
+  });
+
+  it("every chart key is a Roland key, and the lessons stay in the chart", () => {
+    const ids = new Set(AEROPHONE_KEYS.map((k) => k.id));
+    for (const c of AEROPHONE_CHART) for (const k of c.keys) expect(ids.has(k), k).toBe(true);
+    expect(FINGERING_LESSONS).toHaveLength(12);
+    for (const l of FINGERING_LESSONS)
+      for (const n of l.notes) expect(fingeringFor(n), `${l.id} ${n}`).toBeDefined();
+    expect(lessonSequence([67, 69, 71])).toEqual([67, 69, 71, 69, 67]);
+  });
+
+  it("names the slip between a played note and the target", () => {
+    // G#4 for G4: the G# key went down.
+    expect(fingeringSlip(67, 68)?.text).toBe("Lift G# (left pinky)");
+    // A4 for G4: key 3 is missing.
+    expect(fingeringSlip(67, 69)?.text).toBe("Press 3 (left ring)");
+    // D5 for D4: the octave key.
+    expect(fingeringSlip(62, 74)?.text).toBe("Lift +1 octave (left thumb)");
+    expect(fingeringSlip(67, 67)).toBeNull();
+    expect(fingeringSlip(67, 40)).toBeNull();
   });
 
   it("lands intervals inside the chart only", () => {

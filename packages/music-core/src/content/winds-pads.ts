@@ -11,7 +11,8 @@ import {
 import { clamp, octaveOf, pc, SHARP_NAMES } from "../theory/notes";
 
 // ---------------------------------------------------------------------------
-// Aerophone (sax fingering mode, written pitch, Bb3 58 .. F#5 78)
+// Aerophone (sax fingering mode, written pitch, Bb3 58 .. C#6 85; G5 and up
+// are the low fingerings with the +1 octave key, as on a sax)
 
 /** Verified on the owner's instrument; everything else in the chart is best-effort. */
 export const AEROPHONE_VERIFIED_MIDI = [60, 62, 64, 65, 67, 69, 71, 73, 74, 75];
@@ -43,9 +44,66 @@ export function fingeringFor(midi: number): AerophoneChartEntry | undefined {
   );
 }
 export const AEROPHONE_CHART = AEROPHONE_FINGERINGS.chart.map((c) => fingeringFor(c.midi)!);
+export const AEROPHONE_RANGE = AEROPHONE_FINGERINGS.range;
+export const aerophoneKeyLabel = (id: string) =>
+  id === "octave"
+    ? (AEROPHONE_KEYS.find((k) => k.id === "oct+1")?.label ?? "octave key")
+    : (AEROPHONE_KEYS.find((k) => k.id === id)?.label ?? id);
 
-export type AerophoneMode = "long-tone" | "swell" | "articulation" | "interval-landing";
+/**
+ * What probably went wrong when `played` came out instead of `target`: the
+ * keys of the played note's chart fingering that the target does not use
+ * (down by mistake) and the target's keys that are missing. A guess: the
+ * Aerophone sends the note, not the keys, and alternate fingerings exist.
+ */
+export function fingeringSlip(target: number, played: number) {
+  const t = fingeringFor(target);
+  const p = fingeringFor(played);
+  if (!t || !p || target === played) return null;
+  const down = p.keys.filter((k) => !t.keys.includes(k));
+  const up = t.keys.filter((k) => !p.keys.includes(k));
+  if (p.octave && !t.octave) down.push("octave");
+  if (t.octave && !p.octave) up.push("octave");
+  const say = (ids: string[]) => ids.map(aerophoneKeyLabel).join(", ");
+  const text = [down.length ? `lift ${say(down)}` : "", up.length ? `press ${say(up)}` : ""]
+    .filter(Boolean)
+    .join(" and ");
+  return { down, up, text: text.charAt(0).toUpperCase() + text.slice(1) };
+}
+
+/**
+ * Fingering lessons in the order Roland's Aerophone Lesson app teaches them
+ * (three notes, five, C major, the octave key, then the keys by flats and
+ * sharps), each played up and back down. Written pitch.
+ */
+export const FINGERING_LESSONS = [
+  { id: "g-a-b", label: "G A B", notes: [67, 69, 71] },
+  { id: "e-f-g", label: "E F G", notes: [64, 65, 67] },
+  { id: "c-d-e", label: "C D E", notes: [60, 62, 64] },
+  { id: "c-to-g", label: "C to G", notes: [60, 62, 64, 65, 67] },
+  { id: "g-to-c", label: "G to C", notes: [67, 69, 71, 72] },
+  { id: "c-major", label: "C major", notes: [60, 62, 64, 65, 67, 69, 71, 72] },
+  { id: "octave", label: "The octave key: G to D", notes: [67, 69, 71, 72, 74] },
+  { id: "f-major", label: "F major", notes: [65, 67, 69, 70, 72, 74, 76, 77] },
+  { id: "g-major", label: "G major", notes: [67, 69, 71, 72, 74, 76, 78, 79] },
+  { id: "bb-major", label: "Bb major", notes: [58, 60, 62, 63, 65, 67, 69, 70] },
+  { id: "d-major", label: "D major", notes: [62, 64, 66, 67, 69, 71, 73, 74] },
+  { id: "eb-major", label: "Eb major", notes: [63, 65, 67, 68, 70, 72, 74, 75] },
+] as const;
+/** A lesson's notes up and back down (the top note once). */
+export const lessonSequence = (notes: readonly number[]) => [
+  ...notes,
+  ...notes.slice(0, -1).reverse(),
+];
+
+export type AerophoneMode =
+  | "fingering"
+  | "long-tone"
+  | "swell"
+  | "articulation"
+  | "interval-landing";
 export const AEROPHONE_MODES = [
+  { id: "fingering", label: "Fingering" },
   { id: "long-tone", label: "Long tone", seconds: [3, 5, 8] },
   { id: "swell", label: "Swell", seconds: [4, 6, 8] },
   { id: "articulation", label: "Articulation", bpm: [70, 90, 110], count: 8 },
@@ -62,6 +120,7 @@ export const LANDING_INTERVALS = [
 ] as const;
 
 const AERO_SKILLS: Record<AerophoneMode, string[]> = {
+  fingering: ["technique.aerophone", "technique.aerophone.fingering"],
   "long-tone": ["technique.aerophone", "technique.aerophone.breath-steadiness"],
   swell: ["technique.aerophone", "technique.aerophone.dynamic-control"],
   articulation: ["technique.aerophone", "technique.aerophone.articulation"],

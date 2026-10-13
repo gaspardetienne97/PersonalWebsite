@@ -221,6 +221,54 @@ test("Aerophone: long tone with breath on CC 2", async ({ page }) => {
   await shoot(page, "aerophone-results");
 });
 
+test("Aerophone fingering: Roland's first lesson, a slip named, the octave crescent", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await installFakeMidi(page, [PORTS.aerophone]);
+  await page.goto("/music/connect");
+  await page.getByRole("button", { name: "Enable MIDI" }).click();
+  await expect(page.getByTestId(`device-${PORTS.aerophone.id}`)).toContainText("Aerophone");
+  await page.goto("/music/aerophone?mode=fingering&lesson=g-a-b");
+  await expect(page.getByTestId("midi-status")).toContainText("Listening on Aerophone AE-10", {
+    timeout: 10_000,
+  });
+  // G4 lights keys 1 to 3 and nothing else.
+  const lit = () =>
+    page
+      .locator("[data-testid=aerophone-stage] path[data-on]")
+      .evaluateAll((ps) => [...new Set(ps.map((p) => p.getAttribute("data-key")))].sort());
+  expect(await lit()).toEqual(["k1", "k2", "k3"]);
+  await shoot(page, "aerophone-fingering-ready");
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await page.getByRole("button", { name: /^Start/ }).click();
+  await expect(page.getByRole("status")).toContainText("Finger G4");
+  const play = (midi: number) =>
+    page.evaluate(
+      ({ id, midi }) => {
+        (window as any).__midi.send(id, [0x90, midi, 90]);
+        (window as any).__midi.send(id, [0x80, midi, 0]);
+      },
+      { id: PORTS.aerophone.id, midi },
+    );
+  // A slip: G#4 instead of G4, so the G# key went down.
+  await play(68);
+  await expect(page.getByTestId("fingering-slip")).toContainText("Lift G# (left pinky)");
+  await page.screenshot({ path: `${SHOTS}/aerophone-fingering-slip-1280-light.png` });
+  for (const n of [67, 69, 71, 69, 67]) {
+    await play(n);
+    await page.waitForTimeout(80);
+  }
+  await expect(page.getByRole("status")).toContainText("4 of 5 right on the first try", {
+    timeout: 10_000,
+  });
+  await shoot(page, "aerophone-fingering-results");
+
+  // D5 needs the octave key: the +1 thumb crescent lights.
+  await page.goto("/music/aerophone?mode=long-tone&target=74");
+  expect(await lit()).toContain("oct+1");
+});
+
 test("Aerophone and pads with on-screen input only say what they cannot measure", async ({
   page,
 }) => {

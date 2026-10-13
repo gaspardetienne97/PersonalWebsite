@@ -365,11 +365,12 @@ export const CATALOG: CatalogEntry[] = [
     route: "/music/aerophone",
     title: "Aerophone",
     blurb:
-      "Hold, swell and tongue notes on the wind controller, and land intervals against a drone.",
+      "Learn the fingerings in Roland's lesson order, then hold, swell and tongue notes and land intervals against a drone.",
     instruments: ["aerophone"],
     capability: "technique",
     modality: "played",
     modes: [
+      mode("fingering", "Fingering", "technique.aerophone.fingering", aerophoneSkills("fingering")),
       mode("long-tone", "Long tone", "technique.aerophone.long-tone", aerophoneSkills("long-tone")),
       mode("swell", "Swell", "technique.aerophone.swell", aerophoneSkills("swell")),
       mode(

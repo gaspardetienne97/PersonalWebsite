@@ -41,6 +41,7 @@ Nothing. The build is complete; what remains is the owner's hardware pass (below
 - Ear expansion from research (docs/research/, local): chords in a key and progressions in minor and with sevenths; scales and modes; inversions; bass lines; fine pitch (a cents staircase); spot the wrong note; singing intervals and melodies; rhythm echo and dictation in Rhythm; Studio ears at `/music/listening` (find the boost or cut, boost or cut at matched loudness, level in dB, pan) on noise, drums or a band loop. The Ear Path is 17 steps, the instrument paths gain ear steps and links, a new Studio Ears Path; steps can set their own threshold and minimum difficulty. Then: compression and delay time in Studio ears, 6/8 and swing for rhythm by ear, groove dictation on kick, snare and hat rows, spot the wrong note in phrases from saved songs, a singing tolerance (the right note, 35 or 25 cents); the Drills tab lists every drill in smaller groups, with mode chips that open the mode
 - Circle of fifths (research in docs/research/circle-of-fifths.md, local): a vivid interactive wheel (majors, relative minors, vii°; a picked key's chords as a wedge) in the Library reference; a fluency drill at `/music/circle` (order of sharps and flats, keys and counts, signatures on the staff, neighbours, a key's chords, a blank wheel; timed, weak keys asked more); a Circle of Fifths Path with links from Piano, Guitar, Jazz and Ear; the circle as the key picker in the Library explorer, Create, Chord scales and Jazz licks
 - Finger drumming (research in docs/research/finger-drumming.md, local): technique (rolls, pyramid, accents and ghosts, more PAS stickings), 27 grooves in six levels with timing tiers, stars and a tempo ladder, Hold the tempo, seven new MPC path steps; the drill plays like Melodics (note highway, live Perfect/Early/Late, streak, count-in, glowing pads, Plays and Wait mode)
+- Aerophone: a new AE-20 drawing from Roland's front photo (mouthpiece to foot, Roland's 22 key names, the four thumb octave keys as crescents, keys coloured by hand and lit when pressed; the old trace had its sides mirrored), a Fingering mode with Roland's 12 lessons in order (flash cards, a slip named from the fingering difference), the chart up to C#6; research in docs/research/aerophone.md (local)
 - Latin, Caribbean and Brazilian grooves: reggaeton, tamborzão and funk 150, kompa (provisional), one drop, steppers, dancehall, soca, zouk, cumbia, bossa nova, samba, each with a backing style; a cowbell voice on A12; the groove list by level or by style. Merengue skipped (no reliable pad grid)
 - Transcribe: runs in a worker with progress and Cancel (it froze the page before); a polyphonic engine (Basic Pitch) beside the melody one; tempo found from the notes; two hands split at middle C; a sensitivity that only redoes the note picking; MIDI takes from Record become songs; drafts fixed in the piano roll; any saved song's notes edited at `/music/songs/[id]/edit`
 
@@ -97,9 +98,11 @@ The owner's checks, grouped by instrument. Everything below passed in the browse
 - Mic level advice reads "Good level" at normal playing distance; with echo cancellation on and off.
 - The curated chord shapes and higher positions are playable and the finger numbers make sense (catalog weakness 6).
 
-**Aerophone AE-10**
+**Aerophone AE-20**
 - CC 2 breath gives sensible steadiness (the x4 knob) and swell shape; articulation note-offs give a sensible sounding fraction for staccato and legato; the interval-landing drone feels right.
-- Fingerings marked best-effort: Bb3, B3, C#4, Eb4, F#4, F#5, G#4, Bb4, C5 (side C).
+- Fingerings marked best-effort: Bb3, B3, C#4, Eb4, F#4, F#5, G#4, Bb4, C5 (now key 2 alone, the sax fingering; it was side C alone), and G5 to C#6 (the low fingerings with the +1 octave key).
+- The drawing's key names (the owner has an AE-20), front view so the player's right is on the left. Check that the palm keys up the right edge are C1, C2, C4 from the top, the side keys down the left edge C3, Tc, Ta, the pinky table beside key 3 G# (top), C# (inside), B and Bb (outside), and the right pinky Eb above C.
+- Whether breath still arrives on CC 2 (the AE-20's default isn't documented) and whether transpose or octave shift change the notes sent.
 - Voicings in arpeggio mode.
 
 **Sound (everything; headless tests cannot hear)**

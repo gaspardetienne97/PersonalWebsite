@@ -1,133 +1,129 @@
 {
   "range": {
     "lowestMidi": 58,
-    "highestMidi": 78
+    "highestMidi": 85
   },
   "keys": [
     {
       "id": "k1",
-      "label": "LH index"
+      "label": "1 (left index)"
     },
     {
       "id": "k2",
-      "label": "LH middle"
+      "label": "2 (left middle)"
     },
     {
       "id": "k3",
-      "label": "LH ring"
+      "label": "3 (left ring)"
     },
     {
       "id": "k4",
-      "label": "RH index"
+      "label": "4 (right index)"
     },
     {
       "id": "k5",
-      "label": "RH middle"
+      "label": "5 (right middle)"
     },
     {
       "id": "k6",
-      "label": "RH ring"
+      "label": "6 (right ring)"
     },
     {
-      "id": "bisBb",
-      "label": "Bis Bb"
+      "id": "X",
+      "label": "X (front F)"
     },
     {
-      "id": "gsharp",
-      "label": "G#"
+      "id": "P",
+      "label": "P (bis Bb)"
     },
     {
-      "id": "lowCsharp",
-      "label": "Low C#"
+      "id": "C1",
+      "label": "C1 (palm D)"
     },
     {
-      "id": "lowB",
-      "label": "Low B"
+      "id": "C2",
+      "label": "C2 (palm Eb)"
     },
     {
-      "id": "lowBb",
-      "label": "Low Bb"
+      "id": "C4",
+      "label": "C4 (palm F)"
     },
     {
-      "id": "sideE",
-      "label": "Side E"
+      "id": "C3",
+      "label": "C3 (side E)"
     },
     {
-      "id": "sideC",
-      "label": "Side C"
+      "id": "Tc",
+      "label": "Tc (side C)"
     },
     {
-      "id": "sideBb",
-      "label": "Side Bb"
+      "id": "Ta",
+      "label": "Ta (side Bb)"
     },
     {
-      "id": "eb",
-      "label": "Eb"
+      "id": "Gs",
+      "label": "G# (left pinky)"
     },
     {
-      "id": "lowC",
-      "label": "Low C"
+      "id": "Cs",
+      "label": "C# (left pinky)"
     },
     {
-      "id": "palm1",
-      "label": "Palm 1"
+      "id": "B",
+      "label": "B (left pinky)"
     },
     {
-      "id": "palm2",
-      "label": "Palm 2"
+      "id": "Bb",
+      "label": "Bb (left pinky)"
     },
     {
-      "id": "palm3",
-      "label": "Palm 3"
+      "id": "Eb",
+      "label": "Eb (right pinky)"
     },
     {
-      "id": "palm4",
-      "label": "Palm 4"
+      "id": "C",
+      "label": "C (right pinky)"
     },
     {
-      "id": "front",
-      "label": "Front"
+      "id": "Tf",
+      "label": "Tf (fork F#)"
     },
     {
-      "id": "blackL1",
-      "label": "Left black 1"
+      "id": "C5",
+      "label": "C5 (high F# (AE-20 and AE-30))"
     },
     {
-      "id": "blackL2",
-      "label": "Left black 2"
+      "id": "oct+2",
+      "label": "+2 octave (left thumb)"
     },
     {
-      "id": "blackL3",
-      "label": "Left black 3"
+      "id": "oct+1",
+      "label": "+1 octave (left thumb)"
     },
     {
-      "id": "blackR1",
-      "label": "Right black 1"
+      "id": "oct-1",
+      "label": "-1 octave (left thumb)"
     },
     {
-      "id": "blackR2",
-      "label": "Right black 2"
-    },
-    {
-      "id": "blackR3",
-      "label": "Right black 3"
+      "id": "oct-2",
+      "label": "-2 octave (left thumb)"
     }
   ],
   "fingeringsByMidi": {
     "58": {
-      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowBb"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "Bb"],
       "octave": false
     },
     "59": {
-      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowB"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "B"],
       "octave": false
     },
     "60": {
-      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowC"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "C"],
       "octave": false
     },
     "61": {
-      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowCsharp"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "Cs"],
       "octave": false
     },
     "62": {
@@ -135,7 +131,7 @@
       "octave": false
     },
     "63": {
-      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "Eb"],
       "octave": false
     },
     "64": {
@@ -155,7 +151,7 @@
       "octave": false
     },
     "68": {
-      "keys": ["k1", "k2", "k3", "gsharp"],
+      "keys": ["k1", "k2", "k3", "Gs"],
       "octave": false
     },
     "69": {
@@ -163,7 +159,7 @@
       "octave": false
     },
     "70": {
-      "keys": ["k1", "bisBb"],
+      "keys": ["k1", "P"],
       "octave": false
     },
     "71": {
@@ -171,7 +167,7 @@
       "octave": false
     },
     "72": {
-      "keys": ["sideC"],
+      "keys": ["k2"],
       "octave": false
     },
     "73": {
@@ -183,7 +179,7 @@
       "octave": true
     },
     "75": {
-      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "Eb"],
       "octave": true
     },
     "76": {
@@ -197,31 +193,59 @@
     "78": {
       "keys": ["k1", "k2", "k3", "k5"],
       "octave": true
+    },
+    "79": {
+      "keys": ["k1", "k2", "k3"],
+      "octave": true
+    },
+    "80": {
+      "keys": ["k1", "k2", "k3", "Gs"],
+      "octave": true
+    },
+    "81": {
+      "keys": ["k1", "k2"],
+      "octave": true
+    },
+    "82": {
+      "keys": ["k1", "P"],
+      "octave": true
+    },
+    "83": {
+      "keys": ["k1"],
+      "octave": true
+    },
+    "84": {
+      "keys": ["k2"],
+      "octave": true
+    },
+    "85": {
+      "keys": [],
+      "octave": true
     }
   },
   "chart": [
     {
       "midi": 58,
       "inRange": true,
-      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowBb"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "Bb"],
       "octave": false
     },
     {
       "midi": 59,
       "inRange": true,
-      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowB"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "B"],
       "octave": false
     },
     {
       "midi": 60,
       "inRange": true,
-      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowC"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "C"],
       "octave": false
     },
     {
       "midi": 61,
       "inRange": true,
-      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "lowCsharp"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "k6", "Cs"],
       "octave": false
     },
     {
@@ -233,7 +257,7 @@
     {
       "midi": 63,
       "inRange": true,
-      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "Eb"],
       "octave": false
     },
     {
@@ -263,7 +287,7 @@
     {
       "midi": 68,
       "inRange": true,
-      "keys": ["k1", "k2", "k3", "gsharp"],
+      "keys": ["k1", "k2", "k3", "Gs"],
       "octave": false
     },
     {
@@ -275,7 +299,7 @@
     {
       "midi": 70,
       "inRange": true,
-      "keys": ["k1", "bisBb"],
+      "keys": ["k1", "P"],
       "octave": false
     },
     {
@@ -287,7 +311,7 @@
     {
       "midi": 72,
       "inRange": true,
-      "keys": ["sideC"],
+      "keys": ["k2"],
       "octave": false
     },
     {
@@ -305,7 +329,7 @@
     {
       "midi": 75,
       "inRange": true,
-      "keys": ["k1", "k2", "k3", "k4", "k5", "eb"],
+      "keys": ["k1", "k2", "k3", "k4", "k5", "Eb"],
       "octave": true
     },
     {
@@ -324,6 +348,48 @@
       "midi": 78,
       "inRange": true,
       "keys": ["k1", "k2", "k3", "k5"],
+      "octave": true
+    },
+    {
+      "midi": 79,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3"],
+      "octave": true
+    },
+    {
+      "midi": 80,
+      "inRange": true,
+      "keys": ["k1", "k2", "k3", "Gs"],
+      "octave": true
+    },
+    {
+      "midi": 81,
+      "inRange": true,
+      "keys": ["k1", "k2"],
+      "octave": true
+    },
+    {
+      "midi": 82,
+      "inRange": true,
+      "keys": ["k1", "P"],
+      "octave": true
+    },
+    {
+      "midi": 83,
+      "inRange": true,
+      "keys": ["k1"],
+      "octave": true
+    },
+    {
+      "midi": 84,
+      "inRange": true,
+      "keys": ["k2"],
+      "octave": true
+    },
+    {
+      "midi": 85,
+      "inRange": true,
+      "keys": [],
       "octave": true
     }
   ]

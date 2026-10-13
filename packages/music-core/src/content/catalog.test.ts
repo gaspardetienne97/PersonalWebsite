@@ -102,7 +102,7 @@ describe("drill catalog", () => {
       "interval-recall",
     ]);
     expect(CATALOG.find((e) => e.id === "chords")!.modes).toHaveLength(4);
-    expect(CATALOG.find((e) => e.id === "aerophone")!.modes).toHaveLength(4);
+    expect(CATALOG.find((e) => e.id === "aerophone")!.modes).toHaveLength(5);
     expect(CATALOG.find((e) => e.id === "pads")!.modes.map((m) => m.id)).toEqual([
       "rudiment",
       "groove",

@@ -782,7 +782,16 @@ APP_SKILLS.push(
     version: 1,
   })),
 );
+APP_SKILLS.push({
+  id: "technique.aerophone.fingering",
+  name: "Aerophone fingerings, in Roland's lesson order",
+  capability: "technique",
+  level: "beginner",
+  tags: ["aerophone", "fingering"],
+  version: 1,
+});
 const APP_RELATIONSHIPS: SkillRelationship[] = [
+  { from: "technique.aerophone", to: "technique.aerophone.fingering", kind: "component" },
   ...CIRCLE_NAMES.map(([t]) => ({
     from: "theory.circle",
     to: `theory.circle.${t}`,
