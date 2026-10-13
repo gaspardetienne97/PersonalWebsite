@@ -860,6 +860,24 @@ APP_SKILLS.push(
     version: 1,
   },
 );
+APP_SKILLS.push(
+  ...(
+    [
+      ["scales", "Aerophone scales and arpeggios in all keys, in time", "early-intermediate"],
+      ["tonguing", "Tonguing patterns: slurred and tongued notes on purpose", "early-intermediate"],
+      ["register", "Crossing the register break and the octave keys", "intermediate"],
+      ["trills", "Trills: two fingerings fast and even", "intermediate"],
+      ["vibrato", "Vibrato with the bite", "intermediate"],
+    ] as const
+  ).map(([t, name, level]) => ({
+    id: `technique.aerophone.${t}`,
+    name,
+    capability: "technique" as const,
+    level: level as SkillLevel,
+    tags: ["aerophone"],
+    version: 1,
+  })),
+);
 APP_SKILLS.push({
   id: "technique.aerophone.fingering",
   name: "Aerophone fingerings, in Roland's lesson order",

@@ -29,6 +29,8 @@
     type BreathResult,
     type SwellResult,
   } from "@repo/music-core/scoring/aerophone";
+  import { BREATH_LEVELS, inBandShare } from "@repo/music-core/content/aero-skills";
+  import AeroSkills from "$lib/music/drills/aerophone/AeroSkills.svelte";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import AerophoneKeys from "$lib/music/components/AerophoneKeys.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -59,6 +61,7 @@
     interval: 7,
     direction: "up" as string,
     drone: 60,
+    level: "any" as string,
   });
   const s = $derived(cfg.value);
   const m = $derived(s.mode as AerophoneMode);
@@ -128,22 +131,27 @@
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let stopClockRef: (() => void) | null = null;
 
+  const level = $derived(m === "long-tone" ? (BREATH_LEVELS.find((l) => l.id === s.level) ?? null) : null);
   const setupKey = $derived(
     m === "fingering"
       ? `fingering:${lesson.id}`
       : m === "long-tone"
-      ? `long-tone:${targetMidi}:${s.seconds}`
+      ? `long-tone:${targetMidi}:${s.seconds}${level ? `:${level.id}` : ""}`
       : m === "swell"
         ? `swell:${targetMidi}:${s.swellSeconds}`
         : m === "articulation"
           ? `articulation:${targetMidi}:${style}:${s.artBpm}:${s.count}`
           : `interval-landing:${s.drone}:${s.interval}:${s.direction}`,
   );
+  const SKILL_MODES = ["scales", "tonguing", "register", "trills", "vibrato"] as const;
+  const skillMode = $derived(SKILL_MODES.find((x) => x === s.mode) ?? null);
+  /** Breath inside the level's band while the note was held; null when no level is set. */
+  let levelShare = $state<number | null>(null);
   const summaryLine = $derived(
     m === "fingering"
       ? `Fingering: ${lesson.label}, up and back down`
       : m === "long-tone"
-      ? `Long tone on ${noteName(targetMidi)}, hold ${s.seconds} s`
+      ? `Long tone on ${noteName(targetMidi)}, hold ${s.seconds} s${level ? ` at ${level.id}` : ""}`
       : m === "swell"
         ? `Swell on ${noteName(targetMidi)} over ${s.swellSeconds} s`
         : m === "articulation"
@@ -308,7 +316,7 @@
     const controls = cap?.controls ?? [];
     const endAt = performance.now();
     const w = { targetMidi, startAt: windowStart ?? endAt, durationMs: holdMs, endAt, notes, breath: controls };
-    const r =
+    const graded =
       m === "long-tone"
         ? gradeLongTone(w)
         : m === "swell"
@@ -316,6 +324,10 @@
           : m === "interval-landing"
             ? gradeIntervalLanding(w)
             : gradeArticulation({ targetMidi, count: s.count, style, beatMs, notes });
+    // A level: half the score is the share of breath inside the band, and it must be mostly there.
+    const inHold = controls.filter((c) => c.kind === "cc" && c.controller === 2 && windowStart !== null && c.at >= windowStart && c.at <= endAt).map((c) => c.value);
+    levelShare = level && inHold.length ? inBandShare(inHold, level.band) : null;
+    const r = levelShare === null ? graded : { ...graded, score: graded.score * 0.5 + levelShare * 0.5, correct: graded.correct && levelShare >= 0.7 };
     result = r;
     phase = "results";
     const ons = notes.filter((n) => n.kind === "noteon");
@@ -330,8 +342,13 @@
       response: ons.map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} ${summaryLine}` });
+    const told = describe(r, ons);
+    if (level && levelShare !== null) {
+      told.rows = [...(told.rows ?? []), { label: `Breath at ${level.id}`, value: levelShare, text: `${pct(levelShare)} of the hold in the band` }];
+      if (levelShare < 0.7 && "progress" in r && r.progress >= 1) told.headline = `Held, but only ${pct(levelShare)} of it at ${level.id}: aim for the shaded band.`;
+    }
     summary = {
-      ...describe(r, ons),
+      ...told,
       metric: pct(r.score),
       metricLabel: r.notMeasured.length ? `score, ${r.notMeasured.join(" and ")} not measured` : "score",
       delta: fin.delta,
@@ -439,6 +456,9 @@
 
 <svelte:head><title>Aerophone | Woodshed</title></svelte:head>
 
+{#if skillMode}
+  {#key skillMode}<AeroSkills skill={skillMode} modes={AEROPHONE_MODES} onmode={(v) => cfg.set({ mode: v })} />{/key}
+{:else}
 <DrillShell
   title="Aerophone"
   hue="aerophone"
@@ -465,6 +485,7 @@
       {/if}
       {#if m === "long-tone"}
         <Choice label="Hold" options={AEROPHONE_MODES[1].seconds.map((x) => ({ value: x as number, label: `${x} s` }))} value={s.seconds} onchange={(v) => cfg.set({ seconds: v })} />
+        <Choice label="Level" options={[{ value: "any", label: "Any" }, ...BREATH_LEVELS.map((l) => ({ value: l.id as string, label: l.id }))]} value={s.level} onchange={(v) => cfg.set({ level: v })} />
       {:else if m === "swell"}
         <Choice label="Swell length" options={AEROPHONE_MODES[2].seconds.map((x) => ({ value: x as number, label: `${x} s` }))} value={s.swellSeconds} onchange={(v) => cfg.set({ swellSeconds: v })} />
       {:else if m === "articulation"}
@@ -527,7 +548,7 @@
         {#if m !== "fingering"}<BreathTrace
           values={breath}
           points={m === "swell" && (phase === "running" || phase === "results") ? swellPts : undefined}
-          target={m === "swell" && showTargets ? envelope : undefined}
+          target={m === "swell" && showTargets ? envelope : level && showTargets ? Array(TRACE_SAMPLES).fill((level.band[0] + level.band[1]) / 2) : undefined}
           measured={breathSeen}
           label={m === "swell" ? "Breath over the swell, dashed line is the target shape" : "Breath, last 64 samples"}
         />{/if}
@@ -583,3 +604,4 @@
     <div class="w-full"><MidiStatus instrument="aerophone" /></div>
   {/snippet}
 </DrillShell>
+{/if}

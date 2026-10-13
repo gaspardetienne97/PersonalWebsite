@@ -423,6 +423,26 @@ export const CATALOG: CatalogEntry[] = [
         "technique.aerophone.interval-landing",
         aerophoneSkills("interval-landing"),
       ),
+      mode(
+        "scales",
+        "Scales and arpeggios",
+        "technique.aerophone.scales",
+        aerophoneSkills("scales"),
+      ),
+      mode(
+        "tonguing",
+        "Tonguing patterns",
+        "technique.aerophone.tonguing",
+        aerophoneSkills("tonguing"),
+      ),
+      mode(
+        "register",
+        "Register crossings",
+        "technique.aerophone.register",
+        aerophoneSkills("register"),
+      ),
+      mode("trills", "Trills", "technique.aerophone.trills", aerophoneSkills("trills")),
+      mode("vibrato", "Bite vibrato", "technique.aerophone.vibrato", aerophoneSkills("vibrato")),
     ],
   }),
   entry({

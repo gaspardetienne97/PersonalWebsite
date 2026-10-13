@@ -46,6 +46,7 @@ Nothing. The build is complete; what remains is the owner's hardware pass (below
 - Guitar and ukulele (research in docs/research/guitar-ukulele-drills.md, local): ukulele chords in the London College order (Dm C7 G7 A D Gm A7 E7), guitar barre and power chords; Old Faithful and the ukulele island and chuck strums with a tempo ladder (two runs at 90% offer 5 BPM more); Rockschool and Trinity grade tempos with notes a click in Spider and Positions; fingerpicking (Travis, p i m a, two ukulele patterns); bends to pitch and vibrato by microphone; hammer-ons and pull-offs with a legato check; the microphone now hears a re-picked note as a new note.
 - Piano (research in docs/research/piano-drills.md, local): arpeggios, broken and blocked chords through the inversions and ABRSM grade speeds (two or four notes a click) in Scales; cadences I IV I V7 I and minor in every key in Voicings; a sight-reading level climb (80% up a rung, three strikes); fix the trouble spot in Song Studio (loop the slip slower until three clean, then full tempo, then wider); a legato pedal drill on CC 64; four new piano path steps. Scales now takes the tempo from path links.
 - Latin, Caribbean and Brazilian grooves: reggaeton, tamborzão and funk 150, kompa (provisional), one drop, steppers, dancehall, soca, zouk, cumbia, bossa nova, samba, each with a backing style; a cowbell voice on A12; the groove list by level or by style. Merengue skipped (no reliable pad grid)
+- Pads and Aerophone skills (research compared with Melodics, Drumeo, Roland's lessons and sax pedagogy): on Pads, dynamics against the player's own soft-to-loud range (a ladder, a crescendo, even hits), fills that land on the one with a rush check, play it back by ear, an ostinato measured against the hats alone, rudiments spread across the kit, and improvising over the band with the take played back as played and nudged to the grid. On the Aerophone, scales and arpeggios in all twelve keys with NZMEB grade speeds and an octave-key slip named, tonguing patterns read from breath dips and note gaps, register crossings counting glitch notes, trills on notes a second and evenness, bite vibrato from pitch bend at so many pulses a click, and a level (pp to f) on Long tone.
 - Transcribe: runs in a worker with progress and Cancel (it froze the page before); a polyphonic engine (Basic Pitch) beside the melody one; tempo found from the notes; two hands split at middle C; a sensitivity that only redoes the note picking; MIDI takes from Record become songs; drafts fixed in the piano roll; any saved song's notes edited at `/music/songs/[id]/edit`
 
 ### Known gaps
@@ -81,6 +82,7 @@ The owner's checks, grouped by instrument. Everything below passed in the browse
 - Kompa, tamborzão and the other Latin grooves by ear: the cowbell (A12) and the tom-and-conga sounds read right, and the kompa pattern matches what a kompa player knows.
 - Beat grid with real pads at 90 to 140 BPM: sample rows stay in time.
 - Background tab for over 5 minutes: Chrome's timer throttling could slow the 1 s heartbeat.
+- Pad skills: Calibrate reads your softest and loudest hits sensibly; the fill rush (15 ms) and landing (40 ms) windows, and the ostinato's 10% allowed drop, feel fair.
 
 **Piano (MIDI keyboard)**
 - Mirror hands: both hands together reads "together N of 8"; staggering by about 80 ms should not count.
@@ -116,6 +118,9 @@ The owner's checks, grouped by instrument. Everything below passed in the browse
 - The drawing's key names (the owner has an AE-20), front view so the player's right is on the left. Check that the palm keys up the right edge are C1, C2, C4 from the top, the side keys down the left edge C3, Tc, Ta, the pinky table beside key 3 G# (top), C# (inside), B and Bb (outside), and the right pinky Eb above C.
 - Whether breath still arrives on CC 2 (the AE-20's default isn't documented) and whether transpose or octave shift change the notes sent.
 - Voicings in arpeggio mode.
+- Tonguing: a tongued note on the AE-20 shows as a breath dip under 45% of the phrase's median (or a 25 ms gap); a slur keeps the air up. Register crossings: whether the AE-20 sends glitch notes between fingerings at all.
+- Bite vibrato: whether the bite sends pitch bend (E-Wind style bite modes) and the depth the drill sees; the 15% rate tolerance and 0.6 evenness at four a beat at 80.
+- Breath levels: where pp, p, mf and f sit on CC 2 (bands 0.1 to 0.28, 0.25 to 0.42, 0.45 to 0.65, 0.65 to 0.85) with your breath curve; trills at 4 a second, evenness 0.7.
 
 **Sound (everything; headless tests cannot hear)**
 - Sampled Piano loads (needs network the first time) and falls back to Warm Synth until then; each of the six sounds; clicks and accents; the three drones stop without a click; the celebration chime.

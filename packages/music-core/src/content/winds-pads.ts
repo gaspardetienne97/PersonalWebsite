@@ -101,13 +101,23 @@ export type AerophoneMode =
   | "long-tone"
   | "swell"
   | "articulation"
-  | "interval-landing";
+  | "interval-landing"
+  | "scales"
+  | "tonguing"
+  | "register"
+  | "trills"
+  | "vibrato";
 export const AEROPHONE_MODES = [
   { id: "fingering", label: "Fingering" },
   { id: "long-tone", label: "Long tone", seconds: [3, 5, 8] },
   { id: "swell", label: "Swell", seconds: [4, 6, 8] },
   { id: "articulation", label: "Articulation", bpm: [70, 90, 110], count: 8 },
   { id: "interval-landing", label: "Interval landing" },
+  { id: "scales", label: "Scales and arpeggios" },
+  { id: "tonguing", label: "Tonguing patterns" },
+  { id: "register", label: "Register crossings" },
+  { id: "trills", label: "Trills" },
+  { id: "vibrato", label: "Bite vibrato" },
 ] as const;
 /** Target sounding fraction of each beat. */
 export const ARTICULATION_TARGET = { staccato: 0.35, legato: 0.95 } as const;
@@ -129,6 +139,11 @@ const AERO_SKILLS: Record<AerophoneMode, string[]> = {
     "technique.aerophone.interval-landing",
     "intonation.interval-landing",
   ],
+  scales: ["technique.aerophone", "technique.aerophone.scales"],
+  tonguing: ["technique.aerophone", "technique.aerophone.tonguing"],
+  register: ["technique.aerophone", "technique.aerophone.register"],
+  trills: ["technique.aerophone", "technique.aerophone.trills"],
+  vibrato: ["technique.aerophone", "technique.aerophone.vibrato"],
 };
 export const aerophoneSkills = (mode: AerophoneMode) => AERO_SKILLS[mode];
 
