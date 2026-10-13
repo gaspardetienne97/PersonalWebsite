@@ -147,8 +147,15 @@ export function pulseTargets(beats: number, bpm: number): number[] {
 // ---------------------------------------------------------------------------
 // Rhythm by ear: patterns made from one-beat and two-beat cells, a level at a time.
 
-/** Onsets in beats from the cell's start; a rest cell has none and is drawn as a rest. */
-export const RHYTHM_CELLS = {
+/**
+ * Onsets in beats from the cell's start; a rest cell has none and is drawn as
+ * a rest. `written` is where a swung cell's notes are written (straight eighths).
+ * In 6/8 a beat is a dotted quarter, so "triplet" is three eighths there.
+ */
+export const RHYTHM_CELLS: Record<
+  string,
+  { beats: number; onsets: readonly number[]; written?: readonly number[] }
+> = {
   quarter: { beats: 1, onsets: [0] },
   eighths: { beats: 1, onsets: [0, 0.5] },
   rest: { beats: 1, onsets: [] },
@@ -160,13 +167,18 @@ export const RHYTHM_CELLS = {
   syncopation: { beats: 2, onsets: [0, 0.5, 1.5] },
   triplet: { beats: 1, onsets: [0, 1 / 3, 2 / 3] },
   "dotted-eighth": { beats: 1, onsets: [0, 0.75] },
-} as const satisfies Record<string, { beats: number; onsets: readonly number[] }>;
-export type RhythmCell = keyof typeof RHYTHM_CELLS;
+  // 6/8: quarter-eighth and eighth-quarter inside a dotted-quarter beat.
+  "long-short": { beats: 1, onsets: [0, 2 / 3] },
+  "short-long": { beats: 1, onsets: [0, 1 / 3] },
+  // Swing: two eighths played long-short, written straight.
+  swing: { beats: 1, onsets: [0, 2 / 3], written: [0, 0.5] },
+};
+export type RhythmCell = keyof typeof RHYTHM_CELLS & string;
 
 /**
- * Levels in the order the research suggests (Kodály and Gordon): quarters
- * and eighths, then rests and halves, dotted values, sixteenths, syncopation
- * and triplets, dotted eighth-sixteenths. Each adds to what came before.
+ * Levels in the order the research suggests (Kodály, Gordon, Karpinski):
+ * quarters and eighths, rests and halves, dotted quarters, 6/8, sixteenths,
+ * syncopation and triplets, dotted eighth-sixteenths, swing.
  */
 export const EAR_RHYTHM_LEVELS: {
   id: string;
@@ -174,7 +186,9 @@ export const EAR_RHYTHM_LEVELS: {
   bars: number;
   cells: RhythmCell[];
   /** The grid a dictation answer is written on, in cells per beat. */
-  perBeat: 2 | 4;
+  perBeat: 2 | 3 | 4;
+  /** Beats in a bar: 4 in 4/4, 2 dotted quarters in 6/8. */
+  beatsPerBar: 2 | 4;
 }[] = [
   {
     id: "quarters-eighths",
@@ -182,6 +196,7 @@ export const EAR_RHYTHM_LEVELS: {
     bars: 1,
     cells: ["quarter", "eighths"],
     perBeat: 2,
+    beatsPerBar: 4,
   },
   {
     id: "rests-halves",
@@ -189,6 +204,7 @@ export const EAR_RHYTHM_LEVELS: {
     bars: 2,
     cells: ["quarter", "eighths", "rest", "half"],
     perBeat: 2,
+    beatsPerBar: 4,
   },
   {
     id: "dotted",
@@ -196,6 +212,15 @@ export const EAR_RHYTHM_LEVELS: {
     bars: 2,
     cells: ["quarter", "eighths", "rest", "half", "dotted-quarter"],
     perBeat: 2,
+    beatsPerBar: 4,
+  },
+  {
+    id: "compound",
+    title: "6/8, two dotted-quarter beats",
+    bars: 2,
+    cells: ["quarter", "triplet", "long-short", "short-long", "rest", "half"],
+    perBeat: 3,
+    beatsPerBar: 2,
   },
   {
     id: "sixteenths",
@@ -203,6 +228,7 @@ export const EAR_RHYTHM_LEVELS: {
     bars: 2,
     cells: ["quarter", "eighths", "rest", "sixteenths", "eighth-sixteenths", "sixteenths-eighth"],
     perBeat: 4,
+    beatsPerBar: 4,
   },
   {
     id: "syncopation",
@@ -210,6 +236,7 @@ export const EAR_RHYTHM_LEVELS: {
     bars: 2,
     cells: ["quarter", "eighths", "rest", "sixteenths", "syncopation", "triplet"],
     perBeat: 4,
+    beatsPerBar: 4,
   },
   {
     id: "dotted-sixteenths",
@@ -217,22 +244,37 @@ export const EAR_RHYTHM_LEVELS: {
     bars: 2,
     cells: ["quarter", "eighths", "rest", "sixteenths", "syncopation", "dotted-eighth"],
     perBeat: 4,
+    beatsPerBar: 4,
+  },
+  {
+    id: "swing",
+    title: "Swing eighths",
+    bars: 2,
+    cells: ["quarter", "swing", "rest", "half"],
+    perBeat: 2,
+    beatsPerBar: 4,
   },
 ];
 
 /**
- * A random pattern in 4/4 from a level's cells: never a rest on beat 1 or
- * two rests in a row. Dictation leaves triplets out (its grid is in eighths
- * or sixteenths).
+ * A random pattern from a level's cells: never a rest on beat 1 or two rests
+ * in a row. Dictation leaves out cells its grid cannot write (triplets on an
+ * eighth or sixteenth grid). `written` is each onset as written (swing is
+ * written straight); `events` are where they sound.
  */
 export function earRhythmPattern(
   rand: () => number,
   levelId: string,
   opts: { dictation?: boolean } = {},
-): RhythmPatternDef & { cells: RhythmCell[] } {
+): RhythmPatternDef & { cells: RhythmCell[]; written: number[] } {
   const level = EAR_RHYTHM_LEVELS.find((l) => l.id === levelId) ?? EAR_RHYTHM_LEVELS[0];
-  const total = level.bars * 4;
-  const usable = level.cells.filter((c) => !(opts.dictation && c === "triplet"));
+  const perBar = level.beatsPerBar;
+  const total = level.bars * perBar;
+  const onGrid = (c: RhythmCell) =>
+    (RHYTHM_CELLS[c].written ?? RHYTHM_CELLS[c].onsets).every(
+      (o) => Math.abs(o * level.perBeat - Math.round(o * level.perBeat)) < 1e-6,
+    );
+  const usable = level.cells.filter((c) => !opts.dictation || onGrid(c));
   const cells: RhythmCell[] = [];
   let at = 0;
   while (at < total) {
@@ -240,7 +282,7 @@ export function earRhythmPattern(
       (c) =>
         RHYTHM_CELLS[c].beats <= total - at &&
         // A two-beat cell stays inside its bar.
-        Math.floor(at / 4) === Math.floor((at + RHYTHM_CELLS[c].beats - 1) / 4) &&
+        Math.floor(at / perBar) === Math.floor((at + RHYTHM_CELLS[c].beats - 1) / perBar) &&
         !(c === "rest" && (at === 0 || cells.at(-1) === "rest")),
     );
     const c = fits[Math.floor(rand() * fits.length)] ?? "quarter";
@@ -248,28 +290,34 @@ export function earRhythmPattern(
     at += RHYTHM_CELLS[c].beats;
   }
   const onsets: number[] = [];
+  const written: number[] = [];
   const rests: { startBeat: number; endBeat: number }[] = [];
   at = 0;
   for (const c of cells) {
     if (c === "rest") rests.push({ startBeat: at, endBeat: at + 1 });
-    for (const o of RHYTHM_CELLS[c].onsets) onsets.push(at + o);
-    at += RHYTHM_CELLS[c].beats;
+    const cell = RHYTHM_CELLS[c];
+    cell.onsets.forEach((o, k) => {
+      onsets.push(at + o);
+      written.push(at + (cell.written ?? cell.onsets)[k]);
+    });
+    at += cell.beats;
   }
   // A note lasts until the next onset, a rest, or the end.
   const ends = [...onsets.slice(1), ...rests.map((r) => r.startBeat), total];
   return {
     id: `ear-rhythm-${level.id}-${cells.join("_")}`,
     label: level.title,
-    meter: { beats: 4, beatUnit: 4 },
+    meter: { beats: perBar, beatUnit: 4 },
     defaultBars: level.bars,
     events: onsets.map((beat, i) => ({
       id: `e${i}`,
       beat,
       voice: "tap" as const,
-      accent: beat % 4 === 0 ? ("accent" as const) : ("normal" as const),
+      accent: beat % perBar === 0 ? ("accent" as const) : ("normal" as const),
       durationBeats: Math.min(...ends.filter((e) => e > beat + 1e-6)) - beat,
     })),
     rests,
     cells,
+    written,
   };
 }

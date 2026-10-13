@@ -931,57 +931,66 @@ test.describe("rhythm", () => {
     await shots(page, "rhythm-pulse-results");
   });
 
-  test("echo: hear a rhythm, tap it back over fake MIDI in the next bar", async ({ page }) => {
-    await installFakeMidi(page, [PORTS.keys]);
-    await enableMidi(page, "/music/rhythm?mode=echo&earLevel=quarters-eighths");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
-    await page.getByRole("button", { name: "Start", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText("Listen to the pattern");
-    const stage = page.locator("[data-onsets]");
-    const onsets = (await stage.getAttribute("data-onsets"))!.split(",").map(Number);
-    await page.evaluate(
-      ([port, at, beatMs, beats]) => {
-        for (const b of beats as number[])
-          setTimeout(
-            () => {
-              (window as any).__midi.send(port, [0x90, 60, 100]);
-              setTimeout(() => (window as any).__midi.send(port, [0x80, 60, 0]), 40);
-            },
-            (at as number) + b * (beatMs as number) - performance.now(),
-          );
-      },
-      [
-        PORTS.keys.id,
-        Number(await stage.getAttribute("data-downbeat")),
-        Number(await stage.getAttribute("data-beat-ms")),
-        onsets,
-      ] as const,
-    );
-    await expect(page.getByRole("status")).toContainText(
-      `${onsets.length} of ${onsets.length} strokes`,
-      { timeout: 15_000 },
-    );
-    await shots(page, "rhythm-echo");
-  });
+  // Swing taps land long-short, where the notes sound.
+  for (const level of ["quarters-eighths", "swing"])
+    test(`echo (${level}): hear a rhythm, tap it back over fake MIDI in the next bar`, async ({
+      page,
+    }) => {
+      await installFakeMidi(page, [PORTS.keys]);
+      await enableMidi(page, `/music/rhythm?mode=echo&earLevel=${level}`);
+      await page.getByRole("button", { name: "Check", exact: true }).click();
+      await page.getByRole("button", { name: "Start", exact: true }).click();
+      await expect(page.getByRole("status")).toContainText("Listen to the pattern");
+      const stage = page.locator("[data-onsets]");
+      const onsets = (await stage.getAttribute("data-onsets"))!.split(",").map(Number);
+      await page.evaluate(
+        ([port, at, beatMs, beats]) => {
+          for (const b of beats as number[])
+            setTimeout(
+              () => {
+                (window as any).__midi.send(port, [0x90, 60, 100]);
+                setTimeout(() => (window as any).__midi.send(port, [0x80, 60, 0]), 40);
+              },
+              (at as number) + b * (beatMs as number) - performance.now(),
+            );
+        },
+        [
+          PORTS.keys.id,
+          Number(await stage.getAttribute("data-downbeat")),
+          Number(await stage.getAttribute("data-beat-ms")),
+          onsets,
+        ] as const,
+      );
+      await expect(page.getByRole("status")).toContainText(
+        `${onsets.length} of ${onsets.length} strokes`,
+        { timeout: 15_000 },
+      );
+      await shots(page, `rhythm-echo-${level}`);
+    });
 
-  test("dictation: hear a rhythm, mark its notes on the grid", async ({ page }) => {
-    await page.goto("/music/rhythm?mode=dictation&earLevel=rests-halves");
-    await page.getByRole("button", { name: "Start", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText("Mark every note", { timeout: 15_000 });
-    const onsets = (await page.locator("[data-onsets]").getAttribute("data-onsets"))!
-      .split(",")
-      .map(Number);
-    const all = page.getByRole("group", { name: "Your rhythm" }).locator("button.cell");
-    await expect(all).toHaveCount(16);
-    for (const b of onsets) await all.nth(b * 2).click();
-    await expect(all.and(page.locator('[aria-pressed="true"]'))).toHaveCount(onsets.length);
-    await shots(page, "rhythm-dictation-writing");
-    await page.getByRole("button", { name: "Check my rhythm" }).click();
-    await expect(page.getByRole("status")).toContainText(
-      `All ${onsets.length} notes written right.`,
-    );
-    await shots(page, "rhythm-dictation-results");
-  });
+  // 4/4 on eighths, and 6/8 on three eighths a dotted-quarter beat.
+  for (const [level, perBeat, cells] of [
+    ["rests-halves", 2, 16],
+    ["compound", 3, 12],
+  ] as const)
+    test(`dictation (${level}): hear a rhythm, mark its notes on the grid`, async ({ page }) => {
+      await page.goto(`/music/rhythm?mode=dictation&earLevel=${level}`);
+      await page.getByRole("button", { name: "Start", exact: true }).click();
+      await expect(page.getByRole("status")).toContainText("Mark every note", { timeout: 15_000 });
+      const onsets = (await page.locator("[data-written]").getAttribute("data-written"))!
+        .split(",")
+        .map(Number);
+      const all = page.getByRole("group", { name: "Your rhythm" }).locator("button.cell");
+      await expect(all).toHaveCount(cells);
+      for (const b of onsets) await all.nth(Math.round(b * perBeat)).click();
+      await expect(all.and(page.locator('[aria-pressed="true"]'))).toHaveCount(onsets.length);
+      await shots(page, `rhythm-dictation-writing-${level}`);
+      await page.getByRole("button", { name: "Check my rhythm" }).click();
+      await expect(page.getByRole("status")).toContainText(
+        `All ${onsets.length} notes written right.`,
+      );
+      await shots(page, `rhythm-dictation-results-${level}`);
+    });
 
   test("pulse over fake MIDI with no count-in", async ({ page }) => {
     await installFakeMidi(page, [PORTS.keys]);

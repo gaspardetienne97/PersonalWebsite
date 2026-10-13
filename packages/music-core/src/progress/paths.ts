@@ -263,7 +263,7 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
       skillIds: ["ear.rhythm-echo"],
       minAttempts: 5,
       threshold: 0.75,
-      minDifficulty: 0.59,
+      minDifficulty: 0.67,
     },
     {
       id: "M-E3",

@@ -126,20 +126,41 @@ describe("rhythm by ear", () => {
       for (let seed = 1; seed <= 30; seed++) {
         const p = earRhythmPattern(rng(seed), level.id);
         const beats = p.cells.reduce((t, c) => t + RHYTHM_CELLS[c].beats, 0);
-        expect(beats).toBe(level.bars * 4);
+        expect(beats).toBe(level.bars * level.beatsPerBar);
+        expect(p.meter.beats).toBe(level.beatsPerBar);
         expect(p.cells.every((c) => level.cells.includes(c))).toBe(true);
         expect(p.cells[0]).not.toBe("rest");
         p.cells.forEach(
           (c, i) => i && expect(c === "rest" && p.cells[i - 1] === "rest").toBe(false),
         );
-        // Every onset sits on the dictation grid unless it is a triplet.
-        if (!p.cells.includes("triplet"))
-          for (const e of p.events) expect((e.beat * level.perBeat) % 1).toBeCloseTo(0);
         expect(expandRhythm(p, { bpm: 90 }).events).toHaveLength(p.events.length);
+        // A dictation pattern is written on its grid.
+        const d = earRhythmPattern(rng(seed), level.id, { dictation: true });
+        for (const w of d.written) expect((w * level.perBeat) % 1).toBeCloseTo(0);
       }
   });
 
-  it("leaves triplets out of dictation", () => {
+  it("6/8 has two dotted-quarter beats, written in eighths (three a beat)", () => {
+    const ps = Array.from({ length: 30 }, (_, i) =>
+      earRhythmPattern(rng(i + 1), "compound", { dictation: true }),
+    );
+    expect(ps.every((p) => p.meter.beats === 2)).toBe(true);
+    // Three eighths in a beat fit its grid, so dictation keeps them.
+    expect(ps.some((p) => p.cells.includes("triplet"))).toBe(true);
+  });
+
+  it("swing sounds long-short but is written as straight eighths", () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const p = earRhythmPattern(rng(seed), "swing");
+      p.cells.forEach((c) => expect(["quarter", "swing", "rest", "half"]).toContain(c));
+      p.events.forEach((e, i) => {
+        if (Math.abs((e.beat % 1) - 2 / 3) < 1e-6) expect(p.written[i] % 1).toBeCloseTo(0.5);
+        else expect(p.written[i]).toBeCloseTo(e.beat);
+      });
+    }
+  });
+
+  it("leaves triplets out of dictation on an eighth or sixteenth grid", () => {
     for (let seed = 1; seed <= 40; seed++)
       expect(earRhythmPattern(rng(seed), "syncopation", { dictation: true }).cells).not.toContain(
         "triplet",

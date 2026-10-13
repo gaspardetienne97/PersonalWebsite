@@ -7,7 +7,6 @@
   import type { InputEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
   import { EAR_RHYTHM_LEVELS, earRhythmPattern, expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "@repo/music-core/content/rhythm";
-  import type { RhythmPatternDef } from "@repo/music-core/data/index";
   import { rng } from "@repo/music-core/content/random";
   import { catalogEntry, rhythmExerciseId } from "@repo/music-core/content/catalog";
   import { gradeOnsets, gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
@@ -41,7 +40,7 @@
   const pulse = $derived(s.mode !== "read-and-tap" && !byEar);
   const earLevel = $derived(EAR_RHYTHM_LEVELS.find((l) => l.id === s.earLevel) ?? EAR_RHYTHM_LEVELS[0]);
   // A new pattern each run; before the first, an example of the level (for the demo).
-  let earDef = $state.raw<RhythmPatternDef | null>(null);
+  let earDef = $state.raw<ReturnType<typeof earRhythmPattern> | null>(null);
   const earExample = $derived(earRhythmPattern(rng(7), earLevel.id, { dictation }));
   const def = $derived(byEar ? (earDef ?? earExample) : (rhythmPattern(s.pattern) ?? RHYTHM_PATTERNS[0]));
   const plan = $derived(expandRhythm(def, { bpm }));
@@ -305,13 +304,14 @@
   let writing = $state(false);
   let marks = $state<boolean[]>([]);
   let dictationResult = $state.raw<ReturnType<typeof gradeOnsets> | null>(null);
-  const cellsPerBar = $derived(4 * earLevel.perBeat);
-  const COUNTS = { 2: ["", "&"], 4: ["", "e", "&", "a"] } as const;
+  const cellsPerBar = $derived(earLevel.beatsPerBar * earLevel.perBeat);
+  const COUNTS = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"] } as const;
   const cellLabel = (i: number) => {
     const sub = i % earLevel.perBeat;
-    return sub ? COUNTS[earLevel.perBeat][sub] : String(Math.floor(i / earLevel.perBeat) % 4 + 1);
+    return sub ? COUNTS[earLevel.perBeat][sub] : String((Math.floor(i / earLevel.perBeat) % earLevel.beatsPerBar) + 1);
   };
-  const heardBeats = $derived(def.events.map((e) => e.beat));
+  // Where the notes are written (swing is written straight), which is what a dictation marks.
+  const heardBeats = $derived(byEar && earDef ? earDef.written : def.events.map((e) => e.beat));
   const isHeard = (i: number) => heardBeats.some((b) => Math.abs(b - i / earLevel.perBeat) < 1e-6);
 
   function hearAgain() {
@@ -512,7 +512,7 @@
   {#snippet stage()}
     <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 md:grid-cols-[minmax(0,1fr)_auto]">
       <!-- By ear, the pattern and its start ride along as data (for tests and tools), never drawn until the end. -->
-      <div class="min-w-0" data-onsets={byEar ? heardBeats.join(",") : undefined} data-downbeat={byEar ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
+      <div class="min-w-0" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-downbeat={byEar ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
         {#if !pulse && def.chords?.length}
           <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are graded when the mic or MIDI hears pitch.</p>
         {/if}
