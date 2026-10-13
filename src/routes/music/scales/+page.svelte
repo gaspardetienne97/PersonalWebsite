@@ -35,6 +35,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { benchFromUrl } from "$lib/music/drills/piano/transport.svelte";
   import { audio, settings } from "$lib/music/runtime";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const LADDER_KEY = "technique.tempo-ladder.v1";
   const cfg = new DrillSetup("scales", {
@@ -279,9 +280,19 @@
             ]
           : []),
       ],
+      advance: notes.some((n) => n.kind === "noteon") ? await advanceAfter(r.score, r.correct) : undefined,
       ladder: proj?.rungs.map((rg) => ({ bpm: rg.bpm, state: rg.status === "next" ? ("next" as const) : rg.status })),
     };
     status = summary.headline;
+  }
+
+  /** Notes a click as steps; goals are the fastest ABRSM speed for two and four (blocked chords have none). */
+  function advanceAfter(score: number, correct: boolean) {
+    const col = (n: 2 | 4) => Math.max(...ABRSM_SPEEDS.map((g) => (pattern === "scale" ? g.scale : g.arpeggio)).filter((x) => x[1] === n).map((x) => x[0]));
+    const goals = pattern === "blocked" ? [120, 100, 80] : [120, col(2), col(4)];
+    const steps = ([1, 2, 4] as const).map((n, i) => ({ label: PER[n].replace(/^./, (c) => c.toUpperCase()), goal: goals[i] }));
+    const id = `scales.${pattern}.${pattern === "scale" ? s.kind : s.chord}.${scaleSetup.span}.${s.motion}.${s.hands}.${s.tonic}`;
+    return nextRun(id, { bpm: bpm(), tempo: { min: SCALE_TEMPO.min, goal: 120, max: SCALE_TEMPO.max }, steps, step: [1, 2, 4].indexOf(perBeat) }, { score, correct }, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i], preset: false })));
   }
 
   function stop() {
@@ -418,7 +429,6 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
-          <button type="button" class={btn} onclick={() => retempo(10)}>Practice next tempo</button>
           <button type="button" class={btn} onclick={() => retempo(-10)}>Slower</button>
         {/snippet}
       </Results>

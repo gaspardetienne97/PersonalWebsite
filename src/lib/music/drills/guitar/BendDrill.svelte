@@ -14,6 +14,7 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
+  import { nextRun } from "$lib/music/advance.svelte";
   import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { mic } from "$lib/music/runtime";
@@ -28,6 +29,8 @@
     { value: "half", label: "Bend a half step" },
     { value: "vibrato", label: "Vibrato" },
   ];
+  /** Easy to hard, for the next run. */
+  const LADDER = ["half", "vibrato", "whole"];
   /** Give up on a prompt after this long, judging what was heard. */
   const PROMPT_MS = 8000;
   /** Vibrato: this long from the first pitched frame. */
@@ -164,6 +167,7 @@
           label: `Try ${i + 1}`,
           text: v.rateHz === null ? "no vibrato heard" : `${v.rateHz.toFixed(1)} a second, ${Math.round(v.widthCents!)} cents wide, evenness ${pct(v.evenness ?? 0)}`,
         })),
+        advance: heard.length ? await advanceAfter(score, heard.length === vibratos.length) : undefined,
       };
     } else {
       const inTune = bends.filter((b) => b.verdict === "in-tune").length;
@@ -189,9 +193,16 @@
           { label: `In tune (within ${BEND.inTune} cents)`, value: inTune / Math.max(1, bends.length), text: `${inTune} of ${bends.length}` },
           ...bends.map((b, i) => ({ label: `Bend ${i + 1}`, text: b.verdict === "not-held" ? "not held" : `${b.verdict.replace("-", " ")}, ${centsText(b.errorCents!)}` })),
         ],
+        advance: held.length ? await advanceAfter(score, correct) : undefined,
       };
     }
     status = summary.headline;
+  }
+
+  /** Half step, vibrato, then a whole step, on this string and fret. */
+  function advanceAfter(score: number, correct: boolean) {
+    const steps = LADDER.map((v) => ({ label: EXERCISES.find((e) => e.value === v)!.label }));
+    return nextRun(`${instr}.bends.${tuning.id}.s${string}.f${fret}`, { steps, step: LADDER.indexOf(exercise) }, { score, correct }, ({ step }) => step !== undefined && cfg.set({ exercise: LADDER[step] }));
   }
 
   function stop() {

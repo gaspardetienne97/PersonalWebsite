@@ -46,6 +46,7 @@
   import PitchLane from "$lib/music/drills/aerophone/PitchLane.svelte";
   import AttackGrid from "$lib/music/drills/aerophone/AttackGrid.svelte";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
+  import { nextRun } from "$lib/music/advance.svelte";
 
   const LANDING_HOLD_MS = 3000;
   const NO_NOTE_MS = 15000;
@@ -302,8 +303,25 @@
       xp: fin.xp,
       clean: correct && mode === "check",
       assistance: assistanceText(mode),
+      advance: await advanceAfter(score, correct),
     };
     status = summary.headline;
+  }
+
+  /** Fingering moves through the lessons, holds and swells lengthen, articulation climbs the tempo then the note count, landing moves through the intervals. */
+  function advanceAfter(score: number, correct: boolean) {
+    const run = { score, correct };
+    const at = (labels: string[], i: number) => ({ steps: labels.map((label) => ({ label })), step: Math.max(0, i) });
+    const set = (patch: (i: number) => Parameters<typeof cfg.set>[0]) => ({ step }: { step?: number }) => step !== undefined && cfg.set(patch(step));
+    const holds = AEROPHONE_MODES[1].seconds as readonly number[];
+    const swells = AEROPHONE_MODES[2].seconds as readonly number[];
+    const counts = [4, 8, 12];
+    if (m === "fingering") return nextRun("aero.fingering", at(FINGERING_LESSONS.map((l) => l.label), FINGERING_LESSONS.indexOf(lesson)), run, set((i) => ({ lesson: FINGERING_LESSONS[i].id })));
+    if (m === "long-tone") return nextRun(`aero.long-tone.${targetMidi}.${s.level}`, at(holds.map((x) => `Hold ${x} s`), holds.indexOf(s.seconds)), run, set((i) => ({ seconds: holds[i] })));
+    if (m === "swell") return nextRun(`aero.swell.${targetMidi}`, at(swells.map((x) => `Swell over ${x} s`), swells.indexOf(s.swellSeconds)), run, set((i) => ({ swellSeconds: swells[i] })));
+    if (m === "articulation")
+      return nextRun(`aero.articulation.${targetMidi}.${style}`, { bpm: s.artBpm, tempo: { min: 60, goal: 110, max: 140 }, ...at(counts.map((x) => `${x} notes`), counts.indexOf(s.count)) }, run, ({ bpm, step }) => cfg.set({ ...(bpm !== undefined && { artBpm: bpm }), ...(step !== undefined && { count: counts[step] }) }));
+    return nextRun(`aero.landing.${s.drone}.${s.direction}`, at(LANDING_INTERVALS.map((x) => x.label), LANDING_INTERVALS.findIndex((x) => x.semitones === s.interval)), run, set((i) => ({ interval: LANDING_INTERVALS[i].semitones })));
   }
 
   async function finish() {
@@ -356,6 +374,7 @@
       xp: fin.xp,
       clean: r.correct && mode === "check",
       assistance: assistanceText(mode),
+      advance: ons.length ? await advanceAfter(r.score, r.correct) : undefined,
     };
     status = summary.headline;
   }

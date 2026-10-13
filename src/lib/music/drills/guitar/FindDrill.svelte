@@ -12,7 +12,6 @@
     noteFinderPrompt,
     RECALL_INTERVALS,
     RECALL_REGIONS,
-    suggestRecallRegion,
   } from "@repo/music-core/content/technique";
   import { midiAt } from "@repo/music-core/theory/fretboard";
   import { gradeFretFind } from "@repo/music-core/scoring/technique";
@@ -22,9 +21,9 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, runInstrument, writeKeyed, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, runInstrument, type Capture } from "$lib/music/drill.svelte";
+  import { nextRun } from "$lib/music/advance.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { mic } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
@@ -38,7 +37,6 @@
   // svelte-ignore state_referenced_locally
   const isRecall = kind === "interval-recall";
 
-  const RECENT_KEY = "fretboard.recall-recent.v1";
   const REVEAL_MS = 900;
   const cfg = new DrillSetup(isRecall ? "fretboard-interval-recall" : "fretboard-note-finder", {
     region: 0,
@@ -79,7 +77,6 @@
   let revealing = $state(false);
   let answers = $state<Answer[]>([]);
   let summary = $state<RunSummary | null>(null);
-  let suggestion = $state<number | null>(null);
   const flashes = new Flashes();
   let cap: Capture | null = null;
   let run: ReturnType<typeof practice.beginRun> | null = null;
@@ -158,7 +155,6 @@
 
   async function start(ctx: RunContext) {
     summary = null;
-    suggestion = null;
     answers = [];
     flashes.clear();
     rand = rng(Date.now());
@@ -188,13 +184,8 @@
     await pending;
     const right = answers.filter((a) => a.correct).length;
     const score = answers.length ? right / answers.length : 0;
-    const fin = await run!.finish({ score, correct: right === answers.length && answers.length > 0, headline: `${right} of ${answers.length} found` });
-    if (isRecall && mode === "check") {
-      const recentKey = `${tuning.id}:${regionIdx}`;
-      const stored = await writeKeyed<boolean[]>(RECENT_KEY, recentKey, answers.map((a) => a.correct), (a, b) => [...a, ...b].slice(-20));
-      const next = suggestRecallRegion(regionIdx, stored[recentKey]);
-      suggestion = next > regionIdx ? next : null;
-    }
+    const correct = right === answers.length && answers.length > 0;
+    const fin = await run!.finish({ score, correct, headline: `${right} of ${answers.length} found` });
     const taps = answers.filter((a) => a.positionVerified !== null);
     const meanMs = answers.length ? answers.reduce((n, a) => n + a.ms, 0) / answers.length : 0;
     const perInterval = isRecall && !s.interval
@@ -225,6 +216,10 @@
           : { label: "String and fret", notMeasured: true },
         { label: "Timing and fingering", notMeasured: true },
       ],
+      // The regions up the neck, low to high.
+      advance: answers.length
+        ? await nextRun(`${instr}.${kind}.${tuning.id}${isRecall ? `.i${s.interval}` : ""}`, { steps: RECALL_REGIONS.map((r) => ({ label: `frets ${r.start} to ${r.end}` })), step: regionIdx }, { score, correct }, ({ step }) => step !== undefined && cfg.set({ region: step }))
+        : undefined,
     };
     status = summary.headline;
   }
@@ -315,15 +310,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          {#if suggestion !== null}
-            <button type="button" class={btn} onclick={() => { cfg.set({ region: suggestion! }); phase = "ready"; summary = null; }}>
-              Five in a row: move to frets {RECALL_REGIONS[suggestion].start} to {RECALL_REGIONS[suggestion].end}
-            </button>
-          {/if}
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>

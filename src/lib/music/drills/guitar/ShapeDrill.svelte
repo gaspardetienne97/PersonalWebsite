@@ -15,7 +15,8 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
-  import { btn, btnStage } from "$lib/music/components/ui";
+  import { btnStage } from "$lib/music/components/ui";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -215,8 +216,17 @@
         { label: "Which string each note came from", notMeasured: true },
         { label: "Tone cleanliness", notMeasured: true },
       ],
+      advance: ons.length ? await advanceAfter(r.score, r.correct) : undefined,
     };
     status = summary.headline;
+  }
+
+  /** The chord's positions up the neck, low to high; Pick also climbs the tempo to 100 first. */
+  function advanceAfter(score: number, correct: boolean) {
+    const plan = { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex };
+    const setPos = (i: number) => cfg.set({ position: i });
+    if (isPick) return nextRun(`${instr}.chords.pick.${base.id}`, { ...plan, bpm: bpm(), tempo: { min: 40, goal: 100, max: 160 } }, { score, correct }, tempoAnd(setPos));
+    return nextRun(`${instr}.chords.build.${base.id}`, plan, { score, correct }, ({ step }) => step !== undefined && setPos(step));
   }
 
   function stop() {
@@ -318,16 +328,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          {#if isPick}
-            <button type="button" class={btn} onclick={() => { settings.update({ bpm: bpm() + 10 }); phase = "ready"; summary = null; }}>Faster, {bpm() + 10} BPM</button>
-          {/if}
-          {#if posIndex < positions.length - 1}
-            <button type="button" class={btn} onclick={() => { cfg.set({ position: posIndex + 1 }); phase = "ready"; summary = null; }}>Same chord, higher up</button>
-          {/if}
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>

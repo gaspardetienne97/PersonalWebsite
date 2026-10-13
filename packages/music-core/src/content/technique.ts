@@ -545,14 +545,6 @@ export function intervalRecallPrompt(
   };
 }
 
-/** Five recent correct independent answers suggest the next region up. */
-export function suggestRecallRegion(region: number, recentCorrect: boolean[]): number {
-  const last5 = recentCorrect.slice(-5);
-  return last5.length === 5 && last5.every(Boolean)
-    ? Math.min(region + 1, RECALL_REGIONS.length - 1)
-    : region;
-}
-
 // ---------------------------------------------------------------------------
 // Chord-perfect and chord changes
 

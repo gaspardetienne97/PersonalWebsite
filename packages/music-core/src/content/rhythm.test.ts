@@ -12,7 +12,6 @@ import {
   RHYTHM_PATTERNS,
   rhythmPattern,
   rhythmSkills,
-  strumLadderAfter,
 } from "./rhythm";
 import { rng } from "./random";
 
@@ -198,21 +197,7 @@ describe("groove dictation", () => {
   });
 });
 
-describe("the strumming tempo ladder", () => {
-  it("offers 5 BPM more after two runs at 90% or better at one tempo", () => {
-    let l = strumLadderAfter(undefined, { bpm: 80, score: 0.95 });
-    expect(l).toMatchObject({ streak: 1, next: null });
-    l = strumLadderAfter(l, { bpm: 80, score: 0.92 });
-    expect(l).toMatchObject({ streak: 2, next: 85, best: 80 });
-    // A slip, or a new tempo, starts the count again.
-    expect(strumLadderAfter(l, { bpm: 80, score: 0.7 })).toMatchObject({
-      streak: 0,
-      next: null,
-      best: 80,
-    });
-    expect(strumLadderAfter(l, { bpm: 85, score: 0.95 })).toMatchObject({ streak: 1, next: null });
-  });
-
+describe("strum patterns", () => {
   it("has the new strum patterns with their chords", () => {
     for (const id of ["guitar-old-faithful", "ukulele-island-strum", "ukulele-chuck"]) {
       const p = RHYTHM_PATTERNS.find((x) => x.id === id)!;

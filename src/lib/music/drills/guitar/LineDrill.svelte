@@ -35,6 +35,7 @@
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -312,8 +313,21 @@
             ]
           : []),
       ],
+      advance: ons.length ? await advanceAfter(r.score, r.correct) : undefined,
     };
     status = summary.headline;
+  }
+
+  /** The tempo climbs to the goal (the chosen grade's click, or 120), then the notes a click double. */
+  function advanceAfter(score: number, correct: boolean) {
+    const goal = target?.bpm ?? 120;
+    const steps = [
+      { label: "One note a click", goal },
+      { label: "Two notes a click", goal: Math.round((goal * 92) / 120) },
+      { label: "Four notes a click", goal: Math.round((goal * 72) / 120) },
+    ];
+    const id = isPick ? `${instr}.fingerpick.${pickPattern.id}.${chordA.id}>${chordB.id}` : `${instr}.${kind}.${isLegato ? legatoPattern.id : isSpider ? spiderPattern.id : box.id}`;
+    return nextRun(id, { bpm: bpm(), tempo: { min: 40, goal, max: 200 }, steps, step: [1, 2, 4].indexOf(perBeat) }, { score, correct }, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i] })));
   }
 
   function stop() {
@@ -480,7 +494,6 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
-          <button type="button" class={btn} onclick={() => again({ bpm: bpm() + 10 })}>Faster, {bpm() + 10} BPM</button>
           <button type="button" class={btn} onclick={() => again({ bpm: bpm() - 10 })}>Slower</button>
           <button type="button" class={btn} onclick={() => again({ next: true })}>Next {kind === "positions" ? "shape" : "pattern"}</button>
         {/snippet}

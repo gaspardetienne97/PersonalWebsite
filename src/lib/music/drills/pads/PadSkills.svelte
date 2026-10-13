@@ -43,6 +43,7 @@
   import { assistanceFor, assistanceText, capture, pct, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, getSetting, putSetting, settings } from "$lib/music/runtime";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import GrooveGrid from "./GrooveGrid.svelte";
   import MidiStatus from "./MidiStatus.svelte";
   import { laneColor } from "./lanes";
@@ -311,8 +312,18 @@
     }
     await run!.attempt({ promptId: `${skill}:${grooveDef?.value ?? s.dyn}`, correct, partialCredit: score, metrics: grv?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
     const fin = await run!.finish({ score, correct, headline });
-    summary = { headline, metric: pct(score), metricLabel: skill === "improvise" ? "played" : "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: skill === "improvise" ? "Improvising is described, not graded." : assistanceText(mode), rows };
+    summary = { headline, metric: pct(score), metricLabel: skill === "improvise" ? "played" : "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: skill === "improvise" ? "Improvising is described, not graded." : assistanceText(mode), rows, advance: graded(ons.length) ? await advanceAfter(score, correct) : undefined };
     status = headline;
+  }
+
+  /** Improvising is described, not graded; dynamics count only with velocity measured. */
+  const graded = (hits: number) => hits > 0 && skill !== "improvise" && (skill !== "dynamics" || levels.length > 0);
+  /** Each skill climbs the tempo to 120, then moves through its own list. */
+  function advanceAfter(score: number, correct: boolean) {
+    const [list, key] = ({ fills: [PAD_FILLS, "fill"], orchestrate: [ORCHESTRATIONS, "orch"], ostinato: [READING_LINES, "line"], echo: [ECHO_LEVELS, "echo"], dynamics: [DYNAMICS_EXERCISES, "dyn"] } as const)[skill as Exclude<SkillMode, "improvise">];
+    const xs = list as readonly { id: string; label: string }[];
+    const step = Math.max(0, xs.findIndex((x) => x.id === s[key]));
+    return nextRun(`pads.${skill}`, { bpm, tempo: { min: 40, goal: 120 }, steps: xs.map((x) => ({ label: x.label })), step }, { score, correct }, tempoAnd((i) => cfg.set({ [key]: xs[i].id })));
   }
 
   function hearTake(amount: number) {

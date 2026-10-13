@@ -73,7 +73,7 @@ test.describe("finger-drumming repertoire", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
   });
 
-  test("Funky Drummer at level 3: passed, then up the tempo ladder", async ({ page }) => {
+  test("Funky Drummer at level 3: passed, one more clean run to move up", async ({ page }) => {
     test.setTimeout(60_000);
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(page, "/music/pads?mode=groove&groove=funky-drummer&bpm=80");
@@ -94,10 +94,10 @@ test.describe("finger-drumming repertoire", () => {
       timeout: 15_000,
     });
     await expect(page.getByLabel("3 of 3 stars")).toBeVisible();
-    await expect(page.getByRole("status")).toContainText("Next time: 85 BPM.");
+    // One clean run: the next run is the same again; a second moves the tempo up.
+    await expect(page.getByTestId("next-run")).toHaveAttribute("data-kind", "same");
+    await expect(page.getByTestId("next-run")).toContainText("1 more clean run to move on");
     await shots(page, "funky-drummer-results");
-    await page.getByRole("button", { name: "Up the ladder: 85 BPM" }).click();
-    await expect(page.getByText("Setup:").locator("..")).toContainText("85 BPM");
   });
 
   test("kompa: the cowbell gets its own lane, and the groove passes", async ({ page }) => {

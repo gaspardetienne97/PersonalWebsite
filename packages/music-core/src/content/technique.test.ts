@@ -28,7 +28,6 @@ import {
   SPIDER_PATTERNS,
   spiderMaxStartFret,
   spiderTargets,
-  suggestRecallRegion,
 } from "./technique";
 
 const std = tuningById("guitar.standard")!;
@@ -292,13 +291,6 @@ describe("note finder and interval recall", () => {
           `technique.guitar.intervals.${semitones}`,
         ]);
       }
-  });
-
-  it("suggests the next region after five recent correct answers", () => {
-    expect(suggestRecallRegion(0, [true, true, true, true, true])).toBe(1);
-    expect(suggestRecallRegion(0, [true, true, false, true, true])).toBe(0);
-    expect(suggestRecallRegion(0, [true, true, true, true])).toBe(0);
-    expect(suggestRecallRegion(2, [true, true, true, true, true])).toBe(2);
   });
 });
 

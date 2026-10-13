@@ -16,6 +16,7 @@
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
+  import { nextRun } from "$lib/music/advance.svelte";
 
   const VARIANTS: { value: Variant; label: string }[] = [
     { value: "major", label: "Major ii-V-I" },
@@ -25,6 +26,11 @@
     { value: "voice-leading", label: "Guide tones through the keys" },
     { value: "cadence", label: "Cadences I IV I V7 I" },
     { value: "cadence-minor", label: "Minor cadences i iv i V7 i" },
+  ];
+  const KEY_STEPS = [
+    { value: 1, label: "One key" },
+    { value: 3, label: "Three keys" },
+    { value: 12, label: "All 12 keys" },
   ];
 
   let mode = $state<DrillMode>(benchFromUrl({ min: 40, max: 200 }));
@@ -222,6 +228,11 @@
             ? { label: onScreen ? "Held together (on-screen keys)" : "Held together (notes collected)", notMeasured: true }
             : { label: "Held together", text: "Strict: graded on the held chord" },
       ],
+      // Untimed: the ladder is one key, three, then all 12. Inversions has one key only.
+      advance:
+        variant !== "inversions" && notes.some((n) => n.kind === "noteon")
+          ? await nextRun(`voicings.${variant}.${pc(s.key)}.${s.strict ? "strict" : "collected"}.${monophonic ? "arp" : "chord"}.${s.position}`, { steps: KEY_STEPS, step: Math.max(0, KEY_STEPS.findIndex((k) => k.value === s.keys)) }, { score, correct }, ({ step }) => step !== undefined && cfg.set({ keys: KEY_STEPS[step].value }))
+          : undefined,
     };
     status = summary.headline;
   }

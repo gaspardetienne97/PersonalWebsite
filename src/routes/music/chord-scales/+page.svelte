@@ -19,8 +19,16 @@
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const TEMPO = { min: 40, max: 200 };
+  /** Two bars a chord then one, major changes then minor. */
+  const LADDER = [
+    { changes: "major", beats: 8, label: "Major, two bars a chord" },
+    { changes: "major", beats: 4, label: "Major, one bar a chord" },
+    { changes: "minor", beats: 8, label: "Minor, two bars a chord" },
+    { changes: "minor", beats: 4, label: "Minor, one bar a chord" },
+  ];
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
   const cfg = new DrillSetup("chord-scales", { changes: "major" as string, key: "C", beats: 8 });
   const s = $derived(cfg.value);
@@ -171,6 +179,9 @@
         value: c.chord + c.scale + c.avoid ? c.score : null,
         text: c.chord + c.scale + c.avoid ? `${c.chord} chord, ${c.scale} scale, ${c.avoid} outside` : "Nothing played",
       })),
+      advance: ons.length
+        ? await nextRun(`chord-scales.${key}`, { bpm, tempo: { min: TEMPO.min, goal: 150, max: TEMPO.max }, steps: LADDER, step: LADDER.findIndex((l) => l.changes === changes && l.beats === perChord) }, r, tempoAnd((i) => cfg.set({ changes: LADDER[i].changes, beats: LADDER[i].beats })))
+        : undefined,
     };
     status = summary.headline;
   }

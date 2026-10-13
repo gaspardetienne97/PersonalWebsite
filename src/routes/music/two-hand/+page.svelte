@@ -18,6 +18,7 @@
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const TEMPO = { min: 50, max: 140 };
   const BARS = 2;
@@ -44,6 +45,9 @@
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
   const rendering = $derived(twoHandPattern({ pattern, tonic, bars: BARS, handMode: hand }));
   const mirror = $derived(rendering.measuresTogether);
+  /** Mirror hands is the easiest pattern, contrary motion the hardest. */
+  const level = (p: TwoHandPatternId) => (p === "contrary-five" ? 0.3 : p === "contrary-motion-scale" ? 0.6 : 0.45);
+  const LADDER = [...TWO_HAND_PATTERNS].sort((a, b) => level(a.id) - level(b.id));
   const measuresTogether = $derived(mirror && hand === "both");
 
   // One note per hand event; its length is that hand's own spacing (a beat or an eighth).
@@ -143,7 +147,7 @@
       capabilities: ["technique"],
       modality: "played",
       assistance: assistanceFor(mode),
-      difficulty: Math.min(1, (mirror ? 0.3 : pattern === "contrary-motion-scale" ? 0.6 : 0.45) + (bpm - 60) / 300),
+      difficulty: Math.min(1, level(pattern) + (bpm - 60) / 300),
       instrument: "piano",
       params: { bpm, pattern, tonic: s.tonic, hand, dynamics: s.dynamics },
     });
@@ -183,7 +187,10 @@
       response: played.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm} BPM` });
-    summary = buildSummary(r, fin);
+    const advance = played.some((n) => n.kind === "noteon")
+      ? await nextRun(`two-hand.${s.tonic}.${hand}.${s.dynamics ? "dyn" : "flat"}`, { bpm, tempo: { min: TEMPO.min, goal: 100, max: TEMPO.max }, steps: LADDER.map((p) => ({ label: p.label })), step: Math.max(0, LADDER.findIndex((p) => p.id === pattern)) }, r, tempoAnd((i) => cfg.set({ pattern: LADDER[i].id })))
+      : undefined;
+    summary = { ...buildSummary(r, fin), advance };
     status = summary.headline;
   }
 

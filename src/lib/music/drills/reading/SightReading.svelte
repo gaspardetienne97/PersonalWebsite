@@ -37,6 +37,7 @@
   import type { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
+  import { nextRun } from "$lib/music/advance.svelte";
   import { audio, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
   import { handLabel, soundingScore, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
@@ -305,6 +306,8 @@
             { label: "Timing", notMeasured: true },
           ],
     };
+    // The climb is its own advance; otherwise the next run by the shared rule, when something was played.
+    if (!climbing && (st.mode === "performance" ? st.notes : notes).length) summary.advance = await advanceAfter(r.score, r.correct);
     if (climbing && climb) {
       const was = climb;
       climb = climbAfter(was, r.score);
@@ -330,6 +333,22 @@
       ];
     }
     status = summary.headline;
+  }
+
+  /** Up the level rungs; keeping time also climbs the tempo. Each next run reads a fresh phrase. */
+  function advanceAfter(score: number, correct: boolean) {
+    const timed = follower === "performance";
+    return nextRun(
+      `reading.sight.${instrument}.${follower}.${measures}.${s.meter}`,
+      { ...(timed ? { bpm, tempo: { min: 40, goal: 100, max: 200 } } : {}), steps: READING_RUNGS, step: rungOf(levelId, key.name) },
+      { score, correct },
+      ({ bpm: b, step }) => {
+        if (b !== undefined) void settings.update({ bpm: b });
+        if (step !== undefined) goToRung(step);
+        override = null;
+        seed = (seed * 7 + 13) % 2 ** 31;
+      },
+    );
   }
 
   function stop() {

@@ -258,12 +258,15 @@ test.describe("ear training", () => {
       const name = { M3: "Major 3rd", P5: "Perfect 5th", P8: "Octave" }[answer]!;
       await page.locator("button.choice", { hasText: new RegExp(`^${name}`) }).click();
     }
-    const offer = page.getByRole("region", { name: "Ready for the next interval" });
-    await expect(offer).toContainText("Ready for the perfect 4th?");
+    const next = page.getByTestId("next-run");
+    await expect(next).toHaveAttribute("data-kind", "harder");
+    await expect(next).toContainText("90% of the last 20 answers");
     // Results: a row per interval, this run and the overall accuracy.
     await expect(page.getByText(/^\d+ of \d+, \d+% overall$/).first()).toBeVisible();
-    await offer.getByRole("button", { name: "Add the perfect 4th" }).click();
-    await expect(page.getByRole("status")).toContainText("Added the perfect 4th. 4 intervals now.");
+    await next.getByRole("button", { name: "Move on: the perfect 4th" }).click();
+    // The next run starts with the 4th added.
+    await expect(prompt(page)).toHaveAttribute("aria-label", "Question 1");
+    await expect(page.locator("button.choice", { hasText: /^Perfect 4th/ })).toBeVisible();
   });
 
   test("chords, cadences and degrees: a wrong answer is shown and played beside the right one", async ({
@@ -601,12 +604,14 @@ test.describe("ear training", () => {
         .getByRole("button", { name: new RegExp(`^${degree} `) })
         .click();
     }
-    const offer = page.getByRole("region", { name: "Ready for the next level" });
-    await expect(offer).toContainText("Ready for the next level, Major pentachord?");
-    await offer.getByRole("button", { name: "Move up to Major pentachord" }).click();
-    await expect(page.getByRole("status")).toContainText(
-      "Moved up to Major pentachord: 1, 2, 3, 4, 5.",
-    );
+    const next = page.getByTestId("next-run");
+    await expect(next).toHaveAttribute("data-kind", "harder");
+    await next.getByRole("button", { name: "Move on: Major pentachord" }).click();
+    // The next run starts at the new level, with 2 and 4 to answer.
+    await expect(prompt(page)).toHaveAttribute("aria-label", "Question 1");
+    await expect(
+      page.getByRole("group", { name: "Scale degrees" }).getByRole("button", { name: /^4 / }),
+    ).toBeVisible();
   });
 
   test("intervals: practise a few at a time, in one direction", async ({ page }) => {
@@ -936,7 +941,7 @@ test.describe("rhythm", () => {
     await shots(page, "rhythm-strum-ready");
   });
 
-  test("strumming: Old Faithful twice at 90% or better offers 5 BPM more", async ({ page }) => {
+  test("strumming: Old Faithful clean twice offers a faster run", async ({ page }) => {
     test.setTimeout(90_000);
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(page, "/music/rhythm?mode=read-and-tap&pattern=guitar-old-faithful&bpm=80");
@@ -983,14 +988,13 @@ test.describe("rhythm", () => {
         },
         { port: PORTS.keys.id, strokes, chords, downbeat },
       );
-      await expect(page.locator("article").first()).toContainText(
-        run === 1
-          ? "1 of 2 runs at 90% or better at 80 BPM"
-          : "2 runs at 90% or better at 80 BPM: try 85",
+      await expect(page.getByTestId("next-run")).toHaveAttribute(
+        "data-kind",
+        run === 1 ? "same" : "faster",
         { timeout: 20_000 },
       );
     }
-    await expect(page.getByRole("button", { name: "Up to 85 BPM" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Speed up to 84 BPM" })).toBeVisible();
     await shots(page, "rhythm-strum-ladder");
   });
 

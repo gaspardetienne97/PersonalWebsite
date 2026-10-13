@@ -15,6 +15,7 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
@@ -45,6 +46,8 @@
         return item;
       });
   });
+  /** The progressions from beginner to advanced, for the next run. */
+  const LADDER = (["beginner", "intermediate", "advanced"] as const).flatMap((d) => PROGRESSIONS.filter((p) => p.difficulty === d));
   const totalBeats = $derived(chart.reduce((n, c) => n + c.durationBeats, 0));
 
   let phase = $state<Phase>("ready");
@@ -180,6 +183,10 @@
         { label: "Which strings rang", notMeasured: true },
         { label: "Skill mastery", notMeasured: true },
       ],
+      // The tempo climbs to the progression's own, then the next progression up.
+      advance: observed.length
+        ? await nextRun(`${instr}.strum.${strictness}.${choruses}`, { bpm: bpm(), tempo: { min: 40, goal: prog.bpm, max: 160 }, steps: LADDER.map((p) => ({ label: p.name, goal: p.bpm })), step: LADDER.indexOf(prog) }, { score: r.score, correct: r.correct }, tempoAnd((i) => cfg.set({ progression: LADDER[i].id })))
+        : undefined,
     };
     status = summary.headline;
   }

@@ -15,6 +15,7 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
+  import { nextRun } from "$lib/music/advance.svelte";
   import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic } from "$lib/music/runtime";
@@ -172,6 +173,8 @@
         { label: "Which strings rang", notMeasured: true },
         { label: "Tone cleanliness", notMeasured: true },
       ],
+      // The chord's positions up the neck, low to high.
+      advance: await nextRun(`${instr}.chords.strum.${base.id}`, { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex }, { score: g.score, correct: g.correct }, ({ step }) => step !== undefined && cfg.set({ position: step })),
     };
     status = summary.headline;
   }

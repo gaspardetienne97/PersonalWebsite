@@ -24,7 +24,7 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
+  import { btn } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -37,6 +37,7 @@
   import { backingChords, backingFor } from "$lib/music/drills/pads/backing";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
   import PadSkills from "$lib/music/drills/pads/PadSkills.svelte";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const cfg = new DrillSetup("pads", {
     mode: "rudiment" as string,
@@ -491,7 +492,7 @@
       extra = { tier, swing: entry.swing ? measuredSwing(groove.targets, r.perTarget, beatMs) : null, drift, bias, pass: tier.pass && steadyOk };
       // Holding the tempo counts in the score: drifting 3 BPM or more costs 40%.
       graded = { ...r, score: steadyOk ? r.score : r.score * 0.6, correct: tier.pass && steadyOk };
-      // The tempo ladder: a pass moves this groove's next tempo up 5, to the target.
+      // The tempo this groove starts at next time it is picked: a pass moves it up 5, to the target.
       if (!isSteady) {
         const key = ladderKey(entry.groove.value);
         if (extra.pass) {
@@ -531,6 +532,7 @@
       xp: fin.xp,
       clean: graded.correct && mode === "check",
       assistance: assistanceText(mode),
+      advance: ons.length ? await advanceAfter(graded.score, graded.correct) : undefined,
     };
     stars = starsFor(graded.score, isGroove ? !!extra?.pass : graded.correct);
     if (stars > (bestStars[starsId] ?? 0)) {
@@ -538,6 +540,24 @@
       void putSetting(STARS_KEY, bestStars);
     }
     status = summary.headline;
+  }
+
+  /** Grooves climb the tempo to the target, then the next groove by level; rudiments climb to 120, then the subdivision or the length. */
+  const GROOVE_STEPS = [...PAD_REPERTOIRE].sort((a, b) => a.level - b.level);
+  const SUB_STEPS = [{ label: "Eighths" }, { label: "Triplets" }, { label: "Sixteenths" }];
+  function advanceAfter(score: number, correct: boolean) {
+    const run = { score, correct };
+    if (isSteady) return nextRun(`pads.steady.${s.steady}`, { bpm, tempo: { min: 40, goal: entry.bpm.target } }, run);
+    if (isGroove)
+      return nextRun("pads.groove", { bpm, tempo: { min: Math.min(bpm, entry.bpm.start), goal: entry.bpm.target }, steps: GROOVE_STEPS.map((r) => ({ label: `Level ${r.level}, ${r.groove.label}`, goal: r.bpm.target, start: r.bpm.start })), step: GROOVE_STEPS.indexOf(entry) }, run, tempoAnd((i) => {
+        fails = 0;
+        cfg.set({ groove: GROOVE_STEPS[i].groove.value });
+      }));
+    const tempo = { min: 40, goal: Math.max(...RUDIMENT_TEMPOS) };
+    // A rudiment with its own subdivision grows in length instead.
+    if (("subdivision" in pattern && pattern.subdivision) || pattern.perBeat)
+      return nextRun(`pads.rudiment.${pattern.id}`, { bpm, tempo, steps: RUDIMENT_HIT_COUNTS.map((n) => ({ label: `${n} hits` })), step: Math.max(0, RUDIMENT_HIT_COUNTS.indexOf(s.hits as 8)) }, run, tempoAnd((i) => cfg.set({ hits: RUDIMENT_HIT_COUNTS[i] })));
+    return nextRun(`pads.rudiment.${pattern.id}.${s.hits}`, { bpm, tempo, steps: SUB_STEPS, step: Math.max(0, [2, 3, 4].indexOf(s.sub)) }, run, tempoAnd((i) => cfg.set({ sub: [2, 3, 4][i] })));
   }
 
   function rudimentSummary(r: RudimentResult, ons: NoteEvent[]): RunSummary {
@@ -598,7 +618,7 @@
       headline = `On your own you ${way} (${bpm} BPM asked), and ended ${Math.abs(Math.round(d.endOffsetMs))} ms ${d.endOffsetMs < 0 ? "ahead of" : "behind"} the grid. ${x.pass ? "Steady." : Math.abs(d.driftBpm) >= 3 ? "Aim to stay within 3 BPM." : ""}`.trim();
     } else if (ons.length && !isSteady)
       headline = x.pass
-        ? `Passed level ${entry.level} at ${bpm} BPM: ${Math.round(x.tier.perfect * 100)}% perfect, ${Math.round(x.tier.good * 100)}% good.${bpm < entry.bpm.target ? ` Next time: ${Math.min(entry.bpm.target, bpm + 5)} BPM.` : " At the target tempo."}`
+        ? `Passed level ${entry.level} at ${bpm} BPM: ${Math.round(x.tier.perfect * 100)}% perfect, ${Math.round(x.tier.good * 100)}% good.${bpm < entry.bpm.target ? "" : " At the target tempo."}`
         : `${headline} ${Math.round(x.tier.good * 100)}% good of the 90% to pass, ${Math.round(x.tier.perfect * 100)}% perfect of 70%.`;
     const leans = x.bias.filter((b) => b.ms !== null && Math.abs(b.ms) >= 8);
     return {
@@ -824,7 +844,7 @@
                 <p class="mt-1 text-ws-stage-soft">{entry.feel}</p>
                 <p class="mt-1"><span class="text-ws-stage-soft">Fingers:</span> {entry.fingers}</p>
                 <p class="mt-1 text-ws-stage-soft">
-                  {#if isSteady}Four bars with the click, then {STEADY_BARS - CLICK_BARS} on your own: stay within 3 BPM.{:else}Starts at {entry.bpm.start} BPM, aims for {entry.bpm.target}; each pass moves it up 5, two misses in a row back down 5. Now {bpm}.{/if}
+                  {#if isSteady}Four bars with the click, then {STEADY_BARS - CLICK_BARS} on your own: stay within 3 BPM.{:else}Starts at {entry.bpm.start} BPM, aims for {entry.bpm.target}; two clean runs in a row move it up. Now {bpm}.{/if}
                 </p>
               </div>
             {/if}
@@ -860,9 +880,6 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
-          {#if extra?.pass && !isSteady && bpm < entry.bpm.target}
-            <button type="button" class={btnPrimary} onclick={() => retempo(Math.min(entry.bpm.target, bpm + 5) - bpm)}>Up the ladder: {Math.min(entry.bpm.target, bpm + 5)} BPM</button>
-          {/if}
           <button type="button" class={btn} onclick={() => retempo(isGroove ? 5 : 6)}>Faster</button>
           <button type="button" class={btn} onclick={() => retempo(isGroove ? -5 : -6)}>Slower</button>
         {/snippet}

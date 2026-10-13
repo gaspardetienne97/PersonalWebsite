@@ -5,7 +5,7 @@
   import { onDestroy } from "svelte";
   import type { Assistance, InputSource, NoteEvent } from "@repo/music-core";
   import { noteName, parseNote, pc } from "@repo/music-core";
-  import { flashcardCorrect, flashcardPrompt, readingLevel, type Clef, type FlashcardPrompt } from "@repo/music-core/content/reading";
+  import { flashcardCorrect, flashcardPrompt, READING_LEVELS, readingLevel, type Clef, type FlashcardPrompt } from "@repo/music-core/content/reading";
   import { CHOICE_NAMES, keyByName, KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
   import { gradeFlashcard } from "@repo/music-core/scoring/reading";
   import { rng } from "@repo/music-core/content/random";
@@ -21,6 +21,7 @@
   import type { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
+  import { nextRun } from "$lib/music/advance.svelte";
   import { mic } from "$lib/music/runtime";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { clampRange, comparisonScore, flashcardScore, playableWrittenRange, type ReadingSetup } from "./reading";
@@ -60,6 +61,7 @@
   let anyHint = false;
   let summary = $state<RunSummary | null>(null);
   let queued: FlashcardPrompt[] | null = null;
+  let retrying = false;
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let cap: Capture | null = null;
   let shownAt = 0;
@@ -89,6 +91,7 @@
     summary = null;
     answers = [];
     anyHint = false;
+    retrying = !!queued;
     cards = queued ?? makeCards();
     queued = null;
     if (useMic && !(await mic.start())) {
@@ -201,8 +204,23 @@
       rows: (["treble", "bass"] as const)
         .filter((c) => byClef(c).length)
         .map((c) => ({ label: c === "treble" ? "Treble clef" : "Bass clef", value: byClef(c).filter((r) => r.correct).length / byClef(c).length, text: `${byClef(c).filter((r) => r.correct).length} of ${byClef(c).length}` })),
+      // A retry of the missed cards is not the level's run.
+      advance: retrying ? undefined : await advanceAfter(score, right === answers.length),
     };
     status = summary.headline;
+  }
+
+  /** Untimed: up through the reading levels, each at its own range. */
+  function advanceAfter(score: number, correct: boolean) {
+    return nextRun(
+      `reading.flash.${instrument}.${clefs.join(",")}.${kind}.${s.answer}`,
+      { steps: READING_LEVELS.map((l) => ({ label: l.label })), step: READING_LEVELS.findIndex((l) => l.id === level.id) },
+      { score, correct },
+      ({ step }) => {
+        const l = step !== undefined && READING_LEVELS[step];
+        if (l) cfg.set({ level: l.id, low: l.recommendedRange.lowestMidi, high: l.recommendedRange.highestMidi });
+      },
+    );
   }
 
   function stop() {

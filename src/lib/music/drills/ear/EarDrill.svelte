@@ -70,6 +70,7 @@
   import DegreeWheel from "./DegreeWheel.svelte";
   import EarVisual from "./EarVisual.svelte";
   import { degreeColor } from "./degrees";
+  import type { NextRun } from "$lib/music/advance.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
   import {
     buildSession,
@@ -1021,7 +1022,7 @@
       void putSetting(STAIR_KEY, stair.at);
     }
     status = summary.headline;
-    if ((SETS || levelSteps) && answer !== "listen" && !pocket) void checkUnlock(done);
+    if ((SETS || levelSteps) && !pocket) summary.advance = await checkUnlock(done);
   }
 
   /** Fine pitch: one row per cent step asked, widest first. */
@@ -1058,46 +1059,26 @@
   }
 
   // Once what you practise feels easy (about 90% of the last 20 answers), offer
-  // the next step: one more item in a set, or the next degree level.
+  // the next step as the next run: one more item in a set, or the next degree level.
   const RECENT_KEY = `music.ear-${slug}.recent`;
   const LEVEL_LADDER = ["anchor", "major-pentachord", "major-diatonic", "minor-diatonic", "chromatic-color"];
   const levelSteps = def.usesScaleDegreeLevel && slug !== "mixed" && slug !== "repertoire-transfer";
-  let offer = $state<{ region: string; text: string; button: string; apply: () => void } | null>(null);
-  async function checkUnlock(done: AnswerRecord[]) {
+  async function checkUnlock(done: AnswerRecord[]): Promise<NextRun | undefined> {
     const set = SETS ? picked.join(",") : `level:${level}`;
     const saved = await getSetting<{ set: string; results: boolean[] }>(RECENT_KEY, { set, results: [] });
     const results = [...(saved.set === set ? saved.results : []), ...done.map((r) => r.correct)].slice(-20);
     await putSetting(RECENT_KEY, { set, results });
     const easy = results.length >= 20 && results.filter(Boolean).length / results.length >= 0.9;
-    offer = null;
     if (!easy) return;
+    const reason = "90% of the last 20 answers";
     if (SETS) {
       const next = SETS.ladder.find((t) => !picked.includes(t));
       if (!next) return;
-      const phrase = SETS.phrase(next);
-      offer = {
-        region: `Ready for the next ${SETS.one}`,
-        text: `Ready for ${phrase}?`,
-        button: `Add ${phrase}`,
-        apply: () => {
-          const all = [...picked, next];
-          setItems(all);
-          status = `Added ${phrase}. ${all.length} ${SETS.unit} now.`;
-        },
-      };
-    } else {
-      const next = SCALE_DEGREE_LEVELS.find((l) => l.id === LEVEL_LADDER[LEVEL_LADDER.indexOf(level) + 1]);
-      if (!next) return;
-      offer = {
-        region: "Ready for the next level",
-        text: `Ready for the next level, ${next.title}? ${next.summary}`,
-        button: `Move up to ${next.title}`,
-        apply: () => {
-          cfg.set({ level: next.id });
-          status = `Moved up to ${next.title}: ${levelDegrees(next.id).join(", ")}.`;
-        },
-      };
+      return { kind: "harder", label: SETS.phrase(next), reason, go: () => setItems([...picked, next]) };
     }
+    const next = SCALE_DEGREE_LEVELS.find((l) => l.id === LEVEL_LADDER[LEVEL_LADDER.indexOf(level) + 1]);
+    if (!next) return;
+    return { kind: "harder", label: next.title, reason, go: () => cfg.set({ level: next.id }) };
   }
 
   function stop() {
@@ -1587,14 +1568,6 @@
           {/if}
         {/snippet}
       </Results>
-      {#if offer}
-        {@const o = offer}
-        <section class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-instr bg-instr-wash p-4" aria-label={o.region}>
-          <p class="min-w-0 flex-1 basis-60"><strong>This is sounding easy:</strong> at least 18 of your last 20 answers were right. {o.text}</p>
-          <button type="button" class={btnPrimary} onclick={() => { o.apply(); offer = null; }}>{o.button}</button>
-          <button type="button" class={btn} onclick={() => (offer = null)}>Not yet</button>
-        </section>
-      {/if}
       {#if confused.length}
         <section class="mt-3 rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="confusions-title">
           <h3 id="confusions-title" class="font-display text-lg font-semibold">What you mixed up</h3>

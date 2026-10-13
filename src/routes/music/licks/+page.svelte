@@ -24,6 +24,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { page } from "$app/state";
   import { settings } from "$lib/music/runtime";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
 
   const TEMPO = { min: 40, max: 220 };
@@ -212,8 +213,16 @@
       xp: fin.xp,
       assistance: assistanceText(mode),
       rows,
+      advance: notes.some((n) => n.kind === "noteon") ? await advanceAfter(r.score, r.correct) : undefined,
     };
     status = summary.headline;
+  }
+
+  /** The licks carry no tempo: climb to 75% of the top. Piano licks then move round the key cycle; guitar licks stay in their key. */
+  function advanceAfter(score: number, correct: boolean) {
+    const plan = { bpm, tempo: { min: TEMPO.min, goal: Math.round(TEMPO.max * 0.75), max: TEMPO.max } };
+    const keys = fretted ? {} : { steps: KEY_CYCLE.map((k) => ({ label: `Key of ${k}` })), step: Math.max(0, KEY_CYCLE.indexOf(s.key)) };
+    return nextRun(`licks.${lick.number}.${lo}-${hi}`, { ...plan, ...keys }, { score, correct }, tempoAnd((i) => cfg.set({ key: KEY_CYCLE[i] })));
   }
 
   function practiseWindow() {
@@ -354,10 +363,6 @@
           {#if result?.practiceWindow}
             {@const [a, b] = result.practiceWindow}
             <button type="button" class={btn} onclick={practiseWindow}>Practise notes {lo + a + 1} to {lo + b}</button>
-          {/if}
-          {#if !fretted && result?.correct}
-            {@const k = KEY_CYCLE[(KEY_CYCLE.indexOf(KEY_CYCLE.includes(s.key) ? s.key : "C") + 1) % 12]}
-            <button type="button" class={btn} onclick={() => { cfg.set({ key: k }); phase = "ready"; summary = null; }}>Next key: {k}</button>
           {/if}
         {/snippet}
       </Results>

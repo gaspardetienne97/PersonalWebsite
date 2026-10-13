@@ -18,8 +18,13 @@
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const TEMPO = { min: 60, max: 140 };
+  const LH_STEPS = [
+    { id: "shell", label: "Shell, root and 7th" },
+    { id: "guide", label: "Guide tones, 3rd and 7th" },
+  ];
   const BEATS_PER_BAR = 4;
 
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
@@ -208,6 +213,9 @@
         r.correct && mode === "check" && nextPattern
           ? { label: nextPattern.label, href: `/music/comping?pattern=${nextPattern.id}&bpm=${bpm}`, reason: "the same lick transposed" }
           : undefined,
+      advance: played.some((n) => n.kind === "noteon")
+        ? await nextRun(`comping.${p.id}.${s.feel}`, { bpm, tempo: { min: TEMPO.min, goal: 120, max: TEMPO.max }, steps: LH_STEPS, step: s.lh === "guide" ? 1 : 0 }, r, tempoAnd((i) => cfg.set({ lh: LH_STEPS[i].id })))
+        : undefined,
     };
     status = summary.headline;
   }
@@ -255,10 +263,7 @@
       <Choice label="Chord" options={COMPING_PATTERNS.map((x) => ({ value: x.id, label: x.chord }))} value={p.id} onchange={(v) => cfg.set({ pattern: v })} />
       <Choice
         label="Left hand"
-        options={[
-          { value: "shell", label: "Shell, root and 7th" },
-          { value: "guide", label: "Guide tones, 3rd and 7th" },
-        ]}
+        options={LH_STEPS.map((x) => ({ value: x.id, label: x.label }))}
         value={s.lh}
         onchange={(v) => cfg.set({ lh: v })}
       />

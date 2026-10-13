@@ -31,6 +31,7 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
+  import { nextRun } from "$lib/music/advance.svelte";
   import { audio } from "$lib/music/runtime";
 
   const LENGTH = 10;
@@ -58,6 +59,20 @@
   const levels = $derived(s.levels.split(",").map(Number).filter((n) => n > 0));
   const pans = $derived((s.pans === "5" ? "5" : "3") as "3" | "5");
   const eqTask = $derived(exercise === "peak" || exercise === "cut" || exercise === "boost-or-cut");
+  const LEVEL_OPTIONS = [
+    { value: "6,3", label: "6 and 3 dB" },
+    { value: "6,3,2", label: "6, 3 and 2 dB" },
+    { value: "6,3,2,1", label: "6, 3, 2 and 1 dB" },
+  ];
+  /** The one knob each exercise moves through, easy to hard (compression has none). */
+  const KNOBS: Partial<Record<StudioExercise, { key: "bands" | "gain" | "levels" | "pans" | "delays"; steps: { value: string; label: string }[] }>> = {
+    peak: { key: "bands", steps: [{ value: "3", label: "3 bands" }, { value: "5", label: "5 bands" }, { value: "9", label: "9 octave bands" }] },
+    cut: { key: "bands", steps: [{ value: "3", label: "3 bands" }, { value: "5", label: "5 bands" }, { value: "9", label: "9 octave bands" }] },
+    "boost-or-cut": { key: "gain", steps: GAINS.map((g) => ({ value: String(g), label: `${g} dB` })) },
+    level: { key: "levels", steps: LEVEL_OPTIONS.map((o) => ({ ...o, label: `${o.label} steps` })) },
+    pan: { key: "pans", steps: [{ value: "3", label: "Three positions" }, { value: "5", label: "Five positions" }] },
+    delay: { key: "delays", steps: [{ value: "3", label: "Three echo times" }, { value: "4", label: "Four echo times" }] },
+  };
   const MATERIALS = [
     { value: "noise", label: "Pink noise" },
     { value: "drums", label: "Drum loop" },
@@ -217,8 +232,22 @@
           return { label: label(records[0].prompt, c), value: ok / here.length, text: `${ok} of ${here.length}` };
         }),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+      advance: await advanceAfter(score, right === LENGTH),
     };
     status = `${summary.headline} Rest your ears for a minute before the next run.`;
+  }
+
+  /** Untimed: the exercise's knob, one notch harder. */
+  function advanceAfter(score: number, correct: boolean) {
+    const knob = KNOBS[exercise];
+    if (!knob) return undefined;
+    const at = { bands, gain: String(gainDb), levels: s.levels, pans, delays }[knob.key];
+    return nextRun(
+      `studio.${exercise}.${material}${knob.key === "bands" ? `.${gainDb}` : ""}`,
+      { steps: knob.steps, step: Math.max(0, knob.steps.findIndex((x) => x.value === at)) },
+      { score, correct },
+      ({ step }) => step !== undefined && cfg.set({ [knob.key]: knob.steps[step].value }),
+    );
   }
 
   function stop() {
@@ -289,7 +318,7 @@
         <Choice label="How much" options={GAINS.map((g) => ({ value: String(g), label: `${g} dB` }))} value={String(gainDb)} onchange={(v) => cfg.set({ gain: v })} />
       {/if}
       {#if exercise === "level"}
-        <Choice label="Steps" options={[{ value: "6,3", label: "6 and 3 dB" }, { value: "6,3,2", label: "6, 3 and 2 dB" }, { value: "6,3,2,1", label: "6, 3, 2 and 1 dB" }]} value={s.levels} onchange={(v) => cfg.set({ levels: v })} />
+        <Choice label="Steps" options={LEVEL_OPTIONS} value={s.levels} onchange={(v) => cfg.set({ levels: v })} />
       {/if}
       {#if exercise === "pan"}
         <Choice label="Positions" options={[{ value: "3", label: "Left, centre, right" }, { value: "5", label: "Five" }]} value={pans} onchange={(v) => cfg.set({ pans: v })} />

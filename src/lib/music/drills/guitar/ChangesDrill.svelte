@@ -16,6 +16,7 @@
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btnStage, panel } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { assistanceFor, assistanceText, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { mic, settings } from "$lib/music/runtime";
@@ -29,6 +30,7 @@
   import { CHORD_MODES } from "./modes";
 
   const IDLE_MS = 20_000;
+  const CLOCK_STEPS = [{ label: "A change every bar" }, { label: "A change every 2 beats" }, { label: "A change every beat" }];
   const cfg = new DrillSetup("chords-changes", { shape: "guitar.c-major", to: "guitar.g-major", timed: false as boolean, trips: 2, clock: 0 });
   const s = $derived(cfg.value);
   const entry = catalogEntry("chords")!.modes.find((m) => m.id === "changes")!;
@@ -205,6 +207,11 @@
         { label: "Target notes per chord", value: r.score },
         { label: "Which strings rang", notMeasured: true },
       ],
+      // With the clock on: the tempo climbs to 100, then the chords change twice as often. No clock, no ladder.
+      advance:
+        notes.length && beatsPerChord
+          ? await nextRun(`${instr}.changes.${hk}.${s.timed ? "60s" : `${trips}x`}`, { bpm: bpm(), tempo: { min: 30, goal: 100, max: 160 }, steps: CLOCK_STEPS, step: [4, 2, 1].indexOf(beatsPerChord) }, { score: r.score, correct: r.correct }, tempoAnd((i) => cfg.set({ clock: [4, 2, 1][i] })))
+          : undefined,
     };
     status = summary.headline;
   }

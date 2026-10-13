@@ -29,6 +29,7 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
+  import { nextRun } from "$lib/music/advance.svelte";
 
   const LENGTH = 20;
   const entry = catalogEntry("circle")!;
@@ -148,6 +149,16 @@
         ...(slowKeys.length ? [{ label: "Keys to go over", text: slowKeys.join(", ") }] : []),
       ],
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+      // Untimed: wider key bands; the order of sharps and flats has none.
+      advance:
+        modeId === "order"
+          ? undefined
+          : await nextRun(
+              `circle.${modeId}.${s.minor}.${s.clefs}`,
+              { steps: KEY_BANDS.map((b) => ({ label: b.title })), step: KEY_BANDS.findIndex((b) => b.id === band) },
+              { score, correct: fluent === LENGTH },
+              ({ step }) => step !== undefined && cfg.set({ band: KEY_BANDS[step].id }),
+            ),
     };
     status = summary.headline;
   }

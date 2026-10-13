@@ -20,6 +20,7 @@
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const TEMPO = { min: 40, max: 120 };
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
@@ -183,6 +184,10 @@
           : []),
         { label: "Chords right", value: chords, text: `${chordOk.filter(Boolean).length} of ${bars.length}` },
       ],
+      // Ungraded without a pedal: nothing to climb.
+      advance: measured
+        ? await nextRun(`pedal.${pc(s.key)}.${bars.length}`, { bpm, tempo: { min: TEMPO.min, goal: 90, max: TEMPO.max }, steps: PEDAL_PROGRESSIONS.map((p) => ({ label: p.label })), step: Math.max(0, PEDAL_PROGRESSIONS.indexOf(progression)) }, { score, correct }, tempoAnd((i) => cfg.set({ progression: PEDAL_PROGRESSIONS[i].id })))
+        : undefined,
     };
     status = summary.headline;
   }

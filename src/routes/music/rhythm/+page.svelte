@@ -6,7 +6,7 @@
   import { page } from "$app/state";
   import type { InputEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
-  import { EAR_RHYTHM_LEVELS, earGroove, earRhythmPattern, GROOVE_LANES, GROOVE_LEVELS, grooveAsPattern, grooveKeys, type Groove, expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills, STRUM_LADDER, strumLadderAfter, type StrumLadder } from "@repo/music-core/content/rhythm";
+  import { EAR_RHYTHM_LEVELS, earGroove, earRhythmPattern, GROOVE_LANES, GROOVE_LEVELS, grooveAsPattern, grooveKeys, type Groove, expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "@repo/music-core/content/rhythm";
   import { rng } from "@repo/music-core/content/random";
   import { catalogEntry, rhythmExerciseId } from "@repo/music-core/content/catalog";
   import { gradeOnsets, gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
@@ -18,11 +18,12 @@
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
   import RhythmGrid, { type GridHit, type GridVerdict } from "$lib/music/drills/rhythm/RhythmGrid.svelte";
   import { demoNotes, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "quarter-pulse", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock" });
   const s = $derived(cfg.value);
@@ -62,11 +63,6 @@
   let now = $state(0);
   let pulseResult = $state.raw<PulseResult | null>(null);
   let patternResult = $state.raw<PatternResult | null>(null);
-  // Strum patterns climb a tempo ladder: two runs at 90% or better offer 5 BPM more.
-  const STRUM_LADDER_KEY = "rhythm.strum-ladder.v1";
-  let strumLadders = $state<Record<string, StrumLadder>>({});
-  let strumNext = $state<number | null>(null);
-  void readKeyed<StrumLadder>(STRUM_LADDER_KEY).then((l) => (strumLadders = l));
   let summary = $state<RunSummary | null>(null);
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let cap: Capture | null = null;
@@ -268,6 +264,7 @@
           { label: "Jitter", text: r.matched > 1 ? `${Math.round(r.jitterMs)} ms` : "Needs two taps" },
           { label: "Extra taps", text: String(r.extra) },
         ],
+        advance: taken.length ? await advanceAfter(r.score, r.correct) : undefined,
         routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
       };
     } else {
@@ -276,23 +273,6 @@
       await run!.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: src, instrument: instrument ?? null });
       const fin = await run!.finish({ score: r.score, correct: r.correct, headline: pct(r.score) });
       const total = r.grid.length;
-      let ladderRow: { label: string; text: string }[] = [];
-      strumNext = null;
-      if (def.chords?.length) {
-        const after = strumLadderAfter(strumLadders[def.id], { bpm, score: r.score });
-        strumLadders = await writeKeyed(STRUM_LADDER_KEY, def.id, after, (_a, b) => b);
-        strumNext = after.next;
-        ladderRow = [
-          {
-            label: "Tempo ladder",
-            text: after.next
-              ? `${STRUM_LADDER.runs} runs at ${Math.round(STRUM_LADDER.pass * 100)}% or better at ${bpm} BPM: try ${after.next}`
-              : after.streak
-                ? `${after.streak} of ${STRUM_LADDER.runs} runs at ${Math.round(STRUM_LADDER.pass * 100)}% or better at ${bpm} BPM`
-                : `${Math.round(STRUM_LADDER.pass * 100)}% or better twice moves the tempo up`,
-          },
-        ];
-      }
       summary = {
         headline:
           r.correct && !r.restHits
@@ -317,12 +297,24 @@
                   : { label: "Chords", text: "Timing only: no pitch was heard" },
               ]
             : []),
-          ...ladderRow,
         ],
+        advance: taken.length ? await advanceAfter(r.score, r.correct) : undefined,
         routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
       };
     }
     status = summary.headline;
+  }
+
+  /** Tempo climbs to 120, then the next pattern or level: strums move through the strums, other patterns through the rest. */
+  function advanceAfter(score: number, correct: boolean) {
+    const run = { score, correct };
+    const base = { bpm, tempo: { min: RHYTHM_LIMITS.bpm[0], goal: 120, max: RHYTHM_LIMITS.bpm[1] } };
+    if (pulse) return nextRun(`rhythm.pulse.${beats}`, base, run);
+    if (groove) return nextRun("rhythm.groove", { ...base, steps: GROOVE_LEVELS.map((l) => ({ label: l.title })), step: GROOVE_LEVELS.indexOf(grooveLevel) }, run, tempoAnd((i) => cfg.set({ grooveLevel: GROOVE_LEVELS[i].id })));
+    if (byEar) return nextRun(`rhythm.${s.mode}`, { ...base, steps: EAR_RHYTHM_LEVELS.map((l) => ({ label: l.title })), step: EAR_RHYTHM_LEVELS.indexOf(earLevel) }, run, tempoAnd((i) => cfg.set({ earLevel: EAR_RHYTHM_LEVELS[i].id })));
+    const strum = !!def.chords?.length;
+    const list = RHYTHM_PATTERNS.filter((p) => !!p.chords?.length === strum);
+    return nextRun(`rhythm.${strum ? "strum" : "read"}`, { ...base, steps: list.map((p) => ({ label: p.label })), step: Math.max(0, list.findIndex((p) => p.id === def.id)) }, run, tempoAnd((i) => cfg.set({ pattern: list[i].id })));
   }
 
   // ---------------------------------------------------------------------------
@@ -397,6 +389,7 @@
           : [{ label: "Notes found", value: expected.length ? right / expected.length : 0, text: `${right} of ${expected.length}` }]),
         { label: "Extra marks", text: String(answered.length - right) },
       ],
+      advance: answered.length ? await advanceAfter(r.score, r.correct) : undefined,
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
     status = summary.headline;
@@ -667,7 +660,6 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
-          {#if strumNext}<button type="button" class={btn} onclick={() => settings.update({ bpm: strumNext! })}>Up to {strumNext} BPM</button>{/if}
           <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm + 8, 40, 220) })}>Faster</button>
           <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm - 8, 40, 220) })}>Slower</button>
         {/snippet}
