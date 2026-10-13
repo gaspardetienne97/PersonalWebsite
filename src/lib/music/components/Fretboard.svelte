@@ -44,6 +44,8 @@
 
   const strings = $derived(openStrings.map((_, i) => i + 1));
   const frets = $derived(Array.from({ length: to - from + 1 }, (_, i) => from + i));
+  // With the nut in view, open strings sit on it: a narrow bone column, not a fret's width.
+  const cols = $derived(from === 0 ? `var(--nut) repeat(${frets.length - 1}, minmax(0, 1fr))` : `repeat(${frets.length}, minmax(0, 1fr))`);
   const DOTS = new Set([3, 5, 7, 9, 15, 17, 19, 21]);
   const midiAt = (s: number, f: number) => openStrings[s - 1] + f;
   const markAt = (s: number, f: number) => marks.find((m) => m.string === s && m.fret === f);
@@ -83,16 +85,19 @@
   const heldHere = (s: number, f: number) =>
     tapped[s * 100 + f] || (showHeldPitches && input.activeSource !== "onscreen" && input.held.has(midiAt(s, f)));
   const flashAt = (s: number, f: number): FlashKind | undefined => flashes?.get(s * 100 + f);
+  /** A string is ringing while a note on it is held, tapped, or lit by the demo. */
+  const ringing = (s: number) => frets.some((f) => heldHere(s, f) || markAt(s, f)?.demo);
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);
 </script>
 
 <div class="neck-wrap" role="group" aria-label="{label}, frets {from} to {to}">
-  <div class="fret-numbers" aria-hidden="true" style:grid-template-columns="repeat({frets.length}, minmax(0, 1fr))">
+  <div class="fret-numbers" aria-hidden="true" style:grid-template-columns={cols}>
     {#each frets as f (f)}<span>{f === 0 ? "open" : f}</span>{/each}
   </div>
-  <div class="neck" class:has-nut={from === 0}>
+  <div class="neck">
+    {#if from === 0}<span class="nut" aria-hidden="true"></span>{/if}
     {#each strings as s (s)}
-      <div class="string-row" style:--gauge="{gauge(s)}px">
+      <div class="string-row" class:ringing={ringing(s)} style:--gauge="{gauge(s)}px" style:grid-template-columns={cols}>
         <span class="string-line" aria-hidden="true"></span>
         {#if muted.includes(s)}<span class="muted-x" aria-hidden="true">✕</span>{/if}
         {#each frets as f (f)}
@@ -127,7 +132,7 @@
         {/each}
       </div>
     {/each}
-    <div class="inlays" aria-hidden="true" style:grid-template-columns="repeat({frets.length}, minmax(0, 1fr))">
+    <div class="inlays" aria-hidden="true" style:grid-template-columns={cols}>
       {#each frets as f (f)}
         <span>
           {#if f === 12 || f === 24}<i></i><i></i>{:else if DOTS.has(f)}<i></i>{/if}
@@ -139,6 +144,7 @@
 
 <style>
   .neck-wrap {
+    --nut: 1.9rem;
     width: 100%;
     min-width: 0;
     padding-left: 1.5rem;
@@ -163,14 +169,22 @@
       inset 0 -3px 6px #0007,
       0 4px 14px #0006;
   }
-  .neck.has-nut {
-    border-left: 8px solid #e9e1cf;
+  /* The nut: a wide bone bar the open strings sit on, its fret-side edge a hard line. */
+  .nut {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--nut);
+    border-radius: 0.6rem 0 0 0.6rem;
+    background: linear-gradient(90deg, #f6f0e2, #e4dac4 60%, #c8bba0);
+    box-shadow:
+      inset -4px 0 0 #9b8f76,
+      3px 0 6px #0007;
   }
   .string-row {
     position: relative;
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
     z-index: 1;
   }
   .string-line {
@@ -183,6 +197,14 @@
     background: linear-gradient(#f4efe6, #a9a198);
     box-shadow: 0 1px 1px #0008;
     pointer-events: none;
+  }
+  /* The string that is sounding glows yellow along its length. */
+  .ringing .string-line {
+    height: calc(var(--gauge) + 1.5px);
+    background: linear-gradient(#fff6c2, #f2c94c);
+    box-shadow:
+      0 0 6px #f2c94ccc,
+      0 0 14px #f2c94c88;
   }
   .muted-x {
     position: absolute;
@@ -202,8 +224,17 @@
     -webkit-tap-highlight-color: transparent;
   }
   .cell.open-cell {
-    border-right-color: transparent;
+    border-right: none;
     box-shadow: none;
+  }
+  /* An open string's dot is a ring on the nut, so it never reads as a fretted note. */
+  .open-cell .dot {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+  .open-cell[data-target]:not([data-held]) .dot {
+    background: #f6f0e2;
+    color: #1b120b;
   }
   .cell:focus-visible {
     outline: 2px solid var(--instr);
