@@ -114,13 +114,10 @@
     bias: { voice: string; ms: number | null }[];
     pass: boolean;
   } | null>(null);
-  /** Misses in a row at this tempo: two step the ladder back down. */
-  let fails = 0;
   const ladderKey = (id: string) => `music.pads.ladder.${id}`;
   /** Pick a groove and start at its ladder's tempo (its start tempo the first time). */
   async function pickGroove(id: string, key: "groove" | "steady" = "groove") {
     cfg.set({ [key]: id });
-    fails = 0;
     const r = repertoireFor(id);
     if (!r) return;
     const saved = key === "steady" ? r.bpm.start : await getSetting<number>(ladderKey(id), r.bpm.start);
@@ -492,17 +489,6 @@
       extra = { tier, swing: entry.swing ? measuredSwing(groove.targets, r.perTarget, beatMs) : null, drift, bias, pass: tier.pass && steadyOk };
       // Holding the tempo counts in the score: drifting 3 BPM or more costs 40%.
       graded = { ...r, score: steadyOk ? r.score : r.score * 0.6, correct: tier.pass && steadyOk };
-      // The tempo this groove starts at next time it is picked: a pass moves it up 5, to the target.
-      if (!isSteady) {
-        const key = ladderKey(entry.groove.value);
-        if (extra.pass) {
-          fails = 0;
-          if (bpm < entry.bpm.target) void putSetting(key, Math.min(entry.bpm.target, bpm + 5));
-        } else if (++fails >= 2) {
-          fails = 0;
-          void putSetting(key, Math.max(entry.bpm.start, bpm - 5));
-        }
-      }
     } else {
       const r = gradeRudiment({
         strokes: strokes.map((h) => ({ pad: h.pad, offsetMs: h.atMs, band: h.velocityBand ? (h.accent ? ("accent" as const) : ("tap" as const)) : undefined })),
@@ -534,6 +520,9 @@
       assistance: assistanceText(mode),
       advance: ons.length ? await advanceAfter(graded.score, graded.correct) : undefined,
     };
+    // The tempo this groove starts at next time it is picked: where the Next run offer leaves it.
+    const nx = summary.advance;
+    if (isGroove && !isSteady && nx) void putSetting(ladderKey(entry.groove.value), nx.kind === "harder" ? entry.bpm.target : nx.kind === "easier" ? bpm : (nx.bpm ?? bpm));
     stars = starsFor(graded.score, isGroove ? !!extra?.pass : graded.correct);
     if (stars > (bestStars[starsId] ?? 0)) {
       bestStars = { ...bestStars, [starsId]: stars };
@@ -549,10 +538,7 @@
     const run = { score, correct };
     if (isSteady) return nextRun(`pads.steady.${s.steady}`, { bpm, tempo: { min: 40, goal: entry.bpm.target } }, run);
     if (isGroove)
-      return nextRun("pads.groove", { bpm, tempo: { min: Math.min(bpm, entry.bpm.start), goal: entry.bpm.target }, steps: GROOVE_STEPS.map((r) => ({ label: `Level ${r.level}, ${r.groove.label}`, goal: r.bpm.target, start: r.bpm.start })), step: GROOVE_STEPS.indexOf(entry) }, run, tempoAnd((i) => {
-        fails = 0;
-        cfg.set({ groove: GROOVE_STEPS[i].groove.value });
-      }));
+      return nextRun("pads.groove", { bpm, tempo: { min: Math.min(bpm, entry.bpm.start), goal: entry.bpm.target }, steps: GROOVE_STEPS.map((r) => ({ label: `Level ${r.level}, ${r.groove.label}`, goal: r.bpm.target, start: r.bpm.start })), step: GROOVE_STEPS.indexOf(entry) }, run, tempoAnd((i) => cfg.set({ groove: GROOVE_STEPS[i].groove.value })));
     const tempo = { min: 40, goal: Math.max(...RUDIMENT_TEMPOS) };
     // A rudiment with its own subdivision grows in length instead.
     if (("subdivision" in pattern && pattern.subdivision) || pattern.perBeat)

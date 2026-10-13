@@ -97,6 +97,21 @@ test.describe("finger-drumming repertoire", () => {
     // One clean run: the next run is the same again; a second moves the tempo up.
     await expect(page.getByTestId("next-run")).toHaveAttribute("data-kind", "same");
     await expect(page.getByTestId("next-run")).toContainText("1 more clean run to move on");
+    // The start tempo for next time follows the same rule: one pass keeps it at 80.
+    const saved = await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          const open = indexedDB.open("woodshed");
+          open.onsuccess = () => {
+            const get = open.result
+              .transaction("settings")
+              .objectStore("settings")
+              .get("music.pads.ladder.funky-drummer");
+            get.onsuccess = () => resolve(get.result?.value);
+          };
+        }),
+    );
+    expect(saved).toBe(80);
     await shots(page, "funky-drummer-results");
   });
 
