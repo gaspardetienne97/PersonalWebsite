@@ -6,7 +6,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent, Score, ScoreGroup, Strictness } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
-  import { barQuarters, CLIMB, climbAfter, practiceMissedScore, READING_RUNGS, readingLevel, sightReadingScore, sightReadingSkills, startClimb, type ClimbState, type Clef } from "@repo/music-core/content/reading";
+  import { barQuarters, CLIMB, climbAfter, practiceMissedScore, READING_DEFAULTS, READING_RUNGS, readingLevel, readingRange, sightReadingScore, sightReadingSkills, startClimb, type ClimbState, type Clef } from "@repo/music-core/content/reading";
   import {
     followerInput,
     followerResult,
@@ -23,7 +23,7 @@
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import type { ReadingLevelId, Tuning } from "@repo/music-core/data/index";
   import { keyByName, KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import { AEROPHONE_RANGE } from "@repo/music-core/content/winds-pads";
@@ -41,7 +41,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
-  import { handLabel, soundingScore, type ReadingSetup } from "./reading";
+  import { clampRange, handLabel, keyboardSpan, READING_TABS, soundingScore, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
 
   interface Props {
@@ -58,7 +58,8 @@
   const levelId = $derived((["primer", "level-1", "level-2", "level-3"].includes(s.level) ? s.level : "primer") as ReadingLevelId);
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
   const clefs = $derived<Clef[]>(fretted || aero ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
-  const bpm = $derived(Math.min(200, Math.max(40, settings.value.bpm)));
+  const [BPM_MIN, BPM_MAX] = READING_DEFAULTS.bpmLimits;
+  const bpm = $derived(Math.min(BPM_MAX, Math.max(BPM_MIN, settings.value.bpm)));
   const climbing = $derived(!!s.climb);
   const follower = $derived<"wait" | "performance">(climbing || s.follower === "performance" ? "performance" : "wait");
   const measures = $derived(climbing ? CLIMB.measures : s.measures);
@@ -67,6 +68,10 @@
   const useMic = $derived(fretted && s.input === "mic");
   const entry = catalogEntry("reading")!;
   const modeDef = entry.modes.find((m) => m.id === "sight-reading")!;
+  // The level's range on the clefs, inside what the instrument reads: fretted
+  // instruments stay in first position, the Aerophone in its written range.
+  const limits = $derived<[number, number]>(fretted ? [55, 79] : aero ? [AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi] : [21, 108]);
+  const range = $derived(clampRange(readingRange(levelId, clefs), limits));
 
   let seed = $state(Math.floor(Math.random() * 2 ** 31));
   let override = $state.raw<{ from: string; score: Score } | null>(null);
@@ -79,12 +84,7 @@
       measures,
       meter: s.meter === "compound" ? "compound" : "simple",
       bpm,
-      // Fretted instruments read in their own written range.
-      range: fretted
-        ? [Math.max(readingLevel(levelId).recommendedRange.lowestMidi, 55), Math.min(readingLevel(levelId).recommendedRange.highestMidi, 79)]
-        : aero
-          ? [Math.max(readingLevel(levelId).recommendedRange.lowestMidi, AEROPHONE_RANGE.lowestMidi), Math.min(readingLevel(levelId).recommendedRange.highestMidi, AEROPHONE_RANGE.highestMidi)]
-          : undefined,
+      range,
     }),
   );
   const score = $derived(override && override.from === generated.id ? override.score : generated);
@@ -348,7 +348,7 @@
     const timed = follower === "performance";
     return nextRun(
       `reading.sight.${instrument}.${follower}.${measures}.${s.meter}`,
-      { ...(timed ? { bpm, tempo: { min: 40, goal: 100, max: 200 } } : {}), steps: READING_RUNGS, step: rungOf(levelId, key.name) },
+      { ...(timed ? { bpm, tempo: { min: BPM_MIN, goal: 100, max: BPM_MAX } } : {}), steps: READING_RUNGS, step: rungOf(levelId, key.name) },
       { score, correct },
       ({ bpm: b, step }) => {
         if (b !== undefined) void settings.update({ bpm: b });
@@ -368,10 +368,11 @@
   }
 
   function retempo(d: number) {
-    settings.update({ bpm: Math.min(200, Math.max(40, bpm + d)) });
+    const next = Math.min(BPM_MAX, Math.max(BPM_MIN, bpm + d));
+    settings.update({ bpm: next });
     phase = "ready";
     summary = null;
-    status = `Tempo ${Math.min(200, Math.max(40, bpm + d))} BPM. Press Start.`;
+    status = `Tempo ${next} BPM. Press Start.`;
   }
   function practiceMissed() {
     if (!missed.length) return;
@@ -425,8 +426,9 @@
     return out;
   });
   const allSounding = $derived(sounding.voices.flatMap((v) => v.notes.map((n) => n.midi)));
-  const low = $derived(Math.floor((Math.min(...allSounding) - 2) / 12) * 12);
-  const high = $derived(Math.max(low + 24, Math.ceil((Math.max(...allSounding) + 2) / 12) * 12));
+  const span = $derived(keyboardSpan(allSounding));
+  const low = $derived(span[0]);
+  const high = $derived(span[1]);
   const tabTuning = $derived(tuning ? { openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name } : null);
   const positions = $derived(tabTuning ? assignTab(sounding.voices.flatMap((v) => v.notes), tabTuning, 12) : []);
   const fretFrom = $derived(Math.max(0, Math.min(...positions.map((p) => p?.fret ?? 0)) - 1));
@@ -438,11 +440,23 @@
   });
   // A short phrase engraves at its natural size (about 190 px a bar); zoom it to fill the stage.
   let paperW = $state(0);
-  const zoom = $derived(paperW ? Math.min(1.8, Math.max(1, paperW / (Math.min(4, s.measures) * 200 + 110))) : 1);
-  const hand = $derived(instrument === "piano" ? handLabel(current ?? groups[0]) : null);
+  const zoom = $derived(paperW ? Math.min(1.8, Math.max(1, paperW / (Math.min(4, measures) * 200 + 110))) : 1);
+  // Which hand is up, only when the phrase has two.
+  const hand = $derived(both ? handLabel(current ?? groups[0]) : null);
 
-  const summaryLine = $derived(
-    `${climbing ? "Level climb from " : ""}${readingLevel(levelId).label}, ${key.name}, ${clefs.join(" and ")} clef, ${measures} bar${measures > 1 ? "s" : ""} of ${s.meter === "compound" ? "6/8" : "4/4"}, ${follower === "wait" ? "waits for you" : `keeps time at ${bpm} BPM`}, ${instrument}${useMic ? " by microphone" : ""}`,
+  const summaryLine = $derived<SetupClause[]>([
+    { text: `${climbing ? "Level climb from " : ""}${readingLevel(levelId).label}`, focus: climbing ? "session" : "level" },
+    { text: key.name, focus: "key" },
+    { text: `${clefs.join(" and ")} clef`, focus: fretted || aero || climbing ? undefined : "clefs" },
+    { text: `${measures} bar${measures > 1 ? "s" : ""} of ${s.meter === "compound" ? "6/8" : "4/4"}`, focus: climbing ? "meter" : "measures" },
+    follower === "wait" ? { text: "waits for you", focus: "follower" } : { text: `keeps time at ${bpm} BPM, ${strictness} window`, focus: "strictness" },
+    { text: `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted ? "input" : undefined },
+  ]);
+  // Wait mode is guided whichever way the shell's switch is set.
+  const modeNotes = $derived(
+    follower === "wait"
+      ? { practice: "Targets shown. Wait mode is guided: practice, not a test.", check: "Targets hidden. Wait mode is still guided and does not count; Keep time counts." }
+      : { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
   );
 </script>
 
@@ -451,6 +465,10 @@
   hue="reading"
   blurb="Read a short generated phrase and play it. Wait for me holds the cursor; Keep time follows the click."
   summary={summaryLine}
+  tabs={READING_TABS}
+  tab="sight-reading"
+  ontab={(id) => cfg.set({ activity: id })}
+  {modeNotes}
   bind:phase
   bind:mode
   bind:status
@@ -488,9 +506,6 @@
       </div>
     </div>
     <div class="mt-3 flex flex-wrap items-center gap-2">
-      {#if phase !== "running" && mode === "practice"}
-        <button type="button" class={btnStage} aria-pressed={!!preview?.playing} onclick={togglePreview}>{preview?.playing ? "Pause" : resumeBeat > 0 ? "Resume preview" : "Play preview"}</button>
-      {/if}
       {#if fretted && tabTuning}
         <button type="button" class={btnStage} aria-pressed={showTab} aria-controls="sight-tab" onclick={() => (showTab = !showTab)}>{showTab ? "Hide tab" : "Show tab"}</button>
         {#if !showTab}<span class="text-sm text-ws-stage-soft">Tab stays hidden so the staff does the work.</span>{/if}

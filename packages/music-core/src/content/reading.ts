@@ -27,6 +27,19 @@ export const READING_DEFAULTS = {
   measureLimits: [1, 8] as [number, number],
 };
 
+/**
+ * The written range a level reads on the given clefs. Each clef gets the level's
+ * reach on its side of middle C, at least an octave, so the bass clef at the
+ * Primer reads C3 to C4 rather than ledger lines above it. Both clefs span from
+ * the bass low to the treble high and split at middle C.
+ */
+export function readingRange(level: ReadingLevelId, clefs: readonly Clef[]): [number, number] {
+  const r = readingLevel(level).recommendedRange;
+  const up = Math.max(12, r.highestMidi - 60);
+  const down = Math.max(12, 60 - r.lowestMidi);
+  return [clefs.includes("bass") ? 60 - down : 60, clefs.includes("treble") ? 60 + up : 60];
+}
+
 const keyOrC = (name: string) => keyByName(name) ?? keyByName("C major")!;
 const diatonicPcs = (k: KeySignature) => new Set(diatonicNames(k).map((n) => pcOf(n)!));
 const diatonicIn = (k: KeySignature, lo: number, hi: number) => {
@@ -206,12 +219,21 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
   const cells = (opts.meter === "compound" ? COMPOUND_CELLS : SIMPLE_CELLS)[opts.level];
   const split = clefs.length > 1;
   const voiceClefs: Clef[] = opts.instrument === "piano" ? clefs : [clefs[0]];
-  const voices: ScoreVoice[] = voiceClefs.map((clef) => {
-    const pool = diatonicIn(
-      k,
-      split && clef === "treble" ? Math.max(lo, 60) : lo,
-      split && clef === "bass" ? Math.min(hi, 59) : hi,
-    );
+  let parts = voiceClefs
+    .map((clef) => ({
+      clef,
+      pool: diatonicIn(
+        k,
+        split && clef === "treble" ? Math.max(lo, 60) : lo,
+        split && clef === "bass" ? Math.min(hi, 59) : hi,
+      ),
+    }))
+    .filter((p) => p.pool.length);
+  // A clef with no notes on its side of middle C (Both at a range that starts
+  // at C4) is left out, and the other clef reads the whole range.
+  if (parts.length < voiceClefs.length)
+    parts = [{ clef: parts[0]?.clef ?? clefs[0], pool: diatonicIn(k, lo, hi) }];
+  const voices: ScoreVoice[] = parts.map(({ clef, pool }) => {
     const durations = rhythm(rand, cells, barQuarters(meter), measures);
     const pitches = melody(rand, pool, k.tonicPc, durations.length, MAX_STEP[opts.level]);
     let beat = 0;

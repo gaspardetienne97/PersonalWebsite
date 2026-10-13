@@ -5,12 +5,12 @@
   import { onDestroy } from "svelte";
   import type { Assistance, InputSource, NoteEvent } from "@repo/music-core";
   import { noteName, parseNote, pc } from "@repo/music-core";
-  import { flashcardCorrect, flashcardPrompt, READING_LEVELS, readingLevel, type Clef, type FlashcardPrompt } from "@repo/music-core/content/reading";
-  import { CHOICE_NAMES, keyByName, KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
+  import { flashcardCorrect, flashcardPrompt, READING_LEVELS, readingLevel, readingRange, type Clef, type FlashcardPrompt } from "@repo/music-core/content/reading";
+  import { keyByName, KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
   import { gradeFlashcard } from "@repo/music-core/scoring/reading";
   import { rng } from "@repo/music-core/content/random";
   import type { ReadingLevelId, Tuning } from "@repo/music-core/data/index";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import { AEROPHONE_RANGE } from "@repo/music-core/content/winds-pads";
@@ -26,7 +26,7 @@
   import { nextRun } from "$lib/music/advance.svelte";
   import { mic } from "$lib/music/runtime";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import { clampRange, comparisonScore, flashcardScore, playableWrittenRange, type ReadingSetup } from "./reading";
+  import { clampRange, comparisonScore, flashcardScore, keyboardSpan, playableWrittenRange, READING_TABS, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
 
   interface Props {
@@ -43,7 +43,9 @@
   // The Aerophone reads one treble line in its own written range, by exact pitch like the piano.
   const aero = $derived(instrument === "aerophone");
   const clefs = $derived<Clef[]>(fretted || aero ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
-  const range = $derived(fretted ? clampRange([s.low, s.high], playableWrittenRange(tuning!)) : aero ? clampRange([s.low, s.high], [AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi]) : clampRange([s.low, s.high], [21, 108]));
+  // The level's range on the clefs, inside what the instrument can play.
+  const limits = $derived<[number, number]>(fretted ? playableWrittenRange(tuning!) : aero ? [AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi] : [21, 108]);
+  const range = $derived(clampRange(readingRange(level.id, clefs), limits));
   const transpose = $derived(fretted ? tuning!.notationTransposition : 0);
   const byPlay = $derived(s.answer === "play");
   const useMic = $derived(byPlay && fretted && s.input === "mic");
@@ -77,10 +79,12 @@
   const preview = $derived(flashcardPrompt(rng(7), { kind, clefs: clefs.length ? clefs : ["treble"], key: key.name, range, difficulty: level.recommendedDifficulty }));
   const card = $derived(phase === "running" ? cards[qi] : preview);
   const staffScore = $derived(card ? (answered && !answered.correct ? comparisonScore(card, answered.submitted, key.fifths) : flashcardScore(card, key.fifths)) : null);
-  const choices = $derived(card ? (kind === "note" ? [...CHOICE_NAMES] : card.choices) : []);
+  // The card's own choices: the twelve names spelled for the key, or the key's triads.
+  const choices = $derived(card?.choices ?? []);
   // Written-to-sounding for the surfaces (guitar reads an octave up).
-  const low = $derived(Math.floor((range[0] + transpose - 2) / 12) * 12);
-  const high = $derived(Math.max(low + 24, Math.ceil((range[1] + transpose + 2) / 12) * 12));
+  const span = $derived(keyboardSpan([range[0] + transpose, range[1] + transpose]));
+  const low = $derived(span[0]);
+  const high = $derived(span[1]);
 
   // With the octave when the answer was played (the staff names an octave).
   const fullName = (p: FlashcardPrompt) => (byPlay ? p.midi.map((m) => noteName(m, key.fifths < 0 ? "flat" : "sharp")).join("-") : p.answer);
@@ -222,7 +226,7 @@
       { score, correct },
       ({ step }) => {
         const l = step !== undefined && READING_LEVELS[step];
-        if (l) cfg.set({ level: l.id, low: l.recommendedRange.lowestMidi, high: l.recommendedRange.highestMidi });
+        if (l) cfg.set({ level: l.id });
       },
     );
   }
@@ -242,9 +246,15 @@
 
   onDestroy(teardown);
 
-  const summaryLine = $derived(
-    `${kind === "note" ? "Single notes" : "Triads"}, ${clefs.join(" and ")} clef, ${key.name}, ${noteName(range[0])} to ${noteName(range[1])}, ${byPlay ? (useMic ? "play into the mic" : "play it") : "name it"}, ${instrument}`,
-  );
+  const summaryLine = $derived<SetupClause[]>([
+    { text: level.label, focus: "level" },
+    { text: kind === "note" ? "single notes" : "triads", focus: "kind" },
+    { text: `${clefs.join(" and ")} clef`, focus: fretted || aero ? undefined : "clefs" },
+    { text: key.name, focus: "key" },
+    { text: `${noteName(range[0])} to ${noteName(range[1])}` },
+    { text: byPlay ? (useMic ? "play it into the mic" : "play it") : "name it", focus: "answer" },
+    { text: instrument },
+  ]);
   const fretMarks = $derived(
     ((mode === "practice" && hinted) || (answered && !answered.correct)) && card && tuning
       ? card.midi.flatMap((m) =>
@@ -261,6 +271,9 @@
   hue="reading"
   blurb="Read the note on the staff, then name it or play it."
   summary={summaryLine}
+  tabs={READING_TABS}
+  tab="flashcards"
+  ontab={(id) => cfg.set({ activity: id })}
   bind:phase
   bind:mode
   bind:status
@@ -286,7 +299,7 @@
           <!-- One bar engraves at its natural size; zoom makes the card readable at arm's length. -->
           <div class="zoom">
             {#key staffScore.id}
-              <Staff score={staffScore} revealLabels={!!answered && !answered.correct} maxHeight="12rem" />
+              <Staff score={staffScore} time={false} revealLabels={!!answered && !answered.correct} maxHeight="12rem" />
             {/key}
           </div>
         {/if}

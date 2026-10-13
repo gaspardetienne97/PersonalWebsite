@@ -274,7 +274,7 @@ test.describe("ear training", () => {
   }) => {
     // Chord qualities start on major and minor; a set picks more.
     await page.goto("/music/ear/chord-qualities?answer=choice");
-    await page.getByRole("button", { name: "Change setup" }).click();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
     await expect(
       page
         .getByRole("group", { name: "Quality sets" })
@@ -337,7 +337,7 @@ test.describe("ear training", () => {
 
   test("cadences: start on authentic and plagal, pick a set", async ({ page }) => {
     await page.goto("/music/ear/cadences?answer=choice");
-    await page.getByRole("button", { name: "Change setup" }).click();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
     const sets = page.getByRole("group", { name: "Cadence sets" });
     await expect(sets.getByRole("button", { name: "Authentic and plagal" })).toHaveAttribute(
       "aria-pressed",
@@ -355,7 +355,7 @@ test.describe("ear training", () => {
     page,
   }) => {
     await page.goto("/music/ear/chord-functions?answer=choice");
-    await page.getByRole("button", { name: "Change setup" }).click();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
     await expect(
       page
         .getByRole("group", { name: "Chord sets" })
@@ -432,7 +432,7 @@ test.describe("ear training", () => {
     page,
   }) => {
     await page.goto("/music/ear/scales?answer=choice");
-    await page.getByRole("button", { name: "Change setup" }).click();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
     const sets = page.getByRole("group", { name: "Scale sets" });
     await expect(sets.getByRole("button", { name: "Major and minor" })).toHaveAttribute(
       "aria-pressed",
@@ -616,13 +616,15 @@ test.describe("ear training", () => {
 
   test("intervals: practise a few at a time, in one direction", async ({ page }) => {
     await page.goto("/music/ear/intervals?answer=choice");
-    await page.getByRole("button", { name: "Change setup" }).click();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
     const sets = page.getByRole("group", { name: "Interval sets" });
     await sets.getByRole("button", { name: "Perfect" }).click();
     await expect(sets.getByRole("button", { name: "Perfect" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
+    // The single intervals sit behind "Pick your own".
+    await page.getByText("Pick your own").click();
     await expect(page.getByRole("button", { name: "Perfect unison" })).toHaveAttribute(
       "aria-pressed",
       "true",

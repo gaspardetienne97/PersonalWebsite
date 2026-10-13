@@ -92,6 +92,16 @@ export function clampRange(
   return [a, b];
 }
 
+/**
+ * The on-screen keyboard's span for these sounding notes: from the C at or
+ * below the lowest note (not a whole octave lower when the lowest note is a C)
+ * to the C above the highest, at least two octaves.
+ */
+export function keyboardSpan(sounding: readonly number[]): [number, number] {
+  const low = Math.floor(Math.min(...sounding) / 12) * 12;
+  return [low, Math.max(low + 24, Math.ceil((Math.max(...sounding) + 2) / 12) * 12)];
+}
+
 export function handLabel(g: ScoreGroup | undefined): string | null {
   if (!g) return null;
   const ids = new Set(g.notes.map((n) => n.voiceId));
@@ -101,14 +111,20 @@ export function handLabel(g: ScoreGroup | undefined): string | null {
   return null;
 }
 
-/** The reading route's setup; URL parameters (from paths) win, else the last setup. */
+/** The two reading exercises, as the shell's tab row. */
+export const READING_TABS = [
+  { id: "flashcards", label: "Flashcards" },
+  { id: "sight-reading", label: "Sight-reading" },
+] as const;
+
+/**
+ * The reading route's setup; URL parameters (from paths) win, else the last setup.
+ * The instrument is the practice strip's, and the range follows level, clefs and instrument.
+ */
 export const READING_SETUP = {
   activity: "flashcards",
-  instrument: "auto",
   clefs: "treble",
   key: "C major",
-  low: 60,
-  high: 72,
   level: "primer",
   kind: "note",
   answer: "choice",

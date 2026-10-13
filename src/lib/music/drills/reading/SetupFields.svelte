@@ -1,8 +1,9 @@
 <script lang="ts">
-  // The reading setup, shared by flashcards and sight-reading.
-  import { noteName } from "@repo/music-core";
-  import { CLIMB, READING_LEVELS, READING_RUNGS } from "@repo/music-core/content/reading";
-  import { KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
+  // The reading setup, shared by flashcards and sight-reading. The instrument is
+  // the practice strip's, and the range follows the level, the clefs and the
+  // instrument, so neither is a control here.
+  import { CLIMB, READING_LEVELS, READING_RUNGS, readingLevel } from "@repo/music-core/content/reading";
+  import type { ReadingLevelId } from "@repo/music-core/data/index";
   import Choice from "$lib/music/components/Choice.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
   import type { ReadingSetup } from "./reading";
@@ -10,30 +11,28 @@
   /** `oneLine`: one treble staff (fretted instruments and the Aerophone). */
   let { cfg, activity, fretted, oneLine = fretted }: { cfg: DrillSetup<ReadingSetup>; activity: "flashcards" | "sight-reading"; fretted: boolean; oneLine?: boolean } = $props();
   const s = $derived(cfg.value);
-  const notes = Array.from({ length: 88 }, (_, i) => 21 + i).map((m) => ({ value: m, label: noteName(m) }));
+  const level = $derived(readingLevel((READING_LEVELS.some((l) => l.id === s.level) ? s.level : "primer") as ReadingLevelId));
+  const climbing = $derived(activity === "sight-reading" && !!s.climb);
+  // Every level and key pair is a rung, since the keys offered are the level's.
+  const rung = $derived(Math.max(0, READING_RUNGS.findIndex((r) => r.level === s.level && r.key === s.key)));
 </script>
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   <Choice
-    label="Instrument"
-    options={[
-      { value: "auto", label: "Practice strip" },
-      { value: "piano", label: "Piano" },
-      { value: "guitar", label: "Guitar" },
-      { value: "ukulele", label: "Ukulele" },
-      { value: "aerophone", label: "Aerophone" },
-    ]}
-    value={s.instrument}
-    onchange={(v) => cfg.set({ instrument: v })}
+    label="Level"
+    setupKey="level"
+    options={READING_LEVELS.map((l) => ({ value: l.id, label: l.label, hint: `${l.description} Rhythm: ${l.rhythm}.` }))}
+    value={s.level}
+    onchange={(v) => {
+      const l = READING_LEVELS.find((x) => x.id === v)!;
+      cfg.set({ level: v, clefs: oneLine ? "treble" : l.recommendedClefs.join(","), key: l.recommendedKeys.includes(s.key) ? s.key : l.recommendedKeys[0] });
+    }}
   />
-  <Choice label="Level" select options={READING_LEVELS.map((l) => ({ value: l.id, label: `${l.label}: ${l.description}` }))} value={s.level} onchange={(v) => {
-    const l = READING_LEVELS.find((x) => x.id === v)!;
-    cfg.set({ level: v, clefs: l.recommendedClefs.join(","), key: l.recommendedKeys.includes(s.key) ? s.key : l.recommendedKeys[0], low: l.recommendedRange.lowestMidi, high: l.recommendedRange.highestMidi });
-  }} />
-  <Choice label="Key" select options={KEY_SIGNATURES.map((k) => ({ value: k.name, label: k.name }))} value={s.key} onchange={(v) => cfg.set({ key: v })} />
-  {#if !oneLine}
+  <Choice label="Key" setupKey="key" options={level.recommendedKeys.map((k) => ({ value: k, label: k }))} value={s.key} onchange={(v) => cfg.set({ key: v })} />
+  {#if !oneLine && !climbing}
     <Choice
       label="Clefs"
+      setupKey="clefs"
       options={[
         { value: "treble", label: "Treble" },
         { value: "bass", label: "Bass" },
@@ -44,10 +43,9 @@
     />
   {/if}
   {#if activity === "flashcards"}
-    <Choice label="Lowest note" select options={notes} value={s.low} onchange={(v) => cfg.set({ low: v })} />
-    <Choice label="Highest note" select options={notes} value={s.high} onchange={(v) => cfg.set({ high: v })} />
     <Choice
       label="Prompt"
+      setupKey="kind"
       options={[
         { value: "note", label: "Single note" },
         { value: "chord", label: "Triad" },
@@ -57,6 +55,7 @@
     />
     <Choice
       label="Answer by"
+      setupKey="answer"
       options={[
         { value: "choice", label: "Naming it" },
         { value: "play", label: "Playing it" },
@@ -67,6 +66,7 @@
   {:else}
     <Choice
       label="Session"
+      setupKey="session"
       options={[
         { value: "one", label: "One phrase" },
         { value: "climb", label: "Climb the levels" },
@@ -74,23 +74,26 @@
       value={s.climb ? "climb" : "one"}
       onchange={(v) => {
         if (v === "one") return cfg.set({ climb: false });
-        // The climb plays in time, four bars a phrase, from the rung the level and key are on.
-        const at = Math.max(0, READING_RUNGS.findIndex((r) => r.level === s.level && r.key === s.key));
-        const r = READING_RUNGS[at];
+        // The climb keeps time, four bars a phrase, from the rung the level and key are on.
+        const r = READING_RUNGS[rung];
         cfg.set({ climb: true, follower: "performance", measures: CLIMB.measures, level: r.level, key: r.key, clefs: oneLine ? "treble" : r.clefs.join(",") });
       }}
     />
-    <Choice
-      label="Follower"
-      options={[
-        { value: "wait", label: "Wait for me" },
-        { value: "performance", label: "Keep time" },
-      ]}
-      value={s.follower}
-      onchange={(v) => cfg.set({ follower: v })}
-    />
+    {#if !climbing}
+      <Choice
+        label="Follower"
+        setupKey="follower"
+        options={[
+          { value: "wait", label: "Wait for me", hint: "The cursor holds until you play the right notes. Guided, so it does not count toward mastery." },
+          { value: "performance", label: "Keep time", hint: "The cursor runs with the click and grades your timing." },
+        ]}
+        value={s.follower}
+        onchange={(v) => cfg.set({ follower: v })}
+      />
+    {/if}
     <Choice
       label="Meter"
+      setupKey="meter"
       options={[
         { value: "simple", label: "4/4" },
         { value: "compound", label: "6/8" },
@@ -98,10 +101,13 @@
       value={s.meter}
       onchange={(v) => cfg.set({ meter: v })}
     />
-    <Choice label="Bars" select options={[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: n, label: `${n} bar${n > 1 ? "s" : ""}` }))} value={s.measures} onchange={(v) => cfg.set({ measures: v })} />
-    {#if s.follower === "performance"}
+    {#if !climbing}
+      <Choice label="Bars" setupKey="measures" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={s.measures} onchange={(v) => cfg.set({ measures: v })} />
+    {/if}
+    {#if climbing || s.follower === "performance"}
       <Choice
         label="Timing window"
+        setupKey="strictness"
         options={[
           { value: "relaxed", label: "Relaxed" },
           { value: "normal", label: "Normal" },
@@ -114,10 +120,11 @@
   {/if}
   {#if fretted && (activity === "sight-reading" || s.answer === "play")}
     <Choice
-      label="Input"
+      label="Microphone"
+      setupKey="input"
       options={[
-        { value: "keys", label: "On-screen or MIDI" },
-        { value: "mic", label: "Microphone" },
+        { value: "keys", label: "Off", hint: "Answer on the screen or over MIDI." },
+        { value: "mic", label: "On", hint: "Play your instrument into the microphone." },
       ]}
       value={s.input}
       onchange={(v) => cfg.set({ input: v })}
@@ -126,7 +133,7 @@
 </div>
 {#if activity === "sight-reading"}
   <p class="mt-3 text-sm text-ws-soft">
-    Tempo comes from the practice strip (40 to 200 BPM).{#if s.climb}
-      The climb keeps time, four bars a phrase: {Math.round(CLIMB.pass * 100)}% or better moves up a rung of {READING_RUNGS.length}, less is a strike, {CLIMB.strikes} strikes end it.{/if}
+    Tempo comes from the practice strip (40 to 200 BPM).{#if climbing}
+      The climb keeps time, four bars a phrase, starting at rung {rung + 1} of {READING_RUNGS.length} ({READING_RUNGS[rung].label}): {Math.round(CLIMB.pass * 100)}% or better moves up a rung, less is a strike, {CLIMB.strikes} strikes end it.{/if}
   </p>
 {/if}

@@ -12,7 +12,7 @@
   import { gradeOnsets, gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
   import { timingVerdict } from "@repo/music-core/scoring/timing";
   import { chroma, chromaToPcs } from "@repo/music-core/signal/chroma";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -23,10 +23,10 @@
   import { audio, mic, settings } from "$lib/music/runtime";
   import Pads from "$lib/music/components/Pads.svelte";
   import RhythmGrid, { type GridHit, type GridVerdict } from "$lib/music/drills/rhythm/RhythmGrid.svelte";
-  import { demoNotes, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
+  import { demoNotes, readPatterns, RHYTHM_TABS, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
-  const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "quarter-pulse", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock" });
+  const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "eighths", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock" });
   const s = $derived(cfg.value);
   // A path step can ask for a tempo (?bpm=72); the practice strip owns tempo, so hand it over.
   {
@@ -48,9 +48,18 @@
   const grooveLevel = $derived(GROOVE_LEVELS.find((l) => l.id === s.grooveLevel) ?? GROOVE_LEVELS[0]);
   let grooveDef = $state.raw<Groove | null>(null);
   const pulse = $derived(s.mode !== "read-and-tap" && !byEar);
+  const tab = $derived(byEar ? s.mode : pulse ? "pulse" : "read-and-tap");
+  /** The microphone counts onsets only where something is tapped. */
+  const listens = $derived(s.mic && !writes);
   const earLevel = $derived(EAR_RHYTHM_LEVELS.find((l) => l.id === s.earLevel) ?? EAR_RHYTHM_LEVELS[0]);
   // A new pattern each run; before the first, an example of the level (for the demo).
   let earDef = $state.raw<ReturnType<typeof earRhythmPattern> | null>(null);
+  /** A new mode or level drops the last run's pattern, so the stage shows the level's example again. */
+  function pick(patch: Partial<typeof s>) {
+    earDef = null;
+    grooveDef = null;
+    cfg.set(patch);
+  }
   const exampleGroove = $derived(earGroove(rng(7), grooveLevel.id));
   const earExample = $derived(groove ? grooveAsPattern(exampleGroove) : earRhythmPattern(rng(7), earLevel.id, { dictation }));
   const def = $derived(byEar ? (earDef ?? earExample) : (rhythmPattern(s.pattern) ?? RHYTHM_PATTERNS[0]));
@@ -89,7 +98,7 @@
   }
 
   function tap(at: number) {
-    if (!s.mic) audio.drum(37, 0.5);
+    if (!listens) audio.drum(37, 0.5);
     pressed = true;
     setTimeout(() => (pressed = false), 90);
     addHit({ at, source: "onscreen" });
@@ -121,7 +130,8 @@
   }
 
   function onKey(e: KeyboardEvent) {
-    if (phase !== "running" || e.code !== "Space" || e.repeat) return;
+    // While writing, Space toggles the focused grid cell; it is not a tap.
+    if (writes || phase !== "running" || e.code !== "Space" || e.repeat) return;
     const t = e.target as HTMLElement | null;
     if (t?.closest("input, select, textarea, [contenteditable]")) return;
     e.preventDefault();
@@ -146,7 +156,7 @@
       marks = {};
       writing = false;
     }
-    if (s.mic) {
+    if (listens) {
       const ok = await mic.start();
       if (!ok) {
         ctx.stopClock();
@@ -490,7 +500,13 @@
   });
   const playhead = $derived(demo?.playing && lit !== null ? gridEvents[lit]?.beat ?? null : phase === "running" && mode === "practice" && now >= downbeat ? toBeat(now) : null);
 
-  const summaryLine = $derived(byEar ? `${echo ? "Echo" : groove ? "Groove dictation" : "Dictation"}, ${(groove ? grooveLevel : earLevel).title.toLowerCase()}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM` : pulse ? `Pulse, ${beats} beats at ${bpm} BPM${s.mic ? ", microphone on" : ""}` : `${def.label}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM${s.mic ? ", microphone on" : ""}`);
+  const summaryLine = $derived<SetupClause[]>([
+    byEar ? { text: (groove ? grooveLevel : earLevel).title, focus: "level" } : pulse ? { text: `${beats} beats`, focus: "beats" } : { text: def.label, focus: "pattern" },
+    { text: `${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM` },
+    ...(listens ? [{ text: "microphone on", focus: "mic" }] : []),
+  ]);
+  // By ear the pattern is never on screen, whichever way the shell's switch is set.
+  const modeNotes = $derived(byEar ? { practice: "The pattern is heard, not shown. Practice, not a test.", check: "The pattern is heard, not shown. Counts toward mastery." } : undefined);
 </script>
 
 <svelte:head><title>Rhythm | Woodshed</title></svelte:head>
@@ -509,6 +525,10 @@
         ? "Tap the beat with the click. You'll see whether you sit ahead, behind or in the middle."
         : "Read the rhythm and tap it. Rests are part of the music: a tap in one costs points."}
   summary={summaryLine}
+  tabs={RHYTHM_TABS}
+  {tab}
+  ontab={(v) => pick({ mode: v })}
+  {modeNotes}
   bind:phase
   bind:mode
   bind:status
@@ -521,39 +541,41 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice
-        label="Mode"
-        options={[
-          { value: "pulse", label: "Pulse" },
-          { value: "read-and-tap", label: "Read and tap" },
-          { value: "echo", label: "Echo" },
-          { value: "dictation", label: "Dictation" },
-          { value: "groove", label: "Groove dictation" },
-        ]}
-        value={byEar ? s.mode : pulse ? "pulse" : "read-and-tap"}
-        onchange={(v) => cfg.set({ mode: v })}
-      />
       {#if groove}
-        <Choice label="Grooves" select options={GROOVE_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={grooveLevel.id} onchange={(v) => cfg.set({ grooveLevel: v })} />
+        <Choice label="Grooves" setupKey="level" options={GROOVE_LEVELS.map((l) => ({ value: l.id, label: l.title, detail: `${l.bars} bar${l.bars > 1 ? "s" : ""}` }))} value={grooveLevel.id} onchange={(v) => pick({ grooveLevel: v })} />
       {:else if byEar}
-        <Choice label="Rhythms" select options={EAR_RHYTHM_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={earLevel.id} onchange={(v) => cfg.set({ earLevel: v })} />
+        <Choice
+          label="Rhythms"
+          setupKey="level"
+          options={EAR_RHYTHM_LEVELS.map((l, i) => ({
+            value: l.id,
+            label: l.title,
+            detail: `Level ${i + 1}`,
+            hint: dictation && l.perBeat !== 3 && l.cells.includes("triplet") ? "In dictation the triplets stay out: the grid has no place for them." : undefined,
+          }))}
+          value={earLevel.id}
+          onchange={(v) => pick({ earLevel: v })}
+        />
       {:else if pulse}
-        <Choice label="Beats" select options={Array.from({ length: 15 }, (_, i) => ({ value: i + 2, label: `${i + 2} beats` }))} value={beats} onchange={(v) => cfg.set({ beats: v })} />
+        <Choice label="Length" setupKey="beats" options={[4, 8, 16].map((n) => ({ value: n, label: `${n} beats` }))} value={beats} onchange={(v) => cfg.set({ beats: v })} />
       {:else}
-        <Choice label="Pattern" select options={RHYTHM_PATTERNS.map((p) => ({ value: p.id, label: p.label }))} value={def.id} onchange={(v) => cfg.set({ pattern: v })} />
+        <Choice label="Pattern" setupKey="pattern" select options={readPatterns(settings.value.activeInstrument)} value={def.id} onchange={(v) => cfg.set({ pattern: v })} />
       {/if}
-      <Choice
-        label="Also listen to"
-        options={[
-          { value: "off", label: "Tap and MIDI only" },
-          { value: "on", label: "Microphone onsets" },
-        ]}
-        value={s.mic ? "on" : "off"}
-        onchange={(v) => cfg.set({ mic: v === "on" })}
-      />
+      {#if !writes}
+        <Choice
+          label="Microphone"
+          setupKey="mic"
+          options={[
+            { value: "off", label: "Off", hint: "Taps, MIDI keys and pads count." },
+            { value: "on", label: "On", hint: "Onsets heard by the microphone count too." },
+          ]}
+          value={s.mic ? "on" : "off"}
+          onchange={(v) => cfg.set({ mic: v === "on" })}
+        />
+      {/if}
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      Tempo comes from the practice strip (40 to 220 BPM).{#if s.mic} Use headphones: the click in the speakers would count as a tap.{/if}
+      Tempo comes from the practice strip ({RHYTHM_LIMITS.bpm[0]} to {RHYTHM_LIMITS.bpm[1]} BPM).{#if listens} Use headphones: the click in the speakers would count as a tap.{/if}
     </p>
   {/snippet}
 
@@ -636,7 +658,7 @@
       <div class="flex flex-col items-center gap-2" class:hidden={writes}>
         {#if onPads}
           <div class="w-72 max-w-full"><Pads label="Pads: any pad is a tap" /></div>
-          <p class="text-center text-xs text-ws-stage-soft">Any pad counts, on the MPC or here{s.mic ? ", and the mic" : ""}. Space too.</p>
+          <p class="text-center text-xs text-ws-stage-soft">Any pad counts, on the MPC or here{listens ? ", and the mic" : ""}. Space too.</p>
         {:else}
         <button
           type="button"
@@ -660,7 +682,7 @@
           <span class="font-display text-2xl font-bold">Tap</span>
           <span class="text-xs opacity-80">or Space</span>
         </button>
-        <p class="text-center text-xs text-ws-stage-soft">MIDI keys and pads count too{s.mic ? ", and the mic" : ""}.</p>
+        <p class="text-center text-xs text-ws-stage-soft">MIDI keys and pads count too{listens ? ", and the mic" : ""}.</p>
         {/if}
       </div>
     </div>
@@ -670,8 +692,8 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
-          <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm + 8, 40, 220) })}>Faster</button>
-          <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm - 8, 40, 220) })}>Slower</button>
+          <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm + 8, RHYTHM_LIMITS.bpm[0], RHYTHM_LIMITS.bpm[1]) })}>Faster</button>
+          <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm - 8, RHYTHM_LIMITS.bpm[0], RHYTHM_LIMITS.bpm[1]) })}>Slower</button>
         {/snippet}
       </Results>
         {#if perHit.length}

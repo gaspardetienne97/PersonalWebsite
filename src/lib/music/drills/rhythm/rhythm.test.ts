@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { NoteEvent } from "@repo/music-core";
 import { expandRhythm, rhythmPattern } from "@repo/music-core/content/rhythm";
 import { gradePattern } from "@repo/music-core/scoring/rhythm";
-import { demoNotes, midiHits, voicing } from "./rhythm";
+import { demoNotes, midiHits, readPatterns, voicing } from "./rhythm";
 
 const on = (at: number, midi: number, instrument?: NoteEvent["instrument"]): NoteEvent => ({
   kind: "noteon",
@@ -42,6 +42,19 @@ describe("rhythm helpers", () => {
     );
     expect(taps.chords).toBeNull();
     expect(taps.notMeasured).toEqual(["chords"]);
+  });
+
+  it("lists the rhythms and only this instrument's strums, never the plain pulse", () => {
+    const guitar = readPatterns("guitar");
+    expect(guitar.map((p) => p.value)).not.toContain("quarter-pulse");
+    expect(guitar.filter((p) => p.group === "Guitar strums").map((p) => p.value)).toEqual([
+      "guitar-four-on-the-floor",
+      "guitar-island-strum",
+      "guitar-old-faithful",
+    ]);
+    expect(guitar.find((p) => p.value === "guitar-old-faithful")!.label).toMatch(/^Old Faithful/);
+    expect(readPatterns("piano").every((p) => p.group === "Rhythms")).toBe(true);
+    expect(readPatterns("piano")).toHaveLength(8);
   });
 
   it("demo lights every event once and keeps the silent bar silent", () => {

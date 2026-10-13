@@ -14,6 +14,7 @@ import {
   flashcardPrompt,
   practiceMissedScore,
   READING_LEVELS,
+  readingRange,
   sightReadingScore,
   sightReadingSkills,
 } from "./reading";
@@ -49,6 +50,15 @@ describe("reading levels", () => {
       "level-2|0.55|treble,bass|48-84|C major,G major,F major,A minor,E minor",
       "level-3|0.7|treble,bass|43-88|C major,G major,D major,F major,Bb major,D minor",
     ]);
+  });
+
+  it("gives each clef its side of middle C, at least an octave", () => {
+    expect(readingRange("primer", ["treble"])).toEqual([60, 72]);
+    expect(readingRange("primer", ["bass"])).toEqual([48, 60]);
+    expect(readingRange("primer", ["treble", "bass"])).toEqual([48, 72]);
+    expect(readingRange("level-1", ["treble"])).toEqual([60, 79]);
+    expect(readingRange("level-3", ["bass"])).toEqual([43, 60]);
+    expect(readingRange("level-3", ["treble", "bass"])).toEqual([43, 88]);
   });
 });
 
@@ -173,6 +183,22 @@ describe("sight-reading", () => {
       "reading.bass",
       "reading.bass.stepwise",
     ]);
+  });
+
+  it("drops a clef with no notes on its side of middle C instead of an empty voice", () => {
+    const score = sightReadingScore(rng(1), {
+      level: "primer",
+      instrument: "piano",
+      clefs: ["treble", "bass"],
+      key: "C major",
+      range: [60, 72],
+      measures: 2,
+      meter: "simple",
+      bpm: 90,
+    });
+    expect(score.voices.map((v) => v.clef)).toEqual(["treble"]);
+    expect(score.voices[0].notes.every((n) => n.midi >= 60 && n.midi <= 72)).toBe(true);
+    expectExactBars(score);
   });
 
   it("moves stepwise at the primer, with its level defaults, and one voice on guitar", () => {

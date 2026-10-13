@@ -1,7 +1,5 @@
 <script lang="ts">
   import { TUNINGS } from "@repo/music-core/data/index";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import { bench } from "$lib/music/bench.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { settings } from "$lib/music/runtime";
   import Flashcards from "$lib/music/drills/reading/Flashcards.svelte";
@@ -10,8 +8,9 @@
 
   const cfg = new DrillSetup("reading", { ...READING_SETUP });
   const activity = $derived(cfg.value.activity === "sight-reading" ? "sight-reading" : "flashcards");
+  // The practice strip's instrument; the shell switches the strip off the MPC.
   const instrument = $derived.by(() => {
-    const pick = cfg.value.instrument === "auto" ? settings.value.activeInstrument : cfg.value.instrument;
+    const pick = settings.value.activeInstrument;
     return pick === "guitar" || pick === "ukulele" || pick === "aerophone" ? pick : "piano";
   });
   const tuning = $derived(
@@ -22,20 +21,6 @@
 </script>
 
 <svelte:head><title>{activity === "flashcards" ? "Note reading" : "Sight-reading"} | Woodshed</title></svelte:head>
-
-{#if !bench.running}
-  <div class="mx-auto mb-3 flex w-full max-w-6xl">
-    <Choice
-      label="Activity"
-      options={[
-        { value: "flashcards", label: "Flashcards" },
-        { value: "sight-reading", label: "Sight-reading" },
-      ]}
-      value={activity}
-      onchange={(v) => cfg.set({ activity: v })}
-    />
-  </div>
-{/if}
 
 {#key `${activity}|${instrument}`}
   {#if activity === "flashcards"}

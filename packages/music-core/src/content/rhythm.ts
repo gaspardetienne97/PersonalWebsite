@@ -338,8 +338,8 @@ export const GROOVE_LANES: { id: GrooveLane; label: string; midi: number }[] = [
 ];
 /** Rock beats first, then kicks off the beat, then sixteenth kicks and ghost snares. */
 export const GROOVE_LEVELS: { id: string; title: string; bars: number; perBeat: 2 | 4 }[] = [
-  { id: "rock", title: "Rock beats, one bar", bars: 1, perBeat: 2 },
-  { id: "offbeats", title: "Kicks off the beat, two bars", bars: 2, perBeat: 2 },
+  { id: "rock", title: "Rock beats", bars: 1, perBeat: 2 },
+  { id: "offbeats", title: "Kicks off the beat", bars: 2, perBeat: 2 },
   { id: "sixteenths", title: "Sixteenth kicks and ghost snares", bars: 2, perBeat: 4 },
 ];
 const KICKS: Record<string, number[][]> = {

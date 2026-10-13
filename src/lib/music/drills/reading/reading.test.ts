@@ -6,6 +6,7 @@ import {
   clampRange,
   comparisonScore,
   handLabel,
+  keyboardSpan,
   playableWrittenRange,
   soundingScore,
 } from "./reading";
@@ -43,6 +44,12 @@ describe("reading helpers", () => {
   it("keeps at least an octave when clamping", () => {
     expect(clampRange([48, 84], [52, 88])).toEqual([52, 84]);
     expect(clampRange([90, 95], [52, 88])).toEqual([76, 88]);
+  });
+
+  it("starts the keyboard on the C under the lowest note, not an octave below it", () => {
+    expect(keyboardSpan([60, 64, 67])).toEqual([60, 84]);
+    expect(keyboardSpan([62, 79])).toEqual([60, 84]);
+    expect(keyboardSpan([59, 62])).toEqual([48, 72]);
   });
 
   it("names the hand of a group", () => {

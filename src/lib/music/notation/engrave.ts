@@ -482,7 +482,8 @@ export function drawStaff(
     revealLabels = false,
     grand = false,
     fill = false,
-  }: DrawOptions & { revealLabels?: boolean },
+    time: withTime = true,
+  }: DrawOptions & { revealLabels?: boolean; time?: boolean },
 ): Layout {
   const barList = barsIn(bars(score), range);
   const groups = scoreGroups(score, voiceIds, range);
@@ -496,7 +497,7 @@ export function drawStaff(
     stave(VF, x, y, w, first, time) {
       const s = new VF.Stave(x, y, w);
       if (first) s.addClef(row.clef).addKeySignature(key);
-      if (time) s.addTimeSignature(`${score.meter.beats}/${score.meter.beatUnit}`);
+      if (time && withTime) s.addTimeSignature(`${score.meter.beats}/${score.meter.beatUnit}`);
       return s;
     },
     note(VF, t) {

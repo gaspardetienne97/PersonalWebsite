@@ -11,6 +11,7 @@
     revealLabels = false,
     grand = false,
     fill = false,
+    time = true,
     selection = $bindable(null),
     ...rest
   }: FrameProps & {
@@ -24,6 +25,8 @@
     grand?: boolean;
     /** Spread a short line across the whole width. */
     fill?: boolean;
+    /** Draw the time signature (off for a lone flashcard). */
+    time?: boolean;
   } = $props();
 </script>
 
@@ -32,6 +35,6 @@
   bind:selection
   label="Staff notation, {score.title}"
   scoreBpm={score.bpm}
-  draw={(VF, host, width) => drawStaff(VF, host, { score, voiceIds, range, width, revealLabels, grand, fill })}
+  draw={(VF, host, width) => drawStaff(VF, host, { score, voiceIds, range, width, revealLabels, grand, fill, time })}
   fallback={(reason) => `The staff can't draw this score: ${reason}. Waterfall shows every note.`}
 />

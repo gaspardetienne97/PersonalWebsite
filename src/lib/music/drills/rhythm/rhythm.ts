@@ -2,8 +2,33 @@
 // sound of its demo (clicks, taps, strums), with the event each sound lights.
 import type { NoteEvent } from "@repo/music-core";
 import { pc } from "@repo/music-core";
-import type { RhythmPlan } from "@repo/music-core/content/rhythm";
+import { RHYTHM_PATTERNS, type RhythmPlan } from "@repo/music-core/content/rhythm";
 import type { RhythmHit } from "@repo/music-core/scoring/rhythm";
+
+/** The five rhythm exercises, as the shell's tab row. */
+export const RHYTHM_TABS = [
+  { id: "pulse", label: "Pulse" },
+  { id: "read-and-tap", label: "Read and tap" },
+  { id: "echo", label: "Echo" },
+  { id: "dictation", label: "Dictation" },
+  { id: "groove", label: "Groove dictation" },
+] as const;
+
+/**
+ * The read-and-tap list: the rhythms, then the strums for this instrument under
+ * their own heading. The plain quarter pulse is Pulse mode, so it stays out.
+ */
+export function readPatterns(instrument: string) {
+  return RHYTHM_PATTERNS.filter(
+    (p) => p.id !== "quarter-pulse" && (!p.chords?.length || p.id.startsWith(`${instrument}-`)),
+  ).map((p) => ({
+    value: p.id,
+    label: p.label.replace(/^(Guitar|Ukulele): /, ""),
+    group: p.chords?.length
+      ? `${instrument[0].toUpperCase()}${instrument.slice(1)} strums`
+      : "Rhythms",
+  }));
+}
 
 export interface Hit extends RhythmHit {
   source: "onscreen" | "midi" | "audio";
