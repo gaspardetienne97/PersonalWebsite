@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
-  import { noteName, pc } from "@repo/music-core";
+  import { noteName, pc, pcOf } from "@repo/music-core";
   import { KEY_CYCLE, chordScaleTargets, cycleTranspose, goToScale } from "@repo/music-core/content/piano";
   import { JAZZ } from "@repo/music-core/data/index";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
@@ -9,6 +9,7 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
@@ -217,7 +218,10 @@
         value={changes}
         onchange={(v) => cfg.set({ changes: v })}
       />
-      <Choice label="Key (12-key cycle)" select options={KEY_CYCLE.map((k) => ({ value: k, label: k }))} value={key} onchange={(v) => cfg.set({ key: v })} />
+<div class="flex min-w-0 flex-col gap-1 text-sm">
+        <span class="font-medium">Key</span>
+        <KeyPicker label="Key" value={pcOf(key)!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
+      </div>
       <Choice
         label="Each chord lasts"
         options={[

@@ -11,6 +11,7 @@
   import { goto } from "$app/navigation";
   import * as Menu from "@repo/ui/dropdown-menu";
   import Picker from "$lib/music/components/Picker.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import { audio } from "$lib/music/runtime";
   import { kits } from "./kitStore.svelte";
   import { session, type TrackId } from "./session.svelte";
@@ -213,7 +214,7 @@
     <Picker class="w-auto" action label="Add a chord progression" placeholder="Add chords" options={PROGRESSIONS.map((p) => ({ value: p.id, label: p.name }))} onchange={addChords} />
     <label class="flex items-center gap-1.5 text-sm">
       <span class="text-ws-soft">in</span>
-      <Picker class="w-20" label="Key for the chords" value={String(chordKey)} options={KEYS.map((k, i) => ({ value: String(i), label: k }))} onchange={(k) => (chordKey = Number(k))} />
+      <KeyPicker class="w-20" label="Key for the chords" value={chordKey} name={(p) => KEYS[p]} onchange={(p) => (chordKey = p)} />
     </label>
     {#if session.beats.length || session.voices.length}
       <Picker

@@ -91,4 +91,26 @@ test.describe("circle of fifths", () => {
     await expect(card).toContainText(/Right/);
     await shots(page, "drill-wheel");
   });
+
+  test("keys are picked on the circle: the Library's tonic and the chord-scales key", async ({
+    page,
+  }) => {
+    await page.goto("/music/library?tab=reference&section=explorer");
+    await page.getByRole("button", { name: "Tonic: C" }).click();
+    await page
+      .getByRole("group", { name: "Tonic: the circle of fifths" })
+      .getByRole("button", { name: "Eb major, 3 flats" })
+      .click();
+    await expect(page.locator("#explorer")).toContainText("Eb major");
+    await expect(page.getByRole("button", { name: "Tonic: Eb" })).toBeVisible();
+
+    await page.goto("/music/chord-scales");
+    await page.getByRole("button", { name: "Change setup" }).click();
+    await page.getByRole("button", { name: /^Key: / }).click();
+    await shots(page, "key-picker");
+    // The bottom of the circle: F#/Gb, spelled Gb as the jazz cycle has it.
+    await page.getByRole("button", { name: /^F# major \(Gb\)/ }).click();
+    await expect(page.getByRole("button", { name: "Key: Gb" })).toBeVisible();
+    await expect(page.getByText("Setup:").locator("..")).toContainText("Gb");
+  });
 });

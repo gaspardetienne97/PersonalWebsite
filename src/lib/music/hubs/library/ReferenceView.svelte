@@ -17,6 +17,7 @@
   import { audio, type SequenceHandle } from "$lib/music/runtime";
   import { chordVoicing } from "$lib/music/drills/jam/backing";
   import CircleOfFifths from "$lib/music/components/CircleOfFifths.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Staff from "$lib/music/notation/Staff.svelte";
   import { accidentalCount, diatonicChords, keyAt, neighbour, opposite } from "@repo/music-core/theory/circle";
   import { functionChord } from "@repo/music-core/content/ear";
@@ -225,7 +226,10 @@
             kind = v as "scale" | "chord";
           }}
         />
-        <Choice label="Tonic" select options={FLAT_NAMES.map((n, i) => ({ value: i, label: n }))} value={tonicPc} onchange={(v) => (stop(), (tonicPc = v))} />
+        <div class="flex min-w-0 flex-col gap-1 text-sm">
+          <span class="font-medium">Tonic</span>
+          <KeyPicker label="Tonic" value={tonicPc} name={(p) => FLAT_NAMES[p]} onchange={(p) => (stop(), (tonicPc = p))} />
+        </div>
         {#if kind === "scale"}
           <Choice label="Scale" select options={scaleOptions} value={scaleName} onchange={(v) => (stop(), (scaleName = v))} />
         {:else}

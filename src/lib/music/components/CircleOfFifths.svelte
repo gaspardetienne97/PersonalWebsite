@@ -13,6 +13,7 @@
     blank,
     marks = {},
     label = "Circle of fifths",
+    compact = false,
   }: {
     /** The picked key, by its fifths (-7..7); null for none. */
     selected?: number | null;
@@ -24,11 +25,15 @@
     /** Wheel slots marked after an answer. */
     marks?: Record<number, "right" | "wrong" | "lit">;
     label?: string;
+    /** Major keys only, larger: a key picker. */
+    compact?: boolean;
   } = $props();
 
   const S = 360;
   const C = S / 2;
-  const R = { outer: 172, major: 122, minor: 82, dim: 50 };
+  const R = $derived(compact ? { outer: 172, major: 78, minor: 78, dim: 78 } : { outer: 172, major: 122, minor: 82, dim: 50 });
+  /** Each position its own hue, round the colour wheel the way keys go round the circle. */
+  const hue = (i: number) => (i * 30 + 25) % 360;
   const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
   const pt = (r: number, deg: number) => `${(C + r * Math.cos(rad(deg))).toFixed(2)} ${(C + r * Math.sin(rad(deg))).toFixed(2)}`;
   /** A ring segment from r0 to r1 around slot i (30 degrees wide). */
@@ -52,13 +57,15 @@
   const roleOf = (ring: "major" | "minor" | "dim", i: number) => {
     if (sel === null) return null;
     const d = ((i - sel + 18) % 12) - 6;
+    // A picker marks only the key itself.
+    if (compact) return ring === "major" && d === 0 ? "I" : null;
     return ROLE[ring][d] ?? null;
   };
   const picked = $derived(selected === null ? null : keyAt(selected));
   const SLOTS = Array.from({ length: 12 }, (_, i) => i);
 </script>
 
-<svg class="wheel" viewBox="0 0 {S} {S}" role="group" aria-label={label}>
+<svg class="wheel" class:has-pick={sel !== null && !compact} class:compact viewBox="0 0 {S} {S}" role="group" aria-label={label}>
   {#each SLOTS as i (i)}
     {@const k = CIRCLE[i]}
     {@const hidden = blank?.(i) ?? false}
@@ -69,6 +76,7 @@
     <!-- Outer ring: the major key. -->
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the slot has role button whenever it is focusable (a pickable wheel) -->
     <g
+      style:--h={hue(i)}
       class="slot"
       class:in={roleOf("major", i) !== null}
       class:tonic={roleOf("major", i) === "I"}
@@ -80,18 +88,20 @@
       onclick={() => onpick?.(k.fifths)}
       onkeydown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onpick?.(k.fifths))}
     >
-      <path class="ring major" d={wedge(i, R.major, R.outer)} />
+      <path class="ring major" class:in={roleOf("major", i) !== null} class:tonic={roleOf("major", i) === "I"} d={wedge(i, R.major, R.outer)} />
       <text x={p.x} y={p.y - (roleOf("major", i) && numerals ? 6 : 0)} class="name">{hidden ? "?" : k.major}</text>
       {#if k.enharmonic && !hidden && !(numerals && roleOf("major", i))}<text x={p.x} y={p.y + 14} class="enh">{k.enharmonic.major}</text>{/if}
       {#if numerals && roleOf("major", i)}<text x={p.x} y={p.y + 12} class="numeral">{roleOf("major", i)}</text>{/if}
     </g>
-    <!-- Middle ring: its relative minor. -->
-    <path class="ring minor" class:in={roleOf("minor", i) !== null} d={wedge(i, R.minor, R.major)} />
-    <text x={m.x} y={m.y - (roleOf("minor", i) && numerals ? 5 : 0)} class="minor-name">{hidden ? "" : `${k.minor}m`}</text>
-    {#if numerals && roleOf("minor", i)}<text x={m.x} y={m.y + 10} class="numeral">{roleOf("minor", i)}</text>{/if}
-    <!-- Inner ring: the key's diminished chord (its vii°). -->
-    <path class="ring dim" class:in={roleOf("dim", i) !== null} d={wedge(i, R.dim, R.minor)} />
-    <text x={d.x} y={d.y + 4} class="dim-name">{hidden ? "" : `${noteAtFifths(k.fifths + 5)}°`}</text>
+    {#if !compact}
+      <!-- Middle ring: its relative minor. -->
+      <path style:--h={hue(i)} class="ring minor" class:in={roleOf("minor", i) !== null} d={wedge(i, R.minor, R.major)} />
+      <text x={m.x} y={m.y - (roleOf("minor", i) && numerals ? 5 : 0)} class="minor-name">{hidden ? "" : `${k.minor}m`}</text>
+      {#if numerals && roleOf("minor", i)}<text x={m.x} y={m.y + 10} class="numeral">{roleOf("minor", i)}</text>{/if}
+      <!-- Inner ring: the key's diminished chord (its vii°). -->
+      <path style:--h={hue(i)} class="ring dim" class:in={roleOf("dim", i) !== null} d={wedge(i, R.dim, R.minor)} />
+      <text x={d.x} y={d.y + 4} class="dim-name">{hidden ? "" : `${noteAtFifths(k.fifths + 5)}°`}</text>
+    {/if}
   {/each}
   <circle class="hub" cx={C} cy={C} r={R.dim - 2} />
   {#if picked}
@@ -103,75 +113,115 @@
 </svg>
 
 <style>
+  /* Lightness and chroma per ring, per theme; each slot brings its hue (--h). */
   .wheel {
+    --l-major: 0.8;
+    --l-minor: 0.87;
+    --l-dim: 0.93;
+    --c: 0.15;
+    --l-in: 0.74;
+    --l-tonic: 0.58;
+    --l-fade: 0.94;
+    --ink: oklch(0.24 0.03 280);
+    --ink-soft: oklch(0.42 0.03 280);
+    --ink-tonic: oklch(0.99 0 0);
     display: block;
     width: 100%;
     max-width: 26rem;
     margin-inline: auto;
     user-select: none;
   }
+  :global(.dark) .wheel {
+    --l-major: 0.62;
+    --l-minor: 0.5;
+    --l-dim: 0.4;
+    --l-in: 0.7;
+    --l-tonic: 0.84;
+    --l-fade: 0.3;
+    --ink: oklch(0.98 0.01 280);
+    --ink-soft: oklch(0.86 0.02 280);
+    --ink-tonic: oklch(0.2 0.03 280);
+  }
+  .wheel.compact {
+    max-width: 17rem;
+  }
   .ring {
     stroke: var(--ws-bg);
     stroke-width: 1.5;
+    transition: fill 150ms;
   }
   .ring.major {
-    fill: color-mix(in oklch, var(--ws-ink) 9%, var(--ws-surface));
+    fill: oklch(var(--l-major) var(--c) var(--h));
   }
   .ring.minor {
-    fill: color-mix(in oklch, var(--ws-ink) 5%, var(--ws-surface));
+    fill: oklch(var(--l-minor) calc(var(--c) * 0.7) var(--h));
   }
   .ring.dim {
-    fill: var(--ws-surface);
+    fill: oklch(var(--l-dim) calc(var(--c) * 0.45) var(--h));
+  }
+  /* A picked key: its wedge stays vivid, the rest fade back. */
+  .has-pick .ring:not(.in) {
+    fill: oklch(var(--l-fade) 0.03 var(--h));
+  }
+  .has-pick .ring.in {
+    fill: oklch(var(--l-in) 0.17 var(--h));
+  }
+  .has-pick .ring.major.tonic {
+    fill: oklch(var(--l-tonic) 0.2 var(--h));
+  }
+  /* In a picker every key stays bright; the current one is bold and ringed. */
+  .compact .ring.major.tonic {
+    fill: oklch(var(--l-tonic) 0.2 var(--h));
+    stroke: var(--ink);
+    stroke-width: 3;
   }
   .slot[role="button"] {
     cursor: pointer;
   }
-  .slot[role="button"]:hover .ring.major,
-  .slot:focus-visible .ring.major {
-    fill: color-mix(in oklch, var(--instr) 25%, var(--ws-surface));
+  .slot[role="button"]:hover .ring.major {
+    filter: brightness(1.08) saturate(1.2);
   }
   .slot:focus-visible {
     outline: none;
   }
   .slot:focus-visible .ring.major {
-    stroke: var(--ws-ink);
-    stroke-width: 2.5;
-  }
-  .slot.in .ring.major,
-  .ring.minor.in,
-  .ring.dim.in {
-    fill: color-mix(in oklch, var(--instr) 30%, var(--ws-surface));
-  }
-  .slot.tonic .ring.major {
-    fill: var(--instr);
+    stroke: var(--ink);
+    stroke-width: 3;
   }
   .slot[data-mark="right"] .ring.major {
-    fill: color-mix(in oklch, var(--success) 45%, var(--ws-surface));
+    fill: var(--success);
   }
   .slot[data-mark="wrong"] .ring.major {
-    fill: color-mix(in oklch, var(--destructive) 40%, var(--ws-surface));
+    fill: var(--destructive);
   }
   .slot[data-mark="lit"] .ring.major {
-    fill: color-mix(in oklch, var(--instr) 55%, var(--ws-surface));
+    fill: oklch(var(--l-in) 0.2 var(--h));
   }
   text {
     text-anchor: middle;
     dominant-baseline: middle;
-    fill: var(--ws-ink);
+    fill: var(--ink);
     pointer-events: none;
   }
   .name {
     font-size: 19px;
     font-weight: 700;
   }
+  .compact .name {
+    font-size: 24px;
+  }
   .slot.tonic .name,
   .slot.tonic .numeral,
-  .slot.tonic .enh {
-    fill: var(--ws-stage);
+  .slot.tonic .enh,
+  .slot[data-mark] .name {
+    fill: var(--ink-tonic);
   }
   .enh {
     font-size: 10px;
-    fill: var(--ws-soft);
+    fill: var(--ink-soft);
+  }
+  .compact .enh {
+    font-size: 13px;
   }
   .minor-name {
     font-size: 13px;
@@ -179,7 +229,7 @@
   }
   .dim-name {
     font-size: 9.5px;
-    fill: var(--ws-soft);
+    fill: var(--ink-soft);
   }
   .numeral {
     font-size: 10.5px;
@@ -192,8 +242,19 @@
     font-size: 20px;
     font-weight: 800;
   }
+  .compact .hub-key {
+    font-size: 30px;
+  }
   .hub-sig {
     font-size: 11px;
-    fill: var(--ws-soft);
+    fill: var(--ink-soft);
+  }
+  .compact .hub-sig {
+    font-size: 14px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ring {
+      transition: none;
+    }
   }
 </style>

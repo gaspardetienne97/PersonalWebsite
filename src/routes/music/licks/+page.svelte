@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
-  import { noteName, pc } from "@repo/music-core";
+  import { noteName, pc, pcOf } from "@repo/music-core";
   import { KEY_CYCLE, LICKS, LICK_CATEGORIES, cycleTranspose, lickChunk, lickNotes, lickSkills, type LickNote } from "@repo/music-core/content/piano";
   import { JAZZ, TUNINGS } from "@repo/music-core/data/index";
   import { transposeSymbol } from "@repo/music-core/theory/chords";
@@ -10,6 +10,7 @@
   import Piano from "$lib/music/components/Piano.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
@@ -258,7 +259,10 @@
       {#if fretted}
         <p class="self-end text-sm text-ws-soft">A guitar lick on its fretboard position; it stays in its own key. Lick 31 is lick 30's shape moved to the fifth fret.</p>
       {:else}
-        <Choice label="Key (12-key cycle)" select options={KEY_CYCLE.map((k) => ({ value: k, label: k }))} value={KEY_CYCLE.includes(s.key) ? s.key : "C"} onchange={(v) => cfg.set({ key: v })} />
+<div class="flex min-w-0 flex-col gap-1 text-sm">
+        <span class="font-medium">Key</span>
+        <KeyPicker label="Key" value={pcOf(KEY_CYCLE.includes(s.key) ? s.key : "C")!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
+      </div>
       {/if}
     </div>
     <p class="mt-3 text-sm text-ws-soft">Categories: {LICK_CATEGORIES.map((c) => CATEGORY_LABEL[c] ?? c).join(", ")}. Tempo comes from the practice strip.</p>

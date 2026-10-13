@@ -392,7 +392,10 @@ test.describe("Create", () => {
     await expect(song.locator("[data-save-state]")).toHaveText("Unsaved changes");
 
     // A chord progression as its own track, in the key asked for.
-    await choose(page, page.getByLabel("Key for the chords"), "D");
+    // The key comes from the circle of fifths.
+    await page.getByRole("button", { name: /^Key for the chords: / }).click();
+    await page.getByRole("button", { name: "D major, 2 sharps" }).click();
+    await expect(page.getByRole("button", { name: "Key for the chords: D" })).toBeVisible();
     await choose(page, page.getByLabel("Add a chord progression"), "Jazz, ii-V-I");
     await expect(page.getByRole("status")).toContainText("Added Jazz in D: Em7, A7, Dmaj7, Dmaj7");
     await expect(page.getByLabel("Jazz in D instrument")).toHaveAttribute("data-value", "e-piano");
