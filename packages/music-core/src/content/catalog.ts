@@ -160,6 +160,10 @@ export const CATALOG: CatalogEntry[] = [
         uniq(RHYTHM_PATTERNS.flatMap((p) => rhythmSkills(p.id))),
       ),
       mode("echo", "Echo", "rhythm.echo", ["rhythm.subdivisions", "ear.rhythm-echo"]),
+      mode("groove", "Groove dictation", "rhythm.groove-dictation", [
+        "rhythm.subdivisions",
+        "ear.groove-dictation",
+      ]),
       mode("dictation", "Dictation", "rhythm.dictation", [
         "rhythm.subdivisions",
         "ear.rhythm-dictation",

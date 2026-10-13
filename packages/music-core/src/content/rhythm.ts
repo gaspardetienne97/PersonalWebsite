@@ -321,3 +321,106 @@ export function earRhythmPattern(
     written,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Groove dictation: a drum groove heard, then written on kick, snare and hat rows.
+
+export type GrooveLane = "hat" | "snare" | "kick";
+/** Top to bottom as a drum grid shows them, with the General MIDI drum each plays. */
+export const GROOVE_LANES: { id: GrooveLane; label: string; midi: number }[] = [
+  { id: "hat", label: "Hi-hat", midi: 42 },
+  { id: "snare", label: "Snare", midi: 38 },
+  { id: "kick", label: "Kick", midi: 36 },
+];
+/** Rock beats first, then kicks off the beat, then sixteenth kicks and ghost snares. */
+export const GROOVE_LEVELS: { id: string; title: string; bars: number; perBeat: 2 | 4 }[] = [
+  { id: "rock", title: "Rock beats, one bar", bars: 1, perBeat: 2 },
+  { id: "offbeats", title: "Kicks off the beat, two bars", bars: 2, perBeat: 2 },
+  { id: "sixteenths", title: "Sixteenth kicks and ghost snares", bars: 2, perBeat: 4 },
+];
+const KICKS: Record<string, number[][]> = {
+  rock: [
+    [0, 2],
+    [0, 2.5],
+    [0, 1.5, 2],
+    [0, 2, 2.5],
+    [0, 0.5, 2],
+    [0, 2, 3.5],
+  ],
+  offbeats: [
+    [0, 1.5, 2.5],
+    [0, 0.5, 2.5],
+    [0, 1.5, 3.5],
+    [0, 2.5, 3],
+    [0, 2, 3.5],
+    [0, 0.5, 1.5, 2.5],
+  ],
+  sixteenths: [
+    [0, 0.75, 2],
+    [0, 1.75, 2.5],
+    [0, 2, 2.75],
+    [0, 0.75, 2.5, 3.25],
+    [0, 1.5, 2.75],
+  ],
+};
+
+export interface Groove {
+  id: string;
+  level: string;
+  bars: number;
+  perBeat: 2 | 4;
+  /** Onsets in beats from the first downbeat, per lane. */
+  lanes: Record<GrooveLane, number[]>;
+}
+
+/** A groove for a level: snare on 2 and 4, hats on eighths (or sixteenths), a kick pattern each bar. */
+export function earGroove(rand: () => number, levelId: string): Groove {
+  const level = GROOVE_LEVELS.find((l) => l.id === levelId) ?? GROOVE_LEVELS[0];
+  const pickOf = <T>(xs: T[]) => xs[Math.floor(rand() * xs.length)];
+  const kicks = level.id === "rock" ? KICKS.rock : [...KICKS.rock, ...KICKS[level.id]];
+  const sixteenthHats = level.perBeat === 4 && rand() < 0.5;
+  const lanes: Record<GrooveLane, number[]> = { hat: [], snare: [], kick: [] };
+  for (let bar = 0; bar < level.bars; bar++) {
+    const at = bar * 4;
+    // The second bar of a pair answers the first with a different kick.
+    const kick = level.id !== "rock" && bar === 1 ? pickOf(KICKS[level.id]) : pickOf(kicks);
+    lanes.kick.push(...kick.map((b) => at + b));
+    lanes.snare.push(at + 1, at + 3);
+    if (level.perBeat === 4 && rand() < 0.6)
+      lanes.snare.push(at + pickOf([1.75, 2.75, 3.25, 3.75]));
+    const step = sixteenthHats ? 0.25 : 0.5;
+    for (let b = 0; b < 4; b += step) lanes.hat.push(at + b);
+  }
+  for (const k of Object.keys(lanes) as GrooveLane[])
+    lanes[k] = [...new Set(lanes[k])].sort((a, b) => a - b);
+  return {
+    id: `groove-${level.id}-${(["kick", "snare", "hat"] as const).map((k) => lanes[k].join("_")).join("-")}`,
+    level: level.id,
+    bars: level.bars,
+    perBeat: level.perBeat,
+    lanes,
+  };
+}
+
+/** The groove as one rhythm (every hit, any lane), for its length, grid and click. */
+export function grooveAsPattern(g: Groove): RhythmPatternDef & { written: number[] } {
+  const onsets = [...new Set(Object.values(g.lanes).flat())].sort((a, b) => a - b);
+  return {
+    id: g.id,
+    label: GROOVE_LEVELS.find((l) => l.id === g.level)?.title ?? "Groove",
+    meter: { beats: 4, beatUnit: 4 },
+    defaultBars: g.bars,
+    events: onsets.map((beat, i) => ({
+      id: `e${i}`,
+      beat,
+      voice: "tap" as const,
+      accent: beat % 4 === 0 ? ("accent" as const) : ("normal" as const),
+    })),
+    rests: [],
+    written: onsets,
+  };
+}
+
+/** Each lane's onsets as one list, kept apart by lane (100 beats each), for gradeOnsets. */
+export const grooveKeys = (lanes: Partial<Record<GrooveLane, number[]>>) =>
+  GROOVE_LANES.flatMap((l, i) => (lanes[l.id] ?? []).map((b) => i * 100 + b));

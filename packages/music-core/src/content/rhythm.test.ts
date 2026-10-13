@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   EAR_RHYTHM_LEVELS,
+  earGroove,
   earRhythmPattern,
+  GROOVE_LEVELS,
+  grooveAsPattern,
+  grooveKeys,
   expandRhythm,
   pulseTargets,
   RHYTHM_CELLS,
@@ -165,5 +169,27 @@ describe("rhythm by ear", () => {
       expect(earRhythmPattern(rng(seed), "syncopation", { dictation: true }).cells).not.toContain(
         "triplet",
       );
+  });
+});
+
+describe("groove dictation", () => {
+  it("puts the snare on 2 and 4, hats on the grid, and a kick on every downbeat", () => {
+    for (const level of GROOVE_LEVELS)
+      for (let seed = 1; seed <= 30; seed++) {
+        const g = earGroove(rng(seed), level.id);
+        for (let bar = 0; bar < level.bars; bar++) {
+          expect(g.lanes.kick).toContain(bar * 4);
+          expect(g.lanes.snare).toEqual(expect.arrayContaining([bar * 4 + 1, bar * 4 + 3]));
+        }
+        for (const b of Object.values(g.lanes).flat())
+          expect((b * level.perBeat) % 1).toBeCloseTo(0);
+        expect(Math.max(...Object.values(g.lanes).flat())).toBeLessThan(level.bars * 4);
+        expect(grooveAsPattern(g).defaultBars).toBe(level.bars);
+      }
+    expect(earGroove(rng(1), "rock").lanes.hat).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]);
+  });
+
+  it("keeps the lanes apart when graded together", () => {
+    expect(grooveKeys({ kick: [0], snare: [0] })).toEqual([100, 200]);
   });
 });

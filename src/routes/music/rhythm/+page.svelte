@@ -6,7 +6,7 @@
   import { page } from "$app/state";
   import type { InputEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
-  import { EAR_RHYTHM_LEVELS, earRhythmPattern, expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "@repo/music-core/content/rhythm";
+  import { EAR_RHYTHM_LEVELS, earGroove, earRhythmPattern, GROOVE_LANES, GROOVE_LEVELS, grooveAsPattern, grooveKeys, type Groove, expandRhythm, pulseTargets, RHYTHM_LIMITS, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "@repo/music-core/content/rhythm";
   import { rng } from "@repo/music-core/content/random";
   import { catalogEntry, rhythmExerciseId } from "@repo/music-core/content/catalog";
   import { gradeOnsets, gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
@@ -16,7 +16,7 @@
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
+  import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -24,7 +24,7 @@
   import RhythmGrid, { type GridHit, type GridVerdict } from "$lib/music/drills/rhythm/RhythmGrid.svelte";
   import { demoNotes, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
 
-  const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "quarter-pulse", beats: 4, mic: false as boolean, earLevel: "quarters-eighths" });
+  const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "quarter-pulse", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock" });
   const s = $derived(cfg.value);
   // A path step can ask for a tempo (?bpm=72); the practice strip owns tempo, so hand it over.
   {
@@ -36,12 +36,19 @@
   /** Echo and dictation: the pattern is heard, not read. */
   const echo = $derived(s.mode === "echo");
   const dictation = $derived(s.mode === "dictation");
-  const byEar = $derived(echo || dictation);
+  /** Groove dictation: a drum groove written on kick, snare and hat rows. */
+  const groove = $derived(s.mode === "groove");
+  /** The modes that end with writing the rhythm down. */
+  const writes = $derived(dictation || groove);
+  const byEar = $derived(echo || writes);
+  const grooveLevel = $derived(GROOVE_LEVELS.find((l) => l.id === s.grooveLevel) ?? GROOVE_LEVELS[0]);
+  let grooveDef = $state.raw<Groove | null>(null);
   const pulse = $derived(s.mode !== "read-and-tap" && !byEar);
   const earLevel = $derived(EAR_RHYTHM_LEVELS.find((l) => l.id === s.earLevel) ?? EAR_RHYTHM_LEVELS[0]);
   // A new pattern each run; before the first, an example of the level (for the demo).
   let earDef = $state.raw<ReturnType<typeof earRhythmPattern> | null>(null);
-  const earExample = $derived(earRhythmPattern(rng(7), earLevel.id, { dictation }));
+  const exampleGroove = $derived(earGroove(rng(7), grooveLevel.id));
+  const earExample = $derived(groove ? grooveAsPattern(exampleGroove) : earRhythmPattern(rng(7), earLevel.id, { dictation }));
   const def = $derived(byEar ? (earDef ?? earExample) : (rhythmPattern(s.pattern) ?? RHYTHM_PATTERNS[0]));
   const plan = $derived(expandRhythm(def, { bpm }));
   const beats = $derived(clamp(Math.round(s.beats), RHYTHM_LIMITS.beats[0], RHYTHM_LIMITS.beats[1]));
@@ -128,8 +135,9 @@
     downbeat = ctx.downbeat;
     stopClockRef = ctx.stopClock;
     if (byEar) {
-      earDef = earRhythmPattern(Math.random, earLevel.id, { dictation });
-      marks = [];
+      grooveDef = groove ? earGroove(Math.random, grooveLevel.id) : null;
+      earDef = grooveDef ? { ...grooveAsPattern(grooveDef), cells: [] } : earRhythmPattern(Math.random, earLevel.id, { dictation });
+      marks = {};
       writing = false;
     }
     if (s.mic) {
@@ -149,22 +157,19 @@
     const earMode = byEar ? entry.modes.find((m) => m.id === s.mode)! : null;
     run = practice.beginRun({
       exerciseId: earMode ? earMode.exerciseId : pulse ? entry.modes.find((m) => m.id === "pulse")!.exerciseId : rhythmExerciseId(def.id),
-      setupKey: earMode ? `${s.mode}|${earLevel.id}|${bpm}` : pulse ? `pulse|${beats}|${bpm}` : `pattern|${def.id}|${bpm}`,
+      setupKey: earMode ? `${s.mode}|${groove ? grooveLevel.id : earLevel.id}|${bpm}` : pulse ? `pulse|${beats}|${bpm}` : `pattern|${def.id}|${bpm}`,
       skillIds: earMode ? earMode.skillIds : rhythmSkills(pulse ? "pulse" : def.id),
       capabilities: ["rhythm"],
       modality: "tapped",
       assistance: assistanceFor(mode),
       // By ear, each rhythm level adds 0.08, so a path step can ask for a level or harder.
-      difficulty: Math.min(0.95, 0.2 + (bpm - 40) / 300 + (pulse ? 0 : 0.15) + (byEar ? EAR_RHYTHM_LEVELS.indexOf(earLevel) * 0.08 : 0)),
-      params: byEar ? { mode: s.mode, level: earLevel.id, bpm } : pulse ? { mode: "pulse", beats, bpm } : { mode: "read-and-tap", pattern: def.id, bpm },
+      difficulty: Math.min(0.95, 0.2 + (bpm - 40) / 300 + (pulse ? 0 : 0.15) + (groove ? GROOVE_LEVELS.indexOf(grooveLevel) * 0.1 : byEar ? EAR_RHYTHM_LEVELS.indexOf(earLevel) * 0.08 : 0)),
+      params: byEar ? { mode: s.mode, level: groove ? grooveLevel.id : earLevel.id, bpm } : pulse ? { mode: "pulse", beats, bpm } : { mode: "read-and-tap", pattern: def.id, bpm },
     });
     if (byEar) {
       // The call: the pattern on its own sound, from the first downbeat, over the click.
-      call = audio.playSequence(
-        demoNotes(plan).filter((n) => n.voice !== "click"),
-        { startPerf: ctx.downbeat },
-      );
-      if (dictation) {
+      call = audio.playSequence(callNotes(false), { startPerf: ctx.downbeat });
+      if (writes) {
         status = "Listen to the pattern. Then write it down.";
         timers.push(
           setTimeout(() => {
@@ -302,37 +307,56 @@
 
   let call: { stop(): void } | null = null;
   let writing = $state(false);
-  let marks = $state<boolean[]>([]);
+  /** Marks per row: one row ("notes") for a rhythm, kick, snare and hat for a groove. */
+  let marks = $state<Record<string, boolean[]>>({});
   let dictationResult = $state.raw<ReturnType<typeof gradeOnsets> | null>(null);
-  const cellsPerBar = $derived(earLevel.beatsPerBar * earLevel.perBeat);
+  const grid = $derived(groove ? { perBeat: grooveLevel.perBeat, beatsPerBar: 4 } : earLevel);
+  const rows = $derived(groove ? GROOVE_LANES.map((l) => ({ id: l.id as string, label: l.label })) : [{ id: "notes", label: "" }]);
+  const cellsPerBar = $derived(grid.beatsPerBar * grid.perBeat);
   const COUNTS = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"] } as const;
   const cellLabel = (i: number) => {
-    const sub = i % earLevel.perBeat;
-    return sub ? COUNTS[earLevel.perBeat][sub] : String((Math.floor(i / earLevel.perBeat) % earLevel.beatsPerBar) + 1);
+    const sub = i % grid.perBeat;
+    return sub ? COUNTS[grid.perBeat][sub] : String((Math.floor(i / grid.perBeat) % grid.beatsPerBar) + 1);
   };
   // Where the notes are written (swing is written straight), which is what a dictation marks.
   const heardBeats = $derived(byEar && earDef ? earDef.written : def.events.map((e) => e.beat));
-  const isHeard = (i: number) => heardBeats.some((b) => Math.abs(b - i / earLevel.perBeat) < 1e-6);
+  const heardIn = (row: string) => (grooveDef ? grooveDef.lanes[row as keyof Groove["lanes"]] : heardBeats);
+  const isHeard = (row: string, i: number) => heardIn(row).some((b) => Math.abs(b - i / grid.perBeat) < 1e-6);
+  const markedIn = (row: string) => (marks[row] ?? []).flatMap((on, i) => (on ? [i / grid.perBeat] : []));
+
+  /** The call: the pattern on its own sound, or the groove on the drums; with clicks for a replay. */
+  function callNotes(withClicks: boolean) {
+    const clicks = demoNotes(plan).filter((n) => n.voice === "click");
+    const g = grooveDef ?? (groove ? exampleGroove : null);
+    const sounds = g
+      ? GROOVE_LANES.flatMap((l) =>
+          g.lanes[l.id].map((b) => ({ midi: l.midi, time: (b * beatMs) / 1000, duration: 0.1, velocity: l.id === "hat" ? 0.5 : 0.9, voice: "drum" as const, event: -1 })),
+        )
+      : demoNotes(plan).filter((n) => n.voice !== "click");
+    return withClicks ? [...clicks, ...sounds] : sounds;
+  }
 
   function hearAgain() {
     stopDemo();
     call?.stop();
-    call = audio.playSequence(demoNotes(plan));
+    call = audio.playSequence(callNotes(true));
   }
 
   async function checkDictation() {
     if (!run || !writing) return;
     writing = false;
     call?.stop();
-    const answered = marks.flatMap((on, i) => (on ? [i / earLevel.perBeat] : []));
-    const r = gradeOnsets(heardBeats, answered);
+    const expected = grooveDef ? grooveKeys(grooveDef.lanes) : heardBeats;
+    const answered = grooveDef ? grooveKeys(Object.fromEntries(rows.map((r) => [r.id, markedIn(r.id)]))) : markedIn("notes");
+    const r = gradeOnsets(expected, answered);
     dictationResult = r;
     phase = "results";
-    await run.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: "click", target: heardBeats.join(" "), response: answered.join(" "), instrument: null });
+    await run.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: "click", target: expected.join(" "), response: answered.join(" "), instrument: null });
     const fin = await run.finish({ score: r.score, correct: r.correct, headline: pct(r.score) });
-    const right = answered.filter((b) => heardBeats.some((h) => Math.abs(h - b) < 1e-6)).length;
+    const right = answered.filter((b) => expected.some((h) => Math.abs(h - b) < 1e-6)).length;
+    const what = groove ? "hits" : "notes";
     summary = {
-      headline: r.correct ? `All ${heardBeats.length} notes written right.` : `${right} of ${heardBeats.length} notes right${answered.length > right ? `, ${answered.length - right} extra` : ""}.`,
+      headline: r.correct ? `All ${expected.length} ${what} written right.` : `${right} of ${expected.length} ${what} right${answered.length > right ? `, ${answered.length - right} extra` : ""}.`,
       metric: pct(r.score),
       metricLabel: "score",
       delta: fin.delta,
@@ -341,7 +365,13 @@
       xp: fin.xp,
       assistance: assistanceText(mode),
       rows: [
-        { label: "Notes found", value: heardBeats.length ? right / heardBeats.length : 0, text: `${right} of ${heardBeats.length}` },
+        ...(groove
+          ? rows.map((row) => {
+              const want = heardIn(row.id);
+              const got = markedIn(row.id).filter((b) => want.some((h) => Math.abs(h - b) < 1e-6)).length;
+              return { label: row.label, value: want.length ? got / want.length : 1, text: `${got} of ${want.length}` };
+            })
+          : [{ label: "Notes found", value: expected.length ? right / expected.length : 0, text: `${right} of ${expected.length}` }]),
         { label: "Extra marks", text: String(answered.length - right) },
       ],
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
@@ -369,7 +399,9 @@
           { midi: 0, time: t / 1000, duration: 0.05, velocity: i % 4 === 0 ? 1 : 0.6, voice: "click" as const, event: -1 },
           { midi: 37, time: t / 1000, duration: 0.1, velocity: 0.7, voice: "drum" as const, event: i },
         ])
-      : demoNotes(plan);
+      : groove
+        ? callNotes(true)
+        : demoNotes(plan);
     const h = audio.playSequence(notes, { onNote: (i) => notes[i].event >= 0 && (lit = notes[i].event) });
     demo = h;
     status = "Listen: the pattern lights as it sounds. Not scored.";
@@ -437,7 +469,7 @@
   });
   const playhead = $derived(demo?.playing && lit !== null ? gridEvents[lit]?.beat ?? null : phase === "running" && mode === "practice" && now >= downbeat ? toBeat(now) : null);
 
-  const summaryLine = $derived(byEar ? `${echo ? "Echo" : "Dictation"}, ${earLevel.title.toLowerCase()}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM` : pulse ? `Pulse, ${beats} beats at ${bpm} BPM${s.mic ? ", microphone on" : ""}` : `${def.label}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM${s.mic ? ", microphone on" : ""}`);
+  const summaryLine = $derived(byEar ? `${echo ? "Echo" : groove ? "Groove dictation" : "Dictation"}, ${(groove ? grooveLevel : earLevel).title.toLowerCase()}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM` : pulse ? `Pulse, ${beats} beats at ${bpm} BPM${s.mic ? ", microphone on" : ""}` : `${def.label}, ${plan.bars} bar${plan.bars > 1 ? "s" : ""} at ${bpm} BPM${s.mic ? ", microphone on" : ""}`);
 </script>
 
 <svelte:head><title>Rhythm | Woodshed</title></svelte:head>
@@ -448,7 +480,9 @@
   hue="rhythm"
   blurb={echo
     ? "Hear a rhythm over the click, then tap it back in the bars after it."
-    : dictation
+    : groove
+      ? "Hear a drum groove over the click, then put its kick, snare and hats on the grid."
+      : dictation
       ? "Hear a rhythm over the click, then mark where every note fell."
       : pulse
         ? "Tap the beat with the click. You'll see whether you sit ahead, behind or in the middle."
@@ -473,11 +507,14 @@
           { value: "read-and-tap", label: "Read and tap" },
           { value: "echo", label: "Echo" },
           { value: "dictation", label: "Dictation" },
+          { value: "groove", label: "Groove dictation" },
         ]}
         value={byEar ? s.mode : pulse ? "pulse" : "read-and-tap"}
         onchange={(v) => cfg.set({ mode: v })}
       />
-      {#if byEar}
+      {#if groove}
+        <Choice label="Grooves" select options={GROOVE_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={grooveLevel.id} onchange={(v) => cfg.set({ grooveLevel: v })} />
+      {:else if byEar}
         <Choice label="Rhythms" select options={EAR_RHYTHM_LEVELS.map((l) => ({ value: l.id, label: l.title }))} value={earLevel.id} onchange={(v) => cfg.set({ earLevel: v })} />
       {:else if pulse}
         <Choice label="Beats" select options={Array.from({ length: 15 }, (_, i) => ({ value: i + 2, label: `${i + 2} beats` }))} value={beats} onchange={(v) => cfg.set({ beats: v })} />
@@ -500,7 +537,7 @@
   {/snippet}
 
   {#snippet hud()}
-    {#if phase === "running" && !dictation}
+    {#if phase === "running" && !writes}
       <Stat label="Taps" value={hits.length} />
       {#if mode === "practice" && hits.length}
         {@const k = liveKind(hits.at(-1)!.at)}
@@ -512,10 +549,15 @@
   {#snippet stage()}
     <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 md:grid-cols-[minmax(0,1fr)_auto]">
       <!-- By ear, the pattern and its start ride along as data (for tests and tools), never drawn until the end. -->
-      <div class="min-w-0" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-downbeat={byEar ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
+      <div class="min-w-0" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={byEar ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
         {#if !pulse && def.chords?.length}
           <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are graded when the mic or MIDI hears pitch.</p>
         {/if}
+        {#if groove}
+          {#if !(writing || dictationResult)}
+            <p class="text-sm text-ws-stage-soft">{plan.bars} bar{plan.bars > 1 ? "s" : ""} of drums over the click. Then write the kick, snare and hats on the grid.</p>
+          {/if}
+        {:else}
         <RhythmGrid
           {bars}
           {perBar}
@@ -528,36 +570,49 @@
           {lit}
           label={hidden ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the pattern hidden until the end` : pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} strokes and ${def.rests.length} rests`}
         />
-        {#if dictation && (writing || dictationResult)}
-          <div class="mt-3 space-y-2" role="group" aria-label="Your rhythm">
+        {/if}
+        {#if writes && (writing || dictationResult)}
+          <div class="mt-3 space-y-3" role="group" aria-label={groove ? "Your groove" : "Your rhythm"}>
             {#each Array.from({ length: plan.bars }, (_, b) => b) as bar (bar)}
-              <div class="grid gap-1" style:grid-template-columns="repeat({cellsPerBar}, minmax(0, 1fr))">
-                {#each Array.from({ length: cellsPerBar }, (_, k) => bar * cellsPerBar + k) as i (i)}
-                  {@const on = !!marks[i]}
-                  <button
-                    type="button"
-                    class="cell"
-                    class:beat={i % earLevel.perBeat === 0}
-                    data-state={dictationResult ? (on && isHeard(i) ? "right" : on ? "extra" : isHeard(i) ? "missed" : null) : null}
-                    aria-pressed={on}
-                    aria-label="Bar {bar + 1}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / earLevel.perBeat) + 1}"
-                    disabled={!writing}
-                    onclick={() => (marks[i] = !on)}
-                  >{cellLabel(i)}</button>
+              <div class="space-y-1">
+                {#each rows as row (row.id)}
+                  <div class="flex items-center gap-2">
+                    {#if row.label}<span class="w-14 shrink-0 text-xs font-semibold text-ws-stage-soft">{row.label}</span>{/if}
+                    <div class="grid min-w-0 flex-1 gap-1" style:grid-template-columns="repeat({cellsPerBar}, minmax(0, 1fr))">
+                      {#each Array.from({ length: cellsPerBar }, (_, k) => bar * cellsPerBar + k) as i (i)}
+                        {@const on = !!marks[row.id]?.[i]}
+                        <button
+                          type="button"
+                          class="cell"
+                          class:beat={i % grid.perBeat === 0}
+                          data-row={row.id}
+                          data-state={dictationResult ? (on && isHeard(row.id, i) ? "right" : on ? "extra" : isHeard(row.id, i) ? "missed" : null) : null}
+                          aria-pressed={on}
+                          aria-label="{row.label ? `${row.label}, b` : "B"}ar {bar + 1}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / grid.perBeat) + 1}"
+                          disabled={!writing}
+                          onclick={() => {
+                            const r = [...(marks[row.id] ?? [])];
+                            r[i] = !on;
+                            marks = { ...marks, [row.id]: r };
+                          }}
+                        >{cellLabel(i)}</button>
+                      {/each}
+                    </div>
+                  </div>
                 {/each}
               </div>
             {/each}
             {#if writing}
               <div class="flex flex-wrap gap-2 pt-1">
-                <button type="button" class={btnPrimary} onclick={checkDictation}>Check my rhythm</button>
-                <button type="button" class={btn} onclick={hearAgain}>Hear it again</button>
-                <button type="button" class={btn} onclick={() => (marks = [])}>Clear</button>
+                <button type="button" class={btnPrimary} onclick={checkDictation}>{groove ? "Check my groove" : "Check my rhythm"}</button>
+                <button type="button" class={btnStage} onclick={hearAgain}>Hear it again</button>
+                <button type="button" class={btnStage} onclick={() => (marks = {})}>Clear</button>
               </div>
             {/if}
           </div>
         {/if}
       </div>
-      <div class="flex flex-col items-center gap-2" class:hidden={dictation}>
+      <div class="flex flex-col items-center gap-2" class:hidden={writes}>
         <button
           type="button"
           class="tap"

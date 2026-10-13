@@ -664,6 +664,14 @@ APP_SKILLS.push(
     version: 1,
   },
   {
+    id: "ear.groove-dictation",
+    name: "Groove dictation: kick, snare and hat",
+    capability: "rhythm",
+    level: "intermediate",
+    tags: ["ear", "rhythm", "drums", "dictation"],
+    version: 1,
+  },
+  {
     id: "ear.rhythm-dictation",
     name: "Rhythm dictation: hear it, write it",
     capability: "rhythm",

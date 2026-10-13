@@ -268,15 +268,24 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
     {
       id: "M-E3",
       order: 4.5,
-      title: "Write a groove's rhythm down",
-      summary: "Hear two bars with sixteenths, then mark every hit on the grid.",
-      detail: "Five unaided dictations at the sixteenths level or harder, averaging 75% or higher.",
-      href: "/music/learn/rhythm?mode=dictation&earLevel=sixteenths",
-      exerciseIds: ["rhythm.dictation"],
-      skillIds: ["ear.rhythm-dictation"],
+      title: "Write a groove down",
+      summary: "Hear a drum groove, then put its kick, snare and hats on the grid.",
+      detail: "Five unaided groove dictations averaging 75% or higher.",
+      href: "/music/learn/rhythm?mode=groove&grooveLevel=rock",
+      links: [
+        {
+          label: "Kicks off the beat",
+          href: "/music/learn/rhythm?mode=groove&grooveLevel=offbeats",
+        },
+        {
+          label: "Sixteenths and ghost notes",
+          href: "/music/learn/rhythm?mode=groove&grooveLevel=sixteenths",
+        },
+      ],
+      exerciseIds: ["rhythm.groove-dictation"],
+      skillIds: ["ear.groove-dictation"],
       minAttempts: 5,
       threshold: 0.75,
-      minDifficulty: 0.59,
     },
     {
       id: "M-S1",

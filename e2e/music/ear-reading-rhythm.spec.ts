@@ -992,6 +992,29 @@ test.describe("rhythm", () => {
       await shots(page, `rhythm-dictation-results-${level}`);
     });
 
+  test("groove dictation: hear a drum groove, write kick, snare and hats on their rows", async ({
+    page,
+  }) => {
+    await page.goto("/music/rhythm?mode=groove&grooveLevel=offbeats");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Mark every note", { timeout: 15_000 });
+    const lanes = JSON.parse(
+      (await page.locator("[data-groove]").getAttribute("data-groove"))!,
+    ) as Record<string, number[]>;
+    const group = page.getByRole("group", { name: "Your groove" });
+    await expect(group.locator("button.cell")).toHaveCount(3 * 16);
+    for (const [lane, beats] of Object.entries(lanes))
+      for (const b of beats)
+        await group
+          .locator(`button.cell[data-row="${lane}"]`)
+          .nth(b * 2)
+          .click();
+    await shots(page, "rhythm-groove-writing");
+    await page.getByRole("button", { name: "Check my groove" }).click();
+    const total = Object.values(lanes).flat().length;
+    await expect(page.getByRole("status")).toContainText(`All ${total} hits written right.`);
+  });
+
   test("pulse over fake MIDI with no count-in", async ({ page }) => {
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(page, "/music/rhythm?mode=pulse&beats=4");
