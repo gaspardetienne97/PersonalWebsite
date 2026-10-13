@@ -8,7 +8,7 @@ import { STUDIO_EXERCISES } from "./studio";
 import { CIRCLE_MODES } from "./circle";
 import { TOPICS, topicSkill } from "./pads-repertoire";
 import { RHYTHM_PATTERNS, rhythmSkills } from "./rhythm";
-import { LICK_CATEGORIES, lickSkills } from "./piano";
+import { LICK_CATEGORIES, LICK_CATEGORY_LABEL, lickSkills } from "./piano";
 import { chordShapeSkills } from "./technique";
 import { aerophoneSkills, GROOVES, grooveSkills } from "./winds-pads";
 
@@ -176,7 +176,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "scales",
     route: "/music/scales",
     title: "Scales",
-    blurb: "Play a scale evenly at the target tempo, one hand or both.",
+    blurb: "Play a scale, an arpeggio or a broken chord evenly at the target tempo, in any key.",
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
     capability: "technique",
     modality: "played",
@@ -257,7 +257,9 @@ export const CATALOG: CatalogEntry[] = [
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
     capability: "harmony",
     modality: "played",
-    modes: LICK_CATEGORIES.map((c) => mode(c, c, "jazz.lick.playback", lickSkills(c))),
+    modes: LICK_CATEGORIES.map((c) =>
+      mode(c, LICK_CATEGORY_LABEL[c] ?? c, "jazz.lick.playback", lickSkills(c)),
+    ),
   }),
   entry({
     id: "chord-scales",

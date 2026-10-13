@@ -498,6 +498,13 @@ export const pedalChords = (
 
 export const LICKS = JAZZ.JAZZ_LICKS;
 export const LICK_CATEGORIES = JAZZ.JAZZ_LICK_CATEGORIES;
+export const LICK_CATEGORY_LABEL: Record<string, string> = {
+  "major-ii-V-I": "Major ii-V-I",
+  "major-ii-V-I-VI": "Major ii-V-I-VI",
+  "minor-ii-V-i": "Minor ii-V-i",
+  "minor-chord": "Minor chord",
+  "guitar-pentatonic": "Guitar pentatonic",
+};
 export const lickSkills = (category: string) => [`harmony.ii-v-i.licks.${category}`];
 
 export interface LickNote {

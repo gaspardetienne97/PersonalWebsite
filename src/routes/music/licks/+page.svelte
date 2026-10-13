@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
-  import { KEY_CYCLE, LICKS, LICK_CATEGORIES, cycleTranspose, lickChunk, lickNotes, lickSkills, type LickNote } from "@repo/music-core/content/piano";
+  import { KEY_CYCLE, LICKS, LICK_CATEGORIES, LICK_CATEGORY_LABEL, cycleTranspose, lickChunk, lickNotes, lickSkills, type LickNote } from "@repo/music-core/content/piano";
   import { JAZZ, TUNINGS } from "@repo/music-core/data/index";
   import { transposeSymbol } from "@repo/music-core/theory/chords";
   import { gradeLick, type LickResult } from "@repo/music-core/scoring/piano";
@@ -29,13 +29,7 @@
   import Picker from "$lib/music/components/Picker.svelte";
 
   const TEMPO = { min: 40, max: 220 };
-  const CATEGORY_LABEL: Record<string, string> = {
-    "major-ii-V-I": "Major ii-V-I",
-    "major-ii-V-I-VI": "Major ii-V-I-VI",
-    "minor-ii-V-i": "Minor ii-V-i",
-    "minor-chord": "Minor chord",
-    "guitar-pentatonic": "Guitar pentatonic",
-  };
+  const CATEGORY_LABEL = LICK_CATEGORY_LABEL;
   const GUITAR = TUNINGS.guitar.find((t) => t.id === "standard") ?? TUNINGS.guitar[0];
 
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));

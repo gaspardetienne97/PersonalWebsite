@@ -91,21 +91,21 @@ test.describe("studio ears", () => {
     await expect(card).toContainText("Right:");
   });
 
-  test("the Drills tab lists every drill in small groups, and a mode chip opens that mode", async ({
+  test("the Drills tab groups drills by what you practise, and a mode chip opens that mode", async ({
     page,
   }) => {
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "Everything" }).click();
     const jump = page.getByRole("navigation", { name: "Jump to" });
     await expect(jump.getByRole("link")).toHaveText([
-      /^Pitch and melody by ear \(7\)$/,
-      /^Chords and harmony by ear \(7\)$/,
-      /^Review and studio ears \(2\)$/,
-      /^Reading, rhythm and theory \(3\)$/,
-      /^Piano and jazz/,
-      /^Guitar and ukulele/,
-      /^Pads and wind/,
-      /^Play freely/,
+      /^Ear training \(15\)$/,
+      /^Reading and rhythm \(2\)$/,
+      /^Technique \(8\)$/,
+      /^Grooves and time \(2\)$/,
+      /^Jazz and improvising \(6\)$/,
+      /^Theory \(1\)$/,
+      /^Studio ears \(1\)$/,
+      /^Play and record \(2\)$/,
     ]);
     await expect(page.getByRole("link", { name: "Studio ears", exact: true })).toHaveAttribute(
       "href",
@@ -115,8 +115,14 @@ test.describe("studio ears", () => {
     await page.getByRole("link", { name: "Rhythm: Echo" }).click();
     await expect(page).toHaveURL(/\/music\/rhythm\?mode=echo$/);
     await expect(page.getByText("Setup:").locator("..")).toContainText("Echo");
+    // Pads and the Aerophone are split by what their modes practise; a split row opens its first mode.
     await page.goto("/music?tab=drills");
-    await page.getByRole("link", { name: "Intervals: Sing it" }).click();
-    await expect(page).toHaveURL(/\/music\/ear\/intervals\?answer=voice$/);
+    await page.getByRole("button", { name: "Everything" }).click();
+    await expect(page.getByRole("link", { name: "Pad grooves", exact: true })).toHaveAttribute(
+      "href",
+      "/music/pads?mode=groove",
+    );
+    await page.getByRole("link", { name: "Aerophone breath and tongue: Bite vibrato" }).click();
+    await expect(page).toHaveURL(/\/music\/aerophone\?mode=vibrato$/);
   });
 });
