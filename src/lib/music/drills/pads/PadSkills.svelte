@@ -32,6 +32,7 @@
     type DynamicsId,
     type VelocityRange,
   } from "@repo/music-core/content/pad-skills";
+  import { PAD_REPERTOIRE } from "@repo/music-core/content/pads-repertoire";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -49,7 +50,7 @@
   import { laneColor } from "./lanes";
   import { backingFor } from "./backing";
 
-  type SkillMode = "dynamics" | "fills" | "echo" | "ostinato" | "orchestrate" | "improvise";
+  type SkillMode = "dynamics" | "fills" | "echo" | "ostinato" | "orchestrate" | "improvise" | "phrases";
   let { skill, modes, onmode }: { skill: SkillMode; modes: readonly (readonly [string, string])[]; onmode: (m: string) => void } = $props();
 
   const cfg = new DrillSetup("pad-skills", {
@@ -59,8 +60,12 @@
     echo: "kick-snare" as string,
     dyn: "ladder" as string,
     bars: 4,
+    phrase: "son-clave" as string,
   });
   const s = $derived(cfg.value);
+  /** The short drum phrases (clave cells, tags, fills, builds), easiest first: the Phrases drill on the MPC. */
+  const PAD_PHRASES = PAD_REPERTOIRE.filter((r) => r.topic === "phrases").sort((a, b) => a.level - b.level);
+  const padPhrase = $derived(PAD_PHRASES.find((r) => r.groove.value === s.phrase) ?? PAD_PHRASES[0]);
   const bpm = $derived(clamp(settings.value.bpm, 40, 200));
   const beatMs = $derived(60000 / bpm);
   const barMs = $derived(4 * beatMs);
@@ -68,7 +73,7 @@
 
   // The groove-shaped skills share one path: targets, the grader, a grid.
   const grooveDef = $derived(
-    skill === "fills" ? fillGroove(s.fill) : skill === "orchestrate" ? orchestrationGroove(s.orch) : skill === "ostinato" ? ostinatoGroove(s.line) : skill === "echo" ? echoGroove(s.echo) : null,
+    skill === "phrases" ? padPhrase.groove : skill === "fills" ? fillGroove(s.fill) : skill === "orchestrate" ? orchestrationGroove(s.orch) : skill === "ostinato" ? ostinatoGroove(s.line) : skill === "echo" ? echoGroove(s.echo) : null,
   );
   const gt = $derived(grooveDef ? grooveTargetsFor(grooveDef, bpm) : null);
   const dyn = $derived(DYNAMICS_EXERCISES.find((d) => d.id === s.dyn) ?? DYNAMICS_EXERCISES[0]);
@@ -143,7 +148,9 @@
   });
 
   const label = $derived(
-    skill === "fills"
+    skill === "phrases"
+      ? `${padPhrase.groove.label} (${padPhrase.style})`
+      : skill === "fills"
       ? `Fill: ${PAD_FILLS.find((f) => f.id === s.fill)?.label ?? ""}, after three bars of rock, landing on the one`
       : skill === "orchestrate"
         ? (ORCHESTRATIONS.find((o) => o.id === s.orch)?.label ?? "")
@@ -320,7 +327,9 @@
   const graded = (hits: number) => hits > 0 && skill !== "improvise" && (skill !== "dynamics" || levels.length > 0);
   /** Each skill climbs the tempo to 120, then moves through its own list. */
   function advanceAfter(score: number, correct: boolean) {
-    const [list, key] = ({ fills: [PAD_FILLS, "fill"], orchestrate: [ORCHESTRATIONS, "orch"], ostinato: [READING_LINES, "line"], echo: [ECHO_LEVELS, "echo"], dynamics: [DYNAMICS_EXERCISES, "dyn"] } as const)[skill as Exclude<SkillMode, "improvise">];
+    if (skill === "phrases")
+      return nextRun("pads.phrases", { bpm, tempo: { min: 40, goal: padPhrase.bpm.target }, steps: PAD_PHRASES.map((r) => ({ label: r.groove.label, goal: r.bpm.target, start: r.bpm.start })), step: PAD_PHRASES.indexOf(padPhrase) }, { score, correct }, tempoAnd((i) => cfg.set({ phrase: PAD_PHRASES[i].groove.value })));
+    const [list, key] = ({ fills: [PAD_FILLS, "fill"], orchestrate: [ORCHESTRATIONS, "orch"], ostinato: [READING_LINES, "line"], echo: [ECHO_LEVELS, "echo"], dynamics: [DYNAMICS_EXERCISES, "dyn"] } as const)[skill as Exclude<SkillMode, "improvise" | "phrases">];
     const xs = list as readonly { id: string; label: string }[];
     const step = Math.max(0, xs.findIndex((x) => x.id === s[key]));
     return nextRun(`pads.${skill}`, { bpm, tempo: { min: 40, goal: 120 }, steps: xs.map((x) => ({ label: x.label })), step }, { score, correct }, tempoAnd((i) => cfg.set({ [key]: xs[i].id })));
@@ -352,9 +361,9 @@
 </script>
 
 <DrillShell
-  title="Pads"
+  title={skill === "phrases" ? "Phrases" : "Pads"}
   hue="mpc"
-  blurb={skill === "dynamics" ? "Velocity on purpose: levels, a crescendo, even hits, against your own soft-to-loud range." : skill === "fills" ? "Three bars of groove, a fill, and the crash and kick back on the one, without rushing." : skill === "echo" ? "Hear a bar, play it back in the next: four rounds, scored on the answers." : skill === "ostinato" ? "The right hand keeps the hats while the left reads a line; the hats are measured against playing them alone." : skill === "orchestrate" ? "A rudiment spread across the kit: the sticking becomes a groove." : "Improvise over the band; the take is described, then played back as it was and nudged to the grid."}
+  blurb={skill === "phrases" ? "Short drum phrases drummers know by name: clave cells, a tag ending, a fill and landing, a build. Hear one, then play it on the pads." : skill === "dynamics" ? "Velocity on purpose: levels, a crescendo, even hits, against your own soft-to-loud range." : skill === "fills" ? "Three bars of groove, a fill, and the crash and kick back on the one, without rushing." : skill === "echo" ? "Hear a bar, play it back in the next: four rounds, scored on the answers." : skill === "ostinato" ? "The right hand keeps the hats while the left reads a line; the hats are measured against playing them alone." : skill === "orchestrate" ? "A rudiment spread across the kit: the sticking becomes a groove." : "Improvise over the band; the take is described, then played back as it was and nudged to the grid."}
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -368,8 +377,14 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="Mode" select options={modes.map(([value, l]) => ({ value, label: l }))} value={skill} onchange={onmode} />
-      {#if skill === "fills"}
+      {#if modes.length}<Choice label="Mode" select options={modes.map(([value, l]) => ({ value, label: l }))} value={skill} onchange={onmode} />{/if}
+      {#if skill === "phrases"}
+        <Choice label="Phrase" select options={PAD_PHRASES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${r.style})`, group: `Level ${r.level}` }))} value={padPhrase.groove.value} onchange={(v) => {
+          cfg.set({ phrase: v });
+          const r = PAD_PHRASES.find((x) => x.groove.value === v);
+          if (r) settings.update({ bpm: r.bpm.start });
+        }} />
+      {:else if skill === "fills"}
         <Choice label="Fill" select options={PAD_FILLS.map((f) => ({ value: f.id, label: f.label }))} value={s.fill} onchange={(v) => cfg.set({ fill: v })} />
       {:else if skill === "orchestrate"}
         <Choice label="Orchestration" select options={ORCHESTRATIONS.map((o) => ({ value: o.id as string, label: o.label }))} value={s.orch} onchange={(v) => cfg.set({ orch: v })} />
@@ -396,7 +411,10 @@
 
   {#snippet stage()}
     <div class="flex flex-col gap-4" data-testid="pad-skills" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-targets={gt ? JSON.stringify(gt.targets.map((t) => [t.pad, Math.round(t.atMs), t.accent ? "a" : t.ghost ? "g" : "n"])) : undefined}>
-      {#if phase === "ready" || phase === "results"}
+      {#if skill === "phrases"}
+        <p class="text-sm"><span class="font-semibold">{padPhrase.groove.label}.</span> <span class="text-ws-stage-soft">{padPhrase.feel} {padPhrase.fingers}</span></p>
+      {/if}
+      {#if modes.length && (phase === "ready" || phase === "results")}
         <div class="flex flex-wrap gap-1.5" role="group" aria-label="Pads mode">
           {#each modes as [id, l] (id)}
             <button type="button" class="min-h-11 rounded-full px-4 text-sm font-semibold {skill === id ? 'bg-instr text-ws-stage' : 'bg-ws-stage-ink/10 text-ws-stage-ink hover:bg-ws-stage-ink/20'}" aria-pressed={skill === id} onclick={() => onmode(id)}>{l}</button>

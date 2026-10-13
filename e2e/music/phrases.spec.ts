@@ -96,4 +96,42 @@ test.describe("phrases", () => {
     await expect(page.getByTestId("aerophone-fingering")).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/aerophone-1280.png`, fullPage: true });
   });
+
+  test("on MPC pads the phrases are drum phrases, played on the pads", async ({ page }) => {
+    test.setTimeout(60_000);
+    await setup(page, "/music/phrases?phrase=son-clave&bpm=100");
+    await pick(page, "MPC pads");
+    // The strip stays on the pads: the drill is for them too.
+    await expect(
+      page.getByRole("group", { name: "Practice controls" }).getByLabel("Instrument"),
+    ).toContainText("MPC pads");
+    const stage = page.getByTestId("pad-skills");
+    await expect(stage).toContainText("Son clave 3-2");
+    await page.getByRole("button", { name: /^Start/ }).click();
+    await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
+    const targets = JSON.parse((await stage.getAttribute("data-targets"))!) as [
+      number,
+      number,
+      string,
+    ][];
+    const downbeat = Number(await stage.getAttribute("data-downbeat"));
+    await page.evaluate(
+      ({ targets, downbeat, port }) => {
+        for (const [pad, at] of targets) {
+          const when = downbeat + at;
+          setTimeout(
+            () => (window as any).__midi.send(port, [0x90, pad, 90], when),
+            when - 60 - performance.now(),
+          );
+          setTimeout(
+            () => (window as any).__midi.send(port, [0x80, pad, 0], when + 30),
+            when - 30 - performance.now(),
+          );
+        }
+      },
+      { targets, downbeat, port: PORTS.keys.id },
+    );
+    await expect(page.getByRole("status")).toContainText("Clean", { timeout: 20_000 });
+    await page.screenshot({ path: `${SHOTS}/mpc-son-clave-1280.png`, fullPage: true });
+  });
 });

@@ -22,6 +22,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
+  import PadSkills from "$lib/music/drills/pads/PadSkills.svelte";
 
   const TEMPO = { min: 40, max: 200 };
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
@@ -159,6 +160,9 @@
 
 <svelte:head><title>Phrases | Woodshed</title></svelte:head>
 
+{#if inst === "mpc"}
+  <PadSkills skill="phrases" modes={[]} onmode={() => {}} />
+{:else}
 <DrillShell
   title="Phrases"
   hue={own}
@@ -182,7 +186,7 @@
         const p = list.find((x) => x.id === v);
         if (p) settings.update({ bpm: Math.max(TEMPO.min, Math.round(p.bpm * 0.75)) });
       }} />
-      <p class="self-end text-sm text-ws-soft">Picking a phrase starts it at three quarters of its tempo. The instrument comes from the practice strip; MPC pads have their phrases in Pad grooves.</p>
+      <p class="self-end text-sm text-ws-soft">Picking a phrase starts it at three quarters of its tempo. The instrument comes from the practice strip; on MPC pads the phrases are drum phrases.</p>
     </div>
   {/snippet}
 
@@ -222,3 +226,4 @@
     {#if summary}<Results {summary} />{/if}
   {/snippet}
 </DrillShell>
+{/if}
