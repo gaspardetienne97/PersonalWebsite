@@ -65,6 +65,7 @@ export const NEW_ROUTES = [
   "/music/aerophone",
   "/music/voicings",
   "/music/licks",
+  "/music/phrases",
   "/music/chord-scales",
   "/music/jam",
   "/music/library",

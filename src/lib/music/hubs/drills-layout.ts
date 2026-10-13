@@ -170,5 +170,9 @@ export const DRILL_GROUPS: DrillGroup[] = [
   },
   { id: "theory", title: "Theory", rows: [row("circle")] },
   { id: "studio", title: "Studio ears", rows: [row("listening")] },
-  { id: "play", title: "Play and record", rows: [row("song-studio"), row("lab")] },
+  {
+    id: "play",
+    title: "Phrases and songs",
+    rows: [row("phrases"), row("song-studio"), row("lab")],
+  },
 ];

@@ -55,8 +55,10 @@
     instrument?: Instrument;
     /** Draw the line up an octave when the instrument can't reach it (drills graded by pitch class). */
     fit?: boolean;
+    /** Authored strings and frets per pitch (a written phrase), instead of the hand-position fit. */
+    positions?: Map<number, { string: number; fret: number }>;
   }
-  let { line: given, marks: givenMarks = {}, flashes, current = null, names = "c", interactive = true, low, high, instrument, fit = false }: Props = $props();
+  let { line: given, marks: givenMarks = {}, flashes, current = null, names = "c", interactive = true, low, high, instrument, fit = false, positions }: Props = $props();
 
   const inst = $derived(instrument ?? settings.value.activeInstrument);
   const shift = $derived(fit ? fitShift(given, inst) : 0);
@@ -68,7 +70,7 @@
 
   const tuning = $derived(fretTuning(inst));
   // One place per pitch: the line in one hand position, as the tab above it writes it.
-  const placed = $derived(linePositions(inst, [...line, ...Object.keys(marks).map(Number)]));
+  const placed = $derived(positions ?? linePositions(inst, [...line, ...Object.keys(marks).map(Number)]));
   const unplayable = $derived(tuning ? line.filter((m) => !placed.has(m)) : inst === "aerophone" ? line.filter((m) => m < AEROPHONE_RANGE.lowestMidi || m > AEROPHONE_RANGE.highestMidi) : []);
   const frets = $derived.by(() => {
     const fs = line.flatMap((m) => (placed.has(m) ? [placed.get(m)!.fret] : []));

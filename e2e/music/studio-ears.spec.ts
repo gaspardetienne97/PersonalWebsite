@@ -105,7 +105,7 @@ test.describe("studio ears", () => {
       /^Jazz and improvising \(6\)$/,
       /^Theory \(1\)$/,
       /^Studio ears \(1\)$/,
-      /^Play and record \(2\)$/,
+      /^Phrases and songs \(3\)$/,
     ]);
     await expect(page.getByRole("link", { name: "Studio ears", exact: true })).toHaveAttribute(
       "href",

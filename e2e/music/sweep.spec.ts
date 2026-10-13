@@ -15,6 +15,7 @@ const ROUTES = [
   "/music/comping",
   "/music/voicings",
   "/music/licks",
+  "/music/phrases",
   "/music/chord-scales",
   "/music/fretboard",
   "/music/chords",

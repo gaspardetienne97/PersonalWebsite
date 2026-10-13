@@ -18,7 +18,8 @@ export type GrooveTopic =
   | "swing"
   | "dance"
   | "breaks"
-  | "latin";
+  | "latin"
+  | "phrases";
 
 export interface RepertoireGroove {
   groove: GrooveDef;
@@ -711,6 +712,119 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     feel: "The surdo on the kick (the first and last sixteenth of each beat), a busy hat line and the pedal hat on every &. Tempo approximate.",
     fingers: "Left index and middle the kick figure, right hand the hats, left ring the pedal hat.",
   },
+  // Short phrases (docs/research/phrases.md, local): one- and two-bar cells
+  // drummers know by name, plus a tag ending and a build. Generic rhythms, no
+  // recordings.
+  {
+    groove: gridGroove("son-clave", "Son clave 3-2", { rim: "x..x..x...x.x..." }),
+    level: 1,
+    style: "Clave",
+    topic: "phrases",
+    bpm: { start: 80, target: 105 },
+    feel: "Three then two: the rhythm Cuban music, salsa and the Bo Diddley beat hang on.",
+    fingers: "Right index on the rim; count the sixteenths quietly.",
+  },
+  {
+    groove: gridGroove("rumba-clave", "Rumba clave 3-2", { rim: "x..x...x..x.x..." }),
+    level: 1,
+    style: "Clave",
+    topic: "phrases",
+    bpm: { start: 80, target: 105 },
+    feel: "The son clave with its third note a sixteenth later: the rumba's lean.",
+    fingers: "Right index on the rim.",
+  },
+  {
+    groove: gridGroove("stomp-clap", "Stomp, stomp, clap", {
+      kick: "x.x.....x.x.....",
+      perc: "....x.......x...",
+    }),
+    level: 1,
+    style: "Body percussion",
+    topic: "phrases",
+    bpm: { start: 72, target: 84 },
+    feel: "Two stomps and a clap, the oldest crowd rhythm there is.",
+    fingers: "Left index on the kick, right index on the clap.",
+  },
+  {
+    groove: gridGroove("tresillo-backbeat", "Tresillo under a backbeat", {
+      kick: "x..x..x.x..x..x.",
+      snare: "....x.......x...",
+    }),
+    level: 2,
+    style: "Tresillo",
+    topic: "phrases",
+    bpm: { start: 85, target: 100 },
+    feel: "Three-three-two in the kick against the snare on 2 and 4: the root of reggaeton, New Orleans and much of pop.",
+    fingers: "Left index on the kick, right index on the snare.",
+  },
+  {
+    groove: gridGroove("paradiddle-split", "Paradiddle split", {
+      snare: "x.xx.x..x.xx.x..",
+      hats: ".x..x.xx.x..x.xx",
+    }),
+    level: 2,
+    style: "Rudiment phrase",
+    topic: "phrases",
+    bpm: { start: 70, target: 90 },
+    feel: "RLRR LRLL with the right hand on the snare and the left on the hats: a sticking that sounds like a groove.",
+    fingers: "Right index on the snare, left index on the hats.",
+  },
+  {
+    groove: gridGroove("one-beat-fill", "One-beat fill and landing", {
+      kick: "x.......x.......|x...............",
+      snare: "....x.......xxxx|................",
+      hats: "x.x.x.x.x.x.....|................",
+      crash: "................|x...............",
+    }),
+    level: 2,
+    style: "Fill",
+    topic: "phrases",
+    bpm: { start: 85, target: 105 },
+    feel: "A bar of groove, four sixteenths on the snare in its last beat, then crash and kick together on the one.",
+    fingers: "Right hand hats and the fill, left index kick; land the crash with the right.",
+  },
+  {
+    groove: gridGroove("shave-tag", "Shave and a haircut tag", {
+      snare: "x...............|................",
+      "tom-high": "....x.x.....x...|................",
+      "tom-mid": "........x.......|................",
+      "tom-low": "................|....x...........",
+      kick: "................|........x.......",
+      crash: "................|........x.......",
+    }),
+    level: 2,
+    style: "Tag ending",
+    topic: "phrases",
+    bpm: { start: 100, target: 120 },
+    feel: "Shave and a haircut, two bits: the vaudeville ending (Charles Hale, 1899) every drummer plays to close a tune.",
+    fingers: "Right hand across snare and toms, left index the kick under the last crash.",
+  },
+  {
+    groove: gridGroove("linear-3-over-4", "Linear three over four", {
+      hats: "x..x..x..x..x..x",
+      snare: ".x..x..x..x..x..",
+      kick: "..x..x..x..x..x.",
+    }),
+    level: 3,
+    style: "Linear phrase",
+    topic: "phrases",
+    bpm: { start: 75, target: 95 },
+    feel: "Hat, snare, kick, one at a time in threes over a four-beat bar: no two hits together.",
+    fingers: "Right index hats, right middle snare, left index kick.",
+  },
+  {
+    groove: gridGroove("snare-build", "Snare build to the drop", {
+      snare: "x...x...x...x...|x.x.x.x.x.x.x.x.|xxxxxxxxxxxxxxxx|xxxxxxxxxxxxxxxx|................",
+      kick: "x...x...x...x...|x...x...x...x...|x...x...x...x...|x...x...x...x...|x...............",
+      crash: "................|................|................|................|x...............",
+    }),
+    level: 3,
+    style: "Dance build",
+    topic: "phrases",
+    bpm: { start: 110, target: 126 },
+    feel: "Quarters, then eighths, then two bars of sixteenths over four on the floor, and the crash on the drop.",
+    fingers: "Alternate right index and middle on the snare; left index keeps the kick.",
+  },
 ];
 
 export const repertoireFor = (id: string) => PAD_REPERTOIRE.find((r) => r.groove.value === id);
@@ -725,6 +839,7 @@ export const TOPICS: GrooveTopic[] = [
   "dance",
   "breaks",
   "latin",
+  "phrases",
 ];
 
 /** The closest two hits on one pad get, in ms: a roll's spacing, or a sixteenth. */

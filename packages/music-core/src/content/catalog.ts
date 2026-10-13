@@ -262,6 +262,20 @@ export const CATALOG: CatalogEntry[] = [
     ),
   }),
   entry({
+    id: "phrases",
+    route: "/music/phrases",
+    title: "Phrases",
+    blurb:
+      "Popular short phrases for your instrument: famous public-domain tunes and a style's stock licks, heard and played back.",
+    instruments: ["piano", "guitar", "ukulele", "aerophone"],
+    capability: "technique",
+    modality: "played",
+    exerciseId: "repertoire.phrases.piano",
+    skillIds: (["piano", "guitar", "ukulele", "aerophone"] as const).map(
+      (i) => `repertoire.phrases.${i}`,
+    ),
+  }),
+  entry({
     id: "chord-scales",
     route: "/music/chord-scales",
     title: "Chord scales",

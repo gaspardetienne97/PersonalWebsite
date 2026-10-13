@@ -775,6 +775,7 @@ const PAD_SKILLS: [string, string, SkillLevel][] = [
   ["echo", "Playing a groove back by ear", "early-intermediate"],
   ["orchestration", "Rudiments spread across the kit", "intermediate"],
   ["improvise", "Improvising over a loop", "intermediate"],
+  ["phrases", "Short drum phrases: clave cells, tags, fills and builds", "beginner"],
 ];
 APP_SKILLS.push(
   ...PAD_SKILLS.map(([t, name, level]) => ({
@@ -886,6 +887,16 @@ APP_SKILLS.push({
   tags: ["aerophone", "fingering"],
   version: 1,
 });
+APP_SKILLS.push(
+  ...(["piano", "guitar", "ukulele", "aerophone"] as const).map((i) => ({
+    id: `repertoire.phrases.${i}`,
+    name: `Popular phrases on the ${i}`,
+    capability: "technique" as const,
+    level: "beginner" as const,
+    tags: ["repertoire", "phrases", i],
+    version: 1,
+  })),
+);
 const APP_RELATIONSHIPS: SkillRelationship[] = [
   { from: "technique.aerophone", to: "technique.aerophone.fingering", kind: "component" },
   ...CIRCLE_NAMES.map(([t]) => ({
