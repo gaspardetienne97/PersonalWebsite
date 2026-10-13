@@ -2,8 +2,8 @@
   import "./woodshed.css";
   import { page } from "$app/state";
   import { onMount } from "svelte";
-  import { afterNavigate } from "$app/navigation";
-  import { noteNavigation } from "$lib/music/came-from.svelte";
+  import { afterNavigate, replaceState } from "$app/navigation";
+  import { DRILL_ROUTES, noteNavigation } from "$lib/music/came-from.svelte";
   import House from "lucide-svelte/icons/house";
   import Library from "lucide-svelte/icons/library";
   import Grid from "lucide-svelte/icons/grid-3x3";
@@ -25,7 +25,7 @@
   let { children } = $props();
 
   const hubs = [
-    { href: "/music", label: "Today", icon: House, owns: ["/music/ear", "/music/reading", "/music/rhythm", "/music/scales", "/music/two-hand", "/music/comping", "/music/voicings", "/music/licks", "/music/chord-scales", "/music/fretboard", "/music/chords", "/music/strum", "/music/pads", "/music/aerophone", "/music/lab", "/music/jam"] },
+    { href: "/music", label: "Today", icon: House, owns: DRILL_ROUTES },
     { href: "/music/library", label: "Library", icon: Library, owns: ["/music/songs"] },
     { href: "/music/create", label: "Create", icon: Grid, owns: [] },
     { href: "/music/progress", label: "Progress", icon: Chart, owns: ["/music/journal"] },
@@ -79,13 +79,28 @@
     }
   }
 
-  // Routine and path links carry ?instrument= so the strip lands on the right one.
+  // Routine and path links carry ?instrument= so the strip lands on the right
+  // one. Applied once, then dropped from the URL so a later strip change is
+  // not undone by a tab link or a reload.
   $effect(() => {
     const want = page.url.searchParams.get("instrument");
     if (want && (INSTRUMENTS as readonly string[]).includes(want) && !bench.locked)
       void settings.ready.then(() => {
         if (settings.value.activeInstrument !== want) void settings.update({ activeInstrument: want as Instrument });
+        const url = new URL(page.url);
+        url.searchParams.delete("instrument");
+        try {
+          replaceState(url, page.state);
+        } catch {
+          /* before the router starts: the next navigation drops it */
+        }
       });
+  });
+
+  // Pages that run no clock: the strip dims Tempo and Count-in there.
+  const UNTIMED = ["/music/ear", "/music/circle", "/music/listening", "/music/voicings", "/music/lab", "/music/create"];
+  $effect(() => {
+    bench.timed = !UNTIMED.some((r) => path === r || path.startsWith(r + "/"));
   });
 
   // Route-owned playback stops on navigation.

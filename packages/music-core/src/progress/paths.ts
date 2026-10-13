@@ -483,7 +483,7 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
       summary:
         "I IV I V7 I with the root in the left hand, the right hand moving the shortest way, through all twelve keys.",
       detail: "Sixty chords (all twelve keys) averaging 80% or higher.",
-      href: "/music/voicings?variant=cadence&key=0&keys=12&strict=0",
+      href: "/music/voicings?variant=cadence&key=0&keys=12",
       exerciseIds: ["voicing-drill"],
       skillIds: ["harmony.keyboard-cadences"],
       minAttempts: 60,

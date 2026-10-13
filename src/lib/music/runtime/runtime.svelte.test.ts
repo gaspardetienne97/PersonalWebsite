@@ -392,6 +392,22 @@ async function withGesture<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 describe("audio engine (headless: clocks and handles only; nothing audible is verified)", () => {
+  it("asks whether to click on every beat, so the strip's switch applies mid-run", async () => {
+    const { audio } = await import("./audio.svelte");
+    expect(await withGesture(() => audio.unlock())).toBe(true);
+    let asked = 0;
+    let beats = 0;
+    const m = audio.metronome.start({
+      bpm: 240,
+      beatsPerBar: 4,
+      audible: () => (asked++, true),
+      onBeat: () => beats++,
+    });
+    await expect.poll(() => beats, { timeout: 3000 }).toBeGreaterThanOrEqual(3);
+    m.stop();
+    expect(asked).toBeGreaterThanOrEqual(beats);
+  });
+
   it("loops gaplessly on its own channel, re-reading the notes each pass", async () => {
     const { audio } = await import("./audio.svelte");
     expect(await withGesture(() => audio.unlock())).toBe(true);

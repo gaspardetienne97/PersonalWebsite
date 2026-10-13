@@ -9,7 +9,7 @@
   };
 </script>
 
-<svelte:head><title>Journal</title></svelte:head>
+<svelte:head><title>Journal | Woodshed</title></svelte:head>
 
 <div class="mx-auto flex max-w-6xl flex-col gap-6">
   <header>

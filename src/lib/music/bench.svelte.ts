@@ -21,6 +21,8 @@ class Bench {
   beatsPerBar = $state(4);
   /** Keep the metronome clicking during a run (persisted by the strip). */
   clickDuringRun = $state(true);
+  /** False on pages that run no clock, so the strip dims Tempo and Count-in. */
+  timed = $state(true);
   /** Page-level hue override (ear, reading…); null follows the instrument. */
   hue = $state<Hue | null>(null);
   get locked() {

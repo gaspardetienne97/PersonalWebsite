@@ -123,15 +123,15 @@
     <div class="mt-3">{@render note("top")}</div>
   </header>
 
-  <nav aria-label="Settings sections" class="hidden lg:block">
-    <ul class="sticky top-32 flex flex-col gap-1">
+  <nav aria-label="Settings sections" class="sticky top-27 z-20 min-w-0 -mx-4 bg-ws-bg/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:top-32 lg:mx-0 lg:self-start lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
+    <ul class="flex gap-1.5 overflow-x-auto py-2 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible lg:py-0">
       {#each SECTIONS as sec (sec.id)}
-        <li>
+        <li class="shrink-0">
           <a
             href="#{sec.id}"
             aria-current={spy.current === sec.id ? "location" : undefined}
             style:--topic="var(--hue-{sec.hue})"
-            class="topic flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
+            class="topic flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border border-ws-line px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink lg:rounded-lg lg:border-0"
           >
             <span class="grid size-6 shrink-0 place-items-center rounded-md" style:color="var(--topic)" aria-hidden="true"><sec.icon class="size-4" /></span>{sec.label}
           </a>
@@ -141,7 +141,7 @@
   </nav>
 
   <div class="flex min-w-0 flex-col gap-10">
-    <section id="audio" aria-labelledby="audio-h" class="scroll-mt-32">
+    <section id="audio" aria-labelledby="audio-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("audio-h", "Audio", Volume2)}
       {@render note("audio")}
       <ul class={listCls}>
@@ -194,7 +194,7 @@
       </ul>
     </section>
 
-    <section id="input" aria-labelledby="input-h" class="scroll-mt-32">
+    <section id="input" aria-labelledby="input-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("input-h", "Input", Mic)}
       {@render note("input")}
       <ul class={listCls}>
@@ -214,7 +214,7 @@
       </ul>
     </section>
 
-    <section id="latency" aria-labelledby="latency-h" class="scroll-mt-32">
+    <section id="latency" aria-labelledby="latency-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("latency-h", "Latency calibration", Timer, "An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement.")}
       {@render note("latency")}
       <ul class={listCls}>
@@ -273,7 +273,7 @@
       </ul>
     </section>
 
-    <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-32">
+    <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("appearance-h", "Appearance", Palette)}
       {@render note("appearance")}
       <ul class={listCls}>
@@ -292,7 +292,7 @@
       </ul>
     </section>
 
-    <section id="goals" aria-labelledby="goals-h" class="scroll-mt-32">
+    <section id="goals" aria-labelledby="goals-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("goals-h", "Goals", Target)}
       {@render note("goals")}
       <ul class={listCls}>
@@ -309,7 +309,7 @@
       </ul>
     </section>
 
-    <section id="data" aria-labelledby="data-h" class="scroll-mt-32">
+    <section id="data" aria-labelledby="data-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("data-h", "Your data", Database, "Everything stays in this browser. Backups are files you keep; there is no account and no server copy.")}
       {@render note("data")}
       <DataSection announce={announceIn("data")} {rowCls} />

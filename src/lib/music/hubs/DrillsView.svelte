@@ -6,12 +6,12 @@
   import { INSTRUMENT_LABEL } from "../bench.svelte";
   import { hueForRoute, hueVar } from "../hues";
   import { settings } from "../runtime";
-  import { DRILL_GROUPS, modeHref, type DrillRow } from "./drills-layout";
+  import { DRILL_GROUPS, modeHref, withInstrument, type DrillRow } from "./drills-layout";
 
   let filter = $state<Instrument | "all">("all");
-  onMount(() => {
-    filter = settings.value.activeInstrument;
-  });
+  // The strip's instrument, once the saved settings are in (not the default).
+  onMount(() => void settings.ready.then(() => (filter = settings.value.activeInstrument)));
+  const forFilter = $derived(filter === "all" ? undefined : filter);
   const visible = (r: DrillRow) => filter === "all" || r.entry.instruments.includes(filter);
   const shown = $derived(DRILL_GROUPS.map((g) => ({ ...g, rows: g.rows.filter(visible) })).filter((g) => g.rows.length));
   /** Jump links: one per section (ear training's three groups are one). */
@@ -59,17 +59,17 @@
       {#if g.note}<p class="mt-1 max-w-prose text-sm text-ws-soft">{g.note}</p>{/if}
       <ul class="mt-2 divide-y divide-ws-line overflow-hidden rounded-2xl border border-ws-line bg-ws-surface">
         {#each g.rows as r (r.key)}
-          {@const hue = hueVar(hueForRoute(r.entry.route, filter === "all" ? undefined : filter))}
+          {@const hue = hueVar(hueForRoute(r.entry.route, forFilter))}
           <!-- The title's link covers the row; each mode chip is its own link above it. -->
           <li class="group relative flex min-h-16 items-center gap-4 py-3 pl-6 pr-4 hover:bg-ws-raised">
             <span class="absolute inset-y-2 left-2 w-1.5 rounded-full" style:background={hue} aria-hidden="true"></span>
             <span class="min-w-0 flex-1">
-              <a href={r.href} class="block font-semibold after:absolute after:inset-0">{r.title}</a>
+              <a href={withInstrument(r.href, forFilter)} class="block font-semibold after:absolute after:inset-0">{r.title}</a>
               <span class="block text-sm text-ws-soft">{r.blurb}</span>
               {#if r.modes.length}
                 <span class="relative mt-1 flex flex-wrap gap-1">
                   {#each r.modes as m (m)}
-                    <a href={modeHref(r.entry, m)} class="rounded-md bg-ws-raised px-2 py-0.5 text-xs hover:bg-ws-line" aria-label="{r.title}: {modeLabel(r, m)}">{modeLabel(r, m)}</a>
+                    <a href={withInstrument(modeHref(r.entry, m), forFilter)} class="rounded-md bg-ws-raised px-2 py-0.5 text-xs hover:bg-ws-line" aria-label="{r.title}: {modeLabel(r, m)}">{modeLabel(r, m)}</a>
                   {/each}
                 </span>
               {/if}

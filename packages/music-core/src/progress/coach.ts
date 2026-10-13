@@ -66,7 +66,10 @@ export function coach(input: {
       summary: `The coach needs ${COACH_MIN_ATTEMPTS} checked attempts on ${instrument} before it names a weak spot. You have ${attempts}.`,
       measured: false,
       insights,
-      action: { label: "Start today's routine", href: `/music?instrument=${instrument}` },
+      action: {
+        label: "Pick a drill to check",
+        href: `/music?tab=drills&instrument=${instrument}`,
+      },
     };
   }
 
@@ -77,7 +80,10 @@ export function coach(input: {
       summary: `No skill on ${instrument} has ${COACH_MIN_SKILL_ATTEMPTS} checked attempts yet, so nothing is singled out.`,
       measured: false,
       insights,
-      action: { label: "Start today's routine", href: `/music?instrument=${instrument}` },
+      action: {
+        label: "Pick a drill to check",
+        href: `/music?tab=drills&instrument=${instrument}`,
+      },
     };
   }
 

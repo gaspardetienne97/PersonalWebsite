@@ -9,6 +9,7 @@
   import { chordName, chordVoicings, generatedChordId, QUALITY_NAMES, VOICING_QUALITIES } from "@repo/music-core/theory/voicings";
   import Choice from "$lib/music/components/Choice.svelte";
   import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
+  import { chordId, positionsOn } from "$lib/music/drills/guitar/chords";
   import { btn } from "$lib/music/components/ui";
   import { audio, settings } from "$lib/music/runtime";
 
@@ -36,6 +37,12 @@
       .map((midi, k) => ({ midi, time: k * 0.035, duration: 1.6 }));
     audio.playSequence(notes);
     onstatus?.(`${name} on ${instrument}.`);
+  }
+  /** The Build drill on this exact voicing: the curated shape's position when it has one, else the generated list's. */
+  function practise(frets: (number | null)[], i: number) {
+    const target = chordId(instrument, { root, quality });
+    const at = positionsOn(target, tuning).findIndex((p) => p.frets.join() === frets.join());
+    return at >= 0 ? `/music/chords?mode=build&shape=${target}&position=${at}&instrument=${instrument}` : `/music/chords?mode=build&shape=${id}&position=${i}&instrument=${instrument}`;
   }
   const lowToHigh = (frets: (number | null)[]) => [...frets].reverse().map((f) => (f === null ? "x" : f)).join(" ");
 </script>
@@ -73,7 +80,7 @@
       </p>
       <div class="mt-auto flex flex-wrap gap-1.5">
         <button type="button" class="{btn} min-h-9 px-2.5 text-xs" onclick={() => hear(v.frets)}><Play class="size-3.5" aria-hidden="true" />Hear</button>
-        <a class="{btn} min-h-9 px-2.5 text-xs" href="/music/chords?mode=build&shape={id}&position={i}&instrument={instrument}">Practise</a>
+        <a class="{btn} min-h-9 px-2.5 text-xs" href={practise(v.frets, i)}>Practise</a>
       </div>
     </li>
   {:else}

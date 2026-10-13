@@ -44,7 +44,7 @@
           <button
             type="button"
             class="tnum min-h-11 min-w-12 rounded-full border px-3 text-sm {m === budget
-              ? 'border-transparent bg-ws-ink font-semibold text-ws-bg'
+              ? 'border-transparent bg-instr font-semibold text-ws-stage'
               : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
             aria-pressed={m === budget}
             onclick={() => settings.update({ routineBudgetMinutes: m })}>{m} min</button
@@ -54,7 +54,7 @@
     </div>
 
     <!-- The set as a strip of blocks, sized by minutes, coloured by what you will play. -->
-    <div class="mt-5 flex h-16 gap-1.5 overflow-hidden rounded-2xl" aria-hidden="true">
+    <div class="mt-5 hidden h-16 gap-1.5 overflow-hidden rounded-2xl sm:flex" aria-hidden="true">
       {#each plan.routine.steps as step (step.n)}
         {@const done = plan.done.includes(step.n)}
         <div

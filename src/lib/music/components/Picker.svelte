@@ -71,7 +71,9 @@
   function pick(v: string) {
     if (!v) return;
     onchange(v);
-    if (action) queueMicrotask(() => (current = ""));
+    // Back to what the owner holds: the placeholder for an action menu, else
+    // `value`, which stays put when the owner declined the pick.
+    queueMicrotask(() => (current = action ? "" : value));
   }
 </script>
 

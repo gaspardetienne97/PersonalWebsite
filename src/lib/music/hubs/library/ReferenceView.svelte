@@ -195,15 +195,15 @@
 </script>
 
 <div class="grid gap-8 lg:grid-cols-[12rem_minmax(0,1fr)]">
-  <nav aria-label="Reference sections" class="lg:sticky lg:top-24 lg:self-start">
-    <ul class="flex flex-wrap gap-1.5 lg:flex-col lg:gap-0.5">
+  <nav aria-label="Reference sections" class="sticky top-27 z-20 min-w-0 -mx-4 bg-ws-bg/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:top-24 lg:mx-0 lg:self-start lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
+    <ul class="flex gap-1.5 overflow-x-auto py-2 [scrollbar-width:none] lg:flex-col lg:gap-0.5 lg:overflow-visible lg:py-0">
       {#each SECTIONS as s (s.id)}
         <li>
           <a
             href="?tab=reference&section={s.id}"
             data-sveltekit-noscroll
             aria-current={section === s.id ? "location" : undefined}
-            class="flex min-h-11 items-center rounded-lg border border-ws-line px-3 text-sm lg:border-transparent {section === s.id ? 'bg-instr-wash font-semibold text-instr-ink' : 'text-ws-soft hover:bg-ws-raised hover:text-ws-ink'}"
+            class="flex min-h-11 shrink-0 items-center rounded-lg border border-ws-line px-3 text-sm lg:border-transparent {section === s.id ? 'bg-instr-wash font-semibold text-instr-ink' : 'text-ws-soft hover:bg-ws-raised hover:text-ws-ink'}"
             >{s.label}</a
           >
         </li>
@@ -212,7 +212,7 @@
   </nav>
 
   <div class="flex min-w-0 flex-col gap-10">
-    <section id="explorer" class="scroll-mt-24" aria-labelledby="h-explorer">
+    <section id="explorer" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-explorer">
       <h2 id="h-explorer" tabindex="-1" class="font-display text-2xl font-semibold">Chords and scales on the keyboard</h2>
       <p class="mt-1 max-w-prose text-ws-soft">All 17 scales and every chord quality, on any tonic. Labels are degrees from the tonic; tap Hear it to play it back, or play along.</p>
       <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -271,7 +271,7 @@
       {/if}
     </section>
 
-    <section id="circle" class="scroll-mt-24" aria-labelledby="h-circle">
+    <section id="circle" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-circle">
       <h2 id="h-circle" tabindex="-1" class="font-display text-2xl font-semibold">Circle of fifths</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
         Each step clockwise is a fifth up and one more sharp; counter-clockwise is a fourth up and one more flat, the way ii-V-I chains move. A key's chords are the wedge around it: I, IV and V on the outside, ii, vi and iii inside, vii° at the centre.
@@ -309,7 +309,7 @@
       </div>
     </section>
 
-    <section id="fretted-chords" class="scroll-mt-24" aria-labelledby="h-fretted-chords">
+    <section id="fretted-chords" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-fretted-chords">
       <h2 id="h-fretted-chords" tabindex="-1" class="font-display text-2xl font-semibold">Guitar and ukulele chords</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
         Any chord, every place on the neck it can be played. The shapes are worked out from the notes, so open chords, barre chords and the closed shapes up the neck all come from the same rules.
@@ -317,7 +317,7 @@
       <div class="mt-4"><ChordFinder {onstatus} /></div>
     </section>
 
-    <section id="vocabulary" class="scroll-mt-24" aria-labelledby="h-vocabulary">
+    <section id="vocabulary" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-vocabulary">
       <h2 id="h-vocabulary" tabindex="-1" class="font-display text-2xl font-semibold">Chord vocabulary</h2>
       <p class="mt-1 text-ws-soft">The eight jazz families, all on C, with the extensions each one takes.</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
@@ -360,7 +360,7 @@
       </div>
     </section>
 
-    <section id="chord-scales" class="scroll-mt-24" aria-labelledby="h-chord-scales">
+    <section id="chord-scales" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-chord-scales">
       <h2 id="h-chord-scales" tabindex="-1" class="font-display text-2xl font-semibold">Chord-scale map</h2>
       <p class="mt-1 text-ws-soft">Which scales sound good over each chord family. Learn the go-to first; Show puts it on the keyboard above.</p>
       <div class="mt-3 grid gap-3 md:grid-cols-2">
@@ -387,7 +387,7 @@
       </div>
     </section>
 
-    <section id="voicings" class="scroll-mt-24" aria-labelledby="h-voicings">
+    <section id="voicings" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-voicings">
       <h2 id="h-voicings" tabindex="-1" class="font-display text-2xl font-semibold">Voicing recipes</h2>
       <p class="mt-1 text-ws-soft">Four ways to stack a seventh chord. Play plays each on Cmaj7.</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
@@ -411,7 +411,7 @@
       </div>
     </section>
 
-    <section id="dominants" class="scroll-mt-24" aria-labelledby="h-dominants">
+    <section id="dominants" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-dominants">
       <h2 id="h-dominants" tabindex="-1" class="font-display text-2xl font-semibold">Dominant voicings</h2>
       <p class="mt-1 text-ws-soft">Three colours for a V7, from plain to maximum tension. Play voices each on G7 over a G bass.</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
@@ -435,7 +435,7 @@
       </div>
     </section>
 
-    <section id="upper-structures" class="scroll-mt-24" aria-labelledby="h-upper-structures">
+    <section id="upper-structures" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-upper-structures">
       <h2 id="h-upper-structures" tabindex="-1" class="font-display text-2xl font-semibold">Upper structures over a V7</h2>
       <p class="mt-1 text-ws-soft">Left hand plays the shell (1 3 7), right hand a triad. Play voices each over C7.</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
@@ -461,7 +461,7 @@
       </div>
     </section>
 
-    <section id="cycle" class="scroll-mt-24" aria-labelledby="h-cycle">
+    <section id="cycle" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-cycle">
       <h2 id="h-cycle" tabindex="-1" class="font-display text-2xl font-semibold">The 12-key cycle</h2>
       <p class="mt-1 text-ws-soft">The order the voicing drills walk through every key.</p>
       <ol class="mt-3 flex flex-wrap gap-2">
@@ -474,7 +474,7 @@
       </ol>
     </section>
 
-    <section id="techniques" class="scroll-mt-24" aria-labelledby="h-techniques">
+    <section id="techniques" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-techniques">
       <h2 id="h-techniques" tabindex="-1" class="font-display text-2xl font-semibold">Improv techniques</h2>
       <dl class="mt-3 grid gap-x-8 gap-y-4 md:grid-cols-2">
         {#each JAZZ.IMPROV_TECHNIQUES as t (t.id)}
@@ -487,7 +487,7 @@
       <p class="mt-4 text-sm"><a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/jam">Try them in Jam</a>, with the chord tones lit.</p>
     </section>
 
-    <section id="repertoire" class="scroll-mt-24" aria-labelledby="h-repertoire">
+    <section id="repertoire" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-repertoire">
       <h2 id="h-repertoire" tabindex="-1" class="font-display text-2xl font-semibold">Repertoire</h2>
       <p class="mt-1 text-ws-soft">{JAZZ.JAZZ_REPERTOIRE.length} standards to learn, swing first, then Latin.</p>
       <div class="mt-3 grid gap-4 md:grid-cols-2">
@@ -507,7 +507,7 @@
       </div>
     </section>
 
-    <section id="backing" class="scroll-mt-24" aria-labelledby="h-backing">
+    <section id="backing" class="scroll-mt-42 lg:scroll-mt-24" aria-labelledby="h-backing">
       <h2 id="h-backing" tabindex="-1" class="font-display text-2xl font-semibold">Backing tracks</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
         These recordings are not shipped with the app. If you have them (or any track you like), import the audio in

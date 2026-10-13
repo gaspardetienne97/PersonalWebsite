@@ -26,7 +26,7 @@
   import { pairNotes, recentTakes, saveTake, takeToSequence, takeStats, type MidiTake } from "$lib/music/takes";
   import Picker from "$lib/music/components/Picker.svelte";
 
-  const cfg = new DrillSetup("lab", { track: "", mic: false as boolean });
+  const cfg = new DrillSetup("lab", { track: "" });
   const s = $derived(cfg.value);
 
   let phase = $state<Phase>("ready");
@@ -58,6 +58,8 @@
   const SOURCE: Record<InputSource, string> = { midi: "MIDI", onscreen: "On-screen", audio: "Microphone", click: "Click" };
   const recent = $derived(events.filter((e) => e.kind === "noteon").slice(-10));
   const micOn = $derived(mic.state === "on");
+  // The microphone only makes sense for instruments it can hear.
+  const canMic = $derived(instrument !== "piano" && instrument !== "mpc");
   const levelPct = $derived(Math.max(0, Math.min(1, (mic.level - LEVEL_FLOOR_DB) / -LEVEL_FLOOR_DB)));
 
   async function toggleMic() {
@@ -81,7 +83,6 @@
       if (e.kind === "noteon" && e.velocityMeasured) lastVelocity = e.velocity;
     });
     status = "Recording. Play anything; Stop saves the take.";
-    if (s.mic && !micOn) await toggleMic();
     if (s.track) {
       try {
         backing = await playTrack(s.track);
@@ -176,9 +177,10 @@
     stopPlayback();
   });
 
-  const summaryLine = $derived(
-    `${INSTRUMENT_LABEL[instrument]}, ${s.track ? `over ${tracks.find((t) => t.id === s.track)?.name ?? "your backing track"}` : "no backing"}${s.mic ? ", microphone on" : ""}`,
-  );
+  const summaryLine = $derived([
+    { text: s.track ? `over ${tracks.find((t) => t.id === s.track)?.name ?? "your backing track"}` : "no backing", focus: "track" },
+    ...(micOn ? [{ text: "microphone on" }] : []),
+  ]);
   const secs = (ms: number) => (ms < 60000 ? `${Math.round(ms / 1000)} s` : `${Math.floor(ms / 60000)} min ${Math.round((ms % 60000) / 1000)} s`);
   const rangeOf = (st: { low: number | null; high: number | null }) => (st.low === null || st.high === null ? "none" : st.low === st.high ? noteName(st.low) : `${noteName(st.low)} to ${noteName(st.high)}`);
 
@@ -210,7 +212,7 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <div class="flex flex-col gap-1 text-sm">
+      <div class="flex flex-col gap-1 text-sm" data-setup="track">
         <span class="font-medium">Backing track</span>
         <div class="flex flex-wrap items-center gap-2">
           <Picker class="w-auto min-w-40" label="Backing track" value={s.track} options={[{ value: "", label: "None" }, ...tracks.map((t) => ({ value: t.id, label: t.name }))]} onchange={(v) => cfg.set({ track: v })} />
@@ -220,11 +222,6 @@
           </label>
         </div>
         {#if trackError}<p role="alert" class="font-medium text-destructive">{trackError}</p>{/if}
-      </div>
-      <div class="flex flex-col gap-1 text-sm">
-        <span class="font-medium">Microphone</span>
-        <button type="button" class={btn} aria-pressed={s.mic} onclick={() => cfg.set({ mic: !s.mic })}>{s.mic ? "✓ Listen when I start" : "Off until I turn it on"}</button>
-        <span class="text-ws-soft">For guitar, ukulele or voice. It is only switched on when you start, and off when you stop.</span>
       </div>
     </div>
   {/snippet}
@@ -242,6 +239,8 @@
     <div class="mb-3 flex flex-wrap items-center gap-3">
       {#if phase === "running"}
         <span class="rec flex items-center gap-2 text-sm font-semibold"><span class="dot" aria-hidden="true"></span>Recording</span>
+      {/if}
+      {#if canMic && phase !== "results"}
         <button type="button" class={btnStage} aria-pressed={micOn} onclick={toggleMic}>
           {#if micOn}<MicOff class="size-4" aria-hidden="true" />Stop listening{:else}<Mic class="size-4" aria-hidden="true" />Listen with the microphone{/if}
         </button>

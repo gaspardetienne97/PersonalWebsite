@@ -1,6 +1,5 @@
 <script lang="ts">
   // Each path is a trail: what each step adds, what done means, and where you are.
-  import Lock from "lucide-svelte/icons/lock";
   import Check from "lucide-svelte/icons/check";
   import { LEARNING_PATHS, pathProgress, type PathId, type StepStatus } from "@repo/music-core/progress/paths";
   import { practice } from "../practice.svelte";
@@ -62,7 +61,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h2 id="path-title" class="font-display text-2xl font-semibold tracking-tight">{current.path.title}</h2>
-        <p class="text-ws-soft">{current.path.subtitle}</p>
+        <p class="text-ws-soft"><span class="tnum">{current.steps.length} steps.</span> {current.path.subtitle}</p>
       </div>
       {#if current.continueHref}
         <a
@@ -87,7 +86,7 @@
                 : 'bg-ws-raised text-ws-soft'}"
             aria-hidden="true"
           >
-            {#if st === "done"}<Check class="size-4" />{:else if st === "locked"}<Lock class="size-3.5" />{:else}{sp.step.order}{/if}
+            {#if st === "done"}<Check class="size-4" />{:else}{sp.step.order}{/if}
           </span>
           <div class="min-w-0 flex-1 rounded-2xl {st === 'next' ? 'bg-ws-surface p-4 shadow-sm' : 'pt-1'}">
             <div class="flex flex-wrap items-baseline justify-between gap-x-3">

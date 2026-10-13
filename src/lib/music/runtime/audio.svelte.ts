@@ -19,6 +19,7 @@ import { encodeWav } from "@repo/music-core/io/wav";
 import type { StudioChange } from "@repo/music-core/content/studio";
 import { settings } from "./settings.svelte";
 import { getBinary } from "./opfs";
+import { bench } from "../bench.svelte";
 
 type Tone = typeof ToneNS;
 type Voice = {
@@ -57,8 +58,13 @@ export interface MetronomeOptions {
   bpm: number;
   beatsPerBar?: number;
   countInBars?: number;
-  /** Clicks after the count-in; the count-in itself always sounds. */
-  audible?: boolean;
+  /**
+   * Clicks after the count-in; the count-in itself always sounds. A boolean
+   * is read together with the strip's Metronome switch (bench.clickDuringRun)
+   * on every beat, so flipping it during a run takes effect at once. A
+   * function decides on its own (the strip's preview).
+   */
+  audible?: boolean | (() => boolean);
   /** beat 0..beatsPerBar-1; bar counts from 0 at the downbeat, negative during the count-in. */
   onBeat?: (beat: number, bar: number, perfAt: number, isCountIn: boolean) => void;
 }
@@ -853,7 +859,8 @@ const metronome = {
         (i, when) => {
           const pos = i % beatsPerBar;
           const isCountIn = i < countIn;
-          if (audible || isCountIn) clickAt(t, raw, run.bus, when, pos === 0);
+          const click = typeof audible === "function" ? audible() : audible && bench.clickDuringRun;
+          if (click || isCountIn) clickAt(t, raw, run.bus, when, pos === 0);
           if (onBeat)
             run.later(c.perfOf(when), () =>
               onBeat(pos, Math.floor(i / beatsPerBar) - countInBars, c.perfOf(when), isCountIn),

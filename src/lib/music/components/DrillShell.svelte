@@ -272,7 +272,7 @@
     </header>
 
     {#if tabs && tabs.length > 1}
-      <div class="-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" role="group" aria-label="Exercise">
+      <div class="-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible" role="group" aria-label="Exercise">
         {#each tabs as x (x.id)}
           <button
             type="button"
@@ -287,7 +287,7 @@
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-ws-line bg-ws-surface px-4 py-2">
       <p class="min-w-0 flex-1 basis-full text-sm sm:basis-0" data-testid="setup-line">
         <span class="text-ws-soft">Setup:</span>
-        {#each clauses as c, i (i)}{#if setup && c.focus}<button type="button" class="clause font-medium" onclick={() => openAt(c.focus)}>{c.text}</button>{:else}<span class="font-medium">{c.text}</span>{/if}{#if i < clauses.length - 1}<span class="text-ws-soft">, </span>{/if}{/each}
+        {#each clauses as c, i (i)}{#if setup && c.focus}<button type="button" class="clause font-medium" onclick={() => openAt(c.focus)}>{c.text}</button>{:else}<span class="font-medium">{c.text}</span>{/if}{#if i < clauses.length - 1}<span class="text-ws-soft">{", "}</span>{/if}{/each}
       </p>
       {#if setup}
         <button

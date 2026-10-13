@@ -8,7 +8,7 @@
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
   import { todayPlan } from "../../today.svelte";
-  import { MIN_EVIDENCE, nextBuckets, pct, plural, relativeDay, skillRows, type SkillRow } from "./model";
+  import { fallingSentence, MIN_EVIDENCE, nextBuckets, pct, plural, relativeDay, skillRows, type SkillRow } from "./model";
 
   let { now = Date.now() }: { now?: number } = $props();
 
@@ -22,10 +22,7 @@
   const reasoning = $derived.by(() => {
     const parts = [plan.advice.summary];
     const { falling, holding, unmeasured } = buckets;
-    if (falling.length)
-      parts.push(
-        `${falling[0].skill.id === plan.advice.focus?.skillId ? "It has also" : falling[0].skill.name}${falling.length > 1 ? ` and ${plural(falling.length - 1, "other skill")}` : ""} dropped ten points or more since you last measured, so a short review comes first.`,
-      );
+    if (falling.length) parts.push(fallingSentence(falling, plan.advice.focus?.skillId));
     else if (holding.length) parts.push("Nothing you have measured is falling yet.");
     if (unmeasured.length)
       parts.push(
@@ -49,7 +46,7 @@
         <button
           type="button"
           class="tnum min-h-11 min-w-12 rounded-full border px-3 text-sm {m === budget
-            ? 'border-transparent bg-ws-ink font-semibold text-ws-bg'
+            ? 'border-transparent bg-instr font-semibold text-ws-stage'
             : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
           aria-pressed={m === budget}
           onclick={() => settings.update({ routineBudgetMinutes: m })}>{m} min</button

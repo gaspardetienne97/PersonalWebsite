@@ -10,7 +10,7 @@
   import Square from "lucide-svelte/icons/square";
   import Upload from "lucide-svelte/icons/upload";
   import { FLAT_NAMES, noteName, pc, type NoteEvent } from "@repo/music-core";
-  import { JAM_GROUPS, JAM_TEMPO, JAM_TRANSPOSE, PROGRESSIONS, jamToneRoles, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
+  import { JAM_GROUPS, PROGRESSIONS, jamToneRoles, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
   import { chorusReport, type ChorusReport } from "@repo/music-core/scoring/jam";
   import type { ToneRole } from "@repo/music-core/theory/chords";
   import { TUNINGS } from "@repo/music-core/data/index";
@@ -18,6 +18,7 @@
   import Piano from "$lib/music/components/Piano.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import type { CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage, panel } from "$lib/music/components/ui";
@@ -30,12 +31,26 @@
   import { pairNotes, saveTake, takeToSequence, type MidiTake } from "$lib/music/takes";
   import Picker from "$lib/music/components/Picker.svelte";
 
-  const cfg = new DrillSetup("jam", { progression: "ii-v-i", backing: "both", bpm: 0, transpose: 0, track: "" });
+  const cfg = new DrillSetup("jam", { progression: "ii-v-i", backing: "both", transpose: 0, track: "" });
   const s = $derived(cfg.value);
   const base = $derived(PROGRESSIONS.find((p) => p.id === s.progression) ?? PROGRESSIONS[0]);
   const prog = $derived(transposeProgression(base, s.transpose));
-  const bpm = $derived(Math.min(JAM_TEMPO.max, Math.max(JAM_TEMPO.min, s.bpm || base.bpm)));
+  // The practice strip owns the tempo; picking a progression sets it to the tune's.
+  const bpm = $derived(settings.value.bpm);
   const beatMs = $derived(60000 / bpm);
+  function pickProgression(id: string) {
+    cfg.set({ progression: id });
+    const tune = PROGRESSIONS.find((p) => p.id === id);
+    if (tune) settings.update({ bpm: tune.bpm });
+  }
+  /** The key the circle shows; a pick becomes the shortest transposition to it. */
+  const keyPc = $derived(pc(base.keyPc + s.transpose));
+  function pickKey(target: number) {
+    let t = (target - base.keyPc) % 12;
+    if (t > 6) t -= 12;
+    if (t < -6) t += 12;
+    cfg.set({ transpose: t });
+  }
   const backingMode = $derived(s.backing as BackingMode | "track");
 
   let phase = $state<Phase>("ready");
@@ -168,7 +183,8 @@
     savedTake = null;
     runStart = ctx.downbeat;
     chorusStart = ctx.downbeat;
-    cap = capture(ctx.downbeat, (e) => (e.kind === "noteon" || e.kind === "noteoff") && onNote(e));
+    // Half a beat of grace before the downbeat, as the timed drills allow.
+    cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => (e.kind === "noteon" || e.kind === "noteoff") && onNote(e));
     status = backingMode === "none" ? "Play. Move to the next chord with Next chord (or N)." : "Play over the changes.";
     await startBacking();
   }
@@ -262,9 +278,11 @@
     stopReview();
   });
 
-  const summaryLine = $derived(
-    `${prog.name} in ${prog.key}, ${backingMode === "none" ? "no backing, chords by hand" : backingMode === "track" ? "your backing track" : backingMode === "both" ? "drums and chords" : backingMode}, ${bpm} BPM${s.transpose ? `, transposed ${s.transpose > 0 ? "+" : ""}${s.transpose}` : ""}`,
-  );
+  const summaryLine = $derived([
+    { text: `${prog.name} in ${prog.key}`, focus: "progression" },
+    { text: backingMode === "none" ? "no backing, chords by hand" : backingMode === "track" ? "your backing track" : backingMode === "both" ? "drums and chords" : backingMode, focus: "backing" },
+    ...(s.transpose ? [{ text: `transposed ${s.transpose > 0 ? "+" : ""}${s.transpose}`, focus: "transpose" }] : []),
+  ]);
   const barsTotal = $derived(chorusBars(prog));
   const pctOf = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 </script>
@@ -278,6 +296,7 @@
   blurb="Solo over the changes. Every note is lit as a chord tone, a scale tone or an avoid note for the chord sounding now."
   summary={summaryLine}
   checkable={false}
+  clock={{ bpm, beatsPerBar: BEATS_PER_BAR }}
   bind:phase
   bind:status
   progress={(prog.chords.slice(0, chordIdx).reduce((n, c) => n + c.bars, 0) + beatInChord / BEATS_PER_BAR) / barsTotal}
@@ -287,35 +306,30 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div class="flex min-w-0 flex-col gap-1 text-sm">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="progression">
         <span class="font-medium">Progression</span>
-        <Picker label="Progression" value={s.progression} options={JAM_GROUPS.flatMap((g) => PROGRESSIONS.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: `${p.name} (${p.difficulty})`, group: g.label })))} onchange={(v) => cfg.set({ progression: v, bpm: 0 })} />
+        <Picker label="Progression" value={s.progression} options={JAM_GROUPS.flatMap((g) => PROGRESSIONS.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: `${p.name} (${p.difficulty})`, group: g.label })))} onchange={pickProgression} />
+        <span class="text-ws-soft">Written at {base.bpm} BPM; the tempo is in the practice strip.</span>
       </div>
       <Choice
         label="Backing"
-        select
+        setupKey="backing"
         options={[
           { value: "both", label: "Drums and chords" },
           { value: "drums", label: "Drums" },
           { value: "chords", label: "Chords" },
-          { value: "track", label: "Your backing track" },
+          ...(tracks.length ? [{ value: "track", label: "Your track" }] : []),
           { value: "none", label: "None, chords by hand" },
         ]}
         value={s.backing}
         onchange={(v) => cfg.set({ backing: v })}
       />
-      <label class="flex flex-col gap-1 text-sm">
-        <span class="font-medium">Tempo ({JAM_TEMPO.min} to {JAM_TEMPO.max} BPM)</span>
-        <input class="tnum min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" type="number" min={JAM_TEMPO.min} max={JAM_TEMPO.max} value={bpm} onchange={(e) => cfg.set({ bpm: Number(e.currentTarget.value) || 0 })} />
-      </label>
-      <Choice
-        label="Transpose"
-        select
-        options={Array.from({ length: JAM_TRANSPOSE.max - JAM_TRANSPOSE.min + 1 }, (_, i) => i + JAM_TRANSPOSE.min).map((t) => ({ value: t, label: t === 0 ? "Written key" : `${t > 0 ? "+" : ""}${t} (${FLAT_NAMES[pc(base.keyPc + t)]})` }))}
-        value={s.transpose}
-        onchange={(v) => cfg.set({ transpose: v })}
-      />
+      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="transpose">
+        <span class="font-medium">Key</span>
+        <KeyPicker label="Key" value={keyPc} onchange={pickKey} name={(k) => `${FLAT_NAMES[k]}${k === base.keyPc ? " (written)" : ""}`} />
+        <span class="text-ws-soft">{s.transpose ? `Transposed ${s.transpose > 0 ? "+" : ""}${s.transpose} from ${base.key}.` : "The written key."}</span>
+      </div>
     </div>
     <div class="mt-4 border-t border-ws-line pt-4" id="backing-tracks">
       <p class="text-sm font-medium">Your backing tracks</p>
@@ -335,7 +349,6 @@
 
   {#snippet hud()}
     <Stat label="Backing" value={phase === "running" ? (backingOn ? "Playing" : backingMode === "none" ? "By hand" : "Stopped") : backingMode === "none" ? "By hand" : "Ready"} />
-    <Stat label="Tempo" value="{bpm} BPM" />
     {#if phase === "running" || phase === "results"}
       <Stat label="Notes recorded" value={played.length} />
       <Stat label="Chorus" value={phase === "results" ? choruses.length : chorus} />

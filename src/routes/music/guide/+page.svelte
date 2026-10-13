@@ -102,15 +102,15 @@
   </header>
   <p role="status" class="sr-only">Guide loaded.</p>
 
-  <nav aria-label="Guide topics" class="lg:sticky lg:top-32 lg:self-start">
-    <ul class="flex flex-wrap gap-2 lg:flex-col lg:gap-1">
+  <nav aria-label="Guide topics" class="sticky top-27 z-20 min-w-0 -mx-4 bg-ws-bg/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:top-32 lg:mx-0 lg:self-start lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
+    <ul class="flex gap-2 overflow-x-auto py-2 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible lg:py-0">
       {#each TOPICS as t (t.id)}
-        <li>
+        <li class="shrink-0">
           <a
             href="#{t.id}"
             aria-current={spy.current === t.id ? "location" : undefined}
             style:--topic="var(--hue-{t.hue})"
-            class="topic flex min-h-11 items-start gap-2 rounded-full border border-ws-line px-4 py-3 text-sm leading-5 text-ws-soft hover:bg-ws-raised hover:text-ws-ink lg:rounded-lg lg:border-0 lg:px-3 lg:py-3"
+            class="topic flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border border-ws-line px-4 text-sm leading-5 text-ws-soft hover:bg-ws-raised hover:text-ws-ink lg:items-start lg:whitespace-normal lg:rounded-lg lg:border-0 lg:px-3 lg:py-3"
           >
             <!-- Sits on the first line, so a label that wraps keeps its dot at the top. -->
             <span class="mt-[0.3125rem] size-2.5 shrink-0 rounded-full" style:background="var(--topic)" aria-hidden="true"></span>{t.label}
@@ -121,19 +121,19 @@
   </nav>
 
   <div class="flex min-w-0 flex-col gap-12">
-    <section id="session" aria-labelledby="session-h" class="scroll-mt-32">
+    <section id="session" aria-labelledby="session-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("session-h", "How a session works", "session")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Open <a class={link} href="/music">Today</a> and pick how many minutes you have. Woodshed builds a short set from what is due: something you are learning, something slipping, and something to review. Press Start and go block by block; you can skip or swap any of it.</p>
-        <p>Every drill runs the same way. The setup is remembered and folded into one line, so most days you just press Start. A count-in plays first, and nothing you play during it is graded. When the run ends you get one sentence on how it went, the number that matters, the change since your last run with the same setup, and what to try next.</p>
+        <p>Open <a class={link} href="/music">Today</a> and pick how many minutes you have. Woodshed builds a short set from what is due: something you are learning, something slipping, and something to review. Press Start and go block by block, or open any drill from the Drills tab instead.</p>
+        <p>Every drill runs the same way. The setup is remembered and folded into one line, so most days you just press Start. Timed drills start with a count-in (set in the practice strip), and nothing you play during it is graded. When the run ends you get one sentence on how it went, the number that matters, the change since your last run with the same setup, and what to try next.</p>
         <p>Your session is saved as you go. There is nothing to submit.</p>
       </div>
         {@render setPicture()}
       </div>
     </section>
 
-    <section id="check" aria-labelledby="check-h" class="scroll-mt-32">
+    <section id="check" aria-labelledby="check-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("check-h", "Practice and Check", "check")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -145,7 +145,7 @@
       </div>
     </section>
 
-    <section id="not-measured" aria-labelledby="nm-h" class="scroll-mt-32">
+    <section id="not-measured" aria-labelledby="nm-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("nm-h", 'What "Not measured" means', "not-measured")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -156,7 +156,7 @@
       </div>
     </section>
 
-    <section id="connect" aria-labelledby="connect-h" class="scroll-mt-32">
+    <section id="connect" aria-labelledby="connect-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("connect-h", "MIDI, the MPC and the microphone", "connect")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -169,7 +169,7 @@
       </div>
     </section>
 
-    <section id="keys" aria-labelledby="keys-h" class="scroll-mt-32">
+    <section id="keys" aria-labelledby="keys-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("keys-h", "Playing from the computer keyboard", "keys")}
       <div class={prose}>
         <p>No instrument nearby? The keys below play whichever surface is on screen. They follow key positions, so they work the same on other layouts.</p>
@@ -213,7 +213,7 @@
       </div>
     </section>
 
-    <section id="shortcuts" aria-labelledby="shortcuts-h" class="scroll-mt-32">
+    <section id="shortcuts" aria-labelledby="shortcuts-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("shortcuts-h", "Shortcuts", "shortcuts")}
       <dl class="mt-3 grid max-w-prose grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-3">
         <dt><kbd class="kbd">Space</kbd></dt>
@@ -225,7 +225,7 @@
       </dl>
     </section>
 
-    <section id="streaks" aria-labelledby="streaks-h" class="scroll-mt-32">
+    <section id="streaks" aria-labelledby="streaks-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("streaks-h", "Streaks, freezes and XP", "streaks")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -237,7 +237,7 @@
       </div>
     </section>
 
-    <section id="privacy" aria-labelledby="privacy-h" class="scroll-mt-32">
+    <section id="privacy" aria-labelledby="privacy-h" class="scroll-mt-42 lg:scroll-mt-32">
       {@render heading("privacy-h", "Privacy", "privacy")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>

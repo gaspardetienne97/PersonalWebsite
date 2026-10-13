@@ -19,6 +19,7 @@
     rows?: ResultRow[];
     xp?: number;
     ladder?: { bpm: number; state: "unlocked" | "next" | "locked" }[];
+    /** A hand-picked next drill; shown only when there is no `advance`, so one "next" line is drawn. */
     next?: { label: string; href: string; reason?: string };
     routine?: { label: string; href: string };
     assistance?: string;
@@ -66,7 +67,7 @@
           <span class="text-ws-soft">Next run:</span> <span class="font-semibold">same again</span><span class="text-ws-soft">, {summary.advance.reason}.</span>
         </p>
       {/if}
-      {#if summary.next}
+      {#if summary.next && !summary.advance}
         <p class="mt-3 text-sm">
           <span class="text-ws-soft">Next up:</span>
           <a class="font-semibold text-instr-ink underline-offset-4 hover:underline" href={summary.next.href}>{summary.next.label}</a>
@@ -78,9 +79,11 @@
       <p class="tnum font-display text-5xl font-bold leading-none sm:text-6xl">{summary.metric}</p>
       <p class="mt-1 text-sm text-ws-soft">{summary.metricLabel}</p>
       <p class="mt-2 text-sm font-medium">
-        {#if summary.best}<span class="text-success">Personal best</span>{:else if summary.delta != null}
-          <span class={summary.delta >= 0 ? "text-success" : "text-ws-soft"}>
-            {summary.delta >= 0 ? "+" : ""}{Math.round(summary.delta)} vs last time
+        {#if summary.best}<span class="text-success">Personal best</span>{:else if summary.delta != null && Math.round(summary.delta) === 0}
+          <span class="text-ws-soft">Same as last time</span>
+        {:else if summary.delta != null}
+          <span class={summary.delta > 0 ? "text-success" : "text-ws-soft"}>
+            {summary.delta > 0 ? "+" : ""}{Math.round(summary.delta)} vs last time
           </span>
         {:else if summary.recorded === false}<span class="text-ws-soft">Not recorded</span>{:else}<span class="text-ws-soft">First run with this setup</span>{/if}
         {#if summary.xp}<span class="ml-2 text-ws-soft">+{summary.xp} XP</span>{/if}

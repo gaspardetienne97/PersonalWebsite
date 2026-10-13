@@ -13,7 +13,7 @@
   const tab = $derived(page.url.searchParams.get("tab") ?? "today");
 </script>
 
-<svelte:head><title>Woodshed</title></svelte:head>
+<svelte:head><title>{TABS.find((t) => t.id === tab)?.label ?? "Today"} | Woodshed</title></svelte:head>
 
 <div class="mx-auto flex max-w-6xl flex-col gap-6">
   <header class="flex flex-wrap items-end justify-between gap-4">

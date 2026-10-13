@@ -41,6 +41,10 @@ export const modeHref = (e: CatalogEntry, mode: string) => {
     : e.route;
 };
 
+/** The filter's instrument rides along, so the drill opens on the instrument the list was filtered for. */
+export const withInstrument = (href: string, instrument?: string) =>
+  instrument ? `${href}${href.includes("?") ? "&" : "?"}instrument=${instrument}` : href;
+
 const byId = (id: string) => {
   const e = CATALOG.find((x) => x.id === id);
   if (!e) throw new Error(`No catalog entry ${id}`);

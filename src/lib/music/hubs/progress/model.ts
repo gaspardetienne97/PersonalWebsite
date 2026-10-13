@@ -182,6 +182,13 @@ export function skillRows(input: {
  * What next: measured skills (5+ checked attempts) ranked by the decayed estimate, capped at 8,
  * split into falling (due for review) and holding; everything else touched is not measured yet.
  */
+/** "X and 2 other skills dropped ten points..."; "It" when X is the focus skill named just before. */
+export function fallingSentence(falling: SkillRow[], focusId?: string) {
+  const lead = falling[0].skill.id === focusId ? "It" : falling[0].skill.name;
+  const others = falling.length > 1 ? ` and ${plural(falling.length - 1, "other skill")}` : "";
+  return `${lead}${others} dropped ten points or more since you last measured, so a short review comes first.`;
+}
+
 export function nextBuckets(rows: SkillRow[]) {
   const measured = rows
     .filter((r) => r.direct && r.checked >= MIN_EVIDENCE && r.estimate !== undefined)

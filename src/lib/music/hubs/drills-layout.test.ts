@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "@repo/music-core/content/catalog";
-import { DRILL_GROUPS } from "./drills-layout";
+import { DRILL_GROUPS, withInstrument } from "./drills-layout";
 
 describe("drills layout", () => {
   const rows = DRILL_GROUPS.flatMap((g) => g.rows);
@@ -22,5 +22,13 @@ describe("drills layout", () => {
       );
     }
     expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length);
+  });
+
+  it("carries the filter's instrument on a row link, after any mode query", () => {
+    expect(withInstrument("/music/scales", "ukulele")).toBe("/music/scales?instrument=ukulele");
+    expect(withInstrument("/music/pads?mode=rudiments", "mpc")).toBe(
+      "/music/pads?mode=rudiments&instrument=mpc",
+    );
+    expect(withInstrument("/music/scales")).toBe("/music/scales");
   });
 });

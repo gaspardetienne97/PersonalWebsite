@@ -247,8 +247,7 @@ test.describe("library and song studio", () => {
       .locator('li[data-voicing="3 2 1 1"]')
       .getByRole("link", { name: "Practise" })
       .click();
-    await expect(page.getByText("Setup:").locator("..")).toContainText("Bb, Bb major");
-    await expect(page.getByText("Setup:").locator("..")).toContainText("Barre at fret 1");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("Bb, Barre at fret 1");
   });
 
   test("song studio: views survive reload and Back", async ({ page }) => {
@@ -306,14 +305,14 @@ test.describe("library and song studio", () => {
     await expect(page.getByLabel("Tuning")).toBeVisible();
 
     // Picked sections are tinted and named on the score.
-    await page.getByRole("button", { name: "Change setup" }).click();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
     await page
       .getByRole("group", { name: "Range" })
       .getByRole("button", { name: "Sections" })
       .click();
     await page.getByRole("group", { name: "Sections" }).getByRole("button").first().click();
     await expect(page.locator(".tint-label").first()).toBeVisible();
-    await page.getByRole("button", { name: "Done" }).click();
+    await page.getByRole("button", { name: "Hide setup" }).click();
 
     // Waterfall: beat lines, and the sounding key takes its hand's colour.
     await views.getByRole("link", { name: "Waterfall" }).click();
@@ -358,11 +357,16 @@ test.describe("jam and lab", () => {
   test.beforeEach(async ({ page }) => {
     await installFakeMidi(page, [PORTS.keys]);
     await page.setViewportSize({ width: 1280, height: 1000 });
-    await seedSettings(page, { midiEnabledBefore: true, activeInstrument: "piano" });
+    // Jam runs on the strip's clock now, so skip the count-in.
+    await seedSettings(page, {
+      midiEnabledBefore: true,
+      activeInstrument: "piano",
+      countInBars: 0,
+    });
   });
 
   test("jam: tone roles light, a chorus report, a logged session", async ({ page }) => {
-    await page.goto("/music/jam?progression=pop-axis&backing=none&transpose=0&bpm=92");
+    await page.goto("/music/jam?progression=pop-axis&backing=none&transpose=0");
     await expect(page.getByRole("heading", { level: 1, name: "Jam" })).toBeVisible();
     // Over C: E is a chord tone (filled), D a scale tone, F# an avoid note (dashed).
     await expect(page.locator('[data-midi="64"][data-role="chord"]')).toHaveCount(1);

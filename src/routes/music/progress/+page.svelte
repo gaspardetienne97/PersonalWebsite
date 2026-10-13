@@ -15,7 +15,7 @@
   const title = $derived(TABS.find((t) => t.id === view)?.label ?? "What next");
 </script>
 
-<svelte:head><title>Progress: {title}</title></svelte:head>
+<svelte:head><title>Progress: {title} | Woodshed</title></svelte:head>
 
 <div class="mx-auto flex max-w-6xl flex-col gap-6">
   <header class="flex flex-wrap items-end justify-between gap-4">

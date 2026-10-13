@@ -51,15 +51,14 @@
     items.filter((i) => (!group || i.group === group) && words.every((w) => `${i.title} ${i.meta ?? ""} ${i.group ?? ""} ${i.keywords ?? ""}`.toLowerCase().includes(w))),
   );
   const recents = $derived(query || group ? [] : recent.flatMap((v) => items.filter((i) => i.value === v)).slice(0, 4));
+  // One section per group, in the order groups first appear (items need not arrive sorted).
   const sections = $derived.by(() => {
-    const out: { name: string; rows: CatalogItem<T>[] }[] = [];
+    const out = new Map<string, CatalogItem<T>[]>();
     for (const i of shown) {
       const name = i.group ?? "";
-      const last = out.at(-1);
-      if (last && last.name === name) last.rows.push(i);
-      else out.push({ name, rows: [i] });
+      out.set(name, [...(out.get(name) ?? []), i]);
     }
-    return out;
+    return [...out].map(([name, rows]) => ({ name, rows }));
   });
 
   function pick(v: T) {

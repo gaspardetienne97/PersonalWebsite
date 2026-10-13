@@ -2,7 +2,14 @@
 // Drills, Paths, Progress...) and take you there. Recorded on every navigation
 // to a different page (query-only changes on one page do not count) and kept
 // for the browser session, so a reload remembers it.
+import { CATALOG } from "@repo/music-core/content/catalog";
+
 const KEY = "music.came-from";
+
+/** Every drill's path: Today's hub owns them (the Drills tab lists them). */
+export const DRILL_ROUTES = [...new Set(CATALOG.map((e) => e.route.split("?")[0]))].filter(
+  (r) => !r.startsWith("/music/library"),
+);
 
 function read(): Record<string, string> {
   try {
@@ -44,9 +51,18 @@ function nameOf(href: string): string | null {
   return hub[url.pathname] ?? null;
 }
 
-/** Where "Back" goes from `pathname`, and what to call it. Drills by default. */
+/** The hub that owns `pathname` when nothing recorded where it was opened from. */
+export function ownerOf(pathname: string): { href: string; label: string } {
+  if (pathname.startsWith("/music/songs")) return { href: "/music/library", label: "Library" };
+  if (pathname === "/music/journal") return { href: "/music/progress", label: "Progress" };
+  if (DRILL_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/")))
+    return { href: "/music?tab=drills", label: "Drills" };
+  return { href: "/music", label: "Today" };
+}
+
+/** Where "Back" goes from `pathname`, and what to call it. The owning hub by default. */
 export function backFor(pathname: string): { href: string; label: string } {
   const href = known[pathname];
   const name = href ? nameOf(href) : null;
-  return href && name ? { href, label: name } : { href: "/music?tab=drills", label: "Drills" };
+  return href && name ? { href, label: name } : ownerOf(pathname);
 }

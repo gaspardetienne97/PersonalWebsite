@@ -11,6 +11,8 @@
   const current = $derived(page.url.searchParams.get(param) ?? tabs[0].id);
   const hrefFor = (id: string) => {
     const q = new URLSearchParams(page.url.searchParams);
+    // ?instrument= is applied once by the layout; a tab link must not replay it.
+    q.delete("instrument");
     if (id === tabs[0].id) q.delete(param);
     else q.set(param, id);
     const s = q.toString();
