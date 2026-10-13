@@ -32,6 +32,8 @@
   import GrooveGrid from "$lib/music/drills/pads/GrooveGrid.svelte";
   import StickingLane from "$lib/music/drills/pads/StickingLane.svelte";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
+  import NoteHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/NoteHighway.svelte";
+  import { laneColor, starsFor, type Judgement } from "$lib/music/drills/pads/lanes";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
 
   const cfg = new DrillSetup("pads", {
@@ -45,6 +47,9 @@
     sound: true as boolean,
     // Hold the tempo: the groove played for twelve bars, the click gone after four.
     steady: "basic-rock" as string,
+    // Practice tools, as play-along apps have them: play it more than once, or wait for each note.
+    plays: 1,
+    wait: false as boolean,
   });
   const s = $derived(cfg.value);
   // Path steps carry their tempo (?bpm=); the practice strip owns it from then on.
@@ -71,12 +76,15 @@
   /** Hold the tempo repeats the groove to twelve bars: four with the click, eight without. */
   const played = $derived.by(() => {
     const g = entry.groove;
-    if (!isSteady) return g;
-    const cycles = Math.ceil(STEADY_BARS / g.bars);
+    const plays = waitMode ? 1 : Math.max(1, Math.min(4, Math.round(s.plays)));
+    if (!isSteady && plays === 1) return g;
+    const cycles = isSteady ? Math.ceil(STEADY_BARS / g.bars) : plays;
     return {
       ...g,
       bars: cycles * g.bars,
-      sectionLabels: Array.from({ length: cycles * g.bars }, (_, b) => (b < CLICK_BARS ? "with the click" : "on your own")),
+      sectionLabels: isSteady
+        ? Array.from({ length: cycles * g.bars }, (_, b) => (b < CLICK_BARS ? "with the click" : "on your own"))
+        : Array.from({ length: cycles }, () => g.sectionLabels).flat(),
       targets: Array.from({ length: cycles }, (_, c) => g.targets.map((t) => ({ ...t, beat: t.beat + c * g.bars * 4 }))).flat(),
     };
   });
@@ -85,6 +93,8 @@
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
+  /** Wait mode: no click; each note waits until its pads are hit (learn it, then time it). */
+  const waitMode = $derived(!!s.wait && !isSteady && mode === "practice");
   let status = $state("");
   let summary = $state<RunSummary | null>(null);
   let rud = $state<RudimentResult | null>(null);
@@ -126,6 +136,9 @@
     let raf = 0;
     const loop = () => {
       now = performance.now();
+      sweepMisses();
+      // Wait mode glides the highway to the next waiting note.
+      if (waitMode && waitGroups.length) waitShown += ((waitGroups[Math.min(waitIdx, waitGroups.length - 1)] ?? 0) - 120 - waitShown) * 0.2;
       raf = requestAnimationFrame(loop);
     };
     loop();
@@ -151,17 +164,160 @@
         : { [pads[0]]: "Left", [pads[1]]: "Right" },
   );
 
+  // ---------------------------------------------------------------------------
+  // The highway: lanes, notes, live judgements, streak.
+
+  /** Top to bottom as drum notation reads: cymbals, hats, toms, snare, kick. */
+  const LANE_ORDER = ["crash", "ride", "openhat", "hats", "pedalhat", "tom-high", "tom-mid", "perc", "rim", "snare", "tom-low", "kick", "808"];
+  const lanes = $derived<HighwayLane[]>(
+    isGroove
+      ? LANE_ORDER.filter((v) => groove.targets.some((t) => t.voice === v)).map((v) => ({ id: v, label: voiceName(v), color: laneColor(v) }))
+      : pattern.onePad
+        ? [{ id: "both", label: "Both", color: laneColor("both") }]
+        : [
+            { id: "right", label: "Right", color: laneColor("right") },
+            { id: "left", label: "Left", color: laneColor("left") },
+          ],
+  );
+  /** What is judged live, in order: the groove's targets or the rudiment's strokes. */
+  const live = $derived(
+    isGroove
+      ? groove.targets.map((t) => ({ pad: t.pad, atMs: t.atMs, lane: lanes.findIndex((l) => l.id === t.voice), kind: (t.accent ? "accent" : t.ghost ? "ghost" : "normal") as HighwayNote["kind"] }))
+      : strokes.map((h) => ({ pad: h.pad, atMs: h.atMs, lane: pattern.onePad || h.hand === "right" ? 0 : 1, kind: (h.accent ? "accent" : h.velocityBand ? "ghost" : "normal") as HighwayNote["kind"] })),
+  );
+  const padColors = $derived<Record<number, string>>(
+    isGroove
+      ? Object.fromEntries(GROOVE_VOICES.filter((v) => groove.targets.some((t) => t.voice === v.id)).map((v) => [v.midi, laneColor(v.id)]))
+      : pattern.onePad
+        ? { [pads[1]]: laneColor("both") }
+        : { [pads[0]]: laneColor("left"), [pads[1]]: laneColor("right") },
+  );
+  /** The level's perfect and good windows (beginner for technique), good capped by the closest spacing. */
+  const judgeWindow = $derived.by(() => {
+    const tier = isGroove ? TIERS[levelOf.tier] : TIERS.beginner;
+    const good = Math.min(tier.good, 0.4 * (isGroove ? closestGapMs(groove.targets, beatMs) : stepMs));
+    return { perfect: Math.min(tier.perfect, good), good };
+  });
+  let judged = $state<Record<number, Judgement>>({});
+  let streak = $state(0);
+  let bestStreak = $state(0);
+  let flashKey = 0;
+  let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number } | null>(null);
+  const judgedCount = $derived(Object.keys(judged).length);
+  const liveScore = $derived(
+    judgedCount ? Object.values(judged).reduce((t, j) => t + (j === "perfect" ? 1 : j === "miss" ? 0 : 0.7), 0) / judgedCount : null,
+  );
+  /** A hit, judged against the nearest unjudged note on its pad inside the good window. */
+  function judge(e: NoteEvent) {
+    const at = e.at - downbeat;
+    let best = -1;
+    let err = Infinity;
+    live.forEach((t, i) => {
+      if (judged[i] || t.pad !== e.midi) return;
+      const d = at - t.atMs;
+      if (Math.abs(d) <= judgeWindow.good && Math.abs(d) < Math.abs(err)) [best, err] = [i, d];
+    });
+    if (best < 0) {
+      flashNote = { judgement: "extra", key: ++flashKey };
+      return;
+    }
+    const j: Judgement = Math.abs(err) <= judgeWindow.perfect ? "perfect" : err < 0 ? "early" : "late";
+    judged = { ...judged, [best]: j };
+    streak++;
+    bestStreak = Math.max(bestStreak, streak);
+    flashNote = { judgement: j, ms: err, key: ++flashKey };
+  }
+  /** Notes gone past the good window unhit: missed, and the streak resets. */
+  function sweepMisses() {
+    if (phase !== "running" || waitMode) return;
+    const rel = performance.now() - downbeat;
+    let missed = false;
+    const next = { ...judged };
+    live.forEach((t, i) => {
+      if (!next[i] && t.atMs + judgeWindow.good < rel) {
+        next[i] = "miss";
+        missed = true;
+      }
+    });
+    if (missed) {
+      judged = next;
+      streak = 0;
+      flashNote = { judgement: "miss", key: ++flashKey };
+    }
+  }
+
+  // Wait mode: the notes stop at each group until its pads are hit.
+  let waitGroups = $state<number[]>([]);
+  let waitIdx = $state(0);
+  let waitShown = $state(0);
+  let wrongPads = 0;
+  function waitHit(e: NoteEvent) {
+    const at = waitGroups[waitIdx];
+    const due = live.flatMap((t, i) => (Math.abs(t.atMs - at) < 1 && !judged[i] ? [i] : []));
+    const hit = due.find((i) => live[i].pad === e.midi);
+    if (hit === undefined) {
+      wrongPads++;
+      streak = 0;
+      flashNote = { judgement: "extra", key: ++flashKey };
+      return;
+    }
+    judged = { ...judged, [hit]: "perfect" };
+    streak++;
+    bestStreak = Math.max(bestStreak, streak);
+    flashNote = { judgement: "perfect", key: ++flashKey };
+    if (due.length === 1) {
+      waitIdx++;
+      if (waitIdx >= waitGroups.length) finishWait();
+    }
+  }
+  function finishWait() {
+    clearTimeout(timer);
+    cap?.stop();
+    phase = "results";
+    const n = live.length;
+    summary = {
+      headline: `All ${n} notes in order${wrongPads ? `, with ${wrongPads} wrong pad${wrongPads > 1 ? "s" : ""}` : ", no wrong pads"}. Now turn Wait off and play it in time.`,
+      metric: String(n),
+      metricLabel: "notes learned",
+      rows: [
+        { label: "Wrong pads", text: String(wrongPads) },
+        { label: "Longest run without a wrong pad", text: String(bestStreak) },
+      ],
+      assistance: "Wait mode waits for you, so it is learning, not timing: nothing is recorded.",
+      recorded: false,
+    };
+    status = summary.headline;
+  }
+
+  // Stars, best kept per groove or rudiment.
+  const STARS_KEY = "music.pads.stars";
+  let bestStars = $state<Record<string, number>>({});
+  void getSetting<Record<string, number>>(STARS_KEY, {}).then((v) => (bestStars = v));
+  let stars = $state<number | null>(null);
+  const starsId = $derived(isSteady ? `steady:${entry.groove.value}` : isGroove ? entry.groove.value : `rudiment:${pattern.id}`);
+  const starText = (n: number) => "★".repeat(n) + "☆".repeat(3 - n);
+
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     for (const [m, on] of Object.entries(demoLit)) if (on) out[+m] = { demo: true };
     if (mode === "check" || phase === "results" || demo?.playing) return out;
-    if (!isGroove) {
-      const next = phase === "running" && strokeNow !== null ? strokes[Math.max(0, strokeNow)] : null;
-      for (const [i, p] of pads.entries())
-        if (!pattern.onePad || i === 1) out[p] = { role: i ? "right" : "left", target: next ? next.pad === p : phase === "ready" };
-    } else if (phase === "running" && sixteenthNow !== null) {
-      for (const t of groove.targets) if (Math.round(t.beat * 4) === sixteenthNow) out[t.pad] = { target: true };
+    if (phase === "running" && waitMode) {
+      // The pads the waiting notes need.
+      const at = waitGroups[waitIdx];
+      live.forEach((t, i) => {
+        if (Math.abs(t.atMs - at) < 1 && !judged[i]) out[t.pad] = { target: true };
+      });
+      return out;
     }
+    if (phase === "running") {
+      // A pad glows in its lane's colour as its note comes up (half a beat ahead).
+      const rel = now - downbeat;
+      const ahead = Math.min(beatMs / 2, 260);
+      for (const t of live) if (t.atMs >= rel - 40 && t.atMs <= rel + ahead) out[t.pad] = { target: true };
+      return out;
+    }
+    if (!isGroove)
+      for (const [i, p] of pads.entries()) if (!pattern.onePad || i === 1) out[p] = { role: i ? "right" : "left", target: phase === "ready" };
     return out;
   });
 
@@ -210,6 +366,8 @@
 
   function onHit(e: NoteEvent) {
     if (phase !== "running" || mode !== "practice") return;
+    if (waitMode) return waitHit(e);
+    judge(e);
     const at = e.at - downbeat;
     if (isGroove) {
       const t = nearest(groove.targets, at, (x) => x.pad === e.midi);
@@ -229,6 +387,21 @@
     flashes.clear();
     downbeat = ctx.downbeat;
     stopClockRef = ctx.stopClock;
+    judged = {};
+    streak = 0;
+    bestStreak = 0;
+    flashNote = null;
+    stars = null;
+    if (waitMode) {
+      waitGroups = [...new Set(live.map((t) => Math.round(t.atMs)))].sort((a, b) => a - b);
+      waitIdx = 0;
+      waitShown = -beatMs;
+      wrongPads = 0;
+      run = null;
+      cap = capture(performance.now() - 50, (e) => e.kind === "noteon" && onHit(e));
+      status = "Wait mode: hit the glowing pads; each note waits for you.";
+      return;
+    }
     run = practice.beginRun({
       exerciseId: isSteady ? "technique.mpc.steadiness" : isGroove ? "technique.mpc.groove" : "technique.mpc.single-strokes",
       setupKey,
@@ -346,6 +519,11 @@
       clean: graded.correct && mode === "check",
       assistance: assistanceText(mode),
     };
+    stars = starsFor(graded.score, isGroove ? !!extra?.pass : graded.correct);
+    if (stars > (bestStars[starsId] ?? 0)) {
+      bestStars = { ...bestStars, [starsId]: stars };
+      void putSetting(STARS_KEY, bestStars);
+    }
     status = summary.headline;
   }
 
@@ -462,11 +640,11 @@
     ["groove", "Grooves"],
     ["steady", "Hold the tempo"],
   ] as const;
-  const grooveOptions = PAD_REPERTOIRE.map((r) => ({
+  const grooveOptions = $derived(PAD_REPERTOIRE.map((r) => ({
     value: r.groove.value,
-    label: `${r.groove.label}${r.groove.bars > 1 ? ` (${r.groove.bars} bars)` : ""}`,
+    label: `${r.groove.label}${r.groove.bars > 1 ? ` (${r.groove.bars} bars)` : ""}${bestStars[r.groove.value] ? ` ${starText(bestStars[r.groove.value])}` : ""}`,
     group: `Level ${r.level}: ${PAD_LEVELS.find((l) => l.level === r.level)!.title}`,
-  }));
+  })));
   const padOptions = Array.from({ length: 16 }, (_, i) => ({ value: 36 + i, label: `${padLabel(36 + i)} (${36 + i})` }));
   const voiceName = (id: string) => GROOVE_VOICES.find((v) => v.id === id)?.name ?? id;
 </script>
@@ -476,13 +654,17 @@
 <DrillShell
   title="Pads"
   hue="mpc"
-  blurb={isGroove ? "Copy the groove back across the kit, on the click." : "Alternate two pads on the click. Timing is measured from the count-in downbeat."}
+  blurb={isSteady
+    ? "Play a groove with the click, then keep it going when the click stops."
+    : isGroove
+      ? "Play the groove as the notes come at you. Each level tightens the timing; a pass moves the tempo up."
+      : "Finger technique on the click: strokes, rolls, accents and ghosts."}
   summary={summaryLine}
   bind:phase
   bind:mode
   bind:status
   progress={base === null ? 0 : clamp((now - base) / (isGroove ? groove.lengthMs : strokes[strokes.length - 1].atMs + stepMs), 0, 1)}
-  clock={{ bpm, beatsPerBar: 4 }}
+  clock={waitMode ? undefined : { bpm, beatsPerBar: 4 }}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}
@@ -518,6 +700,12 @@
         <Choice label="Left-hand pad" select options={padOptions} value={pads[0]} onchange={(v) => cfg.set(v === pads[1] ? { padL: v, padR: pads[0] } : { padL: v })} />
         <Choice label="Right-hand pad" select options={padOptions} value={pads[1]} onchange={(v) => cfg.set(v === pads[0] ? { padR: v, padL: pads[1] } : { padR: v })} />
       {/if}
+      {#if !isSteady}
+        <Choice label="Wait mode (learn it)" options={[{ value: "off", label: "Off" }, { value: "on", label: "On: no click, notes wait" }]} value={s.wait ? "on" : "off"} onchange={(v) => cfg.set({ wait: v === "on" })} />
+      {/if}
+      {#if isGroove && !isSteady}
+        <Choice label="Plays" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "Once" : `${n} times` }))} value={s.plays} onchange={(v) => cfg.set({ plays: v })} />
+      {/if}
       {#if !isGroove}
         <Choice label="Tempo (BPM)" options={RUDIMENT_TEMPOS.map((t) => ({ value: t, label: String(t) }))} value={bpm} onchange={(v) => settings.update({ bpm: v })} />
       {/if}
@@ -534,7 +722,13 @@
   {/snippet}
 
   {#snippet hud()}
-    {#if phase === "running" && !isGroove && strokeNow !== null}
+    {#if phase === "running" && mode === "practice"}
+      <Stat label="Streak" value={streak} tone={streak >= 8 ? "success" : undefined} />
+      {#if liveScore !== null}<Stat label="Score so far" value="{Math.round(liveScore * 100)}%" />{/if}
+    {/if}
+    {#if phase === "running" && waitMode}
+      <Stat label="Notes" value="{Object.keys(judged).length} of {live.length}" />
+    {:else if phase === "running" && !isGroove && strokeNow !== null}
       <Stat label="Stroke" value="{clamp(strokeNow + 1, 1, strokes.length)} of {strokes.length}" />
     {:else if phase === "running" && isGroove && sixteenthNow !== null}
       <Stat label="Bar" value="{Math.min(groove.groove.bars, Math.floor(sixteenthNow / 16) + 1)} of {groove.groove.bars}" />
@@ -563,7 +757,21 @@
       {/if}
       <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         <div class="min-w-0">
-          {#if mode === "check" && phase !== "results"}
+          {#if (phase === "running" || phase === "countin" || demo?.playing) && (mode === "practice" || demo?.playing)}
+            <!-- While it plays: the notes come at you, judged as they pass. -->
+            <NoteHighway
+              {lanes}
+              notes={live}
+              now={waitMode && phase === "running" ? waitShown : demo?.playing ? now - demo.startPerf : now - downbeat}
+              {beatMs}
+              lengthMs={isGroove ? groove.lengthMs : strokes[strokes.length - 1].atMs + stepMs}
+              {judged}
+              flash={flashNote}
+              countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
+              label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
+            />
+            {#if waitMode}<p class="mt-2 text-xs text-ws-stage-soft">Wait mode: no click; the notes stop until their pads are hit.</p>{/if}
+          {:else if mode === "check" && phase !== "results"}
             <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm text-ws-stage-soft">
               Check: from memory, no grid.
               {#if isGroove}{groove.groove.label}, {groove.groove.bars} bar{groove.groove.bars > 1 ? "s" : ""} after the count-in.{:else}{pattern.label}, left on {padLabel(pads[0])}, right on {padLabel(pads[1])}.{/if}
@@ -594,12 +802,22 @@
             {#if hits.some((h) => h.grace)}<p class="mt-2 text-xs text-ws-stage-soft">Flam: a grace note on the other pad just before each stroke. Only the main strokes are graded.</p>{/if}
           {/if}
         </div>
-        <Pads {marks} {flashes} {names} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+        <Pads {marks} {flashes} {names} colors={padColors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
       </div>
     </div>
   {/snippet}
 
   {#snippet results()}
+    {#if summary && stars !== null}
+      <div class="stars mb-3 flex flex-wrap items-center gap-3 rounded-2xl border border-ws-line bg-ws-surface px-4 py-3" aria-label="{stars} of 3 stars">
+        <span class="stars-row" aria-hidden="true">{#each [0, 1, 2] as k (k)}<span class:lit={k < stars}>★</span>{/each}</span>
+        <span class="text-sm">
+          {stars === 3 ? "Three stars: passed." : stars === 2 ? "Two stars: pass the level's timing for the third." : stars === 1 ? "One star: most of it there." : "No stars yet: slow it down and try again."}
+          {#if bestStreak >= 4}Best streak {bestStreak}.{/if}
+          {#if (bestStars[starsId] ?? 0) > stars}<span class="text-ws-soft">Your best: {starText(bestStars[starsId])}.</span>{/if}
+        </span>
+      </div>
+    {/if}
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
@@ -654,3 +872,18 @@
     <div class="w-full"><MidiStatus instrument="mpc" /></div>
   {/snippet}
 </DrillShell>
+
+<style>
+  .stars-row {
+    display: inline-flex;
+    gap: 0.15rem;
+    font-size: 2rem;
+    line-height: 1;
+    color: color-mix(in oklch, var(--ws-ink) 18%, transparent);
+  }
+  .stars-row .lit {
+    color: var(--warn);
+    text-shadow: 0 0 12px color-mix(in oklch, var(--warn) 50%, transparent);
+  }
+</style>
+

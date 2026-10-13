@@ -14,11 +14,13 @@
     names?: Record<number, string>;
     /** Show the QWERTY key for each pad. */
     keyHints?: boolean;
+    /** A colour per pad note (a lane's colour on a note highway): its glow and LED. */
+    colors?: Record<number, string>;
     interactive?: boolean;
     label?: string;
   }
 
-  let { base = 36, marks = {}, flashes, names = {}, keyHints = true, interactive = true, label = "Pads, bank A" }: Props = $props();
+  let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = "Pads, bank A" }: Props = $props();
 
   // Rows top to bottom: pads 13-16, 9-12, 5-8, 1-4.
   const ROWS = [12, 8, 4, 0];
@@ -64,6 +66,7 @@
       <button
         type="button"
         class="pad"
+        style:--pad={colors[midi]}
         data-held={held || undefined}
         data-target={mk.target || undefined}
         data-demo={mk.demo || undefined}
@@ -141,28 +144,36 @@
     border-radius: 3px;
     background: #ffffff10;
   }
+  /* A pad's own colour (from a lane) when it has one, else the instrument's. */
+  .pad {
+    --glow: var(--pad, var(--instr));
+  }
+  .pad[style*="--pad"] .led {
+    background: color-mix(in oklch, var(--pad) 35%, transparent);
+  }
   [data-target] .led {
-    background: color-mix(in oklch, var(--instr) 55%, transparent);
+    background: color-mix(in oklch, var(--glow) 80%, transparent);
   }
   [data-target] {
     box-shadow:
-      inset 0 0 0 2px var(--instr),
+      inset 0 0 0 2px var(--glow),
+      0 0 16px color-mix(in oklch, var(--glow) 55%, transparent),
       inset 0 -3px 0 #0006,
       0 2px 0 #000;
   }
   [data-held] {
     transform: translateY(2px) scale(0.98);
-    background: radial-gradient(120% 120% at 50% 40%, color-mix(in oklch, var(--instr) 75%, white), var(--instr) 55%, color-mix(in oklch, var(--instr) 60%, black));
+    background: radial-gradient(120% 120% at 50% 40%, color-mix(in oklch, var(--glow) 75%, white), var(--glow) 55%, color-mix(in oklch, var(--glow) 60%, black));
     color: #140a10;
     box-shadow:
-      0 0 18px color-mix(in oklch, var(--instr) 70%, transparent),
+      0 0 18px color-mix(in oklch, var(--glow) 70%, transparent),
       inset 0 2px 6px #0004;
   }
   [data-held] .led {
     background: white;
   }
   [data-demo] {
-    background: color-mix(in oklch, var(--instr) 65%, #2c2a31);
+    background: color-mix(in oklch, var(--glow) 65%, #2c2a31);
     color: #140a10;
   }
   .top {

@@ -84,9 +84,14 @@ test.describe("finger-drumming repertoire", () => {
     await shots(page, "funky-drummer-ready");
     await page.getByRole("button", { name: /^Start/ }).click();
     await playGroove(page);
+    // While it plays: the note highway, judged as it goes, a streak building.
+    await expect(page.getByRole("img", { name: /notes coming up$/ })).toBeVisible();
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${SHOTS}/highway-1280.png` });
     await expect(page.getByRole("status")).toContainText("Passed level 3 at 80 BPM", {
       timeout: 15_000,
     });
+    await expect(page.getByLabel("3 of 3 stars")).toBeVisible();
     await expect(page.getByRole("status")).toContainText("Next time: 85 BPM.");
     await shots(page, "funky-drummer-results");
     await page.getByRole("button", { name: "Up the ladder: 85 BPM" }).click();
@@ -124,5 +129,32 @@ test.describe("finger-drumming repertoire", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText("Thirty-second roll");
     await expect(page.getByTestId("pads-stage")).toContainText("Both fingers");
     await shots(page, "roll-ready");
+  });
+
+  test("wait mode: the notes stop until their pads are hit, nothing timed", async ({ page }) => {
+    test.setTimeout(45_000);
+    await installFakeMidi(page, [PORTS.keys]);
+    await enableMidi(page, "/music/pads?mode=groove&groove=backbeat&wait=true&bpm=90");
+    await page.getByRole("button", { name: /^Start/ }).click();
+    await expect(page.getByRole("status")).toContainText("Wait mode");
+    const stage = page.getByTestId("pads-stage");
+    const targets = JSON.parse((await stage.getAttribute("data-targets"))!) as [
+      number,
+      number,
+      string,
+    ][];
+    // A wrong pad first: it does not move on.
+    await page.evaluate((port) => (window as any).__midi.send(port, [0x90, 51, 90]), PORTS.keys.id);
+    for (const [pad] of targets) {
+      await page.waitForTimeout(250);
+      await page.evaluate(([port, pad]) => (window as any).__midi.send(port, [0x90, pad, 90]), [
+        PORTS.keys.id,
+        pad,
+      ] as const);
+    }
+    await expect(page.getByRole("status")).toContainText(
+      `All ${targets.length} notes in order, with 1 wrong pad`,
+      { timeout: 10_000 },
+    );
   });
 });
