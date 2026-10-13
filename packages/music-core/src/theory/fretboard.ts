@@ -11,6 +11,7 @@ import {
   type Tuning,
 } from "../data";
 import { pc } from "./notes";
+import { generatedChord, generatedPositions } from "./voicings";
 
 export type { ChordPosition, ChordShape, Tuning };
 export interface FretPosition {
@@ -77,10 +78,14 @@ const POSITIONS: Record<string, ChordPosition[]> = {
   ...UKULELE_HIGH_G_POSITIONS,
 };
 
-/** Curated positions for a shape; position 0 is the curated shape with its id unchanged. */
-export const chordPositions = (shapeId: string): ChordPosition[] => POSITIONS[shapeId] ?? [];
+/**
+ * Positions for a shape: the curated ones (position 0 the curated shape, id
+ * unchanged), or a generated chord's voicings ("gen.guitar.0.maj").
+ */
+export const chordPositions = (shapeId: string): ChordPosition[] =>
+  POSITIONS[shapeId] ?? generatedPositions(shapeId);
 export const chordShapeById = (id: string): ChordShape | undefined =>
-  CHORD_SHAPES.find((s) => s.id === id);
+  CHORD_SHAPES.find((s) => s.id === id) ?? generatedChord(id);
 
 /** Sounding strings of a fretted shape as string/fret/MIDI, in ascending pitch order. */
 export function shapeNotes(tuning: Tuning, frets: (number | null)[]) {

@@ -7,7 +7,7 @@
   import { FLAT_NAMES } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { shapePcs } from "@repo/music-core/content/technique";
-  import { chordPositions } from "@repo/music-core/theory/fretboard";
+  import { chordPositions, chordShapeById } from "@repo/music-core/theory/fretboard";
   import { identifyChord } from "@repo/music-core/theory/chords";
   import { gradeStrumIdentify } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
@@ -37,8 +37,11 @@
   const s = $derived(cfg.value);
   const entry = catalogEntry("chords")!.modes.find((m) => m.id === "strum")!;
   const instr = $derived(fretted());
+  const onInstrument = <T extends { instrument: string }>(x: T | undefined) => (x && x.instrument === instr ? x : undefined);
   const shapes = $derived(shapesFor(instr));
-  const base = $derived(shapes.find((x) => x.id === s.shape) ?? shapes[0]);
+  // A curated shape, or any chord from the chord finder ("gen.guitar.0.maj"), on this instrument.
+  const base = $derived(shapes.find((x) => x.id === s.shape) ?? onInstrument(chordShapeById(s.shape)) ?? shapes[0]);
+  const choices = $derived(shapes.some((x) => x.id === base.id) ? shapes : [...shapes, base]);
   const positions = $derived(chordPositions(base.id));
   const posIndex = $derived(Math.min(s.position, Math.max(0, positions.length - 1)));
   const shape = $derived(positions[posIndex] ?? base);
@@ -202,7 +205,8 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Chord" select options={shapes.map((x) => ({ value: x.id, label: `${chordSymbol(x)}, ${x.name}` }))} value={base.id} onchange={(v) => cfg.set({ shape: v, position: 0 })} />
+      <Choice label="Chord" select options={choices.map((x) => ({ value: x.id, label: x.id.startsWith("gen.") ? x.name : `${chordSymbol(x)}, ${x.name}` }))} value={base.id} onchange={(v) => cfg.set({ shape: v, position: 0 })} />
+      <a class="self-end text-sm font-medium text-instr-ink underline underline-offset-4" href="/music/library?tab=reference&section=fretted-chords">Any chord in any position: the chord finder</a>
     </div>
   {/snippet}
 

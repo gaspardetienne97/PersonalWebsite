@@ -223,6 +223,34 @@ test.describe("library and song studio", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText("whole score");
   });
 
+  test("chord finder: every ukulele Bb, the barre one opens in Build", async ({ page }) => {
+    await page.goto("/music/library?tab=reference&section=fretted-chords");
+    const section = page.locator("#fretted-chords");
+    await section.getByRole("button", { name: "Ukulele", exact: true }).click();
+    await choose(page, section.getByLabel("Root"), "Bb");
+    const list = page.getByRole("list", { name: "Voicings of Bb" });
+    await expect(list).toHaveAttribute("data-chord", "gen.ukulele.10.maj");
+    const barre = list.locator('li[data-voicing="3 2 1 1"]');
+    await expect(barre).toContainText("Barre at fret 1");
+    await expect(barre).toContainText("Easier with a barre.");
+    // Guitar F needs the barre outright.
+    await section.getByRole("button", { name: "Guitar", exact: true }).click();
+    await choose(page, section.getByLabel("Root"), "F");
+    await expect(
+      page.getByRole("list", { name: "Voicings of F" }).locator('li[data-voicing="1 3 3 2 1 1"]'),
+    ).toContainText("Needs a barre");
+    await shoot(page, "chord-finder");
+    // Back to the ukulele Bb, into the Build drill at that position.
+    await section.getByRole("button", { name: "Ukulele", exact: true }).click();
+    await choose(page, section.getByLabel("Root"), "Bb");
+    await list
+      .locator('li[data-voicing="3 2 1 1"]')
+      .getByRole("link", { name: "Practise" })
+      .click();
+    await expect(page.getByText("Setup:").locator("..")).toContainText("Bb, Bb major");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("Barre at fret 1");
+  });
+
   test("song studio: views survive reload and Back", async ({ page }) => {
     await importOde(page);
     await openOde(page);

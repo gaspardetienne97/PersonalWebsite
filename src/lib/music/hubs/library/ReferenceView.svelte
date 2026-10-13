@@ -17,6 +17,7 @@
   import { audio, type SequenceHandle } from "$lib/music/runtime";
   import { chordVoicing } from "$lib/music/drills/jam/backing";
   import CircleOfFifths from "$lib/music/components/CircleOfFifths.svelte";
+  import ChordFinder from "./ChordFinder.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Staff from "$lib/music/notation/Staff.svelte";
   import { accidentalCount, diatonicChords, keyAt, neighbour, opposite } from "@repo/music-core/theory/circle";
@@ -28,6 +29,7 @@
   const SECTIONS = [
     { id: "explorer", label: "Chords and scales" },
     { id: "circle", label: "Circle of fifths" },
+    { id: "fretted-chords", label: "Guitar and ukulele chords" },
     { id: "vocabulary", label: "Chord vocabulary" },
     { id: "chord-scales", label: "Chord-scale map" },
     { id: "voicings", label: "Voicing recipes" },
@@ -305,6 +307,14 @@
           <p class="text-sm"><a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/circle">Practise the circle</a>: key signatures, the order of sharps and flats, and the chords of each key.</p>
         </div>
       </div>
+    </section>
+
+    <section id="fretted-chords" class="scroll-mt-24" aria-labelledby="h-fretted-chords">
+      <h2 id="h-fretted-chords" tabindex="-1" class="font-display text-2xl font-semibold">Guitar and ukulele chords</h2>
+      <p class="mt-1 max-w-prose text-ws-soft">
+        Any chord, every place on the neck it can be played. The shapes are worked out from the notes, so open chords, barre chords and the closed shapes up the neck all come from the same rules.
+      </p>
+      <div class="mt-4"><ChordFinder {onstatus} /></div>
     </section>
 
     <section id="vocabulary" class="scroll-mt-24" aria-labelledby="h-vocabulary">
