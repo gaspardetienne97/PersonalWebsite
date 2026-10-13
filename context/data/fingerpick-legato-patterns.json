@@ -1,0 +1,63 @@
+{
+  "FINGERPICK_PATTERNS": [
+    {
+      "id": "travis",
+      "label": "Travis picking, alternating bass",
+      "instrument": "guitar",
+      "strings": ["B", "3", "A", "2", "B", "3", "A", "2"],
+      "fingers": ["p", "i", "p", "m", "p", "i", "p", "m"]
+    },
+    {
+      "id": "pima",
+      "label": "p i m a",
+      "instrument": "guitar",
+      "strings": ["B", "3", "2", "1", "B", "3", "2", "1"],
+      "fingers": ["p", "i", "m", "a", "p", "i", "m", "a"]
+    },
+    {
+      "id": "uke-tima",
+      "label": "Thumb on 4, then i m a",
+      "instrument": "ukulele",
+      "strings": ["4", "3", "2", "1", "4", "3", "2", "1"],
+      "fingers": ["p", "i", "m", "a", "p", "i", "m", "a"]
+    },
+    {
+      "id": "uke-alternating",
+      "label": "Alternating thumb on 3 and 4",
+      "instrument": "ukulele",
+      "strings": ["3", "1", "4", "2", "3", "1", "4", "2"],
+      "fingers": ["p", "m", "p", "i", "p", "m", "p", "i"]
+    }
+  ],
+  "LEGATO_PATTERNS": [
+    {
+      "id": "hammer-pull",
+      "label": "Hammer on, pull off: 0 2 0",
+      "steps": [
+        [0, "P"],
+        [2, "h"],
+        [0, "p"]
+      ]
+    },
+    {
+      "id": "trill",
+      "label": "Trill: 0 2 0 2",
+      "steps": [
+        [0, "P"],
+        [2, "h"],
+        [0, "p"],
+        [2, "h"]
+      ]
+    },
+    {
+      "id": "three-note",
+      "label": "Three notes: 0 2 3 2",
+      "steps": [
+        [0, "P"],
+        [2, "h"],
+        [3, "h"],
+        [2, "p"]
+      ]
+    }
+  ]
+}

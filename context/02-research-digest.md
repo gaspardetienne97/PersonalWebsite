@@ -339,3 +339,69 @@ These are the conclusions that survived multiple rounds. Each is stated as what 
 12. **Whether interleaving should be compulsory.** The external review pushed back on it: Carter and Grahn "had mixed statistical results, not proof of one universal schedule", and the routine should serve today's instrument and available time rather than forcing four instruments in one session.
 13. **Whether a ⌘K palette earns its place.** `01-research.md` rates it low-to-medium confidence: "No researched app ships one, opportunity, not table stakes."
 14. **What "adaptive Today" should actually compute.** Also flagged medium confidence: "No researched app nails what to practice next; most just resume a path." It was adopted as the differentiator on the strength of being a gap rather than a proven pattern.
+
+Answers the rebuild gave: XP now scales with correctness (question 1, see `01-feature-catalog.md` 8.1); Record is its own route (2); a microphone meter and non-destructive playback gain came first (7); interleaving is offered, not forced (12).
+
+---
+
+## (h) Research added in the rebuild (2026-10)
+
+The rebuild ran its own research per instrument and topic. Full notes with every source are in `context/research/`; the findings, numbers and decisions are below. Thresholds marked "proposal" have no published norm and are tuning knobs to check on the owner's hardware.
+
+### Drill progression: what the next run should be (`research/drill-progression.md`)
+
+- Tempo steps: Yousician's auto speed and Guitar Pro 5's speed trainer step 5%; Soundslice 10% with 4 plays per speed; Drumeo 5 BPM; Strum Machine 1 to 2 BPM every 4 reps. A percent step scales across tempos.
+- Runs before raising: practitioners say 3 to 6 clean; Melodics raises on every pass. Levitt (1971): n in a row to step up tracks 0.5^(1/n) success (2: 70.7%, 3: 79.4%, 4: 84.1%). Wilson et al. 2019: the "85% rule".
+- After failure: Duke, Simmons and Cash 2009 (n = 17 pianists): a higher share of correct trials predicted retention, more incorrect trials predicted worse; the best slowed down sharply to fix errors.
+- Learning tempos sit at 50 to 70% of target; interleaving helped clarinet speed at retention (Stambaugh 2011); rubber-banding difficulty frustrates (Hunicke 2005).
+- Decision: two clean runs at 85% raise 5% (at least 2 BPM) to the goal; two at the goal move to the harder variation at its start or 75% of its goal; under 70% steps back once; the variation drops only after two fails at the floor. Three-in-a-row was rejected because it needs 24 or more runs per variation.
+
+### Aerophone hardware and Roland's apps (`research/aerophone.md`)
+
+- Primary sources: Roland PDFs for AE-10, AE-20, AE-30, AE-05, AE-01 (owner's manuals, Parameter Guide, MIDI Implementation v3.00) and Roland support articles. Hardware facts are in `03-hardware-and-devices.md` section 9.
+- Roland's Aerophone Lesson app (AE-20 and AE-30 only, Bluetooth only, 1.8/5 on the App Store): live front-view key drawing with pressed keys filled; 12 fingering lessons in order (G A B; E F G; C D E; C D E F G; G A B C; C major; octave key; F, G, Bb, D, Eb major); 11 repertoire songs with guide melody and medals; scoring appears to be correct fingerings only, no timing or breath.
+- Do better than Roland: support USB and the AE-10, score timing and breath, show breath as a meter with a target band and history, calibrate instead of assuming (finger a known note to learn the transpose, auto-learn the breath CC and range), name the probable wrong key, teach the octave keys and register break, work in landscape and on desktop, keep progress history.
+
+### Pads and Aerophone gaps (`research/pads-aerophone-gaps.md`)
+
+- Pads, ranked: velocity targets (calibrate the player's softest and hardest; ladder, crescendo with Spearman ρ ≥ 0.8 over ≥ 50% of the range, even hits by spread); groove, fill, land (landing offset on its own, rushing as fill IOIs shorter than the grid); playback call and response (≥ 90% matched, no extras on strong beats); ostinato and reading (fail when the ostinato drops more than 10 points below its alone baseline); rudiment orchestration; improvise over a loop (described, not graded, with a 50% quantised replay). Melodics does not score velocity.
+- Aerophone, ranked: timed scales and arpeggios in 12 keys at NZMEB speeds (♩=100 one a beat, ♩=72 two, ♩=66 four); articulation patterns read from CC 2 dips; dynamic targets and sustained phrases; register crossings (C#5 to D5, B4 and C5 to D5, G4 to G5) counting glitch notes; trills on rate and evenness; bite vibrato at 3 then 4 pulses a beat from ♩=60 toward 80 to 84 (Larry Teal).
+- No source publishes pass thresholds for velocity, breath level or vibrato regularity.
+
+### Piano drills (`research/piano-drills.md`)
+
+- Anchors: Duke 2009 (proportion of correct trials, slow down before the error spot); Gruson 1988 and Williamon and Valentine 2000 (longer segments with skill); deliberate practice explains about 21% of variance in music (Macnamara 2014); sleep consolidation favours one new passage per session; focus on the sound, not the fingers (Duke, Cash and Allen 2011).
+- Evenness: SD or CV of inter-onset intervals after a line fit (Jabusch 2004, van Vugt 2012); unevenness clusters at octave boundaries; no published ms norms, so compare with the player's own baseline. Velocity evenness is a separate skill (Tominaga 2016); calibrate velocity per keyboard. Legato is key overlap.
+- ABRSM 2025-26 scale speeds (quaver groupings): Initial ♩=54 up to G4 ♩=100, then G5 to G8 half-note 60, 72, 80, 88; arpeggios ♩=52 to ♩=80, then half-note 44, 50, 56, 66. RCM 2022 tables in the note. ABRSM G8 and RCM L8 both land near 5.9 notes a second.
+- Top recommendations: fix-the-spot loop (N = 3 clean), tempo ladder (+5%), scales and arpeggios to grade speeds, blocked chords by onset spread, graded sight-reading (80% to advance, three strikes), rhythm tapping, wait then play-along, cadences in all keys, continuity scoring, voicing balance, syncopated pedal (no published windows), dynamics bands.
+
+### Guitar and ukulele drills (`research/guitar-ukulele-drills.md`)
+
+- What one microphone can measure: pitch and cents, onsets after latency calibration, chord identity roughly from chroma (a trained CRNN reaches 90%, Deep Chroma 80%), bends and vibrato from the pitch track. It cannot reliably see which string, strum direction (best mic F1 about 85% down, 79% up with a trained model) or ghost strokes. Check a chord by arpeggio to catch dead strings.
+- Evidence is thin: no controlled study of chord-change speed; auditory feedback matters most for beginners (n = 115); timing windows are unpublished (strum research uses 50 ms; Rocksmith deliberately lenient).
+- Ranked guitar drills: One Minute Changes, chord check by arpeggio, strum pattern to a click (±50 ms tightening to ±30, +5 BPM after two runs at 90%), progression play-along, scale positions with a ladder, picking evenness, bends (in tune ±15 cents, close ±30), note finding, legato, fingerpicking, vibrato (described, not passed), palm-muted power chords. Ukulele: changes over C Am F G7, island strum, chuck strum, melody, campanella, fingerpicking with the re-entrant order.
+
+### Finger drumming (`research/finger-drumming.md`)
+
+- Layout and fingers: kick bottom-left, snare beside, hats above; split hands for beginners. Technique order: singles, doubles and rolls, paradiddles, stickings over the kit, accents and ghosts, independence, fills, note-repeat rolls, swing by hand.
+- Timing evidence: a noticeable difference is about 2.5% of a beat; pros sit 1 to 10 ms off a click with per-limb bias (Fujii 2011). Proposed tiers: beginner ±35/±70 ms, intermediate ±25/±50, advanced ±15/±35 (perfect/good, good capped at 40% of a sixteenth); pass at 90% good and 70% perfect.
+- MPC swing (Roger Linn): delays every second sixteenth, 50 straight to 66 triplet. Repertoire grids from Ethan Hein's transcriptions; Latin, Caribbean and Brazilian grooves from Modern Drummer, DRUM! and studies (kompa provisional; merengue skipped).
+
+### Ear training sequencing and studio ears (`research/ear-drills-sequencing.md`, `research/eq-frequency-training.md`)
+
+- Order anchors: EarMaster's suggested order, Karpinski's manual chapters (error detection before dictation, bass lines before inversions), Sierra College. Rhythm echo is a day-one skill; tap windows unpublished (proposal ±80 ms tightening to ±40, tappers lean early).
+- Singing: ±50 cents is the research cutoff for in tune (Berkowska and Dalla Bella 2013); proposal ±50 tightening to ±25. Fine pitch: 2-down/1-up staircase, ladder 50 to 5 cents; non-musicians reach musician levels after 4 to 8 h (Micheyl 2006).
+- Completion: 66% with 4 or more choices, 80% with 2 or 3; at least 20 unaided items.
+- Studio ears: SoundGym, Quiztones, TrainYourEars, Harman How to Listen, Golden Ears, EarQuiz, Corey; Kaniwa 2011 (7 octave bands, +12 then +6 then cuts, adaptive band weighting helped). Grid 9 octave bands, gains +12, +6, +3, pink noise before music, match loudness for boost or cut; don't ask for more than about 78% on 9 music bands.
+
+### Circle of fifths (`research/circle-of-fifths.md`)
+
+- Uses in order: key signatures, relative minors, root motion by fourths, all 12 keys in cycle order, closely related keys, a key's chords, transposition, tritone substitution, modes by brightness.
+- Targets (synthesis): recall facts under 2 s, a staff signature under 3 s, a key's chords under 5 s, 95% over about 20 items on two days; B, F#/Gb, C#/Db and flat-side minors lag. Interleave (Taylor and Rohrer 2010: 77% vs 38% next day); hide the wheel in timed drills.
+
+### Popular phrases (`research/phrases.md`)
+
+- Rule: public domain (traditional, or composer dead over 70 years) or a style's generic vocabulary; no copyrighted songs or recordings.
+- Sources: Wikipedia LilyPond scores, Mutopia, IMSLP (Morning Mood #40004, Badinerie #190451, Gluck #262453, Bumblebee #99876, L'Arlésienne sax part #50533, Boléro #299525), flutetunes.com MIDI, Mutopia Joplin editions.
+- Curricula: Essential Elements Book 1 starts the sax on B, A, G (Hot Cross Buns, Lightly Row); JustinGuitar's pentatonic Pattern 1 at fret 5; the bluegrass G run.
+- Left out: Syrinx and Dance of the Reed Flutes (32nd notes), the Carmen Entr'acte (triplet), Queen of the Night (unverified), chord phrases (need a chord grader).

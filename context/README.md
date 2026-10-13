@@ -1,6 +1,6 @@
 # Context for the rebuild
 
-Everything in this folder describes the previous version of the app, the people and research behind it, and the hardware it must talk to. None of it is code. Read in the order below; the first six files are the distilled knowledge, the rest is source material to consult when you want the detail or the evidence.
+Everything in this folder describes the app as built so far (the previous version, then what a clean-room rebuild added on top), the people and research behind it, and the hardware it must talk to. None of it is code. Each of the six files ends with a section on what the rebuild added; treat those as part of the target. Read in the order below; the first six files are the distilled knowledge, the rest is source material to consult when you want the detail or the evidence.
 
 ## Read first
 
@@ -12,6 +12,13 @@ Everything in this folder describes the previous version of the app, the people 
 | `04-music-data.md` and `data/` | The verified content: Aerophone fingerings, tunings, chord shapes and positions, CAGED and pentatonic patterns, scales, strum patterns, MPC rudiments and the authored grooves, licks with positions, voicings, two-hand patterns, ear-training sets, reading levels, cadences and chord qualities, the daily routine, challenges, the skill-graph seed, learning paths, comping patterns, default settings. The JSON was produced by evaluating the real modules, so values are exact. |
 | `05-scoring-rules.md` | Provenance (only unaided attempts count as mastery; demos are never scored), the mastery estimate and decay model, review-due rules, timing zones and windows, evenness, the together window, chord-change clusters, groove matching, accent bands, the tempo ladder, pitch clarity floors, backup format versions and the storage layout. Keep these unless you can show one is wrong; the file notes one place where the docs and the implementation disagreed. |
 | `06-lessons-learned.md` | What kept coming back in reviews, the bugs that cost the most and their real root causes, what made the old UI feel dull, what the owner liked, which testing approaches caught real bugs and which did not, and why earlier agents changed too little. Facts and lessons only. |
+
+## Rebuild research and data
+
+| Path | What it is |
+|---|---|
+| `research/` | The rebuild's own research notes, in full with every source: `aerophone.md` (Roland PDFs, MIDI, Roland's lesson app), `piano-drills.md` (practice evidence, evenness, ABRSM and RCM tempo tables), `guitar-ukulele-drills.md` (what a microphone can measure, ranked drills), `pads-aerophone-gaps.md` (missing pad and Aerophone drills), `finger-drumming.md` (technique, levels, repertoire sources, Latin grooves), `ear-drills-sequencing.md`, `eq-frequency-training.md`, `circle-of-fifths.md`, `drill-progression.md` (the next-run rule), `phrases.md` (public-domain phrases and their scores). Digested in `02-research-digest.md` section (h). |
+| `data/` (new files) | `phrases.json`, `pad-repertoire.json`, `pad-skills.json`, `aero-skills.json`, `fingerpick-legato-patterns.json`, exported from the rebuild's modules; `aerophone-fingerings.json`, `chord-shapes.json`, `chord-positions-*.json` and `rhythm-patterns.json` replaced by the rebuild's extended versions. Described in `04-music-data.md` sections 22 to 30. |
 
 ## Source material
 

@@ -1,0 +1,270 @@
+{
+  "AERO_SCALES": [
+    {
+      "id": "major",
+      "label": "Major scale",
+      "steps": [0, 2, 4, 5, 7, 9, 11, 12]
+    },
+    {
+      "id": "natural-minor",
+      "label": "Natural minor scale",
+      "steps": [0, 2, 3, 5, 7, 8, 10, 12]
+    },
+    {
+      "id": "harmonic-minor",
+      "label": "Harmonic minor scale",
+      "steps": [0, 2, 3, 5, 7, 8, 11, 12]
+    },
+    {
+      "id": "chromatic",
+      "label": "Chromatic scale",
+      "steps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    },
+    {
+      "id": "major-arpeggio",
+      "label": "Major arpeggio",
+      "steps": [0, 4, 7, 12]
+    },
+    {
+      "id": "minor-arpeggio",
+      "label": "Minor arpeggio",
+      "steps": [0, 3, 7, 12]
+    }
+  ],
+  "AERO_GRADE_SPEEDS": [
+    {
+      "id": "grade-1",
+      "label": "Grade 1: 100, a note a click",
+      "bpm": 100,
+      "perBeat": 1
+    },
+    {
+      "id": "grade-3",
+      "label": "Grade 3: 72, two notes a click",
+      "bpm": 72,
+      "perBeat": 2
+    },
+    {
+      "id": "grade-5",
+      "label": "Grade 5: 66, four notes a click",
+      "bpm": 66,
+      "perBeat": 4
+    }
+  ],
+  "TONGUING": [
+    {
+      "id": "all-tongued",
+      "label": "Every note tongued",
+      "group": "TTTT"
+    },
+    {
+      "id": "all-slurred",
+      "label": "All slurred",
+      "group": "TSSS"
+    },
+    {
+      "id": "slur2-tongue2",
+      "label": "Slur two, tongue two",
+      "group": "TSTT"
+    },
+    {
+      "id": "tongue2-slur2",
+      "label": "Tongue two, slur two",
+      "group": "TTTS"
+    },
+    {
+      "id": "slur3-tongue1",
+      "label": "Slur three, tongue one",
+      "group": "TSST"
+    },
+    {
+      "id": "phrase",
+      "label": "Phrase: slur eight, breathe",
+      "group": "TSSSSSSS"
+    }
+  ],
+  "JOIN": {
+    "dip": 0.45,
+    "gapMs": 25
+  },
+  "REGISTER_PAIRS": [
+    {
+      "id": "cs5-d5",
+      "label": "C#5 to D5 (all open to the octave key)",
+      "notes": [73, 74]
+    },
+    {
+      "id": "c5-d5",
+      "label": "C5 to D5",
+      "notes": [72, 74]
+    },
+    {
+      "id": "a4-d5",
+      "label": "A4 to D5",
+      "notes": [69, 74]
+    },
+    {
+      "id": "d4-d5",
+      "label": "D4 to D5 (the octave key alone)",
+      "notes": [62, 74]
+    },
+    {
+      "id": "g4-g5",
+      "label": "G4 to G5 (the octave key alone)",
+      "notes": [67, 79]
+    },
+    {
+      "id": "b4-e5",
+      "label": "B4 to E5",
+      "notes": [71, 76]
+    }
+  ],
+  "TRILL_PAIRS": [
+    {
+      "id": "g4-a4",
+      "label": "G4 and A4 (ring finger)",
+      "notes": [67, 69]
+    },
+    {
+      "id": "a4-b4",
+      "label": "A4 and B4 (middle finger)",
+      "notes": [69, 71]
+    },
+    {
+      "id": "f4-g4",
+      "label": "F4 and G4 (index finger, right hand)",
+      "notes": [65, 67]
+    },
+    {
+      "id": "b4-c5",
+      "label": "B4 and C5 (across the left hand)",
+      "notes": [71, 72]
+    },
+    {
+      "id": "c5-d5",
+      "label": "C5 and D5 (across the break)",
+      "notes": [72, 74]
+    },
+    {
+      "id": "e4-fs4",
+      "label": "E4 and F#4",
+      "notes": [64, 66]
+    }
+  ],
+  "TRILL_SECONDS": 4,
+  "BREATH_LEVELS": [
+    {
+      "id": "pp",
+      "label": "pp (very soft)",
+      "band": [0.1, 0.28]
+    },
+    {
+      "id": "p",
+      "label": "p (soft)",
+      "band": [0.25, 0.42]
+    },
+    {
+      "id": "mf",
+      "label": "mf (moderately loud)",
+      "band": [0.45, 0.65]
+    },
+    {
+      "id": "f",
+      "label": "f (loud)",
+      "band": [0.65, 0.85]
+    }
+  ],
+  "VIBRATO_SETS": [
+    {
+      "id": "2-at-60",
+      "label": "Two a beat at 60",
+      "pulses": 2,
+      "bpm": 60
+    },
+    {
+      "id": "3-at-60",
+      "label": "Three a beat at 60",
+      "pulses": 3,
+      "bpm": 60
+    },
+    {
+      "id": "4-at-60",
+      "label": "Four a beat at 60",
+      "pulses": 4,
+      "bpm": 60
+    },
+    {
+      "id": "4-at-80",
+      "label": "Four a beat at 80 (the going rate)",
+      "pulses": 4,
+      "bpm": 80
+    }
+  ],
+  "VIBRATO": {
+    "rateTolerance": 0.15,
+    "evenness": 0.6,
+    "seconds": 4
+  },
+  "FINGERING_LESSONS": [
+    {
+      "id": "g-a-b",
+      "label": "G A B",
+      "notes": [67, 69, 71]
+    },
+    {
+      "id": "e-f-g",
+      "label": "E F G",
+      "notes": [64, 65, 67]
+    },
+    {
+      "id": "c-d-e",
+      "label": "C D E",
+      "notes": [60, 62, 64]
+    },
+    {
+      "id": "c-to-g",
+      "label": "C to G",
+      "notes": [60, 62, 64, 65, 67]
+    },
+    {
+      "id": "g-to-c",
+      "label": "G to C",
+      "notes": [67, 69, 71, 72]
+    },
+    {
+      "id": "c-major",
+      "label": "C major",
+      "notes": [60, 62, 64, 65, 67, 69, 71, 72]
+    },
+    {
+      "id": "octave",
+      "label": "The octave key: G to D",
+      "notes": [67, 69, 71, 72, 74]
+    },
+    {
+      "id": "f-major",
+      "label": "F major",
+      "notes": [65, 67, 69, 70, 72, 74, 76, 77]
+    },
+    {
+      "id": "g-major",
+      "label": "G major",
+      "notes": [67, 69, 71, 72, 74, 76, 78, 79]
+    },
+    {
+      "id": "bb-major",
+      "label": "Bb major",
+      "notes": [58, 60, 62, 63, 65, 67, 69, 70]
+    },
+    {
+      "id": "d-major",
+      "label": "D major",
+      "notes": [62, 64, 66, 67, 69, 71, 73, 74]
+    },
+    {
+      "id": "eb-major",
+      "label": "Eb major",
+      "notes": [63, 65, 67, 68, 70, 72, 74, 75]
+    }
+  ]
+}

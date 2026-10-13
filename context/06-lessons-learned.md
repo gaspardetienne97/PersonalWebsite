@@ -189,3 +189,47 @@ This is stated in the record from several directions.
 ### Related: distance from the hardware shaped everything
 
 The record is consistent about where confidence ran out. Reviews were run without a MIDI device, without a microphone and without audio output; three of the owner's highest-priority items could only be closed by him, at the instrument, in five minutes. `review-21/findings.md` ends each hardware item with the exact capture needed rather than a claim, and the five-minute MPC recipe written for him is what finally closed O19 to O21 at 02:05 on 18 September.
+
+---
+
+## 7. Lessons from the rebuild (2026-09 to 2026-10)
+
+What the clean-room rebuild ran into, and the fix that held. Most are about tests that lie under load, notation that refuses odd values, and features that drift apart when each drill grows its own rule.
+
+### Tests and timing
+
+- **Stamped fake MIDI.** Timing tests flaked under full-suite load because a `setTimeout` sending a note arrives late. The fake Web MIDI port takes an exact timestamp (`__midi.send(port, bytes, at)`); tests schedule each note 60 to 100 ms early and stamp it with its real time, so grading sees perfect timing however busy the machine is. Do the same for on-screen taps (schedule in the page, not from the test runner).
+- **Read the run's own clock.** Drill stages expose `data-downbeat` (and the targets or notes) while running; tests poll for a fresh downbeat greater than 0 before scheduling. Reading a stale attribute from the previous run was a real flake.
+- **Status text is shared.** A drill that writes its own status line can hide the shell's "Go."; let the shell own it.
+- **Headless is not hardware.** Headless Chromium skipped WebGL in a worker and hid a transcription hang that only real Chrome showed; it cannot hear sound, judge breath curves, or play a real AE-20. Keep a "Needs hardware" list and treat every threshold without a published norm as a knob.
+- **Two flakes stayed**: a synthetic-microphone test and one Record test fail only under full-suite load and pass alone. Under load the fingerpicking test also failed twice; rerun singly before calling a regression.
+
+### Notation
+
+- **The engraver draws plain values only.** VexFlow (via `notation/engrave.ts`) falls back to "can't draw this score" on tuplets or odd durations. Write plain values: a 1.8-beat demo chord is written as a half note; a nine-note scale over eight beats uses eighths with rests, not a tuplet; swing is written straight. Phrase data allows only 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4 beats, enforced by a test, and an e2e test opens every phrase and asserts the staff or tab draws.
+- **A short line engraves small and the last line doesn't stretch.** The engraver has a `fill` option to spread the last line, and the line component zooms by note count (about 90 px plus 25 a note, capped at 1.6×). A height cap clipped second systems; give the frame room (24rem single staff or tab, 32rem grand staff).
+- **Meter matters to the eye.** 6/8 drawn as 3/4 beams in pairs; carry the written meter with the data.
+
+### Fretted instruments
+
+- **Lowest-fret placement is not how anyone plays.** Placing each note on its lowest fret ran a C major scale up one string (0, 1, 3, 5, 7, 8). Place a line in one five-fret hand position (`positionLine`) and give the tab and the fretboard the same positions; give each chord's scale its own position in Chord scales.
+- **Authored positions win.** Phrases and licks carry string and fret; pass them through instead of recomputing.
+- **Generated voicings need two rules the old curated data hid**: power chords need fewer sounding strings (`min(4, notes + 1)`), and a shape that takes every finger on a shared lowest fret is played as a barre.
+
+### Shell and catalog
+
+- **The shell forces the strip's instrument to the catalog's list.** Opening a drill whose catalog entry lacks the picked instrument switches the strip to the first listed one. Phrases on MPC pads showed piano phrases until `mpc` was added to its entry. Every catalog entry must list every instrument the page serves.
+- **One rule beats five ladders.** The strum ladder, the pads ladder (which raised a groove's start tempo after one pass while the offer needed two), the fret-region suggestion and the ear unlock box disagreed with each other. A single `advance` rule with a per-drill plan replaced them; drills keep a special rule only when it fits better (sight-reading climb, the spot loop, the fine-pitch staircase).
+- **Drills grouped by instrument and by skill at once read as messy.** Group by what you practise and let the instrument filter narrow; split a drill whose modes practise different things (Pads, Aerophone) into rows in the right groups.
+- **One list for one thing.** Create's beat presets and the Pads repertoire were two groove lists; derive presets from the repertoire.
+
+### Content
+
+- **Public domain only.** Melodies are copyrightable; drum patterns as grids are fine. Use traditional tunes, composers dead over 70 years, or a style's generic vocabulary, and check the notes against a score (IMSLP, Mutopia, Wikipedia's LilyPond). Note the transposition used to fit an instrument.
+- **Single-note grading can't take chords.** Leave chord phrases out until a chord grader exists rather than grading them wrong.
+
+### Working method
+
+- **The formatter reflows files between edits.** The pre-commit hook and `vp fmt` reformat files, so an exact-string edit prepared against the old layout fails. Re-read before editing, or edit by structure.
+- **Parallel agents work when files are disjoint.** Wiring one shared feature into 30 drills went fastest as four agents, one per instrument group, with a written brief, each forbidden to build, run Playwright or commit; the lead reviewed diffs and ran the gates once.
+- **Ask the owner for taste, decide everything else.** The owner answered questions about grouping and layout well; everything with a sensible default was decided and recorded in `TASKS.md`.

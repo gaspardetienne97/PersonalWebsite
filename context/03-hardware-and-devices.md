@@ -230,6 +230,9 @@ Failure modes this surfaces, in the order they were actually hit:
 The owner physically has the instrument, which makes it the verifier for all
 fingering data.
 
+Corrected by the rebuild (section 9): the owner's unit is an AE-20, the key
+registry now uses Roland's names, the chart runs to C#6 and C5 is key 2 alone.
+
 ### MIDI behaviour
 
 - Detected by port identity containing `aerophone`, or `roland` together with a
@@ -571,3 +574,57 @@ Rendered audio export (for bouncing patterns rather than kits) is a 16-bit
 little-endian PCM WAV at 44.1 kHz, rendered offline with `OfflineAudioContext`
 plus a 0.5 s tail so the last sample rings out. Synth fallback voices are
 triangle oscillators with a 5 ms attack and a 160 ms default length.
+
+---
+
+## 9. Roland Aerophone AE-20: what the rebuild learned
+
+The owner has an **AE-20** (not an AE-10). Full research with Roland's PDFs and support articles: `research/aerophone.md`.
+
+### MIDI
+
+- **Breath on CC 2** is the working assumption (the AE-10 default is documented; the AE-20 factory default is not printed). The AE-20 can send breath on up to 8 slots (CC 1 to 31, 33 to 95, bend or aftertouch). Make the controller configurable or auto-learn it; CC 11 is the likely alternative.
+- **Bite arrives as pitch bend** by factory default (Bite Down and Bite Up slots map to bend), 14-bit, normalised to -1..+1 (`kind: "pitchbend"` in the app's input events). Bite modes: Off, Sax (relaxing lowers pitch), E-Wind (cyclic bite gives vibrato). The bite vibrato drill needs E-Wind and bend on.
+- **Velocity**: "Tongued" (strength of the attack) or Fixed; dynamics after the attack live only in the breath CC.
+- **Transpose changes the MIDI note numbers** (Roland KB 4414507233179). The app works in **written pitch, sax fingering, Transpose 0**; whether octave shift reaches MIDI out is unverified.
+- Turn **[MIDI CONTROL] on**; USB driver Generic works with Web MIDI. Bluetooth MIDI to a computer is not supported on the AE-20 (KB 4414513873947): use USB.
+- Active Sensing about every 250 ms: filter it. Identity Reply: Roland 41H, family 7D 03, member 01 for the AE-20.
+- Live key state exists only as an unpublished SysEx "Fingering Status" (address 00 10 00 08); not decoded.
+
+### Keys (Roland's names, front view)
+
+- 22 keys: main 1 to 6 (left index, middle, ring; right index, middle, ring), X (front F) and P (bis Bb) by left index, palm C1, C2, C4 (palm D, Eb, F) up the right edge of the front view, side C3, Tc, Ta (side E, C, Bb) down the left edge, left pinky table G# (top), C# (inside), B and Bb (outside), Tf (fork F#) between 5 and 6, C5 (high F#, AE-20 and AE-30 only), right pinky Eb above C.
+- **Four thumb octave keys** (+2, +1 above the thumb rest, -1, -2 below) are buttons drawn as crescents at the upper left of Roland's illustration. The old registry's `palm1..palm4` were these crescents misread, and its six "black keys" match no Roland key.
+- Front view means the player's right hand side is drawn on the left. The previous drawing had its sides mirrored.
+- Registry ids in `data/aerophone-fingerings.json`: `k1`..`k6`, `X`, `P`, `C1`, `C2`, `C4`, `C3`, `Tc`, `Ta`, `Gs`, `Cs`, `B`, `Bb`, `Eb`, `C`, `Tf`, `C5`, `oct+2`, `oct+1`, `oct-1`, `oct-2`, each labelled like "1 (left index)".
+
+### Range and chart
+
+- Sax mode, no octave key: written Bb3 (58) to F#5 (78); the +1 octave key adds 12. The app charts **58 to 85** (Bb3 to C#6): G5 to C#6 are the low-register fingerings plus `oct+1`.
+- **C5 (72) is key 2 alone** (the sax fingering); the previous data had side C alone.
+- Octave key never comes from breath: blowing harder only changes volume.
+
+### Open questions for the owner's unit (from `TASKS.md` "Needs hardware")
+
+- CC 2 breath gives sensible steadiness (the ×4 knob) and swell shape; where pp, p, mf and f sit on CC 2 (bands 0.10 to 0.28, 0.25 to 0.42, 0.45 to 0.65, 0.65 to 0.85) with the owner's breath curve.
+- Best-effort fingerings: Bb3, B3, C#4, Eb4, F#4, F#5, G#4, Bb4, C5, and G5 to C#6.
+- The drawing's key positions on the real AE-20.
+- A tongued note shows as a breath dip under 45% of the phrase median (or a 25 ms gap); whether the AE-20 sends glitch notes between fingerings at all (Key Delay).
+- Whether the bite sends pitch bend and the depth the vibrato drill sees; the 15% rate tolerance and 0.6 evenness.
+- Whether transpose or octave shift change the notes sent.
+
+---
+
+## 10. Guitar over the microphone: input follow and re-strike
+
+- **Channel follow** (`src/lib/music/runtime/mic.svelte.ts`): the capture asks for `channelCount: { ideal: 2 }` and the worklet follows the channel with more energy (decay 0.995, switches when the other channel is 4× louder). A guitar plugged into input 2 of a stereo interface is heard without a picker. A 1/4-inch cable through an interface gives a cleaner signal than the laptop microphone; no other code change is needed.
+- **Re-strike**: an onset while the same pitch is sounding, more than 120 ms after that note started (`RESTRIKE_MS`), marks a re-strike; once the same pitch holds for 2 frames (`STABLE_FRAMES`) the app emits note-off then note-on, so a re-picked note counts twice. Two frames of confirmation stop a singer's note change from double counting.
+- Bends and vibrato are read from the pitch trace (section 4 settings), not from onsets.
+
+---
+
+## 11. MPC One+: rebuild updates
+
+- **Cowbell on A12** (MIDI 47): General MIDI's cowbell (56) is off bank A, so the app's kit and the Latin grooves put it on A12. Groove voices and their notes: `GROOVE_VOICES` in `content/winds-pads.ts` (rim 37, pedal hat 44, toms 41, 45, 48, crash 49, ride 51, cowbell 47, plus the verified table's six).
+- **Velocity range calibration** for dynamics drills: the player plays their 4 softest then 4 loudest hits; stored as `pads.velocity-range`. Turn Full Level off on the MPC or velocity reads "not measured".
+- Pad phrases and grooves share one repertoire and one grader; on-screen pad taps count as taps in Rhythm.

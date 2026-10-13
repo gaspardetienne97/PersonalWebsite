@@ -1,0 +1,181 @@
+{
+  "PAD_FILLS": [
+    {
+      "id": "snare-eighths",
+      "label": "Snare eighths on 3 and 4",
+      "bar": {
+        "kick": "X...............",
+        "snare": "....X...x.x.x.x.",
+        "hats": "x.x.x.x........."
+      }
+    },
+    {
+      "id": "down-the-toms",
+      "label": "Sixteenths down the toms on 3 and 4",
+      "bar": {
+        "kick": "X...............",
+        "snare": "....X...xxxx....",
+        "hats": "x.x.x.x.........",
+        "tom-mid": "............xx..",
+        "tom-low": "..............xx"
+      }
+    },
+    {
+      "id": "whole-bar",
+      "label": "A bar of sixteenths around the kit",
+      "bar": {
+        "kick": "X...............",
+        "snare": "xxxx............",
+        "tom-high": "....xxxx........",
+        "tom-mid": "........xxxx....",
+        "tom-low": "............xxxx"
+      }
+    }
+  ],
+  "ORCHESTRATIONS": [
+    {
+      "id": "hats-snare",
+      "label": "Paradiddle: right on the hats, left on the snare, kick under the accents"
+    },
+    {
+      "id": "ride-snare",
+      "label": "Paradiddle: right on the ride, left on the snare, kick under the accents"
+    },
+    {
+      "id": "toms-lead",
+      "label": "Paradiddle: each group's first stroke on a tom, the rest hats and snare"
+    }
+  ],
+  "READING_LINES": [
+    {
+      "id": "quarters",
+      "label": "Snare on the beats",
+      "line": "x...x...x...x..."
+    },
+    {
+      "id": "backbeat-push",
+      "label": "Backbeat with pushes",
+      "line": "....x..x....x.x."
+    },
+    {
+      "id": "offbeats",
+      "label": "Off-beat eighths",
+      "line": "..x...x...x...x."
+    },
+    {
+      "id": "sixteenths",
+      "label": "Sixteenth syncopations",
+      "line": "...x..x..x...x.x"
+    }
+  ],
+  "ECHO_LEVELS": [
+    {
+      "id": "kick-snare",
+      "label": "Kick and snare",
+      "calls": [
+        {
+          "kick": "X.......X.......",
+          "snare": "....X.......X..."
+        },
+        {
+          "kick": "X.....X.X.......",
+          "snare": "....X.......X..."
+        },
+        {
+          "kick": "X...X...X.......",
+          "snare": "....X.......X..."
+        },
+        {
+          "kick": "X.......X.X.....",
+          "snare": "....X.......X..."
+        }
+      ]
+    },
+    {
+      "id": "with-hats",
+      "label": "With hats",
+      "calls": [
+        {
+          "kick": "X.......X.......",
+          "snare": "....X.......X...",
+          "hats": "x.x.x.x.x.x.x.x."
+        },
+        {
+          "kick": "X.....X...X.....",
+          "snare": "....X.......X...",
+          "hats": "x.x.x.x.x.x.x.x."
+        },
+        {
+          "kick": "X.......X.X.....",
+          "snare": "....X.......X..x",
+          "hats": "x.x.x.x.x.x.x.x."
+        },
+        {
+          "kick": "X..X......X.....",
+          "snare": "....X.......X...",
+          "hats": "x.x.x.x.x.x.x.x."
+        }
+      ]
+    },
+    {
+      "id": "sixteenths",
+      "label": "Sixteenths and ghosts",
+      "calls": [
+        {
+          "kick": "X.........X.....",
+          "snare": "....X..g.g..X...",
+          "hats": "xxxxxxxxxxxxxxxx"
+        },
+        {
+          "kick": "X..X..X...X.....",
+          "snare": "....X.......X...",
+          "hats": "x.x.x.x.x.x.x.x."
+        },
+        {
+          "kick": "X.......XX......",
+          "snare": "....X..g....X.g.",
+          "hats": "x.x.x.x.x.x.x.x."
+        },
+        {
+          "kick": "X.X.......X..X..",
+          "snare": "....X.......X...",
+          "hats": "xxxxxxxxxxxxxxxx"
+        }
+      ]
+    }
+  ],
+  "DYNAMICS_EXERCISES": [
+    {
+      "id": "ladder",
+      "label": "Four levels: four hits each, soft to loud",
+      "notes": 16,
+      "perBeat": 2
+    },
+    {
+      "id": "crescendo",
+      "label": "Crescendo: a bar of sixteenths, soft to loud",
+      "notes": 16,
+      "perBeat": 4
+    },
+    {
+      "id": "even",
+      "label": "Even: sixteen hits at the same level",
+      "notes": 16,
+      "perBeat": 2
+    }
+  ],
+  "FILL": {
+    "rushMs": 15,
+    "landMs": 40
+  },
+  "OSTINATO": {
+    "maxDrop": 0.1
+  },
+  "ECHO_PASS": 0.9,
+  "DYNAMICS": {
+    "inBandPass": 0.8,
+    "crescendoRho": 0.8,
+    "crescendoSpan": 0.5,
+    "evenSpread": 0.08
+  }
+}

@@ -3,6 +3,8 @@
 Everything below is read off the existing product. Numbers, thresholds and content tables are
 exact. Nothing here describes how the code is organised — only what the user sees, does, and gets.
 
+Sections 1 to 7 are the previous app. Section 8 lists what the rebuild added; treat both as the target.
+
 ---
 
 ## 1. Product summary and who it is for
@@ -1071,3 +1073,75 @@ Honest list, from visible behaviour:
 18. **Melody dictation and repertoire transfer are play-back only.** They cannot be practised by choice, by voice or in pocket mode, and are excluded from mixed review.
 19. **Cadences are choice-only.** No play-back, no voice — the only ear drill with no production mode.
 20. **The jazz backing tracks are user-supplied files.** The five track entries point at audio that is not shipped; without those files the repertoire step of the Jazz Path has no audio.
+
+---
+
+## 8. Added in the rebuild (2026-09 to 2026-10)
+
+Sections 1 to 7 describe the previous app. Everything in this section was added by the clean-room rebuild on branch `music-rebuild` and is part of the target now: a fresh rebuild should reach it too. Module paths are where the rebuild put it (`packages/music-core` is `@repo/music-core`; the browser side is `src/lib/music`). Research behind each item is in `context/research/` and digested in `02-research-digest.md` section (h).
+
+### 8.1 Cross-cutting
+
+- **Practice and Check on every graded drill.** Practice shows targets and records `guided`; Check hides targets and records `independent`; Demo ("Hear it first") never records. Closes weakness 2.
+- **The next run** (`progress/advance.ts`, `src/lib/music/advance.svelte.ts`). After every graded run, Results offers one button that sets up and starts the next run: "Speed up to 116 BPM", "Move on: Two notes a click at 69 BPM", "Slow down to 104 BPM" or "Step back: ...". Again repeats unchanged. Each drill declares a tempo plan (min, goal, max) and an ordered list of harder variations (notes a click, patterns, grooves, lessons, levels, key bands, fret regions, chord positions). Rule in `05-scoring-rules.md` section 16. It replaced the strum ladder, the pads "Up the ladder", the fret-region suggestion and the ear drills' separate unlock box. Sight reading's level climb, Song Studio's spot loop and the fine-pitch staircase keep their own rules.
+- **The practice strip's instrument picks the stage** (`components/InstrumentStage.svelte`). Drills written for the keyboard draw the strip's instrument from the same marks: a keyboard, a guitar or ukulele fretboard window in one hand position, or the Aerophone's fingering for the note now (in Chord scales also the notes that fit, coloured by role). A line the instrument cannot reach moves up an octave (`fitShift`). Used by Scales, Chord scales, Jazz licks, the ear drills' played answers, Note reading and Sight-reading, and Phrases. Rhythm with MPC pads picked shows pads instead of a Tap button (any pad is a tap). A drill opened with an instrument its catalog entry lacks switches the strip to its first instrument, so every catalog entry must list every instrument it serves.
+- **Instrument coverage.** Scales and Jazz licks: piano, guitar, ukulele, Aerophone. Note reading and Sight-reading: adds the Aerophone (one treble line in its written range, graded by exact pitch). Phrases: all five. Two hands, Pedal, Comping and ii-V-I voicings stay piano; fretboard and chord drills stay guitar and ukulele; Pads stays MPC.
+- **Written line above the instrument** (`notation/LineNotation.svelte`). A staff on piano and Aerophone (both hands on a grand staff when notes carry hands, in the scale's key signature from `theory/circle.signatureFor`), tab on guitar and ukulele, with a cursor that follows the click or the demo and per-note states (done, active). Shown in Practice and after the run, hidden in Check. Used by Scales, Chord scales (each chord's scale in plain note values), Jazz licks, Two hands, Comping (written straight, swing is in the playing), ii-V-I voicings (chords as half notes), Pedal (a chord a bar), the Aerophone's scales, tonguing and crossings, the fretboard drills (tab), Shape Pick and Phrases. Phrases carry their written meter (6/8, 3/8).
+- **Hand positions.** Tab and fretboards put a line in one five-fret hand position (`theory/fretboard.positionLine`): C4 to C5 on guitar lands on frets 5 to 8, never up one string.
+- **Drills tab grouped by skill** (`hubs/drills-layout.ts`, `hubs/DrillsView.svelte`): Ear training (notes and melody; chords, scales and keys; review), Reading and rhythm, Technique, Grooves and time, Jazz and improvising, Theory, Studio ears, Phrases and songs. The instrument filter narrows. Pads and the Aerophone are split by mode into Pad technique, Pad grooves, Improvise on the pads, Aerophone fingers, and Aerophone breath and tongue. Ear rows show no answer-mode chips (one line under the section says how to answer). A test asserts every catalog entry and every Pads and Aerophone mode is placed.
+- **XP scales with the work**: `round(5 + partialCredit × 35 + difficulty × partialCredit × 20 + improvement × 25)`; level `floor(xp / 250) + 1`.
+- **Streak** forgiving by default: one freeze per week of practice (cap 2), shown as a week calendar.
+- **Name and look**: the app is called Woodshed. Direction "the lit bench": the instrument drawn as material on a dark stage panel in both themes, one spotlight in the instrument hue, quiet chrome. Ten identity hues (piano brass, guitar coral, ukulele lime, MPC magenta, Aerophone teal, ear violet, reading sky, rhythm green, create periwinkle). Outfit for titles, system sans for reading, tabular numerals.
+
+### 8.2 Ear training and listening
+
+- **Interval comparison** (which of two intervals is bigger); intervals, qualities and cadences drawn on a grand staff; items introduced a few at a time in sets, weaker items asked more, a wrong answer played beside the right one.
+- **Chords in a key** (I to vii° after I IV V I), **progression dictation** (chords after I into slots, judged per chord), both in minor and with sevenths; **scales and modes**; **inversions**; **bass lines**; **fine pitch** (cents staircase 50 to 5); **spot the wrong note** (including phrases from saved songs); **singing** intervals and melodies with a tolerance (35 or 25 cents).
+- **Rhythm by ear**: echo and dictation in Rhythm, 6/8 and swing, and **groove dictation** on kick, snare and hat rows.
+- **Studio ears** at `/music/listening`: find the boost or cut, boost or cut at matched loudness, level in dB, pan, compression, delay time, on pink noise, drums or a band loop.
+- **Paths**: the Ear Path is 17 steps; a Studio Ears Path; ear steps linked from the instrument paths; steps can set their own threshold and minimum difficulty.
+
+### 8.3 Theory
+
+- **Circle of fifths**: an interactive wheel in Library reference (majors, relative minors, vii°, a picked key's chords as a wedge), the wheel as the key picker in several drills, and a timed fluency drill at `/music/circle` (order of sharps and flats, keys and counts, signatures on the staff, neighbours, a key's chords, a blank wheel); a Circle of Fifths Path.
+
+### 8.4 Piano
+
+- **Scales** grew arpeggios, broken and blocked chords through the inversions, notes a click 1, 2 or 4, and ABRSM 2025-26 grade speeds; blocked chords graded on togetherness.
+- **ii-V-I voicings** gained cadences I IV I V7 I and minor in every key, and 1, 3 or 12 keys.
+- **Sight-reading level climb** (80% up a rung, three strikes end it).
+- **Song Studio "fix the trouble spot"**: loop the first slip slower until three clean, then full tempo, then wider.
+- **Pedal** at `/music/pedal`: legato pedalling on CC 64 over progressions.
+- **Comping** got its own route (weakness 3).
+
+### 8.5 Guitar and ukulele
+
+- **Every chord in every position** (`theory/voicings.ts`): generated voicings for any root and 19 qualities on any tuning, fingered, marked open, barre or closed, and whether a barre is needed. A **chord finder** in Library reference with diagrams, Hear and Practise; Build and Strum and identify accept any generated chord.
+- **Fretboard drawing**: open strings sit on a narrow bone nut; the sounding string glows yellow.
+- **New content**: ukulele chords in the London College order (Dm C7 G7 A D Gm A7 E7), guitar barre and power chords (31 curated shapes); strums Old Faithful and the ukulele island and chuck; Rockschool and Trinity grade tempos.
+- **New drills**: fingerpicking (Travis, p i m a, two ukulele patterns), hammer-ons and pull-offs with a legato check, bends to pitch and vibrato by microphone. Tab above the fretboard in Spider, Positions, Fingerpicking, legato, Pick and the guitar licks.
+- **Microphone**: the input follows the louder channel of a stereo interface (a guitar on input 2); a re-picked note of the same pitch reads as a new note.
+
+### 8.6 MPC pads
+
+- **Repertoire** (`content/pads-repertoire.ts`): 42 grooves in six levels with timing tiers, stars and a tempo goal per groove (incl. Latin, Caribbean and Brazilian grooves with a cowbell on A12, and the breaks), plus nine **drum phrases** (son and rumba clave, stomp-stomp-clap, tresillo under a backbeat, paradiddle split, one-beat fill and landing, shave-and-a-haircut tag, linear three over four, snare build). The drill plays like Melodics: note highway, live Perfect/Good/Early/Late, streak, glowing pads, Plays and Wait modes, Hold the tempo.
+- **Pad skills** (`drills/pads/PadSkills.svelte`): dynamics against the player's calibrated soft-to-loud range (ladder, crescendo, even), fills that land on the one, play it back by ear, ostinato under a reading line, rudiments spread across the kit, improvise over the band (described, not graded; replay as played or nudged half way to the grid).
+- **One groove list**: Create's beat presets are the repertoire grouped by level; grooves whose hits fall between sixteenths (the Dilla push, trap rolls) stay drill-only.
+
+### 8.7 Aerophone
+
+- **Drawing** of the AE-20 from Roland's front view with Roland's key names, the four thumb octave keys as crescents, keys coloured by hand (left amber, right cyan, thumb violet) and lit when pressed, held-wrong keys red. Facts in `03-hardware-and-devices.md` section 9.
+- **Fingering mode**: Roland's 12 lessons in order as flash cards; a slip names the key difference ("Lift G# (left pinky)").
+- **Skills**: scales and arpeggios in 12 keys with NZMEB grade speeds and an octave-slip hint; tonguing patterns read from breath dips and gaps; register crossings counting glitch notes; trills; bite vibrato from pitch bend at so many pulses a click; a dynamic level (pp to f) on Long tone.
+
+### 8.8 Phrases
+
+- `/music/phrases` (`content/phrases.ts`, data copy in `context/data/phrases.json`): popular short phrases on the strip's instrument, heard then played back, graded on notes in order and timing, written above the instrument; the next run climbs to the phrase's tempo, then the next phrase. Piano 12, guitar 10, ukulele 10, Aerophone 20 (band-book first tunes, flute and saxophone repertoire, ragtime, sax vocabulary). On MPC pads the page is the drum phrases, played on the pads.
+- **Content rule**: public domain only (traditional, or composer dead more than 70 years) or a style's generic vocabulary. No copyrighted songs or recorded solos. Phrases with chords are deferred until a chord grader exists.
+
+### 8.9 Create, record, library
+
+- Create is one page where the beat and melodies loop together; presets and longer beats; an instrument per melody; tracks with volume faders (not only mute); a library of beats and melodies; chord progressions in any key; sample kits at `/music/create/kits`.
+- Record: MIDI and audio takes, compare, level meter with advice, non-destructive playback gain; MIDI takes persist (weakness 12).
+- Transcribe in a worker with Cancel; a polyphonic engine (Basic Pitch) beside the melody one; tempo found from the notes; hands split at middle C; saved songs editable at `/music/songs/[id]/edit`.
+- Song Studio: waterfall with beat lines, sections tinted on the score, songs fitted by octaves to guitar or ukulele, metronome at the song's tempo.

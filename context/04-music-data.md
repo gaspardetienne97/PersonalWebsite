@@ -9,6 +9,9 @@ counts and the gotchas, and points at the JSON.
 
 ## 1. Aerophone fingering chart — `data/aerophone-fingerings.json`
 
+The rebuild replaced this file (section 22 has the new registry and chart).
+The table below is the previous version, kept for its verification notes.
+
 Roland Aerophone AE-10/AE-20, **sax fingering mode, written pitch**. Range
 charted: MIDI 58 (Bb3) through 78 (F#/Gb5), 21 notes.
 
@@ -513,3 +516,63 @@ Other defaults worth carrying:
 - Technique tempo ladder base: **100 BPM**.
 - Instruments the app knows: piano, guitar, ukulele, aerophone, mpc, voice.
 - Input sources: midi, audio, onscreen, click.
+
+---
+
+## Added in the rebuild
+
+The rebuild kept every table above (copied verbatim into `packages/music-core/src/data/`) and added or extended the sets below. JSON copies of the new tables, produced by evaluating the real modules, sit in `data/` beside the old ones so values are exact. Every set has unit tests that hold its invariants.
+
+### 22. Aerophone fingering chart, rebuilt: `data/aerophone-fingerings.json`
+
+- Source module: `packages/music-core/src/data/aerophone-fingerings.json`, helpers in `content/winds-pads.ts` (`AEROPHONE_RANGE`, `fingeringFor`, `fingeringSlip`, `aerophoneKeyLabel`).
+- Registry of 26 keys with Roland's names: `k1`..`k6`, `X`, `P`, `C1`, `C2`, `C4`, `C3`, `Tc`, `Ta`, `Gs`, `Cs`, `B`, `Bb`, `Eb`, `C`, `Tf`, `C5`, `oct+2`, `oct+1`, `oct-1`, `oct-2`.
+- Range 58 (Bb3) to 85 (C#6). 58 to 73 are the low register with no octave key; 74 to 85 repeat the D4 to C#5 fingerings with `oct+1`. C5 (72) is `k2` alone; C#5 (73) is open.
+- `fingeringSlip(target, played)` names the key difference between two fingerings ("Lift G# (left pinky)"), used for slip hints.
+- `FINGERING_LESSONS` (12, Roland's order): G A B; E F G; C D E; C D E F G; G A B C; C major; octave key (G A B C D); F, G, Bb, D, Eb major. `lessonSequence` runs a lesson up and back down.
+
+### 23. Aerophone skills: `data/aero-skills.json`
+
+From `content/aero-skills.ts`.
+- `AERO_SCALES`: major, natural minor, harmonic minor, chromatic, major arpeggio, minor arpeggio; `scaleLine(id, rootPc)` places the tonic so the line (up and down) fits 58 to 85.
+- `AERO_GRADE_SPEEDS` (NZMEB): grade 1 ♩=100 one a click, grade 3 ♩=72 two, grade 5 ♩=66 four.
+- `TONGUING` patterns as T/S groups: all tongued TTTT, all slurred TSSS, slur two tongue two TSTT, tongue two slur two TTTS, slur three tongue one TSST, phrase TSSSSSSS. The first note is always tongued.
+- `REGISTER_PAIRS`: C#5-D5, C5-D5, A4-D5, D4-D5, G4-G5, B4-E5. `TRILL_PAIRS`: G4-A4, A4-B4, F4-G4, B4-C5, C5-D5, E4-F#4.
+- `BREATH_LEVELS`: pp 0.10 to 0.28, p 0.25 to 0.42, mf 0.45 to 0.65, f 0.65 to 0.85 (CC 2 normalised).
+- `VIBRATO_SETS`: two, three and four pulses a beat at 60, four at 80.
+
+### 24. Pad repertoire with phrases: `data/pad-repertoire.json`
+
+From `content/pads-repertoire.ts` (grids written with `content/pads-grid.gridGroove`: one line per voice, 16 steps a bar, bars joined with `|`, `X` accent, `x` normal, `g` ghost; MPC swing 50 to 75 delays every off-sixteenth).
+- `TIERS` beginner ±35/±70 ms, intermediate ±25/±50, advanced ±15/±35 (perfect/good); `PAD_LEVELS` 1 to 6.
+- 51 entries: 42 grooves (incl. the verified table's five, Funky Drummer, Think, the breaks, house, trap, drum and bass, afrobeat, and twelve Latin, Caribbean and Brazilian grooves) and 9 drum phrases (topic `phrases`). Each entry: groove grid, level, style, topic, `bpm.start` and `bpm.target`, optional swing, feel and fingers.
+- Invariants (tests): unique ids, every lane the same number of bars, every hit on a known voice. Create's beat presets are this list; grooves with hits between sixteenths (Dilla push, trap rolls) are excluded from presets.
+
+### 25. Pad skills: `data/pad-skills.json`
+
+From `content/pad-skills.ts`: `PAD_FILLS` (snare eighths, down the toms, whole bar; the fill sits in bar 4 and lands on beat 16), `ORCHESTRATIONS` (paradiddle on hats and snare, ride and snare, toms lead), `READING_LINES` for the ostinato (quarters, backbeat push, offbeats, sixteenths), `ECHO_LEVELS` (kick and snare, with hats, sixteenths; calls in odd bars, answers in even), `DYNAMICS_EXERCISES` (ladder of 4 bands, crescendo, even) and their thresholds (`05-scoring-rules.md` section 17).
+
+### 26. Phrases: `data/phrases.json`
+
+From `content/phrases.ts`. 52 phrases: piano 12, guitar 10, ukulele 10, Aerophone 20. Each: id, instrument, title, style, why, source, level 1 to 3, bpm, beatsPerBar (quarter beats), optional written meter (`[6, 8]`, `[3, 8]`), key signature in fifths, and steps `[midi or null, beats, string?, fret?]`.
+- Invariants (`phrases.test.ts`): at least 8 per instrument; unique ids; 4 or more notes; no longer than 4 bars; note values only 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4 beats (the engraver draws nothing else cleanly); Aerophone notes inside 58 to 85 with a fingering; every guitar and ukulele step has a string and fret whose open string plus fret equals the pitch (strings from 1 = highest; ukulele high-G 1 = A4 69, 2 = E4 64, 3 = C4 60, 4 = G4 67).
+- Content rule: public domain or generic style vocabulary only. Sources per phrase are in the `source` field and `research/phrases.md`.
+
+### 27. Chord shapes and generated voicings
+
+- Curated: `data/chord-shapes.json` now has 31 shapes (added ukulele Dm, C7, G7, A, D, Gm, A7, E7; guitar F, Bb and F#m barre; E5, A5, G5, D5), with position-0 entries in `data/chord-positions-*.json`.
+- Generated: `theory/voicings.ts` `chordVoicings(tuning, rootPc, intervals, opts)` for any root and the 19 `VOICING_QUALITIES` (from `theory/chords` templates, including the power chord `5`). Ids `gen.<instrument>.<root>.<quality>`; `chordPositions` falls back to the generator for those ids.
+- Rules: walk the neck one hand position at a time (max stretch 3 frets, max fret 12, 4 fingers, 8 voicings kept); at least `min(4 on six strings or all strings, notes + 1)` sounding strings; a barre when more fretted notes than fingers (`needsBarre`), or when strings share the lowest fret and it would take every finger or three strings sit on it, never over an open string; kind open, barre or closed; `omitsFifth` when the fifth was dropped. Ranked by sounding strings, muted strings and fingers used.
+
+### 28. Fingerpick and legato patterns: `data/fingerpick-legato-patterns.json`
+
+From `content/technique.ts`: `FINGERPICK_PATTERNS` (Travis and p i m a on guitar, two ukulele patterns; `fingerpickTargets` puts them over a chord pair, two notes a click) and `LEGATO_PATTERNS` (hammer-on and pull-off 0 2 0, trill, three-note), each step marked picked, hammered or pulled.
+
+### 29. Rhythm and strum patterns: `data/rhythm-patterns.json`
+
+Extended with guitar Old Faithful (D DU UDU), ukulele island and chuck strums.
+
+### 30. Key signatures and hand positions (derived, not tables)
+
+- `theory/circle.signatureFor(tonicPc, kind)`: the signature a scale is written in, from its parent major (lydian +7, mixolydian +5, dorian +10, phrygian +8, minors and blues +3, locrian +1 semitones to the parent tonic); 0 for symmetric scales. F# over Gb at six.
+- `theory/fretboard.positionLine(tuning, midis)`: lay a line in one five-fret hand position (the window where the most notes fit, lowest on a tie; each note on its lowest fret inside it; misfits take the nearest place; off-neck notes are null). C4 to C5 on guitar lands on frets 5 to 8.

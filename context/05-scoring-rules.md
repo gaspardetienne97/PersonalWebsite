@@ -487,3 +487,66 @@ and the whole operation runs under the media-library mutation lock.
   (`success` ≥ 67%, `warn` ≥ 34%, `error` below) which map to theme tokens.
 - Progress and mastery are separate things: XP and streaks reward showing up,
   mastery only moves on unaided evidence.
+
+---
+
+## Added in the rebuild
+
+Every rule below has unit tests in `packages/music-core`. Thresholds without a published source are tuning knobs for the owner's hardware (listed in `TASKS.md` "Needs hardware").
+
+## 16. The next run (`progress/advance.ts`)
+
+`ADVANCE = { pass: 0.85, fail: 0.7, runs: 2, stepPct: 0.05, minStep: 2, resetPct: 0.75, easierAfter: 2 }`. Plan per drill: `{ bpm?, tempo?: { min, goal, max? }, steps?: { label, goal?, start? }[], step? }`.
+
+- **Pass** = the drill's own `correct` and score ≥ 0.85. **Fail** = not a pass and score < 0.70. In between holds.
+- Counts belong to one setup (tempo and step); any change starts over. Ignoring an offer keeps it: Again offers it again.
+- Two passes in a row at a tempo below the step's goal: **faster** by max(2 BPM, 5%), capped at the goal.
+- Two passes at the goal with a harder step: **harder**, at that step's `start` or max(min, 75% of its goal). On the last step, keep going faster up to `max`, then "top".
+- A fail above the floor tempo: **slower** by one step (one bad run is enough to slow down).
+- Two fails in a row at the floor (or untimed): **easier** step. The variation never drops on one bad run.
+- Untimed drills (no tempo) move through steps only, same two-in-a-row rule.
+- Persistence: per ladder id (exercise plus fixed setup, never the tempo or the step) under the setting `advance.v1`. Pads also save a groove's start tempo as the tempo the offer would use.
+
+## 17. Pad skills (`content/pad-skills.ts`)
+
+- **Fills**: `FILL = { rushMs: 15, landMs: 40 }`. The fill rushed when its mean signed error is under -15 ms; it landed when crash and kick on the one are within 40 ms. Correct = groove correct, landed and not rushed.
+- **Ostinato**: the hats under the line may drop at most 10 points below the hats alone (`OSTINATO.maxDrop 0.1`).
+- **Play it back (echo)**: only answer bars are scored; a round passes at ≥ 90% of its targets (`ECHO_PASS`); correct = all four rounds and no extra hits.
+- **Dynamics** against the calibrated range (`velocityRange` needs soft and loud clearly apart): ladder correct at ≥ 80% of hits in their band; crescendo needs Spearman ρ ≥ 0.8 and ≥ 50% of the range covered (score ρ × 0.6 + span × 0.4); even needs spread (SD ÷ mean within the range) ≤ 0.08.
+- **Grooves**: tier pass at 90% good and 70% perfect, good capped at 40% of the closest same-pad spacing; Hold the tempo drifting 3 BPM or more costs 40% and fails. Stars: 3 when passed, 2 at ≥ 0.8, 1 at ≥ 0.6.
+- **Improvise**: described, not graded (hits, grid spread, swing %, velocity range, pads used).
+
+## 18. Aerophone skills (`content/aero-skills.ts`, `scoring/aerophone.ts`)
+
+- **Scales, tonguing lines, crossings**: graded by `gradeLine` (pitch × 0.85 + evenness × 0.15, correct at 0.9). A note an octave off names the octave key (`octaveSlip`).
+- **Tonguing joins**: a join is tongued (T) when the previous note was released at least 25 ms before the next note-on, or the breath dipped under 45% of the phrase's median CC 2 between them (`JOIN = { dip: 0.45, gapMs: 25 }`); otherwise slurred. The first note is T. Tonguing score = share of joins matching the pattern; run score = pitch score × 0.5 + tonguing × 0.5; correct needs the line correct and tonguing ≥ 0.8. With no CC 2 the tonguing row reads "not measured".
+- **Register crossings**: glitches = note-ons that are neither of the pair. Correct = pitch ≥ 0.9 and at most 1 glitch.
+- **Trills** (4 s from the first note): notes a second from the mean gap of in-pair notes, evenness = 1 - SD ÷ mean of the gaps, strays = out-of-pair notes. Score = min(1, rate ÷ 8) × 0.4 + evenness × 0.5 + (no strays ? 0.1 : 0). Correct at ≥ 4 a second, evenness ≥ 0.7, no strays.
+- **Bite vibrato** (4 s of pitch bend from the first note): rate from zero crossings around the mean, evenness = 1 - SD ÷ mean of half periods, depth from the 5th to 95th percentile. Target rate = pulses × bpm ÷ 60. Score = (1 - relative rate error) × 0.6 + evenness × 0.4; correct within 15% of the rate and evenness ≥ 0.6 (`VIBRATO`). No bend: "set the bite to send pitch bend".
+- **Long tone at a level**: share of CC 2 samples inside the level's band during the hold; score = long-tone score × 0.5 + share × 0.5; correct needs the long tone correct and share ≥ 0.7.
+- **Fingering lessons**: flash cards; a note moves on only when right; score = share right first try.
+
+## 19. Piano additions
+
+- **Blocked chords**: notes of one chord count as together within 40 ms (`CHORD_TOGETHER_MS`); reported as count and mean spread.
+- **Scales grade speeds**: ABRSM 2025-26 tempos with two or four notes a click (`ABRSM_SPEEDS`, `gradeSpeed`).
+- **Pedal** (`scoring/piano.ts` `PEDAL`): CC 64 ≥ 0.5 is down (half pedal counts as down); per chord the lift must come within 400 ms after the chord's first note (a lift up to 30 ms early still counts) and the pedal back down within 600 ms. Verdicts clean, early, blurred, late, no chord.
+- **Sight-reading climb**: `CLIMB = { pass: 0.8, strikes: 3, measures: 4 }`.
+- **Fix the trouble spot** (`drills/studio/studio.ts` `SPOT`): start the loop at 85% tempo, three clean in a row to return to full tempo, 5% slower after a slip (floor 50%), then widen by a bar.
+
+## 20. Guitar and ukulele additions
+
+- **Bends** (`scoring/bends.ts` `BEND`): in tune within 15 cents of the target, close within 30; a bend counts as held after 250 ms steady within 20 cents.
+- **Vibrato** (microphone): rate, width and evenness described, not passed (no guitar norms; strings typically 4 to 7 a second).
+- **Legato**: a note whose onset has no picked attack within the 50 ms attack window reads as hammered or pulled; reported, not failed.
+- **Fingerpicking and lines**: `gradeLine` on the pattern's notes.
+- **Strum ladder** was replaced by the next-run rule.
+
+## 21. Phrases
+
+- Graded by `gradeLick` (`scoring/piano.ts`): played note-ons matched to the phrase in order by pitch class; score = matched ÷ total; on time within min(180 ms, beat ÷ 4) of the grid anchored on the count-in; correct at 0.9. Fretted phrases also report string and fret when the taps carry them. Drum phrases use the groove grader (section 17).
+
+## 22. Microphone note events
+
+- Re-strike: an onset with the same pitch sounding, more than 120 ms after that note began, then the same pitch stable for 2 frames, emits note-off and note-on.
+- The capture follows the louder channel (decay 0.995, switch at 4×).

@@ -1482,5 +1482,186 @@
         "end": 16
       }
     }
+  ],
+  "guitar.f-barre": [
+    {
+      "id": "guitar.f-barre",
+      "name": "F major (barre)",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 4,
+      "frets": [1, 1, 2, 3, 3, 1],
+      "fingers": [1, 1, 2, 4, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": [
+        "guitar.c-major",
+        "guitar.b-flat-barre",
+        "guitar.a-minor",
+        "guitar.g-major"
+      ],
+      "shapeId": "guitar.f-barre",
+      "positionIndex": 0,
+      "positionLabel": "Barre at fret 1",
+      "kind": "barre",
+      "baseFret": 1,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      },
+      "barre": {
+        "fret": 1,
+        "fromString": 1,
+        "toString": 6
+      }
+    }
+  ],
+  "guitar.b-flat-barre": [
+    {
+      "id": "guitar.b-flat-barre",
+      "name": "B♭ major (barre)",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 4,
+      "frets": [1, 3, 3, 3, 1, null],
+      "fingers": [1, 4, 3, 2, 1, null],
+      "mutedStrings": [6],
+      "openStrings": [],
+      "commonTransitions": ["guitar.f-barre", "guitar.c-major", "guitar.g-major"],
+      "shapeId": "guitar.b-flat-barre",
+      "positionIndex": 0,
+      "positionLabel": "Barre at fret 1",
+      "kind": "barre",
+      "baseFret": 1,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      },
+      "barre": {
+        "fret": 1,
+        "fromString": 1,
+        "toString": 5
+      }
+    }
+  ],
+  "guitar.f-sharp-minor-barre": [
+    {
+      "id": "guitar.f-sharp-minor-barre",
+      "name": "F♯ minor (barre)",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 4,
+      "frets": [2, 2, 2, 4, 4, 2],
+      "fingers": [1, 1, 1, 4, 3, 1],
+      "mutedStrings": [],
+      "openStrings": [],
+      "commonTransitions": ["guitar.a-major", "guitar.d-major", "guitar.e-major", "guitar.b-minor"],
+      "shapeId": "guitar.f-sharp-minor-barre",
+      "positionIndex": 0,
+      "positionLabel": "Barre at fret 2",
+      "kind": "barre",
+      "baseFret": 2,
+      "fretWindow": {
+        "start": 1,
+        "end": 5
+      },
+      "barre": {
+        "fret": 2,
+        "fromString": 1,
+        "toString": 6
+      }
+    }
+  ],
+  "guitar.e5": [
+    {
+      "id": "guitar.e5",
+      "name": "E5 (power chord)",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [null, null, null, 2, 2, 0],
+      "fingers": [null, null, null, 3, 1, null],
+      "mutedStrings": [1, 2, 3],
+      "openStrings": [6],
+      "commonTransitions": ["guitar.a5", "guitar.g5", "guitar.d5"],
+      "shapeId": "guitar.e5",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "guitar.a5": [
+    {
+      "id": "guitar.a5",
+      "name": "A5 (power chord)",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [null, null, 2, 2, 0, null],
+      "fingers": [null, null, 3, 1, null, null],
+      "mutedStrings": [1, 2, 6],
+      "openStrings": [5],
+      "commonTransitions": ["guitar.e5", "guitar.d5", "guitar.g5"],
+      "shapeId": "guitar.a5",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
+  ],
+  "guitar.g5": [
+    {
+      "id": "guitar.g5",
+      "name": "G5 (power chord)",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 3,
+      "frets": [null, null, null, 5, 5, 3],
+      "fingers": [null, null, null, 4, 3, 1],
+      "mutedStrings": [1, 2, 3],
+      "openStrings": [],
+      "commonTransitions": ["guitar.e5", "guitar.a5", "guitar.d5"],
+      "shapeId": "guitar.g5",
+      "positionIndex": 0,
+      "positionLabel": "Fret 3",
+      "kind": "closed",
+      "baseFret": 3,
+      "fretWindow": {
+        "start": 2,
+        "end": 6
+      }
+    }
+  ],
+  "guitar.d5": [
+    {
+      "id": "guitar.d5",
+      "name": "D5 (power chord)",
+      "instrument": "guitar",
+      "tuningId": "guitar.standard",
+      "difficulty": 2,
+      "frets": [null, 3, 2, 0, null, null],
+      "fingers": [null, 3, 1, null, null, null],
+      "mutedStrings": [1, 5, 6],
+      "openStrings": [4],
+      "commonTransitions": ["guitar.a5", "guitar.g5", "guitar.e5"],
+      "shapeId": "guitar.d5",
+      "positionIndex": 0,
+      "positionLabel": "Open position",
+      "kind": "open",
+      "baseFret": 0,
+      "fretWindow": {
+        "start": 0,
+        "end": 4
+      }
+    }
   ]
 }
