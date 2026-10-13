@@ -5,6 +5,7 @@
   import ShapeDrill from "$lib/music/drills/guitar/ShapeDrill.svelte";
   import StrumIdentify from "$lib/music/drills/guitar/StrumIdentify.svelte";
   import ChangesDrill from "$lib/music/drills/guitar/ChangesDrill.svelte";
+  import LineDrill from "$lib/music/drills/guitar/LineDrill.svelte";
   import { applyBenchParams } from "$lib/music/drills/guitar/instrument.svelte";
   import { CHORD_MODES, modeFrom } from "$lib/music/drills/guitar/modes";
 
@@ -21,6 +22,8 @@
       <ShapeDrill kind={mode} />
     {:else if mode === "strum"}
       <StrumIdentify />
+    {:else if mode === "fingerpick"}
+      <LineDrill kind="fingerpick" />
     {:else}
       <ChangesDrill />
     {/if}

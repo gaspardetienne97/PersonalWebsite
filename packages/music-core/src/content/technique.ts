@@ -193,6 +193,99 @@ export interface FretTarget extends FretPosition {
   midi: number;
   /** 0 = open string. */
   finger?: number;
+  /** A picking-hand label (p i m a) shown instead of the finger. */
+  label?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Fingerpicking: a picking pattern over chord shapes, a string per eighth.
+// "B" is the chord's bass string (its lowest sounding string), "A" the
+// alternate bass (string 4 under a string-6 root, else the next string up).
+// The ukulele patterns name strings directly: on re-entrant tuning string 4
+// is not the lowest note, so pitches come from the tuning, never the order.
+
+export interface FingerpickPattern {
+  id: string;
+  label: string;
+  instrument: "guitar" | "ukulele";
+  strings: string[];
+  /** p thumb, i index, m middle, a ring. */
+  fingers: string[];
+}
+export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
+  {
+    id: "travis",
+    label: "Travis picking, alternating bass",
+    instrument: "guitar",
+    strings: ["B", "3", "A", "2", "B", "3", "A", "2"],
+    fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
+  },
+  {
+    id: "pima",
+    label: "p i m a",
+    instrument: "guitar",
+    strings: ["B", "3", "2", "1", "B", "3", "2", "1"],
+    fingers: ["p", "i", "m", "a", "p", "i", "m", "a"],
+  },
+  {
+    id: "uke-tima",
+    label: "Thumb on 4, then i m a",
+    instrument: "ukulele",
+    strings: ["4", "3", "2", "1", "4", "3", "2", "1"],
+    fingers: ["p", "i", "m", "a", "p", "i", "m", "a"],
+  },
+  {
+    id: "uke-alternating",
+    label: "Alternating thumb on 3 and 4",
+    instrument: "ukulele",
+    strings: ["3", "1", "4", "2", "3", "1", "4", "2"],
+    fingers: ["p", "m", "p", "i", "p", "m", "p", "i"],
+  },
+];
+
+/** The string a pattern step plays on a shape, or null when that string is muted. */
+function pickString(step: string, frets: readonly (number | null)[]): number | null {
+  const sounds = (n: number) => n >= 1 && n <= frets.length && frets[n - 1] !== null;
+  const bass = Math.max(...frets.flatMap((f, i) => (f === null ? [] : [i + 1])));
+  if (step === "B") return bass;
+  if (step === "A") {
+    const alt = bass === 6 && sounds(4) ? 4 : bass - 1;
+    return sounds(alt) ? alt : null;
+  }
+  const n = Number(step);
+  return sounds(n) ? n : null;
+}
+
+/** Whether every step of the pattern lands on a sounding string of the shape. */
+export const fingerpickable = (
+  pattern: FingerpickPattern,
+  shape: Pick<ChordShape, "frets" | "instrument">,
+) =>
+  pattern.instrument === shape.instrument &&
+  pattern.strings.every((st) => pickString(st, shape.frets) !== null);
+
+/** The pattern a bar per chord, `rounds` times through the chords. */
+export function fingerpickTargets(opts: {
+  pattern: FingerpickPattern;
+  shapes: readonly ChordShape[];
+  tuning: Tuning;
+  rounds?: number;
+}): FretTarget[] {
+  const out: FretTarget[] = [];
+  for (let r = 0; r < (opts.rounds ?? 2); r++)
+    for (const shape of opts.shapes)
+      opts.pattern.strings.forEach((st, k) => {
+        const string = pickString(st, shape.frets);
+        if (string === null) return;
+        const fret = shape.frets[string - 1]!;
+        out.push({
+          string,
+          fret,
+          midi: midiAt(opts.tuning, string, fret),
+          label: opts.pattern.fingers[k],
+        });
+      });
+  return out;
 }
 
 export const SPIDER_PATTERNS = STRING_SPIDER.patterns;

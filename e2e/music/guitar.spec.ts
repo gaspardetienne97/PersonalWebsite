@@ -130,6 +130,43 @@ test.describe("guitar drills", () => {
     });
   });
 
+  test("Fingerpicking: Travis over C and Am by fret taps", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto(
+      "/music/chords?mode=fingerpick&pattern=travis&shape=guitar.c-major&to=guitar.a-minor&instrument=guitar&bpm=120&perBeat=2",
+    );
+    await expect(page.getByText("Setup:").locator("..")).toContainText(
+      "Travis picking, alternating bass, C then Am",
+    );
+    await expect(page.getByText("Letters are the picking hand")).toBeVisible();
+    await startDrill(page, "Practice");
+    const C: [number, number][] = [
+      [5, 3],
+      [3, 0],
+      [4, 2],
+      [2, 1],
+    ];
+    const Am: [number, number][] = [
+      [5, 0],
+      [3, 2],
+      [4, 2],
+      [2, 1],
+    ];
+    const line = [...C, ...C, ...Am, ...Am, ...C, ...C, ...Am, ...Am];
+    for (const [st, f] of line) {
+      await tap(page, fret(st, f));
+      await page.waitForTimeout(240);
+    }
+    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
+    // Taps drift against the click in a headless browser; most of the line still lands.
+    const right = await page
+      .getByText(/^\d+ of 32$/)
+      .first()
+      .textContent();
+    expect(Number(right!.split(" ")[0])).toBeGreaterThanOrEqual(26);
+    await shoot(page, "fingerpick-results", 1280);
+  });
+
   test("Positions box 1 runs by synthetic microphone", async ({ page }) => {
     await page.goto(
       "/music/fretboard?mode=positions&pattern=minor-pentatonic-box-1&rootFret=5&instrument=guitar&bpm=60",

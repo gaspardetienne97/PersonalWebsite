@@ -16,6 +16,9 @@ import {
   scaleDrillTargets,
   scaleSetupKey,
   gradeSpeed,
+  FINGERPICK_PATTERNS,
+  fingerpickable,
+  fingerpickTargets,
   GUITAR_GRADE_TEMPOS,
   ABRSM_SPEEDS,
   scaleSkills,
@@ -333,5 +336,50 @@ describe("guitar grade tempos", () => {
       bpm: 90,
     });
     expect(GUITAR_GRADE_TEMPOS.find((g) => g.id === "trinity-grade-8")!.bpm).toBe(136);
+  });
+});
+
+describe("fingerpicking", () => {
+  const shape = (id: string) => CHORD_SHAPES.find((x) => x.id === id)!;
+  it("Travis on C alternates the bass (5 then 4) under strings 3 and 2", () => {
+    const travis = FINGERPICK_PATTERNS.find((p) => p.id === "travis")!;
+    const t = fingerpickTargets({
+      pattern: travis,
+      shapes: [shape("guitar.c-major")],
+      tuning: std,
+      rounds: 1,
+    });
+    expect(t.map((x) => `${x.string}:${x.fret}:${x.label}`)).toEqual([
+      "5:3:p",
+      "3:0:i",
+      "4:2:p",
+      "2:1:m",
+      "5:3:p",
+      "3:0:i",
+      "4:2:p",
+      "2:1:m",
+    ]);
+    // G: the root on 6, the alternate bass on 4.
+    const g = fingerpickTargets({
+      pattern: travis,
+      shapes: [shape("guitar.g-major")],
+      tuning: std,
+      rounds: 1,
+    });
+    expect(g.filter((x) => x.label === "p").map((x) => x.string)).toEqual([6, 4, 6, 4]);
+    // Power chords leave strings 1 to 3 silent, so they can't take the pattern.
+    expect(fingerpickable(travis, shape("guitar.e5"))).toBe(false);
+  });
+
+  it("follows the ukulele's re-entrant strings, not pitch order", () => {
+    const tima = FINGERPICK_PATTERNS.find((p) => p.id === "uke-tima")!;
+    const t = fingerpickTargets({
+      pattern: tima,
+      shapes: [shape("ukulele.c-major")],
+      tuning: uke,
+      rounds: 1,
+    });
+    // High-G: string 4 (G4) is above string 3 (C4).
+    expect(t.slice(0, 4).map((x) => x.midi)).toEqual([67, 60, 64, 72]);
   });
 });

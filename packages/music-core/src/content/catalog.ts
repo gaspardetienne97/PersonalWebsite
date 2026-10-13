@@ -330,6 +330,7 @@ export const CATALOG: CatalogEntry[] = [
         ...chordShapeSkills("guitar", "changes"),
         "technique.ukulele.chord-changes",
       ]),
+      mode("fingerpick", "Fingerpicking", "technique.fingerpicking", ["technique.fingerpicking"]),
     ],
   }),
   entry({

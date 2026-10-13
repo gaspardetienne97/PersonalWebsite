@@ -792,6 +792,14 @@ APP_SKILLS.push(
     version: 1,
   },
   {
+    id: "technique.fingerpicking",
+    name: "Fingerpicking patterns (Travis, p i m a, ukulele)",
+    capability: "technique",
+    level: "early-intermediate",
+    tags: ["guitar", "ukulele", "fingerpicking"],
+    version: 1,
+  },
+  {
     id: "technique.strumming",
     name: "Strumming patterns in time (guitar and ukulele)",
     capability: "rhythm",
