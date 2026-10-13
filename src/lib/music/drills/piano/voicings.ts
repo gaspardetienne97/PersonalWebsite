@@ -4,6 +4,7 @@
 import { pc, pcOf, type Metric } from "@repo/music-core";
 import {
   KEY_CYCLE,
+  cadenceChords,
   closestChords,
   goToScale,
   voiceLeadingTargets,
@@ -13,7 +14,7 @@ import {
 import { JAZZ, type VoicingTarget } from "@repo/music-core/data/index";
 import { gradeVoiceLeading, gradeVoicing } from "@repo/music-core/scoring/piano";
 
-export type Variant = VoicingVariant | "inversions" | "voice-leading";
+export type Variant = VoicingVariant | "inversions" | "voice-leading" | "cadence" | "cadence-minor";
 
 export interface Shown {
   midi: number;
@@ -69,6 +70,40 @@ export function voicingItems(opts: {
   arpeggio?: boolean;
 }): VoicingItem[] {
   const keys = cycleFrom(opts.keyPc, opts.keys);
+  if (opts.variant === "cadence" || opts.variant === "cadence-minor") {
+    const minor = opts.variant === "cadence-minor";
+    const inv = ["root position", "first inversion", "second inversion", "third inversion"];
+    return keys.flatMap((key) => {
+      const bars = cadenceChords(pcOf(key)!, minor, CLOSEST_REGISTER);
+      const group = `${key}${minor ? " minor" : ""}`;
+      return bars.map((b, i) => ({
+        id: b.id,
+        symbol: b.symbol,
+        group,
+        kind: "closest" as const,
+        show: [
+          { midi: b.leftHand, hand: "left" as const },
+          ...b.rightHand.map((midi) => ({ midi, hand: "right" as const })),
+        ],
+        name: `${b.symbol} (${b.roman}) in ${inv[b.inversion]}${i ? `, moving ${b.movement} semitone${b.movement === 1 ? "" : "s"}` : ""}. Root in the left hand.`,
+        hint:
+          b.roman === "V7"
+            ? "Three notes: root, 3rd and 7th, the 5th left out. The 7th falls to the tonic's 3rd next."
+            : i
+              ? "Keep the common tones; move the others the shortest way."
+              : "Start in root position.",
+        pcs: [...new Set([...b.rightHand.map(pc), pc(b.leftHand)])],
+        count: 4,
+        skillIds: ["harmony.keyboard-cadences"],
+        closest: {
+          rightHand: b.rightHand,
+          leftRootPc: pc(b.leftHand),
+          bassPc: b.expectedBassPc,
+          from: i ? bars[i - 1].rightHand : undefined,
+        },
+      }));
+    });
+  }
   if (opts.variant === "inversions") {
     const bars = closestChords(opts.keyPc, CLOSEST_REGISTER);
     const inv = ["root position", "first inversion", "second inversion"];

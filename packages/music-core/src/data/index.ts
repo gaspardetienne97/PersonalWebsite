@@ -792,6 +792,14 @@ APP_SKILLS.push(
     version: 1,
   },
   {
+    id: "harmony.keyboard-cadences",
+    name: "Cadences at the keyboard in every key",
+    capability: "harmony",
+    level: "early-intermediate",
+    tags: ["piano", "cadences"],
+    version: 1,
+  },
+  {
     id: "technique.chord-inversions",
     name: "Broken and blocked chords through their inversions",
     capability: "technique",

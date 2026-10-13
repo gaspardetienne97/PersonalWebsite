@@ -89,6 +89,7 @@ const PATH_MAP: Record<string, string> = {
   "/music/listening": "/music/listening",
   "/music/circle": "/music/circle",
   "/music/scales": "/music/scales",
+  "/music/voicings": "/music/voicings",
 };
 
 export function rewriteHref(href: string): string {
@@ -471,6 +472,19 @@ const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
       exerciseIds: ["technique.scale"],
       skillIds: ["technique.chord-inversions"],
       minAttempts: 3,
+    },
+    {
+      id: "P-T3",
+      order: 5.5,
+      title: "Cadences in every key",
+      summary:
+        "I IV I V7 I with the root in the left hand, the right hand moving the shortest way, through all twelve keys.",
+      detail: "Sixty chords (all twelve keys) averaging 80% or higher.",
+      href: "/music/voicings?variant=cadence&key=0&keys=12&strict=0",
+      exerciseIds: ["voicing-drill"],
+      skillIds: ["harmony.keyboard-cadences"],
+      minAttempts: 60,
+      threshold: 0.8,
     },
     {
       id: "P-T2",

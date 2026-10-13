@@ -231,6 +231,25 @@ test.describe("piano drills over fake MIDI", () => {
     await shoot(page, "voicings-results");
   });
 
+  test("voicings: the I IV I V7 I cadence in C", async ({ page }) => {
+    await page.goto("/music/voicings?variant=cadence&key=0&keys=1&strict=1");
+    await startDrill(page);
+    await expect(page.getByRole("status")).toContainText("Play C.");
+    const chords = [
+      [48, 60, 64, 67], // C: C3, then C E G
+      [41, 60, 65, 69], // F: F2, then C F A
+      [48, 60, 64, 67],
+      [43, 59, 65, 67], // G7: G2, then B F G
+      [48, 60, 64, 67],
+    ];
+    await play(
+      page,
+      chords.map((notes, i) => ({ at: i * 1100, notes, hold: 400 })),
+    );
+    await expect(page.getByRole("status")).toContainText("All 5 chords right.", { timeout: 8000 });
+    await shoot(page, "voicings-cadence-results");
+  });
+
   test("licks: lick 1 in order", async ({ page }) => {
     await page.goto("/music/licks?lick=1&key=C&bpm=120");
     await expect(page.getByText("Solo using only the 1 3 5 7 of each chord.")).toBeVisible();

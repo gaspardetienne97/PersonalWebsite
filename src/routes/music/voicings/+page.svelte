@@ -23,6 +23,8 @@
     { value: "altered", label: "Altered dominants" },
     { value: "inversions", label: "Closest chords, I IV V I" },
     { value: "voice-leading", label: "Guide tones through the keys" },
+    { value: "cadence", label: "Cadences I IV I V7 I" },
+    { value: "cadence-minor", label: "Minor cadences i iv i V7 i" },
   ];
 
   let mode = $state<DrillMode>(benchFromUrl({ min: 40, max: 200 }));
@@ -176,7 +178,7 @@
       capabilities: ["harmony"],
       modality: "played",
       assistance: assistanceFor(mode),
-      difficulty: variant === "altered" ? 0.75 : variant === "minor" ? 0.65 : variant === "inversions" ? 0.35 : 0.55,
+      difficulty: variant === "altered" ? 0.75 : variant === "minor" ? 0.65 : variant === "inversions" ? 0.35 : variant === "cadence" ? 0.45 : variant === "cadence-minor" ? 0.5 : 0.55,
       instrument: settings.value.activeInstrument,
       params: { variant, key: pc(s.key), keys: s.keys, strict: s.strict, arpeggio: monophonic },
     });
@@ -249,7 +251,7 @@
 <DrillShell
   title="ii-V-I voicings"
   hue="piano"
-  blurb="Rootless jazz voicings through the keys, closest-chord inversions, and guide-tone voice leading. Untimed: take the time to find each chord."
+  blurb="Rootless jazz voicings through the keys, closest-chord inversions, cadences in every key, and guide-tone voice leading. Untimed: take the time to find each chord."
   summary={summaryLine}
   bind:phase
   bind:mode

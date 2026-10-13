@@ -233,6 +233,8 @@ export const CATALOG: CatalogEntry[] = [
         "harmony.ii-v-i",
         "harmony.ii-v-i.voice-leading",
       ]),
+      mode("cadence", "Cadences", "voicing-drill", ["harmony.keyboard-cadences"]),
+      mode("cadence-minor", "Minor cadences", "voicing-drill", ["harmony.keyboard-cadences"]),
     ],
   }),
   entry({

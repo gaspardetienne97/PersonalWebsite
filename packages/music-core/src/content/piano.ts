@@ -374,6 +374,55 @@ export function closestChords(keyPc = 0, register: [number, number] = [55, 76]):
   });
 }
 
+export interface CadenceChord extends ClosestChordBar {
+  /** Roman numeral, I IV I V7 I (major) or i iv i V7 i (minor). */
+  roman: string;
+}
+
+/**
+ * The keyboard cadence piano proficiency exams ask for in every key: I IV I V7 I
+ * (i iv i V7 i in harmonic minor), the root in the left hand and three notes in
+ * the right moving the shortest way from a root-position tonic (the V7 drops its
+ * 5th, the usual three-note keyboard voicing).
+ */
+export function cadenceChords(
+  keyPc: number,
+  minor = false,
+  register: [number, number] = [55, 76],
+): CadenceChord[] {
+  const third = minor ? 3 : 4;
+  const plan: [string, number, number[]][] = [
+    [minor ? "i" : "I", 0, [0, third, 7]],
+    [minor ? "iv" : "IV", 5, [0, third, 7]],
+    [minor ? "i" : "I", 0, [0, third, 7]],
+    ["V7", 7, [0, 4, 10]],
+    [minor ? "i" : "I", 0, [0, third, 7]],
+  ];
+  const tonic = register[0] + pc(keyPc - register[0]);
+  let rh: number[] = [];
+  return plan.map(([roman, degree, iv], bar) => {
+    const root = pc(keyPc + degree);
+    const pcs = iv.map((i) => pc(root + i));
+    const next =
+      bar === 0
+        ? { midi: [0, third, 7].map((i) => tonic + i), movement: 0 }
+        : nearestVoicing(rh, pcs, register);
+    rh = next.midi;
+    const lowest = pc(rh[0] - root);
+    return {
+      id: `cadence-${minor ? "minor" : "major"}-${FLAT_NAMES[pc(keyPc)]}-${bar + 1}`,
+      bar: bar + 1,
+      roman,
+      symbol: `${FLAT_NAMES[root]}${roman === "V7" ? "7" : minor ? "m" : ""}`,
+      rightHand: rh,
+      leftHand: 36 + pc(root - 5) + 5,
+      inversion: lowest === 0 ? 0 : lowest === 3 || lowest === 4 ? 1 : lowest === 7 ? 2 : 3,
+      expectedBassPc: pc(rh[0]),
+      movement: next.movement,
+    };
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Licks
 

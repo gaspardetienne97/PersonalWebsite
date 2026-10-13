@@ -4,6 +4,7 @@ import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
 import {
   chordScaleTargets,
+  cadenceChords,
   closestChords,
   compingScore,
   cycleTranspose,
@@ -234,5 +235,39 @@ describe("chord-scale drill", () => {
     expect(byRole("scale")).toEqual([4, 7, 11]);
     expect(byRole("avoid")).toEqual([1, 3, 6, 8, 10]);
     expect(chordScaleTargets("major", 2)[0].symbol).toBe("Em7");
+  });
+});
+
+describe("keyboard cadences", () => {
+  it("voices I IV I V7 I the textbook way: C E G, C F A, C E G, B F G, C E G", () => {
+    const c = cadenceChords(0);
+    expect(c.map((b) => b.rightHand)).toEqual([
+      [60, 64, 67],
+      [60, 65, 69],
+      [60, 64, 67],
+      [59, 65, 67],
+      [60, 64, 67],
+    ]);
+    expect(c.map((b) => b.symbol)).toEqual(["C", "F", "C", "G7", "C"]);
+    expect(c.map((b) => b.inversion)).toEqual([0, 2, 0, 1, 0]);
+    expect(c.map((b) => b.movement)).toEqual([0, 3, 3, 2, 2]);
+    // Minor: the raised leading tone in V7, Ab in iv.
+    expect(cadenceChords(0, true).map((b) => b.rightHand)).toEqual([
+      [60, 63, 67],
+      [60, 65, 68],
+      [60, 63, 67],
+      [59, 65, 67],
+      [60, 63, 67],
+    ]);
+    // Every key starts in root position inside the register, the root on the left from F2 to E3.
+    for (let k = 0; k < 12; k++) {
+      const bars = cadenceChords(k);
+      expect(bars[0].inversion).toBe(0);
+      for (const b of bars) {
+        expect(b.rightHand.every((m) => m >= 55 && m <= 76)).toBe(true);
+        expect(b.leftHand).toBeGreaterThanOrEqual(41);
+        expect(b.leftHand).toBeLessThanOrEqual(52);
+      }
+    }
   });
 });
