@@ -378,6 +378,24 @@ export const CATALOG: CatalogEntry[] = [
         "technique.mpc",
         "technique.mpc.steadiness",
       ]),
+      mode("dynamics", "Dynamics", "technique.mpc.dynamics", [
+        "technique.mpc",
+        "technique.mpc.dynamics",
+      ]),
+      mode("fills", "Fills", "technique.mpc.fills", ["technique.mpc", "technique.mpc.fills"]),
+      mode("echo", "Play it back", "technique.mpc.echo", ["technique.mpc", "technique.mpc.echo"]),
+      mode("ostinato", "Ostinato and a line", "technique.mpc.ostinato", [
+        "technique.mpc",
+        "technique.mpc.independence",
+      ]),
+      mode("orchestrate", "Rudiments on the kit", "technique.mpc.orchestrate", [
+        "technique.mpc",
+        "technique.mpc.orchestration",
+      ]),
+      mode("improvise", "Improvise", "technique.mpc.improvise", [
+        "technique.mpc",
+        "technique.mpc.improvise",
+      ]),
     ],
   }),
   entry({

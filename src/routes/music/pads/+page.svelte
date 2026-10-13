@@ -36,6 +36,7 @@
   import { laneColor, starsFor, type Judgement } from "$lib/music/drills/pads/lanes";
   import { backingChords, backingFor } from "$lib/music/drills/pads/backing";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
+  import PadSkills from "$lib/music/drills/pads/PadSkills.svelte";
 
   const cfg = new DrillSetup("pads", {
     mode: "rudiment" as string,
@@ -655,7 +656,15 @@
     ["rudiment", "Technique"],
     ["groove", "Grooves"],
     ["steady", "Hold the tempo"],
+    ["dynamics", "Dynamics"],
+    ["fills", "Fills"],
+    ["echo", "Play it back"],
+    ["ostinato", "Ostinato and a line"],
+    ["orchestrate", "Rudiments on the kit"],
+    ["improvise", "Improvise"],
   ] as const;
+  const SKILL_MODES = ["dynamics", "fills", "echo", "ostinato", "orchestrate", "improvise"] as const;
+  const skillMode = $derived(SKILL_MODES.find((m) => m === s.mode) ?? null);
   const grooveOptions = $derived(PAD_REPERTOIRE.map((r) => ({
     value: r.groove.value,
     label: `${r.groove.label}${r.groove.bars > 1 ? ` (${r.groove.bars} bars)` : ""}${bestStars[r.groove.value] ? ` ${starText(bestStars[r.groove.value])}` : ""}`,
@@ -667,6 +676,9 @@
 
 <svelte:head><title>Pads | Woodshed</title></svelte:head>
 
+{#if skillMode}
+  {#key skillMode}<PadSkills skill={skillMode} modes={MODES} onmode={setMode} />{/key}
+{:else}
 <DrillShell
   title="Pads"
   hue="mpc"
@@ -899,6 +911,7 @@
     <div class="w-full"><MidiStatus instrument="mpc" /></div>
   {/snippet}
 </DrillShell>
+{/if}
 
 <style>
   .stars-row {

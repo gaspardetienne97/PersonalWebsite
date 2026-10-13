@@ -110,6 +110,12 @@ describe("drill catalog", () => {
       "rudiment",
       "groove",
       "steady",
+      "dynamics",
+      "fills",
+      "echo",
+      "ostinato",
+      "orchestrate",
+      "improvise",
     ]);
   });
 

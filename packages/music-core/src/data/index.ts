@@ -771,6 +771,10 @@ const PAD_SKILLS: [string, string, SkillLevel][] = [
   ["dance", "House, trap and drum and bass", "advanced"],
   ["breaks", "The classic breaks", "advanced"],
   ["latin", "Latin, Caribbean and Brazilian grooves", "intermediate"],
+  ["dynamics", "Velocity on purpose: levels, crescendos, even hits", "early-intermediate"],
+  ["echo", "Playing a groove back by ear", "early-intermediate"],
+  ["orchestration", "Rudiments spread across the kit", "intermediate"],
+  ["improvise", "Improvising over a loop", "intermediate"],
 ];
 APP_SKILLS.push(
   ...PAD_SKILLS.map(([t, name, level]) => ({
