@@ -180,6 +180,8 @@ describe("piano roll voices", () => {
       [36, 0, "bass"],
       [36, 2, "bass"],
     ]);
+    // Each note names its track, so the loop can apply that track's level live.
+    expect(new Set(notes.map((n) => n.track))).toEqual(new Set([d.voices[0].id]));
   });
 });
 

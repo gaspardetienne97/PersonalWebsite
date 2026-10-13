@@ -41,6 +41,8 @@ export interface SequenceNote {
   voice?: "piano" | "drum" | "click" | "kit";
   /** Pitched notes: play on this sound instead of the playback sound setting. */
   sound?: PlaybackSound;
+  /** The track it belongs to, for a loop's live per-track `gain`. */
+  track?: string;
 }
 export interface SequenceHandle {
   /** performance.now() time at which `time: 0` sounds. */
@@ -572,6 +574,8 @@ function playLoop(opts: {
   notes: () => SequenceNote[];
   lengthSec: () => number;
   onLoop?: (perfAt: number, lengthSec: number) => void;
+  /** A track's level (0..1) read as each note is scheduled, so a fader acts within the look-ahead. */
+  gain?: (track: string | undefined) => number;
 }): SequenceHandle {
   const t = ready();
   if (!t || !graph) return idleHandle();
@@ -602,7 +606,17 @@ function playLoop(opts: {
       }
       const when = loopStart + list[i].time;
       if (when > horizon) break;
-      trigger(t, raw, voiceFor, run.bus, list[i], when);
+      const n = list[i];
+      const g = opts.gain?.(n.track) ?? 1;
+      if (g > 0)
+        trigger(
+          t,
+          raw,
+          voiceFor,
+          run.bus,
+          g === 1 ? n : { ...n, velocity: (n.velocity ?? 0.8) * g },
+          when,
+        );
       i++;
     }
   };

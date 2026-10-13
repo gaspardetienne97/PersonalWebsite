@@ -15,6 +15,8 @@ export interface RollVoice {
   /** The instrument this voice plays (default the sampled piano). */
   sound?: PlaybackSound;
   muted?: boolean;
+  /** Track level, 0..1 (unset: full). */
+  volume?: number;
   /** Repeat the first this-many bars to fill the song (unset: play as written). */
   loopBars?: number;
 }
@@ -89,6 +91,7 @@ export function rollNotes(
               duration: Math.min(n.durationBeats, end - base - n.startBeat) * beatS,
               velocity: n.velocity ?? v.velocity,
               sound: soundOf(v),
+              track: v.id,
             });
   return out;
 }

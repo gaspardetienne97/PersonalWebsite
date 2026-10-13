@@ -43,6 +43,8 @@ export interface CreateSong {
   pattern: BeatPattern;
   doc: RollDoc;
   beatMuted: boolean;
+  /** The beat's level, 0..1 (older songs: full). */
+  beatVolume?: number;
   updatedAt: number;
 }
 
@@ -74,7 +76,14 @@ const normal = (s: CreateSong): CreateSong => ({
 
 /** What a song is, without the fields that change on every edit. */
 const contentOf = (s: CreateSong) =>
-  JSON.stringify([s.name, s.bpm, { ...s.pattern, updatedAt: 0 }, s.doc, s.beatMuted]);
+  JSON.stringify([
+    s.name,
+    s.bpm,
+    { ...s.pattern, updatedAt: 0 },
+    s.doc,
+    s.beatMuted,
+    s.beatVolume ?? 1,
+  ]);
 
 function blankSong(name: string, bpm: number, starter = false): CreateSong {
   return {
@@ -91,6 +100,7 @@ function blankSong(name: string, bpm: number, starter = false): CreateSong {
     },
     doc: { ...emptyDoc(crypto.randomUUID()), bpm, title: name },
     beatMuted: false,
+    beatVolume: 1,
     updatedAt: Date.now(),
   };
 }
@@ -101,6 +111,7 @@ class CreateSession {
   pattern = $state<BeatPattern>(blankSong("", 90).pattern);
   doc = $state<RollDoc>(emptyDoc(crypto.randomUUID()));
   beatMuted = $state(false);
+  beatVolume = $state(1);
   /** The melody the piano roll edits. */
   selected = $state("");
   /** The melodies picked in the roll: shown there, and what "Play melodies" plays. */
@@ -174,6 +185,7 @@ class CreateSession {
       pattern: $state.snapshot(this.pattern),
       doc: $state.snapshot(this.doc),
       beatMuted: this.beatMuted,
+      beatVolume: this.beatVolume,
       updatedAt: Date.now(),
     };
   }
@@ -186,6 +198,7 @@ class CreateSession {
     this.pattern = s.pattern;
     this.doc = s.doc;
     this.beatMuted = s.beatMuted;
+    this.beatVolume = s.beatVolume ?? 1;
     this.selected = s.doc.voices[0]?.id ?? "";
     this.picked = s.doc.voices.map((v) => v.id);
     this.saved = !!listed;
@@ -256,9 +269,22 @@ class CreateSession {
         }
       : this.doc;
     return [
-      ...(beat ? beatNotes(this.pattern, this.bpm, bars) : []),
+      ...(beat
+        ? beatNotes(this.pattern, this.bpm, bars).map((n) => ({ ...n, track: "beat" }))
+        : []),
       ...rollNotes(doc, this.bpm, bars),
     ];
+  }
+  /** A track's level: the beat's, or a melody's (0..1). */
+  volumeOf(track: string | undefined) {
+    if (track === "beat") return this.beatVolume;
+    return this.doc.voices.find((v) => v.id === track)?.volume ?? 1;
+  }
+  /** The notes with each track's level baked into the velocity (for rendering). */
+  mixedNotes() {
+    return this.notes()
+      .map((n) => ({ ...n, velocity: (n.velocity ?? 0.8) * this.volumeOf(n.track) }))
+      .filter((n) => n.velocity > 0);
   }
   get passSec() {
     return (this.loopBars * BAR_BEATS * 60) / this.bpm;
@@ -289,6 +315,7 @@ class CreateSession {
     this.playing = true;
     this.#handle = audio.playLoop({
       notes: () => this.notes(),
+      gain: (track) => this.volumeOf(track),
       lengthSec: () => this.passSec,
       onLoop: (perfAt, len) => {
         this.passAt = perfAt;

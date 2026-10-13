@@ -1,6 +1,6 @@
 <script lang="ts">
   // The song's tracks: the beat and each melody, one row each to play it
-  // alone, name it, pick what it sounds like, mute it, and a menu.
+  // alone, name it, pick what it sounds like, set its level or mute it, and a menu.
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
   import Plus from "lucide-svelte/icons/plus";
@@ -124,6 +124,20 @@
   </Menu.Root>
 {/snippet}
 
+{#snippet fader(label: string, value: number, set: (v: number) => void)}
+  <input
+    type="range"
+    min="0"
+    max="1"
+    step="0.05"
+    class="min-h-11 w-16 accent-[var(--instr)] sm:w-24"
+    aria-label={label}
+    aria-valuetext="{Math.round(value * 100)}%"
+    {value}
+    oninput={(e) => set(e.currentTarget.valueAsNumber)}
+  />
+{/snippet}
+
 {#snippet playButton(id: TrackId, label: string, colour: string)}
   <button
     type="button"
@@ -147,9 +161,12 @@
         <span class="px-1.5 text-xs text-ws-soft">Beat, {count(hitCount(session.pattern), "hit")} over {count(barsOf(session.pattern), "bar")}{session.beatMuted ? ", muted" : ""}</span>
       </div>
       <Picker class="order-last col-span-4 sm:order-none sm:col-span-1" label="Beat kit" value={kits.kit?.id} options={kits.kits.map((k) => ({ value: k.id, label: k.name }))} onchange={pickKit} />
-      <button type="button" class={icon} aria-pressed={session.beatMuted} aria-label="{session.beatMuted ? 'Unmute' : 'Mute'} the beat" onclick={toggleBeat}>
-        {#if session.beatMuted}<VolumeOff class="size-5" aria-hidden="true" />{:else}<Volume class="size-5" aria-hidden="true" />{/if}
-      </button>
+      <div class="flex items-center">
+        <button type="button" class={icon} aria-pressed={session.beatMuted} aria-label="{session.beatMuted ? 'Unmute' : 'Mute'} the beat" onclick={toggleBeat}>
+          {#if session.beatMuted}<VolumeOff class="size-5" aria-hidden="true" />{:else}<Volume class="size-5" aria-hidden="true" />{/if}
+        </button>
+        {@render fader("Beat volume", session.beatVolume, (x) => (session.beatVolume = x))}
+      </div>
       {#snippet beatItems()}
         <Menu.Item onSelect={saveBeat}>Save beat to library</Menu.Item>
         <Menu.Item onSelect={() => goto("/music/create/kits")}>Edit sample kits</Menu.Item>
@@ -182,9 +199,12 @@
             onchange={(n) => setLoop(v, Number(n))}
           />
         </div>
-        <button type="button" class={icon} aria-pressed={!!v.muted} aria-label="{v.muted ? 'Unmute' : 'Mute'} {v.name}" onclick={() => toggleMelody(v)}>
-          {#if v.muted}<VolumeOff class="size-5" aria-hidden="true" />{:else}<Volume class="size-5" aria-hidden="true" />{/if}
-        </button>
+        <div class="flex items-center">
+          <button type="button" class={icon} aria-pressed={!!v.muted} aria-label="{v.muted ? 'Unmute' : 'Mute'} {v.name}" onclick={() => toggleMelody(v)}>
+            {#if v.muted}<VolumeOff class="size-5" aria-hidden="true" />{:else}<Volume class="size-5" aria-hidden="true" />{/if}
+          </button>
+          {@render fader(`${v.name} volume`, v.volume ?? 1, (x) => session.updateVoice(v.id, (y) => ({ ...y, volume: x })))}
+        </div>
         {#snippet melodyItems()}
           <Menu.Item disabled={!v.notes.length} onSelect={() => saveMelody(v)}>Save melody to library</Menu.Item>
           <Menu.Separator />

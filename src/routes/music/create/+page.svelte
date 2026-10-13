@@ -131,7 +131,7 @@
     announce(`Downloading ${name}: ${session.doc.voices.length} ${session.doc.voices.length === 1 ? "track" : "tracks"}, ${n} notes.`);
   }
   async function exportWav() {
-    const notes = session.notes();
+    const notes = session.mixedNotes();
     if (!notes.length) return announce("Add a few notes or beats first.");
     busy = true;
     announce("Rendering the WAV…");

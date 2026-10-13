@@ -362,6 +362,12 @@ test.describe("Create", () => {
       "true",
     );
     await expect(page.locator(".playhead")).toBeVisible();
+    // Levels, not just mutes: the melody down to 40% while it plays.
+    const melodyLevel = page.getByRole("slider", { name: "Melody 1 volume" });
+    await expect(melodyLevel).toHaveAttribute("aria-valuetext", "100%");
+    await melodyLevel.fill("0.4");
+    await expect(melodyLevel).toHaveAttribute("aria-valuetext", "40%");
+    await expect(page.getByRole("slider", { name: "Beat volume" })).toHaveValue("1");
     await song.getByRole("button", { name: "Stop", exact: true }).click();
 
     // Save puts it in your songs; nothing else does.
@@ -383,6 +389,7 @@ test.describe("Create", () => {
       page.getByRole("button", { name: "Kick, bar 3 step 1", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByLabel("Melody 1 instrument")).toHaveAttribute("data-value", "bass");
+    await expect(page.getByRole("slider", { name: "Melody 1 volume" })).toHaveValue("0.4");
     await expect(song.locator("[data-save-state]")).toHaveText("Saved");
 
     // The saved melody can join any song; that is a change to save.
