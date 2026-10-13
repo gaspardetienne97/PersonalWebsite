@@ -167,6 +167,62 @@ test.describe("guitar drills", () => {
     await shoot(page, "fingerpick-results", 1280);
   });
 
+  test("Bends by synthetic microphone: one in tune, one flat", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto(
+      "/music/fretboard?mode=bends&exercise=whole&string=3&fret=7&reps=2&instrument=guitar",
+    );
+    await expect(page.getByText("Setup:").locator("..")).toContainText(
+      "Bend a whole step on string 3, fret 7: D4 to E4",
+    );
+    await startMic(page);
+    const set = (midi: number, cents = 0) =>
+      page.evaluate(
+        (f) => (window as any).__mic.set(f),
+        440 * 2 ** ((midi - 69 + cents / 100) / 12),
+      );
+    await set(62);
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("1 of 2: pick D4");
+    await page.waitForTimeout(300);
+    await set(62, 190); // 10 cents short of E4: in tune
+    await expect(page.getByRole("status")).toContainText("In tune", { timeout: 6000 });
+    await set(62);
+    await expect(page.getByRole("status")).toContainText("2 of 2: pick D4", { timeout: 4000 });
+    await page.waitForTimeout(300);
+    await set(62, 160); // 40 cents short: flat
+    await expect(page.getByRole("status")).toContainText("1 of 2 in tune", { timeout: 8000 });
+    await expect(page.getByRole("article")).toContainText(/flat, -\d+ cents/);
+    await page.evaluate(() => (window as any).__mic.set(0));
+    await shoot(page, "bends-results", 1280);
+  });
+
+  test("Vibrato by synthetic microphone: rate and width measured", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto(
+      "/music/fretboard?mode=bends&exercise=vibrato&string=2&fret=8&reps=2&instrument=guitar",
+    );
+    await startMic(page);
+    // G4 on string 2 fret 8, wobbling 30 cents either way at 5 a second.
+    await page.evaluate(() => {
+      const t0 = performance.now();
+      (window as any).__wobble = setInterval(() => {
+        const c = 30 * Math.sin((2 * Math.PI * 5 * (performance.now() - t0)) / 1000);
+        (window as any).__mic.set(440 * 2 ** ((67 - 69 + c / 100) / 12));
+      }, 20);
+    });
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText(/Vibrato at about \d\.\d a second/, {
+      timeout: 15_000,
+    });
+    await page.evaluate(() => {
+      clearInterval((window as any).__wobble);
+      (window as any).__mic.set(0);
+    });
+  });
+
   test("Positions box 1 runs by synthetic microphone", async ({ page }) => {
     await page.goto(
       "/music/fretboard?mode=positions&pattern=minor-pentatonic-box-1&rootFret=5&instrument=guitar&bpm=60",

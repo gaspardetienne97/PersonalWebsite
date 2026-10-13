@@ -101,6 +101,7 @@ describe("drill catalog", () => {
       "positions",
       "note-finder",
       "interval-recall",
+      "bends",
     ]);
     expect(CATALOG.find((e) => e.id === "chords")!.modes).toHaveLength(5);
     expect(CATALOG.find((e) => e.id === "aerophone")!.modes).toHaveLength(5);

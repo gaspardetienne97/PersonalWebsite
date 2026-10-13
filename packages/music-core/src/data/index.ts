@@ -792,6 +792,22 @@ APP_SKILLS.push(
     version: 1,
   },
   {
+    id: "technique.bends",
+    name: "Bends to pitch",
+    capability: "technique",
+    level: "early-intermediate",
+    tags: ["guitar", "bends"],
+    version: 1,
+  },
+  {
+    id: "technique.vibrato",
+    name: "Vibrato",
+    capability: "technique",
+    level: "intermediate",
+    tags: ["guitar", "ukulele", "vibrato"],
+    version: 1,
+  },
+  {
     id: "technique.fingerpicking",
     name: "Fingerpicking patterns (Travis, p i m a, ukulele)",
     capability: "technique",
