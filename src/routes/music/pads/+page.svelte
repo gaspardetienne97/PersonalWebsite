@@ -53,6 +53,8 @@
     wait: false as boolean,
     // A small band under the groove (chords by style, bass on the kick).
     backing: false as boolean,
+    // The groove list: by level (difficulty) or by style (rock, funk, Latin and Caribbean...).
+    listBy: "level" as string,
   });
   const s = $derived(cfg.value);
   // Path steps carry their tempo (?bpm=); the practice strip owns it from then on.
@@ -174,7 +176,7 @@
   // The highway: lanes, notes, live judgements, streak.
 
   /** Top to bottom as drum notation reads: cymbals, hats, toms, snare, kick. */
-  const LANE_ORDER = ["crash", "ride", "openhat", "hats", "pedalhat", "tom-high", "tom-mid", "perc", "rim", "snare", "tom-low", "kick", "808"];
+  const LANE_ORDER = ["crash", "ride", "cowbell", "openhat", "hats", "pedalhat", "tom-high", "tom-mid", "perc", "rim", "snare", "tom-low", "kick", "808"];
   const lanes = $derived<HighwayLane[]>(
     isGroove
       ? LANE_ORDER.filter((v) => groove.targets.some((t) => t.voice === v)).map((v) => ({ id: v, label: voiceName(v), color: laneColor(v) }))
@@ -657,8 +659,8 @@
   const grooveOptions = $derived(PAD_REPERTOIRE.map((r) => ({
     value: r.groove.value,
     label: `${r.groove.label}${r.groove.bars > 1 ? ` (${r.groove.bars} bars)` : ""}${bestStars[r.groove.value] ? ` ${starText(bestStars[r.groove.value])}` : ""}`,
-    group: `Level ${r.level}: ${PAD_LEVELS.find((l) => l.level === r.level)!.title}`,
-  })));
+    group: s.listBy === "style" ? r.style : `Level ${r.level}: ${PAD_LEVELS.find((l) => l.level === r.level)!.title}`,
+  })).sort((a, b) => (s.listBy === "style" ? a.group.localeCompare(b.group) : 0)));
   const padOptions = Array.from({ length: 16 }, (_, i) => ({ value: 36 + i, label: `${padLabel(36 + i)} (${36 + i})` }));
   const voiceName = (id: string) => GROOVE_VOICES.find((v) => v.id === id)?.name ?? id;
 </script>
@@ -693,6 +695,7 @@
           <Picker label="Groove to hold" value={s.steady} options={grooveOptions.filter((o) => (repertoireFor(o.value)?.level ?? 9) <= 3)} onchange={(v) => pickGroove(v, "steady")} />
         </div>
       {:else if isGroove}
+        <Choice label="List grooves by" options={[{ value: "level", label: "Level" }, { value: "style", label: "Style" }]} value={s.listBy} onchange={(v) => cfg.set({ listBy: v })} />
         <div class="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2">
           <span class="font-medium">Groove</span>
           <Picker label="Groove" value={entry.groove.value} options={grooveOptions} onchange={(v) => pickGroove(v)} />

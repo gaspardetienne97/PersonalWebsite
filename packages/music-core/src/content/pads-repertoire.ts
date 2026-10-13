@@ -17,7 +17,8 @@ export type GrooveTopic =
   | "fills"
   | "swing"
   | "dance"
-  | "breaks";
+  | "breaks"
+  | "latin";
 
 export interface RepertoireGroove {
   groove: GrooveDef;
@@ -525,6 +526,177 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     feel: "The snare answers itself on the & of 3 and the a of 4 (tempo approximate).",
     fingers: SPLIT,
   },
+  // Latin, Caribbean and Brazilian (MusicRadar, Modern Drummer, DRUM!, Native Instruments,
+  // Caceres, Ferrari and Palombini 2014 for the tamborzão; see docs/research/finger-drumming.md).
+  {
+    groove: gridGroove("reggaeton", "Reggaeton", {
+      kick: "X...x...X...x...",
+      snare: "...x..x....x..x.",
+      hats: "x...x...x...x...",
+      "tom-low": "x.......x.......",
+    }),
+    level: 2,
+    style: "Reggaeton",
+    topic: "latin",
+    bpm: { start: 80, target: 95 },
+    feel: "The dembow: a kick on every beat, the snare's 3+3+2 over it, a deep tom on 1 and 3.",
+    fingers:
+      "Left index the kick, right index the snare, left middle the tom, right middle the hat.",
+  },
+  {
+    groove: gridGroove("dancehall", "Dancehall", {
+      kick: "X..x....X..x....",
+      snare: "......X.......X.",
+      hats: EIGHTHS,
+    }),
+    level: 2,
+    style: "Dancehall",
+    topic: "latin",
+    bpm: { start: 85, target: 95 },
+    feel: "The 3+3+2 split between kick (1 and the a of 1, 3 and the a of 3) and snare (the & of 2 and 4).",
+    fingers: SPLIT,
+  },
+  {
+    groove: gridGroove("steppers", "Reggae steppers", {
+      kick: "X...x...X...x...",
+      rim: "........x.......",
+      hats: EIGHTHS,
+    }),
+    level: 2,
+    style: "Reggae",
+    topic: "latin",
+    bpm: { start: 65, target: 80 },
+    feel: "A kick on every beat under the cross-stick on 3: the marching reggae beat.",
+    fingers: "Left index the kick, left middle the rim, right hand the hats.",
+  },
+  {
+    groove: gridGroove("cumbia", "Cumbia", {
+      kick: "X...x...X...x...",
+      rim: "....x.......x...",
+      hats: "x.xxx.xxx.xxx.xx",
+    }),
+    level: 2,
+    style: "Cumbia",
+    topic: "latin",
+    bpm: { start: 70, target: 88 },
+    feel: "The guacharaca on the hats (one on the beat, two on the & and a), the llamador on 2 and 4. Players put the kick on every beat, on 2 and 4, or a tumbao: this one keeps it on the beat.",
+    fingers: "Right index and middle the guacharaca; left index kick, left middle rim.",
+  },
+  {
+    groove: gridGroove("one-drop", "Reggae one drop", {
+      kick: "........X.......",
+      rim: "........x.......",
+      hats: "..x.x.x.x.x.x...",
+      openhat: "..............x.",
+    }),
+    level: 3,
+    style: "Reggae",
+    topic: "latin",
+    bpm: { start: 65, target: 80 },
+    feel: "Nothing on 1: kick and cross-stick drop together on 3 of a half-time bar, an open hat leading into the next. Often played with a shuffle.",
+    fingers: "Left index the kick, left middle the rim, right hand the hats.",
+  },
+  {
+    groove: gridGroove("tamborzao", "Brazilian funk (tamborzão)", {
+      kick: "X.....x.........",
+      "tom-mid": "x.......x.......",
+      "tom-low": "............x...",
+      "tom-high": "...x..x.........",
+    }),
+    level: 3,
+    style: "Baile funk",
+    topic: "latin",
+    bpm: { start: 110, target: 130 },
+    feel: '"Tum pa-pá pum pá": a tresillo of drum skins (1, the a of 1, the & of 2) answered on 3 and 4, no hats, no snare. DJ Luciano Oliveira\'s own reduction.',
+    fingers:
+      "Left index the kick and rack tom, right index and middle the conga (high tom), left middle the floor tom.",
+  },
+  {
+    groove: gridGroove("bossa-nova", "Bossa nova", {
+      kick: "X.....g.X.....g.|X.....g.X.....g.",
+      hats: `${EIGHTHS}|${EIGHTHS}`,
+      pedalhat: "....x.......x...|....x.......x...",
+      rim: "x.....x.....x...|....x.....x.....",
+    }),
+    level: 4,
+    style: "Bossa nova",
+    topic: "latin",
+    bpm: { start: 100, target: 120 },
+    feel: "The surdo on the kick (soft pushes before 1 and 3), and the bossa clave on the cross-stick over two bars.",
+    fingers:
+      "Right hand the hats; left index the kick, left middle the rim; the pedal hat with a spare finger on 2 and 4.",
+  },
+  {
+    groove: gridGroove("soca", "Soca", {
+      kick: "X...x...X...x...",
+      snare: "...x..x....x..x.",
+      hats: "xx..xx..xx..xx..",
+      openhat: "..x...x...x...x.",
+    }),
+    level: 4,
+    style: "Soca",
+    topic: "latin",
+    bpm: { start: 105, target: 125 },
+    feel: "Four on the floor with the 3+3+2 snare and an open hat sizzling on every &. (Teachers vary the hats: this is Boston Drum Lessons' version.)",
+    fingers:
+      "Right index and middle the hats, opening on the &; left index kick, left middle snare.",
+  },
+  {
+    groove: gridGroove("zouk", "Zouk", {
+      kick: "X.......x.....x.",
+      snare: "....X.......X...",
+      hats: "XgXgXgXgXgXgXgXg",
+      rim: "x...x.x...x.x...",
+    }),
+    level: 4,
+    style: "Zouk",
+    topic: "latin",
+    bpm: { start: 100, target: 125 },
+    feel: "Sixteenth hats, loud and soft; the tibwa's cinquillo on the rim; snare only on 2 and 4.",
+    fingers:
+      "Right index and middle the hats (index loud, middle soft); left index kick, left middle snare, left ring rim.",
+  },
+  {
+    groove: gridGroove("kompa", "Kompa (provisional)", {
+      cowbell: "X..XX...X.X.X...|X..XX...X.X.X...",
+      hats: "x.xx.x..x.xx.x..|x.xx.x..x.xx.x..",
+      openhat: "......x.......x.|......x.......x.",
+      "tom-low": "............x...|............x...",
+    }),
+    level: 4,
+    style: "Kompa",
+    topic: "latin",
+    bpm: { start: 90, target: 110 },
+    feel: "The cowbell is the metronome of kompa, the gong (a muffled floor tom) on 4. Provisional: one band player's notation; tempo not documented.",
+    fingers: "Right index the cowbell, right middle the hats; left index the floor tom.",
+  },
+  {
+    groove: gridGroove("funk-150", "Brazilian funk, 150 BPM", {
+      kick: "X.....x...x.....",
+      "tom-mid": "x.......x.......",
+      "tom-low": "............x...",
+      "tom-high": "...x..x.........",
+    }),
+    level: 5,
+    style: "Baile funk",
+    topic: "latin",
+    bpm: { start: 130, target: 150 },
+    feel: "The tamborzão sped up to 150 (2016 on), with DJ Sany Pitbull's extra kick on the & of 3.",
+    fingers: "As the tamborzão, lighter on the fingers.",
+  },
+  {
+    groove: gridGroove("samba", "Samba", {
+      kick: "x..Xx..xx..Xx..x",
+      hats: "xxx.xxx.xxx.xxx.",
+      pedalhat: "..x...x...x...x.",
+    }),
+    level: 5,
+    style: "Samba",
+    topic: "latin",
+    bpm: { start: 90, target: 110 },
+    feel: "The surdo on the kick (the first and last sixteenth of each beat), a busy hat line and the pedal hat on every &. Tempo approximate.",
+    fingers: "Left index and middle the kick figure, right hand the hats, left ring the pedal hat.",
+  },
 ];
 
 export const repertoireFor = (id: string) => PAD_REPERTOIRE.find((r) => r.groove.value === id);
@@ -538,6 +710,7 @@ export const TOPICS: GrooveTopic[] = [
   "swing",
   "dance",
   "breaks",
+  "latin",
 ];
 
 /** The closest two hits on one pad get, in ms: a roll's spacing, or a sixteenth. */

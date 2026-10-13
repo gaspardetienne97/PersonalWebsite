@@ -22,6 +22,15 @@ const BY_STYLE: Record<string, { chords: string[]; keys: "e-piano" | "pad" | "sy
   "Drum and bass": { chords: ["Am9", "Fmaj7"], keys: "pad" },
   Afrobeats: { chords: ["F#m7", "Bm7", "E", "A"], keys: "synth" },
   Afrobeat: { chords: ["Am7", "D9"], keys: "e-piano" },
+  Dancehall: { chords: ["Gm", "Eb", "F", "Gm"], keys: "synth" },
+  Reggae: { chords: ["Am", "D"], keys: "e-piano" },
+  Cumbia: { chords: ["Am", "E7"], keys: "e-piano" },
+  "Baile funk": { chords: ["Em", "Em", "C", "D"], keys: "synth" },
+  "Bossa nova": { chords: ["Cmaj7", "D7", "Dm7", "G7"], keys: "e-piano" },
+  Soca: { chords: ["C", "F", "G", "F"], keys: "synth" },
+  Zouk: { chords: ["Am", "Dm", "G", "C"], keys: "synth" },
+  Kompa: { chords: ["C", "Am", "F", "G"], keys: "e-piano" },
+  Samba: { chords: ["Am7", "D7", "Gmaj7", "E7"], keys: "e-piano" },
 };
 
 /** The chords a style plays over, a bar each. */

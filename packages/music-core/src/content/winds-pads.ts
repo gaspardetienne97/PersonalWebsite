@@ -296,6 +296,8 @@ export const GROOVE_VOICES = [
   { id: "tom-high", name: "High tom", midi: 48 },
   { id: "crash", name: "Crash", midi: 49 },
   { id: "ride", name: "Ride", midi: 51 },
+  // GM's cowbell (56) is off bank A: the app's kit puts it on A12.
+  { id: "cowbell", name: "Cowbell", midi: 47 },
 ] as { id: DrumVoiceId; name: string; midi: number }[];
 const kitNotes = GROOVE_VOICES.map((v) => v.midi);
 /** Accepted pad range, widened for the 808 below bank A. */

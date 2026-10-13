@@ -50,6 +50,16 @@ describe("finger-drumming repertoire", () => {
         .filter((t) => t.voice === "snare")
         .map((t) => `${Math.round(t.beat * 4) / 4}:${t.accent}`),
     ).toEqual(["1:accent", "1.75:ghost", "2.5:ghost", "3:accent"]);
+    // The Latin grooves: the dembow snare (3+3+2), the tamborzão's tresillo, the kompa bell.
+    const on = (id: string, voice: string) =>
+      repertoireFor(id)!
+        .groove.targets.filter((t) => t.voice === voice)
+        .map((t) => t.beat);
+    expect(on("reggaeton", "snare")).toEqual([0.75, 1.5, 2.75, 3.5]);
+    expect(on("tamborzao", "kick")).toEqual([0, 1.5]);
+    expect(on("tamborzao", "tom-high")).toEqual([0.75, 1.5]);
+    expect(on("kompa", "cowbell").slice(0, 6)).toEqual([0, 0.75, 1, 2, 2.5, 3]);
+    expect(repertoireFor("kompa")!.feel).toMatch(/provisional/i);
     // Tony Allen: kicks in pairs, on 1 and 1e, 3 and 3e.
     expect(
       repertoireFor("tony-allen")!

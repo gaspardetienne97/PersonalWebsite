@@ -15,6 +15,7 @@ const HUE: Record<string, number> = {
   "tom-low": 265,
   ride: 290,
   crash: 315,
+  cowbell: 95,
   // Rudiments: the two hands, and both fingers on one pad.
   left: 250,
   right: 40,

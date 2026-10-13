@@ -269,7 +269,8 @@ function hiss(
   src.stop(end);
 }
 
-const TOMS: Record<number, number> = { 41: 95, 43: 115, 45: 135, 47: 155, 48: 185, 50: 215 };
+// 47 is the kit's cowbell (pad A12): GM puts it on 56, off bank A, and kompa and the Latin grooves need one.
+const TOMS: Record<number, number> = { 41: 95, 43: 115, 45: 135, 48: 185, 50: 215 };
 
 /** GM-ish synth kit for pads without samples. */
 function drumHit(
@@ -341,6 +342,10 @@ function drumHit(
         decay: 1.2,
         peak: 0.3 * v,
       });
+    case 47:
+    case 56: // cowbell: two detuned squares, short (the drum-machine bell)
+      tone(t, raw, out, { ...at, type: "square", f0: 562, decay: 0.22, peak: 0.22 * v });
+      return tone(t, raw, out, { ...at, type: "square", f0: 845, decay: 0.16, peak: 0.16 * v });
     case 51:
     case 53:
     case 59: // ride

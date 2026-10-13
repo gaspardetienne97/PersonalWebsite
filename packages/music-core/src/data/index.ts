@@ -202,7 +202,8 @@ export type DrumVoiceId =
   | "tom-mid"
   | "tom-high"
   | "crash"
-  | "ride";
+  | "ride"
+  | "cowbell";
 export interface DrumVoice {
   id: DrumVoiceId;
   name: string;
@@ -769,6 +770,7 @@ const PAD_SKILLS: [string, string, SkillLevel][] = [
   ["swing", "Swing by hand", "intermediate"],
   ["dance", "House, trap and drum and bass", "advanced"],
   ["breaks", "The classic breaks", "advanced"],
+  ["latin", "Latin, Caribbean and Brazilian grooves", "intermediate"],
 ];
 APP_SKILLS.push(
   ...PAD_SKILLS.map(([t, name, level]) => ({

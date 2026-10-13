@@ -98,6 +98,22 @@ test.describe("finger-drumming repertoire", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText("85 BPM");
   });
 
+  test("kompa: the cowbell gets its own lane, and the groove passes", async ({ page }) => {
+    test.setTimeout(60_000);
+    await installFakeMidi(page, [PORTS.keys]);
+    await enableMidi(page, "/music/pads?mode=groove&groove=kompa&bpm=90");
+    await expect(page.getByLabel("About this groove")).toContainText("Provisional");
+    await page.getByRole("button", { name: /^Start/ }).click();
+    await playGroove(page);
+    const highway = page.getByRole("img", { name: /notes coming up$/ });
+    await expect(highway).toContainText("Cowbell");
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${SHOTS}/kompa-highway-1280.png` });
+    await expect(page.getByRole("status")).toContainText("Passed level 4 at 90 BPM", {
+      timeout: 20_000,
+    });
+  });
+
   test("hold the tempo: four bars with the click, eight on your own", async ({ page }) => {
     test.setTimeout(60_000);
     await installFakeMidi(page, [PORTS.keys]);
