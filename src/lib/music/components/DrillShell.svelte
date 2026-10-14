@@ -242,9 +242,9 @@
         </h1>
         {#if blurb}<p class="mt-1 max-w-prose text-ws-soft">{blurb}</p>{/if}
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        {#if checkable}
-          <div class="flex flex-col items-end gap-0.5">
+      <div class="flex flex-col items-start gap-1 sm:items-end">
+        <div class="flex flex-wrap items-center gap-2">
+          {#if checkable}
             <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label="Mode" aria-describedby="mode-note">
               {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
                 <button
@@ -255,19 +255,19 @@
                 >
               {/each}
             </div>
-            <p id="mode-note" class="max-w-64 text-right text-xs text-ws-soft">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
-          </div>
-        {/if}
-        {#if ondemo && mode !== "check"}
-          <button
-            type="button"
-            class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised"
-            aria-pressed={demoPlaying}
-            onclick={ondemo}
-          >
-            <Headphones class="size-4" aria-hidden="true" />{demoPlaying ? "Stop demo" : "Hear it first"}
-          </button>
-        {/if}
+          {/if}
+          {#if ondemo && (mode !== "check" || demoPlaying)}
+            <button
+              type="button"
+              class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised"
+              aria-pressed={demoPlaying}
+              onclick={ondemo}
+            >
+              <Headphones class="size-4" aria-hidden="true" />{demoPlaying ? "Stop demo" : "Hear it first"}
+            </button>
+          {/if}
+        </div>
+        {#if checkable}<p id="mode-note" class="max-w-80 text-xs text-ws-soft sm:text-right">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>{/if}
       </div>
     </header>
 

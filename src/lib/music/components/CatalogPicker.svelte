@@ -37,6 +37,9 @@
   let { label, items, value, onchange, recentKey, disabled = false, noun = "item", setupKey }: Props = $props();
 
   let open = $state(false);
+  // The sheet renders inside the app's root, where its colours are defined (as Picker's list does).
+  let trigger = $state<HTMLButtonElement>();
+  const portalTo = $derived(trigger?.closest<HTMLElement>(".woodshed") ?? undefined);
   let query = $state("");
   let group = $state<string | null>(null);
   let recent = $state<T[]>([]);
@@ -74,6 +77,7 @@
 <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup={setupKey}>
   <span class="font-medium">{label}</span>
   <button
+    bind:this={trigger}
     type="button"
     class="flex min-h-11 w-full items-center gap-3 rounded-lg border border-ws-line bg-ws-surface px-3 py-2 text-left hover:bg-ws-raised disabled:opacity-50"
     {disabled}
@@ -93,15 +97,15 @@
 </div>
 
 <Sheet.Root bind:open>
-  <Sheet.Content side="right" class="flex w-full flex-col gap-3 bg-ws-surface p-4 text-ws-ink sm:max-w-md">
+  <Sheet.Content portalProps={{ to: portalTo }} side="right" class="flex w-full flex-col gap-3 bg-ws-surface p-4 text-ws-ink sm:max-w-md">
     <Sheet.Header class="p-0">
       <Sheet.Title class="font-display text-xl">{label}</Sheet.Title>
       <Sheet.Description class="text-sm text-ws-soft">{items.length} to choose from.</Sheet.Description>
     </Sheet.Header>
-    <label class="flex min-h-11 items-center gap-2 rounded-lg border border-ws-line bg-ws-bg px-3">
+    <label class="flex min-h-11 items-center gap-2 rounded-lg border border-ws-line bg-ws-bg px-3 focus-within:border-instr focus-within:ring-2 focus-within:ring-instr/40">
       <Search class="size-4 text-ws-soft" aria-hidden="true" />
       <span class="sr-only">Search</span>
-      <input class="min-w-0 flex-1 bg-transparent text-sm outline-none" type="search" placeholder="Search {noun}s" bind:value={query} />
+      <input class="min-w-0 flex-1 bg-transparent text-sm outline-none focus-visible:outline-none" type="search" placeholder="Search {noun}s" bind:value={query} />
     </label>
     {#if groups.length > 1}
       <div class="flex flex-wrap gap-1.5" role="group" aria-label="Filter">

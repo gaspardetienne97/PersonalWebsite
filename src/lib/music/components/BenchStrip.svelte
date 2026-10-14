@@ -76,14 +76,18 @@
   });
 
   const untimed = $derived(!bench.timed);
+  // Popovers render inside the app's root, where its colours are defined (as Picker's do).
+  let root = $state<HTMLElement>();
+  const portalTo = $derived(root?.closest<HTMLElement>(".woodshed") ?? undefined);
   const pill =
     "flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-3 text-sm disabled:opacity-60";
   /** Secondary controls: behind More on a phone, inline from sm up. */
   const extra = $derived(more ? "" : "max-sm:hidden");
 </script>
 
-<div class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12'}">
-  <div class="flex flex-wrap items-center gap-2 px-4 py-2 sm:px-6 lg:px-8" role="group" aria-label="Practice controls">
+<div bind:this={root} class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12'}">
+  <!-- One row from sm up (scrolling only if it must), so pills that come and go never change the strip's height mid-click. -->
+  <div class="flex flex-wrap items-center gap-2 px-4 py-2 sm:flex-nowrap sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label="Practice controls">
     <div class="{pill.replace('border-ws-line', 'border-instr border-2')} relative pr-2">
       <Picker
         class="w-auto min-w-28 pr-1"
@@ -120,7 +124,7 @@
         <span class="tnum font-display text-base font-semibold">{s.bpm}</span>
         <span class="text-ws-soft">BPM</span>
       </Popover.Trigger>
-      <Popover.Content class="w-64">
+      <Popover.Content portalProps={{ to: portalTo }} class="w-64 border-ws-line bg-ws-surface text-ws-ink">
         <label class="flex items-center justify-between gap-3 text-sm font-medium">
           Tempo
           <input
@@ -152,7 +156,7 @@
         <span class="font-semibold">{s.countInBars === 0 ? "Off" : `${s.countInBars} bar${s.countInBars > 1 ? "s" : ""}`}</span>
         {#if untimed}<span class="sr-only">, not used here</span>{/if}
       </Popover.Trigger>
-      <Popover.Content class="w-60">
+      <Popover.Content portalProps={{ to: portalTo }} class="w-60 border-ws-line bg-ws-surface text-ws-ink">
         <p class="text-sm font-medium">Count-in before a run</p>
         <div class="mt-2 grid grid-cols-3 gap-1.5">
           {#each [0, 1, 2] as const as n (n)}
@@ -171,7 +175,7 @@
           <span>Tuning</span>
           <span class="font-semibold">{tuningName}</span>
         </Popover.Trigger>
-        <Popover.Content class="w-80">
+        <Popover.Content portalProps={{ to: portalTo }} class="w-80 border-ws-line bg-ws-surface text-ws-ink">
           <TuningPicker
             instrument={fretted}
             value={tuningId}
@@ -181,7 +185,7 @@
       </Popover.Root>
     {/if}
 
-    <span class="flex min-h-11 shrink-0 items-center gap-1 px-1 {extra}" aria-hidden="true" title="Beat">
+    <span class="min-h-11 shrink-0 items-center gap-1 px-1 {bench.running || bench.countingIn ? 'flex' : 'hidden'} {extra}" aria-hidden="true" title="Beat">
       {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
         <span
           class="size-2.5 rounded-full transition-transform {bench.beat === b
@@ -216,8 +220,8 @@
 
     <button type="button" class="{pill} {extra}" onclick={() => palette.open()} aria-label="Search" aria-keyshortcuts="Meta+K Control+K">
       <Search class="size-4" aria-hidden="true" />
-      <span class="hidden sm:inline">Search</span>
-      <kbd class="hidden rounded border border-ws-line px-1 text-xs text-ws-soft sm:inline">⌘K</kbd>
+      <span class="hidden xl:inline">Search</span>
+      <kbd class="hidden rounded border border-ws-line px-1 text-xs text-ws-soft xl:inline">⌘K</kbd>
     </button>
 
     <button type="button" class="{pill} sm:hidden" aria-expanded={more} onclick={() => (more = !more)}>
