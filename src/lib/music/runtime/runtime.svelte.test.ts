@@ -350,6 +350,45 @@ describe("microphone kept on from the strip", () => {
   });
 });
 
+describe("microphone started twice at once", () => {
+  it("keeps one pipeline: the later start wins and frames arrive once", async () => {
+    const rate = async () => {
+      let n = 0;
+      const off = mic.subscribeFrames(() => n++);
+      await new Promise((r) => setTimeout(r, 800));
+      off();
+      return n;
+    };
+    // A real microphone takes a moment to open: the second start lands while the first waits.
+    const gen = new AudioContext();
+    const slowMic = async () => {
+      await new Promise((r) => setTimeout(r, 150));
+      const osc = gen.createOscillator();
+      const dest = gen.createMediaStreamDestination();
+      osc.connect(dest);
+      osc.start();
+      return dest.stream;
+    };
+    const spy = vi.spyOn(navigator.mediaDevices, "getUserMedia").mockImplementation(slowMic);
+    const button = document.body.appendChild(document.createElement("button"));
+    let both: Promise<boolean[]> | undefined;
+    button.onclick = () => (both = Promise.all([mic.start(), mic.start()]));
+    await userEvent.click(button);
+    expect(await both).toEqual([false, true]);
+    const twice = await rate();
+    mic.stop();
+    button.onclick = () => void mic.start();
+    await userEvent.click(button);
+    await expect.poll(() => mic.state).toBe("on");
+    const once = await rate();
+    button.remove();
+    mic.stop();
+    spy.mockRestore();
+    await gen.close();
+    expect(twice).toBeLessThan(once * 1.4);
+  });
+});
+
 describe("microphone re-attacks", () => {
   it("hears the same note picked three times as three notes", async () => {
     const seen: InputEvent[] = [];

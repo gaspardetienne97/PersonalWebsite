@@ -28,6 +28,7 @@
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
+  import { nearMiss } from "@repo/music-core/signal/pitch";
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
@@ -210,11 +211,25 @@
         stepStart = e.at - 60;
         if (stepIndex >= steps.length) void finish();
       }
-    } else if (mode === "practice") {
-      flashes.add(e.midi, "wrong");
+    } else {
+      if (mode === "practice") flashes.add(e.midi, "wrong");
+      // A quarter tone off rounds to the next note: say it is the tuning, not the playing.
+      const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, expected) : null;
+      if (miss) {
+        detuned = [...detuned, miss];
+        status = `That ${noteName(miss.midi, "flat", false)} is ${Math.abs(miss.cents)} cents ${miss.cents > 0 ? "sharp" : "flat"}, so it reads as ${noteName(e.midi, "flat", false)}. Your ${inst} may need tuning.`;
+        // Practice moves on past a single out-of-tune note (it still scores as missed); Check waits.
+        if (mode === "practice" && expected.length === 1) {
+          stepIndex += 1;
+          stepStart = e.at - 60;
+          if (stepIndex >= steps.length) void finish();
+        }
+      }
     }
   }
   let stepStart = 0;
+  /** Notes heard close to the target but out of tune, this run. */
+  let detuned: { midi: number; cents: number }[] = [];
 
   // The line written out above the instrument (tab on guitar and ukulele, a staff otherwise), its cursor on the step.
   const frets = $derived(linePositions(inst, all));
@@ -234,6 +249,7 @@
     summary = null;
     result = null;
     stepIndex = 0;
+    detuned = [];
     flashes.clear();
     const beatMs = ctx.beatMs;
     stepStart = ctx.downbeat - beatMs / 2;
@@ -306,7 +322,9 @@
               : `Clean and even at ${bpm()} BPM. One more clean check here unlocks ${Math.min(180, after.unlockedBpm + 10)}.`
             : `Clean at ${bpm()} BPM. Try it in Check to count it.`
         : r.pitch < 0.9
-          ? `${r.clean} of ${r.total} notes right. Slow down and let the pitch settle first.`
+          ? detuned.length
+            ? `${r.clean} of ${r.total} notes right. ${[...new Set(detuned.map((d) => noteName(d.midi, "flat", false)))].join(" and ")} sounded about ${Math.round(detuned.reduce((a, d) => a + Math.abs(d.cents), 0) / detuned.length)} cents out: tune your ${inst} in Tuner, then try again.`
+            : `${r.clean} of ${r.total} notes right. Slow down and let the pitch settle first.`
           : `Every note right, but the spacing wandered by ${Math.round(r.evennessErrorMs)} ms. Keep it even.`,
       metric: pct(r.score),
       metricLabel: "score",

@@ -6,6 +6,7 @@ import {
   createIntonationStats,
   createTunerReader,
   mpm,
+  nearMiss,
   type PitchReading,
 } from "./pitch";
 
@@ -201,5 +202,17 @@ describe("intonation stats", () => {
     s.push(null, 2400);
     expect(s.stats().holdSeconds).toBe(0);
     expect(s.stats().trace.at(-1)).toEqual({ at: 2400, cents: null });
+  });
+});
+
+describe("nearMiss", () => {
+  it("names a note heard a quarter tone off as out of tune, not wrong", () => {
+    // A G string 50 cents sharp: C4 at fret 5 sounds as C#4, 45 cents flat.
+    expect(nearMiss(61, -45, [60, 62])).toEqual({ midi: 60, cents: 55 });
+    expect(nearMiss(63, -40, [62])).toEqual({ midi: 62, cents: 60 });
+    // A right note, a clean wrong note and a note with no cents are not near misses.
+    expect(nearMiss(60, 30, [60])).toBeNull();
+    expect(nearMiss(61, 5, [60])).toBeNull();
+    expect(nearMiss(61, undefined, [60])).toBeNull();
   });
 });

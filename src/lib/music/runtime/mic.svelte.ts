@@ -104,6 +104,7 @@ let peak = $state(LEVEL_FLOOR_DB);
 let advice = $state.raw<ReturnType<typeof levelAdvice> | undefined>();
 let pitch = $state.raw<MicPitch | null>(null);
 let pinned = $state(false);
+let startToken = 0;
 let liveDevice: string | undefined | null = null;
 let devices = $state.raw<{ deviceId: string; label: string }[]>([]);
 
@@ -244,6 +245,10 @@ async function start(
   // Already on for the strip with this input: nothing to restart.
   if (pinned && state === "on" && !opts.stream && wanted === liveDevice) return true;
   if (state === "on" || state === "starting") halt();
+  // A newer start (or a stop) while this one awaits wins: this one backs out
+  // without touching the newer pipeline, so two never run at once.
+  const token = ++startToken;
+  const stale = () => token !== startToken;
   state = "starting";
   error = "";
   try {
@@ -254,7 +259,7 @@ async function start(
       if (!navigator.mediaDevices?.getUserMedia)
         throw new Error("This browser has no microphone access.");
       const deviceId = wanted;
-      stream = await navigator.mediaDevices.getUserMedia({
+      const got = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: settings.value.echoCancellation,
           autoGainControl: false,
@@ -264,27 +269,35 @@ async function start(
           ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
         },
       });
+      if (stale()) {
+        got.getTracks().forEach((t) => t.stop());
+        return false;
+      }
+      stream = got;
       ownsStream = true;
     }
-    ctx = new AudioContext();
-    await ctx.resume();
+    const own = new AudioContext();
+    ctx = own;
+    await own.resume();
     const url = URL.createObjectURL(new Blob([WORKLET], { type: "text/javascript" }));
     try {
-      await ctx.audioWorklet.addModule(url);
+      await own.audioWorklet.addModule(url);
     } finally {
       URL.revokeObjectURL(url);
     }
-    node = new AudioWorkletNode(ctx, "woodshed-capture", { numberOfInputs: 1, numberOfOutputs: 0 });
+    if (stale()) return false;
+    node = new AudioWorkletNode(own, "woodshed-capture", { numberOfInputs: 1, numberOfOutputs: 0 });
     node.port.onmessage = (e) => onFrame(e.data);
-    onsets = createOnsetDetector(ctx.sampleRate);
+    onsets = createOnsetDetector(own.sampleRate);
     // To the worklet only, never to the destination: that is feedback.
-    ctx.createMediaStreamSource(stream).connect(node);
+    own.createMediaStreamSource(stream!).connect(node);
     state = "on";
     liveDevice = opts.stream ? null : wanted;
     if (opts.pin) pinned = true;
     refreshDevices().catch(() => {});
     return true;
   } catch (e) {
+    if (stale()) return false;
     const err = e as DOMException;
     pinned = false;
     halt();
@@ -310,6 +323,7 @@ function stop(opts: { unpin?: boolean } = {}) {
 }
 
 function halt() {
+  startToken++;
   noteOff(performance.now());
   if (node) {
     node.port.onmessage = null;
@@ -349,7 +363,8 @@ async function startSynthetic(
   src.connect(dest);
   src.start();
   const ok = await start({ stream: dest.stream, pin });
-  synthCtx = gen;
+  if (ok) synthCtx = gen;
+  else gen.close().catch(() => {});
   return ok;
 }
 

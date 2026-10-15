@@ -184,3 +184,19 @@ export function createIntonationStats({
     },
   };
 }
+
+/**
+ * A heard note that missed only by rounding: its pitch (`midi` plus `cents`) is
+ * within 65 cents of a wanted note it was not rounded to. That is an instrument
+ * out of tune, not a wrong note. Returns the wanted note and how far off it is.
+ */
+export function nearMiss(
+  midi: number,
+  cents: number | undefined,
+  wanted: readonly number[],
+): { midi: number; cents: number } | null {
+  if (cents === undefined || wanted.includes(midi)) return null;
+  const heard = midi + cents / 100;
+  const m = wanted.find((w) => Math.abs(heard - w) < 0.65);
+  return m === undefined ? null : { midi: m, cents: Math.round((heard - m) * 100) };
+}
