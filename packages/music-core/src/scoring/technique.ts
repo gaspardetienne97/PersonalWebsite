@@ -333,24 +333,27 @@ export function gradeStrumIdentify(input: {
 }
 
 export interface ChangesResult extends Graded {
-  /** Arrivals on the other chord of the pair. */
+  /** Arrivals on the next chord of the cycle. */
   completed: number;
   /** Completed changes whose arriving chord verified with every tone and no extras. */
   clean: number;
   changesPerMinute: number;
   /** Timed mode only: completed changes that landed inside their beat's window. */
   onTime: number | null;
-  clusters: { start: number; target: 0 | 1; verification: ToneVerification; errorMs?: number }[];
+  clusters: { start: number; target: number; verification: ToneVerification; errorMs?: number }[];
 }
 
 /**
- * Chord changes over clusters split by silence (scoring rules 9). The score is
+ * Chord changes over clusters split by silence (scoring rules 9), round a cycle
+ * of `chords` (or the `from` and `to` pair). The score is
  * the mean verification score; correct when every completed change was clean
  * (and, against a clock, on time).
  */
 export function gradeChanges(input: {
   from: { id: string; pcs: readonly number[] };
   to: { id: string; pcs: readonly number[] };
+  /** Three or more chords in order; replaces from and to. */
+  chords?: readonly { id: string; pcs: readonly number[] }[];
   tuningId: string;
   notes: readonly { midi: number; at: number }[];
   durationMs: number;
@@ -358,11 +361,12 @@ export function gradeChanges(input: {
 }): ChangesResult {
   const clusters = clusterByGap(input.notes);
   const beatMs = input.clock ? 60000 / input.clock.bpm : 0;
+  const pair = input.chords?.length ? input.chords : [input.from, input.to];
   const { slots } = alignChangeClusters(
     clusters,
     input.clock && { periodMs: beatMs * input.clock.beatsPerChord, anchorAt: input.clock.anchorAt },
+    pair.length,
   );
-  const pair = [input.from, input.to];
   const graded = slots.map((s) => ({
     start: clusters[s.cluster].start,
     target: s.target,

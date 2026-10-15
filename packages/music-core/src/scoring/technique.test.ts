@@ -264,6 +264,26 @@ describe("Chord-Perfect", () => {
     });
   });
 
+  it("Changes round a cycle of three chords: C, G, Am and back to C", () => {
+    const Am = { id: "guitar.a-minor", pcs: [9, 0, 4] };
+    const notes = [
+      ...strum([48, 52, 55], 0),
+      ...strum([43, 47, 50], 1000),
+      ...strum([45, 48, 52], 2000),
+      ...strum([48, 52, 55], 3000),
+    ];
+    const r = gradeChanges({
+      from: C,
+      to: G,
+      chords: [C, G, Am],
+      tuningId: "guitar.standard",
+      notes,
+      durationMs: 60000,
+    });
+    expect(r.clusters.map((c) => c.target)).toEqual([0, 1, 2, 0]);
+    expect(r).toMatchObject({ completed: 3, clean: 3, correct: true });
+  });
+
   it("Changes (timed) grades against the bar and counts on-time changes", () => {
     const notes = [
       ...strum([48, 52, 55], 0),

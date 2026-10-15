@@ -180,15 +180,15 @@ export function clusterByGap(
 export interface ClusterSlot {
   /** Index of the cluster this slot grades. */
   cluster: number;
-  /** Which of the alternating pair it grades against (0 = from, 1 = to). */
-  target: 0 | 1;
+  /** Which chord of the cycle it grades against (two chords alternate 0, 1). */
+  target: number;
   /** Timed mode only: the grading window's index and the cluster's offset from its beat. */
   slot?: number;
   errorMs?: number;
 }
 
 /**
- * Assign change clusters to targets. Untimed: alternate from/to, cycling.
+ * Assign change clusters to targets. Untimed: round the cycle of `count` chords.
  * Timed: every window owns a beat (`periodMs` apart from `anchorAt`, or from the
  * first cluster), each cluster goes to its nearest window, and a window keeps only
  * its nearest cluster; the rest are returned as `unassigned`.
@@ -196,10 +196,11 @@ export interface ClusterSlot {
 export function alignChangeClusters(
   clusters: readonly NoteCluster[],
   clock?: { periodMs: number; anchorAt?: number },
+  count = 2,
 ): { slots: ClusterSlot[]; unassigned: number[] } {
   if (!clock)
     return {
-      slots: clusters.map((_, i) => ({ cluster: i, target: (i % 2) as 0 | 1 })),
+      slots: clusters.map((_, i) => ({ cluster: i, target: i % count })),
       unassigned: [],
     };
   const anchor = clock.anchorAt ?? clusters[0]?.start ?? 0;
@@ -211,7 +212,7 @@ export function alignChangeClusters(
     const prev = bySlot.get(slot);
     if (prev && Math.abs(prev.errorMs!) <= Math.abs(errorMs)) return void unassigned.push(i);
     if (prev) unassigned.push(prev.cluster);
-    bySlot.set(slot, { cluster: i, target: (slot % 2) as 0 | 1, slot, errorMs });
+    bySlot.set(slot, { cluster: i, target: slot % count, slot, errorMs });
   });
   const slots = [...bySlot.values()].sort((a, b) => a.slot! - b.slot!);
   return { slots, unassigned: unassigned.sort((a, b) => a - b) };

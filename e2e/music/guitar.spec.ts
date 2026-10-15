@@ -448,6 +448,69 @@ test.describe("guitar drills", () => {
     await shoot(page, "changes-results", 375, true);
   });
 
+  test("Changes round three chords, each drawn above the neck, with a chosen position", async ({
+    page,
+  }) => {
+    await page.goto(
+      "/music/chords?mode=changes&chords=guitar.c-major,guitar.g-major,guitar.a-minor&timed=0&trips=1&clock=0&instrument=guitar",
+    );
+    const strip = page.getByRole("list", { name: "The chords in order" });
+    await expect(strip.getByRole("listitem")).toHaveCount(3);
+    await expect(page.getByText("Setup:").locator("..")).toContainText("C, G, Am");
+    // The setup: add a fourth chord, then move the first one up the neck.
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await page.getByRole("button", { name: "Add chord" }).click();
+    await expect(page.getByRole("button", { name: /^Chord \d: / })).toHaveCount(4);
+    await page.getByRole("button", { name: /^Chord 1: C,/ }).click();
+    const necks = page.getByRole("group", { name: "Neck position" });
+    await necks.getByRole("button").nth(1).click();
+    await expect(page.getByRole("button", { name: /^Chord 1: C,/ })).not.toHaveAccessibleName(
+      /Open/,
+    );
+    await page.getByRole("button", { name: "Remove C" }).click();
+    await page
+      .getByRole("button", { name: /^Remove / })
+      .last()
+      .click();
+    await page.getByRole("button", { name: "Hide setup" }).click();
+    await shoot(page, "changes-cycle-ready", 1280);
+
+    // A fresh three-chord run by taps: C, G, Am and back to C is three changes.
+    await page.goto(
+      "/music/chords?mode=changes&chords=guitar.c-major,guitar.g-major,guitar.a-minor&positions=0,0,0&timed=0&trips=1&clock=0&instrument=guitar",
+    );
+    await startDrill(page, "Practice");
+    const C: [number, number][] = [
+      [5, 3],
+      [4, 2],
+      [3, 0],
+      [2, 1],
+      [1, 0],
+    ];
+    const G: [number, number][] = [
+      [6, 3],
+      [5, 2],
+      [4, 0],
+      [3, 0],
+      [2, 0],
+      [1, 3],
+    ];
+    const Am: [number, number][] = [
+      [5, 0],
+      [4, 2],
+      [3, 2],
+      [2, 1],
+      [1, 0],
+    ];
+    for (const chord of [C, G, Am, C]) {
+      await tapChord(page, chord);
+      await page.waitForTimeout(700);
+    }
+    await expect(
+      page.getByRole("article").getByText(/3 changes, 3 with every target note/),
+    ).toBeVisible({ timeout: 5000 });
+  });
+
   test("Strum and identify is honest about one oscillator", async ({ page }) => {
     await page.goto("/music/chords?mode=strum&shape=guitar.c-major&instrument=guitar");
     await expect(page.getByRole("button", { name: "Listen for a strum" })).toBeDisabled();

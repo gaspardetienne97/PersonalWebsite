@@ -132,7 +132,8 @@ const likeness = (pcs: Set<number>, chord: readonly number[]) => {
 };
 
 export interface ChangeGroup {
-  target: 0 | 1;
+  /** The chord of the cycle this group plays. */
+  target: number;
   start: number;
   end: number;
   midis: number[];
@@ -140,24 +141,25 @@ export interface ChangeGroup {
 
 /**
  * Clusters split by silence join the chord being played until one sounds more
- * like the other chord of the pair, so strumming a chord twice, or tapping its
+ * like the next chord of the cycle, so strumming a chord twice, or tapping its
  * strings one at a time, is one arrival. The first group is the first chord.
  */
 export function groupChanges(
   notes: readonly { midi: number; at: number }[],
-  pair: readonly [readonly number[], readonly number[]],
+  chords: readonly (readonly number[])[],
   gapMs = CHANGE_GAP_MS,
 ): ChangeGroup[] {
   const groups: ChangeGroup[] = [];
+  const next = (t: number) => (t + 1) % chords.length;
   for (const c of clusterByGap(notes, gapMs)) {
     const last = groups.at(-1);
     const pcs = new Set(c.midis.map(pc));
-    if (last && likeness(pcs, pair[1 - last.target]) <= likeness(pcs, pair[last.target])) {
+    if (last && likeness(pcs, chords[next(last.target)]) <= likeness(pcs, chords[last.target])) {
       last.end = c.end;
       last.midis.push(...c.midis);
     } else
       groups.push({
-        target: last ? ((1 - last.target) as 0 | 1) : 0,
+        target: last ? next(last.target) : 0,
         start: c.start,
         end: c.end,
         midis: [...c.midis],
