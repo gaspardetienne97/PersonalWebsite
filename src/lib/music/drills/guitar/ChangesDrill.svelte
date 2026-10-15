@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Chord changes round a cycle of two to six chords (catalog 4.5, scoring rules 9):
+  // Chord changes round a cycle of two to eight chords (catalog 4.5, scoring rules 9):
   // clusters split by 350 ms of silence, graded per arrival. With no clock a cluster
   // counts as a change only when it sounds like the next chord (groupChanges).
   // Round trips or a timed minute, optionally against a clock (BPM and beats per chord). Taps and MIDI

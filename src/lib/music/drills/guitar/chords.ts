@@ -185,9 +185,9 @@ export const pairKey = (from: string, to: string) => `${from}>${to}`;
 export const mergePairRuns = (a: PairRun[], b: PairRun[]) => [...a, ...b].slice(-30);
 
 // ---------------------------------------------------------------------------
-// A cycle of chords (changes, fingerpicking): two to six, in order.
+// A cycle of chords (changes, fingerpicking): two to eight, in order.
 
-export const MAX_CYCLE = 6;
+export const MAX_CYCLE = 8;
 
 /** A common next chord after `id` that is not already in `not`, else any other shape. */
 export const nextChordId = (instrument: Fretted, id: string, not: readonly string[]) =>

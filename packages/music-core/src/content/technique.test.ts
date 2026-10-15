@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CHORD_SHAPES } from "../data";
 import { tuningById } from "../theory/fretboard";
+import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
 import { rng } from "./random";
 import {
@@ -19,6 +20,7 @@ import {
   LEGATO_PATTERNS,
   legatoTargets,
   FINGERPICK_PATTERNS,
+  FINGERPICK_SONGS,
   fingerpickable,
   fingerpickTargets,
   GUITAR_GRADE_TEMPOS,
@@ -408,6 +410,26 @@ describe("fingerpicking", () => {
       });
       expect(fingerpickable(p, shape(`${p.instrument}.c-major`)), p.id).toBe(true);
     }
+  });
+
+  it("every song preset uses its instrument's pattern, plain chord symbols and a playable tempo", () => {
+    for (const x of FINGERPICK_SONGS) {
+      const p = FINGERPICK_PATTERNS.find((q) => q.id === x.pattern);
+      expect(p?.instrument, x.id).toBe(x.instrument);
+      expect(x.chords.length, x.id).toBeGreaterThanOrEqual(2);
+      expect(x.chords.length, x.id).toBeLessThanOrEqual(8);
+      for (const c of x.chords) {
+        expect(c.includes("/"), `${x.id} ${c}`).toBe(false);
+        expect(parseChordSymbol(c), `${x.id} ${c}`).not.toBeNull();
+      }
+      expect(x.bpm, x.id).toBeGreaterThanOrEqual(40);
+      expect(x.bpm, x.id).toBeLessThanOrEqual(200);
+      expect(
+        p!.strings.length === 6 || x.perBeat === 2,
+        `${x.id}: three a click is for six-step patterns`,
+      ).toBe(true);
+    }
+    expect(new Set(FINGERPICK_SONGS.map((x) => x.id)).size).toBe(FINGERPICK_SONGS.length);
   });
 
   it("a pinch shares its step, and a hold keeps the time", () => {

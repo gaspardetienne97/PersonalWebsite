@@ -18,6 +18,7 @@
     spiderStrings,
     GUITAR_GRADE_TEMPOS,
     FINGERPICK_PATTERNS,
+    FINGERPICK_SONGS,
     LEGATO_PATTERNS,
     legatoTargets,
     fingerpickable,
@@ -47,7 +48,7 @@
   import ChordCycleSetup from "./ChordCycleSetup.svelte";
   import ChordStrip from "./ChordStrip.svelte";
   import { CHORD_MODES, FRETBOARD_MODES, openMode } from "./modes";
-  import { chordId, chordLabel, cyclePositions, cycleRefs, positionsOn, shapesFor, type ChordRef } from "./chords";
+  import { chordId, chordLabel, cyclePositions, cycleRefs, positionsOn, shapesFor, symbolRef, type ChordRef } from "./chords";
 
   let { kind }: { kind: "spider" | "positions" | "fingerpick" | "legato" } = $props();
   let phase = $state<Phase>("ready");
@@ -83,8 +84,25 @@
   const instr = $derived(fretted());
   // Box and CAGED shapes are written for standard guitar tuning, root on string 6; the rest use the strip's tuning.
   const tuning = $derived(kind === "positions" ? TUNINGS.guitar[0] : tuningFor(instr));
-  // Fingerpicking: the instrument's patterns over two to six chords, each at its chosen position, else the first that sounds every string the pattern uses.
+  // Fingerpicking: the instrument's patterns over two to eight chords, each at its chosen position, else the first that sounds every string the pattern uses.
   const pickPattern = $derived(FINGERPICK_PATTERNS.find((p) => p.id === s.pattern && p.instrument === instr) ?? FINGERPICK_PATTERNS.find((p) => p.instrument === instr)!);
+  // Start from a song: its pattern, chords, tempo and notes a click in one tap.
+  const songs = $derived(FINGERPICK_SONGS.filter((x) => x.instrument === instr));
+  const songRefs = (x: (typeof FINGERPICK_SONGS)[number]) => x.chords.flatMap((c) => symbolRef(c) ?? []);
+  /** A song's chords as the cycle will hold them (a repeated chord in a row is one). */
+  const songIds = (x: (typeof FINGERPICK_SONGS)[number]) =>
+    cycleRefs(instr, songRefs(x).map((r) => chordId(instr, r)).join(","))
+      .map((r) => chordId(instr, r))
+      .join(",");
+  /** The song the setup matches now, if any (changing a chord or the pattern leaves it). */
+  const song = $derived(isPick ? songs.find((x) => x.pattern === pickPattern.id && songIds(x) === pickRefs.map((r) => chordId(instr, r)).join(",")) : undefined);
+  function useSong(id: string) {
+    const x = songs.find((y) => y.id === id);
+    if (!x) return;
+    savePick(songRefs(x), []);
+    cfg.set({ pattern: x.pattern, perBeat: x.perBeat });
+    settings.update({ bpm: x.bpm });
+  }
   /** The instrument's patterns by kind, each kind a row of buttons in the setup. */
   const pickGroups = $derived.by(() => {
     const kind = (p: (typeof FINGERPICK_PATTERNS)[number]) =>
@@ -294,7 +312,7 @@
   const per = $derived({ text: PER[perBeat], focus: "per" });
   const summaryLine = $derived(
     isPick
-      ? [{ text: pickPattern.label, focus: "pattern" }, { text: pickNames.join(" then "), focus: "chords" }, { text: BARS[pickBars] ?? `${pickBars} bars each` }, per]
+      ? [...(song ? [{ text: `${song.song} (${song.artist})`, focus: "song" }] : []), { text: pickPattern.label, focus: "pattern" }, { text: pickNames.join(" then "), focus: "chords" }, { text: BARS[pickBars] ?? `${pickBars} bars each` }, per]
       : isLegato
         ? [{ text: legatoPattern.label, focus: "pattern" }, { text: `on string ${string} from fret ${legatoStart}` }, per]
         : isSpider
@@ -550,6 +568,12 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#if isPick}
+        {#if songs.length}
+          <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3" data-setup="song">
+            <Choice label="Start from a song" options={songs.map((x) => ({ value: x.id, label: x.song, detail: x.artist }))} value={song?.id ?? ""} onchange={useSong} />
+            {#if song}<p class="text-xs text-ws-soft">{song.note} Tempo {song.bpm}.</p>{/if}
+          </div>
+        {/if}
         <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" data-setup="pattern">
           <span class="text-sm font-medium">Pattern</span>
           {#each pickGroups as [group, list] (group)}

@@ -360,7 +360,7 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
   },
   {
     id: "rolling",
-    label: "Up and down, p i m a m i (House of the Rising Sun)",
+    label: "Up and down, p i m a m i",
     instrument: "guitar",
     strings: ["B", "3", "2", "1", "2", "3"],
     fingers: ["p", "i", "m", "a", "m", "i"],
@@ -483,6 +483,187 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
     instrument: "ukulele",
     strings: ["4", "2+1", "2+1", "2+1", "4", "2+1", "2+1", "2+1"],
     fingers: ["p", "i+m", "i+m", "i+m", "p", "i+m", "i+m", "i+m"],
+  },
+];
+
+/**
+ * A song to start from: its picking pattern, its chords in order (a bar each,
+ * plain symbols such as "Am" or "Cmaj7"), the click tempo and notes a click.
+ * Only those facts are stored; the note says what is simplified (capo, slash chords).
+ */
+export interface FingerpickSong {
+  id: string;
+  song: string;
+  artist: string;
+  instrument: "guitar" | "ukulele";
+  pattern: string;
+  chords: string[];
+  bpm: number;
+  perBeat: 2 | 3;
+  note: string;
+  source: string;
+}
+
+// Progressions from lesson pages (source on each); tempos checked against song
+// length where only automated BPM sites gave one, so treat them as starting points.
+export const FINGERPICK_SONGS: FingerpickSong[] = [
+  {
+    id: "house-of-the-rising-sun",
+    song: "House of the Rising Sun",
+    artist: "The Animals",
+    instrument: "guitar",
+    pattern: "rolling",
+    chords: ["Am", "C", "D", "F", "Am", "E"],
+    bpm: 58,
+    perBeat: 3,
+    note: "The 8-bar verse is cut to 6 by merging the closing C E E into one E bar; no capo.",
+    source:
+      "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/learn-to-play-house-of-the-rising-sun/",
+  },
+  {
+    id: "dust-in-the-wind",
+    song: "Dust in the Wind",
+    artist: "Kansas",
+    instrument: "guitar",
+    pattern: "dust-pinch",
+    chords: ["C", "G", "Am", "G", "Dm", "Am"],
+    bpm: 94,
+    perBeat: 2,
+    note: "Verse progression; G/B is played as G and the intro's Cmaj7, Cadd9 and Asus2 colour chords are left out.",
+    source: "https://nationalguitaracademy.com/?p=14276",
+  },
+  {
+    id: "landslide",
+    song: "Landslide",
+    artist: "Fleetwood Mac",
+    instrument: "guitar",
+    pattern: "travis",
+    chords: ["C", "G", "Am7", "G"],
+    bpm: 80,
+    perBeat: 2,
+    note: "Capo 3; G/B becomes G; the original is closer to an inside-out roll than true Travis.",
+    source: "https://andyguitar.co.uk/videos/fleetwood-mac-landslide",
+  },
+  {
+    id: "hallelujah",
+    song: "Hallelujah",
+    artist: "Leonard Cohen",
+    instrument: "guitar",
+    pattern: "rolling",
+    chords: ["G", "Em", "G", "Em", "C", "D"],
+    bpm: 60,
+    perBeat: 3,
+    note: "Capo 5 with G shapes (sounds in C); the first half of the verse, and the roll is an approximation.",
+    source: "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/hallelujah/",
+  },
+  {
+    id: "everybody-hurts",
+    song: "Everybody Hurts",
+    artist: "R.E.M.",
+    instrument: "guitar",
+    pattern: "rolling",
+    chords: ["D", "G"],
+    bpm: 63,
+    perBeat: 3,
+    note: "Verse only (bass then strings 3 2 1 2 3); the walkdown and the Em A chorus are left out.",
+    source: "https://laurenbateman.com/?p=5038",
+  },
+  {
+    id: "the-boxer",
+    song: "The Boxer",
+    artist: "Simon & Garfunkel",
+    instrument: "guitar",
+    pattern: "travis-pinch",
+    chords: ["C", "Am", "G", "G7"],
+    bpm: 93,
+    perBeat: 2,
+    note: "Verse in C shapes with no capo; the record sounds lower (a detuned guitar) and the C to Am bass walk is dropped.",
+    source: "https://pg.zachmanson.com/tab/simon-garfunkel/the-boxer-chords-1744664",
+  },
+  {
+    id: "scarborough-fair",
+    song: "Scarborough Fair",
+    artist: "Simon & Garfunkel",
+    instrument: "guitar",
+    pattern: "rolling",
+    chords: ["Am", "G", "Am", "C", "Am", "D"],
+    bpm: 129,
+    perBeat: 2,
+    note: "3/4 in Am shapes (capo 7 to match the record); G/B becomes G and the melody is not included.",
+    source: "https://jgmusiclessons.com/scarborough-fair-guitar-tabs-chords-and-arrangement",
+  },
+  {
+    id: "tears-in-heaven",
+    song: "Tears in Heaven",
+    artist: "Eric Clapton",
+    instrument: "guitar",
+    pattern: "pima",
+    chords: ["A", "E", "F#m", "A", "D", "E7"],
+    bpm: 80,
+    perBeat: 2,
+    note: "Slash bass notes (E/G#, A/E, D/F#) and E7sus4 are dropped; the song changes chord every two beats and p i m a only approximates Clapton's picking.",
+    source: "https://www.licklibrary.com/learn/lessons/eric-clapton/tears-in-heaven",
+  },
+  {
+    id: "nothing-else-matters",
+    song: "Nothing Else Matters",
+    artist: "Metallica",
+    instrument: "guitar",
+    pattern: "rolling",
+    chords: ["Em", "D", "C"],
+    bpm: 46,
+    perBeat: 3,
+    note: "Only the verse chord loop; the intro's open-string melody and hammer-ons are not included.",
+    source: "https://www.licklibrary.com/learn/lessons/metallica/nothing-else-matters",
+  },
+  {
+    id: "uke-hallelujah",
+    song: "Hallelujah",
+    artist: "Leonard Cohen",
+    instrument: "ukulele",
+    pattern: "uke-rolling",
+    chords: ["C", "Am", "C", "Am", "F", "G"],
+    bpm: 60,
+    perBeat: 3,
+    note: "12/8 felt as 6/8; the taught version pinches strings 4 and 1 on each downbeat, so the roll is an approximation.",
+    source:
+      "https://ukulelemagazine.com/lessons/watch-sarah-maisel-perform-leonard-cohens-hallelujah",
+  },
+  {
+    id: "uke-cant-help-falling-in-love",
+    song: "Can't Help Falling in Love",
+    artist: "Elvis Presley",
+    instrument: "ukulele",
+    pattern: "uke-rolling",
+    chords: ["C", "Em", "Am", "F", "C", "G"],
+    bpm: 66,
+    perBeat: 3,
+    note: "In C (the original is in D); 12/8 at a dotted quarter of about 66.",
+    source: "https://ukulelego.com/lessons/cant-help-falling-in-love-by-twenty-one-pilots/",
+  },
+  {
+    id: "uke-house-of-the-rising-sun",
+    song: "House of the Rising Sun",
+    artist: "The Animals",
+    instrument: "ukulele",
+    pattern: "uke-rolling",
+    chords: ["Am", "C", "D", "F", "Am", "E"],
+    bpm: 58,
+    perBeat: 3,
+    note: "Thumb on string 4, then i m a; the verse is shortened to 6 bars.",
+    source: "https://ukulelego.com/lessons/house-of-the-rising-sun-ukulele-lesson/",
+  },
+  {
+    id: "uke-scarborough-fair",
+    song: "Scarborough Fair",
+    artist: "Simon & Garfunkel",
+    instrument: "ukulele",
+    pattern: "uke-rolling",
+    chords: ["Am", "G", "Am", "C", "Am", "D"],
+    bpm: 90,
+    perBeat: 2,
+    note: "3/4 in Am at a slower practice tempo with open strings ringing; the melody is not included.",
+    source: "https://ukutabs.com/pl/s/simon-and-garfunkel/scarborough-fair/",
   },
 ];
 

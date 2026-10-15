@@ -577,6 +577,26 @@ test.describe("guitar drills", () => {
     await shoot(page, "fingerpick-patterns", 1280);
   });
 
+  test("Fingerpicking from a song: pattern, chords and tempo in one tap", async ({ page }) => {
+    await page.goto("/music/chords?mode=fingerpick&instrument=guitar");
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await page
+      .getByRole("group", { name: "Start from a song" })
+      .getByRole("button", { name: /^House of the Rising Sun/ })
+      .click();
+    const setupLine = page.getByText("Setup:").locator("..");
+    await expect(setupLine).toContainText("House of the Rising Sun (The Animals)");
+    await expect(setupLine).toContainText("Am then C then D then F then Am then E");
+    await expect(setupLine).toContainText("three notes a click");
+    await expect(page.getByRole("button", { name: /^Tempo 58 BPM/ })).toBeVisible();
+    await expect(page.getByText(/no capo\. Tempo 58\./)).toBeVisible();
+    await page.getByRole("button", { name: "Hide setup" }).click();
+    await expect(
+      page.getByRole("list", { name: "The chords in order" }).getByRole("listitem"),
+    ).toHaveCount(6);
+    await shoot(page, "fingerpick-song", 1280);
+  });
+
   test("Fingerpicking over three chords, each with its diagram", async ({ page }) => {
     await page.goto(
       "/music/chords?mode=fingerpick&pattern=pima&chords=guitar.c-major,guitar.a-minor,guitar.g-major&instrument=guitar",
