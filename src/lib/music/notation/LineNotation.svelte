@@ -47,10 +47,14 @@
   });
   let width = $state(0);
   // Measured: a line engraves at about 90 px plus 25 a note (Spider's 16 notes 521 px,
-  // Fingerpicking's 32 notes 896 px). A short line is zoomed up to fill the stage; a
-  // long one down (to 0.7) so it fits on fewer systems instead of spilling a near-empty one.
+  // Fingerpicking's 32 notes 896 px). A short line is zoomed up to fill the stage (down
+  // to 0.7 on a phone). A line longer than 32 notes keeps a 32-note line's size and is
+  // engraved on one row that scrolls sideways with the cursor.
+  const LONG = 32;
+  const natural = (k: number) => 90 + 25 * k;
   const attacks = $derived(new Set(notes.map((n) => n.startBeat)).size);
-  const zoom = $derived(width ? Math.min(1.6, Math.max(0.7, width / (90 + 25 * attacks))) : 1);
+  const zoom = $derived(width ? Math.min(1.6, Math.max(0.7, width / natural(Math.min(attacks, LONG)))) : 1);
+  const minWidth = $derived(attacks > LONG ? natural(attacks) : 0);
   // The visible height is capped whatever the zoom (a grand staff at 20rem); taller scrolls.
   const maxHeight = $derived(`${((voices.length > 1 ? 20 : 16) / zoom).toFixed(2)}rem`);
 </script>
@@ -58,9 +62,9 @@
 <div class="line-notation" data-testid={tuning ? "line-tab" : "line-staff"} bind:clientWidth={width}>
   <div style:zoom={zoom}>
     {#if tuning}
-      <Tab {score} {tuning} {cursorBeat} {groupStates} fill {maxHeight} />
+      <Tab {score} {tuning} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} />
     {:else}
-      <Staff {score} {cursorBeat} {groupStates} fill {maxHeight} />
+      <Staff {score} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} />
     {/if}
   </div>
 </div>

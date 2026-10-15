@@ -15,6 +15,8 @@
     onfallback?: (reason: string) => void;
     /** Ranges tinted like a selection (the sections a run covers), each named at its start. */
     highlights?: (BeatRange & { label: string })[];
+    /** Engrave at least this wide: a long line stays on one row and scrolls sideways, following the cursor. */
+    minWidth?: number;
   }
 </script>
 
@@ -51,6 +53,7 @@
     maxHeight = "62dvh",
     onfallback,
     highlights = [],
+    minWidth = 0,
   }: FrameProps & {
     draw: (VF: VF, host: HTMLElement, width: number) => Layout;
     fallback: (reason: string) => string;
@@ -61,6 +64,7 @@
   let VF = $state.raw<VF | null>(null);
   let host = $state<HTMLDivElement>();
   let canvas = $state<HTMLDivElement>();
+  let viewport = $state<HTMLDivElement>();
   let width = $state(0);
   let layout = $state.raw<Layout | null>(null);
   let error = $state<string | null>(null);
@@ -86,7 +90,7 @@
   $effect(() => {
     if (!VF || !host || width < 40) return;
     try {
-      layout = draw(VF, host, width);
+      layout = draw(VF, host, Math.max(width, minWidth));
       error = null;
     } catch (e) {
       fail(e);
@@ -117,6 +121,17 @@
   );
   const span = $derived(shown ? ends(list, shown) : null);
   const cursor = $derived(layout && cursorBeat != null ? cursorAt(layout, cursorBeat) : null);
+  // A line wider than the box keeps its cursor in view: it scrolls once the cursor nears the right edge.
+  $effect(() => {
+    const x = cursor?.x;
+    if (x === undefined || !viewport || viewport.scrollWidth <= viewport.clientWidth + 1) return;
+    const w = viewport.clientWidth;
+    const left = viewport.scrollLeft;
+    if (x < left + w * 0.1 || x > left + w * 0.7) {
+      const still = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.hasAttribute("data-reduce-motion");
+      viewport.scrollTo({ left: Math.max(0, x - w * 0.25), behavior: still ? "auto" : "smooth" });
+    }
+  });
   const text = $derived(readout(list, shown, picker.pending, bpm ?? scoreBpm, snap));
   const marks = $derived.by(() => {
     if (!layout) return [];
@@ -203,6 +218,7 @@
     class:failed={!!error}
     style:max-height={maxHeight}
     bind:clientWidth={width}
+    bind:this={viewport}
     role="region"
     aria-label={label}
   >
