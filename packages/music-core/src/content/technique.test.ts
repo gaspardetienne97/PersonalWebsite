@@ -225,6 +225,18 @@ describe("spider", () => {
 describe("spider spans", () => {
   it("keeps a span's size by moving it toward the bass, and 'all' is every string", () => {
     expect(spiderStrings(1, "adjacent-3", 6)).toEqual([3, 2, 1]);
+    // Any strings, bass first: 1, 3 and 6 play as 6, 3, 1.
+    const picked = spiderTargets({
+      patternId: "ascending-1234",
+      tuning: std,
+      string: 1,
+      span: "single",
+      strings: [1, 6, 3],
+      startFret: 5,
+      crossing: false,
+    });
+    expect([...new Set(picked.map((t) => t.string))]).toEqual([6, 3, 1]);
+    expect(picked).toHaveLength(12);
     expect(spiderStrings(5, "adjacent-2", 6)).toEqual([5, 4]);
     expect(spiderStrings(3, "all", 6)).toEqual([6, 5, 4, 3, 2, 1]);
     expect(spiderStrings(4, "all", 4)).toEqual([4, 3, 2, 1]);

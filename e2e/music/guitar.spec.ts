@@ -131,6 +131,44 @@ test.describe("guitar drills", () => {
     await shoot(page, "spider-results", 375, true);
   });
 
+  test("Spider setup: any strings, any finger order, three notes a click", async ({ page }) => {
+    await page.goto("/music/fretboard?mode=spider&instrument=guitar&startFret=5&crossing=0");
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    // Strings as toggles: keep 1, 3 and 6.
+    const strings = page.getByRole("group", { name: "Strings" });
+    for (let n = 1; n <= 6; n++) {
+      const b = strings.getByRole("button", { name: new RegExp(`^String ${n},`) });
+      const want = [1, 3, 6].includes(n);
+      if ((await b.getAttribute("aria-pressed")) !== String(want)) await b.click();
+    }
+    // The finger order, tapped: 4, 1, 2, 3.
+    const fingers = page.getByRole("group", { name: "Tap the fingers in order" });
+    for (const f of ["4 pinky", "1 index", "2 middle", "3 ring"])
+      await fingers.getByRole("button", { name: f }).click();
+    await page
+      .getByRole("group", { name: "Notes a click" })
+      .getByRole("button", { name: /^3/ })
+      .click();
+    const setupLine = page.getByText("Setup:").locator("..");
+    await expect(setupLine).toContainText("4-1-2-3");
+    await expect(setupLine).toContainText("strings 1, 3 and 6");
+    await expect(setupLine).toContainText("three notes a click");
+    await page.getByRole("button", { name: "Hide setup" }).click();
+    // On each string the dots read the order: fret 5 (index) is played second.
+    await expect(page.locator(fret(6, 5))).toHaveAttribute(
+      "aria-label",
+      /note 2 of the pattern, index finger/,
+    );
+    await expect(page.locator(fret(6, 8))).toHaveAttribute(
+      "aria-label",
+      /note 1 of the pattern, little finger/,
+    );
+    await expect(page.locator(fret(5, 5)).locator(".dot")).toHaveCount(0);
+    // Triplets are written in 12/8.
+    await expect(page.getByTestId("line-tab").locator("svg")).toBeVisible();
+    await shoot(page, "spider-setup", 1280);
+  });
+
   test("Spider at the Rockschool Grade 3 click, two notes a click", async ({ page }) => {
     await page.goto(
       "/music/fretboard?mode=spider&pattern=ascending-1234&tuning=guitar.standard&string=6&span=single&startFret=5&crossing=0&instrument=guitar&bpm=90&perBeat=2&grade=rsl-grade-3",

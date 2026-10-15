@@ -427,13 +427,20 @@ export function spiderTargets(opts: {
   tuning: Tuning;
   string: number;
   span: SpiderSpanId;
+  /** Any set of strings, in place of string and span: played bass first. */
+  strings?: number[];
   startFret: number;
   crossing: boolean;
 }): FretTarget[] {
   const pattern = SPIDER_PATTERNS.find((p) => p.id === opts.patternId) ?? SPIDER_PATTERNS[0];
   const start = Math.min(Math.max(0, Math.round(opts.startFret)), spiderMaxStartFret(opts.tuning));
   const count = opts.tuning.openStrings.length;
-  const strings = spiderStrings(Math.min(opts.string, count), opts.span, count);
+  const picked = [...new Set(opts.strings ?? [])]
+    .filter((n) => n >= 1 && n <= count)
+    .sort((a, b) => b - a);
+  const strings = picked.length
+    ? picked
+    : spiderStrings(Math.min(opts.string, count), opts.span, count);
   // Crossing needs two strings or more.
   const crossing = opts.crossing && strings.length > 1;
   const at = (string: number, offset: number): FretTarget => {

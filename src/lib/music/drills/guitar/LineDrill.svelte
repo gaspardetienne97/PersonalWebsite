@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { page } from "$app/state";
+  import { replaceState } from "$app/navigation";
   // Spider, Positions, Legato and Fingerpicking: a fretted line played after the
   // count-in, graded pitch x 0.85 + evenness x 0.15 (scoring rules 7).
   // Input: on-screen frets (which also carry the string), MIDI, or the microphone.
@@ -13,7 +15,6 @@
     positionRootFretMax,
     positionTargets,
     SPIDER_PATTERNS,
-    SPIDER_SPANS,
     spiderStrings,
     GUITAR_GRADE_TEMPOS,
     FINGERPICK_PATTERNS,
@@ -63,6 +64,8 @@
     to: "guitar.a-minor",
     string: isLegato ? 3 : 6,
     span: "single",
+    /** Spider: any strings, comma separated ("" falls back to string and span). */
+    strings: "" as string,
     startFret: 5,
     crossing: false as boolean,
     rootFret: 5,
@@ -97,11 +100,17 @@
   const unavailable = $derived(kind === "positions" && instr === "ukulele");
   const legatoPattern = $derived(LEGATO_PATTERNS.find((p) => p.id === s.pattern) ?? LEGATO_PATTERNS[0]);
   const bpm = () => Math.min(200, Math.max(40, settings.value.bpm));
-  const perBeat = $derived([1, 2, 4].includes(s.perBeat) ? s.perBeat : 1);
+  // Fingerpicking patterns are eighths; the others also take triplets (3) and sextuplets (6).
+  const PER_STEPS = isPick ? [1, 2, 4] : [1, 2, 3, 4, 6];
+  const perBeat = $derived(PER_STEPS.includes(s.perBeat) ? s.perBeat : 1);
+  /** Three or six to a click is compound time: the tab is written in 12/8, a click to each dotted quarter. */
+  const compound = $derived(perBeat % 3 === 0);
+  const quartersPerClick = $derived(compound ? 1.5 : 1);
   /** One note's time: the click divided by the notes to a click. */
   const stepMs = () => 60000 / bpm() / perBeat;
   const target = $derived(isSpider || kind === "positions" ? GUITAR_GRADE_TEMPOS.find((g) => g.id === s.grade) : undefined);
-  const PER: Record<number, string> = { 1: "one note a click", 2: "two notes a click", 4: "four notes a click" };
+  const PER_NAME: Record<number, string> = { 1: "quarters", 2: "eighths", 3: "triplets", 4: "sixteenths", 6: "sextuplets" };
+  const PER: Record<number, string> = { 1: "one note a click", 2: "two notes a click", 3: "three notes a click", 4: "four notes a click", 6: "six notes a click" };
 
   const spiderPattern = $derived(SPIDER_PATTERNS.find((p) => p.id === s.pattern) ?? SPIDER_PATTERNS[0]);
   const box = $derived(POSITION_PATTERNS.find((p) => p.id === s.pattern) ?? POSITION_PATTERNS[0]);
@@ -109,9 +118,24 @@
   const startFret = $derived(Math.min(s.startFret, spiderMaxStartFret(tuning)));
   const rootFret = $derived(Math.min(s.rootFret, positionRootFretMax(box, tuning)));
   const string = $derived(Math.min(s.string, stringCount));
-  /** Crossing needs a span of two strings or more. */
-  const crossing = $derived(s.crossing && s.span !== "single");
-  const spiderSet = $derived(spiderStrings(string, s.span as never, stringCount));
+  const pickedStrings = $derived([...new Set(s.strings.split(",").map(Number))].filter((n) => n >= 1 && n <= stringCount));
+  /** The spider's strings, bass first; an older setup's string and span until strings are picked. */
+  // A link with a span and no strings (an older link) still opens on that span.
+  const spanLink = $derived(page.url.searchParams.has("span") && !page.url.searchParams.has("strings"));
+  const spiderSet = $derived(pickedStrings.length && !spanLink ? pickedStrings.sort((a, b) => b - a) : spiderStrings(string, s.span as never, stringCount));
+  /** Crossing needs two strings or more. */
+  const crossing = $derived(s.crossing && (isSpider ? spiderSet.length > 1 : s.span !== "single"));
+  function toggleString(n: number) {
+    const next = spiderSet.includes(n) ? spiderSet.filter((x) => x !== n) : [...spiderSet, n];
+    if (!next.length) return;
+    if (spanLink) {
+      const url = new URL(page.url);
+      url.searchParams.delete("span");
+      url.searchParams.delete("string");
+      replaceState(url, page.state);
+    }
+    cfg.set({ strings: next.sort((a, b) => a - b).join(",") });
+  }
   const legatoStart = $derived(Math.max(1, Math.min(s.startFret, tuning.fretCount - 4)));
   /** The lowest root fret on string 6 for a note, so the whole shape fits. */
   const rootFretFor = (note: number) => (note - pc(tuning.openStrings[5]) + 12) % 12;
@@ -120,7 +144,7 @@
   const steps = $derived.by((): FretTarget[] => {
     if (isPick) return fingerpickTargets({ pattern: pickPattern, shapes: [chordA, chordB], tuning, rounds: 2 });
     if (isLegato) return legatoTargets({ patternId: legatoPattern.id, tuning, string, startFret: legatoStart, repeats: 4 });
-    if (isSpider) return spiderTargets({ patternId: spiderPattern.id, tuning, string, span: s.span as never, startFret, crossing });
+    if (isSpider) return spiderTargets({ patternId: spiderPattern.id, tuning, string, span: s.span as never, strings: spiderSet, startFret, crossing });
     const line = positionTargets({ patternId: box.id, tuning, rootFret });
     const low = Math.max(1, Math.min(...line.map((t) => t.fret)));
     // ponytail: one finger per fret from the lowest fretted note, capped at the pinky; authored box fingerings would replace this.
@@ -132,7 +156,7 @@
       : isLegato
       ? `legato:${legatoPattern.id}:${tuning.id}:s${string}:f${legatoStart}:${bpm()}x${perBeat}`
       : isSpider
-      ? `spider:${spiderPattern.id}:${tuning.id}:s${spiderSet[0]}:${s.span}:f${startFret}:${crossing ? "x" : "-"}:${bpm()}${perBeat > 1 ? `x${perBeat}` : ""}`
+      ? `spider:${spiderPattern.id}:${tuning.id}:s${spiderSet.join("")}:f${startFret}:${crossing ? "x" : "-"}:${bpm()}${perBeat > 1 ? `x${perBeat}` : ""}`
       : `positions:${box.id}:r${rootFret}:${bpm()}${perBeat > 1 ? `x${perBeat}` : ""}`,
   );
   const frets = $derived(steps.map((t) => t.fret));
@@ -141,7 +165,7 @@
   const from = $derived(picking || Math.min(...frets) <= 1 ? 0 : Math.min(...frets) - 1);
   const to = $derived(Math.min(tuning.fretCount, Math.max(picking ? 12 : from + 4, Math.max(...frets) + 1)));
   function pickStart(st: number, f: number) {
-    if (isSpider) cfg.set({ string: st, startFret: Math.min(f, spiderMaxStartFret(tuning)) });
+    if (isSpider) cfg.set({ startFret: Math.min(f, spiderMaxStartFret(tuning)) });
     else cfg.set({ string: st, startFret: Math.max(1, Math.min(f, tuning.fretCount - 4)) });
   }
 
@@ -154,9 +178,9 @@
   let runDownbeat = $state(0);
   let now = $state(0);
   let raf = 0;
-  const tabNotes = $derived(steps.map((t, i) => ({ midi: t.midi, startBeat: i / perBeat, durationBeats: 1 / perBeat, string: t.string, fret: t.fret })));
+  const tabNotes = $derived(steps.map((t, i) => ({ midi: t.midi, startBeat: (i * quartersPerClick) / perBeat, durationBeats: quartersPerClick / perBeat, string: t.string, fret: t.fret })));
   const tabCursor = $derived(
-    demoStep !== null ? demoStep / perBeat : phase === "running" && now >= runDownbeat ? Math.min(steps.length / perBeat, (now - runDownbeat) / (60000 / bpm())) : null,
+    demoStep !== null ? (demoStep / perBeat) * quartersPerClick : phase === "running" && now >= runDownbeat ? Math.min(steps.length / perBeat, (now - runDownbeat) / (60000 / bpm())) * quartersPerClick : null,
   );
   const tabStates = $derived.by(() => {
     const out: Record<number, GroupState> = {};
@@ -207,6 +231,10 @@
 
   /** One pass of a fingerpicking pattern in bars: 8 notes at 1, 2 or 4 a click. */
   const pickBars = $derived(pickPattern.strings.length / perBeat / 4);
+  const stringsText = (set: number[]) => {
+    const up = [...set].sort((a, b) => a - b);
+    return up.length === 1 ? `string ${up[0]}` : `strings ${up.slice(0, -1).join(", ")} and ${up.at(-1)}`;
+  };
   const BARS: Record<number, string> = { 0.5: "half a bar each", 1: "a bar each", 2: "two bars each" };
   const per = $derived({ text: PER[perBeat], focus: "per" });
   const summaryLine = $derived(
@@ -217,7 +245,7 @@
         : isSpider
           ? [
               { text: spiderPattern.label, focus: "pattern" },
-              { text: spiderSet.length > 1 ? `strings ${spiderSet[0]} to ${spiderSet.at(-1)}` : `string ${spiderSet[0]}`, focus: "span" },
+              { text: stringsText(spiderSet), focus: "strings" },
               { text: startFret === 0 ? "from the open strings" : `from fret ${startFret}` },
               ...(crossing ? [{ text: "crossing strings", focus: "crossing" }] : []),
               ...(perBeat > 1 ? [per] : []),
@@ -287,7 +315,7 @@
         : isLegato
         ? { bpm: ctx.bpm, perBeat, pattern: legatoPattern.id, string, startFret: legatoStart }
         : isSpider
-        ? { bpm: ctx.bpm, perBeat, pattern: spiderPattern.id, tuning: tuning.id, string: spiderSet[0], span: s.span, startFret, crossing }
+        ? { bpm: ctx.bpm, perBeat, pattern: spiderPattern.id, tuning: tuning.id, strings: spiderSet.join(","), startFret, crossing }
         : { bpm: ctx.bpm, perBeat, pattern: box.id, rootFret },
     });
     // Scored only after the count-in, so the speakers can't bleed into the take.
@@ -378,13 +406,11 @@
   /** The tempo climbs to the goal (the chosen grade's click, or 120), then the notes a click double. */
   function advanceAfter(score: number, correct: boolean) {
     const goal = target?.bpm ?? 120;
-    const steps = [
-      { label: "One note a click", goal },
-      { label: "Two notes a click", goal: Math.round((goal * 92) / 120) },
-      { label: "Four notes a click", goal: Math.round((goal * 72) / 120) },
-    ];
+    // The goal click falls as the notes a click rise, so the note rate climbs gently.
+    const FACTOR: Record<number, number> = { 1: 1, 2: 92 / 120, 3: 80 / 120, 4: 72 / 120, 6: 56 / 120 };
+    const steps = PER_STEPS.map((n) => ({ label: PER[n].replace(/^./, (c) => c.toUpperCase()), goal: Math.round(goal * FACTOR[n]) }));
     const id = isPick ? `${instr}.fingerpick.${pickPattern.id}.${chordA.id}>${chordB.id}` : `${instr}.${kind}.${isLegato ? legatoPattern.id : isSpider ? spiderPattern.id : box.id}`;
-    return nextRun(id, { bpm: bpm(), tempo: { min: 40, goal, max: 200 }, steps, step: [1, 2, 4].indexOf(perBeat) }, { score, correct }, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i] })));
+    return nextRun(id, { bpm: bpm(), tempo: { min: 40, goal, max: 200 }, steps, step: PER_STEPS.indexOf(perBeat) }, { score, correct }, tempoAnd((i) => cfg.set({ perBeat: PER_STEPS[i] })));
   }
 
   function stop() {
@@ -413,9 +439,16 @@
     mic.stop();
   });
 
-  const stringOptions = $derived(tuning.openStrings.map((m, i) => ({ value: i + 1, label: `${i + 1} (${noteName(m, "flat", false)})` })));
-  /** Spider: the four classic orders, plus the current one when "Next order" has moved past them. */
-  const spiderOptions = $derived(SPIDER_PATTERNS.filter((p) => p.group === "classic" || p.id === spiderPattern.id).map((p) => ({ value: p.id, label: p.label })));
+  /** The pattern as fingers in playing order (1-4-3-2 is index, pinky, ring, middle). */
+  const patternFingers = $derived(spiderPattern.fretOffsets.map((o) => o + 1));
+  let draft = $state<number[]>([]);
+  function tapFinger(f: number) {
+    draft = [...draft, f];
+    if (draft.length < 4) return;
+    const p = SPIDER_PATTERNS.find((x) => x.fretOffsets.every((o, i) => o + 1 === draft[i]));
+    if (p) cfg.set({ pattern: p.id });
+    draft = [];
+  }
   function nextOrder() {
     const i = SPIDER_PATTERNS.findIndex((p) => p.id === spiderPattern.id);
     cfg.set({ pattern: SPIDER_PATTERNS[(i + 1) % SPIDER_PATTERNS.length].id });
@@ -463,19 +496,48 @@
         <Choice label="Pattern" setupKey="pattern" options={LEGATO_PATTERNS.map((p) => ({ value: p.id, label: p.label }))} value={legatoPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
         <p class="self-end text-sm text-ws-soft">Tap the neck on the stage to choose the string and start fret.</p>
       {:else if isSpider}
-        <div class="flex min-w-0 flex-col gap-2">
-          <Choice label="Pattern" setupKey="pattern" options={spiderOptions} value={spiderPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
+        <div class="flex min-w-0 flex-col gap-2" data-setup="pattern">
+          <span class="text-sm font-medium" id="spider-order">Finger order</span>
+          <!-- The order so far: four slots, filled as the fingers are tapped. -->
+          <ol class="flex gap-1.5" aria-labelledby="spider-order">
+            {#each [0, 1, 2, 3] as i (i)}
+              {@const f = draft.length ? draft[i] : patternFingers[i]}
+              <li class="grid size-10 place-items-center rounded-full border-2 text-base font-extrabold {f ? 'border-transparent text-[#1b120b]' : 'border-dashed border-ws-line text-ws-soft'}" style:background={f ? `var(--finger-${f})` : undefined}>
+                {f ?? i + 1}<span class="sr-only">{f ? `: ${FINGERS[f]}` : ": not chosen yet"}</span>
+              </li>
+            {/each}
+          </ol>
+          <p class="text-xs text-ws-soft" aria-live="polite">{draft.length ? `${4 - draft.length} more to tap.` : "Tap the fingers below in the order you want to play them."}</p>
+          <div class="flex flex-wrap gap-1.5" role="group" aria-label="Tap the fingers in order">
+            {#each [1, 2, 3, 4] as f (f)}
+              <button type="button" class="flex min-h-11 items-center gap-1.5 rounded-full border border-ws-line px-3 text-sm font-medium disabled:opacity-40" disabled={draft.includes(f)} onclick={() => tapFinger(f)}>
+                <span class="size-3 rounded-full" style:background="var(--finger-{f})" aria-hidden="true"></span>{f} {FINGERS[f]}
+              </button>
+            {/each}
+            {#if draft.length}<button type="button" class="min-h-11 px-2 text-sm text-ws-soft underline underline-offset-4" onclick={() => (draft = [])}>Clear</button>{/if}
+          </div>
           <button type="button" class="self-start text-sm font-medium text-instr-ink underline underline-offset-4" onclick={nextOrder}>Next finger order</button>
         </div>
-        <Choice label="String" options={stringOptions} value={string} onchange={(v) => cfg.set({ string: v })} />
-        <Choice label="Span" setupKey="span" options={SPIDER_SPANS.map((x) => ({ value: x.id, label: x.label }))} value={s.span} onchange={(v) => cfg.set({ span: v })} />
+        <div class="flex min-w-0 flex-col gap-2" data-setup="strings">
+          <span class="text-sm font-medium" id="spider-strings">Strings</span>
+          <div class="flex flex-wrap gap-1.5" role="group" aria-labelledby="spider-strings">
+            {#each tuning.openStrings as open, i (i)}
+              {@const n = i + 1}
+              {@const on = spiderSet.includes(n)}
+              <button type="button" class="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg border px-2 text-sm font-semibold {on ? 'border-instr bg-instr-wash' : 'border-ws-line'}" aria-pressed={on} aria-label="String {n}, {noteName(open, 'flat', false)}" onclick={() => toggleString(n)}>
+                {n}<span class="text-[10px] font-normal text-ws-soft">{noteName(open, "flat", false)}</span>
+              </button>
+            {/each}
+          </div>
+          <p class="text-xs text-ws-soft">Tap to add or remove. They play from the lowest string up.</p>
+        </div>
         <Choice
           label="String crossing"
           setupKey="crossing"
-          disabled={s.span === "single"}
+          disabled={spiderSet.length < 2}
           options={[
             { value: 0, label: "One string at a time" },
-            { value: 1, label: "Cross each step", hint: "Needs a span of two strings or more." },
+            { value: 1, label: "Cross each step", hint: "Needs two strings or more." },
           ]}
           value={crossing ? 1 : 0}
           onchange={(v) => cfg.set({ crossing: v === 1 })}
@@ -487,11 +549,7 @@
       <Choice
         label="Notes a click"
         setupKey="per"
-        options={[
-          { value: 1, label: "One" },
-          { value: 2, label: "Two" },
-          { value: 4, label: "Four" },
-        ]}
+        options={PER_STEPS.map((n) => ({ value: n, label: String(n), detail: PER_NAME[n] }))}
         value={perBeat}
         onchange={(v) => cfg.set({ perBeat: v })}
       />
@@ -528,7 +586,7 @@
     {:else}
       {#if mode === "practice" || phase === "results"}
         <div class="mb-3">
-          <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} />
+          <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} meter={compound ? [12, 8] : undefined} />
         </div>
       {/if}
       {#if isSpider && mode === "practice" && phase !== "results"}
@@ -543,7 +601,7 @@
       <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} onpick={picking ? pickStart : undefined} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
       <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
         {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand: p thumb, i index, m middle, a ring. ${chordLabel(refA)} is shown; ${chordLabel(refB)} follows.` : isLegato ? "P is picked, h hammered on, p pulled off." : isSpider ? "Numbers are the order you play; colours are your fingers." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
-        {#if picking}<p>Tap the neck to start somewhere else: the string and the {isSpider ? "first fret of the pattern" : "start fret"}.</p>{/if}
+        {#if picking}<p>{isSpider ? "Tap the neck to move the pattern's first fret." : "Tap the neck to start somewhere else: the string and the start fret."}</p>{/if}
         {#if kind === "positions" && phase === "ready"}<p>Box and CAGED shapes are drawn for standard tuning, root on string 6.</p>{/if}
       </div>
       <div class="mt-3"><MicPanel disabled={phase === "running" || phase === "countin"} hint="Optional: play on your {instr} into the microphone, or tap the frets here." /></div>
