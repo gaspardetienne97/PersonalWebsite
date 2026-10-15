@@ -594,6 +594,16 @@ test.describe("guitar drills", () => {
     await expect(
       page.getByRole("list", { name: "The chords in order" }).getByRole("listitem"),
     ).toHaveCount(6);
+    // A long song keeps the tab's size and scrolls sideways on one row instead of shrinking.
+    const tab = page.getByTestId("line-tab").locator(".viewport");
+    await expect(tab.locator("svg")).toBeVisible();
+    const box = await tab.evaluate((v) => ({
+      client: v.clientWidth,
+      scroll: v.scrollWidth,
+      height: v.clientHeight,
+    }));
+    expect(box.scroll).toBeGreaterThan(box.client * 1.5);
+    expect(box.height).toBeLessThan(200);
     await shoot(page, "fingerpick-song", 1280);
   });
 
