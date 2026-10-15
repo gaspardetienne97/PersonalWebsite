@@ -1111,6 +1111,36 @@ test.describe("rhythm", () => {
     await expect(page.getByRole("status")).toContainText(`All ${total} hits written right.`);
   });
 
+  test("a first tap a hair early, still in the count-in, counts", async ({ page }) => {
+    await page.goto("/music/rhythm?mode=pulse&beats=4");
+    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const stage = page.locator("[data-downbeat][data-beat-ms]");
+    await expect(stage).toHaveAttribute("data-downbeat", /\d/);
+    // The count-in shows on the stage while it counts.
+    await expect(page.getByText("Play on the next 1.")).toBeVisible();
+    const downbeat = Number(await stage.getAttribute("data-downbeat"));
+    const beatMs = Number(await stage.getAttribute("data-beat-ms"));
+    // Space on each beat, the first 40 ms before the downbeat, while the count-in is still on.
+    await page.evaluate(
+      ({ downbeat, beatMs }) => {
+        for (let i = 0; i < 4; i++)
+          setTimeout(
+            () =>
+              document.body.dispatchEvent(
+                new KeyboardEvent("keydown", { code: "Space", key: " ", bubbles: true }),
+              ),
+            downbeat + i * beatMs - (i === 0 ? 40 : 0) - performance.now(),
+          );
+      },
+      { downbeat, beatMs },
+    );
+    await expect(page.getByRole("status")).toContainText(/Centered|rushed|dragged/, {
+      timeout: 15_000,
+    });
+    await expect(page.locator("article").first()).toContainText("4 of 4");
+  });
+
   test("pulse over fake MIDI with no count-in", async ({ page }) => {
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(page, "/music/rhythm?mode=pulse&beats=4");

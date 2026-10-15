@@ -30,6 +30,7 @@
   // with the metric. One route-owned status line (role=status) per page.
   import type { Snippet } from "svelte";
   import { onDestroy, setContext, tick } from "svelte";
+  import { fade } from "svelte/transition";
   import ArrowLeft from "lucide-svelte/icons/arrow-left";
   import { backFor } from "$lib/music/came-from.svelte";
   import Play from "lucide-svelte/icons/play";
@@ -118,6 +119,10 @@
     el?.querySelector<HTMLElement>("button, input, select, [tabindex]")?.focus();
   }
   let clockHandle: { stop(): void } | null = null;
+  let goTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Count-in clicks so far, and how many bars it lasts (for the count-in panel). */
+  let countBeats = $state(0);
+  let countBars = $state(0);
   let heading: HTMLElement | undefined = $state();
   let resultsHeading: HTMLElement | undefined = $state();
 
@@ -162,6 +167,13 @@
     bench.setFocus(false);
   });
 
+  function go() {
+    clearTimeout(goTimer);
+    if (phase !== "countin") return;
+    phase = "running";
+    status = "Go.";
+  }
+
   function stopClock() {
     clockHandle?.stop();
     clockHandle = null;
@@ -183,6 +195,8 @@
     const beatMs = 60000 / clock.bpm;
     bench.beatsPerBar = clock.beatsPerBar;
     phase = bars > 0 ? "countin" : "running";
+    countBeats = 0;
+    countBars = bars;
     if (bars > 0) status = `Count-in: ${bars} bar${bars > 1 ? "s" : ""}.`;
     const handle = audio.metronome.start({
       bpm: clock.bpm,
@@ -191,13 +205,16 @@
       audible: bench.clickDuringRun,
       onBeat: (beat: number, _bar: number, _at: number, isCountIn: boolean) => {
         bench.beat = beat + 1;
-        if (!isCountIn && phase === "countin") {
-          phase = "running";
-          status = "Go.";
-        }
+        if (isCountIn) countBeats++;
+        if (!isCountIn && phase === "countin") go();
       },
     });
     clockHandle = handle;
+    // Running from half a beat before the downbeat, the window drills listen from: the
+    // beat callback fires at or after the beat, so a first note on it (or a hair early)
+    // would land while the phase still said count-in and be dropped.
+    clearTimeout(goTimer);
+    if (bars > 0) goTimer = setTimeout(go, Math.max(0, handle.downbeatPerf - beatMs / 2 - performance.now()));
     await tick();
     heading?.focus();
     await onstart({ mode, downbeat: handle.downbeatPerf, beatMs, bpm: clock.bpm, stopClock });
@@ -206,6 +223,7 @@
   setContext<ShellApi>(SHELL_KEY, { start });
 
   function stop() {
+    clearTimeout(goTimer);
     stopClock();
     input.router.releaseAll();
     onstop?.();
@@ -334,9 +352,26 @@
         <div class="h-full rounded-full bg-instr transition-[width]" style:width="{progress * 100}%"></div>
       </div>{/if}
     {/if}
+
     {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored.</p>{/if}
     {#if hud}<div class="mb-3 flex flex-wrap gap-2">{@render hud()}</div>{/if}
     {@render stage(phase)}
+    {#if phase === "countin"}
+      <!-- The count-in over the stage (nothing shifts when it goes), counted as a player would:
+           the beat in big type, the bar's clicks as dots. Taps pass through to the stage. -->
+      <div class="countin pointer-events-none absolute inset-0 z-20 grid place-items-center" aria-hidden="true" out:fade={{ duration: 150 }}>
+        <div class="flex flex-col items-center gap-3 text-center">
+          <span class="text-sm font-semibold tracking-wide text-ws-stage-ink/80">Count-in{countBars > 1 && countBeats ? `, bar ${Math.min(countBars, Math.ceil(countBeats / bench.beatsPerBar))} of ${countBars}` : ""}</span>
+          {#key countBeats}<span class="count font-display text-8xl font-bold leading-none tnum">{bench.beat || ""}</span>{/key}
+          <span class="flex items-center gap-2.5">
+            {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
+              <span class="size-4 rounded-full {bench.beat >= b && countBeats ? 'bg-warn' : 'bg-ws-stage-ink/25'}"></span>
+            {/each}
+          </span>
+          <span class="text-sm text-ws-stage-ink/80">Play on the next 1.</span>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <div class="flex flex-wrap items-center gap-3">
@@ -358,6 +393,29 @@
 </section>
 
 <style>
+  .countin {
+    background: color-mix(in oklch, var(--ws-stage) 62%, transparent);
+    backdrop-filter: blur(1.5px);
+    color: var(--ws-stage-ink);
+    /* Legible over a white staff too. */
+    text-shadow:
+      0 0 12px var(--ws-stage),
+      0 1px 3px var(--ws-stage);
+  }
+  .count {
+    animation: count-pop 0.25s ease-out;
+  }
+  @keyframes count-pop {
+    from {
+      transform: scale(1.35);
+      opacity: 0.6;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .count {
+      animation: none;
+    }
+  }
   .clause {
     border-radius: 0.25rem;
     text-decoration: underline dotted;

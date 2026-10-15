@@ -92,8 +92,12 @@
   // ---------------------------------------------------------------------------
   // Input
 
+  // Taps count from the count-in on: a first tap on the downbeat (or a hair early)
+  // often lands before the shell's beat callback flips the phase to running.
+  const live = $derived(phase === "running" || phase === "countin");
+
   function addHit(h: Hit) {
-    if (phase !== "running" || h.at < downbeat - windowMs) return;
+    if (!live || h.at < downbeat - windowMs) return;
     hits = [...hits, h].sort((a, b) => a.at - b.at);
   }
 
@@ -131,7 +135,7 @@
 
   function onKey(e: KeyboardEvent) {
     // While writing, Space toggles the focused grid cell; it is not a tap.
-    if (writes || phase !== "running" || e.code !== "Space" || e.repeat) return;
+    if (writes || !live || e.code !== "Space" || e.repeat) return;
     const t = e.target as HTMLElement | null;
     if (t?.closest("input, select, textarea, [contenteditable]")) return;
     e.preventDefault();
@@ -156,10 +160,15 @@
       marks = {};
       writing = false;
     }
+    // Listen from half a beat before the first downbeat (the response bar in an echo),
+    // before the microphone starts, so a first tap is never missed.
+    if (byEar && !writes) downbeat = ctx.downbeat + plan.lengthMs;
+    cap = capture(downbeat - windowMs, onInput);
     if (listens) {
       const ok = await mic.start();
       if (!ok) {
         ctx.stopClock();
+        cap?.stop();
         phase = "ready";
         status = mic.error || "The microphone could not start.";
         return;
@@ -201,7 +210,6 @@
       status = "Listen to the pattern. Tap it back in the next bars.";
       timers.push(setTimeout(() => phase === "running" && (status = "Your turn: tap it back."), Math.max(0, downbeat - performance.now())));
     }
-    cap = capture(downbeat - windowMs, onInput);
     // Silent bars (gap click): stop the click where the schedule goes quiet.
     const silent = pulse ? undefined : plan.clicks.find((c) => !c.audible);
     if (silent) timers.push(setTimeout(() => ctx.stopClock(), Math.max(0, ctx.downbeat + silent.atMs - performance.now() - 20)));
@@ -666,7 +674,7 @@
           class:pressed
           aria-label="Tap"
           aria-keyshortcuts="Space"
-          disabled={phase !== "running"}
+          disabled={!live}
           onpointerdown={(e) => {
             if (e.button > 0) return;
             e.preventDefault();

@@ -408,7 +408,7 @@
   }
 
   function onHit(e: NoteEvent) {
-    if (phase !== "running" || mode !== "practice") return;
+    if ((phase !== "running" && phase !== "countin") || mode !== "practice") return;
     if (waitMode) return waitHit(e);
     judge(e);
     const at = e.at - downbeat;

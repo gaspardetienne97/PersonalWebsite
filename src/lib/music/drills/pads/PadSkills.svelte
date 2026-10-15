@@ -200,7 +200,7 @@
   }
 
   function onHit(e: NoteEvent) {
-    if (e.kind !== "noteon" || phase !== "running") return;
+    if (e.kind !== "noteon" || (phase !== "running" && phase !== "countin")) return;
     if (!gt) return;
     const at = e.at - downbeat;
     const near = gt.targets.some((t) => t.pad === e.midi && Math.abs(t.atMs - at) <= gt.matchWindowMs);
