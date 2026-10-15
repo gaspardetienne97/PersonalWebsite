@@ -8,6 +8,10 @@
   import Volume from "lucide-svelte/icons/volume-2";
   import VolumeOff from "lucide-svelte/icons/volume-off";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import KeyboardMusic from "lucide-svelte/icons/keyboard-music";
+  import Mic from "lucide-svelte/icons/mic";
+  import MicOff from "lucide-svelte/icons/mic-off";
+  import InputPanel from "./InputPanel.svelte";
   import { instrumentOptions } from "./instrument-icons";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
   import { bench, INSTRUMENT_LABEL } from "../bench.svelte";
@@ -31,6 +35,8 @@
     if (mic.state === "on") return "Microphone";
     return midi.enabled && midi.inputs.length ? "MIDI ready" : "On-screen";
   });
+  const soundLabel = $derived(s.muted ? "Sound off" : !audio.unlocked ? "Enable sound" : "");
+  const midiLive = $derived(midi.enabled && midi.inputs.some((p) => p.state === "connected" && !midi.profile(p.id)?.ignored));
   const fretted = $derived(s.activeInstrument === "guitar" || s.activeInstrument === "ukulele" ? s.activeInstrument : null);
   const tuningId = $derived(fretted === "ukulele" ? s.ukuleleTuningId : s.guitarTuningId);
   const tuningName = $derived(fretted ? tunings.pick(tuningId, fretted).name : "");
@@ -200,23 +206,27 @@
 
     <span class="ml-auto"></span>
 
-    {#if s.muted}
-      <button type="button" class="{pill} border-warn text-ws-ink" onclick={() => settings.update({ muted: false })} aria-label="Sound is off. Turn it on">
-        <VolumeOff class="size-4" aria-hidden="true" />Sound off
-      </button>
-    {:else if !audio.unlocked}
-      <button type="button" class="{pill} border-instr text-instr-ink" onclick={() => audio.unlock()}>
-        <Volume class="size-4" aria-hidden="true" />Enable sound
-      </button>
-    {/if}
-
-    <a href="/music/connect" class="{pill} {extra}" aria-label="Input: {sourceLabel}. Open Connect">
-      <span
-        class="size-2 rounded-full {input.activeSource === 'midi' || input.activeSource === 'audio' ? 'bg-success' : 'bg-ws-soft'}"
-        aria-hidden="true"
-      ></span>
-      {sourceLabel}
-    </a>
+    <!-- Sound, MIDI and the microphone in one pill; it asks for attention while sound is locked or muted. -->
+    <Popover.Root>
+      <Popover.Trigger
+        class="{pill} {soundLabel ? (s.muted ? 'border-warn' : 'border-instr text-instr-ink') : ''}"
+        aria-label="Sound and input: {soundLabel ? soundLabel.toLowerCase() : 'sound on'}, MIDI {midiLive ? 'on' : midi.enabled ? 'on, no device' : 'off'}, microphone {mic.state === 'on' ? 'on' : 'off'}"
+      >
+        {#if s.muted || !audio.unlocked}<VolumeOff class="size-4" aria-hidden="true" />{:else}<Volume class="size-4" aria-hidden="true" />{/if}
+        {#if soundLabel}<span>{soundLabel}</span>{/if}
+        <span class="flex items-center gap-1 {midiLive ? '' : 'text-ws-soft'}" title="MIDI {midiLive ? 'on' : 'off'}">
+          <KeyboardMusic class="size-4" aria-hidden="true" /><span class="size-2 rounded-full {midiLive ? 'bg-success' : 'bg-ws-line'}" aria-hidden="true"></span>
+        </span>
+        <span class="flex items-center gap-1 {mic.state === 'on' ? '' : 'text-ws-soft'}" title="Microphone {mic.state === 'on' ? 'on' : 'off'}">
+          {#if mic.state === "on"}<Mic class="size-4" aria-hidden="true" />{:else}<MicOff class="size-4" aria-hidden="true" />{/if}<span class="size-2 rounded-full {mic.state === 'on' ? 'bg-success' : 'bg-ws-line'}" aria-hidden="true"></span>
+        </span>
+        {#if !soundLabel}<span class="hidden lg:inline">{sourceLabel}</span>{/if}
+        <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
+      </Popover.Trigger>
+      <Popover.Content portalProps={{ to: portalTo }} class="max-h-[80vh] w-80 overflow-y-auto border-ws-line bg-ws-surface text-ws-ink">
+        <InputPanel />
+      </Popover.Content>
+    </Popover.Root>
 
     <button type="button" class="{pill} {extra}" onclick={() => palette.open()} aria-label="Search" aria-keyshortcuts="Meta+K Control+K">
       <Search class="size-4" aria-hidden="true" />

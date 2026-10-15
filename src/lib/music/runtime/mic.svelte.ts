@@ -103,6 +103,8 @@ let level = $state(LEVEL_FLOOR_DB);
 let peak = $state(LEVEL_FLOOR_DB);
 let advice = $state.raw<ReturnType<typeof levelAdvice> | undefined>();
 let pitch = $state.raw<MicPitch | null>(null);
+let pinned = $state(false);
+let liveDevice: string | undefined | null = null;
 let devices = $state.raw<{ deviceId: string; label: string }[]>([]);
 
 let ctx: AudioContext | null = null;
@@ -229,10 +231,19 @@ async function refreshDevices() {
     .map((d, i) => ({ deviceId: d.deviceId, label: d.label || `Microphone ${i + 1}` }));
 }
 
-/** Only call from a user action. `stream` injects a MediaStream (tests, Playwright). */
-async function start(opts: { deviceId?: string; stream?: MediaStream } = {}): Promise<boolean> {
+/**
+ * Only call from a user action. `stream` injects a MediaStream (tests, Playwright).
+ * `pin` keeps it on for every page (the practice strip's switch): a drill's own
+ * stop() leaves it running, only stop({ unpin: true }) turns it off.
+ */
+async function start(
+  opts: { deviceId?: string; stream?: MediaStream; pin?: boolean } = {},
+): Promise<boolean> {
   if (!browser) return false;
-  if (state === "on" || state === "starting") stop();
+  const wanted = opts.deviceId ?? settings.value.audioInputDeviceId;
+  // Already on for the strip with this input: nothing to restart.
+  if (pinned && state === "on" && !opts.stream && wanted === liveDevice) return true;
+  if (state === "on" || state === "starting") halt();
   state = "starting";
   error = "";
   try {
@@ -242,7 +253,7 @@ async function start(opts: { deviceId?: string; stream?: MediaStream } = {}): Pr
     } else {
       if (!navigator.mediaDevices?.getUserMedia)
         throw new Error("This browser has no microphone access.");
-      const deviceId = opts.deviceId ?? settings.value.audioInputDeviceId;
+      const deviceId = wanted;
       stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: settings.value.echoCancellation,
@@ -269,11 +280,14 @@ async function start(opts: { deviceId?: string; stream?: MediaStream } = {}): Pr
     // To the worklet only, never to the destination: that is feedback.
     ctx.createMediaStreamSource(stream).connect(node);
     state = "on";
+    liveDevice = opts.stream ? null : wanted;
+    if (opts.pin) pinned = true;
     refreshDevices().catch(() => {});
     return true;
   } catch (e) {
     const err = e as DOMException;
-    stop();
+    pinned = false;
+    halt();
     if (err.name === "NotAllowedError" || err.name === "SecurityError") {
       state = "denied";
       error =
@@ -289,7 +303,13 @@ async function start(opts: { deviceId?: string; stream?: MediaStream } = {}): Pr
   }
 }
 
-function stop() {
+function stop(opts: { unpin?: boolean } = {}) {
+  if (pinned && !opts.unpin) return;
+  pinned = false;
+  halt();
+}
+
+function halt() {
   noteOff(performance.now());
   if (node) {
     node.port.onmessage = null;
@@ -312,7 +332,11 @@ function stop() {
 }
 
 /** Drive the mic pipeline from a generated signal `source(tSeconds) -> sample`. */
-async function startSynthetic(source: (t: number) => number, seconds = 4): Promise<boolean> {
+async function startSynthetic(
+  source: (t: number) => number,
+  seconds = 4,
+  pin = false,
+): Promise<boolean> {
   const gen = new AudioContext();
   await gen.resume();
   const buf = gen.createBuffer(1, Math.round(gen.sampleRate * seconds), gen.sampleRate);
@@ -324,7 +348,7 @@ async function startSynthetic(source: (t: number) => number, seconds = 4): Promi
   const dest = gen.createMediaStreamDestination();
   src.connect(dest);
   src.start();
-  const ok = await start({ stream: dest.stream });
+  const ok = await start({ stream: dest.stream, pin });
   synthCtx = gen;
   return ok;
 }
@@ -390,6 +414,10 @@ export const mic = {
   },
   get devices() {
     return devices;
+  },
+  /** Turned on from the practice strip: stays on across drills until turned off there. */
+  get pinned() {
+    return pinned;
   },
   get sampleRate() {
     return ctx?.sampleRate;

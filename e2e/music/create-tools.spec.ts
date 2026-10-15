@@ -762,13 +762,14 @@ test.describe("Settings", () => {
     await expect(sw).toHaveAttribute("aria-checked", "false");
     await expect(audio.getByRole("button", { name: "Play test sound" })).toBeDisabled();
     // The practice strip says so, and turns it back on.
-    const off = page.getByRole("button", { name: "Sound is off. Turn it on" });
-    await expect(off).toBeVisible();
+    const off = page.getByRole("button", { name: /^Sound and input: sound off/ });
+    await expect(off).toContainText("Sound off");
     await page.reload();
     await expect(
       page.locator("section#audio").getByRole("switch", { name: "Sound", exact: true }),
     ).toHaveAttribute("aria-checked", "false");
-    await page.getByRole("button", { name: "Sound is off. Turn it on" }).click();
+    await page.getByRole("button", { name: /^Sound and input: sound off/ }).click();
+    await page.getByRole("button", { name: "Turn sound on" }).click();
     await expect(
       page.locator("section#audio").getByRole("switch", { name: "Sound", exact: true }),
     ).toHaveAttribute("aria-checked", "true");

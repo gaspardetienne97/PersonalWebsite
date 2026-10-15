@@ -333,6 +333,23 @@ describe("microphone (synthetic audio)", () => {
   });
 });
 
+describe("microphone kept on from the strip", () => {
+  it("ignores a drill's stop() and turns off only when unpinned", async () => {
+    const button = document.body.appendChild(document.createElement("button"));
+    let started: Promise<boolean> | undefined;
+    button.onclick = () => (started = mic.startSynthetic(() => 0, 2, true));
+    await userEvent.click(button);
+    expect(await started).toBe(true);
+    button.remove();
+    expect(mic.pinned).toBe(true);
+    mic.stop();
+    expect(mic.state).toBe("on");
+    mic.stop({ unpin: true });
+    expect(mic.state).toBe("off");
+    expect(mic.pinned).toBe(false);
+  });
+});
+
 describe("microphone re-attacks", () => {
   it("hears the same note picked three times as three notes", async () => {
     const seen: InputEvent[] = [];

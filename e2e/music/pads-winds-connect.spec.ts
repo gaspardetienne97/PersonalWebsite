@@ -296,3 +296,30 @@ test("Aerophone and pads with on-screen input only say what they cannot measure"
   await expect(page.getByTestId("pads-stage")).toContainText("fill");
   await shoot(page, "pads-groove-fill");
 });
+
+test("the strip's input pop-up turns MIDI on and chooses its devices", async ({ page }) => {
+  await installFakeMidi(page, [PORTS.keys, PORTS.mpcPublic]);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/music/scales");
+  await page.getByRole("button", { name: /^Sound and input: .*MIDI off, microphone off/ }).click();
+  const panel = page;
+  await expect(panel.getByRole("button", { name: "Turn on the microphone" })).toBeVisible();
+  await panel.getByRole("button", { name: "Turn on MIDI" }).click();
+  const keys = panel.getByRole("button", { name: /Digital Piano/ });
+  const mpc = panel.getByRole("button", { name: /MPC One\+ Public/ });
+  await expect(keys).toHaveAttribute("aria-pressed", "true");
+  // The keyboard can play as another instrument; the MPC is left out.
+  await panel
+    .getByRole("combobox", { name: /^Plays as/ })
+    .first()
+    .selectOption("guitar");
+  await mpc.click();
+  await expect(mpc).toHaveAttribute("aria-pressed", "false");
+  await page.screenshot({ path: `${SHOTS}/strip-input-1280.png` });
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: /^Sound and input: .*MIDI on,/ })).toBeVisible();
+  // The choice is the device's ignored flag, the same one Connect shows.
+  await page.goto("/music/connect");
+  await expect(page.getByText(/ignored: its notes don't reach drills/)).toBeVisible();
+  await expect(page.getByText("Guitar", { exact: true }).first()).toBeVisible();
+});

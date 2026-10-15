@@ -20,7 +20,6 @@
     const d = mic.devices.find((x) => x.deviceId === deviceId);
     await settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: d?.label || "Default input" });
     if (mic.state === "on") {
-      mic.stop();
       await start();
     } else announce(`${d?.label || "The default input"} will be used for the microphone.`);
   }
@@ -32,7 +31,7 @@
     if (ok) void mic.refreshDevices().catch(() => {});
   }
   function stop() {
-    mic.stop();
+    mic.stop({ unpin: true });
     mine = false;
     announce("Microphone off.");
   }

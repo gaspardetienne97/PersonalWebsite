@@ -31,7 +31,7 @@
       </div>
       <span class="w-28 text-sm text-ws-stage-soft">{advice.label}</span>
     </div>
-    <button type="button" class={btnStage} {disabled} onclick={() => mic.stop()}><MicOff class="size-4" aria-hidden="true" />Stop microphone</button>
+    <button type="button" class={btnStage} {disabled} onclick={() => mic.stop({ unpin: true })}><MicOff class="size-4" aria-hidden="true" />Stop microphone</button>
   {:else}
     <button type="button" class={btnStage} disabled={disabled || mic.state === "starting"} onclick={() => void mic.start()}>
       <Mic class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting" : "Start microphone"}
