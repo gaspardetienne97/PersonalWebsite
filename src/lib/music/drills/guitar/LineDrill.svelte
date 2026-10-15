@@ -177,18 +177,33 @@
   let hitAt: (number | undefined)[] = [];
 
   const finger = (t: FretTarget) => t.label ?? (t.finger ? String(t.finger) : undefined);
+  /** Spider: each fret's place in the pattern (the same on every string), so 1-4-3-2 reads 1 4 3 2 across the neck. */
+  const spiderLen = $derived(spiderPattern.fretOffsets.length);
+  const order = (i: number) => (isSpider ? String((i % spiderLen) + 1) : undefined);
+  // The number is the order (spider) or the finger; the colour is always the fretting finger.
+  const mark = (t: FretTarget, i: number, demo = false): FretMark => ({
+    string: t.string,
+    fret: t.fret,
+    label: order(i) ?? finger(t),
+    spoken: order(i) && `note ${order(i)} of the pattern`,
+    finger: t.label ? undefined : t.finger || undefined,
+    demo,
+  });
   const marks = $derived.by((): FretMark[] => {
-    if (demoStep !== null && steps[demoStep]) return [{ string: steps[demoStep].string, fret: steps[demoStep].fret, label: finger(steps[demoStep]), demo: true }];
+    if (demoStep !== null && steps[demoStep]) return [mark(steps[demoStep], demoStep, true)];
     if (mode !== "practice" || phase === "results") return [];
     if (phase === "running" || phase === "countin") {
       const t = steps[stepIndex];
-      return t ? [{ string: t.string, fret: t.fret, label: finger(t) }] : [];
+      return t ? [mark(t, stepIndex)] : [];
     }
     // Fingerpicking shows the first chord only; the second follows in the run.
     const shown = isPick ? fingerpickTargets({ pattern: pickPattern, shapes: [chordA], tuning, rounds: 1 }) : steps;
     const seen = new Set<number>();
-    return shown.flatMap((t) => (seen.has(t.string * 100 + t.fret) ? [] : (seen.add(t.string * 100 + t.fret), [{ string: t.string, fret: t.fret, label: finger(t) }])));
+    return shown.flatMap((t, i) => (seen.has(t.string * 100 + t.fret) ? [] : (seen.add(t.string * 100 + t.fret), [mark(t, i)])));
   });
+  /** The spider's key: the pattern's fingers in playing order. */
+  const FINGERS = ["open", "index", "middle", "ring", "pinky"];
+  const spiderKey = $derived(steps.slice(0, spiderLen).map((t) => t.finger ?? 0));
 
   /** One pass of a fingerpicking pattern in bars: 8 notes at 1, 2 or 4 a click. */
   const pickBars = $derived(pickPattern.strings.length / perBeat / 4);
@@ -516,9 +531,18 @@
           <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} />
         </div>
       {/if}
+      {#if isSpider && mode === "practice" && phase !== "results"}
+        <ol class="mb-2 flex flex-wrap items-center gap-1.5 text-sm" aria-label="Play order">
+          {#each spiderKey as f, i (i)}
+            <li class="flex items-center gap-1.5 rounded-full bg-ws-stage-ink/8 py-1 pr-3 pl-1 font-semibold">
+              <span class="grid size-6 place-items-center rounded-full text-xs font-extrabold text-[#1b120b]" style:background={f ? `var(--finger-${f})` : "var(--ws-stage-soft)"} aria-hidden="true">{i + 1}</span>{FINGERS[f]}
+            </li>
+          {/each}
+        </ol>
+      {/if}
       <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} onpick={picking ? pickStart : undefined} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
       <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
-        {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand: p thumb, i index, m middle, a ring. ${chordLabel(refA)} is shown; ${chordLabel(refB)} follows.` : isLegato ? "P is picked, h hammered on, p pulled off." : "Numbers are fingers: 1 index to 4 pinky."}</p>{/if}
+        {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand: p thumb, i index, m middle, a ring. ${chordLabel(refA)} is shown; ${chordLabel(refB)} follows.` : isLegato ? "P is picked, h hammered on, p pulled off." : isSpider ? "Numbers are the order you play; colours are your fingers." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
         {#if picking}<p>Tap the neck to start somewhere else: the string and the {isSpider ? "first fret of the pattern" : "start fret"}.</p>{/if}
         {#if kind === "positions" && phase === "ready"}<p>Box and CAGED shapes are drawn for standard tuning, root on string 6.</p>{/if}
       </div>

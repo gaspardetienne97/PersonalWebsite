@@ -36,6 +36,11 @@
   --tone-avoid: oklch(0.6 0.04 20);
   --hand-left: oklch(0.72 0.13 200);
   --hand-right: oklch(0.76 0.15 60);
+  /* Fretting fingers, index to pinky. */
+  --finger-1: oklch(0.8 0.12 235);
+  --finger-2: oklch(0.82 0.16 150);
+  --finger-3: oklch(0.88 0.15 95);
+  --finger-4: oklch(0.76 0.16 350);
 
   background: var(--ws-bg);
   color: var(--ws-ink);

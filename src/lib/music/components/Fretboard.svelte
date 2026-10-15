@@ -8,14 +8,18 @@
   import { capturePointer } from "./feedback.svelte";
   import type { FlashKind, Flashes } from "./feedback.svelte";
 
+  const FINGER_NAMES = ["", "index", "middle", "ring", "little"];
+
   export interface FretMark {
     string: number;
     fret: number;
     label?: string;
     role?: "chord" | "scale" | "avoid" | "root";
-    /** How the mark is read aloud (default "target"; a root mark is "starting note"). */
+    /** How the mark is read aloud, in place of "target" and its label (a root mark is "starting note"). */
     spoken?: string;
     demo?: boolean;
+    /** The fretting finger (1 index to 4 pinky): the dot takes that finger's colour. */
+    finger?: number;
   }
 
   interface Props {
@@ -135,13 +139,14 @@
             class:open-cell={f === 0}
             data-held={held || undefined}
             data-role={mk?.role}
+            data-finger={mk?.finger || undefined}
             data-demo={mk?.demo || undefined}
             data-target={mk ? "" : undefined}
             data-flash={flash}
             data-cell={s * 100 + f}
             tabindex={interactive && tabCell === s * 100 + f ? 0 : -1}
             aria-pressed={held}
-            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? `, ${mk.spoken ?? 'target'}${mk.label ? `, ${mk.label}` : ''}` : ''}"
+            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? `, ${mk.spoken ?? `target${mk.label ? `, ${mk.label}` : ''}`}${mk.finger ? `, ${FINGER_NAMES[mk.finger]} finger` : ''}` : ''}"
             onfocus={() => (focusAt = s * 100 + f)}
             onpointerdown={(e) => press(e, s, f)}
             onpointerup={release}
@@ -306,6 +311,29 @@
   [data-demo] .dot {
     background: var(--instr);
     color: #1b120b;
+  }
+  /* A finger's colour fills the dot; the demo's sounding note gets a light ring. */
+  [data-finger]:not([data-held]) .dot {
+    background: var(--finger);
+    color: #1b120b;
+    box-shadow: 0 2px 4px #0008;
+  }
+  [data-finger="1"] {
+    --finger: var(--finger-1);
+  }
+  [data-finger="2"] {
+    --finger: var(--finger-2);
+  }
+  [data-finger="3"] {
+    --finger: var(--finger-3);
+  }
+  [data-finger="4"] {
+    --finger: var(--finger-4);
+  }
+  [data-finger][data-demo] .dot {
+    box-shadow:
+      0 0 0 3px var(--ws-stage-ink),
+      0 2px 4px #0008;
   }
   [data-held] .dot {
     background: var(--instr);
