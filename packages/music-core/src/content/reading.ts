@@ -112,6 +112,31 @@ export function flashcardPrompt(
   };
 }
 
+/**
+ * A run of cards drawn as a shuffle bag: every card in the range once before
+ * any comes back, and never the same card twice in a row.
+ */
+export function flashcardDeck(
+  rand: Rand,
+  opts: Parameters<typeof flashcardPrompt>[1],
+  length: number,
+): FlashcardPrompt[] {
+  const deck: FlashcardPrompt[] = [];
+  let seen = new Set<string>();
+  while (deck.length < length) {
+    let p = flashcardPrompt(rand, opts);
+    for (let t = 0; t < 60 && seen.has(p.id); t++) p = flashcardPrompt(rand, opts);
+    // ponytail: "every card seen" is guessed from 60 misses; a small chance of starting the next round early.
+    if (seen.has(p.id) && seen.size > 1) {
+      seen = new Set([deck.at(-1)!.id]);
+      continue;
+    }
+    seen.add(p.id);
+    deck.push(p);
+  }
+  return deck;
+}
+
 /** Enharmonic-tolerant answer check; a played answer compares pitch classes, octave-lenient. */
 export function flashcardCorrect(prompt: FlashcardPrompt, response: string | number[]): boolean {
   if (typeof response === "string") return enharmonicEqual(prompt.answer, response);

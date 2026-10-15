@@ -23,8 +23,8 @@
     revealLabels?: boolean;
     /** Always treble and bass, split at middle C. */
     grand?: boolean;
-    /** Spread a short line across the whole width. */
-    fill?: boolean;
+    /** Spread a short line across the whole width, or centre it. */
+    fill?: boolean | "center";
     /** Draw the time signature (off for a lone flashcard). */
     time?: boolean;
   } = $props();

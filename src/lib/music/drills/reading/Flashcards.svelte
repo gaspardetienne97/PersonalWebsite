@@ -1,11 +1,11 @@
 <script lang="ts">
   // Note-reading flashcards: a note (or triad) on the staff, named by choice or
   // played. Enharmonic spellings are both right. A wrong answer is drawn beside
-  // the right one on the staff before the next card.
+  // the right one on the staff and stays until Next.
   import { onDestroy } from "svelte";
   import type { Assistance, InputSource, NoteEvent } from "@repo/music-core";
   import { noteName, parseNote, pc } from "@repo/music-core";
-  import { flashcardCorrect, flashcardPrompt, READING_LEVELS, readingLevel, readingRange, type Clef, type FlashcardPrompt } from "@repo/music-core/content/reading";
+  import { flashcardCorrect, flashcardDeck, flashcardPrompt, READING_LEVELS, readingLevel, readingRange, type Clef, type FlashcardPrompt } from "@repo/music-core/content/reading";
   import { keyByName, KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
   import { gradeFlashcard } from "@repo/music-core/scoring/reading";
   import { rng } from "@repo/music-core/content/random";
@@ -18,7 +18,7 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
-  import { btn, btnStage } from "$lib/music/components/ui";
+  import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import Staff from "$lib/music/notation/Staff.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -91,7 +91,7 @@
   const expectedName = $derived(card ? fullName(card) : "");
 
   function makeCards() {
-    return Array.from({ length: LENGTH }, () => flashcardPrompt(rand, { kind, clefs: clefs.length ? clefs : ["treble"], key: key.name, range, difficulty: level.recommendedDifficulty }));
+    return flashcardDeck(rand, { kind, clefs: clefs.length ? clefs : ["treble"], key: key.name, range, difficulty: level.recommendedDifficulty }, LENGTH);
   }
 
   async function start(_ctx: RunContext) {
@@ -171,7 +171,8 @@
       assistance,
       instrument: typeof response === "string" ? null : (runInstrument(notes, instrument) ?? null),
     });
-    timer = setTimeout(next, correct ? 550 : 1800);
+    // A miss waits for Next, so there is time to compare the two notes.
+    if (correct) timer = setTimeout(next, 550);
   }
 
   function next() {
@@ -188,7 +189,9 @@
     if (mic.state === "on") mic.stop();
   }
 
-  const missed = $derived(answers.filter((r) => !r.correct).map((r) => r.prompt));
+  const missed = $derived([...new Map(answers.filter((r) => !r.correct).map((r) => [r.prompt.id, r.prompt])).values()]);
+  let nextBtn = $state<HTMLButtonElement>();
+  $effect(() => nextBtn?.focus());
 
   async function finish() {
     teardown();
@@ -293,17 +296,17 @@
   {/snippet}
 
   {#snippet stage()}
-    <div class="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
-      <div class="card rounded-2xl p-3" data-answer={card?.answer} data-midi={card?.midi.join(",")} data-state={answered ? (answered.correct ? "right" : "wrong") : "open"}>
+    <div class="mx-auto flex w-full max-w-3xl flex-col items-center gap-4">
+      <div class="card w-full max-w-md rounded-2xl p-3 text-center" data-answer={card?.answer} data-midi={card?.midi.join(",")} data-state={answered ? (answered.correct ? "right" : "wrong") : "open"}>
         {#if staffScore}
           <!-- One bar engraves at its natural size; zoom makes the card readable at arm's length. -->
           <div class="zoom">
             {#key staffScore.id}
-              <Staff score={staffScore} time={false} revealLabels={!!answered && !answered.correct} maxHeight="12rem" />
+              <Staff score={staffScore} fill="center" time={false} revealLabels={!!answered && !answered.correct} maxHeight="12rem" />
             {/key}
           </div>
         {/if}
-        <p class="min-h-7 px-1 text-base font-semibold">
+        <p class="min-h-7 px-1 text-base font-semibold" aria-live="polite">
           {#if answered && !answered.correct}
             <span class="glyph wrong" aria-hidden="true">✕</span> You {byPlay ? "played" : "answered"} {answered.name}, it was {expectedName}
           {:else if answered}
@@ -314,11 +317,14 @@
             <span class="font-normal text-ws-stage-soft">An example card. Start for ten.</span>
           {/if}
         </p>
+        {#if phase === "running" && answered && !answered.correct}
+          <button bind:this={nextBtn} type="button" class="{btnPrimary} mt-2" onclick={next}>{qi + 1 < cards.length ? "Next card" : "See results"}</button>
+        {/if}
       </div>
 
-      <div class="min-w-0">
+      <div class="w-full min-w-0">
         {#if !byPlay}
-          <div class="grid grid-cols-4 gap-1.5 sm:grid-cols-6" role="group" aria-label="Note names">
+          <div class="mx-auto grid max-w-xl grid-cols-4 gap-1.5 sm:grid-cols-6" role="group" aria-label="Note names">
             {#each choices as c (c)}
               <button
                 type="button"
@@ -330,7 +336,7 @@
             {/each}
           </div>
         {:else if useMic}
-          <div class="rounded-2xl bg-ws-stage-ink/8 p-4">
+          <div class="mx-auto max-w-md rounded-2xl bg-ws-stage-ink/8 p-4 text-center">
             <p class="text-sm text-ws-stage-soft">Play the note on your {instrument}; the microphone listens.</p>
             <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : "No pitch yet"}</p>
           </div>
@@ -342,7 +348,7 @@
           <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
         {/if}
         {#if phase === "running" && mode === "practice" && !answered && !hinted}
-          <button type="button" class="{btnStage} mt-3" onclick={() => (hinted = anyHint = true)}>Hint</button>
+          <button type="button" class="{btnStage} mx-auto mt-3 flex" onclick={() => (hinted = anyHint = true)}>Hint</button>
         {/if}
       </div>
     </div>
@@ -371,8 +377,21 @@
   .card[data-state="right"] {
     border-color: var(--success);
   }
+  /* The card is printed paper in both themes: dark ink on light, centred. */
   .zoom {
     zoom: 1.7;
+    --ws-surface: oklch(0.99 0.004 285);
+    --ws-ink: oklch(0.2 0.045 287);
+    --ws-soft: oklch(0.45 0.03 287);
+    padding-block: 0.4rem;
+    border-radius: 0.5rem;
+    background: var(--ws-surface);
+  }
+  :global(.dark) .zoom {
+    --ws-surface: oklch(0.92 0.008 285);
+  }
+  .zoom :global(.viewport) {
+    scrollbar-gutter: auto;
   }
   .name {
     background: color-mix(in oklch, var(--ws-stage-ink) 9%, transparent);

@@ -258,8 +258,8 @@ function engrave(
   groups: ScoreGroup[],
   rows: RowSpec[],
   width: number,
-  /** Stretch a short last line to the width too (a one-line exercise reads better spread out). */
-  fill = false,
+  /** Stretch a short last line to the width too (a one-line exercise reads better spread out), or centre a one-line staff. */
+  fill: boolean | "center" = false,
 ): Layout {
   const time = `${score.meter.beats}/${score.meter.beatUnit}`;
   const beamGroups = VF.Beam.getDefaultBeamGroups(time);
@@ -325,7 +325,7 @@ function engrave(
   const widths = systems.map((sys, si) => {
     const extra = si === 0 ? modFirst : modNext;
     let scale = (avail - extra) / sys.reduce((a, b) => a + natural[b], 0);
-    if (!fill && si === systems.length - 1 && scale > 1.4) scale = 1;
+    if (fill !== true && si === systems.length - 1 && scale > 1.4) scale = 1;
     return sys.map((b, k) => Math.max(least[b], natural[b] * scale) + (k === 0 ? extra : 0));
   });
   host.replaceChildren();
@@ -333,6 +333,10 @@ function engrave(
     width,
     ...widths.map((w) => w.reduce((a, b) => a + b, 0) + left + MARGIN),
   );
+  const indent =
+    fill === "center" && systems.length === 1
+      ? Math.max(0, (svgWidth - widths[0].reduce((a, b) => a + b, 0) - left - MARGIN) / 2)
+      : 0;
   const renderer = new VF.Renderer(host as HTMLDivElement, VF.Renderer.Backends.SVG);
   renderer.resize(svgWidth, systems.length * sysH);
   const ctx = renderer.getContext();
@@ -353,7 +357,7 @@ function engrave(
   systems.forEach((sys, si) => {
     const y0 = si * sysH;
     const lastSystem = si === systems.length - 1;
-    let x = left;
+    let x = left + indent;
     sys.forEach((b, k) => {
       const w = widths[si][k];
       let y = y0;
@@ -467,8 +471,8 @@ export interface DrawOptions {
   width: number;
   /** Always a grand staff (treble and bass, split at middle C). */
   grand?: boolean;
-  /** Stretch the last line to the width too. */
-  fill?: boolean;
+  /** Stretch the last line to the width too, or centre a one-line staff. */
+  fill?: boolean | "center";
 }
 
 export function drawStaff(

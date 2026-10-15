@@ -873,6 +873,11 @@ test.describe("note reading and sight-reading", () => {
       if (i === 0) {
         await expect(card).toContainText("You played");
         await shots(page, "reading-flashcards-wrong");
+        // A miss stays on screen until Next, which has focus so Enter moves on.
+        await page.waitForTimeout(2500);
+        await expect(card).toHaveAttribute("data-state", "wrong");
+        await expect(page.getByRole("button", { name: "Next card" })).toBeFocused();
+        await page.keyboard.press("Enter");
       }
     }
     await expect(page.getByRole("status")).toContainText("9 of 10 read right", { timeout: 8000 });

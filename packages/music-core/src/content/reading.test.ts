@@ -11,6 +11,7 @@ import {
   READING_RUNGS,
   startClimb,
   flashcardCorrect,
+  flashcardDeck,
   flashcardPrompt,
   practiceMissedScore,
   READING_LEVELS,
@@ -125,6 +126,24 @@ describe("flashcards", () => {
       ),
     ).toBe(true);
     expect(flashcardCorrect(p, [p.midi[0]])).toBe(false);
+  });
+
+  it("deals every note once before repeating, never the same card twice in a row", () => {
+    const opts = {
+      kind: "note" as const,
+      clefs: ["treble" as const],
+      key: "C major",
+      range: [60, 67] as [number, number],
+      difficulty: 0.3,
+    };
+    for (let s = 1; s < 30; s++) {
+      const deck = flashcardDeck(rng(s), opts, 10);
+      // C4 to G4 in C major is five notes: the first five are all different.
+      expect(new Set(deck.slice(0, 5).map((c) => c.id)).size).toBe(5);
+      deck.slice(1).forEach((c, i) => expect(c.id).not.toBe(deck[i].id));
+    }
+    const one = flashcardDeck(rng(1), { ...opts, range: [60, 60] }, 3);
+    expect(one).toHaveLength(3);
   });
 });
 
