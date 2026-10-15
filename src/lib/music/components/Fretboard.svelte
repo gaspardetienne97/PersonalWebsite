@@ -216,8 +216,10 @@
     margin-bottom: 0.25rem;
     font-variant-numeric: tabular-nums;
   }
+  /* Layers, bottom up: inlays, strings, a barre (a finger lies over the strings), dots. */
   .neck {
     position: relative;
+    isolation: isolate;
     border-radius: 0.6rem;
     padding: 0.35rem 0;
     background:
@@ -244,13 +246,12 @@
   .string-row {
     position: relative;
     display: grid;
-    z-index: 1;
   }
   .barres {
     position: absolute;
     inset: 0.35rem 0;
     display: grid;
-    z-index: 1;
+    z-index: 2;
     pointer-events: none;
   }
   .barre {
@@ -290,6 +291,7 @@
   }
   .string-line {
     position: absolute;
+    z-index: 1;
     left: 0;
     right: 0;
     top: 50%;
@@ -309,6 +311,7 @@
   }
   .muted-x {
     position: absolute;
+    z-index: 3;
     left: -1.4rem;
     top: 50%;
     transform: translateY(-50%);
@@ -347,7 +350,7 @@
   }
   .dot {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     width: 1.6rem;
     height: 1.6rem;
     border-radius: 999px;
@@ -422,6 +425,7 @@
   }
   .inlays {
     position: absolute;
+    z-index: -1;
     inset: 0;
     display: grid;
     pointer-events: none;
