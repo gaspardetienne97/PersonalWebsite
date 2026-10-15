@@ -39,6 +39,8 @@
     flashByPitch?: boolean;
     /** Also called with the string and fret of a tap (a drill's setup on the neck). */
     onpick?: (string: number, fret: number) => void;
+    /** Chord shapes: one finger on one fret across strings is drawn as a single bar. */
+    barres?: boolean;
   }
 
   let {
@@ -53,6 +55,7 @@
     label = "Fretboard",
     flashByPitch = false,
     onpick,
+    barres = false,
   }: Props = $props();
 
   const strings = $derived(openStrings.map((_, i) => i + 1));
@@ -116,6 +119,20 @@
   const flashAt = (s: number, f: number): FlashKind | undefined => flashes?.get(flashByPitch ? midiAt(s, f) : s * 100 + f);
   /** A string is ringing while a note on it is held, tapped, or lit by the demo. */
   const ringing = (s: number) => frets.some((f) => heldHere(s, f) || markAt(s, f)?.demo);
+  /** A finger on one fret over two or more strings: a barre, drawn as one rounded bar from its highest to lowest string. */
+  const barreList = $derived.by(() => {
+    if (!barres) return [];
+    const byFinger = new Map<string, FretMark[]>();
+    for (const m of marks) if (m.finger && m.fret > 0) byFinger.set(`${m.finger}:${m.fret}`, [...(byFinger.get(`${m.finger}:${m.fret}`) ?? []), m]);
+    return [...byFinger.values()]
+      .filter((g) => g.length > 1)
+      .map((g) => {
+        const labels = new Set(g.map((m) => m.label));
+        return { fret: g[0].fret, finger: g[0].finger!, top: Math.min(...g.map((m) => m.string)), bottom: Math.max(...g.map((m) => m.string)), label: labels.size === 1 ? g[0].label : undefined, demo: g.some((m) => m.demo) };
+      });
+  });
+  /** On a barre with one label (a finger number), the bar carries it once; different labels (picking letters) stay on each string. */
+  const onBarre = (s: number, f: number) => barreList.find((b) => b.fret === f && s >= b.top && s <= b.bottom);
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);
 </script>
 
@@ -125,6 +142,14 @@
   </div>
   <div class="neck">
     {#if from === 0}<span class="nut" aria-hidden="true"></span>{/if}
+    {#if barreList.length}
+      <!-- Under the string rows, so the strings run over the bar and a flash still shows on top. -->
+      <div class="barres" aria-hidden="true" style:grid-template-columns={cols} style:grid-template-rows="repeat({strings.length}, minmax(0, 1fr))">
+        {#each barreList as b (`${b.finger}:${b.fret}`)}
+          <span class="barre" data-finger={b.finger} data-demo={b.demo || undefined} style:grid-column={frets.indexOf(b.fret) + 1} style:grid-row="{b.top} / {b.bottom + 1}">{b.label ?? ""}</span>
+        {/each}
+      </div>
+    {/if}
     {#each strings as s (s)}
       <div class="string-row" class:ringing={ringing(s)} style:--gauge="{gauge(s)}px" style:grid-template-columns={cols}>
         <span class="string-line" aria-hidden="true"></span>
@@ -157,6 +182,8 @@
           >
             {#if flash}
               <span class="dot flash" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : "✕"}</span>
+            {:else if mk && !held && onBarre(s, f)}
+              {#if !onBarre(s, f)!.label}<span class="dot on-barre" aria-hidden="true">{mk.label ?? ""}</span>{/if}
             {:else if mk || held}
               <span class="dot" aria-hidden="true">{mk?.label ?? ""}</span>
             {/if}
@@ -218,6 +245,48 @@
     position: relative;
     display: grid;
     z-index: 1;
+  }
+  .barres {
+    position: absolute;
+    inset: 0.35rem 0;
+    display: grid;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .barre {
+    justify-self: center;
+    width: 1.6rem;
+    margin-block: 0.45rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #1b120b;
+    background: var(--finger, var(--instr));
+    box-shadow: 0 2px 4px #0008;
+  }
+  .barre[data-finger="1"] {
+    --finger: var(--finger-1);
+  }
+  .barre[data-finger="2"] {
+    --finger: var(--finger-2);
+  }
+  .barre[data-finger="3"] {
+    --finger: var(--finger-3);
+  }
+  .barre[data-finger="4"] {
+    --finger: var(--finger-4);
+  }
+  .barre[data-demo] {
+    box-shadow:
+      0 0 0 3px var(--ws-stage-ink),
+      0 2px 4px #0008;
+  }
+  /* A string's own letter on a barre: just the letter, the bar is its background. */
+  .dot.on-barre {
+    background: transparent !important;
+    box-shadow: none !important;
   }
   .string-line {
     position: absolute;

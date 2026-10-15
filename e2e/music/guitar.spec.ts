@@ -620,6 +620,16 @@ test.describe("guitar drills", () => {
     await shoot(page, "fingerpick-cycle", 1280);
   });
 
+  test("a barre chord shows its barre as one bar, the finger once", async ({ page }) => {
+    await page.goto(
+      "/music/chords?mode=changes&chords=guitar.f-major,guitar.c-major&positions=0,0&instrument=guitar",
+    );
+    const bar = page.locator(".barre");
+    await expect(bar).toHaveCount(1);
+    await expect(bar).toHaveText("1");
+    await expect(page.locator(fret(1, 1)).locator(".dot")).toHaveCount(0);
+  });
+
   test("Strum and identify is honest about one oscillator", async ({ page }) => {
     await page.goto("/music/chords?mode=strum&shape=guitar.c-major&instrument=guitar");
     await expect(page.getByRole("button", { name: "Listen for a strum" })).toBeDisabled();

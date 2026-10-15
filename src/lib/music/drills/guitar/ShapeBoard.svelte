@@ -1,6 +1,7 @@
 <script lang="ts">
-  // A chord shape on the fret window: dots carry finger numbers, open strings a
-  // ring, muted strings an x at the nut. `show=false` hides the shape (Check).
+  // A chord shape on the fret window: dots carry finger numbers in the fingers'
+  // colours (a barre is one bar), open strings a ring, muted strings an x at the
+  // nut. `show=false` hides the shape (Check).
   import type { ChordShape, Tuning } from "@repo/music-core/data/index";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
   import { tuningById } from "@repo/music-core/theory/fretboard";
@@ -26,7 +27,7 @@
   const to = $derived(Math.min(tuning.fretCount, Math.max(from + 4, shape.fretWindow?.end ?? 0, ...fretted)));
   const marks = $derived<FretMark[]>(
     show
-      ? targets.map((t) => ({ string: t.string, fret: t.fret, label: t.finger ? String(t.finger) : undefined, demo: demo === t.midi }))
+      ? targets.map((t) => ({ string: t.string, fret: t.fret, label: t.finger ? String(t.finger) : undefined, finger: t.finger || undefined, demo: demo === t.midi }))
       : demo !== null
         ? targets.filter((t) => t.midi === demo).map((t) => ({ string: t.string, fret: t.fret, demo: true }))
         : [],
@@ -34,4 +35,4 @@
   const muted = $derived(show ? shape.frets.flatMap((f, i) => (f === null ? [i + 1] : [])) : []);
 </script>
 
-<Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} {muted} {label} {interactive} />
+<Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} {muted} {label} {interactive} barres />

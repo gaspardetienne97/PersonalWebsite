@@ -690,7 +690,7 @@
           {/each}
         </ol>
       {/if}
-      <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} onpick={picking ? pickStart : undefined} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
+      <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} barres={isPick} onpick={picking ? pickStart : undefined} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
       {#if mode === "practice" && !isLegato}
         <!-- The colour key: the fretting hand by colour; on fingerpicking, the picking hand by letter. -->
         <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-ws-stage-soft" aria-label="Finger key">
