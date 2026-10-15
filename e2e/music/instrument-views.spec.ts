@@ -27,11 +27,16 @@ test.describe("instrument views", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await pick(page, "Piano");
     await expect(page.getByLabel(/^Piano keyboard/)).toBeVisible();
+    // Before the run, the whole scale is marked: C major up one octave is eight keys.
+    await expect(page.locator(".piano [data-target]")).toHaveCount(8);
     // The scale written out above: a staff on piano, tab on guitar.
     await expect(page.getByTestId("line-staff").locator("svg")).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/scales-piano-1280.png`, fullPage: true });
     await pick(page, "Guitar");
     await expect(page.getByLabel(/^guitar fretboard/)).toBeVisible();
+    await expect(page.getByLabel(/^guitar fretboard/).locator('[data-role="scale"]')).toHaveCount(
+      8,
+    );
     await expect(page.getByTestId("line-tab").locator("svg")).toBeVisible();
     await expect(page.getByText("Setup:").locator("..")).toContainText("on guitar");
     await page.screenshot({ path: `${SHOTS}/scales-guitar-1280.png`, fullPage: true });

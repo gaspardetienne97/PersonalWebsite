@@ -141,6 +141,12 @@
 
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
+    const both = scaleSetup.hands === "both";
+    // Before a run: every note of the line at once, by hand when both play.
+    if (demoStep === null && phase === "ready" && mode === "practice") {
+      for (const st of steps) for (const n of st.notes) out[n.midi] = { target: true, label: both ? (n.hand === "left" ? "L" : "R") : undefined, role: both ? n.hand : "scale" };
+      return out;
+    }
     const show = demoStep ?? (mode === "practice" && phase !== "results" ? stepIndex : null);
     if (show === null || !steps[show]) return out;
     for (const n of steps[show].notes)
