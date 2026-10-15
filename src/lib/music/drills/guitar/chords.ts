@@ -183,3 +183,43 @@ export const PAIR_HISTORY_KEY = "chords.pair-history.v1";
 export const pairKey = (from: string, to: string) => `${from}>${to}`;
 /** Newest last, capped so the settings row stays small. */
 export const mergePairRuns = (a: PairRun[], b: PairRun[]) => [...a, ...b].slice(-30);
+
+// ---------------------------------------------------------------------------
+// A cycle of chords (changes, fingerpicking): two to six, in order.
+
+export const MAX_CYCLE = 6;
+
+/** A common next chord after `id` that is not already in `not`, else any other shape. */
+export const nextChordId = (instrument: Fretted, id: string, not: readonly string[]) =>
+  shapesFor(instrument)
+    .find((x) => x.id === id)
+    ?.commonTransitions.find((t) => !not.includes(t)) ??
+  shapesFor(instrument).find((x) => !not.includes(x.id))?.id;
+
+/**
+ * The cycle from a setup's comma list of shape ids (or an older setup's pair).
+ * A chord the same as the one before it is dropped, since there is no change to
+ * hear; there are always two or more.
+ */
+export function cycleRefs(instrument: Fretted, csv: string, max = MAX_CYCLE): ChordRef[] {
+  const C: ChordRef = { root: 0, quality: "maj" };
+  const id = (r: ChordRef) => chordId(instrument, r);
+  const list = csv
+    .split(",")
+    .map((x) => chordRef(x))
+    .filter((r): r is ChordRef => !!r);
+  const out: ChordRef[] = [];
+  for (const r of list.length ? list : [C])
+    if (!out.length || id(r) !== id(out.at(-1)!)) out.push(r);
+  if (out.length > 2 && id(out[0]) === id(out.at(-1)!)) out.pop();
+  if (out.length < 2)
+    out.push(chordRef(nextChordId(instrument, id(out[0]), [id(out[0])]) ?? "") ?? C);
+  return out.slice(0, max);
+}
+
+/** Each chord's chosen position from a comma list; null where none was chosen. */
+export const cyclePositions = (csv: string, n: number) =>
+  Array.from({ length: n }, (_, i) => {
+    const v = csv.split(",")[i];
+    return v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v);
+  });

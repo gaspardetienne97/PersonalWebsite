@@ -25,12 +25,11 @@
   import { mic, settings } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
-  import { chordId, chordLabel, chordRef, groupChanges, groupedNotes, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, shortPosition, type ChordRef, type PairRun } from "./chords";
+  import { chordId, chordLabel, cyclePositions, cycleRefs, groupChanges, groupedNotes, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, type ChordRef, type PairRun } from "./chords";
   import { ChordListener } from "./strum.svelte";
   import MicPanel from "./MicPanel.svelte";
-  import ChordPicker from "./ChordPicker.svelte";
-  import PositionPicker from "./PositionPicker.svelte";
-  import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
+  import ChordCycleSetup from "./ChordCycleSetup.svelte";
+  import ChordStrip from "./ChordStrip.svelte";
   import ShapeBoard from "./ShapeBoard.svelte";
   import { CHORD_MODES, openMode } from "./modes";
 
@@ -47,29 +46,18 @@
     trips: 2,
     clock: 0,
   });
-  const MAX_CHORDS = 6;
   const s = $derived(cfg.value);
   const entry = catalogEntry("chords")!.modes.find((m) => m.id === "changes")!;
   const instr = $derived(fretted());
   const tuning = $derived(tuningFor(instr));
-  const C: ChordRef = { root: 0, quality: "maj" };
   // A link naming a pair (shape and to) and no chord list, like a path's, opens on that pair.
   const pairLink = $derived(page.url.searchParams.has("to") && !page.url.searchParams.has("chords"));
-  const transitionFrom = (id: string, not: string[]) =>
-    shapesFor(instr).find((x) => x.id === id)?.commonTransitions.find((t) => !not.includes(t)) ?? shapesFor(instr).find((x) => !not.includes(x.id))?.id;
   // Root and quality of each chord, from the setup's shape ids (curated, generated, or the other instrument's).
-  // A chord the same as the one before it is dropped (no change to hear); there are always two or more.
-  const refs = $derived.by((): ChordRef[] => {
-    const list = (s.chords && !pairLink ? s.chords : `${s.shape},${s.to}`).split(",").map((id) => chordRef(id)).filter((r): r is ChordRef => !!r);
-    const out: ChordRef[] = [];
-    for (const r of list.length ? list : [C]) if (!out.length || chordId(instr, r) !== chordId(instr, out.at(-1)!)) out.push(r);
-    if (out.length > 2 && chordId(instr, out[0]) === chordId(instr, out.at(-1)!)) out.pop();
-    if (out.length < 2) out.push(chordRef(transitionFrom(chordId(instr, out[0]), [chordId(instr, out[0])]) ?? "") ?? C);
-    return out.slice(0, MAX_CHORDS);
-  });
+  const refs = $derived(cycleRefs(instr, s.chords && !pairLink ? s.chords : `${s.shape},${s.to}`));
   const chordIds = $derived(refs.map((r) => chordId(instr, r)));
   const n = $derived(refs.length);
-  const posList = $derived(refs.map((_, i) => Number(s.positions.split(",")[i]) || 0));
+  const chosen = $derived(cyclePositions(s.positions, n));
+  const posList = $derived(chosen.map((p) => p ?? 0));
   // Each chord at its chosen position on the strip's tuning (the curated open shape first).
   const shapes = $derived(
     chordIds.map((id, i) => {
@@ -86,34 +74,14 @@
   /** The history key: the pair's own key for two chords, so older history carries on. */
   const cycleKey = $derived(shapes.map((x) => x.id).join(">"));
 
-  let editing = $state(0);
-  const edit = $derived(Math.min(editing, n - 1));
-  function save(list: ChordRef[], positions: number[]) {
+  function save(list: ChordRef[], positions: (number | null)[]) {
     if (pairLink) {
       const url = new URL(page.url);
       url.searchParams.delete("shape");
       url.searchParams.delete("to");
       replaceState(url, page.state);
     }
-    cfg.set({ chords: list.map((r) => chordId(instr, r)).join(","), positions: positions.join(",") });
-  }
-  function setChord(i: number, id: string) {
-    const r = chordRef(id);
-    if (!r) return;
-    save(refs.map((x, j) => (j === i ? r : x)), posList.map((p, j) => (j === i ? 0 : p)));
-  }
-  const setPosition = (i: number, p: number) => save(refs, posList.map((x, j) => (j === i ? p : x)));
-  function addChord() {
-    const next = transitionFrom(chordIds.at(-1)!, chordIds);
-    const r = next && chordRef(next);
-    if (!r || n >= MAX_CHORDS) return;
-    save([...refs, r], [...posList, 0]);
-    editing = n;
-  }
-  function removeChord(i: number) {
-    if (n <= 2) return;
-    save(refs.filter((_, j) => j !== i), posList.filter((_, j) => j !== i));
-    editing = Math.max(0, Math.min(edit, n - 2));
+    cfg.set({ chords: list.map((r) => chordId(instr, r)).join(","), positions: positions.map((p) => p ?? "").join(",") });
   }
   /** Round trips: 1, 2, 4 or 8 (an older setup's count rounds up). */
   const trips = $derived([1, 2, 4, 8].find((n) => n >= s.trips) ?? CHANGES_SETUP.roundTrips[1]);
@@ -332,42 +300,7 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <div class="flex min-w-0 flex-col gap-2 sm:col-span-2 lg:col-span-3" data-setup="from">
-        <span class="text-sm font-medium" id="cycle-label">Chords, in order</span>
-        <div class="flex flex-wrap items-stretch gap-2" role="group" aria-labelledby="cycle-label">
-          {#each shapes as sh, i (i)}
-            <div class="relative">
-              <button
-                type="button"
-                class="flex w-20 flex-col items-center gap-0.5 rounded-xl border bg-ws-surface p-1.5 {edit === i ? 'border-instr ring-2 ring-instr' : 'border-ws-line hover:bg-ws-raised'}"
-                aria-pressed={edit === i}
-                aria-label="Chord {i + 1}: {names[i]}, {sh.positionLabel}. Change it"
-                onclick={() => (editing = i)}
-              >
-                <ChordDiagram frets={sh.frets} fingers={sh.fingers} barre={sh.barre} label="" />
-                <span class="text-sm font-semibold">{names[i]}</span>
-                <span class="text-[10px] leading-tight text-ws-soft">{shortPosition(sh.positionLabel)}</span>
-              </button>
-              {#if n > 2}
-                <button type="button" class="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border border-ws-line bg-ws-surface text-xs" aria-label="Remove {names[i]}" onclick={() => removeChord(i)}>✕</button>
-              {/if}
-            </div>
-          {/each}
-          {#if n < MAX_CHORDS}
-            <button type="button" class="grid min-h-24 w-20 place-items-center rounded-xl border border-dashed border-ws-line text-sm font-medium hover:bg-ws-raised" onclick={addChord}>Add chord</button>
-          {/if}
-        </div>
-        <p class="text-xs text-ws-soft">Tap a chord to change it. The run goes round them in order and back to the first.</p>
-      </div>
-      <ChordPicker label="Chord {edit + 1}" instrument={instr} value={chordIds[edit]} onchange={(id) => setChord(edit, id)} />
-      <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3">
-        <span class="text-sm font-medium">Shape and fret for {names[edit]}</span>
-        {#if positionsOn(chordIds[edit], tuning).length > 1}
-          <PositionPicker positions={positionsOn(chordIds[edit], tuning)} index={posList[edit]} symbol={names[edit]} onchange={(p) => setPosition(edit, p)} />
-        {:else}
-          <p class="text-sm text-ws-soft">One shape for this chord on this tuning.</p>
-        {/if}
-      </div>
+      <ChordCycleSetup instrument={instr} {tuning} {refs} {shapes} positions={chosen} onchange={save} setupKey="from" />
       <Choice
         label="Stop after"
         setupKey="length"
@@ -405,15 +338,7 @@
 
   {#snippet stage()}
     {#if mode === "practice"}
-      <!-- Every chord of the cycle as a diagram, the one to play now ringed. -->
-      <ol class="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" aria-label="The chords in order">
-        {#each shapes as sh, i (i)}
-          <li class="flex w-20 shrink-0 flex-col items-center gap-0.5 rounded-xl bg-ws-surface p-1.5 text-ws-ink {live && i === target ? 'ring-3 ring-instr' : live ? 'opacity-60' : ''}" aria-current={live && i === target ? "step" : undefined}>
-            <ChordDiagram frets={sh.frets} fingers={sh.fingers} barre={sh.barre} label="{names[i]}, {sh.positionLabel}" />
-            <span class="text-sm font-semibold">{names[i]}</span>
-          </li>
-        {/each}
-      </ol>
+      <ChordStrip {shapes} {names} current={live ? target : null} />
     {/if}
     <div class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <p class="font-display text-5xl font-bold leading-none">{live ? names[target] : names[0]}</p>

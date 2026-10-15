@@ -196,12 +196,19 @@ test.describe("guitar drills", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText(
       "Travis picking, alternating bass, C then Am",
     );
-    await expect(page.getByText(/colours are the fretting fingers/)).toBeVisible();
+    await expect(page.getByText(/colours the fretting hand/)).toBeVisible();
     // The picking order above the neck; C's fret 3 on string 5 is the ring finger's.
     const order = page.getByRole("list", { name: "Picking order" });
     await expect(order.getByRole("listitem")).toHaveCount(8);
     await expect(order.getByRole("listitem").first()).toHaveText("pbass");
     await expect(page.locator(fret(5, 3))).toHaveAttribute("aria-label", /, ring finger$/);
+    // The chords drawn above, and the key for both hands under the neck.
+    await expect(
+      page.getByRole("list", { name: "The chords in order" }).getByRole("listitem"),
+    ).toHaveCount(2);
+    const key = page.getByLabel("Finger key");
+    await expect(key).toContainText("Fretting hand");
+    await expect(key).toContainText("Picking hand");
     await startDrill(page, "Practice");
     const C: [number, number][] = [
       [5, 3],
@@ -514,6 +521,19 @@ test.describe("guitar drills", () => {
     await expect(
       page.getByRole("article").getByText(/3 changes, 3 with every target note/),
     ).toBeVisible({ timeout: 5000 });
+  });
+
+  test("Fingerpicking over three chords, each with its diagram", async ({ page }) => {
+    await page.goto(
+      "/music/chords?mode=fingerpick&pattern=pima&chords=guitar.c-major,guitar.a-minor,guitar.g-major&instrument=guitar",
+    );
+    await expect(page.getByText("Setup:").locator("..")).toContainText("C then Am then G");
+    await expect(
+      page.getByRole("list", { name: "The chords in order" }).getByRole("listitem"),
+    ).toHaveCount(3);
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await expect(page.getByRole("button", { name: /^Chord \d: / })).toHaveCount(3);
+    await shoot(page, "fingerpick-cycle", 1280);
   });
 
   test("Strum and identify is honest about one oscillator", async ({ page }) => {
