@@ -523,6 +523,60 @@ test.describe("guitar drills", () => {
     ).toBeVisible({ timeout: 5000 });
   });
 
+  test("Fingerpicking with a pinch and a hold, and a pattern in three", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto(
+      "/music/chords?mode=fingerpick&pattern=dust-pinch&chords=guitar.c-major,guitar.a-minor&instrument=guitar&bpm=120&perBeat=2",
+    );
+    const order = page.getByRole("list", { name: "Picking order" });
+    await expect(order.getByRole("listitem").first()).toHaveText("pmbass + 2");
+    await expect(order.getByRole("listitem").nth(1)).toHaveText("hold");
+    await startDrill(page, "Practice");
+    // A bar of eight steps: the pinch (bass and string 2 together), a hold, then single notes.
+    const bar = (
+      b: [number, number],
+      two: [number, number],
+      alt: [number, number],
+      three: [number, number],
+    ) => [[b, two], [], [alt], [three], [b], [two], [alt], [three]];
+    const C = bar([5, 3], [2, 1], [4, 2], [3, 0]);
+    const Am = bar([5, 0], [2, 1], [4, 2], [3, 2]);
+    const steps = [...C, ...Am, ...C, ...Am];
+    await page.evaluate(
+      (sels) => {
+        const t0 = performance.now();
+        sels.forEach((step, i) =>
+          step.forEach((sel, j) => {
+            const o = { bubbles: true, pointerId: 9 + j, button: 0 };
+            setTimeout(
+              () => {
+                const el = document.querySelector(sel)!;
+                el.dispatchEvent(new PointerEvent("pointerdown", o));
+                setTimeout(() => el.dispatchEvent(new PointerEvent("pointerup", o)), 40);
+              },
+              t0 + i * 250 - performance.now(),
+            );
+          }),
+        );
+      },
+      steps.map((st) => st.map(([str, f]) => fret(str, f))),
+    );
+    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 10_000 });
+    const right = await page
+      .getByText(/^\d+ of 32$/)
+      .first()
+      .textContent();
+    expect(Number(right!.split(" ")[0])).toBeGreaterThanOrEqual(26);
+
+    // Six steps are a bar of three: 3/4 at two notes a click.
+    await page.goto("/music/chords?mode=fingerpick&pattern=rolling&instrument=guitar&perBeat=2");
+    await expect(page.getByText("Setup:").locator("..")).toContainText("a bar each");
+    await expect(page.getByTestId("line-tab").locator("svg")).toBeVisible();
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await expect(page.getByRole("group", { name: "In three (3/4 or 6/8)" })).toBeVisible();
+    await shoot(page, "fingerpick-patterns", 1280);
+  });
+
   test("Fingerpicking over three chords, each with its diagram", async ({ page }) => {
     await page.goto(
       "/music/chords?mode=fingerpick&pattern=pima&chords=guitar.c-major,guitar.a-minor,guitar.g-major&instrument=guitar",

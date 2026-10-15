@@ -395,17 +395,42 @@ describe("guitar grade tempos", () => {
 
 describe("fingerpicking", () => {
   const shape = (id: string) => CHORD_SHAPES.find((x) => x.id === id)!;
-  it("every pattern is a bar of eighths, a finger to a step, playable on its open C chord", () => {
+  it("every pattern is a bar of eighths (8 or 6), a finger to each string, playable on its open C chord", () => {
     for (const p of FINGERPICK_PATTERNS) {
-      expect(p.strings, p.id).toHaveLength(8);
-      expect(p.fingers, p.id).toHaveLength(8);
-      expect(
-        p.fingers.every((f) => "pima".includes(f)),
-        p.id,
-      ).toBe(true);
+      expect([6, 8], p.id).toContain(p.strings.length);
+      expect(p.fingers, p.id).toHaveLength(p.strings.length);
+      p.strings.forEach((st, k) => {
+        expect(p.fingers[k].split("+").length, `${p.id} step ${k}`).toBe(st.split("+").length);
+        expect(
+          p.fingers[k].split("+").every((f) => ["p", "i", "m", "a", "-"].includes(f)),
+          p.id,
+        ).toBe(true);
+      });
       expect(fingerpickable(p, shape(`${p.instrument}.c-major`)), p.id).toBe(true);
     }
   });
+
+  it("a pinch shares its step, and a hold keeps the time", () => {
+    const dust = FINGERPICK_PATTERNS.find((p) => p.id === "dust-pinch")!;
+    const t = fingerpickTargets({
+      pattern: dust,
+      shapes: [shape("guitar.c-major")],
+      tuning: std,
+      rounds: 1,
+    });
+    // C: bass 5 and string 2 together on step 0, nothing on step 1, the alternate bass on step 2.
+    expect(t.map((x) => `${x.slot}:${x.string}:${x.label}`)).toEqual([
+      "0:5:p",
+      "0:2:m",
+      "2:4:p",
+      "3:3:i",
+      "4:5:p",
+      "5:2:m",
+      "6:4:p",
+      "7:3:i",
+    ]);
+  });
+
   it("Travis on C alternates the bass (5 then 4) under strings 3 and 2", () => {
     const travis = FINGERPICK_PATTERNS.find((p) => p.id === "travis")!;
     const t = fingerpickTargets({

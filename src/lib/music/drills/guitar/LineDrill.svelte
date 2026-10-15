@@ -85,6 +85,16 @@
   const tuning = $derived(kind === "positions" ? TUNINGS.guitar[0] : tuningFor(instr));
   // Fingerpicking: the instrument's patterns over two to six chords, each at its chosen position, else the first that sounds every string the pattern uses.
   const pickPattern = $derived(FINGERPICK_PATTERNS.find((p) => p.id === s.pattern && p.instrument === instr) ?? FINGERPICK_PATTERNS.find((p) => p.instrument === instr)!);
+  /** The instrument's patterns by kind, each kind a row of buttons in the setup. */
+  const pickGroups = $derived.by(() => {
+    const kind = (p: (typeof FINGERPICK_PATTERNS)[number]) =>
+      p.strings.length === 6 ? "In three (3/4 or 6/8)" : p.strings.some((x) => x === "-" || x.includes("+")) ? "Pinches and holds" : p.id.startsWith("travis") ? "Travis picking" : instr === "ukulele" ? "Thumb and fingers" : "Arpeggios";
+    const groups = new Map<string, (typeof FINGERPICK_PATTERNS)[number][]>();
+    for (const p of FINGERPICK_PATTERNS.filter((x) => x.instrument === instr)) groups.set(kind(p), [...(groups.get(kind(p)) ?? []), p]);
+    return [...groups];
+  });
+  /** A six-step pattern is a bar of three: 3/4 at two notes a click, 6/8 at three. */
+  const triple = $derived(isPick && pickPattern.strings.length === 6);
   const C: ChordRef = { root: 0, quality: "maj" };
   // A link naming a pair (shape and to) and no chord list opens on that pair.
   const pairLink = $derived(page.url.searchParams.has("to") && !page.url.searchParams.has("chords"));
@@ -112,11 +122,14 @@
   const legatoPattern = $derived(LEGATO_PATTERNS.find((p) => p.id === s.pattern) ?? LEGATO_PATTERNS[0]);
   const bpm = () => Math.min(200, Math.max(40, settings.value.bpm));
   // Fingerpicking patterns are eighths; the others also take triplets (3) and sextuplets (6).
-  const PER_STEPS = isPick ? [1, 2, 4] : [1, 2, 3, 4, 6];
+  const PER_STEPS = $derived(isPick ? (triple ? [1, 2, 3] : [1, 2, 4]) : [1, 2, 3, 4, 6]);
   const perBeat = $derived(PER_STEPS.includes(s.perBeat) ? s.perBeat : 1);
-  /** Three or six to a click is compound time: the tab is written in 12/8, a click to each dotted quarter. */
+  /** Three or six to a click is compound time: the tab is written in 12/8 (6/8 for a six-step pattern), a click to each dotted quarter. */
   const compound = $derived(perBeat % 3 === 0);
   const quartersPerClick = $derived(compound ? 1.5 : 1);
+  const tabMeter = $derived<[number, number] | undefined>(triple ? (compound ? [6, 8] : [3, 4]) : compound ? [12, 8] : undefined);
+  /** Clicks in a bar: 3 for 3/4, 2 for 6/8, else 4. */
+  const clickBar = $derived(triple ? (compound ? 2 : 3) : 4);
   /** One note's time: the click divided by the notes to a click. */
   const stepMs = () => 60000 / bpm() / perBeat;
   const target = $derived(isSpider || kind === "positions" ? GUITAR_GRADE_TEMPOS.find((g) => g.id === s.grade) : undefined);
@@ -189,15 +202,23 @@
   let runDownbeat = $state(0);
   let now = $state(0);
   let raf = 0;
-  const tabNotes = $derived(steps.map((t, i) => ({ midi: t.midi, startBeat: (i * quartersPerClick) / perBeat, durationBeats: quartersPerClick / perBeat, string: t.string, fret: t.fret })));
+  // Each note's time step: fingerpicking pinches share one, and its holds leave one empty.
+  const slotOf = $derived(steps.map((t, i) => t.slot ?? i));
+  const slotCount = $derived(isPick ? 2 * pickShapes.length * pickPattern.strings.length : steps.length);
+  /** The tab's groups are the steps that sound, in order. */
+  const groupOf = $derived.by(() => {
+    const sounding = [...new Set(slotOf)];
+    return slotOf.map((sl) => sounding.indexOf(sl));
+  });
+  const tabNotes = $derived(steps.map((t, i) => ({ midi: t.midi, startBeat: (slotOf[i] * quartersPerClick) / perBeat, durationBeats: quartersPerClick / perBeat, string: t.string, fret: t.fret })));
   const tabCursor = $derived(
-    demoStep !== null ? (demoStep / perBeat) * quartersPerClick : phase === "running" && now >= runDownbeat ? Math.min(steps.length / perBeat, (now - runDownbeat) / (60000 / bpm())) * quartersPerClick : null,
+    demoStep !== null ? (slotOf[demoStep] / perBeat) * quartersPerClick : phase === "running" && now >= runDownbeat ? Math.min(slotCount / perBeat, (now - runDownbeat) / (60000 / bpm())) * quartersPerClick : null,
   );
   const tabStates = $derived.by(() => {
     const out: Record<number, GroupState> = {};
     if (phase !== "running") return out;
-    for (let i = 0; i < Math.min(stepIndex, steps.length); i++) out[i] = "correct";
-    if (stepIndex < steps.length) out[stepIndex] = "active";
+    for (let i = 0; i < Math.min(stepIndex, steps.length); i++) out[groupOf[i]] = "correct";
+    if (stepIndex < steps.length) out[groupOf[stepIndex]] = "active";
     return out;
   });
   let demo: { stop(): void; playing: boolean } | null = $state(null);
@@ -226,11 +247,11 @@
     demo,
   });
   const marks = $derived.by((): FretMark[] => {
-    if (demoStep !== null && steps[demoStep]) return [mark(steps[demoStep], demoStep, true)];
+    if (demoStep !== null && steps[demoStep]) return steps.flatMap((t, i) => (slotOf[i] === slotOf[demoStep!] ? [mark(t, i, true)] : []));
     if (mode !== "practice" || phase === "results") return [];
     if (phase === "running" || phase === "countin") {
-      const t = steps[stepIndex];
-      return t ? [mark(t, stepIndex)] : [];
+      // Every note of the step (a pinch is two or more).
+      return steps.flatMap((t, i) => (slotOf[i] === slotOf[stepIndex] && i >= stepIndex ? [mark(t, i)] : []));
     }
     // Fingerpicking shows the first chord only; the second follows in the run.
     const shown = isPick ? fingerpickTargets({ pattern: pickPattern, shapes: [pickShapes[0]], tuning, rounds: 1 }) : steps;
@@ -239,36 +260,32 @@
   });
   /** The spider's key: the pattern's fingers in playing order. */
   const FINGERS = ["open", "index", "middle", "ring", "pinky"];
-  const PICK_STRING = (st: string) => (st === "B" ? "bass" : st === "A" ? "alt bass" : `string ${st}`);
+  /** A step in words: "bass", "string 3", "bass + 2" for a pinch, "hold". */
+  const PICK_STRING = (st: string) => {
+    if (st === "-") return "hold";
+    const parts = st.split("+").map((x) => (x === "B" ? "bass" : x === "A" ? "alt bass" : x));
+    return parts.length === 1 && /^\d$/.test(parts[0]) ? `string ${parts[0]}` : parts.join(" + ");
+  };
   /** The order row above the neck: the spider's fingers, or the picking pattern's steps. */
   const orderKey = $derived(
     isSpider
       ? steps.slice(0, spiderLen).map((t, i) => ({ mark: String(i + 1), text: FINGERS[t.finger ?? 0], finger: t.finger ?? 0 }))
       : isPick
-        ? pickPattern.fingers.map((f, i) => ({ mark: f, text: PICK_STRING(pickPattern.strings[i]), finger: 0 }))
+        ? pickPattern.fingers.map((f, i) => ({ mark: f === "-" ? "" : f.replaceAll("+", ""), text: PICK_STRING(pickPattern.strings[i]), finger: 0 }))
         : [],
   );
-  /** Fingerpicking: the chord sounding now (run or demo), from each chord's count of notes. */
-  const pickPer = $derived(isPick ? pickShapes.map((sh) => fingerpickTargets({ pattern: pickPattern, shapes: [sh], tuning, rounds: 1 }).length) : []);
-  const pickNow = $derived.by(() => {
+  /** The note sounding now (run or demo) and its step. */
+  const nowSlot = $derived.by(() => {
     const at = demoStep ?? (phase === "running" ? stepIndex : null);
-    const total = pickPer.reduce((a, b) => a + b, 0);
-    if (at === null || !total) return null;
-    let k = at % total;
-    for (let i = 0; i < pickPer.length; i++) {
-      if (k < pickPer[i]) return i;
-      k -= pickPer[i];
-    }
-    return null;
+    return at === null || at >= steps.length ? null : slotOf[at];
   });
-  /** The step sounding now (run or demo), when every step of the pattern lands on a string. */
-  const orderNow = $derived.by(() => {
-    const at = demoStep ?? (phase === "running" ? stepIndex : null);
-    return at === null || !orderKey.length || steps.length % orderKey.length ? null : at % orderKey.length;
-  });
+  /** Fingerpicking: the chord sounding now, a pattern's bar each. */
+  const pickNow = $derived(isPick && nowSlot !== null ? Math.floor(nowSlot / pickPattern.strings.length) % pickShapes.length : null);
+  /** The pattern step sounding now. */
+  const orderNow = $derived(nowSlot === null || !orderKey.length ? null : nowSlot % orderKey.length);
 
-  /** One pass of a fingerpicking pattern in bars: 8 notes at 1, 2 or 4 a click. */
-  const pickBars = $derived(pickPattern.strings.length / perBeat / 4);
+  /** One pass of a fingerpicking pattern in bars. */
+  const pickBars = $derived(pickPattern.strings.length / perBeat / clickBar);
   const stringsText = (set: number[]) => {
     const up = [...set].sort((a, b) => a - b);
     return up.length === 1 ? `string ${up[0]}` : `strings ${up.slice(0, -1).join(", ")} and ${up.at(-1)}`;
@@ -308,7 +325,7 @@
     await audio.unlock();
     const beatS = stepMs() / 1000;
     const handle = audio.playSequence(
-      steps.map((t, i) => ({ midi: t.midi, time: i * beatS, duration: beatS * 0.9 })),
+      steps.map((t, i) => ({ midi: t.midi, time: slotOf[i] * beatS, duration: beatS * 0.9 })),
       { onNote: (i: number) => (demoStep = i) },
     );
     demo = handle;
@@ -318,14 +335,18 @@
     });
   }
 
+  /** How many more notes share the step at `i` (a pinch). */
+  const pinch = (i: number) => slotOf.filter((sl, j) => j > i && sl === slotOf[i]).length;
   function onNote(e: NoteEvent) {
     if (e.kind !== "noteon" || phase !== "running") return;
     // Follow the order, allowing a skipped note or two, like the grader does.
-    const k = steps.findIndex((t, i) => i >= stepIndex && i <= stepIndex + 2 && t.midi === e.midi);
+    // A pinch's notes come in either order; a later step skips what was missed.
+    const k = steps.findIndex((t, i) => i >= stepIndex && i <= stepIndex + 2 + pinch(stepIndex) && hitAt[i] === undefined && t.midi === e.midi);
     if (k >= 0) {
       if (mode === "practice") flashes.add(steps[k].string * 100 + steps[k].fret, "correct");
       hitAt[k] = e.at;
-      stepIndex = k + 1;
+      if (slotOf[k] !== slotOf[stepIndex]) stepIndex = k;
+      while (stepIndex < steps.length && hitAt[stepIndex] !== undefined) stepIndex++;
       if (stepIndex >= steps.length) void finish();
     } else if (mode === "practice" && e.string !== undefined && e.fret !== undefined) {
       flashes.add(e.string * 100 + e.fret, "wrong");
@@ -375,7 +396,9 @@
     stopClockRef?.();
     cap?.stop();
     const notes = cap?.notes ?? [];
-    const r = gradeLine({ beats: steps.map((t) => [{ midi: t.midi }]), beatMs: stepMs(), notes });
+    const beats: { midi: number }[][] = Array.from({ length: slotCount }, () => []);
+    steps.forEach((t, i) => beats[slotOf[i]]?.push({ midi: t.midi }));
+    const r = gradeLine({ beats, beatMs: stepMs(), notes });
     result = r;
     phase = "results";
     await run!.attempt({
@@ -517,7 +540,7 @@
   bind:mode
   bind:status
   progress={steps.length ? stepIndex / steps.length : 0}
-  clock={{ bpm: bpm(), beatsPerBar: 4 }}
+  clock={{ bpm: bpm(), beatsPerBar: clickBar }}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}
@@ -527,7 +550,12 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#if isPick}
-        <Choice label="Pattern" setupKey="pattern" options={FINGERPICK_PATTERNS.filter((p) => p.instrument === instr).map((p) => ({ value: p.id, label: p.label, detail: p.fingers.join(" ") }))} value={pickPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
+        <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" data-setup="pattern">
+          <span class="text-sm font-medium">Pattern</span>
+          {#each pickGroups as [group, list] (group)}
+            <Choice label={group} options={list.map((p) => ({ value: p.id, label: p.label, detail: p.fingers.join(" ") }))} value={pickPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
+          {/each}
+        </div>
         <ChordCycleSetup instrument={instr} {tuning} refs={pickRefs} shapes={pickShapes} positions={pickChosen} onchange={savePick} setupKey="chords" />
       {:else if isLegato}
         <Choice label="Pattern" setupKey="pattern" options={LEGATO_PATTERNS.map((p) => ({ value: p.id, label: p.label }))} value={legatoPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
@@ -626,7 +654,7 @@
       {/if}
       {#if mode === "practice" || phase === "results"}
         <div class="mb-3">
-          <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} meter={compound ? [12, 8] : undefined} />
+          <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} meter={tabMeter} />
         </div>
       {/if}
       {#if orderKey.length && mode === "practice" && phase !== "results"}
