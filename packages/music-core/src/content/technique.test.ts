@@ -395,6 +395,17 @@ describe("guitar grade tempos", () => {
 
 describe("fingerpicking", () => {
   const shape = (id: string) => CHORD_SHAPES.find((x) => x.id === id)!;
+  it("every pattern is a bar of eighths, a finger to a step, playable on its open C chord", () => {
+    for (const p of FINGERPICK_PATTERNS) {
+      expect(p.strings, p.id).toHaveLength(8);
+      expect(p.fingers, p.id).toHaveLength(8);
+      expect(
+        p.fingers.every((f) => "pima".includes(f)),
+        p.id,
+      ).toBe(true);
+      expect(fingerpickable(p, shape(`${p.instrument}.c-major`)), p.id).toBe(true);
+    }
+  });
   it("Travis on C alternates the bass (5 then 4) under strings 3 and 2", () => {
     const travis = FINGERPICK_PATTERNS.find((p) => p.id === "travis")!;
     const t = fingerpickTargets({

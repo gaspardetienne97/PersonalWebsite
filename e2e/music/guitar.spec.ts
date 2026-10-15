@@ -196,7 +196,12 @@ test.describe("guitar drills", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText(
       "Travis picking, alternating bass, C then Am",
     );
-    await expect(page.getByText("Letters are the picking hand")).toBeVisible();
+    await expect(page.getByText(/colours are the fretting fingers/)).toBeVisible();
+    // The picking order above the neck; C's fret 3 on string 5 is the ring finger's.
+    const order = page.getByRole("list", { name: "Picking order" });
+    await expect(order.getByRole("listitem")).toHaveCount(8);
+    await expect(order.getByRole("listitem").first()).toHaveText("pbass");
+    await expect(page.locator(fret(5, 3))).toHaveAttribute("aria-label", /, ring finger$/);
     await startDrill(page, "Practice");
     const C: [number, number][] = [
       [5, 3],

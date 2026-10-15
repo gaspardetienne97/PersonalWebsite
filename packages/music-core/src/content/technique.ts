@@ -276,7 +276,25 @@ export interface FingerpickPattern {
   /** p thumb, i index, m middle, a ring. */
   fingers: string[];
 }
+// Sources for the additions: Fender's Travis picking lesson (thumb alone, then one
+// finger), Heartwood Guitar's Travis patterns, Giuliani Op. 1 style arpeggios,
+// UkuleleGo's five patterns and liveukulele's picking patterns. Patterns that need
+// pinches or 6/8 (Dust in the Wind as written, House of the Rising Sun) are not here yet.
 export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
+  {
+    id: "travis-bass",
+    label: "Alternating bass, thumb only",
+    instrument: "guitar",
+    strings: ["B", "A", "B", "A", "B", "A", "B", "A"],
+    fingers: ["p", "p", "p", "p", "p", "p", "p", "p"],
+  },
+  {
+    id: "travis-middle",
+    label: "Travis with one finger",
+    instrument: "guitar",
+    strings: ["B", "2", "A", "2", "B", "2", "A", "2"],
+    fingers: ["p", "m", "p", "m", "p", "m", "p", "m"],
+  },
   {
     id: "travis",
     label: "Travis picking, alternating bass",
@@ -285,11 +303,88 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
     fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
   },
   {
+    id: "travis-syncopated",
+    label: "Syncopated Travis, one note at a time",
+    instrument: "guitar",
+    strings: ["B", "2", "A", "3", "B", "2", "A", "3"],
+    fingers: ["p", "m", "p", "i", "p", "m", "p", "i"],
+  },
+  {
     id: "pima",
     label: "p i m a",
     instrument: "guitar",
     strings: ["B", "3", "2", "1", "B", "3", "2", "1"],
     fingers: ["p", "i", "m", "a", "p", "i", "m", "a"],
+  },
+  {
+    id: "pima-alternating",
+    label: "p i m a, alternating bass",
+    instrument: "guitar",
+    strings: ["B", "3", "2", "1", "A", "3", "2", "1"],
+    fingers: ["p", "i", "m", "a", "p", "i", "m", "a"],
+  },
+  {
+    id: "folk-pimi",
+    label: "Folk arpeggio, p i m i",
+    instrument: "guitar",
+    strings: ["B", "3", "2", "3", "A", "3", "2", "3"],
+    fingers: ["p", "i", "m", "i", "p", "i", "m", "i"],
+  },
+  {
+    id: "pmim",
+    label: "Reverse folk arpeggio, p m i m",
+    instrument: "guitar",
+    strings: ["B", "2", "3", "2", "A", "2", "3", "2"],
+    fingers: ["p", "m", "i", "m", "p", "m", "i", "m"],
+  },
+  {
+    id: "pimiaimi",
+    label: "Eight-note arpeggio, p i m i a i m i",
+    instrument: "guitar",
+    strings: ["B", "3", "2", "3", "1", "3", "2", "3"],
+    fingers: ["p", "i", "m", "i", "a", "i", "m", "i"],
+  },
+  {
+    id: "pami",
+    label: "p a m i, down from the top",
+    instrument: "guitar",
+    strings: ["B", "1", "2", "3", "A", "1", "2", "3"],
+    fingers: ["p", "a", "m", "i", "p", "a", "m", "i"],
+  },
+  {
+    id: "rolling",
+    label: "Up and down, p i m a m i",
+    instrument: "guitar",
+    strings: ["B", "3", "2", "1", "2", "3", "2", "1"],
+    fingers: ["p", "i", "m", "a", "m", "i", "m", "a"],
+  },
+  {
+    id: "travis-high",
+    label: "Travis picking on strings 2 and 1",
+    instrument: "guitar",
+    strings: ["B", "2", "A", "1", "B", "2", "A", "1"],
+    fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
+  },
+  {
+    id: "uke-claw",
+    label: "The claw",
+    instrument: "ukulele",
+    strings: ["4", "2", "1", "2", "4", "2", "1", "2"],
+    fingers: ["p", "i", "m", "i", "p", "i", "m", "i"],
+  },
+  {
+    id: "uke-claw-alternating",
+    label: "Claw with alternating thumb",
+    instrument: "ukulele",
+    strings: ["4", "2", "1", "2", "3", "2", "1", "2"],
+    fingers: ["p", "i", "m", "i", "p", "i", "m", "i"],
+  },
+  {
+    id: "uke-outside-in",
+    label: "Outside in",
+    instrument: "ukulele",
+    strings: ["4", "1", "3", "2", "4", "1", "3", "2"],
+    fingers: ["p", "m", "p", "i", "p", "m", "p", "i"],
   },
   {
     id: "uke-tima",
@@ -304,6 +399,41 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
     instrument: "ukulele",
     strings: ["3", "1", "4", "2", "3", "1", "4", "2"],
     fingers: ["p", "m", "p", "i", "p", "m", "p", "i"],
+  },
+  {
+    id: "uke-tami",
+    label: "Thumb on 4, then a m i",
+    instrument: "ukulele",
+    strings: ["4", "1", "2", "3", "4", "1", "2", "3"],
+    fingers: ["p", "a", "m", "i", "p", "a", "m", "i"],
+  },
+  {
+    id: "uke-travis",
+    label: "Travis: thumb on 4 and 3, i and m on 2 and 1",
+    instrument: "ukulele",
+    strings: ["4", "2", "3", "1", "4", "2", "3", "1"],
+    fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
+  },
+  {
+    id: "uke-fancy-eight",
+    label: "Fancy eight, 3 3 2 feel",
+    instrument: "ukulele",
+    strings: ["1", "4", "2", "1", "4", "2", "3", "2"],
+    fingers: ["m", "p", "i", "m", "p", "i", "p", "i"],
+  },
+  {
+    id: "uke-linear",
+    label: "Low to high, C E G A",
+    instrument: "ukulele",
+    strings: ["3", "2", "4", "1", "3", "2", "4", "1"],
+    fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
+  },
+  {
+    id: "uke-rolling",
+    label: "Up and down, p i m a m i",
+    instrument: "ukulele",
+    strings: ["4", "3", "2", "1", "2", "3", "2", "1"],
+    fingers: ["p", "i", "m", "a", "m", "i", "m", "a"],
   },
 ];
 
@@ -347,6 +477,8 @@ export function fingerpickTargets(opts: {
           fret,
           midi: midiAt(opts.tuning, string, fret),
           label: opts.pattern.fingers[k],
+          // The fretting hand's finger on that string (none when it rings open).
+          finger: fret === 0 ? 0 : (shape.fingers[string - 1] ?? undefined),
         });
       });
   return out;

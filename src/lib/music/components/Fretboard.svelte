@@ -8,7 +8,7 @@
   import { capturePointer } from "./feedback.svelte";
   import type { FlashKind, Flashes } from "./feedback.svelte";
 
-  const FINGER_NAMES = ["", "index", "middle", "ring", "little"];
+  const FINGER_NAMES = ["", "index finger", "middle finger", "ring finger", "little finger"];
 
   export interface FretMark {
     string: number;
@@ -146,7 +146,7 @@
             data-cell={s * 100 + f}
             tabindex={interactive && tabCell === s * 100 + f ? 0 : -1}
             aria-pressed={held}
-            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? `, ${mk.spoken ?? `target${mk.label ? `, ${mk.label}` : ''}`}${mk.finger ? `, ${FINGER_NAMES[mk.finger]} finger` : ''}` : ''}"
+            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? `, ${mk.spoken ?? `target${mk.label ? `, ${mk.label}` : ''}`}${mk.finger ? `, ${FINGER_NAMES[mk.finger]}` : ''}` : ''}"
             onfocus={() => (focusAt = s * 100 + f)}
             onpointerdown={(e) => press(e, s, f)}
             onpointerup={release}
@@ -267,6 +267,9 @@
   .open-cell[data-target]:not([data-held]) .dot {
     background: #f6f0e2;
     color: #1b120b;
+  }
+  .open-cell[data-finger]:not([data-held]) .dot {
+    background: var(--finger);
   }
   .cell:focus-visible {
     outline: 2px solid var(--instr);

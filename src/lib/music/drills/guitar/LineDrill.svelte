@@ -210,7 +210,8 @@
     fret: t.fret,
     label: order(i) ?? finger(t),
     spoken: order(i) && `note ${order(i)} of the pattern`,
-    finger: t.label ? undefined : t.finger || undefined,
+    // The colour is the fretting finger (fingerpicking too: its letter is the picking hand).
+    finger: t.label && !isPick ? undefined : t.finger || undefined,
     demo,
   });
   const marks = $derived.by((): FretMark[] => {
@@ -227,7 +228,20 @@
   });
   /** The spider's key: the pattern's fingers in playing order. */
   const FINGERS = ["open", "index", "middle", "ring", "pinky"];
-  const spiderKey = $derived(steps.slice(0, spiderLen).map((t) => t.finger ?? 0));
+  const PICK_STRING = (st: string) => (st === "B" ? "bass" : st === "A" ? "alt bass" : `string ${st}`);
+  /** The order row above the neck: the spider's fingers, or the picking pattern's steps. */
+  const orderKey = $derived(
+    isSpider
+      ? steps.slice(0, spiderLen).map((t, i) => ({ mark: String(i + 1), text: FINGERS[t.finger ?? 0], finger: t.finger ?? 0 }))
+      : isPick
+        ? pickPattern.fingers.map((f, i) => ({ mark: f, text: PICK_STRING(pickPattern.strings[i]), finger: 0 }))
+        : [],
+  );
+  /** The step sounding now (run or demo), when every step of the pattern lands on a string. */
+  const orderNow = $derived.by(() => {
+    const at = demoStep ?? (phase === "running" ? stepIndex : null);
+    return at === null || !orderKey.length || steps.length % orderKey.length ? null : at % orderKey.length;
+  });
 
   /** One pass of a fingerpicking pattern in bars: 8 notes at 1, 2 or 4 a click. */
   const pickBars = $derived(pickPattern.strings.length / perBeat / 4);
@@ -489,7 +503,7 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#if isPick}
-        <Choice label="Pattern" setupKey="pattern" options={FINGERPICK_PATTERNS.filter((p) => p.instrument === instr).map((p) => ({ value: p.id, label: p.label }))} value={pickPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
+        <Choice label="Pattern" setupKey="pattern" options={FINGERPICK_PATTERNS.filter((p) => p.instrument === instr).map((p) => ({ value: p.id, label: p.label, detail: p.fingers.join(" ") }))} value={pickPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
         <ChordPicker label="First chord" instrument={instr} value={idA} onchange={(id) => cfg.set({ shape: id })} setupKey="chords" />
         <ChordPicker label="Second chord" instrument={instr} value={idB} onchange={(id) => id !== idA && cfg.set({ to: id })} />
       {:else if isLegato}
@@ -589,18 +603,18 @@
           <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} meter={compound ? [12, 8] : undefined} />
         </div>
       {/if}
-      {#if isSpider && mode === "practice" && phase !== "results"}
-        <ol class="mb-2 flex flex-wrap items-center gap-1.5 text-sm" aria-label="Play order">
-          {#each spiderKey as f, i (i)}
-            <li class="flex items-center gap-1.5 rounded-full bg-ws-stage-ink/8 py-1 pr-3 pl-1 font-semibold">
-              <span class="grid size-6 place-items-center rounded-full text-xs font-extrabold text-[#1b120b]" style:background={f ? `var(--finger-${f})` : "var(--ws-stage-soft)"} aria-hidden="true">{i + 1}</span>{FINGERS[f]}
+      {#if orderKey.length && mode === "practice" && phase !== "results"}
+        <ol class="mb-2 flex flex-wrap items-center gap-1.5 text-sm" aria-label={isPick ? "Picking order" : "Play order"}>
+          {#each orderKey as k, i (i)}
+            <li class="flex items-center gap-1.5 rounded-full py-1 pr-3 pl-1 font-semibold {orderNow === i ? 'bg-ws-stage-ink/25 ring-2 ring-ws-stage-ink' : 'bg-ws-stage-ink/8'}" aria-current={orderNow === i ? "step" : undefined}>
+              <span class="grid size-6 place-items-center rounded-full text-xs font-extrabold text-[#1b120b]" style:background={k.finger ? `var(--finger-${k.finger})` : "var(--ws-stage-soft)"} aria-hidden="true">{k.mark}</span>{k.text}
             </li>
           {/each}
         </ol>
       {/if}
       <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} onpick={picking ? pickStart : undefined} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
       <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
-        {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand: p thumb, i index, m middle, a ring. ${chordLabel(refA)} is shown; ${chordLabel(refB)} follows.` : isLegato ? "P is picked, h hammered on, p pulled off." : isSpider ? "Numbers are the order you play; colours are your fingers." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
+        {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand (p thumb, i index, m middle, a ring); colours are the fretting fingers. ${chordLabel(refA)} is shown; ${chordLabel(refB)} follows.` : isLegato ? "P is picked, h hammered on, p pulled off." : isSpider ? "Numbers are the order you play; colours are your fingers." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
         {#if picking}<p>{isSpider ? "Tap the neck to move the pattern's first fret." : "Tap the neck to start somewhere else: the string and the start fret."}</p>{/if}
         {#if kind === "positions" && phase === "ready"}<p>Box and CAGED shapes are drawn for standard tuning, root on string 6.</p>{/if}
       </div>
