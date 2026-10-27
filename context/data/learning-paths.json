@@ -5,7 +5,7 @@
     "guitar": {
       "id": "guitar-path",
       "title": "Guitar Path",
-      "subtitle": "Nine steps from open shapes to a lick in a new key. Each step raises one dimension and unlocks the next.",
+      "subtitle": "From open shapes to a lick in a new key. Each step raises one dimension and unlocks the next.",
       "href": "/music/learn/path",
       "steps": [
         {
@@ -174,7 +174,7 @@
     "piano": {
       "id": "piano-path",
       "title": "Piano Path",
-      "subtitle": "Nine steps from one hand in C position to a sight-read two-hand phrase. Each step raises one dimension and unlocks the next.",
+      "subtitle": "From one hand in C position to a sight-read two-hand phrase. Each step raises one dimension and unlocks the next.",
       "href": "/music/learn/path",
       "steps": [
         {
@@ -330,7 +330,7 @@
     "mpc": {
       "id": "mpc-path",
       "title": "MPC Path",
-      "subtitle": "Eight steps from two pads on the click to a four-bar piece with a fill. Each step raises one dimension and unlocks the next.",
+      "subtitle": "From two pads on the click to a four-bar piece with a fill. Each step raises one dimension and unlocks the next.",
       "href": "/music/learn/path",
       "steps": [
         {

@@ -258,7 +258,9 @@ Guitar/ukulele chord-change grading works on **clusters split by silence**:
 - Count-based chunking was the previous approach and was replaced: a single extra
   or missing string shifted every later chord onto the wrong grading window.
 - **Untimed mode:** each cluster grades against the alternating target pair,
-  cycling.
+  cycling. The rebuild groups clusters first (section 24): a cluster that sounds
+  more like the current chord than the next joins it, so a re-strum or a chord
+  picked string by string is one arrival, not a change.
 - **Timed mode (a BPM given):** each grading window owns a beat, and clusters are
   assigned to windows by nearest beat, anchored at the prompt start (or the first
   cluster if there is none). A cluster grades against the bar line, not against
@@ -509,21 +511,21 @@ Every rule below has unit tests in `packages/music-core`. Thresholds without a p
 
 ## 17. Pad skills (`content/pad-skills.ts`)
 
-- **Fills**: `FILL = { rushMs: 15, landMs: 40 }`. The fill rushed when its mean signed error is under -15 ms; it landed when crash and kick on the one are within 40 ms. Correct = groove correct, landed and not rushed.
+- **Fills**: `FILL = { rushMs: 15, landMs: 40 }`. The fill rushed when the mean signed error of the fill bar's own notes (not the groove's kick and hats under it) is under -15 ms; it landed when crash and kick on the one are within 40 ms. Correct = groove correct, landed and not rushed.
 - **Ostinato**: the hats under the line may drop at most 10 points below the hats alone (`OSTINATO.maxDrop 0.1`).
 - **Play it back (echo)**: only answer bars are scored; a round passes at ≥ 90% of its targets (`ECHO_PASS`); correct = all four rounds and no extra hits.
 - **Dynamics** against the calibrated range (`velocityRange` needs soft and loud clearly apart): ladder correct at ≥ 80% of hits in their band; crescendo needs Spearman ρ ≥ 0.8 and ≥ 50% of the range covered (score ρ × 0.6 + span × 0.4); even needs spread (SD ÷ mean within the range) ≤ 0.08.
-- **Grooves**: tier pass at 90% good and 70% perfect, good capped at 40% of the closest same-pad spacing; Hold the tempo drifting 3 BPM or more costs 40% and fails. Stars: 3 when passed, 2 at ≥ 0.8, 1 at ≥ 0.6.
+- **Grooves**: tier pass at 90% good and 70% perfect, good capped at 40% of the closest same-pad spacing; Hold the tempo drifting 3 BPM or more costs 40% and fails. Drift is read from raw hits, not grid-matched ones (`tempoDrift`): each target claims the nearest same-pad hit within the groove window of a running line fit (slope clamped to 0.8 to 1.25), and the played tempo is that line's slope; a steady rush leaves a fixed grid window within a bar or two, so grid-matched errors never showed drift. With no readable drift the run fails unless nothing was played. Stars: 3 when passed, 2 at ≥ 0.8, 1 at ≥ 0.6.
 - **Improvise**: described, not graded (hits, grid spread, swing %, velocity range, pads used).
 
 ## 18. Aerophone skills (`content/aero-skills.ts`, `scoring/aerophone.ts`)
 
 - **Scales, tonguing lines, crossings**: graded by `gradeLine` (pitch × 0.85 + evenness × 0.15, correct at 0.9). A note an octave off names the octave key (`octaveSlip`).
-- **Tonguing joins**: a join is tongued (T) when the previous note was released at least 25 ms before the next note-on, or the breath dipped under 45% of the phrase's median CC 2 between them (`JOIN = { dip: 0.45, gapMs: 25 }`); otherwise slurred. The first note is T. Tonguing score = share of joins matching the pattern; run score = pitch score × 0.5 + tonguing × 0.5; correct needs the line correct and tonguing ≥ 0.8. With no CC 2 the tonguing row reads "not measured".
-- **Register crossings**: glitches = note-ons that are neither of the pair. Correct = pitch ≥ 0.9 and at most 1 glitch.
+- **Tonguing joins**: a join is tongued (T) when the previous note was released at least 25 ms before the next note-on, or the breath dipped under 45% of the phrase's median CC 2 between them (`JOIN = { dip: 0.45, gapMs: 25 }`); otherwise slurred. The first note is T. Tonguing score = share of joins matching the pattern; run score = pitch score × 0.5 + tonguing × 0.5; correct needs the line correct and tonguing ≥ 0.8. With no CC 2 seen, the line grade stands alone and the tonguing row reads "not measured" (`tonguingVerdict`); it used to be scored as zero and fail every run.
+- **Register crossings**: glitches = note-ons that are neither of the pair. Correct = the line correct (pitch and evenness) and at most 1 glitch. Evenness was ignored until the review.
 - **Trills** (4 s from the first note): notes a second from the mean gap of in-pair notes, evenness = 1 - SD ÷ mean of the gaps, strays = out-of-pair notes. Score = min(1, rate ÷ 8) × 0.4 + evenness × 0.5 + (no strays ? 0.1 : 0). Correct at ≥ 4 a second, evenness ≥ 0.7, no strays.
 - **Bite vibrato** (4 s of pitch bend from the first note): rate from zero crossings around the mean, evenness = 1 - SD ÷ mean of half periods, depth from the 5th to 95th percentile. Target rate = pulses × bpm ÷ 60. Score = (1 - relative rate error) × 0.6 + evenness × 0.4; correct within 15% of the rate and evenness ≥ 0.6 (`VIBRATO`). No bend: "set the bite to send pitch bend".
-- **Long tone at a level**: share of CC 2 samples inside the level's band during the hold; score = long-tone score × 0.5 + share × 0.5; correct needs the long tone correct and share ≥ 0.7.
+- **Long tone at a level**: share of CC 2 samples inside the level's band during the hold, the window starting on the first note that is the target and ending `holdMs` later (not at the release, and a fumbled first note costs nothing); score = long-tone score × 0.5 + share × 0.5; correct needs the long tone correct and share ≥ 0.7.
 - **Fingering lessons**: flash cards; a note moves on only when right; score = share right first try.
 
 ## 19. Piano additions
@@ -563,3 +565,43 @@ Every rule below has unit tests in `packages/music-core`. Thresholds without a p
 - **String and fret:** checked only for on-screen taps.
 - **Known gap:** tapping a doubled string slowly can spill into the next step.
 
+
+## Added after the UI and correctness review (2026-10-13 to 10-27)
+
+## 23. Out of tune is not wrong (`signal/pitch.nearMiss`)
+
+- A microphone note that missed a target only by rounding: its pitch (`midi + cents / 100`) is within 65 cents of a wanted note it was not rounded to. `nearMiss(midi, cents, wanted)` returns the wanted note and how far off it is; a right note, a clean wrong note (5 cents off the wrong semitone) or a note with no cents is not a near miss.
+- Scales use it: the note still scores as missed, the status names the tuning ("That C is 55 cents sharp, so it reads as C#"), Practice moves past it when one note is wanted (Check waits), and the results say "tune your guitar in Tuner, then try again" with the mean cents. MIDI never produces a near miss.
+- Why 65: a string 45 to 50 cents sharp rounds its notes to the next semitone while sitting 50 to 55 cents from the target; 65 leaves room and stays clear of a clean neighbour.
+
+## 24. Chord cycles (`scoring/technique.gradeChanges`, `scoring/timing.alignChangeClusters`)
+
+- `gradeChanges` takes `chords` (two to eight, in order) in place of `from` and `to`; untimed clusters go round the cycle (`target = i % count`), timed ones take the chord of their slot (`slot % count`). `alignChangeClusters(clusters, clock, count = 2)`.
+- Unclocked grouping (`drills/guitar/chords.groupChanges`): clusters split by the 350 ms gap; a cluster joins the current group unless its pitch-class likeness (Jaccard) to the next chord of the cycle is higher than to the current one. Before this, every 350 ms silence counted as a change, so re-strumming or plucking string by string flipped the target.
+- History and the next run are keyed by the shape ids joined with `>`; for two chords that equals the old pair key (`from>to`), so the pair history carries on.
+- Strum and identify accepts a chord with fewer than three tones when the chord has fewer (`min(3, expected)`), so power chords grade.
+
+## 25. Fingerpicking time steps
+
+- Each note keeps its step (`FretTarget.slot`): a pattern step is one slot whatever it sounds, so a muted string or a hold ("-") keeps its time and a pinch ("B+2") puts two or three notes in one slot. `gradeLine` gets one beat per slot with every note of the slot in it; a pinch's notes match in either order.
+- "B" is the shape's lowest sounding string, "A" the alternate bass (string 4 under a string-6 root, else the next string up); a step on a muted string is dropped from that bar. The default shape for a chord is its first position on which every step lands on a sounding string (`fingerpickable`).
+- Six-step patterns are a bar of three: 3/4 at two notes a click, 6/8 at three (the click on each dotted quarter). Spider at 3 or 6 notes a click is written in 12/8 (`quartersPerClick = 1.5`).
+
+## 26. Timed drills hear the first note
+
+- The shell flips to running half a beat before the downbeat (a timer at `downbeat - beatMs / 2`), the same window drills capture from (`capture(downbeat - beatMs / 2)`). The beat callback fires at or after the beat, so a first note on the downbeat, or a hair early, used to arrive while the phase still read count-in and was dropped, in every timed drill and on every input.
+- Rhythm also accepts taps during the count-in phase and starts its capture before the microphone (opening the microphone awaits the browser and can run past the downbeat). In an echo, listening starts at the response bar.
+
+## 27. Smaller scoring fixes from the review
+
+- **Cadence keys**: prompt ids end in `-<shift>` with shift -5 to +6; the parser must read the hyphen as a separator (`/-(-?\d+)$/`), not a minus sign, or every upward shift plays downward.
+- **Ear mixes in play-back**: cadence and scale have no play-back, so they sit out; if nothing playable remains the mix falls back to the seven playable drills instead of hanging on an empty list.
+- **Fine pitch** resumes from one step easier than the last saved step (`CENT_STEPS = [50, 35, 25, 18, 12, 8, 5]`), read fresh on every run.
+- **Studio ears**: pan centre is an answer; boost or cut always uses the five-band set.
+- **Reading ranges** (`content/reading.readingRange(level, clefs)`): each clef gets its own side of middle C, at least 12 semitones: treble `[60, 60 + max(12, high - 60)]`, bass `[60 - max(12, 60 - low), 60]`, both clefs the union. Primer treble 60 to 72, bass 48 to 60. A clef with an empty pool is dropped and the other reads the whole range. Then clamped to the instrument (fretted written range, the Aerophone's 58 to 85).
+- **Voicings in register** (`content/piano.ts`): left hand root on F2 to E3 (`41 + pc(root - 5)`), right hand placed by `placeVoicing` in the octave that costs least (100 per semitone outside `VOICING_REGISTER = [52, 79]` plus the distance from the previous chord's mean), so later keys no longer climb.
+- **Chord scales** grade against `accepted`, the go-to scale and its alternatives: a plain dominant takes Mixolydian (not Lydian dominant) and excludes altered, half-whole and whole-tone; b9 takes half-whole, #11 Lydian dominant, alt the altered scale.
+- **Voicing moves on screen** keep the last-played note of each target pitch class, so a stray or repeated key does not spoil the move.
+- **Pyramid rudiment** is timed on its own grid (four a beat), not the chosen subdivision.
+- **Not recorded**: Improvise, and dynamics the input cannot measure (on-screen pads have no velocity).
+- **Bends** are always guided (no Check); vibrato counts as clean when it is heard.

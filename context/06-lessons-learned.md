@@ -226,10 +226,59 @@ What the clean-room rebuild ran into, and the fix that held. Most are about test
 ### Content
 
 - **Public domain only.** Melodies are copyrightable; drum patterns as grids are fine. Use traditional tunes, composers dead over 70 years, or a style's generic vocabulary, and check the notes against a score (IMSLP, Mutopia, Wikipedia's LilyPond). Note the transposition used to fit an instrument.
-- **Single-note grading can't take chords.** Leave chord phrases out until a chord grader exists rather than grading them wrong.
+- **Single-note grading can't take chords.** Chord phrases stayed out until a chord grader existed rather than being graded wrong; the grader (notes that start together are one step, right when every pitch class is in) then let ten chord phrases in.
 
 ### Working method
 
 - **The formatter reflows files between edits.** The pre-commit hook and `vp fmt` reformat files, so an exact-string edit prepared against the old layout fails. Re-read before editing, or edit by structure.
 - **Parallel agents work when files are disjoint.** Wiring one shared feature into 30 drills went fastest as four agents, one per instrument group, with a written brief, each forbidden to build, run Playwright or commit; the lead reviewed diffs and ran the gates once.
 - **Ask the owner for taste, decide everything else.** The owner answered questions about grouping and layout well; everything with a sensible default was decided and recorded in `TASKS.md`.
+
+---
+
+## 8. Lessons from the review and the guitar work (2026-10-13 to 10-27)
+
+A design and correctness review of every page, then two weeks of the owner playing guitar and ukulele against the app. Most of what follows was found by playing, not by tests.
+
+### Timing
+
+- **The beat callback fires at or after the beat.** The shell flipped from count-in to running inside the downbeat's callback, and drills ignored input until it did. A first note played on the downbeat, or a hair early as players do, arrived while the phase still said count-in and was dropped, in every timed drill, on taps, MIDI and the microphone alike. Fix: running from half a beat before the downbeat, the window drills already listen from. When a state flip and an input window disagree, the input window wins.
+- **Opening the microphone takes time.** `getUserMedia` and the worklet are awaited, so a drill that started its capture after the microphone could start listening after the downbeat. Start the capture first.
+- **A setting read once is a setting ignored.** The metronome captured "audible" as a boolean when it started, so turning the click off mid-run did nothing. Read it on every beat.
+
+### Microphone
+
+- **Name tuning, don't look deaf.** The owner reported scales on guitar as "not hearing" notes. Logging the real input showed the microphone heard fine (pitch clarity 0.97 and above, peaks -28 to -40 dBFS on a webcam microphone); the G string was about 45 cents sharp, so its notes rounded to the next semitone and graded as wrong. A wrong-note flash told him nothing useful. Now a note within 65 cents of a target it was not rounded to is named as tuning, Practice moves past it, and the results say tune first. When the input is honest and the answer is still wrong, look at the instrument before the detector.
+- **Two starts, two pipelines.** A second microphone start while the first was still awaiting permission ran two capture pipelines, so every note counted twice. Each start takes a token; a start that finds a newer token when it wakes stops its own stream and backs out.
+- **A drill's stop is not the player's off switch.** Drills stopped the microphone when they ended, so turning it on in the strip lasted one drill. The strip's start pins it; a drill's stop leaves a pinned microphone running.
+
+### Fretted instruments
+
+- **The same finger on the same fret is not always a barre.** In a box or spider pattern the index plays fret 5 on one string, then fret 5 on the next: one finger moving, not lying flat. Barres are drawn only for chord shapes (`barres` on the fretboard), where a finger on one fret over several strings really is one bar. Draw it under the dots and their feedback and over the strings, as a finger lies.
+- **Re-entrant tuning breaks pitch order.** On a high-G ukulele string 4 (G4) is not the lowest note, so sorting chord targets by pitch gave the order 3, 2, 4, 1. Order by string. Fingerpicking patterns name ukulele strings directly for the same reason.
+- **Authored data had fingers that cannot reach.** Two ukulele barre positions had finger 2 three frets above a barre on finger 1. A test now requires `fret - lowest fret ≤ finger`.
+- **Silence is not a chord change.** Unclocked changes counted every 350 ms gap as the next chord, so a re-strum flipped the target. Compare what was heard with the current and the next chord before calling it a change.
+- **Keep keys stable when a feature generalises.** Chord changes grew from a pair to a cycle of eight; the history key for two chords is still the old pair key, and older links with `shape` and `to`, or a spider `span`, still open on what they named. Nobody lost history.
+- **Copyrighted songs as facts only.** Song presets for fingerpicking store a song's chords, a picking pattern and a tempo, with the lesson page they came from. A chord progression is not protected; a melody or a transcribed tab is. Tempos from automated BPM sites were checked against song length and still marked as starting points.
+
+### Notation
+
+- **Shrinking is the wrong answer to a long line.** Fingerpicking eight chords twice is 128 notes; zooming down to 0.7 and wrapping made it unreadable. Keep the zoom a 32-note line gets, engrave on one row at the line's natural width (about 90 px plus 25 a note), and scroll the view with the cursor.
+- **CSS zoom changes what a box reports.** The line is zoomed with CSS `zoom`; in Chromium, `clientWidth`, `scrollWidth` and `scrollLeft` inside a zoomed box are in that box's own unzoomed pixels. Measure the available width on the unzoomed parent and do the cursor scrolling inside the zoomed frame, so both sides of each comparison are in the same units.
+- **Meter follows the notes a click.** Three or six notes a click written in 4/4 would need tuplets the engraver cannot draw; written in 12/8 (or 6/8 for a six-step pattern) they are plain eighths and sixteenths.
+
+### Setup and controls
+
+- **A dropdown hides what you could have picked.** The review moved every short list to buttons. `Choice` shows buttons up to 12 options and becomes a list past that, so a 13th option silently changes the control; group or move to the catalogue sheet before that happens. Long catalogues get a sheet with search, not a longer dropdown.
+- **Setup should read as a sentence.** A collapsed setup line whose clauses each open their own control beat both a wall of controls and a summary that only says "Change setup".
+- **Merge setup, don't replace it.** URL keys used to replace the saved setup outright, so a mode link from a path wiped every other choice. Defaults, then saved, then the URL's keys on top; write a changed key back to the URL so a reload agrees.
+- **Portals leave the theme behind.** Popovers and sheets portal to the end of `body`, outside the element that defines the app's colour tokens, so they rendered in the site's colours. Portal into the app's root (`.woodshed`).
+- **Layout that moves under a click loses the click.** Strip pills that appear and vanish (the beat dots during a run) changed the strip's height and the next click landed on the wrong control. Keep the row's height fixed.
+- **A wrong answer needs time.** Note reading moved on 1.8 s after a miss, too fast to compare the two notes. A miss now waits for Next. And random draws repeat: a shuffle bag deals every card once before any comes back.
+- **A regex read a separator as a sign.** Cadence prompt ids end in `-<shift>`; `/(-?\d+)$/` took the hyphen as a minus, so every upward key played downward. Cheap to find with one test per sign.
+- **Grid-matched errors cannot see drift.** Hold the tempo matched hits to a fixed grid; a steady rush leaves the window within a bar or two, so drift never showed. Fit a line to raw hits instead.
+
+### Working method
+
+- **Review in pairs, by area.** Six areas, each with a design reviewer and a correctness reviewer reading the same captures and code, found correctness defects in every area (cadences in the wrong key, a hang, unreachable fingerings, drift that could never fail) alongside the design findings. The reports lived in a session scratchpad and are gone; keep review findings in the repository.
+- **Play it.** The owner's guitar sessions found the dropped first note, the tuning confusion and the double microphone, none of which a test had shown. Leave room in the plan for the owner to play each instrument and for fixes after.

@@ -92,6 +92,7 @@
     "beatsPerBar": 3,
     "keyFifths": 0,
     "steps": [
+      [null, 2],
       [55, 0.75],
       [55, 0.25],
       [57, 1],
@@ -148,6 +149,7 @@
     "beatsPerBar": 3,
     "keyFifths": 0,
     "steps": [
+      [null, 2],
       [69, 1],
       [72, 2],
       [74, 1],
@@ -360,6 +362,76 @@
     "instrument": "piano"
   },
   {
+    "id": "piano.i-vi-iv-v",
+    "title": "I, vi, IV, V",
+    "style": "Pop and doo-wop chords",
+    "why": "The four chords under a thousand songs, voiced close so the hand barely moves.",
+    "source": "Harmony vocabulary",
+    "level": 1,
+    "bpm": 90,
+    "beatsPerBar": 4,
+    "keyFifths": 0,
+    "steps": [
+      [[60, 64, 67], 2, null],
+      [[60, 64, 69], 2, null],
+      [[60, 65, 69], 2, null],
+      [[59, 62, 67], 2, null]
+    ],
+    "instrument": "piano"
+  },
+  {
+    "id": "piano.canon-chords",
+    "title": "Canon chords",
+    "style": "Baroque progression",
+    "why": "Pachelbel's eight chords, the most borrowed progression there is, a chord a beat.",
+    "source": "Pachelbel (about 1694), in C",
+    "level": 2,
+    "bpm": 80,
+    "beatsPerBar": 4,
+    "keyFifths": 0,
+    "steps": [
+      [[60, 64, 67], 1, null],
+      [[59, 62, 67], 1, null],
+      [[60, 64, 69], 1, null],
+      [[59, 64, 67], 1, null],
+      [[60, 65, 69], 1, null],
+      [[60, 64, 67], 1, null],
+      [[60, 65, 69], 1, null],
+      [[59, 62, 67], 1, null]
+    ],
+    "instrument": "piano"
+  },
+  {
+    "id": "piano.blues-shuffle-lh",
+    "title": "Left-hand blues shuffle",
+    "style": "Blues",
+    "why": "Fifths and sixths rocking under a twelve-bar: the left hand of every blues piano player, on C then F.",
+    "source": "Blues vocabulary",
+    "level": 2,
+    "bpm": 110,
+    "beatsPerBar": 4,
+    "keyFifths": 0,
+    "steps": [
+      [[48, 55], 0.5, null],
+      [[48, 55], 0.5, null],
+      [[48, 57], 0.5, null],
+      [[48, 57], 0.5, null],
+      [[48, 55], 0.5, null],
+      [[48, 55], 0.5, null],
+      [[48, 57], 0.5, null],
+      [[48, 57], 0.5, null],
+      [[53, 60], 0.5, null],
+      [[53, 60], 0.5, null],
+      [[53, 62], 0.5, null],
+      [[53, 62], 0.5, null],
+      [[53, 60], 0.5, null],
+      [[53, 60], 0.5, null],
+      [[53, 62], 0.5, null],
+      [[53, 62], 0.5, null]
+    ],
+    "instrument": "piano"
+  },
+  {
     "id": "guitar.twinkle",
     "title": "Twinkle, Twinkle",
     "style": "Folk",
@@ -427,6 +499,7 @@
     "beatsPerBar": 3,
     "keyFifths": 1,
     "steps": [
+      [null, 2],
       [50, 1, 4, 0],
       [55, 2, 3, 0],
       [59, 0.5, 2, 0],
@@ -617,6 +690,335 @@
     "instrument": "guitar"
   },
   {
+    "id": "guitar.boom-chuck",
+    "title": "Boom-chuck, G to C",
+    "style": "Country and folk",
+    "why": "Bass note, strum, bass note, strum: the first picking-and-strumming pattern.",
+    "source": "Country vocabulary",
+    "level": 1,
+    "bpm": 100,
+    "beatsPerBar": 4,
+    "keyFifths": 1,
+    "steps": [
+      [43, 1, 6, 3],
+      [
+        [50, 55, 59, 67],
+        1,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [50, 1, 4, 0],
+      [
+        [50, 55, 59, 67],
+        1,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [48, 1, 5, 3],
+      [
+        [52, 55, 60, 64],
+        1,
+        [
+          [4, 2],
+          [3, 0],
+          [2, 1],
+          [1, 0]
+        ]
+      ],
+      [43, 1, 6, 3],
+      [
+        [52, 55, 60, 64],
+        1,
+        [
+          [4, 2],
+          [3, 0],
+          [2, 1],
+          [1, 0]
+        ]
+      ]
+    ],
+    "instrument": "guitar"
+  },
+  {
+    "id": "guitar.boogie-shuffle",
+    "title": "Boogie shuffle in E",
+    "style": "Rock and roll and blues",
+    "why": "The fifth rocking to the sixth on the low strings: the first rhythm riff.",
+    "source": "Blues vocabulary",
+    "level": 1,
+    "bpm": 120,
+    "beatsPerBar": 4,
+    "keyFifths": 4,
+    "steps": [
+      [
+        [40, 47],
+        0.5,
+        [
+          [6, 0],
+          [5, 2]
+        ]
+      ],
+      [
+        [40, 47],
+        0.5,
+        [
+          [6, 0],
+          [5, 2]
+        ]
+      ],
+      [
+        [40, 49],
+        0.5,
+        [
+          [6, 0],
+          [5, 4]
+        ]
+      ],
+      [
+        [40, 49],
+        0.5,
+        [
+          [6, 0],
+          [5, 4]
+        ]
+      ],
+      [
+        [40, 47],
+        0.5,
+        [
+          [6, 0],
+          [5, 2]
+        ]
+      ],
+      [
+        [40, 47],
+        0.5,
+        [
+          [6, 0],
+          [5, 2]
+        ]
+      ],
+      [
+        [40, 49],
+        0.5,
+        [
+          [6, 0],
+          [5, 4]
+        ]
+      ],
+      [
+        [40, 49],
+        0.5,
+        [
+          [6, 0],
+          [5, 4]
+        ]
+      ],
+      [
+        [40, 47],
+        0.5,
+        [
+          [6, 0],
+          [5, 2]
+        ]
+      ],
+      [
+        [40, 47],
+        0.5,
+        [
+          [6, 0],
+          [5, 2]
+        ]
+      ],
+      [
+        [40, 49],
+        0.5,
+        [
+          [6, 0],
+          [5, 4]
+        ]
+      ],
+      [
+        [40, 49],
+        0.5,
+        [
+          [6, 0],
+          [5, 4]
+        ]
+      ],
+      [
+        [40, 47],
+        0.5,
+        [
+          [6, 0],
+          [5, 2]
+        ]
+      ],
+      [
+        [40, 47],
+        0.5,
+        [
+          [6, 0],
+          [5, 2]
+        ]
+      ],
+      [
+        [40, 49],
+        0.5,
+        [
+          [6, 0],
+          [5, 4]
+        ]
+      ],
+      [
+        [40, 49],
+        0.5,
+        [
+          [6, 0],
+          [5, 4]
+        ]
+      ]
+    ],
+    "instrument": "guitar"
+  },
+  {
+    "id": "guitar.blues-turnaround",
+    "title": "Blues turnaround in A",
+    "style": "Blues",
+    "why": "The descending double stops over a held A that end every twelve-bar.",
+    "source": "Blues vocabulary",
+    "level": 2,
+    "bpm": 80,
+    "beatsPerBar": 4,
+    "keyFifths": 0,
+    "steps": [
+      [
+        [67, 69],
+        1,
+        [
+          [2, 8],
+          [1, 5]
+        ]
+      ],
+      [
+        [66, 69],
+        1,
+        [
+          [2, 7],
+          [1, 5]
+        ]
+      ],
+      [
+        [65, 69],
+        1,
+        [
+          [2, 6],
+          [1, 5]
+        ]
+      ],
+      [
+        [64, 69],
+        1,
+        [
+          [2, 5],
+          [1, 5]
+        ]
+      ],
+      [57, 1, 4, 7],
+      [56, 1, 4, 6],
+      [52, 2, 5, 7]
+    ],
+    "instrument": "guitar"
+  },
+  {
+    "id": "guitar.double-stop-intro",
+    "title": "Rock and roll double-stop intro",
+    "style": "Rock and roll",
+    "why": "Two strings at the fifth fret, hammered in eighths, then walking down: the shared rock and roll intro.",
+    "source": "Rock and roll vocabulary",
+    "level": 2,
+    "bpm": 140,
+    "beatsPerBar": 4,
+    "keyFifths": 0,
+    "steps": [
+      [
+        [64, 69],
+        0.5,
+        [
+          [2, 5],
+          [1, 5]
+        ]
+      ],
+      [
+        [64, 69],
+        0.5,
+        [
+          [2, 5],
+          [1, 5]
+        ]
+      ],
+      [
+        [64, 69],
+        0.5,
+        [
+          [2, 5],
+          [1, 5]
+        ]
+      ],
+      [
+        [64, 69],
+        0.5,
+        [
+          [2, 5],
+          [1, 5]
+        ]
+      ],
+      [
+        [62, 67],
+        0.5,
+        [
+          [3, 7],
+          [2, 8]
+        ]
+      ],
+      [
+        [62, 67],
+        0.5,
+        [
+          [3, 7],
+          [2, 8]
+        ]
+      ],
+      [
+        [60, 64],
+        0.5,
+        [
+          [3, 5],
+          [2, 5]
+        ]
+      ],
+      [
+        [60, 64],
+        0.5,
+        [
+          [3, 5],
+          [2, 5]
+        ]
+      ],
+      [57, 2, 4, 7],
+      [null, 2]
+    ],
+    "instrument": "guitar"
+  },
+  {
     "id": "ukulele.twinkle",
     "title": "Twinkle, Twinkle",
     "style": "Folk",
@@ -736,6 +1138,7 @@
     "beatsPerBar": 3,
     "keyFifths": 0,
     "steps": [
+      [null, 2],
       [67, 0.75, 4, 0],
       [67, 0.25, 4, 0],
       [69, 1, 1, 0],
@@ -785,6 +1188,7 @@
     "beatsPerBar": 2,
     "keyFifths": 0,
     "steps": [
+      [null, 1.5],
       [60, 0.25, 3, 0],
       [62, 0.25, 3, 2],
       [64, 0.5, 2, 0],
@@ -841,6 +1245,7 @@
     "beatsPerBar": 3,
     "keyFifths": -1,
     "steps": [
+      [null, 2],
       [60, 1, 3, 0],
       [65, 2, 2, 1],
       [69, 0.5, 1, 0],
@@ -880,6 +1285,238 @@
       [60, 0.5, 3, 0],
       [65, 0.5, 2, 1],
       [69, 0.5, 1, 0]
+    ],
+    "instrument": "ukulele"
+  },
+  {
+    "id": "ukulele.island-strum",
+    "title": "Island strum on C",
+    "style": "Hawaiian pop",
+    "why": "Down, down-up, up-down-up: the signature ukulele strum, on one chord.",
+    "source": "Ukulele vocabulary",
+    "level": 1,
+    "bpm": 90,
+    "beatsPerBar": 4,
+    "keyFifths": 0,
+    "steps": [
+      [
+        [67, 60, 64, 72],
+        1,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        0.5,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        1,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        0.5,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        0.5,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        0.5,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        1,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        0.5,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        1,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        0.5,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        0.5,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        0.5,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ]
+    ],
+    "instrument": "ukulele"
+  },
+  {
+    "id": "ukulele.four-chords",
+    "title": "C, Am, F, G",
+    "style": "Pop chords",
+    "why": "The four first ukulele chords, two beats each.",
+    "source": "Harmony vocabulary",
+    "level": 1,
+    "bpm": 90,
+    "beatsPerBar": 4,
+    "keyFifths": 0,
+    "steps": [
+      [
+        [67, 60, 64, 72],
+        2,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ],
+      [
+        [69, 60, 64, 69],
+        2,
+        [
+          [4, 2],
+          [3, 0],
+          [2, 0],
+          [1, 0]
+        ]
+      ],
+      [
+        [69, 60, 65, 69],
+        2,
+        [
+          [4, 2],
+          [3, 0],
+          [2, 1],
+          [1, 0]
+        ]
+      ],
+      [
+        [67, 62, 67, 71],
+        2,
+        [
+          [4, 0],
+          [3, 2],
+          [2, 3],
+          [1, 2]
+        ]
+      ]
+    ],
+    "instrument": "ukulele"
+  },
+  {
+    "id": "ukulele.hawaiian-vamp",
+    "title": "Hawaiian vamp",
+    "style": "Hawaiian",
+    "why": "D7, G7, C: the stock intro and ending of a Hawaiian tune.",
+    "source": "Hawaiian vocabulary",
+    "level": 2,
+    "bpm": 100,
+    "beatsPerBar": 4,
+    "keyFifths": 0,
+    "steps": [
+      [
+        [69, 60, 66, 69],
+        2,
+        [
+          [4, 2],
+          [3, 0],
+          [2, 2],
+          [1, 0]
+        ]
+      ],
+      [
+        [67, 62, 65, 71],
+        2,
+        [
+          [4, 0],
+          [3, 2],
+          [2, 1],
+          [1, 2]
+        ]
+      ],
+      [
+        [67, 60, 64, 72],
+        4,
+        [
+          [4, 0],
+          [3, 0],
+          [2, 0],
+          [1, 3]
+        ]
+      ]
     ],
     "instrument": "ukulele"
   },

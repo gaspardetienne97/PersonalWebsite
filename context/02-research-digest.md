@@ -405,3 +405,18 @@ The rebuild ran its own research per instrument and topic. Full notes with every
 - Sources: Wikipedia LilyPond scores, Mutopia, IMSLP (Morning Mood #40004, Badinerie #190451, Gluck #262453, Bumblebee #99876, L'Arlésienne sax part #50533, Boléro #299525), flutetunes.com MIDI, Mutopia Joplin editions.
 - Curricula: Essential Elements Book 1 starts the sax on B, A, G (Hot Cross Buns, Lightly Row); JustinGuitar's pentatonic Pattern 1 at fret 5; the bluegrass G run.
 - Left out: Syrinx and Dance of the Reed Flutes (32nd notes), the Carmen Entr'acte (triplet), Queen of the Night (unverified), chord phrases (need a chord grader).
+
+### Fingerpicking patterns and song presets (2026-10, sources in `packages/music-core/src/content/technique.ts`)
+
+No note file was written; the sources sit in comments above `FINGERPICK_PATTERNS` and in each `FINGERPICK_SONGS` entry's `source` field. Data copy in `data/fingerpick-legato-patterns.json`.
+- Patterns: Fender's Travis picking lesson (thumb alone, then one finger), Heartwood Guitar's Travis patterns, Giuliani Op. 1 style arpeggios, UkuleleGo's five patterns and liveukulele's picking patterns. The steps from Fender's lesson are kept as separate patterns (alternating bass with the thumb only, Travis with one finger, then full Travis), so a player can climb them in order.
+- Song presets come from lesson pages (guitarlessons.com, National Guitar Academy, Andy Guitar, LickLibrary, UkuleleGo, Ukulele Magazine, ukutabs and others). Each stores the chords in order, a pattern from the table, notes a click and a tempo, plus a note on what was simplified: capos, slash chords played plain (G/B as G), verses cut to six bars, intros and melodies left out. Tempos where only automated BPM sites gave one were checked against the song's length; Landslide, Tears in Heaven, Hallelujah and Nothing Else Matters remain unverified.
+- Copyright: presets carry facts about a song (chords, pattern, tempo), never its melody or a transcription.
+
+### Drill setup (the review's research pass, 2026-10-13)
+
+The notes were not kept; the decisions are in `01-feature-catalog.md` section 8.10. What the review settled on: show short option lists as buttons (one tap, every choice visible) and keep dropdowns for long lists only; summarise a collapsed setup as one sentence whose parts are editable; pick from long catalogues in a searchable sheet with groups and recent picks; take global facts (tempo, instrument, tuning, input) from one shared strip instead of repeating them per drill; let the stage itself be the control where it can (tap a pad, the neck, a fingering).
+
+### A guitar at the microphone (2026-10-14)
+
+A logging session with the owner's guitar on a webcam microphone: pitch clarity 0.97 and above, peaks -28 to -40 dBFS, so detection was not the problem. The G string was about 45 cents sharp, which rounded its notes to the next semitone. The rule that came out of it (`05-scoring-rules.md` section 23) has no published source; 65 cents is a knob.

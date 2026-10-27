@@ -1,6 +1,20 @@
 {
   "FINGERPICK_PATTERNS": [
     {
+      "id": "travis-bass",
+      "label": "Alternating bass, thumb only",
+      "instrument": "guitar",
+      "strings": ["B", "A", "B", "A", "B", "A", "B", "A"],
+      "fingers": ["p", "p", "p", "p", "p", "p", "p", "p"]
+    },
+    {
+      "id": "travis-middle",
+      "label": "Travis with one finger",
+      "instrument": "guitar",
+      "strings": ["B", "2", "A", "2", "B", "2", "A", "2"],
+      "fingers": ["p", "m", "p", "m", "p", "m", "p", "m"]
+    },
+    {
       "id": "travis",
       "label": "Travis picking, alternating bass",
       "instrument": "guitar",
@@ -8,11 +22,109 @@
       "fingers": ["p", "i", "p", "m", "p", "i", "p", "m"]
     },
     {
+      "id": "travis-syncopated",
+      "label": "Syncopated Travis, one note at a time",
+      "instrument": "guitar",
+      "strings": ["B", "2", "A", "3", "B", "2", "A", "3"],
+      "fingers": ["p", "m", "p", "i", "p", "m", "p", "i"]
+    },
+    {
       "id": "pima",
       "label": "p i m a",
       "instrument": "guitar",
       "strings": ["B", "3", "2", "1", "B", "3", "2", "1"],
       "fingers": ["p", "i", "m", "a", "p", "i", "m", "a"]
+    },
+    {
+      "id": "pima-alternating",
+      "label": "p i m a, alternating bass",
+      "instrument": "guitar",
+      "strings": ["B", "3", "2", "1", "A", "3", "2", "1"],
+      "fingers": ["p", "i", "m", "a", "p", "i", "m", "a"]
+    },
+    {
+      "id": "folk-pimi",
+      "label": "Folk arpeggio, p i m i",
+      "instrument": "guitar",
+      "strings": ["B", "3", "2", "3", "A", "3", "2", "3"],
+      "fingers": ["p", "i", "m", "i", "p", "i", "m", "i"]
+    },
+    {
+      "id": "pmim",
+      "label": "Reverse folk arpeggio, p m i m",
+      "instrument": "guitar",
+      "strings": ["B", "2", "3", "2", "A", "2", "3", "2"],
+      "fingers": ["p", "m", "i", "m", "p", "m", "i", "m"]
+    },
+    {
+      "id": "pimiaimi",
+      "label": "Eight-note arpeggio, p i m i a i m i",
+      "instrument": "guitar",
+      "strings": ["B", "3", "2", "3", "1", "3", "2", "3"],
+      "fingers": ["p", "i", "m", "i", "a", "i", "m", "i"]
+    },
+    {
+      "id": "pami",
+      "label": "p a m i, down from the top",
+      "instrument": "guitar",
+      "strings": ["B", "1", "2", "3", "A", "1", "2", "3"],
+      "fingers": ["p", "a", "m", "i", "p", "a", "m", "i"]
+    },
+    {
+      "id": "rolling",
+      "label": "Up and down, p i m a m i",
+      "instrument": "guitar",
+      "strings": ["B", "3", "2", "1", "2", "3"],
+      "fingers": ["p", "i", "m", "a", "m", "i"]
+    },
+    {
+      "id": "travis-pinch",
+      "label": "Travis with a pinch on one",
+      "instrument": "guitar",
+      "strings": ["B+2", "3", "A", "2", "B", "3", "A", "2"],
+      "fingers": ["p+m", "i", "p", "m", "p", "i", "p", "m"]
+    },
+    {
+      "id": "dust-pinch",
+      "label": "Syncopated Travis with a pinch (Dust in the Wind)",
+      "instrument": "guitar",
+      "strings": ["B+2", "-", "A", "3", "B", "2", "A", "3"],
+      "fingers": ["p+m", "-", "p", "i", "p", "m", "p", "i"]
+    },
+    {
+      "id": "boom-chick",
+      "label": "Boom chick: thumb, then three fingers together",
+      "instrument": "guitar",
+      "strings": ["B", "-", "3+2+1", "-", "A", "-", "3+2+1", "-"],
+      "fingers": ["p", "-", "i+m+a", "-", "p", "-", "i+m+a", "-"]
+    },
+    {
+      "id": "travis-high",
+      "label": "Travis picking on strings 2 and 1",
+      "instrument": "guitar",
+      "strings": ["B", "2", "A", "1", "B", "2", "A", "1"],
+      "fingers": ["p", "i", "p", "m", "p", "i", "p", "m"]
+    },
+    {
+      "id": "uke-claw",
+      "label": "The claw",
+      "instrument": "ukulele",
+      "strings": ["4", "2", "1", "2", "4", "2", "1", "2"],
+      "fingers": ["p", "i", "m", "i", "p", "i", "m", "i"]
+    },
+    {
+      "id": "uke-claw-alternating",
+      "label": "Claw with alternating thumb",
+      "instrument": "ukulele",
+      "strings": ["4", "2", "1", "2", "3", "2", "1", "2"],
+      "fingers": ["p", "i", "m", "i", "p", "i", "m", "i"]
+    },
+    {
+      "id": "uke-outside-in",
+      "label": "Outside in",
+      "instrument": "ukulele",
+      "strings": ["4", "1", "3", "2", "4", "1", "3", "2"],
+      "fingers": ["p", "m", "p", "i", "p", "m", "p", "i"]
     },
     {
       "id": "uke-tima",
@@ -27,6 +139,220 @@
       "instrument": "ukulele",
       "strings": ["3", "1", "4", "2", "3", "1", "4", "2"],
       "fingers": ["p", "m", "p", "i", "p", "m", "p", "i"]
+    },
+    {
+      "id": "uke-tami",
+      "label": "Thumb on 4, then a m i",
+      "instrument": "ukulele",
+      "strings": ["4", "1", "2", "3", "4", "1", "2", "3"],
+      "fingers": ["p", "a", "m", "i", "p", "a", "m", "i"]
+    },
+    {
+      "id": "uke-travis",
+      "label": "Travis: thumb on 4 and 3, i and m on 2 and 1",
+      "instrument": "ukulele",
+      "strings": ["4", "2", "3", "1", "4", "2", "3", "1"],
+      "fingers": ["p", "i", "p", "m", "p", "i", "p", "m"]
+    },
+    {
+      "id": "uke-fancy-eight",
+      "label": "Fancy eight, 3 3 2 feel",
+      "instrument": "ukulele",
+      "strings": ["1", "4", "2", "1", "4", "2", "3", "2"],
+      "fingers": ["m", "p", "i", "m", "p", "i", "p", "i"]
+    },
+    {
+      "id": "uke-linear",
+      "label": "Low to high, C E G A",
+      "instrument": "ukulele",
+      "strings": ["3", "2", "4", "1", "3", "2", "4", "1"],
+      "fingers": ["p", "i", "p", "m", "p", "i", "p", "m"]
+    },
+    {
+      "id": "uke-rolling",
+      "label": "Up and down, p i m a m i",
+      "instrument": "ukulele",
+      "strings": ["4", "3", "2", "1", "2", "3"],
+      "fingers": ["p", "i", "m", "a", "m", "i"]
+    },
+    {
+      "id": "uke-backward-roll",
+      "label": "Backward roll, m i p",
+      "instrument": "ukulele",
+      "strings": ["1", "2", "3", "1", "2", "4"],
+      "fingers": ["m", "i", "p", "m", "i", "p"]
+    },
+    {
+      "id": "uke-ohta",
+      "label": "Ohta-San, 6/8",
+      "instrument": "ukulele",
+      "strings": ["3", "2", "4", "1", "4", "2"],
+      "fingers": ["p", "i", "p", "m", "p", "i"]
+    },
+    {
+      "id": "uke-two-strings",
+      "label": "Thumb, then two strings together",
+      "instrument": "ukulele",
+      "strings": ["4", "2+1", "2+1", "2+1", "4", "2+1", "2+1", "2+1"],
+      "fingers": ["p", "i+m", "i+m", "i+m", "p", "i+m", "i+m", "i+m"]
+    }
+  ],
+  "FINGERPICK_SONGS": [
+    {
+      "id": "house-of-the-rising-sun",
+      "song": "House of the Rising Sun",
+      "artist": "The Animals",
+      "instrument": "guitar",
+      "pattern": "rolling",
+      "chords": ["Am", "C", "D", "F", "Am", "E"],
+      "bpm": 58,
+      "perBeat": 3,
+      "note": "The 8-bar verse is cut to 6 by merging the closing C E E into one E bar; no capo.",
+      "source": "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/learn-to-play-house-of-the-rising-sun/"
+    },
+    {
+      "id": "dust-in-the-wind",
+      "song": "Dust in the Wind",
+      "artist": "Kansas",
+      "instrument": "guitar",
+      "pattern": "dust-pinch",
+      "chords": ["C", "G", "Am", "G", "Dm", "Am"],
+      "bpm": 94,
+      "perBeat": 2,
+      "note": "Verse progression; G/B is played as G and the intro's Cmaj7, Cadd9 and Asus2 colour chords are left out.",
+      "source": "https://nationalguitaracademy.com/?p=14276"
+    },
+    {
+      "id": "landslide",
+      "song": "Landslide",
+      "artist": "Fleetwood Mac",
+      "instrument": "guitar",
+      "pattern": "travis",
+      "chords": ["C", "G", "Am7", "G"],
+      "bpm": 80,
+      "perBeat": 2,
+      "note": "Capo 3; G/B becomes G; the original is closer to an inside-out roll than true Travis.",
+      "source": "https://andyguitar.co.uk/videos/fleetwood-mac-landslide"
+    },
+    {
+      "id": "hallelujah",
+      "song": "Hallelujah",
+      "artist": "Leonard Cohen",
+      "instrument": "guitar",
+      "pattern": "rolling",
+      "chords": ["G", "Em", "G", "Em", "C", "D"],
+      "bpm": 60,
+      "perBeat": 3,
+      "note": "Capo 5 with G shapes (sounds in C); the first half of the verse, and the roll is an approximation.",
+      "source": "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/hallelujah/"
+    },
+    {
+      "id": "everybody-hurts",
+      "song": "Everybody Hurts",
+      "artist": "R.E.M.",
+      "instrument": "guitar",
+      "pattern": "rolling",
+      "chords": ["D", "G"],
+      "bpm": 63,
+      "perBeat": 3,
+      "note": "Verse only (bass then strings 3 2 1 2 3); the walkdown and the Em A chorus are left out.",
+      "source": "https://laurenbateman.com/?p=5038"
+    },
+    {
+      "id": "the-boxer",
+      "song": "The Boxer",
+      "artist": "Simon & Garfunkel",
+      "instrument": "guitar",
+      "pattern": "travis-pinch",
+      "chords": ["C", "Am", "G", "G7"],
+      "bpm": 93,
+      "perBeat": 2,
+      "note": "Verse in C shapes with no capo; the record sounds lower (a detuned guitar) and the C to Am bass walk is dropped.",
+      "source": "https://pg.zachmanson.com/tab/simon-garfunkel/the-boxer-chords-1744664"
+    },
+    {
+      "id": "scarborough-fair",
+      "song": "Scarborough Fair",
+      "artist": "Simon & Garfunkel",
+      "instrument": "guitar",
+      "pattern": "rolling",
+      "chords": ["Am", "G", "Am", "C", "Am", "D"],
+      "bpm": 129,
+      "perBeat": 2,
+      "note": "3/4 in Am shapes (capo 7 to match the record); G/B becomes G and the melody is not included.",
+      "source": "https://jgmusiclessons.com/scarborough-fair-guitar-tabs-chords-and-arrangement"
+    },
+    {
+      "id": "tears-in-heaven",
+      "song": "Tears in Heaven",
+      "artist": "Eric Clapton",
+      "instrument": "guitar",
+      "pattern": "pima",
+      "chords": ["A", "E", "F#m", "A", "D", "E7"],
+      "bpm": 80,
+      "perBeat": 2,
+      "note": "Slash bass notes (E/G#, A/E, D/F#) and E7sus4 are dropped; the song changes chord every two beats and p i m a only approximates Clapton's picking.",
+      "source": "https://www.licklibrary.com/learn/lessons/eric-clapton/tears-in-heaven"
+    },
+    {
+      "id": "nothing-else-matters",
+      "song": "Nothing Else Matters",
+      "artist": "Metallica",
+      "instrument": "guitar",
+      "pattern": "rolling",
+      "chords": ["Em", "D", "C"],
+      "bpm": 46,
+      "perBeat": 3,
+      "note": "Only the verse chord loop; the intro's open-string melody and hammer-ons are not included.",
+      "source": "https://www.licklibrary.com/learn/lessons/metallica/nothing-else-matters"
+    },
+    {
+      "id": "uke-hallelujah",
+      "song": "Hallelujah",
+      "artist": "Leonard Cohen",
+      "instrument": "ukulele",
+      "pattern": "uke-rolling",
+      "chords": ["C", "Am", "C", "Am", "F", "G"],
+      "bpm": 60,
+      "perBeat": 3,
+      "note": "12/8 felt as 6/8; the taught version pinches strings 4 and 1 on each downbeat, so the roll is an approximation.",
+      "source": "https://ukulelemagazine.com/lessons/watch-sarah-maisel-perform-leonard-cohens-hallelujah"
+    },
+    {
+      "id": "uke-cant-help-falling-in-love",
+      "song": "Can't Help Falling in Love",
+      "artist": "Elvis Presley",
+      "instrument": "ukulele",
+      "pattern": "uke-rolling",
+      "chords": ["C", "Em", "Am", "F", "C", "G"],
+      "bpm": 66,
+      "perBeat": 3,
+      "note": "In C (the original is in D); 12/8 at a dotted quarter of about 66.",
+      "source": "https://ukulelego.com/lessons/cant-help-falling-in-love-by-twenty-one-pilots/"
+    },
+    {
+      "id": "uke-house-of-the-rising-sun",
+      "song": "House of the Rising Sun",
+      "artist": "The Animals",
+      "instrument": "ukulele",
+      "pattern": "uke-rolling",
+      "chords": ["Am", "C", "D", "F", "Am", "E"],
+      "bpm": 58,
+      "perBeat": 3,
+      "note": "Thumb on string 4, then i m a; the verse is shortened to 6 bars.",
+      "source": "https://ukulelego.com/lessons/house-of-the-rising-sun-ukulele-lesson/"
+    },
+    {
+      "id": "uke-scarborough-fair",
+      "song": "Scarborough Fair",
+      "artist": "Simon & Garfunkel",
+      "instrument": "ukulele",
+      "pattern": "uke-rolling",
+      "chords": ["Am", "G", "Am", "C", "Am", "D"],
+      "bpm": 90,
+      "perBeat": 2,
+      "note": "3/4 in Am at a slower practice tempo with open strings ringing; the melody is not included.",
+      "source": "https://ukutabs.com/pl/s/simon-and-garfunkel/scarborough-fair/"
     }
   ],
   "LEGATO_PATTERNS": [

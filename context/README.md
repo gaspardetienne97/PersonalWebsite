@@ -18,7 +18,7 @@ Everything in this folder describes the app as built so far (the previous versio
 | Path | What it is |
 |---|---|
 | `research/` | The rebuild's own research notes, in full with every source: `aerophone.md` (Roland PDFs, MIDI, Roland's lesson app), `piano-drills.md` (practice evidence, evenness, ABRSM and RCM tempo tables), `guitar-ukulele-drills.md` (what a microphone can measure, ranked drills), `pads-aerophone-gaps.md` (missing pad and Aerophone drills), `finger-drumming.md` (technique, levels, repertoire sources, Latin grooves), `ear-drills-sequencing.md`, `eq-frequency-training.md`, `circle-of-fifths.md`, `drill-progression.md` (the next-run rule), `phrases.md` (public-domain phrases and their scores). Digested in `02-research-digest.md` section (h). |
-| `data/` (new files) | `phrases.json`, `pad-repertoire.json`, `pad-skills.json`, `aero-skills.json`, `fingerpick-legato-patterns.json`, exported from the rebuild's modules; `aerophone-fingerings.json`, `chord-shapes.json`, `chord-positions-*.json` and `rhythm-patterns.json` replaced by the rebuild's extended versions. Described in `04-music-data.md` sections 22 to 30. |
+| `data/` (new files) | `phrases.json`, `pad-repertoire.json`, `pad-skills.json`, `aero-skills.json`, `fingerpick-legato-patterns.json`, exported from the rebuild's modules; `aerophone-fingerings.json`, `chord-shapes.json`, `chord-positions-*.json` and `rhythm-patterns.json` replaced by the rebuild's extended versions. `phrases.json` (with chord phrases) and `fingerpick-legato-patterns.json` (28 patterns and 13 song presets) were regenerated after the review, and four small tables re-copied with their fixes. Described in `04-music-data.md` sections 22 to 31. |
 
 ## Source material
 

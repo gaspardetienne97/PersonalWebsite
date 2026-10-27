@@ -41,7 +41,7 @@
   {
     "id": "level-3",
     "label": "Level 3",
-    "description": "Compound meter, syncopation, and mixed rhythmic values.",
+    "description": "Syncopation, dotted rhythms and leaps up to a fourth.",
     "rhythm": "eighths and syncopation",
     "recommendedDifficulty": 0.7,
     "recommendedClefs": ["treble", "bass"],

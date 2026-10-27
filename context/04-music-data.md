@@ -554,19 +554,25 @@ From `content/pad-skills.ts`: `PAD_FILLS` (snare eighths, down the toms, whole b
 
 ### 26. Phrases: `data/phrases.json`
 
-From `content/phrases.ts`. 52 phrases: piano 12, guitar 10, ukulele 10, Aerophone 20. Each: id, instrument, title, style, why, source, level 1 to 3, bpm, beatsPerBar (quarter beats), optional written meter (`[6, 8]`, `[3, 8]`), key signature in fifths, and steps `[midi or null, beats, string?, fret?]`.
+From `content/phrases.ts`, regenerated after the review. 62 phrases: piano 15, guitar 14, ukulele 13, Aerophone 20, ten of them chord phrases (a step's first element is then a list of pitches, graded by the chord grader in `05-scoring-rules.md`). Phrases with a pickup start with rests so the first strong note lands on beat 1; a pickup rest does not count toward the four-bar limit. Each: id, instrument, title, style, why, source, level 1 to 3, bpm, beatsPerBar (quarter beats), optional written meter (`[6, 8]`, `[3, 8]`), key signature in fifths, and steps `[midi or null, beats, string?, fret?]`.
 - Invariants (`phrases.test.ts`): at least 8 per instrument; unique ids; 4 or more notes; no longer than 4 bars; note values only 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4 beats (the engraver draws nothing else cleanly); Aerophone notes inside 58 to 85 with a fingering; every guitar and ukulele step has a string and fret whose open string plus fret equals the pitch (strings from 1 = highest; ukulele high-G 1 = A4 69, 2 = E4 64, 3 = C4 60, 4 = G4 67).
 - Content rule: public domain or generic style vocabulary only. Sources per phrase are in the `source` field and `research/phrases.md`.
 
 ### 27. Chord shapes and generated voicings
 
+- Fixed after the review: ukulele F major at fret 3 and G major at fret 4 had finger 2 three frets above a barre on finger 1; they are `[4, 1, 1, 1]` now, and a test requires `fret - lowest fret ≤ finger`.
 - Curated: `data/chord-shapes.json` now has 31 shapes (added ukulele Dm, C7, G7, A, D, Gm, A7, E7; guitar F, Bb and F#m barre; E5, A5, G5, D5), with position-0 entries in `data/chord-positions-*.json`.
 - Generated: `theory/voicings.ts` `chordVoicings(tuning, rootPc, intervals, opts)` for any root and the 19 `VOICING_QUALITIES` (from `theory/chords` templates, including the power chord `5`). Ids `gen.<instrument>.<root>.<quality>`; `chordPositions` falls back to the generator for those ids.
 - Rules: walk the neck one hand position at a time (max stretch 3 frets, max fret 12, 4 fingers, 8 voicings kept); at least `min(4 on six strings or all strings, notes + 1)` sounding strings; a barre when more fretted notes than fingers (`needsBarre`), or when strings share the lowest fret and it would take every finger or three strings sit on it, never over an open string; kind open, barre or closed; `omitsFifth` when the fifth was dropped. Ranked by sounding strings, muted strings and fingers used.
 
 ### 28. Fingerpick and legato patterns: `data/fingerpick-legato-patterns.json`
 
-From `content/technique.ts`: `FINGERPICK_PATTERNS` (Travis and p i m a on guitar, two ukulele patterns; `fingerpickTargets` puts them over a chord pair, two notes a click) and `LEGATO_PATTERNS` (hammer-on and pull-off 0 2 0, trill, three-note), each step marked picked, hammered or pulled.
+From `content/technique.ts`, regenerated after the review.
+- `FINGERPICK_PATTERNS`: 15 guitar and 13 ukulele. Each step names its strings and fingers: "B" the shape's lowest sounding string, "A" the alternate bass (string 4 under a string-6 root, else the next string up), a digit a string (1 highest), "B+2" a pinch with fingers "p+m", "-" a hold. Eight steps make a bar of 4/4; six a bar of 3/4 (or 6/8 at three a click). Ukulele patterns name strings directly because re-entrant tuning puts string 4 above string 3. Guitar: alternating bass thumb only, Travis with one finger, Travis, syncopated Travis, p i m a, p i m a alternating, folk p i m i, reverse p m i m, eight-note p i m i a i m i, p a m i, rolling p i m a m i (six steps), Travis with a pinch, Dust in the Wind pinch, boom chick (three fingers together), Travis on strings 2 and 1. Ukulele: the claw, claw with alternating thumb, outside in, thumb then i m a, alternating thumb on 3 and 4, thumb then a m i, Travis, fancy eight (3 3 2), low to high, rolling, backward roll and Ohta-San (six steps), thumb then two strings together.
+- `FINGERPICK_SONGS`: 9 guitar (House of the Rising Sun, Dust in the Wind, Landslide, Hallelujah, Everybody Hurts, The Boxer, Scarborough Fair, Tears in Heaven, Nothing Else Matters) and 4 ukulele (Hallelujah, Can't Help Falling in Love, House of the Rising Sun, Scarborough Fair). Each: song, artist, pattern id, chords in order (plain symbols, a bar each), bpm, notes a click (2 or 3), a note on what is simplified, and the source URL. Facts only, no melody. Four tempos are unverified (`02-research-digest.md` section h).
+- `fingerpickTargets({ pattern, shapes, tuning, rounds })` lays the pattern a bar per chord round the cycle, each note with its `slot` (time step), picking `label` and fretting `finger` (0 on an open string). `fingerpickable(pattern, shape)` says whether every step lands on a sounding string.
+- `LEGATO_PATTERNS` (hammer-on and pull-off 0 2 0, trill, three-note), each step marked picked, hammered or pulled.
+- Invariants (`technique.test.ts`): every pattern has 6 or 8 steps, a finger for each string of each step (pinches included), fingers only p i m a or a hold, and plays on its instrument's open C chord; every song uses a pattern of its own instrument, 2 to 8 plain chord symbols (no slash chords), a tempo of 40 to 200, unique ids, and three a click only with a six-step pattern.
 
 ### 29. Rhythm and strum patterns: `data/rhythm-patterns.json`
 
@@ -576,3 +582,10 @@ Extended with guitar Old Faithful (D DU UDU), ukulele island and chuck strums.
 
 - `theory/circle.signatureFor(tonicPc, kind)`: the signature a scale is written in, from its parent major (lydian +7, mixolydian +5, dorian +10, phrygian +8, minors and blues +3, locrian +1 semitones to the parent tonic); 0 for symmetric scales. F# over Gb at six.
 - `theory/fretboard.positionLine(tuning, midis)`: lay a line in one five-fret hand position (the window where the most notes fit, lowest on a tie; each note on its lowest fret inside it; misfits take the nearest place; off-neck notes are null). C4 to C5 on guitar lands on frets 5 to 8.
+
+### 31. Smaller data changes after the review
+
+- `data/reading-levels.json`: level 3 reads "Syncopation, dotted rhythms and leaps up to a fourth." (it promised compound meter, which the level never draws). Ranges now come from `readingRange(level, clefs)` (`05-scoring-rules.md` section 27).
+- `data/ear-training.json`: the mixed review is "a mix of the nine ear drills", any set of them.
+- `data/learning-paths.json`: subtitles no longer state a step count.
+- `content/winds-pads.ts` `SUBDIVISION_NAMES` covers 2, 3, 4, 6 and 8 notes a beat (6 and 8 rolls read "undefined" before); register pairs, trill pairs and orchestrations carry a `label` and a `detail`.
