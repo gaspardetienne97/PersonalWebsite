@@ -4,11 +4,11 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## Needs the owner
 
-- **Official MuseScore scores.** Your Pro plan downloads community scores as MusicXML, but MuseScore's Official scores (Hal Leonard and similar) need PRO+ or a purchase each. An agent found community scores for 112 shelf songs that had only official ones; 97 still have none (mostly licensed songs such as the Beatles, Einaudi, Hotel California and Stairway, with no community arrangement on MuseScore). Each shelf has other songs to pick; say if you would rather buy or upgrade for some of these.
+- **Official MuseScore scores.** MuseScore's Official scores can be viewed and played but never downloaded, on any plan (PRO+ only adds viewing them). An agent found community scores for 112 shelf songs that had only official ones; 97 still have none (mostly licensed songs such as the Beatles, Einaudi, Hotel California and Stairway). Each shelf has other songs to pick.
 
 ## In progress
 
-- **Curriculum plan, phase 2**: built (see Done). Shelf scores downloaded so far (41 in `.music-scores/`): guitar levels 1 and 2 have 7 of 8 each, ukulele 6 of 8 and 4 of 9, piano levels 1 to 3 have 4, 3 and 4 of 12, the Aerophone 3 of 8 and 2 of 9, the pads none. After about 45 downloads in a day MuseScore stopped offering Download on every score for the account ("not available due to established limitations"), so the fetcher stops on three in a row; run `node scripts/fetch-scores.mjs --path <path> --levels <ids>` again on another day. Next phases (3 and 4 in the plan doc): the drills about 450 steps wait for, starting with the ones most steps need (ukulele strum patterns, Jam improvisation scoring, grand-staff reading past level 3, lead sheets, triplet and odd-meter grooves).
+- **Curriculum plan, phase 2**: built (see Done). Shelf scores downloaded so far (41 in `.music-scores/`): guitar levels 1 and 2 have 7 of 8 each, ukulele 6 of 8 and 4 of 9, piano levels 1 to 3 have 4, 3 and 4 of 12, the Aerophone 3 of 8 and 2 of 9, the pads none. MuseScore allows 20 downloads a day per account on every plan, so a run fetches 20 at most and stops on three blocked pages in a row; run `node scripts/fetch-scores.mjs --path <path> --levels <ids>` once a day. Next phases (3 and 4 in the plan doc): the drills about 450 steps wait for, starting with the ones most steps need (ukulele strum patterns, Jam improvisation scoring, grand-staff reading past level 3, lead sheets, triplet and odd-meter grooves).
 
 ## Done
 

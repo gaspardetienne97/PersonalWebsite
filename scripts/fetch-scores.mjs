@@ -7,7 +7,8 @@
 //
 // Paths: guitar ukulele piano jazz aerophone pads ear-theory reading. Songs already downloaded
 // are skipped; a song whose first MuseScore link fails tries its next one. Official scores are
-// skipped: MuseScore sells them one by one (or with PRO+), and plain Pro does not open them.
+// skipped: MuseScore lets them be viewed and played but never downloaded, on any plan.
+// Runs are capped at 20 songs (--max), MuseScore's daily download limit per account.
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
@@ -32,6 +33,8 @@ if (!file)
   );
 const levels = arg("levels")?.split(",");
 const dry = process.argv.includes("--dry");
+// MuseScore allows 20 downloads a day per account (PRO+ does not raise it), so one run fetches 20 at most.
+const max = Number(arg("max", "20"));
 const downloads = resolve(arg("downloads", join(homedir(), "Downloads")).replace(/^~/, homedir()));
 const root = resolve(process.env.MUSIC_SCORES_DIR || ".music-scores");
 
@@ -40,8 +43,8 @@ const dir = join(root, data.id);
 const manifestFile = join(root, "manifest.json");
 const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, "utf8")) : {};
 // "Download and print options are not available due to established limitations" shows on a
-// score whose download is off, and on every score once MuseScore limits the account (seen after
-// about 45 downloads in a day), so several in a row stop the run rather than push on.
+// score whose download is off, and on every score once the account reaches its 20 a day, so
+// several in a row stop the run rather than push on.
 let blockedInARow = 0;
 let stop = false;
 const EXT = /\.(mxl|musicxml|xml|mid)$/;
@@ -86,7 +89,7 @@ mkdirSync(dir, { recursive: true });
 let ok = 0;
 const failed = [];
 try {
-  for (const song of wanted) {
+  for (const song of wanted.slice(0, max)) {
     let saved = false;
     for (const score of song.scores) {
       orca("goto", "--page", page, "--url", score.url);
