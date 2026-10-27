@@ -16,7 +16,7 @@ const key = (name: string, fifths: number): KeySignature => {
   return { name, tonic, tonicPc: pcOf(tonic)!, mode, fifths };
 };
 
-/** The 8 selectable reading keys. */
+/** The selectable reading keys: the first eight, then the keys to four sharps and four flats the later levels add. */
 export const KEY_SIGNATURES: KeySignature[] = [
   key("C major", 0),
   key("G major", 1),
@@ -26,6 +26,16 @@ export const KEY_SIGNATURES: KeySignature[] = [
   key("A minor", 0),
   key("E minor", 1),
   key("D minor", -1),
+  key("A major", 3),
+  key("E major", 4),
+  key("Eb major", -3),
+  key("Ab major", -4),
+  key("B minor", 2),
+  key("F# minor", 3),
+  key("C# minor", 4),
+  key("G minor", -2),
+  key("C minor", -3),
+  key("F minor", -4),
 ];
 export const keyByName = (name: string) => KEY_SIGNATURES.find((k) => k.name === name);
 
@@ -75,15 +85,20 @@ export function spellInKey(midiOrPc: number, k: KeySignature): string {
   const diatonic = diatonicNames(k).find((n) => pcOf(n) === p);
   if (diatonic) return diatonic;
   if (k.mode === "minor" && p === pc(k.tonicPc - 1)) {
-    const seventh = LETTERS[(LETTERS.indexOf(k.tonic[0]) + 6) % 7];
-    return seventh + "#";
+    // The key's own seventh raised a semitone: G to G# in A minor, Bb to B in C minor.
+    const seventh = diatonicNames(k)[(LETTERS.indexOf(k.tonic[0]) + 6) % 7];
+    return seventh.endsWith("b") ? seventh[0] : seventh + "#";
   }
   return (k.fifths < 0 ? FLAT_NAMES : SHARP_NAMES)[p];
 }
 
 /** The 12 answer choices for a key, one per pitch class, spelled to the key. */
 export function choicesForKey(k: KeySignature): string[] {
-  return Array.from({ length: 12 }, (_, p) => spellInKey(p, k));
+  // B# and E# (the raised sevenths of C# and F# minor) are not buttons; C and F are.
+  return Array.from({ length: 12 }, (_, p) => {
+    const name = spellInKey(p, k);
+    return (CHOICE_NAMES as readonly string[]).includes(name) ? name : SHARP_NAMES[p];
+  });
 }
 
 /** Enharmonic-tolerant comparison. Hyphen-joined chord answers compare note by note. */

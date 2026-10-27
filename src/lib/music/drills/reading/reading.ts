@@ -1,10 +1,21 @@
 // Pure helpers for the reading route: flashcard scores for the staff, the
 // "you played X, it was Y" comparison, sounding pitch for fretted notation,
 // and which hand the current target belongs to.
-import type { Score, ScoreGroup } from "@repo/music-core";
+import type { Score, ScoreGroup, ScoreNote, ScoreVoice } from "@repo/music-core";
 import type { FlashcardPrompt } from "@repo/music-core/content/reading";
 import type { Tuning } from "@repo/music-core/data/index";
 import { pc } from "@repo/music-core";
+
+/** The card's notes on its clef; a four-part chord across the grand staff, split at middle C. */
+function cardVoices(p: FlashcardPrompt, notes: ScoreNote[]): ScoreVoice[] {
+  if (p.kind !== "satb") return [{ id: "card", name: "Card", clef: p.clef, notes }];
+  return (["treble", "bass"] as const).map((clef) => ({
+    id: clef,
+    name: clef === "treble" ? "Soprano and alto" : "Tenor and bass",
+    clef,
+    notes: notes.filter((n) => n.midi >= 60 === (clef === "treble")),
+  }));
+}
 
 /** The flashcard as a one-bar score: a whole note (or chord) on its clef. */
 export function flashcardScore(p: FlashcardPrompt, keyFifths = 0): Score {
@@ -14,14 +25,10 @@ export function flashcardScore(p: FlashcardPrompt, keyFifths = 0): Score {
     bpm: 60,
     meter: { beats: 4, beatUnit: 4 },
     keyFifths,
-    voices: [
-      {
-        id: "card",
-        name: "Card",
-        clef: p.clef,
-        notes: p.midi.map((m) => ({ midi: m, startBeat: 0, durationBeats: 4 })),
-      },
-    ],
+    voices: cardVoices(
+      p,
+      p.midi.map((m) => ({ midi: m, startBeat: 0, durationBeats: 4 })),
+    ),
     lengthBeats: 4,
     source: { kind: "generated" },
   };
@@ -42,17 +49,10 @@ export function comparisonScore(p: FlashcardPrompt, submitted: number[], keyFift
   return {
     ...flashcardScore(p, keyFifths),
     id: `${p.id}-vs`,
-    voices: [
-      {
-        id: "card",
-        name: "Card",
-        clef: p.clef,
-        notes: [
-          ...p.midi.map((m) => ({ midi: m, startBeat: 0, durationBeats: 2 })),
-          ...submitted.map((m) => ({ midi: near(m), startBeat: 2, durationBeats: 2 })),
-        ],
-      },
-    ],
+    voices: cardVoices(p, [
+      ...p.midi.map((m) => ({ midi: m, startBeat: 0, durationBeats: 2 })),
+      ...submitted.map((m) => ({ midi: near(m), startBeat: 2, durationBeats: 2 })),
+    ]),
   };
 }
 
@@ -76,6 +76,62 @@ export function playableWrittenRange(
   const lo = Math.min(...t.openStrings) - t.notationTransposition;
   const hi = Math.max(...t.openStrings) + frets - t.notationTransposition;
   return [lo, hi];
+}
+
+/**
+ * Hand positions for reading on a fretted instrument, as fret windows (open
+ * strings count in a window from 0). The written range follows from the tuning.
+ */
+export const FRET_POSITIONS: Record<
+  string,
+  { value: string; label: string; frets: [number, number] }[]
+> = {
+  guitar: [
+    { value: "open", label: "Open", frets: [0, 5] },
+    { value: "2", label: "Second", frets: [2, 7] },
+    { value: "5", label: "Fifth", frets: [4, 9] },
+  ],
+  ukulele: [
+    { value: "open", label: "Open", frets: [0, 3] },
+    { value: "up", label: "Up the neck", frets: [0, 7] },
+  ],
+};
+export const fretPosition = (instrument: string, value: string) =>
+  FRET_POSITIONS[instrument]?.find((p) => p.value === value) ?? FRET_POSITIONS[instrument]?.[0];
+
+/** The written range a fret window reaches: the lowest string's first fret to the highest string's last. */
+export function positionRange(
+  t: Pick<Tuning, "openStrings" | "notationTransposition">,
+  [from, to]: [number, number],
+): [number, number] {
+  return [
+    Math.min(...t.openStrings) + from - t.notationTransposition,
+    Math.max(...t.openStrings) + to - t.notationTransposition,
+  ];
+}
+
+/**
+ * Sounding notes placed inside a fret window: the string whose fret falls in it
+ * (the lowest such fret when two do), else the nearest fret outside it. The tab
+ * and the fretboard then show the position being read, not the lowest frets.
+ */
+export function placeInPosition<N extends Pick<ScoreNote, "midi">>(
+  notes: N[],
+  t: Pick<Tuning, "openStrings" | "fretCount">,
+  [from, to]: [number, number],
+): (N & { string?: number; fret?: number })[] {
+  return notes.map((n) => {
+    let best: { string: number; fret: number; miss: number } | null = null;
+    t.openStrings.forEach((open, i) => {
+      const fret = n.midi - open;
+      if (fret < 0 || fret > t.fretCount) return;
+      const miss = fret < from ? from - fret : fret > to ? fret - to : 0;
+      if (!best || miss < best.miss || (miss === best.miss && fret < best.fret))
+        best = { string: i + 1, fret, miss };
+    });
+    const b = best as { string: number; fret: number } | null;
+    return b ? { ...n, string: b.string, fret: b.fret } : n;
+  });
 }
 
 /** Clamp a range into limits, keeping at least an octave. */
@@ -135,5 +191,16 @@ export const READING_SETUP = {
   input: "keys",
   /** Sight-reading as a level climb (Piano Marvel's assessment). */
   climb: false,
+  /** Fretted hand position (FRET_POSITIONS); the first when empty. */
+  position: "",
+  /** Look-ahead mask in beats: played notes hide, and only this many beats ahead show. 0 is off. */
+  mask: 0,
+  /** Seconds to look at a phrase before Start opens. 0 is off. */
+  look: 0,
+  /** Flashcards: sharps, flats and naturals beside the key's own notes. */
+  accidentals: false,
+  /** A written range set by note (MIDI), instead of the level's; 0 follows the level. */
+  low: 0,
+  high: 0,
 };
 export type ReadingSetup = typeof READING_SETUP;

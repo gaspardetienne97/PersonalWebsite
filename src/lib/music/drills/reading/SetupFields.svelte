@@ -2,30 +2,48 @@
   // The reading setup, shared by flashcards and sight-reading. The instrument is
   // the practice strip's, and the range follows the level, the clefs and the
   // instrument, so neither is a control here.
-  import { CLIMB, READING_LEVELS, READING_RUNGS, readingLevel } from "@repo/music-core/content/reading";
-  import type { ReadingLevelId } from "@repo/music-core/data/index";
+  import { CLIMB, levelMeter, levelsFor, READING_METERS, readingLevel, readingLevelId, readingRungs } from "@repo/music-core/content/reading";
+  import { noteName } from "@repo/music-core";
   import Choice from "$lib/music/components/Choice.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
-  import type { ReadingSetup } from "./reading";
+  import { FRET_POSITIONS, type ReadingSetup } from "./reading";
 
-  /** `oneLine`: one treble staff (fretted instruments and the Aerophone). */
-  let { cfg, activity, fretted, oneLine = fretted }: { cfg: DrillSetup<ReadingSetup>; activity: "flashcards" | "sight-reading"; fretted: boolean; oneLine?: boolean } = $props();
+  /** `oneLine`: one treble staff (fretted instruments and the Aerophone). `limits`: the written range the instrument reads. */
+  let {
+    cfg,
+    activity,
+    fretted,
+    oneLine = fretted,
+    instrument,
+    limits,
+  }: { cfg: DrillSetup<ReadingSetup>; activity: "flashcards" | "sight-reading"; fretted: boolean; oneLine?: boolean; instrument: string; limits: [number, number] } = $props();
   const s = $derived(cfg.value);
-  const level = $derived(readingLevel((READING_LEVELS.some((l) => l.id === s.level) ? s.level : "primer") as ReadingLevelId));
+  const levels = $derived(levelsFor(instrument));
+  const level = $derived(readingLevel(readingLevelId(s.level)));
   const climbing = $derived(activity === "sight-reading" && !!s.climb);
-  // Every level and key pair is a rung, since the keys offered are the level's.
-  const rung = $derived(Math.max(0, READING_RUNGS.findIndex((r) => r.level === s.level && r.key === s.key)));
+  const rungs = $derived(readingRungs(instrument));
+  // Every level and climb key pair is a rung; a key off the climb starts at the level's first.
+  const rung = $derived(Math.max(0, rungs.findIndex((r) => r.level === level.id && r.key === s.key), rungs.findIndex((r) => r.level === level.id)));
+  // Range by note: the naturals the instrument reads, and the level's own range first.
+  const naturals = $derived(Array.from({ length: limits[1] - limits[0] + 1 }, (_, i) => limits[0] + i).filter((m) => !noteName(m).includes("#")));
+  const rangeOptions = (label: string) => [{ value: 0, label }, ...naturals.map((m) => ({ value: m, label: noteName(m) }))];
 </script>
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   <Choice
     label="Level"
     setupKey="level"
-    options={READING_LEVELS.map((l) => ({ value: l.id, label: l.label, hint: `${l.description} Rhythm: ${l.rhythm}.` }))}
-    value={s.level}
+    options={levels.map((l) => ({ value: l.id, label: l.label, hint: `${l.description} Rhythm: ${l.rhythm}.` }))}
+    value={level.id}
     onchange={(v) => {
-      const l = READING_LEVELS.find((x) => x.id === v)!;
-      cfg.set({ level: v, clefs: oneLine ? "treble" : l.recommendedClefs.join(","), key: l.recommendedKeys.includes(s.key) ? s.key : l.recommendedKeys[0] });
+      const l = readingLevel(readingLevelId(v));
+      cfg.set({
+        level: v,
+        clefs: oneLine ? "treble" : l.recommendedClefs.join(","),
+        key: l.recommendedKeys.includes(s.key) ? s.key : l.recommendedKeys[0],
+        meter: levelMeter(l.id, s.meter),
+        measures: l.measures ?? s.measures,
+      });
     }}
   />
   <Choice label="Key" setupKey="key" options={level.recommendedKeys.map((k) => ({ value: k, label: k }))} value={s.key} onchange={(v) => cfg.set({ key: v })} />
@@ -37,6 +55,7 @@
         { value: "treble", label: "Treble" },
         { value: "bass", label: "Bass" },
         { value: "treble,bass", label: "Both" },
+        ...(activity === "flashcards" ? [{ value: "crossed", label: "Crossed", hint: "Middle notes on either clef: the left hand reads treble, the right hand bass." }] : []),
       ]}
       value={s.clefs}
       onchange={(v) => cfg.set({ clefs: v })}
@@ -49,10 +68,23 @@
       options={[
         { value: "note", label: "Single note" },
         { value: "chord", label: "Triad" },
+        ...(oneLine ? [] : [{ value: "satb", label: "Four-part chord", hint: "A chord in chorale spacing across both staves, named as its triad." }]),
       ]}
       value={s.kind}
       onchange={(v) => cfg.set({ kind: v })}
     />
+    {#if s.kind === "note"}
+      <Choice
+        label="Accidentals"
+        setupKey="accidentals"
+        options={[
+          { value: "off", label: "Off", hint: "The key's own notes." },
+          { value: "on", label: "On", hint: "Sharps, flats and naturals beside the key's notes." },
+        ]}
+        value={s.accidentals ? "on" : "off"}
+        onchange={(v) => cfg.set({ accidentals: v === "on" })}
+      />
+    {/if}
     <Choice
       label="Answer by"
       setupKey="answer"
@@ -75,7 +107,7 @@
       onchange={(v) => {
         if (v === "one") return cfg.set({ climb: false });
         // The climb keeps time, four bars a phrase, from the rung the level and key are on.
-        const r = READING_RUNGS[rung];
+        const r = rungs[rung];
         cfg.set({ climb: true, follower: "performance", measures: CLIMB.measures, level: r.level, key: r.key, clefs: oneLine ? "treble" : r.clefs.join(",") });
       }}
     />
@@ -94,16 +126,34 @@
     <Choice
       label="Meter"
       setupKey="meter"
-      options={[
-        { value: "simple", label: "4/4" },
-        { value: "compound", label: "6/8" },
-      ]}
-      value={s.meter}
+      options={level.meters.map((m) => ({ value: m, label: READING_METERS[m].label }))}
+      value={levelMeter(level.id, s.meter)}
       onchange={(v) => cfg.set({ meter: v })}
     />
     {#if !climbing}
-      <Choice label="Bars" setupKey="measures" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={s.measures} onchange={(v) => cfg.set({ measures: v })} />
+      <Choice label="Bars" setupKey="measures" options={[1, 2, 4, 8, 12, 16].map((n) => ({ value: n, label: String(n) }))} value={s.measures} onchange={(v) => cfg.set({ measures: v })} />
     {/if}
+    <Choice
+      label="Look-ahead"
+      setupKey="mask"
+      options={[
+        { value: 0, label: "Off" },
+        { value: 2, label: "2 beats", hint: "Played notes hide and only the next 2 beats show, so the eyes stay ahead of the hands." },
+        { value: 4, label: "4 beats", hint: "Played notes hide and only the next 4 beats show." },
+      ]}
+      value={s.mask}
+      onchange={(v) => cfg.set({ mask: v })}
+    />
+    <Choice
+      label="Look first"
+      setupKey="look"
+      options={[
+        { value: 0, label: "Off" },
+        { value: 30, label: "30 seconds", hint: "Start opens after 30 seconds: find the key, the meter and the hardest bar, and hum bar 1." },
+      ]}
+      value={s.look}
+      onchange={(v) => cfg.set({ look: v })}
+    />
     {#if climbing || s.follower === "performance"}
       <Choice
         label="Timing window"
@@ -117,6 +167,19 @@
         onchange={(v) => cfg.set({ strictness: v })}
       />
     {/if}
+  {/if}
+  {#if fretted && FRET_POSITIONS[instrument] && activity === "sight-reading"}
+    <Choice
+      label="Position"
+      setupKey="position"
+      options={FRET_POSITIONS[instrument].map((p) => ({ value: p.value, label: p.label, hint: `Frets ${p.frets[0]} to ${p.frets[1]}.` }))}
+      value={FRET_POSITIONS[instrument].some((p) => p.value === s.position) ? s.position : FRET_POSITIONS[instrument][0].value}
+      onchange={(v) => cfg.set({ position: v })}
+    />
+  {/if}
+  {#if !climbing}
+    <Choice label="Lowest note" setupKey="low" options={rangeOptions("The level's")} value={s.low} onchange={(v) => cfg.set({ low: v })} />
+    <Choice label="Highest note" setupKey="high" options={rangeOptions("The level's")} value={s.high} onchange={(v) => cfg.set({ high: v })} />
   {/if}
   {#if fretted && (activity === "sight-reading" || s.answer === "play")}
     <Choice
@@ -134,6 +197,6 @@
 {#if activity === "sight-reading"}
   <p class="mt-3 text-sm text-ws-soft">
     Tempo comes from the practice strip (40 to 200 BPM).{#if climbing}
-      The climb keeps time, four bars a phrase, starting at rung {rung + 1} of {READING_RUNGS.length} ({READING_RUNGS[rung].label}): {Math.round(CLIMB.pass * 100)}% or better moves up a rung, less is a strike, {CLIMB.strikes} strikes end it.{/if}
+      The climb keeps time, four bars a phrase, starting at rung {rung + 1} of {rungs.length} ({rungs[rung].label}): {Math.round(CLIMB.pass * 100)}% or better moves up a rung, less is a strike, {CLIMB.strikes} strikes end it.{/if}
   </p>
 {/if}

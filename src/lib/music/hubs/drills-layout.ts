@@ -32,7 +32,10 @@ const MODE_KEY: [RegExp, string][] = [
   [/^\/music\/licks/, "category"],
   [/^\/music\/chord-scales/, "changes"],
   [/^\/music\/listening/, "exercise"],
-  [/^\/music\/(rhythm|fretboard|chords|pads|aerophone|circle)/, "mode"],
+  [
+    /^\/music\/(rhythm|fretboard|chords|pads|aerophone|circle|accompany|by-ear|call-response)/,
+    "mode",
+  ],
 ];
 export const modeHref = (e: CatalogEntry, mode: string) => {
   const key = MODE_KEY.find(([r]) => r.test(e.route))?.[1];
@@ -103,6 +106,7 @@ export const DRILL_GROUPS: DrillGroup[] = [
       "cadences",
       "chord-functions",
       "progressions",
+      "song-loops",
       "bass-lines",
     ),
   },
@@ -114,6 +118,13 @@ export const DRILL_GROUPS: DrillGroup[] = [
     rows: [
       row("scales"),
       row("two-hand"),
+      part(
+        "accompany",
+        "patterns",
+        "Accompaniment patterns",
+        "Pop, ballad, boogie, stride and gospel hand patterns over any chord loop, in any key.",
+        ["patterns"],
+      ),
       row("pedal"),
       row("fretboard"),
       row("chords"),
@@ -160,9 +171,17 @@ export const DRILL_GROUPS: DrillGroup[] = [
     rows: [
       row("voicings"),
       row("comping"),
+      part(
+        "accompany",
+        "comping",
+        "Comping over changes",
+        "Shells or rootless voicings on a comping rhythm through the blues, a ii-V-I or any loop.",
+        ["comping"],
+      ),
       row("chord-scales"),
       row("licks"),
       row("jam"),
+      row("call-response"),
       part(
         "pads",
         "improvise",
@@ -177,6 +196,18 @@ export const DRILL_GROUPS: DrillGroup[] = [
   {
     id: "play",
     title: "Phrases and songs",
-    rows: [row("phrases"), row("song-studio"), row("lab")],
+    rows: [
+      row("phrases"),
+      part(
+        "accompany",
+        "lead-sheet",
+        "Lead sheets",
+        "The melody in the right hand, roots, shells or chords in the left, from a lead sheet or your own score.",
+        ["lead-sheet"],
+      ),
+      row("song-studio"),
+      row("by-ear"),
+      row("lab"),
+    ],
   },
 ];

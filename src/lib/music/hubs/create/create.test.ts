@@ -149,10 +149,25 @@ describe("beat pattern", () => {
     for (const pr of PRESETS)
       for (const steps of Object.values(pr.steps))
         for (const s of steps) expect(s).toBeLessThan(pr.bars * 16);
-    // One list: every repertoire groove is a preset, except the three whose hits fall between sixteenths.
-    const left = PAD_REPERTOIRE.filter((r) => !PRESETS.some((p) => p.id === r.groove.value));
-    expect(left.map((r) => r.groove.value)).toEqual(["dilla", "trap-32", "trap-triplet"]);
+    // One list: every 4/4 repertoire groove is a preset, except those whose hits fall between
+    // sixteenths (a pushed snare, rolls, the shuffles' triplets).
+    const left = PAD_REPERTOIRE.filter(
+      (r) => !PRESETS.some((p) => p.id === r.groove.value) && (r.groove.beatsPerBar ?? 4) === 4,
+    );
+    expect(left.map((r) => r.groove.value)).toEqual([
+      "dilla",
+      "trap-32",
+      "trap-triplet",
+      "blues-shuffle",
+      "swing-ride",
+      "slow-blues",
+      "shuffle-ghosts",
+      "purdie",
+      "rosanna",
+      "fool-in-the-rain",
+    ]);
     expect(left.every((r) => grooveSteps(r.groove, r.swing) === null)).toBe(true);
+    expect(PRESETS.some((p) => p.id === "five-four")).toBe(false);
     // Swing is written straight: Think's sixteenths land on every step.
     expect(PRESETS.find((x) => x.id === "think")!.steps[42]).toHaveLength(16);
     const boom = PRESETS.find((x) => x.id === "boom-bap-2bar")!;

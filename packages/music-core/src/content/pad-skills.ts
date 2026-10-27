@@ -17,12 +17,20 @@ const ROCK: Lanes = {
   hats: "x.x.x.x.x.x.x.x.",
 };
 const EMPTY = "................";
+/** The shuffle under the triplet fills: eighth triplets, twelve steps a bar. */
+const SHUFFLE: Lanes = {
+  kick: "X.....x.....",
+  snare: "...X.....X..",
+  hats: "x.xx.xx.xx.x",
+};
 
 export interface PadFill {
   id: string;
   label: string;
   /** The fill bar, voice by voice (missing voices rest). */
   bar: Lanes;
+  /** The groove before it: rock when missing. */
+  groove?: Lanes;
 }
 export const PAD_FILLS: PadFill[] = [
   {
@@ -52,6 +60,25 @@ export const PAD_FILLS: PadFill[] = [
       "tom-low": "............xxxx",
     },
   },
+  {
+    id: "triplet-snare",
+    label: "Triplets on the snare, 3 and 4 (shuffle)",
+    groove: SHUFFLE,
+    bar: { kick: "X...........", snare: "...X..xxxxxx", hats: "x.xx.x......" },
+  },
+  {
+    id: "triplet-toms",
+    label: "Triplets down the toms (shuffle)",
+    groove: SHUFFLE,
+    bar: {
+      kick: "X...........",
+      snare: "...X..xxx...",
+      hats: "x.xx.x......",
+      "tom-high": ".........x..",
+      "tom-mid": "..........x.",
+      "tom-low": "...........x",
+    },
+  },
 ];
 
 /**
@@ -61,10 +88,13 @@ export const PAD_FILLS: PadFill[] = [
  */
 export function fillGroove(id: string): GrooveDef & { landing: number[]; fill: number[] } {
   const fill = PAD_FILLS.find((f) => f.id === id) ?? PAD_FILLS[0];
-  const voices = [...new Set([...Object.keys(ROCK), ...Object.keys(fill.bar)])] as (keyof Lanes)[];
+  const base = fill.groove ?? ROCK;
+  const width = Object.values(base)[0]!.length;
+  const empty = ".".repeat(width);
+  const voices = [...new Set([...Object.keys(base), ...Object.keys(fill.bar)])] as (keyof Lanes)[];
   const lanes: Lanes = {};
   for (const v of voices)
-    lanes[v] = [ROCK[v] ?? EMPTY, ROCK[v] ?? EMPTY, ROCK[v] ?? EMPTY, fill.bar[v] ?? EMPTY].join(
+    lanes[v] = [base[v] ?? empty, base[v] ?? empty, base[v] ?? empty, fill.bar[v] ?? empty].join(
       "|",
     );
   const g = gridGroove(`fill-${fill.id}`, fill.label, lanes, {
@@ -76,7 +106,7 @@ export function fillGroove(id: string): GrooveDef & { landing: number[]; fill: n
     { voice: "kick" as const, beat: 16, accent: "accent" as const },
   ];
   const inRock = (t: { voice: string; beat: number }) =>
-    (ROCK[t.voice as keyof Lanes]?.[Math.round((t.beat - 12) * 4)] ?? ".") !== ".";
+    (base[t.voice as keyof Lanes]?.[Math.round(((t.beat - 12) * width) / 4)] ?? ".") !== ".";
   const own = targets.flatMap((t, i) => (t.beat >= 12 && t.beat < 16 && !inRock(t) ? [i] : []));
   return { ...g, targets, landing: [targets.length - 2, targets.length - 1], fill: own };
 }

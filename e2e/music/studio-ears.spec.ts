@@ -98,14 +98,14 @@ test.describe("studio ears", () => {
     await page.getByRole("button", { name: "Everything" }).click();
     const jump = page.getByRole("navigation", { name: "Jump to" });
     await expect(jump.getByRole("link")).toHaveText([
-      /^Ear training \(15\)$/,
+      /^Ear training \(16\)$/,
       /^Reading and rhythm \(2\)$/,
-      /^Technique \(8\)$/,
+      /^Technique \(9\)$/,
       /^Grooves and time \(2\)$/,
-      /^Jazz and improvising \(6\)$/,
+      /^Jazz and improvising \(8\)$/,
       /^Theory \(1\)$/,
       /^Studio ears \(1\)$/,
-      /^Phrases and songs \(3\)$/,
+      /^Phrases and songs \(5\)$/,
     ]);
     await expect(page.getByRole("link", { name: "Studio ears", exact: true })).toHaveAttribute(
       "href",

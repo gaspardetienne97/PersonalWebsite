@@ -28,8 +28,12 @@
     meter?: [number, number];
     /** Whose written pitch the staff shows; defaults to the practice strip's instrument. */
     instrument?: Instrument;
+    /** Engrave on one row that scrolls with the cursor however few notes (a grand staff over many bars). */
+    oneRow?: boolean;
+    /** Chord symbols drawn above the staff at their beats (a lead sheet). */
+    chords?: Score["chords"];
   }
-  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument }: Props = $props();
+  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument, oneRow = false, chords }: Props = $props();
   const barBeats = $derived(meter ? (meter[0] * 4) / meter[1] : beatsPerBar);
 
   const end = $derived(notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0));
@@ -42,13 +46,14 @@
     });
   });
   const concert = $derived<Score>({
-    id: `line-${title}-${notes.map((n) => `${n.midi}.${n.string}.${n.fret}@${n.startBeat}`).join(",")}`,
+    id: `line-${title}-${notes.map((n) => `${n.midi}.${n.string}.${n.fret}@${n.startBeat}`).join(",")}-${chords?.map((c) => c.symbol).join(",") ?? ""}`,
     title,
     bpm: 90,
     meter: meter ? { beats: meter[0], beatUnit: meter[1] } : { beats: beatsPerBar, beatUnit: 4 },
     keyFifths,
     voices,
     lengthBeats: Math.max(barBeats, Math.ceil(end / barBeats - 1e-9) * barBeats),
+    ...(chords?.length && !tuning ? { chords } : {}),
     source: { kind: "generated" },
   });
   const score = $derived(tuning ? concert : transposeScore(concert, writtenShift(instrument ?? settings.value.activeInstrument)));
@@ -61,10 +66,11 @@
   const natural = (k: number) => 90 + 25 * k;
   const attacks = $derived(new Set(notes.map((n) => n.startBeat)).size);
   const zoom = $derived(width ? Math.min(1.6, Math.max(0.7, width / natural(Math.min(attacks, LONG)))) : 1);
-  const minWidth = $derived(attacks > LONG ? natural(attacks) : 0);
+  // One row whatever the content: wide enough for a busy grand-staff bar (chords, rests, eighths in both hands).
+  const minWidth = $derived(oneRow ? Math.max(natural(attacks), 360 * Math.ceil(end / barBeats - 1e-9)) : attacks > LONG ? natural(attacks) : 0);
   // The visible height is capped whatever the zoom (a grand staff at 20rem); taller scrolls.
   // Fingering adds a row of numbers above or below each staff.
-  const fingered = $derived(notes.some((n) => n.finger !== undefined));
+  const fingered = $derived(notes.some((n) => n.finger !== undefined) || !!chords?.length);
   const maxHeight = $derived(`${(((voices.length > 1 ? 20 : 16) + (fingered ? 5 : 0)) / zoom).toFixed(2)}rem`);
 </script>
 

@@ -11,7 +11,7 @@ import {
 } from "./spelling";
 
 describe("spelling", () => {
-  it("has the 8 selectable keys with their signatures", () => {
+  it("has the selectable keys with their signatures", () => {
     expect(KEY_SIGNATURES.map((k) => `${k.name}:${k.fifths}`)).toEqual([
       "C major:0",
       "G major:1",
@@ -21,6 +21,16 @@ describe("spelling", () => {
       "A minor:0",
       "E minor:1",
       "D minor:-1",
+      "A major:3",
+      "E major:4",
+      "Eb major:-3",
+      "Ab major:-4",
+      "B minor:2",
+      "F# minor:3",
+      "C# minor:4",
+      "G minor:-2",
+      "C minor:-3",
+      "F minor:-4",
     ]);
     expect(CHOICE_NAMES).toEqual([
       "C",
@@ -54,6 +64,9 @@ describe("spelling", () => {
     expect(spellInKey(68, keyByName("A minor")!)).toBe("G#");
     expect(spellInKey(63, keyByName("E minor")!)).toBe("D#");
     expect(spellInKey(61, keyByName("D minor")!)).toBe("C#");
+    expect(spellInKey(72, keyByName("C# minor")!)).toBe("B#");
+    expect(spellInKey(64, keyByName("F minor")!)).toBe("E");
+    expect(spellInKey(71, keyByName("C minor")!)).toBe("B");
   });
 
   it("offers 12 choices per key, all from the 17-name list, one per pitch class", () => {

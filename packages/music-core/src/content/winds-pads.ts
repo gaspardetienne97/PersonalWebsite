@@ -252,6 +252,34 @@ export const RUDIMENTS: RudimentDef[] = [
     subdivision: 3,
     accents: [0, 6],
   },
+  // Counting in 5 and 7: alternating singles, the accents marking the groups.
+  {
+    id: "fives",
+    label: "Singles in 5, accented 3 + 2",
+    unit: ["right", "left", "right", "left", "right", "left", "right", "left", "right", "left"],
+    accents: [0, 3, 5, 8],
+  },
+  {
+    id: "sevens",
+    label: "Singles in 7, accented 2 + 2 + 3",
+    unit: [
+      "right",
+      "left",
+      "right",
+      "left",
+      "right",
+      "left",
+      "right",
+      "left",
+      "right",
+      "left",
+      "right",
+      "left",
+      "right",
+      "left",
+    ],
+    accents: [0, 2, 4, 7, 9, 11],
+  },
 ];
 export const RUDIMENT_TEMPOS = [60, 80, 100, 120];
 /** Names for every grid a rudiment can be on (the rolls go past sixteenths). */
@@ -423,8 +451,9 @@ export function grooveTargets(grooveId: string, bpm: number) {
 export function grooveTargetsFor(g: GrooveDef, bpm: number) {
   const beat = 60000 / bpm;
   const pad = (v: DrumVoiceId) => GROOVE_VOICES.find((x) => x.id === v)!.midi;
+  const perBar = g.beatsPerBar ?? 4;
   const targets: GrooveTarget[] = g.targets.map((t, index) => {
-    const bar = Math.floor(t.beat / 4);
+    const bar = Math.floor(t.beat / perBar + 1e-9);
     return {
       index,
       beat: t.beat,
@@ -441,7 +470,7 @@ export function grooveTargetsFor(g: GrooveDef, bpm: number) {
     groove: g,
     targets,
     matchWindowMs: Math.min(180, beat / 8),
-    lengthMs: g.bars * 4 * beat,
+    lengthMs: g.bars * perBar * beat,
   };
 }
 

@@ -17,6 +17,7 @@
   } from "@repo/music-core/content/winds-pads";
   import { gradeGroove, gradeRudiment, grooveCaptureEnd, tempoDrift, type GrooveResult, type RudimentResult } from "@repo/music-core/scoring/pads";
   import { closestGapMs, gradeTier, measuredSwing, PAD_LEVELS, PAD_REPERTOIRE, repertoireFor, TIERS, topicSkill } from "@repo/music-core/content/pads-repertoire";
+  import { canSwing, grooveMeter, reswing } from "@repo/music-core/content/pads-grid";
   import { getSetting, putSetting } from "$lib/music/runtime";
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
@@ -56,6 +57,8 @@
     wait: false as boolean,
     // A small band under the groove (chords by style, bass on the kick).
     backing: false as boolean,
+    // MPC swing on any groove whose hits sit on the grid (0: as written).
+    swing: 0,
   });
   const s = $derived(cfg.value);
   // Path steps carry their tempo (?bpm=); the practice strip owns it from then on.
@@ -81,10 +84,17 @@
   // The repertoire holds the table's grooves and the app's, by level.
   const entry = $derived(repertoireFor(isSteady ? s.steady : s.groove) ?? PAD_REPERTOIRE[0]);
   const levelOf = $derived(PAD_LEVELS.find((l) => l.level === entry.level)!);
+  /** The groove's own swing, whether it can take another, and the one played. */
+  const writtenSwing = $derived(entry.swing ?? 50);
+  const swingable = $derived(!isSteady && canSwing(entry.groove, writtenSwing));
+  const swing = $derived(swingable && s.swing ? s.swing : writtenSwing);
+  /** Clicks a bar and grid steps a click: 4 and 4 unless the groove says (5/4, 7/8, triplets). */
+  const perBar = $derived(entry.groove.beatsPerBar ?? 4);
+  const perBeatStep = $derived(entry.groove.stepsPerBeat ?? 4);
   /** Hold the tempo repeats the groove to twelve bars: four with the click, eight without. */
   const played = $derived.by(() => {
-    const g = entry.groove;
-    const plays = waitMode ? 1 : Math.max(1, Math.min(4, Math.round(s.plays)));
+    const g = reswing(entry.groove, writtenSwing, swing);
+    const plays = waitMode ? 1 : Math.max(1, Math.min(32, Math.round(s.plays)));
     if (!isSteady && plays === 1) return g;
     const cycles = isSteady ? Math.ceil(STEADY_BARS / g.bars) : plays;
     return {
@@ -93,7 +103,7 @@
       sectionLabels: isSteady
         ? Array.from({ length: cycles * g.bars }, (_, b) => (b < CLICK_BARS ? "with the click" : "on your own"))
         : Array.from({ length: cycles }, () => g.sectionLabels).flat(),
-      targets: Array.from({ length: cycles }, (_, c) => g.targets.map((t) => ({ ...t, beat: t.beat + c * g.bars * 4 }))).flat(),
+      targets: Array.from({ length: cycles }, (_, c) => g.targets.map((t) => ({ ...t, beat: t.beat + c * g.bars * perBar }))).flat(),
     };
   });
   const groove = $derived(grooveTargetsFor(played, bpm));
@@ -118,7 +128,7 @@
   const ladderKey = (id: string) => `music.pads.ladder.${id}`;
   /** Pick a groove and start at its ladder's tempo (its start tempo the first time). */
   async function pickGroove(id: string, key: "groove" | "steady" = "groove") {
-    cfg.set({ [key]: id });
+    cfg.set({ [key]: id, swing: 0 });
     const r = repertoireFor(id);
     if (!r) return;
     const saved = await getSetting<number>(ladderKey(id), r.bpm.start);
@@ -161,7 +171,8 @@
     for (const [k, h] of strokes.entries()) if (rel >= h.atMs - (k ? (h.atMs - strokes[k - 1].atMs) / 2 : stepMs / 2)) i = k;
     return i;
   });
-  const sixteenthNow = $derived(base === null || now < base ? null : Math.floor((now - base) / (beatMs / 4)));
+  /** The grid step due now (a sixteenth, or a triplet on a triplet grid). */
+  const stepNow = $derived(base === null || now < base ? null : Math.floor((now - base) / (beatMs / (isGroove ? perBeatStep : 4))));
 
   // MIDI pad hits sound here (the MPC in Controller Mode is silent); on-screen
   // taps already sound through the input layer.
@@ -359,8 +370,9 @@
         ? [
             { text: `Level ${entry.level}: ${groove.groove.label}`, focus: "groove" },
             { text: `${groove.groove.bars} bar${groove.groove.bars > 1 ? "s" : ""}` },
+            ...(grooveMeter(entry.groove) !== "4/4" && !groove.groove.label.includes(grooveMeter(entry.groove)) ? [{ text: `in ${grooveMeter(entry.groove)}` }] : perBeatStep % 2 ? [{ text: "on triplets" }] : []),
             { text: `${bpm} BPM (aim for ${entry.bpm.target})` },
-            ...(entry.swing ? [{ text: `swing ${entry.swing}%` }] : []),
+            ...(swing !== 50 ? [{ text: `swing ${swing}%`, focus: "swing" }] : []),
           ]
         : [
             { text: `Rudiment: ${pattern.label}`, focus: "pattern" },
@@ -371,7 +383,7 @@
           ],
   );
   const setupKey = $derived(
-    isSteady ? `steady:${s.steady}:${bpm}` : isGroove ? `groove:${s.groove}:${bpm}` : `rudiment:${pattern.id}:${perBeat}:${s.hits}:${pads.join("-")}:${bpm}`,
+    isSteady ? `steady:${s.steady}:${bpm}` : isGroove ? `groove:${s.groove}:${bpm}${swing !== writtenSwing ? `:swing${swing}` : ""}` : `rudiment:${pattern.id}:${perBeat}:${s.hits}:${pads.join("-")}:${bpm}`,
   );
 
   function stopDemo() {
@@ -384,7 +396,7 @@
     if (demo?.playing) return stopDemo();
     await audio.unlock();
     const notes = isGroove
-      ? [...groove.targets.map((t) => ({ midi: t.pad, time: t.atMs / 1000, duration: 0.12, velocity: t.accent ? 1 : 0.7, voice: "drum" as const })), ...(withBacking ? backingFor(entry.style, groove.targets, groove.groove.bars, beatMs) : [])]
+      ? [...groove.targets.map((t) => ({ midi: t.pad, time: t.atMs / 1000, duration: 0.12, velocity: t.accent ? 1 : 0.7, voice: "drum" as const })), ...(withBacking ? backingFor(entry.style, groove.targets, groove.groove.bars, beatMs, perBar) : [])]
       : hits.map((h) => ({ midi: h.pad, time: (h.atMs + 30) / 1000, duration: 0.1, velocity: h.grace ? 0.4 : h.accent || !hits.some((x) => x.accent) ? 0.95 : 0.55, voice: "drum" as const }));
     const handle = audio.playSequence(notes, {
       onNote: (i: number) => {
@@ -460,10 +472,12 @@
         ? clamp(0.1 + entry.level * 0.12 + (bpm / entry.bpm.target - 1) * 0.3, 0.05, 0.95)
         : clamp(0.25 + (perBeat - 2) * 0.1 + (bpm - 60) / 300 + (pattern.id === "paradiddle" || pattern.id === "flam" ? 0.1 : 0), 0, 1),
       instrument: "mpc",
-      params: isGroove ? { bpm, groove: entry.groove.value, mode: s.mode } : { bpm, pattern: pattern.id, sub: perBeat, hits: s.hits, padL: pads[0], padR: pads[1] },
+      params: isGroove
+        ? { bpm, groove: entry.groove.value, mode: s.mode, ...(swingable ? { swing } : {}), ...(isSteady ? {} : { plays: played.bars / entry.groove.bars, backing: withBacking }) }
+        : { bpm, pattern: pattern.id, sub: perBeat, hits: s.hits, padL: pads[0], padR: pads[1] },
     });
     const wait = Math.max(0, ctx.downbeat - performance.now());
-    if (withBacking) band = audio.playSequence(backingFor(entry.style, groove.targets, groove.groove.bars, beatMs), { startPerf: ctx.downbeat });
+    if (withBacking) band = audio.playSequence(backingFor(entry.style, groove.targets, groove.groove.bars, beatMs, perBar), { startPerf: ctx.downbeat });
     if (isGroove) {
       // Scored input opens after the count-in; the grader's window catches an early first hit.
       cap = capture(ctx.downbeat - groove.matchWindowMs, (e) => e.kind === "noteon" && onHit(e));
@@ -474,7 +488,7 @@
         clickTimer = setTimeout(() => {
           ctx.stopClock();
           if (phase === "running") status = "On your own now: hold the tempo.";
-        }, ctx.downbeat + CLICK_BARS * 4 * beatMs - performance.now() - 30);
+        }, ctx.downbeat + CLICK_BARS * perBar * beatMs - performance.now() - 30);
       }
     } else {
       cap = capture(ctx.downbeat - stepMs / 2, (e) => e.kind === "noteon" && onHit(e));
@@ -501,7 +515,7 @@
         targets: groove.targets.map((t) => ({ voice: t.voice, beat: t.beat, accent: t.accent ? "accent" : "normal" })),
         voicePads,
         sectionLabels: played.sectionLabels,
-        beatsPerBar: 4,
+        beatsPerBar: perBar,
         beatMs,
         startAt: downbeat,
         hits: notes,
@@ -523,7 +537,7 @@
       });
       // No readable tempo once the click stopped is not steady either, unless nothing was played.
       const steadyOk = !isSteady || (drift ? Math.abs(drift.driftBpm) < 3 : !ons.length);
-      extra = { tier, swing: entry.swing ? measuredSwing(groove.targets, r.perTarget, beatMs) : null, drift, bias, pass: tier.pass && steadyOk };
+      extra = { tier, swing: swing !== 50 && perBeatStep === 4 ? measuredSwing(groove.targets, r.perTarget, beatMs) : null, drift, bias, pass: tier.pass && steadyOk };
       // Holding the tempo counts in the score: drifting 3 BPM or more costs 40%.
       graded = { ...r, score: steadyOk ? r.score : r.score * 0.6, correct: tier.pass && steadyOk };
     } else {
@@ -652,7 +666,7 @@
       rows: [
         { label: `Perfect (within ${Math.round(x.tier.perfectMs)} ms)`, value: x.tier.perfect, text: `${Math.round(x.tier.perfect * 100)}%, 70% to pass` },
         { label: `Good (within ${Math.round(x.tier.goodMs)} ms)`, value: x.tier.good, text: `${Math.round(x.tier.good * 100)}%, 90% to pass` },
-        ...(x.swing !== null ? [{ label: "Swing played", value: Math.max(0, 1 - Math.abs(x.swing - (entry.swing ?? 50)) / 10), text: `${x.swing}%, aiming for ${entry.swing}%` }] : []),
+        ...(x.swing !== null ? [{ label: "Swing played", value: Math.max(0, 1 - Math.abs(x.swing - swing) / 10), text: `${x.swing}%, aiming for ${swing}%` }] : []),
         ...(leans.length ? [{ label: "Each drum's lean", text: leans.map((b) => `${voiceName(b.voice)} ${Math.abs(b.ms!)} ms ${b.ms! < 0 ? "early" : "late"}`).join(", ") }] : []),
         { label: "Hits matched", value: r.matched / total, text: `${r.matched} of ${total}` },
         { label: "Extra hits", value: r.extra ? Math.max(0, 1 - r.extra / total) : 1, text: String(r.extra) },
@@ -714,7 +728,7 @@
     PAD_REPERTOIRE.filter((r) => r.topic !== "phrases").map((r) => ({
       value: r.groove.value,
       title: r.groove.label,
-      meta: `${r.style}, ${r.groove.bars} bar${r.groove.bars > 1 ? "s" : ""}, ${r.bpm.start} to ${r.bpm.target} BPM${r.swing ? `, swing ${r.swing}%` : ""}`,
+      meta: `${r.style}, ${r.groove.bars} bar${r.groove.bars > 1 ? "s" : ""}${grooveMeter(r.groove) !== "4/4" ? ` of ${grooveMeter(r.groove)}` : (r.groove.stepsPerBeat ?? 4) % 2 ? " of triplets" : ""}, ${r.bpm.start} to ${r.bpm.target} BPM${r.swing ? `, swing ${r.swing}%` : ""}`,
       group: `Level ${r.level}: ${PAD_LEVELS.find((l) => l.level === r.level)!.title}`,
       badge: bestStars[r.groove.value] ? starText(bestStars[r.groove.value]) : undefined,
       keywords: r.feel,
@@ -749,7 +763,7 @@
   bind:mode
   bind:status
   progress={base === null ? 0 : clamp((now - base) / (isGroove ? groove.lengthMs : strokes[strokes.length - 1].atMs + stepMs), 0, 1)}
-  clock={waitMode ? undefined : { bpm, beatsPerBar: 4 }}
+  clock={waitMode ? undefined : { bpm, beatsPerBar: isGroove ? perBar : 4 }}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}
@@ -794,7 +808,16 @@
           value={s.backing ? "on" : "off"}
           onchange={(v) => cfg.set({ backing: v === "on" })}
         />
-        <Choice label="Plays" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "Once" : `${n} times` }))} value={s.plays} onchange={(v) => cfg.set({ plays: v })} />
+        <Choice label="Plays" options={[1, 2, 4, 8, 16, 32].map((n) => ({ value: n, label: n === 1 ? "Once" : `${n} times` }))} value={s.plays} onchange={(v) => cfg.set({ plays: v })} />
+        {#if swingable}
+          <Choice
+            label="Swing"
+            options={[{ value: 0, label: `As written (${writtenSwing}%)` }, ...[50, 54, 56, 58, 60, 62, 66, 70, 75].filter((n) => n !== writtenSwing).map((n) => ({ value: n, label: n === 50 ? "Straight" : `${n}%` }))]}
+            value={s.swing === writtenSwing ? 0 : s.swing}
+            onchange={(v) => cfg.set({ swing: v })}
+            setupKey="swing"
+          />
+        {/if}
       {/if}
     </div>
     {#if !isGroove}<p class="mt-3 text-sm text-ws-soft">The pads: tap one on the stage to set the {pattern.onePad ? "pad" : "left hand, then the right"}.</p>{/if}
@@ -809,8 +832,8 @@
       <Stat label="Notes" value="{Object.keys(judged).length} of {live.length}" />
     {:else if phase === "running" && !isGroove && strokeNow !== null}
       <Stat label="Stroke" value="{clamp(strokeNow + 1, 1, strokes.length)} of {strokes.length}" />
-    {:else if phase === "running" && isGroove && sixteenthNow !== null}
-      <Stat label="Bar" value="{Math.min(groove.groove.bars, Math.floor(sixteenthNow / 16) + 1)} of {groove.groove.bars}" />
+    {:else if phase === "running" && isGroove && stepNow !== null}
+      <Stat label="Bar" value="{Math.min(groove.groove.bars, Math.floor(stepNow / (perBeatStep * perBar)) + 1)} of {groove.groove.bars}" />
     {:else if rud}
       <Stat label="Landed" value="{rud.matched}/{rud.total}" tone={rud.completion === 1 ? "success" : "warn"} />
       <Stat label="Mean error" value="{Math.round(rud.meanAbsErrorMs)} ms" tone={rud.meanAbsErrorMs <= 90 ? "success" : "warn"} />
@@ -848,7 +871,7 @@
             {#if phase !== "running" && phase !== "countin"}
               <div class="mb-3 rounded-xl bg-ws-stage-ink/8 p-3 text-sm" aria-label="About this groove">
                 <p class="font-semibold">
-                  {entry.groove.label} <span class="font-normal text-ws-stage-soft">· {entry.style}, level {entry.level} ({levelOf.tier}: perfect within {TIERS[levelOf.tier].perfect} ms, good within {TIERS[levelOf.tier].good} ms){entry.swing ? ` · swing ${entry.swing}%` : ""}</span>
+                  {entry.groove.label} <span class="font-normal text-ws-stage-soft">· {entry.style}, level {entry.level} ({levelOf.tier}: perfect within {TIERS[levelOf.tier].perfect} ms, good within {TIERS[levelOf.tier].good} ms){grooveMeter(entry.groove) !== "4/4" ? ` · ${grooveMeter(entry.groove)}` : ""}{swing !== 50 ? ` · swing ${swing}%` : ""}</span>
                 </p>
                 <p class="mt-1 text-ws-stage-soft">{entry.feel}</p>
                 <p class="mt-1"><span class="text-ws-stage-soft">Fingers:</span> {entry.fingers}</p>
@@ -861,9 +884,11 @@
               targets={groove.targets}
               bars={groove.groove.bars}
               sectionLabels={groove.groove.sectionLabels}
-              playhead={sixteenthNow}
+              playhead={stepNow}
               outcomes={grv?.perTarget}
               windowMs={judgeWindow.good}
+              stepsPerBeat={perBeatStep}
+              beatsPerBar={perBar}
             />
           {:else}
             <StickingLane hits={hits} {beatMs} current={phase === "running" ? strokeNow : demo?.playing ? strokeNow : null} outcomes={rud?.perStroke} windowMs={Math.min(60, stepMs / 3)} />

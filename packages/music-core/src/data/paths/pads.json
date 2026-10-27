@@ -448,9 +448,15 @@
         {
           "id": "2.9",
           "title": "Open hat on the & of 4",
-          "setup": "A rock-open-hat groove: basic rock with an open hat on step 15, closed by the next hat.",
+          "href": "/music/pads?mode=groove&groove=rock-open-hat&bpm=80",
+          "setup": "Grooves: rock with an open hat, basic rock with the hat opened on the & of 4 and closed by the next bar's first hat, 80 to 100.",
           "done": "Pass at 100.",
-          "needs": "A groove rock-open-hat in Grooves.",
+          "match": {
+            "groove": "rock-open-hat"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
           "feeds": "Mr. Brightside, Sweet Home Alabama"
         },
         {
@@ -762,15 +768,16 @@
         {
           "id": "3.9",
           "title": "Play over a loop",
-          "setup": "A 2-bar break from the Library under Grooves; boom bap played over it. Until then, the band under the groove.",
+          "href": "/music/pads?mode=groove&groove=boom-bap-b&backing=true&plays=16&bpm=80",
+          "setup": "Grooves: boom bap played 16 times with the band (a bass and chord loop on the app's sounds) under it. A sampled loop from the Library, a typed BPM and a downbeat nudge are not there yet, and drift is not measured while the click plays.",
           "done": "16 bars of boom bap over the loop, pass, drift under 2 BPM.",
-          "needs": "Play over a loop: a 2-bar or 4-bar loop from the Library under Grooves, BPM typed, downbeat nudged.",
-          "links": [
-            {
-              "label": "Boom bap with the band",
-              "href": "/music/pads?mode=groove&groove=boom-bap-b&backing=1"
-            }
-          ],
+          "match": {
+            "groove": "boom-bap-b",
+            "backing": "true",
+            "plays": "16"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
           "feeds": "Real-world practice"
         },
         {
@@ -1395,9 +1402,15 @@
         {
           "id": "5.2",
           "title": "Disco hats",
-          "setup": "A disco groove: sixteenth hats with an open hat on each &, snare on 2 and 4.",
+          "href": "/music/pads?mode=groove&groove=disco&bpm=100",
+          "setup": "Grooves: disco, sixteenth hats that open on every &, snare on 2 and 4, 100 to 120.",
           "done": "Pass at 120.",
-          "needs": "A groove disco in Grooves.",
+          "match": {
+            "groove": "disco"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "minDays": 1,
           "feeds": "Le Freak, Stayin' Alive"
         },
         {
@@ -1444,15 +1457,16 @@
         {
           "id": "5.6",
           "title": "Over a loop, house",
-          "setup": "A 4-bar house loop under the house groove.",
+          "href": "/music/pads?mode=groove&groove=house&backing=true&plays=32&bpm=110",
+          "setup": "Grooves: house played 32 times with the band (a pad and bass loop on the app's sounds) under it. A sampled 4-bar loop from the Library is not there yet, and drift is not measured while the click plays.",
           "done": "32 bars, drift under 2 BPM.",
-          "needs": "Play over a loop: a 2-bar or 4-bar loop from the Library under Grooves, BPM typed, downbeat nudged.",
-          "links": [
-            {
-              "label": "House with the band",
-              "href": "/music/pads?mode=groove&groove=house&backing=1"
-            }
-          ],
+          "match": {
+            "groove": "house",
+            "backing": "true",
+            "plays": "32"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
           "feeds": "Real practice"
         },
         {
@@ -2339,23 +2353,29 @@
         {
           "id": "8.2",
           "title": "Swing 66 as a bridge",
-          "setup": "Boom bap at swing 66 instead of 62.",
+          "href": "/music/pads?mode=groove&groove=swing-62&swing=66&bpm=80",
+          "setup": "Grooves: boom bap with the Swing setting at 66% instead of 62; the results show the swing played.",
           "done": "Swing read 64 to 68%.",
-          "needs": "A swing setting on any groove (50 to 75, 66 included).",
-          "links": [
-            {
-              "label": "Swing 62",
-              "href": "/music/pads?mode=groove&groove=swing-62"
-            }
-          ],
+          "match": {
+            "groove": "swing-62",
+            "swing": "66"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
           "feeds": "Rock and roll"
         },
         {
           "id": "8.3",
           "title": "Blues shuffle",
-          "setup": "Hats on 1 and 3 of each triplet, kick on 1 and 3, snare on 2 and 4.",
+          "href": "/music/pads?mode=groove&groove=blues-shuffle&bpm=90",
+          "setup": "Grooves, on the triplet grid: blues shuffle, hats on the first and third of each triplet, kick on 1 and 3, snare on 2 and 4, 90 to 120.",
           "done": "Pass at 120.",
-          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove blues-shuffle.",
+          "match": {
+            "groove": "blues-shuffle"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "minDays": 1,
           "links": [
             {
               "label": "Warm-up study: Blues Shuffle drums, bf 23, 4.8 (59)",
@@ -2367,57 +2387,106 @@
         {
           "id": "8.4",
           "title": "Swing ride",
-          "setup": "The jazz ride pattern on the triplet grid.",
+          "href": "/music/pads?mode=groove&groove=swing-ride&bpm=100",
+          "setup": "Grooves, on the triplet grid: the jazz ride pattern, hat foot on 2 and 4, a feathered kick, 100 to 140.",
           "done": "Pass at 140.",
-          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove swing-ride.",
+          "match": {
+            "groove": "swing-ride"
+          },
+          "threshold": 0.9,
+          "minBpm": 140,
+          "minDays": 1,
           "feeds": "In the Mood, Sing, Sing, Sing"
         },
         {
           "id": "8.5",
           "title": "12/8 slow blues",
-          "setup": "A 12/8 grid and a slow blues groove.",
+          "href": "/music/pads?mode=groove&groove=slow-blues&bpm=50",
+          "setup": "Grooves: 12/8 slow blues, the click on every third eighth, 50 to 60.",
           "done": "Pass at 60.",
-          "needs": "Meter support (12/8) and the triplet grid in Grooves.",
+          "match": {
+            "groove": "slow-blues"
+          },
+          "threshold": 0.9,
+          "minBpm": 60,
+          "minDays": 1,
           "feeds": "Red House, Everybody Wants to Rule the World"
         },
         {
           "id": "8.6",
           "title": "Shuffle with a ghost",
-          "setup": "A snare ghost on the third triplet partial.",
+          "href": "/music/pads?mode=groove&groove=shuffle-ghosts&bpm=80",
+          "setup": "Grooves, on the triplet grid: the shuffle with a snare ghost on the third triplet before each backbeat, 80 to 100.",
           "done": "Ghosts under 40%, pass at 100.",
-          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove shuffle-ghosts.",
+          "match": {
+            "groove": "shuffle-ghosts"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
           "feeds": "Purdie, Rosanna"
         },
         {
           "id": "8.7",
           "title": "Purdie shuffle",
-          "setup": "The Purdie half-time shuffle.",
+          "href": "/music/pads?mode=groove&groove=purdie&bpm=72",
+          "setup": "Grooves, on the triplet grid: the Purdie half-time shuffle, 72 to 92.",
           "done": "Pass at 92.",
-          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove purdie.",
+          "match": {
+            "groove": "purdie"
+          },
+          "threshold": 0.9,
+          "minBpm": 92,
+          "minDays": 1,
           "feeds": "Home at Last"
         },
         {
           "id": "8.8",
           "title": "Rosanna shuffle",
-          "setup": "The Rosanna half-time shuffle.",
+          "href": "/music/pads?mode=groove&groove=rosanna&bpm=70",
+          "setup": "Grooves, on the triplet grid: the Rosanna half-time shuffle (a provisional teaching version), 70 to 86.",
           "done": "Pass at 86.",
-          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove rosanna.",
+          "match": {
+            "groove": "rosanna"
+          },
+          "threshold": 0.9,
+          "minBpm": 86,
+          "minDays": 1,
           "feeds": "Rosanna"
         },
         {
           "id": "8.9",
           "title": "Fool in the Rain",
-          "setup": "Bonham's half-time shuffle.",
+          "href": "/music/pads?mode=groove&groove=fool-in-the-rain&bpm=100",
+          "setup": "Grooves, on the sixteenth-triplet grid: Bonham's half-time shuffle (a provisional teaching version), 100 to 130.",
           "done": "Pass at 130.",
-          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove fool-in-the-rain.",
+          "match": {
+            "groove": "fool-in-the-rain"
+          },
+          "threshold": 0.9,
+          "minBpm": 130,
+          "minDays": 1,
           "feeds": "Fool in the Rain"
         },
         {
           "id": "8.10",
           "title": "Triplet fills",
-          "setup": "Fills in triplets.",
+          "href": "/music/pads?mode=fills&fill=triplet-toms&bpm=80",
+          "setup": "Fills: three bars of shuffle, then triplets down the toms and the landing on the one. Warm up with triplets on the snare.",
           "done": "5 landed at 100.",
-          "needs": "The triplet grid and triplet fills in Fills.",
+          "match": {
+            "setup": "fill-triplet-toms"
+          },
+          "threshold": 0.9,
+          "minAttempts": 5,
+          "minBpm": 100,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Triplets on the snare",
+              "href": "/music/pads?mode=fills&fill=triplet-snare&bpm=80"
+            }
+          ],
           "feeds": "All shuffles"
         },
         {
@@ -2832,9 +2901,15 @@
         {
           "id": "9.12",
           "title": "Songo",
-          "setup": "A songo groove.",
+          "href": "/music/pads?mode=groove&groove=songo&bpm=85",
+          "setup": "Grooves: songo, the bell on the beat, the kick on the & of 2 and on 4 (a provisional teaching version), 85 to 100.",
           "done": "Pass at 100.",
-          "needs": "A groove songo in Grooves.",
+          "match": {
+            "groove": "songo"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
           "links": [
             {
               "label": "Study: songo, cumbia, Latin, African, Musico_Mx, 4.9",
@@ -3082,9 +3157,30 @@
         {
           "id": "10.2",
           "title": "Linear grooves",
-          "setup": "Stick Control stickings orchestrated, no two voices together.",
+          "href": "/music/pads?mode=groove&groove=linear-singles&bpm=70",
+          "setup": "Grooves: four linear grooves from Stick Control's first page (singles, doubles, paradiddle, inverted paradiddle), the right hand on hats, the left on snare, the kick taking some strokes.",
           "done": "4 grooves at 90.",
-          "needs": "A linear groove set in Grooves, built from Stick Control stickings.",
+          "each": {
+            "param": "groove",
+            "values": ["linear-singles", "linear-doubles", "linear-paradiddle", "linear-inverted"]
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Doubles",
+              "href": "/music/pads?mode=groove&groove=linear-doubles&bpm=70"
+            },
+            {
+              "label": "Paradiddle",
+              "href": "/music/pads?mode=groove&groove=linear-paradiddle&bpm=70"
+            },
+            {
+              "label": "Inverted paradiddle",
+              "href": "/music/pads?mode=groove&groove=linear-inverted&bpm=70"
+            }
+          ],
           "feeds": "Cissy Strut, 50 Ways"
         },
         {
@@ -3131,9 +3227,15 @@
         {
           "id": "10.6",
           "title": "Cold Sweat",
-          "setup": "A Cold Sweat groove.",
+          "href": "/music/pads?mode=groove&groove=cold-sweat&bpm=95",
+          "setup": "Grooves: Cold Sweat (a provisional teaching version), 95 to 112.",
           "done": "Pass at 112.",
-          "needs": "A groove cold-sweat in Grooves.",
+          "match": {
+            "groove": "cold-sweat"
+          },
+          "threshold": 0.9,
+          "minBpm": 112,
+          "minDays": 1,
           "feeds": "Cold Sweat"
         },
         {
@@ -3390,33 +3492,64 @@
         {
           "id": "11.1",
           "title": "Count in 5 and 7",
-          "setup": "Single strokes accented 3+2 and 2+2+3.",
+          "href": "/music/pads?mode=rudiment&pattern=fives&sub=2&hits=16&bpm=80",
+          "setup": "Technique: alternating singles in eighths, accented 3 + 2, then 2 + 2 + 3; the accents are judged by velocity.",
           "done": "Accents right 14 of 16 at 100.",
-          "needs": "Meter in Technique: singles accented 3+2 and 2+2+3.",
+          "each": {
+            "param": "pattern",
+            "values": ["fives", "sevens"]
+          },
+          "threshold": 0.875,
+          "minBpm": 100,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Singles in 7",
+              "href": "/music/pads?mode=rudiment&pattern=sevens&sub=2&hits=16&bpm=80"
+            }
+          ],
           "feeds": "All odd meters"
         },
         {
           "id": "11.2",
           "title": "5/4 groove",
-          "setup": "A 5/4 groove.",
+          "href": "/music/pads?mode=groove&groove=five-four&bpm=120",
+          "setup": "Grooves: rock in 5/4, counted 3 + 2, 120 to 172.",
           "done": "Pass at 172.",
-          "needs": "Meter support in Grooves (5/4, 7/4, 7/8) and a groove five-four.",
+          "match": {
+            "groove": "five-four"
+          },
+          "threshold": 0.9,
+          "minBpm": 172,
+          "minDays": 1,
           "feeds": "Take Five, Mission: Impossible"
         },
         {
           "id": "11.3",
           "title": "7/4 groove",
-          "setup": "A 7/4 groove.",
+          "href": "/music/pads?mode=groove&groove=seven-four&bpm=90",
+          "setup": "Grooves: rock in 7/4, counted 4 + 3, 90 to 120.",
           "done": "Pass at 120.",
-          "needs": "Meter support in Grooves (5/4, 7/4, 7/8) and a groove seven-four.",
+          "match": {
+            "groove": "seven-four"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "minDays": 1,
           "feeds": "Money, Spoonman"
         },
         {
           "id": "11.4",
           "title": "7/8 groove",
-          "setup": "A 7/8 groove.",
+          "href": "/music/pads?mode=groove&groove=seven-eight&bpm=90",
+          "setup": "Grooves: rock in 7/8, counted 2 + 2 + 3, the click on every eighth, 90 to 120.",
           "done": "Pass at 120.",
-          "needs": "Meter support in Grooves (5/4, 7/4, 7/8) and a groove seven-eight.",
+          "match": {
+            "groove": "seven-eight"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "minDays": 1,
           "feeds": "Tom Sawyer's bridge, Schism"
         },
         {
@@ -3424,11 +3557,11 @@
           "title": "Improvise 16 bars",
           "setup": "Improvise over the funk vamp, the results played back raw.",
           "done": "16 bars, drift under 2 BPM, at least 3 different fills.",
-          "needs": "16 bars in Improvise (it offers 4 or 8), with Check runs that count.",
+          "needs": "Check runs that count in Improvise (16 bars are there).",
           "links": [
             {
-              "label": "Improvise",
-              "href": "/music/pads?mode=improvise&bars=8"
+              "label": "Improvise, 16 bars",
+              "href": "/music/pads?mode=improvise&bars=16"
             }
           ],
           "feeds": "The set"
@@ -3438,7 +3571,13 @@
           "title": "Improvise over a loop",
           "setup": "A chosen loop under Improvise; raw and half-quantised playback reviewed.",
           "done": "32 bars over the loop.",
-          "needs": "Loop backing in Improvise.",
+          "needs": "Check runs that count in Improvise (a loop under it is there).",
+          "links": [
+            {
+              "label": "Improvise over boom bap",
+              "href": "/music/pads?mode=improvise&loop=boom-bap-b&bars=32"
+            }
+          ],
           "feeds": "The set"
         },
         {

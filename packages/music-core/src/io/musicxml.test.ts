@@ -216,6 +216,30 @@ describe("MusicXML", () => {
     ]);
   });
 
+  it("reads chord symbols: kinds, alterations, a slash bass and an offset", () => {
+    const h = (root: string, kind: string, extra = "") =>
+      `<harmony><root><root-step>${root[0]}</root-step>${root[1] === "b" ? "<root-alter>-1</root-alter>" : ""}</root><kind>${kind}</kind>${extra}</harmony>`;
+    const xml = `<score-partwise><part-list><score-part id="P1"><part-name>Lead</part-name></score-part></part-list>
+      <part id="P1">
+        <measure number="1"><attributes><divisions>2</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+          ${h("D", "minor-seventh")}<note>${pitch("F", 4)}<duration>4</duration></note>
+          ${h("G", "dominant", "<degree><degree-value>9</degree-value><degree-alter>-1</degree-alter><degree-type>add</degree-type></degree>")}<note>${pitch("F", 4)}<duration>4</duration></note>
+        </measure>
+        <measure number="2">
+          ${h("C", "major", "<bass><bass-step>E</bass-step></bass>")}<note>${pitch("E", 4)}<duration>2</duration></note>
+          <harmony><root><root-step>B</root-step><root-alter>-1</root-alter></root><kind>half-diminished</kind><offset>2</offset></harmony>
+          <note>${pitch("D", 4)}<duration>6</duration></note>
+        </measure>
+      </part></score-partwise>`;
+    expect(parseMusicXml(xml).chords).toEqual([
+      { symbol: "Dm7", startBeat: 0, durationBeats: 2 },
+      { symbol: "G7b9", startBeat: 2, durationBeats: 2 },
+      { symbol: "C/E", startBeat: 4, durationBeats: 2 },
+      { symbol: "Bbm7b5", startBeat: 6, durationBeats: 2 },
+    ]);
+    expect(parseMusicXml(DUO).chords).toBeUndefined();
+  });
+
   it("refuses timewise and non-MusicXML documents with a message", () => {
     expect(() => parseMusicXml("<score-timewise/>")).toThrow(/Timewise/);
     expect(() => parseMusicXml("<html></html>")).toThrow(/not a MusicXML/);

@@ -1,0 +1,462 @@
+<script lang="ts">
+  // Accompaniment (piano path drill 1, jazz rank 2, piano drill 3): hand patterns,
+  // comping and lead sheets over a chord chart in any key, every slot graded on
+  // its pitch classes and its timing (gradeAccompaniment).
+  import { onDestroy, onMount } from "svelte";
+  import { page } from "$app/state";
+  import type { NoteEvent, Score } from "@repo/music-core";
+  import { noteName } from "@repo/music-core";
+  import { FLAT_NAMES, pc } from "@repo/music-core/theory/notes";
+  import { signatureFor } from "@repo/music-core/theory/circle";
+  import { JAM_GROUPS } from "@repo/music-core/content/jam";
+  import { catalogEntry } from "@repo/music-core/content/catalog";
+  import {
+    ACCOMP_PATTERNS,
+    ACCOMP_PROGRESSIONS,
+    BEATS_PER_BAR,
+    COMP_RHYTHMS,
+    COMP_VOICINGS,
+    LEAD_LEFT,
+    LEAD_SHEETS,
+    PATTERN_GROUPS,
+    chartOf,
+    compingRendering,
+    generatedLeadSheet,
+    leadSheetFromScore,
+    leadSheetRendering,
+    patternRendering,
+    type AccompSlot,
+    type HandChoice,
+    type LeadLeft,
+    type LeadSheet,
+    type Rendering,
+    wholeBars,
+  } from "@repo/music-core/content/accompany";
+  import { gradeAccompaniment, type AccompanimentResult } from "@repo/music-core/scoring/piano";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
+  import Piano from "$lib/music/components/Piano.svelte";
+  import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import Choice from "$lib/music/components/Choice.svelte";
+  import Picker from "$lib/music/components/Picker.svelte";
+  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
+  import Stat from "$lib/music/components/Stat.svelte";
+  import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
+  import { btn } from "$lib/music/components/ui";
+  import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
+  import { modeFrom, openMode } from "$lib/music/drills/guitar/modes";
+  import { DrillSetup } from "$lib/music/setup.svelte";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { practice } from "$lib/music/practice.svelte";
+  import { db, settings } from "$lib/music/runtime";
+  import { nextRun } from "$lib/music/advance.svelte";
+
+  const TEMPO = { min: 40, max: 180 };
+  const ENTRY = catalogEntry("accompany")!;
+  const TABS = ENTRY.modes.map((m) => ({ id: m.id, label: m.label }));
+  const tab = $derived(modeFrom(TABS, page.url.searchParams.get("mode")) as "patterns" | "comping" | "lead-sheet");
+  const drillMode = $derived(ENTRY.modes.find((m) => m.id === tab)!);
+
+  let mode = $state<DrillMode>(benchFromUrl(TEMPO));
+  const cfg = new DrillSetup("accompany", {
+    pattern: "root-fifth-octave",
+    progression: "pop-axis",
+    transpose: 0,
+    hands: "both",
+    voicing: "shells",
+    rhythm: "whole",
+    feel: "swing",
+    tune: "twinkle",
+    lh: "roots",
+    seed: 1,
+  });
+  const s = $derived(cfg.value);
+  const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
+  // Hand patterns and generated melodies need one chord a bar; comping takes half-bar changes too.
+  const pool = $derived(tab === "comping" ? ACCOMP_PROGRESSIONS : ACCOMP_PROGRESSIONS.filter(wholeBars));
+  const base = $derived(pool.find((p) => p.id === s.progression) ?? pool[0]);
+  const pattern = $derived(ACCOMP_PATTERNS.find((p) => p.id === s.pattern) ?? ACCOMP_PATTERNS[0]);
+  const voicing = $derived(COMP_VOICINGS.find((v) => v.id === s.voicing) ?? COMP_VOICINGS[0]);
+  const rhythm = $derived(COMP_RHYTHMS.find((r) => r.id === s.rhythm) ?? COMP_RHYTHMS[0]);
+  const hands = $derived((["both", "left", "right"].includes(s.hands) ? s.hands : "both") as HandChoice);
+  const lh = $derived((LEAD_LEFT.find((l) => l.id === s.lh)?.id ?? "roots") as LeadLeft);
+
+  // Your own scores with chord symbols (MusicXML <harmony>) join the lead sheets.
+  let library = $state<LeadSheet[]>([]);
+  onMount(() => {
+    void db.songs.toArray().then((rows) => {
+      library = rows.flatMap((r) => {
+        const sheet = r.score ? leadSheetFromScore(r.score as Score) : null;
+        return sheet ? [{ ...sheet, id: `song-${r.id}`, title: r.title }] : [];
+      });
+    });
+  });
+  const tunes = $derived<{ value: string; label: string; group: string }[]>([
+    ...LEAD_SHEETS.map((t) => ({ value: t.id, label: t.title, group: "Lead sheets" })),
+    { value: "generated", label: "A new melody over the progression", group: "Generated" },
+    ...library.map((t) => ({ value: t.id, label: t.title, group: "Your scores with chord symbols" })),
+  ]);
+  const sheet = $derived<LeadSheet>(
+    s.tune === "generated" ? generatedLeadSheet(base, 0, s.seed) : ([...LEAD_SHEETS, ...library].find((t) => t.id === s.tune) ?? LEAD_SHEETS[0]),
+  );
+  /** The written key the key picker moves from. */
+  const writtenKey = $derived(tab === "lead-sheet" && s.tune !== "generated" ? sheet.keyPc : base.keyPc);
+  const keyPc = $derived(pc(writtenKey + s.transpose));
+  const minor = $derived(tab !== "lead-sheet" || s.tune === "generated" ? /minor/.test(base.key) : false);
+
+  const rendering = $derived.by((): Rendering => {
+    if (tab === "comping") return compingRendering(chartOf(base, s.transpose), voicing.id, rhythm.id, s.feel === "swing");
+    if (tab === "lead-sheet")
+      return s.tune === "generated" ? leadSheetRendering(generatedLeadSheet(base, s.transpose, s.seed), lh, 0, hands) : leadSheetRendering(sheet, lh, s.transpose, hands);
+    return patternRendering(chartOf(base, s.transpose), pattern.id, hands);
+  });
+  const slots = $derived(rendering.slots);
+  const totalBeats = $derived(rendering.beats);
+  const feel = (b: number) => (rendering.swing ? swingBeat(b) : b);
+
+  const notes = $derived<TimedNote[]>(
+    slots.flatMap((sl) => sl.midi.map((midi) => ({ midi, beat: feel(sl.beat), dur: sl.dur, hand: sl.hand, velocity: sl.hand === "right" ? 0.8 : 0.6 }))),
+  );
+  // A lead sheet shows its melody (the top of each right-hand slot); the rest is read from the symbols.
+  const written = $derived(
+    tab === "lead-sheet"
+      ? slots.filter((sl) => sl.hand === "right").map((sl) => ({ midi: Math.max(...sl.midi), startBeat: sl.beat, durationBeats: sl.dur }))
+      : slots.flatMap((sl) => sl.midi.map((midi) => ({ midi, startBeat: sl.beat, durationBeats: sl.dur, hand: sl.hand }))),
+  );
+  const span = $derived(spanOf(notes.map((n) => n.midi)));
+  // Written as Jam writes the key: a blues in its mixolydian (C7's Bb reads as a flat).
+  const scaleKind = $derived(tab === "lead-sheet" && s.tune !== "generated" ? "major" : minor ? "natural-minor" : /dorian/.test(base.key) ? "dorian" : base.group === "blues" ? "mixolydian" : "major");
+  const keyFifths = $derived(signatureFor(keyPc, scaleKind));
+  const chordNow = $derived.by(() => {
+    const b = Math.max(0, transport.beat ?? 0);
+    const i = rendering.chart.findIndex((c) => b >= c.startBeat && b < c.startBeat + c.durationBeats);
+    return Math.max(0, i);
+  });
+
+  let phase = $state<Phase>("ready");
+  let status = $state("");
+  let summary = $state<RunSummary | null>(null);
+  let result = $state<AccompanimentResult | null>(null);
+  let downbeat = $state(0);
+  let beatMs = $state(1000);
+  const transport = new Transport();
+  const flashes = new Flashes();
+  let cap: Capture | null = null;
+  let run: ReturnType<typeof practice.beginRun> | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopClock: (() => void) | null = null;
+
+  const markFor = (hand: "left" | "right" | undefined, demo: boolean): CellMarks => ({ [demo ? "demo" : "target"]: true, label: hand === "left" ? "L" : "R", role: hand });
+  const due = (b: number) => slots.filter((sl) => b >= feel(sl.beat) - 0.25 && b < feel(sl.beat) + Math.min(0.5, sl.dur));
+  const marks = $derived.by(() => {
+    const out: Record<number, CellMarks> = {};
+    if (transport.playing) {
+      for (const n of sounding(notes, transport.beat)) out[n.midi] = markFor(n.hand, true);
+      return out;
+    }
+    if (mode !== "practice" || phase === "results") return out;
+    const live = phase === "running" || phase === "countin";
+    const now: AccompSlot[] = live ? due(Math.max(0, transport.beat ?? 0)) : slots.filter((sl) => sl.beat === slots[0]?.beat);
+    for (const sl of now) for (const m of sl.midi) out[m] = markFor(sl.hand, false);
+    return out;
+  });
+
+  const handsText = $derived(hands === "both" ? "both hands" : `${hands} hand only`);
+  const keyText = $derived(`${FLAT_NAMES[keyPc]}${minor ? " minor" : ""}`);
+  const summaryLine = $derived<SetupClause[]>(
+    tab === "comping"
+      ? [
+          { text: `${voicing.label} on ${rhythm.label.toLowerCase()}`, focus: "voicing" },
+          { text: `over ${base.name} in ${keyText}`, focus: "progression" },
+          { text: rendering.swing ? "swung" : "straight", focus: "feel" },
+        ]
+      : tab === "lead-sheet"
+        ? [
+            { text: s.tune === "generated" ? `a new melody over ${base.name}` : sheet.title, focus: "tune" },
+            { text: `in ${keyText}`, focus: "key" },
+            { text: LEAD_LEFT.find((l) => l.id === lh)!.label.toLowerCase(), focus: "lh" },
+            ...(hands === "both" ? [] : [{ text: handsText, focus: "hands" }]),
+          ]
+        : [
+            { text: pattern.label, focus: "pattern" },
+            { text: `over ${base.name} in ${keyText}`, focus: "progression" },
+            ...(hands === "both" ? [] : [{ text: handsText, focus: "hands" }]),
+          ],
+  );
+  const runParams = $derived<Record<string, string | number>>(
+    tab === "comping"
+      ? { bpm, voicing: voicing.id, rhythm: rhythm.id, feel: s.feel, progression: base.id, key: keyPc }
+      : tab === "lead-sheet"
+        ? { bpm, tune: s.tune === "generated" ? `generated-${base.id}` : sheet.id, lh, hands, key: keyPc }
+        : { bpm, pattern: pattern.id, progression: base.id, hands, key: keyPc },
+  );
+  const setupKey = $derived(`accompany:${tab}:${Object.values(runParams).join(":")}`);
+
+  function pickKey(target: number) {
+    let t = (target - writtenKey) % 12;
+    if (t > 6) t -= 12;
+    if (t < -6) t += 12;
+    cfg.set({ transpose: t });
+  }
+
+  async function playDemo() {
+    if (transport.playing) return transport.stop();
+    status = "Listen: both hands at tempo, the chords in step with the chart.";
+    await transport.demo(notes, bpm);
+  }
+
+  function onNote(e: NoteEvent) {
+    if (e.kind !== "noteon" || phase !== "running" || mode !== "practice") return;
+    const hit = due(transport.beat ?? 0).some((sl) => sl.midi.some((m) => pc(m) === pc(e.midi)));
+    flashes.add(e.midi, hit ? "correct" : "wrong");
+  }
+
+  function start(ctx: RunContext) {
+    transport.stop();
+    summary = null;
+    result = null;
+    flashes.clear();
+    stopClock = ctx.stopClock;
+    downbeat = ctx.downbeat;
+    beatMs = ctx.beatMs;
+    run = practice.beginRun({
+      exerciseId: drillMode.exerciseId,
+      setupKey,
+      skillIds: drillMode.skillIds,
+      capabilities: ["technique"],
+      modality: "played",
+      assistance: assistanceFor(mode),
+      difficulty: Math.min(1, (tab === "patterns" ? 0.3 + pattern.n / 40 : 0.55) + (bpm - 70) / 300),
+      instrument: "piano",
+      params: runParams,
+    });
+    cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
+    transport.follow(ctx.downbeat, ctx.beatMs);
+    timer = setTimeout(() => void finish(ctx), Math.max(0, ctx.downbeat - performance.now()) + (totalBeats + 1) * ctx.beatMs);
+  }
+
+  async function finish(ctx: RunContext) {
+    if (phase !== "running" && phase !== "countin") return;
+    clearTimeout(timer);
+    stopClock?.();
+    transport.stop();
+    cap?.stop();
+    const played = cap?.notes ?? [];
+    const r = gradeAccompaniment({ slots, splitMidi: rendering.splitMidi, swing: rendering.swing, beatMs: ctx.beatMs, startAt: ctx.downbeat, notes: played });
+    result = r;
+    phase = "results";
+    await run!.attempt({
+      promptId: setupKey,
+      correct: r.correct,
+      partialCredit: r.score,
+      metrics: r.metrics,
+      source: runSource(played),
+      instrument: runInstrument(played, "piano") ?? null,
+      target: notes.map((n) => n.midi),
+      response: played.filter((n) => n.kind === "noteon").map((n) => n.midi),
+    });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm} BPM` });
+    const chordsOff = r.notMeasured.includes("chords");
+    const weak = r.hands.slice().sort((a, b) => a.matched / a.total - b.matched / b.total)[0];
+    const rows: ResultRow[] = r.hands.map((h) => ({
+      label: `${h.hand === "left" ? "Left" : "Right"} hand${tab === "lead-sheet" && h.hand === "right" ? ", the melody" : ""}`,
+      value: h.matched / h.total,
+      text: `${h.matched} of ${h.total}`,
+    }));
+    rows.push({ label: "Timing", value: r.meanAbsErrorMs ? Math.max(0, 1 - r.meanAbsErrorMs / r.windowMs) : null, text: `${Math.round(r.meanAbsErrorMs)} ms off on average` });
+    if (chordsOff) rows.push({ label: "Chords (on-screen input)", notMeasured: true });
+    summary = {
+      headline: !played.length
+        ? "Nothing landed. Come in on the first beat after the count-in."
+        : r.correct
+          ? `Clean at ${bpm} BPM: ${r.hands.map((h) => `${h.matched} of ${h.total} ${h.hand}-hand`).join(", ")}.`
+          : r.weakBar !== null && weak && weak.matched < weak.total
+            ? `The ${weak.hand} hand found ${weak.matched} of ${weak.total}; bar ${r.weakBar + 1} lost the most. Loop it slower.`
+            : `Every chord landed, but the timing wandered. Keep the hands on the click.`,
+      metric: pct(r.score),
+      metricLabel: "score",
+      delta: fin.delta,
+      best: fin.best,
+      clean: r.correct && mode === "check",
+      xp: fin.xp,
+      assistance: chordsOff ? `${assistanceText(mode)} On-screen keys play one note at a time, so this run graded single notes only.` : assistanceText(mode),
+      rows,
+      advance: played.some((n) => n.kind === "noteon") ? await nextRun(`accompany.${tab}.${tab === "patterns" ? pattern.id : tab === "comping" ? voicing.id : lh}`, { bpm, tempo: { min: 50, goal: 100, max: TEMPO.max } }, r) : undefined,
+    };
+    status = summary.headline;
+  }
+
+  function stop() {
+    clearTimeout(timer);
+    transport.stop();
+    cap?.stop();
+    phase = "ready";
+    status = "Stopped. Nothing was recorded.";
+  }
+
+  function retempo(delta: number) {
+    void settings.update({ bpm: Math.min(TEMPO.max, Math.max(TEMPO.min, bpm + delta)) });
+    phase = "ready";
+    summary = null;
+  }
+
+  onDestroy(() => {
+    clearTimeout(timer);
+    cap?.stop();
+    transport.stop();
+  });
+
+  const progressionOptions = $derived(JAM_GROUPS.flatMap((g) => pool.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: p.name, group: g.label }))));
+  const handOptions = [
+    { value: "both", label: "Both hands" },
+    { value: "left", label: "Left only" },
+    { value: "right", label: "Right only" },
+  ];
+  const blurb = $derived(
+    tab === "comping"
+      ? "Comp through the changes on a rhythm: shells or rootless voicings, every chord graded in any octave."
+      : tab === "lead-sheet"
+        ? "Read the melody and the chord symbols: the tune in the right hand, the chords in the left."
+        : "A left- and right-hand pattern over a chord loop. Any inversion counts; the rhythm has to land.",
+  );
+</script>
+
+<svelte:head><title>Accompaniment | Woodshed</title></svelte:head>
+
+<DrillShell
+  title="Accompaniment"
+  hue="piano"
+  {blurb}
+  summary={summaryLine}
+  tabs={TABS}
+  {tab}
+  ontab={(id) => openMode(TABS, id)}
+  bind:phase
+  bind:mode
+  bind:status
+  progress={transport.beat === null ? 0 : Math.min(1, Math.max(0, transport.beat / totalBeats))}
+  clock={{ bpm, beatsPerBar: BEATS_PER_BAR }}
+  ondemo={playDemo}
+  demoPlaying={transport.playing}
+  onstart={start}
+  onstop={stop}
+>
+  {#snippet setup()}
+    <div class="grid gap-4 sm:grid-cols-2">
+      {#if tab === "patterns"}
+        <Choice
+          label="Pattern"
+          setupKey="pattern"
+          options={PATTERN_GROUPS.flatMap((g) => ACCOMP_PATTERNS.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: p.label, hint: p.about, group: g.label })))}
+          value={pattern.id}
+          onchange={(v) => cfg.set({ pattern: v })}
+        />
+      {:else if tab === "comping"}
+        <Choice label="Voicing" setupKey="voicing" options={COMP_VOICINGS.map((v) => ({ value: v.id, label: v.label, hint: v.about }))} value={voicing.id} onchange={(v) => cfg.set({ voicing: v })} />
+        <Choice label="Rhythm" setupKey="rhythm" options={COMP_RHYTHMS.map((r) => ({ value: r.id, label: r.label, hint: r.about }))} value={rhythm.id} onchange={(v) => cfg.set({ rhythm: v })} />
+        <Choice
+          label="Eighths"
+          setupKey="feel"
+          options={[
+            { value: "swing", label: "Swung" },
+            { value: "straight", label: "Straight" },
+          ]}
+          value={s.feel}
+          onchange={(v) => cfg.set({ feel: v })}
+        />
+      {:else}
+        <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="tune">
+          <span class="font-medium">Tune</span>
+          <Picker label="Tune" value={s.tune} options={tunes} onchange={(v) => cfg.set({ tune: v, transpose: 0 })} />
+          <span class="text-ws-soft">{s.tune === "generated" ? "Chord tones on 1 and 3, steps between." : sheet.source}. Import a MusicXML lead sheet in the Library and it appears here.</span>
+        </div>
+        <Choice label="Left hand" setupKey="lh" options={LEAD_LEFT.map((l) => ({ value: l.id, label: l.label, hint: l.about }))} value={lh} onchange={(v) => cfg.set({ lh: v })} />
+      {/if}
+      {#if tab !== "lead-sheet" || s.tune === "generated"}
+        <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="progression">
+          <span class="font-medium">Progression</span>
+          <Picker label="Progression" value={base.id} options={progressionOptions} onchange={(v) => cfg.set({ progression: v, transpose: 0 })} />
+          <span class="text-ws-soft">{base.chords.map((c) => c.symbol).join(" ")}, written in {base.key}{base.song ? `. ${base.song.artist}` : ""}.</span>
+        </div>
+      {/if}
+      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
+        <span class="font-medium">Key</span>
+        <KeyPicker label="Key" value={keyPc} onchange={pickKey} name={(k) => `${FLAT_NAMES[k]}${k === writtenKey ? " (written)" : ""}`} />
+      </div>
+      {#if tab !== "comping"}
+        <Choice label="Practise" setupKey="hands" options={handOptions} value={hands} onchange={(v) => cfg.set({ hands: v })} />
+      {/if}
+    </div>
+    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. Any inversion or octave of a chord counts; extra notes are not marked down.</p>
+  {/snippet}
+
+  {#snippet hud()}
+    {#if phase === "running" && transport.beat !== null}
+      <Stat label="Bar" value="{Math.min(totalBeats / BEATS_PER_BAR, Math.floor(Math.max(0, transport.beat) / BEATS_PER_BAR) + 1)} of {totalBeats / BEATS_PER_BAR}" />
+    {:else if result}
+      {#each result.hands as h (h.hand)}
+        <Stat label="{h.hand === 'left' ? 'Left' : 'Right'} hand" value="{h.matched}/{h.total}" tone={h.matched / h.total >= 0.9 ? "success" : "warn"} />
+      {/each}
+    {/if}
+  {/snippet}
+
+  {#snippet stage()}
+    <div
+      data-testid="accompany"
+      data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined}
+      data-beat-ms={Math.round(beatMs)}
+      data-slots={JSON.stringify(slots.map((sl) => [sl.beat, sl.midi]))}
+    >
+      <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm text-ws-stage-soft">Now</p>
+          <p class="font-display text-4xl font-bold leading-none">{rendering.chart[chordNow]?.symbol}</p>
+        </div>
+        <p class="max-w-prose text-sm text-ws-stage-soft">
+          {tab === "comping" ? `${voicing.about} ${rhythm.about}` : tab === "lead-sheet" ? LEAD_LEFT.find((l) => l.id === lh)!.about : pattern.about}
+        </p>
+        {#if tab === "lead-sheet" && s.tune === "generated" && phase !== "running" && phase !== "countin"}
+          <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => cfg.set({ seed: s.seed + 1 })}>New melody</button>
+        {/if}
+      </div>
+      <ol class="mb-3 flex flex-wrap gap-1.5" aria-label="The chart">
+        {#each rendering.chart as c, i (i)}
+          <li class="chord-cell flex min-h-10 items-center justify-center rounded-lg px-3 font-display font-semibold" class:now={i === chordNow && transport.beat !== null} style:flex-grow={c.durationBeats} aria-current={i === chordNow && transport.beat !== null ? "step" : undefined}>
+            {c.symbol}<span class="sr-only">, {c.durationBeats / BEATS_PER_BAR} bar{c.durationBeats === BEATS_PER_BAR ? "" : "s"}</span>
+          </li>
+        {/each}
+      </ol>
+      {#if tab === "lead-sheet" || mode === "practice" || transport.playing || phase === "results"}
+        <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></div>
+      {/if}
+      <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+      <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
+        {#if mode === "check" && phase !== "results"}<p>{tab === "lead-sheet" ? "Check mode: read the melody and the symbols; the keys stay dark." : "Check mode: play the pattern from the chart; the notes are hidden."}</p>{/if}
+        <p>Chords need MIDI: on-screen keys play one note at a time, so an on-screen run grades single notes only.</p>
+      </div>
+    </div>
+  {/snippet}
+
+  {#snippet results()}
+    {#if summary}
+      <Results {summary}>
+        {#snippet actions()}
+          <button type="button" class={btn} onclick={() => retempo(6)}>Faster by 6</button>
+          <button type="button" class={btn} onclick={() => retempo(-6)}>Slower</button>
+        {/snippet}
+      </Results>
+    {/if}
+  {/snippet}
+</DrillShell>
+
+<style>
+  .chord-cell {
+    flex-basis: 3.5rem;
+    background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
+    color: var(--ws-stage-soft);
+  }
+  .chord-cell.now {
+    background: var(--instr);
+    color: var(--ws-stage);
+  }
+</style>

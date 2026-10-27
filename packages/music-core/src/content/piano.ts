@@ -213,13 +213,19 @@ export const VOICING_REGISTER: [number, number] = [52, 79];
 
 /**
  * A voicing's shape (offsets above the root) moved by whole octaves to sit
- * nearest the chord before it (or around E4 to start), inside E3 to G5 where it fits.
+ * nearest the chord before it (or the register's middle to start), inside the register
+ * (E3 to G5 unless given) where it fits.
  * The shape stays as written, so "rootless A" is still 3 5 7 9.
  */
-function placeVoicing(rootPc: number, offsets: number[], prev?: number[]): number[] {
+export function placeVoicing(
+  rootPc: number,
+  offsets: number[],
+  prev?: number[],
+  register: [number, number] = VOICING_REGISTER,
+): number[] {
   const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
-  const target = prev ? mean(prev) : 64;
-  const [lo, hi] = VOICING_REGISTER;
+  const [lo, hi] = register;
+  const target = prev ? mean(prev) : (lo + hi) / 2 - 1.5;
   let best: { midi: number[]; cost: number } | undefined;
   for (let octave = 2; octave <= 6; octave++) {
     const midi = offsets.map((o) => pc(rootPc) + o + 12 * octave);

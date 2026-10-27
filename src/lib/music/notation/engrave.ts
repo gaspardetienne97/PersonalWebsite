@@ -84,6 +84,8 @@ export interface Tick {
   tieNext: boolean;
   /** Fingering for an attack (a piano scale's finger numbers), printed by the note. */
   fingers?: (number | string)[];
+  /** A chord symbol starting here (a lead sheet's), printed above the top staff. */
+  symbol?: string;
 }
 
 const EPS = 1e-6;
@@ -507,15 +509,25 @@ export function drawStaff(
   const groups = scoreGroups(score, voiceIds, range);
   const fifths = score.keyFifths ?? 0;
   const key = keySpec(fifths);
-  const rows: RowSpec[] = staffRows(score, voiceIds, grand).map((row) => {
+  const rows: RowSpec[] = staffRows(score, voiceIds, grand).map((row, r) => {
     // Fingering needs room: above a treble staff (the staff moves down), below a bass staff.
     const fingered = row.notes.some((n) => n.finger !== undefined);
-    const above = fingered && row.clef !== "bass" ? 22 : 0;
+    const ticks = lineTicks(row.notes, barList, groups);
+    // Chord symbols sit above the top staff, on the note or rest sounding at their beat.
+    const symbols = r === 0 && !!score.chords?.length;
+    if (symbols)
+      for (const c of score.chords!) {
+        const t = ticks
+          .flat()
+          .find((x) => c.startBeat >= x.start - EPS && c.startBeat < x.start + x.dur - EPS);
+        if (t) t.symbol = t.symbol ? `${t.symbol} ${c.symbol}` : c.symbol;
+      }
+    const above = (fingered && row.clef !== "bass") || symbols ? 22 : 0;
     return {
-      height: (revealLabels ? 112 : 92) + (fingered ? 22 : 0),
+      height: (revealLabels ? 112 : 92) + (fingered || symbols ? 22 : 0),
       keySpec: key,
       beams: true,
-      ticks: lineTicks(row.notes, barList, groups),
+      ticks,
       stave(VF, x, y, w, first, time) {
         const s = new VF.Stave(x, y + above, w);
         if (first) s.addClef(row.clef).addKeySignature(key);
@@ -532,6 +544,13 @@ export function drawStaff(
           autoStem: true,
         });
         if (t.dots) VF.Dot.buildAndAttach([n], { all: true });
+        if (t.symbol)
+          n.addModifier(
+            new VF.Annotation(t.symbol)
+              .setFont("sans-serif", 13, "bold")
+              .setVerticalJustification(VF.AnnotationVerticalJustify.TOP),
+            0,
+          );
         // Fingering as scale books print it: above the treble staff, below the bass.
         if (t.fingers?.length && !rest)
           n.addModifier(

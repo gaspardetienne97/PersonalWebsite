@@ -245,3 +245,14 @@ describe("drum parts in songs", () => {
     expect([36, 42, 46, 47, 56, 50].map(scoreDrumPad)).toEqual([36, 42, 46, 45, 47, 48]);
   });
 });
+
+describe("singles in 5 and 7", () => {
+  it("accents 3 + 2 and 2 + 2 + 3 on alternating hands", () => {
+    const five = rudimentHits({ patternId: "fives", subdivision: 2, hits: 10, bpm: 100 });
+    expect(five.map((h) => (h.accent ? "A" : "-")).join("")).toBe("A--A-A--A-");
+    expect(five.map((h) => h.hand[0]).join("")).toBe("rlrlrlrlrl");
+    const seven = rudimentHits({ patternId: "sevens", subdivision: 2, hits: 16, bpm: 100 });
+    expect(seven.map((h) => (h.accent ? "A" : "-")).join("")).toBe("A-A-A--A-A-A--A-");
+    expect(seven.every((h) => h.velocityBand)).toBe(true);
+  });
+});

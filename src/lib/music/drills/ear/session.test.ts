@@ -19,6 +19,22 @@ import {
 const base = { mastery: {}, summaries: {}, now: Date.now(), level: "anchor" };
 
 describe("ear sessions", () => {
+  it("asks the loops of the picked set, in one key, with the set's numerals as answers", () => {
+    const p = buildSession({
+      ...base,
+      kinds: ["loop"],
+      mode: "balanced",
+      rand: rng(4),
+      focus: { loops: "modal" },
+    });
+    expect(p).toHaveLength(10);
+    expect(p.every((x) => x.drill === "loop" && x.skillIds.includes("ear.loops.modal"))).toBe(true);
+    expect(new Set(p.map((x) => (x as { keyPc?: number }).keyPc)).size).toBe(1);
+    expect(new Set(p.map((x) => x.answer)).size).toBe(5);
+    expect(p[0].choices).toEqual(["I", "i", "bII", "II", "IV", "bVI", "bVII"]);
+    expect(tokenLabel("loop", "i bVII bVI bVII")).toBe("i, ♭VII, ♭VI, ♭VII");
+  });
+
   it("fills ten prompts from a two-degree level without back-to-back repeats", () => {
     const p = buildSession({ ...base, kinds: ["scale-degree"], mode: "balanced", rand: rng(1) });
     expect(p).toHaveLength(10);

@@ -437,6 +437,121 @@ export function gradeComping(input: {
 }
 
 // ---------------------------------------------------------------------------
+// Accompaniment: hand patterns, comping and lead sheets over a chord chart.
+
+export interface AccompHandResult {
+  hand: Hand;
+  matched: number;
+  total: number;
+}
+export interface AccompanimentResult extends Graded {
+  hands: AccompHandResult[];
+  /** Slots with every pitch class struck, 0 to 1. */
+  completion: number;
+  meanAbsErrorMs: number;
+  windowMs: number;
+  /** Notes or chords struck that no slot claimed. */
+  extra: number;
+  /** The bar (from 0) with the most missed slots, null when none missed. */
+  weakBar: number | null;
+}
+
+/**
+ * Each slot (notes one hand strikes together) claims the nearest cluster of that
+ * hand's notes, split by register, that holds every pitch class of the slot, so
+ * any octave or inversion counts and extra notes are tolerated. Notes closer
+ * than COMP_CHORD_GAP_MS (or 0.4 of the hand's smallest spacing) form one
+ * cluster. Swung off-beats may land anywhere from straight to swung.
+ * On-screen keys (not MIDI) play one note at a time, so chord slots are not
+ * measured there. score = completion x 0.7 + timing credit x 0.3; correct when
+ * both the score and the share of slots landed reach 0.9.
+ */
+export function gradeAccompaniment(input: {
+  slots: readonly { hand: Hand; beat: number; midi: readonly number[] }[];
+  splitMidi: number;
+  swing: boolean;
+  beatMs: number;
+  startAt: number;
+  beatsPerBar?: number;
+  strictness?: Strictness;
+  notes: readonly NoteEvent[];
+}): AccompanimentResult {
+  const { beatMs, startAt } = input;
+  const ons = noteOns(input.notes);
+  const chordsOk = !ons.length || simultaneityMeasured(ons);
+  const slots = input.slots.filter((s) => chordsOk || s.midi.length === 1);
+  const slack = (beat: number) =>
+    input.swing && Math.abs((beat % 1) - 0.5) < 1e-6 ? (SWUNG_OFFBEAT - 0.5) * beatMs : 0;
+  const metrics: Metric[] = [];
+  const errors: number[] = [];
+  const credits: number[] = [];
+  const missedBars: number[] = [];
+  let extra = 0;
+  let widest = 0;
+  const hands = (["left", "right"] as const).flatMap((hand): AccompHandResult[] => {
+    const own = slots.filter((s) => s.hand === hand);
+    if (!own.length) return [];
+    const spacing = smallestSpacing(own.map((s) => s.beat));
+    const windowMs = Math.min(
+      matchWindowMs(beatMs, Math.min(1, spacing), input.strictness ?? "normal"),
+      spacing * beatMs * 0.5,
+    );
+    widest = Math.max(widest, windowMs);
+    const clusters = clusterByGap(
+      ons.filter((n) => n.midi < input.splitMidi === (hand === "left")),
+      Math.min(COMP_CHORD_GAP_MS, spacing * beatMs * 0.4),
+    ).map((c) => ({ at: c.start, pcs: new Set(c.midis.map(pc)) }));
+    const targets = own.map((s) => ({
+      at: startAt + s.beat * beatMs,
+      slackMs: slack(s.beat),
+      pcs: [...new Set(s.midi.map(pc))],
+    }));
+    const { claims, extras } = claim(targets, clusters, windowMs, (t, c) =>
+      t.pcs.every((p) => c.pcs.has(p)),
+    );
+    extra += extras.length;
+    claims.forEach((c, i) => {
+      const s = own[i];
+      if (s.midi.length === 1)
+        metrics.push({
+          kind: "pitch",
+          expectedMidi: s.midi[0],
+          actualMidi: c ? s.midi[0] : undefined,
+        });
+      if (!c) return void missedBars.push(Math.floor(s.beat / (input.beatsPerBar ?? 4)));
+      errors.push(c.errorMs);
+      credits.push(timingCredit(c.errorMs, windowMs));
+      metrics.push({
+        kind: "timing",
+        expectedMs: targets[i].at,
+        actualMs: clusters[c.hit].at,
+        errorMs: c.errorMs,
+      });
+    });
+    return [{ hand, matched: claims.filter(Boolean).length, total: own.length }];
+  });
+  const total = slots.length;
+  const completion = total ? errors.length / total : 0;
+  const timing = credits.length ? mean(credits) : 0;
+  const score = completion * 0.7 + timing * 0.3;
+  const counts = new Map<number, number>();
+  for (const b of missedBars) counts.set(b, (counts.get(b) ?? 0) + 1);
+  const weakBar = [...counts].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? null;
+  return {
+    score,
+    correct: score >= 0.9 && completion >= 0.9,
+    metrics,
+    notMeasured: notMeasured({ chords: chordsOk || input.slots.every((s) => s.midi.length === 1) }),
+    hands,
+    completion,
+    meanAbsErrorMs: mean(errors.map(Math.abs)),
+    windowMs: widest,
+    extra,
+    weakBar,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Jazz licks.
 
 export interface LickResult extends Graded {

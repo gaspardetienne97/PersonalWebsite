@@ -88,9 +88,12 @@
           "id": "1.5",
           "title": "Find home in a real song",
           "strand": "S",
-          "href": "/music/tuner?mode=drone",
-          "setup": "Play the track and hum along to a drone on the note you think is home. The ear player's find-home mode (N2) is still to come.",
+          "href": "/music/by-ear?mode=home",
+          "setup": "Learn by ear, Find home: load a shelf song you own, listen, then play, sing or pick the note that sounds like home. It is checked against the key the whole recording points to.",
           "done": "Tonic right first try on 4 of 5 shelf songs.",
+          "minAttempts": 5,
+          "threshold": 0.8,
+          "links": [{ "label": "Drone in the tuner", "href": "/music/tuner?mode=drone" }],
           "feeds": "The shelf"
         },
         {
@@ -159,9 +162,11 @@
           "id": "1.10",
           "title": "Sing the tonic of anything",
           "strand": "E",
-          "setup": "Any song you hear during the day: hum home, then check.",
+          "setup": "Any song you hear during the day: hum home, then check it in Learn by ear, Find home, with the recording. Every check goes in the journal.",
           "done": "10 songs logged in the journal, 8 right.",
-          "needs": "The ear player's find-home mode (N2), with a log in the journal.",
+          "href": "/music/by-ear?mode=home",
+          "minAttempts": 10,
+          "threshold": 0.8,
           "feeds": "Habit"
         }
       ],
@@ -724,11 +729,22 @@
           "id": "3.2",
           "title": "Song loops by ear",
           "strand": "E",
-          "href": "/music/ear/progressions?answer=choice&functions=I,IV,V,vi",
-          "setup": "Progression dictation: I, IV, V and vi. Named loops (I-V-vi-IV, I-vi-IV-V, vi-IV-I-V, I-IV-vi-V) played as a groove with bass and drums wait for N4.",
+          "href": "/music/ear/song-loops?answer=choice&loops=pop",
+          "setup": "Song loops, pop: I-V-vi-IV, I-vi-IV-V, vi-IV-I-V, I-IV-V-IV and I-IV-vi-V played as a groove with bass and drums after the key is set. Then the song loops set, real songs' chords.",
           "done": "Loop named first try, 80%, on two days.",
-          "minAttempts": 2,
+          "minAttempts": 10,
           "threshold": 0.8,
+          "skillIds": ["ear.loops.pop"],
+          "links": [
+            {
+              "label": "Song loops from real songs",
+              "href": "/music/ear/song-loops?answer=choice&loops=songs"
+            },
+            {
+              "label": "Progression dictation",
+              "href": "/music/ear/progressions?answer=choice&functions=I,IV,V,vi"
+            }
+          ],
           "feeds": "Every shelf song"
         },
         {
@@ -836,9 +852,10 @@
           "title": "Transcribe a loop and its bass",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop for chords and bass. The ear player (N2) and the check against the score (N3) are still to come.",
+          "setup": "The shelf loop for chords and bass, in Learn by ear: loop it, slow it down and play it back. The check against the score (N3) is still to come.",
           "done": "Two songs: loop and bass roots right for every bar.",
           "exerciseIds": [],
+          "links": [{ "label": "Learn by ear", "href": "/music/by-ear?mode=learn" }],
           "feeds": "The shelf"
         },
         {
@@ -1167,9 +1184,10 @@
           "id": "4.6",
           "title": "Count the form",
           "strand": "S",
-          "setup": "Mark each chord change of a 12-bar blues on 3 recordings.",
+          "setup": "Learn by ear: mark each chord change of a 12-bar blues (the Change mark) on 3 recordings, then loop each change to check it. The app keeps your marks; it can't judge them.",
           "done": "Every change within a beat; quick change heard or not, right on 3 songs.",
-          "needs": "Section markers (N8) on the ear player (N2).",
+          "href": "/music/by-ear?mode=learn",
+          "exerciseIds": [],
           "feeds": "The shelf"
         },
         {
@@ -1177,10 +1195,14 @@
           "title": "Call: echo a blues lick",
           "strand": "E",
           "href": "/music/phrases?instrument=piano&phrase=piano.c-blues-lick",
-          "setup": "Phrases: the piano C blues lick or the guitar A blues lick, then Licks. One-bar calls over a Jam blues wait for N6.",
+          "setup": "Phrases: the piano C blues lick or the guitar A blues lick, then Licks; then one-bar calls over a blues in Call and response, Echo.",
           "done": "75% of echoes graded right over 12 calls.",
           "threshold": 0.75,
           "links": [
+            {
+              "label": "Call and response, echo",
+              "href": "/music/call-response?mode=echo&groove=blues&bars=1"
+            },
             {
               "label": "Guitar A blues lick",
               "href": "/music/phrases?instrument=guitar&phrase=guitar.a-blues-lick"
@@ -1193,9 +1215,12 @@
           "id": "4.8",
           "title": "Response: answer the call",
           "strand": "E",
-          "setup": "Today: Jam, blues, with the tone roles lit: answer each 2 bars and land on a chord tone.",
+          "setup": "Call and response, Answer, over the 12-bar blues: answer each call in the bars after it, on the grid, and land on a chord tone. Checked runs of 6 turns; the take is kept.",
           "done": "12 answers kept, 75% end on a chord tone in time.",
-          "needs": "Call and response over a groove, answer mode (N6).",
+          "href": "/music/call-response?mode=answer&groove=blues&bars=1",
+          "match": { "groove": "blues" },
+          "minAttempts": 2,
+          "threshold": 0.75,
           "links": [{ "label": "Jam blues", "href": "/music/jam?progression=blues" }],
           "feeds": "Improvising"
         },
@@ -1500,10 +1525,13 @@
           "title": "Minor progressions",
           "strand": "E",
           "href": "/music/ear/progressions?answer=choice&functions=I,IV,V&keyMode=minor",
-          "setup": "Progression dictation, minor: i, iv and V. The loops i-bVII-bVI-V (Andalusian), i-iv-v and i-VI-III-VII wait for N4.",
+          "setup": "Progression dictation, minor: i, iv and V. Then the minor loops (i-bVII-bVI-V, i-iv-v, i-bVI-bIII-bVII) in Song loops.",
           "done": "75%, on two days.",
           "minAttempts": 2,
           "threshold": 0.75,
+          "links": [
+            { "label": "Minor loops", "href": "/music/ear/song-loops?answer=choice&loops=minor" }
+          ],
           "feeds": "Hit the Road Jack, Zombie"
         },
         {
@@ -1572,9 +1600,12 @@
           "id": "5.11",
           "title": "Call and response in minor",
           "strand": "E",
-          "setup": "Today: Jam with the minor ii-V-i, or your own track.",
+          "setup": "Call and response, Answer, over the minor ii-V-i. Checked runs of 6 turns; the take is kept.",
           "done": "12 answers, 75% end on a chord tone.",
-          "needs": "Call and response over a groove (N6), on a minor vamp.",
+          "href": "/music/call-response?mode=answer&groove=minor-ii-v-i&bars=1",
+          "match": { "groove": "minor-ii-v-i" },
+          "minAttempts": 2,
+          "threshold": 0.75,
           "links": [{ "label": "Jam minor ii-V-i", "href": "/music/jam?progression=minor-ii-v-i" }]
         }
       ],
@@ -1788,18 +1819,24 @@
           "id": "6.3",
           "title": "Hear bVII, bVI and iv",
           "strand": "E",
-          "setup": "Chords in a key with bVII, bVI, iv and bIII beside I, IV, V and vi.",
+          "setup": "Song loops, borrowed chords: bVII, bVI, iv and bIII beside I, IV, V and vi, each in a short loop after the key is set (heard in a loop, not as a single chord in Chords in a key).",
           "done": "75%.",
-          "needs": "Borrowed chord items in Chords in a key: bVII, bVI, iv, bIII (N4).",
+          "href": "/music/ear/song-loops?answer=choice&loops=borrowed",
+          "skillIds": ["ear.loops.borrowed"],
+          "minAttempts": 10,
+          "threshold": 0.75,
           "feeds": "Hey Jude, Creep"
         },
         {
           "id": "6.4",
           "title": "Rock loops by ear",
           "strand": "E",
-          "setup": "Loops I-bVII-IV, I-bVII-IV-I, i-bVII-bVI-bVII and I-III-IV-iv.",
+          "setup": "Song loops, rock: I-bVII-IV, I-bVII-IV-I, i-bVII-bVI-bVII, i-bVII-bVI-V and I-III-IV-iv, played as a groove.",
           "done": "Named first try, 80%.",
-          "needs": "Rock loops played as a groove, named by ear (N4).",
+          "href": "/music/ear/song-loops?answer=choice&loops=rock",
+          "skillIds": ["ear.loops.rock"],
+          "minAttempts": 10,
+          "threshold": 0.8,
           "feeds": "Sweet Home Alabama, All Along the Watchtower"
         },
         {
@@ -2181,9 +2218,12 @@
           "id": "7.5",
           "title": "Hear secondary dominants",
           "strand": "E",
-          "setup": "V/V, V/vi, V/ii and V/IV in Chords in a key and Progression dictation.",
+          "setup": "Song loops, secondary dominants: V7/V, V7/vi, V7/ii and V7/IV inside short loops. They are not yet items in Chords in a key or Progression dictation.",
           "done": "66%.",
-          "needs": "Secondary dominant items in Chords in a key and Progression dictation (N4).",
+          "href": "/music/ear/song-loops?answer=choice&loops=secondary",
+          "skillIds": ["ear.loops.secondary"],
+          "minAttempts": 10,
+          "threshold": 0.66,
           "feeds": "Hotel California, Georgia on My Mind"
         },
         {
@@ -2529,9 +2569,12 @@
           "id": "8.4",
           "title": "Modal vamps by ear",
           "strand": "E",
-          "setup": "Vamps i-IV (Dorian), I-bVII (Mixolydian), I-II (Lydian) and i-bII (Phrygian); Jam, modal.",
+          "setup": "Song loops, modal vamps: i-IV (Dorian), I-bVII (Mixolydian), I-II (Lydian), i-bII (Phrygian) and i-bVI-bVII (Aeolian); then Jam, modal.",
           "done": "75%.",
-          "needs": "Modal vamps played as a groove, named by ear (N4).",
+          "href": "/music/ear/song-loops?answer=choice&loops=modal",
+          "skillIds": ["ear.loops.modal"],
+          "minAttempts": 10,
+          "threshold": 0.75,
           "links": [{ "label": "Jam modal", "href": "/music/jam?progression=modal" }],
           "feeds": "Oye Como Va, So What"
         },
@@ -2566,9 +2609,15 @@
           "title": "Improvise on a modal vamp",
           "strand": "E",
           "href": "/music/jam?progression=modal",
-          "setup": "Jam, modal, with the tone roles lit: chord tones on strong beats. Answer grading (N6) is still to come.",
+          "setup": "Jam, modal, with the tone roles lit: chord tones on strong beats. Call and response, Answer, judges landing on a chord tone.",
           "done": "Three choruses, 75% of strong-beat notes chord or scale tones.",
-          "exerciseIds": []
+          "exerciseIds": [],
+          "links": [
+            {
+              "label": "Call and response, Answer",
+              "href": "/music/call-response?mode=answer&groove=modal&bars=1"
+            }
+          ]
         },
         {
           "id": "8.8",
@@ -2594,10 +2643,19 @@
           "id": "8.10",
           "title": "Call and response in a mode",
           "strand": "E",
-          "setup": "Calls and answers over a Dorian vamp.",
+          "setup": "Call and response over the Dorian vamp: Echo first, then Answer. Checked runs of 6 turns.",
           "done": "12 answers, 75%.",
-          "needs": "Call and response over a groove (N6), on a Dorian vamp.",
-          "links": [{ "label": "Jam modal", "href": "/music/jam?progression=modal" }]
+          "href": "/music/call-response?mode=answer&groove=modal&bars=1",
+          "match": { "groove": "modal" },
+          "minAttempts": 2,
+          "threshold": 0.75,
+          "links": [
+            {
+              "label": "Echo the calls",
+              "href": "/music/call-response?mode=echo&groove=modal&bars=1"
+            },
+            { "label": "Jam modal", "href": "/music/jam?progression=modal" }
+          ]
         }
       ],
       "shelf": [
@@ -2809,9 +2867,10 @@
           "id": "9.2",
           "title": "Label form on recordings",
           "strand": "S",
-          "setup": "Mark every section boundary on a recording.",
+          "setup": "Learn by ear: mark every section boundary on a recording (Intro, Verse, Chorus, Bridge, A, B), then loop each section to check it. The app keeps your marks; it can't judge them.",
           "done": "4 songs, every boundary within a bar.",
-          "needs": "Form markers (N8) on the ear player (N2).",
+          "href": "/music/by-ear?mode=learn",
+          "exerciseIds": [],
           "feeds": "Satin Doll, Take the 'A' Train"
         },
         {
@@ -2843,9 +2902,12 @@
           "id": "9.5",
           "title": "Turnarounds and backdoor",
           "strand": "E",
-          "setup": "I-vi-ii-V, iii-VI-ii-V and iv7-bVII7-I by ear.",
+          "setup": "Song loops, turnarounds: I-vi-ii-V, iii-VI-ii-V, I-VI7-ii-V, ii-V-I, the backdoor iv7-bVII7-I and I-#i°7-ii-V.",
           "done": "66%.",
-          "needs": "Turnaround and backdoor items (N4).",
+          "href": "/music/ear/song-loops?answer=choice&loops=turnarounds",
+          "skillIds": ["ear.loops.turnarounds"],
+          "minAttempts": 10,
+          "threshold": 0.66,
           "feeds": "Satin Doll"
         },
         {
@@ -3117,9 +3179,10 @@
           "title": "Sing the solo first",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "Any player that slows: at 70% speed, then 100%. The ear player (N2) is still to come.",
+          "setup": "Learn by ear: loop the solo at 70% speed with the pitch kept, sing it, then at 100%.",
           "done": "Sing 8 bars along with the record at full speed.",
           "exerciseIds": [],
+          "links": [{ "label": "Learn by ear", "href": "/music/by-ear?mode=learn" }],
           "feeds": "Every shelf solo"
         },
         {
@@ -3127,9 +3190,10 @@
           "title": "Transcribe 4, then 8, then 12 bars",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "Loop a phrase at a time, then compare with the score in Song Studio. The ear player (N2) and the check against the score (N3) are still to come.",
+          "setup": "Learn by ear: loop a phrase at a time, play it back, then compare with the score in Song Studio. The check against the score (N3) is still to come.",
           "done": "85% of notes and rhythms per chunk.",
           "exerciseIds": [],
+          "links": [{ "label": "Learn by ear", "href": "/music/by-ear?mode=learn" }],
           "feeds": "The shelf"
         },
         {
@@ -3442,9 +3506,12 @@
           "id": "11.2",
           "title": "Tritone sub vs V7",
           "strand": "E",
-          "setup": "bII7-I against V7-I by ear.",
+          "setup": "Song loops, tritone subs: ii-bII7-I against ii-V7-I, and the turnaround with bII7 in place of V7.",
           "done": "80%.",
-          "needs": "Tritone sub items, bII7-I against V7-I (N4).",
+          "href": "/music/ear/song-loops?answer=choice&loops=tritone",
+          "skillIds": ["ear.loops.tritone"],
+          "minAttempts": 10,
+          "threshold": 0.8,
           "feeds": "Body and Soul"
         },
         {
@@ -3452,11 +3519,17 @@
           "title": "Diminished passing chords",
           "strand": "E",
           "href": "/music/ear/chord-qualities?answer=choice&qualities=major-7,dominant-7,minor-7,half-diminished-7,diminished-7",
-          "setup": "Chord qualities, the sevenths, judged on diminished 7. The I-#i°7-ii item waits for N4.",
+          "setup": "Chord qualities, the sevenths, judged on diminished 7. I-#i°7-ii-V is in Song loops, turnarounds.",
           "done": "75% on diminished 7, on two days.",
           "skillIds": ["harmony.seventh.diminished"],
           "minAttempts": 5,
           "threshold": 0.75,
+          "links": [
+            {
+              "label": "Turnarounds with #i°7",
+              "href": "/music/ear/song-loops?answer=choice&loops=turnarounds"
+            }
+          ],
           "feeds": "Misty"
         },
         {
@@ -3492,9 +3565,10 @@
           "title": "A whole lead sheet by ear",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "Melody, chords and form of a whole song, compared with the score. The ear player (N2) and the check against the score (N3) are still to come.",
+          "setup": "Melody, chords and form of a whole song in Learn by ear, compared with the score. The check against the score (N3) is still to come.",
           "done": "85% of the melody, 85% of chord bars.",
           "exerciseIds": [],
+          "links": [{ "label": "Learn by ear", "href": "/music/by-ear?mode=learn" }],
           "feeds": "The shelf"
         },
         {

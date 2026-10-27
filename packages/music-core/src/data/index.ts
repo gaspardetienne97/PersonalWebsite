@@ -215,6 +215,12 @@ export interface GrooveDef {
   label: string;
   bars: number;
   sectionLabels: string[];
+  /** Clicks a bar, 4 when missing (7/8 clicks its seven eighths). */
+  beatsPerBar?: number;
+  /** Grid steps a click: 4 sixteenths when missing, 3 or 6 for triplets, 2 for 7/8's sixteenths. */
+  stepsPerBeat?: number;
+  /** The written meter when it is not beatsPerBar/4 (12/8). */
+  meter?: string;
   /** "ghost": a soft note under the groove (MIDI velocity below 50). */
   targets: { voice: DrumVoiceId; beat: number; accent: "normal" | "accent" | "ghost" }[];
 }
@@ -419,7 +425,20 @@ export const JAZZ = jazzJson as unknown as {
 // ---------------------------------------------------------------------------
 // Reading
 
-export type ReadingLevelId = "primer" | "level-1" | "level-2" | "level-3";
+export type ReadingLevelId =
+  | "primer"
+  | "level-1"
+  | "level-2"
+  | "level-3"
+  // Written in content/reading.ts beside the authored four.
+  | "piano-4"
+  | "piano-5"
+  | "piano-6"
+  | "piano-7"
+  | "piano-8"
+  | "line-4"
+  | "line-5"
+  | "line-6";
 export interface ReadingLevelDef {
   id: ReadingLevelId;
   label: string;
@@ -543,6 +562,59 @@ APP_SKILLS.push(
     capability: "harmony",
     level: "intermediate",
     tags: ["ear", "function", "seventh"],
+    version: 1,
+  },
+);
+const LOOP_NAMES: [string, string][] = [
+  ["songs", "Song loops by ear"],
+  ["pop", "Pop loops by ear"],
+  ["rock", "Rock loops by ear"],
+  ["minor", "Minor loops by ear"],
+  ["borrowed", "Borrowed chords by ear"],
+  ["secondary", "Secondary dominants by ear"],
+  ["modal", "Modal vamps by ear"],
+  ["turnarounds", "Turnarounds and the backdoor by ear"],
+  ["tritone", "Tritone substitutes by ear"],
+];
+APP_SKILLS.push(
+  {
+    id: "ear.loops",
+    name: "Chord loops by ear",
+    capability: "harmony",
+    level: "intermediate",
+    tags: ["ear", "function", "progression"],
+    version: 1,
+  },
+  ...LOOP_NAMES.map(([t, name]) => ({
+    id: `ear.loops.${t}`,
+    name,
+    capability: "harmony" as const,
+    level: "intermediate" as const,
+    tags: ["ear", "function", "progression"],
+    version: 1,
+  })),
+  {
+    id: "ear.by-ear",
+    name: "Learning a part from a recording",
+    capability: "pitch",
+    level: "early-intermediate",
+    tags: ["ear", "transcription"],
+    version: 1,
+  },
+  {
+    id: "ear.call-response",
+    name: "Call and response over a groove",
+    capability: "pitch",
+    level: "early-intermediate",
+    tags: ["ear", "improvising"],
+    version: 1,
+  },
+  {
+    id: "ear.find-home",
+    name: "Finding the tonic of a recording",
+    capability: "pitch",
+    level: "beginner",
+    tags: ["ear", "tonic"],
     version: 1,
   },
 );
@@ -742,6 +814,8 @@ const PAD_SKILLS: [string, string, SkillLevel][] = [
   ["orchestration", "Rudiments spread across the kit", "intermediate"],
   ["improvise", "Improvising over a loop", "intermediate"],
   ["phrases", "Short drum phrases: clave cells, tags, fills and builds", "beginner"],
+  ["shuffle", "Shuffles and the triplet grid", "intermediate"],
+  ["meter", "Odd meters: 5/4, 7/4 and 7/8", "advanced"],
 ];
 APP_SKILLS.push(
   ...PAD_SKILLS.map(([t, name, level]) => ({

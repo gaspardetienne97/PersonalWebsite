@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { GROOVE_VOICES } from "./winds-pads";
+import { GROOVE_VOICES, grooveTargetsFor } from "./winds-pads";
+import { gradeGroove, type GrooveResult } from "../scoring/pads";
 import {
   closestGapMs,
   gradeTier,
@@ -11,9 +12,9 @@ import {
 } from "./pads-repertoire";
 
 describe("finger-drumming repertoire", () => {
-  it("covers six levels, every groove on known voices, no two hits on one pad at once", () => {
-    expect(PAD_LEVELS.map((l) => l.level)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(new Set(PAD_REPERTOIRE.map((r) => r.level))).toEqual(new Set([1, 2, 3, 4, 5, 6]));
+  it("covers eight levels, every groove on known voices, no two hits on one pad at once", () => {
+    expect(PAD_LEVELS.map((l) => l.level)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(new Set(PAD_REPERTOIRE.map((r) => r.level))).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8]));
     expect(new Set(PAD_REPERTOIRE.map((r) => r.groove.value)).size).toBe(PAD_REPERTOIRE.length);
     for (const r of PAD_REPERTOIRE) {
       const voices = new Set(GROOVE_VOICES.map((v) => v.id));
@@ -23,7 +24,7 @@ describe("finger-drumming repertoire", () => {
       expect(new Set(keys).size, r.groove.value).toBe(keys.length);
       expect(r.bpm.start).toBeLessThanOrEqual(r.bpm.target);
       expect(Math.max(...r.groove.targets.map((t) => t.beat))).toBeLessThanOrEqual(
-        r.groove.bars * 4,
+        r.groove.bars * (r.groove.beatsPerBar ?? 4),
       );
     }
   });
@@ -89,5 +90,87 @@ describe("finger-drumming repertoire", () => {
     expect(measuredSwing(targets, [0, 0, 0, 0], 667)).toBe(50);
     expect(measuredSwing(targets, [0, 53, 0, 53], 667)).toBe(66);
     expect(measuredSwing(targets, [0, null, 0, null], 667)).toBeNull();
+  });
+});
+
+describe("shuffles and odd meters, graded", () => {
+  const PADS = Object.fromEntries(GROOVE_VOICES.map((v) => [v.id, v.midi]));
+  const grade = (id: string, bpm: number, shift: (beat: number) => number = (b) => b) => {
+    const g = repertoireFor(id)!.groove;
+    const gt = grooveTargetsFor(g, bpm);
+    const beatMs = 60000 / bpm;
+    const hits = gt.targets.map((t) => ({
+      kind: "noteon" as const,
+      midi: t.pad,
+      velocity: t.accent ? 0.9 : t.ghost ? 0.25 : 0.55,
+      at: shift(t.beat) * beatMs,
+      source: "midi" as const,
+      confidence: 1,
+      velocityMeasured: true,
+    }));
+    return {
+      gt,
+      r: gradeGroove({
+        targets: gt.targets.map((t) => ({
+          voice: t.voice,
+          beat: t.beat,
+          accent: t.accent ? "accent" : "normal",
+        })),
+        voicePads: PADS,
+        sectionLabels: g.sectionLabels,
+        beatsPerBar: g.beatsPerBar ?? 4,
+        beatMs,
+        startAt: 0,
+        hits,
+        responseEnd: gt.lengthMs,
+      }) as GrooveResult,
+    };
+  };
+
+  it("passes a shuffle played on the triplets and misses its offbeats played straight", () => {
+    const { r } = grade("blues-shuffle", 120);
+    expect(r).toMatchObject({ correct: true, missed: 0, extra: 0 });
+    // The same hits a sixteenth-grid player would put down: the shuffle's last triplet on the &.
+    const straight = grade("blues-shuffle", 120, (b) =>
+      Math.abs((b % 1) - 2 / 3) < 1e-6 ? Math.floor(b) + 0.5 : b,
+    ).r;
+    expect(straight.missed).toBe(4);
+    expect(straight.correct).toBe(false);
+  });
+
+  it("times 5/4, 7/4 and 7/8 bars by their own length", () => {
+    for (const [id, beats] of [
+      ["five-four", 5],
+      ["seven-four", 7],
+      ["seven-eight", 7],
+    ] as const) {
+      const { gt, r } = grade(id, 120);
+      expect(gt.groove.beatsPerBar).toBe(beats);
+      expect(gt.lengthMs).toBe(beats * 500);
+      expect(gt.targets.every((t) => t.bar === 0)).toBe(true);
+      expect(r.correct, id).toBe(true);
+    }
+    // Two bars of 5/4: the second bar's downbeat is beat 5, in its own section.
+    const two = grooveTargetsFor(
+      {
+        ...repertoireFor("five-four")!.groove,
+        bars: 2,
+        sectionLabels: ["a", "b"],
+        targets: [
+          { voice: "kick", beat: 0, accent: "accent" },
+          { voice: "kick", beat: 5, accent: "accent" },
+        ],
+      },
+      120,
+    );
+    expect(two.targets.map((t) => t.section)).toEqual(["a", "b"]);
+    expect(two.lengthMs).toBe(5000);
+  });
+
+  it("swings a shuffle's half-time cousins on the sixteenth-triplet grid too", () => {
+    const g = repertoireFor("fool-in-the-rain")!.groove;
+    expect(g.stepsPerBeat).toBe(6);
+    expect(grade("fool-in-the-rain", 130).r.correct).toBe(true);
+    expect(repertoireFor("slow-blues")!.groove.meter).toBe("12/8");
   });
 });

@@ -124,3 +124,21 @@ describe("pad skills", () => {
     expect(quantise([{ at: 130 }], 0, beat)[0].at).toBe(127.5);
   });
 });
+
+describe("triplet fills", () => {
+  it("sit on a shuffle, the fill's own notes on the triplets, landing on the one", () => {
+    const g = fillGroove("triplet-toms");
+    expect(g.stepsPerBeat).toBe(3);
+    expect(g.sectionLabels).toEqual(["groove", "groove", "groove", "fill"]);
+    const own = g.fill.map((i) => `${g.targets[i].voice}@${g.targets[i].beat.toFixed(2)}`);
+    expect(own).toEqual([
+      "snare@14.00",
+      "snare@14.33",
+      "snare@14.67",
+      "tom-high@15.00",
+      "tom-mid@15.33",
+      "tom-low@15.67",
+    ]);
+    expect(g.landing.map((i) => g.targets[i].beat)).toEqual([16, 16]);
+  });
+});

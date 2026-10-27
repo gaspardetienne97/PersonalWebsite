@@ -15,22 +15,42 @@
         {
           "id": "1.1",
           "title": "Dominant shells 1-3-7 and 1-7-3 on F7, Bb7, C7",
-          "setup": "A shell drill through the blues. Until then, Voicings, Closest chords, aiming for three-note grips.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shell-137&rhythm=halves&bpm=60&progression=blues&transpose=5",
+          "setup": "Accompaniment, comping: 1-3-7 shells, then 1-7-3, in half notes through the F blues.",
           "done": "Both shapes on all three chords, 3 clean runs at 60 in half notes, on two days.",
-          "needs": "A shell voicing tab in Voicings: 1-3-7 and 1-7-3 through ii-V-I, the blues and 12 keys (jazz rank 4).",
+          "match": {
+            "progression": "blues",
+            "rhythm": "halves",
+            "key": "5"
+          },
+          "each": {
+            "param": "voicing",
+            "values": ["shell-137", "shell-173"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 3,
+          "minBpm": 60,
           "links": [
             {
-              "label": "Interim: Closest chords in F",
-              "href": "/music/voicings?variant=inversions&key=5"
+              "label": "1-7-3",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shell-173&rhythm=halves&bpm=60&progression=blues&transpose=5"
             }
           ]
         },
         {
           "id": "1.2",
           "title": "The blues form with shells, whole notes",
-          "setup": "Jam: 12-bar blues in F at 80, left-hand shells only.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=whole&bpm=80&progression=blues&transpose=5",
+          "setup": "Accompaniment, comping: left-hand shells in whole notes through the F blues at 80.",
           "done": "3 choruses with no wrong chord and no lost bar, on two days.",
-          "needs": "Comping in time over any Jam progression: shells on the 12-bar blues (jazz rank 2).",
+          "match": {
+            "progression": "blues",
+            "rhythm": "whole",
+            "key": "5"
+          },
+          "threshold": 0.95,
+          "minAttempts": 3,
+          "minBpm": 80,
           "links": [
             {
               "label": "Jam: 12-bar blues in F",
@@ -214,9 +234,15 @@
         {
           "id": "1.12",
           "title": "Minor blues",
-          "setup": "Jam: minor blues (Cm7, Fm7, Ab7, G7alt), left-hand shells.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=charleston&bpm=120&progression=minor-blues&transpose=0",
+          "setup": "Accompaniment, comping: shells through the minor blues (Cm7, Fm7, Ab7, G7alt). The three-note chorus waits for improvisation scoring in Jam.",
           "done": "3 choruses at 120 with shells; one three-note chorus (C, Eb, G).",
-          "needs": "A minor blues in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "match": {
+            "progression": "minor-blues"
+          },
+          "threshold": 0.9,
+          "minAttempts": 3,
+          "minBpm": 120,
           "feeds": "Mr. P.C., Equinox"
         },
         {
@@ -469,9 +495,68 @@
         {
           "id": "2.2",
           "title": "Shells through major ii-V-I, 12 keys",
-          "setup": "A shell drill on ii-V-I, alternating 1-7-3 and 1-3-7.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=0",
+          "setup": "Accompaniment, comping: alternating shells (1-3-7 and 1-7-3) in half notes through ii-V-I, round the 12 keys.",
           "done": "All 12 keys clean at 60 in half notes, on two days.",
-          "needs": "A shell voicing tab in Voicings: 1-3-7 and 1-7-3 through ii-V-I, the blues and 12 keys (jazz rank 4).",
+          "match": {
+            "progression": "ii-v-i",
+            "voicing": "shells",
+            "rhythm": "halves"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "7", "2", "9", "4", "11", "6", "1", "8", "3", "10", "5"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minDays": 1,
+          "minBpm": 60,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=-5"
+            },
+            {
+              "label": "D",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=2"
+            },
+            {
+              "label": "A",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=-3"
+            },
+            {
+              "label": "E",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=4"
+            },
+            {
+              "label": "B",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=-1"
+            },
+            {
+              "label": "Gb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=6"
+            },
+            {
+              "label": "Db",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=1"
+            },
+            {
+              "label": "Ab",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=-4"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=3"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=-2"
+            },
+            {
+              "label": "F",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=60&progression=ii-v-i&transpose=5"
+            }
+          ],
           "feeds": "Autumn Leaves, Fly Me to the Moon"
         },
         {
@@ -522,17 +607,37 @@
         {
           "id": "2.6",
           "title": "Comp ii-V-I in time",
-          "setup": "Jam: ii-V-I and minor ii-V-i, left-hand shells, half notes at 100.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=ii-v-i&transpose=0",
+          "setup": "Accompaniment, comping: shells in half notes through ii-V-I in C, F, Bb and Eb, then the minor ii-V-i.",
           "done": "8 bars in each of 4 keys, no wrong chord.",
-          "needs": "Comping in time over any Jam progression: shells on ii-V-I (jazz rank 2).",
+          "match": {
+            "progression": "ii-v-i",
+            "rhythm": "halves"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "5", "10", "3"]
+          },
+          "threshold": 0.95,
+          "minAttempts": 1,
+          "minDays": 1,
+          "minBpm": 100,
           "links": [
             {
-              "label": "Jam: ii-V-I",
-              "href": "/music/jam?progression=ii-v-i"
+              "label": "F",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=ii-v-i&transpose=5"
             },
             {
-              "label": "Jam: minor ii-V-i",
-              "href": "/music/jam?progression=minor-ii-v-i"
+              "label": "Bb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=ii-v-i&transpose=-2"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=ii-v-i&transpose=3"
+            },
+            {
+              "label": "Minor ii-V-i",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=minor-ii-v-i&transpose=0"
             }
           ]
         },
@@ -578,9 +683,15 @@
         {
           "id": "2.10",
           "title": "Bossa comping",
-          "setup": "A bossa rhythm in Comping over Jam, with a bossa backing.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=bossa&bpm=130&progression=minor-ii-v-i&transpose=0",
+          "setup": "Accompaniment, comping on the bossa rhythm. Blue Bossa's changes are not charted yet; the minor ii-V-i stands in.",
           "done": "Blue Bossa, 2 choruses at 130 with the bossa rhythm, 90%.",
-          "needs": "Comping in time over any Jam progression: a bossa rhythm (jazz rank 2).",
+          "match": {
+            "rhythm": "bossa"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 130,
           "links": [
             {
               "label": "Jam: minor ii-V-i",
@@ -887,36 +998,97 @@
         {
           "id": "3.3",
           "title": "Rootless dominants on the blues (7-9-3-13, 3-13-7-9)",
-          "setup": "Rootless dominants through the F and Bb blues.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&progression=blues&transpose=5",
+          "setup": "Accompaniment, comping: rootless dominants (3-13-7-9 and 7-9-3-13) through the F and Bb blues.",
           "done": "F and Bb blues, two choruses each, 95%.",
-          "needs": "A voicing type in Voicings: rootless blues dominants (jazz rank 5)."
+          "match": {
+            "progression": "blues",
+            "voicing": "rootless"
+          },
+          "each": {
+            "param": "key",
+            "values": ["5", "10"]
+          },
+          "threshold": 0.95,
+          "minAttempts": 2,
+          "links": [
+            {
+              "label": "Bb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&progression=blues&transpose=-2"
+            }
+          ]
         },
         {
           "id": "3.4",
           "title": "Rootless in time",
-          "setup": "Rootless voicings on the beat: an in-time option in Voicings, or Jam ii-V-I comping in half notes at 100.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=100&progression=ii-v-i&transpose=0",
+          "setup": "Accompaniment, comping: rootless voicings in half notes through ii-V-I in C, F, Bb and Eb.",
           "done": "4 keys, half notes at 100, 90% voicings.",
-          "needs": "Comping in time over any Jam progression: rootless voicings on ii-V-I, or an in-time option in Voicings (jazz rank 2).",
+          "match": {
+            "progression": "ii-v-i",
+            "voicing": "rootless",
+            "rhythm": "halves"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "5", "10", "3"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minDays": 1,
+          "minBpm": 100,
           "links": [
             {
-              "label": "Jam: ii-V-I",
-              "href": "/music/jam?progression=ii-v-i"
+              "label": "F",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=100&progression=ii-v-i&transpose=5"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=100&progression=ii-v-i&transpose=-2"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=100&progression=ii-v-i&transpose=3"
             }
           ]
         },
         {
           "id": "3.5",
           "title": "Comping rhythms",
-          "setup": "A comping rhythm library over Jam: two-feel half notes, Charleston, anticipated and-of-4, Red Garland's and-of-2 and and-of-4.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=120&progression=blues&transpose=5",
+          "setup": "Accompaniment, comping rhythms: two to the bar, Charleston, and Red Garland's and of 2 with the next chord pushed on the and of 4.",
           "done": "Each rhythm 2 choruses at 120, 90% on the slots.",
-          "needs": "Comping in time over any Jam progression: a library of comping rhythms (jazz rank 2)."
+          "each": {
+            "param": "rhythm",
+            "values": ["halves", "charleston", "garland"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 120,
+          "links": [
+            {
+              "label": "Charleston",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=charleston&bpm=120&progression=blues&transpose=5"
+            },
+            {
+              "label": "Garland",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=garland&bpm=120&progression=blues&transpose=5"
+            }
+          ]
         },
         {
           "id": "3.6",
           "title": "Two-feel bass under shells",
-          "setup": "Left hand root and 5th in half notes, right hand shells; then a walking line on the blues.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=two-feel&rhythm=charleston&bpm=100&progression=blues&transpose=-2",
+          "setup": "Accompaniment, comping: root and 5th in half notes in the left hand, the 3rd and 7th in the right, through the Bb blues. The quarter-note walking line waits for a walking-bass pattern.",
           "done": "One Bb blues chorus at 100, quarter-note walk, 90%.",
-          "needs": "A Two hands pattern: two-feel and walking bass under shells (jazz rank 8).",
+          "match": {
+            "voicing": "two-feel",
+            "progression": "blues"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minBpm": 100,
           "feeds": "Bye Bye Blackbird"
         },
         {
@@ -1586,27 +1758,45 @@
         {
           "id": "5.4",
           "title": "Rootless dominants with 9 and 13 under a line",
-          "setup": "Two hands, shell plus line, with a rootless left hand; then Jam, blues.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=stabs&progression=blues&transpose=5",
+          "setup": "Accompaniment, comping: rootless left-hand stabs on the and of 2 and on 4 through the F blues, your own bebop line on top (the line is not graded).",
           "done": "One F blues chorus: rootless left-hand stabs on the and-of-2 and 4 under a right-hand bebop line, 90% voicings.",
-          "needs": "Comping in time over any Jam progression: rootless stabs under your own line (jazz rank 2).",
+          "match": {
+            "voicing": "rootless",
+            "rhythm": "stabs",
+            "progression": "blues",
+            "key": "5"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
           "links": [
             {
               "label": "Two hands: shell plus line",
               "href": "/music/two-hand?pattern=lh-shell-rh-line&tonic=F4"
-            },
-            {
-              "label": "Jam: 12-bar blues in F",
-              "href": "/music/jam?progression=blues&transpose=5"
             }
           ]
         },
         {
           "id": "5.5",
           "title": "Bird blues changes",
-          "setup": "Ear, follow the bass, then Jam on the Bird blues (Fmaj7, Em7b5 A7, Dm7 G7, Cm7 F7 ...).",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=140&progression=bird-blues&transpose=0",
+          "setup": "Accompaniment, comping through the Bird blues (Fmaj7, Em7b5 A7, Dm7 G7, Cm7 F7 ...): shells, then rootless.",
           "done": "Comp 2 choruses at 140 with shells, then rootless.",
-          "needs": "The Bird blues in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "match": {
+            "progression": "bird-blues"
+          },
+          "each": {
+            "param": "voicing",
+            "values": ["shells", "rootless"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 140,
           "links": [
+            {
+              "label": "Rootless",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=140&progression=bird-blues&transpose=0"
+            },
             {
               "label": "Ear: follow the bass",
               "href": "/music/ear/bass-lines?answer=choice"
@@ -1906,16 +2096,90 @@
         {
           "id": "6.1",
           "title": "Rhythm changes A section variants",
-          "setup": "Jam: rhythm changes (Bb6 G7 Cm7 F7; Bb Bdim Cm7 C#dim; Dm7 G7 Cm7 F7; Bb7 Eb7 Edim).",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=140&progression=rhythm-changes&transpose=0",
+          "setup": "Accompaniment, comping through the rhythm changes A section in Bb (Bb6 G7 Cm7 F7, then Fm7 Bb7 Eb Edim): shells, then rootless.",
           "done": "Shells, then rootless, 2 choruses at 140, 95%.",
-          "needs": "Rhythm changes in Bb in Jam, with comping scored over it (jazz ranks 2 and 6)."
+          "match": {
+            "progression": "rhythm-changes"
+          },
+          "each": {
+            "param": "voicing",
+            "values": ["shells", "rootless"]
+          },
+          "threshold": 0.95,
+          "minAttempts": 2,
+          "minBpm": 140,
+          "links": [
+            {
+              "label": "Rootless",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=140&progression=rhythm-changes&transpose=0"
+            }
+          ]
         },
         {
           "id": "6.2",
           "title": "The bridge: dominant cycle",
-          "setup": "Rootless dominants D7 G7 C7 F7, 2 bars each, A and B forms alternating.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=0",
+          "setup": "Accompaniment, comping: rootless dominants D7 G7 C7 F7, two bars each, A and B forms alternating, round the 12 keys.",
           "done": "12 keys of the cycle at 120, 95%.",
-          "needs": "A voicing type in Voicings: rootless dominants round the cycle (jazz rank 5).",
+          "match": {
+            "progression": "dominant-cycle",
+            "voicing": "rootless"
+          },
+          "each": {
+            "param": "key",
+            "values": ["10", "5", "0", "7", "2", "9", "4", "11", "6", "1", "8", "3"]
+          },
+          "threshold": 0.95,
+          "minAttempts": 1,
+          "minDays": 1,
+          "minBpm": 120,
+          "links": [
+            {
+              "label": "F",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=-5"
+            },
+            {
+              "label": "C",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=2"
+            },
+            {
+              "label": "G",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=-3"
+            },
+            {
+              "label": "D",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=4"
+            },
+            {
+              "label": "A",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=-1"
+            },
+            {
+              "label": "E",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=6"
+            },
+            {
+              "label": "B",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=1"
+            },
+            {
+              "label": "Gb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=-4"
+            },
+            {
+              "label": "Db",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=3"
+            },
+            {
+              "label": "Ab",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=-2"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=halves&bpm=120&progression=dominant-cycle&transpose=5"
+            }
+          ],
           "feeds": "Sweet Georgia Brown"
         },
         {
@@ -1972,9 +2236,16 @@
         {
           "id": "6.6",
           "title": "Stride-lite left hand",
-          "setup": "Bass on 1 and 3, a mid chord on 2 and 4, on the A section.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=stride-lite&bpm=120&progression=pop-i-vi-ii-v&transpose=-2",
+          "setup": "Accompaniment, stride-lite (left hand only) over I-vi-ii-V, the A section's turnaround.",
           "done": "2 A sections at 120, 90%.",
-          "needs": "A Two hands pattern: stride-lite (jazz rank 8).",
+          "match": {
+            "pattern": "stride-lite",
+            "progression": "pop-i-vi-ii-v"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 120,
           "feeds": "Solo piano, level 7"
         },
         {
@@ -1999,9 +2270,15 @@
         {
           "id": "6.8",
           "title": "Sparse comping at speed",
-          "setup": "A sparse comping rhythm (one or two stabs a bar) over rhythm changes at 180.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=garland&bpm=180&progression=rhythm-changes&transpose=0",
+          "setup": "Accompaniment, comping over the rhythm changes A section with a sparse rhythm (Charleston, Garland or the stabs). Extra attacks are counted but do not lower the score yet.",
           "done": "2 choruses, 90% voicings, no more than 2 attacks per bar.",
-          "needs": "Comping in time over any Jam progression: a sparse rhythm over rhythm changes (jazz rank 2)."
+          "match": {
+            "progression": "rhythm-changes"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 180
         },
         {
           "id": "6.9",

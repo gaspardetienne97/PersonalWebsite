@@ -5,11 +5,11 @@
   import { onDestroy } from "svelte";
   import type { Assistance, InputSource, NoteEvent } from "@repo/music-core";
   import { noteName, parseNote, pc } from "@repo/music-core";
-  import { flashcardCorrect, flashcardDeck, flashcardPrompt, READING_LEVELS, readingLevel, readingRange, type Clef, type FlashcardPrompt } from "@repo/music-core/content/reading";
+  import { flashcardCorrect, flashcardDeck, flashcardPrompt, levelsFor, readingLevel, readingLevelId, readingRange, type Clef, type FlashcardKind, type FlashcardPrompt } from "@repo/music-core/content/reading";
   import { keyByName, KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
   import { gradeFlashcard } from "@repo/music-core/scoring/reading";
   import { rng } from "@repo/music-core/content/random";
-  import type { ReadingLevelId, Tuning } from "@repo/music-core/data/index";
+  import type { Tuning } from "@repo/music-core/data/index";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
@@ -39,19 +39,24 @@
 
   const s = $derived(cfg.value);
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
-  const level = $derived(readingLevel((["primer", "level-1", "level-2", "level-3"].includes(s.level) ? s.level : "primer") as ReadingLevelId));
+  const level = $derived(readingLevel(readingLevelId(s.level)));
   const fretted = $derived(instrument !== "piano" && !!tuning);
   // The Aerophone reads one treble line in its own written range, by exact pitch like the piano.
   const aero = $derived(instrument === "aerophone");
-  const clefs = $derived<Clef[]>(fretted || aero ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
-  // The level's range on the clefs, inside what the instrument can play.
+  // Crossed: either clef shows the notes around middle C (the left hand reading treble, the right bass).
+  const crossed = $derived(!fretted && !aero && s.clefs === "crossed");
+  const clefs = $derived<Clef[]>(fretted || aero ? ["treble"] : crossed ? ["treble", "bass"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
+  // The level's range on the clefs (or the notes asked for), inside what the instrument can play.
   const limits = $derived<[number, number]>(fretted ? playableWrittenRange(tuning!) : aero ? [AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi] : [21, 108]);
-  const range = $derived(clampRange(readingRange(level.id, clefs), limits));
+  const levelRange = $derived<[number, number]>(crossed ? [53, 67] : readingRange(level.id, clefs));
+  const range = $derived(clampRange([s.low || levelRange[0], s.high || levelRange[1]], limits));
   // Sounding minus written: guitar sounds an octave down, the Aerophone by its reading key.
   const transpose = $derived(-writtenOffset(instrument, settings.value, fretted ? tuning : null));
   const byPlay = $derived(s.answer === "play");
   const useMic = $derived(byPlay && fretted && s.input === "mic");
-  const kind = $derived<"note" | "chord">(s.kind === "chord" ? "chord" : "note");
+  const kind = $derived<FlashcardKind>(s.kind === "chord" ? "chord" : s.kind === "satb" && !fretted && !aero ? "satb" : "note");
+  const accidentals = $derived(kind === "note" && !!s.accidentals);
+  const cardOpts = $derived({ kind, clefs: clefs.length ? clefs : (["treble"] as Clef[]), key: key.name, range, difficulty: level.recommendedDifficulty, accidentals, crossed });
 
   const LENGTH = 10;
   const rand = rng(Math.floor(Math.random() * 2 ** 31));
@@ -78,7 +83,7 @@
   let played: number[] = [];
   const flashes = new Flashes();
 
-  const preview = $derived(flashcardPrompt(rng(7), { kind, clefs: clefs.length ? clefs : ["treble"], key: key.name, range, difficulty: level.recommendedDifficulty }));
+  const preview = $derived(flashcardPrompt(rng(7), cardOpts));
   const card = $derived(phase === "running" ? cards[qi] : preview);
   const staffScore = $derived(card ? (answered && !answered.correct ? comparisonScore(card, answered.submitted, key.fifths) : flashcardScore(card, key.fifths)) : null);
   // The card's own choices: the twelve names spelled for the key, or the key's triads.
@@ -93,7 +98,7 @@
   const expectedName = $derived(card ? fullName(card) : "");
 
   function makeCards() {
-    return flashcardDeck(rand, { kind, clefs: clefs.length ? clefs : ["treble"], key: key.name, range, difficulty: level.recommendedDifficulty }, LENGTH);
+    return flashcardDeck(rand, cardOpts, LENGTH);
   }
 
   async function start(_ctx: RunContext) {
@@ -111,14 +116,14 @@
     }
     run = practice.beginRun({
       exerciseId: modeDef.exerciseId,
-      setupKey: `flash|${instrument}|${kind}|${clefs.join(",")}|${key.name}|${range.join("-")}|${s.answer}`,
+      setupKey: `flash|${instrument}|${kind}|${crossed ? "crossed" : clefs.join(",")}|${key.name}|${range.join("-")}|${s.answer}${accidentals ? "|accidentals" : ""}`,
       skillIds: modeDef.skillIds,
       capabilities: ["reading"],
       modality: "read",
       assistance: assistanceFor(mode),
       difficulty: level.recommendedDifficulty,
       instrument: byPlay ? instrument : undefined,
-      params: { instrument, kind, key: key.name, answer: s.answer, low: range[0], high: range[1] },
+      params: { instrument, kind, key: key.name, answer: s.answer, low: range[0], high: range[1], clefs: crossed ? "crossed" : clefs.join(","), accidentals },
     });
     cap = capture(performance.now(), (e) => e.kind === "noteon" && onNote(e));
     show(0);
@@ -140,7 +145,8 @@
     if (e.string && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, cards[qi].midi.some((m) => pc(m) === pc(e.midi - transpose)) ? "correct" : "wrong");
     else flashes.add(e.midi, cards[qi].midi.map((m) => m + transpose).includes(e.midi) ? "correct" : "wrong");
     clearTimeout(chordTimer);
-    const need = cards[qi].midi.length;
+    // A four-part chord doubles its root: three different notes answer it.
+    const need = new Set(cards[qi].midi.map(pc)).size;
     if (need === 1) void answer(played.slice(0, 1));
     else if (new Set(played.map(pc)).size >= need) chordTimer = setTimeout(() => void answer([...played]), 300);
   }
@@ -227,10 +233,10 @@
   function advanceAfter(score: number, correct: boolean) {
     return nextRun(
       `reading.flash.${instrument}.${clefs.join(",")}.${kind}.${s.answer}`,
-      { steps: READING_LEVELS.map((l) => ({ label: l.label })), step: READING_LEVELS.findIndex((l) => l.id === level.id) },
+      { steps: levelsFor(instrument).map((l) => ({ label: l.label })), step: levelsFor(instrument).findIndex((l) => l.id === level.id) },
       { score, correct },
       ({ step }) => {
-        const l = step !== undefined && READING_LEVELS[step];
+        const l = step !== undefined && levelsFor(instrument)[step];
         if (l) cfg.set({ level: l.id });
       },
     );
@@ -253,8 +259,8 @@
 
   const summaryLine = $derived<SetupClause[]>([
     { text: level.label, focus: "level" },
-    { text: kind === "note" ? "single notes" : "triads", focus: "kind" },
-    { text: `${clefs.join(" and ")} clef`, focus: fretted || aero ? undefined : "clefs" },
+    { text: kind === "note" ? (accidentals ? "single notes with accidentals" : "single notes") : kind === "satb" ? "four-part chords" : "triads", focus: "kind" },
+    { text: crossed ? "crossed clefs" : `${clefs.join(" and ")} clef`, focus: fretted || aero ? undefined : "clefs" },
     { text: key.name, focus: "key" },
     { text: `${noteName(range[0])} to ${noteName(range[1])}` },
     { text: byPlay ? (useMic ? "play it into the mic" : "play it") : "name it", focus: "answer" },
@@ -287,7 +293,7 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <SetupFields {cfg} activity="flashcards" {fretted} oneLine={fretted || aero} />
+    <SetupFields {cfg} activity="flashcards" {fretted} oneLine={fretted || aero} {instrument} {limits} />
   {/snippet}
 
   {#snippet hud()}

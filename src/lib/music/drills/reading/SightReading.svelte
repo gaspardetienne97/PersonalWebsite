@@ -6,7 +6,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent, Score, ScoreGroup, Strictness } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
-  import { barQuarters, CLIMB, climbAfter, practiceMissedScore, READING_DEFAULTS, READING_RUNGS, readingLevel, readingRange, sightReadingScore, sightReadingSkills, startClimb, type ClimbState, type Clef } from "@repo/music-core/content/reading";
+  import { barQuarters, CLIMB, READING_METERS, climbAfter, levelMeter, practiceMissedScore, READING_DEFAULTS, readingLevel, readingLevelId, readingRange, readingRungs, sightReadingScore, sightReadingSkills, startClimb, type ClimbState, type Clef } from "@repo/music-core/content/reading";
   import {
     followerInput,
     followerResult,
@@ -21,7 +21,7 @@
   } from "@repo/music-core/scoring/follower";
   import { rng } from "@repo/music-core/content/random";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import type { ReadingLevelId, Tuning } from "@repo/music-core/data/index";
+  import type { Tuning } from "@repo/music-core/data/index";
   import { keyByName, KEY_SIGNATURES } from "@repo/music-core/theory/spelling";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
@@ -42,7 +42,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
-  import { clampRange, handLabel, keyboardSpan, READING_TABS, soundingScore, type ReadingSetup } from "./reading";
+  import { clampRange, fretPosition, handLabel, keyboardSpan, placeInPosition, positionRange, READING_TABS, soundingScore, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
 
   interface Props {
@@ -56,24 +56,30 @@
   const fretted = $derived(instrument !== "piano" && !!tuning);
   // The Aerophone reads one treble line in its own written range, by exact pitch like the piano.
   const aero = $derived(instrument === "aerophone");
-  const levelId = $derived((["primer", "level-1", "level-2", "level-3"].includes(s.level) ? s.level : "primer") as ReadingLevelId);
+  const levelId = $derived(readingLevelId(s.level));
+  const meter = $derived(levelMeter(levelId, s.meter));
+  const rungs = $derived(readingRungs(instrument));
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
   const clefs = $derived<Clef[]>(fretted || aero ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
   const [BPM_MIN, BPM_MAX] = READING_DEFAULTS.bpmLimits;
   const bpm = $derived(Math.min(BPM_MAX, Math.max(BPM_MIN, settings.value.bpm)));
   const climbing = $derived(!!s.climb);
   const follower = $derived<"wait" | "performance">(climbing || s.follower === "performance" ? "performance" : "wait");
-  const measures = $derived(climbing ? CLIMB.measures : s.measures);
+  const measures = $derived(climbing ? CLIMB.measures : Math.min(16, Math.max(1, s.measures)));
   const strictness = $derived<Strictness>((["relaxed", "normal", "strict"] as const).find((x) => x === s.strictness) ?? "normal");
   // Sounding minus written: guitar sounds an octave down, the Aerophone by its reading key.
   const transpose = $derived(-writtenOffset(instrument, settings.value, fretted ? tuning : null));
   const useMic = $derived(fretted && s.input === "mic");
   const entry = catalogEntry("reading")!;
   const modeDef = entry.modes.find((m) => m.id === "sight-reading")!;
-  // The level's range on the clefs, inside what the instrument reads: fretted
-  // instruments stay in first position, the Aerophone in its written range.
-  const limits = $derived<[number, number]>(fretted ? [55, 79] : aero ? [AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi] : [21, 108]);
-  const range = $derived(clampRange(readingRange(levelId, clefs), limits));
+  // The level's range on the clefs (or the notes asked for), inside what the instrument
+  // reads: fretted instruments in the chosen hand position, the Aerophone in its written range.
+  const position = $derived(fretted && tuning ? fretPosition(instrument, s.position) : undefined);
+  const limits = $derived<[number, number]>(
+    position && tuning ? positionRange(tuning, position.frets) : fretted ? [55, 79] : aero ? [AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi] : [21, 108],
+  );
+  const levelRange = $derived(readingRange(levelId, clefs));
+  const range = $derived(clampRange(climbing ? levelRange : [s.low || levelRange[0], s.high || levelRange[1]], limits));
 
   let seed = $state(Math.floor(Math.random() * 2 ** 31));
   let override = $state.raw<{ from: string; score: Score } | null>(null);
@@ -84,15 +90,22 @@
       clefs: clefs.length ? clefs : undefined,
       key: key.name,
       measures,
-      meter: s.meter === "compound" ? "compound" : "simple",
+      meter,
       bpm,
       range,
     }),
   );
   const score = $derived(override && override.from === generated.id ? override.score : generated);
   const groups = $derived(scoreGroups(score));
-  const sounding = $derived(soundingScore(score, transpose));
+  // Fretted: the notes placed in the hand position, so the tab and the fretboard agree with it.
+  const sounding = $derived.by(() => {
+    const out = soundingScore(score, transpose);
+    if (!position || !tuning) return out;
+    return { ...out, voices: out.voices.map((v) => ({ ...v, notes: placeInPosition(v.notes, tuning, position.frets) })) };
+  });
   const beatMs = $derived(60000 / bpm);
+  // The click counts quarters; a bar of 3/8 or 9/8 (not whole quarters) counts two bars' worth.
+  const clockBeats = $derived(Number.isInteger(barQuarters(score.meter)) ? barQuarters(score.meter) : barQuarters(score.meter) * 2);
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -162,9 +175,10 @@
   let climbSeed = -1;
   const BEST_KEY = $derived(`reading.climb-best.${instrument}`);
   $effect(() => void getSetting<number>(BEST_KEY, -1).then((b) => (climbBest = b)));
-  const rungOf = (level: string, keyName: string) => Math.max(0, READING_RUNGS.findIndex((r) => r.level === level && r.key === keyName));
+  const rungOf = (level: string, keyName: string) =>
+    Math.max(0, rungs.findIndex((r) => r.level === level && r.key === keyName), rungs.findIndex((r) => r.level === level));
   function goToRung(i: number) {
-    const r = READING_RUNGS[i];
+    const r = rungs[i];
     cfg.set({ level: r.level, key: r.key, clefs: fretted || aero ? "treble" : r.clefs.join(",") });
   }
   function nextPhrase() {
@@ -178,7 +192,7 @@
 
   async function start(ctx: RunContext) {
     stopPreview();
-    if (climbing && (!climb || climb.over)) climb = startClimb(rungOf(levelId, key.name));
+    if (climbing && (!climb || climb.over)) climb = startClimb(rungOf(levelId, key.name), rungs.length);
     // Every climb phrase is read fresh at the climb's rung, whichever button started it.
     else if (climbing && climb && (seed === climbSeed || rungOf(levelId, key.name) !== climb.rung)) {
       goToRung(climb.rung);
@@ -201,7 +215,7 @@
     stopClockRef = ctx.stopClock;
     run = practice.beginRun({
       exerciseId: modeDef.exerciseId,
-      setupKey: `sight|${instrument}|${levelId}|${clefs.join(",")}|${key.name}|${measures}|${s.meter}|${follower}|${follower === "performance" ? `${bpm}|${strictness}` : "-"}`,
+      setupKey: `sight|${instrument}|${levelId}|${clefs.join(",")}|${key.name}|${measures}|${meter}|${follower}|${follower === "performance" ? `${bpm}|${strictness}` : "-"}|${range.join("-")}|${s.mask}`,
       skillIds: sightReadingSkills(score),
       capabilities: ["reading"],
       modality: "read",
@@ -209,7 +223,21 @@
       assistance: follower === "wait" ? "guided" : assistanceFor(mode),
       difficulty: readingLevel(levelId).recommendedDifficulty,
       instrument,
-      params: { instrument, level: levelId, key: key.name, follower, bpm, measures, meter: s.meter, climb: climbing },
+      params: {
+        instrument,
+        level: levelId,
+        key: key.name,
+        follower,
+        bpm,
+        measures,
+        meter,
+        climb: climbing,
+        low: range[0],
+        high: range[1],
+        mask: s.mask,
+        look: s.look,
+        ...(position ? { position: position.value } : {}),
+      },
     });
     // Scored input starts at the downbeat (after any count-in).
     cap = capture(follower === "performance" ? ctx.downbeat - beatMs / 2 : performance.now(), (e) => e.kind === "noteon" && onNote(e));
@@ -320,8 +348,8 @@
     if (!climbing && (st.mode === "performance" ? st.notes : notes).length) summary.advance = await advanceAfter(r.score, r.correct);
     if (climbing && climb) {
       const was = climb;
-      climb = climbAfter(was, r.score);
-      const here = READING_RUNGS[was.rung].label;
+      climb = climbAfter(was, r.score, rungs.length);
+      const here = rungs[was.rung].label;
       const passed = r.score >= CLIMB.pass;
       if (climb.best > climbBest) {
         climbBest = climb.best;
@@ -332,14 +360,14 @@
           ? `Three strikes on ${here}. Start the climb a level lower, or slow the tempo.`
           : passed
             ? `The top rung, ${here}, passed. Nothing higher to climb.`
-            : `Three strikes. Your level: ${READING_RUNGS[climb.best].label}, rung ${climb.best + 1} of ${READING_RUNGS.length}.`
+            : `Three strikes. Your level: ${rungs[climb.best].label}, rung ${climb.best + 1} of ${rungs.length}.`
         : passed
-          ? `${pct(r.score)} on ${here}: up a rung to ${READING_RUNGS[climb.rung].label}.`
+          ? `${pct(r.score)} on ${here}: up a rung to ${rungs[climb.rung].label}.`
           : `${pct(r.score)} on ${here}: strike ${climb.strikes} of ${CLIMB.strikes}. A new phrase at the same rung.`;
       summary.rows = [
         ...(summary.rows ?? []),
-        { label: "Climb", text: `rung ${climb.rung + 1} of ${READING_RUNGS.length}, ${climb.strikes} of ${CLIMB.strikes} strikes, ${climb.phrases} phrase${climb.phrases === 1 ? "" : "s"}` },
-        ...(climbBest >= 0 ? [{ label: "Best rung on this instrument", text: `${climbBest + 1}, ${READING_RUNGS[climbBest].label}` }] : []),
+        { label: "Climb", text: `rung ${climb.rung + 1} of ${rungs.length}, ${climb.strikes} of ${CLIMB.strikes} strikes, ${climb.phrases} phrase${climb.phrases === 1 ? "" : "s"}` },
+        ...(climbBest >= 0 && rungs[climbBest] ? [{ label: "Best rung on this instrument", text: `${climbBest + 1}, ${rungs[climbBest].label}` }] : []),
       ];
     }
     status = summary.headline;
@@ -349,8 +377,8 @@
   function advanceAfter(score: number, correct: boolean) {
     const timed = follower === "performance";
     return nextRun(
-      `reading.sight.${instrument}.${follower}.${measures}.${s.meter}`,
-      { ...(timed ? { bpm, tempo: { min: BPM_MIN, goal: 100, max: BPM_MAX } } : {}), steps: READING_RUNGS, step: rungOf(levelId, key.name) },
+      `reading.sight.${instrument}.${follower}.${measures}.${meter}`,
+      { ...(timed ? { bpm, tempo: { min: BPM_MIN, goal: 100, max: BPM_MAX } } : {}), steps: rungs, step: rungOf(levelId, key.name) },
       { score, correct },
       ({ bpm: b, step }) => {
         if (b !== undefined) void settings.update({ bpm: b });
@@ -417,6 +445,32 @@
     if (phase === "running" && live.wrong.length && live.index < groups.length) out[live.index] = "wrong";
     return out;
   });
+  // The look-ahead mask: played notes hide, and only the next `mask` beats show.
+  // ponytail: beams and ties are drawn outside the note groups and stay visible.
+  const shownStates = $derived.by(() => {
+    if (!s.mask || phase === "results") return groupStates;
+    const from = phase !== "running" || !live ? 0 : fs?.mode === "performance" ? (cursorBeat ?? 0) : (current?.startBeat ?? 0);
+    const out: Record<number, GroupState> = { ...groupStates };
+    groups.forEach((g, i) => {
+      if (out[i] !== "active" && (g.startBeat + g.durationBeats <= from + 1e-6 || g.startBeat >= from + s.mask - 1e-6)) out[i] = "hidden";
+    });
+    return out;
+  });
+
+  // Look first: Start opens after the set seconds on each new phrase.
+  let lookLeft = $state(0);
+  let lookedAt = "";
+  $effect(() => {
+    if (phase !== "ready" || !s.look || lookedAt === score.id) return;
+    lookedAt = score.id;
+    lookLeft = s.look;
+    const t = setInterval(() => {
+      lookLeft = Math.max(0, lookLeft - 1);
+      if (!lookLeft) clearInterval(t);
+    }, 1000);
+    return () => clearInterval(t);
+  });
+  const lookBlock = $derived(phase === "ready" && s.look && lookLeft > 0 ? `Look first, ${lookLeft} s: find the key, the meter and the hardest bar, and hum bar 1.` : null);
 
   const both = $derived(instrument === "piano" && score.voices.length > 1);
   const pianoMarks = $derived.by(() => {
@@ -432,12 +486,13 @@
   const low = $derived(span[0]);
   const high = $derived(span[1]);
   const tabTuning = $derived(tuning ? { openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name } : null);
-  const positions = $derived(tabTuning ? assignTab(sounding.voices.flatMap((v) => v.notes), tabTuning, 12) : []);
+  const positions = $derived(tabTuning ? assignTab(sounding.voices.flatMap((v) => v.notes), tabTuning, Math.max(12, position?.frets[1] ?? 0)) : []);
   const fretFrom = $derived(Math.max(0, Math.min(...positions.map((p) => p?.fret ?? 0)) - 1));
   const fretTo = $derived(Math.max(fretFrom + 4, Math.max(...positions.map((p) => p?.fret ?? 0)) + 1));
   const fretMarks = $derived.by(() => {
     if (!tabTuning || phase !== "running" || mode !== "practice" || !current) return [];
-    const at = assignTab(current.notes.map((n) => ({ ...n, midi: n.midi + transpose })), tabTuning, 12);
+    const notes = current.notes.map((n) => ({ ...n, midi: n.midi + transpose }));
+    const at = assignTab(position && tuning ? placeInPosition(notes, tuning, position.frets) : notes, tabTuning, 12);
     return at.flatMap((p) => (p ? [{ string: p.string, fret: p.fret }] : []));
   });
   // A short phrase engraves at its natural size (about 190 px a bar); zoom it to fill the stage.
@@ -450,7 +505,9 @@
     { text: `${climbing ? "Level climb from " : ""}${readingLevel(levelId).label}`, focus: climbing ? "session" : "level" },
     { text: key.name, focus: "key" },
     { text: `${clefs.join(" and ")} clef`, focus: fretted || aero || climbing ? undefined : "clefs" },
-    { text: `${measures} bar${measures > 1 ? "s" : ""} of ${s.meter === "compound" ? "6/8" : "4/4"}`, focus: climbing ? "meter" : "measures" },
+    { text: `${measures} bar${measures > 1 ? "s" : ""} of ${READING_METERS[meter].label}`, focus: climbing ? "meter" : "measures" },
+    ...(s.mask ? [{ text: `${s.mask} beats ahead`, focus: "mask" }] : []),
+    ...(position ? [{ text: `${position.label.toLowerCase()} position`, focus: "position" }] : []),
     follower === "wait" ? { text: "waits for you", focus: "follower" } : { text: `keeps time at ${bpm} BPM, ${strictness} window`, focus: "strictness" },
     { text: `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted ? "input" : undefined },
   ]);
@@ -475,19 +532,20 @@
   bind:mode
   bind:status
   progress={live ? live.index / Math.max(1, groups.length) : 0}
-  clock={follower === "performance" ? { bpm, beatsPerBar: barQuarters(score.meter) } : null}
+  clock={follower === "performance" ? { bpm, beatsPerBar: clockBeats } : null}
+  blocked={lookBlock}
   ondemo={togglePreview}
   demoPlaying={!!preview?.playing}
   onstart={start}
   onstop={stop}
 >
   {#snippet setup()}
-    <SetupFields {cfg} activity="sight-reading" {fretted} oneLine={fretted || aero} />
+    <SetupFields {cfg} activity="sight-reading" {fretted} oneLine={fretted || aero} {instrument} limits={fretted && tuning ? positionRange(tuning, [0, 12]) : limits} />
   {/snippet}
 
   {#snippet hud()}
     {#if climbing && climb && !climb.over}
-      <Stat label="Rung" value={`${climb.rung + 1} of ${READING_RUNGS.length}`} />
+      <Stat label="Rung" value={`${climb.rung + 1} of ${rungs.length}`} />
       <Stat label="Strikes" value={`${climb.strikes} of ${CLIMB.strikes}`} />
     {/if}
     {#if phase === "running" && live}
@@ -503,7 +561,7 @@
     <div bind:clientWidth={paperW} data-expected={current?.notes.map((n) => n.midi + transpose).join(",") ?? ""} data-group={live?.index ?? -1} class="paper-wrap">
       <div style:zoom={zoom}>
         {#key score.id}
-          <Staff {score} {cursorBeat} {groupStates} maxHeight="22rem" />
+          <Staff {score} {cursorBeat} groupStates={shownStates} maxHeight={measures > 4 ? "32rem" : "22rem"} />
         {/key}
       </div>
     </div>
@@ -518,7 +576,7 @@
     </div>
     {#if fretted && tabTuning && showTab}
       <div id="sight-tab" class="mt-3" style:zoom={zoom}>
-        <Tab score={sounding} tuning={tabTuning} {cursorBeat} {groupStates} maxHeight="14rem" />
+        <Tab score={sounding} tuning={tabTuning} {cursorBeat} groupStates={shownStates} maxHeight={measures > 4 ? "24rem" : "14rem"} />
       </div>
     {/if}
     <div class="mt-4">

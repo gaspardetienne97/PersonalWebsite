@@ -465,7 +465,7 @@ describe("a key held for the run", () => {
 });
 
 describe("drill definitions", () => {
-  it("has 15 drills (the table's 7 and 8 the app adds)", () => {
+  it("has 16 drills (the table's 7 and 9 the app adds)", () => {
     expect(EAR_DRILLS.map((d) => d.route)).toEqual(
       [
         "intervals",
@@ -474,6 +474,7 @@ describe("drill definitions", () => {
         "cadences",
         "chord-functions",
         "progressions",
+        "song-loops",
         "scales",
         "inversions",
         "bass-lines",

@@ -1,5 +1,6 @@
 <script lang="ts" module>
-  export type GroupState = "correct" | "wrong" | "missed" | "active";
+  /** "hidden": a look-ahead mask leaves the group out of sight. */
+  export type GroupState = "correct" | "wrong" | "missed" | "active" | "hidden";
 
   /** Props Staff and Tab both take and pass straight through. */
   export interface FrameProps {
@@ -386,6 +387,9 @@
   }
   .host :global(g[data-state="missed"]) {
     color: var(--ws-soft);
+  }
+  .host :global(g[data-state="hidden"]) {
+    opacity: 0;
   }
   .cell {
     position: absolute;

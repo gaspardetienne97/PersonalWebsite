@@ -13,6 +13,7 @@ export type EarDrillKind =
   | "cadence"
   | "chord-function"
   | "progression"
+  | "loop"
   | "scale"
   | "inversion"
   | "bass-line"
@@ -87,6 +88,17 @@ const CHORD_FUNCTION_DRILLS = [
     usesLabels: false,
     queueMode: "balanced",
     skillIds: ["ear.progressions"],
+  },
+  {
+    slug: "song-loops",
+    title: "Song loops",
+    description: "The key is set, then a chord loop plays as a groove: name every chord.",
+    drill: "loop",
+    answerModes: ["choice", "play-back", "listen", "listen-along"],
+    usesScaleDegreeLevel: false,
+    usesLabels: false,
+    queueMode: "balanced",
+    skillIds: ["ear.loops"],
   },
   {
     slug: "scales",
@@ -857,12 +869,14 @@ export const chordResolution = (keyPc: number, token: string) =>
  * The key a prompt is heard in, or undefined when it has none. Minor for minor
  * chords, or for a degree set with b3 and no 3 (the minor diatonic level).
  */
-export function promptKey(p: EarPrompt & { keyPc?: number }) {
+export function promptKey(p: EarPrompt & { keyPc?: number; minor?: boolean }) {
   if (p.keyPc === undefined) return undefined;
   const minor =
-    p.drill === "scale-degree"
-      ? p.choices.includes("b3") && !p.choices.includes("3")
-      : parseFunction(p.answer.split(" ")[0]).minor;
+    p.minor !== undefined
+      ? p.minor
+      : p.drill === "scale-degree"
+        ? p.choices.includes("b3") && !p.choices.includes("3")
+        : parseFunction(p.answer.split(" ")[0]).minor;
   return { keyPc: p.keyPc, minor };
 }
 

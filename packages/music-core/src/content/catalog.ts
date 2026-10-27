@@ -65,6 +65,7 @@ const EAR_EXERCISE: Record<string, string> = {
   cadences: "ear.cadences",
   "chord-functions": "ear.chord-functions",
   progressions: "ear.progressions",
+  "song-loops": "ear.song-loops",
   scales: "ear.scales",
   inversions: "ear.inversions",
   "bass-lines": "ear.bass-lines",
@@ -89,6 +90,7 @@ const EAR_BLURB: Record<string, string> = {
   cadences: "Hear two chords that end a phrase and name the cadence.",
   "chord-functions": "Hear a chord after the key is set and name its place in the key, I to vii°.",
   progressions: "Hear three or four chords starting on I and write down the rest.",
+  "song-loops": "Hear a song's chord loop as a groove after the key is set and name every chord.",
   scales: "Hear a scale over its tonic and name it, from major and minor to the modes.",
   inversions: "Hear a chord and say which of its notes is in the bass.",
   "bass-lines": "Hear chords from I and write down the bass line by degree.",
@@ -225,6 +227,25 @@ export const CATALOG: CatalogEntry[] = [
     modality: "played",
     exerciseId: "comping",
     skillIds: ["technique.piano.comping"],
+  }),
+  entry({
+    id: "accompany",
+    route: "/music/accompany",
+    title: "Accompaniment",
+    blurb:
+      "Play pop, blues and gospel patterns, jazz comping or a lead sheet over a chord chart in any key.",
+    instruments: ["piano"],
+    capability: "technique",
+    modality: "played",
+    modes: [
+      mode("patterns", "Patterns", "technique.piano.accompaniment", [
+        "technique.piano.two-hand-independence",
+      ]),
+      mode("comping", "Comping", "technique.piano.comping-changes", ["technique.piano.comping"]),
+      mode("lead-sheet", "Lead sheet", "technique.piano.lead-sheet", [
+        "technique.piano.two-hand-independence",
+      ]),
+    ],
   }),
   entry({
     id: "voicings",
@@ -488,6 +509,34 @@ export const CATALOG: CatalogEntry[] = [
     modes: STUDIO_EXERCISES.map((e) =>
       mode(e.id, e.title, `studio.${e.id}`, ["studio.ears", e.skillId]),
     ),
+  }),
+  entry({
+    id: "by-ear",
+    route: "/music/by-ear",
+    title: "Learn by ear",
+    blurb:
+      "Loop a part of a recording you own, slow it down, mark its sections and play it back, or find the note that sounds like home.",
+    instruments: [...INSTRUMENTS],
+    capability: "ear",
+    modality: "played",
+    modes: [
+      mode("learn", "Learn a part", "ear.by-ear", ["ear.by-ear"]),
+      mode("home", "Find home", "ear.find-home", ["ear.find-home"]),
+    ],
+  }),
+  entry({
+    id: "call-response",
+    route: "/music/call-response",
+    title: "Call and response",
+    blurb:
+      "Hear a short call over a groove and play it back in time, or answer it with your own phrase that lands on a chord tone.",
+    instruments: ["piano", "guitar", "ukulele", "aerophone"],
+    capability: "ear",
+    modality: "played",
+    modes: [
+      mode("echo", "Echo the call", "ear.call-response.echo", ["ear.call-response"]),
+      mode("answer", "Answer it", "ear.call-response.answer", ["ear.call-response"]),
+    ],
   }),
   entry({
     id: "lab",

@@ -36,6 +36,7 @@ import {
   type EarPrompt,
 } from "@repo/music-core/content/ear";
 import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
+import { CHORD_LOOPS, loopPrompt, loopsIn, numeralLabel } from "@repo/music-core/content/loops";
 import { INTERVALS } from "@repo/music-core/theory/intervals";
 import { pick, randInt, type Rand } from "@repo/music-core/content/random";
 import type { ScoringEvent, SkillMastery } from "@repo/music-core";
@@ -58,6 +59,7 @@ export type EarKind =
   | "cadence"
   | "chord-function"
   | "progression"
+  | "loop"
   | "scale"
   | "inversion"
   | "bass-line"
@@ -108,6 +110,8 @@ export interface Focus {
   scaleDirection?: ScaleDirection;
   /** Bass lines: which level (roots on 1 4 5, roots on 1 2 4 5 6, lines through inversions). */
   bassLevel?: string;
+  /** Song loops: which set of loops (LOOP_SETS). */
+  loops?: string;
   /** Drills in a key (degrees, chords in a key, progressions, bass lines): the run's tonic pitch class. */
   keyPc?: number;
 }
@@ -200,6 +204,13 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
         skillId: functionSkill(token),
       }));
     }
+    case "loop":
+      // One target per loop of the set; every loop when no set is named (a retry).
+      return (focus?.loops ? loopsIn(focus.loops) : CHORD_LOOPS).map((l) => ({
+        kind,
+        token: l.id,
+        skillId: `ear.loops.${l.set}`,
+      }));
     case "scale-degree":
     case "melody-dictation":
       return levelDegrees(level).map((d) => ({
@@ -304,6 +315,12 @@ export function promptFor(
         token: t.token,
         keyPc: focus?.keyPc,
         choices: focusFunctionTokens(focus),
+      });
+    case "loop":
+      return loopPrompt(rand, {
+        loop: CHORD_LOOPS.find((l) => l.id === t.token) ?? CHORD_LOOPS[0],
+        difficulty,
+        keyPc: focus?.keyPc,
       });
     case "scale-degree":
       return scaleDegreePrompt(rand, { difficulty, level, degree: t.token, keyPc: focus?.keyPc });
@@ -479,6 +496,7 @@ export const KIND_LABEL: Record<EarKind, string> = {
   "pitch-compare": "Fine pitch",
   "error-detect": "Spot the wrong note",
   progression: "Progressions",
+  loop: "Song loops",
   "scale-degree": "Scale degrees",
   "melody-dictation": "Melody dictation",
 };
@@ -508,6 +526,7 @@ export function tokenLabel(
   if (kind === "inversion") return EAR_INVERSIONS.find((x) => x.token === token)?.name ?? token;
   if (kind === "scale") return EAR_SCALES.find((x) => x.token === token)?.name ?? token;
   if (kind === "progression") return token.split(" ").map(functionLabel).join(", ");
+  if (kind === "loop") return token.split(" ").map(numeralLabel).join(", ");
   if (kind === "scale-degree" && SCALE_DEGREES.some((d) => d.label === token))
     return degreeLabel(token, labels);
   if (kind === "melody-dictation" || kind === "repertoire-transfer")

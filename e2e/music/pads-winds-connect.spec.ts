@@ -266,7 +266,7 @@ test("Aerophone fingering: Roland's first lesson, a slip named, the octave cresc
 
   // D5 needs the octave key: the +1 thumb crescent lights.
   await page.goto("/music/aerophone?mode=long-tone&target=74");
-  expect(await lit()).toContain("oct+1");
+  await expect.poll(lit).toContain("oct+1");
 });
 
 test("Aerophone and pads with on-screen input only say what they cannot measure", async ({

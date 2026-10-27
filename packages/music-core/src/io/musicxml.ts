@@ -129,6 +129,8 @@ export function parseMusicXml(xml: string): Score {
   let keyMode: Score["keyMode"];
   const voices: ScoreVoice[] = [];
   let lengthBeats = 0;
+  // Chord symbols from the first part that has any: [beat, symbol].
+  let harmony: [number, string][] = [];
 
   for (const part of kids(doc, "part")) {
     const partId = part.attrs.id;
@@ -144,6 +146,7 @@ export function parseMusicXml(xml: string): Score {
     let percussion = false;
     const clefs = new Map<number, "treble" | "bass">();
     const byVoice = new Map<string, { notes: ScoreNote[]; staves: number[] }>();
+    const partHarmony: [number, string][] = [];
     let measureStart = 0;
 
     kids(part, "measure").forEach((measure, index) => {
@@ -173,6 +176,13 @@ export function parseMusicXml(xml: string): Score {
             if (sign === "G" || sign === "F")
               clefs.set(Number(clef.attrs.number) || 1, sign === "G" ? "treble" : "bass");
           }
+        } else if (el.name === "harmony") {
+          const symbol = chordSymbol(el);
+          if (symbol)
+            partHarmony.push([
+              round4(measureStart + (pos + num(el, "offset")) / divisions),
+              symbol,
+            ]);
         } else if (el.name === "direction" || el.name === "sound") {
           bpm ??= tempoOf(el);
         } else if (el.name === "backup") {
@@ -225,6 +235,7 @@ export function parseMusicXml(xml: string): Score {
     });
 
     lengthBeats = Math.max(lengthBeats, measureStart);
+    if (!harmony.length) harmony = partHarmony;
     const many = byVoice.size > 1;
     for (const [voice, { notes, staves: used }] of byVoice) {
       const staff = mode(used);
@@ -253,8 +264,66 @@ export function parseMusicXml(xml: string): Score {
     ...(keyFifths !== undefined && { keyFifths, keyMode }),
     voices,
     lengthBeats,
+    ...(harmony.length && {
+      chords: harmony.map(([startBeat, symbol], i) => ({
+        symbol,
+        startBeat,
+        durationBeats: round4((harmony[i + 1]?.[0] ?? lengthBeats) - startBeat),
+      })),
+    }),
     source: { kind: "musicxml", xml },
   };
+}
+
+/** MusicXML chord kinds as the suffixes `parseChordSymbol` reads. */
+const KIND_SUFFIX: Record<string, string> = {
+  major: "",
+  minor: "m",
+  augmented: "aug",
+  diminished: "dim",
+  dominant: "7",
+  "major-seventh": "maj7",
+  "minor-seventh": "m7",
+  "diminished-seventh": "dim7",
+  "augmented-seventh": "7#5",
+  "half-diminished": "m7b5",
+  "major-minor": "mMaj7",
+  "major-sixth": "6",
+  "minor-sixth": "m6",
+  "dominant-ninth": "9",
+  "major-ninth": "maj9",
+  "minor-ninth": "m9",
+  "dominant-11th": "9",
+  "minor-11th": "m11",
+  "dominant-13th": "13",
+  "suspended-second": "sus2",
+  "suspended-fourth": "sus4",
+  power: "",
+};
+const ALTER_NAME = (alter: number) => (alter < 0 ? "b" : alter > 0 ? "#" : "");
+
+/** A <harmony> element as a chord symbol (Dm7, G7b9, C/E), or undefined for "N.C." and unknown kinds. */
+function chordSymbol(el: XmlNode): string | undefined {
+  const root = kid(el, "root");
+  const kind = txt(el, "kind");
+  if (!root || !(kind in KIND_SUFFIX)) return undefined;
+  let suffix = KIND_SUFFIX[kind];
+  for (const d of kids(el, "degree")) {
+    const value = num(d, "degree-value");
+    const alter = Math.round(num(d, "degree-alter"));
+    if (txt(d, "degree-type") === "add" && [9, 11, 13].includes(value))
+      suffix =
+        suffix === "" && value === 9 && !alter
+          ? "add9"
+          : `${suffix || "7"}${ALTER_NAME(alter)}${value}`;
+    else if (txt(d, "degree-type") === "alter" && [5, 9, 11, 13].includes(value) && alter)
+      suffix += `${ALTER_NAME(alter)}${value}`;
+  }
+  const bass = kid(el, "bass");
+  const slash = bass
+    ? `/${txt(bass, "bass-step")}${ALTER_NAME(Math.round(num(bass, "bass-alter")))}`
+    : "";
+  return `${txt(root, "root-step")}${ALTER_NAME(Math.round(num(root, "root-alter")))}${suffix}${slash}`;
 }
 
 function mode(values: number[]): number {

@@ -32,7 +32,7 @@
     type DynamicsId,
     type VelocityRange,
   } from "@repo/music-core/content/pad-skills";
-  import { PAD_REPERTOIRE } from "@repo/music-core/content/pads-repertoire";
+  import { PAD_REPERTOIRE, repertoireFor } from "@repo/music-core/content/pads-repertoire";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -60,6 +60,8 @@
     echo: "kick-snare" as string,
     dyn: "ladder" as string,
     bars: 4,
+    // What Improvise plays over: the band's funk vamp, or a groove on the kit with the band in its style.
+    loop: "funk" as string,
     phrase: "son-clave" as string,
   });
   const s = $derived(cfg.value);
@@ -76,9 +78,24 @@
     skill === "phrases" ? padPhrase.groove : skill === "fills" ? fillGroove(s.fill) : skill === "orchestrate" ? orchestrationGroove(s.orch) : skill === "ostinato" ? ostinatoGroove(s.line) : skill === "echo" ? echoGroove(s.echo) : null,
   );
   const gt = $derived(grooveDef ? grooveTargetsFor(grooveDef, bpm) : null);
+  /** Grid steps a beat: sixteenths, or triplets for the shuffle fills. */
+  const gridPer = $derived(grooveDef?.stepsPerBeat ?? 4);
   const dyn = $derived(DYNAMICS_EXERCISES.find((d) => d.id === s.dyn) ?? DYNAMICS_EXERCISES[0]);
   const dynSlots = $derived(Array.from({ length: dyn.notes }, (_, i) => (i * beatMs) / dyn.perBeat));
-  const improBars = $derived([4, 8].includes(s.bars) ? s.bars : 4);
+  const improBars = $derived([4, 8, 16, 32].includes(s.bars) ? s.bars : 4);
+  const LOOPS = ["funk", "boom-bap-b", "basic-rock", "house", "funk-sixteenths", "blues-shuffle"];
+  const loopEntry = $derived(s.loop === "funk" ? null : (repertoireFor(s.loop) ?? null));
+  /** The loop under Improvise: the groove on the kit, repeated to fill the bars, and the band in its style. */
+  function improBacking() {
+    if (!loopEntry) return backingFor("Funk", Array.from({ length: improBars }, (_, b) => [{ beat: b * 4, voice: "kick" }, { beat: b * 4 + 2.5, voice: "kick" }]).flat(), improBars, beatMs);
+    const g = loopEntry.groove;
+    const targets = Array.from({ length: Math.ceil(improBars / g.bars) }, (_, c) => g.targets.map((t) => ({ ...t, beat: t.beat + c * g.bars * 4 })))
+      .flat()
+      .filter((t) => t.beat < improBars * 4);
+    const kit = targets.map((t) => ({ midi: voicePads[t.voice], time: (t.beat * beatMs) / 1000, duration: 0.12, velocity: t.accent === "accent" ? 0.8 : t.accent === "ghost" ? 0.3 : 0.55, voice: "drum" as const }));
+    return [...kit, ...backingFor(loopEntry.style, targets, improBars, beatMs)];
+  }
+  const loopName = (id: string) => (id === "funk" ? "Funk vamp, band only" : (repertoireFor(id)?.groove.label ?? id));
   const lengthMs = $derived(gt ? gt.lengthMs + (grooveDef!.targets.some((t) => t.beat >= grooveDef!.bars * 4) ? beatMs : 0) : skill === "dynamics" ? dyn.notes * (beatMs / dyn.perBeat) : improBars * barMs);
 
   let phase = $state<Phase>("ready");
@@ -139,7 +156,7 @@
     status = "Play your four softest hits on any pad, then your four loudest.";
   }
 
-  const sixteenthNow = $derived(phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / (beatMs / 4)) : null);
+  const sixteenthNow = $derived(phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / (beatMs / gridPer)) : null);
   const inCallBar = $derived(skill === "echo" && phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / barMs) % 2 === 0 : false);
 
   const usedVoices = $derived(gt ? GROOVE_VOICES.filter((v) => gt.targets.some((t) => t.voice === v.id)) : []);
@@ -148,7 +165,7 @@
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (!gt || mode !== "practice" || phase !== "running" || skill === "echo" || sixteenthNow === null) return out;
-    for (const t of gt.targets) if (Math.round(t.beat * 4) === sixteenthNow) out[t.pad] = { target: true };
+    for (const t of gt.targets) if (Math.round(t.beat * gridPer) === sixteenthNow) out[t.pad] = { target: true };
     return out;
   });
 
@@ -157,7 +174,7 @@
     ...(skill === "phrases"
       ? [{ text: `${padPhrase.groove.label} (${padPhrase.style})`, focus: "phrase" }]
       : skill === "fills"
-        ? [{ text: `Fill: ${PAD_FILLS.find((f) => f.id === s.fill)?.label ?? ""}`, focus: "fill" }, { text: "after three bars of rock, landing on the one" }]
+        ? [{ text: `Fill: ${PAD_FILLS.find((f) => f.id === s.fill)?.label ?? ""}`, focus: "fill" }, { text: `after three bars of ${PAD_FILLS.find((f) => f.id === s.fill)?.groove ? "shuffle" : "rock"}, landing on the one` }]
         : skill === "orchestrate"
           ? [{ text: `Paradiddle: ${orch.label.toLowerCase()}`, focus: "orch" }]
           : skill === "ostinato"
@@ -166,7 +183,7 @@
               ? [{ text: `Play it back: ${ECHO_LEVELS.find((l) => l.id === s.echo)?.label ?? ""}`, focus: "echo" }, { text: "four rounds" }]
               : skill === "dynamics"
                 ? [{ text: dyn.label, focus: "dyn" }]
-                : [{ text: `Improvise over ${improBars} bars of the band`, focus: "bars" }]),
+                : [{ text: `Improvise over ${improBars} bars`, focus: "bars" }, { text: loopEntry ? `of ${loopEntry.groove.label} and the band` : "of the band", focus: "loop" }]),
     { text: `${bpm} BPM` },
   ]);
 
@@ -190,7 +207,7 @@
       ? (skill === "echo" ? (grooveDef as ReturnType<typeof echoGroove>).calls : grooveDef!.targets).map((t) => ({ midi: voicePads[t.voice], time: (t.beat * beatMs) / 1000, duration: 0.12, velocity: t.accent === "accent" ? 1 : t.accent === "ghost" ? 0.35 : 0.75, voice: "drum" as const }))
       : skill === "dynamics"
         ? dynSlots.map((at, i) => ({ midi: 38, time: at / 1000, duration: 0.1, velocity: s.dyn === "ladder" ? 0.2 + ladderBand(i)[0] * 0.8 : s.dyn === "crescendo" ? 0.15 + (i / 15) * 0.85 : 0.6, voice: "drum" as const }))
-        : backingFor("Funk", [{ beat: 0, voice: "kick" }, { beat: 2.5, voice: "kick" }].flatMap((k) => Array.from({ length: improBars }, (_, b) => ({ ...k, beat: k.beat + b * 4 }))), improBars, beatMs);
+        : improBacking();
     const handle = audio.playSequence(notes);
     demo = handle;
     status = skill === "echo" ? "Listen: the four calls. In the run, each is followed by a bar for your answer." : "Listen: how it goes. Not scored.";
@@ -225,15 +242,14 @@
       assistance: skill === "improvise" ? "guided" : assistanceFor(mode),
       difficulty: skill === "dynamics" ? 0.45 : skill === "echo" ? 0.5 : skill === "improvise" ? 0.4 : 0.55,
       instrument: "mpc",
-      params: { skill, bpm, setup: grooveDef?.value ?? s.dyn },
+      params: { skill, bpm, setup: grooveDef?.value ?? (skill === "improvise" ? s.loop : s.dyn), ...(skill === "improvise" ? { bars: improBars } : {}) },
     });
     cap = capture(ctx.downbeat - beatMs / 2, (e) => e.kind === "noteon" && onHit(e as NoteEvent));
     if (skill === "echo") band = hearCalls(ctx.downbeat);
     if (skill === "improvise") {
       const lead = Math.max(0, (ctx.downbeat - performance.now()) / 1000);
-      const kicks = Array.from({ length: improBars }, (_, b) => [{ beat: b * 4, voice: "kick" }, { beat: b * 4 + 2.5, voice: "kick" }]).flat();
-      band = audio.playSequence(backingFor("Funk", kicks, improBars, beatMs).map((n) => ({ ...n, time: n.time + lead })));
-      status = "Improvise: any pads, any rhythm. Listen to the band and lock in.";
+      band = audio.playSequence(improBacking().map((n) => ({ ...n, time: n.time + lead })));
+      status = loopEntry ? "Improvise: any pads, any rhythm, over the loop. Lock in with its kick." : "Improvise: any pads, any rhythm. Listen to the band and lock in.";
     } else if (skill === "dynamics") status = s.dyn === "ladder" ? "Four soft, four a little louder, four louder, four loudest." : s.dyn === "crescendo" ? "Start as soft as you can and grow to your loudest." : "Every hit the same: a steady middle level.";
     else if (skill === "echo") status = "Listen to the bar, then play it back in the next.";
     const tick = () => {
@@ -421,7 +437,8 @@
       {:else if skill === "dynamics"}
         <Choice label="Exercise" options={DYNAMICS_EXERCISES.map((d) => ({ value: d.id as string, label: d.label }))} value={s.dyn} onchange={(v) => cfg.set({ dyn: v })} setupKey="dyn" />
       {:else}
-        <Choice label="Bars" options={[4, 8].map((n) => ({ value: n, label: String(n) }))} value={improBars} onchange={(v) => cfg.set({ bars: v })} setupKey="bars" />
+        <Choice label="Bars" options={[4, 8, 16, 32].map((n) => ({ value: n, label: String(n) }))} value={improBars} onchange={(v) => cfg.set({ bars: v })} setupKey="bars" />
+        <Choice label="Loop" options={LOOPS.map((id) => ({ value: id, label: loopName(id) }))} value={loopEntry ? s.loop : "funk"} onchange={(v) => cfg.set({ loop: v })} setupKey="loop" />
       {/if}
     </div>
   {/snippet}
@@ -430,7 +447,7 @@
     {#if phase === "running" && skill === "echo"}
       <Stat label="Now" value={inCallBar ? "listen" : "your turn"} tone={inCallBar ? undefined : "success"} />
     {:else if phase === "running" && sixteenthNow !== null}
-      <Stat label="Bar" value={`${Math.min(Math.floor(sixteenthNow / 16) + 1, Math.ceil(lengthMs / barMs))}`} />
+      <Stat label="Bar" value={`${Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs))}`} />
     {/if}
   {/snippet}
 
@@ -443,7 +460,7 @@
         <p class="text-sm"><span class="font-semibold">Paradiddle, {orch.label.toLowerCase()}.</span> <span class="text-ws-stage-soft">{orch.detail}. Two bars of sixteenths, the accents on each group's first stroke.</span></p>
       {/if}
       {#if gt && grooveDef && (skill !== "echo" || phase === "results") && (mode === "practice" || phase === "results")}
-        <GrooveGrid targets={gt.targets} bars={grooveDef.bars} sectionLabels={grooveDef.sectionLabels} playhead={sixteenthNow} outcomes={grv?.perTarget} windowMs={gt.matchWindowMs / 2} />
+        <GrooveGrid targets={gt.targets} bars={grooveDef.bars} sectionLabels={grooveDef.sectionLabels} playhead={sixteenthNow} outcomes={grv?.perTarget} windowMs={gt.matchWindowMs / 2} stepsPerBeat={gridPer} />
       {:else if skill === "echo"}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm" aria-live="polite">{phase === "running" ? (inCallBar ? "Listen…" : "Your turn: play it back.") : "Each call is a bar on the kit; play it back in the bar after. The grid shows after the run."}</p>
       {:else if skill === "dynamics"}
@@ -465,7 +482,7 @@
           <p class="mt-1 text-xs text-ws-stage-soft">Shaded: where each hit should land. Bars: where yours did.</p>
         </div>
       {:else}
-        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Any pads. The band plays {improBars} bars of a funk vamp; listen back afterwards, as played and nudged half way to the grid.</p>
+        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Any pads. {loopEntry ? `The kit loops ${loopEntry.groove.label} for ${improBars} bars with the band in its style` : `The band plays ${improBars} bars of a funk vamp`}; listen back afterwards, as played and nudged half way to the grid.</p>
       {/if}
       <Pads marks={marks} {flashes} {names} {colors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
     </div>

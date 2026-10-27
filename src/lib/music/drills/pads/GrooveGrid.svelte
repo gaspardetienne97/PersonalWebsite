@@ -1,6 +1,6 @@
 <script lang="ts">
-  // The expected groove as a sixteenth grid, one block per bar, counts written
-  // "1 e & a". Accents carry a ">" (not colour alone); after a run each target
+  // The expected groove as a step grid, one block per bar, counts written
+  // "1 e & a" (sixteenths), "1 & a" (triplets) or "1 2 3" (7/8's eighths). Accents carry a ">" (not colour alone); after a run each target
   // shows how it landed with a glyph. Fits 375 px: 16 columns plus a name column.
   import type { GrooveTarget } from "@repo/music-core/content/winds-pads";
   import { GROOVE_VOICES } from "@repo/music-core/content/winds-pads";
@@ -10,27 +10,36 @@
     targets: GrooveTarget[];
     bars: number;
     sectionLabels: readonly string[];
-    /** Sixteenth index from the downbeat while a run or demo plays. */
+    /** Step index from the downbeat while a run or demo plays. */
     playhead?: number | null;
+    /** Grid steps a click (4 sixteenths, 3 or 6 triplets, 2 for 7/8). */
+    stepsPerBeat?: number;
+    beatsPerBar?: number;
     /** Per target: error ms (positive late) or null when missed; undefined before results. */
     outcomes?: (number | null)[];
     /** A hit this far off or less shows as on time: the same window the results call good. */
     windowMs?: number;
   }
-  let { targets, bars, sectionLabels, playhead = null, outcomes, windowMs = 30 }: Props = $props();
+  let { targets, bars, sectionLabels, playhead = null, outcomes, windowMs = 30, stepsPerBeat = 4, beatsPerBar = 4 }: Props = $props();
 
-  const COUNTS = ["", "e", "&", "a"];
+  const COUNT_SETS: Record<number, string[]> = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"], 6: ["", "", "&", "", "a", ""] };
+  const per = $derived(stepsPerBeat);
+  const barSteps = $derived(per * beatsPerBar);
+  // 7/8 clicks eighths on a sixteenth grid: count the eighths, "&" between.
+  const COUNTS = $derived(COUNT_SETS[per] ?? COUNT_SETS[4]);
+  /** The count over step c of a bar. */
+  const countAt = (c: number) => (c % per === 0 ? String(c / per + 1) : COUNTS[c % per]);
   const voices = $derived(GROOVE_VOICES.filter((v) => targets.some((t) => t.voice === v.id)));
   const at = $derived.by(() => {
     const m = new Map<string, number>();
-    targets.forEach((t, i) => m.set(`${t.voice}:${Math.round(t.beat * 4)}`, i));
+    targets.forEach((t, i) => m.set(`${t.voice}:${Math.round(t.beat * per)}`, i));
     return m;
   });
   // A bar-5 downbeat target (turnaround fill) gets one extra column on the last bar.
-  const tail = $derived(targets.some((t) => t.beat >= bars * 4));
-  const total = $derived(bars * 16 + (tail ? 1 : 0));
+  const tail = $derived(targets.some((t) => t.beat >= bars * beatsPerBar));
+  const total = $derived(bars * barSteps + (tail ? 1 : 0));
   const cols = $derived(Array.from({ length: total }, (_, g) => g));
-  const colsOf = (bar: number) => 16 + (tail && bar === bars - 1 ? 1 : 0);
+  const colsOf = (bar: number) => barSteps + (tail && bar === bars - 1 ? 1 : 0);
 
   // Keep a moving playhead in view: a page turn when it nears the right edge.
   let scroller = $state<HTMLElement | null>(null);
@@ -64,29 +73,29 @@
     {/each}
     <span class="name corner"></span>
     {#each cols as g (g)}
-      {@const c = g % 16}
-      <span class="count" class:beat={c % 4 === 0} class:barline={c === 0 && g > 0} class:now={playhead === g}>{g === bars * 16 ? "1" : c % 4 === 0 ? c / 4 + 1 : COUNTS[c % 4]}</span>
+      {@const c = g % barSteps}
+      <span class="count" class:beat={c % per === 0} class:barline={c === 0 && g > 0} class:now={playhead === g}>{g === bars * barSteps ? "1" : countAt(c)}</span>
     {/each}
     {#each voices as v (v.id)}
       <span class="name" title="{v.name}, pad {padLabel(v.midi)}">{v.name}</span>
       {#each cols as g (g)}
-        {@const c = g % 16}
+        {@const c = g % barSteps}
         {@const i = at.get(`${v.id}:${g}`)}
         {@const t = i === undefined ? null : targets[i]}
         {@const vd = i === undefined ? null : verdict(i)}
         <span
           class="cell"
-          class:beat={c % 4 === 0}
+          class:beat={c % per === 0}
           class:barline={c === 0 && g > 0}
           class:now={playhead === g}
           data-col={g}
           data-hit={t ? (t.accent ? "accent" : t.ghost ? "ghost" : "normal") : undefined}
           data-kind={vd?.kind}
-          title={t ? `${v.name}, bar ${Math.floor(g / 16) + 1} on ${Math.floor(c / 4) + 1}${COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}${t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}${vd ? `: ${vd.word}` : ""}` : undefined}
+          title={t ? `${v.name}, bar ${Math.floor(g / barSteps) + 1} on ${Math.floor(c / per) + 1}${COUNTS[c % per] ? ` ${COUNTS[c % per]}` : ""}${t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}${vd ? `: ${vd.word}` : ""}` : undefined}
         >
           {#if t}
             <span class="dot" aria-hidden="true">{vd ? vd.glyph : t.accent ? ">" : t.ghost ? "( )" : ""}</span>
-            <span class="sr-only">{v.name}, bar {Math.floor(g / 16) + 1}, beat {Math.floor(c / 4) + 1}{COUNTS[c % 4] ? ` ${COUNTS[c % 4]}` : ""}{t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}{vd ? `, ${vd.word}` : ""}</span>
+            <span class="sr-only">{v.name}, bar {Math.floor(g / barSteps) + 1}, beat {Math.floor(c / per) + 1}{COUNTS[c % per] ? ` ${COUNTS[c % per]}` : ""}{t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}{vd ? `, ${vd.word}` : ""}</span>
           {/if}
         </span>
       {/each}

@@ -417,9 +417,26 @@
         {
           "id": "1.8",
           "title": "Pattern 3: LH root-fifth-octave",
-          "setup": "Pop pattern 3 under I-V-vi-IV.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=root-fifth-octave&bpm=72&progression=pop-axis&transpose=0",
+          "setup": "Accompaniment, pattern 3 (root, fifth, octave) under I-V-vi-IV, in C, then G.",
           "done": "Two clean choruses in C and G at 72.",
-          "needs": "The pop accompaniment pattern drill (drill 1), pattern 3.",
+          "match": {
+            "pattern": "root-fifth-octave",
+            "progression": "pop-axis"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "7"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 72,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=root-fifth-octave&bpm=72&progression=pop-axis&transpose=-5"
+            }
+          ],
           "feeds": "Hallelujah, Perfect"
         },
         {
@@ -917,26 +934,28 @@
         {
           "id": "2.7",
           "title": "Pattern 6: LH ballad arpeggio (1-5-8-10)",
-          "href": "/music/two-hand?instrument=piano&pattern=lh-pulse-rh-line&tonic=C4&bpm=72",
-          "setup": "Two hands, pulse and line, in C, G and F. Pattern 6 with pedal under I-V-vi-IV waits for the pop pattern drill (drill 1).",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=0",
+          "setup": "Accompaniment, pattern 6 (ballad arpeggio 1-5-8-10) under I-V-vi-IV in C, G and F. Pedal is not graded.",
           "done": "Two clean choruses of I-V-vi-IV in C, G and F at 72.",
           "match": {
-            "pattern": "lh-pulse-rh-line"
+            "pattern": "ballad-arpeggio",
+            "progression": "pop-axis"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "7", "5"]
           },
           "threshold": 0.9,
+          "minAttempts": 2,
           "minBpm": 72,
-          "each": {
-            "param": "tonic",
-            "values": ["C4", "G4", "F4"]
-          },
           "links": [
             {
               "label": "G",
-              "href": "/music/two-hand?instrument=piano&pattern=lh-pulse-rh-line&tonic=G4&bpm=72"
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=-5"
             },
             {
               "label": "F",
-              "href": "/music/two-hand?instrument=piano&pattern=lh-pulse-rh-line&tonic=F4&bpm=72"
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=5"
             }
           ],
           "feeds": "Your Song, Make You Feel My Love"
@@ -944,9 +963,25 @@
         {
           "id": "2.8",
           "title": "Pattern 5: RH broken triad eighths",
-          "setup": "Pop pattern 5 under a progression.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=broken-triad&bpm=80&progression=pop-axis&transpose=0",
+          "setup": "Accompaniment, pattern 5 (broken chord eighths) under any progression, in C and G.",
           "done": "Two clean choruses at 80 in 2 keys.",
-          "needs": "The pop accompaniment pattern drill (drill 1), pattern 5.",
+          "match": {
+            "pattern": "broken-triad"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "7"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=broken-triad&bpm=80&progression=pop-axis&transpose=-5"
+            }
+          ],
           "feeds": "Someone Like You (L7), The Scientist"
         },
         {
@@ -965,16 +1000,24 @@
         {
           "id": "2.10",
           "title": "Grand-staff reading, Grade 3",
-          "setup": "Grand-staff sight-reading at Grade 3. Until then: an unseen shelf score in Song Studio wait mode, first pass.",
+          "setup": "Sight-reading, grand staff at Grade 3 (piano-5), keeping time.",
           "done": "80% on three days.",
-          "needs": "Grand-staff sight-reading at ABRSM Grade 3 (drill 2).",
           "links": [
             {
               "label": "Song Studio",
               "href": "/music/library?tab=songs"
             }
           ],
-          "feeds": "Reading path"
+          "feeds": "Reading path",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=performance&measures=8",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-5",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minAttempts": 3,
+          "minDays": 3
         },
         {
           "id": "2.11",
@@ -1335,9 +1378,15 @@
         {
           "id": "3.5",
           "title": "Pattern 7: 3+3+2 grouping",
-          "setup": "Pop pattern 7. Until then: loop the Clocks intro in Song Studio.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=three-three-two&bpm=100&progression=pop-axis&transpose=0",
+          "setup": "Accompaniment, pattern 7 (3+3+2 eighths) under any loop, worked up to the record's 131; the Clocks intro itself loops in Song Studio.",
           "done": "Clocks intro 3 clean loops at the record's 131 BPM.",
-          "needs": "The pop accompaniment pattern drill (drill 1), pattern 7.",
+          "match": {
+            "pattern": "three-three-two"
+          },
+          "threshold": 0.9,
+          "minAttempts": 3,
+          "minBpm": 131,
           "links": [
             {
               "label": "Song Studio",
@@ -1349,9 +1398,25 @@
         {
           "id": "3.6",
           "title": "Pattern 8: pop syncopation (1, and-of-2, 4)",
-          "setup": "Pop pattern 8 under a progression.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&bpm=90&progression=pop-axis&transpose=0",
+          "setup": "Accompaniment, pattern 8 (1, and-of-2, 4 in both hands) under any progression, in C and G.",
           "done": "Two choruses at 90 in 2 keys.",
-          "needs": "The pop accompaniment pattern drill (drill 1), pattern 8.",
+          "match": {
+            "pattern": "pop-syncopation"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "7"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 90,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&bpm=90&progression=pop-axis&transpose=-5"
+            }
+          ],
           "feeds": "Fix You, Hey Jude"
         },
         {
@@ -1388,9 +1453,15 @@
         {
           "id": "3.8",
           "title": "Pattern 4: rock octave eighths",
-          "setup": "Pop pattern 4 under a progression.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=rock-octaves&bpm=110&progression=pop-axis&transpose=0",
+          "setup": "Accompaniment, pattern 4 (left-hand octave eighths) under any progression.",
           "done": "Two choruses at 110.",
-          "needs": "The pop accompaniment pattern drill (drill 1), pattern 4.",
+          "match": {
+            "pattern": "rock-octaves"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 110,
           "feeds": "Hey Jude, Don't Stop Believin' (L4)"
         },
         {
@@ -1830,10 +1901,25 @@
         {
           "id": "4.6",
           "title": "Boogie LH plus RH chords on 2 and 4",
-          "setup": "Boogie LH with RH chords over the Jam blues backing.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=100&progression=blues&transpose=0",
+          "setup": "Accompaniment, boogie bass with right-hand chords on 2 and 4, through the 12-bar blues in C and F.",
           "done": "Two choruses at 100 in C and F.",
-          "needs": "Blues and boogie left-hand patterns (drill 7).",
+          "match": {
+            "pattern": "boogie",
+            "progression": "blues"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "5"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 100,
           "links": [
+            {
+              "label": "F",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=100&progression=blues&transpose=5"
+            },
             {
               "label": "Jam: blues backing",
               "href": "/music/jam?progression=blues"
@@ -1879,18 +1965,38 @@
         {
           "id": "4.9",
           "title": "Rock eighths and pushes under a song",
-          "setup": "Pop patterns 4 and 8 over a song chart (Don't Stop Believin', Viva la Vida).",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=rock-octaves&progression=song-with-or-without-you&transpose=0",
+          "setup": "Accompaniment, patterns 4 and 8 over a song chart from the Songs group. Don't Stop Believin' and Viva la Vida are not charted yet; any song chart counts.",
           "done": "Two clean choruses at the record's tempo.",
-          "needs": "The pop accompaniment pattern drill (drill 1), patterns 4 and 8 over a song chart.",
+          "each": {
+            "param": "pattern",
+            "values": ["rock-octaves", "pop-syncopation"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "links": [
+            {
+              "label": "Pattern 8",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&progression=song-with-or-without-you&transpose=0"
+            }
+          ],
           "feeds": "rock shelf songs"
         },
         {
           "id": "4.10",
           "title": "Grand staff Grade 4",
-          "setup": "Grand-staff sight-reading at Grade 4.",
+          "setup": "Sight-reading, grand staff at Grade 4 (piano-6), keeping time.",
           "done": "80% on three days.",
-          "needs": "Grand-staff sight-reading at ABRSM Grade 4 (drill 2).",
-          "feeds": "Reading path"
+          "feeds": "Reading path",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-6&follower=performance&measures=8",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-6",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minAttempts": 3,
+          "minDays": 3
         },
         {
           "id": "4.11",
@@ -2247,13 +2353,32 @@
         {
           "id": "5.5",
           "title": "Add9 and sus chords",
-          "setup": "Add9, sus2 and sus4 in the RH over a LH root, I-V-vi-IV in 4 keys. Until then: Voicings, closest chords, with the 9th added by ear.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=0",
+          "setup": "Accompaniment, block chords on 1 and 3 over I-V-vi-IV with add9 and sus chords (Cadd9, Gsus4, Asus2, Fadd9), the root in the left hand, in C, G, F and D: 16 chords a run.",
           "done": "48 chords at 90%.",
-          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "match": {
+            "pattern": "block-1-3",
+            "progression": "pop-add9-sus"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "7", "5", "2"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minDays": 1,
           "links": [
             {
-              "label": "Voicings: closest chords",
-              "href": "/music/voicings?instrument=piano&variant=inversions&key=0"
+              "label": "G",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=-5"
+            },
+            {
+              "label": "F",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=5"
+            },
+            {
+              "label": "D",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=2"
             }
           ],
           "feeds": "Fallin', Kiss the Rain"
@@ -2275,9 +2400,15 @@
         {
           "id": "5.7",
           "title": "Lead sheet, step 1: LH root, RH melody",
-          "setup": "Lead-sheet mode. Until then: Song Studio on a lead-sheet import, melody only, with roots played yourself.",
+          "href": "/music/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=roots&bpm=72",
+          "setup": "Accompaniment, lead sheet with left-hand roots. Import Let It Be or If I Ain't Got You from MuseScore as MusicXML (the chord symbols come with it) and pick it as the tune; Twinkle and Ode to Joy are there to learn the mode.",
           "done": "Let It Be or If I Ain't Got You from the lead sheet, two clean passes at 72.",
-          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "match": {
+            "lh": "roots"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 72,
           "links": [
             {
               "label": "Song Studio",
@@ -2289,9 +2420,14 @@
         {
           "id": "5.8",
           "title": "Lead sheet, step 2: melody on top of RH chords",
-          "setup": "Lead-sheet mode: melody on top of RH chords, LH bass or pattern 11.",
+          "href": "/music/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=chords",
+          "setup": "Accompaniment, lead sheet with chords under the melody: the right hand adds the chord below the melody note on each change, the left hand plays the bass.",
           "done": "The same tune, two clean passes; chords right on 90% of bars.",
-          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "match": {
+            "lh": "chords"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
           "feeds": "lead-sheet shelf songs"
         },
         {
@@ -2305,10 +2441,18 @@
         {
           "id": "5.10",
           "title": "Grand staff Grade 5: syncopation, four-part chords",
-          "setup": "Grand-staff sight-reading at Grade 5.",
+          "setup": "Sight-reading, grand staff at Grade 5 (piano-7), keeping time.",
           "done": "80% on three days.",
-          "needs": "Grand-staff sight-reading at ABRSM Grade 5 (drill 2).",
-          "feeds": "Reading path"
+          "feeds": "Reading path",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-7",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minAttempts": 3,
+          "minDays": 3
         },
         {
           "id": "5.11",
@@ -2631,9 +2775,33 @@
         {
           "id": "6.3",
           "title": "IV/I and the 1-4-1 rock",
-          "setup": "IV over a I bass, back to I, in C, F, G and Bb.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=0",
+          "setup": "Accompaniment, gospel 1-4-1: each chord, its IV over the same bass on the and of 2, and back on 4, under I-V-vi-IV in C, F, G and Bb: 24 chords a run.",
           "done": "40 chords at 90%.",
-          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "match": {
+            "pattern": "gospel-1-4-1"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "5", "7", "10"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "F",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=5"
+            },
+            {
+              "label": "G",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=-5"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=-2"
+            }
+          ],
           "feeds": "Lean on Me, Let It Be"
         },
         {
@@ -2669,10 +2837,25 @@
         {
           "id": "6.7",
           "title": "Boogie with RH riffs",
-          "setup": "Song Studio loops on Pinetop's Boogie Woogie, bars 1 to 12, then boogie in F and G.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=120&progression=blues&transpose=5",
+          "setup": "Accompaniment, boogie bass with chords on 2 and 4 through the blues in F and G. The right-hand riffs come from Pinetop's Boogie Woogie, looped in Song Studio; the drill grades the bass and the chords.",
           "done": "3 clean loops at 120.",
-          "needs": "Blues and boogie left-hand patterns (drill 7).",
+          "match": {
+            "pattern": "boogie",
+            "progression": "blues"
+          },
+          "each": {
+            "param": "key",
+            "values": ["5", "7"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 3,
+          "minBpm": 120,
           "links": [
+            {
+              "label": "G",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=120&progression=blues&transpose=-5"
+            },
             {
               "label": "Song Studio",
               "href": "/music/library?tab=songs"
@@ -2691,26 +2874,55 @@
         {
           "id": "6.9",
           "title": "Pattern 13: stride-lite",
-          "setup": "Pop pattern 13 over I-vi-ii-V and I-IV-V.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=stride-lite&bpm=100&progression=pop-i-vi-ii-v&transpose=0",
+          "setup": "Accompaniment, pattern 13 (stride-lite, left hand only) over I-vi-ii-V and I-IV-V.",
           "done": "Two choruses at 100.",
-          "needs": "The pop accompaniment pattern drill (drill 1), pattern 13.",
+          "match": {
+            "pattern": "stride-lite"
+          },
+          "each": {
+            "param": "progression",
+            "values": ["pop-i-vi-ii-v", "pop-i-iv-v"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minBpm": 100,
+          "links": [
+            {
+              "label": "I-IV-V",
+              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=stride-lite&bpm=100&progression=pop-i-iv-v&transpose=0"
+            }
+          ],
           "feeds": "Linus and Lucy, Lady Madonna"
         },
         {
           "id": "6.10",
           "title": "Chord charts with slash chords",
-          "setup": "A slash-chord chart: Lean on Me or Tiny Dancer.",
+          "href": "/music/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=chords",
+          "setup": "Accompaniment, lead sheet with chords under the melody, on a slash-chord chart: import Lean on Me or Tiny Dancer as MusicXML. The left hand plays the slash bass.",
           "done": "Two clean passes.",
-          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "match": {
+            "lh": "chords"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
           "feeds": "chord charts"
         },
         {
           "id": "6.11",
           "title": "Grand staff Grade 5, keys up to 4 flats or sharps",
-          "setup": "Grand-staff sight-reading at Grade 5.",
+          "setup": "Sight-reading, grand staff at Grade 5 (piano-7), keeping time.",
           "done": "80% on three days.",
-          "needs": "Grand-staff sight-reading at ABRSM Grade 5 (drill 2).",
-          "feeds": "Reading path"
+          "feeds": "Reading path",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-7",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minAttempts": 3,
+          "minDays": 3
         },
         {
           "id": "6.12",
@@ -3099,10 +3311,18 @@
         {
           "id": "7.8",
           "title": "Grand staff Grade 6: triplets, pedal marks, clef changes, 5/4 and 9/8",
-          "setup": "Grand-staff sight-reading at Grade 6.",
+          "setup": "Sight-reading, grand staff at Grade 6 (piano-8), keeping time. Triplets and clef changes are not in the generator yet.",
           "done": "80% on three days.",
-          "needs": "Grand-staff sight-reading at ABRSM Grade 6 (drill 2).",
-          "feeds": "Reading path"
+          "feeds": "Reading path",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=performance&measures=8",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-8",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minAttempts": 3,
+          "minDays": 3
         },
         {
           "id": "7.9",
@@ -3426,9 +3646,15 @@
         {
           "id": "8.4",
           "title": "Stride LH: bass, chord; octave, tenth",
-          "setup": "Stride over I-VI-ii-V and the Maple Leaf Rag A strain changes.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=stride&bpm=80&progression=pop-i-vi-ii-v&transpose=0",
+          "setup": "Accompaniment, stride (the root in octaves on 1, a tenth on 3, the chord on 2 and 4) over I-vi-ii-V. The Maple Leaf Rag A strain is not charted yet.",
           "done": "3 clean runs at 80.",
-          "needs": "A stride pattern (drill 7).",
+          "match": {
+            "pattern": "stride"
+          },
+          "threshold": 0.9,
+          "minAttempts": 3,
+          "minBpm": 80,
           "feeds": "Maple Leaf Rag, Piano Man"
         },
         {
@@ -3465,10 +3691,18 @@
         {
           "id": "8.8",
           "title": "Grand staff Grade 6",
-          "setup": "Grand-staff sight-reading at Grade 6.",
+          "setup": "Sight-reading, grand staff at Grade 6 (piano-8), keeping time.",
           "done": "80% on three days.",
-          "needs": "Grand-staff sight-reading at ABRSM Grade 6 (drill 2).",
-          "feeds": "Reading path"
+          "feeds": "Reading path",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=performance&measures=8",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-8",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minAttempts": 3,
+          "minDays": 3
         },
         {
           "id": "8.9",
@@ -4203,17 +4437,28 @@
         {
           "id": "10.6",
           "title": "Sight-reading at first sight",
-          "setup": "Grand-staff sight-reading at Grade 5, no preview beyond 30 seconds.",
+          "setup": "Sight-reading, grand staff at Grade 5 (piano-7), keeping time. Use the 30 second look before each piece.",
           "done": "80% on three unseen pieces.",
-          "needs": "Grand-staff sight-reading at ABRSM Grade 5 (drill 2).",
-          "feeds": "Reading path"
+          "feeds": "Reading path",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-7",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minAttempts": 3,
+          "minDays": 3
         },
         {
           "id": "10.7",
           "title": "Chord chart at first sight",
-          "setup": "An unseen chart in a key the app names, with a pattern of your choice.",
+          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&progression=pop-fifties&transpose=0",
+          "setup": "Accompaniment in Check: a progression and key you have not played, with a pattern of your choice. The app does not pick the key for you yet.",
           "done": "Chords right on 95% of bars, no stop.",
-          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "threshold": 0.95,
+          "minAttempts": 1,
+          "minDays": 1,
           "feeds": "playing for others"
         },
         {

@@ -76,13 +76,18 @@ Read the drill's `params:` in its file before using one; the setup's URL keys ar
 | scales | bpm, kind, tonic, span, motion, hands, pattern, chord, perBeat |
 | two-hand | bpm, pattern, tonic, hand, dynamics |
 | comping | bpm, pattern, lh, feel |
+| accompany?mode=patterns | bpm, pattern, progression, hands, key (the key's pitch class, 0 to 11) |
+| accompany?mode=comping | bpm, voicing, rhythm, feel, progression, key |
+| accompany?mode=lead-sheet | bpm, tune, lh, hands, key |
 | voicings | variant, key, keys, arpeggio |
 | licks | bpm, lick (number), transpose, first, last |
 | chord-scales | bpm, changes, key, beatsPerChord |
 | pedal | key, progression, bars, bpm |
-| reading (flashcards) | instrument, kind, key, answer, low, high |
-| reading (sight-reading) | instrument, level, key, follower, bpm, measures, meter, climb |
-| ear/* | answer, level, labels, drill |
+| reading (flashcards) | instrument, kind (note, chord, satb), key, answer, low, high, clefs (crossed for the crossed clefs), accidentals |
+| reading (sight-reading) | instrument, level (primer to level-3, piano-4 to piano-8, line-4 to line-6), key, follower, bpm, measures, meter (simple is 4/4, compound 6/8, else 2/4, 3/4, 3/8, 9/8, 2/2, 5/4), climb, low, high, mask, look, position (guitar open, 2, 5; ukulele open, up) |
+| ear/* | answer, level, labels, drill; song-loops also loops (the set, its prompts record `ear.loops.<set>`) |
+| by-ear | find home: mode, recording, from, to (judged); learn: mode, recording, from, to, speed, notes, sections (self-rated, so link it with `exerciseIds: []`) |
+| call-response | mode, groove, bpm, bars |
 | circle | mode, band, minor, clefs |
 | pads | grooves: bpm, groove, mode; rudiments: bpm, pattern, sub, hits, padL, padR; pad skills: skill, bpm, setup |
 | aerophone | mode, target, drone, interval, direction; skills: skill, bpm, setup |

@@ -110,7 +110,8 @@ export function beatNotes(p: BeatPattern, bpm: number, loopBars = barsOf(p)): Se
 // ---------------------------------------------------------------------------
 // Presets: the finger-drumming repertoire, the same grooves the Pads drills
 // teach, by level. Swing is written straight; a groove with hits between the
-// sixteenths (trap rolls, a pushed snare) can't sit on the grid and is left out.
+// sixteenths (trap rolls, a pushed snare, a shuffle's triplets) can't sit on the
+// grid and is left out.
 
 const VOICE_NOTE = Object.fromEntries(GROOVE_VOICES.map((v) => [v.id, v.midi]));
 
@@ -143,7 +144,11 @@ export interface BeatPreset {
 export const PRESETS: BeatPreset[] = [...PAD_REPERTOIRE]
   .sort((a, b) => a.level - b.level)
   .flatMap((r) => {
-    const steps = r.groove.bars <= MAX_BARS ? grooveSteps(r.groove, r.swing) : null;
+    // Create's grid is sixteenths in 4/4: odd meters stay out, and triplets fall out of grooveSteps.
+    const steps =
+      r.groove.bars <= MAX_BARS && (r.groove.beatsPerBar ?? 4) === 4
+        ? grooveSteps(r.groove, r.swing)
+        : null;
     const level = PAD_LEVELS.find((l) => l.level === r.level);
     return steps
       ? [

@@ -248,6 +248,37 @@ export const SONG_PROGRESSIONS: Progression[] = [
     ["Bm", 1],
     ["G", 1],
   ]),
+  song(
+    "let-it-be",
+    "Let It Be (verse)",
+    "The Beatles",
+    "C major",
+    72,
+    [
+      ["C", 1],
+      ["G", 1],
+      ["Am", 1],
+      ["F", 1],
+      ["C", 1],
+      ["G", 1],
+      ["F", 1],
+      ["C", 1],
+    ],
+    "The record changes chord every two beats; one a bar here.",
+  ),
+  song(
+    "sweet-home-alabama",
+    "Sweet Home Alabama",
+    "Lynyrd Skynyrd",
+    "D major",
+    98,
+    [
+      ["D", 1],
+      ["C", 1],
+      ["G", 2],
+    ],
+    "The record plays C and G in one bar, with Cadd9; plain chords here.",
+  ),
 ];
 
 export const PROGRESSIONS: Progression[] = [...BASE_PROGRESSIONS, ...SONG_PROGRESSIONS];

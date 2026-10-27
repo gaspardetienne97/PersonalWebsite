@@ -65,7 +65,7 @@
   // gets one staff per interval.
   const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
   const CADENCES = CADENCES_AND_QUALITIES.cadences;
-  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence", "chord-function", "progression", "inversion", "bass-line"].includes(prompt.drill));
+  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence", "chord-function", "progression", "loop", "inversion", "bass-line"].includes(prompt.drill));
   // Chords that only set the key are heard, not drawn.
   const groups = $derived(
     !onStaff
@@ -78,7 +78,7 @@
   );
   // The prompt's key; without one, the first chord is the key's I (or i), root in the bass.
   const tonicPc = $derived((prompt as { keyPc?: number }).keyPc ?? pc(events[0].midi[0]));
-  const minorKey = $derived(parseFunction(prompt.answer.split(" ")[0]).minor);
+  const minorKey = $derived((prompt as { minor?: boolean }).minor ?? parseFunction(prompt.answer.split(" ")[0]).minor);
   function describe(g: EarPrompt["playback"]): string {
     if (prompt.caption) return prompt.caption;
     const ms = g.flatMap((e) => e.midi);
@@ -112,7 +112,7 @@
   }
   // Chords of a key are drawn in it: its signature (a minor key's is its relative major's)
   // and its spelling (Eb major's IV is Ab, not G#).
-  const keyed = $derived(["chord-function", "progression", "bass-line"].includes(prompt.drill));
+  const keyed = $derived(["chord-function", "progression", "loop", "bass-line"].includes(prompt.drill));
   const keyFifths = $derived.by(() => {
     const f = (((tonicPc + (minorKey ? 3 : 0)) % 12) * 7) % 12;
     return f > 5 ? f - 12 : f;

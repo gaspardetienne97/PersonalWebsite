@@ -1135,6 +1135,109 @@ function studioLoop(buf: AudioBuffer): StudioLoop {
   };
 }
 
+/** Learn by ear: a recording looped between two points, slowed or transposed without the other changing. */
+export interface EarPlayer {
+  buffer: AudioBuffer;
+  readonly playing: boolean;
+  /** Seconds into the recording now. */
+  position(): number;
+  play(from?: number): void;
+  pause(): void;
+  /** Move to `at` seconds, playing on if it was playing. */
+  seek(at: number): void;
+  /** Speed (0.5 to 1), semitones, the loop. Applied at once, from where it is. */
+  set(
+    opts: Partial<{ rate: number; semitones: number; a: number; b: number; loop: boolean }>,
+  ): void;
+  dispose(): void;
+}
+
+/**
+ * At full speed and pitch a plain Player; otherwise Tone's GrainPlayer, which
+ * keeps pitch when slowed (and speed when transposed), with some graininess.
+ */
+async function earPlayer(blob: Blob): Promise<EarPlayer> {
+  const t = ready();
+  if (!t || !graph) throw new Error("Enable audio first: browsers only allow sound after a tap.");
+  const tone = t;
+  const buffer = await rawCtx(t).decodeAudioData(await blob.arrayBuffer());
+  const toneBuffer = new t.ToneAudioBuffer(buffer);
+  const out = new t.Gain(1).connect(graph.playback);
+  const o = { rate: 1, semitones: 0, a: 0, b: buffer.duration, loop: false };
+  let src: ToneNS.Player | ToneNS.GrainPlayer | null = null;
+  let anchor = { at: 0, pos: 0 };
+  const position = () => {
+    if (!src) return anchor.pos;
+    const p = anchor.pos + (tone.now() - anchor.at) * o.rate;
+    if (o.loop && p >= o.b) return o.a + ((p - o.a) % Math.max(0.05, o.b - o.a));
+    return Math.min(p, buffer.duration);
+  };
+  const drop = () => {
+    const s = src;
+    src = null;
+    if (!s) return;
+    s.onstop = () => {};
+    s.stop();
+    setTimeout(() => s.dispose(), 200);
+  };
+  function play(from = position()) {
+    drop();
+    if (o.loop && (from < o.a || from >= o.b)) from = o.a;
+    if (from >= buffer.duration - 0.05) from = 0;
+    const plain = o.rate === 1 && o.semitones === 0;
+    const s = plain
+      ? new tone.Player(toneBuffer)
+      : new tone.GrainPlayer({ url: toneBuffer, grainSize: 0.1, overlap: 0.05 });
+    s.playbackRate = o.rate;
+    if (s instanceof tone.GrainPlayer) s.detune = o.semitones * 100;
+    s.loop = o.loop;
+    if (o.loop) {
+      s.loopStart = o.a;
+      s.loopEnd = o.b;
+    }
+    s.connect(out);
+    s.onstop = () => {
+      if (src !== s) return;
+      anchor = { at: 0, pos: position() };
+      src = null;
+      player.playing = false;
+    };
+    const at = tone.now() + 0.02;
+    s.start(at, from);
+    src = s;
+    anchor = { at, pos: from };
+    player.playing = true;
+  }
+  const player = {
+    buffer,
+    playing: false,
+    position,
+    play,
+    pause() {
+      const p = position();
+      drop();
+      anchor = { at: 0, pos: p };
+      player.playing = false;
+    },
+    seek(at: number) {
+      const p = Math.max(0, Math.min(at, buffer.duration));
+      if (src) play(p);
+      else anchor = { at: 0, pos: p };
+    },
+    set(next: Partial<typeof o>) {
+      const p = position();
+      Object.assign(o, next);
+      anchor = { at: 0, pos: p };
+      if (src) play(p);
+    },
+    dispose() {
+      drop();
+      out.dispose();
+    },
+  };
+  return player;
+}
+
 /** Play a recorded take or backing track. Does not stop other blobs (take over backing is normal). */
 async function playBlob(blob: Blob, gainDb = 0): Promise<SequenceHandle> {
   const t = ready();
@@ -1269,6 +1372,7 @@ export const audio = {
   latencyInfo,
   renderWav,
   playBlob,
+  earPlayer,
   studio: { material: studioMaterial, loudness: studioLoudness, loop: studioLoop },
   celebrate,
 };

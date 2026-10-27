@@ -75,32 +75,66 @@
         {
           "id": "P1.4",
           "title": "Hands together, first contact",
-          "setup": "Sight-reading, piano-4 (hands together), waits for you, 4 bars.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-4&follower=wait&measures=4",
+          "setup": "Sight-reading, Piano 4 (hands together), waits for you, 4 bars.",
           "done": "5 phrases at 90% in wait mode.",
-          "needs": "Grand-staff level piano-4 in Sight-reading (ABRSM Grade 2, hands together, 3/4, ties and rests).",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-4"
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "exerciseIds": ["reading.sight-reading"],
           "feeds": "Diabelli"
         },
         {
           "id": "P1.5",
           "title": "Hands together in time",
-          "setup": "Sight-reading, piano-4, keeping time at 60, then 72.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-4&follower=performance&measures=4&bpm=60",
+          "setup": "Sight-reading, Piano 4, keeping time at 60, then 72.",
           "done": "80% on 5 of 6 phrases at 72, on two days.",
-          "needs": "Grand-staff level piano-4 in Sight-reading (ABRSM Grade 2, hands together, 3/4, ties and rests)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-4",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "minBpm": 72,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P1.6",
           "title": "3/4, ties and rests",
-          "setup": "Sight-reading, piano-4 in 3/4.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-4&follower=performance&measures=4&meter=3%2F4&bpm=72",
+          "setup": "Sight-reading, Piano 4 in 3/4, keeping time. Ties and rests come in every meter.",
           "done": "80% on 5 of 6 phrases at 72.",
-          "needs": "Grand-staff level piano-4 in Sight-reading (ABRSM Grade 2, hands together, 3/4, ties and rests).",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-4",
+            "meter": "3/4",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "minBpm": 72,
+          "exerciseIds": ["reading.sight-reading"],
           "feeds": "Amazing Grace, Morning Has Broken"
         },
         {
           "id": "P1.7",
           "title": "Look, hear, play",
-          "setup": "A 30 second look with a hum-bar-1 prompt before each piano-4 phrase.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-4&follower=performance&measures=4&look=30&bpm=72",
+          "setup": "Sight-reading, Piano 4 with Look first at 30 seconds: Start opens after the look; hum bar 1 before you play. Compare the mean with your Piano 4 runs without it.",
           "done": "10 phrases with the pause, mean score no lower than without it.",
-          "needs": "A 30 second look with a hum-bar-1 prompt before each Sight-reading phrase."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-4",
+            "look": "30"
+          },
+          "minAttempts": 10,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P1.8",
@@ -391,31 +425,65 @@
         {
           "id": "P2.4",
           "title": "Leaving the position, first contact",
-          "setup": "Sight-reading, piano-5, waits for you.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=wait",
+          "setup": "Sight-reading, Piano 5, waits for you.",
           "done": "5 phrases at 90%.",
-          "needs": "Grand-staff level piano-5 in Sight-reading (ABRSM Grade 3, 3/8, sixteenths, two-note chords)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-5"
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P2.5",
           "title": "In time",
-          "setup": "Sight-reading, piano-5, keeping time at 66, then 80.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=performance&bpm=66",
+          "setup": "Sight-reading, Piano 5, keeping time at 66, then 80.",
           "done": "80% on 5 of 6 phrases at 80, on two days.",
-          "needs": "Grand-staff level piano-5 in Sight-reading (ABRSM Grade 3, 3/8, sixteenths, two-note chords)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-5",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "minBpm": 80,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P2.6",
           "title": "3/8 and sixteenths",
-          "setup": "Sight-reading, piano-5 in 3/8. Rhythm reading 4 first.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=performance&meter=3%2F8",
+          "setup": "Sight-reading, Piano 5 in 3/8, keeping time. Rhythm reading 4 first.",
           "done": "80% on 5 of 6 phrases.",
-          "needs": "Grand-staff level piano-5 in Sight-reading (ABRSM Grade 3, 3/8, sixteenths, two-note chords).",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-5",
+            "meter": "3/8",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"],
           "feeds": "Musette, Clementi"
         },
         {
           "id": "P2.7",
           "title": "Look ahead",
-          "setup": "A look-ahead mask: played notes hide, 2 beats ahead visible.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=performance&mask=2",
+          "setup": "Sight-reading, Piano 5 with the 2-beat look-ahead: played notes hide, only the next 2 beats show.",
           "done": "80% on 5 of 6 piano-5 phrases with the mask.",
-          "needs": "A look-ahead mask in Sight-reading: played notes hide, only the next beats show."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-5",
+            "mask": "2",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P2.8",
@@ -875,9 +943,16 @@
         {
           "id": "P4.2",
           "title": "Accidentals and ledger lines",
-          "setup": "Flashcards with sharps, flats and naturals in a key.",
+          "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=piano-6&accidentals=true",
+          "setup": "Flashcards, play the answer, Piano 6 range, accidentals on (sharps, flats and naturals in the key).",
           "done": "95% of 40 cards.",
-          "needs": "Accidentals in Note reading flashcards (sharps, flats and naturals inside a key).",
+          "match": {
+            "instrument": "piano",
+            "answer": "play",
+            "accidentals": "true"
+          },
+          "minAttempts": 4,
+          "threshold": 0.95,
           "feeds": "Sweet Dreams"
         },
         {
@@ -896,23 +971,48 @@
         {
           "id": "P4.4",
           "title": "Grade 4 phrases, first contact",
-          "setup": "Sight-reading, piano-6, waits for you.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-6&follower=wait",
+          "setup": "Sight-reading, Piano 6, waits for you.",
           "done": "5 phrases at 90%.",
-          "needs": "Grand-staff level piano-6 in Sight-reading (ABRSM Grade 4, 6/8, anacrusis, accompaniment patterns)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-6"
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P4.5",
           "title": "In time",
-          "setup": "Sight-reading, piano-6, keeping time; 6/8 at dotted quarter = 52 to 60.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-6&follower=performance&meter=compound&bpm=78",
+          "setup": "Sight-reading, Piano 6 in 6/8, keeping time; dotted quarter = 52 to 60 is 78 to 90 on the strip's quarter-note tempo.",
           "done": "80% on 5 of 6, on two days.",
-          "needs": "Grand-staff level piano-6 in Sight-reading (ABRSM Grade 4, 6/8, anacrusis, accompaniment patterns)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-6",
+            "meter": "compound",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "minBpm": 78,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P4.6",
           "title": "Pickups and phrase ends",
-          "setup": "Sight-reading, piano-6 with anacrusis on.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-6&follower=performance",
+          "setup": "Sight-reading, Piano 6, keeping time. About half its phrases open with a pickup.",
           "done": "80% on 5 of 6.",
-          "needs": "Grand-staff level piano-6 in Sight-reading (ABRSM Grade 4, 6/8, anacrusis, accompaniment patterns).",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-6",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"],
           "feeds": "Greensleeves"
         },
         {
@@ -1134,16 +1234,46 @@
         {
           "id": "P5.1",
           "title": "Four new keys",
-          "setup": "Flashcards in E major, Ab major, F# minor and C minor.",
+          "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=piano-7&key=E%20major",
+          "setup": "Flashcards, play the answer, Piano 7, in E major, Ab major, F# minor and C minor.",
           "done": "95% of 40 cards per key.",
-          "needs": "More keys in Note reading (A, E, Eb, Ab majors; B, C, F#, G minors)."
+          "match": {
+            "instrument": "piano",
+            "answer": "play"
+          },
+          "each": {
+            "param": "key",
+            "values": ["E major", "Ab major", "F# minor", "C minor"]
+          },
+          "minAttempts": 4,
+          "threshold": 0.95,
+          "links": [
+            {
+              "label": "Ab major",
+              "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=piano-7&key=Ab%20major"
+            },
+            {
+              "label": "F# minor",
+              "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=piano-7&key=F%23%20minor"
+            },
+            {
+              "label": "C minor",
+              "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=piano-7&key=C%20minor"
+            }
+          ]
         },
         {
           "id": "P5.2",
           "title": "Four-note chords",
-          "setup": "Flashcards of four-note chords, SATB spacing on the grand staff.",
+          "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=piano-7&kind=satb",
+          "setup": "Flashcards, four-part chords in chorale spacing on the grand staff; play all four notes or name the triad.",
           "done": "90% of 30 cards.",
-          "needs": "Four-note chord flashcards in Note reading (SATB spacing on the grand staff).",
+          "match": {
+            "instrument": "piano",
+            "kind": "satb"
+          },
+          "minAttempts": 3,
+          "threshold": 0.9,
           "feeds": "chorales"
         },
         {
@@ -1158,23 +1288,48 @@
         {
           "id": "P5.4",
           "title": "Grade 5 phrases, first contact",
-          "setup": "Sight-reading, piano-7, waits for you.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=wait",
+          "setup": "Sight-reading, Piano 7, waits for you.",
           "done": "5 phrases at 90%.",
-          "needs": "Grand-staff level piano-7 in Sight-reading (ABRSM Grade 5, chorale texture, syncopation)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-7"
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P5.5",
           "title": "In time",
-          "setup": "Sight-reading, piano-7, keeping time at 60 to 72.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&bpm=60",
+          "setup": "Sight-reading, Piano 7, keeping time at 60 to 72.",
           "done": "80% on 5 of 6, on two days.",
-          "needs": "Grand-staff level piano-7 in Sight-reading (ABRSM Grade 5, chorale texture, syncopation)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-7",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "minBpm": 60,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P5.6",
           "title": "Syncopation",
-          "setup": "Rhythm reading 5 first, then piano-7 with more syncopation.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&meter=simple",
+          "setup": "Rhythm reading 5 first, then Sight-reading, Piano 7 in 4/4, keeping time: its syncopations and dotted eighths sit in the simple-time cells.",
           "done": "Rhythm reading 5 passed; 80% on 5 of 6.",
-          "needs": "Grand-staff level piano-7 in Sight-reading (ABRSM Grade 5, chorale texture, syncopation).",
+          "match": {
+            "instrument": "piano",
+            "level": "piano-7",
+            "meter": "simple",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"],
           "feeds": "The Entertainer"
         },
         {
@@ -1627,9 +1782,16 @@
         {
           "id": "P7.3",
           "title": "Left hand in the treble clef",
-          "setup": "Flashcards: left-hand notes on the treble clef, right-hand notes on the bass clef.",
+          "href": "/music/reading?activity=flashcards&instrument=piano&clefs=crossed&answer=play&level=level-3",
+          "setup": "Flashcards, play the answer, clefs Crossed: notes around middle C on either clef, the left hand reading treble and the right hand bass.",
           "done": "95% of 40 cards.",
-          "needs": "Flashcards with the left hand in the treble clef and the right in the bass.",
+          "match": {
+            "instrument": "piano",
+            "answer": "play",
+            "clefs": "crossed"
+          },
+          "minAttempts": 4,
+          "threshold": 0.95,
           "feeds": "Arietta, Gymnopédie"
         },
         {
@@ -1645,23 +1807,47 @@
         {
           "id": "P7.5",
           "title": "Grade 6 phrases, first contact",
-          "setup": "Sight-reading, piano-8, waits for you.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=wait",
+          "setup": "Sight-reading, Piano 8, waits for you. Triplets and clef changes are not in the generator yet.",
           "done": "5 phrases at 90%.",
-          "needs": "Grand-staff level piano-8 in Sight-reading (ABRSM Grade 6, triplets, odd meters, clef changes)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-8"
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P7.6",
           "title": "In time, longer",
-          "setup": "Sight-reading, piano-8, keeping time, 12 to 16 bars.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=performance&measures=12",
+          "setup": "Sight-reading, Piano 8, keeping time, 12 or 16 bars.",
           "done": "80% on 5 of 6, on two days.",
-          "needs": "Grand-staff level piano-8 in Sight-reading (ABRSM Grade 6, triplets, odd meters, clef changes)."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-8",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P7.7",
           "title": "Further ahead",
-          "setup": "Look-ahead mask, 4 beats ahead visible.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=performance&mask=4",
+          "setup": "Sight-reading, Piano 8 with the 4-beat look-ahead.",
           "done": "80% on 5 of 6 with the mask.",
-          "needs": "A look-ahead mask in Sight-reading: played notes hide, only the next beats show."
+          "match": {
+            "instrument": "piano",
+            "level": "piano-8",
+            "mask": "4",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "P7.8",
@@ -2838,16 +3024,46 @@
         {
           "id": "G5.1",
           "title": "Accidentals on the neck",
-          "setup": "Flashcards with accidentals in the guitar range.",
+          "href": "/music/reading?activity=flashcards&instrument=guitar&clefs=treble&answer=play&level=line-5&accidentals=true",
+          "setup": "Flashcards on guitar, play the answer, Line 5 range, accidentals on.",
           "done": "95% of 40 cards.",
-          "needs": "Accidentals in Note reading flashcards (sharps, flats and naturals inside a key)."
+          "match": {
+            "instrument": "guitar",
+            "answer": "play",
+            "accidentals": "true"
+          },
+          "minAttempts": 4,
+          "threshold": 0.95
         },
         {
           "id": "G5.2",
           "title": "Line reading with ties and rests",
-          "setup": "line-4 in open position, keys G, D and F.",
+          "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=line-4&position=open&key=G%20major&follower=performance",
+          "setup": "Sight-reading, Line 4 in open position, keys G, D and F, keeping time.",
           "done": "80% on 5 of 6 per key, on two days.",
-          "needs": "Single-line level line-4 in Sight-reading (rests, ties, dotted quarter-eighth, 3/4)."
+          "match": {
+            "instrument": "guitar",
+            "level": "line-4",
+            "position": "open",
+            "follower": "performance"
+          },
+          "each": {
+            "param": "key",
+            "values": ["G major", "D major", "F major"]
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "D major",
+              "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=line-4&position=open&key=D%20major&follower=performance"
+            },
+            {
+              "label": "F major",
+              "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=line-4&position=open&key=F%20major&follower=performance"
+            }
+          ],
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "G5.3",
@@ -3101,16 +3317,43 @@
         {
           "id": "G6.3",
           "title": "Second position lines",
-          "setup": "line-4 in second position.",
+          "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=line-4&position=2&follower=performance",
+          "setup": "Sight-reading, Line 4 in second position, keeping time; the tab follows the position.",
           "done": "80% on 5 of 6.",
-          "needs": "Single-line levels line-4 and line-5 with guitar position settings (second and fifth position) in Sight-reading."
+          "match": {
+            "instrument": "guitar",
+            "level": "line-4",
+            "position": "2",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "G6.4",
           "title": "Fifth position lines",
-          "setup": "line-4 in fifth position, then line-5 in fifth position.",
+          "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=line-4&position=5&follower=performance",
+          "setup": "Sight-reading, Line 4 in fifth position, then Line 5 in fifth position, keeping time.",
           "done": "80% on 5 of 6 each, on two days.",
-          "needs": "Single-line levels line-4 and line-5 with guitar position settings (second and fifth position) in Sight-reading."
+          "match": {
+            "instrument": "guitar",
+            "position": "5",
+            "follower": "performance"
+          },
+          "each": {
+            "param": "level",
+            "values": ["line-4", "line-5"]
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Line 5, fifth position",
+              "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=line-5&position=5&follower=performance"
+            }
+          ],
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "G6.5",
@@ -4425,9 +4668,18 @@
         {
           "id": "U4.2",
           "title": "Higher lines",
-          "setup": "line-5 up the neck.",
+          "href": "/music/reading?activity=sight-reading&instrument=ukulele&clefs=treble&level=line-5&position=up&follower=performance",
+          "setup": "Sight-reading on ukulele, Line 5 up the neck (to fret 7 on the A string), keeping time.",
           "done": "80% on 5 of 6, on two days.",
-          "needs": "Single-line level line-5 with the ukulele up-the-neck position (to fret 7 on the A string) in Sight-reading."
+          "match": {
+            "instrument": "ukulele",
+            "level": "line-5",
+            "position": "up",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "U4.3",
@@ -4812,9 +5064,16 @@
         {
           "id": "U6.1",
           "title": "Accidentals on the ukulele",
-          "setup": "Flashcards with accidentals in the ukulele range.",
+          "href": "/music/reading?activity=flashcards&instrument=ukulele&clefs=treble&answer=play&level=line-5&accidentals=true",
+          "setup": "Flashcards on ukulele, play the answer, accidentals on.",
           "done": "95% of 40.",
-          "needs": "Accidentals in Note reading flashcards (sharps, flats and naturals inside a key)."
+          "match": {
+            "instrument": "ukulele",
+            "answer": "play",
+            "accidentals": "true"
+          },
+          "minAttempts": 4,
+          "threshold": 0.95
         },
         {
           "id": "U6.2",
@@ -4829,9 +5088,18 @@
         {
           "id": "U6.3",
           "title": "Chromatic lines",
-          "setup": "line-6 up the neck.",
+          "href": "/music/reading?activity=sight-reading&instrument=ukulele&clefs=treble&level=line-6&position=up&follower=performance",
+          "setup": "Sight-reading on ukulele, Line 6 up the neck, keeping time. Triplets are not in the generator yet.",
           "done": "80% on 5 of 6.",
-          "needs": "Single-line level line-6 in Sight-reading (syncopation over the beat, triplets, chromatic notes)."
+          "match": {
+            "instrument": "ukulele",
+            "level": "line-6",
+            "position": "up",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "U6.4",
@@ -5305,9 +5573,18 @@
         {
           "id": "A2.4",
           "title": "3/4 and ties",
-          "setup": "line-4 in 3/4, written D4 to D5.",
+          "href": "/music/reading?activity=sight-reading&instrument=aerophone&clefs=treble&level=line-4&meter=3%2F4&low=62&high=74&follower=performance",
+          "setup": "Sight-reading on the Aerophone, Line 4 in 3/4, written D4 to D5, keeping time.",
           "done": "80% on 5 of 6.",
-          "needs": "Single-line level line-4 in Sight-reading (rests, ties, dotted quarter-eighth, 3/4).",
+          "match": {
+            "instrument": "aerophone",
+            "level": "line-4",
+            "meter": "3/4",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"],
           "feeds": "Amazing Grace, Happy Birthday"
         },
         {
@@ -5726,9 +6003,17 @@
         {
           "id": "A4.3",
           "title": "Syncopated lines",
-          "setup": "line-6, written D4 to D6.",
+          "href": "/music/reading?activity=sight-reading&instrument=aerophone&clefs=treble&level=line-6&low=62&high=86&follower=performance",
+          "setup": "Sight-reading on the Aerophone, Line 6, written D4 to D6 (capped at the Aerophone's top note), keeping time. Triplets are not in the generator yet.",
           "done": "80% on 5 of 6, on two days.",
-          "needs": "Single-line level line-6 in Sight-reading (syncopation over the beat, triplets, chromatic notes)."
+          "match": {
+            "instrument": "aerophone",
+            "level": "line-6",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "A4.4",
@@ -6301,9 +6586,18 @@
         {
           "id": "A7.3",
           "title": "Grade 5 lines",
-          "setup": "line-6, written Bb3 to F6.",
+          "href": "/music/reading?activity=sight-reading&instrument=aerophone&clefs=treble&level=line-6&low=58&high=89&follower=performance",
+          "setup": "Sight-reading on the Aerophone, Line 6, written Bb3 to F6 (capped at the Aerophone's range), keeping time.",
           "done": "80% on 5 of 6, on two days.",
-          "needs": "Single-line level line-6 in Sight-reading (syncopation over the beat, triplets, chromatic notes)."
+          "match": {
+            "instrument": "aerophone",
+            "level": "line-6",
+            "low": "58",
+            "follower": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.8,
+          "exerciseIds": ["reading.sight-reading"]
         },
         {
           "id": "A7.4",
