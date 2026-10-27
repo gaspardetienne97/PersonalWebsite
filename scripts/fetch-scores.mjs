@@ -39,6 +39,8 @@ const data = JSON.parse(readFileSync(`packages/music-core/src/data/paths/${file}
 const dir = join(root, data.id);
 const manifestFile = join(root, "manifest.json");
 const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, "utf8")) : {};
+// Score pages whose Download is switched off ("not available due to established limitations").
+const blocked = new Set(manifest.blocked ?? []);
 const EXT = /\.(mxl|musicxml|xml|mid)$/;
 const have = (song) =>
   existsSync(dir) && readdirSync(dir).some((f) => f.startsWith(`${song}.`) && EXT.test(f));
@@ -47,7 +49,7 @@ const wanted = data.levels
   .filter((l) => !levels || levels.includes(l.id))
   .flatMap((l) => l.shelf.map((s) => ({ level: l.id, ...s })))
   // Official scores need a purchase or PRO+ (not in plain Pro), so only community scores download.
-  .map((s) => ({ ...s, scores: s.scores.filter((sc) => !sc.official) }))
+  .map((s) => ({ ...s, scores: s.scores.filter((sc) => !sc.official && !blocked.has(sc.url)) }))
   .filter((s) => s.scores.length && !have(s.id));
 console.log(
   `${wanted.length} songs to fetch for ${data.id}${levels ? ` (levels ${levels})` : ""}.`,
@@ -86,6 +88,16 @@ try {
     for (const score of song.scores) {
       orca("goto", "--page", page, "--url", score.url);
       await sleep(5000);
+      const off = run(
+        `return /established limitations/.test(document.body.innerText) || !![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Download" && b.disabled);`,
+      );
+      if (off === "true") {
+        blocked.add(score.url);
+        manifest.blocked = [...blocked];
+        writeFileSync(manifestFile, JSON.stringify(manifest, null, 2));
+        console.log(`  blocked ${song.id} ${score.url}`);
+        continue;
+      }
       if (!click("Download")) continue;
       await sleep(2500);
       const since = Date.now() - 1000;
