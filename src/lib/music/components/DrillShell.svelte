@@ -123,6 +123,8 @@
   /** Count-in clicks so far, and how many bars it lasts (for the count-in panel). */
   let countBeats = $state(0);
   let countBars = $state(0);
+  /** The count-in on screen: until the downbeat itself, though input is live half a beat before it. */
+  let counting = $state(false);
   let heading: HTMLElement | undefined = $state();
   let resultsHeading: HTMLElement | undefined = $state();
 
@@ -151,7 +153,7 @@
   $effect(() => {
     const live = phase === "running" || phase === "countin";
     bench.running = live;
-    bench.countingIn = phase === "countin";
+    bench.countingIn = live && counting;
     bench.setFocus(live);
   });
 
@@ -167,11 +169,10 @@
     bench.setFocus(false);
   });
 
+  /** Input is live from here (half a beat before the downbeat); the screen still counts in until the beat. */
   function go() {
     clearTimeout(goTimer);
-    if (phase !== "countin") return;
-    phase = "running";
-    status = "Go.";
+    if (phase === "countin") phase = "running";
   }
 
   function stopClock() {
@@ -197,6 +198,7 @@
     phase = bars > 0 ? "countin" : "running";
     countBeats = 0;
     countBars = bars;
+    counting = bars > 0;
     if (bars > 0) status = `Count-in: ${bars} bar${bars > 1 ? "s" : ""}.`;
     const handle = audio.metronome.start({
       bpm: clock.bpm,
@@ -206,7 +208,12 @@
       onBeat: (beat: number, _bar: number, _at: number, isCountIn: boolean) => {
         bench.beat = beat + 1;
         if (isCountIn) countBeats++;
-        if (!isCountIn && phase === "countin") go();
+        else if (counting) {
+          // The downbeat: the count-in leaves the screen and says go, on the beat.
+          counting = false;
+          go();
+          status = "Go.";
+        }
       },
     });
     clockHandle = handle;
@@ -224,6 +231,7 @@
 
   function stop() {
     clearTimeout(goTimer);
+    counting = false;
     stopClock();
     input.router.releaseAll();
     onstop?.();
@@ -356,7 +364,7 @@
     {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored.</p>{/if}
     {#if hud}<div class="mb-3 flex flex-wrap gap-2">{@render hud()}</div>{/if}
     {@render stage(phase)}
-    {#if phase === "countin"}
+    {#if counting && (phase === "countin" || phase === "running")}
       <!-- The count-in over the stage (nothing shifts when it goes), counted as a player would:
            the beat in big type, the bar's clicks as dots. Taps pass through to the stage. -->
       <div class="countin pointer-events-none absolute inset-0 z-20 grid place-items-center" aria-hidden="true" out:fade={{ duration: 150 }}>
