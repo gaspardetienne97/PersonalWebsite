@@ -15,6 +15,7 @@
   import Pencil from "lucide-svelte/icons/pencil";
   import { clamp, noteName, pc, type InputEvent, type NoteEvent } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
+  import { writtenOffset } from "@repo/music-core/theory/transposition";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
   import {
     aggregateTakes,
@@ -97,6 +98,8 @@
   });
   const fitting = $derived(fretted && s.fit === "auto" && fitted.score !== score);
   const played = $derived(fitting ? fitted.score : score);
+  // The staff shows what the player reads: guitar an octave up, the Aerophone in its reading key.
+  const written = $derived(fretted ? writtenOffset(tuning.instrument, settings.value, tuning) : writtenOffset(settings.value.activeInstrument, settings.value));
   const fitNote = $derived.by(() => {
     const inst = tuning.instrument === "ukulele" ? "ukulele" : "guitar";
     const moved = fitted.shift ? `Moved ${fitted.shift > 0 ? "up" : "down"} ${Math.abs(fitted.shift) / 12 === 1 ? "an octave" : `${Math.abs(fitted.shift) / 12} octaves`}` : "";
@@ -830,7 +833,7 @@
       <div class="mb-3 flex flex-wrap gap-2">
         <Stat label={perfMode ? "Take" : "Mode"} value={perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait"} />
         {#if ls && fstate}<Stat label="Group" value="{Math.min(ls.index + 1, fstate.groups.length)} of {fstate.groups.length}" />{/if}
-        {#if ls?.expected.length}<Stat label="Next" value={ls.expected.map((m) => noteName(m)).join(" ")} />{/if}
+        {#if ls?.expected.length}<Stat label="Next" value={ls.expected.map((m) => noteName(m + written)).join(" ")} />{/if}
         <Stat label="Tempo" value="{bpm} BPM" />
         {#if spot}<Stat label="Loop, {barsOf(spot.range)}" value={`${spot.streak} of ${SPOT.clean} clean`} />{/if}
       </div>
@@ -874,6 +877,7 @@
       {bpm}
       compact={live}
       {highlights}
+      {written}
       onfallback={(r) => (staffFailed = r)}
     />
     {#if !live && phase !== "results"}

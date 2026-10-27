@@ -70,12 +70,15 @@
 </script>
 
 <script lang="ts">
-  // The fingering for `midi` pressed on the AE-20 (sax fingering mode,
-  // written pitch), each key lit in its hand's colour; a key down that the
-  // note does not use (from `heldMidi`) shows red.
+  // The fingering for concert `midi` pressed on the AE-20 (sax fingering
+  // mode), each key lit in its hand's colour; a key down that the note does
+  // not use (from `heldMidi`) shows red. The player fingers the written note,
+  // so both are looked up at the reading key's written pitch.
   import fingerings from "@repo/music-core/data/aerophone-fingerings.json";
   import { noteName } from "@repo/music-core";
   import { fingeringFor as chartEntry } from "@repo/music-core/content/winds-pads";
+  import { writtenOffset } from "@repo/music-core/theory/transposition";
+  import { settings } from "$lib/music/runtime";
 
   interface Props {
     midi: number | null;
@@ -84,7 +87,10 @@
     label?: string;
     compact?: boolean;
   }
-  let { midi, heldMidi = null, label, compact = false }: Props = $props();
+  let { midi: concert, heldMidi: heldConcert = null, label, compact = false }: Props = $props();
+  const shift = $derived(writtenOffset("aerophone", settings.value));
+  const midi = $derived(concert === null ? null : concert + shift);
+  const heldMidi = $derived(heldConcert === null ? null : heldConcert + shift);
   const uid = $props.id();
 
   type Fingering = { keys: string[]; octave: boolean };

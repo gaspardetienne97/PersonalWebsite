@@ -8,7 +8,8 @@
   import { phraseBeats, phraseNotes, phrasesFor, type PhraseInstrument } from "@repo/music-core/content/phrases";
   import { gradePhrase, matchEvents, phraseEvents, type PhraseResult } from "@repo/music-core/scoring/phrases";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import InstrumentStage, { fretTuning } from "$lib/music/components/InstrumentStage.svelte";
+  import InstrumentStage, { fretTuning, writtenShift } from "$lib/music/components/InstrumentStage.svelte";
+  import { transposeFifths } from "@repo/music-core/theory/transposition";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
@@ -33,14 +34,16 @@
   const own = $derived<PhraseInstrument>(inst === "guitar" || inst === "ukulele" || inst === "aerophone" ? inst : "piano");
   const list = $derived(phrasesFor(own));
   const phrase = $derived(list.find((p) => p.id === s.phrase) ?? list[0]);
-  const notes = $derived(phrase ? phraseNotes(phrase) : []);
+  // Aerophone phrases are written for the fingering chart; the run is concert, what the AE-20 sends.
+  const shift = $derived(own === "aerophone" ? writtenShift("aerophone") : 0);
+  const notes = $derived(phrase ? phraseNotes(phrase).map((n) => (shift ? { ...n, midi: n.midi - shift } : n)) : []);
   const beats = $derived(phrase ? Math.ceil(phraseBeats(phrase)) : 4);
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
   const fretted = $derived(own === "guitar" || own === "ukulele");
   const positions = $derived(fretted ? new Map(notes.flatMap((n) => (n.string !== undefined && n.fret !== undefined ? [[n.midi, { string: n.string, fret: n.fret }] as const] : []))) : undefined);
   /** Notes that start together are one step: a chord or a double stop. */
   const events = $derived(phraseEvents(notes));
-  const spell = (midis: number[]) => midis.map((m) => noteName(m, phrase?.keyFifths < 0 ? "flat" : "sharp", false)).join(" ");
+  const spell = (midis: number[]) => midis.map((m) => noteName(m + shift, phrase?.keyFifths < 0 ? "flat" : "sharp", false)).join(" ");
   const timed = $derived<TimedNote[]>(notes.map((n) => ({ midi: n.midi, beat: n.startBeat, dur: n.durationBeats })));
 
   let phase = $state<Phase>("ready");
@@ -236,7 +239,7 @@
       </div>
       {#if mode === "practice" || transport.playing || phase === "results"}
         <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))} tuning={fretTuning(own)} title={phrase.id} beatsPerBar={phrase.beatsPerBar}
-          meter={phrase.meter} keyFifths={phrase.keyFifths} cursorBeat={transport.beat} groupStates={states} /></div>
+          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat} groupStates={states} /></div>
       {:else}
         <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Hear it, then play it from memory.</p>
       {/if}

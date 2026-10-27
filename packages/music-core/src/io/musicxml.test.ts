@@ -140,6 +140,24 @@ describe("MusicXML", () => {
     expect(parseMusicXml(PICKUP.replace(' implicit="yes"', "")).lengthBeats).toBe(9);
   });
 
+  it("reads a transposing part at concert pitch", () => {
+    // An alto sax part in written A major sounds a major sixth lower, in C.
+    const alto = PICKUP.replace(
+      "<key><fifths>1</fifths></key>",
+      "<key><fifths>3</fifths></key><transpose><diatonic>-5</diatonic><chromatic>-9</chromatic></transpose>",
+    );
+    const s = parseMusicXml(alto);
+    expect(s.keyFifths).toBe(0);
+    expect(s.voices[0].notes[0].midi).toBe(62 - 9);
+    // A guitar written in treble with an octave-change sounds an octave down.
+    const guitar = PICKUP.replace(
+      "<key><fifths>1</fifths></key>",
+      "<key><fifths>1</fifths></key><transpose><chromatic>0</chromatic><octave-change>-1</octave-change></transpose>",
+    );
+    expect(parseMusicXml(guitar).voices[0].notes[0].midi).toBe(62 - 12);
+    expect(parseMusicXml(guitar).keyFifths).toBe(1);
+  });
+
   it("refuses timewise and non-MusicXML documents with a message", () => {
     expect(() => parseMusicXml("<score-timewise/>")).toThrow(/Timewise/);
     expect(() => parseMusicXml("<html></html>")).toThrow(/not a MusicXML/);

@@ -310,6 +310,8 @@ export type PlaybackSound =
   | "bass"
   | "pad";
 
+export type AerophoneReadingKey = "C" | "Eb" | "Bb";
+
 export interface Settings {
   echoCancellation: boolean;
   reduceMotion: boolean;
@@ -331,6 +333,8 @@ export interface Settings {
   midiEnabledBefore: boolean;
   guitarTuningId: string;
   ukuleleTuningId: string;
+  /** What the Aerophone reads: C (written is concert), alto Eb or tenor Bb sax. */
+  aerophoneKey: AerophoneReadingKey;
   routineBudgetMinutes: number;
   weeklySessionGoal: number;
   preferredSource: Partial<Record<Instrument, InputSource>>;
@@ -363,6 +367,7 @@ export const DEFAULT_SETTINGS: Settings = {
   midiEnabledBefore: false,
   guitarTuningId: "guitar.standard",
   ukuleleTuningId: "ukulele.high-g",
+  aerophoneKey: "C",
   routineBudgetMinutes: 20,
   weeklySessionGoal: 4,
   preferredSource: {},

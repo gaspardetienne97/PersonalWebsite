@@ -33,6 +33,7 @@
   import AerophoneKeys from "$lib/music/components/AerophoneKeys.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
+  import { transposeFifths, writtenOffset } from "@repo/music-core/theory/transposition";
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import { btn } from "$lib/music/components/ui";
@@ -67,16 +68,22 @@
   const stepMs = $derived(60000 / bpm / perBeat);
   const trillPair = $derived(TRILL_PAIRS.find((p) => p.id === s.trill) ?? TRILL_PAIRS[0]);
   const regPair = $derived(REGISTER_PAIRS.find((p) => p.id === s.pair) ?? REGISTER_PAIRS[0]);
+  // The material is written for the fingering chart (keys, pairs and notes as
+  // read); the run is concert, what the AE-20 sends in its reading key.
+  const shift = $derived(writtenOffset("aerophone", settings.value));
+  const concert = (written: readonly number[]) => written.map((m) => m - shift);
+  const trillNotes = $derived(concert(trillPair.notes));
+  const vibNote = $derived(s.vibNote - shift);
 
-  /** The notes to play in time (scales, tonguing and crossings). */
-  const line = $derived(skill === "scales" ? scaleLine(s.scale, s.key) : skill === "tonguing" ? scaleLine("major", s.key) : skill === "register" ? crossingLine(s.pair) : []);
+  /** The notes to play in time (scales, tonguing and crossings), concert. */
+  const line = $derived(concert(skill === "scales" ? scaleLine(s.scale, s.key) : skill === "tonguing" ? scaleLine("major", s.key) : skill === "register" ? crossingLine(s.pair) : []));
   const marks = $derived(skill === "tonguing" ? tonguingMarks(s.tongue, line.length) : []);
   const timed = $derived(line.length > 0);
   /** The written line's key signature: the scale's own (arpeggios their key's), the major key for tonguing, none for crossings. */
   const scaleKind = $derived(skill === "tonguing" ? "major" : s.scale === "major-arpeggio" ? "major" : s.scale === "minor-arpeggio" ? "natural-minor" : s.scale);
   const signature = $derived(skill === "scales" || skill === "tonguing" ? (scaleKind === "chromatic" ? 0 : signatureFor(s.key, scaleKind)) : 0);
-  /** Notes spelled by the key in scales and tonguing (Db major reads Db, not C#); the chart's spelling elsewhere. */
-  const spell = (midi: number) => (skill === "scales" || skill === "tonguing" ? noteName(midi, signature < 0 ? "flat" : "sharp") : (fingeringFor(midi)?.name ?? noteName(midi)));
+  /** A concert note by its written name: spelled by the key in scales and tonguing (Db major reads Db, not C#), the chart's spelling elsewhere. */
+  const spell = (midi: number) => (skill === "scales" || skill === "tonguing" ? noteName(midi + shift, signature < 0 ? "flat" : "sharp") : (fingeringFor(midi + shift)?.name ?? noteName(midi + shift)));
   const keyName = (pc: number) => noteName(pc, (scaleKind === "chromatic" ? 0 : signatureFor(pc, scaleKind)) < 0 ? "flat" : "sharp", false);
 
   let phase = $state<Phase>("ready");
@@ -96,7 +103,7 @@
   let lineResult = $state.raw<LineResult | null>(null);
 
   const stepNow = $derived(timed && phase === "running" && now >= downbeat ? Math.min(line.length - 1, Math.floor((now - downbeat) / stepMs + 0.5)) : null);
-  const target = $derived(timed ? line[stepNow ?? 0] : skill === "trills" ? trillPair.notes[0] : skill === "vibrato" ? s.vibNote : null);
+  const target = $derived(timed ? line[stepNow ?? 0] : skill === "trills" ? trillNotes[0] : skill === "vibrato" ? vibNote : null);
 
   const summaryLine = $derived<SetupClause[]>(
     skill === "scales"
@@ -107,7 +114,7 @@
           ? [{ text: regPair.label, focus: "pair" }, { text: `back and forth in eighths at ${bpm} BPM` }]
           : skill === "trills"
             ? [{ text: `Trill ${trillPair.label}`, focus: "trill" }, { text: `${TRILL_SECONDS} seconds, as fast and even as you can` }]
-            : [{ text: `Bite vibrato on ${spell(s.vibNote)}`, focus: "vibNote" }, { text: vib.label.toLowerCase(), focus: "vib" }, { text: "the rate sets the tempo" }],
+            : [{ text: `Bite vibrato on ${spell(vibNote)}`, focus: "vibNote" }, { text: vib.label.toLowerCase(), focus: "vib" }, { text: "the rate sets the tempo" }],
   );
   const summaryText = $derived(summaryLine.map((c) => c.text).join(", "));
   let demo = $state<{ stop(): void; playing: boolean } | null>(null);
@@ -122,8 +129,8 @@
     const notes = timed
       ? line.map((midi, i) => ({ midi, time: (i * stepMs) / 1000, duration: (stepMs * (marks[i + 1] === "S" ? 1 : 0.8)) / 1000 }))
       : skill === "trills"
-        ? Array.from({ length: 24 }, (_, i) => ({ midi: trillPair.notes[i % 2], time: i * 0.125, duration: 0.12 }))
-        : [{ midi: s.vibNote, time: 0, duration: VIBRATO.seconds }];
+        ? Array.from({ length: 24 }, (_, i) => ({ midi: trillNotes[i % 2], time: i * 0.125, duration: 0.12 }))
+        : [{ midi: vibNote, time: 0, duration: VIBRATO.seconds }];
     const handle = audio.playSequence(notes);
     demo = handle;
     status = "Listen: how it goes. Not scored.";
@@ -166,7 +173,7 @@
       params: { skill, bpm, setup: summaryText },
     });
     cap = capture(timed ? ctx.downbeat - stepMs / 2 : performance.now(), (e) => onEvent(e as NoteEvent | ControlEvent));
-    status = timed ? "Play in time with the click." : skill === "trills" ? `Trill ${trillPair.label}: the clock starts on your first note.` : `Hold ${spell(s.vibNote)} and pulse the bite ${vib.pulses} times a click.`;
+    status = timed ? "Play in time with the click." : skill === "trills" ? `Trill ${trillPair.label}: the clock starts on your first note.` : `Hold ${spell(vibNote)} and pulse the bite ${vib.pulses} times a click.`;
     timer = setTimeout(() => void finish(), timed ? Math.max(0, ctx.downbeat - performance.now()) + line.length * stepMs + 60000 / bpm : 15000);
     const tick = () => {
       now = performance.now();
@@ -194,7 +201,7 @@
       const r = gradeLine({ beats: line.map((m) => [{ midi: m }]), beatMs: stepMs, notes });
       lineResult = r;
       const strays = Math.max(0, ons.length - r.clean);
-      const slips = r.metrics.flatMap((mt) => (mt.kind === "pitch" && mt.actualMidi !== undefined && mt.actualMidi !== mt.expectedMidi ? [octaveSlip(mt.expectedMidi, mt.actualMidi)] : [])).filter(Boolean);
+      const slips = r.metrics.flatMap((mt) => (mt.kind === "pitch" && mt.actualMidi !== undefined && mt.actualMidi !== mt.expectedMidi ? [octaveSlip(mt.expectedMidi + shift, mt.actualMidi + shift)] : [])).filter(Boolean);
       score = r.score;
       correct = r.correct;
       rows = [
@@ -204,7 +211,7 @@
       ];
       if (skill === "register") {
         // Evenness still counts: an uneven crossing is not a clean one.
-        const g = glitches(notes, regPair.notes);
+        const g = glitches(notes, concert(regPair.notes));
         correct = r.correct && g <= 1;
         rows[2] = { label: "Glitches across the break", text: `${g}${g <= 1 ? "" : ": move the fingers and the thumb together"}` };
       }
@@ -228,7 +235,7 @@
             ? "Right notes, but the crossing left glitches between them."
             : `Clean and even at ${bpm} BPM.`;
     } else if (skill === "trills") {
-      const t = gradeTrill(notes, trillPair.notes);
+      const t = gradeTrill(notes, trillNotes);
       score = t.score;
       correct = t.correct;
       rows = [
@@ -349,7 +356,7 @@
         <Choice label="Trill" options={TRILL_PAIRS.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail || undefined }))} value={s.trill} onchange={(v) => cfg.set({ trill: v })} setupKey="trill" />
       {:else}
         <Choice label="Rate" options={VIBRATO_SETS.map((x) => ({ value: x.id as string, label: x.label }))} value={s.vib} onchange={(v) => cfg.set({ vib: v })} setupKey="vib" />
-        <Choice label="Note" options={[62, 67, 69, 74].map((m) => ({ value: m, label: spell(m) }))} value={s.vibNote} onchange={(v) => cfg.set({ vibNote: v })} setupKey="vibNote" />
+        <Choice label="Note" options={[62, 67, 69, 74].map((m) => ({ value: m, label: spell(m - shift) }))} value={s.vibNote} onchange={(v) => cfg.set({ vibNote: v })} setupKey="vibNote" />
       {/if}
     </div>
   {/snippet}
@@ -368,7 +375,7 @@
         {#if timed}
           {#if skill === "register" && regPair.detail}<p class="text-sm text-ws-stage-soft">{regPair.label}: {regPair.detail}.</p>{/if}
           {#if mode === "practice" || phase === "results"}
-            <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryText} cursorBeat={stepNow === null ? null : stepNow / perBeat} keyFifths={signature} />
+            <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryText} cursorBeat={stepNow === null ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" />
           {/if}
           <ol class="flex flex-wrap gap-1.5" aria-label="The line">
             {#each line as n, i (i)}
@@ -385,7 +392,7 @@
           {#if mode === "practice"}
             <!-- The two fingerings side by side, the one sounding lit. -->
             <div class="flex flex-wrap justify-center gap-4">
-              {#each trillPair.notes as n (n)}
+              {#each trillNotes as n (n)}
                 <div class="flex flex-col items-center gap-1 {sounding === n ? '' : 'opacity-80'}">
                   <AerophoneKeys midi={n} heldMidi={sounding} compact />
                   <p class="text-center font-display text-2xl font-semibold">{spell(n)}</p>
@@ -396,7 +403,7 @@
             <p class="rounded-xl bg-ws-stage-ink/8 p-3 text-center text-sm text-ws-stage-soft">Check: fingering hidden.</p>
           {/if}
         {:else}
-          <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Hold {spell(s.vibNote)} steadily and pulse the bite {vib.pulses} times a click: the click plays at {vib.bpm} BPM. The bite reaches the app as pitch bend.</p>
+          <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Hold {spell(vibNote)} steadily and pulse the bite {vib.pulses} times a click: the click plays at {vib.bpm} BPM. The bite reaches the app as pitch bend.</p>
         {/if}
       </div>
       {#if skill !== "trills"}

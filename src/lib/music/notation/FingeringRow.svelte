@@ -1,6 +1,8 @@
 <script lang="ts">
   import { noteName, type Score } from "@repo/music-core";
   import { AEROPHONE_FINGERINGS } from "@repo/music-core/data/index";
+  import { transposeFifths, writtenOffset } from "@repo/music-core/theory/transposition";
+  import { settings } from "$lib/music/runtime";
   import { scoreGroups, type BeatRange } from "./groups";
   import type { GroupState } from "./NotationFrame.svelte";
 
@@ -20,12 +22,15 @@
   const RH = ["k4", "k5", "k6"];
   const labelOf = Object.fromEntries(AEROPHONE_FINGERINGS.keys.map((k) => [k.id, k.label]));
 
-  // The monophonic top line: the highest note of every onset.
+  // The monophonic top line: the highest note of every onset, fingered and
+  // named at the Aerophone's written pitch (the score is concert).
+  const shift = $derived(writtenOffset("aerophone", settings.value));
+  const flats = $derived(transposeFifths(score.keyFifths ?? 0, shift) < 0);
   const cells = $derived(
     scoreGroups(score, voiceIds, range).map((g) => {
-      const midi = g.notes[g.notes.length - 1].midi;
+      const midi = g.notes[g.notes.length - 1].midi + shift;
       const f = AEROPHONE_FINGERINGS.fingeringsByMidi[String(midi)];
-      const name = noteName(midi, (score.keyFifths ?? 0) < 0 ? "flat" : "sharp");
+      const name = noteName(midi, flats ? "flat" : "sharp");
       const extras = f ? f.keys.filter((k) => !LH.includes(k) && !RH.includes(k)) : [];
       const spoken = f
         ? [...f.keys.map((k) => labelOf[k] ?? k), ...(f.octave ? ["octave key"] : [])].join(", ") ||

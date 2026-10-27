@@ -27,6 +27,7 @@
   import Piano from "$lib/music/components/Piano.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import { AEROPHONE_RANGE } from "@repo/music-core/content/winds-pads";
+  import { writtenOffset } from "@repo/music-core/theory/transposition";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -64,7 +65,8 @@
   const follower = $derived<"wait" | "performance">(climbing || s.follower === "performance" ? "performance" : "wait");
   const measures = $derived(climbing ? CLIMB.measures : s.measures);
   const strictness = $derived<Strictness>((["relaxed", "normal", "strict"] as const).find((x) => x === s.strictness) ?? "normal");
-  const transpose = $derived(fretted ? tuning!.notationTransposition : 0);
+  // Sounding minus written: guitar sounds an octave down, the Aerophone by its reading key.
+  const transpose = $derived(-writtenOffset(instrument, settings.value, fretted ? tuning : null));
   const useMic = $derived(fretted && s.input === "mic");
   const entry = catalogEntry("reading")!;
   const modeDef = entry.modes.find((m) => m.id === "sight-reading")!;

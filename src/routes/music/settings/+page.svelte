@@ -12,6 +12,7 @@
   import Target from "lucide-svelte/icons/target";
   import Database from "lucide-svelte/icons/database";
   import type { PlaybackSound } from "@repo/music-core";
+  import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
   import CalibrationPanel from "$lib/music/hubs/tools/settings/CalibrationPanel.svelte";
   import DataSection from "$lib/music/hubs/tools/settings/DataSection.svelte";
   import { btn } from "$lib/music/components/ui";
@@ -210,6 +211,16 @@
             <p class="flex items-center gap-1 font-medium"><span id="echo-l">Echo cancellation</span><Hint about="Echo cancellation" text="Off is better for pitch and timing. Turn it on if the speakers bleed into the mic. Applies the next time the microphone starts." /></p>
           </div>
           {@render toggle("echo-l", s.echoCancellation, (v) => settings.update({ echoCancellation: v }))}
+        </li>
+        <li class={rowCls}>
+          <div class="min-w-0 flex-1 basis-48">
+            <p class="flex items-center gap-1 font-medium"><span id="aero-key-l">Aerophone reading key</span><Hint about="Aerophone reading key" text="Match the AE-20's transpose setting. Staffs and fingerings show the note you read and finger; the Aerophone sends concert pitch either way, and that is what is graded and played back." /></p>
+          </div>
+          <div class="flex gap-1.5" role="group" aria-labelledby="aero-key-l">
+            {#each AEROPHONE_READING_KEYS as k (k.id)}
+              <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {k.id === s.aerophoneKey ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}" aria-pressed={k.id === s.aerophoneKey} onclick={() => settings.update({ aerophoneKey: k.id })}>{k.label}</button>
+            {/each}
+          </div>
         </li>
       </ul>
     </section>

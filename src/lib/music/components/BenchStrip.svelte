@@ -20,6 +20,7 @@
   import Picker from "$lib/music/components/Picker.svelte";
   import TuningPicker from "$lib/music/drills/guitar/TuningPicker.svelte";
   import { tunings } from "$lib/music/drills/guitar/instrument.svelte";
+  import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
 
   const TEMPOS = [60, 72, 80, 90, 100, 120, 140];
   let previewing = $state(false);
@@ -40,6 +41,7 @@
   const fretted = $derived(s.activeInstrument === "guitar" || s.activeInstrument === "ukulele" ? s.activeInstrument : null);
   const tuningId = $derived(fretted === "ukulele" ? s.ukuleleTuningId : s.guitarTuningId);
   const tuningName = $derived(fretted ? tunings.pick(tuningId, fretted).name : "");
+  const aeroKey = $derived(AEROPHONE_READING_KEYS.find((k) => k.id === s.aerophoneKey) ?? AEROPHONE_READING_KEYS[0]);
 
   function setTempo(v: number) {
     const bpm = Math.max(30, Math.min(240, Math.round(v || 0)));
@@ -187,6 +189,27 @@
             value={tuningId}
             onchange={(id) => settings.update(fretted === "ukulele" ? { ukuleleTuningId: id } : { guitarTuningId: id })}
           />
+        </Popover.Content>
+      </Popover.Root>
+    {/if}
+
+    {#if s.activeInstrument === "aerophone"}
+      <Popover.Root>
+        <Popover.Trigger class="{pill} {extra}" disabled={bench.locked} aria-label="Aerophone reads in {aeroKey.label}">
+          <span>Reads in</span>
+          <span class="font-semibold">{aeroKey.label}</span>
+        </Popover.Trigger>
+        <Popover.Content portalProps={{ to: portalTo }} class="w-72 border-ws-line bg-ws-surface text-ws-ink">
+          <p class="text-sm font-medium">The Aerophone's reading key</p>
+          <p class="mt-1 text-xs text-ws-soft">Set it to match the AE-20. Staffs and fingerings show the written note; it sends concert pitch either way.</p>
+          <div class="mt-2 grid grid-cols-3 gap-1.5">
+            {#each AEROPHONE_READING_KEYS as k (k.id)}
+              <Popover.Close
+                class="min-h-11 rounded-md border text-sm {k.id === aeroKey.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}"
+                onclick={() => settings.update({ aerophoneKey: k.id })}>{k.label}</Popover.Close
+              >
+            {/each}
+          </div>
         </Popover.Content>
       </Popover.Root>
     {/if}

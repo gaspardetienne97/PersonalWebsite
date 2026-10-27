@@ -4,7 +4,11 @@
   // fretted instrument (each note at its string and fret), a staff otherwise
   // (both hands on a grand staff when the notes carry hands). A short line
   // engraves small, so it is zoomed to fill the stage (as sight-reading does).
-  import type { Score, ScoreVoice } from "@repo/music-core";
+  // The notes are concert; a staff shows them at the instrument's written pitch.
+  import type { Instrument, Score, ScoreVoice } from "@repo/music-core";
+  import { transposeScore } from "@repo/music-core/theory/transposition";
+  import { settings } from "$lib/music/runtime";
+  import { writtenShift } from "$lib/music/components/InstrumentStage.svelte";
   import Tab from "./Tab.svelte";
   import Staff from "./Staff.svelte";
   import type { GroupState } from "./NotationFrame.svelte";
@@ -22,8 +26,10 @@
     keyFifths?: number;
     /** The written time signature when it isn't beatsPerBar/4 (6/8, 3/8). */
     meter?: [number, number];
+    /** Whose written pitch the staff shows; defaults to the practice strip's instrument. */
+    instrument?: Instrument;
   }
-  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter }: Props = $props();
+  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument }: Props = $props();
   const barBeats = $derived(meter ? (meter[0] * 4) / meter[1] : beatsPerBar);
 
   const end = $derived(notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0));
@@ -35,7 +41,7 @@
       return own.length ? [{ id: hand === "right" ? "rh" : "lh", name: hand === "right" ? "Right hand" : "Left hand", hand, notes: own }] : [];
     });
   });
-  const score = $derived<Score>({
+  const concert = $derived<Score>({
     id: `line-${title}-${notes.map((n) => `${n.midi}.${n.string}.${n.fret}@${n.startBeat}`).join(",")}`,
     title,
     bpm: 90,
@@ -45,6 +51,7 @@
     lengthBeats: Math.max(barBeats, Math.ceil(end / barBeats - 1e-9) * barBeats),
     source: { kind: "generated" },
   });
+  const score = $derived(tuning ? concert : transposeScore(concert, writtenShift(instrument ?? settings.value.activeInstrument)));
   let width = $state(0);
   // Measured: a line engraves at about 90 px plus 25 a note (Spider's 16 notes 521 px,
   // Fingerpicking's 32 notes 896 px). A short line is zoomed up to fill the stage (down

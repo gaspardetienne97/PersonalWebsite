@@ -14,6 +14,7 @@
   import Piano from "$lib/music/components/Piano.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import { AEROPHONE_RANGE } from "@repo/music-core/content/winds-pads";
+  import { writtenOffset } from "@repo/music-core/theory/transposition";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -24,7 +25,7 @@
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
-  import { mic } from "$lib/music/runtime";
+  import { mic, settings } from "$lib/music/runtime";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { clampRange, comparisonScore, flashcardScore, keyboardSpan, playableWrittenRange, READING_TABS, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
@@ -46,7 +47,8 @@
   // The level's range on the clefs, inside what the instrument can play.
   const limits = $derived<[number, number]>(fretted ? playableWrittenRange(tuning!) : aero ? [AEROPHONE_RANGE.lowestMidi, AEROPHONE_RANGE.highestMidi] : [21, 108]);
   const range = $derived(clampRange(readingRange(level.id, clefs), limits));
-  const transpose = $derived(fretted ? tuning!.notationTransposition : 0);
+  // Sounding minus written: guitar sounds an octave down, the Aerophone by its reading key.
+  const transpose = $derived(-writtenOffset(instrument, settings.value, fretted ? tuning : null));
   const byPlay = $derived(s.answer === "play");
   const useMic = $derived(byPlay && fretted && s.input === "mic");
   const kind = $derived<"note" | "chord">(s.kind === "chord" ? "chord" : "note");
@@ -343,7 +345,7 @@
         {:else if fretted && tuning}
           <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} {flashes} label="{instrument} fretboard" />
         {:else if aero}
-          <InstrumentStage instrument="aerophone" line={card?.midi ?? []} marks={pianoMarks} {flashes} />
+          <InstrumentStage instrument="aerophone" line={card?.midi.map((m) => m + transpose) ?? []} marks={pianoMarks} {flashes} />
         {:else}
           <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
         {/if}

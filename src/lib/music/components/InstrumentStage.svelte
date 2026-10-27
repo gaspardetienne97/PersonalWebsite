@@ -4,10 +4,14 @@
   import { tunings as T } from "$lib/music/drills/guitar/instrument.svelte";
   import { settings as S } from "$lib/music/runtime";
   import { positionLine } from "@repo/music-core/theory/fretboard";
+  import { octaveFit, writtenOffset } from "@repo/music-core/theory/transposition";
 
   /** The strip's tuning when it has picked a fretted instrument (tab and the fretboard), else null. */
   export const fretTuning = (inst: Inst) =>
     inst === "guitar" ? T.pick(S.value.guitarTuningId, "guitar") : inst === "ukulele" ? T.pick(S.value.ukuleleTuningId, "ukulele") : null;
+
+  /** Semitones from concert to written pitch on the strip's setup for `inst` (guitar's octave, the Aerophone's reading key). */
+  export const writtenShift = (inst: Inst) => writtenOffset(inst, S.value, fretTuning(inst));
 
   /** Where each pitch of a line sits in one hand position on the strip's fretted instrument (empty off it). */
   export function linePositions(inst: Inst, midis: readonly number[]): Map<number, { string: number; fret: number }> {
@@ -18,11 +22,16 @@
     return new Map(pitches.flatMap((m, i) => (at[i] ? [[m, at[i]!] as const] : [])));
   }
 
-  /** Octaves up a line must move so `inst` can reach its lowest note (0 when it fits, or on piano). */
+  /** Octaves a line must move so `inst` can reach it (0 when it fits, or on piano); the Aerophone's range is its written one. */
   export function fitShift(line: readonly number[], inst: Inst): number {
     if (!line.length) return 0;
-    const lowest = inst === "aerophone" ? AE.lowestMidi : inst === "ukulele" ? Math.min(...T.pick(S.value.ukuleleTuningId, "ukulele").openStrings) : inst === "guitar" ? Math.min(...T.pick(S.value.guitarTuningId, "guitar").openStrings) : -Infinity;
-    return Math.max(0, Math.ceil((lowest - Math.min(...line)) / 12)) * 12;
+    const [lo, hi] = [Math.min(...line), Math.max(...line)];
+    if (inst === "aerophone") {
+      const off = writtenShift("aerophone");
+      return octaveFit(lo + off, hi + off, AE.lowestMidi, AE.highestMidi);
+    }
+    const tuning = fretTuning(inst);
+    return tuning ? octaveFit(lo, hi, Math.min(...tuning.openStrings)) : 0;
   }
 </script>
 
@@ -69,9 +78,11 @@
   const pianoHigh = $derived(high ?? Math.max(pianoLow + 24, Math.ceil((span.hi + 2) / 12) * 12));
 
   const tuning = $derived(fretTuning(inst));
+  // The Aerophone is fingered and named by its written note; everything here is concert.
+  const aeroShift = $derived(writtenOffset("aerophone", settings.value));
   // One place per pitch: the line in one hand position, as the tab above it writes it.
   const placed = $derived(positions ?? linePositions(inst, [...line, ...Object.keys(marks).map(Number)]));
-  const unplayable = $derived(tuning ? line.filter((m) => !placed.has(m)) : inst === "aerophone" ? line.filter((m) => m < AEROPHONE_RANGE.lowestMidi || m > AEROPHONE_RANGE.highestMidi) : []);
+  const unplayable = $derived(tuning ? line.filter((m) => !placed.has(m)) : inst === "aerophone" ? line.filter((m) => m + aeroShift < AEROPHONE_RANGE.lowestMidi || m + aeroShift > AEROPHONE_RANGE.highestMidi) : []);
   const frets = $derived.by(() => {
     const fs = line.flatMap((m) => (placed.has(m) ? [placed.get(m)!.fret] : []));
     const from = fs.length ? Math.max(0, Math.min(...fs) - 1) : 0;
@@ -91,7 +102,7 @@
       .filter(([, mk]) => mk.role === "chord" || mk.role === "scale")
       .sort((a, b) => a[0] - b[0]),
   );
-  const fingerFor = (m: number) => fingeringFor(m)?.name ?? noteName(m);
+  const fingerFor = (m: number) => fingeringFor(m + aeroShift)?.name ?? noteName(m + aeroShift);
   const held = $derived(input.held.size ? Math.max(...input.held) : null);
 </script>
 
@@ -111,7 +122,7 @@
   <Piano low={pianoLow} high={pianoHigh} {marks} {flashes} {names} {interactive} label="Piano keyboard, {noteName(pianoLow)} to {noteName(pianoHigh)}" />
 {/if}
 {#if unplayable.length}
-  <p class="mt-1 text-xs text-ws-stage-soft">{[...new Set(unplayable)].map((m) => noteName(m)).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
+  <p class="mt-1 text-xs text-ws-stage-soft">{[...new Set(unplayable)].map((m) => (inst === "aerophone" ? fingerFor(m) : noteName(m))).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
 {/if}
 
 <style>

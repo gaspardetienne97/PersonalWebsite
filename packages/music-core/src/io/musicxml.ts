@@ -2,6 +2,7 @@
 // Beats are quarter notes, like MIDI; the source XML is kept for engraving.
 import JSZip from "jszip";
 import type { Score, ScoreNote, ScoreVoice } from "../types";
+import { transposeFifths } from "../theory/transposition";
 
 interface XmlNode {
   name: string;
@@ -121,6 +122,10 @@ export function parseMusicXml(xml: string): Score {
     let beats = 4;
     let beatUnit = 4;
     let staves = 1;
+    // A transposing part (a sax, or a guitar written an octave up) is stored at
+    // written pitch with <transpose>; scores are concert. A TAB or 8vb clef part
+    // is already at sounding pitch and has no <transpose>.
+    let transpose = 0;
     const clefs = new Map<number, "treble" | "bass">();
     const byVoice = new Map<string, { notes: ScoreNote[]; staves: number[] }>();
     let measureStart = 0;
@@ -133,9 +138,11 @@ export function parseMusicXml(xml: string): Score {
         if (el.name === "attributes") {
           if (kid(el, "divisions")) divisions = num(el, "divisions") || 1;
           if (kid(el, "staves")) staves = num(el, "staves") || 1;
+          const tr = kid(el, "transpose");
+          if (tr) transpose = num(tr, "chromatic") + 12 * num(tr, "octave-change");
           const key = kid(el, "key");
           if (key && keyFifths === undefined) {
-            keyFifths = num(key, "fifths");
+            keyFifths = transposeFifths(num(key, "fifths"), transpose);
             keyMode = txt(key, "mode") === "minor" ? "minor" : "major";
           }
           const time = kid(el, "time");
@@ -170,7 +177,8 @@ export function parseMusicXml(xml: string): Score {
               midi:
                 (num(pitch, "octave") + 1) * 12 +
                 STEP_PC[txt(pitch, "step")] +
-                Math.round(Number(txt(pitch, "alter")) || 0),
+                Math.round(Number(txt(pitch, "alter")) || 0) +
+                transpose,
               startBeat: round4(measureStart + start / divisions),
               durationBeats: round4(dur / divisions),
             };

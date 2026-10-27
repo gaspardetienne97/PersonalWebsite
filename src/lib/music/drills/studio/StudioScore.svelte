@@ -7,6 +7,7 @@
   // one keyboard under it. In Waterfall the keyboard is laid out from the same
   // white-key grid (whiteKeyLayout) so every falling note lands on its key.
   import type { Score } from "@repo/music-core";
+  import { transposeScore } from "@repo/music-core/theory/transposition";
   import Staff from "$lib/music/notation/Staff.svelte";
   import Tab from "$lib/music/notation/Tab.svelte";
   import Waterfall from "$lib/music/notation/Waterfall.svelte";
@@ -33,6 +34,7 @@
     onfallback,
     compact = false,
     highlights = [],
+    written = 0,
   }: {
     score: Score;
     voiceIds: string[];
@@ -51,7 +53,10 @@
     compact?: boolean;
     /** Sections to tint on the staff and tab. */
     highlights?: (BeatRange & { label: string })[];
+    /** Semitones from the concert score to what the player reads on the staff (guitar's octave, the Aerophone's key). */
+    written?: number;
   } = $props();
+  const staffScore = $derived(transposeScore(score, written));
 
   // Whole octaves from C, so both ends are white keys and the grids agree.
   const midis = $derived(score.voices.filter((v) => voiceIds.includes(v.id)).flatMap((v) => v.notes.map((n) => n.midi)));
@@ -95,7 +100,7 @@
           <FingeringRow {score} {voiceIds} {groupStates} />
         </div>
       {:else}
-        <Staff {score} {voiceIds} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
+        <Staff score={staffScore} {voiceIds} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
       {/if}
     </div>
     <Piano {low} {high} {marks} {flashes} label="Piano keyboard" />
