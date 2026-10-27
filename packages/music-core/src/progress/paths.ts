@@ -1,11 +1,18 @@
 // Learning paths (catalog 5.8): the five paths in one shape, on the new routes, with status
 // from independent evidence only. `guided-accepted` is gone: every drill has a Check mode now.
-import { isMasteryEligible, type Instrument, type Modality, type ScoringEvent } from "../types";
+import {
+  isMasteryEligible,
+  type Instrument,
+  type Modality,
+  type RunRecord,
+  type ScoringEvent,
+} from "../types";
 import pathData from "../data/learning-paths.json";
 import earData from "../data/ear-training.json";
 import { EAR_ADDED_STEPS, EAR_TABLE_STEPS } from "../content/ear";
 import jazzData from "../data/jazz.json";
 import { SKILL_GRAPH, withDescendants, type SkillGraph } from "./graph";
+import { dayKey } from "./rewards";
 
 export type PathId = "ear" | "jazz" | "guitar" | "piano" | "mpc" | "studio" | "theory";
 
@@ -28,8 +35,12 @@ export interface PathStep {
   modalities?: Modality[];
   minAttempts: number;
   minSessions: number;
-  /** Mean credit for done; the paths' usual 0.66 when missing. */
+  /** Distinct days with evidence, so a pass is confirmed cold on another day. */
+  minDays: number;
+  /** Mean credit of the recent attempts for done; the paths' usual 0.66 when missing. */
   threshold?: number;
+  /** Only runs at or above this tempo count (the run's `bpm` param). */
+  minBpm?: number;
   /** Only runs at least this hard count, so a step can ask for a harder setup. */
   minDifficulty?: number;
   requires: string[];
@@ -126,7 +137,9 @@ interface RawStep {
   modalities?: string[];
   minAttempts?: number;
   minSessions?: number;
+  minDays?: number;
   threshold?: number;
+  minBpm?: number;
   minDifficulty?: number;
   requires?: string[];
   applies?: string | { only?: string[] };
@@ -163,7 +176,9 @@ function normaliseStep(raw: RawStep): PathStep {
     modalities: raw.modalities as Modality[] | undefined,
     minAttempts: raw.minAttempts ?? 1,
     minSessions: raw.minSessions ?? 1,
+    minDays: raw.minDays ?? 2,
     threshold: raw.threshold,
+    minBpm: raw.minBpm,
     minDifficulty: raw.minDifficulty,
     requires: raw.requires ?? [],
     instruments: typeof applies === "object" ? (applies.only as Instrument[]) : undefined,
@@ -812,12 +827,22 @@ export const LEARNING_PATHS: Record<PathId, LearningPath> = {
 // ---------------------------------------------------------------------------
 // Status
 
-export type StepStatus = "todo" | "not-assessed" | "in-progress" | "done" | "locked" | "next";
+/** review: not passed itself, but a later step that needs it is done (tested out). */
+export type StepStatus =
+  | "todo"
+  | "not-assessed"
+  | "in-progress"
+  | "done"
+  | "review"
+  | "locked"
+  | "next";
 
 export interface SkillEvidence {
   skillId: string;
   attempts: number;
   sessions: number;
+  days: number;
+  /** Mean credit of the recent attempts, the ones a pass is judged on. */
   mean: number;
   done: boolean;
 }
@@ -826,58 +851,83 @@ export interface StepProgress {
   step: PathStep;
   status: StepStatus;
   evidence: SkillEvidence[];
+  /** Open, and the recent attempts already pass: only more attempts, sessions or days are missing. */
+  almost: boolean;
 }
 
 export interface PathProgress {
   path: LearningPath;
   steps: StepProgress[];
-  /** Steps with skills that are done, out of steps with skills. */
+  /** Steps with skills that are done or tested out, out of steps with skills. */
   done: number;
   total: number;
   continueHref?: string;
 }
 
-function stepEvidence(step: PathStep, events: ScoringEvent[], graph: SkillGraph): SkillEvidence[] {
+/** Attempts a pass is judged on: the latest few, so old misses stop counting once you improve. */
+export const recentWindow = (step: PathStep) => Math.max(step.minAttempts, 3);
+
+const meetsMean = (step: PathStep, mean: number) => mean >= (step.threshold ?? DONE_THRESHOLD);
+
+function stepEvidence(
+  step: PathStep,
+  events: ScoringEvent[],
+  graph: SkillGraph,
+  bpmOf: Map<string, number>,
+): SkillEvidence[] {
   const eligible = events.filter(
     (e) =>
       isMasteryEligible(e) &&
       (!step.modalities || step.modalities.includes(e.modality)) &&
       (!step.exerciseIds || step.exerciseIds.includes(e.exerciseId)) &&
       (!step.instruments || !e.instrument || step.instruments.includes(e.instrument)) &&
-      e.difficulty >= (step.minDifficulty ?? 0) - 1e-9,
+      e.difficulty >= (step.minDifficulty ?? 0) - 1e-9 &&
+      (step.minBpm === undefined || (bpmOf.get(e.runId ?? "") ?? 0) >= step.minBpm - 1e-9),
   );
   return step.skillIds.map((skillId) => {
     const ids = new Set(withDescendants(skillId, graph));
     const ev = eligible.filter((e) => e.skillIds.some((id) => ids.has(id)));
+    const recent = [...ev].sort((a, b) => a.at - b.at).slice(-recentWindow(step));
     const attempts = ev.length;
     const sessions = new Set(ev.map((e) => e.sessionId)).size;
-    const mean = attempts ? ev.reduce((sum, e) => sum + e.partialCredit, 0) / attempts : 0;
+    const days = new Set(ev.map((e) => dayKey(e.at))).size;
+    const mean = recent.length
+      ? recent.reduce((sum, e) => sum + e.partialCredit, 0) / recent.length
+      : 0;
     return {
       skillId,
       attempts,
       sessions,
+      days,
       mean,
       done:
         attempts >= step.minAttempts &&
         sessions >= step.minSessions &&
-        mean >= (step.threshold ?? DONE_THRESHOLD),
+        days >= step.minDays &&
+        meetsMean(step, mean),
     };
   });
 }
 
 /**
- * done: every skill has minAttempts independent attempts over minSessions sessions averaging
- * >= 0.66. Steps without skills are "todo" and never lock or block anything. A done step stays
- * done even if a prerequisite is unfinished. "next" is the lowest-order open, unlocked step.
+ * done: every skill has minAttempts independent attempts over minSessions sessions and minDays
+ * days, and the latest attempts (recentWindow) average at least the threshold; a step with a
+ * tempo counts only runs at that tempo or faster (`runs` supplies each run's bpm). A step that a
+ * done step needs, directly or further back, is "review". Steps without skills are "todo" and
+ * never lock or block anything. "next" is the lowest-order open, unlocked step.
  */
 export function pathProgress(
   path: LearningPath,
   events: ScoringEvent[],
   graph: SkillGraph = SKILL_GRAPH,
+  runs: RunRecord[] = [],
 ): PathProgress {
+  const bpmOf = new Map<string, number>();
+  for (const r of runs)
+    if (Number.isFinite(Number(r.params.bpm))) bpmOf.set(r.id, Number(r.params.bpm));
   const base = new Map<string, { status: StepStatus; evidence: SkillEvidence[] }>();
   for (const step of path.steps) {
-    const evidence = stepEvidence(step, events, graph);
+    const evidence = stepEvidence(step, events, graph, bpmOf);
     const status: StepStatus = !step.skillIds.length
       ? "todo"
       : evidence.every((e) => e.done)
@@ -888,21 +938,33 @@ export function pathProgress(
     base.set(step.id, { status, evidence });
   }
   const open = (s?: StepStatus) => s === "not-assessed" || s === "in-progress";
+  const byId = new Map(path.steps.map((s) => [s.id, s]));
+  const testedOut = (id: string, seen = new Set<string>()): void => {
+    for (const r of byId.get(id)?.requires ?? []) {
+      if (seen.has(r)) continue;
+      seen.add(r);
+      const b = base.get(r);
+      if (b && open(b.status)) b.status = "review";
+      testedOut(r, seen);
+    }
+  };
+  for (const step of path.steps) if (base.get(step.id)!.status === "done") testedOut(step.id);
   let nextFound = false;
   const steps = path.steps.map((step): StepProgress => {
     const { status, evidence } = base.get(step.id)!;
-    if (!open(status)) return { step, status, evidence };
+    const almost = open(status) && evidence.every((e) => e.attempts > 0 && meetsMean(step, e.mean));
+    if (!open(status)) return { step, status, evidence, almost };
     if (step.requires.some((r) => open(base.get(r)?.status)))
-      return { step, status: "locked", evidence };
-    if (nextFound) return { step, status, evidence };
+      return { step, status: "locked", evidence, almost };
+    if (nextFound) return { step, status, evidence, almost };
     nextFound = true;
-    return { step, status: "next", evidence };
+    return { step, status: "next", evidence, almost };
   });
   const graded = steps.filter((s) => s.step.skillIds.length);
   return {
     path,
     steps,
-    done: graded.filter((s) => s.status === "done").length,
+    done: graded.filter((s) => s.status === "done" || s.status === "review").length,
     total: graded.length,
     continueHref: steps.find((s) => s.status === "next")?.step.href,
   };

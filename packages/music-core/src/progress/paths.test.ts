@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { ScoringEvent } from "../types";
-import { ev } from "./fixtures";
+import { ev, run, T0 } from "./fixtures";
+import { DAY_MS } from "./mastery";
 import { LEARNING_PATHS, NEW_ROUTES, pathProgress, rewriteHref } from "./paths";
 
+// One attempt a day, in order, so every pass below is on more than one day.
 let n = 0;
 const reps = (count: number, over: Partial<ScoringEvent>) =>
-  Array.from({ length: count }, () => ev({ id: `p${n++}`, ...over }));
+  Array.from({ length: count }, () => {
+    const i = n++;
+    return ev({ id: `p${i}`, at: T0 + i * DAY_MS, ...over });
+  });
 
 const statuses = (id: keyof typeof LEARNING_PATHS, events: ScoringEvent[]) =>
   Object.fromEntries(
@@ -149,7 +154,7 @@ describe("pathProgress", () => {
 
   it("never blocks Continue on reference steps without skills, and counts umbrella children", () => {
     const events = [
-      ...reps(1, { skillIds: ["pitch.interval.m3"] }),
+      ...reps(2, { skillIds: ["pitch.interval.m3"] }),
       ...reps(1, {
         skillIds: ["harmony.ii-v-i.chord-scales.major"],
         modality: "played",
@@ -173,6 +178,46 @@ describe("pathProgress", () => {
     expect(p).toMatchObject({ done: 1, total: 5 });
   });
 
+  it("judges the latest attempts, on two days, at the stated tempo", () => {
+    const first = (events: ScoringEvent[], runs = [run()]) =>
+      pathProgress(LEARNING_PATHS.guitar, events, undefined, runs).steps[0];
+    // Early misses stop counting once the last three pass.
+    const climb = [
+      ...reps(3, { ...chordPerfect, partialCredit: 0 }),
+      ...reps(3, { ...chordPerfect, partialCredit: 1 }),
+    ];
+    expect(first(climb).status).toBe("done");
+    // Three passes on one day: almost, waiting for a second day.
+    const oneDay = Array.from({ length: 3 }, (_, i) =>
+      ev({ id: `d${i}`, ...chordPerfect, at: T0 + i * 1000 }),
+    );
+    expect(first(oneDay)).toMatchObject({ status: "next", almost: true });
+    expect(first(oneDay).evidence[0].days).toBe(1);
+    // With a tempo, only runs at that tempo or faster count.
+    const fast = {
+      ...LEARNING_PATHS.guitar,
+      steps: [{ ...LEARNING_PATHS.guitar.steps[0], minBpm: 80 }],
+    };
+    const timed = reps(3, { ...chordPerfect, runId: "slow" });
+    const slowRun = run({ id: "slow", params: { bpm: 60 } });
+    expect(pathProgress(fast, timed, undefined, [slowRun]).steps[0].evidence[0].attempts).toBe(0);
+    const fastRun = run({ id: "slow", params: { bpm: "84" } });
+    expect(pathProgress(fast, timed, undefined, [fastRun]).steps[0].status).toBe("done");
+  });
+
+  it("marks steps a done step needs as review, so they never block", () => {
+    const changes = reps(4, {
+      skillIds: ["technique.guitar.chord-changes"],
+      exerciseId: "technique.guitar.chord-changes",
+      sessionId: "x",
+    }).map((e, i) => ({ ...e, sessionId: `s${i}` }));
+    const p = pathProgress(LEARNING_PATHS.guitar, changes);
+    const st = Object.fromEntries(p.steps.map((s) => [s.step.id, s.status]));
+    expect(st["G-A1"]).toBe("done");
+    expect(st["G-B1"]).toBe("review");
+    expect(p.done).toBeGreaterThanOrEqual(2);
+  });
+
   it("marks an open step in progress when it is not the next one", () => {
     const s = statuses(
       "jazz",
@@ -188,7 +233,7 @@ describe("app-added steps", () => {
     sessionId: "s1",
     exerciseId: "studio.peak",
     promptId: "p",
-    at: 0,
+    at: T0 + n++ * DAY_MS,
     skillIds: ["studio.ears", "studio.eq-peak"],
     capabilities: ["ear"],
     correct: true,

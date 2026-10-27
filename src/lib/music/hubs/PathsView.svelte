@@ -22,11 +22,15 @@
   );
   let open = $state<PathId | null>(null);
   const selected = $derived(open ?? preferred);
-  const progress = $derived(Object.fromEntries(ORDER.map((p) => [p.id, pathProgress(LEARNING_PATHS[p.id], practice.events)])));
+  const runs = $derived(practice.sessions.flatMap((s) => s.runs));
+  const progress = $derived(
+    Object.fromEntries(ORDER.map((p) => [p.id, pathProgress(LEARNING_PATHS[p.id], practice.events, undefined, runs)])),
+  );
   const current = $derived(progress[selected]);
 
   const statusText: Record<StepStatus, string> = {
     done: "Done",
+    review: "Review",
     next: "Up next",
     "in-progress": "In progress",
     "not-assessed": "Not started",
@@ -76,33 +80,43 @@
         {@const st = sp.status}
         <li class="relative flex gap-4 pb-5">
           {#if i < current.steps.length - 1}
-            <span class="absolute left-[1.05rem] top-9 bottom-0 w-0.5 {st === 'done' ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>
+            <span class="absolute left-[1.05rem] top-9 bottom-0 w-0.5 {st === 'done' || st === 'review' ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>
           {/if}
           <span
             class="tnum relative z-10 grid size-9 shrink-0 place-items-center rounded-full font-display text-sm font-semibold {st === 'done'
               ? 'bg-[color:var(--p)] text-[oklch(0.2_0.04_288)]'
               : st === 'next'
                 ? 'bg-ws-surface ring-2 ring-[color:var(--p)]'
+                : st === 'review'
+                  ? 'bg-ws-surface text-instr-ink ring-1 ring-[color:var(--p)]'
                 : 'bg-ws-raised text-ws-soft'}"
             aria-hidden="true"
           >
-            {#if st === "done"}<Check class="size-4" />{:else}{sp.step.order}{/if}
+            {#if st === "done" || st === "review"}<Check class="size-4" />{:else}{sp.step.order}{/if}
           </span>
           <div class="min-w-0 flex-1 rounded-2xl {st === 'next' ? 'bg-ws-surface p-4 shadow-sm' : 'pt-1'}">
             <div class="flex flex-wrap items-baseline justify-between gap-x-3">
               <h3 class="font-semibold">
                 <span class="sr-only">Step {sp.step.order}: </span>{sp.step.title}
               </h3>
-              <span class="text-sm {st === 'next' ? 'font-semibold text-instr-ink' : 'text-ws-soft'}">{statusText[st]}</span>
+              <span class="text-sm {st === 'next' ? 'font-semibold text-instr-ink' : 'text-ws-soft'}"
+                >{sp.almost ? "Almost there" : statusText[st]}</span
+              >
             </div>
             <p class="mt-0.5 text-sm">{sp.step.summary}</p>
             {#if sp.step.detail}<p class="mt-1 text-sm text-ws-soft">Done means: {sp.step.detail}</p>{/if}
-            {#if sp.evidence.length && st !== "done" && sp.evidence.some((e) => e.attempts)}
+            {#if st === "review"}
+              <p class="mt-1 text-xs text-ws-soft">A later step you passed covers this. Use it to review.</p>
+            {:else if sp.evidence.length && st !== "done" && sp.evidence.some((e) => e.attempts)}
               <p class="tnum mt-1 text-xs text-ws-soft">
-                {sp.evidence.reduce((n, e) => n + e.attempts, 0)} checked attempts so far, averaging
+                {sp.evidence.reduce((n, e) => n + e.attempts, 0)} checked attempts so far, the latest averaging
                 {Math.round((sp.evidence.reduce((n, e) => n + e.mean, 0) / sp.evidence.length) * 100)}%.
+                {#if sp.almost}Passing now: {sp.evidence.some((e) => e.days < sp.step.minDays)
+                    ? "play it again on another day to confirm."
+                    : "a few more checked attempts to confirm."}{/if}
               </p>
             {/if}
+            {#if sp.step.minBpm && st !== "done"}<p class="tnum mt-1 text-xs text-ws-soft">Counts at {sp.step.minBpm} BPM or faster.</p>{/if}
             {#if st !== "locked"}
               <div class="mt-2 flex flex-wrap gap-2">
                 <a href={sp.step.href} class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">
