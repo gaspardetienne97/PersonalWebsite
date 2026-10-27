@@ -2565,7 +2565,7 @@
           }
         }
       ],
-      "test": "a lead sheet the owner has not played, in a named key, melody on top plus a LH pattern, two clean passes; two shelf songs (one classical); Grade 5 scales and arpeggios in 6 keys the app picks."
+      "test": "a lead sheet you have not played, in a named key, melody on top plus a LH pattern, two clean passes; two shelf songs (one classical); Grade 5 scales and arpeggios in 6 keys the app picks."
     },
     {
       "id": "6",
@@ -4395,7 +4395,7 @@
           }
         }
       ],
-      "test": "the recorded recital: five pieces in order, each at 90% or better at 100% tempo with continuity 100%, two of them classical at Grade 6 to 7, one of them the owner's own arrangement; plus Grade 7 scales and arpeggios in 6 keys the app picks and a G5 sight-reading piece at 80%."
+      "test": "the recorded recital: five pieces in order, each at 90% or better at 100% tempo with continuity 100%, two of them classical at Grade 6 to 7, one of them your own arrangement; plus Grade 7 scales and arpeggios in 6 keys the app picks and a G5 sight-reading piece at 80%."
     }
   ]
 }

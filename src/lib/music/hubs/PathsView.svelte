@@ -173,7 +173,7 @@
         <span class="min-w-0">
           <span class="block font-semibold">{pr.path.title}</span>
           <span class="tnum block text-sm text-ws-soft">
-            {#if pr.levels?.length}Level {pr.levels.findIndex((l) => l.level.id === pr.currentLevel) + 1 || pr.levels.length} of {pr.levels.length}{:else}{pr.done} of {pr.total} done{/if}
+            {#if pr.levels?.length}Level {pr.currentLevel ?? pr.levels.at(-1)!.level.id}, {pr.levels.filter((l) => l.passed).length} of {pr.levels.length} passed{:else}{pr.done} of {pr.total} done{/if}
           </span>
         </span>
       </button>
@@ -200,17 +200,17 @@
 
     {#if current.levels?.length && level}
       <div class="mt-5 flex flex-wrap gap-1.5" role="group" aria-label="Levels">
-        {#each current.levels as l, i (l.level.id)}
+        {#each current.levels as l (l.level.id)}
           <button
             type="button"
             class="tnum flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full border px-3 text-sm {l.level.id === level.level.id
               ? 'border-transparent bg-[color:var(--p)] font-semibold text-[oklch(0.2_0.04_288)]'
               : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
             aria-pressed={l.level.id === level.level.id}
-            aria-label="Level {i + 1}{l.passed ? ', passed' : l.level.id === current.currentLevel ? ', current' : ''}"
+            aria-label="Level {l.level.id}{l.passed ? ', passed' : l.level.id === current.currentLevel ? ', current' : ''}"
             onclick={() => (pickedLevel = { ...pickedLevel, [selected]: l.level.id })}
           >
-            {#if l.passed}<Check class="size-3.5" aria-hidden="true" />{/if}{i + 1}
+            {#if l.passed}<Check class="size-3.5" aria-hidden="true" />{/if}{l.level.id}
           </button>
         {/each}
       </div>
