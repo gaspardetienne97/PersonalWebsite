@@ -144,16 +144,22 @@
         {
           "id": "1.10",
           "title": "First whole song",
-          "setup": "Song Studio with a shelf song's drum part on the pads: Wait mode, then Performance at 80% speed.",
+          "setup": "Song Studio with a shelf song's drum part on the pads, We Will Rock You or any other: Wait mode, then Performance at 80% speed.",
           "done": "One shelf song end to end at 80% speed, 85% of notes good.",
-          "needs": "Song Studio drum import: a MIDI or MusicXML drum part mapped onto the pads (phase 2).",
           "links": [
             {
-              "label": "Song Studio",
-              "href": "/music/library?tab=songs"
+              "label": "Billie Jean",
+              "href": "/music/songs/shelf/mpc/billie-jean"
+            },
+            {
+              "label": "Back in Black",
+              "href": "/music/songs/shelf/mpc/back-in-black"
             }
           ],
-          "feeds": "The shelf"
+          "feeds": "The shelf",
+          "href": "/music/songs/shelf/mpc/we-will-rock-you",
+          "threshold": 0.85,
+          "minAttempts": 1
         }
       ],
       "shelf": [
