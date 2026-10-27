@@ -282,3 +282,10 @@ A design and correctness review of every page, then two weeks of the owner playi
 
 - **Review in pairs, by area.** Six areas, each with a design reviewer and a correctness reviewer reading the same captures and code, found correctness defects in every area (cadences in the wrong key, a hang, unreachable fingerings, drift that could never fail) alongside the design findings. The reports lived in a session scratchpad and are gone; keep review findings in the repository.
 - **Play it.** The owner's guitar sessions found the dropped first note, the tuning confusion and the double microphone, none of which a test had shown. Leave room in the plan for the owner to play each instrument and for fixes after.
+
+### Engine (phase 1, 2026-10-27)
+
+- **A page that renders in the browser skips the server hook on client navigation.** With `ssr = false` and no server load, a link from `/` into `/music` never asks the server, so a gate in `hooks.server.ts` only saw full page loads. A `+layout.server.ts` load makes every navigation ask.
+- **One route can hold several drills.** Today's no-repeat rule compared routes, so a due Note finder review was dropped because Spider (the same `/music/fretboard`) was already in the set, and the review opened Spider instead. Compare route and mode, and open the mode that practises the skill.
+- **Look at the page after the tests pass.** Every unit test passed while Today labelled a Note finder review "String Independence" and the Paths tab called one pass of three "almost there". Both showed at once in the browser.
+- **A longer prompt can push e2e runs past the limit.** The key cadence added a few seconds to ten-question ear runs that already sat near Playwright's 30 seconds; give long flows their own timeout rather than reading the failures as flakes.

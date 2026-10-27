@@ -4,11 +4,11 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## Needs the owner
 
-(nothing yet)
+- **Deploy with the login on.** Set `MUSIC_LOGIN=required` where the site runs, with an account made beforehand (registration closes while it is on). Until then `/music` is open in this branch; how the deployed site's existing login works was not visible from here, so say if it is a proxy instead.
 
 ## In progress
 
-Nothing. The build is complete; what remains is the owner's hardware pass (below).
+- **Curriculum plan, phase 2** (approved plan in the Claude doc "Woodshed curriculum research and plan"; paths in `context/research/curriculum-2026-10/paths/`): the eight new paths loaded into the app, Song Studio performances counting as path steps, MusicXML from the owner's MuseScore account through the Orca browser, drum import onto the pads, Aerophone alto and tenor transposition, strum a song, riff sets, copyrighted material served from `/api/music`.
 
 ## Done
 
@@ -66,11 +66,14 @@ Nothing. The build is complete; what remains is the owner's hardware pass (below
   - Timed drills: input is live from half a beat before the downbeat, so a first note on it is no longer dropped (taps, MIDI and microphone, every timed drill), while the count-in overlay and "Go." stay on the beat itself; rhythm listens before the microphone starts. The count-in is a semi-transparent overlay on the stage that fades out in 150 ms.
   - Piano scale fingering (research: pianoscales.org tables, the University of Miami chart, Wilder's melodic minor charts; the exam books themselves not read): every major, natural, harmonic and melodic minor in all 12 keys, both hands, with the two-octave join rule and a playability test (no thumb on a black key, no finger twice in a row). The scales drill prints it on the staff (above the treble, below the bass, as scale books do) and on the keys; a key both hands play shows both fingers. Pentascales are 1 to 5; other scales say there is no standard fingering here.
   - Follow-ups: finger colours on the small chord diagrams (a barre in its own finger's colour) and on hammer-ons; 1, 2, 3, 4 or 6 notes a click in the scales drill (3 and 6 written in 12/8; the ABRSM ladder stays on 1, 2 and 4); the tuning hint in the spider, positions, hammer-on and fingerpicking drills and in the note finder (which asks again rather than marking it wrong); every staff and tab printed on light paper in both themes.
+- Curriculum plan, phase 1 (2026-10-27): path steps judged on their latest attempts, confirmed on a second day, optionally at a tempo, with review (tested out) and almost-there states; review gaps that widen as a skill holds; Today as a shaped set of 10 to 90 minutes (review, path, ear or reading, a tune, variety, a jam) whose review opens the due skill's own drill mode; ear drills that hold one key, set it with I-IV-V-I and resolve each answer home; an opt-in login gate for `/music` and `/api/music`. Checked in the Orca browser (Today at 10, 20 and 90 minutes, the Paths tab, a scale degree run, the gate redirecting to login and back). Details in `context/01-feature-catalog.md` 8.15.
 - Transcribe: runs in a worker with progress and Cancel (it froze the page before); a polyphonic engine (Basic Pitch) beside the melody one; tempo found from the notes; two hands split at middle C; a sensitivity that only redoes the note picking; MIDI takes from Record become songs; drafts fixed in the piano roll; any saved song's notes edited at `/music/songs/[id]/edit`
 
 ### Known gaps
 
 - Left from the review (low): Pedal has no Hear it first; licks chunk by bar, not by tapping notes; the tuner's A4 stays on the tuner, not in Settings; Today's Repeat the set does not start a new pass; the phone More sheet does not close on Escape; streak dots and the minutes chart cover different weeks; articulation is not timed; a few legato labels (P and p, 0 2 0) and authored box fingerings; retrying minor-key chord-function misses; Positions stays on standard tuning.
+
+- Phase 1 left out: a weekly split of instruments in Today; the song block uses Phrases until Song Studio can count as a step; no resolution after progressions, bass lines or melody dictation (which still changes key per prompt); the key holds for the whole run with no key-change option; the old paths' broken links (phase 2 replaces those paths).
 
 - Two timing tests flake under full-suite load and pass alone: the runtime's synthetic-microphone A3 test, and Record's "MIDI take survives a reload". Studio ears and the cents drill are checked in headless Chromium for flow only; how they sound needs real ears and headphones.
 
