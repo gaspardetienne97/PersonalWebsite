@@ -319,6 +319,10 @@
           "diff": 1,
           "scores": [
             {
+              "label": "Community, solo guitar",
+              "url": "https://musescore.com/user/7136046/scores/4521791"
+            },
+            {
               "label": "Official, Easy Guitar with TAB",
               "url": "https://musescore.com/user/39593079/scores/15596992",
               "official": true
@@ -627,6 +631,10 @@
           "bpm": 118,
           "diff": 1,
           "scores": [
+            {
+              "label": "Community, solo guitar",
+              "url": "https://musescore.com/user/82643/scores/6634175"
+            },
             {
               "label": "Official, Easy Guitar with TAB",
               "url": "https://musescore.com/user/39593079/scores/15555070",
@@ -1217,6 +1225,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, guitar lead sheet",
+              "url": "https://musescore.com/user/68641957/scores/14631835"
+            },
+            {
               "label": "Official, Guitar Tab",
               "url": "https://musescore.com/user/39593079/scores/15265636",
               "official": true
@@ -1636,6 +1648,10 @@
           "detail": "G, moderate",
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, guitar with flute melody",
+              "url": "https://musescore.com/user/62920792/scores/17364361"
+            },
             {
               "label": "Official, Easy Guitar",
               "url": "https://musescore.com/user/39593079/scores/15500902",
@@ -2394,6 +2410,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, solo guitar",
+              "url": "https://musescore.com/user/10994766/scores/25257379"
+            },
+            {
               "label": "Official, Easy Guitar with TAB",
               "url": "https://musescore.com/user/39593079/scores/15567487",
               "official": true
@@ -2866,6 +2886,10 @@
           "bpm": 84,
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, guitar tab",
+              "url": "https://musescore.com/user/13819916/scores/10070293"
+            },
             {
               "label": "Official, Easy Guitar with TAB",
               "url": "https://musescore.com/user/39593079/scores/15688153",
