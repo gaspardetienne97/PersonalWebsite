@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { ScoringEvent } from "../types";
 import { ev, run, T0 } from "./fixtures";
 import { DAY_MS } from "./mastery";
-import { LEARNING_PATHS, NEW_ROUTES, pathProgress, rewriteHref } from "./paths";
+import {
+  LEARNING_PATHS,
+  NEW_ROUTES,
+  pathProgress,
+  rewriteHref,
+  type LearningPath,
+  type PathStep,
+} from "./paths";
 
 // One attempt a day, in order, so every pass below is on more than one day.
 let n = 0;
@@ -12,65 +19,103 @@ const reps = (count: number, over: Partial<ScoringEvent>) =>
     return ev({ id: `p${i}`, at: T0 + i * DAY_MS, ...over });
   });
 
-const statuses = (id: keyof typeof LEARNING_PATHS, events: ScoringEvent[]) =>
+// A small path in the old guitar path's shape, so the engine tests outlive the path data.
+const step = (id: string, over: Partial<PathStep>): PathStep => ({
+  id,
+  order: 0,
+  title: id,
+  summary: "",
+  kind: "drill",
+  href: "/music/chords",
+  links: [],
+  skillIds: ["technique.guitar.chord-perfect"],
+  minAttempts: 3,
+  minSessions: 1,
+  minDays: 2,
+  requires: [],
+  instruments: ["guitar"],
+  ...over,
+});
+const changes = { skillIds: ["technique.guitar.chord-changes"], minAttempts: 1, minSessions: 2 };
+const toy: LearningPath = {
+  id: "guitar",
+  title: "Toy",
+  subtitle: "",
+  steps: [
+    step("G-B1", {}),
+    step("G-B2", { skillIds: ["rhythm.pulse"], requires: ["G-B1"] }),
+    step("G-B3", { skillIds: ["rhythm.pulse"], requires: ["G-B2"] }),
+    step("G-A1", { ...changes, requires: ["G-B3"] }),
+    step("G-A2", { ...changes, requires: ["G-B3"] }),
+  ].map((s, i) => ({ ...s, order: i + 1 })),
+};
+
+const statuses = (id: keyof typeof LEARNING_PATHS | LearningPath, events: ScoringEvent[]) =>
   Object.fromEntries(
-    pathProgress(LEARNING_PATHS[id], events).steps.map((s) => [s.step.id, s.status]),
+    pathProgress(typeof id === "string" ? LEARNING_PATHS[id] : id, events).steps.map((s) => [
+      s.step.id,
+      s.status,
+    ]),
   );
 
 describe("path content", () => {
-  it("normalises seven paths", () => {
+  it("normalises the paths", () => {
     expect(Object.keys(LEARNING_PATHS)).toEqual([
-      "ear",
-      "jazz",
       "guitar",
+      "ukulele",
       "piano",
+      "jazz",
+      "aerophone",
       "mpc",
+      "ear",
+      "reading",
       "theory",
       "studio",
     ]);
     expect(LEARNING_PATHS.theory.steps).toHaveLength(8);
-    expect(LEARNING_PATHS.jazz.steps).toHaveLength(10);
-    // The tables' steps plus the ear steps the research adds to each instrument path.
-    expect(LEARNING_PATHS.guitar.steps).toHaveLength(10);
-    expect(LEARNING_PATHS.piano.steps).toHaveLength(14);
-    expect(LEARNING_PATHS.mpc.steps).toHaveLength(19);
     expect(LEARNING_PATHS.studio.steps).toHaveLength(7);
-    expect(LEARNING_PATHS.mpc.steps.map((s) => s.id)).toEqual([
-      "M-B1",
-      "M-E1",
-      "M-T1",
-      "M-B2",
-      "M-E2",
-      "M-T2",
-      "M-B3",
-      "M-I1",
-      "M-E3",
-      "M-I2",
-      "M-T3",
-      "M-I3",
-      "M-T4",
-      "M-A1",
-      "M-T5",
-      "M-A2",
-      "M-T6",
-      "M-T7",
-      "M-S1",
-    ]);
+    expect(LEARNING_PATHS.guitar.levels?.length).toBeGreaterThan(0);
+    if (!LEARNING_PATHS.mpc.levels) {
+      expect(LEARNING_PATHS.mpc.steps).toHaveLength(19);
+      expect(LEARNING_PATHS.mpc.steps.map((s) => s.id)).toEqual([
+        "M-B1",
+        "M-E1",
+        "M-T1",
+        "M-B2",
+        "M-E2",
+        "M-T2",
+        "M-B3",
+        "M-I1",
+        "M-E3",
+        "M-I2",
+        "M-T3",
+        "M-I3",
+        "M-T4",
+        "M-A1",
+        "M-T5",
+        "M-A2",
+        "M-T6",
+        "M-T7",
+        "M-S1",
+      ]);
+    }
     // The table's six plus the eleven the app adds, numbered in order.
-    expect(LEARNING_PATHS.ear.steps).toHaveLength(17);
-    expect(LEARNING_PATHS.ear.steps.find((s) => s.id === "interval-names")).toMatchObject({
-      order: 10,
-      href: "/music/ear/intervals?answer=choice&intervals=M3%2CP5%2CP8&direction=ascending",
-      skillIds: ["pitch.interval.M3", "pitch.interval.P5", "pitch.interval.P8"],
-    });
+    if (!LEARNING_PATHS.ear.levels) {
+      expect(LEARNING_PATHS.ear.steps).toHaveLength(17);
+      expect(LEARNING_PATHS.ear.steps.find((s) => s.id === "interval-names")).toMatchObject({
+        order: 10,
+        href: "/music/ear/intervals?answer=choice&intervals=M3%2CP5%2CP8&direction=ascending",
+        skillIds: ["pitch.interval.M3", "pitch.interval.P5", "pitch.interval.P8"],
+      });
+    }
     for (const p of Object.values(LEARNING_PATHS))
       expect(p.steps.map((s) => s.order)).toEqual(p.steps.map((_, i) => i + 1));
   });
 
-  it("rewrites every href onto a new route", () => {
-    const hrefs = Object.values(LEARNING_PATHS).flatMap((p) =>
-      p.steps.flatMap((s) => [s.href, ...s.links.map((l) => l.href)]),
-    );
+  it("rewrites every href onto a new route (the levelled paths are checked in levels.test)", () => {
+    const hrefs = Object.values(LEARNING_PATHS)
+      .filter((p) => !p.levels)
+      .flatMap((p) => p.steps.flatMap((s) => [s.href, ...s.links.map((l) => l.href)]));
     for (const href of hrefs) {
       expect(
         NEW_ROUTES.some((r) => href.startsWith(r)),
@@ -88,9 +133,8 @@ describe("path content", () => {
     expect(rewriteHref("/music/learn/jazz")).toBe("/music/library?tab=reference");
     expect(rewriteHref("/music/play/mpc?mode=groove")).toBe("/music/pads?mode=groove");
     expect(() => rewriteHref("/music/nowhere")).toThrow();
-    const pi4 = LEARNING_PATHS.piano.steps.find((s) => s.id === "P-I4")!;
-    expect(pi4.href).toBe("/music/comping?pattern=blue-third-c7&instrument=piano&bpm=90");
-    expect(pi4.kind).toBe("drill");
+    const pi4 = LEARNING_PATHS.piano.steps.find((s) => s.id === "P-I4");
+    if (pi4) expect(pi4.href).toBe("/music/comping?pattern=blue-third-c7&instrument=piano&bpm=90");
   });
 });
 
@@ -102,7 +146,7 @@ describe("pathProgress", () => {
   };
 
   it("moves a step from next to done on independent evidence only", () => {
-    expect(statuses("guitar", [])).toMatchObject({
+    expect(statuses(toy, [])).toMatchObject({
       "G-B1": "next",
       "G-B2": "locked",
       "G-A2": "locked",
@@ -112,27 +156,23 @@ describe("pathProgress", () => {
       ...reps(3, { ...chordPerfect, assistance: "guided" }),
       ...reps(3, { ...chordPerfect, assistance: "hinted" }),
     ];
-    expect(pathProgress(LEARNING_PATHS.guitar, assisted).steps[0].evidence[0].attempts).toBe(0);
+    expect(pathProgress(toy, assisted).steps[0].evidence[0].attempts).toBe(0);
     // two of three attempts, then a mean below 0.66, then one at 0.70
     const two = reps(2, { ...chordPerfect, partialCredit: 0.8 });
-    expect(pathProgress(LEARNING_PATHS.guitar, two).steps[0].evidence[0]).toMatchObject({
+    expect(pathProgress(toy, two).steps[0].evidence[0]).toMatchObject({
       attempts: 2,
       done: false,
     });
     expect(
-      statuses("guitar", [...two, ...reps(1, { ...chordPerfect, partialCredit: 0.3 })])["G-B1"],
+      statuses(toy, [...two, ...reps(1, { ...chordPerfect, partialCredit: 0.3 })])["G-B1"],
     ).toBe("next"); // mean 0.63
-    const done = statuses("guitar", [...two, ...reps(1, { ...chordPerfect, partialCredit: 0.5 })]);
+    const done = statuses(toy, [...two, ...reps(1, { ...chordPerfect, partialCredit: 0.5 })]);
     expect(done).toMatchObject({ "G-B1": "done", "G-B2": "next", "G-B3": "locked" });
   });
 
   it("ignores evidence from another instrument on a pinned step", () => {
-    expect(statuses("guitar", reps(3, { ...chordPerfect, instrument: "ukulele" }))["G-B1"]).toBe(
-      "next",
-    );
-    expect(statuses("guitar", reps(3, { ...chordPerfect, instrument: "guitar" }))["G-B1"]).toBe(
-      "done",
-    );
+    expect(statuses(toy, reps(3, { ...chordPerfect, instrument: "ukulele" }))["G-B1"]).toBe("next");
+    expect(statuses(toy, reps(3, { ...chordPerfect, instrument: "guitar" }))["G-B1"]).toBe("done");
   });
 
   it("requires distinct sessions where the step asks for them", () => {
@@ -140,12 +180,12 @@ describe("pathProgress", () => {
       skillIds: ["technique.guitar.chord-changes"],
       exerciseId: "technique.guitar.chord-changes",
     };
-    const one = pathProgress(LEARNING_PATHS.guitar, reps(4, { ...changes, sessionId: "a" }));
+    const one = pathProgress(toy, reps(4, { ...changes, sessionId: "a" }));
     expect(one.steps.find((s) => s.step.id === "G-A1")!.evidence[0]).toMatchObject({
       sessions: 1,
       done: false,
     });
-    const both = pathProgress(LEARNING_PATHS.guitar, [
+    const both = pathProgress(toy, [
       ...reps(2, { ...changes, sessionId: "a" }),
       ...reps(2, { ...changes, sessionId: "b" }),
     ]);
@@ -180,7 +220,7 @@ describe("pathProgress", () => {
 
   it("judges the latest attempts, on two days, at the stated tempo", () => {
     const first = (events: ScoringEvent[], runs = [run()]) =>
-      pathProgress(LEARNING_PATHS.guitar, events, undefined, runs).steps[0];
+      pathProgress(toy, events, undefined, runs).steps[0];
     // Early misses stop counting once the last three pass.
     const climb = [
       ...reps(3, { ...chordPerfect, partialCredit: 0 }),
@@ -197,8 +237,8 @@ describe("pathProgress", () => {
     expect(first(oneDay.slice(0, 1)).almost).toBe(false);
     // With a tempo, only runs at that tempo or faster count.
     const fast = {
-      ...LEARNING_PATHS.guitar,
-      steps: [{ ...LEARNING_PATHS.guitar.steps[0], minBpm: 80 }],
+      ...toy,
+      steps: [{ ...toy.steps[0], minBpm: 80 }],
     };
     const timed = reps(3, { ...chordPerfect, runId: "slow" });
     const slowRun = run({ id: "slow", params: { bpm: 60 } });
@@ -213,7 +253,7 @@ describe("pathProgress", () => {
       exerciseId: "technique.guitar.chord-changes",
       sessionId: "x",
     }).map((e, i) => ({ ...e, sessionId: `s${i}` }));
-    const p = pathProgress(LEARNING_PATHS.guitar, changes);
+    const p = pathProgress(toy, changes);
     const st = Object.fromEntries(p.steps.map((s) => [s.step.id, s.status]));
     expect(st["G-A1"]).toBe("done");
     expect(st["G-B1"]).toBe("review");
@@ -263,12 +303,11 @@ describe("app-added steps", () => {
   it("links ear drills beside the instrument steps they support", () => {
     const link = (path: keyof typeof LEARNING_PATHS, id: string) =>
       LEARNING_PATHS[path].steps.find((s) => s.id === id)!.links.map((l) => l.href);
-    expect(link("piano", "P-I1")).toContain(
-      "/music/ear/inversions?answer=choice&inversions=root%2Cfirst%2Csecond",
-    );
-    expect(link("jazz", "chord-scales").at(-1)).toMatch(/^\/music\/ear\/scales\?/);
-    expect(link("guitar", "G-B1")).toContain(
-      "/music/ear/chord-qualities?answer=choice&qualities=major%2Cminor",
-    );
+    if (!LEARNING_PATHS.piano.levels)
+      expect(link("piano", "P-I1")).toContain(
+        "/music/ear/inversions?answer=choice&inversions=root%2Cfirst%2Csecond",
+      );
+    if (!LEARNING_PATHS.jazz.levels)
+      expect(link("jazz", "chord-scales").at(-1)).toMatch(/^\/music\/ear\/scales\?/);
   });
 });

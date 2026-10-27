@@ -25,6 +25,9 @@
   // Record links here with ?from=audio|take&take=<id> to start from one of its takes.
   const from = page.url.searchParams.get("from");
   const start = page.url.searchParams.get("take");
+  // The Paths tab links here with ?shelf=<path>/<song>&for=<title>: the saved song counts on that shelf.
+  const shelf = page.url.searchParams.get("shelf") ?? undefined;
+  const shelfFor = page.url.searchParams.get("for");
   let mode = $state<"score" | "audio" | "take">(from === "audio" || from === "take" ? from : "score");
   let error = $state("");
   let busy = $state(false);
@@ -59,7 +62,7 @@
   }
 
   async function save(score: Score, meta: { composer?: string; source?: string }) {
-    const song = songFromScore(score, meta);
+    const song = { ...songFromScore(score, meta), ...(shelf ? { shelf } : {}) };
     await db.songs.put(song);
     saved = song;
     onstatus?.(`Saved ${song.title} to your songs.`);
@@ -80,6 +83,11 @@
 </script>
 
 <div class="flex flex-col gap-5">
+  {#if shelf}
+    <p class="rounded-2xl border border-ws-line bg-ws-surface px-4 py-3 text-sm">
+      Importing for the path song <strong>{shelfFor ?? shelf}</strong>. Its performances in Song Studio count on that level's shelf.
+    </p>
+  {/if}
   <div class="flex flex-wrap items-center gap-3">
     <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label="What to import">
       {#each [["score", "Score file"], ["audio", "Transcribe audio"], ["take", "From a MIDI take"]] as const as [id, label] (id)}

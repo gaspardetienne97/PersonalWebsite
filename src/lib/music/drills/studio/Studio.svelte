@@ -256,7 +256,7 @@
       difficulty: 0.5,
       instrument: settings.value.activeInstrument,
       source: "song",
-      params: { song: score.id, mode: s.mode, bpm, takes, strictness: s.strictness, range: s.range },
+      params: { song: score.id, mode: s.mode, bpm, takes, strictness: s.strictness, range: s.range, ...(song.shelf ? { shelf: song.shelf } : {}) },
     });
     beginTake();
   }

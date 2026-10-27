@@ -13,8 +13,34 @@ import { EAR_ADDED_STEPS, EAR_TABLE_STEPS } from "../content/ear";
 import jazzData from "../data/jazz.json";
 import { SKILL_GRAPH, withDescendants, type SkillGraph } from "./graph";
 import { dayKey } from "./rewards";
+import {
+  levelPath,
+  shelfKey,
+  songDays,
+  type PathLevel,
+  type RawLevelPath,
+  type ShelfSong,
+} from "./levels";
+import guitarLevels from "../data/paths/guitar.json";
+import ukuleleLevels from "../data/paths/ukulele.json";
+import pianoLevels from "../data/paths/piano.json";
+import jazzLevels from "../data/paths/jazz.json";
+import aerophoneLevels from "../data/paths/aerophone.json";
+import padsLevels from "../data/paths/pads.json";
+import earLevels from "../data/paths/ear-theory.json";
+import readingLevels from "../data/paths/reading.json";
 
-export type PathId = "ear" | "jazz" | "guitar" | "piano" | "mpc" | "studio" | "theory";
+export type PathId =
+  | "ear"
+  | "jazz"
+  | "guitar"
+  | "ukulele"
+  | "piano"
+  | "aerophone"
+  | "mpc"
+  | "reading"
+  | "studio"
+  | "theory";
 
 export interface PathLink {
   label: string;
@@ -27,7 +53,8 @@ export interface PathStep {
   title: string;
   summary: string;
   detail?: string;
-  kind: "drill" | "reference" | "review";
+  /** new: waits for a drill or setting the app lacks (`needs`). */
+  kind: "drill" | "reference" | "review" | "new";
   href: string;
   links: PathLink[];
   skillIds: string[];
@@ -48,6 +75,14 @@ export interface PathStep {
   instruments?: Instrument[];
   /** Content applicability: melodic lines are pitched, voicings polyphonic. */
   content?: "pitched" | "polyphonic";
+  /** Run params a run must carry for its attempts to count (a phrase, a pattern). */
+  match?: Record<string, string>;
+  /** One evidence row per value of a run param, each to pass (shapes A, D and E). */
+  each?: { param: string; values: string[] };
+  /** Levelled paths: the level, strand and what a new step waits for. */
+  level?: string;
+  strand?: string;
+  needs?: string;
 }
 
 export interface LearningPath {
@@ -55,6 +90,8 @@ export interface LearningPath {
   title: string;
   subtitle: string;
   steps: PathStep[];
+  benchmark?: string;
+  levels?: PathLevel[];
 }
 
 export const DONE_THRESHOLD = pathData.doneThreshold;
@@ -794,13 +831,19 @@ const ear = earData.learningPathDefinition;
 export const PATH_FOR_INSTRUMENT: Record<Instrument, PathId> = {
   piano: "piano",
   guitar: "guitar",
-  ukulele: "guitar",
+  ukulele: "ukulele",
   mpc: "mpc",
-  aerophone: "ear",
+  aerophone: "aerophone",
   voice: "ear",
 };
 
-export const LEARNING_PATHS: Record<PathId, LearningPath> = {
+/** Round-2 paths (data/paths/*.json); a path whose file has no levels yet keeps its old steps. */
+const levelled = (raw: unknown, old?: LearningPath): LearningPath => {
+  const r = raw as RawLevelPath;
+  return r.levels.length || !old ? levelPath(r) : old;
+};
+
+const OLD = {
   ear: path("ear", ear.title, ear.subtitle, [
     ...(EAR_TABLE_STEPS as RawStep[]),
     ...(EAR_ADDED_STEPS as RawStep[]),
@@ -820,6 +863,17 @@ export const LEARNING_PATHS: Record<PathId, LearningPath> = {
     ...ADDED_STEPS.piano!,
   ]),
   mpc: path("mpc", mpc.title, mpc.subtitle, [...(mpc.steps as RawStep[]), ...ADDED_STEPS.mpc!]),
+};
+
+export const LEARNING_PATHS: Record<PathId, LearningPath> = {
+  guitar: levelled(guitarLevels, OLD.guitar),
+  ukulele: levelled(ukuleleLevels),
+  piano: levelled(pianoLevels, OLD.piano),
+  jazz: levelled(jazzLevels, OLD.jazz),
+  aerophone: levelled(aerophoneLevels),
+  mpc: levelled(padsLevels, OLD.mpc),
+  ear: levelled(earLevels, OLD.ear),
+  reading: levelled(readingLevels),
   theory: path(
     "theory",
     "Circle of Fifths Path",
@@ -865,9 +919,23 @@ export interface StepProgress {
   almost: boolean;
 }
 
+export interface LevelProgress {
+  level: PathLevel;
+  /** Graded steps done or tested out, out of graded steps. */
+  done: number;
+  total: number;
+  /** Each shelf song with its days of passing performances. */
+  songs: { song: ShelfSong; key: string; days: number; played: boolean }[];
+  played: number;
+  passed: boolean;
+}
+
 export interface PathProgress {
   path: LearningPath;
   steps: StepProgress[];
+  levels?: LevelProgress[];
+  /** The first level not passed. */
+  currentLevel?: string;
   /** Steps with skills that are done or tested out, out of steps with skills. */
   done: number;
   total: number;
@@ -879,12 +947,20 @@ export const recentWindow = (step: PathStep) => Math.max(step.minAttempts, 3);
 
 const meetsMean = (step: PathStep, mean: number) => mean >= (step.threshold ?? DONE_THRESHOLD);
 
+/** A step with evidence to judge: named skills, or a levelled step's drill. */
+export const isGraded = (step: PathStep) =>
+  step.skillIds.length > 0 || (step.level !== undefined && !!step.exerciseIds?.length);
+
 function stepEvidence(
   step: PathStep,
   events: ScoringEvent[],
   graph: SkillGraph,
-  bpmOf: Map<string, number>,
+  runOf: Map<string, RunRecord>,
 ): SkillEvidence[] {
+  const bpm = (e: ScoringEvent) => Number(runOf.get(e.runId ?? "")?.params.bpm ?? 0) || 0;
+  const param = (e: ScoringEvent, k: string) => String(runOf.get(e.runId ?? "")?.params[k] ?? "");
+  const matches = (e: ScoringEvent) =>
+    !step.match || Object.entries(step.match).every(([k, v]) => param(e, k) === v);
   const eligible = events.filter(
     (e) =>
       isMasteryEligible(e) &&
@@ -892,11 +968,25 @@ function stepEvidence(
       (!step.exerciseIds || step.exerciseIds.includes(e.exerciseId)) &&
       (!step.instruments || !e.instrument || step.instruments.includes(e.instrument)) &&
       e.difficulty >= (step.minDifficulty ?? 0) - 1e-9 &&
-      (step.minBpm === undefined || (bpmOf.get(e.runId ?? "") ?? 0) >= step.minBpm - 1e-9),
+      (step.minBpm === undefined || bpm(e) >= step.minBpm - 1e-9) &&
+      matches(e),
   );
-  return step.skillIds.map((skillId) => {
-    const ids = new Set(withDescendants(skillId, graph));
-    const ev = eligible.filter((e) => e.skillIds.some((id) => ids.has(id)));
+  // A levelled step without named skills is judged on its drill as a whole, or per `each` value.
+  const keys = step.each
+    ? step.each.values.map((v) => `${step.each!.param}=${v}`)
+    : step.skillIds.length
+      ? step.skillIds
+      : isGraded(step)
+        ? ["drill"]
+        : [];
+  return keys.map((skillId) => {
+    const ev = step.each
+      ? eligible.filter((e) => `${step.each!.param}=${param(e, step.each!.param)}` === skillId)
+      : skillId === "drill"
+        ? eligible
+        : eligible.filter((e) =>
+            e.skillIds.some((id) => withDescendants(skillId, graph).includes(id)),
+          );
     const recent = [...ev].sort((a, b) => a.at - b.at).slice(-recentWindow(step));
     const attempts = ev.length;
     const sessions = new Set(ev.map((e) => e.sessionId)).size;
@@ -932,13 +1022,11 @@ export function pathProgress(
   graph: SkillGraph = SKILL_GRAPH,
   runs: RunRecord[] = [],
 ): PathProgress {
-  const bpmOf = new Map<string, number>();
-  for (const r of runs)
-    if (Number.isFinite(Number(r.params.bpm))) bpmOf.set(r.id, Number(r.params.bpm));
+  const runOf = new Map(runs.map((r) => [r.id, r]));
   const base = new Map<string, { status: StepStatus; evidence: SkillEvidence[] }>();
   for (const step of path.steps) {
-    const evidence = stepEvidence(step, events, graph, bpmOf);
-    const status: StepStatus = !step.skillIds.length
+    const evidence = stepEvidence(step, events, graph, runOf);
+    const status: StepStatus = !isGraded(step)
       ? "todo"
       : evidence.every((e) => e.done)
         ? "done"
@@ -974,11 +1062,33 @@ export function pathProgress(
     nextFound = true;
     return { step, status: "next", evidence, almost };
   });
-  const graded = steps.filter((s) => s.step.skillIds.length);
+  const graded = steps.filter((s) => isGraded(s.step));
+  const passedStep = (s: StepProgress) => s.status === "done" || s.status === "review";
+  const plays = path.levels ? songDays(path, runs) : new Map<string, number>();
+  const levels = path.levels?.map((level): LevelProgress => {
+    const mine = graded.filter((s) => s.step.level === level.id);
+    const songs = level.shelf.map((song) => {
+      const key = shelfKey(path.id, song);
+      const days = plays.get(key) ?? 0;
+      return { song, key, days, played: days >= 2 };
+    });
+    const played = songs.filter((x) => x.played).length;
+    const done = mine.filter(passedStep).length;
+    return {
+      level,
+      done,
+      total: mine.length,
+      songs,
+      played,
+      passed: done === mine.length && played >= Math.min(level.pick, songs.length),
+    };
+  });
   return {
     path,
     steps,
-    done: graded.filter((s) => s.status === "done" || s.status === "review").length,
+    levels,
+    currentLevel: levels?.find((l) => !l.passed)?.level.id,
+    done: graded.filter(passedStep).length,
     total: graded.length,
     continueHref: steps.find((s) => s.status === "next")?.step.href,
   };

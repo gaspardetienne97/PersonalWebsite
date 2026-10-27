@@ -14,6 +14,8 @@ export type Song = {
   composer?: string;
   /** The file it came from, or "transcribed" / "typed". */
   source?: string;
+  /** The path shelf entry this song is for (`<path>/<song id>`), so its performances count there. */
+  shelf?: string;
 };
 
 export const SCORE_ACCEPT = ".mid,.midi,.musicxml,.xml,.mxl";

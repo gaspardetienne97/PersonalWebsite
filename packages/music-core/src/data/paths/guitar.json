@@ -1,0 +1,386 @@
+{
+  "id": "guitar",
+  "title": "Guitar Path",
+  "subtitle": "Ten levels from first chords to playing pretty well: strumming, fingerpicking, lead and riffs, with songs at every level.",
+  "benchmark": "JustinGuitar Grade 6, RGT Electric Grade 5",
+  "instruments": ["guitar"],
+  "levels": [
+    {
+      "id": "1",
+      "title": "First chords: A, D, E and the three minors",
+      "goal": "Strum a three-chord song with steady downstrokes and play a one-string riff from tab.",
+      "adds": "Tuning, A D E Am Em Dm, One Minute Changes, quarter-note downstrokes, thumb on the bass, tab, notes on strings 6 and 5.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "1.1",
+          "title": "Tune by ear and by tuner",
+          "strand": "T",
+          "href": "/music/tuner",
+          "setup": "The tuner, all six strings.",
+          "done": "All six strings within 10 cents, unaided, in under 2 minutes, on two days."
+        },
+        {
+          "id": "1.2",
+          "title": "Build A, D and E",
+          "strand": "S",
+          "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.a-major",
+          "setup": "Chords, Build: A, then D and E.",
+          "done": "Each shape rings clean 5 times running, on two days.",
+          "each": {
+            "param": "shape",
+            "values": ["guitar.a-major", "guitar.d-major", "guitar.e-major"]
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "D",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.d-major"
+            },
+            {
+              "label": "E",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.e-major"
+            }
+          ],
+          "feeds": "Three Little Birds, Wild Thing"
+        },
+        {
+          "id": "1.3",
+          "title": "Downstrokes on 1 2 3 4",
+          "strand": "S",
+          "href": "/music/rhythm?mode=read-and-tap&pattern=guitar-four-on-the-floor&bpm=60",
+          "setup": "Rhythm, read and tap: four on the floor, 60 then 72.",
+          "done": "90% on time at 72 BPM, 3 runs, on two days.",
+          "threshold": 0.9,
+          "minBpm": 72
+        },
+        {
+          "id": "1.4",
+          "title": "One Minute Changes: A-D, D-E, A-E",
+          "strand": "S",
+          "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.a-major,guitar.d-major&timed=true",
+          "setup": "Chords, Changes: timed, 60 seconds, one pair at a time.",
+          "done": "30 changes a minute on each pair, on two days. First tries of 6 to 9 are normal.",
+          "each": {
+            "param": "chords",
+            "values": [
+              "guitar.a-major>guitar.d-major",
+              "guitar.d-major>guitar.e-major",
+              "guitar.a-major>guitar.e-major"
+            ]
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "D-E",
+              "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.d-major,guitar.e-major&timed=true"
+            },
+            {
+              "label": "A-E",
+              "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.a-major,guitar.e-major&timed=true"
+            }
+          ]
+        },
+        {
+          "id": "1.5",
+          "title": "Build Am, Em and Dm",
+          "strand": "S",
+          "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.a-minor",
+          "setup": "Chords, Build: Am, then Em and Dm.",
+          "done": "Each shape rings clean 5 times running, on two days.",
+          "each": {
+            "param": "shape",
+            "values": ["guitar.a-minor", "guitar.e-minor", "guitar.d-minor"]
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Em",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.e-minor"
+            },
+            {
+              "label": "Dm",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.d-minor"
+            }
+          ],
+          "feeds": "A Horse With No Name"
+        },
+        {
+          "id": "1.6",
+          "title": "Changes Am-E, Em-D, Dm-A",
+          "strand": "S",
+          "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.a-minor,guitar.e-major&timed=true",
+          "setup": "Chords, Changes: timed, 60 seconds, one pair at a time.",
+          "done": "30 changes a minute on each pair, on two days.",
+          "each": {
+            "param": "chords",
+            "values": [
+              "guitar.a-minor>guitar.e-major",
+              "guitar.e-minor>guitar.d-major",
+              "guitar.d-minor>guitar.a-major"
+            ]
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Em-D",
+              "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.e-minor,guitar.d-major&timed=true"
+            },
+            {
+              "label": "Dm-A",
+              "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.d-minor,guitar.a-major&timed=true"
+            }
+          ]
+        },
+        {
+          "id": "1.7",
+          "title": "Strum a three-chord song form",
+          "strand": "S",
+          "setup": "Strum a song: Three Little Birds or Wild Thing, downstrokes, 70% of the record's tempo.",
+          "done": "Two clean passes of the song form at 70%, then at 100%.",
+          "needs": "Song presets in Strum a progression (phase 2, stage 4)."
+        },
+        {
+          "id": "1.8",
+          "title": "Thumb on the bass",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=boom-chick&chords=guitar.a-major,guitar.d-major,guitar.e-major&bpm=60",
+          "setup": "Chords, Fingerpicking: boom-chick with the thumb on the root, A D E, 60.",
+          "done": "Root on the right string every beat, 3 clean runs at 70, on two days.",
+          "match": { "pattern": "boom-chick" },
+          "threshold": 0.9,
+          "minBpm": 70
+        },
+        {
+          "id": "1.9",
+          "title": "Free strokes with i and m",
+          "strand": "F",
+          "href": "/music/phrases?instrument=guitar&phrase=guitar.twinkle",
+          "setup": "Phrases: Twinkle, alternating i and m on strings 1 and 2.",
+          "done": "Clean at 80, alternating fingers, on two days.",
+          "match": { "phrase": "guitar.twinkle" },
+          "threshold": 0.9,
+          "minBpm": 80
+        },
+        {
+          "id": "1.10",
+          "title": "Read tab, play a one-string riff",
+          "strand": "R",
+          "setup": "Phrases, Riffs: Seven Nation Army, Peter Gunn.",
+          "done": "The riff at 100 BPM 3 times clean, then at the record's tempo.",
+          "needs": "A Riffs set in Phrases, served by the app's server (phase 2, stage 4)."
+        },
+        {
+          "id": "1.11",
+          "title": "Name the notes on strings 6 and 5",
+          "strand": "T",
+          "href": "/music/fretboard?mode=note-finder&instrument=guitar",
+          "setup": "Fretboard, Note finder: strings 6 and 5, frets 0 to 5, naturals.",
+          "done": "20 answers, 90% right, under 3 seconds each.",
+          "minAttempts": 20,
+          "threshold": 0.9
+        },
+        {
+          "id": "1.12",
+          "title": "Hear the change",
+          "strand": "T",
+          "href": "/music/chords?mode=strum&instrument=guitar&shape=guitar.a-major",
+          "setup": "Chords, Strum and identify: A, D and E.",
+          "done": "80% over 20.",
+          "minAttempts": 20,
+          "threshold": 0.8
+        }
+      ],
+      "shelf": [
+        {
+          "id": "three-little-birds",
+          "title": "Three Little Birds",
+          "artist": "Bob Marley",
+          "strand": "S",
+          "teaches": "A D E with a reggae feel",
+          "detail": "A, 74 BPM, A D E; downstrokes, later off-beat chops",
+          "bpm": 74,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Easy Guitar with TAB",
+              "url": "https://musescore.com/user/39593079/scores/15481264",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/?pattern=three%20little%20birds"
+          }
+        },
+        {
+          "id": "wild-thing",
+          "title": "Wild Thing",
+          "artist": "The Troggs",
+          "strand": "S, R",
+          "teaches": "A D E stabs, rock eighths",
+          "detail": "A, 105 BPM, A D E (G in the fill)",
+          "bpm": 105,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Guitar Tab",
+              "url": "https://musescore.com/user/39593079/scores/15871084",
+              "official": true
+            },
+            {
+              "label": "Community, scored as piano",
+              "url": "https://musescore.com/user/2565871/scores/4494851"
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/?pattern=wild%20thing%20troggs"
+          }
+        },
+        {
+          "id": "horse-with-no-name",
+          "title": "A Horse With No Name",
+          "artist": "America",
+          "strand": "S",
+          "teaches": "A two-chord minor song, a preview of Old Faithful",
+          "detail": "E dorian, 122 BPM, Em and D6/9",
+          "bpm": 122,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Easy Guitar",
+              "url": "https://musescore.com/user/39593079/scores/16108357",
+              "official": true
+            },
+            {
+              "label": "Community lead sheet",
+              "url": "https://musescore.com/user/498481/scores/6288558"
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/?pattern=horse%20with%20no%20name"
+          }
+        },
+        {
+          "id": "free-fallin",
+          "title": "Free Fallin'",
+          "artist": "Tom Petty",
+          "strand": "S, F",
+          "teaches": "D Dsus4 A with a capo; also picked with thumb and fingers",
+          "detail": "F (capo 3), 84 BPM",
+          "bpm": 84,
+          "diff": 2,
+          "scores": [
+            { "label": "Community", "url": "https://musescore.com/user/6375061/scores/5381516" },
+            {
+              "label": "Official, Guitar Tab",
+              "url": "https://musescore.com/user/39593079/scores/15265612",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/?pattern=free%20fallin"
+          }
+        },
+        {
+          "id": "seven-nation-army",
+          "title": "Seven Nation Army",
+          "artist": "The White Stripes",
+          "strand": "R",
+          "teaches": "A one-string riff, tab reading",
+          "detail": "E, 124 BPM, strings 5 and 6",
+          "bpm": 124,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Easy Guitar with TAB",
+              "url": "https://musescore.com/user/39593079/scores/15596992",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/white-stripes-seven-nation-army-in-standard-e-tuning-tab-s91317"
+          }
+        },
+        {
+          "id": "smoke-on-the-water",
+          "title": "Smoke on the Water",
+          "artist": "Deep Purple",
+          "strand": "R",
+          "teaches": "A riff on one string, then as fourths",
+          "detail": "G minor, 112 BPM",
+          "bpm": 112,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, easy guitar",
+              "url": "https://musescore.com/user/40310279/scores/7764191"
+            },
+            {
+              "label": "Official, Guitar Tab",
+              "url": "https://musescore.com/user/39593079/scores/15265483",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/deep-purple-smoke-on-the-water-solo-tab-s329"
+          }
+        },
+        {
+          "id": "peter-gunn",
+          "title": "Peter Gunn Theme",
+          "artist": "Henry Mancini",
+          "strand": "R",
+          "teaches": "A low-string riff, steady eighths",
+          "detail": "E, 115 BPM",
+          "bpm": 115,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Easy Guitar with TAB",
+              "url": "https://musescore.com/user/39593079/scores/15586459",
+              "official": true
+            },
+            { "label": "Community", "url": "https://musescore.com/user/3269941/scores/724681" }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/?pattern=peter%20gunn"
+          }
+        },
+        {
+          "id": "ode-to-joy",
+          "title": "Ode to Joy",
+          "artist": "Beethoven",
+          "strand": "F, T",
+          "teaches": "i-m free strokes, first notes on the staff",
+          "detail": "C or G, 80 BPM, strings 1 to 3",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, easy guitar",
+              "url": "https://musescore.com/user/31759757/scores/5529384"
+            },
+            {
+              "label": "Guitar Colour System",
+              "url": "https://musescore.com/user/2004056/scores/1815321"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Phrases, Ode to Joy",
+            "url": "/music/phrases?instrument=guitar&phrase=guitar.ode-to-joy"
+          }
+        }
+      ],
+      "test": "One strummed song and one riff song from the shelf at the record's tempo, with the record, without stopping; three random pairs from A D E Am Em Dm at 30 changes a minute; Ode to Joy or step 1.8 clean at 70."
+    }
+  ]
+}
