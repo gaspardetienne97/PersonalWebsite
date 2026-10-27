@@ -2062,6 +2062,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, easy piano",
+              "url": "https://musescore.com/user/28029113/scores/10998589"
+            },
+            {
               "label": "Piano Solo, official Faber",
               "url": "https://musescore.com/user/39593115/scores/6921043",
               "official": true
@@ -2367,6 +2371,10 @@
           "diff": 3,
           "scores": [
             {
+              "label": "Community, intermediate piano",
+              "url": "https://musescore.com/user/28416909/scores/18836164"
+            },
+            {
               "label": "Piano Solo, official Hal Leonard",
               "url": "https://musescore.com/user/39593079/scores/6949880",
               "official": true
@@ -2480,6 +2488,10 @@
           "bpm": 58,
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, intermediate piano",
+              "url": "https://musescore.com/user/30541429/scores/6414380"
+            },
             {
               "label": "Piano Solo, official Faber",
               "url": "https://musescore.com/user/39593115/scores/6920725",
@@ -3241,6 +3253,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, easy piano",
+              "url": "https://musescore.com/user/51006612/scores/15146986"
+            },
+            {
               "label": "Piano Solo, official Faber",
               "url": "https://musescore.com/user/39593115/scores/6920847",
               "official": true
@@ -3952,6 +3968,10 @@
           "diff": 3,
           "scores": [
             {
+              "label": "Community, piano",
+              "url": "https://musescore.com/user/215006/scores/5201484"
+            },
+            {
               "label": "Piano Solo, official Hal Leonard",
               "url": "https://musescore.com/user/39593079/scores/6942444",
               "official": true
@@ -4363,6 +4383,10 @@
           "bpm": 104,
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, piano and vocals",
+              "url": "https://musescore.com/user/33841459/scores/6711782"
+            },
             {
               "label": "Piano-Vocal-Guitar, official Hal Leonard",
               "url": "https://musescore.com/user/39593079/scores/6933035",

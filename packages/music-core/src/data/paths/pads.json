@@ -590,6 +590,10 @@
           "diff": 3,
           "scores": [
             {
+              "label": "Community, drum set",
+              "url": "https://musescore.com/user/64249042/scores/26667805"
+            },
+            {
               "label": "Official, Hal Leonard drum chart",
               "url": "https://musescore.com/user/39593079/scores/15733831",
               "official": true
@@ -848,6 +852,10 @@
           "bpm": 108,
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, drum set, Aerosmith original",
+              "url": "https://musescore.com/user/16516896/scores/3796096"
+            },
             {
               "label": "Official, Hal Leonard drum chart",
               "url": "https://musescore.com/user/39593079/scores/15733759",
@@ -1200,7 +1208,12 @@
           "detail": "113 BPM; no MuseScore score; the app's groove think",
           "bpm": 113,
           "diff": 3,
-          "scores": [],
+          "scores": [
+            {
+              "label": "Community, the drum break",
+              "url": "https://musescore.com/user/27413747/scores/22980898"
+            }
+          ],
           "fallback": {
             "label": "Ethan Hein's transcription",
             "url": "https://www.ethanhein.com/wp/2026/it-takes-two/"
@@ -1256,6 +1269,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, drum part",
+              "url": "https://musescore.com/user/50412731/scores/10916263"
+            },
+            {
               "label": "Official, Hal Leonard chart",
               "url": "https://musescore.com/user/39593079/scores/15898255",
               "official": true
@@ -1306,6 +1323,10 @@
           "diff": 3,
           "scores": [
             {
+              "label": "Community, drum chart",
+              "url": "https://musescore.com/user/37413573/scores/23545378"
+            },
+            {
               "label": "Official, Hal Leonard chart",
               "url": "https://musescore.com/user/39593079/scores/16088536",
               "official": true
@@ -1324,7 +1345,12 @@
           "detail": "76 BPM; MuseScore has only band arrangements",
           "bpm": 76,
           "diff": 3,
-          "scores": [],
+          "scores": [
+            {
+              "label": "Community, drums with the clav groove",
+              "url": "https://musescore.com/user/4806276/scores/6861747"
+            }
+          ],
           "fallback": {
             "label": "Songsterr",
             "url": "https://www.songsterr.com/a/wsa/bill-withers-use-me-tab-s843207"
@@ -1630,7 +1656,12 @@
           "detail": "130 BPM; MuseScore has only band arrangements",
           "bpm": 130,
           "diff": 3,
-          "scores": [],
+          "scores": [
+            {
+              "label": "Community, band transcription with drums",
+              "url": "https://musescore.com/user/27209829/scores/11793391"
+            }
+          ],
           "fallback": {
             "label": "Songsterr",
             "url": "https://www.songsterr.com/a/wsa/new-order-blue-monday-tab-s48464t3"
@@ -2892,6 +2923,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, drums",
+              "url": "https://musescore.com/user/82151455/scores/30942083"
+            },
+            {
               "label": "Official, Hal Leonard drums",
               "url": "https://musescore.com/user/39593079/scores/15743404",
               "official": true
@@ -2927,6 +2962,10 @@
           "bpm": 178,
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, drums and bass",
+              "url": "https://musescore.com/user/22252396/scores/9244660"
+            },
             {
               "label": "Official, Hal Leonard chart",
               "url": "https://musescore.com/user/39593079/scores/16087744",
@@ -3269,6 +3308,10 @@
           "diff": 3,
           "scores": [
             {
+              "label": "Community, drums, guitar and bass",
+              "url": "https://musescore.com/user/2110146/scores/1464646"
+            },
+            {
               "label": "Official, Hal Leonard chart",
               "url": "https://musescore.com/user/39593079/scores/15733885",
               "official": true
@@ -3568,7 +3611,12 @@
           "detail": "189 BPM; no MuseScore score; needs meter support",
           "bpm": 189,
           "diff": 3,
-          "scores": [],
+          "scores": [
+            {
+              "label": "Community, drum part",
+              "url": "https://musescore.com/user/10696881/scores/6050763"
+            }
+          ],
           "fallback": {
             "label": "Songsterr drums",
             "url": "https://www.songsterr.com/a/wsa/radiohead-15-step-drums-tab-s641174"

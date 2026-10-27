@@ -708,6 +708,10 @@
           "diff": 1,
           "scores": [
             {
+              "label": "Community, jazz piano",
+              "url": "https://musescore.com/user/24971961/scores/7686230"
+            },
+            {
               "label": "Official Real Book, low voice",
               "url": "https://musescore.com/user/39593079/scores/16109335",
               "official": true
@@ -1161,6 +1165,10 @@
           "diff": 3,
           "scores": [
             {
+              "label": "Community, lead sheet with piano chords",
+              "url": "https://musescore.com/user/44651/scores/120287"
+            },
+            {
               "label": "Official Real Book (community uploads thin)",
               "url": "https://musescore.com/user/39593079/scores/15955228",
               "official": true
@@ -1179,7 +1187,12 @@
           "detail": "C, 16 bars, 160",
           "bpm": 160,
           "diff": 3,
-          "scores": [],
+          "scores": [
+            {
+              "label": "Community, piano",
+              "url": "https://musescore.com/user/19020741/scores/6582255"
+            }
+          ],
           "fallback": {
             "label": "Your Real Book (no suitable MuseScore lead sheet, only horn parts)",
             "url": "https://musescore.com/sheetmusic?text=Ladybird%20lead%20sheet"
@@ -1420,6 +1433,10 @@
           "bpm": 160,
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, piano",
+              "url": "https://musescore.com/user/101950132/scores/25702957"
+            },
             {
               "label": "Official Real Book",
               "url": "https://musescore.com/user/39593079/scores/16030072",
@@ -2810,6 +2827,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, lead sheet",
+              "url": "https://musescore.com/user/498481/scores/18054937"
+            },
+            {
               "label": "Official piano solo (community score weak)",
               "url": "https://musescore.com/user/39593079/scores/6945848",
               "official": true
@@ -2928,6 +2949,10 @@
           "bpm": 180,
           "diff": 1,
           "scores": [
+            {
+              "label": "Community, lead sheet",
+              "url": "https://musescore.com/user/498481/scores/7764854"
+            },
             {
               "label": "Official Real Book (community has only band scores)",
               "url": "https://musescore.com/user/39593079/scores/16103002",
@@ -3499,6 +3524,10 @@
           "bpm": 60,
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, piano",
+              "url": "https://musescore.com/user/35930056/scores/13538896"
+            },
             {
               "label": "Official Real Book (community scores are band parts)",
               "url": "https://musescore.com/user/39593079/scores/15955810",

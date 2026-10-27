@@ -253,6 +253,10 @@
           "diff": 1,
           "scores": [
             {
+              "label": "Community, solo ukulele",
+              "url": "https://musescore.com/user/37265061/scores/6782357"
+            },
+            {
               "label": "Official, arr. Dennis McCorkle, beginner",
               "url": "https://musescore.com/user/97106398/scores/18630112",
               "official": true
@@ -1179,6 +1183,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, ukulele fingerstyle",
+              "url": "https://musescore.com/user/36648450/scores/6463879"
+            },
+            {
               "label": "Official, easy ukulele with tab",
               "url": "https://musescore.com/user/39593079/scores/15931543",
               "official": true
@@ -1544,6 +1552,10 @@
           "bpm": 120,
           "diff": 1,
           "scores": [
+            {
+              "label": "Community, ukulele and piano",
+              "url": "https://musescore.com/user/28001497/scores/8306810"
+            },
             {
               "label": "Official, The Daily Ukulele",
               "url": "https://musescore.com/user/39593079/scores/15787171",
@@ -2736,6 +2748,10 @@
           "diff": 1,
           "scores": [
             {
+              "label": "Community, fingerstyle ukulele",
+              "url": "https://musescore.com/user/30013820/scores/6077813"
+            },
+            {
               "label": "Official, arr. Phil Kell, chord-melody solo",
               "url": "https://musescore.com/user/97106398/scores/18047470",
               "official": true
@@ -3058,6 +3074,10 @@
           "diff": 2,
           "scores": [
             {
+              "label": "Community, ukulele and piano",
+              "url": "https://musescore.com/user/28001497/scores/8360028"
+            },
+            {
               "label": "Official, arr. Phil Kell, intermediate",
               "url": "https://musescore.com/user/97106398/scores/22712452",
               "official": true
@@ -3078,6 +3098,10 @@
           "bpm": 60,
           "diff": 2,
           "scores": [
+            {
+              "label": "Community, ukulele tab",
+              "url": "https://musescore.com/user/35414904/scores/6206352"
+            },
             {
               "label": "Official, arr. Brent Robitaille, beginner",
               "url": "https://musescore.com/user/97106398/scores/16254355",
