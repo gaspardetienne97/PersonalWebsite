@@ -39,7 +39,8 @@
   import { btn, btnStage } from "$lib/music/components/ui";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, tuningText, type Capture } from "$lib/music/drill.svelte";
+  import { nearMiss } from "@repo/music-core/signal/pitch";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
@@ -260,8 +261,8 @@
     fret: t.fret,
     label: order(i) ?? finger(t),
     spoken: order(i) && `note ${order(i)} of the pattern`,
-    // The colour is the fretting finger (fingerpicking too: its letter is the picking hand).
-    finger: t.label && !isPick ? undefined : t.finger || undefined,
+    // The colour is always the fretting finger; a letter (picking hand, or P h p) rides on it.
+    finger: t.finger || undefined,
     demo,
   });
   const marks = $derived.by((): FretMark[] => {
@@ -366,10 +367,22 @@
       if (slotOf[k] !== slotOf[stepIndex]) stepIndex = k;
       while (stepIndex < steps.length && hitAt[stepIndex] !== undefined) stepIndex++;
       if (stepIndex >= steps.length) void finish();
-    } else if (mode === "practice" && e.string !== undefined && e.fret !== undefined) {
-      flashes.add(e.string * 100 + e.fret, "wrong");
+    } else {
+      if (mode === "practice" && e.string !== undefined && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, "wrong");
+      // A quarter tone off rounds to the next note: name the tuning; Practice moves past it (it still scores as missed).
+      const open = steps.flatMap((t, i) => (i >= stepIndex && slotOf[i] === slotOf[stepIndex] && hitAt[i] === undefined ? [i] : []));
+      const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, open.map((i) => steps[i].midi)) : null;
+      if (!miss) return;
+      detuned = [...detuned, miss];
+      status = tuningText(miss, e.midi, instr);
+      if (mode !== "practice") return;
+      hitAt[open.find((i) => steps[i].midi === miss.midi)!] = e.at;
+      while (stepIndex < steps.length && hitAt[stepIndex] !== undefined) stepIndex++;
+      if (stepIndex >= steps.length) void finish();
     }
   }
+  /** Notes heard close to a target but out of tune, this run. */
+  let detuned: { midi: number; cents: number }[] = [];
 
   async function start(ctx: RunContext) {
     stopDemo();
@@ -377,6 +390,7 @@
     result = null;
     stepIndex = 0;
     hitAt = [];
+    detuned = [];
     flashes.clear();
     run = practice.beginRun({
       exerciseId: exerciseFor(entry.exerciseId, instr),
@@ -443,7 +457,9 @@
         : !ons.length
           ? "Nothing was heard during the run. Tap the frets, play into the microphone, or connect MIDI, then try again."
           : r.pitch < 0.9
-            ? `${r.clean} of ${r.total} notes right. Slow down until each finger lands before the next.`
+            ? detuned.length
+              ? `${r.clean} of ${r.total} notes right. ${detuned.length} sounded out of tune (about ${Math.round(detuned.reduce((a, d) => a + Math.abs(d.cents), 0) / detuned.length)} cents): tune your ${instr} in Tuner, then try again.`
+              : `${r.clean} of ${r.total} notes right. Slow down until each finger lands before the next.`
             : `Every note right, but the spacing wandered by ${Math.round(r.evennessErrorMs)} ms. Keep it even.`,
       metric: pct(r.score),
       metricLabel: "score",
@@ -691,7 +707,7 @@
         </ol>
       {/if}
       <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} barres={isPick} onpick={picking ? pickStart : undefined} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
-      {#if mode === "practice" && !isLegato}
+      {#if mode === "practice"}
         <!-- The colour key: the fretting hand by colour; on fingerpicking, the picking hand by letter. -->
         <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-ws-stage-soft" aria-label="Finger key">
           <div class="flex flex-wrap items-center gap-2">
@@ -711,7 +727,7 @@
         </dl>
       {/if}
       <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
-        {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand; colours the fretting hand. ${pickNames[0]} is shown; the others follow in the run.` : isLegato ? "P is picked, h hammered on, p pulled off." : isSpider ? "Numbers are the order you play; colours are your fingers." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
+        {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand; colours the fretting hand. ${pickNames[0]} is shown; the others follow in the run.` : isLegato ? "P is picked, h hammered on, p pulled off; colours are your fingers." : isSpider ? "Numbers are the order you play; colours are your fingers." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
         {#if picking}<p>{isSpider ? "Tap the neck to move the pattern's first fret." : "Tap the neck to start somewhere else: the string and the start fret."}</p>{/if}
         {#if kind === "positions" && phase === "ready"}<p>Box and CAGED shapes are drawn for standard tuning, root on string 6.</p>{/if}
       </div>

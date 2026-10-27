@@ -336,13 +336,21 @@
     border: 1px solid var(--ws-line, currentColor);
     border-radius: 0.5rem;
   }
+  /* Notation is printed paper in both themes: dark ink on light (slightly dimmed in dark mode). */
   .viewport {
+    --ws-surface: oklch(0.99 0.004 285);
+    --ws-ink: oklch(0.2 0.045 287);
+    --ws-soft: oklch(0.45 0.03 287);
     max-width: 100%;
     overflow: auto;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
-    background: var(--ws-surface, transparent);
+    background: var(--ws-surface);
+    color: var(--ws-ink);
     border-radius: 0.5rem;
+  }
+  :global(.dark) .viewport {
+    --ws-surface: oklch(0.92 0.008 285);
   }
   .viewport.failed .canvas {
     display: none;

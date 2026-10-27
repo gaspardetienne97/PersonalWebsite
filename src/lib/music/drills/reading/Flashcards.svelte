@@ -377,18 +377,15 @@
   .card[data-state="right"] {
     border-color: var(--success);
   }
-  /* The card is printed paper in both themes: dark ink on light, centred. */
+  /* The card is the staff's paper (NotationFrame), with a little room above and below. */
   .zoom {
     zoom: 1.7;
-    --ws-surface: oklch(0.99 0.004 285);
-    --ws-ink: oklch(0.2 0.045 287);
-    --ws-soft: oklch(0.45 0.03 287);
     padding-block: 0.4rem;
     border-radius: 0.5rem;
-    background: var(--ws-surface);
+    background: oklch(0.99 0.004 285);
   }
   :global(.dark) .zoom {
-    --ws-surface: oklch(0.92 0.008 285);
+    background: oklch(0.92 0.008 285);
   }
   .zoom :global(.viewport) {
     scrollbar-gutter: auto;

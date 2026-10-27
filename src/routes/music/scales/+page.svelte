@@ -38,7 +38,7 @@
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, pct, readKeyed, runInstrument, runSource, tuningText, writeKeyed, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { benchFromUrl } from "$lib/music/drills/piano/transport.svelte";
   import { audio, settings } from "$lib/music/runtime";
@@ -66,7 +66,9 @@
   ];
   const s = $derived(cfg.value);
   const pattern = $derived((PATTERNS.some((p) => p.value === s.pattern) ? s.pattern : "scale") as ScalePattern);
-  const perBeat = $derived(([1, 2, 4].includes(s.perBeat) ? s.perBeat : 1) as 1 | 2 | 4);
+  const perBeat = $derived(([1, 2, 3, 4, 6].includes(s.perBeat) ? s.perBeat : 1) as 1 | 2 | 3 | 4 | 6);
+  /** Three or six a click is compound time: written in 12/8, a click to each dotted quarter. */
+  const quartersPerClick = $derived(perBeat % 3 === 0 ? 1.5 : 1);
   const inst = $derived(settings.value.activeInstrument);
   const onPiano = $derived(inst === "piano");
   const scaleSetup = $derived({
@@ -96,7 +98,8 @@
   /** One note's time: the click divided by the notes to a click. */
   const stepMs = () => 60000 / bpm() / perBeat;
   const target = $derived(s.grade ? gradeSpeed(s.grade, pattern) : undefined);
-  const PER = { 1: "one note a click", 2: "two notes a click", 4: "four notes a click" } as const;
+  const PER = { 1: "one note a click", 2: "two notes a click", 3: "three notes a click", 4: "four notes a click", 6: "six notes a click" } as const;
+  const PER_NAME: Record<number, string> = { 1: "quarters", 2: "eighths", 3: "triplets", 4: "sixteenths", 6: "sextuplets" };
   /** One menu for the setups that set tempo and notes a click together: the hands-together preset, a plain start, or an ABRSM grade's speed. */
   function pickPreset(v: string) {
     if (v === "together") {
@@ -170,7 +173,7 @@
     { text: scaleSetup.span === "pentascale" ? "five notes" : scaleSetup.span.replace("-", " "), focus: "span" },
     { text: s.motion === "up-down" ? "up and down" : s.motion, focus: "motion" },
     onPiano ? { text: scaleSetup.hands === "both" ? "hands together" : `${scaleSetup.hands} hand`, focus: "hands" } : { text: `on ${inst}` },
-    ...(perBeat > 1 ? [{ text: PER[perBeat], focus: "preset" }] : []),
+    ...(perBeat > 1 ? [{ text: PER[perBeat], focus: "per" }] : []),
     ...(target ? [{ text: `aiming for ${s.grade} speed (${target[0]}, ${PER[target[1]]})`, focus: "preset" }] : []),
   ]);
 
@@ -217,7 +220,7 @@
       const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, expected) : null;
       if (miss) {
         detuned = [...detuned, miss];
-        status = `That ${noteName(miss.midi, "flat", false)} is ${Math.abs(miss.cents)} cents ${miss.cents > 0 ? "sharp" : "flat"}, so it reads as ${noteName(e.midi, "flat", false)}. Your ${inst} may need tuning.`;
+        status = tuningText(miss, e.midi, inst);
         // Practice moves on past a single out-of-tune note (it still scores as missed); Check waits.
         if (mode === "practice" && expected.length === 1) {
           stepIndex += 1;
@@ -233,9 +236,10 @@
 
   // The line written out above the instrument (tab on guitar and ukulele, a staff otherwise), its cursor on the step.
   const frets = $derived(linePositions(inst, all));
-  const written = $derived(steps.flatMap((st) => st.notes.map((n) => ({ midi: n.midi, startBeat: st.atBeat, durationBeats: 1 / perBeat, hand: onPiano ? n.hand : undefined, ...frets.get(n.midi) }))));
+  const written = $derived(steps.flatMap((st) => st.notes.map((n) => ({ midi: n.midi, startBeat: st.atBeat * quartersPerClick, durationBeats: quartersPerClick / perBeat, hand: onPiano ? n.hand : undefined, ...frets.get(n.midi) }))));
   const signature = $derived(pattern === "scale" ? signatureFor(s.tonic % 12, s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
-  const cursor = $derived(demoStep !== null ? (steps[demoStep]?.atBeat ?? null) : phase === "running" ? (steps[Math.min(stepIndex, steps.length - 1)]?.atBeat ?? null) : null);
+  const cursorClick = $derived(demoStep !== null ? (steps[demoStep]?.atBeat ?? null) : phase === "running" ? (steps[Math.min(stepIndex, steps.length - 1)]?.atBeat ?? null) : null);
+  const cursor = $derived(cursorClick === null ? null : cursorClick * quartersPerClick);
   const lineStates = $derived.by(() => {
     const out: Record<number, GroupState> = {};
     if (phase !== "running") return out;
@@ -364,7 +368,9 @@
     const goals = pattern === "blocked" ? [120, 100, 80] : [120, col(2), col(4)];
     const steps = ([1, 2, 4] as const).map((n, i) => ({ label: PER[n].replace(/^./, (c) => c.toUpperCase()), goal: goals[i] }));
     const id = `scales.${pattern}.${pattern === "scale" ? s.kind : s.chord}.${scaleSetup.span}.${s.motion}.${scaleSetup.hands}.${s.tonic}`;
-    return nextRun(id, { bpm: bpm(), tempo: { min: SCALE_TEMPO.min, goal: 120, max: SCALE_TEMPO.max }, steps, step: [1, 2, 4].indexOf(perBeat) }, { score, correct }, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i], preset: false })));
+    // Three or six a click sits outside the ABRSM ladder: the next run moves the tempo only.
+    const laddered = ([1, 2, 4] as number[]).includes(perBeat);
+    return nextRun(id, { bpm: bpm(), tempo: { min: SCALE_TEMPO.min, goal: 120, max: SCALE_TEMPO.max }, ...(laddered ? { steps, step: [1, 2, 4].indexOf(perBeat) } : {}) }, { score, correct }, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i], preset: false })));
   }
 
   function stop() {
@@ -458,6 +464,7 @@
             onchange={(v) => cfg.set({ hands: v, preset: false })}
           />
         {/if}
+        <Choice label="Notes a click" setupKey="per" options={[1, 2, 3, 4, 6].map((n) => ({ value: n, label: String(n), detail: PER_NAME[n] }))} value={perBeat} onchange={(v) => cfg.set({ perBeat: v, grade: "", preset: false })} />
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="preset">
           <span class="font-medium">Preset</span>
           <Picker label="Preset" action placeholder="Tempo and notes a click" options={presetOptions} onchange={pickPreset} />
@@ -480,7 +487,7 @@
   {#snippet stage()}
     {#if mode === "practice" || phase === "results"}
       <div class="mb-3">
-        <LineNotation notes={written} tuning={fretTuning(inst)} title={key} cursorBeat={cursor} groupStates={lineStates} keyFifths={signature} />
+        <LineNotation notes={written} tuning={fretTuning(inst)} title={key} cursorBeat={cursor} groupStates={lineStates} keyFifths={signature} meter={quartersPerClick > 1 ? [12, 8] : undefined} />
       </div>
     {/if}
     <InstrumentStage line={all} {low} {high} {marks} {flashes} />

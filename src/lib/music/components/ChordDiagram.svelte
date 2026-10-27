@@ -1,8 +1,8 @@
 <script lang="ts">
   // A chord box as chord charts draw it: strings upright (lowest on the left),
   // frets across, the nut as a thick bar (or the starting fret's number), x and
-  // o above muted and open strings, finger numbers in the dots, and a barre as
-  // one bar across the strings it holds down.
+  // o above muted and open strings, finger numbers in the dots (in the fingers'
+  // colours), and a barre as one bar across the strings it holds down.
   interface Props {
     /** Per string, string 1 (highest) first; null = muted. */
     frets: (number | null)[];
@@ -27,6 +27,9 @@
   /** x of string s (1 = highest, drawn on the right). */
   const xOf = (s: number) => L + (n - s) * gap;
   const yOf = (f: number) => T + (f - first + 0.5) * rowH;
+  /** The barre's finger: the shape's own on its strings, else the index. */
+  const barreFinger = $derived(barre ? (fingers[barre.fromString - 1] ?? fingers[barre.toString - 1] ?? 1) : 1);
+  const fill = (f: number | null | undefined) => (f && f >= 1 && f <= 4 ? `var(--finger-${f})` : undefined);
 </script>
 
 <svg viewBox="0 0 {W} {H}" class="h-auto w-full" role={label ? "img" : undefined} aria-label={label || undefined} aria-hidden={label ? undefined : "true"}>
@@ -47,16 +50,16 @@
     {/if}
   {/each}
   {#if barre}
-    <rect x={xOf(barre.toString) - 7} y={yOf(barre.fret) - 7} width={xOf(barre.fromString) - xOf(barre.toString) + 14} height="14" rx="7" class="dot" />
+    <rect x={xOf(barre.toString) - 7} y={yOf(barre.fret) - 7} width={xOf(barre.fromString) - xOf(barre.toString) + 14} height="14" rx="7" class="dot" style:fill={fill(barreFinger)} />
   {/if}
   {#each frets as f, i (i)}
     {#if f !== null && f > 0 && !(barre && f === barre.fret && i + 1 >= barre.fromString && i + 1 <= barre.toString)}
-      <circle cx={xOf(i + 1)} cy={yOf(f)} r="7" class="dot" />
-      {#if fingers[i]}<text x={xOf(i + 1)} y={yOf(f) + 3.5} class="finger" text-anchor="middle">{fingers[i]}</text>{/if}
+      <circle cx={xOf(i + 1)} cy={yOf(f)} r="7" class="dot" style:fill={fill(fingers[i])} />
+      {#if fingers[i]}<text x={xOf(i + 1)} y={yOf(f) + 3.5} class="finger" class:on-colour={!!fill(fingers[i])} text-anchor="middle">{fingers[i]}</text>{/if}
     {/if}
   {/each}
   {#if barre}
-    <text x={(xOf(barre.toString) + xOf(barre.fromString)) / 2} y={yOf(barre.fret) + 3.5} class="finger" text-anchor="middle">1</text>
+    <text x={(xOf(barre.toString) + xOf(barre.fromString)) / 2} y={yOf(barre.fret) + 3.5} class="finger" class:on-colour={!!fill(barreFinger)} text-anchor="middle">{barreFinger}</text>
   {/if}
 </svg>
 
@@ -74,11 +77,17 @@
   }
   .dot {
     fill: var(--instr-ink, var(--ws-ink));
+    /* Pale finger colours keep an edge on a white chart. */
+    stroke: color-mix(in oklch, var(--ws-ink) 45%, transparent);
+    stroke-width: 0.8;
   }
   .finger {
     fill: var(--ws-surface, white);
     font-size: 9px;
     font-weight: 700;
+  }
+  .finger.on-colour {
+    fill: #1b120b;
   }
   .open {
     fill: none;

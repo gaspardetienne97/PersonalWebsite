@@ -10,6 +10,7 @@ import type {
 } from "@repo/music-core";
 import type { DrillMode } from "./components/DrillShell.svelte";
 import { getSetting, input, putSetting, settings } from "./runtime";
+import { noteName } from "@repo/music-core";
 
 export interface Capture {
   notes: NoteEvent[];
@@ -78,3 +79,14 @@ export async function writeKeyed<T>(key: string, id: string, value: T, merge?: (
 }
 
 export const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+/**
+ * A microphone note a quarter tone off its target (`nearMiss` in music-core) is
+ * the instrument's tuning, not the playing: say so, plainly.
+ */
+export const tuningText = (
+  miss: { midi: number; cents: number },
+  heard: number,
+  instrument: string,
+) =>
+  `That ${noteName(miss.midi, "flat", false)} is ${Math.abs(miss.cents)} cents ${miss.cents > 0 ? "sharp" : "flat"}, so it reads as ${noteName(heard, "flat", false)}. Your ${instrument} may need tuning.`;

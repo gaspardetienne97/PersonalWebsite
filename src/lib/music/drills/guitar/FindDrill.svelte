@@ -22,7 +22,8 @@
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, runInstrument, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, runInstrument, tuningText, type Capture } from "$lib/music/drill.svelte";
+  import { nearMiss } from "@repo/music-core/signal/pitch";
   import { nextRun } from "$lib/music/advance.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { mic } from "$lib/music/runtime";
@@ -124,6 +125,11 @@
     // Sounding the anchor first to hear it is not an answer.
     if (question.anchor && e.midi === question.anchor.midi) return;
     const q = question;
+    // A quarter tone off rounds to the next note: that is the tuning, not a wrong answer, so ask again.
+    if (e.source === "audio" && !q.acceptable.some((a) => a.midi === e.midi)) {
+      const miss = nearMiss(e.midi, e.cents, [...new Set(q.acceptable.map((a) => a.midi))]);
+      if (miss) return void (status = `${tuningText(miss, e.midi, instr)} Play it again.`);
+    }
     const g = gradeFretFind(q.acceptable, e);
     // Taps know their string; a correct pitch from MIDI or the microphone lights where it lives.
     const at = e.string !== undefined && e.fret !== undefined ? e : g.correct ? q.acceptable.find((a) => a.midi === e.midi) : undefined;

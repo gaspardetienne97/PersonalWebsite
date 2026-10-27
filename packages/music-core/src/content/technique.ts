@@ -103,7 +103,7 @@ export interface ScaleSetup {
   /** The chord for arpeggios and broken or blocked chords (default major). */
   chord?: ChordKind;
   /** Notes per click (default 1). */
-  perBeat?: 1 | 2 | 4;
+  perBeat?: 1 | 2 | 3 | 4 | 6;
   tonic: number;
   span: ScaleSpan;
   motion: ScaleMotion;
@@ -258,6 +258,8 @@ export function legatoTargets(opts: {
         fret,
         midi: midiAt(opts.tuning, opts.string, fret),
         label: how,
+        // One finger per fret from the start: 0 the index, 2 the ring, 3 the little finger.
+        finger: off + 1,
       };
     }),
   );
