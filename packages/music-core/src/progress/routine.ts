@@ -2,6 +2,7 @@
 import type { Instrument, PracticeSession, RunRecord, ScoringEvent, SkillMastery } from "../types";
 import { DAY_MS, decayMastery, isDueForReview } from "./mastery";
 import routineData from "../data/daily-routine.json";
+import { CATALOG } from "../content/catalog";
 
 export type StepId =
   | "ear"
@@ -245,7 +246,12 @@ function linkHref(href: string, n: number, routineId: string, instrument?: Instr
 export const stepHref = (step: StepId, n: number, routineId: string, instrument?: Instrument) =>
   linkHref(STEPS[step].route, n, routineId, instrument);
 
-const routeOf = (href: string) => href.split(/[?#]/)[0];
+/** A drill as the set sees it: its route and mode, so Spider and Note finder are different drills. */
+const routeOf = (href: string) => {
+  const u = new URL(href, "http://x");
+  const mode = u.searchParams.get("mode");
+  return mode ? `${u.pathname}?mode=${mode}` : u.pathname;
+};
 
 /** Skills due for review (a ten-point drop since last measured), most overdue first. */
 export function dueSkills(mastery: Record<string, SkillMastery>, now: number): string[] {
@@ -254,6 +260,13 @@ export function dueSkills(mastery: Record<string, SkillMastery>, now: number): s
     .filter((m) => isDueForReview(m, now))
     .sort((a, b) => drop(b) - drop(a))
     .map((m) => m.skillId);
+}
+
+/** The drill mode on `route` that practises `skillId`, when it is not the route's first mode. */
+export function modeFor(route: string, skillId: string) {
+  const modes = CATALOG.find((e) => e.route === route)?.modes ?? [];
+  const i = modes.findIndex((m) => m.skillIds.includes(skillId));
+  return i > 0 ? modes[i] : undefined;
 }
 
 const DRILL_STEPS = (Object.keys(STEPS) as StepId[]).filter((s) => s !== "phrases" && s !== "jam");
@@ -281,14 +294,17 @@ export function buildRoutine(input: {
   const playing = [...defaults.filter((s) => s !== "ear" && s !== "reading"), ...defaults];
   const used = new Set<string>();
   type Pick = Omit<RoutineStep, "n" | "role" | "minutes">;
-  const fromStep = (step: StepId, reason: RoutineStep["reason"], skillId?: string): Pick => ({
-    id: step,
-    label: STEPS[step].label,
-    description: STEPS[step].description,
-    href: STEPS[step].route,
-    reason,
-    skillId,
-  });
+  const fromStep = (step: StepId, reason: RoutineStep["reason"], skillId?: string): Pick => {
+    const mode = skillId ? modeFor(STEPS[step].route, skillId) : undefined;
+    return {
+      id: step,
+      label: mode?.label ?? STEPS[step].label,
+      description: STEPS[step].description,
+      href: mode ? `${STEPS[step].route}?mode=${mode.id}` : STEPS[step].route,
+      reason,
+      skillId,
+    };
+  };
   /** First allowed candidate on an unused route; with `repeat`, else the first allowed one. */
   const choose = (
     cands: { step?: StepId; skillId?: string }[],
@@ -296,7 +312,9 @@ export function buildRoutine(input: {
     repeat = false,
   ) => {
     const ok = cands.filter((c) => c.step && stepAllowed(c.step, instrument));
-    const c = ok.find((c) => !used.has(STEPS[c.step!].route)) ?? (repeat ? ok[0] : undefined);
+    const c =
+      ok.find((c) => !used.has(routeOf(fromStep(c.step!, reason, c.skillId).href))) ??
+      (repeat ? ok[0] : undefined);
     return c && fromStep(c.step!, reason, c.skillId);
   };
   const steps = (xs: StepId[]) => xs.map((step) => ({ step }));

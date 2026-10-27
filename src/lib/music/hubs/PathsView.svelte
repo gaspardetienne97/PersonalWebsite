@@ -104,8 +104,9 @@
             {#if st === "review"}
               <p class="mt-1 text-xs text-ws-soft">A later step you passed covers this. Use it to review.</p>
             {:else if sp.evidence.length && st !== "done" && sp.evidence.some((e) => e.attempts)}
+              {@const tried = sp.evidence.reduce((n, e) => n + e.attempts, 0)}
               <p class="tnum mt-1 text-xs text-ws-soft">
-                {sp.evidence.reduce((n, e) => n + e.attempts, 0)} checked attempts so far, the latest averaging
+                {tried} checked attempt{tried === 1 ? "" : "s"} so far, the latest averaging
                 {Math.round((sp.evidence.reduce((n, e) => n + e.mean, 0) / sp.evidence.length) * 100)}%.
                 {#if sp.almost}Passing now: {sp.evidence.some((e) => e.days < sp.step.minDays)
                     ? "play it again on another day to confirm."

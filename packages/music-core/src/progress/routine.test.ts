@@ -83,6 +83,19 @@ describe("buildRoutine", () => {
     expect(roleLabel(r.steps[0])).toBe("Review");
   });
 
+  it("opens the drill mode that practises the due skill", () => {
+    const r = buildRoutine({
+      id: "r",
+      instrument: "guitar",
+      budgetMinutes: 20,
+      dueSkillIds: ["technique.guitar.note-finder"],
+    });
+    expect(r.steps[0]).toMatchObject({ role: "review", label: "Note finder" });
+    expect(r.steps[0].href).toBe(
+      "/music/fretboard?mode=note-finder&instrument=guitar&routine=r&step=1",
+    );
+  });
+
   it("takes focus from the path step, keeping its setup and adding the routine params", () => {
     const r = buildRoutine({
       id: "day-1",

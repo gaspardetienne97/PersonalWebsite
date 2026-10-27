@@ -861,7 +861,7 @@ export interface StepProgress {
   step: PathStep;
   status: StepStatus;
   evidence: SkillEvidence[];
-  /** Open, and the recent attempts already pass: only more attempts, sessions or days are missing. */
+  /** Open, and the recent attempts already pass: at most one attempt short, or only sessions or days missing. */
   almost: boolean;
 }
 
@@ -962,7 +962,11 @@ export function pathProgress(
   let nextFound = false;
   const steps = path.steps.map((step): StepProgress => {
     const { status, evidence } = base.get(step.id)!;
-    const almost = open(status) && evidence.every((e) => e.attempts > 0 && meetsMean(step, e.mean));
+    const almost =
+      open(status) &&
+      evidence.every(
+        (e) => e.attempts > 0 && e.attempts >= step.minAttempts - 1 && meetsMean(step, e.mean),
+      );
     if (!open(status)) return { step, status, evidence, almost };
     if (step.requires.some((r) => open(base.get(r)?.status)))
       return { step, status: "locked", evidence, almost };

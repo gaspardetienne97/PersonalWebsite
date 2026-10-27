@@ -193,6 +193,8 @@ describe("pathProgress", () => {
     );
     expect(first(oneDay)).toMatchObject({ status: "next", almost: true });
     expect(first(oneDay).evidence[0].days).toBe(1);
+    // One pass of three asked for is a start, not almost.
+    expect(first(oneDay.slice(0, 1)).almost).toBe(false);
     // With a tempo, only runs at that tempo or faster count.
     const fast = {
       ...LEARNING_PATHS.guitar,
