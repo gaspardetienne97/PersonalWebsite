@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../content/catalog";
-import { ev, run, T0 } from "./fixtures";
+import { run, T0 } from "./fixtures";
 import { SKILL_GRAPH } from "./graph";
 import { exercisesForHref, knownRoute, shelfKey } from "./levels";
 import { DAY_MS } from "./mastery";
@@ -70,33 +70,32 @@ describe("levelled progress", () => {
   const g = LEARNING_PATHS.guitar;
   const build = g.steps.find((s) => s.id === "guitar.1.2")!;
 
-  it("passes an each-step only when every value passes", () => {
-    const shapeRun = (shape: string, day: number, i: number) => ({
-      run: run({ id: `r${shape}${day}${i}`, exerciseId: build.exerciseIds![0], params: { shape } }),
-      event: ev({
-        id: `e${shape}${day}${i}`,
-        runId: `r${shape}${day}${i}`,
+  it("judges a drill step on checked runs, each value on its own", () => {
+    let n = 0;
+    const shapeRun = (shape: string, day: number, over: Partial<ReturnType<typeof run>> = {}) =>
+      run({
+        id: `r${n++}`,
         exerciseId: build.exerciseIds![0],
-        skillIds: ["technique.guitar.chord-perfect"],
-        modality: "played",
-        instrument: "guitar",
-        at: T0 + day * DAY_MS + i,
-      }),
-    });
+        params: { shape },
+        score: 0.95,
+        endedAt: T0 + day * DAY_MS,
+        ...over,
+      });
+    const status = (runs: ReturnType<typeof run>[]) =>
+      pathProgress(g, [], undefined, runs).steps.find((s) => s.step.id === build.id)!;
+    // Five clean runs over two days on A and D; nothing on E yet.
     const two = ["guitar.a-major", "guitar.d-major"].flatMap((shape) =>
-      [0, 0, 0, 1, 1].map((day, i) => shapeRun(shape, day, i)),
+      [0, 0, 0, 1, 1].map((day) => shapeRun(shape, day)),
     );
-    const status = (xs: typeof two) =>
-      pathProgress(
-        g,
-        xs.map((x) => x.event),
-        undefined,
-        xs.map((x) => x.run),
-      ).steps.find((s) => s.step.id === build.id)!;
     expect(status(two).status).not.toBe("done");
     expect(status(two).evidence.map((e) => e.done)).toEqual([true, true, false]);
-    const all = [...two, ...[0, 0, 0, 1, 1].map((day, i) => shapeRun("guitar.e-major", day, i))];
-    expect(status(all).status).toBe("done");
+    const e = [0, 0, 0, 1, 1].map((day) => shapeRun("guitar.e-major", day));
+    expect(status([...two, ...e]).status).toBe("done");
+    // Practice runs (guided) and runs under the threshold do not pass it.
+    const guided = e.map((r) => ({ ...r, id: `${r.id}g`, assistance: "guided" as const }));
+    expect(status([...two, ...guided]).evidence[2].attempts).toBe(0);
+    const weak = e.map((r) => ({ ...r, id: `${r.id}w`, score: 0.7 }));
+    expect(status([...two, ...weak]).evidence[2].done).toBe(false);
   });
 
   it("counts a shelf song on two days of passing performances at tempo", () => {

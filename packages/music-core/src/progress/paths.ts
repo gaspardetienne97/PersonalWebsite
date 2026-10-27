@@ -951,49 +951,27 @@ const meetsMean = (step: PathStep, mean: number) => mean >= (step.threshold ?? D
 export const isGraded = (step: PathStep) =>
   step.skillIds.length > 0 || (step.level !== undefined && !!step.exerciseIds?.length);
 
-function stepEvidence(
+/** One judged item: a scoring event, or a whole checked run for levelled drill steps. */
+interface Evidence {
+  at: number;
+  score: number;
+  session: string;
+  param: (k: string) => string;
+}
+
+function evidenceRows(
   step: PathStep,
-  events: ScoringEvent[],
-  graph: SkillGraph,
-  runOf: Map<string, RunRecord>,
-): SkillEvidence[] {
-  const bpm = (e: ScoringEvent) => Number(runOf.get(e.runId ?? "")?.params.bpm ?? 0) || 0;
-  const param = (e: ScoringEvent, k: string) => String(runOf.get(e.runId ?? "")?.params[k] ?? "");
-  const matches = (e: ScoringEvent) =>
-    !step.match || Object.entries(step.match).every(([k, v]) => param(e, k) === v);
-  const eligible = events.filter(
-    (e) =>
-      isMasteryEligible(e) &&
-      (!step.modalities || step.modalities.includes(e.modality)) &&
-      (!step.exerciseIds || step.exerciseIds.includes(e.exerciseId)) &&
-      (!step.instruments || !e.instrument || step.instruments.includes(e.instrument)) &&
-      e.difficulty >= (step.minDifficulty ?? 0) - 1e-9 &&
-      (step.minBpm === undefined || bpm(e) >= step.minBpm - 1e-9) &&
-      matches(e),
-  );
-  // A levelled step without named skills is judged on its drill as a whole, or per `each` value.
-  const keys = step.each
-    ? step.each.values.map((v) => `${step.each!.param}=${v}`)
-    : step.skillIds.length
-      ? step.skillIds
-      : isGraded(step)
-        ? ["drill"]
-        : [];
-  return keys.map((skillId) => {
-    const ev = step.each
-      ? eligible.filter((e) => `${step.each!.param}=${param(e, step.each!.param)}` === skillId)
-      : skillId === "drill"
-        ? eligible
-        : eligible.filter((e) =>
-            e.skillIds.some((id) => withDescendants(skillId, graph).includes(id)),
-          );
+  items: Evidence[],
+  keyOf: (x: Evidence, key: string) => boolean,
+  keys: string[],
+) {
+  return keys.map((skillId): SkillEvidence => {
+    const ev = items.filter((x) => keyOf(x, skillId));
     const recent = [...ev].sort((a, b) => a.at - b.at).slice(-recentWindow(step));
     const attempts = ev.length;
-    const sessions = new Set(ev.map((e) => e.sessionId)).size;
+    const sessions = new Set(ev.map((e) => e.session)).size;
     const days = new Set(ev.map((e) => dayKey(e.at))).size;
-    const mean = recent.length
-      ? recent.reduce((sum, e) => sum + e.partialCredit, 0) / recent.length
-      : 0;
+    const mean = recent.length ? recent.reduce((sum, e) => sum + e.score, 0) / recent.length : 0;
     return {
       skillId,
       attempts,
@@ -1007,6 +985,74 @@ function stepEvidence(
         meetsMean(step, mean),
     };
   });
+}
+
+function stepEvidence(
+  step: PathStep,
+  events: ScoringEvent[],
+  graph: SkillGraph,
+  runOf: Map<string, RunRecord>,
+): SkillEvidence[] {
+  const matches = (param: (k: string) => string) =>
+    !step.match || Object.entries(step.match).every(([k, v]) => param(k) === v);
+  const eachKeys = step.each?.values.map((v) => `${step.each!.param}=${v}`);
+  const eachOf = (x: Evidence, key: string) =>
+    !step.each || `${step.each.param}=${x.param(step.each.param)}` === key;
+
+  // A levelled step without named skills is judged on its checked runs: each run's score, tempo
+  // and setup, as the paths' "three clean runs at 72" reads. Per `each` value when it has one.
+  if (step.level !== undefined && !step.skillIds.length) {
+    if (!isGraded(step)) return [];
+    const runs = [...runOf.values()].filter(
+      (r) =>
+        r.assistance === "independent" &&
+        r.endedAt > 0 &&
+        step.exerciseIds!.includes(r.exerciseId) &&
+        (!step.instruments || !r.instrument || step.instruments.includes(r.instrument)) &&
+        r.difficulty >= (step.minDifficulty ?? 0) - 1e-9 &&
+        (step.minBpm === undefined || Number(r.params.bpm ?? 0) >= step.minBpm - 1e-9) &&
+        matches((k) => String(r.params[k] ?? "")),
+    );
+    const items = runs.map(
+      (r): Evidence => ({
+        at: r.endedAt,
+        score: r.score ?? (r.correct ? 1 : 0),
+        session: r.id,
+        param: (k) => String(r.params[k] ?? ""),
+      }),
+    );
+    return evidenceRows(step, items, eachOf, eachKeys ?? ["drill"]);
+  }
+
+  const runParam = (e: ScoringEvent) => (k: string) =>
+    String(runOf.get(e.runId ?? "")?.params[k] ?? "");
+  const eligible = events.filter(
+    (e) =>
+      isMasteryEligible(e) &&
+      (!step.modalities || step.modalities.includes(e.modality)) &&
+      (!step.exerciseIds || step.exerciseIds.includes(e.exerciseId)) &&
+      (!step.instruments || !e.instrument || step.instruments.includes(e.instrument)) &&
+      e.difficulty >= (step.minDifficulty ?? 0) - 1e-9 &&
+      (step.minBpm === undefined || Number(runParam(e)("bpm")) >= step.minBpm - 1e-9) &&
+      matches(runParam(e)),
+  );
+  const items = eligible.map((e): Evidence & { skills: string[] } => ({
+    at: e.at,
+    score: e.partialCredit,
+    session: e.sessionId,
+    param: runParam(e),
+    skills: e.skillIds,
+  }));
+  if (eachKeys) return evidenceRows(step, items, eachOf, eachKeys);
+  return evidenceRows(
+    step,
+    items,
+    (x, skillId) =>
+      (x as (typeof items)[number]).skills.some((id) =>
+        withDescendants(skillId, graph).includes(id),
+      ),
+    step.skillIds,
+  );
 }
 
 /**

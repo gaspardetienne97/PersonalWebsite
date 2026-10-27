@@ -149,7 +149,9 @@
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=boom-chick&chords=guitar.a-major,guitar.d-major,guitar.e-major&bpm=60",
           "setup": "Chords, Fingerpicking: boom-chick with the thumb on the root, A D E, 60.",
           "done": "Root on the right string every beat, 3 clean runs at 70, on two days.",
-          "match": { "pattern": "boom-chick" },
+          "match": {
+            "pattern": "boom-chick"
+          },
           "threshold": 0.9,
           "minBpm": 70
         },
@@ -160,7 +162,9 @@
           "href": "/music/phrases?instrument=guitar&phrase=guitar.twinkle",
           "setup": "Phrases: Twinkle, alternating i and m on strings 1 and 2.",
           "done": "Clean at 80, alternating fingers, on two days.",
-          "match": { "phrase": "guitar.twinkle" },
+          "match": {
+            "phrase": "guitar.twinkle"
+          },
           "threshold": 0.9,
           "minBpm": 80
         },
@@ -179,7 +183,7 @@
           "href": "/music/fretboard?mode=note-finder&instrument=guitar",
           "setup": "Fretboard, Note finder: strings 6 and 5, frets 0 to 5, naturals.",
           "done": "20 answers, 90% right, under 3 seconds each.",
-          "minAttempts": 20,
+          "minAttempts": 1,
           "threshold": 0.9
         },
         {
@@ -189,7 +193,7 @@
           "href": "/music/chords?mode=strum&instrument=guitar&shape=guitar.a-major",
           "setup": "Chords, Strum and identify: A, D and E.",
           "done": "80% over 20.",
-          "minAttempts": 20,
+          "minAttempts": 1,
           "threshold": 0.8
         }
       ],
@@ -275,7 +279,10 @@
           "bpm": 84,
           "diff": 2,
           "scores": [
-            { "label": "Community", "url": "https://musescore.com/user/6375061/scores/5381516" },
+            {
+              "label": "Community",
+              "url": "https://musescore.com/user/6375061/scores/5381516"
+            },
             {
               "label": "Official, Guitar Tab",
               "url": "https://musescore.com/user/39593079/scores/15265612",
@@ -348,7 +355,10 @@
               "url": "https://musescore.com/user/39593079/scores/15586459",
               "official": true
             },
-            { "label": "Community", "url": "https://musescore.com/user/3269941/scores/724681" }
+            {
+              "label": "Community",
+              "url": "https://musescore.com/user/3269941/scores/724681"
+            }
           ],
           "fallback": {
             "label": "Songsterr",
