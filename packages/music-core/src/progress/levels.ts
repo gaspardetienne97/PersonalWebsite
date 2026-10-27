@@ -69,6 +69,8 @@ export interface RawLevelStep {
   needs?: string;
   /** Step ids (in this path) this one builds on. */
   requires?: string[];
+  /** Step ids a pass here tests out (a placement check): they show as review, nothing locks. */
+  covers?: string[];
   links?: PathLink[];
   feeds?: string;
 }
@@ -99,6 +101,7 @@ const ROUTE = (href: string) => href.split(/[?#]/)[0];
 /** The exercise ids a drill link records, so a step needs no hand-listed skills. */
 export function exercisesForHref(href: string, instruments: Instrument[] = []): string[] {
   const route = ROUTE(href);
+  if (SHELF_ROUTE.test(route)) return ["song.studio"];
   const q = new URLSearchParams(href.split("?")[1] ?? "");
   const entry = CATALOG.find((e) => ROUTE(e.route) === route);
   if (!entry) return [];
@@ -116,12 +119,21 @@ export function exercisesForHref(href: string, instruments: Instrument[] = []): 
   return [...new Set(ids.flatMap((id) => [id, ...fretted.map((i) => exerciseIdFor(id, i))]))];
 }
 
-/** A drill route the catalog knows, or one of the app's non-drill pages. */
+/** A shelf song in Song Studio: /music/songs/shelf/<path>/<song>, ?bars=3-4 for a riff. */
+const SHELF_ROUTE = /^\/music\/songs\/shelf\/([a-z0-9-]+)\/([a-z0-9-]+)$/;
+
+/** A drill route the catalog knows, a shelf song, or one of the app's non-drill pages. */
 export const knownRoute = (href: string) =>
+  SHELF_ROUTE.test(ROUTE(href)) ||
   CATALOG.some((e) => ROUTE(e.route) === ROUTE(href)) ||
   ["/music/tuner", "/music/songs", "/music/library", "/music/create", "/music/record"].includes(
     ROUTE(href),
   );
+
+const shelfMatch = (href?: string) => {
+  const m = href && ROUTE(href).match(SHELF_ROUTE);
+  return m ? { shelf: `${m[1]}/${m[2]}` } : undefined;
+};
 
 export function levelPath(raw: RawLevelPath): LearningPath {
   const instruments = raw.instruments ?? [];
@@ -141,7 +153,8 @@ export function levelPath(raw: RawLevelPath): LearningPath {
         links: s.links ?? [],
         skillIds: graded ? (s.skillIds ?? []) : [],
         exerciseIds: graded ? exercises : [],
-        match: s.match,
+        // A shelf song link counts that song's Song Studio runs.
+        match: shelfMatch(s.href) ? { ...shelfMatch(s.href), ...s.match } : s.match,
         each: s.each,
         minAttempts: s.minAttempts ?? 3,
         minSessions: s.minSessions ?? 1,
@@ -150,6 +163,7 @@ export function levelPath(raw: RawLevelPath): LearningPath {
         minBpm: s.minBpm,
         minDifficulty: s.minDifficulty,
         requires: (s.requires ?? []).map((r) => `${raw.id}.${r}`),
+        covers: s.covers?.map((r) => `${raw.id}.${r}`),
         instruments: instruments.length ? instruments : undefined,
         level: level.id,
         strand: s.strand,

@@ -252,7 +252,9 @@
       skillIds: [],
       capabilities: ["reading"],
       modality: "read",
-      assistance: "guided",
+      // Performance keeps time without waiting, so its runs count as checked (a path's shelf songs
+      // and riffs); still no skills, so no mastery.
+      assistance: perfMode ? "independent" : "guided",
       difficulty: 0.5,
       instrument: settings.value.activeInstrument,
       source: "song",

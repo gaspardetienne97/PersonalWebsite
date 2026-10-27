@@ -34,6 +34,7 @@ describe("levelled path data", () => {
           ).toContain(mode);
         for (const id of s.skillIds) expect(skills.has(id), `${where} skill ${id}`).toBe(true);
         for (const r of s.requires) expect(ids, `${where} requires ${r}`).toContain(r);
+        for (const r of s.covers ?? []) expect(ids, `${where} covers ${r}`).toContain(r);
         if (s.kind === "drill") expect(isGraded(s), where).toBe(true);
       }
     }
@@ -65,6 +66,10 @@ describe("levelled progress", () => {
       "technique.ukulele.chord-changes",
     ]);
     expect(exercisesForHref("/music/nowhere")).toEqual([]);
+    expect(exercisesForHref("/music/songs/shelf/guitar/seven-nation-army?bars=1-2")).toEqual([
+      "song.studio",
+    ]);
+    expect(knownRoute("/music/songs/shelf/guitar/seven-nation-army?bars=1-2")).toBe(true);
   });
 
   const g = LEARNING_PATHS.guitar;

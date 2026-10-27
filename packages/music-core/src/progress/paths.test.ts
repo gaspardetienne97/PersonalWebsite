@@ -192,6 +192,26 @@ describe("pathProgress", () => {
     expect(both.steps.find((s) => s.step.id === "G-A1")!.evidence[0].done).toBe(true);
   });
 
+  // The old jazz path's opening, in brief: an umbrella skill, reference steps, a chord-scale step.
+  const jazzish: LearningPath = {
+    id: "jazz",
+    title: "Toy jazz",
+    subtitle: "",
+    steps: [
+      step("intervals", { skillIds: ["pitch.intervals"], minAttempts: 1, instruments: undefined }),
+      step("chord-symbols", { skillIds: [], kind: "reference" }),
+      step("chord-scales", {
+        skillIds: ["harmony.ii-v-i.chord-scales"],
+        href: "/music/chord-scales?changes=major",
+        instruments: undefined,
+      }),
+      step("altered-voicings", {
+        skillIds: ["harmony.ii-v-i.voicings.altered"],
+        instruments: undefined,
+      }),
+    ].map((s, i) => ({ ...s, order: i + 1 })),
+  };
+
   it("never blocks Continue on reference steps without skills, and counts umbrella children", () => {
     const events = [
       ...reps(2, { skillIds: ["pitch.interval.m3"] }),
@@ -201,21 +221,15 @@ describe("pathProgress", () => {
         partialCredit: 0.9,
       }),
     ];
-    const p = pathProgress(LEARNING_PATHS.jazz, events);
+    const p = pathProgress(jazzish, events);
     expect(Object.fromEntries(p.steps.map((s) => [s.step.id, s.status]))).toEqual({
       intervals: "done",
       "chord-symbols": "todo",
-      extensions: "todo",
       "chord-scales": "next",
-      "shell-voicings": "todo",
-      "rootless-voicings": "not-assessed",
       "altered-voicings": "not-assessed",
-      licks: "not-assessed",
-      improv: "todo",
-      repertoire: "todo",
     });
     expect(p.continueHref).toBe("/music/chord-scales?changes=major");
-    expect(p).toMatchObject({ done: 1, total: 5 });
+    expect(p).toMatchObject({ done: 1, total: 3 });
   });
 
   it("judges the latest attempts, on two days, at the stated tempo", () => {
@@ -262,7 +276,7 @@ describe("pathProgress", () => {
 
   it("marks an open step in progress when it is not the next one", () => {
     const s = statuses(
-      "jazz",
+      jazzish,
       reps(1, { skillIds: ["harmony.ii-v-i.voicings.altered"], modality: "played" }),
     );
     expect(s).toMatchObject({ intervals: "next", "altered-voicings": "in-progress" });

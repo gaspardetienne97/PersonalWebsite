@@ -49,7 +49,8 @@ Criteria (all optional):
 - `match`: run params a run must carry, e.g. `{ "phrase": "guitar.twinkle" }`, `{ "pattern": "boom-chick" }`, `{ "progression": "guitar-g-d-em-c" }`.
 - `each`: one pass per value of a run param, e.g. `{ "param": "shape", "values": ["guitar.a-major", "guitar.d-major"] }`. Use it when a step lists several shapes, pairs, keys or patterns that each must pass. Put the other setups in `links` so each is one tap away.
 - `skillIds`: only when the step is about skills the drill records per prompt (ear drills: `pitch.interval.M3`), and then it is judged on scoring events instead of runs. Every id must exist in `data/skill-graph-seed.json`.
-- `requires`: step ids this one builds on, when a later pass should mark it review (the piano check-in uses it).
+- `requires`: step ids this one builds on. The step is locked until they pass, and passing it marks them review.
+- `covers`: step ids a pass here tests out, without locking anything first (the piano check-in: passing check 0.1 marks 1.1 and 1.2 review).
 
 A step whose drill or setting does not exist yet (the markdown says NEW): leave out `href` and write `needs` in one line ("A Riffs set in Phrases"). It shows as Coming and never blocks. If an existing drill covers it in part, give that `href` and no `needs`, and say the gap in `setup`.
 

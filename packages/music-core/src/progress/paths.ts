@@ -79,6 +79,8 @@ export interface PathStep {
   match?: Record<string, string>;
   /** One evidence row per value of a run param, each to pass (shapes A, D and E). */
   each?: { param: string; values: string[] };
+  /** Steps a pass here tests out (marks review) without being needed first: a placement check. */
+  covers?: string[];
   /** Levelled paths: the level, strand and what a new step waits for. */
   level?: string;
   strand?: string;
@@ -1084,7 +1086,8 @@ export function pathProgress(
   const open = (s?: StepStatus) => s === "not-assessed" || s === "in-progress";
   const byId = new Map(path.steps.map((s) => [s.id, s]));
   const testedOut = (id: string, seen = new Set<string>()): void => {
-    for (const r of byId.get(id)?.requires ?? []) {
+    const step = byId.get(id);
+    for (const r of [...(step?.requires ?? []), ...(step?.covers ?? [])]) {
       if (seen.has(r)) continue;
       seen.add(r);
       const b = base.get(r);

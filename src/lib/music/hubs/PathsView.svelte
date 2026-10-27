@@ -13,7 +13,7 @@
   import { practice } from "../practice.svelte";
   import { db, settings } from "../runtime";
   import type { Hue } from "../bench.svelte";
-  import { importScoreFile, songFromScore, type Song } from "./library/songs";
+  import { addShelfSong, type Song } from "./library/songs";
 
   const ORDER: { id: PathId; hue: Hue }[] = [
     { id: "guitar", hue: "guitar" },
@@ -57,24 +57,18 @@
       .catch(() => {});
   });
 
-  /** Read the downloaded score into the library, tagged for its shelf entry. */
   async function addToSongs(key: string, title: string, artist: string) {
     adding = key;
     shelfError = "";
     try {
-      const res = await fetch(`/api/music/scores/${key}`);
-      if (!res.ok) throw new Error(`The score for ${title} is not on the server.`);
-      const name = res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? `${key.split("/")[1]}.mxl`;
-      const score = await importScoreFile(name, new Uint8Array(await res.arrayBuffer()));
-      const song = { ...songFromScore({ ...score, title }, { composer: artist, source: name }), shelf: key };
-      await db.songs.put(song);
-      shelved = { ...shelved, [key]: song };
+      shelved = { ...shelved, [key]: await addShelfSong(key, title, artist) };
     } catch (e) {
       shelfError = (e as Error).message;
     } finally {
       adding = "";
     }
   }
+
 
   const statusText: Record<StepStatus, string> = {
     done: "Done",

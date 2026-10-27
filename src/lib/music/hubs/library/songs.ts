@@ -4,6 +4,7 @@ import { noteName, type Score, type ScoreSection } from "@repo/music-core";
 import { midiToScore } from "@repo/music-core/io/midi-file";
 import { parseMusicXml, parseMxl } from "@repo/music-core/io/musicxml";
 import { barBeats } from "$lib/music/notation/groups";
+import { db } from "$lib/music/runtime";
 
 export type Song = {
   id: string;
@@ -118,3 +119,25 @@ export function songSections(score: Score): ScoreSection[] {
 }
 
 export const barsText = (n: number) => `${n} bar${n === 1 ? "" : "s"}`;
+
+/** The library song saved for a shelf entry (`<path>/<song>`), if any. */
+export async function shelfSong(key: string): Promise<Song | undefined> {
+  const songs = (await db.songs.toArray()) as unknown as Song[];
+  return songs.find((s) => s.shelf === key);
+}
+
+/** Read a shelf song's downloaded score from the server into the library, tagged for its shelf. */
+export async function addShelfSong(key: string, title: string, artist?: string): Promise<Song> {
+  const res = await fetch(`/api/music/scores/${key}`);
+  if (!res.ok) throw new Error(`The score for ${title} has not been downloaded yet.`);
+  const name =
+    res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ??
+    `${key.split("/")[1]}.mxl`;
+  const score = await importScoreFile(name, new Uint8Array(await res.arrayBuffer()));
+  const song = {
+    ...songFromScore({ ...score, title }, { composer: artist, source: name }),
+    shelf: key,
+  };
+  await db.songs.put(song);
+  return song;
+}
