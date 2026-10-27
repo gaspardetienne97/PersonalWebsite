@@ -5,11 +5,17 @@ import { eq } from "drizzle-orm";
 import * as auth from "$lib/server/auth";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import type { Actions, PageServerLoad } from "./$types";
+import type { Actions, PageServerLoad, RequestEvent } from "./$types";
+
+/** A same-site path to return to after signing in; anything else falls back to the demo page. */
+const returnTo = (event: RequestEvent) => {
+  const to = event.url.searchParams.get("redirectTo") ?? "";
+  return to.startsWith("/") && !to.startsWith("//") && !to.startsWith("/\\") ? to : "/demo/lucia";
+};
 
 export const load: PageServerLoad = async (event) => {
   if (event.locals.user) {
-    return redirect(302, "/demo/lucia");
+    return redirect(302, returnTo(event));
   }
   return {};
 };
@@ -50,9 +56,11 @@ export const actions: Actions = {
     const session = await auth.createSession(sessionToken, existingUser.id);
     auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 
-    return redirect(302, "/demo/lucia");
+    return redirect(302, returnTo(event));
   },
   register: async (event) => {
+    // With the music app behind this login, nobody new can sign themselves up.
+    if (auth.musicLoginRequired()) return fail(403, { message: "Registration is closed" });
     const formData = await event.request.formData();
     const username = formData.get("username");
     const password = formData.get("password");

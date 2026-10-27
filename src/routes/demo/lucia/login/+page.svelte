@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
+	// Keep where to go back to after signing in (the form action replaces the query).
+	const back = $derived(page.url.searchParams.get('redirectTo'));
+	const keep = $derived(back ? `&redirectTo=${encodeURIComponent(back)}` : '');
 </script>
 
 <h1>Login/Register</h1>
-<form method="post" action="?/login" use:enhance>
+<form method="post" action="?/login{keep}" use:enhance>
 	<label>
 		Username
 		<input
@@ -26,7 +30,7 @@
 		>Login</button
 	>
 	<button
-		formaction="?/register"
+		formaction="?/register{keep}"
 		class="rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
 		>Register</button
 	>

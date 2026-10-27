@@ -1,6 +1,6 @@
 import { sequence } from "@sveltejs/kit/hooks";
 import * as auth from "$lib/server/auth";
-import type { Handle } from "@sveltejs/kit";
+import { json, type Handle } from "@sveltejs/kit";
 import { paraglideMiddleware } from "$lib/paraglide/server";
 
 const handleParaglide: Handle = ({ event, resolve }) =>
@@ -34,4 +34,11 @@ const handleAuth: Handle = async ({ event, resolve }) => {
   return resolve(event);
 };
 
-export const handle: Handle = sequence(handleParaglide, handleAuth);
+// Music endpoints (e.g. bundled licks) need a signed-in user when MUSIC_LOGIN=required;
+// the music pages check it in routes/music/+layout.server.ts.
+const handleMusicApi: Handle = ({ event, resolve }) =>
+  event.url.pathname.startsWith("/api/music") && auth.musicLoginRequired() && !event.locals.user
+    ? json({ message: "Sign in first" }, { status: 401 })
+    : resolve(event);
+
+export const handle: Handle = sequence(handleParaglide, handleAuth, handleMusicApi);

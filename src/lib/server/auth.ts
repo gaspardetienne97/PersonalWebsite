@@ -1,3 +1,4 @@
+import { env } from "$env/dynamic/private";
 import type { RequestEvent } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { sha256 } from "@oslojs/crypto/sha2";
@@ -83,3 +84,7 @@ export function setSessionTokenCookie(event: RequestEvent, token: string, expire
 export function deleteSessionTokenCookie(event: RequestEvent) {
   event.cookies.delete(sessionCookieName, { path: "/" });
 }
+
+/** This deployment keeps the music app behind a login. Off by default, so local dev and the
+ * e2e preview run without a database. */
+export const musicLoginRequired = () => env.MUSIC_LOGIN === "required";
