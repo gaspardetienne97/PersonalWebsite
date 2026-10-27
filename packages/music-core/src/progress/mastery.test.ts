@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { SkillMastery } from "../types";
 import { T0, ev } from "./fixtures";
-import { applyEvidence, DAY_MS, decayMastery, ingestEvents, isDueForReview } from "./mastery";
+import {
+  applyEvidence,
+  DAY_MS,
+  DECAY_RATE_RANGE,
+  decayMastery,
+  ingestEvents,
+  isDueForReview,
+  REVIEW_DROP,
+} from "./mastery";
 import {
   aggregateMastery,
   capabilitySummary,
@@ -28,6 +36,34 @@ describe("applyEvidence", () => {
     const decayed = 0.5 * Math.exp(-0.6);
     expect(later.mastery).toBeCloseTo(decayed + 0.3 * (1 - decayed), 10);
     expect(later.lastPracticed).toBe(T0 + 30 * DAY_MS);
+  });
+});
+
+describe("adaptive decay", () => {
+  // Days until a skill at this mastery is due (a 0.10 drop).
+  const gap = (m: SkillMastery) => -Math.log(1 - REVIEW_DROP / m.mastery) / m.decayRate;
+
+  it("widens the review gap after each spaced pass and narrows it after a spaced miss", () => {
+    let m = { ...applyEvidence(undefined, "s", 1, 0.5, T0), mastery: 0.9 };
+    const gaps = [gap(m)];
+    let at = T0;
+    for (let i = 0; i < 3; i++) {
+      at += Math.ceil(gaps.at(-1)!) * DAY_MS;
+      m = { ...applyEvidence(m, "s", 1, 0.5, at), mastery: 0.9 };
+      gaps.push(gap(m));
+    }
+    expect(gaps[1]).toBeGreaterThan(gaps[0] * 1.5);
+    expect(gaps[3]).toBeGreaterThan(gaps[2] * 1.5);
+    const missed = applyEvidence(m, "s", 0.2, 0.5, at + 2 * DAY_MS);
+    expect(missed.decayRate).toBeCloseTo(m.decayRate * 1.5, 10);
+  });
+
+  it("keeps the rate within a day, and inside its bounds", () => {
+    const a = applyEvidence(undefined, "s", 1, 0.5, T0);
+    expect(applyEvidence(a, "s", 1, 0.5, T0 + DAY_MS / 2).decayRate).toBe(a.decayRate);
+    let m = a;
+    for (let i = 1; i < 40; i++) m = applyEvidence(m, "s", 1, 0.5, T0 + i * 3 * DAY_MS);
+    expect(m.decayRate).toBe(DECAY_RATE_RANGE[0]);
   });
 });
 

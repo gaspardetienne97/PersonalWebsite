@@ -5,6 +5,9 @@ import { clamp01 } from "../theory/notes";
 export const DAY_MS = 86_400_000;
 export const DEFAULT_DECAY_RATE = 0.02;
 export const REVIEW_DROP = 0.1;
+/** Forgetting speed bounds: at 90% mastery, review after about 2 days at the fastest, a year at the slowest. */
+export const DECAY_RATE_RANGE = [0.0003, 0.08] as const;
+export const SPACED_PASS = 0.66;
 
 /** Current estimate at `now`. Does not move lastPracticed, so reading twice never double-decays. */
 export function decayMastery(m: SkillMastery, now: number): SkillMastery {
@@ -34,6 +37,16 @@ export function applyEvidence(
         lastPracticed: at,
         observations: 0,
       };
+  // Spaced retrieval: a pass after a day or more away slows forgetting, so the next review
+  // comes later; a miss speeds it up again.
+  const spaced = m !== undefined && at - m.lastPracticed >= DAY_MS;
+  const decayRate = !spaced
+    ? base.decayRate
+    : performance >= SPACED_PASS
+      ? Math.max(DECAY_RATE_RANGE[0], base.decayRate * 0.6)
+      : performance < 0.5
+        ? Math.min(DECAY_RATE_RANGE[1], base.decayRate * 1.5)
+        : base.decayRate;
   const weight = 0.5 + clamp01(difficulty);
   const learnRate = clamp01(0.3 * weight);
   const mastery = clamp01(base.mastery + learnRate * (clamp01(performance) - base.mastery));
@@ -41,6 +54,7 @@ export function applyEvidence(
   return {
     ...base,
     mastery,
+    decayRate,
     observations,
     confidence: observations / (observations + 8),
     lastPracticed: Math.max(base.lastPracticed, at),
