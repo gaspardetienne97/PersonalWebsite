@@ -297,3 +297,9 @@ A design and correctness review of every page, then two weeks of the owner playi
 - **Write the format and its validator before handing out the content.** Eight agents wrote about a thousand steps in parallel against one README and one test; the mistakes left were judgement calls (which drill stands in) rather than broken links.
 - **Check what a plan really opens before planning around it.** MuseScore Pro was assumed to download Official scores; no plan does (they are view and play only), and every account has 20 downloads a day. The help center says both; read it before building on a service.
 - **Pace downloads from someone's account.** MuseScore switched Download off on every score for the account once it passed its 20 downloads a day, with the same notice it shows for a single locked score. A script that recorded each notice as "this score is blocked" would have written off good scores; check one known-good page before believing a run of failures.
+
+### Parallel building (phase 3, 2026-10-27)
+
+- **Give parallel agents their own dev server ports.** Four agents shared the code; each ran e2e on its own port, and still saw flakes when another agent's edits reloaded its server. Clean reruns passed. Commit once all have finished, since shared files (the catalog, the data index, the engraver) carry several agents' edits.
+- **Opening a drill page can change the strip's instrument.** The pads, accompaniment and reading pages set the strip to their instrument, which is the owner's shared setting in the Orca browser; put it back after checking pages there.
+- **Read in the browser what a mode is called.** The lead-sheet mode first showed its chords only as a row of chips; it read as a lead sheet once the symbols sat above the staff.
