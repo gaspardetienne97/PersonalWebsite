@@ -1,6 +1,3580 @@
 {
   "id": "jazz",
   "title": "Jazz Path",
-  "subtitle": "From the ii-V-I to playing standards from a Real Book.",
-  "levels": []
+  "subtitle": "Ten piano-led levels from shells on the blues to 40 standards from a lead sheet: comping, soloing, ballads, Monk and Silver, reharmonisation and modern jazz.",
+  "benchmark": "Levine's The Jazz Piano Book in 12 keys, Open Studio piano Level 4, a 40-tune book",
+  "instruments": ["piano"],
+  "levels": [
+    {
+      "id": "1",
+      "title": "Shells and the blues",
+      "goal": "Comp a 12-bar blues in F, Bb and C with shells in swing time, play blues heads with melody plus shells, and improvise a chorus with three-note and motif games.",
+      "adds": "Shells, the blues form, Charleston comping, swing eighths, the blues scale, the first constraint games, the first transcription.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "1.1",
+          "title": "Dominant shells 1-3-7 and 1-7-3 on F7, Bb7, C7",
+          "setup": "A shell drill through the blues. Until then, Voicings, Closest chords, aiming for three-note grips.",
+          "done": "Both shapes on all three chords, 3 clean runs at 60 in half notes, on two days.",
+          "needs": "A shell voicing tab in Voicings: 1-3-7 and 1-7-3 through ii-V-I, the blues and 12 keys (jazz rank 4).",
+          "links": [
+            {
+              "label": "Interim: Closest chords in F",
+              "href": "/music/voicings?variant=inversions&key=5"
+            }
+          ]
+        },
+        {
+          "id": "1.2",
+          "title": "The blues form with shells, whole notes",
+          "setup": "Jam: 12-bar blues in F at 80, left-hand shells only.",
+          "done": "3 choruses with no wrong chord and no lost bar, on two days.",
+          "needs": "Comping in time over any Jam progression: shells on the 12-bar blues (jazz rank 2).",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues in F",
+              "href": "/music/jam?progression=blues&transpose=5"
+            }
+          ]
+        },
+        {
+          "id": "1.3",
+          "title": "Swing eighths and off-beat accents",
+          "href": "/music/rhythm?mode=read-and-tap&pattern=swing-eighths&bpm=100",
+          "setup": "Rhythm, read and tap: swing eighths from 100 up to 120. Then Comping: blue third over C7 at 100.",
+          "done": "Rhythm 90% at 120, 3 runs, on two days; comping 90%.",
+          "threshold": 0.9,
+          "minBpm": 120,
+          "links": [
+            {
+              "label": "Comping: blue third over C7",
+              "href": "/music/comping?pattern=blue-third-c7&lh=shell&bpm=100"
+            }
+          ]
+        },
+        {
+          "id": "1.4",
+          "title": "Charleston comping (beat 1 and the and-of-2)",
+          "href": "/music/comping?pattern=blue-third-c7&lh=shell&bpm=110",
+          "setup": "Comping: blue third over C7, F7 and G7 with the Charleston shell. Then Jam, blues in Bb, comping the Charleston (not scored yet).",
+          "done": "Comping 90% at 110 on all three; one blues chorus in Bb at 110 with the rhythm held.",
+          "each": {
+            "param": "pattern",
+            "values": ["blue-third-c7", "blue-third-f7", "blue-third-g7"]
+          },
+          "threshold": 0.9,
+          "minBpm": 110,
+          "links": [
+            {
+              "label": "F7",
+              "href": "/music/comping?pattern=blue-third-f7&lh=shell&bpm=110"
+            },
+            {
+              "label": "G7",
+              "href": "/music/comping?pattern=blue-third-g7&lh=shell&bpm=110"
+            },
+            {
+              "label": "Jam: 12-bar blues in Bb",
+              "href": "/music/jam?progression=blues&transpose=-2"
+            }
+          ],
+          "feeds": "C Jam Blues, Blue Monk"
+        },
+        {
+          "id": "1.5",
+          "title": "Blues scale and minor pentatonic in F, Bb, C",
+          "href": "/music/scales?kind=blues&tonic=65&span=two-octave&hands=right&perBeat=2&bpm=100",
+          "setup": "Scales: blues scale and minor pentatonic, right hand, 2 octaves, eighths at 100, in F, Bb and C.",
+          "done": "Eighths at 100, 3 clean runs of each scale per key, on two days.",
+          "each": {
+            "param": "tonic",
+            "values": ["65", "70", "60"]
+          },
+          "match": {
+            "span": "two-octave",
+            "perBeat": "2"
+          },
+          "minAttempts": 6,
+          "threshold": 0.9,
+          "minBpm": 100,
+          "links": [
+            {
+              "label": "Minor pentatonic in F",
+              "href": "/music/scales?kind=minor-pentatonic&tonic=65&span=two-octave&hands=right&perBeat=2&bpm=100"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/scales?kind=blues&tonic=70&span=two-octave&hands=right&perBeat=2&bpm=100"
+            },
+            {
+              "label": "C",
+              "href": "/music/scales?kind=blues&tonic=60&span=two-octave&hands=right&perBeat=2&bpm=100"
+            }
+          ]
+        },
+        {
+          "id": "1.6",
+          "title": "Improv game: three notes",
+          "setup": "Jam: blues in F at 100; the right hand uses only F, Ab, C (then Bb, Db, F over a Bb blues).",
+          "done": "4 choruses with 90% of notes from the set and at least 6 two-beat rests per chorus.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues in F",
+              "href": "/music/jam?progression=blues&transpose=5"
+            }
+          ]
+        },
+        {
+          "id": "1.7",
+          "title": "Improv game: call and response",
+          "setup": "Jam: blues; the backing plays 2 bars, you answer 2. Until response windows exist, leave bars 1-2, 5-6 and 9-10 empty.",
+          "done": "3 choruses where every answer starts inside its window and ends before the next call.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues",
+              "href": "/music/jam?progression=blues"
+            }
+          ],
+          "feeds": "Bags' Groove, Sonnymoon for Two"
+        },
+        {
+          "id": "1.8",
+          "title": "Improv game: one rhythmic motif",
+          "setup": "Jam: blues; keep one 1-bar rhythm (the C Jam two-note riff, or the Charleston) and change the pitches to fit each chord.",
+          "done": "Same onset pattern in at least 8 of 12 bars, a chord tone on beat 1 in 75% of bars.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues",
+              "href": "/music/jam?progression=blues"
+            }
+          ],
+          "feeds": "C Jam Blues, Now's the Time"
+        },
+        {
+          "id": "1.9",
+          "title": "Learn two blues heads by ear",
+          "href": "/music/songs/shelf/jazz/c-jam-blues",
+          "setup": "Learn the head from the record, then check it in Song Studio on the imported lead sheet: wait mode first, then performance. C Jam Blues is judged here; the second head counts on the shelf.",
+          "done": "C Jam Blues and one more shelf head in performance mode, 90% at 120, on two days.",
+          "threshold": 0.9,
+          "minBpm": 120,
+          "links": [
+            {
+              "label": "Bags' Groove",
+              "href": "/music/songs/shelf/jazz/bags-groove"
+            },
+            {
+              "label": "Sonnymoon for Two",
+              "href": "/music/songs/shelf/jazz/sonnymoon-for-two"
+            }
+          ]
+        },
+        {
+          "id": "1.10",
+          "title": "Head plus shells",
+          "href": "/music/two-hand?pattern=lh-shell-rh-line&tonic=F4&bpm=110",
+          "setup": "Two hands: left-hand shell plus right-hand line. Then a shelf head in Song Studio with your own left hand (not counted here yet).",
+          "done": "Two choruses of a shelf head, melody plus shells, 90% at 110.",
+          "match": {
+            "pattern": "lh-shell-rh-line"
+          },
+          "threshold": 0.9,
+          "minBpm": 110
+        },
+        {
+          "id": "1.11",
+          "title": "Three blues licks in three keys",
+          "href": "/music/phrases?instrument=piano&phrase=piano.c-blues-lick&bpm=100",
+          "setup": "Phrases: the C blues lick, hear first. The blues category in Licks (blue-third grace note, 6-5-b3-1 turnaround, Monk's whole-step trill in F, Bb, C) is still to come. Left-hand companion: the Oscar Peterson blues patterns.",
+          "done": "The lick clean at 100, hear-first, on two days; later each blues lick in F, Bb and C.",
+          "match": {
+            "phrase": "piano.c-blues-lick"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "links": [
+            {
+              "label": "Comping: blue third",
+              "href": "/music/comping?pattern=blue-third-c7"
+            },
+            {
+              "label": "Oscar Peterson blues pattern 1",
+              "href": "https://musescore.com/user/3607356/scores/4481236"
+            },
+            {
+              "label": "Pattern 2 in F",
+              "href": "https://musescore.com/user/3607356/scores/5649452"
+            }
+          ]
+        },
+        {
+          "id": "1.12",
+          "title": "Minor blues",
+          "setup": "Jam: minor blues (Cm7, Fm7, Ab7, G7alt), left-hand shells.",
+          "done": "3 choruses at 120 with shells; one three-note chorus (C, Eb, G).",
+          "needs": "A minor blues in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "feeds": "Mr. P.C., Equinox"
+        },
+        {
+          "id": "1.13",
+          "title": "First transcription: 4 bars",
+          "setup": "Loop and slow Monk on Bags' Groove (the first phrase of his solo) or Wynton Kelly on Freddie Freeloader (the first 4 bars); sing it, find it on the keys, then play along in Record.",
+          "done": "The 4 bars along with the recording 3 times in a row.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "c-jam-blues",
+          "title": "C Jam Blues",
+          "artist": "Duke Ellington",
+          "teaches": "Two-note riff head, Charleston comping, the motif game",
+          "detail": "C, 12-bar blues, learn at 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, Hugo121",
+              "url": "https://musescore.com/user/38527/scores/57423"
+            },
+            {
+              "label": "Later: Oscar Peterson transcription",
+              "url": "https://musescore.com/user/29754012/scores/6777143"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=C%20Jam%20Blues%20lead%20sheet"
+          }
+        },
+        {
+          "id": "sonnymoon-for-two",
+          "title": "Sonnymoon for Two",
+          "artist": "Sonny Rollins",
+          "teaches": "Blues-scale riff head, call and response",
+          "detail": "Bb, 12-bar blues, 130",
+          "bpm": 130,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6554123"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Sonnymoon%20for%20Two%20lead%20sheet"
+          }
+        },
+        {
+          "id": "blue-monk",
+          "title": "Blue Monk",
+          "artist": "Thelonious Monk",
+          "teaches": "Chromatic passing chords (Eb7 to Edim), Monk's phrasing",
+          "detail": "Bb, 12-bar blues, 120",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, Domenico Alfonsi",
+              "url": "https://musescore.com/user/25748531/scores/4740591"
+            },
+            {
+              "label": "Walking-bass study, Sebastián Scarano",
+              "url": "https://musescore.com/user/6407251/scores/6642717"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6950995",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Blue%20Monk%20lead%20sheet"
+          }
+        },
+        {
+          "id": "bags-groove",
+          "title": "Bags' Groove",
+          "artist": "Milt Jackson",
+          "teaches": "F blues riff head, space",
+          "detail": "F, 12-bar blues, 130",
+          "bpm": 130,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, ericfontainejazz",
+              "url": "https://musescore.com/user/10401/scores/5052075"
+            },
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/8948262"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Bags%27%20Groove%20lead%20sheet"
+          }
+        },
+        {
+          "id": "tenor-madness",
+          "title": "Tenor Madness",
+          "artist": "Sonny Rollins",
+          "teaches": "Blues head with a pickup line",
+          "detail": "Bb, 12-bar blues, 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, jakobdurst1234",
+              "url": "https://musescore.com/user/20075936/scores/4800279"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/15956131",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Tenor%20Madness%20lead%20sheet"
+          }
+        },
+        {
+          "id": "freddie-freeloader",
+          "title": "Freddie Freeloader",
+          "artist": "Miles Davis",
+          "teaches": "Blues with an Ab7 colour, Wynton Kelly's swing",
+          "detail": "Bb, 12-bar blues, 125",
+          "bpm": 125,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7061039"
+            },
+            {
+              "label": "Later: Wynton Kelly solo",
+              "url": "https://musescore.com/user/38833708/scores/12986596"
+            },
+            {
+              "label": "Later: Wynton Kelly solo with ghost notes",
+              "url": "https://musescore.com/user/17396301/scores/7937321"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Freddie%20Freeloader%20lead%20sheet"
+          }
+        },
+        {
+          "id": "watermelon-man",
+          "title": "Watermelon Man",
+          "artist": "Herbie Hancock",
+          "teaches": "16-bar funk blues, even eighths, a left-hand riff",
+          "detail": "F, 16-bar blues, 130",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Bai0020",
+              "url": "https://musescore.com/user/14207311/scores/5931451"
+            },
+            {
+              "label": "Piano, rasa8",
+              "url": "https://musescore.com/user/67213/scores/4870846"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Watermelon%20Man%20lead%20sheet"
+          }
+        },
+        {
+          "id": "mr-p-c",
+          "title": "Mr. P.C.",
+          "artist": "John Coltrane",
+          "teaches": "Minor blues, minor pentatonic",
+          "detail": "C minor, 12-bar blues, 150",
+          "bpm": 150,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Real Book lead sheet, FowlerFilm (few views, check it)",
+              "url": "https://musescore.com/user/17937591/scores/25608250"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16029988",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Mr.%20P.C.%20lead%20sheet"
+          }
+        },
+        {
+          "id": "equinox",
+          "title": "Equinox",
+          "artist": "John Coltrane",
+          "teaches": "Slow minor blues, dorian",
+          "detail": "C# minor, 12-bar blues, 110",
+          "bpm": 110,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, ccchrizzly",
+              "url": "https://musescore.com/user/52620467/scores/10523416"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16029949",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Equinox%20lead%20sheet"
+          }
+        }
+      ],
+      "test": "Two shelf heads at 120 with melody plus shells; one chorus of comping with the Charleston in Bb at 120; one improvised chorus in F that passes the three-note game (90% set notes, 6 rests) and lands a chord tone on beat 1 in 75% of bars."
+    },
+    {
+      "id": "2",
+      "title": "Guide tones and the first standards",
+      "goal": "Play the first standards through rungs a to c of the tune ladder and solo with guide tones and arpeggios over major and minor ii-V-I.",
+      "adds": "Diatonic 7th chords, shells and guide tones through ii-V-I in 12 keys, minor ii-V-i, 32-bar forms, bossa comping, chord-tone soloing, the first licks.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "2.1",
+          "title": "Diatonic 7th chords in C, F, Bb, G",
+          "setup": "Each degree's seventh chord, up and down the key in root position.",
+          "done": "Up and down the key, 3 clean runs at 80 in each key.",
+          "needs": "Seventh-chord arpeggios on each degree in Scales, or a diatonic sevenths tab in Voicings."
+        },
+        {
+          "id": "2.2",
+          "title": "Shells through major ii-V-I, 12 keys",
+          "setup": "A shell drill on ii-V-I, alternating 1-7-3 and 1-3-7.",
+          "done": "All 12 keys clean at 60 in half notes, on two days.",
+          "needs": "A shell voicing tab in Voicings: 1-3-7 and 1-7-3 through ii-V-I, the blues and 12 keys (jazz rank 4).",
+          "feeds": "Autumn Leaves, Fly Me to the Moon"
+        },
+        {
+          "id": "2.3",
+          "title": "Guide tones 3-7 through ii-V-I",
+          "href": "/music/voicings?variant=voice-leading&keys=1",
+          "setup": "Voicings, Guide tones: one key, then three, then 12.",
+          "done": "12 keys at 95%, on two days.",
+          "match": {
+            "variant": "voice-leading",
+            "keys": "12"
+          },
+          "threshold": 0.95
+        },
+        {
+          "id": "2.4",
+          "title": "Minor ii-V-i shells and guide tones",
+          "href": "/music/voicings?variant=minor&keys=12",
+          "setup": "Voicings, Minor ii-V-i (rootless) through 12 keys. A minor shell tab is still to come.",
+          "done": "12 keys at 95%, on two days.",
+          "match": {
+            "variant": "minor",
+            "keys": "12"
+          },
+          "threshold": 0.95,
+          "feeds": "Autumn Leaves, Blue Bossa, Summertime"
+        },
+        {
+          "id": "2.5",
+          "title": "Hear the difference",
+          "href": "/music/ear/chord-qualities?answer=choice&qualities=minor-7,dominant-7,major-7,half-diminished-7",
+          "setup": "Ear, chord qualities: m7, 7, maj7 and m7b5. Then progressions with sevenths, major ii-V-I and minor ii-V-i.",
+          "done": "20 in a row at 90%.",
+          "minAttempts": 2,
+          "minDays": 1,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Progressions: major ii-V-I",
+              "href": "/music/ear/progressions?answer=choice&functions=I,ii,V&chordSize=sevenths"
+            },
+            {
+              "label": "Progressions: minor ii-V-i",
+              "href": "/music/ear/progressions?answer=choice&functions=I,ii,V&chordSize=sevenths&keyMode=minor"
+            }
+          ]
+        },
+        {
+          "id": "2.6",
+          "title": "Comp ii-V-I in time",
+          "setup": "Jam: ii-V-I and minor ii-V-i, left-hand shells, half notes at 100.",
+          "done": "8 bars in each of 4 keys, no wrong chord.",
+          "needs": "Comping in time over any Jam progression: shells on ii-V-I (jazz rank 2).",
+          "links": [
+            {
+              "label": "Jam: ii-V-I",
+              "href": "/music/jam?progression=ii-v-i"
+            },
+            {
+              "label": "Jam: minor ii-V-i",
+              "href": "/music/jam?progression=minor-ii-v-i"
+            }
+          ]
+        },
+        {
+          "id": "2.7",
+          "title": "Rung a on two shelf tunes",
+          "href": "/music/songs/shelf/jazz/autumn-leaves",
+          "setup": "Song Studio on the imported lead sheet: roots in the left hand, melody in the right. Autumn Leaves is judged here; do a second tune too.",
+          "done": "Performance mode 90% at the shelf tempo, on two days, for two tunes.",
+          "threshold": 0.9,
+          "minBpm": 120,
+          "links": [
+            {
+              "label": "Blue Bossa",
+              "href": "/music/songs/shelf/jazz/blue-bossa"
+            },
+            {
+              "label": "Summertime",
+              "href": "/music/songs/shelf/jazz/summertime"
+            }
+          ]
+        },
+        {
+          "id": "2.8",
+          "title": "Rung b: guide tones through the form",
+          "setup": "The tune player (Jam with the tune's changes). Until then, Song Studio with only 3rds and 7ths in the left hand.",
+          "done": "Two choruses with no wrong guide tone, at 80% of the shelf tempo.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1)."
+        },
+        {
+          "id": "2.9",
+          "title": "Rung c: melody plus shells",
+          "setup": "Song Studio with your own shells under the melody; warm up in Two hands, shell plus line.",
+          "done": "Two choruses 90% at the shelf tempo.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1).",
+          "links": [
+            {
+              "label": "Two hands: shell plus line",
+              "href": "/music/two-hand?pattern=lh-shell-rh-line&tonic=F4"
+            }
+          ]
+        },
+        {
+          "id": "2.10",
+          "title": "Bossa comping",
+          "setup": "A bossa rhythm in Comping over Jam, with a bossa backing.",
+          "done": "Blue Bossa, 2 choruses at 130 with the bossa rhythm, 90%.",
+          "needs": "Comping in time over any Jam progression: a bossa rhythm (jazz rank 2).",
+          "links": [
+            {
+              "label": "Jam: minor ii-V-i",
+              "href": "/music/jam?progression=minor-ii-v-i"
+            }
+          ],
+          "feeds": "Blue Bossa, Song for My Father"
+        },
+        {
+          "id": "2.11",
+          "title": "Improv game: guide tones only",
+          "setup": "Jam on a shelf tune; the right hand plays only 3rds and 7ths, one per bar, then two per bar.",
+          "done": "A 3rd or 7th within a beat of 80% of the changes, two choruses.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: ii-V-I",
+              "href": "/music/jam?progression=ii-v-i"
+            }
+          ]
+        },
+        {
+          "id": "2.12",
+          "title": "Improv game: arpeggios",
+          "href": "/music/chord-scales?changes=major&key=C",
+          "setup": "Chord scales, major and minor ii-V-I in three keys. Then Jam: 1-3-5-7 up on each chord, then 3-5-7-9 (the chorus is not scored yet).",
+          "done": "Chord scales clean in 3 keys, both changes; one chorus with chord tones on 80% of strong beats.",
+          "each": {
+            "param": "changes",
+            "values": ["major", "minor"]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Minor ii-V-i",
+              "href": "/music/chord-scales?changes=minor&key=C"
+            },
+            {
+              "label": "Jam: ii-V-I",
+              "href": "/music/jam?progression=ii-v-i"
+            }
+          ]
+        },
+        {
+          "id": "2.13",
+          "title": "Four licks in three keys",
+          "href": "/music/licks?lick=1&key=C&bpm=120",
+          "setup": "Licks: major ii-V-I licks 1 and 4, minor ii-V-i licks 18 and 19; hear first, then three keys round the cycle.",
+          "done": "Each lick at 120 in three keys, on two days.",
+          "each": {
+            "param": "lick",
+            "values": ["1", "4", "18", "19"]
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "links": [
+            {
+              "label": "Lick 4",
+              "href": "/music/licks?lick=4&key=C&bpm=120"
+            },
+            {
+              "label": "Lick 18",
+              "href": "/music/licks?lick=18&key=C&bpm=120"
+            },
+            {
+              "label": "Lick 19",
+              "href": "/music/licks?lick=19&key=C&bpm=120"
+            }
+          ],
+          "feeds": "Autumn Leaves, Blue Bossa"
+        },
+        {
+          "id": "2.14",
+          "title": "Transcribe a melody",
+          "setup": "The first 8 bars of Blue Bossa (Joe Henderson) or Autumn Leaves (Miles on Somethin' Else): sing and play back, then play along.",
+          "done": "Play along with the record 3 times.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Ear: melody, sung back",
+              "href": "/music/ear/melody-dictation?answer=voice"
+            },
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "autumn-leaves",
+          "title": "Autumn Leaves",
+          "artist": "Joseph Kosma",
+          "teaches": "Major and minor ii-V in one tune",
+          "detail": "G minor and Bb major, AABC 32, 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, ericfontainejazz",
+              "url": "https://musescore.com/user/10401/scores/4993435"
+            },
+            {
+              "label": "Later: jazz piano solo, miusic",
+              "url": "https://musescore.com/user/3402766/scores/1026276"
+            },
+            {
+              "label": "Later: Bill Evans, Portrait in Jazz",
+              "url": "https://musescore.com/user/3819251/scores/5259804"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book, vol. 1",
+            "url": "https://musescore.com/sheetmusic?text=Autumn%20Leaves%20lead%20sheet"
+          }
+        },
+        {
+          "id": "summertime",
+          "title": "Summertime",
+          "artist": "George Gershwin",
+          "teaches": "Slow minor, melody with shells, blues inflection",
+          "detail": "A minor, 16 bars, 80",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official Real Book, low voice",
+              "url": "https://musescore.com/user/39593079/scores/16109335",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Summertime%20lead%20sheet"
+          }
+        },
+        {
+          "id": "blue-bossa",
+          "title": "Blue Bossa",
+          "artist": "Kenny Dorham",
+          "teaches": "Minor ii-V-i, one modulation to Db, bossa",
+          "detail": "C minor, 16 bars, 140",
+          "bpm": 140,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, markusschulze1704",
+              "url": "https://musescore.com/user/2399836/scores/2541016"
+            },
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7467650"
+            },
+            {
+              "label": "Later: piano, loginvovchyk",
+              "url": "https://musescore.com/user/36962362/scores/25794850"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book, vol. 1",
+            "url": "https://musescore.com/sheetmusic?text=Blue%20Bossa%20lead%20sheet"
+          }
+        },
+        {
+          "id": "fly-me-to-the-moon",
+          "title": "Fly Me to the Moon",
+          "artist": "Bart Howard",
+          "teaches": "Cycle of fifths, 32-bar form",
+          "detail": "C (A minor start), 32 bars, 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6326152"
+            },
+            {
+              "label": "Lead sheet, digby",
+              "url": "https://musescore.com/user/2935756/scores/6081072"
+            }
+          ],
+          "fallback": {
+            "label": "iReal Pro, Jazz 1460 playlist",
+            "url": "https://www.irealpro.com/"
+          }
+        },
+        {
+          "id": "st-thomas",
+          "title": "St. Thomas",
+          "artist": "Sonny Rollins",
+          "teaches": "Calypso, straight eighths, I-VI-ii-V",
+          "detail": "C, 16 bars, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6476988"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/15956014",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=St.%20Thomas%20lead%20sheet"
+          }
+        },
+        {
+          "id": "song-for-my-father",
+          "title": "Song for My Father",
+          "artist": "Horace Silver",
+          "teaches": "Minor latin groove, left-hand bass ostinato",
+          "detail": "F minor, AAB 24, 120",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, rasa8",
+              "url": "https://musescore.com/user/67213/scores/4870824"
+            },
+            {
+              "label": "Later: Silver's piano solo",
+              "url": "https://musescore.com/user/42688847/scores/14911147"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Song%20for%20My%20Father%20lead%20sheet"
+          }
+        },
+        {
+          "id": "doxy",
+          "title": "Doxy",
+          "artist": "Sonny Rollins",
+          "teaches": "I-VI-ii-V and IV7, 16-bar swing",
+          "detail": "Bb, 16 bars, 120",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, NotateThemAll",
+              "url": "https://musescore.com/user/32868245/scores/6850936"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/15957379",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Doxy%20lead%20sheet"
+          }
+        }
+      ],
+      "test": "Two shelf tunes through rungs a to c at tempo; shells through major and minor ii-V-I in 12 keys at 80; one chorus on Autumn Leaves passing the guide-tone game (80% of changes landed)."
+    },
+    {
+      "id": "3",
+      "title": "Rootless voicings and comping in time",
+      "goal": "Comp any shelf tune with rootless A and B voicings on real comping rhythms, solo a chorus with chord tones and approach notes, and finish the whole ladder (a to f) on two tunes.",
+      "adds": "Rootless voicings in time, comping rhythms, two-feel bass, secondary dominants and chained ii-Vs, chromatic approach notes, the second key.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "3.1",
+          "title": "Rootless A and B through major ii-V-I",
+          "href": "/music/voicings?variant=major&keys=1&position=A",
+          "setup": "Voicings, Major ii-V-I: 1 key, 3 keys, 12 keys; start in position A, then B.",
+          "done": "12 keys at 95% from both starting forms, on two days.",
+          "match": {
+            "variant": "major",
+            "keys": "12"
+          },
+          "threshold": 0.95,
+          "links": [
+            {
+              "label": "Start in B",
+              "href": "/music/voicings?variant=major&keys=1&position=B"
+            }
+          ]
+        },
+        {
+          "id": "3.2",
+          "title": "Rootless minor ii-V-i",
+          "href": "/music/voicings?variant=minor&keys=12",
+          "setup": "Voicings, Minor ii-V-i through 12 keys.",
+          "done": "12 keys at 95%, on two days.",
+          "match": {
+            "variant": "minor",
+            "keys": "12"
+          },
+          "threshold": 0.95,
+          "feeds": "Afternoon in Paris, Girl from Ipanema"
+        },
+        {
+          "id": "3.3",
+          "title": "Rootless dominants on the blues (7-9-3-13, 3-13-7-9)",
+          "setup": "Rootless dominants through the F and Bb blues.",
+          "done": "F and Bb blues, two choruses each, 95%.",
+          "needs": "A voicing type in Voicings: rootless blues dominants (jazz rank 5)."
+        },
+        {
+          "id": "3.4",
+          "title": "Rootless in time",
+          "setup": "Rootless voicings on the beat: an in-time option in Voicings, or Jam ii-V-I comping in half notes at 100.",
+          "done": "4 keys, half notes at 100, 90% voicings.",
+          "needs": "Comping in time over any Jam progression: rootless voicings on ii-V-I, or an in-time option in Voicings (jazz rank 2).",
+          "links": [
+            {
+              "label": "Jam: ii-V-I",
+              "href": "/music/jam?progression=ii-v-i"
+            }
+          ]
+        },
+        {
+          "id": "3.5",
+          "title": "Comping rhythms",
+          "setup": "A comping rhythm library over Jam: two-feel half notes, Charleston, anticipated and-of-4, Red Garland's and-of-2 and and-of-4.",
+          "done": "Each rhythm 2 choruses at 120, 90% on the slots.",
+          "needs": "Comping in time over any Jam progression: a library of comping rhythms (jazz rank 2)."
+        },
+        {
+          "id": "3.6",
+          "title": "Two-feel bass under shells",
+          "setup": "Left hand root and 5th in half notes, right hand shells; then a walking line on the blues.",
+          "done": "One Bb blues chorus at 100, quarter-note walk, 90%.",
+          "needs": "A Two hands pattern: two-feel and walking bass under shells (jazz rank 8).",
+          "feeds": "Bye Bye Blackbird"
+        },
+        {
+          "id": "3.7",
+          "title": "Secondary dominants and chained ii-Vs",
+          "setup": "Ear, progressions with secondary dominants; Jam on the All of Me and Satin Doll changes.",
+          "done": "Name each chord's function on the shelf chart without errors; comp it once through.",
+          "needs": "Secondary dominants in Progression dictation, and All of Me and Satin Doll in Jam.",
+          "links": [
+            {
+              "label": "Ear: progressions with sevenths",
+              "href": "/music/ear/progressions?answer=choice&functions=I,ii,V&chordSize=sevenths"
+            }
+          ],
+          "feeds": "All of Me, Satin Doll"
+        },
+        {
+          "id": "3.8",
+          "title": "Rung d on two shelf tunes",
+          "setup": "The tune player: rootless voicings on a comping rhythm, no melody.",
+          "done": "Two choruses, 90% correct voicings on the comping rhythm.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1)."
+        },
+        {
+          "id": "3.9",
+          "title": "Improv game: approach notes",
+          "setup": "Jam on a shelf tune: every chord tone on beat 1 approached by a half step from below, then from above.",
+          "done": "80% of bar downbeats are chord tones approached chromatically, one chorus.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3)."
+        },
+        {
+          "id": "3.10",
+          "title": "Rung e on two shelf tunes",
+          "setup": "Jam over the tune, recorded, scored for chord tones and guide-tone landings.",
+          "done": "One chorus with chord tones on 75% of strong beats and 70% guide-tone landings.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3)."
+        },
+        {
+          "id": "3.11",
+          "title": "Rung f: second key",
+          "setup": "Transpose the tune in Song Studio and the tune player: down a 4th, or the key a singer would ask for.",
+          "done": "Rungs a and c in the new key at 85%, one day, on one tune.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1)."
+        },
+        {
+          "id": "3.12",
+          "title": "Four more licks in six keys",
+          "href": "/music/licks?lick=5&key=C&bpm=140",
+          "setup": "Licks: major ii-V-I licks 5 and 9, ii-V-I-VI licks 12 and 13; six keys round the cycle.",
+          "done": "Each lick at 140 in six keys, on two days.",
+          "each": {
+            "param": "lick",
+            "values": ["5", "9", "12", "13"]
+          },
+          "minAttempts": 6,
+          "threshold": 0.9,
+          "minBpm": 140,
+          "links": [
+            {
+              "label": "Lick 9",
+              "href": "/music/licks?lick=9&key=C&bpm=140"
+            },
+            {
+              "label": "Lick 12",
+              "href": "/music/licks?lick=12&key=C&bpm=140"
+            },
+            {
+              "label": "Lick 13",
+              "href": "/music/licks?lick=13&key=C&bpm=140"
+            }
+          ]
+        },
+        {
+          "id": "3.13",
+          "title": "Transcribe comping rhythm",
+          "setup": "Red Garland's comping under Miles on \"Bye Bye Blackbird\" (first chorus): rhythm only, then with voicings.",
+          "done": "Tap the comping rhythm with the record, 8 bars, 90%.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Rhythm: dictation",
+              "href": "/music/rhythm?mode=dictation"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "all-of-me",
+          "title": "All of Me",
+          "artist": "Gerald Marks",
+          "teaches": "Secondary dominants, ABAC",
+          "detail": "C, 32 bars, 140",
+          "bpm": 140,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, Anders Dahnielson",
+              "url": "https://musescore.com/user/512696/scores/7764692"
+            },
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6410009"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=All%20of%20Me%20lead%20sheet"
+          }
+        },
+        {
+          "id": "satin-doll",
+          "title": "Satin Doll",
+          "artist": "Duke Ellington and Billy Strayhorn",
+          "teaches": "Chained ii-Vs, AABA",
+          "detail": "C, 32 bars, 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, James T. Bartlett",
+              "url": "https://musescore.com/user/34876540/scores/8231288"
+            },
+            {
+              "label": "Later: piano, Giovanni Guerretti",
+              "url": "https://musescore.com/user/801096/scores/9414118"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Satin%20Doll%20lead%20sheet"
+          }
+        },
+        {
+          "id": "take-the-a-train",
+          "title": "Take the A Train",
+          "artist": "Billy Strayhorn",
+          "teaches": "II7(#11), the first upper-structure sound",
+          "detail": "C, AABA 32, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, bensonthaict",
+              "url": "https://musescore.com/user/32454112/scores/20287948"
+            },
+            {
+              "label": "Later: piano, Giovanni Guerretti",
+              "url": "https://musescore.com/user/801096/scores/9415417"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6937169",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Take%20the%20A%20Train%20lead%20sheet"
+          }
+        },
+        {
+          "id": "there-will-never-be-another-you",
+          "title": "There Will Never Be Another You",
+          "artist": "Harry Warren",
+          "teaches": "ABAC with iv-minor colour",
+          "detail": "Eb, 32 bars, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, ericfontainejazz",
+              "url": "https://musescore.com/user/10401/scores/4995610"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=There%20Will%20Never%20Be%20Another%20You%20lead%20sheet"
+          }
+        },
+        {
+          "id": "bye-bye-blackbird",
+          "title": "Bye Bye Blackbird",
+          "artist": "Ray Henderson",
+          "teaches": "Two-feel to swing, Red Garland comping",
+          "detail": "F, 32 bars, 130",
+          "bpm": 130,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Real Book II lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/11135176"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book, vol. 2",
+            "url": "https://musescore.com/sheetmusic?text=Bye%20Bye%20Blackbird%20lead%20sheet"
+          }
+        },
+        {
+          "id": "girl-from-ipanema",
+          "title": "Girl from Ipanema",
+          "artist": "Antônio Carlos Jobim",
+          "teaches": "Bossa comping, the bridge to Gbmaj7",
+          "detail": "F, AABA 40, 130",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Real Book I lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/11114695"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book, vol. 1",
+            "url": "https://musescore.com/sheetmusic?text=Girl%20from%20Ipanema%20lead%20sheet"
+          }
+        },
+        {
+          "id": "afternoon-in-paris",
+          "title": "Afternoon in Paris",
+          "artist": "John Lewis",
+          "teaches": "Moving ii-Vs in AABA",
+          "detail": "C, 32 bars, 150",
+          "bpm": 150,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, giordano58",
+              "url": "https://musescore.com/user/1741776/scores/2423546"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6946222",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "tune-up",
+          "title": "Tune Up",
+          "artist": "Miles Davis",
+          "teaches": "ii-V-I down a whole step, three keys",
+          "detail": "D, C, Bb; 16 bars, 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official Real Book (community uploads thin)",
+              "url": "https://musescore.com/user/39593079/scores/15955228",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Tune%20Up%20lead%20sheet"
+          }
+        },
+        {
+          "id": "ladybird",
+          "title": "Ladybird",
+          "artist": "Tadd Dameron",
+          "teaches": "The Ladybird turnaround (C, Eb, Ab, Db)",
+          "detail": "C, 16 bars, 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [],
+          "fallback": {
+            "label": "Your Real Book (no suitable MuseScore lead sheet, only horn parts)",
+            "url": "https://musescore.com/sheetmusic?text=Ladybird%20lead%20sheet"
+          }
+        }
+      ],
+      "test": "One shelf tune through all six rungs (a to f) at tempo; rootless ii-V-I in 12 keys in time at 100; two choruses of comping on a second tune with two different comping rhythms. Do the full ladder on two shelf tunes."
+    },
+    {
+      "id": "4",
+      "title": "Modal jazz: So What, quartal and Herbie",
+      "goal": "Comp and solo over modal tunes and vamps with So What, quartal and sus voicings, pentatonic lines and developed motifs.",
+      "adds": "Modes by ear, So What chords, quartal stacks, sus and slash (\"Herbie\") voicings, pentatonic superimposition, motif development, space.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "4.1",
+          "title": "Hear the modes",
+          "href": "/music/ear/scales?answer=choice&scales=dorian,mixolydian,lydian,phrygian,natural-minor",
+          "setup": "Ear, scales and modes: dorian, mixolydian, lydian, phrygian and aeolian.",
+          "done": "20 in a row at 85%.",
+          "minAttempts": 2,
+          "minDays": 1,
+          "threshold": 0.85
+        },
+        {
+          "id": "4.2",
+          "title": "Dorian, mixolydian and lydian fingering in D, Eb, F, C",
+          "href": "/music/scales?kind=dorian&tonic=62&span=two-octave&hands=both&bpm=100",
+          "setup": "Scales: dorian, mixolydian and lydian, 2 octaves, hands together, in D, Eb, F and C.",
+          "done": "2 octaves hands together at 100, 3 clean runs of each mode.",
+          "each": {
+            "param": "kind",
+            "values": ["dorian", "mixolydian", "lydian"]
+          },
+          "match": {
+            "span": "two-octave",
+            "hands": "both"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "links": [
+            {
+              "label": "Mixolydian",
+              "href": "/music/scales?kind=mixolydian&tonic=67&span=two-octave&hands=both&bpm=100"
+            },
+            {
+              "label": "Lydian",
+              "href": "/music/scales?kind=lydian&tonic=65&span=two-octave&hands=both&bpm=100"
+            }
+          ]
+        },
+        {
+          "id": "4.3",
+          "title": "So What voicing (three 4ths plus a major 3rd)",
+          "setup": "Diatonic So What chords up and down D dorian, then Eb dorian.",
+          "done": "All 7 positions up and down at 80, then in Eb dorian.",
+          "needs": "A voicing type in Voicings: So What chords (jazz rank 5).",
+          "feeds": "So What, Impressions"
+        },
+        {
+          "id": "4.4",
+          "title": "Three- and four-note quartal stacks (McCoy)",
+          "setup": "Left-hand stacks of 4ths moving diatonically.",
+          "done": "D dorian and F dorian, 2 octaves, at 80.",
+          "needs": "A voicing type in Voicings: quartal stacks (jazz rank 5).",
+          "feeds": "Impressions, Little Sunflower"
+        },
+        {
+          "id": "4.5",
+          "title": "Modal vamp comping",
+          "setup": "Jam: modal vamp, then the So What form (16 bars D dorian, 8 Eb, 8 D).",
+          "done": "2 choruses at 135 with So What chords, the comping rhythm held.",
+          "needs": "The So What form in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "links": [
+            {
+              "label": "Jam: modal vamp",
+              "href": "/music/jam?progression=modal"
+            }
+          ],
+          "feeds": "So What, Impressions, Milestones"
+        },
+        {
+          "id": "4.6",
+          "title": "Sus and slash voicings (Herbie)",
+          "setup": "9sus as Bb/C, Gm7/C, left-hand 5th plus right-hand triad.",
+          "done": "D7sus, F7sus, Eb7sus, Db7sus (the Maiden Voyage set) clean at 80.",
+          "needs": "A voicing type in Voicings: sus and slash chords (jazz rank 5).",
+          "feeds": "Maiden Voyage, Dolphin Dance"
+        },
+        {
+          "id": "4.7",
+          "title": "The Cantaloupe Island and Watermelon Man riffs",
+          "setup": "Phrases: the left-hand riff plus the right-hand comp.",
+          "done": "Each riff 4 times through at 110, 90%.",
+          "needs": "Phrases entries: the Cantaloupe Island and Watermelon Man riffs.",
+          "feeds": "Cantaloupe Island"
+        },
+        {
+          "id": "4.8",
+          "title": "Improv game: pentatonics on a dorian chord",
+          "setup": "Jam, modal: over Dm7 play D, E, then A minor pentatonic, 4 bars each.",
+          "done": "One chorus per pentatonic with 90% inside the set.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: modal vamp",
+              "href": "/music/jam?progression=modal"
+            }
+          ]
+        },
+        {
+          "id": "4.9",
+          "title": "Improv game: motif development",
+          "setup": "Jam, modal vamp: one 2-bar motif, then repeat, transpose, invert and displace it by a beat. Until it is scored, check a recording.",
+          "done": "One chorus where the motif returns at least 4 times, varied.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: modal vamp",
+              "href": "/music/jam?progression=modal"
+            },
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        },
+        {
+          "id": "4.10",
+          "title": "Improv game: space",
+          "setup": "Jam: play 2 bars, rest 2 bars for a whole chorus; then 1 on, 1 off.",
+          "done": "2 choruses with every rest window silent.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: modal vamp",
+              "href": "/music/jam?progression=modal"
+            }
+          ]
+        },
+        {
+          "id": "4.11",
+          "title": "Ladder rungs a, c, d, e on two shelf tunes",
+          "setup": "Song Studio and the tune player.",
+          "done": "Rungs a, c, d and e done on two tunes.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1)."
+        },
+        {
+          "id": "4.12",
+          "title": "Transcribe the So What call and response",
+          "setup": "Bill Evans' two-chord answer to the bass in the head of \"So What\", then Herbie's comping on \"Cantaloupe Island\" (first 8 bars).",
+          "done": "Both along with the record 3 times.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "so-what",
+          "title": "So What",
+          "artist": "Miles Davis",
+          "teaches": "So What voicings, dorian, AABA modal form",
+          "detail": "D and Eb dorian, 32 bars, 135",
+          "bpm": 135,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6973688",
+              "official": true
+            },
+            {
+              "label": "Community: Miles' solo in C",
+              "url": "https://musescore.com/user/2282536/scores/5238316"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book, vol. 1",
+            "url": "https://musescore.com/sheetmusic?text=So%20What%20lead%20sheet"
+          }
+        },
+        {
+          "id": "cantaloupe-island",
+          "title": "Cantaloupe Island",
+          "artist": "Herbie Hancock",
+          "teaches": "Modal vamp, left-hand riff, comping rhythm",
+          "detail": "F minor, 16 bars, 110",
+          "bpm": 110,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Piano, Milos Lindegren",
+              "url": "https://musescore.com/user/28658530/scores/5084659"
+            },
+            {
+              "label": "Later: with Freddie's and Herbie's solos",
+              "url": "https://musescore.com/user/9508971/scores/6415394"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6967012",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "maiden-voyage",
+          "title": "Maiden Voyage",
+          "artist": "Herbie Hancock",
+          "teaches": "Sus chords, straight-eighth comping",
+          "detail": "Four 7sus chords, AABA 32, 120",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, nolah3522",
+              "url": "https://musescore.com/user/34884222/scores/8138466"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/15529978",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "impressions",
+          "title": "Impressions",
+          "artist": "John Coltrane",
+          "teaches": "The So What form at speed, quartal comping",
+          "detail": "D and Eb dorian, 32 bars, 160 (the record is faster)",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16030072",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Impressions%20lead%20sheet"
+          }
+        },
+        {
+          "id": "little-sunflower",
+          "title": "Little Sunflower",
+          "artist": "Freddie Hubbard",
+          "teaches": "Dorian to major 7 shift, latin",
+          "detail": "D dorian and Ebmaj7, 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, iceorchard",
+              "url": "https://musescore.com/user/14781671/scores/9970987"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6946056",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "footprints",
+          "title": "Footprints",
+          "artist": "Wayne Shorter",
+          "teaches": "Minor blues in 6/4 with a shifting turnaround",
+          "detail": "C minor, 24 bars, 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano and bass, frankicebass",
+              "url": "https://musescore.com/user/34812601/scores/6271174"
+            },
+            {
+              "label": "Official piano, vocal and guitar",
+              "url": "https://musescore.com/user/39593079/scores/6929924",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "milestones",
+          "title": "Milestones",
+          "artist": "Miles Davis",
+          "teaches": "Two modes, AABBA",
+          "detail": "G dorian and A aeolian, 40 bars, 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Lead sheet, Electric Jazz Piano",
+              "url": "https://musescore.com/user/3578461/scores/1555926"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Milestones%20lead%20sheet"
+          }
+        },
+        {
+          "id": "recorda-me",
+          "title": "Recorda Me",
+          "artist": "Joe Henderson",
+          "teaches": "Modal minor with ii-V turns, bossa",
+          "detail": "A minor, 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano, Ajey Deshpande",
+              "url": "https://musescore.com/user/10935431/scores/6070953"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16001842",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Recorda%20Me%20lead%20sheet"
+          }
+        }
+      ],
+      "test": "So What with quartal comping for two choruses at 135 and one solo chorus that moves through two pentatonics; Maiden Voyage or Cantaloupe Island rungs a, c and d at tempo; So What voicings up and down D and Eb dorian."
+    },
+    {
+      "id": "5",
+      "title": "Bebop vocabulary and the bebop blues",
+      "goal": "Play bebop blues heads and solo with eighth-note lines that put chord tones on the beat, using enclosures, the bebop scale and Parker-style licks.",
+      "adds": "Bebop dominant scale, enclosures, chromatic approach patterns, Bird blues changes, comping sparsely under your own line, tempo up to 180.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "5.1",
+          "title": "Bebop dominant scale from each chord tone, descending",
+          "href": "/music/scales?kind=bebop-dominant&tonic=65&span=two-octave&motion=down&perBeat=2&bpm=140",
+          "setup": "Scales: bebop dominant on F and Bb, eighths, descending. Starting from the 3rd, 5th and b7 is not in Scales yet; Chord scales covers the dominant in a ii-V-I.",
+          "done": "F7 and Bb7 at 140 in eighths, chord tones on the beat, 3 clean runs each.",
+          "each": {
+            "param": "tonic",
+            "values": ["65", "70"]
+          },
+          "match": {
+            "kind": "bebop-dominant",
+            "perBeat": "2"
+          },
+          "threshold": 0.9,
+          "minBpm": 140,
+          "links": [
+            {
+              "label": "Bb",
+              "href": "/music/scales?kind=bebop-dominant&tonic=70&span=two-octave&motion=down&perBeat=2&bpm=140"
+            },
+            {
+              "label": "Chord scales",
+              "href": "/music/chord-scales?changes=major&key=F"
+            }
+          ]
+        },
+        {
+          "id": "5.2",
+          "title": "Enclosures into the 3rd and the root",
+          "setup": "Scale step above, half step below, then the target.",
+          "done": "4 enclosure shapes in 6 keys at 120.",
+          "needs": "A Licks category: bebop enclosures (jazz rank 7)."
+        },
+        {
+          "id": "5.3",
+          "title": "Arpeggio patterns: 1-2-3-5 and 3-5-7-9 on ii-V-I",
+          "setup": "Chord scales with a pattern mode.",
+          "done": "12 keys at 120.",
+          "needs": "A pattern mode in Chord scales: 1-2-3-5 and 3-5-7-9 on each chord.",
+          "feeds": "Yardbird Suite, Blues for Alice"
+        },
+        {
+          "id": "5.4",
+          "title": "Rootless dominants with 9 and 13 under a line",
+          "setup": "Two hands, shell plus line, with a rootless left hand; then Jam, blues.",
+          "done": "One F blues chorus: rootless left-hand stabs on the and-of-2 and 4 under a right-hand bebop line, 90% voicings.",
+          "needs": "Comping in time over any Jam progression: rootless stabs under your own line (jazz rank 2).",
+          "links": [
+            {
+              "label": "Two hands: shell plus line",
+              "href": "/music/two-hand?pattern=lh-shell-rh-line&tonic=F4"
+            },
+            {
+              "label": "Jam: 12-bar blues in F",
+              "href": "/music/jam?progression=blues&transpose=5"
+            }
+          ]
+        },
+        {
+          "id": "5.5",
+          "title": "Bird blues changes",
+          "setup": "Ear, follow the bass, then Jam on the Bird blues (Fmaj7, Em7b5 A7, Dm7 G7, Cm7 F7 ...).",
+          "done": "Comp 2 choruses at 140 with shells, then rootless.",
+          "needs": "The Bird blues in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "links": [
+            {
+              "label": "Ear: follow the bass",
+              "href": "/music/ear/bass-lines?answer=choice"
+            }
+          ],
+          "feeds": "Blues for Alice, Au Privave"
+        },
+        {
+          "id": "5.6",
+          "title": "Bebop heads by ear",
+          "href": "/music/songs/shelf/jazz/nows-the-time",
+          "setup": "Learn from the record, check in Song Studio. Now's the Time is judged here; do a second head too.",
+          "done": "2 shelf heads in performance mode, 90% at 160.",
+          "threshold": 0.9,
+          "minBpm": 160,
+          "links": [
+            {
+              "label": "Billie's Bounce",
+              "href": "/music/songs/shelf/jazz/billies-bounce"
+            },
+            {
+              "label": "Straight, No Chaser",
+              "href": "/music/songs/shelf/jazz/straight-no-chaser"
+            }
+          ]
+        },
+        {
+          "id": "5.7",
+          "title": "Six bebop blues licks in all 12 keys",
+          "setup": "Licks, blues and bebop categories, hear first.",
+          "done": "Each lick in 12 keys at 140 over a week, interleaved.",
+          "needs": "A Licks category: blues and bebop lines in 12 keys (jazz rank 7)."
+        },
+        {
+          "id": "5.8",
+          "title": "Improv game: eighth-note lines",
+          "setup": "Jam: F blues at 140, continuous eighths for 4 bars, then rest 2 bars.",
+          "done": "Two choruses with chord tones on 80% of beats 1 and 3.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues in F",
+              "href": "/music/jam?progression=blues&transpose=5"
+            }
+          ]
+        },
+        {
+          "id": "5.9",
+          "title": "Improv game: start on the and-of-1",
+          "setup": "Jam: every phrase starts off the beat (the and-of-1 or the and-of-4).",
+          "done": "80% of phrase starts off the beat, two choruses.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues in F",
+              "href": "/music/jam?progression=blues&transpose=5"
+            }
+          ]
+        },
+        {
+          "id": "5.10",
+          "title": "Ladder rungs a to e on two shelf tunes",
+          "setup": "Song Studio and the tune player.",
+          "done": "Rungs a to e done on two tunes.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1)."
+        },
+        {
+          "id": "5.11",
+          "title": "Tempo ladder on the blues",
+          "setup": "Jam: blues at 140, then 160, then 180; rootless comping plus one solo chorus.",
+          "done": "A clean chorus at 180.",
+          "needs": "Comping and improvisation scoring in Jam (jazz ranks 2 and 3).",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues in F",
+              "href": "/music/jam?progression=blues&transpose=5"
+            }
+          ]
+        },
+        {
+          "id": "5.12",
+          "title": "Transcribe a bebop chorus",
+          "setup": "Wynton Kelly's first chorus on \"Freddie Freeloader\" or Parker's first chorus on \"Now's the Time\": learn it at 70% speed, then 100%.",
+          "done": "The chorus along with the record at full speed, 3 times.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        },
+        {
+          "id": "5.13",
+          "title": "One bebop standard",
+          "setup": "Yardbird Suite through rungs a, c and d.",
+          "done": "Rungs a, c and d done.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1).",
+          "feeds": "Yardbird Suite"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "nows-the-time",
+          "title": "Now's the Time",
+          "artist": "Charlie Parker",
+          "teaches": "Riff blues head, Parker phrasing",
+          "detail": "F, 12-bar blues, 160",
+          "bpm": 160,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Piano, anan34",
+              "url": "https://musescore.com/user/1063441/scores/3386711"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16001902",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Now%27s%20the%20Time%20lead%20sheet"
+          }
+        },
+        {
+          "id": "billies-bounce",
+          "title": "Billie's Bounce",
+          "artist": "Charlie Parker",
+          "teaches": "Bebop blues line head",
+          "detail": "F, 12-bar blues, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, FrancescoJazz",
+              "url": "https://musescore.com/user/87301/scores/2006611"
+            },
+            {
+              "label": "Later: piano, Finnegan",
+              "url": "https://musescore.com/user/3482841/scores/6680170"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Billie%27s%20Bounce%20lead%20sheet"
+          }
+        },
+        {
+          "id": "straight-no-chaser",
+          "title": "Straight, No Chaser",
+          "artist": "Thelonious Monk",
+          "teaches": "Motif displacement in a blues head",
+          "detail": "F, 12-bar blues, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, jazzmodes",
+              "url": "https://musescore.com/user/21654781/scores/4890472"
+            },
+            {
+              "label": "Later: piano, iceorchard",
+              "url": "https://musescore.com/user/14781671/scores/8966144"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Straight%2C%20No%20Chaser%20lead%20sheet"
+          }
+        },
+        {
+          "id": "au-privave",
+          "title": "Au Privave",
+          "artist": "Charlie Parker",
+          "teaches": "Bird-blues line, a ii-V in every bar",
+          "detail": "F, 12-bar blues, 180",
+          "bpm": 180,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, bfc0713",
+              "url": "https://musescore.com/user/12005616/scores/2585601"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16001878",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Au%20Privave%20lead%20sheet"
+          }
+        },
+        {
+          "id": "blues-for-alice",
+          "title": "Blues for Alice",
+          "artist": "Charlie Parker",
+          "teaches": "Bird blues changes, descending ii-Vs",
+          "detail": "F, 12-bar blues, 180",
+          "bpm": 180,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano, Logophilius",
+              "url": "https://musescore.com/user/53433690/scores/9107504"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6938495",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "bessies-blues",
+          "title": "Bessie's Blues",
+          "artist": "John Coltrane",
+          "teaches": "Eb blues, a bluesy line with a fast feel",
+          "detail": "Eb, 12-bar blues, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, Doineau",
+              "url": "https://musescore.com/user/5171846/scores/6279922"
+            },
+            {
+              "label": "Later: McCoy Tyner transcription",
+              "url": "https://musescore.com/user/28466443/scores/22515115"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Bessie%27s%20Blues%20lead%20sheet"
+          }
+        },
+        {
+          "id": "yardbird-suite",
+          "title": "Yardbird Suite",
+          "artist": "Charlie Parker",
+          "teaches": "Bebop standard, AABA with ii-Vs",
+          "detail": "C, 32 bars, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7467926"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16001929",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Yardbird%20Suite%20lead%20sheet"
+          }
+        },
+        {
+          "id": "bags-groove-or-freddie-freeloader-at-160",
+          "title": "Bags' Groove or Freddie Freeloader at 160",
+          "artist": "Milt Jackson or Miles Davis",
+          "teaches": "The level 1 blues heads with bebop lines",
+          "detail": "F or Bb, 12-bar blues, 160",
+          "bpm": 160,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Bags' Groove, lead sheet, ericfontainejazz",
+              "url": "https://musescore.com/user/10401/scores/5052075"
+            },
+            {
+              "label": "Freddie Freeloader, lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7061039"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Bags%27%20Groove%20or%20Freddie%20Freeloader%20at%20160%20lead%20sheet"
+          }
+        }
+      ],
+      "test": "Two bebop heads at 160 with rootless comping; one blues chorus at 160 that passes the eighth-note game (chord tones on 80% of beats 1 and 3) with at least two enclosures; six bebop licks in 4 random keys on demand."
+    },
+    {
+      "id": "6",
+      "title": "Rhythm changes, tritone subs and tempo",
+      "goal": "Play rhythm-changes heads in Bb at 180, comp the A section and the dominant-cycle bridge, and solo with tritone-sub and altered colours.",
+      "adds": "I-VI-ii-V variants, the III7-VI7-II7-V7 bridge, tritone substitution, altered dominants and upper structures, a stride-lite left hand, faster tempos.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "6.1",
+          "title": "Rhythm changes A section variants",
+          "setup": "Jam: rhythm changes (Bb6 G7 Cm7 F7; Bb Bdim Cm7 C#dim; Dm7 G7 Cm7 F7; Bb7 Eb7 Edim).",
+          "done": "Shells, then rootless, 2 choruses at 140, 95%.",
+          "needs": "Rhythm changes in Bb in Jam, with comping scored over it (jazz ranks 2 and 6)."
+        },
+        {
+          "id": "6.2",
+          "title": "The bridge: dominant cycle",
+          "setup": "Rootless dominants D7 G7 C7 F7, 2 bars each, A and B forms alternating.",
+          "done": "12 keys of the cycle at 120, 95%.",
+          "needs": "A voicing type in Voicings: rootless dominants round the cycle (jazz rank 5).",
+          "feeds": "Sweet Georgia Brown"
+        },
+        {
+          "id": "6.3",
+          "title": "Hear and play the tritone sub",
+          "setup": "Ear, progressions: ii-bII7-I against ii-V-I. A tritone-sub option in Voicings: the same guide tones over a new root.",
+          "done": "12 keys at 95%; 20 in a row by ear at 85%.",
+          "needs": "A tritone-sub option in Voicings, and bII7 in Progression dictation."
+        },
+        {
+          "id": "6.4",
+          "title": "Altered dominants and upper structures",
+          "href": "/music/voicings?variant=altered&keys=12",
+          "setup": "Voicings, Altered through 12 keys. An upper-structure drill (US II, bIII and bVI over a 3-7 shell, from the data the app already has) is still to come.",
+          "done": "Altered in 12 keys at 95%; later US II and bVI in 6 keys.",
+          "match": {
+            "variant": "altered",
+            "keys": "12"
+          },
+          "threshold": 0.95
+        },
+        {
+          "id": "6.5",
+          "title": "Lines: altered scale and tritone-sub lines into I",
+          "href": "/music/licks?lick=9&key=C&bpm=140",
+          "setup": "Licks: the altered lines 9 and 10 (major) and 23 and 24 (minor), in six keys. A tritone-sub category in Licks is still to come.",
+          "done": "4 lines in 6 keys at 140, on two days.",
+          "each": {
+            "param": "lick",
+            "values": ["9", "10", "23", "24"]
+          },
+          "minAttempts": 6,
+          "threshold": 0.9,
+          "minBpm": 140,
+          "links": [
+            {
+              "label": "Lick 10",
+              "href": "/music/licks?lick=10&key=C&bpm=140"
+            },
+            {
+              "label": "Lick 23",
+              "href": "/music/licks?lick=23&key=C&bpm=140"
+            },
+            {
+              "label": "Lick 24",
+              "href": "/music/licks?lick=24&key=C&bpm=140"
+            },
+            {
+              "label": "Chord scales: minor ii-V-i",
+              "href": "/music/chord-scales?changes=minor&key=C"
+            }
+          ]
+        },
+        {
+          "id": "6.6",
+          "title": "Stride-lite left hand",
+          "setup": "Bass on 1 and 3, a mid chord on 2 and 4, on the A section.",
+          "done": "2 A sections at 120, 90%.",
+          "needs": "A Two hands pattern: stride-lite (jazz rank 8).",
+          "feeds": "Solo piano, level 7"
+        },
+        {
+          "id": "6.7",
+          "title": "Heads at tempo",
+          "href": "/music/songs/shelf/jazz/oleo",
+          "setup": "Song Studio, tempo ladder 140, 160, 180. Oleo is judged here; do a second head too.",
+          "done": "Two shelf heads at 180 in performance mode, 90%.",
+          "threshold": 0.9,
+          "minBpm": 180,
+          "links": [
+            {
+              "label": "Lester Leaps In",
+              "href": "/music/songs/shelf/jazz/lester-leaps-in"
+            },
+            {
+              "label": "Rhythm-a-Ning",
+              "href": "/music/songs/shelf/jazz/rhythm-a-ning"
+            }
+          ]
+        },
+        {
+          "id": "6.8",
+          "title": "Sparse comping at speed",
+          "setup": "A sparse comping rhythm (one or two stabs a bar) over rhythm changes at 180.",
+          "done": "2 choruses, 90% voicings, no more than 2 attacks per bar.",
+          "needs": "Comping in time over any Jam progression: a sparse rhythm over rhythm changes (jazz rank 2)."
+        },
+        {
+          "id": "6.9",
+          "title": "Improv game: the bridge only",
+          "setup": "Jam, rhythm changes: play the A sections as space or the head, improvise only the bridge with guide-tone lines (3 to b7 to 3).",
+          "done": "4 bridges with 85% guide-tone landings.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3)."
+        },
+        {
+          "id": "6.10",
+          "title": "Improv game: quote the head",
+          "setup": "Jam: open each A section with a fragment of the head, then develop it.",
+          "done": "One chorus with the head fragment in all 3 A sections.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3)."
+        },
+        {
+          "id": "6.11",
+          "title": "Ladder rungs a to f on two shelf tunes",
+          "setup": "The tune player and Song Studio.",
+          "done": "Rungs a to f done on two tunes.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1)."
+        },
+        {
+          "id": "6.12",
+          "title": "Transcribe Count Basie's intro and comping",
+          "setup": "Basie's intro to \"Lester Leaps In\" (1939), then Monk's head phrasing on \"Rhythm-a-Ning\".",
+          "done": "Both along with the record at full speed, 3 times.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "i-got-rhythm",
+          "title": "I Got Rhythm",
+          "artist": "George Gershwin",
+          "teaches": "The source: plain rhythm changes with the melody",
+          "detail": "Bb, AABA 32, 160",
+          "bpm": 160,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, fkeeling",
+              "url": "https://musescore.com/user/12383771/scores/8029326"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6974103",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "oleo",
+          "title": "Oleo",
+          "artist": "Sonny Rollins",
+          "teaches": "Rhythm-changes head with breaks",
+          "detail": "Bb, AABA 32, 180",
+          "bpm": 180,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, shigeyoshi",
+              "url": "https://musescore.com/user/30262456/scores/5371786"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6967583",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "lester-leaps-in",
+          "title": "Lester Leaps In",
+          "artist": "Lester Young",
+          "teaches": "Riff head, Basie comping",
+          "detail": "Bb, AABA 32, 180",
+          "bpm": 180,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/13265257"
+            },
+            {
+              "label": "Tommy Flanagan's intro",
+              "url": "https://musescore.com/user/2585671/scores/1127716"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16035532",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Lester%20Leaps%20In%20lead%20sheet"
+          }
+        },
+        {
+          "id": "rhythm-a-ning",
+          "title": "Rhythm-a-Ning",
+          "artist": "Thelonious Monk",
+          "teaches": "Monk's rhythm changes, riff displacement",
+          "detail": "Bb, AABA 32, 180",
+          "bpm": 180,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, Giorgia Zaccagni",
+              "url": "https://musescore.com/user/4470151/scores/7501952"
+            },
+            {
+              "label": "Piano, efeerdemtr1",
+              "url": "https://musescore.com/user/30003453/scores/6009702"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Rhythm-a-Ning%20lead%20sheet"
+          }
+        },
+        {
+          "id": "anthropology",
+          "title": "Anthropology",
+          "artist": "Charlie Parker and Dizzy Gillespie",
+          "teaches": "Bebop line over rhythm changes",
+          "detail": "Bb, AABA 32, 180",
+          "bpm": 180,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano, Renaud Delville",
+              "url": "https://musescore.com/user/32233098/scores/7611797"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6945844",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "moose-the-mooche",
+          "title": "Moose the Mooche",
+          "artist": "Charlie Parker",
+          "teaches": "Bebop rhythm-changes head",
+          "detail": "Bb, AABA 32, 180",
+          "bpm": 180,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano, bondarenkoliz",
+              "url": "https://musescore.com/user/40859638/scores/8075691"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16001968",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Moose%20the%20Mooche%20lead%20sheet"
+          }
+        },
+        {
+          "id": "cotton-tail",
+          "title": "Cotton Tail",
+          "artist": "Duke Ellington",
+          "teaches": "Swing-era rhythm changes, Ellington riffs",
+          "detail": "Bb, AABA 32, 180",
+          "bpm": 180,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/24989092"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/15960763",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Cotton%20Tail%20lead%20sheet"
+          }
+        },
+        {
+          "id": "scrapple-from-the-apple",
+          "title": "Scrapple from the Apple",
+          "artist": "Charlie Parker",
+          "teaches": "ii-V A section, rhythm-changes bridge",
+          "detail": "F, AABA 32, 180",
+          "bpm": 180,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, bettychang",
+              "url": "https://musescore.com/user/9603026/scores/2120646"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6938269",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "sweet-georgia-brown",
+          "title": "Sweet Georgia Brown",
+          "artist": "Ben Bernie, Maceo Pinkard and Kenneth Casey",
+          "teaches": "Long dominant chains (VI7 II7 V7 I)",
+          "detail": "Ab or F, 32 bars, 180",
+          "bpm": 180,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7015130"
+            },
+            {
+              "label": "Official piano solo, Basie version",
+              "url": "https://musescore.com/user/39593079/scores/6945089",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "Two rhythm-changes heads at 180 with sparse rootless comping; one solo chorus at 160 that passes the bridge game (85% landings) and uses at least two tritone-sub or altered lines; the dominant cycle and altered voicings in 12 keys at 120."
+    },
+    {
+      "id": "7",
+      "title": "Ballads, block chords and solo piano",
+      "goal": "Play ballads as solo piano with two-handed voicings, harmonise a melody in block chords (drop-2, locked hands, Red Garland), and play a jazz waltz.",
+      "adds": "Two-handed rootless voicings, drop-2 and four-way close, Shearing locked hands, Garland block chords, ballad and solo-piano left hands, rubato intros and tags, 3/4 comping, Evans voicings.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "7.1",
+          "title": "Two-handed rootless voicings",
+          "setup": "Left hand 3-7 (or 7-3), right hand 9-5-13 or 5-9-1; ii-V-I in 12 keys.",
+          "done": "12 keys at 95%, onset spread under 40 ms.",
+          "needs": "A voicing type in Voicings: two-handed rootless (jazz rank 5)."
+        },
+        {
+          "id": "7.2",
+          "title": "Ballad left hands",
+          "setup": "Root-7th or root-10th on 1 and a mid voicing on 3; walking tenths; rolled spreads.",
+          "done": "The Misty A section at 60 with each pattern, 90%.",
+          "needs": "A Two hands pattern: ballad left hands (root-7th, tenths, rolled spreads) (jazz rank 8).",
+          "feeds": "Misty, Body and Soul"
+        },
+        {
+          "id": "7.3",
+          "title": "Pedal and voicing balance",
+          "href": "/music/pedal",
+          "setup": "Pedal: legato pedalling through a progression. The velocity check in Song Studio (melody louder than the inner voices) is still to come.",
+          "done": "Pedal 90%, on two days; later the melody over 10 velocity points above the inner voices on 80% of chords.",
+          "threshold": 0.9,
+          "feeds": "All ballads"
+        },
+        {
+          "id": "7.4",
+          "title": "Four-way close and drop-2",
+          "setup": "Given a melody note and a chord symbol, play 4-way close, then drop-2.",
+          "done": "16 bars of a shelf melody at 70 in each form, 90%.",
+          "needs": "A voicing type in Voicings: block chords on a tune's melody (4-way close, drop-2) (jazz rank 5).",
+          "feeds": "Lullaby of Birdland, Darn That Dream"
+        },
+        {
+          "id": "7.5",
+          "title": "Shearing locked hands",
+          "setup": "Melody doubled an octave below in the left hand, 4-way close in the right; a diminished chord on passing notes.",
+          "done": "One A section of Lullaby of Birdland at 120, 90%.",
+          "needs": "A voicing type in Voicings: Shearing locked hands on a tune's melody (jazz rank 5).",
+          "feeds": "Lullaby of Birdland"
+        },
+        {
+          "id": "7.6",
+          "title": "Red Garland block chords",
+          "setup": "Left hand 3-7-9, right-hand melody in octaves with the 5th inside.",
+          "done": "8 bars of a blues solo in block chords at 120.",
+          "needs": "A voicing type in Voicings: Red Garland block chords (jazz rank 5)."
+        },
+        {
+          "id": "7.7",
+          "title": "Melody embellishment and fills",
+          "setup": "Jam over a ballad backing: play the melody and fill only in its rests with 2-to-4-note fills.",
+          "done": "One chorus: melody 90% recognisable, a fill in at least 6 rests.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "feeds": "All ballads"
+        },
+        {
+          "id": "7.8",
+          "title": "Intros, endings and tags",
+          "setup": "Phrases: the I-vi-ii-V intro, the iii-VI-ii-V tag, the \"Basie ending\" and the rubato last-4-bars intro.",
+          "done": "Each in 3 keys at 80.",
+          "needs": "Phrases entries: jazz intros, tags and endings in 3 keys."
+        },
+        {
+          "id": "7.9",
+          "title": "Bill Evans voicings",
+          "setup": "Voicings, Major ii-V-I from position B (rootless with 9 and 13), then Evans spreads (left hand 7-3-6 or 3-7-9, right-hand melody plus one voice).",
+          "done": "Blue in Green changes with spread voicings at 60, 90%.",
+          "needs": "A voicing type in Voicings: Evans spreads (jazz rank 5).",
+          "links": [
+            {
+              "label": "Voicings: Major ii-V-I from B",
+              "href": "/music/voicings?variant=major&position=B"
+            }
+          ],
+          "feeds": "Blue in Green, Waltz for Debby"
+        },
+        {
+          "id": "7.10",
+          "title": "Jazz waltz comping",
+          "setup": "Jam: a 3/4 swing backing; comping on 1 and the and-of-2.",
+          "done": "2 choruses at 140 in 3/4, 90% on the slots.",
+          "needs": "A 3/4 swing backing in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "feeds": "Waltz for Debby, Very Early"
+        },
+        {
+          "id": "7.11",
+          "title": "A full solo-piano ballad",
+          "href": "/music/songs/shelf/jazz/misty",
+          "setup": "Song Studio: one shelf arrangement (the Misty piano solo or In a Sentimental Mood) through fix-the-spot loops to performance.",
+          "done": "Performance mode 90% at the written tempo, on two days.",
+          "threshold": 0.9,
+          "minBpm": 60,
+          "links": [
+            {
+              "label": "In a Sentimental Mood",
+              "href": "/music/songs/shelf/jazz/in-a-sentimental-mood"
+            }
+          ]
+        },
+        {
+          "id": "7.12",
+          "title": "Your own ballad arrangement",
+          "href": "/music/record",
+          "setup": "Rungs a and c, then two-handed voicings and a ballad left hand, an intro and a tag; recorded in Record.",
+          "done": "One recorded chorus with intro and tag you would play for a friend."
+        },
+        {
+          "id": "7.13",
+          "title": "Transcribe a block-chord chorus",
+          "setup": "Red Garland's block-chord chorus on \"Billy Boy\" (8 bars) or Shearing's \"Lullaby of Birdland\" head.",
+          "done": "8 bars along with the record, 3 times.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Garland's Billy Boy, trio transcription",
+              "href": "https://musescore.com/user/30461256/scores/10521325"
+            },
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "misty",
+          "title": "Misty",
+          "artist": "Erroll Garner",
+          "teaches": "Ballad left hand, rubato intro, Garner style",
+          "detail": "Eb, AABA 32, 60",
+          "bpm": 60,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Garner-style piano solo, snackary77",
+              "url": "https://musescore.com/user/21858326/scores/5272199"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/15959515",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Misty%20lead%20sheet"
+          }
+        },
+        {
+          "id": "my-funny-valentine",
+          "title": "My Funny Valentine",
+          "artist": "Rodgers and Hart",
+          "teaches": "Line cliché in minor, ballad",
+          "detail": "C minor, ABAC 36, 60",
+          "bpm": 60,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7308866"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=My%20Funny%20Valentine%20lead%20sheet"
+          }
+        },
+        {
+          "id": "in-a-sentimental-mood",
+          "title": "In a Sentimental Mood",
+          "artist": "Duke Ellington",
+          "teaches": "Minor line cliché, a Db bridge",
+          "detail": "D minor and F, AABA 32, 70",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6524990"
+            },
+            {
+              "label": "Later: piano solo, Sebastian Carewe",
+              "url": "https://musescore.com/user/8895531/scores/3794491"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=In%20a%20Sentimental%20Mood%20lead%20sheet"
+          }
+        },
+        {
+          "id": "everything-happens-to-me",
+          "title": "Everything Happens to Me",
+          "artist": "Matt Dennis",
+          "teaches": "Ballad ii-Vs, turnarounds",
+          "detail": "Bb, AABA 32, 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/15045433"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Everything%20Happens%20to%20Me%20lead%20sheet"
+          }
+        },
+        {
+          "id": "georgia-on-my-mind",
+          "title": "Georgia on My Mind",
+          "artist": "Hoagy Carmichael",
+          "teaches": "Ballad with gospel turns, secondary dominants",
+          "detail": "F, AABA 32, 66",
+          "bpm": 66,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, Hugh R Heinsohn",
+              "url": "https://musescore.com/user/6541526/scores/7942676"
+            }
+          ],
+          "fallback": {
+            "label": "iReal Pro, Jazz 1460 playlist",
+            "url": "https://www.irealpro.com/"
+          }
+        },
+        {
+          "id": "lullaby-of-birdland",
+          "title": "Lullaby of Birdland",
+          "artist": "George Shearing",
+          "teaches": "Locked hands, minor-major ii-V",
+          "detail": "F minor to Ab, AABA 32, 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Sarr Sheffer (Ab/Fm)",
+              "url": "https://musescore.com/user/10480226/scores/7030920"
+            },
+            {
+              "label": "Later: piano, Emilio Bueno Salazar",
+              "url": "https://musescore.com/user/28577826/scores/6692627"
+            },
+            {
+              "label": "Official jazz piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6932438",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "darn-that-dream",
+          "title": "Darn That Dream",
+          "artist": "Jimmy Van Heusen",
+          "teaches": "Dense ballad changes, drop-2 practice",
+          "detail": "G, AABA 32, 60",
+          "bpm": 60,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Lead sheet, musikkoch",
+              "url": "https://musescore.com/user/36445829/scores/9508633"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/15977023",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Darn%20That%20Dream%20lead%20sheet"
+          }
+        },
+        {
+          "id": "blue-in-green",
+          "title": "Blue in Green",
+          "artist": "Miles Davis and Bill Evans",
+          "teaches": "10-bar form, Evans voicings",
+          "detail": "D minor area, 10 bars, 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6579874"
+            },
+            {
+              "label": "Later: Evans transcription, Dorialexander",
+              "url": "https://musescore.com/user/58141441/scores/9332566"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book, vol. 1",
+            "url": "https://musescore.com/sheetmusic?text=Blue%20in%20Green%20lead%20sheet"
+          }
+        },
+        {
+          "id": "waltz-for-debby",
+          "title": "Waltz for Debby",
+          "artist": "Bill Evans",
+          "teaches": "Jazz waltz, Evans melody voicing",
+          "detail": "F, 3/4, rubato then 140",
+          "bpm": 140,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano, raduaz",
+              "url": "https://musescore.com/user/105276/scores/119647"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6928485",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "One ballad as solo piano with intro and tag, recorded, 90% in performance mode; one A section in locked hands or drop-2 at tempo; Waltz for Debby or another waltz: two choruses comping in 3/4."
+    },
+    {
+      "id": "8",
+      "title": "Monk and Silver",
+      "goal": "Play Monk and Silver tunes in their style (Monk's angular voicings and space, Silver's funky hard-bop grooves and left-hand punches), solo by developing the head, then write a head of your own.",
+      "adds": "Whole-tone and minor-second sounds, displacement, melodic paraphrase, hard-bop comping, latin and gospel grooves, composing a head.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "8.1",
+          "title": "Whole-tone scale and Monk runs",
+          "href": "/music/scales?kind=whole-tone&tonic=60&span=two-octave&bpm=120",
+          "setup": "Scales: whole-tone from C and from Db (the two collections), 2 octaves; then descending runs over a dominant.",
+          "done": "2 octaves at 120 in both whole-tone collections.",
+          "each": {
+            "param": "tonic",
+            "values": ["60", "61"]
+          },
+          "match": {
+            "kind": "whole-tone",
+            "span": "two-octave"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "links": [
+            {
+              "label": "From Db",
+              "href": "/music/scales?kind=whole-tone&tonic=61&span=two-octave&bpm=120"
+            }
+          ],
+          "feeds": "Well You Needn't, Epistrophy"
+        },
+        {
+          "id": "8.2",
+          "title": "Monk voicings: b9 clusters and 7th plus root",
+          "setup": "Shells with a minor 2nd on top (3-b7-1, 7-3-b9).",
+          "done": "Blue Monk and Well You Needn't changes at 100, 90%.",
+          "needs": "A voicing type in Voicings: Monk clusters (jazz rank 5).",
+          "feeds": "Monk shelf"
+        },
+        {
+          "id": "8.3",
+          "title": "Half-step chord shifts",
+          "setup": "Jam on Well You Needn't (F7 Gb7) and Epistrophy (Db7 D7).",
+          "done": "2 choruses at 160, rootless, 90%.",
+          "needs": "Well You Needn't and Epistrophy in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "feeds": "Well You Needn't, Epistrophy"
+        },
+        {
+          "id": "8.4",
+          "title": "Improv game: displacement",
+          "setup": "Jam, blues: one 3-note motif, started one beat later each bar (the Straight, No Chaser idea).",
+          "done": "One chorus with the motif in 8 bars, each displaced.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues in F",
+              "href": "/music/jam?progression=blues&transpose=5"
+            }
+          ]
+        },
+        {
+          "id": "8.5",
+          "title": "Improv game: melodic paraphrase",
+          "href": "/music/record",
+          "setup": "Jam over Blue Monk (a Bb blues): solo only by changing the head's rhythm, register and order, Monk's own method. Record it and listen back.",
+          "done": "One chorus where the head stays recognisable throughout, checked on the recording.",
+          "links": [
+            {
+              "label": "Jam: 12-bar blues in Bb",
+              "href": "/music/jam?progression=blues&transpose=-2"
+            }
+          ],
+          "feeds": "Monk shelf"
+        },
+        {
+          "id": "8.6",
+          "title": "Hard-bop comping and Silver's left-hand punches",
+          "setup": "Hits with the drummer on the and-of-4, left-hand octave stabs.",
+          "done": "2 choruses of the Sister Sadie changes at 150.",
+          "needs": "Comping in time over any Jam progression: hard-bop hits and octave stabs (jazz rank 2).",
+          "feeds": "Silver shelf"
+        },
+        {
+          "id": "8.7",
+          "title": "Silver's grooves",
+          "setup": "Phrases: the Song for My Father bass line, The Preacher two-beat gospel left hand, the Nica's Dream latin vamp.",
+          "done": "Each groove 4 times at tempo, 90%.",
+          "needs": "Phrases entries: Silver's grooves.",
+          "feeds": "Silver shelf"
+        },
+        {
+          "id": "8.8",
+          "title": "Silver's soloing devices",
+          "setup": "Bluesy triplet runs, quotes, left-hand answers to right-hand lines.",
+          "done": "3 devices in 3 keys at 140.",
+          "needs": "A Licks category: Silver's devices (jazz rank 7).",
+          "feeds": "Silver shelf"
+        },
+        {
+          "id": "8.9",
+          "title": "Ballad composer harmony",
+          "setup": "Ruby, My Dear or Peace through rungs a, b and c.",
+          "done": "Rungs a, b and c done.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1).",
+          "feeds": "Ruby, My Dear, Peace"
+        },
+        {
+          "id": "8.10",
+          "title": "Ladder rungs a to e on three shelf tunes",
+          "setup": "The tune player and Song Studio.",
+          "done": "Rungs a to e done on three tunes.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1)."
+        },
+        {
+          "id": "8.11",
+          "title": "Write a head",
+          "href": "/music/create",
+          "setup": "Compose a 12-bar blues head in Monk's or Silver's style; enter it in Create or Song Studio (writing path).",
+          "done": "The head recorded, notated, and played over the backing with your comping."
+        },
+        {
+          "id": "8.12",
+          "title": "Transcribe Monk and Silver",
+          "setup": "Monk's whole solo chorus on \"Bags' Groove\" and Silver's first chorus on \"Song for My Father\".",
+          "done": "One chorus each with the record at full speed.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "well-you-neednt",
+          "title": "Well You Needn't",
+          "artist": "Thelonious Monk",
+          "teaches": "Half-step shifts, angular head",
+          "detail": "F, AABA 32, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, karojazz",
+              "url": "https://musescore.com/user/22351486/scores/5381492"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/15957949",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Well%20You%20Needn%27t%20lead%20sheet"
+          }
+        },
+        {
+          "id": "bemsha-swing",
+          "title": "Bemsha Swing",
+          "artist": "Thelonious Monk and Denzil Best",
+          "teaches": "16-bar head, whole-tone colour",
+          "detail": "C, 16 bars, 160",
+          "bpm": 160,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, rasa8",
+              "url": "https://musescore.com/user/67213/scores/4870675"
+            },
+            {
+              "label": "Later: piano, Finnegan",
+              "url": "https://musescore.com/user/3482841/scores/6678792"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Bemsha%20Swing%20lead%20sheet"
+          }
+        },
+        {
+          "id": "epistrophy",
+          "title": "Epistrophy",
+          "artist": "Thelonious Monk and Kenny Clarke",
+          "teaches": "Dominant vamps a half step apart",
+          "detail": "Db7 and D7, AABA 32, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, bfc0713",
+              "url": "https://musescore.com/user/12005616/scores/6748110"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6945850",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "round-midnight",
+          "title": "'Round Midnight",
+          "artist": "Thelonious Monk",
+          "teaches": "Minor ballad, Monk's intro",
+          "detail": "Eb minor, AABA 32, 60",
+          "bpm": 60,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/9252547"
+            },
+            {
+              "label": "Later: piano, jackkingston19",
+              "url": "https://musescore.com/user/19020741/scores/6577963"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6938983",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "ruby-my-dear",
+          "title": "Ruby, My Dear",
+          "artist": "Thelonious Monk",
+          "teaches": "Ballad with moving ii-V key centres",
+          "detail": "Eb area, AABA 32, 66",
+          "bpm": 66,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano, Kike Esteban",
+              "url": "https://musescore.com/user/3737796/scores/1074596"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6945847",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "i-mean-you",
+          "title": "I Mean You",
+          "artist": "Thelonious Monk and Coleman Hawkins",
+          "teaches": "Monk riff head, intro figure",
+          "detail": "F, AABA 32, 180",
+          "bpm": 180,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official piano solo (community score weak)",
+              "url": "https://musescore.com/user/39593079/scores/6945848",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=I%20Mean%20You%20lead%20sheet"
+          }
+        },
+        {
+          "id": "doodlin",
+          "title": "Doodlin'",
+          "artist": "Horace Silver",
+          "teaches": "Funky blues, left-hand punches",
+          "detail": "Eb, 12-bar blues, 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Piano, Nigel Lomas",
+              "url": "https://musescore.com/user/29546952/scores/5983096"
+            },
+            {
+              "label": "Transcribed lead sheet, Tunlonk",
+              "url": "https://musescore.com/user/30970344/scores/11881639"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16102999",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Doodlin%27%20lead%20sheet"
+          }
+        },
+        {
+          "id": "sister-sadie",
+          "title": "Sister Sadie",
+          "artist": "Horace Silver",
+          "teaches": "Gospel hard bop, shout chorus",
+          "detail": "Ab, AABA 32, 150",
+          "bpm": 150,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, rhkoulen",
+              "url": "https://musescore.com/user/52553375/scores/12519313"
+            },
+            {
+              "label": "Piano, Kai the beatmaker",
+              "url": "https://musescore.com/user/30653292/scores/6183099"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16103044",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Sister%20Sadie%20lead%20sheet"
+          }
+        },
+        {
+          "id": "nicas-dream",
+          "title": "Nica's Dream",
+          "artist": "Horace Silver",
+          "teaches": "Latin A sections, swing bridge, Bb minor",
+          "detail": "Bb minor, 64 bars, 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "karojazz (the card says solo piano, the page lists trumpet: check)",
+              "url": "https://musescore.com/user/22351486/scores/6016186"
+            },
+            {
+              "label": "Piano, Gabe Raimondo",
+              "url": "https://musescore.com/user/12230306/scores/5873087"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Nica%27s%20Dream%20lead%20sheet"
+          }
+        },
+        {
+          "id": "peace",
+          "title": "Peace",
+          "artist": "Horace Silver",
+          "teaches": "Ballad, irregular phrases",
+          "detail": "Bb, ballad, 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, Gops",
+              "url": "https://musescore.com/user/30554662/scores/7219410"
+            },
+            {
+              "label": "Official piano transcription",
+              "url": "https://musescore.com/user/39593079/scores/16103032",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "the-preacher",
+          "title": "The Preacher",
+          "artist": "Horace Silver",
+          "teaches": "Gospel two-beat, I-VI-ii-V",
+          "detail": "Eb, 16 bars, 180",
+          "bpm": 180,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official Real Book (community has only band scores)",
+              "url": "https://musescore.com/user/39593079/scores/16103002",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=The%20Preacher%20lead%20sheet"
+          }
+        }
+      ],
+      "test": "Pick at least one Monk and one Silver tune from the shelf. One Monk and one Silver tune through rungs a to e at tempo; one chorus of melodic paraphrase recorded; your own blues head played with a solo chorus."
+    },
+    {
+      "id": "9",
+      "title": "Reharmonisation and key-centre standards",
+      "goal": "Analyse a standard's key centres, solo through them, and reharmonise a simple standard with tritone subs, related ii-Vs, backdoor and passing chords.",
+      "adds": "Lead-sheet analysis, melodic-minor harmony (lydian dominant, altered, locrian #2), the reharm toolkit, upper structures in context, controlled outside playing.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "9.1",
+          "title": "Lead-sheet analysis",
+          "setup": "Mark each bar's key centre and function on a shelf tune; the circle of fifths for each key's chords.",
+          "done": "All the Things You Are analysed with no errors against the key.",
+          "needs": "An analysis mode: mark each bar's key centre and function on a tune.",
+          "links": [
+            {
+              "label": "Circle: a key's chords",
+              "href": "/music/circle?mode=chords"
+            }
+          ],
+          "feeds": "All the Things You Are, Stella"
+        },
+        {
+          "id": "9.2",
+          "title": "Hear key changes",
+          "setup": "Ear, progressions: a ii-V to a new key (up a 4th, down a 3rd, up a half step).",
+          "done": "20 in a row at 85%.",
+          "needs": "Key changes in Progression dictation: a ii-V to a new key."
+        },
+        {
+          "id": "9.3",
+          "title": "m7b5 and minor ii-V voicings in context",
+          "setup": "Voicings, Minor ii-V-i, then the Stella changes in the tune player.",
+          "done": "The Stella A section at 120, rootless, 95%.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1).",
+          "links": [
+            {
+              "label": "Voicings: Minor ii-V-i",
+              "href": "/music/voicings?variant=minor&keys=12"
+            }
+          ],
+          "feeds": "Stella by Starlight, Beautiful Love"
+        },
+        {
+          "id": "9.4",
+          "title": "Melodic-minor sounds",
+          "href": "/music/scales?kind=melodic-minor&tonic=60&span=two-octave&bpm=120",
+          "setup": "Scales: melodic minor in 12 keys at 120. Chord scales for mMaj7, lydian dominant, altered and locrian #2 are still to come.",
+          "done": "Melodic minor clean in 12 keys at 120.",
+          "each": {
+            "param": "tonic",
+            "values": ["60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71"]
+          },
+          "match": {
+            "kind": "melodic-minor"
+          },
+          "minAttempts": 1,
+          "threshold": 0.9,
+          "minBpm": 120
+        },
+        {
+          "id": "9.5",
+          "title": "Upper structures on a tune",
+          "setup": "The upper-structure drill on the V7 chords of a shelf tune.",
+          "done": "Every V7 in Just Friends voiced with an upper structure at 120.",
+          "needs": "An upper-structure drill (US II, bIII and bVI over a shell) on a tune's changes (jazz ranks 1 and 5)."
+        },
+        {
+          "id": "9.6",
+          "title": "Reharm toolkit, one device at a time",
+          "setup": "On Jam: tritone sub, related ii before each V, backdoor ii-V (iv7 to bVII7), secondary dominants, passing diminished, chromatic ii-V approach.",
+          "done": "Each device applied to Fly Me to the Moon and comped once, 90%.",
+          "needs": "A reharmonisation sandbox on Jam (jazz rank 10)."
+        },
+        {
+          "id": "9.7",
+          "title": "Reharmonise a standard",
+          "href": "/music/record",
+          "setup": "Write a reharmonised chart for one level 2 or 3 tune (Fly Me to the Moon, All of Me, Autumn Leaves), keeping the melody; play it and record it.",
+          "done": "Chart written, played as melody plus two-handed voicings, recorded."
+        },
+        {
+          "id": "9.8",
+          "title": "Improv game: key-centre targeting",
+          "setup": "Jam on All the Things You Are: land the 3rd of each new key's I chord on beat 1.",
+          "done": "80% of key-change landings, two choruses.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "feeds": "All the Things You Are, Have You Met Miss Jones"
+        },
+        {
+          "id": "9.9",
+          "title": "Improv game: outside and back",
+          "setup": "Jam: side-slip a phrase a half step up for 2 beats, resolve inside on the next downbeat.",
+          "done": "4 side-slips per chorus, every one resolved on a chord tone.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3)."
+        },
+        {
+          "id": "9.10",
+          "title": "Ladder rungs a to f on three shelf tunes",
+          "setup": "The tune player and Song Studio.",
+          "done": "Rungs a to f done on three tunes.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1)."
+        },
+        {
+          "id": "9.11",
+          "title": "Tempo ceiling",
+          "setup": "Jam on Just Friends or I'll Remember April at 200.",
+          "done": "One clean chorus, comping plus solo.",
+          "needs": "Comping and improvisation scoring in Jam, on a tune's changes (jazz ranks 1 to 3).",
+          "feeds": "Just Friends, I'll Remember April"
+        },
+        {
+          "id": "9.12",
+          "title": "Transcribe an Evans or Jarrett chorus",
+          "setup": "Bill Evans on \"Solar\" (one chorus) or Keith Jarrett's opening on \"Stella by Starlight\" (voicings).",
+          "done": "One chorus or 16 bars of voicings along with the record.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "all-the-things-you-are",
+          "title": "All the Things You Are",
+          "artist": "Jerome Kern",
+          "teaches": "Five key centres, the capstone standard",
+          "detail": "Ab, AABA 36, 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, DIM",
+              "url": "https://musescore.com/user/3541/scores/6012590"
+            },
+            {
+              "label": "Real Book I version, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/11114389"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book, vol. 1",
+            "url": "https://musescore.com/sheetmusic?text=All%20the%20Things%20You%20Are%20lead%20sheet"
+          }
+        },
+        {
+          "id": "stella-by-starlight",
+          "title": "Stella by Starlight",
+          "artist": "Victor Young",
+          "teaches": "m7b5 chains, ABCD form",
+          "detail": "Bb, 32 bars, 130",
+          "bpm": 130,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano, Anders Dahnielson",
+              "url": "https://musescore.com/user/512696/scores/9339838"
+            },
+            {
+              "label": "Official jazz piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6975940",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "solar",
+          "title": "Solar",
+          "artist": "Miles Davis",
+          "teaches": "A 12-bar key-centre tour",
+          "detail": "C minor, 12 bars, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, guitgoog",
+              "url": "https://musescore.com/user/35642017/scores/6770231"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/15959581",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Solar%20lead%20sheet"
+          }
+        },
+        {
+          "id": "just-friends",
+          "title": "Just Friends",
+          "artist": "John Klenner",
+          "teaches": "Starts on IV, backdoor ii-V",
+          "detail": "G, ABAC 32, 180",
+          "bpm": 180,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, av8rpat",
+              "url": "https://musescore.com/user/9481/scores/5282768"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16109251",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Just%20Friends%20lead%20sheet"
+          }
+        },
+        {
+          "id": "have-you-met-miss-jones",
+          "title": "Have You Met Miss Jones",
+          "artist": "Rodgers and Hart",
+          "teaches": "Major-third key cycle in the bridge (Coltrane's seed)",
+          "detail": "F, AABA 32, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7001580"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6978213",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "alone-together",
+          "title": "Alone Together",
+          "artist": "Arthur Schwartz and Howard Dietz",
+          "teaches": "Minor ii-V chains, long form",
+          "detail": "D minor, 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7104789"
+            },
+            {
+              "label": "Official Real Book",
+              "url": "https://musescore.com/user/39593079/scores/16033336",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Alone%20Together%20lead%20sheet"
+          }
+        },
+        {
+          "id": "beautiful-love",
+          "title": "Beautiful Love",
+          "artist": "Victor Young",
+          "teaches": "Minor ii-V-i, ABAC",
+          "detail": "D minor, 32 bars, 160",
+          "bpm": 160,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6738256"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Beautiful%20Love%20lead%20sheet"
+          }
+        },
+        {
+          "id": "body-and-soul",
+          "title": "Body and Soul",
+          "artist": "Johnny Green",
+          "teaches": "Ballad, a bridge up a half step, the reharm classic",
+          "detail": "Db, AABA 32, 60",
+          "bpm": 60,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6480402"
+            },
+            {
+              "label": "Official lead sheet",
+              "url": "https://musescore.com/user/39593079/scores/15773326",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "ill-remember-april",
+          "title": "I'll Remember April",
+          "artist": "Gene de Paul",
+          "teaches": "Latin and swing, major-minor shifts",
+          "detail": "G, ABA 48, 180",
+          "bpm": 180,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Real Book 6th edition lead sheet, guitgoog",
+              "url": "https://musescore.com/user/35642017/scores/7571585"
+            },
+            {
+              "label": "Lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7578095"
+            }
+          ]
+        },
+        {
+          "id": "invitation",
+          "title": "Invitation",
+          "artist": "Bronisław Kaper",
+          "teaches": "Minor latin with long ii-V chains",
+          "detail": "C minor, ABA 56, 150",
+          "bpm": 150,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/15633631",
+              "official": true
+            },
+            {
+              "label": "Community, delphinedouco (thin)",
+              "url": "https://musescore.com/user/76600210/scores/13871308"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Invitation%20lead%20sheet"
+          }
+        }
+      ],
+      "test": "All the Things You Are or Stella through rungs a to f; your reharmonised chart played and recorded; one chorus on Have You Met Miss Jones or Solar passing the key-centre game (80% landings)."
+    },
+    {
+      "id": "10",
+      "title": "Hancock, Evans, Shorter, Coltrane",
+      "goal": "Play modern jazz repertoire: non-functional and slash-chord harmony (Hancock, Shorter), Evans' 3/4 and phrygian tunes, Coltrane changes at a slow tempo, and one complete solo-piano arrangement.",
+      "adds": "Fourth and slash voicings in context, triad pairs, Coltrane changes and 1-2-3-5 patterns, odd phrase lengths, solo-piano arranging, repertoire upkeep.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "10.1",
+          "title": "Slash and fourth voicings on non-functional changes",
+          "setup": "The level 4 voicing types on the Dolphin Dance and Speak Like a Child changes.",
+          "done": "The Dolphin Dance A section at 100, 90%.",
+          "needs": "Quartal and slash voicings on a tune's changes (jazz ranks 1 and 5).",
+          "feeds": "Dolphin Dance, Speak Like a Child"
+        },
+        {
+          "id": "10.2",
+          "title": "Triad pairs",
+          "setup": "Scales: triad pairs (Eb and F over F7sus, Ab and Bb over Bb7alt).",
+          "done": "4 pairs in 6 keys at 140.",
+          "needs": "A triad-pair pattern in Scales."
+        },
+        {
+          "id": "10.3",
+          "title": "Coltrane changes",
+          "setup": "Jam: Giant Steps at 80, then 120, then 160; shells, then rootless.",
+          "done": "One chorus comped clean at 160.",
+          "needs": "The Giant Steps cycle in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "feeds": "Giant Steps, Have You Met Miss Jones"
+        },
+        {
+          "id": "10.4",
+          "title": "1-2-3-5 patterns through the cycle",
+          "setup": "1-2-3-5 on each I and V of Giant Steps.",
+          "done": "Through the form at 120.",
+          "needs": "A Licks category: Coltrane 1-2-3-5 patterns (jazz rank 7).",
+          "feeds": "Giant Steps"
+        },
+        {
+          "id": "10.5",
+          "title": "Phrygian and harmonic minor (Nardis)",
+          "href": "/music/scales?kind=harmonic-minor&tonic=64&span=two-octave&bpm=120",
+          "setup": "Scales: E harmonic minor and E phrygian. Comping the Nardis changes waits for the tune player.",
+          "done": "E harmonic minor and phrygian at 120, 3 clean runs each.",
+          "each": {
+            "param": "kind",
+            "values": ["harmonic-minor", "phrygian"]
+          },
+          "match": {
+            "tonic": "64"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "links": [
+            {
+              "label": "Phrygian",
+              "href": "/music/scales?kind=phrygian&tonic=64&span=two-octave&bpm=120"
+            }
+          ],
+          "feeds": "Nardis"
+        },
+        {
+          "id": "10.6",
+          "title": "Odd phrase lengths",
+          "setup": "Infant Eyes (9-bar phrases), Peace and Footprints in the tune player.",
+          "done": "One chorus of Infant Eyes, rungs a and c, no lost bar.",
+          "needs": "The tune player: a tune's form and changes in Jam, with the ladder rungs as steps (jazz rank 1).",
+          "feeds": "Infant Eyes"
+        },
+        {
+          "id": "10.7",
+          "title": "Evans in 3/4",
+          "setup": "Jam in 3/4 at 160 on the Very Early changes.",
+          "done": "Two choruses comped, one solo chorus.",
+          "needs": "Very Early in 3/4 in Jam, with comping scored over it (jazz ranks 2 and 6).",
+          "feeds": "Very Early"
+        },
+        {
+          "id": "10.8",
+          "title": "Improv game: motif across changes",
+          "setup": "Take one 4-note motif through Inner Urge's descending lydian chords, adjusting each note to the chord.",
+          "done": "16 bars with the motif in every chord.",
+          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
+          "feeds": "Inner Urge"
+        },
+        {
+          "id": "10.9",
+          "title": "A solo-piano arrangement",
+          "href": "/music/record",
+          "setup": "Choose a shelf tune; arrange an intro, the head (ballad left hand or stride), one solo chorus with left-hand comping, the head out and a tag; notate it in Song Studio or Create.",
+          "done": "A recorded performance with no stops, on two days.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "Capstone"
+        },
+        {
+          "id": "10.10",
+          "title": "Repertoire review",
+          "setup": "One old tune per session, rungs a and d.",
+          "done": "30 tunes reviewed in the level with 90% on rung a.",
+          "needs": "A repertoire tracker with spaced review of the tunes (jazz rank 11)."
+        },
+        {
+          "id": "10.11",
+          "title": "Transcribe Herbie",
+          "setup": "8 to 16 bars of Herbie's solo on \"Dolphin Dance\" or his comping on \"Infant Eyes\".",
+          "done": "Along with the record, 3 times.",
+          "needs": "A transcription loop: loop and slow a bar range of a recording and play along (jazz rank 9).",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "dolphin-dance",
+          "title": "Dolphin Dance",
+          "artist": "Herbie Hancock",
+          "teaches": "Non-functional harmony, slash chords",
+          "detail": "Eb area, 36 bars, 140",
+          "bpm": 140,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano, bfc0713",
+              "url": "https://musescore.com/user/12005616/scores/6748063"
+            },
+            {
+              "label": "Later: piano solo, Eric Donvil",
+              "url": "https://musescore.com/user/45348/scores/6643143"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book, vol. 1",
+            "url": "https://musescore.com/sheetmusic?text=Dolphin%20Dance%20lead%20sheet"
+          }
+        },
+        {
+          "id": "speak-like-a-child",
+          "title": "Speak Like a Child",
+          "artist": "Herbie Hancock",
+          "teaches": "Slash-chord ballad, three-horn voicings",
+          "detail": "Ballad, 80",
+          "bpm": 80,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Weak: cjones3674 (few views, check it)",
+              "url": "https://musescore.com/user/32289041/scores/6975026"
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Speak%20Like%20a%20Child%20lead%20sheet"
+          }
+        },
+        {
+          "id": "very-early",
+          "title": "Very Early",
+          "artist": "Bill Evans",
+          "teaches": "Jazz waltz, Evans changes",
+          "detail": "C, 3/4, 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, Giambone",
+              "url": "https://musescore.com/user/11015561/scores/6734455"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6928484",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "nardis",
+          "title": "Nardis",
+          "artist": "Miles Davis",
+          "teaches": "Phrygian and harmonic minor",
+          "detail": "E minor, AABA 32, 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Lead sheet, FrancescoJazz",
+              "url": "https://musescore.com/user/87301/scores/2037421"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6971923",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "infant-eyes",
+          "title": "Infant Eyes",
+          "artist": "Wayne Shorter",
+          "teaches": "Ballad with 9-bar phrases",
+          "detail": "Eb area, ballad, 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official Real Book (community scores are band parts)",
+              "url": "https://musescore.com/user/39593079/scores/15955810",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Infant%20Eyes%20lead%20sheet"
+          }
+        },
+        {
+          "id": "giant-steps",
+          "title": "Giant Steps",
+          "artist": "John Coltrane",
+          "teaches": "Coltrane changes",
+          "detail": "B, 16 bars, learn at 80, then 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Real Book lead sheet, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/6680232"
+            },
+            {
+              "label": "Later: solo piano, MuseJazz",
+              "url": "https://musescore.com/user/3142241/scores/1646471"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6945567",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "inner-urge",
+          "title": "Inner Urge",
+          "artist": "Joe Henderson",
+          "teaches": "Descending lydian chords, an m7b5 vamp",
+          "detail": "F# minor area, 32 bars, 180",
+          "bpm": 180,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official Real Book (community has only band scores)",
+              "url": "https://musescore.com/user/39593079/scores/16003735",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Your Real Book",
+            "url": "https://musescore.com/sheetmusic?text=Inner%20Urge%20lead%20sheet"
+          }
+        },
+        {
+          "id": "peace-piece",
+          "title": "Peace Piece",
+          "artist": "Bill Evans",
+          "teaches": "Cmaj7 to G9sus vamp, free improvisation over an ostinato",
+          "detail": "C, rubato",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano, Francisco Toro",
+              "url": "https://musescore.com/user/13885161/scores/6133617"
+            },
+            {
+              "label": "Official piano solo",
+              "url": "https://musescore.com/user/39593079/scores/6928495",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "Capstone: a 20-minute recorded set of five tunes from five different levels: one blues, one ballad as solo piano, one at 180 or faster, one in a second key on request, one modern (level 10). Each with a head, at least one solo chorus that passes its level's metric, and comping you would be happy to play with a band."
+    }
+  ]
 }

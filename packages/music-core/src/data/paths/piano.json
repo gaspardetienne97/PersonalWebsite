@@ -1,6 +1,4401 @@
 {
   "id": "piano",
   "title": "Piano Path",
-  "subtitle": "From intermediate to about ABRSM Grade 7, with jazz and pop playing; what you know already becomes review.",
-  "levels": []
+  "subtitle": "From intermediate to ABRSM Grade 7, pop and classical; a check-in turns what you already play into quick reviews.",
+  "benchmark": "ABRSM piano Grade 7, Pianote Method level 9",
+  "instruments": ["piano"],
+  "levels": [
+    {
+      "id": "0",
+      "title": "Check-in",
+      "goal": "Find what is already solid. Nothing is skipped: a passed check turns its steps into quick reviews, one cold Check run each on two days.",
+      "adds": "Scales: check at G3 and G4. Pop: check a chord chart. Reading: check Level 3.",
+      "pick": 0,
+      "steps": [
+        {
+          "id": "0.1",
+          "title": "Scales at Grade 3 speed",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80",
+          "setup": "Scales: C, G, D and F major, A, D and E harmonic minor; hands together, two octaves, up and down, Grade 3 (crotchet 80, two a click).",
+          "done": "6 of the 7 keys clean within two tries.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2"
+          },
+          "threshold": 0.85,
+          "minBpm": 80,
+          "minAttempts": 7,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "D",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=62&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=65&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "A minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "D minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=62&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "E minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=64&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            }
+          ],
+          "covers": ["1.1", "1.2"]
+        },
+        {
+          "id": "0.2",
+          "title": "Scales at Grade 4 speed",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100",
+          "setup": "The same keys at Grade 4 (crotchet 100), adding Bb and Eb major, B and C minor.",
+          "done": "6 of 8 keys clean.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2"
+          },
+          "threshold": 0.85,
+          "minBpm": 100,
+          "minAttempts": 8,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Bb",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=70&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=63&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "B minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=71&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "C minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            }
+          ],
+          "covers": ["2.1", "2.2"]
+        },
+        {
+          "id": "0.3",
+          "title": "Arpeggios",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=72",
+          "setup": "Scales, arpeggio: C, G, F, A minor, D minor; hands together, two octaves, Grade 3.",
+          "done": "4 of 5 clean.",
+          "match": {
+            "pattern": "arpeggio",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2"
+          },
+          "threshold": 0.85,
+          "minBpm": 72,
+          "minAttempts": 5,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=72"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=65&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=72"
+            },
+            {
+              "label": "A minor",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=72"
+            },
+            {
+              "label": "D minor",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&tonic=62&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=72"
+            }
+          ],
+          "covers": ["1.3"]
+        },
+        {
+          "id": "0.4",
+          "title": "Reading",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&level=level-3&clefs=treble&follower=performance&climb=true",
+          "setup": "Reading, sight-reading Level 3 as a climb: treble, then bass.",
+          "done": "80% at Level 3 in both clefs.",
+          "match": {
+            "level": "level-3"
+          },
+          "threshold": 0.8,
+          "minAttempts": 2,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Bass clef",
+              "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&level=level-3&clefs=bass&follower=performance&climb=true"
+            }
+          ],
+          "covers": ["1.9"]
+        },
+        {
+          "id": "0.5",
+          "title": "Cadences",
+          "href": "/music/voicings?instrument=piano&variant=cadence&key=0&keys=4",
+          "setup": "Voicings, cadences I IV I V7 I, in 4 keys.",
+          "done": "20 chords at 85% or better.",
+          "match": {
+            "variant": "cadence"
+          },
+          "threshold": 0.85,
+          "minAttempts": 1,
+          "minDays": 1,
+          "covers": ["1.5"]
+        },
+        {
+          "id": "0.6",
+          "title": "Chord chart",
+          "href": "/music/voicings?instrument=piano&variant=inversions&key=0",
+          "setup": "Play I-V-vi-IV in C at 80 in Jam: RH triads in closest position, LH root, as a self-check. Judged on Voicings, closest chords, until the pattern drill exists (Jam runs are practice).",
+          "done": "Two choruses without a stop or a wrong chord.",
+          "match": {
+            "variant": "inversions"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Jam: pop-axis at 80",
+              "href": "/music/jam?progression=pop-axis&bpm=80"
+            }
+          ],
+          "covers": ["1.6", "1.7"]
+        },
+        {
+          "id": "0.7",
+          "title": "Piece test",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, performance mode, after one week of learning each: Minuet in G minor (Grade 2), Clementi Op. 36 No. 1 first movement (Grade 3), Burgmüller Ballade Op. 100 No. 15 (Grade 4). The scores are on the L1 and L3 shelves.",
+          "done": "90% at 100% tempo. A passed piece counts on its shelf; the path still runs from L1.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [],
+      "test": "Every level stays in the path. A step marked review needs one clean Check run, cold, on two different days; a review that fails turns back into a normal step."
+    },
+    {
+      "id": "1",
+      "title": "Chords from a chart",
+      "goal": "play any I-V-vi-IV song from a chord chart with a LH bass and RH triads; Grade 3 scales and arpeggios in 13 keys; reading Level 3 in both clefs.",
+      "adds": "Scales: G3 in 13 keys. Pop: block chords, LH root-fifth-octave. Reading: Level 3 both clefs.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "1.1",
+          "title": "Major scales at Grade 3",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80",
+          "setup": "Scales: C, G, D, A, F, Bb, Eb major; hands together, two octaves, up and down, Grade 3.",
+          "done": "Each key 3 clean runs, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2",
+            "kind": "major"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "65", "70", "63"]
+          },
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "D",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=62&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "A",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=65&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=70&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=63&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            }
+          ],
+          "feeds": "technique"
+        },
+        {
+          "id": "1.2",
+          "title": "Minor scales at Grade 3",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80",
+          "setup": "Scales: A, E, D, G, B, C minor, harmonic and melodic; same setup. Judged on harmonic minor; melodic by the link.",
+          "done": "Each key 3 clean runs, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2",
+            "kind": "harmonic-minor"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["69", "64", "62", "67", "71", "60"]
+          },
+          "links": [
+            {
+              "label": "E",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=64&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "D",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=62&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "B",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=71&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "C",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            },
+            {
+              "label": "Melodic minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=melodic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=80"
+            }
+          ],
+          "feeds": "Minuet in G minor, Old French Song"
+        },
+        {
+          "id": "1.3",
+          "title": "Arpeggios at Grade 3",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=72",
+          "setup": "Scales, arpeggio: the 13 keys of 1.1 and 1.2, Grade 3 (crotchet 72). Pick each key in the drill.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "arpeggio",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2"
+          },
+          "threshold": 0.9,
+          "minBpm": 72,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "65", "70", "63", "64", "71"]
+          },
+          "links": [
+            {
+              "label": "Minor chords",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%203&bpm=72"
+            }
+          ],
+          "feeds": "Clementi, The Wild Rider"
+        },
+        {
+          "id": "1.4",
+          "title": "Contrary motion and chromatic",
+          "href": "/music/two-hand?instrument=piano&pattern=contrary-motion-scale&tonic=C4&bpm=80",
+          "setup": "Two hands, contrary-motion scale in C. E major and the chromatic scale from D wait for new Scales options (drill 4).",
+          "done": "3 clean runs at crotchet 80.",
+          "match": {
+            "pattern": "contrary-motion-scale"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "feeds": "technique"
+        },
+        {
+          "id": "1.5",
+          "title": "Triads through their inversions, 12 keys",
+          "href": "/music/scales?instrument=piano&pattern=blocked&chord=major&tonic=60&span=one-octave&motion=up-down&hands=right&bpm=60",
+          "setup": "Scales, blocked chords, major then minor, each tonic, RH then LH, 60.",
+          "done": "All 12 keys at 90% or better.",
+          "match": {
+            "pattern": "blocked"
+          },
+          "threshold": 0.9,
+          "minBpm": 60,
+          "minAttempts": 2,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Minor",
+              "href": "/music/scales?instrument=piano&pattern=blocked&chord=minor&tonic=60&span=one-octave&motion=up-down&hands=right&bpm=60"
+            },
+            {
+              "label": "Left hand",
+              "href": "/music/scales?instrument=piano&pattern=blocked&chord=major&tonic=60&span=one-octave&motion=up-down&hands=left&bpm=60"
+            }
+          ],
+          "feeds": "every pop song on the shelf"
+        },
+        {
+          "id": "1.6",
+          "title": "Closest-position chords from a chart",
+          "href": "/music/voicings?instrument=piano&variant=inversions&key=0",
+          "setup": "Voicings, closest chords, in C, G, D and F. The drill plays I IV V I; I-V-vi-IV and the top-voice limit wait for the pattern drill.",
+          "done": "48 chords at 90%, top voice moving 4 semitones or less per change.",
+          "match": {
+            "variant": "inversions"
+          },
+          "threshold": 0.9,
+          "each": {
+            "param": "key",
+            "values": ["0", "7", "2", "5"]
+          },
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/voicings?instrument=piano&variant=inversions&key=7"
+            },
+            {
+              "label": "D",
+              "href": "/music/voicings?instrument=piano&variant=inversions&key=2"
+            },
+            {
+              "label": "F",
+              "href": "/music/voicings?instrument=piano&variant=inversions&key=5"
+            }
+          ],
+          "feeds": "Let It Be, Perfect, Hallelujah"
+        },
+        {
+          "id": "1.7",
+          "title": "Patterns 1 and 2: block chords with a LH root",
+          "href": "/music/phrases?instrument=piano&phrase=piano.i-vi-iv-v&bpm=80",
+          "setup": "Phrases: I vi IV V, then Jam pop-axis at 80. The pop pattern drill (drill 1) will add the keys.",
+          "done": "Two clean choruses in C, G and F at 80.",
+          "match": {
+            "phrase": "piano.i-vi-iv-v"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "Jam: pop-axis at 80",
+              "href": "/music/jam?progression=pop-axis&bpm=80"
+            }
+          ],
+          "feeds": "Let It Be, Imagine"
+        },
+        {
+          "id": "1.8",
+          "title": "Pattern 3: LH root-fifth-octave",
+          "setup": "Pop pattern 3 under I-V-vi-IV.",
+          "done": "Two clean choruses in C and G at 72.",
+          "needs": "The pop accompaniment pattern drill (drill 1), pattern 3.",
+          "feeds": "Hallelujah, Perfect"
+        },
+        {
+          "id": "1.9",
+          "title": "Sight-reading, Level 3, both clefs",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&level=level-3&clefs=treble&follower=performance&climb=true",
+          "setup": "Reading, sight-reading Level 3 as a climb: treble, then bass.",
+          "done": "80% at Level 3 in each clef, on three days.",
+          "match": {
+            "level": "level-3"
+          },
+          "threshold": 0.8,
+          "minDays": 3,
+          "links": [
+            {
+              "label": "Bass clef",
+              "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&level=level-3&clefs=bass&follower=performance&climb=true"
+            }
+          ],
+          "feeds": "Reading path"
+        },
+        {
+          "id": "1.10",
+          "title": "Off-beat rhythm",
+          "href": "/music/rhythm?mode=groove&grooveLevel=offbeats",
+          "setup": "Rhythm, groove dictation: kicks off the beat.",
+          "done": "5 runs at 80% or better.",
+          "match": {
+            "mode": "groove",
+            "level": "offbeats"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "feeds": "Imagine, Sweden"
+        },
+        {
+          "id": "1.11",
+          "title": "Two shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "let-it-be",
+          "title": "Let It Be",
+          "artist": "The Beatles",
+          "teaches": "I-V-vi-IV from a chart, LH root",
+          "detail": "C, 72, block chords, octave bass",
+          "bpm": 72,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Easy Piano, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6958236",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Easy Lead Sheet, official",
+            "url": "https://musescore.com/user/39593079/scores/15757582",
+            "official": true
+          }
+        },
+        {
+          "id": "imagine",
+          "title": "Imagine",
+          "artist": "John Lennon",
+          "teaches": "RH syncopated eighths, C to Cmaj7 to F",
+          "detail": "C, 76, off-beat RH",
+          "bpm": 76,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Rodila",
+              "url": "https://musescore.com/user/6662591/scores/4369656"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/7151388",
+            "official": true
+          }
+        },
+        {
+          "id": "perfect",
+          "title": "Perfect",
+          "artist": "Ed Sheeran",
+          "teaches": "6/8 ballad feel, I-vi-IV-V",
+          "detail": "Ab (easy versions in C or G), 63, broken LH",
+          "bpm": 63,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Elaine Merker",
+              "url": "https://musescore.com/user/30487624/scores/6683151"
+            },
+            {
+              "label": "DecPlay lead sheet in C",
+              "url": "https://musescore.com/user/28899113/scores/6266091"
+            }
+          ],
+          "fallback": {
+            "label": "With chord symbols, Pferseer",
+            "url": "https://musescore.com/user/3164761/scores/5043896"
+          }
+        },
+        {
+          "id": "hallelujah",
+          "title": "Hallelujah",
+          "artist": "Leonard Cohen",
+          "teaches": "12/8 ballad, root-fifth LH",
+          "detail": "C, 60, LH broken fifths",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, musicgllover",
+              "url": "https://musescore.com/user/21965011/scores/4217351"
+            }
+          ],
+          "fallback": {
+            "label": "DecPlay lead sheet in C",
+            "url": "https://musescore.com/user/28899113/scores/6263153"
+          }
+        },
+        {
+          "id": "interstellar-main-theme",
+          "title": "Interstellar main theme",
+          "artist": "Hans Zimmer",
+          "teaches": "repeated-note RH over held LH, crescendo",
+          "detail": "A minor, 80, pedal",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "JY's Piano Tutorial, for beginners",
+              "url": "https://musescore.com/user/84292804/scores/19746892"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano arr. Pedemonte, official ArrangeMe",
+            "url": "https://musescore.com/user/97106398/scores/24613678",
+            "official": true
+          }
+        },
+        {
+          "id": "sweden",
+          "title": "Sweden",
+          "artist": "C418, Minecraft",
+          "teaches": "slow voicings, LH octaves, pedal",
+          "detail": "G, 70",
+          "bpm": 70,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Kdielol",
+              "url": "https://musescore.com/user/147984/scores/163968"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/7401173",
+            "official": true
+          }
+        },
+        {
+          "id": "zeldas-lullaby",
+          "title": "Zelda's Lullaby",
+          "artist": "Koji Kondo",
+          "teaches": "3/4, LH waltz arpeggio",
+          "detail": "G, 90",
+          "bpm": 90,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Alex Olvera",
+              "url": "https://musescore.com/user/8365761/scores/3549526"
+            }
+          ],
+          "fallback": {
+            "label": "Easy version",
+            "url": "https://musescore.com/user/20360426/scores/4874570"
+          }
+        },
+        {
+          "id": "minuet-in-g-minor-bwv-anh-115",
+          "title": "Minuet in G minor BWV Anh. 115",
+          "artist": "Petzold",
+          "teaches": "two-voice counterpoint, minor key",
+          "detail": "G minor, 3/4, crotchet 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, PianoXML",
+              "url": "https://musescore.com/user/9292486/scores/2086136"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP, Notebook for Anna Magdalena Bach",
+            "url": "https://imslp.org/wiki/Notebook_for_Anna_Magdalena_Bach_(Bach,_Johann_Sebastian)"
+          }
+        },
+        {
+          "id": "sonatina-op-36-no-1-mvt-1",
+          "title": "Sonatina Op. 36 No. 1, mvt 1",
+          "artist": "Clementi",
+          "teaches": "classical scale runs and broken chords, sonatina form",
+          "detail": "C, crotchet 120",
+          "bpm": 120,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, PianoXML",
+              "url": "https://musescore.com/user/9292486/scores/2052071"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Op. 36",
+            "url": "https://imslp.org/wiki/6_Sonatinas,_Op.36_(Clementi,_Muzio)"
+          }
+        },
+        {
+          "id": "the-wild-rider-op-68-no-8",
+          "title": "The Wild Rider Op. 68 No. 8",
+          "artist": "Schumann",
+          "teaches": "staccato melody in LH and RH, 6/8",
+          "detail": "A minor, dotted crotchet 100",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, qvn6r7gmpp",
+              "url": "https://musescore.com/user/44222951/scores/11676037"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Album for the Young",
+            "url": "https://imslp.org/wiki/Album_f%C3%BCr_die_Jugend,_Op.68_(Schumann,_Robert)"
+          }
+        },
+        {
+          "id": "old-french-song-op-39-no-16",
+          "title": "Old French Song Op. 39 No. 16",
+          "artist": "Tchaikovsky",
+          "teaches": "legato melody over chords, balance",
+          "detail": "G minor, crotchet 72",
+          "bpm": 72,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, James Brigham",
+              "url": "https://musescore.com/user/58480/scores/1170281"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Children's Album",
+            "url": "https://imslp.org/wiki/Children's_Album,_Op.39_(Tchaikovsky,_Pyotr)"
+          }
+        },
+        {
+          "id": "melody-op-68-no-1",
+          "title": "Melody Op. 68 No. 1",
+          "artist": "Schumann",
+          "teaches": "cantabile melody, LH broken accompaniment",
+          "detail": "C, crotchet 100",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Tafkas",
+              "url": "https://musescore.com/user/37378841/scores/7054053"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Album for the Young",
+            "url": "https://imslp.org/wiki/Album_f%C3%BCr_die_Jugend,_Op.68_(Schumann,_Robert)"
+          }
+        }
+      ],
+      "test": "two shelf songs (one classical) in performance mode at 90% and 100% tempo; Grade 3 scale and arpeggio in 4 keys the app picks, clean first try; I-V-vi-IV chart in a key the app names with pattern 3, two clean choruses."
+    },
+    {
+      "id": "2",
+      "title": "Broken chords, ballads and the pedal",
+      "goal": "the ballad sound (LH broken chords, legato pedal, a singing melody over the accompaniment); Grade 4 speed in 12 keys; first grand-staff reading.",
+      "adds": "Scales: G4 in 12 keys. Pop: ballad LH arpeggio, RH broken triads, legato pedal. Reading: grand staff G3.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "2.1",
+          "title": "Major scales at Grade 4",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100",
+          "setup": "Scales: C, G, D, A, E, F, Bb, Eb major; hands together, two octaves, Grade 4 (crotchet 100).",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2",
+            "kind": "major"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "65", "70", "63"]
+          },
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "D",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=62&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "A",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "E",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=64&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=65&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=70&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=63&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            }
+          ],
+          "feeds": "technique"
+        },
+        {
+          "id": "2.2",
+          "title": "Minor scales at Grade 4",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100",
+          "setup": "Scales: A, E, B, D, G, C minor, harmonic and melodic, Grade 4. Judged on harmonic minor; melodic by the link.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2",
+            "kind": "harmonic-minor"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["69", "64", "71", "62", "67", "60"]
+          },
+          "links": [
+            {
+              "label": "E",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=64&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "B",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=71&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "D",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=62&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "C",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            },
+            {
+              "label": "Melodic minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=melodic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            }
+          ],
+          "feeds": "Comptine, Gymnopédie"
+        },
+        {
+          "id": "2.3",
+          "title": "Arpeggios at Grade 4",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=80",
+          "setup": "Scales, arpeggio: the keys of 2.1 and 2.2, Grade 4 (crotchet 80). Pick each key in the drill.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "arpeggio",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "65", "70", "63", "71"]
+          },
+          "links": [
+            {
+              "label": "Minor chords",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=80"
+            }
+          ],
+          "feeds": "Make You Feel My Love"
+        },
+        {
+          "id": "2.4",
+          "title": "Dominant seventh arpeggios",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=dominant-7&tonic=67&span=two-octave&motion=up-down&hands=right&bpm=72",
+          "setup": "Scales, arpeggio, dominant 7th: G7, C7, D7, F7, hands separately, crotchet 72.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "arpeggio",
+            "chord": "dominant-7"
+          },
+          "threshold": 0.9,
+          "minBpm": 72,
+          "each": {
+            "param": "tonic",
+            "values": ["67", "60", "62", "65"]
+          },
+          "links": [
+            {
+              "label": "C7",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=dominant-7&tonic=60&span=two-octave&motion=up-down&hands=right&bpm=72"
+            },
+            {
+              "label": "D7",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=dominant-7&tonic=62&span=two-octave&motion=up-down&hands=right&bpm=72"
+            },
+            {
+              "label": "F7",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=dominant-7&tonic=65&span=two-octave&motion=up-down&hands=right&bpm=72"
+            },
+            {
+              "label": "Left hand",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=dominant-7&tonic=67&span=two-octave&motion=up-down&hands=left&bpm=72"
+            }
+          ],
+          "feeds": "blues in L4"
+        },
+        {
+          "id": "2.5",
+          "title": "Broken chords through inversions",
+          "href": "/music/scales?instrument=piano&pattern=broken&chord=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=80",
+          "setup": "Scales, broken chords, major and minor, 6 keys, Grade 4 arpeggio speed.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "broken"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minAttempts": 18,
+          "links": [
+            {
+              "label": "Minor",
+              "href": "/music/scales?instrument=piano&pattern=broken&chord=minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=80"
+            }
+          ],
+          "feeds": "The Scientist, Una Mattina"
+        },
+        {
+          "id": "2.6",
+          "title": "Legato pedal",
+          "href": "/music/pedal?progression=I-vi-IV-V&key=0&bpm=60",
+          "setup": "Pedal: I-vi-IV-V and I-V-vi-IV in 3 keys, 60 then 72.",
+          "done": "3 runs at 85% or better per progression at 72, on two days.",
+          "threshold": 0.85,
+          "minBpm": 72,
+          "each": {
+            "param": "progression",
+            "values": ["I-vi-IV-V", "I-V-vi-IV"]
+          },
+          "links": [
+            {
+              "label": "I-V-vi-IV",
+              "href": "/music/pedal?progression=I-V-vi-IV&key=0&bpm=60"
+            }
+          ],
+          "feeds": "every ballad"
+        },
+        {
+          "id": "2.7",
+          "title": "Pattern 6: LH ballad arpeggio (1-5-8-10)",
+          "href": "/music/two-hand?instrument=piano&pattern=lh-pulse-rh-line&tonic=C4&bpm=72",
+          "setup": "Two hands, pulse and line, in C, G and F. Pattern 6 with pedal under I-V-vi-IV waits for the pop pattern drill (drill 1).",
+          "done": "Two clean choruses of I-V-vi-IV in C, G and F at 72.",
+          "match": {
+            "pattern": "lh-pulse-rh-line"
+          },
+          "threshold": 0.9,
+          "minBpm": 72,
+          "each": {
+            "param": "tonic",
+            "values": ["C4", "G4", "F4"]
+          },
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/two-hand?instrument=piano&pattern=lh-pulse-rh-line&tonic=G4&bpm=72"
+            },
+            {
+              "label": "F",
+              "href": "/music/two-hand?instrument=piano&pattern=lh-pulse-rh-line&tonic=F4&bpm=72"
+            }
+          ],
+          "feeds": "Your Song, Make You Feel My Love"
+        },
+        {
+          "id": "2.8",
+          "title": "Pattern 5: RH broken triad eighths",
+          "setup": "Pop pattern 5 under a progression.",
+          "done": "Two clean choruses at 80 in 2 keys.",
+          "needs": "The pop accompaniment pattern drill (drill 1), pattern 5.",
+          "feeds": "Someone Like You (L7), The Scientist"
+        },
+        {
+          "id": "2.9",
+          "title": "Melody over accompaniment",
+          "href": "/music/two-hand?instrument=piano&pattern=lh-shell-rh-line&tonic=C4&dynamics=true",
+          "setup": "Two hands, shell and line, melody louder. Velocity balance scored per beat waits for drill 9.",
+          "done": "Melody at least 10 velocity units above the other notes on 80% of beats.",
+          "match": {
+            "pattern": "lh-shell-rh-line",
+            "dynamics": "true"
+          },
+          "threshold": 0.8,
+          "feeds": "Gymnopédie, Old French Song"
+        },
+        {
+          "id": "2.10",
+          "title": "Grand-staff reading, Grade 3",
+          "setup": "Grand-staff sight-reading at Grade 3. Until then: an unseen shelf score in Song Studio wait mode, first pass.",
+          "done": "80% on three days.",
+          "needs": "Grand-staff sight-reading at ABRSM Grade 3 (drill 2).",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "Reading path"
+        },
+        {
+          "id": "2.11",
+          "title": "Hear the bass line",
+          "setup": "Ear, bass lines: roots on 1, 2, 4, 5 and 6 (the I-V-vi-IV family).",
+          "done": "80% over a run, on two days.",
+          "feeds": "charts by ear",
+          "href": "/music/ear/bass-lines?answer=choice&bassLevel=roots-diatonic",
+          "threshold": 0.8,
+          "minAttempts": 1
+        },
+        {
+          "id": "2.12",
+          "title": "Two shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days, one with pedal.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "the-scientist",
+          "title": "The Scientist",
+          "artist": "Coldplay",
+          "teaches": "RH broken chords, Dm-Bb-F",
+          "detail": "F, 74",
+          "bpm": 74,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, solarxlunar",
+              "url": "https://musescore.com/user/26486606/scores/4886268"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6953647",
+            "official": true
+          }
+        },
+        {
+          "id": "yesterday",
+          "title": "Yesterday",
+          "artist": "The Beatles",
+          "teaches": "descending bass, inner-voice chords",
+          "detail": "F, 96",
+          "bpm": 96,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Easy Piano arr. Heumann, official",
+              "url": "https://musescore.com/user/39593079/scores/15393943",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Easy Lead Sheet, official",
+            "url": "https://musescore.com/user/39593079/scores/15757534",
+            "official": true
+          }
+        },
+        {
+          "id": "make-you-feel-my-love",
+          "title": "Make You Feel My Love",
+          "artist": "Adele",
+          "teaches": "ballad LH, slash-chord bass walk",
+          "detail": "Bb, 72",
+          "bpm": 72,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, SadieKing27 easy",
+              "url": "https://musescore.com/user/28416909/scores/6266942"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6946598",
+            "official": true
+          }
+        },
+        {
+          "id": "your-song",
+          "title": "Your Song",
+          "artist": "Elton John",
+          "teaches": "moving bass in inversions",
+          "detail": "Eb, 64",
+          "bpm": 64,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, SadieKing27 easy",
+              "url": "https://musescore.com/user/28416909/scores/5926837"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6957568",
+            "official": true
+          }
+        },
+        {
+          "id": "una-mattina",
+          "title": "Una Mattina",
+          "artist": "Einaudi",
+          "teaches": "LH ostinato, pedal, A minor",
+          "detail": "A minor, 72",
+          "bpm": 72,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6944428",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/16092706",
+            "official": true
+          }
+        },
+        {
+          "id": "comptine-dun-autre-ete-easy",
+          "title": "Comptine d'un autre été, easy",
+          "artist": "Yann Tiersen",
+          "teaches": "LH broken eighths, RH balance",
+          "detail": "E minor, 100",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Shugavox easy",
+              "url": "https://musescore.com/user/29546904/scores/8304821"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/7151238",
+            "official": true
+          }
+        },
+        {
+          "id": "hedwigs-theme",
+          "title": "Hedwig's Theme",
+          "artist": "John Williams",
+          "teaches": "3/8 waltz, chromatic melody",
+          "detail": "E minor, 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Easy Piano, official",
+              "url": "https://musescore.com/user/39593079/scores/16093261",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official Faber",
+            "url": "https://musescore.com/user/39593115/scores/6920501",
+            "official": true
+          }
+        },
+        {
+          "id": "dearly-beloved",
+          "title": "Dearly Beloved",
+          "artist": "Yoko Shimomura",
+          "teaches": "arpeggio LH, pedal, game theme",
+          "detail": "C, 76",
+          "bpm": 76,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Unchained Oblivion",
+              "url": "https://musescore.com/user/7799631/scores/2014001"
+            }
+          ],
+          "fallback": {
+            "label": "Educational Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/15920221",
+            "official": true
+          }
+        },
+        {
+          "id": "arabesque-op-100-no-2",
+          "title": "Arabesque Op. 100 No. 2",
+          "artist": "Burgmüller",
+          "teaches": "fast RH five-finger runs, staccato LH chords",
+          "detail": "A minor, crotchet 130",
+          "bpm": 130,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, PianoXML",
+              "url": "https://musescore.com/user/9292486/scores/5849868"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Op. 100",
+            "url": "https://imslp.org/wiki/25_%C3%89tudes_faciles_et_progressives,_Op.100_(Burgm%C3%BCller,_Friedrich)"
+          }
+        },
+        {
+          "id": "musette-in-d-bwv-anh-126",
+          "title": "Musette in D BWV Anh. 126",
+          "artist": "Bach",
+          "teaches": "LH octave drone and leaps",
+          "detail": "D, crotchet 112",
+          "bpm": 112,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, PianoXML",
+              "url": "https://musescore.com/user/9292486/scores/2086211"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Notebook for Anna Magdalena Bach",
+            "url": "https://imslp.org/wiki/Notebook_for_Anna_Magdalena_Bach_(Bach,_Johann_Sebastian)"
+          }
+        },
+        {
+          "id": "gymnopedie-no-1",
+          "title": "Gymnopédie No. 1",
+          "artist": "Satie",
+          "teaches": "LH leaps, pedal, soft melody",
+          "detail": "D, crotchet 66",
+          "bpm": 66,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/4766391"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/3_Gymnop%C3%A9dies_(Satie,_Erik)"
+          }
+        },
+        {
+          "id": "le-onde",
+          "title": "Le Onde",
+          "artist": "Einaudi",
+          "teaches": "wave-like LH and RH arpeggios, pedal, quiet dynamics",
+          "detail": "C, 108",
+          "bpm": 108,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Easy Piano, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6957948",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/15267367",
+            "official": true
+          }
+        }
+      ],
+      "test": "two shelf songs incl. one with pedal; Grade 4 scales in 4 keys picked by the app; pattern 6 under I-vi-IV-V in a named key, two choruses with clean pedal."
+    },
+    {
+      "id": "3",
+      "title": "Syncopation and right-hand patterns",
+      "goal": "the driving pop right hand (3+3+2 grouping, pushes, Alberti, rock octaves) and Grade 4 technique in every key; 6/8 and anacrusis in reading.",
+      "adds": "Scales: G4 in all 24 keys. Pop: 3+3+2, pushes, Alberti, rock octaves. Reading: grand staff G4, 6/8.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "3.1",
+          "title": "All 12 majors at Grade 4",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100",
+          "setup": "Scales, hands together, two octaves, Grade 4. Pick each key in the drill; a \"today's 4 keys\" rotation waits for drill 5.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2",
+            "kind": "major"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "feeds": "technique"
+        },
+        {
+          "id": "3.2",
+          "title": "All 12 minors at Grade 4",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100",
+          "setup": "Scales, harmonic and melodic minor, Grade 4. Judged on harmonic minor; melodic by the link.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2",
+            "kind": "harmonic-minor"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Melodic minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=melodic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=100"
+            }
+          ],
+          "feeds": "Chopin E minor prelude"
+        },
+        {
+          "id": "3.3",
+          "title": "Arpeggios at Grade 4, all keys",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=80",
+          "setup": "Scales, arpeggio, major and minor, Grade 4. Pick each key in the drill.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "arpeggio",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "2"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minAttempts": 6,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Minor chords",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=2&grade=Grade%204&bpm=80"
+            }
+          ],
+          "feeds": "Bach C prelude"
+        },
+        {
+          "id": "3.4",
+          "title": "Chromatic hands together and contrary motion",
+          "setup": "Chromatic scale and contrary motion in any key, from F sharp, Grade 4.",
+          "done": "3 clean runs.",
+          "needs": "Chromatic and contrary-motion options in Scales (drill 4).",
+          "feeds": "technique"
+        },
+        {
+          "id": "3.5",
+          "title": "Pattern 7: 3+3+2 grouping",
+          "setup": "Pop pattern 7. Until then: loop the Clocks intro in Song Studio.",
+          "done": "Clocks intro 3 clean loops at the record's 131 BPM.",
+          "needs": "The pop accompaniment pattern drill (drill 1), pattern 7.",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "Clocks"
+        },
+        {
+          "id": "3.6",
+          "title": "Pattern 8: pop syncopation (1, and-of-2, 4)",
+          "setup": "Pop pattern 8 under a progression.",
+          "done": "Two choruses at 90 in 2 keys.",
+          "needs": "The pop accompaniment pattern drill (drill 1), pattern 8.",
+          "feeds": "Fix You, Hey Jude"
+        },
+        {
+          "id": "3.7",
+          "title": "Alberti and LH patterns",
+          "href": "/music/two-hand?instrument=piano&pattern=alberti-rh-holds&tonic=C4&bpm=100",
+          "setup": "Two hands, Alberti and holds, in C, G and F; Phrases, Alberti, as a warm-up.",
+          "done": "3 clean runs at 100 in each key, on two days.",
+          "match": {
+            "pattern": "alberti-rh-holds"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "each": {
+            "param": "tonic",
+            "values": ["C4", "G4", "F4"]
+          },
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/two-hand?instrument=piano&pattern=alberti-rh-holds&tonic=G4&bpm=100"
+            },
+            {
+              "label": "F",
+              "href": "/music/two-hand?instrument=piano&pattern=alberti-rh-holds&tonic=F4&bpm=100"
+            },
+            {
+              "label": "Phrases: Alberti",
+              "href": "/music/phrases?instrument=piano&phrase=piano.alberti"
+            }
+          ],
+          "feeds": "Clementi, Kuhlau"
+        },
+        {
+          "id": "3.8",
+          "title": "Pattern 4: rock octave eighths",
+          "setup": "Pop pattern 4 under a progression.",
+          "done": "Two choruses at 110.",
+          "needs": "The pop accompaniment pattern drill (drill 1), pattern 4.",
+          "feeds": "Hey Jude, Don't Stop Believin' (L4)"
+        },
+        {
+          "id": "3.9",
+          "title": "Cadences in every key",
+          "href": "/music/voicings?instrument=piano&variant=cadence&key=0&keys=12",
+          "setup": "Voicings, cadences, all 12 keys.",
+          "done": "60 chords at 85%, on two days.",
+          "match": {
+            "variant": "cadence",
+            "keys": "12"
+          },
+          "threshold": 0.85,
+          "minAttempts": 1,
+          "feeds": "charts in any key"
+        },
+        {
+          "id": "3.10",
+          "title": "Reading at Grade 4: 6/8, anacrusis, accidentals",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&level=level-3&clefs=treble,bass&follower=performance&meter=compound",
+          "setup": "Reading, sight-reading Level 3 in 6/8, both clefs. Grade 4 grand-staff reading waits for drill 2.",
+          "done": "80% on three days.",
+          "match": {
+            "level": "level-3",
+            "meter": "compound"
+          },
+          "threshold": 0.8,
+          "minDays": 3,
+          "feeds": "Hallelujah, The Wild Rider"
+        },
+        {
+          "id": "3.11",
+          "title": "Sixteenth syncopation",
+          "href": "/music/rhythm?mode=groove&grooveLevel=sixteenths",
+          "setup": "Rhythm, groove dictation: sixteenth kicks and ghost snares.",
+          "done": "5 runs at 80%.",
+          "match": {
+            "mode": "groove",
+            "level": "sixteenths"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "feeds": "Clocks, Hello"
+        },
+        {
+          "id": "3.12",
+          "title": "Two shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "clocks",
+          "title": "Clocks",
+          "artist": "Coldplay",
+          "teaches": "3+3+2 RH arpeggio grouping",
+          "detail": "Eb mixolydian feel, 131",
+          "bpm": 131,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Leon Montealegre",
+              "url": "https://musescore.com/user/9763941/scores/4003556"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6938613",
+            "official": true
+          }
+        },
+        {
+          "id": "fix-you",
+          "title": "Fix You",
+          "artist": "Coldplay",
+          "teaches": "sustained chords, build to octaves",
+          "detail": "Eb, 69",
+          "bpm": 69,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Leon Montealegre",
+              "url": "https://musescore.com/user/9763941/scores/2978961"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6941789",
+            "official": true
+          }
+        },
+        {
+          "id": "hey-jude",
+          "title": "Hey Jude",
+          "artist": "The Beatles",
+          "teaches": "pop pushes, LH octaves, long coda",
+          "detail": "F, 74",
+          "bpm": 74,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6942440",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6962308",
+            "official": true
+          }
+        },
+        {
+          "id": "hello",
+          "title": "Hello",
+          "artist": "Adele",
+          "teaches": "minor ballad, LH octaves, dynamics",
+          "detail": "F minor, 79",
+          "bpm": 79,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, F.I.R.E.",
+              "url": "https://musescore.com/user/32136986/scores/5655110"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6933646",
+            "official": true
+          }
+        },
+        {
+          "id": "game-of-thrones-theme",
+          "title": "Game of Thrones theme",
+          "artist": "Ramin Djawadi",
+          "teaches": "3/4 ostinato, minor to major",
+          "detail": "C minor, 160 (3/4)",
+          "bpm": 160,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Neoguizmo",
+              "url": "https://musescore.com/user/2072681/scores/1651626"
+            }
+          ],
+          "fallback": {
+            "label": "lucky37 easy",
+            "url": "https://musescore.com/user/158751/scores/2163051"
+          }
+        },
+        {
+          "id": "hes-a-pirate-easy",
+          "title": "He's a Pirate, easy",
+          "artist": "Klaus Badelt",
+          "teaches": "6/8 drive, repeated LH",
+          "detail": "D minor, dotted crotchet 100 to 130",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, onnikoivisto easy",
+              "url": "https://musescore.com/user/2830596/scores/3992921"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6962335",
+            "official": true
+          }
+        },
+        {
+          "id": "comptine-dun-autre-ete-full",
+          "title": "Comptine d'un autre été, full",
+          "artist": "Yann Tiersen",
+          "teaches": "fast LH broken eighths, voicing",
+          "detail": "E minor, 100",
+          "bpm": 100,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, idallen",
+              "url": "https://musescore.com/user/33574620/scores/7822463"
+            }
+          ],
+          "fallback": {
+            "label": "Faber official",
+            "url": "https://musescore.com/user/39593115/scores/6920304",
+            "official": true
+          }
+        },
+        {
+          "id": "prelude-in-e-minor-op-28-no-4",
+          "title": "Prelude in E minor Op. 28 No. 4",
+          "artist": "Chopin",
+          "teaches": "LH repeated chords, chromatic voice leading, pedal",
+          "detail": "E minor, crotchet 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/65474"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Preludes Op. 28",
+            "url": "https://imslp.org/wiki/Preludes,_Op.28_(Chopin,_Fr%C3%A9d%C3%A9ric)"
+          }
+        },
+        {
+          "id": "prelude-in-c-bwv-846",
+          "title": "Prelude in C BWV 846",
+          "artist": "Bach",
+          "teaches": "broken-chord pattern, harmony by hand",
+          "detail": "C, crotchet 66",
+          "bpm": 66,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community upload",
+              "url": "https://musescore.com/user/101554/scores/117279"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP WTC I",
+            "url": "https://imslp.org/wiki/Das_wohltemperierte_Klavier_I,_BWV_846-869_(Bach,_Johann_Sebastian)"
+          }
+        },
+        {
+          "id": "ballade-op-100-no-15",
+          "title": "Ballade Op. 100 No. 15",
+          "artist": "Burgmüller",
+          "teaches": "LH melody under RH staccato chords",
+          "detail": "C minor, crotchet 132",
+          "bpm": 132,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, PianoXML",
+              "url": "https://musescore.com/user/9292486/scores/5849871"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Op. 100",
+            "url": "https://imslp.org/wiki/25_%C3%89tudes_faciles_et_progressives,_Op.100_(Burgm%C3%BCller,_Friedrich)"
+          }
+        },
+        {
+          "id": "gnossienne-no-1",
+          "title": "Gnossienne No. 1",
+          "artist": "Satie",
+          "teaches": "free time, harmonic minor colour, LH leaps",
+          "detail": "F minor, crotchet 60",
+          "bpm": 60,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/4131536"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/Gnossiennes_(Satie,_Erik)"
+          }
+        },
+        {
+          "id": "everglow",
+          "title": "Everglow",
+          "artist": "Coldplay",
+          "teaches": "sparse ballad voicings, LH octaves, space",
+          "detail": "G, 72",
+          "bpm": 72,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, yongjiexx",
+              "url": "https://musescore.com/user/10576476/scores/5357609"
+            }
+          ],
+          "fallback": {
+            "label": "Alicia M., simpler",
+            "url": "https://musescore.com/user/3888061/scores/3350816"
+          }
+        }
+      ],
+      "test": "two shelf songs (one classical); Grade 4 scales and arpeggios in 6 keys picked by the app (incl. 2 black-key keys); a chart in a named key with pattern 7 or 8, two choruses."
+    },
+    {
+      "id": "4",
+      "title": "Blues, boogie and rock piano",
+      "goal": "a 12-bar blues with a boogie left hand and a blues-scale right hand, a turnaround and an ending; rock eighths under a pop song; first Grade 5 speeds (four notes a click).",
+      "adds": "Scales: G5 in 6 keys. Pop: 12-bar, boogie LH, blues scale, turnaround. Reading: G4, lead sheet melody.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "4.1",
+          "title": "Grade 5 speed in 6 keys",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=60",
+          "setup": "Scales: C, G, D, F major, A and E minor; hands together, two octaves, Grade 5 (minim 60, four a click).",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 60,
+          "minAttempts": 3,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "65", "69", "64"]
+          },
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=60"
+            },
+            {
+              "label": "D",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=62&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=60"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=65&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=60"
+            },
+            {
+              "label": "A",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=60"
+            },
+            {
+              "label": "E",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=64&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=60"
+            }
+          ],
+          "feeds": "technique"
+        },
+        {
+          "id": "4.2",
+          "title": "Blues scale and minor pentatonic",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=blues&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&bpm=80",
+          "setup": "Scales, blues and minor pentatonic, C, F, G, Bb; hands together, crotchet 80, two a click. Judged on the blues scale; minor pentatonic by the link.",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "scale",
+            "kind": "blues",
+            "hands": "both",
+            "perBeat": "2"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "65", "67", "70"]
+          },
+          "links": [
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=blues&tonic=65&span=two-octave&motion=up-down&hands=both&perBeat=2&bpm=80"
+            },
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=blues&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=2&bpm=80"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=blues&tonic=70&span=two-octave&motion=up-down&hands=both&perBeat=2&bpm=80"
+            },
+            {
+              "label": "Minor pentatonic",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=minor-pentatonic&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=2&bpm=80"
+            }
+          ],
+          "feeds": "blues RH"
+        },
+        {
+          "id": "4.3",
+          "title": "Hear the 12-bar",
+          "setup": "Jam, blues backing in C and F: say where bar 5, bar 9 and the turnaround are. Judged on Ear, chords in a key (I, IV, V).",
+          "done": "3 choruses followed without losing the form; the ear drill at 80%.",
+          "links": [
+            {
+              "label": "Jam: blues backing",
+              "href": "/music/jam?progression=blues"
+            }
+          ],
+          "feeds": "all blues songs",
+          "href": "/music/ear/chord-functions?answer=choice&functions=I,IV,V",
+          "threshold": 0.8,
+          "minAttempts": 1
+        },
+        {
+          "id": "4.4",
+          "title": "Boogie bass, LH alone",
+          "href": "/music/phrases?instrument=piano&phrase=piano.boogie-bass&bpm=100",
+          "setup": "Phrases: boogie bass and blues shuffle LH, in C. F and G wait for drill 7.",
+          "done": "3 clean runs at 100 in each key, on two days.",
+          "threshold": 0.9,
+          "minBpm": 100,
+          "each": {
+            "param": "phrase",
+            "values": ["piano.boogie-bass", "piano.blues-shuffle-lh"]
+          },
+          "links": [
+            {
+              "label": "Blues shuffle LH",
+              "href": "/music/phrases?instrument=piano&phrase=piano.blues-shuffle-lh&bpm=100"
+            }
+          ],
+          "feeds": "Hit the Road Jack, boogie shelf songs"
+        },
+        {
+          "id": "4.5",
+          "title": "Swing and shuffle feel",
+          "href": "/music/rhythm?mode=read-and-tap&pattern=swing-eighths",
+          "setup": "Rhythm, read and tap: swing eighths and triplets.",
+          "done": "5 runs at 80% or better on each.",
+          "exerciseIds": ["rhythm.pattern.swing-eighths", "rhythm.pattern.triplets"],
+          "each": {
+            "param": "pattern",
+            "values": ["swing-eighths", "triplets"]
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Triplets",
+              "href": "/music/rhythm?mode=read-and-tap&pattern=triplets"
+            }
+          ],
+          "feeds": "boogie, The Entertainer"
+        },
+        {
+          "id": "4.6",
+          "title": "Boogie LH plus RH chords on 2 and 4",
+          "setup": "Boogie LH with RH chords over the Jam blues backing.",
+          "done": "Two choruses at 100 in C and F.",
+          "needs": "Blues and boogie left-hand patterns (drill 7).",
+          "links": [
+            {
+              "label": "Jam: blues backing",
+              "href": "/music/jam?progression=blues"
+            }
+          ],
+          "feeds": "boogie shelf songs"
+        },
+        {
+          "id": "4.7",
+          "title": "Blues licks over the changes",
+          "href": "/music/comping?instrument=piano&pattern=blue-third-c7",
+          "setup": "Comping: blue third over C7, F7 and G7; Phrases, C blues lick.",
+          "done": "3 runs at 85% on each, on two days.",
+          "threshold": 0.85,
+          "each": {
+            "param": "pattern",
+            "values": ["blue-third-c7", "blue-third-f7", "blue-third-g7"]
+          },
+          "links": [
+            {
+              "label": "F7",
+              "href": "/music/comping?instrument=piano&pattern=blue-third-f7"
+            },
+            {
+              "label": "G7",
+              "href": "/music/comping?instrument=piano&pattern=blue-third-g7"
+            },
+            {
+              "label": "Phrases: C blues lick",
+              "href": "/music/phrases?instrument=piano&phrase=piano.c-blues-lick"
+            }
+          ],
+          "feeds": "12-bar improvising"
+        },
+        {
+          "id": "4.8",
+          "title": "Turnaround and ending",
+          "setup": "The I-I7-IV-#IVdim-I-VI7-ii-V7 turnaround and a chromatic ending, in C and F.",
+          "done": "3 clean runs per key.",
+          "needs": "A blues turnaround and ending in Phrases.",
+          "feeds": "every blues"
+        },
+        {
+          "id": "4.9",
+          "title": "Rock eighths and pushes under a song",
+          "setup": "Pop patterns 4 and 8 over a song chart (Don't Stop Believin', Viva la Vida).",
+          "done": "Two clean choruses at the record's tempo.",
+          "needs": "The pop accompaniment pattern drill (drill 1), patterns 4 and 8 over a song chart.",
+          "feeds": "rock shelf songs"
+        },
+        {
+          "id": "4.10",
+          "title": "Grand staff Grade 4",
+          "setup": "Grand-staff sight-reading at Grade 4.",
+          "done": "80% on three days.",
+          "needs": "Grand-staff sight-reading at ABRSM Grade 4 (drill 2).",
+          "feeds": "Reading path"
+        },
+        {
+          "id": "4.11",
+          "title": "Jazz blues side trip",
+          "setup": "Jazz path: the 12-bar blues with shell voicings.",
+          "done": "The Jazz path's pass mark.",
+          "links": [
+            {
+              "label": "Jam: blues backing",
+              "href": "/music/jam?progression=blues"
+            },
+            {
+              "label": "Comping: Charleston shells",
+              "href": "/music/comping?instrument=piano&pattern=blue-third-c7&lh=shell"
+            }
+          ],
+          "feeds": "cross-link"
+        },
+        {
+          "id": "4.12",
+          "title": "Two shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days, at least one blues or boogie.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "hit-the-road-jack",
+          "title": "Hit the Road Jack",
+          "artist": "Ray Charles",
+          "teaches": "descending minor bass Am-G-F-E, call and response",
+          "detail": "A minor, 172",
+          "bpm": 172,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, SkyRecon5000",
+              "url": "https://musescore.com/user/6308121/scores/2381696"
+            }
+          ],
+          "fallback": {
+            "label": "Easy, SvetlanaZemlyanaya",
+            "url": "https://musescore.com/user/24701816/scores/5096471"
+          }
+        },
+        {
+          "id": "boogie-woogie-piano-exercises",
+          "title": "Boogie Woogie Piano Exercises",
+          "artist": "New Orleans Community Music School",
+          "teaches": "graded boogie LH patterns with RH, 12-bar",
+          "detail": "C, 100 to 120",
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community",
+              "url": "https://musescore.com/user/1234691/scores/1137111"
+            }
+          ],
+          "fallback": {
+            "label": "Amy Pellegrini, 12 Bar Blues Piano Exercise",
+            "url": "https://musescore.com/user/3607356/scores/6555860"
+          }
+        },
+        {
+          "id": "12-bar-blues-on-walking-bass-and-boogie-woogie",
+          "title": "12-Bar Blues on Walking Bass and Boogie Woogie",
+          "artist": "Tomipang",
+          "teaches": "walking bass then boogie under the same 12-bar",
+          "detail": "C, 110",
+          "bpm": 110,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community",
+              "url": "https://musescore.com/user/2538606/scores/3788901"
+            }
+          ],
+          "fallback": {
+            "label": "Easy boogie woogie, niklasreith",
+            "url": "https://musescore.com/user/33138417/scores/5736450"
+          }
+        },
+        {
+          "id": "the-entertainer",
+          "title": "The Entertainer",
+          "artist": "Joplin",
+          "teaches": "ragtime LH (bass, chord), syncopated RH",
+          "detail": "C, crotchet 80",
+          "bpm": 80,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, James Brigham",
+              "url": "https://musescore.com/user/58480/scores/529126"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/The_Entertainer_(Joplin,_Scott)"
+          }
+        },
+        {
+          "id": "piano-man-intermediate",
+          "title": "Piano Man, intermediate",
+          "artist": "Billy Joel",
+          "teaches": "3/4 waltz LH, walking bass C-G/B-F/A",
+          "detail": "C, 3/4, dotted minim 60",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Babak_G",
+              "url": "https://musescore.com/user/22164356/scores/4543626"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6941641",
+            "official": true
+          }
+        },
+        {
+          "id": "dont-stop-believin",
+          "title": "Don't Stop Believin'",
+          "artist": "Journey",
+          "teaches": "RH eighth broken pattern over moving bass",
+          "detail": "E, 119",
+          "bpm": 119,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Lylob",
+              "url": "https://musescore.com/user/20600931/scores/4845468"
+            }
+          ],
+          "fallback": {
+            "label": "Piano-Vocal-Guitar, official",
+            "url": "https://musescore.com/user/39593079/scores/6947088",
+            "official": true
+          }
+        },
+        {
+          "id": "viva-la-vida",
+          "title": "Viva la Vida",
+          "artist": "Coldplay",
+          "teaches": "pumping chords in eighths, I-IV-V-vi in Ab",
+          "detail": "Ab, 138",
+          "bpm": 138,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Nohpets",
+              "url": "https://musescore.com/user/3435661/scores/3192441"
+            }
+          ],
+          "fallback": {
+            "label": "Lead sheet, thedawn41182",
+            "url": "https://musescore.com/user/43277726/scores/7426244"
+          }
+        },
+        {
+          "id": "river-flows-in-you",
+          "title": "River Flows in You",
+          "artist": "Yiruma",
+          "teaches": "flowing LH, RH melody with inner notes",
+          "detail": "A major, 65; also in Yiruma, First Love songbook",
+          "bpm": 65,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano Solo, official Faber",
+              "url": "https://musescore.com/user/39593115/scores/6921043",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "nuvole-bianche",
+          "title": "Nuvole Bianche",
+          "artist": "Einaudi",
+          "teaches": "long LH arpeggios, pedal, repeated cells",
+          "detail": "F minor, 80",
+          "bpm": 80,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6977564",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/15263266",
+            "official": true
+          }
+        },
+        {
+          "id": "fur-elise",
+          "title": "Für Elise",
+          "artist": "Beethoven",
+          "teaches": "RH turns, LH broken chords, middle section",
+          "detail": "A minor, crotchet 66 (3/8)",
+          "bpm": 66,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, OpenScore",
+              "url": "https://musescore.com/user/13033246/scores/4053926"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/F%C3%BCr_Elise,_WoO_59_(Beethoven,_Ludwig_van)"
+          }
+        },
+        {
+          "id": "waltz-in-a-minor-b-150",
+          "title": "Waltz in A minor B. 150",
+          "artist": "Chopin",
+          "teaches": "waltz LH, rubato, ornaments",
+          "detail": "A minor, crotchet 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, dimgerasimou",
+              "url": "https://musescore.com/user/4609986/scores/1749181"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/Waltz_in_A_minor,_B.150_(Chopin,_Fr%C3%A9d%C3%A9ric)"
+          }
+        },
+        {
+          "id": "sonatina-op-36-no-3",
+          "title": "Sonatina Op. 36 No. 3",
+          "artist": "Clementi",
+          "teaches": "fast scales, Alberti, sonata form",
+          "detail": "C, minim 72",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, PianoXML",
+              "url": "https://musescore.com/user/9292486/scores/2052136"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Op. 36",
+            "url": "https://imslp.org/wiki/6_Sonatinas,_Op.36_(Clementi,_Muzio)"
+          }
+        }
+      ],
+      "test": "12-bar boogie in C and F, two choruses each at 100 with the turnaround and an ending; two shelf songs (one blues or boogie, one classical); Grade 5 speed in 3 keys the app picks."
+    },
+    {
+      "id": "5",
+      "title": "Ballad voicings and lead sheets",
+      "goal": "play a ballad from a lead sheet with the melody on top of RH chords and a LH bass that moves through inversions; add9, sus and slash chords; Grade 5 technique in every key.",
+      "adds": "Scales: G5 in all keys. Pop: add9, sus, slash chords, melody on top. Reading: G5.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "5.1",
+          "title": "Grade 5 scales, all 24 keys",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=60",
+          "setup": "Scales, major and harmonic minor, hands together, two octaves, Grade 5. Pick each key in the drill; the rotation waits for drill 5.",
+          "done": "3 clean runs per key, on two days, over the level.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 60,
+          "minAttempts": 6,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=60"
+            }
+          ],
+          "feeds": "technique"
+        },
+        {
+          "id": "5.2",
+          "title": "Grade 5 arpeggios, all keys",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=44",
+          "setup": "Scales, arpeggio, major and minor, Grade 5 (minim 44).",
+          "done": "3 clean runs per key, on two days, over the level.",
+          "match": {
+            "pattern": "arpeggio",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 44,
+          "minAttempts": 6,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Minor chords",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%205&bpm=44"
+            }
+          ],
+          "feeds": "Married Life, Chopin B minor"
+        },
+        {
+          "id": "5.3",
+          "title": "Diminished and dominant sevenths",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=diminished-7&tonic=71&span=two-octave&motion=up-down&hands=right",
+          "setup": "Scales, arpeggio: diminished 7th from B, C and C#, dominant 7th in 12 keys; hands separately, then together.",
+          "done": "3 clean runs per chord, on two days.",
+          "match": {
+            "pattern": "arpeggio"
+          },
+          "threshold": 0.9,
+          "minAttempts": 9,
+          "each": {
+            "param": "chord",
+            "values": ["diminished-7", "dominant-7"]
+          },
+          "links": [
+            {
+              "label": "Dominant 7th",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=dominant-7&tonic=67&span=two-octave&motion=up-down&hands=right"
+            }
+          ],
+          "feeds": "gospel in L6"
+        },
+        {
+          "id": "5.4",
+          "title": "Staccato and contrary chromatic",
+          "setup": "Staccato Ab major and F minor hands separately; chromatic contrary motion a major third apart.",
+          "done": "3 clean runs, staccato notes under 50% of their value.",
+          "needs": "Staccato and chromatic contrary-motion options in Scales (drill 4).",
+          "feeds": "technique"
+        },
+        {
+          "id": "5.5",
+          "title": "Add9 and sus chords",
+          "setup": "Add9, sus2 and sus4 in the RH over a LH root, I-V-vi-IV in 4 keys. Until then: Voicings, closest chords, with the 9th added by ear.",
+          "done": "48 chords at 90%.",
+          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "links": [
+            {
+              "label": "Voicings: closest chords",
+              "href": "/music/voicings?instrument=piano&variant=inversions&key=0"
+            }
+          ],
+          "feeds": "Fallin', Kiss the Rain"
+        },
+        {
+          "id": "5.6",
+          "title": "Slash chords and walking bass lines",
+          "setup": "C, G/B, Am, Am/G, F, C/E, Dm7, G. Until then: Voicings, closest chords.",
+          "done": "2 clean passes in C, G and F at 72.",
+          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "links": [
+            {
+              "label": "Voicings: closest chords",
+              "href": "/music/voicings?instrument=piano&variant=inversions&key=0"
+            }
+          ],
+          "feeds": "Your Song, Rocket Man"
+        },
+        {
+          "id": "5.7",
+          "title": "Lead sheet, step 1: LH root, RH melody",
+          "setup": "Lead-sheet mode. Until then: Song Studio on a lead-sheet import, melody only, with roots played yourself.",
+          "done": "Let It Be or If I Ain't Got You from the lead sheet, two clean passes at 72.",
+          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "lead-sheet shelf songs"
+        },
+        {
+          "id": "5.8",
+          "title": "Lead sheet, step 2: melody on top of RH chords",
+          "setup": "Lead-sheet mode: melody on top of RH chords, LH bass or pattern 11.",
+          "done": "The same tune, two clean passes; chords right on 90% of bars.",
+          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "feeds": "lead-sheet shelf songs"
+        },
+        {
+          "id": "5.9",
+          "title": "Melody balance in a ballad",
+          "setup": "Voicing balance scored on a shelf ballad in Song Studio.",
+          "done": "Melody above the accompaniment on 80% of beats.",
+          "needs": "Voicing balance in Song Studio (drill 9).",
+          "feeds": "Your Song, Married Life"
+        },
+        {
+          "id": "5.10",
+          "title": "Grand staff Grade 5: syncopation, four-part chords",
+          "setup": "Grand-staff sight-reading at Grade 5.",
+          "done": "80% on three days.",
+          "needs": "Grand-staff sight-reading at ABRSM Grade 5 (drill 2).",
+          "feeds": "Reading path"
+        },
+        {
+          "id": "5.11",
+          "title": "Melody dictation",
+          "setup": "Ear, melody dictation, played back, at its third level (the major scale).",
+          "done": "80% over a run, on two days.",
+          "match": {
+            "level": "major-diatonic"
+          },
+          "feeds": "playing by ear",
+          "href": "/music/ear/melody-dictation?answer=play-back&level=major-diatonic",
+          "threshold": 0.8,
+          "minAttempts": 1
+        },
+        {
+          "id": "5.12",
+          "title": "Transpose a lead sheet",
+          "setup": "The 5.8 tune in a second key the app names.",
+          "done": "One clean pass.",
+          "needs": "A transpose check (drill 11).",
+          "feeds": "charts in any key"
+        },
+        {
+          "id": "5.13",
+          "title": "Two shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "your-song-full",
+          "title": "Your Song, full",
+          "artist": "Elton John",
+          "teaches": "moving bass, inner-voice suspensions",
+          "detail": "Eb, 64",
+          "bpm": 64,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, lamplants",
+              "url": "https://musescore.com/user/33716129/scores/6132175"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6972129",
+            "official": true
+          }
+        },
+        {
+          "id": "bohemian-rhapsody-intermediate",
+          "title": "Bohemian Rhapsody, intermediate",
+          "artist": "Queen",
+          "teaches": "Bb ballad voicings, LH octaves, form",
+          "detail": "Bb, 72",
+          "bpm": 72,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6949880",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Very Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/16097077",
+            "official": true
+          }
+        },
+        {
+          "id": "fallin",
+          "title": "Fallin'",
+          "artist": "Alicia Keys",
+          "teaches": "6/8 minor gospel-blues, Em-Bm loop",
+          "detail": "E minor, 6/8, dotted crotchet 48",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Maher Elghamry",
+              "url": "https://musescore.com/user/19838031/scores/6115271"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6954622",
+            "official": true
+          }
+        },
+        {
+          "id": "if-i-aint-got-you",
+          "title": "If I Ain't Got You",
+          "artist": "Alicia Keys",
+          "teaches": "lead sheet with piano notes, 6/8 soul ballad voicings",
+          "detail": "G, 6/8, dotted crotchet 40",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "heidisavoie, lead sheet with piano notes",
+              "url": "https://musescore.com/user/28057894/scores/11616316"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6963686",
+            "official": true
+          }
+        },
+        {
+          "id": "rocket-man",
+          "title": "Rocket Man",
+          "artist": "Elton John",
+          "teaches": "slash chords, sus, LH octaves",
+          "detail": "Bb, 68",
+          "bpm": 68,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, arty B",
+              "url": "https://musescore.com/user/9332246/scores/5830568"
+            }
+          ],
+          "fallback": {
+            "label": "SadieKing27 easy",
+            "url": "https://musescore.com/user/28416909/scores/6092859"
+          }
+        },
+        {
+          "id": "married-life",
+          "title": "Married Life",
+          "artist": "Michael Giacchino, Up",
+          "teaches": "3/4 waltz, melody and inner voice, rubato",
+          "detail": "F, 3/4, crotchet 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Hannah Acheson",
+              "url": "https://musescore.com/user/28625575/scores/6653233"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6953182",
+            "official": true
+          }
+        },
+        {
+          "id": "time",
+          "title": "Time",
+          "artist": "Hans Zimmer, Inception",
+          "teaches": "slow build, sustained voicings, octaves",
+          "detail": "A minor, 60; also in Hal Leonard, Hans Zimmer piano collection (book)",
+          "bpm": 60,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/16070128",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "kiss-the-rain",
+          "title": "Kiss the Rain",
+          "artist": "Yiruma",
+          "teaches": "flowing LH, pedal, melody balance",
+          "detail": "Ab, 58; also in Yiruma, First Love songbook",
+          "bpm": 58,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano Solo, official Faber",
+              "url": "https://musescore.com/user/39593115/scores/6920725",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "i-giorni",
+          "title": "I Giorni",
+          "artist": "Einaudi",
+          "teaches": "long form, LH patterns, pedal",
+          "detail": "B minor feel, 76",
+          "bpm": 76,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Arek Kwiatkowski",
+              "url": "https://musescore.com/user/29300892/scores/6179479"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6941733",
+            "official": true
+          }
+        },
+        {
+          "id": "prelude-in-b-minor-op-28-no-6",
+          "title": "Prelude in B minor Op. 28 No. 6",
+          "artist": "Chopin",
+          "teaches": "melody in the LH, repeated RH chords",
+          "detail": "B minor, crotchet 66",
+          "bpm": 66,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/68550"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Preludes Op. 28",
+            "url": "https://imslp.org/wiki/Preludes,_Op.28_(Chopin,_Fr%C3%A9d%C3%A9ric)"
+          }
+        },
+        {
+          "id": "arietta-op-12-no-1",
+          "title": "Arietta Op. 12 No. 1",
+          "artist": "Grieg",
+          "teaches": "melody over inner sixteenths, voicing",
+          "detail": "Eb, crotchet 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, PianoWills",
+              "url": "https://musescore.com/user/32334741/scores/5595942"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Lyric Pieces Op. 12",
+            "url": "https://imslp.org/wiki/Lyric_Pieces,_Op.12_(Grieg,_Edvard)"
+          }
+        },
+        {
+          "id": "the-little-shepherd",
+          "title": "The Little Shepherd",
+          "artist": "Debussy",
+          "teaches": "free rhythm, colour, soft dynamics",
+          "detail": "A, crotchet 56",
+          "bpm": 56,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Nicolas",
+              "url": "https://musescore.com/user/5/scores/29517"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Children's Corner",
+            "url": "https://imslp.org/wiki/Children's_Corner_(Debussy,_Claude)"
+          }
+        }
+      ],
+      "test": "a lead sheet the owner has not played, in a named key, melody on top plus a LH pattern, two clean passes; two shelf songs (one classical); Grade 5 scales and arpeggios in 6 keys the app picks."
+    },
+    {
+      "id": "6",
+      "title": "Gospel and boogie 2",
+      "goal": "gospel harmony under a pop song (IV/I, the 4-5-1 passing chord, passing diminished, walk-ups, the amen ending) and boogie with right-hand riffs; first Grade 6 speeds and four-octave scales.",
+      "adds": "Scales: G6 in 6 keys. Pop: IV/I, 4-5-1, passing diminished, boogie riffs, stride-lite. Reading: G5, slash-chord charts.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "6.1",
+          "title": "Grade 6 speed in 6 keys",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%206&bpm=72",
+          "setup": "Scales, hands together, Grade 6 (minim 72), in 6 keys. Two octaves until four-octave spans arrive (drill 4).",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 72,
+          "minAttempts": 18,
+          "feeds": "technique"
+        },
+        {
+          "id": "6.2",
+          "title": "Dominant and diminished sevenths, all keys",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=dominant-7&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%206&bpm=50",
+          "setup": "Scales, arpeggio, dominant 7th and diminished 7th, Grade 6 (minim 50).",
+          "done": "3 clean runs per chord, on two days.",
+          "match": {
+            "pattern": "arpeggio",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 50,
+          "minAttempts": 9,
+          "each": {
+            "param": "chord",
+            "values": ["dominant-7", "diminished-7"]
+          },
+          "links": [
+            {
+              "label": "Diminished 7th",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=diminished-7&tonic=71&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%206&bpm=50"
+            }
+          ],
+          "feeds": "gospel passing chords"
+        },
+        {
+          "id": "6.3",
+          "title": "IV/I and the 1-4-1 rock",
+          "setup": "IV over a I bass, back to I, in C, F, G and Bb.",
+          "done": "40 chords at 90%.",
+          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "feeds": "Lean on Me, Let It Be"
+        },
+        {
+          "id": "6.4",
+          "title": "4-5-1 passing chord and walk-ups",
+          "setup": "IV, V/IV or IV-V passing, I; bass walk 1-2-3-4.",
+          "done": "40 chords at 90% in 4 keys.",
+          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "feeds": "Amazing Grace, Let It Be"
+        },
+        {
+          "id": "6.5",
+          "title": "Passing diminished",
+          "setup": "I-#Idim-ii and IV-#IVdim-I/V. Until then: Voicings, closest chords, by ear.",
+          "done": "40 chords at 90%.",
+          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "links": [
+            {
+              "label": "Voicings: closest chords",
+              "href": "/music/voicings?instrument=piano&variant=inversions&key=0"
+            }
+          ],
+          "feeds": "gospel shelf songs"
+        },
+        {
+          "id": "6.6",
+          "title": "Amen ending and the 7-3-6-2-5-1 turnaround",
+          "setup": "Both in C and F.",
+          "done": "3 clean runs per key.",
+          "needs": "A riffs and fills set in Phrases (drill 10).",
+          "feeds": "every gospel song"
+        },
+        {
+          "id": "6.7",
+          "title": "Boogie with RH riffs",
+          "setup": "Song Studio loops on Pinetop's Boogie Woogie, bars 1 to 12, then boogie in F and G.",
+          "done": "3 clean loops at 120.",
+          "needs": "Blues and boogie left-hand patterns (drill 7).",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "Pinetop's Boogie Woogie, Great Balls of Fire"
+        },
+        {
+          "id": "6.8",
+          "title": "Rock and roll RH triplets and glissando",
+          "setup": "Repeated-chord triplets over a boogie LH.",
+          "done": "3 clean runs at 140.",
+          "needs": "A rock and roll triplet item in Phrases (drill 7).",
+          "feeds": "Great Balls of Fire"
+        },
+        {
+          "id": "6.9",
+          "title": "Pattern 13: stride-lite",
+          "setup": "Pop pattern 13 over I-vi-ii-V and I-IV-V.",
+          "done": "Two choruses at 100.",
+          "needs": "The pop accompaniment pattern drill (drill 1), pattern 13.",
+          "feeds": "Linus and Lucy, Lady Madonna"
+        },
+        {
+          "id": "6.10",
+          "title": "Chord charts with slash chords",
+          "setup": "A slash-chord chart: Lean on Me or Tiny Dancer.",
+          "done": "Two clean passes.",
+          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "feeds": "chord charts"
+        },
+        {
+          "id": "6.11",
+          "title": "Grand staff Grade 5, keys up to 4 flats or sharps",
+          "setup": "Grand-staff sight-reading at Grade 5.",
+          "done": "80% on three days.",
+          "needs": "Grand-staff sight-reading at ABRSM Grade 5 (drill 2).",
+          "feeds": "Reading path"
+        },
+        {
+          "id": "6.12",
+          "title": "Hear sus, add9, maj7 and dominant 7",
+          "setup": "Ear, chord qualities: major, minor, major 7th, dominant 7th. Sus and add9 are not in the drill yet.",
+          "done": "80% over a run, on two days.",
+          "feeds": "voicings by ear",
+          "href": "/music/ear/chord-qualities?answer=choice&qualities=major,minor,major-7,dominant-7",
+          "threshold": 0.8,
+          "minAttempts": 1
+        },
+        {
+          "id": "6.13",
+          "title": "Two shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days, one gospel or boogie.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "lean-on-me",
+          "title": "Lean on Me",
+          "artist": "Bill Withers",
+          "teaches": "gospel I-IV with walk-ups, stepwise bass",
+          "detail": "C, 76",
+          "bpm": 76,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, steveharr",
+              "url": "https://musescore.com/user/2966376/scores/4000806"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6942445",
+            "official": true
+          }
+        },
+        {
+          "id": "amazing-grace-gospel-style",
+          "title": "Amazing Grace, gospel style",
+          "artist": "Traditional",
+          "teaches": "3/4 gospel, passing chords, fills",
+          "detail": "G, 3/4, crotchet 66",
+          "bpm": 66,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Timothy0.0.7",
+              "url": "https://musescore.com/user/29471199/scores/6350084"
+            }
+          ],
+          "fallback": {
+            "label": "Gospel style arr. Nate Hance, official ArrangeMe",
+            "url": "https://musescore.com/user/97106398/scores/18015364",
+            "official": true
+          }
+        },
+        {
+          "id": "let-it-be-full",
+          "title": "Let It Be, full",
+          "artist": "The Beatles",
+          "teaches": "the record's piano part: IV/I, passing chords, LH octaves",
+          "detail": "C, 72",
+          "bpm": 72,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6968681",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Piano-Vocal-Guitar, official",
+            "url": "https://musescore.com/user/39593079/scores/6947949",
+            "official": true
+          }
+        },
+        {
+          "id": "pinetops-boogie-woogie",
+          "title": "Pinetop's Boogie Woogie",
+          "artist": "Pinetop Smith, 1928",
+          "teaches": "boogie LH, RH tremolo and riffs",
+          "detail": "F, 120",
+          "bpm": 120,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, isao.fin",
+              "url": "https://musescore.com/user/79422301/scores/14744512"
+            }
+          ],
+          "fallback": {
+            "label": "James Brigham, ed. Tiny Parham",
+            "url": "https://musescore.com/user/58480/scores/3998536"
+          }
+        },
+        {
+          "id": "great-balls-of-fire",
+          "title": "Great Balls of Fire",
+          "artist": "Jerry Lee Lewis",
+          "teaches": "rock and roll triplets, glissando, boogie LH",
+          "detail": "C, 152",
+          "bpm": 152,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community upload",
+              "url": "https://musescore.com/user/38919336/scores/8473628"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6968895",
+            "official": true
+          }
+        },
+        {
+          "id": "lady-madonna",
+          "title": "Lady Madonna",
+          "artist": "The Beatles",
+          "teaches": "boogie-rock LH octaves, RH chord stabs",
+          "detail": "A, 112",
+          "bpm": 112,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Arr. Thomas Jancso, official ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/17077681",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Piano-Vocal-Guitar, official",
+            "url": "https://musescore.com/user/39593079/scores/6974271",
+            "official": true
+          }
+        },
+        {
+          "id": "linus-and-lucy",
+          "title": "Linus and Lucy",
+          "artist": "Vince Guaraldi",
+          "teaches": "LH ostinato against syncopated RH",
+          "detail": "Ab, 144",
+          "bpm": 144,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Isai Ethan Composer",
+              "url": "https://musescore.com/user/28953060/scores/5344826"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6951035",
+            "official": true
+          }
+        },
+        {
+          "id": "tiny-dancer",
+          "title": "Tiny Dancer",
+          "artist": "Elton John",
+          "teaches": "gospel-pop voicings, slash chords, long form",
+          "detail": "C, 70",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, N_Thompson_4",
+              "url": "https://musescore.com/user/7788266/scores/2925226"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6939028",
+            "official": true
+          }
+        },
+        {
+          "id": "shes-always-a-woman",
+          "title": "She's Always a Woman",
+          "artist": "Billy Joel",
+          "teaches": "6/8 ballad, descending bass, inner voices",
+          "detail": "Eb, 6/8, dotted crotchet 56",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Jasper Tiemersma",
+              "url": "https://musescore.com/user/27163785/scores/5300716"
+            }
+          ],
+          "fallback": {
+            "label": "Easy Piano, official",
+            "url": "https://musescore.com/user/39593079/scores/6979153",
+            "official": true
+          }
+        },
+        {
+          "id": "experience",
+          "title": "Experience",
+          "artist": "Einaudi",
+          "teaches": "building repeated patterns, endurance, dynamics",
+          "detail": "D minor feel, 112",
+          "bpm": 112,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ketevan.s60",
+              "url": "https://musescore.com/user/80345488/scores/21813313"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6937593",
+            "official": true
+          }
+        },
+        {
+          "id": "invention-no-8-in-f-bwv-779",
+          "title": "Invention No. 8 in F, BWV 779",
+          "artist": "Bach",
+          "teaches": "two-part counterpoint, LH-RH imitation, articulation",
+          "detail": "F, crotchet 112",
+          "bpm": 112,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, BOO42",
+              "url": "https://musescore.com/user/920366/scores/1015261"
+            },
+            {
+              "label": "Swap: Invention No. 4 in D minor, mozbadel",
+              "url": "https://musescore.com/user/2675376/scores/4910775"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Inventions",
+            "url": "https://imslp.org/wiki/15_Inventions,_BWV_772-786_(Bach,_Johann_Sebastian)"
+          }
+        },
+        {
+          "id": "traumerei-op-15-no-7",
+          "title": "Träumerei Op. 15 No. 7",
+          "artist": "Schumann",
+          "teaches": "voiced chords, melody across hands, rubato",
+          "detail": "F, crotchet 66",
+          "bpm": 66,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, IRELIN",
+              "url": "https://musescore.com/user/33397673/scores/5902660"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Kinderszenen",
+            "url": "https://imslp.org/wiki/Kinderszenen,_Op.15_(Schumann,_Robert)"
+          }
+        }
+      ],
+      "test": "Lean on Me or Let It Be from the chord chart (not the score) with IV/I, a 4-5-1 passing chord and the amen ending, in the original key and one other; a boogie chorus with RH riffs at 120; two shelf songs (one classical); Grade 6 speed in 3 keys the app picks."
+    },
+    {
+      "id": "7",
+      "title": "Full arrangements, intros and fills",
+      "goal": "full piano-solo arrangements of pop songs at the record tempo; famous intros taken by ear; fills between phrases; Grade 6 technique in every key.",
+      "adds": "Scales: G6 in all keys, 4 octaves. Pop: intros by ear, fills, octaves. Reading: G6.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "7.1",
+          "title": "Grade 6 scales, all keys",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%206&bpm=72",
+          "setup": "Scales, major and harmonic minor, Grade 6, legato. Four octaves and staccato wait for drill 4.",
+          "done": "3 clean runs per key over the level, on two days each.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 72,
+          "minAttempts": 6,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%206&bpm=72"
+            }
+          ],
+          "feeds": "technique"
+        },
+        {
+          "id": "7.2",
+          "title": "Grade 6 arpeggios, all keys",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%206&bpm=50",
+          "setup": "Scales, arpeggio, major and minor, Grade 6 (minim 50). Four octaves wait for drill 4.",
+          "done": "3 clean runs per key over the level, on two days each.",
+          "match": {
+            "pattern": "arpeggio",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 50,
+          "minAttempts": 6,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Minor chords",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%206&bpm=50"
+            }
+          ],
+          "feeds": "Moonlight Sonata, Rêverie"
+        },
+        {
+          "id": "7.3",
+          "title": "Octaves",
+          "setup": "Blocked staccato octave scale in C, G and F.",
+          "done": "3 clean runs at crotchet 80, two a click.",
+          "needs": "An octave option in Scales (drill 4).",
+          "feeds": "Bohemian Rhapsody, Don't Stop Me Now"
+        },
+        {
+          "id": "7.4",
+          "title": "Intros by ear",
+          "setup": "Ear, phrases from your saved songs, played back: the 4-bar intros of Your Song, Piano Man, Someone Like You and Clocks, then compare in Song Studio.",
+          "done": "Each intro played back at 90% before opening the score.",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "all pop shelf songs",
+          "href": "/music/ear/repertoire-transfer?answer=play-back",
+          "threshold": 0.9,
+          "minAttempts": 1
+        },
+        {
+          "id": "7.5",
+          "title": "Fills at phrase ends",
+          "setup": "Pentatonic run down, grace-note slide, octave pickup, in C, F and G.",
+          "done": "3 clean runs per riff in 3 keys.",
+          "needs": "A riffs and fills set in Phrases (drill 10).",
+          "feeds": "Bennie and the Jets, Just the Way You Are"
+        },
+        {
+          "id": "7.6",
+          "title": "Syncopated pedal in a full arrangement",
+          "href": "/music/pedal?progression=I-V-vi-IV&key=0&bpm=50",
+          "setup": "Pedal: I-V-vi-IV at 50 in 3 keys; then a shelf ballad's pedal in Song Studio.",
+          "done": "3 runs at 90%, on two days.",
+          "match": {
+            "progression": "I-V-vi-IV"
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "Someone Like You, Rêverie"
+        },
+        {
+          "id": "7.7",
+          "title": "Melody balance in a full arrangement",
+          "setup": "Voicing balance on the shelf song in progress.",
+          "done": "Melody above the accompaniment on 85% of beats.",
+          "needs": "Voicing balance in Song Studio (drill 9).",
+          "feeds": "every ballad"
+        },
+        {
+          "id": "7.8",
+          "title": "Grand staff Grade 6: triplets, pedal marks, clef changes, 5/4 and 9/8",
+          "setup": "Grand-staff sight-reading at Grade 6.",
+          "done": "80% on three days.",
+          "needs": "Grand-staff sight-reading at ABRSM Grade 6 (drill 2).",
+          "feeds": "Reading path"
+        },
+        {
+          "id": "7.9",
+          "title": "No-stop run",
+          "setup": "A shelf song in performance mode, scored for continuity.",
+          "done": "One full run with continuity 100% and no slip longer than a beat.",
+          "needs": "No-stop scoring in Song Studio performance mode (drill 12).",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "performance"
+        },
+        {
+          "id": "7.10",
+          "title": "Transcribe a 4-bar riff",
+          "setup": "Ear path: take a riff of your choice by ear, play it back, then check it against the score in Song Studio.",
+          "done": "The riff played at 90% from ear.",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            },
+            {
+              "label": "Ear: melody dictation",
+              "href": "/music/ear/melody-dictation?answer=play-back"
+            }
+          ],
+          "feeds": "Reading and Ear paths"
+        },
+        {
+          "id": "7.11",
+          "title": "Three shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "3 songs pass: 90% at 100% tempo in performance mode, on two days, one classical.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "bohemian-rhapsody-piano-solo",
+          "title": "Bohemian Rhapsody, piano solo",
+          "artist": "Queen",
+          "teaches": "ballad, opera section, rock section: form and octaves",
+          "detail": "Bb, Eb, 72 to 144",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, DaRiceMan",
+              "url": "https://musescore.com/user/4159171/scores/2664251"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo Advanced, official",
+            "url": "https://musescore.com/user/39593079/scores/6967393",
+            "official": true
+          }
+        },
+        {
+          "id": "dont-stop-me-now",
+          "title": "Don't Stop Me Now",
+          "artist": "Queen",
+          "teaches": "repeated chords, octaves, stamina",
+          "detail": "F, 156",
+          "bpm": 156,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Cody Walton",
+              "url": "https://musescore.com/user/4367091/scores/14035114"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6944216",
+            "official": true
+          }
+        },
+        {
+          "id": "someone-like-you-full",
+          "title": "Someone Like You, full",
+          "artist": "Adele",
+          "teaches": "continuous RH broken-chord eighths, balance",
+          "detail": "A, 68",
+          "bpm": 68,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, matikavi11869",
+              "url": "https://musescore.com/user/13543696/scores/4836661"
+            }
+          ],
+          "fallback": {
+            "label": "Lead sheet, Jean-Michel Thiemonge",
+            "url": "https://musescore.com/user/9424386/scores/5348175"
+          }
+        },
+        {
+          "id": "just-the-way-you-are",
+          "title": "Just the Way You Are",
+          "artist": "Billy Joel",
+          "teaches": "maj7 and add9 voicings, bossa-pop LH",
+          "detail": "D, 138",
+          "bpm": 138,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Mr. Arranger Man",
+              "url": "https://musescore.com/user/36070839/scores/6593876"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6944867",
+            "official": true
+          }
+        },
+        {
+          "id": "bennie-and-the-jets",
+          "title": "Bennie and the Jets",
+          "artist": "Elton John",
+          "teaches": "off-beat chord stabs, fills",
+          "detail": "G, 84",
+          "bpm": 84,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ildefonso de los reyes",
+              "url": "https://musescore.com/user/164269/scores/6246599"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6968584",
+            "official": true
+          }
+        },
+        {
+          "id": "mia-and-sebastians-theme",
+          "title": "Mia and Sebastian's Theme",
+          "artist": "Justin Hurwitz, La La Land",
+          "teaches": "jazz-waltz voicings, rubato",
+          "detail": "E minor to G, 3/4, crotchet 110",
+          "bpm": 110,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano Solo, official Faber",
+              "url": "https://musescore.com/user/39593115/scores/6920847",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Community, jgailliout",
+            "url": "https://musescore.com/user/51006612/scores/15146986"
+          }
+        },
+        {
+          "id": "clocks-full",
+          "title": "Clocks, full",
+          "artist": "Coldplay",
+          "teaches": "3+3+2 at tempo with LH octaves and voicing changes",
+          "detail": "Eb, 131",
+          "bpm": 131,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, niclas23",
+              "url": "https://musescore.com/user/189765/scores/5942924"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6963431",
+            "official": true
+          }
+        },
+        {
+          "id": "moonlight-sonata-mvt-1",
+          "title": "Moonlight Sonata, mvt 1",
+          "artist": "Beethoven",
+          "teaches": "triplet balance, melody over arpeggio, pedal",
+          "detail": "C# minor, minim 52",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/55352"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/Piano_Sonata_No.14,_Op.27_No.2_(Beethoven,_Ludwig_van)"
+          }
+        },
+        {
+          "id": "waltz-in-b-minor-op-69-no-2",
+          "title": "Waltz in B minor Op. 69 No. 2",
+          "artist": "Chopin",
+          "teaches": "waltz LH, ornaments, rubato",
+          "detail": "B minor, crotchet 132",
+          "bpm": 132,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/2076226"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Waltzes Op. 69",
+            "url": "https://imslp.org/wiki/Waltzes,_Op.69_(Chopin,_Fr%C3%A9d%C3%A9ric)"
+          }
+        },
+        {
+          "id": "invention-no-13-in-a-minor-bwv-784",
+          "title": "Invention No. 13 in A minor, BWV 784",
+          "artist": "Bach",
+          "teaches": "broken-chord counterpoint, finger independence",
+          "detail": "A minor, crotchet 80",
+          "bpm": 80,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, otavio_santana",
+              "url": "https://musescore.com/user/36242032/scores/6673334"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Inventions",
+            "url": "https://imslp.org/wiki/15_Inventions,_BWV_772-786_(Bach,_Johann_Sebastian)"
+          }
+        },
+        {
+          "id": "reverie",
+          "title": "Rêverie",
+          "artist": "Debussy",
+          "teaches": "colour, pedal, melody over syncopated LH",
+          "detail": "F, crotchet 72",
+          "bpm": 72,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Novelty",
+              "url": "https://musescore.com/user/5788271/scores/4157506"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/R%C3%AAverie_(Debussy,_Claude)"
+          }
+        },
+        {
+          "id": "sonata-k-545-mvt-1",
+          "title": "Sonata K. 545, mvt 1",
+          "artist": "Mozart",
+          "teaches": "Alberti at tempo, scales, classical clarity",
+          "detail": "C, minim 72",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/77457"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/Piano_Sonata_No.16_in_C_major,_K.545_(Mozart,_Wolfgang_Amadeus)"
+          }
+        }
+      ],
+      "test": "three shelf songs (one classical) at 90% and 100% tempo, one of them as a no-stop run; one intro played back by ear before seeing its score; Grade 6 scales and arpeggios in 6 keys the app picks."
+    },
+    {
+      "id": "8",
+      "title": "Ragtime, rock piano and the big ballad",
+      "goal": "stride and ragtime left hand, Billy Joel and Guns N' Roses-style rock piano, a Chopin nocturne; an own arrangement from a chart; Grade 7 speed in 6 keys.",
+      "adds": "Scales: G7 in 6 keys, a third apart. Pop: stride LH, Billy Joel rock piano, own arrangement. Reading: G6.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "8.1",
+          "title": "Grade 7 speed in 6 keys",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%207&bpm=80",
+          "setup": "Scales, hands together, Grade 7 (minim 80), in 6 keys. Two octaves until four-octave spans arrive (drill 4).",
+          "done": "3 clean runs per key, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minAttempts": 18,
+          "feeds": "technique"
+        },
+        {
+          "id": "8.2",
+          "title": "Scales a third apart",
+          "setup": "Hands a third apart in C, G, D, F, Grade 7.",
+          "done": "3 clean runs per key.",
+          "needs": "Hands a third apart in Scales (drill 4).",
+          "feeds": "Grade 7 technique"
+        },
+        {
+          "id": "8.3",
+          "title": "First-inversion arpeggios",
+          "setup": "Arpeggios from the third: C, G, F, A minor.",
+          "done": "3 clean runs per key at minim 56.",
+          "needs": "First-inversion arpeggios in Scales (drill 4).",
+          "feeds": "Nocturne Op. 9 No. 2"
+        },
+        {
+          "id": "8.4",
+          "title": "Stride LH: bass, chord; octave, tenth",
+          "setup": "Stride over I-VI-ii-V and the Maple Leaf Rag A strain changes.",
+          "done": "3 clean runs at 80.",
+          "needs": "A stride pattern (drill 7).",
+          "feeds": "Maple Leaf Rag, Piano Man"
+        },
+        {
+          "id": "8.5",
+          "title": "Ragtime A strain",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, fix-the-spot on Maple Leaf Rag, bars 1 to 16.",
+          "done": "3 clean loops at crotchet 80.",
+          "exerciseIds": [],
+          "feeds": "Maple Leaf Rag"
+        },
+        {
+          "id": "8.6",
+          "title": "Rock piano RH fills in 3/4 and 4/4",
+          "setup": "Piano Man-style turns, November Rain-style octave runs.",
+          "done": "3 clean runs per riff in 2 keys.",
+          "needs": "A riffs and fills set in Phrases (drill 10).",
+          "feeds": "Piano Man, November Rain"
+        },
+        {
+          "id": "8.7",
+          "title": "Own arrangement from a chart",
+          "setup": "A shelf song from its lead sheet with 3 patterns, an intro and an ending; record it.",
+          "done": "One take with chords right on 95% of bars.",
+          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ],
+          "feeds": "arranging, L10 recital"
+        },
+        {
+          "id": "8.8",
+          "title": "Grand staff Grade 6",
+          "setup": "Grand-staff sight-reading at Grade 6.",
+          "done": "80% on three days.",
+          "needs": "Grand-staff sight-reading at ABRSM Grade 6 (drill 2).",
+          "feeds": "Reading path"
+        },
+        {
+          "id": "8.9",
+          "title": "Secondary dominants by ear",
+          "setup": "Ear, progression dictation in sevenths; secondary dominants from the Theory path.",
+          "done": "80% over a run, on two days.",
+          "feeds": "Piano Man, Maple Leaf Rag",
+          "href": "/music/ear/progressions?answer=choice&chordSize=sevenths",
+          "threshold": 0.8,
+          "minAttempts": 1
+        },
+        {
+          "id": "8.10",
+          "title": "Three shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "3 songs pass: 90% at 100% tempo in performance mode, on two days, one classical.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "piano-man-full",
+          "title": "Piano Man, full",
+          "artist": "Billy Joel",
+          "teaches": "3/4 rock-waltz, fills, walking bass",
+          "detail": "C, 3/4, dotted minim 60",
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Mr. Arranger Man",
+              "url": "https://musescore.com/user/36070839/scores/6417390"
+            }
+          ],
+          "fallback": {
+            "label": "Daansch arrangement",
+            "url": "https://musescore.com/user/24335356/scores/5923720"
+          }
+        },
+        {
+          "id": "november-rain",
+          "title": "November Rain",
+          "artist": "Guns N' Roses",
+          "teaches": "power ballad, octave runs, orchestral voicing",
+          "detail": "F, 80",
+          "bpm": 80,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Manfre17",
+              "url": "https://musescore.com/user/26874349/scores/4810872"
+            }
+          ],
+          "fallback": {
+            "label": "Mr. Arranger Man, advanced",
+            "url": "https://musescore.com/user/36070839/scores/6530500"
+          }
+        },
+        {
+          "id": "somebody-to-love",
+          "title": "Somebody to Love",
+          "artist": "Queen",
+          "teaches": "gospel-rock 6/8, chord stabs, runs",
+          "detail": "Ab, 6/8, dotted crotchet 108",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, JJ_SOS",
+              "url": "https://musescore.com/user/5896716/scores/4946607"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo Advanced, official",
+            "url": "https://musescore.com/user/39593079/scores/6944212",
+            "official": true
+          }
+        },
+        {
+          "id": "maple-leaf-rag",
+          "title": "Maple Leaf Rag",
+          "artist": "Joplin",
+          "teaches": "stride LH, syncopation, octaves",
+          "detail": "Ab, crotchet 80",
+          "bpm": 80,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Escherfan",
+              "url": "https://musescore.com/user/116681/scores/145724"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/Maple_Leaf_Rag_(Joplin,_Scott)"
+          }
+        },
+        {
+          "id": "to-zanarkand",
+          "title": "To Zanarkand",
+          "artist": "Nobuo Uematsu, Final Fantasy X",
+          "teaches": "lyrical game ballad, LH arpeggios, voicing",
+          "detail": "G minor, 66",
+          "bpm": 66,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, 0zakinoniwa",
+              "url": "https://musescore.com/user/35129661/scores/6636456"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6933801",
+            "official": true
+          }
+        },
+        {
+          "id": "merry-go-round-of-life",
+          "title": "Merry-Go-Round of Life",
+          "artist": "Joe Hisaishi, Howl's Moving Castle",
+          "teaches": "3/4 waltz with leaps, changing moods",
+          "detail": "G minor, 3/4, crotchet 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, BiggerDrummerBoy",
+              "url": "https://musescore.com/user/12999701/scores/5435873"
+            }
+          ],
+          "fallback": {
+            "label": "PianoChannel, intermediate",
+            "url": "https://musescore.com/user/16006641/scores/4197961"
+          }
+        },
+        {
+          "id": "hes-a-pirate-full",
+          "title": "He's a Pirate, full",
+          "artist": "Klaus Badelt",
+          "teaches": "fast 6/8 octaves, stamina",
+          "detail": "D minor, dotted crotchet 140",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, onnikoivisto",
+              "url": "https://musescore.com/user/2830596/scores/1421196"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6951029",
+            "official": true
+          }
+        },
+        {
+          "id": "nocturne-op-9-no-2",
+          "title": "Nocturne Op. 9 No. 2",
+          "artist": "Chopin",
+          "teaches": "cantabile, ornaments, wide LH, rubato",
+          "detail": "Eb, 12/8, quaver 132",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Rodila",
+              "url": "https://musescore.com/user/6662591/scores/4383881"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Nocturnes Op. 9",
+            "url": "https://imslp.org/wiki/Nocturnes,_Op.9_(Chopin,_Fr%C3%A9d%C3%A9ric)"
+          }
+        },
+        {
+          "id": "raindrop-prelude-op-28-no-15",
+          "title": "Raindrop Prelude Op. 28 No. 15",
+          "artist": "Chopin",
+          "teaches": "repeated-note pedal point, voicing, dynamic build",
+          "detail": "Db, crotchet 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ConnieBoggs",
+              "url": "https://musescore.com/user/14953566/scores/3425751"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Preludes Op. 28",
+            "url": "https://imslp.org/wiki/Preludes,_Op.28_(Chopin,_Fr%C3%A9d%C3%A9ric)"
+          }
+        },
+        {
+          "id": "pathetique-sonata-mvt-2",
+          "title": "Pathétique Sonata, mvt 2",
+          "artist": "Beethoven",
+          "teaches": "singing melody over inner semiquavers, three layers",
+          "detail": "Ab, quaver 54",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/49148"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Op. 13",
+            "url": "https://imslp.org/wiki/Piano_Sonata_No.8,_Op.13_(Beethoven,_Ludwig_van)"
+          }
+        },
+        {
+          "id": "arabesque-no-1",
+          "title": "Arabesque No. 1",
+          "artist": "Debussy",
+          "teaches": "triplets against duplets, flowing arpeggios across hands",
+          "detail": "E, crotchet 72",
+          "bpm": 72,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/55396"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP 2 Arabesques",
+            "url": "https://imslp.org/wiki/2_Arabesques_(Debussy,_Claude)"
+          }
+        }
+      ],
+      "test": "three shelf songs (one classical, one ragtime or rock) at 90% and 100% tempo; the own arrangement recorded; Grade 7 scales in 4 keys and scales a third apart in 2 keys."
+    },
+    {
+      "id": "9",
+      "title": "Concert pieces and jazz-pop",
+      "goal": "Grade 7 pieces (Bach prelude and fugue, Chopin waltz, Schubert impromptu), jazz-pop piano (Billy Joel, gospel ballad, Ray Charles), Grade 7 technique in every key, and a whole song transposed.",
+      "adds": "Scales: G7 in all keys, legato thirds. Pop: gospel runs, jazz-pop voicings, transposing a song. Reading: G7.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "9.1",
+          "title": "Grade 7 scales, all keys",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%207&bpm=80",
+          "setup": "Scales, major and harmonic minor, Grade 7 (minim 80). Four octaves and staccato wait for drill 4.",
+          "done": "3 clean runs per key over the level.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minAttempts": 6,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Minor",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%207&bpm=80"
+            }
+          ],
+          "feeds": "technique"
+        },
+        {
+          "id": "9.2",
+          "title": "Grade 7 arpeggios, all keys",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%207&bpm=56",
+          "setup": "Scales, arpeggio, major and minor, Grade 7 (minim 56). First inversions wait for drill 4.",
+          "done": "3 clean runs per key over the level.",
+          "match": {
+            "pattern": "arpeggio",
+            "hands": "both",
+            "span": "two-octave",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 56,
+          "minAttempts": 6,
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "links": [
+            {
+              "label": "Minor chords",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%207&bpm=56"
+            }
+          ],
+          "feeds": "Chopin waltz, Schubert"
+        },
+        {
+          "id": "9.3",
+          "title": "Legato thirds",
+          "setup": "Legato thirds in G major, hands separately, minim 46.",
+          "done": "3 clean runs per hand.",
+          "needs": "Legato thirds in Scales (drill 4).",
+          "feeds": "Grade 7 technique"
+        },
+        {
+          "id": "9.4",
+          "title": "Gospel runs and pentatonic fills",
+          "setup": "Descending major pentatonic with grace notes, the 6-5-3 gospel run, octave tremolo, in C, F, Bb and Eb.",
+          "done": "3 clean runs per riff in 2 keys.",
+          "needs": "A riffs and fills set in Phrases (drill 10).",
+          "feeds": "Bridge Over Troubled Water, Georgia"
+        },
+        {
+          "id": "9.5",
+          "title": "Jazz-pop voicings",
+          "href": "/music/voicings?instrument=piano&variant=major&key=0&keys=1",
+          "setup": "Jazz path: rootless ii-V-I in Voicings, major and minor, in C, F, Bb and Eb.",
+          "done": "The Jazz path's pass mark (85%) in those 4 keys.",
+          "match": {
+            "variant": "major"
+          },
+          "threshold": 0.85,
+          "each": {
+            "param": "key",
+            "values": ["0", "5", "10", "3"]
+          },
+          "links": [
+            {
+              "label": "F",
+              "href": "/music/voicings?instrument=piano&variant=major&key=5&keys=1"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/voicings?instrument=piano&variant=major&key=10&keys=1"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/voicings?instrument=piano&variant=major&key=3&keys=1"
+            },
+            {
+              "label": "Minor",
+              "href": "/music/voicings?instrument=piano&variant=minor&key=0&keys=1"
+            }
+          ],
+          "feeds": "New York State of Mind, Georgia"
+        },
+        {
+          "id": "9.6",
+          "title": "Transpose a whole song",
+          "setup": "A passed L5 or L6 shelf song from its lead sheet, a tone away.",
+          "done": "One clean pass, chords right on 95% of bars.",
+          "needs": "A transpose check (drill 11).",
+          "feeds": "playing for singers"
+        },
+        {
+          "id": "9.7",
+          "title": "Grand staff Grade 7: 7/8, 8va, tempo changes",
+          "setup": "Grand-staff sight-reading at Grade 7.",
+          "done": "80% on three days.",
+          "needs": "Grand-staff sight-reading at ABRSM Grade 7 (drill 2).",
+          "feeds": "Reading path"
+        },
+        {
+          "id": "9.8",
+          "title": "Play from memory",
+          "setup": "Song Studio performance mode with the score hidden.",
+          "done": "One passed shelf song at 90% from memory.",
+          "needs": "A hide-the-score toggle in Song Studio (drill 13).",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "recital"
+        },
+        {
+          "id": "9.9",
+          "title": "Fugue voices",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, Fugue in C minor: voice-by-voice loops (the subject in each entry, then two voices, then three).",
+          "done": "Each pairing 3 clean loops at half tempo, then the full piece.",
+          "exerciseIds": [],
+          "feeds": "BWV 847"
+        },
+        {
+          "id": "9.10",
+          "title": "Three shelf songs",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "done": "3 songs pass: 90% at 100% tempo in performance mode, on two days, one classical and one jazz-pop.",
+          "exerciseIds": []
+        }
+      ],
+      "shelf": [
+        {
+          "id": "new-york-state-of-mind",
+          "title": "New York State of Mind",
+          "artist": "Billy Joel",
+          "teaches": "jazz-blues ballad, fills, dominant sevenths",
+          "detail": "C, 66",
+          "bpm": 66,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Toby Trickster arrangement",
+              "url": "https://musescore.com/user/1066221/scores/507486"
+            }
+          ],
+          "fallback": {
+            "label": "Ben_Thames, intro",
+            "url": "https://musescore.com/user/11037946/scores/4078436"
+          }
+        },
+        {
+          "id": "bridge-over-troubled-water",
+          "title": "Bridge Over Troubled Water",
+          "artist": "Simon and Garfunkel, Larry Knechtel's piano",
+          "teaches": "gospel ballad voicings, runs, big build",
+          "detail": "Eb, 80",
+          "bpm": 80,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Mr. Arranger Man",
+              "url": "https://musescore.com/user/36070839/scores/6433867"
+            }
+          ],
+          "fallback": {
+            "label": "Accompaniment like the record, Ido Nachlieli",
+            "url": "https://musescore.com/user/20684646/scores/5008430"
+          }
+        },
+        {
+          "id": "martha-my-dear",
+          "title": "Martha My Dear",
+          "artist": "The Beatles",
+          "teaches": "music-hall piano, wide LH, key changes",
+          "detail": "Eb, 112",
+          "bpm": 112,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Arr. Tunescribers, official ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/19313104",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Piano-Vocal-Guitar, official",
+            "url": "https://musescore.com/user/39593079/scores/15375205",
+            "official": true
+          }
+        },
+        {
+          "id": "honky-tonk-train-blues",
+          "title": "Honky Tonk Train Blues",
+          "artist": "Meade Lux Lewis",
+          "teaches": "boogie: 3 against 4, fast LH",
+          "detail": "G, 160",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, 1helenlove1",
+              "url": "https://musescore.com/user/79422298/scores/12650926"
+            }
+          ],
+          "fallback": {
+            "label": "Arr. Brent Edstrom, official",
+            "url": "https://musescore.com/user/39593079/scores/16059994",
+            "official": true
+          }
+        },
+        {
+          "id": "life-on-mars",
+          "title": "Life on Mars?",
+          "artist": "David Bowie",
+          "teaches": "chromatic chord movement, Rick Wakeman piano",
+          "detail": "F to Bb, 66",
+          "bpm": 66,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Elena Di Guardo",
+              "url": "https://musescore.com/user/1842796/scores/8957132"
+            }
+          ],
+          "fallback": {
+            "label": "Piano-Voice, Mickael Palma",
+            "url": "https://musescore.com/user/3660571/scores/8597915"
+          }
+        },
+        {
+          "id": "killer-queen",
+          "title": "Killer Queen",
+          "artist": "Queen",
+          "teaches": "vaudeville-rock piano, chromatic passing chords",
+          "detail": "Eb, 117",
+          "bpm": 117,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6942444",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Nuclearwalrus cover",
+            "url": "https://musescore.com/user/215006/scores/5201484"
+          }
+        },
+        {
+          "id": "georgia-on-my-mind",
+          "title": "Georgia on My Mind",
+          "artist": "Ray Charles",
+          "teaches": "soul-jazz ballad, gospel fills",
+          "detail": "F, 60",
+          "bpm": 60,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Islam Albakov",
+              "url": "https://musescore.com/user/3270391/scores/10146049"
+            }
+          ],
+          "fallback": {
+            "label": "Lead sheet, James T. Bartlett",
+            "url": "https://musescore.com/user/34876540/scores/8425658"
+          }
+        },
+        {
+          "id": "divenire",
+          "title": "Divenire",
+          "artist": "Einaudi",
+          "teaches": "driving LH patterns, long build, stamina",
+          "detail": "G minor feel, 132; also in Einaudi, Divenire songbook (Chester Music)",
+          "bpm": 132,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6945286",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "a-thousand-miles",
+          "title": "A Thousand Miles",
+          "artist": "Vanessa Carlton",
+          "teaches": "fast RH sixteenth hook against LH octaves",
+          "detail": "B, 95",
+          "bpm": 95,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, lachlanac",
+              "url": "https://musescore.com/user/11793446/scores/3701536"
+            }
+          ],
+          "fallback": {
+            "label": "birgerjuno05",
+            "url": "https://musescore.com/user/36472524/scores/7014983"
+          }
+        },
+        {
+          "id": "waltz-in-c-sharp-minor-op-64-no-2",
+          "title": "Waltz in C# minor Op. 64 No. 2",
+          "artist": "Chopin",
+          "teaches": "three moods, fast più mosso RH, rubato",
+          "detail": "C# minor, crotchet 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/55375"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Waltzes Op. 64",
+            "url": "https://imslp.org/wiki/Waltzes,_Op.64_(Chopin,_Fr%C3%A9d%C3%A9ric)"
+          }
+        },
+        {
+          "id": "prelude-and-fugue-in-c-minor-bwv-847",
+          "title": "Prelude and Fugue in C minor BWV 847",
+          "artist": "Bach",
+          "teaches": "perpetual-motion semiquavers, three-voice fugue",
+          "detail": "C minor, crotchet 120 (prelude)",
+          "bpm": 120,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Prelude, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/227966"
+            },
+            {
+              "label": "Fugue, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/231261"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP WTC I",
+            "url": "https://imslp.org/wiki/Das_wohltemperierte_Klavier_I,_BWV_846-869_(Bach,_Johann_Sebastian)"
+          }
+        },
+        {
+          "id": "impromptu-op-142-no-2",
+          "title": "Impromptu Op. 142 No. 2",
+          "artist": "Schubert",
+          "teaches": "chordal sarabande, voicing, trio in triplets",
+          "detail": "Ab, crotchet 69",
+          "bpm": 69,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, howtobasic.1998",
+              "url": "https://musescore.com/user/11239551/scores/5682128"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Impromptus D. 935",
+            "url": "https://imslp.org/wiki/4_Impromptus,_D.935_(Schubert,_Franz)"
+          }
+        }
+      ],
+      "test": "three shelf songs (one Grade 7 classical, one jazz-pop) at 90% and 100% tempo, one from memory; one passed song transposed from its lead sheet; Grade 7 scales and arpeggios in 6 keys the app picks."
+    },
+    {
+      "id": "10",
+      "title": "Capstone: recital and a Grade 8 stretch",
+      "goal": "a 20-minute recital of five pieces played in order without stopping; an own arrangement from a lead sheet; one Grade 8 stretch piece; reading a Grade 5 piece and a pop chart at first sight. This is \"done\" for the path.",
+      "adds": "Scales: G8 speed in 4 keys. Pop: own arrangement, performance. Reading: G5 at first sight.",
+      "pick": 1,
+      "steps": [
+        {
+          "id": "10.1",
+          "title": "Grade 8 speed stretch",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%208&bpm=88",
+          "setup": "Scales, Grade 8 (minim 88), 4 keys; the whole-tone scale from C and Db. Scales a sixth apart wait for drill 4.",
+          "done": "3 clean runs per item, on two days.",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 88,
+          "minAttempts": 12,
+          "links": [
+            {
+              "label": "Whole-tone from C",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=whole-tone&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%208&bpm=88"
+            },
+            {
+              "label": "Whole-tone from Db",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=whole-tone&tonic=61&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%208&bpm=88"
+            }
+          ],
+          "feeds": "technique"
+        },
+        {
+          "id": "10.2",
+          "title": "Maintenance rotation",
+          "setup": "4 keys a day, all 24 keys at Grade 7 over a week.",
+          "done": "One full week with every key clean.",
+          "needs": "A grade-key rotation in Scales (drill 5).",
+          "feeds": "keeps L9 technique"
+        },
+        {
+          "id": "10.3",
+          "title": "Recital programme chosen",
+          "setup": "Pick 5 passed songs: 2 classical (Grade 6 to 7), 3 pop or film, at least one from this shelf.",
+          "done": "The list written in the journal.",
+          "feeds": "recital"
+        },
+        {
+          "id": "10.4",
+          "title": "Programme run-throughs",
+          "setup": "Song Studio performance mode, the 5 pieces in order, scored for continuity.",
+          "done": "Three run-throughs on three days, each piece at 90% and continuity 100%.",
+          "needs": "No-stop scoring in Song Studio performance mode (drill 12).",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "recital"
+        },
+        {
+          "id": "10.5",
+          "title": "Own arrangement",
+          "setup": "A lead sheet below: intro, a verse with one pattern, a chorus with another, a gospel or boogie bridge, an ending; record it.",
+          "done": "One recorded take, chords right on 95% of bars.",
+          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "links": [
+            {
+              "label": "Someone Like You in A, DecPlay",
+              "href": "https://musescore.com/user/28899113/scores/6274709"
+            },
+            {
+              "label": "Lean on Me, Dick Schmitt",
+              "href": "https://musescore.com/user/498481/scores/6282453"
+            },
+            {
+              "label": "Bridge Over Troubled Water, Dick Schmitt",
+              "href": "https://musescore.com/user/498481/scores/6292121"
+            },
+            {
+              "label": "Georgia on My Mind, James T. Bartlett",
+              "href": "https://musescore.com/user/34876540/scores/8425658"
+            },
+            {
+              "label": "Can't Help Falling in Love in C, DecPlay",
+              "href": "https://musescore.com/user/28899113/scores/6288760"
+            },
+            {
+              "label": "Viva la Vida chart, thedawn41182",
+              "href": "https://musescore.com/user/43277726/scores/7426244"
+            },
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ],
+          "feeds": "recital (can be the fifth piece)"
+        },
+        {
+          "id": "10.6",
+          "title": "Sight-reading at first sight",
+          "setup": "Grand-staff sight-reading at Grade 5, no preview beyond 30 seconds.",
+          "done": "80% on three unseen pieces.",
+          "needs": "Grand-staff sight-reading at ABRSM Grade 5 (drill 2).",
+          "feeds": "Reading path"
+        },
+        {
+          "id": "10.7",
+          "title": "Chord chart at first sight",
+          "setup": "An unseen chart in a key the app names, with a pattern of your choice.",
+          "done": "Chords right on 95% of bars, no stop.",
+          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
+          "feeds": "playing for others"
+        },
+        {
+          "id": "10.8",
+          "title": "A song by ear",
+          "setup": "Ear path: the melody and chords of a song of your choice, worked out without a score, played in 2 keys.",
+          "done": "Played through, then checked against a score.",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "playing by ear"
+        },
+        {
+          "id": "10.9",
+          "title": "Record the recital",
+          "href": "/music/record",
+          "setup": "Record: the full programme in one take; listen back, note 3 fixes, re-record a week later.",
+          "done": "The second recording made.",
+          "feeds": "done"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "clair-de-lune",
+          "title": "Clair de Lune",
+          "artist": "Debussy",
+          "teaches": "Grade 8 stretch: voicing, pedal, rubato, arpeggiated climax",
+          "detail": "Db, quaver 66",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, ClassicMan",
+              "url": "https://musescore.com/user/19710/scores/58553"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Suite bergamasque",
+            "url": "https://imslp.org/wiki/Suite_bergamasque_(Debussy,_Claude)"
+          }
+        },
+        {
+          "id": "nocturne-in-c-sharp-minor-b-49",
+          "title": "Nocturne in C# minor, B. 49",
+          "artist": "Chopin",
+          "teaches": "cantabile, fast fioriture, quiet ending",
+          "detail": "C# minor, crotchet 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, Bernd Haerle",
+              "url": "https://musescore.com/user/11852121/scores/5237411"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/wiki/Nocturne_in_C-sharp_minor,_B.49_(Chopin,_Fr%C3%A9d%C3%A9ric)"
+          }
+        },
+        {
+          "id": "new-york-state-of-mind-full",
+          "title": "New York State of Mind, full",
+          "artist": "Billy Joel",
+          "teaches": "the record's piano part: blues fills, jazz-pop voicings",
+          "detail": "C, 66",
+          "bpm": 66,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Jaaron_M",
+              "url": "https://musescore.com/user/25310956/scores/6268159"
+            }
+          ],
+          "fallback": {
+            "label": "Piano-Vocal-Guitar, official",
+            "url": "https://musescore.com/user/39593079/scores/6938057",
+            "official": true
+          }
+        },
+        {
+          "id": "vienna",
+          "title": "Vienna",
+          "artist": "Billy Joel",
+          "teaches": "accompaniment with moving inner voices, accordion-like RH",
+          "detail": "Bb, 112",
+          "bpm": 112,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "davidhelmut, piano accompaniment",
+              "url": "https://musescore.com/user/31213048/scores/6647132"
+            }
+          ],
+          "fallback": {
+            "label": "Piano-Vocal-Guitar, official",
+            "url": "https://musescore.com/user/39593079/scores/6942517",
+            "official": true
+          }
+        },
+        {
+          "id": "love-of-my-life",
+          "title": "Love of My Life",
+          "artist": "Queen",
+          "teaches": "rubato ballad, harp-like arpeggios, runs",
+          "detail": "F, 66",
+          "bpm": 66,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, nicolastraficante",
+              "url": "https://musescore.com/user/17816211/scores/4267466"
+            }
+          ],
+          "fallback": {
+            "label": "Abc0803, advanced",
+            "url": "https://musescore.com/user/76130800/scores/20321779"
+          }
+        },
+        {
+          "id": "skyfall",
+          "title": "Skyfall",
+          "artist": "Adele",
+          "teaches": "orchestral ballad on piano, octaves, minor colour",
+          "detail": "C minor, 76",
+          "bpm": 76,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ZakuraMusic",
+              "url": "https://musescore.com/user/16296656/scores/3491126"
+            }
+          ],
+          "fallback": {
+            "label": "kaidu06, advanced",
+            "url": "https://musescore.com/user/3306556/scores/4900595"
+          }
+        },
+        {
+          "id": "whatd-i-say",
+          "title": "What'd I Say",
+          "artist": "Ray Charles",
+          "teaches": "electric-piano riff, 12-bar, Latin-boogie LH",
+          "detail": "E, 168",
+          "bpm": 168,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Piano Solo, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15394444",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Community, tothzaza25",
+            "url": "https://musescore.com/user/80340157/scores/15213925"
+          }
+        },
+        {
+          "id": "oh-happy-day",
+          "title": "Oh Happy Day",
+          "artist": "Edwin Hawkins",
+          "teaches": "gospel arrangement from a piano-vocal score: build the solo part",
+          "detail": "G, 104",
+          "bpm": 104,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Piano-Vocal-Guitar, official Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/6933035",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Smim.it solo, simple",
+            "url": "https://musescore.com/user/32445189/scores/6327760"
+          }
+        },
+        {
+          "id": "no-one",
+          "title": "No One",
+          "artist": "Alicia Keys",
+          "teaches": "I-V-vi-IV gospel-pop, build your own solo version",
+          "detail": "E, 90",
+          "bpm": 90,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Rudy Mukendi, piano-voice",
+              "url": "https://musescore.com/user/24817381/scores/5041758"
+            }
+          ],
+          "fallback": {
+            "label": "Piano Solo, official",
+            "url": "https://musescore.com/user/39593079/scores/6975925",
+            "official": true
+          }
+        }
+      ],
+      "test": "the recorded recital: five pieces in order, each at 90% or better at 100% tempo with continuity 100%, two of them classical at Grade 6 to 7, one of them the owner's own arrangement; plus Grade 7 scales and arpeggios in 6 keys the app picks and a G5 sight-reading piece at 80%."
+    }
+  ]
 }

@@ -2,5 +2,4165 @@
   "id": "aerophone",
   "title": "Aerophone Path",
   "subtitle": "A saxophone curriculum on the Aerophone, alto or tenor, to about grade 5 with jazz heads and blues.",
-  "levels": []
+  "benchmark": "ABRSM or Trinity Grade 5 saxophone; Rubank Intermediate, Niehaus Basic Jazz Conception Vol. 1",
+  "instruments": ["aerophone"],
+  "levels": [
+    {
+      "id": "1",
+      "title": "First notes, left hand",
+      "goal": "five left-hand notes, steady air, a tongued start on every note, eight first tunes. Rubank and the Roland Lesson app start the same way (B A G, then C, then the right hand).",
+      "adds": "Written range: G4 to C5, then E4 to C5.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "1.1",
+          "title": "Set up the AE-20",
+          "setup": "Sax mode, alto scene, Transpose C while practising in the app (switch to Eb only for recordings), breath floor and ceiling, key check.",
+          "done": "Written G4 shows as G4 in the app; the breath trace reaches f without clipping.",
+          "needs": "A calibration and key check: breath floor and ceiling, CC check, transpose check.",
+          "feeds": "Everything"
+        },
+        {
+          "id": "1.2",
+          "title": "G A B",
+          "href": "/music/aerophone?mode=fingering&lesson=g-a-b",
+          "setup": "Fingering: G A B, Practice, then Check.",
+          "done": "3 clean Check runs, on two days.",
+          "match": {
+            "target": "67"
+          },
+          "threshold": 0.9,
+          "feeds": "Hot Cross Buns, Mary Had a Little Lamb"
+        },
+        {
+          "id": "1.3",
+          "title": "First long tones",
+          "href": "/music/aerophone?mode=long-tone&level=mf&seconds=3",
+          "setup": "Long tone at mf, 3 s, then 5 s.",
+          "done": "3 runs at 80% in band, on two days.",
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "5 s",
+              "href": "/music/aerophone?mode=long-tone&level=mf&seconds=5"
+            }
+          ]
+        },
+        {
+          "id": "1.4",
+          "title": "Tongue every note",
+          "href": "/music/aerophone?mode=articulation&style=staccato",
+          "setup": "Articulation: staccato at 70 BPM on the practice strip.",
+          "done": "80% on 2 runs.",
+          "minAttempts": 2,
+          "threshold": 0.8
+        },
+        {
+          "id": "1.5",
+          "title": "First tunes from the app",
+          "href": "/music/phrases?instrument=aerophone&phrase=aerophone.hot-cross-buns",
+          "setup": "Phrases: Hot Cross Buns, then Au clair de la lune and Lightly Row.",
+          "done": "80% at the phrase tempo, each.",
+          "each": {
+            "param": "phrase",
+            "values": ["aerophone.hot-cross-buns", "aerophone.au-clair", "aerophone.lightly-row"]
+          },
+          "threshold": 0.8,
+          "minBpm": 90,
+          "links": [
+            {
+              "label": "Au clair de la lune",
+              "href": "/music/phrases?instrument=aerophone&phrase=aerophone.au-clair"
+            },
+            {
+              "label": "Lightly Row",
+              "href": "/music/phrases?instrument=aerophone&phrase=aerophone.lightly-row"
+            }
+          ],
+          "feeds": "Shelf songs 1 to 4"
+        },
+        {
+          "id": "1.6",
+          "title": "Add C5",
+          "href": "/music/aerophone?mode=fingering&lesson=g-to-c",
+          "setup": "Fingering: G to C.",
+          "done": "3 clean Check runs.",
+          "match": {
+            "target": "67"
+          },
+          "threshold": 0.9,
+          "feeds": "Lightly Row, Twinkle"
+        },
+        {
+          "id": "1.7",
+          "title": "Right hand: E F G",
+          "href": "/music/aerophone?mode=fingering&lesson=e-f-g",
+          "setup": "Fingering: E F G.",
+          "done": "3 clean Check runs.",
+          "match": {
+            "target": "64"
+          },
+          "threshold": 0.9,
+          "feeds": "Ode to Joy, Frère Jacques"
+        },
+        {
+          "id": "1.8",
+          "title": "Note names on the staff",
+          "href": "/music/reading?activity=flashcards&clefs=treble&kind=note",
+          "setup": "Reading, flashcards: treble G4 to C5, then E4 to C5. Fast for a pianist.",
+          "done": "20 in a row, under 2 s each.",
+          "minAttempts": 1,
+          "threshold": 0.95,
+          "feeds": "Reading"
+        },
+        {
+          "id": "1.9",
+          "title": "Quarter, half and whole notes and rests",
+          "href": "/music/rhythm?mode=read-and-tap&pattern=quarter-pulse",
+          "setup": "Rhythm, read and tap: the quarter-note pulse.",
+          "done": "90% on 2 runs.",
+          "minAttempts": 2,
+          "threshold": 0.9
+        },
+        {
+          "id": "1.10",
+          "title": "First Song Studio import",
+          "href": "/music/library?tab=songs",
+          "setup": "Import one shelf song (.mxl), play it in wait mode, then performance.",
+          "done": "85% in performance mode at the score tempo.",
+          "match": {
+            "mode": "performance"
+          },
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.85,
+          "feeds": "Shelf"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "hot-cross-buns",
+          "title": "Hot Cross Buns",
+          "artist": "Traditional",
+          "teaches": "B A G, steady quarters",
+          "detail": "about 90",
+          "bpm": 90,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16638700",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "mary-had-a-little-lamb",
+          "title": "Mary Had a Little Lamb",
+          "artist": "Traditional",
+          "teaches": "B A G plus D, repeated notes",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto, Wesley S. Silva",
+              "url": "https://musescore.com/user/97106398/scores/21104887",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "au-clair-de-la-lune",
+          "title": "Au clair de la lune",
+          "artist": "Traditional",
+          "teaches": "G A B C, half notes",
+          "detail": "about 90",
+          "bpm": 90,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto duet, NaomiAeba, play part 1",
+              "url": "https://musescore.com/user/1042611/scores/566491"
+            }
+          ],
+          "fallback": {
+            "label": "App phrase",
+            "url": "/music/phrases?instrument=aerophone&phrase=aerophone.au-clair"
+          }
+        },
+        {
+          "id": "lightly-row",
+          "title": "Lightly Row",
+          "artist": "Traditional",
+          "teaches": "Five notes, leaps of a third",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, kyriceb57",
+              "url": "https://musescore.com/user/81181573/scores/32204462"
+            }
+          ],
+          "fallback": {
+            "label": "App phrase; Essential Elements Book 1",
+            "url": "/music/phrases?instrument=aerophone&phrase=aerophone.lightly-row"
+          }
+        },
+        {
+          "id": "twinkle-twinkle-little-star",
+          "title": "Twinkle Twinkle Little Star",
+          "artist": "Traditional",
+          "teaches": "Leap of a fifth, steady air",
+          "detail": "about 90",
+          "bpm": 90,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto duet, NaomiAeba",
+              "url": "https://musescore.com/user/1042611/scores/588346"
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "ode-to-joy",
+          "title": "Ode to Joy",
+          "artist": "Beethoven",
+          "teaches": "Stepwise, dotted rhythm at the end",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto easy, Wesley S. Silva",
+              "url": "https://musescore.com/user/97106398/scores/18820885",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "App phrase; IMSLP",
+            "url": "/music/phrases?instrument=aerophone&phrase=aerophone.ode-to-joy"
+          }
+        },
+        {
+          "id": "frere-jacques",
+          "title": "Frère Jacques",
+          "artist": "Traditional",
+          "teaches": "Right hand E F G, eighth notes",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto in C with chords, MissoRB",
+              "url": "https://musescore.com/user/97106398/scores/25362073",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "go-tell-aunt-rhody",
+          "title": "Go Tell Aunt Rhody",
+          "artist": "Traditional",
+          "teaches": "Five notes, ties",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto with fingering chart, Martin Freres",
+              "url": "https://musescore.com/user/97106398/scores/36084296",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Rubank Elementary",
+            "url": "https://www.google.com/search?q=Rubank+Elementary"
+          }
+        }
+      ],
+      "test": "Two shelf songs at their tempo, 85% in Song Studio performance mode, plus a 5 s mf long tone at 80% in band."
+    },
+    {
+      "id": "2",
+      "title": "Down to low C, first carols",
+      "goal": "the low octave C4 to C5 with F#4 and Bb4, 3/4 time, ties and dotted quarters, slurring two notes.",
+      "adds": "Written range: C4 to C5, F#4, Bb4.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "2.1",
+          "title": "Low C D E",
+          "href": "/music/aerophone?mode=fingering&lesson=c-d-e",
+          "setup": "Fingering: C D E.",
+          "done": "3 clean Check runs, on two days.",
+          "match": {
+            "target": "60"
+          },
+          "threshold": 0.9,
+          "feeds": "Amazing Grace, Silent Night"
+        },
+        {
+          "id": "2.2",
+          "title": "C to G",
+          "href": "/music/aerophone?mode=fingering&lesson=c-to-g",
+          "setup": "Fingering: C to G.",
+          "done": "3 clean Check runs.",
+          "match": {
+            "target": "60"
+          },
+          "threshold": 0.9,
+          "feeds": "Saints, Jingle Bells"
+        },
+        {
+          "id": "2.3",
+          "title": "C major, low octave",
+          "href": "/music/aerophone?mode=fingering&lesson=c-major",
+          "setup": "Fingering: C major.",
+          "done": "3 clean Check runs, at 80 BPM once the notes are sure.",
+          "match": {
+            "target": "60"
+          },
+          "threshold": 0.9,
+          "feeds": "Joy to the World"
+        },
+        {
+          "id": "2.4",
+          "title": "F# and Bb",
+          "setup": "Fingering on a chosen note set: F#4 and Bb4. Meanwhile, Practice runs of G major and F major, stopping at C5.",
+          "done": "20 correct F#4 and Bb4 in a row.",
+          "needs": "Fingering mode with a chosen note set.",
+          "links": [
+            {
+              "label": "G major (Practice, stop at C5)",
+              "href": "/music/aerophone?mode=fingering&lesson=g-major"
+            },
+            {
+              "label": "F major (Practice, stop at C5)",
+              "href": "/music/aerophone?mode=fingering&lesson=f-major"
+            }
+          ],
+          "feeds": "Simple Gifts, Scarborough Fair"
+        },
+        {
+          "id": "2.5",
+          "title": "Low long tones, soft",
+          "href": "/music/aerophone?mode=long-tone&level=p&target=60&seconds=5",
+          "setup": "Long tone on low C at p, 5 s.",
+          "done": "3 runs at 75% in band.",
+          "match": {
+            "target": "60"
+          },
+          "threshold": 0.75,
+          "feeds": "All ballads"
+        },
+        {
+          "id": "2.6",
+          "title": "Slur two, tongue two",
+          "href": "/music/aerophone?mode=tonguing&tongue=slur2-tongue2&key=0",
+          "setup": "Tonguing patterns: slur two, tongue two, C major, 70 BPM.",
+          "done": "80% on 2 runs.",
+          "match": {
+            "setup": "C major, slur two, tongue two, 70 BPM, eighths"
+          },
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "feeds": "Carols"
+        },
+        {
+          "id": "2.7",
+          "title": "Dotted quarters and ties",
+          "href": "/music/rhythm?mode=read-and-tap&pattern=dotted-quarters",
+          "setup": "Rhythm, read and tap: dotted quarters. 3/4 comes with the carols.",
+          "done": "90% on 2 runs.",
+          "minAttempts": 2,
+          "threshold": 0.9,
+          "feeds": "Amazing Grace, Silent Night"
+        },
+        {
+          "id": "2.8",
+          "title": "A tune from memory",
+          "href": "/music/phrases?instrument=aerophone&phrase=aerophone.ode-to-joy",
+          "setup": "Phrases: Ode to Joy in Check, notes hidden.",
+          "done": "90% at the phrase tempo.",
+          "match": {
+            "phrase": "aerophone.ode-to-joy"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "feeds": "Ode to Joy"
+        },
+        {
+          "id": "2.9",
+          "title": "Two shelf songs in Song Studio",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: wait mode, then performance.",
+          "done": "85% at the score tempo, on two songs.",
+          "match": {
+            "mode": "performance"
+          },
+          "minAttempts": 2,
+          "threshold": 0.85,
+          "feeds": "Shelf"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "when-the-saints-go-marching-in",
+          "title": "When the Saints Go Marching In",
+          "artist": "Traditional",
+          "teaches": "Pickups, ties, C to G",
+          "detail": "about 110",
+          "bpm": 110,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto with chords, Billie Feynman",
+              "url": "https://musescore.com/user/97106398/scores/26019544",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax; Essential Elements Book 1",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "jingle-bells",
+          "title": "Jingle Bells",
+          "artist": "Pierpont",
+          "teaches": "Repeated notes, C to G",
+          "detail": "about 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto solo, Fabio Britto",
+              "url": "https://musescore.com/user/97106398/scores/17003542",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "amazing-grace",
+          "title": "Amazing Grace",
+          "artist": "Newton",
+          "teaches": "3/4, low C, ties, slurs",
+          "detail": "about 80",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto, easy key of C, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16642099",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "silent-night",
+          "title": "Silent Night",
+          "artist": "Gruber",
+          "teaches": "6/8 or 3/4, dotted rhythm, soft air",
+          "detail": "about 70",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto, easy key of C, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16655461",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP; 8notes",
+            "url": "https://imslp.org/"
+          }
+        },
+        {
+          "id": "joy-to-the-world",
+          "title": "Joy to the World",
+          "artist": "Handel",
+          "teaches": "A descending C major scale",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16637050",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "deck-the-halls",
+          "title": "Deck the Halls",
+          "artist": "Welsh traditional",
+          "teaches": "Eighth-note runs, fa-la-la slurs",
+          "detail": "about 110",
+          "bpm": 110,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto, Benzaiten Editions",
+              "url": "https://musescore.com/user/97106398/scores/19184014",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "happy-birthday",
+          "title": "Happy Birthday",
+          "artist": "Hill",
+          "teaches": "3/4, leap of an octave at the top",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, axelhasnoacc1",
+              "url": "https://musescore.com/user/81346087/scores/22388977"
+            }
+          ],
+          "fallback": {
+            "label": "Any fake book",
+            "url": "https://www.google.com/search?q=fake+book"
+          }
+        },
+        {
+          "id": "simple-gifts",
+          "title": "Simple Gifts",
+          "artist": "Shaker tune",
+          "teaches": "F#, stepwise phrasing",
+          "detail": "about 90",
+          "bpm": 90,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto and piano, James Smith",
+              "url": "https://musescore.com/user/97106398/scores/30921464",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes; Copland's Appalachian Spring theme",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "scarborough-fair",
+          "title": "Scarborough Fair",
+          "artist": "English traditional",
+          "teaches": "Dorian, 3/4, long phrases",
+          "detail": "about 90",
+          "bpm": 90,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, alto, Glauco Fernandes",
+              "url": "https://musescore.com/user/97106398/scores/18726889",
+              "official": true
+            },
+            {
+              "label": "Community, alto and harp, josdo",
+              "url": "https://musescore.com/user/35613/scores/1535346"
+            }
+          ]
+        }
+      ],
+      "test": "One carol and one folk tune from the shelf at tempo, 85% in performance mode; C major low octave clean in Check at 80."
+    },
+    {
+      "id": "3",
+      "title": "The octave key and the break",
+      "goal": "D5 to C6 with the octave key; C, G and F major over a full octave; long tones at four dynamic levels; first pop and film melodies.",
+      "adds": "Written range: C4 to C6.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "3.1",
+          "title": "The octave key",
+          "href": "/music/aerophone?mode=fingering&lesson=octave",
+          "setup": "Fingering: the octave key, G to D.",
+          "done": "3 clean Check runs.",
+          "match": {
+            "target": "67"
+          },
+          "threshold": 0.9,
+          "feeds": "All"
+        },
+        {
+          "id": "3.2",
+          "title": "Across the break",
+          "href": "/music/aerophone?mode=register&pair=cs5-d5",
+          "setup": "Register crossings: C#5 to D5 at 60, then 80.",
+          "done": "No glitches at 80 on 2 runs.",
+          "match": {
+            "setup": "C#5 to D5, back and forth in eighths at 80 BPM"
+          },
+          "minAttempts": 2,
+          "threshold": 0.9,
+          "feeds": "All"
+        },
+        {
+          "id": "3.3",
+          "title": "More crossings",
+          "href": "/music/aerophone?mode=register&pair=c5-d5",
+          "setup": "Register crossings: C5 to D5, D4 to D5, G4 to G5, at 80.",
+          "done": "No glitches at 80, each, on 2 runs.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C5 to D5, back and forth in eighths at 80 BPM",
+              "D4 to D5, back and forth in eighths at 80 BPM",
+              "G4 to G5, back and forth in eighths at 80 BPM"
+            ]
+          },
+          "minAttempts": 2,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "D4 to D5",
+              "href": "/music/aerophone?mode=register&pair=d4-d5"
+            },
+            {
+              "label": "G4 to G5",
+              "href": "/music/aerophone?mode=register&pair=g4-g5"
+            }
+          ],
+          "feeds": "Danny Boy, Hallelujah"
+        },
+        {
+          "id": "3.4",
+          "title": "G and F major",
+          "href": "/music/aerophone?mode=fingering&lesson=g-major",
+          "setup": "Fingering: G major, then F major.",
+          "done": "3 clean Check runs each.",
+          "each": {
+            "param": "target",
+            "values": ["67", "65"]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "F major",
+              "href": "/music/aerophone?mode=fingering&lesson=f-major"
+            }
+          ],
+          "feeds": "Shelf"
+        },
+        {
+          "id": "3.5",
+          "title": "Scales on the click",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=1",
+          "setup": "Scales: C, G and F major at 100, a note a click (grade 1).",
+          "done": "90% in each key, on two days.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major scale, up and down, 100 BPM, a note a click",
+              "G major scale, up and down, 100 BPM, a note a click",
+              "F major scale, up and down, 100 BPM, a note a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/aerophone?mode=scales&scale=major&key=7&perBeat=1"
+            },
+            {
+              "label": "F",
+              "href": "/music/aerophone?mode=scales&scale=major&key=5&perBeat=1"
+            }
+          ],
+          "feeds": "Shelf"
+        },
+        {
+          "id": "3.6",
+          "title": "First arpeggios",
+          "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=0&perBeat=1",
+          "setup": "Scales: C, G and F major arpeggios at 100.",
+          "done": "90% at 100, each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major arpeggio, up and down, 100 BPM, a note a click",
+              "G major arpeggio, up and down, 100 BPM, a note a click",
+              "F major arpeggio, up and down, 100 BPM, a note a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=7&perBeat=1"
+            },
+            {
+              "label": "F major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=5&perBeat=1"
+            }
+          ],
+          "feeds": "Stand by Me"
+        },
+        {
+          "id": "3.7",
+          "title": "Four dynamic levels",
+          "href": "/music/aerophone?mode=long-tone&level=pp&seconds=5",
+          "setup": "Long tone at pp, then p, mf and f, 5 s each.",
+          "done": "3 runs at 80% at each level.",
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "p",
+              "href": "/music/aerophone?mode=long-tone&level=p&seconds=5"
+            },
+            {
+              "label": "mf",
+              "href": "/music/aerophone?mode=long-tone&level=mf&seconds=5"
+            },
+            {
+              "label": "f",
+              "href": "/music/aerophone?mode=long-tone&level=f&seconds=5"
+            }
+          ],
+          "feeds": "Ballads"
+        },
+        {
+          "id": "3.8",
+          "title": "First swell",
+          "href": "/music/aerophone?mode=swell&swellSeconds=6",
+          "setup": "Swell over 6 s.",
+          "done": "3 runs at 75%.",
+          "threshold": 0.75,
+          "feeds": "Danny Boy"
+        },
+        {
+          "id": "3.9",
+          "title": "Morning Mood",
+          "href": "/music/phrases?instrument=aerophone&phrase=aerophone.morning-mood",
+          "setup": "Phrases: Morning Mood, in 6/8.",
+          "done": "85% at the phrase tempo.",
+          "match": {
+            "phrase": "aerophone.morning-mood"
+          },
+          "threshold": 0.85,
+          "minBpm": 84,
+          "feeds": "Morning Mood"
+        },
+        {
+          "id": "3.10",
+          "title": "Echo by ear",
+          "href": "/music/ear/melody-dictation?answer=play-back&level=anchor",
+          "setup": "Ear, melody dictation: the anchor level, then the major pentachord, answered on the AE-20.",
+          "done": "80% on 2 runs, each level.",
+          "each": {
+            "param": "level",
+            "values": ["anchor", "major-pentachord"]
+          },
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Major pentachord",
+              "href": "/music/ear/melody-dictation?answer=play-back&level=major-pentachord"
+            }
+          ],
+          "feeds": "Ear path"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "tequila",
+          "title": "Tequila",
+          "artist": "The Champs",
+          "teaches": "Three-note riff, the shout, rests",
+          "detail": "fast, about 170",
+          "bpm": 170,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/5106814"
+            },
+            {
+              "label": "Official, alto, Kevin Busse beginner",
+              "url": "https://musescore.com/user/97106398/scores/16643410",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "stand-by-me",
+          "title": "Stand by Me",
+          "artist": "Ben E. King",
+          "teaches": "Bass-line melody, syncopation",
+          "detail": "about 118",
+          "bpm": 118,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto solo, josiphel",
+              "url": "https://musescore.com/user/13897826/scores/3042666"
+            }
+          ],
+          "fallback": {
+            "label": "Hal Leonard alto play-along",
+            "url": "https://www.google.com/search?q=Hal+Leonard+alto+play-along"
+          }
+        },
+        {
+          "id": "auld-lang-syne",
+          "title": "Auld Lang Syne",
+          "artist": "Scottish traditional",
+          "teaches": "4/4 dotted rhythm, octave leaps",
+          "detail": "about 80",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto, Cadenza Editions",
+              "url": "https://musescore.com/user/97106398/scores/18721303",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "o-come-all-ye-faithful",
+          "title": "O Come All Ye Faithful",
+          "artist": "Wade",
+          "teaches": "Crossing the break in a hymn",
+          "detail": "about 90",
+          "bpm": 90,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, ruthsax",
+              "url": "https://musescore.com/user/35051857/scores/8979665"
+            }
+          ],
+          "fallback": {
+            "label": "8notes alto sax",
+            "url": "https://www.8notes.com/alto_saxophone/"
+          }
+        },
+        {
+          "id": "greensleeves",
+          "title": "Greensleeves",
+          "artist": "English traditional",
+          "teaches": "Minor feel, 3/4, high E",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, jimirock98",
+              "url": "https://musescore.com/user/62652/scores/80804"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP; 8notes",
+            "url": "https://imslp.org/"
+          }
+        },
+        {
+          "id": "cant-help-falling-in-love",
+          "title": "Can't Help Falling in Love",
+          "artist": "Elvis",
+          "teaches": "Long notes, 12/8 feel",
+          "detail": "slow",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto beginner, Lkmusic",
+              "url": "https://musescore.com/user/97106398/scores/23583481",
+              "official": true
+            },
+            {
+              "label": "Community, sax quartet, Max Gray, play the alto part",
+              "url": "https://musescore.com/user/14924086/scores/5587610"
+            }
+          ]
+        },
+        {
+          "id": "hallelujah",
+          "title": "Hallelujah",
+          "artist": "Leonard Cohen",
+          "teaches": "6/8, phrase shape, soft dynamics",
+          "detail": "about 56 dotted quarter",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, cobbchristian",
+              "url": "https://musescore.com/user/33000781/scores/5739676"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15538558",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "danny-boy-londonderry-air",
+          "title": "Danny Boy (Londonderry Air)",
+          "artist": "Traditional",
+          "teaches": "The octave leap to the top, swells",
+          "detail": "slow",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, solo alto, K Kobayashi",
+              "url": "https://musescore.com/user/32009255/scores/24703942"
+            },
+            {
+              "label": "Official, alto, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16639966",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "morning-mood",
+          "title": "Morning Mood",
+          "artist": "Grieg",
+          "teaches": "6/8, crossing the break in thirds",
+          "detail": "about 60 dotted quarter",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto level 1 with chords, Rodrigo Faleiros",
+              "url": "https://musescore.com/user/97106398/scores/19386856",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "App phrase; IMSLP",
+            "url": "/music/phrases?instrument=aerophone&phrase=aerophone.morning-mood"
+          }
+        },
+        {
+          "id": "hes-a-pirate",
+          "title": "He's a Pirate",
+          "artist": "Pirates of the Caribbean",
+          "teaches": "Fast 6/8, tonguing",
+          "detail": "fast 6/8",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, alto beginner, Benzaiten Editions",
+              "url": "https://musescore.com/user/97106398/scores/17478460",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Hal Leonard movie themes for alto",
+            "url": "https://www.google.com/search?q=Hal+Leonard+movie+themes+for+alto"
+          }
+        }
+      ],
+      "test": "Two shelf songs at tempo (one pop, one folk or film) at 85%; C, G, F major at grade 1 speed in Check, 90%; C#5 to D5 crossing with 0 glitches at 80."
+    },
+    {
+      "id": "4",
+      "title": "Full low register, first riffs",
+      "goal": "down to low Bb3 with the left pinky table and the right pinky Eb, Bb and D major, eighth notes at real tempos, staccato versus legato, the first sax riffs people know.",
+      "adds": "Written range: Bb3 to C6.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "4.1",
+          "title": "Bb and D major",
+          "href": "/music/aerophone?mode=fingering&lesson=bb-major",
+          "setup": "Fingering: Bb major, then D major.",
+          "done": "3 clean Check runs each.",
+          "each": {
+            "param": "target",
+            "values": ["58", "62"]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "D major",
+              "href": "/music/aerophone?mode=fingering&lesson=d-major"
+            }
+          ],
+          "feeds": "Night Train, Peter Gunn"
+        },
+        {
+          "id": "4.2",
+          "title": "The pinky table",
+          "setup": "Register crossings for the pinkies: C#4 to B3, B3 to Bb3, Eb4 to C4.",
+          "done": "No glitches at 70.",
+          "needs": "Register pairs for the pinky table (C#4 to B3, B3 to Bb3, Eb4 to C4).",
+          "feeds": "Peter Gunn"
+        },
+        {
+          "id": "4.3",
+          "title": "Five major keys on the click",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=1",
+          "setup": "Scales: C, G, F, Bb and D major at 100, a note a click.",
+          "done": "90% in each key.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major scale, up and down, 100 BPM, a note a click",
+              "G major scale, up and down, 100 BPM, a note a click",
+              "F major scale, up and down, 100 BPM, a note a click",
+              "Bb major scale, up and down, 100 BPM, a note a click",
+              "D major scale, up and down, 100 BPM, a note a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/aerophone?mode=scales&scale=major&key=7&perBeat=1"
+            },
+            {
+              "label": "F",
+              "href": "/music/aerophone?mode=scales&scale=major&key=5&perBeat=1"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/aerophone?mode=scales&scale=major&key=10&perBeat=1"
+            },
+            {
+              "label": "D",
+              "href": "/music/aerophone?mode=scales&scale=major&key=2&perBeat=1"
+            }
+          ],
+          "feeds": "Shelf"
+        },
+        {
+          "id": "4.4",
+          "title": "Eighths at grade 3 speed",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2",
+          "setup": "Scales: the same keys, two notes a click at 72 (grade 3). C, G and F count here; Bb and D too in Level 9.",
+          "done": "90% on 3 keys.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major scale, up and down, 72 BPM, 2 notes a click",
+              "G major scale, up and down, 72 BPM, 2 notes a click",
+              "F major scale, up and down, 72 BPM, 2 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/aerophone?mode=scales&scale=major&key=7&perBeat=2"
+            },
+            {
+              "label": "F",
+              "href": "/music/aerophone?mode=scales&scale=major&key=5&perBeat=2"
+            }
+          ],
+          "feeds": "Epic Sax Guy"
+        },
+        {
+          "id": "4.5",
+          "title": "Staccato and legato",
+          "href": "/music/aerophone?mode=articulation&style=staccato",
+          "setup": "Articulation: staccato, then legato, at 90 then 110 BPM on the practice strip.",
+          "done": "80% for each at 110.",
+          "minAttempts": 4,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Legato",
+              "href": "/music/aerophone?mode=articulation&style=legato"
+            }
+          ],
+          "feeds": "Riffs"
+        },
+        {
+          "id": "4.6",
+          "title": "Tonguing eighths",
+          "href": "/music/aerophone?mode=tonguing&tongue=all-tongued&key=0",
+          "setup": "Tonguing patterns: every note tongued, then tongue two, slur two, at 90.",
+          "done": "85% each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major, every note tongued, 90 BPM, eighths",
+              "C major, tongue two, slur two, 90 BPM, eighths"
+            ]
+          },
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Tongue two, slur two",
+              "href": "/music/aerophone?mode=tonguing&tongue=tongue2-slur2&key=0"
+            }
+          ],
+          "feeds": "Riffs"
+        },
+        {
+          "id": "4.7",
+          "title": "First trills",
+          "href": "/music/aerophone?mode=trills&trill=g4-a4",
+          "setup": "Trills: G4 A4, A4 B4, F4 G4.",
+          "done": "4 notes a second, evenness 0.7, each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "Trill G4 A4, 4 seconds, as fast and even as you can",
+              "Trill A4 B4, 4 seconds, as fast and even as you can",
+              "Trill F4 G4, 4 seconds, as fast and even as you can"
+            ]
+          },
+          "threshold": 0.65,
+          "links": [
+            {
+              "label": "A4 B4",
+              "href": "/music/aerophone?mode=trills&trill=a4-b4"
+            },
+            {
+              "label": "F4 G4",
+              "href": "/music/aerophone?mode=trills&trill=f4-g4"
+            }
+          ],
+          "feeds": "Finger speed"
+        },
+        {
+          "id": "4.8",
+          "title": "Chromatic, low octave",
+          "href": "/music/aerophone?mode=scales&scale=chromatic&key=0&perBeat=1",
+          "setup": "Scales: chromatic from C at 80, a note a click.",
+          "done": "90%.",
+          "match": {
+            "setup": "C chromatic scale, up and down, 80 BPM, a note a click"
+          },
+          "threshold": 0.9,
+          "feeds": "The Pink Panther (Level 6)"
+        },
+        {
+          "id": "4.9",
+          "title": "First riffs from the app",
+          "href": "/music/phrases?instrument=aerophone&phrase=aerophone.honk-riff",
+          "setup": "Phrases: the honk riff.",
+          "done": "90% at tempo.",
+          "match": {
+            "phrase": "aerophone.honk-riff"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "feeds": "Night Train"
+        },
+        {
+          "id": "4.10",
+          "title": "Riff loops in Song Studio",
+          "href": "/music/songs/shelf/aerophone/epic-sax-guy-run-away",
+          "setup": "Song Studio: loop the Epic Sax Guy riff at 70%, 85%, then 100% tempo.",
+          "done": "3 clean loops at 100%.",
+          "threshold": 0.9,
+          "minBpm": 130,
+          "feeds": "Shelf"
+        },
+        {
+          "id": "4.11",
+          "title": "Read eighths at sight",
+          "href": "/music/reading?activity=sight-reading&level=level-1",
+          "setup": "Reading, sight-reading on the Aerophone: Level 1, with simple eighths.",
+          "done": "80% first try on 3 lines.",
+          "minAttempts": 3,
+          "threshold": 0.8,
+          "feeds": "Reading"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "epic-sax-guy-run-away",
+          "title": "Epic Sax Guy (Run Away)",
+          "artist": "SunStroke Project",
+          "teaches": "One repeated riff, tonguing at speed",
+          "detail": "about 130",
+          "bpm": 130,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, TheTrollexis",
+              "url": "https://musescore.com/user/126631/scores/860651"
+            }
+          ],
+          "fallback": {
+            "label": "YouTube lesson; Midishow MIDI",
+            "url": "https://www.youtube.com/results?search_query=epic+sax+guy+alto+sax+lesson"
+          }
+        },
+        {
+          "id": "peter-gunn",
+          "title": "Peter Gunn",
+          "artist": "Mancini",
+          "teaches": "Low-register riff, steady eighths, low C and D",
+          "detail": "about 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15830665",
+              "official": true
+            },
+            {
+              "label": "Community, bari sax solo, cale, read as alto (both Eb)",
+              "url": "https://musescore.com/user/19476471/scores/5048757"
+            }
+          ]
+        },
+        {
+          "id": "jingle-bell-rock",
+          "title": "Jingle Bell Rock",
+          "artist": "Bobby Helms",
+          "teaches": "Swing-ish eighths, chromatic slides",
+          "detail": "about 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Eb alto, WhimBlaster",
+              "url": "https://musescore.com/user/32941964/scores/10304893"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15738349",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "la-bamba",
+          "title": "La Bamba",
+          "artist": "Ritchie Valens",
+          "teaches": "Riff on I IV V, offbeat tonguing",
+          "detail": "about 150",
+          "bpm": 150,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, dabokoh",
+              "url": "https://musescore.com/user/27793893/scores/5014137"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15738376",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "what-a-wonderful-world",
+          "title": "What a Wonderful World",
+          "artist": "Armstrong",
+          "teaches": "Long phrases, low register warmth",
+          "detail": "about 70",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/10478014"
+            },
+            {
+              "label": "Official, alto, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16647565",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "hey-jude",
+          "title": "Hey Jude",
+          "artist": "Beatles",
+          "teaches": "Singing line, the na-na coda",
+          "detail": "about 74",
+          "bpm": 74,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto beginner, Leo Silva",
+              "url": "https://musescore.com/user/97106398/scores/16366093",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Hal Leonard Beatles for alto",
+            "url": "https://www.google.com/search?q=Hal+Leonard+Beatles+for+alto"
+          }
+        },
+        {
+          "id": "game-of-thrones-theme",
+          "title": "Game of Thrones theme",
+          "artist": "Djawadi",
+          "teaches": "3/4, minor, dotted rhythm",
+          "detail": "about 160 in 3/4",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto beginner, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16646563",
+              "official": true
+            },
+            {
+              "label": "Community, sax quartet, Andrea Mancuso, alto part",
+              "url": "https://musescore.com/user/1947571/scores/3253871"
+            }
+          ]
+        },
+        {
+          "id": "night-train",
+          "title": "Night Train",
+          "artist": "Jimmy Forrest",
+          "teaches": "Blues riff, shuffle feel, low Bb",
+          "detail": "about 120 shuffle",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15831262",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "App phrase; Aebersold blues tracks",
+            "url": "/music/phrases?instrument=aerophone&phrase=aerophone.honk-riff"
+          }
+        },
+        {
+          "id": "who-can-it-be-now",
+          "title": "Who Can It Be Now?",
+          "artist": "Men at Work",
+          "teaches": "The hook and short solo",
+          "detail": "about 128",
+          "bpm": 128,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, tenor melody and solo, PlonkerOfScotland, tenor scene",
+              "url": "https://musescore.com/user/27862653/scores/5469991"
+            },
+            {
+              "label": "Official, alto, Jorge Juárez",
+              "url": "https://musescore.com/user/97106398/scores/17231629",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "dancing-in-the-dark-outro-solo",
+          "title": "Dancing in the Dark, outro solo",
+          "artist": "Springsteen, Clemons",
+          "teaches": "Long notes, simple pentatonic solo",
+          "detail": "about 149",
+          "bpm": 149,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, tenor sax solo transcription, seancmix, tenor scene",
+              "url": "https://musescore.com/user/11800821/scores/8452115"
+            }
+          ],
+          "fallback": {
+            "label": "Midishow MIDI",
+            "url": "https://www.google.com/search?q=Midishow+MIDI"
+          }
+        }
+      ],
+      "test": "Two riffs at full record tempo, 85% in performance mode (one with low C or below); five major keys at grade 3 speed; staccato and legato at 110 at 80%."
+    },
+    {
+      "id": "5",
+      "title": "The blues",
+      "goal": "hear and count the 12-bar form, play the blues scale and minor pentatonic in the two jazz blues keys (alto D and G, which are concert F and Bb), learn four blues heads by memory, and improvise from week one, as Aebersold Vol. 1 does.",
+      "adds": "Written range: Bb3 to C6.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "5.1",
+          "title": "Hear the form",
+          "href": "/music/jam?progression=blues",
+          "setup": "Jam: the 12-bar blues, listen and count the bars aloud; then Ear, progression dictation.",
+          "done": "Name the IV bar and the turnaround on 5 of 5 tracks.",
+          "exerciseIds": [],
+          "links": [
+            {
+              "label": "Ear: progressions",
+              "href": "/music/ear/progressions"
+            }
+          ],
+          "feeds": "All"
+        },
+        {
+          "id": "5.2",
+          "title": "Roots on 1, 4 and 5",
+          "href": "/music/ear/bass-lines?answer=choice&bassLevel=roots-primary",
+          "setup": "Ear, bass lines: roots on 1, 4 and 5.",
+          "done": "80% on 2 runs.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "feeds": "Improvising"
+        },
+        {
+          "id": "5.3",
+          "title": "The blues scale, from the app",
+          "href": "/music/phrases?instrument=aerophone&phrase=aerophone.c-blues-scale",
+          "setup": "Phrases: the C blues scale, then the G blues lick.",
+          "done": "90% at tempo, each.",
+          "each": {
+            "param": "phrase",
+            "values": ["aerophone.c-blues-scale", "aerophone.g-blues-lick"]
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "links": [
+            {
+              "label": "G blues lick",
+              "href": "/music/phrases?instrument=aerophone&phrase=aerophone.g-blues-lick"
+            }
+          ],
+          "feeds": "Heads"
+        },
+        {
+          "id": "5.4",
+          "title": "Blues and pentatonic in alto D and G",
+          "setup": "Scales: blues and minor pentatonic in D and G (concert F and Bb), at 100, two octaves where the range allows.",
+          "done": "90% at 100.",
+          "needs": "Blues and minor pentatonic in the Aerophone scale list.",
+          "feeds": "Improvising"
+        },
+        {
+          "id": "5.5",
+          "title": "Minor pentatonic phrase",
+          "href": "/music/phrases?instrument=aerophone&phrase=aerophone.e-minor-pentatonic",
+          "setup": "Phrases: E minor pentatonic.",
+          "done": "90% at tempo.",
+          "match": {
+            "phrase": "aerophone.e-minor-pentatonic"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "feeds": "Cantaloupe Island"
+        },
+        {
+          "id": "5.6",
+          "title": "Two heads by memory",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: two blues heads; after 3 runs, play them without looking at the score.",
+          "done": "85% from memory, on two days.",
+          "match": {
+            "mode": "performance"
+          },
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Sonnymoon for Two",
+              "href": "/music/songs/shelf/aerophone/sonnymoon-for-two"
+            },
+            {
+              "label": "Blue Monk",
+              "href": "/music/songs/shelf/aerophone/blue-monk"
+            }
+          ],
+          "feeds": "Sonnymoon for Two, Blue Monk"
+        },
+        {
+          "id": "5.7",
+          "title": "Call and response",
+          "setup": "The app plays 2 bars of blues; you echo them.",
+          "done": "80% of echoes right over 2 choruses.",
+          "needs": "Blues call and response on Jam.",
+          "feeds": "Improvising"
+        },
+        {
+          "id": "5.8",
+          "title": "First choruses",
+          "href": "/music/jam?progression=blues&transpose=2",
+          "setup": "Jam: blues with the backing in D (alto D), 100 BPM, 3 choruses. Stay in the scale, land on the root at bars 1, 5 and 9. A chorus grader is coming; check the take yourself for now.",
+          "done": "A recorded take with no lost bars, 3 choruses.",
+          "exerciseIds": [],
+          "feeds": "Level test"
+        },
+        {
+          "id": "5.9",
+          "title": "Register work for the blues",
+          "href": "/music/aerophone?mode=register&pair=b4-e5",
+          "setup": "Register crossings: B4 to E5 and A4 to D5, at 90.",
+          "done": "No glitches at 90, each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "B4 to E5, back and forth in eighths at 90 BPM",
+              "A4 to D5, back and forth in eighths at 90 BPM"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "A4 to D5",
+              "href": "/music/aerophone?mode=register&pair=a4-d5"
+            }
+          ],
+          "feeds": "Heads"
+        },
+        {
+          "id": "5.10",
+          "title": "Listen to swing",
+          "href": "/music/rhythm?mode=read-and-tap&pattern=swing-eighths",
+          "setup": "An Aebersold Vol. 1 track or a Rollins record; tap the off-beats with Rhythm, swing eighths.",
+          "done": "Swing eighths heard. Not scored.",
+          "exerciseIds": [],
+          "feeds": "Level 6"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "c-jam-blues",
+          "title": "C Jam Blues",
+          "artist": "Ellington",
+          "teaches": "A two-note head, space",
+          "detail": "C, alto A; about 130 swing",
+          "bpm": 130,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto beginner, Katrin Scherer",
+              "url": "https://musescore.com/user/97106398/scores/18088783",
+              "official": true
+            },
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/15958057",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Real Book Eb edition",
+            "url": "https://www.google.com/search?q=Real+Book+Eb+edition"
+          }
+        },
+        {
+          "id": "sonnymoon-for-two",
+          "title": "Sonnymoon for Two",
+          "artist": "Rollins",
+          "teaches": "Blues riff head, blue notes",
+          "detail": "Bb, alto G; 100 to 160 swing",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, theeggest",
+              "url": "https://musescore.com/user/34952750/scores/6378598"
+            }
+          ],
+          "fallback": {
+            "label": "Aebersold Vol. 8 (Sonny Rollins)",
+            "url": "https://www.google.com/search?q=Aebersold+Vol.+8+%28Sonny+Rollins%29"
+          }
+        },
+        {
+          "id": "blue-monk",
+          "title": "Blue Monk",
+          "artist": "Monk",
+          "teaches": "Chromatic approach, half steps",
+          "detail": "Bb, alto G; about 110",
+          "bpm": 110,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto 1, mdgarrett",
+              "url": "https://musescore.com/user/16157716/scores/5957798"
+            },
+            {
+              "label": "Official, alto, Katrin Scherer",
+              "url": "https://musescore.com/user/97106398/scores/18088825",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "bags-groove",
+          "title": "Bags' Groove",
+          "artist": "Milt Jackson",
+          "teaches": "Blues riff with turn, swing",
+          "detail": "F, alto D; about 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, tenor solo part, leomask, tenor scene",
+              "url": "https://musescore.com/user/27574/scores/51276"
+            },
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/16029604",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "tenor-madness",
+          "title": "Tenor Madness",
+          "artist": "Rollins",
+          "teaches": "A blues head in two-bar cells",
+          "detail": "Bb, alto G; play at 120",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/15956131",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Aebersold Vol. 8; Real Book Eb",
+            "url": "https://www.google.com/search?q=Aebersold+Vol.+8"
+          }
+        },
+        {
+          "id": "watermelon-man",
+          "title": "Watermelon Man",
+          "artist": "Hancock",
+          "teaches": "16-bar blues, straight-8 funk",
+          "detail": "F, alto D; about 130",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, alto, Tunescribers",
+              "url": "https://musescore.com/user/97106398/scores/19293271",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Real Book Eb",
+            "url": "https://www.google.com/search?q=Real+Book+Eb"
+          }
+        },
+        {
+          "id": "cantaloupe-island",
+          "title": "Cantaloupe Island",
+          "artist": "Hancock",
+          "teaches": "Modal minor, pentatonic",
+          "detail": "F minor, alto D minor; about 112",
+          "bpm": 112,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax RMX",
+              "url": "https://musescore.com/user/28815610/scores/8357799"
+            },
+            {
+              "label": "Official, alto and piano, Ivan Marini",
+              "url": "https://musescore.com/user/97106398/scores/18583312",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "hit-the-road-jack",
+          "title": "Hit the Road Jack",
+          "artist": "Percy Mayfield, Ray Charles",
+          "teaches": "Minor descending riff, call and response",
+          "detail": "A minor; about 170, start at 120",
+          "bpm": 170,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto and piano, GlebSechin",
+              "url": "https://musescore.com/user/28941838/scores/5155740"
+            },
+            {
+              "label": "Official, alto, Nathan Kersey-Wilson",
+              "url": "https://musescore.com/user/97106398/scores/18958327",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "mercy-mercy-mercy",
+          "title": "Mercy, Mercy, Mercy",
+          "artist": "Zawinul",
+          "teaches": "Gospel backbeat, long tones",
+          "detail": "Bb, alto G; about 72",
+          "bpm": 72,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, alto and piano, Sidnei Borgani",
+              "url": "https://musescore.com/user/97106398/scores/19530787",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Real Book Eb",
+            "url": "https://www.google.com/search?q=Real+Book+Eb"
+          }
+        }
+      ],
+      "test": "Two blues heads by memory at 120, then 3 improvised choruses over the Jam blues at 100 with no lost bars; blues scale in alto D and G at 90%."
+    },
+    {
+      "id": "6",
+      "title": "Minor keys and swing",
+      "goal": "natural and harmonic minor in A, E, D, G and B (written); Dorian; swing eighths in the Niehaus way (off-beats tongued and slurred into the beat, accents on the off-beat, ghosted notes); syncopation; first standards and bossas.",
+      "adds": "Written range: Bb3 to C#6.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "6.1",
+          "title": "Natural minor",
+          "href": "/music/aerophone?mode=scales&scale=natural-minor&key=9&perBeat=2",
+          "setup": "Scales: A, E, D, G and B natural minor at 72, two notes a click.",
+          "done": "90% in each key.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "A natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "E natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "D natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "G natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "B natural minor scale, up and down, 72 BPM, 2 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "E natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=4&perBeat=2"
+            },
+            {
+              "label": "D natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=2&perBeat=2"
+            },
+            {
+              "label": "G natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=7&perBeat=2"
+            },
+            {
+              "label": "B natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=11&perBeat=2"
+            }
+          ],
+          "feeds": "Autumn Leaves"
+        },
+        {
+          "id": "6.2",
+          "title": "Harmonic minor",
+          "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=9&perBeat=2",
+          "setup": "Scales: harmonic minor in the same keys, 72, two a click.",
+          "done": "90% in each key.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "A harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "E harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "D harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "G harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "B harmonic minor scale, up and down, 72 BPM, 2 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "E harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=4&perBeat=2"
+            },
+            {
+              "label": "D harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=2&perBeat=2"
+            },
+            {
+              "label": "G harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=7&perBeat=2"
+            },
+            {
+              "label": "B harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=11&perBeat=2"
+            }
+          ],
+          "feeds": "Moanin', Bésame Mucho"
+        },
+        {
+          "id": "6.3",
+          "title": "Minor arpeggios",
+          "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=9&perBeat=1",
+          "setup": "Scales: minor arpeggios in the same keys at 100.",
+          "done": "90% at 100, each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "A minor arpeggio, up and down, 100 BPM, a note a click",
+              "E minor arpeggio, up and down, 100 BPM, a note a click",
+              "D minor arpeggio, up and down, 100 BPM, a note a click",
+              "G minor arpeggio, up and down, 100 BPM, a note a click",
+              "B minor arpeggio, up and down, 100 BPM, a note a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "E minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=4&perBeat=1"
+            },
+            {
+              "label": "D minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=2&perBeat=1"
+            },
+            {
+              "label": "G minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=7&perBeat=1"
+            },
+            {
+              "label": "B minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=11&perBeat=1"
+            }
+          ],
+          "feeds": "Heads"
+        },
+        {
+          "id": "6.4",
+          "title": "Swing articulation",
+          "setup": "Doo-DAH: the off-beat tongued and slurred into the beat, swing ratio scored.",
+          "done": "80% at 120, on two days.",
+          "needs": "A swing articulation drill: off-beats tongued, slurred into the beat, swing ratio scored.",
+          "feeds": "All"
+        },
+        {
+          "id": "6.5",
+          "title": "Niehaus on scales",
+          "setup": "The swing articulation drill on the G, C and F major scales and the blues scale.",
+          "done": "80% at 140.",
+          "needs": "The swing articulation drill, on scales.",
+          "feeds": "Heads"
+        },
+        {
+          "id": "6.6",
+          "title": "Syncopation reading",
+          "href": "/music/rhythm?mode=read-and-tap&pattern=off-beats",
+          "setup": "Rhythm, read and tap: off-beats (syncopation).",
+          "done": "90% on 2 runs.",
+          "minAttempts": 2,
+          "threshold": 0.9,
+          "feeds": "St. Thomas, The Girl from Ipanema"
+        },
+        {
+          "id": "6.7",
+          "title": "Dorian over a vamp",
+          "href": "/music/jam?progression=modal",
+          "setup": "Jam: the modal vamp, 2 minutes, D Dorian as written.",
+          "done": "A recorded take with no lost bars.",
+          "exerciseIds": [],
+          "feeds": "So What (Level 10)"
+        },
+        {
+          "id": "6.8",
+          "title": "Major or minor by ear",
+          "href": "/music/ear/scales?answer=choice&scales=major,natural-minor,dorian",
+          "setup": "Ear, scales and modes: major, natural minor and Dorian.",
+          "done": "85%.",
+          "minAttempts": 1,
+          "threshold": 0.85,
+          "feeds": "Ear path"
+        },
+        {
+          "id": "6.9",
+          "title": "ii-V in minor",
+          "href": "/music/phrases?instrument=aerophone&phrase=aerophone.ii-v-i",
+          "setup": "Jam: minor ii-V-i, play the arpeggios; then Phrases: the ii-V-I.",
+          "done": "85% on the phrase.",
+          "match": {
+            "phrase": "aerophone.ii-v-i"
+          },
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Jam: minor ii-V-i",
+              "href": "/music/jam?progression=minor-ii-v-i"
+            }
+          ],
+          "feeds": "Autumn Leaves, Blue Bossa"
+        },
+        {
+          "id": "6.10",
+          "title": "Two heads with swing",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, performance mode, on a swing head from the shelf.",
+          "done": "85% at 140.",
+          "match": {
+            "mode": "performance"
+          },
+          "threshold": 0.85,
+          "minBpm": 140,
+          "feeds": "Level test"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "autumn-leaves",
+          "title": "Autumn Leaves",
+          "artist": "Kosma",
+          "teaches": "Ii-V in major and minor, swing quarters",
+          "detail": "G minor, alto E minor; about 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, Nino Veleno",
+              "url": "https://musescore.com/user/34918629/scores/6122797"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15692698",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Real Book Eb",
+            "url": "https://www.google.com/search?q=Real+Book+Eb"
+          }
+        },
+        {
+          "id": "summertime",
+          "title": "Summertime",
+          "artist": "Gershwin",
+          "teaches": "Minor blues feel, long notes, bends",
+          "detail": "slow swing",
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, Neotaxi",
+              "url": "https://musescore.com/user/2616406/scores/949971"
+            },
+            {
+              "label": "Official, alto, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16643785",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "fly-me-to-the-moon",
+          "title": "Fly Me to the Moon",
+          "artist": "Bart Howard",
+          "teaches": "Circle-of-fifths melody, swing",
+          "detail": "C, alto A; about 120",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, H3R0",
+              "url": "https://musescore.com/user/28018509/scores/10368853"
+            },
+            {
+              "label": "Official, alto beginner, Heisenberg",
+              "url": "https://musescore.com/user/97106398/scores/19076134",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "doxy",
+          "title": "Doxy",
+          "artist": "Rollins",
+          "teaches": "First standard changes, swing",
+          "detail": "Bb, alto G; about 130",
+          "bpm": 130,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/15957379",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Aebersold Vol. 8",
+            "url": "https://www.google.com/search?q=Aebersold+Vol.+8"
+          }
+        },
+        {
+          "id": "the-pink-panther",
+          "title": "The Pink Panther",
+          "artist": "Mancini",
+          "teaches": "Chromatic lines, swing, accents",
+          "detail": "minor; about 116",
+          "bpm": 116,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, Noah Mattoon",
+              "url": "https://musescore.com/user/26790789/scores/5519902"
+            },
+            {
+              "label": "Official, alto beginner, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16634830",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "the-girl-from-ipanema",
+          "title": "The Girl from Ipanema",
+          "artist": "Jobim",
+          "teaches": "Bossa, straight eighths, the bridge",
+          "detail": "F, alto D; about 130",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, krazyness",
+              "url": "https://musescore.com/user/35984033/scores/12318415"
+            },
+            {
+              "label": "Official, alto beginner, Leo Silva",
+              "url": "https://musescore.com/user/97106398/scores/16214410",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "besame-mucho",
+          "title": "Bésame Mucho",
+          "artist": "Velázquez",
+          "teaches": "Harmonic minor, bolero, long phrases",
+          "detail": "minor; about 80",
+          "bpm": 80,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, Jarell Majestuoso",
+              "url": "https://musescore.com/user/17602056/scores/5967716"
+            },
+            {
+              "label": "Official, alto beginner, Lkmusic",
+              "url": "https://musescore.com/user/97106398/scores/19379245",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "st-thomas",
+          "title": "St. Thomas",
+          "artist": "Rollins",
+          "teaches": "Calypso, tongued syncopation",
+          "detail": "C, alto A; 190 on record, play at 120",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, eavs pierson",
+              "url": "https://musescore.com/user/12891191/scores/3681616"
+            },
+            {
+              "label": "Official, alto and piano, Nick Lacanski",
+              "url": "https://musescore.com/user/97106398/scores/16832752",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Aebersold Vol. 8",
+            "url": "https://www.google.com/search?q=Aebersold+Vol.+8"
+          }
+        },
+        {
+          "id": "moanin",
+          "title": "Moanin'",
+          "artist": "Bobby Timmons",
+          "teaches": "Call and response, minor, blue notes",
+          "detail": "F minor, alto D minor; about 125",
+          "bpm": 125,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, Eb alto part, rogerrafaelro",
+              "url": "https://musescore.com/user/33848897/scores/6307530"
+            }
+          ],
+          "fallback": {
+            "label": "Real Book Eb",
+            "url": "https://www.google.com/search?q=Real+Book+Eb"
+          }
+        },
+        {
+          "id": "blue-bossa",
+          "title": "Blue Bossa",
+          "artist": "Kenny Dorham",
+          "teaches": "Minor ii-V and a key shift",
+          "detail": "C minor, alto A minor; about 140 bossa",
+          "bpm": 140,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, lead sheet, concert, Dick Schmitt",
+              "url": "https://musescore.com/user/498481/scores/7467650"
+            },
+            {
+              "label": "Community, Bb lead sheet, rjmcdonald27, tenor scene",
+              "url": "https://musescore.com/user/42390803/scores/15193117"
+            }
+          ],
+          "fallback": {
+            "label": "Aebersold Vol. 54",
+            "url": "https://www.google.com/search?q=Aebersold+Vol.+54"
+          }
+        }
+      ],
+      "test": "One swing head at 140 and one bossa or Latin head at tempo, both 85% in performance mode; swing articulation drill 80% at 140; A, E, D minor harmonic at 90%."
+    },
+    {
+      "id": "7",
+      "title": "Palm keys and the top, sax pop hits",
+      "goal": "D6, Eb6, E6, F6 and F#6 (palm keys and front F); Eb, A, Ab and E major; two-octave scales where the horn allows; 16th notes at a moderate tempo; the famous sax solos.",
+      "adds": "Written range: Bb3 to F#6.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "7.1",
+          "title": "The palm keys",
+          "setup": "A fingering chart for D6 to F#6, then a Fingering lesson for D6, Eb6, E6 and F6.",
+          "done": "3 clean Check runs.",
+          "needs": "Fingering chart and lessons to F#6 (palm keys and front F).",
+          "feeds": "Baker Street"
+        },
+        {
+          "id": "7.2",
+          "title": "Into and out of the palm keys",
+          "setup": "Register crossings: C#6 to D6, B5 to D6, D6 to F6.",
+          "done": "No glitches at 80.",
+          "needs": "Register pairs for the palm keys (C#6 to D6, B5 to D6, D6 to F6).",
+          "feeds": "Careless Whisper"
+        },
+        {
+          "id": "7.3",
+          "title": "Soft high notes",
+          "setup": "Long tone at p on D6, then F6.",
+          "done": "75% in band.",
+          "needs": "Fingering chart to F#6, so long tones can sit on D6 and F6.",
+          "feeds": "Ballads"
+        },
+        {
+          "id": "7.4",
+          "title": "Eb major",
+          "href": "/music/aerophone?mode=fingering&lesson=eb-major",
+          "setup": "Fingering: Eb major.",
+          "done": "3 clean Check runs.",
+          "match": {
+            "target": "63"
+          },
+          "threshold": 0.9,
+          "feeds": "Shelf"
+        },
+        {
+          "id": "7.5",
+          "title": "Four new keys",
+          "href": "/music/aerophone?mode=scales&scale=major&key=3&perBeat=2",
+          "setup": "Scales: Eb, A, Ab and E major at 72, two notes a click.",
+          "done": "90% in each key.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "Eb major scale, up and down, 72 BPM, 2 notes a click",
+              "A major scale, up and down, 72 BPM, 2 notes a click",
+              "Ab major scale, up and down, 72 BPM, 2 notes a click",
+              "E major scale, up and down, 72 BPM, 2 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "A",
+              "href": "/music/aerophone?mode=scales&scale=major&key=9&perBeat=2"
+            },
+            {
+              "label": "Ab",
+              "href": "/music/aerophone?mode=scales&scale=major&key=8&perBeat=2"
+            },
+            {
+              "label": "E",
+              "href": "/music/aerophone?mode=scales&scale=major&key=4&perBeat=2"
+            }
+          ],
+          "feeds": "Shelf"
+        },
+        {
+          "id": "7.6",
+          "title": "Two octaves",
+          "setup": "Scales from Bb3 to F6: C, D, Eb and F major.",
+          "done": "90% at 72.",
+          "needs": "A two-octave and full-range option for scales.",
+          "feeds": "Shelf"
+        },
+        {
+          "id": "7.7",
+          "title": "Two-octave arpeggios",
+          "setup": "The same option, major arpeggios.",
+          "done": "90% at 80.",
+          "needs": "A two-octave option for arpeggios.",
+          "feeds": "Just the Two of Us"
+        },
+        {
+          "id": "7.8",
+          "title": "16ths, first steps",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=4",
+          "setup": "Scales: C, G and F major, four notes a click at 50, then 60.",
+          "done": "90% at 60, each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major scale, up and down, 60 BPM, 4 notes a click",
+              "G major scale, up and down, 60 BPM, 4 notes a click",
+              "F major scale, up and down, 60 BPM, 4 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/aerophone?mode=scales&scale=major&key=7&perBeat=4"
+            },
+            {
+              "label": "F",
+              "href": "/music/aerophone?mode=scales&scale=major&key=5&perBeat=4"
+            }
+          ],
+          "feeds": "The Careless Whisper run"
+        },
+        {
+          "id": "7.9",
+          "title": "Trills across the break",
+          "href": "/music/aerophone?mode=trills&trill=c5-d5",
+          "setup": "Trills: C5 D5, then B4 C5.",
+          "done": "4 notes a second, evenness 0.7, each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "Trill C5 D5, 4 seconds, as fast and even as you can",
+              "Trill B4 C5, 4 seconds, as fast and even as you can"
+            ]
+          },
+          "threshold": 0.65,
+          "links": [
+            {
+              "label": "B4 C5",
+              "href": "/music/aerophone?mode=trills&trill=b4-c5"
+            }
+          ],
+          "feeds": "Ornaments"
+        },
+        {
+          "id": "7.10",
+          "title": "A famous riff at tempo",
+          "href": "/music/songs/shelf/aerophone/baker-street",
+          "setup": "Song Studio: loop the Baker Street riff from 70% to 100% tempo.",
+          "done": "3 clean loops at 100%.",
+          "threshold": 0.9,
+          "minBpm": 115,
+          "feeds": "Baker Street"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "mr-saxobeat",
+          "title": "Mr. Saxobeat",
+          "artist": "Alexandra Stan",
+          "teaches": "One riff, palm D and E",
+          "detail": "about 127",
+          "bpm": 127,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/8314034"
+            },
+            {
+              "label": "Official, alto beginner, Ivan Marini",
+              "url": "https://musescore.com/user/97106398/scores/19518283",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "gonna-fly-now-rocky",
+          "title": "Gonna Fly Now (Rocky)",
+          "artist": "Bill Conti",
+          "teaches": "Fanfare, high register, accents",
+          "detail": "about 96",
+          "bpm": 96,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, curveoftheearth",
+              "url": "https://musescore.com/user/2723/scores/26298"
+            },
+            {
+              "label": "Official, alto beginner, Ivan Marini",
+              "url": "https://musescore.com/user/97106398/scores/17370109",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "skyfall",
+          "title": "Skyfall",
+          "artist": "Adele",
+          "teaches": "Minor ballad, top of the staff",
+          "detail": "C minor; about 76",
+          "bpm": 76,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto with rhythm section, smithjfay",
+              "url": "https://musescore.com/user/27359852/scores/5380381"
+            },
+            {
+              "label": "Official, alto beginner, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16659244",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "uptown-funk",
+          "title": "Uptown Funk",
+          "artist": "Mark Ronson, Bruno Mars",
+          "teaches": "Funk 16ths, short notes",
+          "detail": "about 115",
+          "bpm": 115,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax RMX",
+              "url": "https://musescore.com/user/28815610/scores/8593781"
+            },
+            {
+              "label": "Official, alto beginner, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16651720",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "baker-street",
+          "title": "Baker Street",
+          "artist": "Gerry Rafferty",
+          "teaches": "The riff to F6, legato over the break",
+          "detail": "about 115",
+          "bpm": 115,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, Hein Huijskes, almost exactly like the original",
+              "url": "https://musescore.com/user/15680076/scores/5399962"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15513901",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "smooth-operator",
+          "title": "Smooth Operator",
+          "artist": "Sade",
+          "teaches": "Smooth phrasing, ghost notes",
+          "detail": "about 120",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax RMX",
+              "url": "https://musescore.com/user/28815610/scores/6607681"
+            },
+            {
+              "label": "Official, alto, Martin Stolz",
+              "url": "https://musescore.com/user/97106398/scores/22532701",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "just-the-two-of-us",
+          "title": "Just the Two of Us",
+          "artist": "Grover Washington Jr.",
+          "teaches": "Smooth jazz, the Db-C-Fm chain",
+          "detail": "F minor feel; about 96",
+          "bpm": 96,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/6614898"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15830656",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "careless-whisper",
+          "title": "Careless Whisper",
+          "artist": "George Michael, Steve Gregory",
+          "teaches": "The 16th run, long notes, palm keys",
+          "detail": "D minor, alto B minor; about 77",
+          "bpm": 77,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15738802",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "midishow MIDI, import the lead track",
+            "url": "https://www.midishow.com/en/midi/40781.html"
+          }
+        },
+        {
+          "id": "your-latest-trick",
+          "title": "Your Latest Trick",
+          "artist": "Dire Straits",
+          "teaches": "Sax intro, wide range, 4 sharps",
+          "detail": "slow; about 74",
+          "bpm": 74,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto and soprano, sharer.wayne",
+              "url": "https://musescore.com/user/37939148/scores/8317514"
+            },
+            {
+              "label": "Community, alto, FabioAltoSax RMX, in B major",
+              "url": "https://musescore.com/user/28815610/scores/7095661"
+            }
+          ]
+        }
+      ],
+      "test": "Baker Street riff and one other shelf song at record tempo, 85% in performance mode; Eb, A and E major at 72 two a click; D6 to F6 crossings with 0 glitches at 80."
+    },
+    {
+      "id": "8",
+      "title": "Breath, dynamics and vibrato, after Teal",
+      "goal": "control the dynamic in every register, shape phrases with planned breaths, and a Teal-method vibrato (pulses timed to a click) used on long notes of ballads. This is where the Aerophone can beat a sax teacher: breath and pulse rate are measured.",
+      "adds": "Written range: full.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "8.1",
+          "title": "Messa di voce",
+          "href": "/music/aerophone?mode=swell&swellSeconds=8&target=62",
+          "setup": "Swell over 8 s on a low note (D4) and a middle one (D5). Palm notes wait for the chart to F#6.",
+          "done": "3 runs at 75% in each register.",
+          "each": {
+            "param": "target",
+            "values": ["62", "74"]
+          },
+          "threshold": 0.75,
+          "links": [
+            {
+              "label": "D5",
+              "href": "/music/aerophone?mode=swell&swellSeconds=8&target=74"
+            }
+          ],
+          "feeds": "Ballads"
+        },
+        {
+          "id": "8.2",
+          "title": "Long-tone scale",
+          "setup": "Each note of a scale held 4 beats at one level.",
+          "done": "p and f, 80% in band, in two keys.",
+          "needs": "A long-tone scale mode.",
+          "feeds": "Ferling"
+        },
+        {
+          "id": "8.3",
+          "title": "Dynamic terraces",
+          "href": "/music/aerophone?mode=long-tone&level=pp&seconds=5",
+          "setup": "Long tone on one note: pp, then p, mf and f, 5 s each.",
+          "done": "80% at each level.",
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "p",
+              "href": "/music/aerophone?mode=long-tone&level=p&seconds=5"
+            },
+            {
+              "label": "mf",
+              "href": "/music/aerophone?mode=long-tone&level=mf&seconds=5"
+            },
+            {
+              "label": "f",
+              "href": "/music/aerophone?mode=long-tone&level=f&seconds=5"
+            }
+          ],
+          "feeds": "Harlem Nocturne"
+        },
+        {
+          "id": "8.4",
+          "title": "Vibrato, two a beat",
+          "href": "/music/aerophone?mode=vibrato&vib=2-at-60&vibNote=67",
+          "setup": "Bite vibrato on G4, two a beat at 60.",
+          "done": "Rate within 15%, evenness 0.6, 3 runs.",
+          "match": {
+            "setup": "Bite vibrato on G4, two a beat at 60, the rate sets the tempo"
+          },
+          "threshold": 0.75,
+          "feeds": "Ballads"
+        },
+        {
+          "id": "8.5",
+          "title": "Three, then four a beat",
+          "href": "/music/aerophone?mode=vibrato&vib=3-at-60&vibNote=67",
+          "setup": "Bite vibrato on G4: three a beat at 60, then four.",
+          "done": "Rate within 15%, evenness 0.6, 3 runs each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "Bite vibrato on G4, three a beat at 60, the rate sets the tempo",
+              "Bite vibrato on G4, four a beat at 60, the rate sets the tempo"
+            ]
+          },
+          "threshold": 0.75,
+          "links": [
+            {
+              "label": "Four a beat at 60",
+              "href": "/music/aerophone?mode=vibrato&vib=4-at-60&vibNote=67"
+            }
+          ],
+          "feeds": "Ballads"
+        },
+        {
+          "id": "8.6",
+          "title": "The going rate",
+          "href": "/music/aerophone?mode=vibrato&vib=4-at-80&vibNote=67",
+          "setup": "Bite vibrato on G4, four a beat at 80 (Teal's target).",
+          "done": "Rate within 15%, evenness 0.6, on two days.",
+          "match": {
+            "setup": "Bite vibrato on G4, four a beat at 80 (the going rate), the rate sets the tempo"
+          },
+          "threshold": 0.75,
+          "feeds": "All"
+        },
+        {
+          "id": "8.7",
+          "title": "Vibrato in music",
+          "setup": "Song Studio scores held notes of a beat or more for 4 to 5 pulses a second.",
+          "done": "80% of held notes on one ballad.",
+          "needs": "Vibrato on held notes in Song Studio.",
+          "feeds": "Shelf"
+        },
+        {
+          "id": "8.8",
+          "title": "Breath marks and dynamics in a phrase",
+          "href": "/music/aerophone?mode=tonguing&tongue=phrase&key=0",
+          "setup": "Tonguing patterns: phrase, slur eight and breathe. Song Studio will score dynamics and breath marks in a phrase; this stands in until then.",
+          "done": "80%.",
+          "threshold": 0.8,
+          "feeds": "Ferling"
+        },
+        {
+          "id": "8.9",
+          "title": "Legato leaps",
+          "href": "/music/aerophone?mode=interval-landing&interval=5",
+          "setup": "Interval landing over the drone: fourths, fifths and the octave.",
+          "done": "85% of landings, each.",
+          "each": {
+            "param": "interval",
+            "values": ["5", "7", "12"]
+          },
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Fifth",
+              "href": "/music/aerophone?mode=interval-landing&interval=7"
+            },
+            {
+              "label": "Octave",
+              "href": "/music/aerophone?mode=interval-landing&interval=12"
+            }
+          ],
+          "feeds": "Ballads"
+        },
+        {
+          "id": "8.10",
+          "title": "Intervals by ear",
+          "href": "/music/ear/interval-compare",
+          "setup": "Ear: interval comparison (size), then intervals by name.",
+          "done": "85%.",
+          "minAttempts": 1,
+          "threshold": 0.85,
+          "exerciseIds": ["ear.interval-compare", "ear.intervals"],
+          "links": [
+            {
+              "label": "Interval names",
+              "href": "/music/ear/intervals"
+            }
+          ],
+          "feeds": "Ear path"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "moon-river",
+          "title": "Moon River",
+          "artist": "Mancini",
+          "teaches": "3/4, long arching lines",
+          "detail": "slow waltz",
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto and piano, Ponciano Hernandez",
+              "url": "https://musescore.com/user/28676984/scores/5089302"
+            },
+            {
+              "label": "Official, alto, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16644151",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "la-vie-en-rose",
+          "title": "La vie en rose",
+          "artist": "Piaf",
+          "teaches": "Dynamics, rubato",
+          "detail": "about 70",
+          "bpm": 70,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto and piano, ashleybai0716",
+              "url": "https://musescore.com/user/35067400/scores/10066654"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/16047484",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "gabriels-oboe",
+          "title": "Gabriel's Oboe",
+          "artist": "Morricone",
+          "teaches": "Messa di voce, soft high notes",
+          "detail": "about 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto with piano, Michal Komb",
+              "url": "https://musescore.com/user/33906730/scores/6392807"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15947413",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "nuovo-cinema-paradiso",
+          "title": "Nuovo Cinema Paradiso",
+          "artist": "Morricone",
+          "teaches": "Long phrases, breath planning",
+          "detail": "slow",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto and piano, filipporomani",
+              "url": "https://musescore.com/user/34982192/scores/6240600"
+            },
+            {
+              "label": "Official, alto, Francisco Benitez",
+              "url": "https://musescore.com/user/97106398/scores/18229357",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "ave-maria",
+          "title": "Ave Maria",
+          "artist": "Bach and Gounod",
+          "teaches": "Sustained line over arpeggios",
+          "detail": "slow",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto and keyboard, Aquarius 2.02",
+              "url": "https://musescore.com/user/8108371/scores/4029851"
+            },
+            {
+              "label": "Official, Schubert's Ave Maria, alto",
+              "url": "https://musescore.com/user/39593079/scores/15744091",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP",
+            "url": "https://imslp.org/"
+          }
+        },
+        {
+          "id": "georgia-on-my-mind",
+          "title": "Georgia on My Mind",
+          "artist": "Carmichael",
+          "teaches": "Blues ballad, vibrato on long notes",
+          "detail": "F; about 60",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/10484209"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15739018",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "harlem-nocturne",
+          "title": "Harlem Nocturne",
+          "artist": "Earle Hagen",
+          "teaches": "The classic vibrato and slide study",
+          "detail": "minor; about 70",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, bruno.werneck",
+              "url": "https://musescore.com/user/37217653/scores/19906483"
+            },
+            {
+              "label": "Community, lead sheet, alto and tenor, jakpott29",
+              "url": "https://musescore.com/user/32294240/scores/10435651"
+            }
+          ]
+        },
+        {
+          "id": "my-funny-valentine",
+          "title": "My Funny Valentine",
+          "artist": "Rodgers",
+          "teaches": "Minor ballad, line cliché",
+          "detail": "C minor; slow",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/10490029"
+            },
+            {
+              "label": "Official, alto, Katrin Scherer",
+              "url": "https://musescore.com/user/97106398/scores/18089125",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "europa",
+          "title": "Europa",
+          "artist": "Santana",
+          "teaches": "Long high notes, bends, vibrato",
+          "detail": "slow",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/6607684"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/16074427",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "misty",
+          "title": "Misty",
+          "artist": "Erroll Garner",
+          "teaches": "Ballad, chromatic chords, Eb",
+          "detail": "Eb; about 60",
+          "bpm": 60,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto with solo transcription, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/6620547"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15695092",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "One ballad from the shelf with vibrato on every note of a beat or longer, 85% in performance mode, plus messa di voce 8 s at 75% on a palm note; vibrato four a beat at 80 on 2 days."
+    },
+    {
+      "id": "9",
+      "title": "Technique in all keys, after Klosé and the Universal Method",
+      "goal": "every major key and the minors in all three forms over the full range, scales in thirds and broken chords, chromatic in 16ths, the tonguing patterns at speed; the busy sax tunes.",
+      "adds": "Written range: full.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "9.1",
+          "title": "12 major keys",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2",
+          "setup": "Scales: all 12 major keys at 72, two notes a click, one octave. The two-octave option is coming.",
+          "done": "90% in each key, over a week.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major scale, up and down, 72 BPM, 2 notes a click",
+              "G major scale, up and down, 72 BPM, 2 notes a click",
+              "D major scale, up and down, 72 BPM, 2 notes a click",
+              "A major scale, up and down, 72 BPM, 2 notes a click",
+              "E major scale, up and down, 72 BPM, 2 notes a click",
+              "B major scale, up and down, 72 BPM, 2 notes a click",
+              "F# major scale, up and down, 72 BPM, 2 notes a click",
+              "Db major scale, up and down, 72 BPM, 2 notes a click",
+              "Ab major scale, up and down, 72 BPM, 2 notes a click",
+              "Eb major scale, up and down, 72 BPM, 2 notes a click",
+              "Bb major scale, up and down, 72 BPM, 2 notes a click",
+              "F major scale, up and down, 72 BPM, 2 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/aerophone?mode=scales&scale=major&key=7&perBeat=2"
+            },
+            {
+              "label": "D",
+              "href": "/music/aerophone?mode=scales&scale=major&key=2&perBeat=2"
+            },
+            {
+              "label": "A",
+              "href": "/music/aerophone?mode=scales&scale=major&key=9&perBeat=2"
+            },
+            {
+              "label": "E",
+              "href": "/music/aerophone?mode=scales&scale=major&key=4&perBeat=2"
+            },
+            {
+              "label": "B",
+              "href": "/music/aerophone?mode=scales&scale=major&key=11&perBeat=2"
+            },
+            {
+              "label": "F#",
+              "href": "/music/aerophone?mode=scales&scale=major&key=6&perBeat=2"
+            },
+            {
+              "label": "Db",
+              "href": "/music/aerophone?mode=scales&scale=major&key=1&perBeat=2"
+            },
+            {
+              "label": "Ab",
+              "href": "/music/aerophone?mode=scales&scale=major&key=8&perBeat=2"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/aerophone?mode=scales&scale=major&key=3&perBeat=2"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/aerophone?mode=scales&scale=major&key=10&perBeat=2"
+            },
+            {
+              "label": "F",
+              "href": "/music/aerophone?mode=scales&scale=major&key=5&perBeat=2"
+            }
+          ],
+          "feeds": "All"
+        },
+        {
+          "id": "9.2",
+          "title": "Melodic minor",
+          "setup": "Melodic minor in the Aerophone scale list.",
+          "done": "90% in 6 keys.",
+          "needs": "Melodic minor in the Aerophone scale list.",
+          "feeds": "Ferling"
+        },
+        {
+          "id": "9.3",
+          "title": "All minor forms, 12 keys",
+          "href": "/music/aerophone?mode=scales&scale=natural-minor&key=0&perBeat=2",
+          "setup": "Scales: natural and harmonic minor in 12 keys at 72, two a click. Melodic minor joins when it ships.",
+          "done": "90% in 12 keys.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "G natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "D natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "A natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "E natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "B natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "F# natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "C# natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "G# natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "D# natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "Bb natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "F natural minor scale, up and down, 72 BPM, 2 notes a click",
+              "C harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "G harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "D harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "A harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "E harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "B harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "F# harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "C# harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "G# harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "D# harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "Bb harmonic minor scale, up and down, 72 BPM, 2 notes a click",
+              "F harmonic minor scale, up and down, 72 BPM, 2 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=7&perBeat=2"
+            },
+            {
+              "label": "D natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=2&perBeat=2"
+            },
+            {
+              "label": "A natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=9&perBeat=2"
+            },
+            {
+              "label": "E natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=4&perBeat=2"
+            },
+            {
+              "label": "B natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=11&perBeat=2"
+            },
+            {
+              "label": "F# natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=6&perBeat=2"
+            },
+            {
+              "label": "C# natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=1&perBeat=2"
+            },
+            {
+              "label": "G# natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=8&perBeat=2"
+            },
+            {
+              "label": "D# natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=3&perBeat=2"
+            },
+            {
+              "label": "Bb natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=10&perBeat=2"
+            },
+            {
+              "label": "F natural minor",
+              "href": "/music/aerophone?mode=scales&scale=natural-minor&key=5&perBeat=2"
+            },
+            {
+              "label": "C harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=0&perBeat=2"
+            },
+            {
+              "label": "G harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=7&perBeat=2"
+            },
+            {
+              "label": "D harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=2&perBeat=2"
+            },
+            {
+              "label": "A harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=9&perBeat=2"
+            },
+            {
+              "label": "E harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=4&perBeat=2"
+            },
+            {
+              "label": "B harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=11&perBeat=2"
+            },
+            {
+              "label": "F# harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=6&perBeat=2"
+            },
+            {
+              "label": "C# harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=1&perBeat=2"
+            },
+            {
+              "label": "G# harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=8&perBeat=2"
+            },
+            {
+              "label": "D# harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=3&perBeat=2"
+            },
+            {
+              "label": "Bb harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=10&perBeat=2"
+            },
+            {
+              "label": "F harmonic minor",
+              "href": "/music/aerophone?mode=scales&scale=harmonic-minor&key=5&perBeat=2"
+            }
+          ],
+          "feeds": "Grade 5"
+        },
+        {
+          "id": "9.4",
+          "title": "Scales in thirds",
+          "setup": "Interval patterns: thirds, then 1-2-3-1, then broken triads.",
+          "done": "90% in 4 keys, then 12.",
+          "needs": "Interval patterns for scales: thirds, 1-2-3-1, broken triads.",
+          "feeds": "Klosé"
+        },
+        {
+          "id": "9.5",
+          "title": "Arpeggios, 12 keys",
+          "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=0&perBeat=2",
+          "setup": "Scales: major and minor arpeggios in 12 keys at 80, two notes a click.",
+          "done": "90% each at 80.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "G major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "D major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "A major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "E major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "B major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "F# major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "Db major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "Ab major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "Eb major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "Bb major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "F major arpeggio, up and down, 80 BPM, 2 notes a click",
+              "C minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "G minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "D minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "A minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "E minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "B minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "F# minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "C# minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "G# minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "D# minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "Bb minor arpeggio, up and down, 80 BPM, 2 notes a click",
+              "F minor arpeggio, up and down, 80 BPM, 2 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=7&perBeat=2"
+            },
+            {
+              "label": "D major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=2&perBeat=2"
+            },
+            {
+              "label": "A major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=9&perBeat=2"
+            },
+            {
+              "label": "E major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=4&perBeat=2"
+            },
+            {
+              "label": "B major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=11&perBeat=2"
+            },
+            {
+              "label": "F# major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=6&perBeat=2"
+            },
+            {
+              "label": "Db major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=1&perBeat=2"
+            },
+            {
+              "label": "Ab major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=8&perBeat=2"
+            },
+            {
+              "label": "Eb major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=3&perBeat=2"
+            },
+            {
+              "label": "Bb major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=10&perBeat=2"
+            },
+            {
+              "label": "F major arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=5&perBeat=2"
+            },
+            {
+              "label": "C minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=0&perBeat=2"
+            },
+            {
+              "label": "G minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=7&perBeat=2"
+            },
+            {
+              "label": "D minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=2&perBeat=2"
+            },
+            {
+              "label": "A minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=9&perBeat=2"
+            },
+            {
+              "label": "E minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=4&perBeat=2"
+            },
+            {
+              "label": "B minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=11&perBeat=2"
+            },
+            {
+              "label": "F# minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=6&perBeat=2"
+            },
+            {
+              "label": "C# minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=1&perBeat=2"
+            },
+            {
+              "label": "G# minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=8&perBeat=2"
+            },
+            {
+              "label": "D# minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=3&perBeat=2"
+            },
+            {
+              "label": "Bb minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=10&perBeat=2"
+            },
+            {
+              "label": "F minor arpeggio",
+              "href": "/music/aerophone?mode=scales&scale=minor-arpeggio&key=5&perBeat=2"
+            }
+          ],
+          "feeds": "The Entertainer"
+        },
+        {
+          "id": "9.6",
+          "title": "Chromatic 16ths",
+          "href": "/music/aerophone?mode=scales&scale=chromatic&key=0&perBeat=4",
+          "setup": "Scales: chromatic, four notes a click at 60. One octave for now; full range when the option ships.",
+          "done": "90%.",
+          "match": {
+            "setup": "C chromatic scale, up and down, 60 BPM, 4 notes a click"
+          },
+          "threshold": 0.9,
+          "feeds": "Yakety Sax"
+        },
+        {
+          "id": "9.7",
+          "title": "Tonguing at speed",
+          "href": "/music/aerophone?mode=tonguing&tongue=all-tongued&key=0",
+          "setup": "Tonguing patterns: all five groupings, eighths at 160 (16ths at 80).",
+          "done": "85% each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major, every note tongued, 160 BPM, eighths",
+              "C major, all slurred, 160 BPM, eighths",
+              "C major, slur two, tongue two, 160 BPM, eighths",
+              "C major, tongue two, slur two, 160 BPM, eighths",
+              "C major, slur three, tongue one, 160 BPM, eighths"
+            ]
+          },
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "All slurred",
+              "href": "/music/aerophone?mode=tonguing&tongue=all-slurred&key=0"
+            },
+            {
+              "label": "Slur two, tongue two",
+              "href": "/music/aerophone?mode=tonguing&tongue=slur2-tongue2&key=0"
+            },
+            {
+              "label": "Tongue two, slur two",
+              "href": "/music/aerophone?mode=tonguing&tongue=tongue2-slur2&key=0"
+            },
+            {
+              "label": "Slur three, tongue one",
+              "href": "/music/aerophone?mode=tonguing&tongue=slur3-tongue1&key=0"
+            }
+          ],
+          "feeds": "Pick Up the Pieces"
+        },
+        {
+          "id": "9.8",
+          "title": "Finger speed",
+          "href": "/music/aerophone?mode=trills&trill=g4-a4",
+          "setup": "Trills: all six pairs.",
+          "done": "5 notes a second, evenness 0.7, each.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "Trill G4 A4, 4 seconds, as fast and even as you can",
+              "Trill A4 B4, 4 seconds, as fast and even as you can",
+              "Trill F4 G4, 4 seconds, as fast and even as you can",
+              "Trill B4 C5, 4 seconds, as fast and even as you can",
+              "Trill C5 D5, 4 seconds, as fast and even as you can",
+              "Trill E4 F#4, 4 seconds, as fast and even as you can"
+            ]
+          },
+          "threshold": 0.7,
+          "links": [
+            {
+              "label": "A4 B4",
+              "href": "/music/aerophone?mode=trills&trill=a4-b4"
+            },
+            {
+              "label": "F4 G4",
+              "href": "/music/aerophone?mode=trills&trill=f4-g4"
+            },
+            {
+              "label": "B4 C5",
+              "href": "/music/aerophone?mode=trills&trill=b4-c5"
+            },
+            {
+              "label": "C5 D5",
+              "href": "/music/aerophone?mode=trills&trill=c5-d5"
+            },
+            {
+              "label": "E4 F#4",
+              "href": "/music/aerophone?mode=trills&trill=e4-fs4"
+            }
+          ],
+          "feeds": "All"
+        },
+        {
+          "id": "9.9",
+          "title": "Grade 5 speed",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=4",
+          "setup": "Scales: 12 major keys at 66, four notes a click.",
+          "done": "90% in 12 keys.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "C major scale, up and down, 66 BPM, 4 notes a click",
+              "G major scale, up and down, 66 BPM, 4 notes a click",
+              "D major scale, up and down, 66 BPM, 4 notes a click",
+              "A major scale, up and down, 66 BPM, 4 notes a click",
+              "E major scale, up and down, 66 BPM, 4 notes a click",
+              "B major scale, up and down, 66 BPM, 4 notes a click",
+              "F# major scale, up and down, 66 BPM, 4 notes a click",
+              "Db major scale, up and down, 66 BPM, 4 notes a click",
+              "Ab major scale, up and down, 66 BPM, 4 notes a click",
+              "Eb major scale, up and down, 66 BPM, 4 notes a click",
+              "Bb major scale, up and down, 66 BPM, 4 notes a click",
+              "F major scale, up and down, 66 BPM, 4 notes a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/aerophone?mode=scales&scale=major&key=7&perBeat=4"
+            },
+            {
+              "label": "D",
+              "href": "/music/aerophone?mode=scales&scale=major&key=2&perBeat=4"
+            },
+            {
+              "label": "A",
+              "href": "/music/aerophone?mode=scales&scale=major&key=9&perBeat=4"
+            },
+            {
+              "label": "E",
+              "href": "/music/aerophone?mode=scales&scale=major&key=4&perBeat=4"
+            },
+            {
+              "label": "B",
+              "href": "/music/aerophone?mode=scales&scale=major&key=11&perBeat=4"
+            },
+            {
+              "label": "F#",
+              "href": "/music/aerophone?mode=scales&scale=major&key=6&perBeat=4"
+            },
+            {
+              "label": "Db",
+              "href": "/music/aerophone?mode=scales&scale=major&key=1&perBeat=4"
+            },
+            {
+              "label": "Ab",
+              "href": "/music/aerophone?mode=scales&scale=major&key=8&perBeat=4"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/aerophone?mode=scales&scale=major&key=3&perBeat=4"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/aerophone?mode=scales&scale=major&key=10&perBeat=4"
+            },
+            {
+              "label": "F",
+              "href": "/music/aerophone?mode=scales&scale=major&key=5&perBeat=4"
+            }
+          ],
+          "feeds": "Level test"
+        },
+        {
+          "id": "9.10",
+          "title": "Keys around the circle",
+          "href": "/music/circle?mode=count&band=all",
+          "setup": "Circle of fifths: keys and their signatures, all 15. The thirds patterns of 9.4 in circle order follow when they ship.",
+          "done": "12 keys in one sitting at 90%.",
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.9,
+          "feeds": "Klosé"
+        },
+        {
+          "id": "9.11",
+          "title": "Sight-reading",
+          "href": "/music/reading?activity=sight-reading&level=level-3",
+          "setup": "Reading, sight-reading on the Aerophone: Level 3, keys to 4 sharps and flats.",
+          "done": "80% first try on 5 lines.",
+          "minAttempts": 5,
+          "threshold": 0.8,
+          "feeds": "Grade 5"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "mission-impossible",
+          "title": "Mission: Impossible",
+          "artist": "Lalo Schifrin",
+          "teaches": "5/4, chromatic",
+          "detail": "about 165 in 5/4",
+          "bpm": 165,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, bradley4",
+              "url": "https://musescore.com/user/292666/scores/270496"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15685999",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "the-entertainer",
+          "title": "The Entertainer",
+          "artist": "Joplin",
+          "teaches": "Ragtime syncopation, chromatic neighbours",
+          "detail": "about 80, 2/4",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, rosariopedicini",
+              "url": "https://musescore.com/user/27881039/scores/4978434"
+            }
+          ],
+          "fallback": {
+            "label": "App phrase; IMSLP",
+            "url": "/music/phrases?instrument=aerophone&phrase=aerophone.entertainer"
+          }
+        },
+        {
+          "id": "superstition",
+          "title": "Superstition",
+          "artist": "Stevie Wonder",
+          "teaches": "16th funk riff, ghost notes",
+          "detail": "about 100",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto, Anderson Quevedo",
+              "url": "https://musescore.com/user/97106398/scores/17762026",
+              "official": true
+            },
+            {
+              "label": "Community, alto and trumpet duet, Matthew Jarrell",
+              "url": "https://musescore.com/user/92226244/scores/24474676"
+            }
+          ]
+        },
+        {
+          "id": "in-the-mood",
+          "title": "In the Mood",
+          "artist": "Glenn Miller",
+          "teaches": "Swing arpeggio riff at speed",
+          "detail": "about 170 swing",
+          "bpm": 170,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto solo, Lankydog",
+              "url": "https://musescore.com/user/4990341/scores/5302471"
+            },
+            {
+              "label": "Official, alto, SaxExpress",
+              "url": "https://musescore.com/user/97106398/scores/19621312",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "chameleon",
+          "title": "Chameleon",
+          "artist": "Herbie Hancock",
+          "teaches": "Funk line, syncopated 16ths",
+          "detail": "about 95",
+          "bpm": 95,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, Goresbrook Creative Arts",
+              "url": "https://musescore.com/user/9353001/scores/6423863"
+            },
+            {
+              "label": "Official, tenor, Anderson Quevedo",
+              "url": "https://musescore.com/user/97106398/scores/17762437",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "sir-duke",
+          "title": "Sir Duke",
+          "artist": "Stevie Wonder",
+          "teaches": "The unison horn line, A major",
+          "detail": "about 105",
+          "bpm": 105,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, Alex Hodge",
+              "url": "https://musescore.com/user/1798166/scores/732336"
+            },
+            {
+              "label": "Official, alto, The Sheet Music Library",
+              "url": "https://musescore.com/user/97106398/scores/17762050",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "money-sax-solo",
+          "title": "Money, sax solo",
+          "artist": "Pink Floyd, Dick Parry",
+          "teaches": "Blues solo in 7/4, bends",
+          "detail": "about 120",
+          "bpm": 120,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto transcription, Didacus.Calixto",
+              "url": "https://musescore.com/user/35102076/scores/13678996"
+            },
+            {
+              "label": "Official, alto, Kevin Busse",
+              "url": "https://musescore.com/user/97106398/scores/16634644",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "pick-up-the-pieces",
+          "title": "Pick Up the Pieces",
+          "artist": "Average White Band",
+          "teaches": "Tight 16th horn riff",
+          "detail": "about 112",
+          "bpm": 112,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/12896167"
+            },
+            {
+              "label": "Official, alto, Mark Peotter",
+              "url": "https://musescore.com/user/97106398/scores/19595797",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "yakety-sax",
+          "title": "Yakety Sax",
+          "artist": "Boots Randolph",
+          "teaches": "Fast tonguing and chromatic runs",
+          "detail": "very fast; play at 70% first",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto, Mierwit",
+              "url": "https://musescore.com/user/1195216/scores/1881561"
+            },
+            {
+              "label": "Community, tenor, Jeebbus, tenor scene",
+              "url": "https://musescore.com/user/1049301/scores/1858401"
+            }
+          ]
+        }
+      ],
+      "test": "12 major keys at grade 5 speed (66, four a click) on 2 days; scales in thirds in 6 keys at 72; two shelf songs at tempo, 85% in performance mode."
+    },
+    {
+      "id": "10",
+      "title": "Jazz heads and blues improvisation, after Aebersold and the Omnibook",
+      "goal": "a repertoire of 6 heads by memory; improvise on a blues with chord tones, guide tones and two or three borrowed bebop phrases; minor and modal tunes; transcribe four bars by ear (the Bob Reynolds habit).",
+      "adds": "Written range: full.",
+      "pick": 4,
+      "steps": [
+        {
+          "id": "10.1",
+          "title": "Two bebop blues heads",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: Now's the Time and Billie's Bounce.",
+          "done": "85% at 140, then from memory.",
+          "each": {
+            "param": "shelf",
+            "values": ["aerophone/nows-the-time", "aerophone/billies-bounce"]
+          },
+          "threshold": 0.85,
+          "minBpm": 140,
+          "links": [
+            {
+              "label": "Now's the Time",
+              "href": "/music/songs/shelf/aerophone/nows-the-time"
+            },
+            {
+              "label": "Billie's Bounce",
+              "href": "/music/songs/shelf/aerophone/billies-bounce"
+            }
+          ],
+          "feeds": "Level test"
+        },
+        {
+          "id": "10.2",
+          "title": "Chord tones",
+          "href": "/music/chord-scales?changes=major&key=D",
+          "setup": "Chord scales: a major ii-V-I in D (alto D, concert F). Blues changes are not in the drill yet.",
+          "done": "85% of tone roles right.",
+          "threshold": 0.85,
+          "feeds": "Improvising"
+        },
+        {
+          "id": "10.3",
+          "title": "Guide tones",
+          "setup": "On Jam, the 3rd and 7th of each chord, one per bar.",
+          "done": "85% correct guide tones over 2 choruses.",
+          "needs": "A guide-tone line on Jam (3rd or 7th per bar).",
+          "feeds": "Improvising"
+        },
+        {
+          "id": "10.4",
+          "title": "ii-V vocabulary in 12 keys",
+          "href": "/music/licks?category=major-ii-V-I",
+          "setup": "Jazz licks: major ii-V-I, transposed with the key picker.",
+          "done": "3 licks in 6 keys at 120.",
+          "minAttempts": 18,
+          "minBpm": 120,
+          "feeds": "Improvising"
+        },
+        {
+          "id": "10.5",
+          "title": "The bebop enclosure",
+          "href": "/music/phrases?instrument=aerophone&phrase=aerophone.bebop-enclosure",
+          "setup": "Phrases: the bebop enclosure. The app plays it in one key; take it to three more by ear.",
+          "done": "90% at tempo.",
+          "match": {
+            "phrase": "aerophone.bebop-enclosure"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "feeds": "Parker heads"
+        },
+        {
+          "id": "10.6",
+          "title": "Blues improvisation, two keys",
+          "href": "/music/jam?progression=blues&transpose=2",
+          "setup": "Jam: blues in alto D, then G, 120 swing, 3 choruses. A chorus grader is coming; check the take yourself for now.",
+          "done": "A recorded take with no lost bars and a lick in each chorus.",
+          "exerciseIds": [],
+          "links": [
+            {
+              "label": "Alto G",
+              "href": "/music/jam?progression=blues&transpose=7"
+            }
+          ],
+          "feeds": "Level test"
+        },
+        {
+          "id": "10.7",
+          "title": "Modal and minor",
+          "href": "/music/jam?progression=modal",
+          "setup": "Jam: the modal vamp, for So What and Mr. P.C.",
+          "done": "3 choruses, no lost bars.",
+          "exerciseIds": [],
+          "feeds": "So What"
+        },
+        {
+          "id": "10.8",
+          "title": "Trading fours",
+          "setup": "Four bars from the app, four from you.",
+          "done": "8 trades in time.",
+          "needs": "Trading fours on Jam.",
+          "feeds": "Improvising"
+        },
+        {
+          "id": "10.9",
+          "title": "Transcribe four bars",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: loop a spot at 70%, play it back, then write it down.",
+          "done": "4 bars matched note for note, on 2 tunes.",
+          "exerciseIds": [],
+          "feeds": "Ear path"
+        },
+        {
+          "id": "10.10",
+          "title": "Memorise",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio: heads from memory, without looking at the score.",
+          "done": "6 heads at 85%.",
+          "match": {
+            "mode": "performance"
+          },
+          "minAttempts": 6,
+          "threshold": 0.85,
+          "feeds": "Level test"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "nows-the-time",
+          "title": "Now's the Time",
+          "artist": "Parker",
+          "teaches": "Riff blues, the Parker sound",
+          "detail": "F, alto D; 200 on record, 140 here",
+          "bpm": 140,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, Eb alto from the Omnibook, tbeaudelain",
+              "url": "https://musescore.com/user/59221054/scores/12590899"
+            },
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/16001902",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Omnibook Eb; Aebersold Vol. 6",
+            "url": "https://www.google.com/search?q=Omnibook+Eb"
+          }
+        },
+        {
+          "id": "straight-no-chaser",
+          "title": "Straight, No Chaser",
+          "artist": "Monk",
+          "teaches": "One motif displaced across the bar",
+          "detail": "F, alto D; about 160",
+          "bpm": 160,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15739699",
+              "official": true
+            },
+            {
+              "label": "Official, tenor, The Sheet Music Library",
+              "url": "https://musescore.com/user/97106398/scores/18579718",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Real Book Eb",
+            "url": "https://www.google.com/search?q=Real+Book+Eb"
+          }
+        },
+        {
+          "id": "so-what",
+          "title": "So What",
+          "artist": "Miles Davis",
+          "teaches": "Modal, call and response, Dorian",
+          "detail": "D Dorian, alto B Dorian; about 136",
+          "bpm": 136,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto transposition of Miles's solo, Tikeuz",
+              "url": "https://musescore.com/user/30742208/scores/5377158"
+            },
+            {
+              "label": "Official, alto beginner, Katrin Scherer",
+              "url": "https://musescore.com/user/97106398/scores/18088813",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "billies-bounce",
+          "title": "Billie's Bounce",
+          "artist": "Parker",
+          "teaches": "Bebop blues head",
+          "detail": "F, alto D; 190 on record, 140 here",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, jpetersen628",
+              "url": "https://musescore.com/user/34703655/scores/7073653"
+            },
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/16001917",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Aebersold Vol. 6",
+            "url": "https://www.google.com/search?q=Aebersold+Vol.+6"
+          }
+        },
+        {
+          "id": "au-privave",
+          "title": "Au Privave",
+          "artist": "Parker",
+          "teaches": "Bebop blues, chromatic approach",
+          "detail": "F, alto D; about 200, 140 here",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, maxninja98",
+              "url": "https://musescore.com/user/27304832/scores/5588741"
+            },
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/16001878",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Omnibook Eb",
+            "url": "https://www.google.com/search?q=Omnibook+Eb"
+          }
+        },
+        {
+          "id": "mr-p-c",
+          "title": "Mr. P.C.",
+          "artist": "Coltrane",
+          "teaches": "Minor blues, fast",
+          "detail": "C minor, alto A minor; play at 140",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, lericketts",
+              "url": "https://musescore.com/user/54809/scores/81040"
+            },
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/16029988",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "footprints",
+          "title": "Footprints",
+          "artist": "Wayne Shorter",
+          "teaches": "Minor blues in 6/4, altered turnaround",
+          "detail": "C minor, alto A minor; about 120",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Real Book, concert",
+              "url": "https://musescore.com/user/39593079/scores/16084282",
+              "official": true
+            },
+            {
+              "label": "Community, lead sheet with bass, frankicebass",
+              "url": "https://musescore.com/user/34812601/scores/6271174"
+            }
+          ],
+          "fallback": {
+            "label": "Real Book Eb",
+            "url": "https://www.google.com/search?q=Real+Book+Eb"
+          }
+        },
+        {
+          "id": "take-five",
+          "title": "Take Five",
+          "artist": "Desmond",
+          "teaches": "5/4, the alto line, Eb minor",
+          "detail": "Eb minor, alto C minor; about 172",
+          "bpm": 172,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto, maxtor1963",
+              "url": "https://musescore.com/user/85652/scores/430481"
+            },
+            {
+              "label": "Official, alto, Leo Silva",
+              "url": "https://musescore.com/user/97106398/scores/16701601",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "blue-bossa-or-autumn-leaves-with-a-written-solo",
+          "title": "Blue Bossa or Autumn Leaves with a written solo",
+          "artist": "You",
+          "teaches": "First full chorus of your own",
+          "detail": "as Level 6",
+          "diff": 3,
+          "scores": [],
+          "fallback": {
+            "label": "Aebersold Vol. 54",
+            "url": "https://www.google.com/search?q=Aebersold+Vol.+54"
+          }
+        }
+      ],
+      "test": "Three heads by memory at 140 (one bebop blues, one minor or modal, one other) at 85%; 3 improvised choruses over a concert F blues (alto D) at 120 with no lost bars, guide tones on bars 1, 5, 9 and one quoted lick; one 4-bar transcription."
+    },
+    {
+      "id": "11",
+      "title": "Grade 5 capstone: Ferling and a recital",
+      "goal": "the classical half of the grade (a Ferling slow study with breaths, dynamics and vibrato planned), the full scale requirement, sight-reading, and a three-piece recital recorded in one take each.",
+      "adds": "Written range: full.",
+      "pick": 3,
+      "steps": [
+        {
+          "id": "11.1",
+          "title": "Pick and import the Ferling",
+          "href": "/music/library?tab=import",
+          "setup": "An odd-numbered (slow) study from IMSLP or the shelf: MuseScore PDF import or MuseScore Studio entry, then Song Studio.",
+          "done": "The score imported and checked against the PDF.",
+          "exerciseIds": [],
+          "feeds": "Ferling"
+        },
+        {
+          "id": "11.2",
+          "title": "Plan breaths and dynamics",
+          "setup": "Mark breaths and hairpins on the score.",
+          "done": "A marked copy.",
+          "needs": "Phrase dynamics and breath marks in Song Studio.",
+          "feeds": "Ferling"
+        },
+        {
+          "id": "11.3",
+          "title": "Ferling in chunks",
+          "href": "/music/songs/shelf/aerophone/slow-study-no-23-op-31",
+          "setup": "Song Studio: loop each 4-bar phrase, wait mode, then performance. Another Ferling from the shelf works too; this link judges No. 23.",
+          "done": "Each phrase at 90%.",
+          "threshold": 0.9,
+          "feeds": "Ferling"
+        },
+        {
+          "id": "11.4",
+          "title": "Ferling whole",
+          "href": "/music/songs/shelf/aerophone/slow-study-no-23-op-31",
+          "setup": "Song Studio, performance mode at the marked tempo. Dynamics are scored once Song Studio has them.",
+          "done": "85% notes, 80% dynamics in band.",
+          "threshold": 0.85,
+          "feeds": "Level test"
+        },
+        {
+          "id": "11.5",
+          "title": "Scales, the full set",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=4",
+          "setup": "Majors, the three minor forms, chromatic, arpeggios and thirds in 12 keys, at grade 5 speed (66, four a click).",
+          "done": "90% each, all in one week.",
+          "minAttempts": 12,
+          "threshold": 0.9,
+          "minBpm": 66,
+          "feeds": "Level test"
+        },
+        {
+          "id": "11.6",
+          "title": "Sight-reading",
+          "href": "/music/reading?activity=sight-reading&level=level-3",
+          "setup": "Reading, sight-reading: Level 3, grade 4 to 5 lines.",
+          "done": "80% first try on 5 new lines.",
+          "minAttempts": 5,
+          "threshold": 0.8,
+          "feeds": "Level test"
+        },
+        {
+          "id": "11.7",
+          "title": "A solo transcription",
+          "href": "/music/songs/shelf/aerophone/billies-bounce-parkers-solo",
+          "setup": "Parker's first chorus on Billie's Bounce, or Stitt on Au Privave, learnt from the score and the record. Billie's Bounce is judged here.",
+          "done": "85% at 70% tempo.",
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Au Privave, Stitt's solo",
+              "href": "/music/songs/shelf/aerophone/au-privave-stitts-solo"
+            }
+          ],
+          "feeds": "Jazz"
+        },
+        {
+          "id": "11.8",
+          "title": "Record the recital",
+          "href": "/music/record",
+          "setup": "Record: the Ferling, one jazz head with 2 choruses, one pop hit with vibrato, one take each.",
+          "done": "Three takes kept in the journal.",
+          "feeds": "Level test"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "slow-study-no-23-op-31",
+          "title": "Slow study No. 23, Op. 31",
+          "artist": "Ferling",
+          "teaches": "Breath planning, dynamics, a slow line",
+          "detail": "slow; Andraud edition",
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, alto, Andraud edition, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/21252574",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP, all 48 studies, public domain (sax players read the oboe edition as written)",
+            "url": "https://imslp.org/wiki/48_Studies_for_Oboe,_Op.31_(Ferling,_Franz_Wilhelm)"
+          }
+        },
+        {
+          "id": "selected-studies-e-minor-etude",
+          "title": "Selected Studies, E minor etude",
+          "artist": "Ferling",
+          "teaches": "Minor, lyrical",
+          "detail": "as marked",
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Community, alto, george.willson",
+              "url": "https://musescore.com/user/1299081/scores/8143407"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Op. 31",
+            "url": "https://imslp.org/"
+          }
+        },
+        {
+          "id": "study-no-10",
+          "title": "Study No. 10",
+          "artist": "Ferling",
+          "teaches": "The fast partner study, finger evenness",
+          "detail": "fast",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, DrWho9000",
+              "url": "https://musescore.com/user/36384394/scores/7119475"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Op. 31",
+            "url": "https://imslp.org/"
+          }
+        },
+        {
+          "id": "etude-12-over-bird-blues-changes",
+          "title": "Etude 12 over Bird blues changes",
+          "artist": "Ferling",
+          "teaches": "A bridge from classical to bebop",
+          "detail": "as marked",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, .Aidan",
+              "url": "https://musescore.com/user/1752166/scores/6881117"
+            }
+          ],
+          "fallback": {
+            "label": "IMSLP Op. 31 for the original",
+            "url": "https://imslp.org/"
+          }
+        },
+        {
+          "id": "larlesienne-suite-no-1-alto-sax-solo",
+          "title": "L'Arlésienne Suite No. 1, alto sax solo",
+          "artist": "Bizet",
+          "teaches": "The classic orchestral sax solo",
+          "detail": "Prélude, slow",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, tomasribeirin: check it is the Prélude solo",
+              "url": "https://musescore.com/user/61806442/scores/11633908"
+            }
+          ],
+          "fallback": {
+            "label": "App phrase; IMSLP orchestral parts",
+            "url": "/music/phrases?instrument=aerophone&phrase=aerophone.arlesienne-prelude"
+          }
+        },
+        {
+          "id": "the-way-you-look-tonight",
+          "title": "The Way You Look Tonight",
+          "artist": "Kern",
+          "teaches": "Standard changes at a medium swing",
+          "detail": "Eb concert sound; about 160",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, alto, FabioAltoSax",
+              "url": "https://musescore.com/user/28815610/scores/19849906"
+            },
+            {
+              "label": "Official, alto, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15811900",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "confirmation",
+          "title": "Confirmation",
+          "artist": "Parker",
+          "teaches": "The bebop standard head",
+          "detail": "F, alto D; about 200, 120 here",
+          "bpm": 120,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto, mt3115",
+              "url": "https://musescore.com/user/65760829/scores/22106920"
+            },
+            {
+              "label": "Official, alto, Jireh J.",
+              "url": "https://musescore.com/user/97106398/scores/18870868",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Omnibook Eb",
+            "url": "https://www.google.com/search?q=Omnibook+Eb"
+          }
+        },
+        {
+          "id": "billies-bounce-parkers-solo",
+          "title": "Billie's Bounce, Parker's solo",
+          "artist": "Parker",
+          "teaches": "A full bebop solo chorus",
+          "detail": "F, alto D",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto, Provoloooone",
+              "url": "https://musescore.com/user/33630425/scores/6096076"
+            },
+            {
+              "label": "Community, alto, gillybean",
+              "url": "https://musescore.com/user/1067306/scores/5696218"
+            }
+          ],
+          "fallback": {
+            "label": "Omnibook Eb",
+            "url": "https://www.google.com/search?q=Omnibook+Eb"
+          }
+        },
+        {
+          "id": "au-privave-stitts-solo",
+          "title": "Au Privave, Stitt's solo",
+          "artist": "Sonny Stitt",
+          "teaches": "Fast bebop lines on a blues",
+          "detail": "F, alto D",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Community, alto, Richard Aubert",
+              "url": "https://musescore.com/user/30685038/scores/6107700"
+            }
+          ],
+          "fallback": {
+            "label": "Omnibook Eb for Parker's own solo",
+            "url": "https://www.google.com/search?q=Omnibook+Eb+for+Parker%27s+own+solo"
+          }
+        }
+      ],
+      "test": "A mock grade 5: the Ferling slow study at 85% notes and 80% dynamics; one jazz head with 2 improvised choruses; one pop hit with vibrato; the full scale set at grade 5 speed; 5 new sight-reading lines at 80%. Record all of it in one session."
+    }
+  ]
 }
