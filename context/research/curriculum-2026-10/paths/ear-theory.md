@@ -497,6 +497,9 @@ Build order: N1 and N15 first (small, change every level), then N2 with N3 (they
 
 ## 5. Open questions for the owner
 
+**Answered by the owner (2026-10-27):** MuseScore Pro, yes; Official scores export MusicXML, so Official picks stay as listed. Guitar: acoustic and electric, no classical strand. Ukulele: high-G tenor. Aerophone: alto and tenor scenes both, bite sends pitch bend. Pads: performing and beat making interleaved by difficulty; the MPC sends aftertouch. Piano: the full curriculum, known skills as review. Jazz: a Real Book PDF for chord charts.
+
+
 1. **Singing.** Will you sing or hum answers? The path assumes yes (sing before play at every level). If not, play-back becomes the default and steps 3.12, 8.5 and 9.10 drop.
 2. **Your recordings.** May the app read audio files you own (N2)? It is needed from level 1. Any streaming source you would rather use?
 3. **MuseScore scores in the app.** Do you have MuseScore Pro? Many good lead sheets are "Official" (paid per score or with Pro); community scores are free but uneven. Should the shelves prefer free community scores even when an official lead sheet is better?

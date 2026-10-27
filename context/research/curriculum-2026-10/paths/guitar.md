@@ -7,11 +7,11 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 **Done means** the owner can, on acoustic or electric:
 - strum and sing (or play along with the record) any pop, rock, folk or soul song from a chord sheet, open or barre, at the record's tempo, in 4/4, 6/8 or shuffle feel;
 - play riffs and intros from tab at record tempo (Sweet Child O' Mine intro, Day Tripper, Superstition);
-- play three or four complete fingerstyle pieces from memory (for example Dust in the Wind, Landslide, Blackbird, Tears in Heaven, and Classical Gas as a stretch), with Travis, arpeggio, pinch and classical p-i-m-a technique;
+- play three or four complete fingerstyle pieces from memory (for example Dust in the Wind, Landslide, Blackbird, Tears in Heaven, and Classical Gas as a stretch), with Travis, arpeggio, pinch and p-i-m-a technique;
 - improvise two choruses over a 12-bar blues or a pop loop in any key with the five minor pentatonic boxes, the major pentatonic, bends to pitch and vibrato, and play a learned solo (Comfortably Numb solo 1, Wish You Were Here);
 - read a single-line melody in first and fifth position from standard notation, and work out a simple melody or a I-IV-V song by ear.
 
-**Benchmarks.** JustinGuitar Grade 6 (end of the Intermediate course: all five pentatonic boxes, major scale, CAGED, triads, funk, blues and fingerstyle modules) and RGT (LCM) Electric Grade 5 or Rockschool Grade 5 (scale click tempo 80, improvisation over an unseen backing, a set of pieces). The fingerstyle strand goes a little past both, toward Trinity classical Grade 3 to 4 for the classical pieces.
+**Benchmarks.** JustinGuitar Grade 6 (end of the Intermediate course: all five pentatonic boxes, major scale, CAGED, triads, funk, blues and fingerstyle modules) and RGT (LCM) Electric Grade 5 or Rockschool Grade 5 (scale click tempo 80, improvisation over an unseen backing, a set of pieces). The fingerstyle strand goes a little past both on steel-string pop and folk pieces. There is no classical strand: the owner chose pop, rock, folk, blues and jazz.
 
 **Order.** Levels 1 to 6 follow JustinGuitar's module order (Grade 1 chords A D E then minors then C G; Grade 2 sevenths, power chords, blues, first fingerpicking; Grade 3 rhythm and F; Grade 4 barres, major scale, blues lead) so the owner can watch Justin's lesson for any step. From Level 5 the fingerpicking strand runs ahead of Justin (he keeps it light), and Levels 7 to 10 broaden: CAGED and triads, funk, all five boxes, jazz shells and modes, full fingerstyle pieces.
 
@@ -173,7 +173,7 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 
 ### Level 5. The barre begins, 6/8, pinches and bends (JustinGuitar Grade 3)
 
-**Goal:** a first real barre chord in songs, a 6/8 ballad strummed and picked, a pinch pattern under a melody, and bends that land in tune. **Adds:** E-shape F barre, A-shape Bm and Bb, 6/8 strumming, accents and ghost strums, Travis with a pinch, the alternating-bass p-i-m-a, rest strokes on a classical melody, half and whole bends to pitch, vibrato, four stock box-1 licks, finding a melody by ear, dotted rhythms.
+**Goal:** a first real barre chord in songs, a 6/8 ballad strummed and picked, a pinch pattern under a melody, and bends that land in tune. **Adds:** E-shape F barre, A-shape Bm and Bb, 6/8 strumming, accents and ghost strums, Travis with a pinch, the alternating-bass p-i-m-a, a melody over a thumb bass, half and whole bends to pitch, vibrato, four stock box-1 licks, finding a melody by ear, dotted rhythms.
 
 | # | Step | Strand | Drill and setup | Done means | Feeds |
 |---|---|---|---|---|---|
@@ -183,8 +183,8 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 | 5.4 | Accents, ghost strums, muting | S | `rhythm` NEW pattern "accents on 2 and 4" (chuck with the fretting hand), 90 | 90% at 100 | Sweet Home Alabama, Hit the Road Jack |
 | 5.5 | Travis with a pinch | F | `chords?mode=fingerpick` `travis-pinch`, C Am G F, 70 then 90 | 3 clean runs at 90, two days | Hey There Delilah, The Sound of Silence |
 | 5.6 | Hallelujah arpeggio | F | `chords?mode=fingerpick` song preset `hallelujah`, 12/8 | Clean at 100%, two days | Hallelujah |
-| 5.7 | Alternating-bass p-i-m-a | F | `chords?mode=fingerpick` `pima-alternating`, Am E7 Dm, 70 | 3 clean at 90 | Malagueña, Spanish Romance |
-| 5.8 | Rest strokes on a melody | F | `phrases` `guitar.spanish-romance`, first 8 bars, 50 (melody with rest stroke a, bass with p) | Clean at 60, two days | Spanish Romance (Level 6) |
+| 5.7 | Alternating-bass p-i-m-a | F | `chords?mode=fingerpick` `pima-alternating`, Am E7 Dm, 70 | 3 clean at 90 | Freight Train, Hallelujah |
+| 5.8 | Melody over a thumb bass | F | Studio: Freight Train, first 8 bars, 50 (thumb alternating bass, melody with i and m) | Clean at 60, two days | Freight Train |
 | 5.9 | Bends to pitch | L | `fretboard?mode=bends`, half then whole step on strings 3 and 2 | 8 of 10 within 20 cents, two days | Wonderful Tonight, licks |
 | 5.10 | Vibrato | L | `fretboard?mode=bends`, vibrato setting | Even width 20 to 50 cents, steady rate, 3 runs | all lead |
 | 5.11 | Four stock box-1 licks | L | `licks` NEW category `guitar-blues` (round 1 rec 7): root-b7-5, the box-1 bend, the double stop, the turnaround (`guitar.blues-turnaround` exists) | Each in check mode at 90 | Level 6 blues |
@@ -204,13 +204,13 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 | Hallelujah, Leonard Cohen | F | 12/8 arpeggio, C Am F G E7 (app preset) | C, 12/8 | 2 | [community, 1.7K views](https://musescore.com/user/21725341/scores/4237571); [community](https://musescore.com/user/4596056/scores/5545624) | app preset `hallelujah` |
 | Hey There Delilah, Plain White T's | F | Travis-style pattern with pinches, D F#m Bm | D, 104 BPM | 3 | [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15621427) | Songsterr |
 | The Sound of Silence, Simon & Garfunkel | F | Travis with pinches in A minor shapes (capo 6 on the record) | A minor shapes, moderate | 2 | [community Guitar Tab](https://musescore.com/user/28842914/scores/7899161); [OFF Easy Guitar with TAB](https://musescore.com/user/39593079/scores/15869194) | Songsterr |
-| Malagueña (traditional, the beginner version) | F | thumb melody on the bass strings with i-m on the open E, Phrygian colour | E, 3/4 | 1 | [community, easy version](https://musescore.com/user/37024669/scores/7990775) | any classical method book |
+| Freight Train (Elizabeth Cotten) | F | Travis bass with the melody on top, the folk fingerpicking classic | C, 4/4 | 1 | [community fingerstyle (4.6, 71 ratings)](https://musescore.com/user/2874326/scores/6313361); [community, Cotten style](https://musescore.com/user/40201422/scores/11573404) | Songsterr |
 
 **Level 5 test:** one S song with full barres (Perfect or Hit the Road Jack) at tempo; one F song at tempo; bends: 8 of 10 within 20 cents; Wonderful Tonight intro or two stock licks over the `jam` 12-bar.
 
 ### Level 6. Moving barres, the major scale, blues lead and the first Travis classics (JustinGuitar Grade 4)
 
-**Goal:** play any major or minor chord as a barre, solo over a 12-bar with the B.B. box, and play Dust in the Wind or Landslide through. **Adds:** E and A shape majors, minors and sevenths anywhere, the major scale (6th-string root), the B.B. box, slides, call and response, syncopated Travis with pinches and hammer-ons, classical p-i-m-a arpeggio study, reading on all six strings.
+**Goal:** play any major or minor chord as a barre, solo over a 12-bar with the B.B. box, and play Dust in the Wind or Landslide through. **Adds:** E and A shape majors, minors and sevenths anywhere, the major scale (6th-string root), the B.B. box, slides, call and response, syncopated Travis with pinches and hammer-ons, a fingerpicked riff in time (Fast Car), reading on all six strings.
 
 | # | Step | Strand | Drill and setup | Done means | Feeds |
 |---|---|---|---|---|---|
@@ -223,7 +223,7 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 | 6.7 | Syncopated Travis with a pinch | F | `chords?mode=fingerpick` `dust-pinch`, C Cmaj7 Cadd9 Asus2 Asus4 Am, 60 then 84 | 3 clean at 84, two days | Dust in the Wind |
 | 6.8 | Landslide pattern | F | `chords?mode=fingerpick` song preset `landslide` (capo 3), 70% then 100% | Clean at 100%, two days | Landslide |
 | 6.9 | Dust in the Wind in full | F | Studio: import the MuseScore score, wait mode, then performance at 70%, 85%, 100%; fix-the-spot on the instrumental | Whole song at 100% in performance mode, 90% notes, two days | Dust in the Wind |
-| 6.10 | Classical arpeggio study | F | Studio: Spanish Romance part A, or Giuliani Op. 50 No. 1 (NEW item in the reading corpus) | Part A at 60 dotted-quarter, clean | Spanish Romance |
+| 6.10 | Fingerpicked riff in time | F | Studio: Fast Car riff, 4 bars looped at 60 | Riff clean at 80, two days | Fast Car |
 | 6.11 | Riff vocabulary | R | `phrases` Riffs: Day Tripper (simplified then full), Enter Sandman | At record tempo, 3 clean | Day Tripper, Enter Sandman |
 | 6.12 | Read on all six strings | T | `reading` sight-reading, guitar, first position, NEW guitar range setting | 8 bars at 60, 90% notes | reading path |
 | 6.13 | Hear minor pentatonic phrases | T | `ear` melody echo in A minor pentatonic (Ear R4) | 80% over 10 phrases | improvising |
@@ -238,7 +238,7 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 | The Thrill Is Gone, B.B. King | L | B.B. box licks, vibrato, Bm blues | B minor, 90 BPM | 3 | [OFF Guitar Tab Play-Along](https://musescore.com/user/39593079/scores/15526837) | [Songsterr album solo](https://www.songsterr.com/a/wsa/bb-king-the-thrill-is-gone-album-tab-s5258799) |
 | Dust in the Wind, Kansas | F | syncopated Travis with pinches and hammer-ons (app preset) | C, 93 BPM | 3 | [community, solo guitar, 2.3K](https://musescore.com/user/1095166/scores/2956771); [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15263305) | app preset `dust-in-the-wind` |
 | Landslide, Fleetwood Mac | F | Travis with pinches, capo 3 (app preset) | E flat (capo 3), 80 BPM | 3 | [OFF Solo Guitar](https://musescore.com/user/39593079/scores/15575896); [community, 22 bars](https://musescore.com/user/6194281/scores/6377741) | app preset `landslide` |
-| Spanish Romance (Romance anónimo) | F | classical p-i-m-a, rest-stroke melody, part A in E minor | E minor, 3/4 | 2 (part A) | [OFF Beginner tab (Darek)](https://musescore.com/user/97106398/scores/19076101); [community](https://musescore.com/user/13183021/scores/4509271) | app phrase `guitar.spanish-romance` |
+| Fast Car (Tracy Chapman) | F | the fingerpicked riff over Cmaj7, G, Em, D, capo 2 | C (capo 2), 104 | 2 | [OFF Easy Guitar](https://musescore.com/user/39593079/scores/15563812); [community](https://musescore.com/user/38166567/scores/11985604) | Songsterr |
 | Fast Car, Tracy Chapman | F, R | fingerpicked riff, Cadd9 G Em D shapes, capo 2 | capo 2, 104 BPM | 3 | [community, solo guitar](https://musescore.com/user/31687724/scores/19656199); [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15265729) | Songsterr |
 | Jolene, Dolly Parton | F | fast Travis-style picking, Am C G Em (capo 4) | C# minor, about 110 BPM | 2 | [community, solo guitar, intro riff only, 25 bars](https://musescore.com/user/12820216/scores/4481146) | Songsterr |
 | Enter Sandman, Metallica | R | palm-muted open-E riff, power chords | E minor, 123 BPM | 2 | [community Guitar Tab](https://musescore.com/user/36856471/scores/6588419); [OFF Tab Play-Along](https://musescore.com/user/39593079/scores/15863350) | [Songsterr](https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s19t4) |
@@ -320,12 +320,12 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 
 ### Level 9. Broaden: fingerstyle arrangements, jazz shells and modes
 
-**Goal:** play a melody-on-top fingerstyle arrangement of a pop song, comp a jazz standard with shell voicings, and solo with a mode. **Adds:** melody plus bass arrangements (Here Comes the Sun, Yesterday), a Tárrega prelude, shell voicings with roots on strings 6 and 5, ii-V-I, Dorian and Mixolydian, Hendrix chord embellishment in full, reading in fifth position at sight.
+**Goal:** play a melody-on-top fingerstyle arrangement of a pop song, comp a jazz standard with shell voicings, and solo with a mode. **Adds:** melody plus bass arrangements (Here Comes the Sun, Yesterday), a percussive fingerstyle arrangement (More Than Words), shell voicings with roots on strings 6 and 5, ii-V-I, Dorian and Mixolydian, Hendrix chord embellishment in full, reading in fifth position at sight.
 
 | # | Step | Strand | Drill and setup | Done means | Feeds |
 |---|---|---|---|---|---|
 | 9.1 | Melody on top, bass below | F | Studio: Here Comes the Sun arrangement, verse then chorus; thumb independent | Verse and chorus at 100%, two days | Here Comes the Sun, Yesterday |
-| 9.2 | A classical prelude | F, T | Studio: Lágrima (E major then E minor), rest strokes, free strokes, rubato | Whole piece at 60 dotted-quarter, 90% notes | Lágrima |
+| 9.2 | A percussive fingerstyle arrangement | F | Studio: More Than Words intro, thumb slaps and hammer-on chords | Intro at 70, 90% notes, two days | More Than Words |
 | 9.3 | Greensleeves with variations | F, T | Studio: Greensleeves arrangement with tab, read from notation | Theme and one variation at 90 in 3/4 | Greensleeves |
 | 9.4 | Shell voicings | S | `voicings` guitar, NEW shell set: 1-3-7 and 1-7-3 with roots on 6 and 5 (S data) | maj7, m7, 7 in 12 keys at 60 a minute changes | Autumn Leaves, Blue Bossa |
 | 9.5 | ii-V-I | S, T | `jam` `ii-v-i` and `minor-ii-v-i`; `chord-scales` | Comp 4 choruses, no missed change | Autumn Leaves, Summertime |
@@ -342,7 +342,7 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 |---|---|---|---|---|---|---|
 | Here Comes the Sun, The Beatles | F, S | melody-on-top arrangement, capo 7, 7/8 bar | A (capo 7), 129 BPM | 2 | [community solo guitar, 1.2K, intro and verse, 32 bars](https://musescore.com/user/13387436/scores/7074255); [OFF Solo Guitar (Mattar)](https://musescore.com/user/97106398/scores/16190845) | Songsterr |
 | Yesterday, The Beatles | F | solo guitar arrangement of a vocal melody, F major shapes | F, 97 BPM | 2 | [OFF Solo Guitar](https://musescore.com/user/39593079/scores/15574669) | Songsterr |
-| Lágrima, Francisco Tárrega | F, T | classical prelude, rest strokes, E major and minor | E, 3/4, slow | 2 | [community, solo guitar, 2.5K](https://musescore.com/user/39805914/scores/1514336); [OFF Guitar Tab (Phillips)](https://musescore.com/user/97106398/scores/17016166) | IMSLP (public domain) |
+| More Than Words (Extreme) | F | percussive fingerstyle: thumb slaps, hammer-on chords, melody on top | G, 94 | 2 | [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15264865); [community TAB (4.8, 67 ratings)](https://musescore.com/user/29895931/scores/6905168) | Songsterr |
 | Greensleeves, traditional | F, T | arrangement in A minor with tab, 3/4 | A minor, 90 BPM | 1 | [community with tabs, 2.6K](https://musescore.com/user/4596056/scores/2566831); [community easy, 10.5K](https://musescore.com/user/4596056/scores/2603136) | app phrase |
 | Fields of Gold, Sting | F | fingerstyle arrangement, B minor family | B minor, 100 BPM | 2 | [community solo guitar, notation, 20 bars](https://musescore.com/user/9331886/scores/4945458); [community](https://musescore.com/user/36166910/scores/8780874) | Songsterr |
 | Little Wing, Jimi Hendrix | S, L | chord embellishment, Em G Am Bm Bb C D, solo | E minor, 70 BPM | 3 | [community, solo guitar, 12-bar intro](https://musescore.com/user/5700191/scores/3456341); [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15265945) | Songsterr |
@@ -351,7 +351,7 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 | Sultans of Swing, Dire Straits | L, R | fingerpicked electric fills, D minor, first solo | D minor, 148 BPM | 3 | [community lead](https://musescore.com/user/29595338/scores/5271656); [OFF Tab Play-Along](https://musescore.com/user/39593079/scores/15537913) | Songsterr |
 | Blue Bossa, Kenny Dorham | S, L | minor ii-V-i in C minor and D flat, bossa comping, the head | C minor, 140 BPM | 2 | [community solo guitar, 2.9K](https://musescore.com/user/175333/scores/523301); [community chord melody](https://musescore.com/user/25748531/scores/4811048) | iReal Pro chart |
 
-**Level 9 test:** one fingerstyle arrangement (Here Comes the Sun, Yesterday or Lágrima) through at 100%; comp Autumn Leaves with shells for two choruses with the jam track and play the head; two choruses of Dorian over the modal vamp; sight-read 16 bars in fifth position at 70.
+**Level 9 test:** one fingerstyle arrangement (Here Comes the Sun, Yesterday or More Than Words) through at 100%; comp Autumn Leaves with shells for two choruses with the jam track and play the head; two choruses of Dorian over the modal vamp; sight-read 16 bars in fifth position at 70.
 
 ### Level 10. Capstone: RGT Grade 5 / JustinGuitar Grade 6 standard
 
@@ -374,13 +374,13 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 | Song, artist | Strand | Teaches | Key, tempo, chords or technique | Diff | MuseScore | Fallback |
 |---|---|---|---|---|---|---|
 | Classical Gas, Mason Williams | F | the big fingerstyle piece: arpeggios, campanella runs, tremolo-like repeats | A minor, 120 BPM | 3 (stretch) | [OFF Intermediate Guitar Tab (McCorkle)](https://musescore.com/user/97106398/scores/18627736); [community](https://musescore.com/user/38161775/scores/8002955); stretch: [OFF Advanced (Tommy Emmanuel)](https://musescore.com/user/97106398/scores/19304506) | Mason Williams' own folio |
-| Spanish Romance complete | F | part B in E major, barres at fret 7 to 12 | E minor and major, 3/4 | 2 | [community](https://musescore.com/user/13183021/scores/4509271) | IMSLP |
+| Little Wing (Jimi Hendrix) | F, L | chord embellishment with thumb over the neck, hammer-ons and double stops | Em, 70 | 3 (stretch) | [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15265945); [community](https://musescore.com/user/5700191/scores/3456341) | Songsterr |
 | Stairway to Heaven, complete | F, S, L | intro, 12-string strum section, solo in A minor pentatonic | A minor, 72 to 98 BPM | 3 | [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15266236) | Songsterr |
 | Hotel California, the outro solo | L | harmonised B minor lines, bends, position shifts | B minor, 75 BPM | 3 (stretch) | [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15266197) | Songsterr |
 | Comfortably Numb, solo 2 | L | fast bends, repeated licks, stamina | B minor, 64 BPM | 3 (stretch) | [community, second solo](https://musescore.com/user/64829698/scores/10707934) | Songsterr |
 | Sultans of Swing, first solo and fills | L | fingerpicked electric lead, D minor | D minor, 148 BPM | 3 | [community solo](https://musescore.com/user/27753965/scores/6593685) | Songsterr |
 | Autumn Leaves, chord melody | F, S | melody harmonised with shells and drop-2 | E minor, ballad | 3 | [community chord melody](https://musescore.com/user/8869641/scores/2863616) | iReal Pro |
-| Study Op. 60 No. 7, Matteo Carcassi | F, T | classical arpeggio study, melody in the bass, read from notation | A minor, allegro | 2 | [community with tablature](https://musescore.com/user/385716/scores/5615590) | IMSLP (public domain) |
+| Never Going Back Again (Fleetwood Mac) | F | fast Travis in open D-style tuning, hammer-ons and pull-offs | D, 160 | 3 | [OFF Guitar Tab](https://musescore.com/user/39593079/scores/15266275); [community](https://musescore.com/user/32874478/scores/6041963) | Songsterr |
 
 **Level 10 test (the final):** a 15-minute set from memory: one S or R song, one fingerstyle piece (Classical Gas, Blackbird or Dust in the Wind), one solo (learned or improvised over an unseen backing); plus scales at 80, sight-reading 8 bars at 72, and two ear items. Pass on two different days.
 
@@ -392,12 +392,12 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 | 2 | C G, Old Faithful, 25 pairs | p-i-m-a, folk p-i-m-i | two-string riffs | staff to fret strings 1-3, I IV V by ear |
 | 3 | 7ths, Fmaj7, sus/add9, island and 16th strums | alternating thumb, one-finger Travis, 3/4 roll | open E minor pentatonic, legato, riffs | eighth rests, chord qualities |
 | 4 | power chords, palm mute, 12-bar, full F | full Travis, 6/8 arpeggio, The Boxer | box 1, first lick | all six strings first position, 12-bar by ear |
-| 5 | F and Bm barres, 6/8, accents | pinches, Hallelujah, alternating p-i-m-a, rest strokes | bends, vibrato, four blues licks | melody by ear, dotted rhythms |
-| 6 | moving barres, barre 7ths | Dust in the Wind, Landslide, Spanish Romance A | major scale, B.B. box, slides, call and response | reading all strings, pentatonic phrases by ear |
+| 5 | F and Bm barres, 6/8, accents | pinches, Hallelujah, alternating p-i-m-a, melody over a thumb bass | bends, vibrato, four blues licks | melody by ear, dotted rhythms |
+| 6 | moving barres, barre 7ths | Dust in the Wind, Landslide, Fast Car | major scale, B.B. box, slides, call and response | reading all strings, pentatonic phrases by ear |
 | 7 | triads, CAGED, funk 16ths, embellishments | Tears in Heaven, Blackbird | box 2, D minor licks, two choruses | 2nd and 5th position, progressions by ear |
 | 8 | 9ths, 13ths, Texas shuffle | Nothing Else Matters, Stairway intro, Angie | boxes 3-5, major pentatonic, natural minor, a learned solo | learn a lick by ear |
-| 9 | shells, ii-V-I | Here Comes the Sun, Yesterday, Lágrima | Dorian, Mixolydian, bursts | 5th position sight-reading, ii-V-I by ear |
-| 10 | grade-tempo changes, unseen chart | Classical Gas, Spanish Romance B | unseen backing, Hotel California outro | exam-style tests |
+| 9 | shells, ii-V-I | Here Comes the Sun, Yesterday, More Than Words | Dorian, Mixolydian, bursts | 5th position sight-reading, ii-V-I by ear |
+| 10 | grade-tempo changes, unseen chart | Classical Gas, Little Wing, Never Going Back Again | unseen backing, Hotel California outro | exam-style tests |
 
 ## 3. Cross-links to the other paths
 
@@ -437,9 +437,12 @@ Round 1 (`../guitar.md`) found the drills strong and the path thin: nine steps, 
 
 ## 5. Open questions for the owner
 
-1. **Acoustic, electric, or both?** The path assumes both (fingerpicking and strumming on acoustic, Levels 4, 7 and 8 riffs and solos on electric). If only acoustic, R and L songs shift toward acoustic blues and fingerstyle (Pride and Joy acoustic, Wonderful Tonight) and bends get lighter strings or a step down.
-2. **Official scores.** Most of the best-fitting scores are official Hal Leonard "Easy Guitar with TAB" or "Guitar Tab" ones, which need MuseScore Pro+ or a purchase. Do you have Pro+? If not, I list community scores first where a good one exists (about half the shelves), and the rest fall back to Songsterr.
-3. **Classical side.** Do you want a nylon-string classical strand (rest strokes, Carcassi and Sor studies, Lágrima, Romance) as a full fourth strand, or keep it as one or two shelf picks per level as here?
+**Answered by the owner (2026-10-27):** MuseScore Pro, yes; Official scores export MusicXML, so Official picks stay as listed. Guitar: acoustic and electric, no classical strand. Ukulele: high-G tenor. Aerophone: alto and tenor scenes both, bite sends pitch bend. Pads: performing and beat making interleaved by difficulty; the MPC sends aftertouch. Piano: the full curriculum, known skills as review. Jazz: a Real Book PDF for chord charts.
+
+
+1. **Acoustic, electric, or both?** Answered: both. The path assumes both (fingerpicking and strumming on acoustic, Levels 4, 7 and 8 riffs and solos on electric). If only acoustic, R and L songs shift toward acoustic blues and fingerstyle (Pride and Joy acoustic, Wonderful Tonight) and bends get lighter strings or a step down.
+2. **Official scores.** Most of the best-fitting scores are official Hal Leonard "Easy Guitar with TAB" or "Guitar Tab" ones, which need MuseScore Pro+ or a purchase. Do you have Pro+? If not, I list community scores first where a good one exists (about half the shelves), and the rest fall back to Songsterr. **Answered: the owner has MuseScore Pro, and Official scores export MusicXML, so Official picks stay as listed.**
+3. **Classical side.** Answered: no classical strand. The classical picks were replaced with steel-string fingerstyle pieces (Freight Train, Fast Car, More Than Words, Little Wing, Never Going Back Again).
 4. **Your own songs.** Which ten songs do you most want to play? They can replace shelf entries at the matching level (I can place them by chords and technique).
 5. **Gates.** 30 changes a minute per pair for beginners, 60 by Level 10, "clean on two days" for everything: right, or lighter while you are busy?
 6. **Tunings.** The shelves keep standard tuning (Come As You Are and Sweet Child in standard-tuning versions). Open tunings (Skinny Love, DADGAD pieces) could be a Level 9 option. Interested?

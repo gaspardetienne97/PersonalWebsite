@@ -450,8 +450,11 @@ Goal: finish and perform. Adds programme planning, fix-the-spot work at full len
 
 ## 5. Open questions for the owner
 
-1. **Paid scores.** 35 of the 93 shelf entries point first or only to official Hal Leonard or ArrangeMe scores, which need MuseScore Pro or a purchase. Do you have Pro, or should the shelves prefer free community scores even when they are weaker?
-2. **Your ukulele.** High-G or low-G, and soprano, concert or tenor? L6 campanella needs high-G; Für Elise, Dream a Little Dream (Funamura) and the Blevins arrangements need low-G. A tenor with a spare low-G set covers both.
+**Answered by the owner (2026-10-27):** MuseScore Pro, yes; Official scores export MusicXML, so Official picks stay as listed. Guitar: acoustic and electric, no classical strand. Ukulele: high-G tenor. Aerophone: alto and tenor scenes both, bite sends pitch bend. Pads: performing and beat making interleaved by difficulty; the MPC sends aftertouch. Piano: the full curriculum, known skills as review. Jazz: a Real Book PDF for chord charts.
+
+
+1. **Paid scores.** Answered: the owner has MuseScore Pro and Official scores export MusicXML, so Official picks stay. 35 of the 93 shelf entries point first or only to official Hal Leonard or ArrangeMe scores, which need MuseScore Pro or a purchase. Do you have Pro, or should the shelves prefer free community scores even when they are weaker?
+2. **Your ukulele.** Answered: high-G, tenor. Campanella (L6) works as written; the low-G picks (Für Elise, Dream a Little Dream, the Blevins arrangements) need a spare low-G set or swap for a high-G alternative. High-G or low-G, and soprano, concert or tenor? L6 campanella needs high-G; Für Elise, Dream a Little Dream (Funamura) and the Blevins arrangements need low-G. A tenor with a spare low-G set covers both.
 3. **Jazz or classical first?** L7 (jazz chord melody) and L8 (classical right hand) can swap. Which matters more to you?
 4. **Singing.** Do you sing while you play? If yes, each strummed shelf song can add a "play and sing" self-check.
 5. **Passing a level.** Should a level pass when two shelf songs and the boss are done, even if one strand's steps lag (say, reading), or must every step pass?

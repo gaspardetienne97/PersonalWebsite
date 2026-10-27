@@ -488,7 +488,10 @@ Total: 84 weeks (about 20 months) at 30 minutes a day; 125 steps; 87 different s
 
 ## 5. Open questions for the owner
 
-1. Do you own a Real Book (Hal Leonard sixth edition) or iReal Pro? Several fallbacks below point there, and iReal charts could seed the tune player's changes instead of hand authoring.
+**Answered by the owner (2026-10-27):** MuseScore Pro, yes; Official scores export MusicXML, so Official picks stay as listed. Guitar: acoustic and electric, no classical strand. Ukulele: high-G tenor. Aerophone: alto and tenor scenes both, bite sends pitch bend. Pads: performing and beat making interleaved by difficulty; the MPC sends aftertouch. Piano: the full curriculum, known skills as review. Jazz: a Real Book PDF for chord charts.
+
+
+1. Do you own a Real Book (Hal Leonard sixth edition) or iReal Pro? Several fallbacks below point there, and iReal charts could seed the tune player's changes instead of hand authoring. **Answered: the owner owns a Real Book as a PDF. Chord charts get typed from it into the tune player (one tune at a time, as each level is reached); page numbers can be added once the edition is known.**
 2. MuseScore "official" Real Book scores (Hal Leonard, user 39593079) are paid or Pro-only and may not export MusicXML: are you fine with community lead sheets as the default and official ones only where no community score exists?
 3. Which direction first after level 3: modal and Herbie (level 4) or bebop (level 5)? The order here is modal first because it is easier to improvise over; swapping 4 and 5 works.
 4. Do you want solo piano (stride, ballads, arrangements) as a goal in itself, or mainly trio and band comping? That changes the weight of levels 7 and 10.

@@ -425,11 +425,14 @@ Extra studies on MuseScore: [Exercise: songo, cumbia, Latin, African (Musico_Mx,
 
 ## 5. Open questions for the owner
 
-1. **Performer or beat maker first?** If beat making matters more, live beat making and chops (levels 5, 7) move ahead of the breaks and odd meters.
-2. **Official scores.** Many shelf items are official Hal Leonard or ArrangeMe scores. Does his MuseScore plan include them, and can official scores be exported as MusicXML or MIDI for Song Studio? If not, community scores and Songsterr are the defaults.
+**Answered by the owner (2026-10-27):** MuseScore Pro, yes; Official scores export MusicXML, so Official picks stay as listed. Guitar: acoustic and electric, no classical strand. Ukulele: high-G tenor. Aerophone: alto and tenor scenes both, bite sends pitch bend. Pads: performing and beat making interleaved by difficulty; the MPC sends aftertouch. Piano: the full curriculum, known skills as review. Jazz: a Real Book PDF for chord charts.
+
+
+1. **Performer or beat maker first?** Answered: both, interleaved by difficulty. Beat-making steps (loops at level 3, chops at 5, live beat making at 7) sit beside the performance steps at each level's difficulty, as written. If beat making matters more, live beat making and chops (levels 5, 7) move ahead of the breaks and odd meters.
+2. **Official scores.** Answered: the owner has MuseScore Pro and Official scores export MusicXML. Many shelf items are official Hal Leonard or ArrangeMe scores. Does his MuseScore plan include them, and can official scores be exported as MusicXML or MIDI for Song Studio? If not, community scores and Songsterr are the defaults.
 3. **Songsterr as the second source.** Songsterr has most of the songs MuseScore lacks (Led Zeppelin, hip hop). Is a Songsterr account acceptable, given its export is limited?
 4. **Genres.** Which of these does he actually want to play: trap and modern hip hop, Latin and afrobeat, drum and bass, shuffles, odd meters? Any can shrink to 4 items if he does not care.
 5. **His own loops.** Can he keep loops sampled from records he owns in the private Library for levels 3, 5, 7 and 10?
 6. **Layout.** Does the app's pad layout match the program he uses on the MPC? MuseScore imports map by GM note, so a different MPC program needs a remap.
-7. **Aftertouch.** Does his MPC One+ send aftertouch in Controller Mode, so Note Repeat can follow pressure?
+7. **Aftertouch.** Answered: yes, so the app's Note Repeat can follow pressure. Does his MPC One+ send aftertouch in Controller Mode, so Note Repeat can follow pressure?
 8. **Breakbeat Bible.** Buy one copy (about $25) to check the breaks that MuseScore lacks (Think, Big Beat, Synthetic Substitution, Skull Snaps)?

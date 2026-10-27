@@ -466,10 +466,13 @@ Drill names refer to the app's routes: `aerophone?mode=...` (ten modes; the skil
 
 ## 5. Open questions for the owner
 
-1. Which scene and transpose do you use now: alto Eb with transpose on, or C? The path assumes alto sound with Transpose C inside the app until item 1 ships.
+**Answered by the owner (2026-10-27):** MuseScore Pro, yes; Official scores export MusicXML, so Official picks stay as listed. Guitar: acoustic and electric, no classical strand. Ukulele: high-G tenor. Aerophone: alto and tenor scenes both, bite sends pitch bend. Pads: performing and beat making interleaved by difficulty; the MPC sends aftertouch. Piano: the full curriculum, known skills as review. Jazz: a Real Book PDF for chord charts.
+
+
+1. Which scene and transpose do you use now: alto Eb with transpose on, or C? The path assumes alto sound with Transpose C inside the app until item 1 ships. **Answered: both, alto and tenor scenes are configurable on the AE-20, so a shelf song can use whichever part MuseScore has; the transposition setting must offer both.**
 2. Official MuseScore scores (marked O) cost money or need Pro+. Do you have Pro+, or should every shelf pick a free community score first, even when the arrangement is less exact?
 3. Some shelves use tenor parts (Who Can It Be Now, Dancing in the Dark, Bags' Groove, Yakety Sax fallback). Are you happy to switch to a tenor scene for those, or should they be replaced with alto-only picks?
-4. Is the bite set to send pitch bend? Level 8's vibrato steps assume it.
+4. Is the bite set to send pitch bend? Level 8's vibrato steps assume it. **Answered: yes, the bite sends pitch bend.**
 5. Pop and jazz first, or classical first? Levels 7 (pop) and 8 (Teal) can swap, and the Ferling can move earlier for a classical lean.
 6. Do you want a real exam (ABRSM or Trinity Grade 5 saxophone) as the finish line, or is the app's mock grade enough?
 7. Should Levels 1 and 2 accept Practice runs (fingering shown), as a beginner's warm-up, or only Check?

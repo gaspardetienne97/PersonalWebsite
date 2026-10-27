@@ -8,7 +8,7 @@ Round 2 of `context/research/curriculum-2026-10/piano.md`. Scope: pop, rock, bal
 
 **External benchmark:** ABRSM piano Grade 7 for pieces, scales and sight-reading (two grades below exam level is the norm for sight-reading, as Trinity sets it); Pianote Method level 9 and Piano With Jonny's pop accompaniment patterns for pop; RCM Level 8 as a cross-check for scale speeds.
 
-**Starting point:** intermediate, reads both clefs. Round 1 guessed ABRSM Grade 3 to 4. The placement level below decides where to start, so levels 1 to 3 may be skipped in a week.
+**Starting point:** intermediate, reads both clefs. Round 1 guessed ABRSM Grade 3 to 4. The owner chose the full curriculum with nothing skipped: the check-in level below turns what is already solid into quick reviews instead.
 
 **How long (honest):** adult learners at 30 minutes a day typically need 8 to 12 months per ABRSM grade above Grade 5. From Grade 3 to Grade 7 that is about 30 to 40 months at 30 minutes a day, or 18 to 24 months at 60 minutes. Pop goals arrive sooner: chord-chart playing with five patterns by level 5 (about 9 to 12 months at 30 minutes), gospel and boogie by level 6. Level by level at 30 minutes a day: L1 to L3 about 2 months each, L4 to L6 about 3 months each, L7 to L10 about 4 months each. The path is built so that 10-minute days still move one thing (one scale key, one pattern, one bar loop).
 
@@ -30,7 +30,7 @@ Overview:
 
 | Level | Name | ABRSM equivalent | Scale speed (ABRSM) | Pop skill added | Reading |
 |---|---|---|---|---|---|
-| 0 | Placement | 2 to 4 | check at G3 and G4 | check a chord chart | check Level 3 |
+| 0 | Check-in | 2 to 4 | check at G3 and G4 | check a chord chart | check Level 3 |
 | 1 | Chords from a chart | 3 | G3 in 13 keys | block chords, LH root-fifth-octave | Level 3 both clefs |
 | 2 | Broken chords, ballads, the pedal | 3 to 4 | G4 in 12 keys | ballad LH arpeggio, RH broken triads, legato pedal | grand staff G3 |
 | 3 | Syncopation and right-hand patterns | 4 | G4 in all 24 keys | 3+3+2, pushes, Alberti, rock octaves | grand staff G4, 6/8 |
@@ -44,11 +44,11 @@ Overview:
 
 Totals: 11 levels (placement plus 10), 120 steps (7 placement checks plus 113 level steps), 116 shelf choices plus 6 lead sheets for arranging. Every shelf choice has a MuseScore score; 97 primary links are free community uploads and 19 are official (paid) scores where no usable community upload was listed; classical pieces also carry an IMSLP fallback (36 links, page existence checked).
 
-### Level 0. Placement (one to two weeks)
+### Level 0. Check-in (one to two weeks)
 
-Goal: find the starting level and mark what is already solid, so no week is spent proving known skills.
+Goal: find what is already solid. Nothing is skipped (the owner asked for the full curriculum): a passed check turns its steps into quick reviews, one cold Check run each on two days, so known skills cost minutes, not weeks, and still get spaced review.
 
-| # | Check | Drill and setup | Pass means | If passed, skip |
+| # | Check | Drill and setup | Pass means | If passed, these become reviews |
 |---|---|---|---|---|
 | 0.1 | Scales at Grade 3 speed | Scales: major C, G, D, F and harmonic minor A, D, E; hands together, two octaves, up-down, Grade 3 (crotchet 80, two notes a click) | 6 of 7 keys clean within two tries | L1 steps 1.1, 1.2 |
 | 0.2 | Scales at Grade 4 speed | Same, Grade 4 (crotchet 100), add Bb, Eb, B minor, C minor | 6 of 8 keys clean | L2 steps 2.1, 2.2 |
@@ -56,9 +56,9 @@ Goal: find the starting level and mark what is already solid, so no week is spen
 | 0.4 | Reading | Reading, sight-reading Level 3, treble then bass, SASR climb | 80% at Level 3 in both clefs | L1 step 1.9 |
 | 0.5 | Cadences | Voicings, variant cadence, 4 keys | 20 chords at 85% or better | L1 step 1.5 |
 | 0.6 | Chord chart | Jam, pop-axis (I-V-vi-IV) in C at 80: RH triads in closest position, LH root (self-check until drill 1 exists) | Two choruses without a stop or wrong chord | L1 steps 1.6, 1.7 |
-| 0.7 | Piece test | Song Studio, performance mode, after one week of learning each: Grade 2 Minuet in G minor (Petzold), Grade 3 Clementi Op. 36 No. 1 first movement, Grade 4 Burgmüller Ballade Op. 100 No. 15 (links in the shelves below) | 90% at 100% tempo | Start at L1 if only the G2 piece passes, L2 if the G3 piece passes, L3 if the G4 piece passes |
+| 0.7 | Piece test | Song Studio, performance mode, after one week of learning each: Grade 2 Minuet in G minor (Petzold), Grade 3 Clementi Op. 36 No. 1 first movement, Grade 4 Burgmüller Ballade Op. 100 No. 15 (links in the shelves below) | 90% at 100% tempo | The passed grade's piece steps become reviews; the path still runs from L1 |
 
-Rule: start at the lowest level where any check fails; passed checks mark their steps done.
+Rule: every level stays in the path. A step marked review needs one clean Check run, cold, on two different days; a review that fails turns back into a normal step.
 
 ### Level 1. Chords from a chart (ABRSM Grade 3)
 
@@ -468,7 +468,10 @@ Goal: a 20-minute recital of five pieces played in order without stopping; an ow
 
 ## 5. Open questions for the owner
 
-1. **Placement:** which of the three placement pieces (Grade 2, 3, 4) can you play today, and roughly how fast are your scales? That decides whether you start at L1, L2 or L3.
+**Answered by the owner (2026-10-27):** MuseScore Pro, yes; Official scores export MusicXML, so Official picks stay as listed. Guitar: acoustic and electric, no classical strand. Ukulele: high-G tenor. Aerophone: alto and tenor scenes both, bite sends pitch bend. Pads: performing and beat making interleaved by difficulty; the MPC sends aftertouch. Piano: the full curriculum, known skills as review. Jazz: a Real Book PDF for chord charts.
+
+
+1. **Placement:** answered. Full curriculum, nothing skipped; what is already known runs as review (the check-in level).
 2. **Classical weight:** the path asks for at least one classical piece per level. Would you rather make classical optional after L5 (pop-only levels), or keep it as the backbone for technique and reading?
 3. **Exams:** do you want the option to sit a real ABRSM or Trinity grade (or a Trinity Rock and Pop grade) at some level? That would fix the repertoire for that level.
 4. **Official versus community scores:** official Hal Leonard and Faber scores are cleaner but need MuseScore Pro or a purchase. Do you have Pro, and do the official ones export MusicXML for Song Studio on your account?

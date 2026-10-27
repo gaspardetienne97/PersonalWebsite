@@ -1158,6 +1158,9 @@ Goal: read 5/4, 7/4, 5/8, 7/8 and 9/8 with their groupings, and switch meters. A
 
 ## 10. Open questions for the owner
 
+**Answered by the owner (2026-10-27):** MuseScore Pro, yes; Official scores export MusicXML, so Official picks stay as listed. Guitar: acoustic and electric, no classical strand. Ukulele: high-G tenor. Aerophone: alto and tenor scenes both, bite sends pitch bend. Pads: performing and beat making interleaved by difficulty; the MPC sends aftertouch. Piano: the full curriculum, known skills as review. Jazz: a Real Book PDF for chord charts.
+
+
 1. **Aerophone transposition**: this plan assumes Eb alto (written a major sixth above concert) so downloaded alto parts and Eb lead sheets read directly. Tenor (Bb) instead? Or concert pitch only?
 2. **Guitar standard notation**: this plan includes it to fifth position (the round-1 question). Keep it, or stop after tab and chord charts (levels 1, 2 and 7) and save about four months?
 3. **Official scores**: about a third of the best-fitting MuseScore arrangements are official (paid) ones. Does your MuseScore account have Pro? If not, which shelf rows should switch to the community alternative?
