@@ -76,8 +76,8 @@
           ? [events.slice(-1)] // the chord itself, not the notes spelled out before it
           : [events.slice(prompt.keyEvents ?? 0)],
   );
-  // The first chord is always the key's I (or i), root in the bass.
-  const tonicPc = $derived(pc(events[0].midi[0]));
+  // The prompt's key; without one, the first chord is the key's I (or i), root in the bass.
+  const tonicPc = $derived((prompt as { keyPc?: number }).keyPc ?? pc(events[0].midi[0]));
   const minorKey = $derived(parseFunction(prompt.answer.split(" ")[0]).minor);
   function describe(g: EarPrompt["playback"]): string {
     if (prompt.caption) return prompt.caption;

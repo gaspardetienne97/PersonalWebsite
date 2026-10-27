@@ -28,6 +28,10 @@
     functionToken,
     parseFunction,
     functionPlayback,
+    keyCadence,
+    chordResolution,
+    promptKey,
+    resolutionToTonic,
     SCALE_DEGREE_LEVELS,
     SCALE_DEGREES,
     phrasesFromScore,
@@ -66,7 +70,7 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { audio, db, getSetting, mic, putSetting } from "$lib/music/runtime";
+  import { audio, db, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
   import DegreeWheel from "./DegreeWheel.svelte";
   import EarVisual from "./EarVisual.svelte";
   import { degreeColor } from "./degrees";
@@ -512,8 +516,11 @@
       const minor = parseFunction(p.answer).minor;
       const key = `Key of ${noteName(48 + (p.keyPc ?? 0), "flat", false)} ${minor ? "minor" : "major"}`;
       const one = minor ? "i" : "I";
+      const cadence = minor ? "i, iv, V, i" : "I, IV, V, I";
       return p.drill === "chord-function"
-        ? `${key}: ${minor ? "i, iv, V, i" : "I, IV, V, I"}, then one chord`
+        ? p.keyEvents
+          ? `${key}: ${cadence}, then one chord`
+          : `${key}, set once with ${cadence}: one chord a question`
         : `${key}, ${p.answer.split(" ").length} chords from ${one}`;
     }
     if (p.drill === "inversion") return "One chord";
@@ -561,8 +568,10 @@
             : "Which note of the chord is in the bass?"
         : p.drill === "chord-function"
           ? isPlayback
-            ? "Play the last chord back, in any octave."
-            : "Which chord of the key was the last one?"
+            ? `Play the ${p.keyEvents ? "last " : ""}chord back, in any octave.`
+            : p.keyEvents
+              ? "Which chord of the key was the last one?"
+              : "Which chord of the key was that?"
         : p.drill === "bass-line"
           ? isPlayback
             ? "Play the bass notes after the 1, one at a time."
@@ -612,7 +621,8 @@
         onNote: (i) => {
           if (ended) return;
           const t = notes[i].time;
-          sounding = p.playback.findIndex((ev) => Math.abs(ev.time - t) < 1e-6);
+          // The key cadence and the resolution are not the prompt's own events: nothing lights.
+          sounding = p === current ? p.playback.findIndex((ev) => Math.abs(ev.time - t) < 1e-6) : -1;
           if (!opts.light) return;
           lit = notes.filter((n) => n.time === t).map((n) => n.midi);
           if (p.drill === "scale-degree") litDegree = i === 0 ? "1" : p.answer;
@@ -649,7 +659,10 @@
     demo = { answer: p.answer, kind: p.drill };
     demoPlaying = true;
     status = `Listen: ${tokenLabel(p.drill, p.answer, labels)}, lit as it sounds.`;
-    playPrompt(p, { light: true, onend: () => (demoPlaying = false) });
+    const go = () => playPrompt(p, { light: true, onend: () => (demoPlaying = false) });
+    const k = promptKey(p);
+    if (k) playPrompt({ ...p, drill: "cadence", playback: keyCadence(k.keyPc, k.minor) }, { light: true, onend: go });
+    else go();
   }
   function stopDemo() {
     playToken++;
@@ -785,7 +798,46 @@
     promptAt = 0;
     const p = prompts[i];
     status = `Question ${i + 1} of ${prompts.length}. Listen.`;
-    replay(p, true);
+    // The key is set once per block: before the run's first prompt in a key, or when a mix changes key.
+    if (keyId(p) && keyId(p) !== keyId(prompts[i - 1])) hearKey(p, () => replay(p, true));
+    else replay(p, true);
+  }
+
+  const keyId = (p?: Prompt) => {
+    const k = p && promptKey(p);
+    return k ? `${k.keyPc}${k.minor ? "m" : ""}` : "";
+  };
+  const keyName = (k: { keyPc: number; minor: boolean }) => `${noteName(48 + k.keyPc, "flat", false)} ${k.minor ? "minor" : "major"}`;
+
+  /** I IV V I in the prompt's key, then `then` (the prompt again, by default). */
+  function hearKey(p = current, then = () => replay(p)) {
+    const k = p && promptKey(p);
+    if (!k) return;
+    clearTimeout(advanceTimer);
+    openAt = Infinity;
+    if (step === "answer") step = "playing";
+    status = `Key of ${keyName(k)}, then the question.`;
+    playPrompt({ ...p, id: `${p.id}-key`, drill: "cadence", playback: keyCadence(k.keyPc, k.minor) }, {
+      light: answer === "listen-along",
+      onend: () => {
+        if (prompts[qi] === p && phase === "running") then();
+      },
+    });
+  }
+
+  /** After an answer: the degree steps home to the tonic, or the chord goes to I. Silent when muted. */
+  function resolve(p: Prompt, then?: () => void) {
+    const k = promptKey(p);
+    const home =
+      !k || settings.value.muted
+        ? null
+        : p.drill === "scale-degree"
+          ? resolutionToTonic(tonicOf(p), p.expectedMidi![0] - tonicOf(p)).map((m, i, all) => ({ midi: [m], time: i * 0.35, duration: i === all.length - 1 ? 0.8 : 0.3 }))
+          : p.drill === "chord-function"
+            ? chordResolution(k.keyPc, p.answer)
+            : null;
+    if (!home) return then?.();
+    playPrompt({ ...p, id: `${p.id}-home`, playback: home }, { onend: then });
   }
 
   function replay(p = current, first = false) {
@@ -955,6 +1007,7 @@
       if (i + 1 < prompts.length) prompts = prompts.map((x, k) => (k === i + 1 ? centsPrompt(stair.at) : x));
     }
     if (mode === "practice") {
+      if (!mistake && prompts[qi] === p) resolve(p);
       status = g.correct
         ? `Right: ${tokenLabel(p.drill, p.answer, labels)}.`
         : `That was ${tokenLabel(p.drill, p.answer, labels)}. You answered ${tokenLabel(p.drill, answered, labels)}.`;
@@ -985,7 +1038,7 @@
       assistance: "self-assessed",
       instrument: null,
     });
-    next();
+    resolve(p, next);
   }
 
   function showAnswerNow() {
@@ -1406,6 +1459,9 @@
           </div>
           <div class="flex flex-wrap gap-2">
             <button type="button" class={btnStage} onclick={() => replay()} disabled={step === "feedback" && mode === "check"}>Hear it again</button>
+            {#if promptKey(p)}
+              <button type="button" class={btnStage} onclick={() => hearKey()} disabled={step === "feedback" && mode === "check"}>Hear the key</button>
+            {/if}
             {#if mode === "practice" && answer !== "listen" && answer !== "listen-along" && step !== "feedback" && !hinted}
               <button type="button" class={btnStage} onclick={showAnswerNow}>Show answer</button>
             {/if}

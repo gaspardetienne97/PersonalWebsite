@@ -37,7 +37,7 @@ import {
 } from "@repo/music-core/content/ear";
 import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
 import { INTERVALS } from "@repo/music-core/theory/intervals";
-import { pick, type Rand } from "@repo/music-core/content/random";
+import { pick, randInt, type Rand } from "@repo/music-core/content/random";
 import type { ScoringEvent, SkillMastery } from "@repo/music-core";
 import {
   ingestAnalytics,
@@ -108,6 +108,8 @@ export interface Focus {
   scaleDirection?: ScaleDirection;
   /** Bass lines: which level (roots on 1 4 5, roots on 1 2 4 5 6, lines through inversions). */
   bassLevel?: string;
+  /** Drills in a key (degrees, chords in a key, progressions, bass lines): the run's tonic pitch class. */
+  keyPc?: number;
 }
 
 /** How much more often a target is asked: 1 when always right, up to 4 when always wrong; 2 when untried. */
@@ -262,6 +264,7 @@ export function promptFor(
       return chordFunctionPrompt(rand, {
         difficulty,
         token: t.token,
+        keyPc: focus?.keyPc,
         choices: focus?.tokens && picked.length >= 2 ? picked : undefined,
       });
     }
@@ -279,7 +282,12 @@ export function promptFor(
     case "pitch-compare":
       return finePitchPrompt(rand, { difficulty, cents: CENT_STEPS[0] });
     case "bass-line":
-      return bassLinePrompt(rand, { difficulty, level: focus?.bassLevel, token: t.token });
+      return bassLinePrompt(rand, {
+        difficulty,
+        level: focus?.bassLevel,
+        token: t.token,
+        keyPc: focus?.keyPc,
+      });
     case "inversion": {
       // Answers of the same size only: a triad's buttons are triad positions.
       const seventh = EAR_INVERSIONS.find((x) => x.token === t.token)?.seventh;
@@ -294,10 +302,11 @@ export function promptFor(
       return progressionPrompt(rand, {
         difficulty,
         token: t.token,
+        keyPc: focus?.keyPc,
         choices: focusFunctionTokens(focus),
       });
     case "scale-degree":
-      return scaleDegreePrompt(rand, { difficulty, level, degree: t.token });
+      return scaleDegreePrompt(rand, { difficulty, level, degree: t.token, keyPc: focus?.keyPc });
     case "melody-dictation":
       return melodyDictationPrompt(rand, { difficulty, level, degree: t.token });
   }
@@ -352,6 +361,8 @@ export interface SessionInput {
  */
 export function buildSession(inp: SessionInput): EarPrompt[] {
   const length = inp.length ?? EAR_SESSION_LENGTH;
+  // One key for the whole run: the drills in a key keep it, so it is set once.
+  const focus: Focus = { ...inp.focus, keyPc: inp.focus?.keyPc ?? randInt(inp.rand, 0, 11) };
   // Shuffled so equal priorities (a fresh start) don't always run in table order.
   const targets = shuffle(
     inp.kinds.flatMap((k) => targetsFor(k, inp.level, inp.focus)),
@@ -397,10 +408,10 @@ export function buildSession(inp: SessionInput): EarPrompt[] {
       return pool[pool.length - 1];
     };
     for (const it of shuffle(items, inp.rand).slice(0, length))
-      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, inp.focus));
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focus));
     while (out.length < length) {
       const it = pickWeighted(out.at(-1)?.answer);
-      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, inp.focus));
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focus));
     }
     return out;
   }
@@ -415,7 +426,7 @@ export function buildSession(inp: SessionInput): EarPrompt[] {
         ? prev.drill === it.target.kind
         : prev.answer === it.target.token);
     if (!repeat || i > items.length * 3)
-      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, inp.focus));
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focus));
     i++;
   }
   return out;
@@ -441,13 +452,14 @@ export function targetForSkill(
 export function retryPrompts(events: ScoringEvent[], kinds: EarKind[], rand: Rand): EarPrompt[] {
   const { stats } = ingestAnalytics({}, [], events);
   const items = retrySchedule(skillSummaries(stats));
+  const focus = { keyPc: randInt(rand, 0, 11) };
   const seen = new Set<string>();
   const out: EarPrompt[] = [];
   for (const it of items) {
     const t = targetForSkill(it.skillId, kinds, "full-current");
     if (!t || seen.has(`${t.kind}:${t.token}`)) continue;
     seen.add(`${t.kind}:${t.token}`);
-    out.push(promptFor(t, it.difficulty, "full-current", rand));
+    out.push(promptFor(t, it.difficulty, "full-current", rand, focus));
   }
   return out;
 }

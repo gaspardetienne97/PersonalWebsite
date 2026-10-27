@@ -33,6 +33,10 @@ import {
   finePitchPrompt,
   staircase,
   errorDetectPrompt,
+  keyCadence,
+  chordResolution,
+  promptKey,
+  resolutionToTonic,
   type DegreeLabel,
 } from "./ear";
 import { pc } from "../theory/notes";
@@ -402,6 +406,62 @@ describe("chords in a key", () => {
       expect(p.skillIds[0]).toBe("ear.progressions");
     }
     expect(progressionPrompt(rng(1), { difficulty: 0.2 }).answer.split(" ")).toHaveLength(3);
+  });
+});
+
+describe("a key held for the run", () => {
+  it("keeps the key it is given, and the chord drill drops its own I IV V I", () => {
+    for (const r of seeds(10)) {
+      const c = chordFunctionPrompt(r, { difficulty: 0.3, token: "vi", keyPc: 7 });
+      expect(c.keyPc).toBe(7);
+      expect(c.keyEvents).toBe(0);
+      expect(c.playback).toEqual([{ midi: functionChord(7, "vi"), time: 0, duration: 1.1 }]);
+      expect(progressionPrompt(r, { difficulty: 0.8, keyPc: 7 }).keyPc).toBe(7);
+      expect(bassLinePrompt(r, { difficulty: 0.5, keyPc: 7 }).keyPc).toBe(7);
+      const d = scaleDegreePrompt(r, { difficulty: 0.2, level: "major-diatonic", keyPc: 7 });
+      expect(d.playback[0].midi).toEqual([55]);
+      expect(d.keyPc).toBe(7);
+    }
+  });
+
+  it("sets the key with I IV V I, minor for minor chords and the minor degree set", () => {
+    expect(keyCadence(2).map((e) => e.midi)).toEqual(
+      ["I", "IV", "V", "I"].map((t) => functionChord(2, t)),
+    );
+    expect(keyCadence(2, true)[0].midi).toEqual(functionChord(2, "m:I"));
+    const minorDegrees = scaleDegreePrompt(rng(1), {
+      difficulty: 0.2,
+      level: "minor-diatonic",
+      keyPc: 9,
+    });
+    expect(promptKey(minorDegrees)).toEqual({ keyPc: 9, minor: true });
+    const majorDegrees = scaleDegreePrompt(rng(1), { difficulty: 0.2, level: "anchor", keyPc: 9 });
+    expect(promptKey(majorDegrees)).toEqual({ keyPc: 9, minor: false });
+    const minorChord = chordFunctionPrompt(rng(1), { difficulty: 0.5, minor: true, keyPc: 4 });
+    expect(promptKey(minorChord)).toEqual({ keyPc: 4, minor: true });
+    expect(promptKey(intervalPrompt(rng(1), { difficulty: 0.2 }))).toBeUndefined();
+  });
+
+  it("resolves a degree stepwise to the nearest tonic: 5 and up go up, below 5 down", () => {
+    const steps = (s: number) => resolutionToTonic(60, s).map((m) => m - 60);
+    expect(steps(0)).toEqual([0]);
+    expect(steps(2)).toEqual([2, 0]);
+    expect(steps(5)).toEqual([5, 4, 2, 0]);
+    expect(steps(6)).toEqual([6, 5, 4, 2, 0]);
+    expect(steps(7)).toEqual([7, 9, 11, 12]);
+    expect(steps(9)).toEqual([9, 11, 12]);
+    expect(steps(11)).toEqual([11, 12]);
+    expect(steps(3)).toEqual([3, 2, 0]);
+    expect(steps(8)).toEqual([8, 10, 12]);
+    expect(steps(10)).toEqual([10, 12]);
+  });
+
+  it("resolves a chord to the key's tonic triad", () => {
+    expect(chordResolution(0, "V7").map((e) => e.midi)).toEqual([
+      functionChord(0, "V7"),
+      functionChord(0, "I"),
+    ]);
+    expect(chordResolution(5, "m:IV")[1].midi).toEqual(functionChord(5, "m:I"));
   });
 });
 

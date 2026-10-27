@@ -994,7 +994,7 @@ const bassDegree = (token: string, position: number) =>
  */
 export function bassLinePrompt(
   rand: Rand,
-  opts: { difficulty: number; level?: string; token?: string },
+  opts: { difficulty: number; level?: string; token?: string; keyPc?: number },
 ): EarPrompt & { keyPc: number } {
   const level = BASS_LEVELS.find((l) => l.id === opts.level) ?? BASS_LEVELS[0];
   let chords: [string, number][];
@@ -1010,7 +1010,7 @@ export function bassLinePrompt(
     });
     chords = p.answer.split(" ").map((t) => [t, 0]);
   }
-  const keyPc = randInt(rand, 0, 11);
+  const keyPc = opts.keyPc ?? randInt(rand, 0, 11);
   const playback = chords.map(([t, pos], i) => {
     const [, ...upper] = functionChord(keyPc, t);
     const bass = into(
@@ -1152,22 +1152,51 @@ export function functionPlayback(keyPc: number, tokens: string[], start = 0): Pl
   return tokens.map((t, i) => note(functionChord(keyPc, t), start + i * 0.9, 0.8));
 }
 
+/** I, IV, V, I (i, iv, V, i in minor): sets the key. */
+export const keyCadence = (keyPc: number, minor = false) =>
+  functionPlayback(
+    keyPc,
+    ["I", "IV", "V", "I"].map((t) => functionToken(t, { minor })),
+  );
+
+/** After the answer: the chord, then the key's tonic triad, so the ear hears where it goes. */
+export const chordResolution = (keyPc: number, token: string) =>
+  functionPlayback(keyPc, [token, functionToken("I", { minor: parseFunction(token).minor })]);
+
+/**
+ * The key a prompt is heard in, or undefined when it has none. Minor for minor
+ * chords, or for a degree set with b3 and no 3 (the minor diatonic level).
+ */
+export function promptKey(p: EarPrompt & { keyPc?: number }) {
+  if (p.keyPc === undefined) return undefined;
+  const minor =
+    p.drill === "scale-degree"
+      ? p.choices.includes("b3") && !p.choices.includes("3")
+      : parseFunction(p.answer.split(" ")[0]).minor;
+  return { keyPc: p.keyPc, minor };
+}
+
 type FunctionOpts = FunctionKind & {
   difficulty: number;
   /** A full token ("m:IV7"): its key and size win over `minor` and `seventh`. */
   token?: string;
   choices?: string[];
+  /** The run's key (tonic pitch class); random when missing. */
+  keyPc?: number;
 };
 const kindOf = (opts: FunctionOpts): FunctionKind =>
   opts.token && parseFunction(opts.token).f ? parseFunction(opts.token) : opts;
 
-/** I, IV, V, I (i, iv, V, i in minor) to set the key, a breath, then the chord to name. */
+/**
+ * I, IV, V, I (i, iv, V, i in minor) to set the key, a breath, then the chord
+ * to name. Given `keyPc` the run sets the key once (keyCadence): the chord alone.
+ */
 export function chordFunctionPrompt(rand: Rand, opts: FunctionOpts): EarPrompt & { keyPc: number } {
   const k = kindOf(opts);
   const token =
     opts.token && parseFunction(opts.token).f ? opts.token : pick(rand, functionTokens(k));
-  const keyPc = randInt(rand, 0, 11);
-  const setting = ["I", "IV", "V", "I"].map((t) => functionToken(t, { minor: k.minor }));
+  const keyPc = opts.keyPc ?? randInt(rand, 0, 11);
+  const setting = opts.keyPc === undefined ? keyCadence(keyPc, k.minor) : [];
   return {
     id: `chord-function-${token}-${keyPc}`,
     drill: "chord-function",
@@ -1176,8 +1205,8 @@ export function chordFunctionPrompt(rand: Rand, opts: FunctionOpts): EarPrompt &
       ...functionSkills([token]),
     ],
     playback: [
-      ...functionPlayback(keyPc, setting),
-      note(functionChord(keyPc, token), setting.length * 0.9 + 0.6, 1.1),
+      ...setting,
+      note(functionChord(keyPc, token), setting.length ? setting.length * 0.9 + 0.6 : 0, 1.1),
     ],
     keyEvents: setting.length,
     expectedMidi: functionChord(keyPc, token),
@@ -1206,7 +1235,7 @@ export function progressionPrompt(rand: Rand, opts: FunctionOpts): EarPrompt & {
     const fresh = pool.filter((t) => t !== chords.at(-1));
     chords.push(pick(rand, fresh.length ? fresh : pool));
   }
-  const keyPc = randInt(rand, 0, 11);
+  const keyPc = opts.keyPc ?? randInt(rand, 0, 11);
   return {
     id: `progression-${chords.join("_")}-${keyPc}`,
     drill: "progression",
@@ -1219,16 +1248,16 @@ export function progressionPrompt(rand: Rand, opts: FunctionOpts): EarPrompt & {
   };
 }
 
-/** Tonic for 0.55 s, then the target 0.7 s later for 0.65 s. */
+/** Tonic for 0.55 s, then the target 0.7 s later for 0.65 s. `keyPc` fixes the tonic (C3 to B3). */
 export function scaleDegreePrompt(
   rand: Rand,
-  opts: { difficulty: number; level: string; degree?: string },
-): EarPrompt & { context: ScaleContext } {
+  opts: { difficulty: number; level: string; degree?: string; keyPc?: number },
+): EarPrompt & { context: ScaleContext; keyPc: number } {
   const degrees = levelDegrees(opts.level);
   const degree = degreeOf(
     opts.degree && degrees.includes(opts.degree as DegreeLabel) ? opts.degree : pick(rand, degrees),
   );
-  const tonic = earRoot(rand);
+  const tonic = opts.keyPc === undefined ? earRoot(rand) : 48 + pc(opts.keyPc);
   const target = tonic + degree.semitones;
   return {
     id: `scale-degree-${degree.label}-${tonic}`,
@@ -1240,7 +1269,21 @@ export function scaleDegreePrompt(
     difficulty: opts.difficulty,
     expectedMidi: [target],
     context: scaleContext(opts.difficulty, degree.semitones),
+    keyPc: pc(tonic),
   };
+}
+
+/**
+ * The degree `semitones` above `tonic`, then stepwise through the scale to the
+ * nearest tonic, as MIDI: 5 and above go up (5 6 7 8), below 5 down (4 3 2 1).
+ * b3, b6 and b7 step through the natural minor, the rest through the major.
+ */
+export function resolutionToTonic(tonic: number, semitones: number): number[] {
+  const s = pc(semitones);
+  const scale = [3, 8, 10].includes(s) ? MINOR : MAJOR;
+  const path =
+    s < 7 ? scale.filter((x) => x < s).reverse() : [...scale.filter((x) => x > s && x < 12), 12];
+  return [s, ...path].map((x) => tonic + x);
 }
 
 const PHRASE_SPACING = 0.55;
