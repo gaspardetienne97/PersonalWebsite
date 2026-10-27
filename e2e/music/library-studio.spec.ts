@@ -191,6 +191,54 @@ test.describe("library and song studio", () => {
     await shoot(page, "studio-performance-results");
   });
 
+  test("song studio: a drum part on MPC pads, graded by drum", async ({ page }) => {
+    // Bass plus a channel-10 kit (e2e/music/fixtures/back-beat.mid, written with @tonejs/midi):
+    // kick and closed hat, snare, open hat, kick.
+    await seedSettings(page, { activeInstrument: "mpc" });
+    await page.goto("/music/library?tab=import");
+    await page.getByLabel("Score file").setInputFiles("e2e/music/fixtures/back-beat.mid");
+    await expect(page.getByRole("heading", { name: "Preview" })).toBeVisible();
+    await page.getByRole("button", { name: "Save to songs" }).click();
+    await expect(page.getByText("Back beat is in your songs.")).toBeVisible();
+    await page.goto("/music/library");
+    await page
+      .getByRole("link", { name: /Back beat/ })
+      .first()
+      .click();
+    await expect(page.getByRole("heading", { level: 1, name: "Back beat" })).toBeVisible();
+    // Off the MPC the bass is picked, and the drums are one tap away.
+    const song = page.url();
+    await seedSettings(page, { activeInstrument: "guitar" });
+    await page.goto(song);
+    await expect(page.getByRole("heading", { level: 1, name: "Back beat" })).toBeVisible();
+    await expect(page.locator("[data-drum-grid]")).toHaveCount(0);
+    await page.getByRole("button", { name: "Play the drums" }).click();
+    await expect(page.locator("[data-drum-grid]")).toBeVisible();
+    await page.getByRole("button", { name: "Play the other parts" }).click();
+    await expect(page.locator("[data-drum-grid]")).toHaveCount(0);
+    await seedSettings(page, { activeInstrument: "mpc" });
+    await page.goto(song);
+    await expect(page.getByRole("heading", { level: 1, name: "Back beat" })).toBeVisible();
+    // On the MPC the drums are picked, drawn as a grid with no keyboard.
+    const grid = page.getByRole("region", { name: /^Drum part: Kick, Snare, Hats, Open Hat/ });
+    await expect(grid).toBeVisible();
+    await expect(page.getByRole("group", { name: "Piano keyboard" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Start in wait mode" }).click();
+    await expect(page.getByRole("status")).toContainText("Wait mode");
+    // A snare where kick and hat are due is wrong; the open hat pad counts for the
+    // closed hat, the pedal hat for the open hat.
+    await play(page, [
+      { at: 0, notes: [38] },
+      { at: 250, notes: [36, 46] },
+      { at: 500, notes: [38] },
+      { at: 750, notes: [44] },
+      { at: 1000, notes: [36] },
+    ]);
+    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
+    await expect(page.getByRole("status")).toContainText("3 of 4 groups clean");
+    await shoot(page, "studio-drums");
+  });
+
   test("song studio: fix the trouble spot loops the bar until it is clean", async ({ page }) => {
     test.setTimeout(60_000);
     await importOde(page);

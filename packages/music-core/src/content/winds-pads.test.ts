@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   AEROPHONE_CHART,
   AEROPHONE_KEYS,
+  drumKey,
+  hitDrumKey,
+  scoreDrumPad,
   FINGERING_LESSONS,
   fingeringSlip,
   lessonSequence,
@@ -211,5 +214,34 @@ describe("finger-drumming rudiments", () => {
     const six = rudimentHits({ patternId: "six-stroke", subdivision: 2, hits: 6, bpm: 90 });
     expect(six.map((h) => h.hand[0]).join("")).toBe("rllrrl");
     expect(six.map((h) => h.accent)).toEqual([true, false, false, false, false, true]);
+  });
+});
+
+describe("drum parts in songs", () => {
+  const counts = (gm: number, pad: number) => drumKey(gm) === hitDrumKey(pad);
+  it("takes any hat for a hat, and kick and snare exactly", () => {
+    expect(counts(42, 46)).toBe(true); // open hat pad for a closed hat
+    expect(counts(46, 44)).toBe(true);
+    expect(counts(36, 36)).toBe(true);
+    expect(counts(35, 36)).toBe(true); // GM's two bass drums are the one kick
+    expect(counts(38, 38)).toBe(true);
+    expect(counts(40, 38)).toBe(true); // electric snare
+    expect(counts(36, 38)).toBe(false);
+    expect(counts(38, 37)).toBe(false); // the rim is not the snare
+    expect(counts(42, 38)).toBe(false);
+  });
+
+  it("folds the toms the kit lacks onto its three, and keeps its cowbell on 47", () => {
+    expect(counts(43, 41)).toBe(true);
+    expect(counts(47, 45)).toBe(true);
+    expect(counts(50, 48)).toBe(true);
+    expect(counts(47, 47)).toBe(false); // pad 47 is the kit's cowbell, not GM's tom
+    expect(counts(56, 47)).toBe(true);
+    expect(counts(41, 48)).toBe(false);
+  });
+
+  it("matches nothing for a note that is no drum, and plays each GM drum on its kit pad", () => {
+    expect([36, 38, 42, 46, 47, 56].map(drumKey)).not.toContain(hitDrumKey(60));
+    expect([36, 42, 46, 47, 56, 50].map(scoreDrumPad)).toEqual([36, 42, 46, 45, 47, 48]);
   });
 });

@@ -43,10 +43,10 @@ export function transposeScore(score: Score, semitones: number): Score {
     ...(score.keyFifths === undefined
       ? {}
       : { keyFifths: transposeFifths(score.keyFifths, semitones) }),
-    voices: score.voices.map((v) => ({
-      ...v,
-      notes: v.notes.map((n) => ({ ...n, midi: n.midi + semitones })),
-    })),
+    // Drum notes name a drum, not a pitch.
+    voices: score.voices.map((v) =>
+      v.drums ? v : { ...v, notes: v.notes.map((n) => ({ ...n, midi: n.midi + semitones })) },
+    ),
   };
 }
 

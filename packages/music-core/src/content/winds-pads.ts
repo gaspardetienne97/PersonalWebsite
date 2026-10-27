@@ -444,3 +444,61 @@ export function grooveTargetsFor(g: GrooveDef, bpm: number) {
     lengthMs: g.bars * 4 * beat,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Drum parts in songs: General MIDI drums on the app's kit
+
+/** General MIDI drums to the kit's voices; the toms and cymbals the kit lacks fold to its nearest. */
+const GM_VOICE: Record<number, DrumVoiceId> = {
+  35: "kick",
+  36: "kick",
+  37: "rim",
+  38: "snare",
+  39: "perc",
+  40: "snare",
+  41: "tom-low",
+  42: "hats",
+  43: "tom-low",
+  44: "pedalhat",
+  45: "tom-mid",
+  46: "openhat",
+  47: "tom-mid",
+  48: "tom-high",
+  49: "crash",
+  50: "tom-high",
+  51: "ride",
+  52: "crash",
+  53: "ride",
+  55: "crash",
+  56: "cowbell",
+  57: "crash",
+  59: "ride",
+};
+/** Hits that count for each other: any hat for a hat, the 808 for the kick. */
+const DRUM_FAMILY: Partial<Record<DrumVoiceId, DrumVoiceId>> = {
+  "808": "kick",
+  pedalhat: "hats",
+  openhat: "hats",
+};
+const kitPad = (v: DrumVoiceId) => GROOVE_VOICES.find((x) => x.id === v)!.midi;
+
+/** The kit voice a score's GM drum note plays; any other percussion is the kit's perc. */
+export const scoreDrumVoice = (gm: number): DrumVoiceId => GM_VOICE[gm] ?? "perc";
+
+/** The kit pad that sounds a score's GM drum note (GM's cowbell 56 is the kit's 47, its 47 tom is 45). */
+export const scoreDrumPad = (gm: number) => kitPad(scoreDrumVoice(gm));
+
+/** The voice of a pad hit: the kit's own pad first (canonical, after the device's pad map), then GM. */
+export const padDrumVoice = (note: number): DrumVoiceId | undefined =>
+  GROOVE_VOICES.find((v) => v.midi === note)?.id ?? GM_VOICE[note];
+
+const familyKey = (v: DrumVoiceId) => kitPad(DRUM_FAMILY[v] ?? v);
+
+/** What grading compares for a score note: one number per drum family. */
+export const drumKey = (gm: number) => familyKey(scoreDrumVoice(gm));
+
+/** The same for a pad hit. A note that is no drum keeps its number, which is no key, so it matches nothing. */
+export function hitDrumKey(note: number): number {
+  const v = padDrumVoice(note);
+  return v ? familyKey(v) : note;
+}

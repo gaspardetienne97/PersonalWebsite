@@ -79,7 +79,8 @@ export interface ScoreFacts {
 
 export function scoreFacts(score: Score): ScoreFacts {
   const notes = score.voices.flatMap((v) => v.notes.filter((n) => !n.tieFrom));
-  const midis = notes.map((n) => n.midi);
+  // Drum notes name drums, so the range is the pitched parts'.
+  const midis = score.voices.filter((v) => !v.drums).flatMap((v) => v.notes.map((n) => n.midi));
   return {
     voices: score.voices.length,
     bars: Math.max(1, Math.ceil(score.lengthBeats / barBeats(score.meter) - 1e-6)),
@@ -93,7 +94,11 @@ export function scoreFacts(score: Score): ScoreFacts {
 }
 
 export const rangeText = (f: ScoreFacts) =>
-  f.low === null || f.high === null ? "no notes" : `${noteName(f.low)} to ${noteName(f.high)}`;
+  f.low === null || f.high === null
+    ? f.notes
+      ? "drums only"
+      : "no notes"
+    : `${noteName(f.low)} to ${noteName(f.high)}`;
 
 export const durationText = (s: number) =>
   s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;

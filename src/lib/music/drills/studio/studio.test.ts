@@ -3,7 +3,9 @@ import type { Score } from "@repo/music-core";
 import {
   buildPass,
   firstSlip,
+  defaultParts,
   fitToRange,
+  gradedDrums,
   spotAfter,
   spotRange,
   startSpot,
@@ -226,5 +228,60 @@ describe("fix the trouble spot", () => {
     let slow = startSpot(bounds, bounds, 60);
     for (let i = 0; i < 30; i++) slow = spotAfter(slow, false, 4);
     expect(slow.bpm).toBe(30);
+  });
+});
+
+describe("gradedDrums", () => {
+  it("turns drum notes into drum keys, one per drum per onset, and leaves pitched voices alone", () => {
+    const score: Score = {
+      id: "d",
+      title: "Drums",
+      bpm: 100,
+      meter: { beats: 4, beatUnit: 4 },
+      lengthBeats: 4,
+      voices: [
+        {
+          id: "hands",
+          name: "Hands",
+          drums: true,
+          notes: [
+            { midi: 46, startBeat: 0, durationBeats: 1 },
+            { midi: 38, startBeat: 1, durationBeats: 1 },
+          ],
+        },
+        {
+          id: "feet",
+          name: "Feet",
+          drums: true,
+          notes: [{ midi: 44, startBeat: 0, durationBeats: 1 }],
+        },
+        { id: "bass", name: "Bass", notes: [{ midi: 40, startBeat: 0, durationBeats: 1 }] },
+      ],
+    };
+    const g = gradedDrums(score);
+    expect(g.voices[0].notes.map((n) => n.midi)).toEqual([42, 38]);
+    expect(g.voices[1].notes).toEqual([]);
+    expect(g.voices[2]).toBe(score.voices[2]);
+    const pass = buildPass(g, ["hands", "feet"], [{ label: "Whole", startBeat: 0, endBeat: 4 }]);
+    expect(pass.groups.map((x) => x.notes.map((n) => n.midi))).toEqual([[42], [38]]);
+  });
+});
+
+describe("defaultParts", () => {
+  const v = (id: string, drums?: boolean) => ({ id, name: id, drums, notes: [] });
+  const song = (...voices: ReturnType<typeof v>[]) =>
+    ({
+      id: "s",
+      title: "S",
+      bpm: 90,
+      meter: { beats: 4, beatUnit: 4 },
+      lengthBeats: 4,
+      voices,
+    }) as Score;
+  it("opens a drums-only song on its drums on any instrument, a mixed one only on the MPC", () => {
+    expect(defaultParts(song(v("kit", true)), "guitar")).toBe(true);
+    expect(defaultParts(song(v("kit", true), v("bass")), "guitar")).toBe(false);
+    expect(defaultParts(song(v("kit", true), v("bass")), "mpc")).toBe(true);
+    expect(defaultParts(song(v("bass")), "mpc")).toBe(false);
   });
 });

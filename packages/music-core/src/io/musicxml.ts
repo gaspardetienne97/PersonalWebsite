@@ -80,6 +80,17 @@ const UNIT_QUARTERS: Record<string, number> = {
   "16th": 0.25,
   "32nd": 0.125,
 };
+/** A drum note with no instrument, by where the usual drum staff writes it. */
+const DRUM_AT: Record<string, number> = {
+  F4: 36,
+  A4: 41,
+  C5: 38,
+  D5: 45,
+  E5: 48,
+  F5: 51,
+  G5: 42,
+  A5: 49,
+};
 const round4 = (v: number) => Math.round(v * 10000) / 10000;
 
 /** Quarter-note BPM from <sound tempo> or <metronome>, if this node carries one. */
@@ -102,11 +113,15 @@ export function parseMusicXml(xml: string): Score {
     );
   if (doc.name !== "score-partwise") throw new Error("This file is not a MusicXML score.");
 
-  const partNames = new Map(
-    kids(kid(doc, "part-list"), "score-part").map((p) => [
-      p.attrs.id,
-      txt(p, "part-name") || p.attrs.id,
-    ]),
+  const scoreParts = kids(kid(doc, "part-list"), "score-part");
+  const partNames = new Map(scoreParts.map((p) => [p.attrs.id, txt(p, "part-name") || p.attrs.id]));
+  // Percussion instruments: <midi-unpitched> is 1-based, so GM kick 36 is written 37.
+  const drumOf = new Map(
+    scoreParts.flatMap((p) =>
+      kids(p, "midi-instrument")
+        .filter((m) => kid(m, "midi-unpitched"))
+        .map((m) => [m.attrs.id, num(m, "midi-unpitched") - 1] as const),
+    ),
   );
   let bpm: number | undefined;
   let meter: Score["meter"] | undefined;
@@ -126,6 +141,7 @@ export function parseMusicXml(xml: string): Score {
     // written pitch with <transpose>; scores are concert. A TAB or 8vb clef part
     // is already at sounding pitch and has no <transpose>.
     let transpose = 0;
+    let percussion = false;
     const clefs = new Map<number, "treble" | "bass">();
     const byVoice = new Map<string, { notes: ScoreNote[]; staves: number[] }>();
     let measureStart = 0;
@@ -153,6 +169,7 @@ export function parseMusicXml(xml: string): Score {
           }
           for (const clef of kids(el, "clef")) {
             const sign = txt(clef, "sign");
+            if (sign === "percussion") percussion = true;
             if (sign === "G" || sign === "F")
               clefs.set(Number(clef.attrs.number) || 1, sign === "G" ? "treble" : "bass");
           }
@@ -168,17 +185,22 @@ export function parseMusicXml(xml: string): Score {
           const chord = !!kid(el, "chord");
           const start = chord ? lastStart : pos;
           const pitch = kid(el, "pitch");
-          if (pitch && !kid(el, "rest")) {
+          const unpitched = kid(el, "unpitched");
+          if (unpitched) percussion = true;
+          if ((pitch || unpitched) && !kid(el, "rest")) {
             const voice = txt(el, "voice") || "1";
             const entry = byVoice.get(voice) ?? { notes: [], staves: [] };
             byVoice.set(voice, entry);
             entry.staves.push(num(el, "staff") || 1);
             const note: ScoreNote = {
-              midi:
-                (num(pitch, "octave") + 1) * 12 +
-                STEP_PC[txt(pitch, "step")] +
-                Math.round(Number(txt(pitch, "alter")) || 0) +
-                transpose,
+              midi: pitch
+                ? (num(pitch, "octave") + 1) * 12 +
+                  STEP_PC[txt(pitch, "step")] +
+                  Math.round(Number(txt(pitch, "alter")) || 0) +
+                  transpose
+                : (drumOf.get(kid(el, "instrument")?.attrs.id ?? "") ??
+                  DRUM_AT[txt(unpitched, "display-step") + txt(unpitched, "display-octave")] ??
+                  38),
               startBeat: round4(measureStart + start / divisions),
               durationBeats: round4(dur / divisions),
             };
@@ -210,7 +232,9 @@ export function parseMusicXml(xml: string): Score {
         id: `${partId}-v${voice}`,
         name: many ? `${partName} voice ${voice}` : partName,
         partId,
-        clef: clefs.get(staff) ?? (staff === 2 ? "bass" : "treble"),
+        ...(percussion
+          ? { drums: true }
+          : { clef: clefs.get(staff) ?? (staff === 2 ? ("bass" as const) : ("treble" as const)) }),
         ...(staves === 2 && { hand: staff === 1 ? ("right" as const) : ("left" as const) }),
         notes: notes.sort((a, b) => a.startBeat - b.startBeat || a.midi - b.midi),
       });

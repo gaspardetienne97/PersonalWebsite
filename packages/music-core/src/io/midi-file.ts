@@ -25,7 +25,8 @@ export function scoreToMidi(score: Score): Uint8Array {
   score.voices.forEach((voice, i) => {
     const track = midi.addTrack();
     track.name = voice.name;
-    track.channel = i % 16 === 9 ? (i + 1) % 16 : i % 16; // keep melodic voices off the drum channel
+    // Drums on channel 10; melodic voices kept off it.
+    track.channel = voice.drums ? 9 : i % 16 === 9 ? (i + 1) % 16 : i % 16;
     // A tie continuation extends the note it continues rather than re-striking it.
     const merged: ScoreNote[] = [];
     for (const n of [...voice.notes].sort((a, b) => a.startBeat - b.startBeat)) {
@@ -69,10 +70,11 @@ export function midiToScore(bytes: Uint8Array, title: string): Score {
         velocity: n.velocity,
       }));
       const avg = notes.reduce((s, n) => s + n.midi, 0) / notes.length;
+      const drums = t.channel === 9;
       return {
         id: `track-${i + 1}-ch${t.channel + 1}`,
-        name: t.name || (t.channel === 9 ? "Drums" : t.instrument.name) || `Track ${i + 1}`,
-        clef: avg < 60 ? "bass" : "treble",
+        name: t.name || (drums ? "Drums" : t.instrument.name) || `Track ${i + 1}`,
+        ...(drums ? { drums } : { clef: avg < 60 ? ("bass" as const) : ("treble" as const) }),
         notes,
       };
     });

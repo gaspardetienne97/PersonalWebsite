@@ -12,6 +12,7 @@
   import Tab from "$lib/music/notation/Tab.svelte";
   import Waterfall from "$lib/music/notation/Waterfall.svelte";
   import FingeringRow from "$lib/music/notation/FingeringRow.svelte";
+  import StudioDrums from "./StudioDrums.svelte";
   import { whiteKeyLayout, type BeatRange, type TabTuning } from "$lib/music/notation/groups";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import type { Snap } from "$lib/music/notation/selection.svelte";
@@ -35,6 +36,7 @@
     compact = false,
     highlights = [],
     written = 0,
+    drums = false,
   }: {
     score: Score;
     voiceIds: string[];
@@ -55,6 +57,8 @@
     highlights?: (BeatRange & { label: string })[];
     /** Semitones from the concert score to what the player reads on the staff (guitar's octave, the Aerophone's key). */
     written?: number;
+    /** A drum part: drawn as a drum grid in every view, with no keyboard. */
+    drums?: boolean;
   } = $props();
   const staffScore = $derived(transposeScore(score, written));
 
@@ -82,7 +86,11 @@
 </script>
 
 <div bind:this={host} class="flex min-w-0 flex-col gap-3">
-  {#if view === "waterfall"}
+  {#if drums}
+    <div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
+      <StudioDrums {score} {voiceIds} {cursorBeat} {groupStates} {flashes} {maxHeight} />
+    </div>
+  {:else if view === "waterfall"}
     <div class="overflow-x-auto overscroll-x-contain rounded-xl">
       <div class="lane-dark" style:min-width="{whites * MIN_KEY + 16}px">
         <div class="px-2">

@@ -13,10 +13,12 @@
   import ArrowLeft from "lucide-svelte/icons/arrow-left";
   import Timer from "lucide-svelte/icons/timer";
   import Pencil from "lucide-svelte/icons/pencil";
+  import Drum from "lucide-svelte/icons/drum";
   import { clamp, noteName, pc, type InputEvent, type NoteEvent } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
+  import { GROOVE_VOICES, hitDrumKey, scoreDrumPad } from "@repo/music-core/content/winds-pads";
   import {
     aggregateTakes,
     followerInput,
@@ -43,7 +45,7 @@
   import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "$lib/music/notation/groups";
   import { barsText, durationText, scoreFacts, songSections, type Song } from "$lib/music/hubs/library/songs";
   import StudioScore, { type View } from "./StudioScore.svelte";
-  import { buildPass, firstSlip, fitToRange, planPasses, retryBpm, segmentAt, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
+  import { buildPass, defaultParts, firstSlip, fitToRange, gradedDrums, planPasses, retryBpm, segmentAt, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
   import Picker from "$lib/music/components/Picker.svelte";
 
   let { song }: { song: Song } = $props();
@@ -76,10 +78,16 @@
   const tuning = $derived(TUNING_LIST.find((t) => t.id === s.tuning) ?? TUNING_LIST[0]);
   const custom = $derived<BeatRange | null>(s.rangeStart >= 0 && s.rangeEnd > s.rangeStart ? { startBeat: s.rangeStart, endBeat: s.rangeEnd } : null);
 
-  // Session-local: which voices and sections.
-  let picked = $state<string[]>(choices.map((c) => c.id));
+  // Session-local: which voices and sections. Drum parts and pitched parts are
+  // graded differently, so one kind is picked at a time: the drums on the MPC.
+  const drumIds = new Set(score.voices.filter((v) => v.drums).map((v) => v.id));
+  const isDrumChoice = (c: (typeof choices)[number]) => c.voiceIds.every((id) => drumIds.has(id));
+  const mixed = choices.some(isDrumChoice) && !choices.every(isDrumChoice);
+  const partsOf = (drumsOn: boolean) => choices.filter((c) => isDrumChoice(c) === drumsOn).map((c) => c.id);
+  let picked = $state<string[]>(partsOf(defaultParts(score, settings.value.activeInstrument)));
   let pickedSections = $state<number[]>([]);
   const voiceIds = $derived(choices.filter((c) => picked.includes(c.id)).flatMap((c) => c.voiceIds));
+  const drums = $derived(voiceIds.length > 0 && voiceIds.every((id) => drumIds.has(id)));
 
   const VIEWS = [
     { id: "staff", label: "Staff" },
@@ -91,7 +99,7 @@
 
   // On guitar or ukulele (or in Tab) the score moves by octaves into the
   // instrument's range, so every note has a string and a fret.
-  const fretted = $derived(view === "tab" || ["guitar", "ukulele"].includes(settings.value.activeInstrument));
+  const fretted = $derived(!drums && (view === "tab" || ["guitar", "ukulele"].includes(settings.value.activeInstrument)));
   const fitted = $derived.by(() => {
     const { low, high } = tuningRange(tuning);
     return fitToRange(score, voiceIds, low, high);
@@ -107,11 +115,9 @@
     return `${[moved, folded].filter(Boolean).join(", ").replace(/^./, (c) => c.toUpperCase())} to fit the ${inst} (${tuning.name}).`;
   });
 
-  const passes = $derived(
-    planPasses(played, sections, { mode: s.range as RangeMode, picked: pickedSections, order: s.order as SectionOrder, custom }).map((segs) =>
-      buildPass(played, voiceIds, segs, sections),
-    ),
-  );
+  const plans = $derived(planPasses(played, sections, { mode: s.range as RangeMode, picked: pickedSections, order: s.order as SectionOrder, custom }));
+  // Drums are graded by drum: the follower sees each drum's key, never its pitch.
+  const passes = $derived(plans.map((segs) => buildPass(drums ? gradedDrums(played) : played, voiceIds, segs, sections)));
   const viewGroups = $derived(viewGroupsOf(played, voiceIds));
   const sides = $derived(voiceSides(played, voiceIds));
   /** The hand of the selected voice sounding `midi` in the group at `beat`. */
@@ -153,7 +159,7 @@
   const flashes = new Flashes();
   const live = $derived(phase === "running" || phase === "countin");
   const beatMs = $derived(60000 / bpm);
-  const octaveExact = $derived(!["guitar", "ukulele", "voice"].includes(settings.value.activeInstrument));
+  const octaveExact = $derived(drums || !["guitar", "ukulele", "voice"].includes(settings.value.activeInstrument));
 
   const ls = $derived(fstate ? liveState(fstate, now) : null);
 
@@ -204,9 +210,17 @@
   async function togglePreview() {
     if (preview?.playing) return stopPreview();
     await audio.unlock();
-    const pass = passes[0];
+    // The score's own drums (not the graded keys), on the app's kit.
+    const pass = buildPass(played, voiceIds, plans[0], sections);
     const beatS = 60 / bpm;
-    const notes = pass.groups.flatMap((g) => g.notes.map((n) => ({ midi: n.midi, time: g.startBeat * beatS, duration: Math.max(0.08, n.durationBeats * beatS * 0.95), velocity: n.velocity ?? 0.8 })));
+    const notes = pass.groups.flatMap((g) =>
+      g.notes.map((n) => ({
+        ...(drumIds.has(n.voiceId) ? { midi: scoreDrumPad(n.midi), voice: "kit" as const } : { midi: n.midi }),
+        time: g.startBeat * beatS,
+        duration: Math.max(0.08, n.durationBeats * beatS * 0.95),
+        velocity: n.velocity ?? 0.8,
+      })),
+    );
     previewPass = pass;
     const h = audio.playSequence(notes);
     preview = h;
@@ -313,7 +327,7 @@
 
   function onInput(e: InputEvent) {
     if ((e.kind !== "noteon" && e.kind !== "noteoff") || !fstate) return;
-    const ev = e as NoteEvent;
+    const ev = drums ? { ...(e as NoteEvent), midi: hitDrumKey((e as NoteEvent).midi) } : (e as NoteEvent);
     if (ev.kind === "noteon") {
       const expected = liveState(fstate, performance.now()).expected;
       const hit = expected.some((m) => (octaveExact ? m === ev.midi : pc(m) === pc(ev.midi)));
@@ -431,7 +445,7 @@
         assistance: "Song practice goes in your journal. Imported songs don't change skill mastery.",
         rows: [
           { label: "Notes matched", value: expected ? matched / expected : 0, text: `${matched} of ${expected}` },
-          { label: "Pitch completion", value: expected ? matched / expected : 0 },
+          { label: drums ? "Drums found" : "Pitch completion", value: expected ? matched / expected : 0 },
           { label: "Timing error (mean)", text: matched ? `${Math.round(errMs)} ms` : "No notes matched" },
           { label: "Best take", text: `Take ${agg.bestIndex + 1}, ${pct(best.score)}` },
           { label: "Early / on time / late", text: `${sum(perf.map((r) => r.early))} / ${sum(perf.map((r) => r.onTime))} / ${sum(perf.map((r) => r.late))}` },
@@ -457,7 +471,7 @@
         assistance: "Wait mode is guided practice. Imported songs don't change skill mastery.",
         rows: [
           { label: "Groups played clean", value: total ? clean / total : 0, text: `${clean} of ${total}` },
-          { label: "Pitch completion", value: total ? sum(w.map((r) => r.completed)) / total : 0 },
+          { label: drums ? "Drums found" : "Pitch completion", value: total ? sum(w.map((r) => r.completed)) / total : 0 },
           { label: "Wrong notes", text: String(wrong) },
           { label: "Timing", notMeasured: true },
           { label: "Early / on time / late", notMeasured: true },
@@ -596,9 +610,10 @@
   // ---- Setup helpers ------------------------------------------------------
   function toggleVoice(id: string) {
     if (live) return;
+    const c = choices.find((x) => x.id === id)!;
     if (picked.includes(id)) {
       if (picked.length > 1) picked = picked.filter((p) => p !== id);
-    } else picked = [...picked, id];
+    } else picked = [...picked.filter((p) => isDrumChoice(choices.find((x) => x.id === p)!) === isDrumChoice(c)), id];
   }
   function toggleSection(i: number) {
     pickedSections = pickedSections.includes(i) ? pickedSections.filter((x) => x !== i) : [...pickedSections, i].sort((a, b) => a - b);
@@ -662,7 +677,7 @@
               >
             {/each}
           </div>
-          {#if choices.length > 1}<span class="text-ws-soft">At least one stays on.</span>{/if}
+          {#if choices.length > 1}<span class="text-ws-soft">At least one stays on.{mixed ? " Drums and the other parts are practised one kind at a time." : ""}</span>{/if}
         </div>
 
         <div class="flex min-w-0 flex-col gap-3">
@@ -707,7 +722,7 @@
               onchange={(v) => setup.set({ snap: v })}
             />
             <p class="text-sm text-ws-soft">
-              {view === "staff" || view === "tab" ? "Tap where the range starts on the score below, then where it ends. Drag the Start and End handles to adjust." : "Switch to Staff or Tab to mark the range."}
+              {drums ? "The drum grid can't mark a range yet; pick Sections instead." : view === "staff" || view === "tab" ? "Tap where the range starts on the score below, then where it ends. Drag the Start and End handles to adjust." : "Switch to Staff or Tab to mark the range."}
               {#if custom}<button type="button" class="ml-1 font-medium text-instr-ink underline underline-offset-4" onclick={() => setup.set({ rangeStart: -1, rangeEnd: -1 })}>Clear the range</button>{/if}
             </p>
           {/if}
@@ -777,7 +792,10 @@
       <span class="hidden text-sm text-ws-soft sm:inline">Space starts, Esc stops.</span>
     {/if}
     <div class="ml-auto flex flex-wrap items-center gap-2">
-      <HubTabs param="view" tabs={VIEWS} label="Score view" />
+      {#if mixed && !live}
+        <button type="button" class={btn} aria-pressed={drums} onclick={() => (picked = partsOf(!drums))}><Drum class="size-4" aria-hidden="true" />{drums ? "Play the other parts" : "Play the drums"}</button>
+      {/if}
+      {#if !drums}<HubTabs param="view" tabs={VIEWS} label="Score view" />{/if}
     </div>
   </div>
 
@@ -833,7 +851,7 @@
       <div class="mb-3 flex flex-wrap gap-2">
         <Stat label={perfMode ? "Take" : "Mode"} value={perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait"} />
         {#if ls && fstate}<Stat label="Group" value="{Math.min(ls.index + 1, fstate.groups.length)} of {fstate.groups.length}" />{/if}
-        {#if ls?.expected.length}<Stat label="Next" value={ls.expected.map((m) => noteName(m + written)).join(" ")} />{/if}
+        {#if ls?.expected.length}<Stat label="Next" value={ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " ")} />{/if}
         <Stat label="Tempo" value="{bpm} BPM" />
         {#if spot}<Stat label="Loop, {barsOf(spot.range)}" value={`${spot.streak} of ${SPOT.clean} clean`} />{/if}
       </div>
@@ -878,10 +896,15 @@
       compact={live}
       {highlights}
       {written}
+      {drums}
       onfallback={(r) => (staffFailed = r)}
     />
     {#if !live && phase !== "results"}
-      <p class="mt-3 text-sm text-ws-stage-soft">Playing on {INSTRUMENT_LABEL[settings.value.activeInstrument]}{octaveExact ? "" : "; octaves don't count against you through the microphone"}. MIDI, the on-screen keys and your computer keyboard all work.</p>
+      {#if drums}
+        <p class="mt-3 text-sm text-ws-stage-soft">Play it on the MPC pads, any MIDI pads, or the on-screen pads with the strip on MPC pads. Graded by drum: any hat counts for a hat, kick and snare must be exact.</p>
+      {:else}
+        <p class="mt-3 text-sm text-ws-stage-soft">Playing on {INSTRUMENT_LABEL[settings.value.activeInstrument]}{octaveExact ? "" : "; octaves don't count against you through the microphone"}. MIDI, the on-screen keys and your computer keyboard all work.</p>
+      {/if}
     {/if}
   </div>
 

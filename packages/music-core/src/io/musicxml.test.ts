@@ -82,6 +82,41 @@ const flat = (
   notes: { midi: number; startBeat: number; durationBeats: number; tieFrom?: boolean }[],
 ) => notes.map((n) => [n.midi, n.startBeat, n.durationBeats, ...(n.tieFrom ? ["tie"] : [])]);
 
+/** A MuseScore-style drum set: kick and snare in voice 2, hats in voice 1, <midi-unpitched> 1-based. */
+const DRUMS = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Back beat</work-title></work>
+  <part-list>
+    <score-part id="P1">
+      <part-name>Drumset</part-name>
+      <score-instrument id="P1-I36"><instrument-name>Bass Drum 1</instrument-name></score-instrument>
+      <score-instrument id="P1-I38"><instrument-name>Acoustic Snare</instrument-name></score-instrument>
+      <score-instrument id="P1-I42"><instrument-name>Closed Hi-Hat</instrument-name></score-instrument>
+      <midi-instrument id="P1-I36"><midi-channel>10</midi-channel><midi-unpitched>37</midi-unpitched></midi-instrument>
+      <midi-instrument id="P1-I38"><midi-channel>10</midi-channel><midi-unpitched>39</midi-unpitched></midi-instrument>
+      <midi-instrument id="P1-I42"><midi-channel>10</midi-channel><midi-unpitched>43</midi-unpitched></midi-instrument>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>2</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>percussion</sign></clef></attributes>
+      <sound tempo="100"/>
+      ${[0, 1, 2, 3]
+        .map(
+          () =>
+            `<note><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>2</duration><instrument id="P1-I42"/><voice>1</voice><type>quarter</type><notehead>x</notehead></note>`,
+        )
+        .join("")}
+      <backup><duration>8</duration></backup>
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>2</duration><instrument id="P1-I36"/><voice>2</voice><type>quarter</type></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>2</duration><instrument id="P1-I38"/><voice>2</voice><type>quarter</type></note>
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><instrument id="P1-I36"/><voice>2</voice><type>eighth</type></note>
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>2</voice><type>eighth</type></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>2</duration><instrument id="P1-I38"/><voice>2</voice><type>quarter</type></note>
+    </measure>
+  </part>
+</score-partwise>`;
+
 describe("MusicXML", () => {
   it("reads a two-part piano piece: chords, a tie, backup/forward, staves, clefs, key, tempo", () => {
     const s = parseMusicXml(DUO);
@@ -156,6 +191,29 @@ describe("MusicXML", () => {
     );
     expect(parseMusicXml(guitar).voices[0].notes[0].midi).toBe(62 - 12);
     expect(parseMusicXml(guitar).keyFifths).toBe(1);
+  });
+
+  it("reads a percussion part as drum voices of General MIDI numbers", () => {
+    const s = parseMusicXml(DRUMS);
+    expect(s.bpm).toBe(100);
+    expect(s.voices.map((v) => [v.id, v.drums, v.clef])).toEqual([
+      ["P1-v1", true, undefined],
+      ["P1-v2", true, undefined],
+    ]);
+    expect(s.voices[0].notes.map((n) => [n.midi, n.startBeat])).toEqual([
+      [42, 0],
+      [42, 1],
+      [42, 2],
+      [42, 3],
+    ]);
+    // The note with no <instrument> is placed by its staff position (F4: the kick).
+    expect(s.voices[1].notes.map((n) => [n.midi, n.startBeat, n.durationBeats])).toEqual([
+      [36, 0, 1],
+      [38, 1, 1],
+      [36, 2, 0.5],
+      [36, 2.5, 0.5],
+      [38, 3, 1],
+    ]);
   });
 
   it("refuses timewise and non-MusicXML documents with a message", () => {

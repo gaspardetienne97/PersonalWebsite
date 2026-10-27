@@ -6,6 +6,7 @@ import { scoreGroups } from "@repo/music-core/scoring/follower";
 import type { GroupVerdict } from "@repo/music-core/scoring/follower";
 import type { BeatRange } from "$lib/music/notation/groups";
 import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
+import { drumKey } from "@repo/music-core/content/winds-pads";
 
 export type RangeMode = "whole" | "sections" | "custom";
 export type SectionOrder = "sequence" | "per-section";
@@ -162,6 +163,34 @@ export function voiceChoices(score: Score): { id: string; label: string; voiceId
     });
   }
   return score.voices.map((v) => ({ id: v.id, label: v.name, voiceIds: [v.id] }));
+}
+
+/** Whether a song opens on its drums: always for drums only, on the MPC when it has both. */
+export const defaultParts = (score: Score, instrument: string) =>
+  score.voices.some((v) => v.drums) && (instrument === "mpc" || score.voices.every((v) => v.drums));
+
+/**
+ * Drum voices graded by drum, not pitch: each note becomes its drum's key (any
+ * hat for a hat), and a drum struck twice at one onset (a pedal hat under a
+ * closed hat) is one hit.
+ */
+export function gradedDrums(score: Score): Score {
+  if (!score.voices.some((v) => v.drums)) return score;
+  const seen = new Set<string>();
+  const voices = score.voices.map((v) =>
+    v.drums
+      ? {
+          ...v,
+          notes: v.notes
+            .map((n) => ({ ...n, midi: drumKey(n.midi) }))
+            .filter((n) => {
+              const k = `${n.startBeat}:${n.midi}`;
+              return !seen.has(k) && !!seen.add(k);
+            }),
+        }
+      : v,
+  );
+  return { ...score, voices };
 }
 
 /**

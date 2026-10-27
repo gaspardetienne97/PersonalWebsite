@@ -244,6 +244,8 @@ export interface ScoreVoice {
   clef?: "treble" | "bass";
   /** Hand for piano material. */
   hand?: "left" | "right";
+  /** A drum part: each note's `midi` is a General MIDI drum (kick 36, snare 38, closed hat 42). */
+  drums?: boolean;
   notes: ScoreNote[];
 }
 

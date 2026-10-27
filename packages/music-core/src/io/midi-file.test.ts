@@ -1,3 +1,4 @@
+import { Midi } from "@tonejs/midi";
 import { describe, expect, it } from "vitest";
 import type { Score } from "../types";
 import { midiToScore, scoreToMidi } from "./midi-file";
@@ -56,6 +57,37 @@ describe("MIDI file", () => {
       expect(
         midiToScore(scoreToMidi({ ...score, keyFifths: f, keyMode: "major" }), "k").keyFifths,
       ).toBe(f);
+  });
+
+  it("reads channel 10 as a drum voice of General MIDI numbers, and writes it back there", () => {
+    const midi = new Midi();
+    const bass = midi.addTrack();
+    bass.channel = 0;
+    bass.addNote({ midi: 40, ticks: 0, durationTicks: 480 });
+    const kit = midi.addTrack();
+    kit.channel = 9;
+    for (const [note, beat] of [
+      [36, 0],
+      [42, 0],
+      [38, 1],
+      [46, 1.5],
+    ])
+      kit.addNote({ midi: note, ticks: beat * 480, durationTicks: 120 });
+    const s = midiToScore(midi.toArray(), "Groove");
+    expect(s.voices.map((v) => [v.drums, v.clef])).toEqual([
+      [undefined, "bass"],
+      [true, undefined],
+    ]);
+    expect(s.voices[1].name).toBe("Drums");
+    expect(s.voices[1].notes.map((n) => [n.midi, n.startBeat])).toEqual([
+      [36, 0],
+      [42, 0],
+      [38, 1],
+      [46, 1.5],
+    ]);
+    const back = midiToScore(scoreToMidi(s), "Groove");
+    expect(back.voices[1]).toMatchObject({ drums: true });
+    expect(back.voices[0].drums).toBeUndefined();
   });
 
   it("falls back to the given title, 120 BPM and 4/4", () => {
