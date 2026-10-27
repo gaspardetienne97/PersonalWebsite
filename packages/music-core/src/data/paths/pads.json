@@ -2,5 +2,3600 @@
   "id": "mpc",
   "title": "Finger Drumming Path",
   "subtitle": "MPC finger drumming to about Melodics stage 10, beat making woven in.",
-  "levels": []
+  "benchmark": "Melodics Stage 10 of 15 (pads); about Drumeo Method level 5 and Rockschool Drums Grade 4 to 5 grooves, on fingers",
+  "instruments": ["mpc"],
+  "levels": [
+    {
+      "id": "1",
+      "title": "First beats",
+      "goal": "A backbeat in time with both hands, eighth hats, a crash on one and four-bar phrases. About Melodics stage 1 to 2.",
+      "adds": "Split hands, counting 1 & 2 &, kick on 1 and 3, snare on 2 and 4, Wait mode, play-along.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "1.1",
+          "title": "Set up the pads",
+          "href": "/music/pads?mode=dynamics&dyn=even",
+          "setup": "Pads, Dynamics: calibrate soft and loud on the MPC once, then Even (16 hits at one level). Full Level off.",
+          "done": "Calibration saved; 16 even hits with 80% inside one velocity band.",
+          "match": {
+            "setup": "even"
+          },
+          "threshold": 0.8,
+          "minDays": 1,
+          "feeds": "Everything"
+        },
+        {
+          "id": "1.2",
+          "title": "First beat, no clock",
+          "href": "/music/pads?mode=groove&groove=basic-rock&wait=1",
+          "setup": "Grooves: basic rock in Wait mode (no click, each note waits for its pads). Wait mode is practice; a Check run at any tempo counts.",
+          "done": "4 bars with no wrong pad, on two days.",
+          "match": {
+            "groove": "basic-rock"
+          },
+          "threshold": 0.9,
+          "feeds": "Billie Jean, Back in Black"
+        },
+        {
+          "id": "1.3",
+          "title": "First beat in time",
+          "href": "/music/pads?mode=groove&groove=basic-rock&bpm=70",
+          "setup": "Grooves: basic rock at 70, then 90.",
+          "done": "Pass at 90, 3 runs, on two days.",
+          "match": {
+            "groove": "basic-rock"
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "feeds": "Every rock and pop song"
+        },
+        {
+          "id": "1.4",
+          "title": "Two pads on the click",
+          "href": "/music/pads?mode=rudiment&pattern=single-strokes&sub=2&bpm=60",
+          "setup": "Technique: single strokes in eighths, 60 to 90.",
+          "done": "Mean error 50 ms or less at 90.",
+          "match": {
+            "pattern": "single-strokes",
+            "sub": "2"
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "feeds": "The hats in every song"
+        },
+        {
+          "id": "1.5",
+          "title": "Stomp, stomp, clap",
+          "href": "/music/pads?mode=groove&groove=stomp-clap&bpm=81",
+          "setup": "Grooves: stomp, stomp, clap at 81.",
+          "done": "Pass, 3 runs.",
+          "match": {
+            "groove": "stomp-clap"
+          },
+          "threshold": 0.9,
+          "minBpm": 81,
+          "minDays": 1,
+          "feeds": "We Will Rock You"
+        },
+        {
+          "id": "1.6",
+          "title": "Kick on every beat",
+          "href": "/music/pads?mode=groove&groove=four-on-floor&bpm=100",
+          "setup": "Grooves: four on the floor, 100 to 110.",
+          "done": "Pass at 110.",
+          "match": {
+            "groove": "four-on-floor"
+          },
+          "threshold": 0.9,
+          "minBpm": 110,
+          "minDays": 1,
+          "feeds": "Another One Bites the Dust, Seven Nation Army"
+        },
+        {
+          "id": "1.7",
+          "title": "Echo kick and snare",
+          "href": "/music/pads?mode=echo&echo=kick-snare",
+          "setup": "Play it back: Kick and snare.",
+          "done": "5 unaided echoes averaging 75%.",
+          "match": {
+            "setup": "echo-kick-snare"
+          },
+          "threshold": 0.75,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "An ear for grooves"
+        },
+        {
+          "id": "1.8",
+          "title": "Hold the tempo",
+          "href": "/music/pads?mode=steady&steady=basic-rock&bpm=80",
+          "setup": "Hold the tempo: basic rock at 80, the click gone after four bars.",
+          "done": "Within 3 BPM after the click drops, on two days.",
+          "match": {
+            "groove": "basic-rock"
+          },
+          "threshold": 0.8,
+          "minBpm": 80,
+          "feeds": "Play-along"
+        },
+        {
+          "id": "1.9",
+          "title": "Crash on one, first fill",
+          "href": "/music/pads?mode=groove&groove=shave-tag&bpm=80",
+          "setup": "Grooves: shave and a haircut tag, then the one-beat fill and landing.",
+          "done": "Each passes at 80 with the landing crash inside the good window.",
+          "each": {
+            "param": "groove",
+            "values": ["shave-tag", "one-beat-fill"]
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "One-beat fill",
+              "href": "/music/pads?mode=groove&groove=one-beat-fill&bpm=80"
+            }
+          ],
+          "feeds": "Every song ending"
+        },
+        {
+          "id": "1.10",
+          "title": "First whole song",
+          "setup": "Song Studio with a shelf song's drum part on the pads: Wait mode, then Performance at 80% speed.",
+          "done": "One shelf song end to end at 80% speed, 85% of notes good.",
+          "needs": "Song Studio drum import: a MIDI or MusicXML drum part mapped onto the pads (phase 2).",
+          "links": [
+            {
+              "label": "Song Studio",
+              "href": "/music/library?tab=songs"
+            }
+          ],
+          "feeds": "The shelf"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "billie-jean",
+          "title": "Billie Jean",
+          "artist": "Michael Jackson",
+          "teaches": "Steady eighths, kick on 1 and 3, the most famous pop loop",
+          "detail": "117 BPM, straight",
+          "bpm": 117,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "ken014, solo drum, 867 views",
+              "url": "https://musescore.com/user/8442431/scores/2079686"
+            },
+            {
+              "label": "Xander Glavas, solo",
+              "url": "https://musescore.com/user/22201376/scores/4203676"
+            },
+            {
+              "label": "Official, Hal Leonard drum chart",
+              "url": "https://musescore.com/user/39593079/scores/15851464",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "we-will-rock-you",
+          "title": "We Will Rock You",
+          "artist": "Queen",
+          "teaches": "Stomp-clap, then a full beat at the solo",
+          "detail": "81 BPM",
+          "bpm": 81,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Midi Drum Scores, solo",
+              "url": "https://musescore.com/user/11785381/scores/5251338"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Grooves, Stomp, stomp, clap",
+            "url": "/music/pads?mode=groove&groove=stomp-clap"
+          }
+        },
+        {
+          "id": "seven-nation-army",
+          "title": "Seven Nation Army",
+          "artist": "The White Stripes",
+          "teaches": "Four on the floor kick, floor tom build, crashes",
+          "detail": "124 BPM",
+          "bpm": 124,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lizzy Plays Drums, drums only, 908 views, 4.8",
+              "url": "https://musescore.com/user/33429795/scores/5837603"
+            }
+          ]
+        },
+        {
+          "id": "back-in-black",
+          "title": "Back in Black",
+          "artist": "AC/DC",
+          "teaches": "Rock beat with space, crash accents, stops",
+          "detail": "92 BPM",
+          "bpm": 92,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "tobias.nienhaus, solo, 4.8 (184)",
+              "url": "https://musescore.com/user/27077701/scores/6681779"
+            },
+            {
+              "label": "rumstrommel, solo",
+              "url": "https://musescore.com/user/5667586/scores/2882026"
+            }
+          ]
+        },
+        {
+          "id": "another-one-bites-the-dust",
+          "title": "Another One Bites the Dust",
+          "artist": "Queen",
+          "teaches": "Kick on every beat, open space, handclaps",
+          "detail": "110 BPM",
+          "bpm": 110,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "jirkadrum, grade 1 drum part, 362 views",
+              "url": "https://musescore.com/user/36838959/scores/7967498"
+            },
+            {
+              "label": "Midi Drum Scores, solo",
+              "url": "https://musescore.com/user/11785381/scores/5251488"
+            }
+          ]
+        },
+        {
+          "id": "stand-by-me",
+          "title": "Stand by Me",
+          "artist": "Ben E. King",
+          "teaches": "Light backbeat, rim click, low dynamics",
+          "detail": "118 BPM",
+          "bpm": 118,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "musica_ciedi, drum set",
+              "url": "https://musescore.com/user/44468687/scores/13332562"
+            }
+          ]
+        },
+        {
+          "id": "highway-to-hell",
+          "title": "Highway to Hell",
+          "artist": "AC/DC",
+          "teaches": "Rock beat with stops and crashes",
+          "detail": "116 BPM",
+          "bpm": 116,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Swoog, drum sheet, 1.8K views, 4.7 (211)",
+              "url": "https://musescore.com/user/28184976/scores/5016007"
+            }
+          ]
+        },
+        {
+          "id": "be-my-baby",
+          "title": "Be My Baby",
+          "artist": "The Ronettes",
+          "teaches": "The pop intro: kick on 1, kick and snare on 2-and",
+          "detail": "130 BPM; an app groove be-my-baby is planned",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "tplinkvstplin, solo drum (few views, check it against the record)",
+              "url": "https://musescore.com/user/82001287/scores/23530525"
+            }
+          ]
+        },
+        {
+          "id": "smoke-on-the-water",
+          "title": "Smoke on the Water",
+          "artist": "Deep Purple",
+          "teaches": "Hats-only intro, then a plain rock beat",
+          "detail": "112 BPM",
+          "bpm": 112,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Çukurova Müzik Akademi, drum",
+              "url": "https://musescore.com/user/4637911/scores/11303932"
+            },
+            {
+              "label": "Official, Hal Leonard transcription",
+              "url": "https://musescore.com/user/39593079/scores/15708376",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "Two shelf songs end to end in Song Studio Performance mode at the record's tempo (85% good), plus Hold the tempo on basic rock at 90 within 3 BPM."
+    },
+    {
+      "id": "2",
+      "title": "Moving the kick, open hats and first fills",
+      "goal": "Pop and rock beats with syncopated kicks, open-hat lifts, eighth-note fills and choruses louder than verses. About Melodics stage 2 to 3.",
+      "adds": "Kick on the & of 3, open hat, doubles, eighth fills, crash and ride, writing a groove down.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "2.1",
+          "title": "Push the kick",
+          "href": "/music/pads?mode=groove&groove=syncopated&bpm=80",
+          "setup": "Grooves: syncopated kick, 80 to 100.",
+          "done": "Pass at 100, on two days.",
+          "match": {
+            "groove": "syncopated"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "feeds": "Rolling in the Deep, Livin' on a Prayer"
+        },
+        {
+          "id": "2.2",
+          "title": "Kick variations under one hat",
+          "href": "/music/pads?mode=groove&groove=independence&bpm=75",
+          "setup": "Grooves: four kicks under one hat, 75 to 90.",
+          "done": "Pass at 90.",
+          "match": {
+            "groove": "independence"
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "feeds": "Everything"
+        },
+        {
+          "id": "2.3",
+          "title": "Doubles on one pad",
+          "href": "/music/pads?mode=rudiment&pattern=double-strokes&sub=2&bpm=70",
+          "setup": "Technique: double strokes in eighths, 70 to 100.",
+          "done": "Mean error 45 ms or less at 100.",
+          "match": {
+            "pattern": "double-strokes"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
+          "feeds": "Fills, open hats"
+        },
+        {
+          "id": "2.4",
+          "title": "Soft and loud",
+          "href": "/music/pads?mode=dynamics&dyn=ladder",
+          "setup": "Dynamics: the ladder, four levels.",
+          "done": "3 runs with the 4 levels separated.",
+          "match": {
+            "setup": "ladder"
+          },
+          "threshold": 0.8,
+          "minDays": 1,
+          "feeds": "Verse against chorus"
+        },
+        {
+          "id": "2.5",
+          "title": "Eighth fill on the snare",
+          "href": "/music/pads?mode=fills&fill=snare-eighths",
+          "setup": "Fills: snare eighths on 3 and 4.",
+          "done": "5 fills landed: no rush, the landing in the window.",
+          "match": {
+            "setup": "fill-snare-eighths"
+          },
+          "threshold": 0.9,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "Every shelf song"
+        },
+        {
+          "id": "2.6",
+          "title": "Down the toms",
+          "href": "/music/pads?mode=fills&fill=down-the-toms&bpm=70",
+          "setup": "Fills: sixteenths down the toms on 3 and 4, at 70, then 90.",
+          "done": "5 fills landed at 90.",
+          "match": {
+            "setup": "fill-down-the-toms"
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "Eye of the Tiger, Livin' on a Prayer"
+        },
+        {
+          "id": "2.7",
+          "title": "Echo with hats",
+          "href": "/music/pads?mode=echo&echo=with-hats",
+          "setup": "Play it back: With hats.",
+          "done": "5 echoes averaging 75%.",
+          "match": {
+            "setup": "echo-with-hats"
+          },
+          "threshold": 0.75,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "Ear"
+        },
+        {
+          "id": "2.8",
+          "title": "Write a groove down",
+          "href": "/music/rhythm?mode=groove&grooveLevel=rock",
+          "setup": "Rhythm, Groove dictation: rock beats.",
+          "done": "5 unaided dictations averaging 75%.",
+          "match": {
+            "level": "rock"
+          },
+          "threshold": 0.75,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "Reading drum charts"
+        },
+        {
+          "id": "2.9",
+          "title": "Open hat on the & of 4",
+          "setup": "A rock-open-hat groove: basic rock with an open hat on step 15, closed by the next hat.",
+          "done": "Pass at 100.",
+          "needs": "A groove rock-open-hat in Grooves.",
+          "feeds": "Mr. Brightside, Sweet Home Alabama"
+        },
+        {
+          "id": "2.10",
+          "title": "Four bars with a fill",
+          "href": "/music/pads?mode=groove&groove=turnaround-fill&bpm=80",
+          "setup": "Grooves: turnaround fill, 80 to 100, in Check mode with the notes hidden.",
+          "done": "2 omissions at most, the fill in time, from memory.",
+          "match": {
+            "groove": "turnaround-fill"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "feeds": "Song form"
+        },
+        {
+          "id": "2.11",
+          "title": "Ride for the chorus",
+          "href": "/music/pads?mode=orchestrate&orch=ride-snare&bpm=80",
+          "setup": "Rudiments on the kit: ride and snare.",
+          "done": "Pass at 80.",
+          "match": {
+            "setup": "orch-ride-snare"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minDays": 1,
+          "feeds": "Rolling in the Deep, Beat It"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "smoke-on-the-water-whole-song",
+          "title": "Smoke on the Water (whole song)",
+          "artist": "Deep Purple",
+          "teaches": "Section changes, simple fills",
+          "detail": "112 BPM",
+          "bpm": 112,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Çukurova, drum",
+              "url": "https://musescore.com/user/4637911/scores/11303932"
+            }
+          ]
+        },
+        {
+          "id": "i-love-rock-n-roll",
+          "title": "I Love Rock 'n' Roll",
+          "artist": "Joan Jett",
+          "teaches": "Stomping half-time feel, claps, stops",
+          "detail": "94 BPM",
+          "bpm": 94,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "JonathanAhrens, solo, 4.8 (36)",
+              "url": "https://musescore.com/user/27013952/scores/6539650"
+            },
+            {
+              "label": "Official, Hal Leonard drum chart",
+              "url": "https://musescore.com/user/39593079/scores/15851512",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "eye-of-the-tiger",
+          "title": "Eye of the Tiger",
+          "artist": "Survivor",
+          "teaches": "Hits with the band, tom fills",
+          "detail": "109 BPM",
+          "bpm": 109,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Ferran Alemany, drum tablature, 722 views",
+              "url": "https://musescore.com/user/29622868/scores/5223049"
+            },
+            {
+              "label": "Xender_, solo, 4.8 (55)",
+              "url": "https://musescore.com/user/32790468/scores/6230115"
+            }
+          ]
+        },
+        {
+          "id": "rolling-in-the-deep",
+          "title": "Rolling in the Deep",
+          "artist": "Adele",
+          "teaches": "Four-on-floor verse to ride chorus, pushes",
+          "detail": "105 BPM",
+          "bpm": 105,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Gabor Varga 2, solo, 4.9 (28)",
+              "url": "https://musescore.com/user/33506251/scores/5853936"
+            },
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15733771",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "sweet-home-alabama",
+          "title": "Sweet Home Alabama",
+          "artist": "Lynyrd Skynyrd",
+          "teaches": "Laid-back eighths, open hats, count-in",
+          "detail": "98 BPM",
+          "bpm": 98,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "MANU TAM TAM, solo",
+              "url": "https://musescore.com/user/28199588/scores/6600146"
+            }
+          ]
+        },
+        {
+          "id": "livin-on-a-prayer",
+          "title": "Livin' on a Prayer",
+          "artist": "Bon Jovi",
+          "teaches": "Pushed kicks, the key-change fill",
+          "detail": "123 BPM",
+          "bpm": 123,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "tobias.nienhaus, solo, 4.7 (49)",
+              "url": "https://musescore.com/user/27077701/scores/8095872"
+            }
+          ]
+        },
+        {
+          "id": "beat-it",
+          "title": "Beat It",
+          "artist": "Michael Jackson",
+          "teaches": "Sixteenth-feel pop beat, crashes on pushes",
+          "detail": "139 BPM",
+          "bpm": 139,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard drum chart",
+              "url": "https://musescore.com/user/39593079/scores/15733831",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=beat%20it%20michael%20jackson"
+          }
+        },
+        {
+          "id": "blinding-lights",
+          "title": "Blinding Lights",
+          "artist": "The Weeknd",
+          "teaches": "Fast synth-pop backbeat, open hats",
+          "detail": "171 BPM",
+          "bpm": 171,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Drum Sheets, solo, 4.7 (22)",
+              "url": "https://musescore.com/user/35273741/scores/11796661"
+            }
+          ]
+        },
+        {
+          "id": "mr-brightside",
+          "title": "Mr. Brightside",
+          "artist": "The Killers",
+          "teaches": "Fast eighths with open hats, endurance",
+          "detail": "148 BPM",
+          "bpm": 148,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "calemari, solo, 4.8 (17)",
+              "url": "https://musescore.com/user/55224798/scores/21847102"
+            }
+          ]
+        }
+      ],
+      "test": "Two shelf songs at the record's tempo (85% good) with every fill landed, plus the turnaround fill at 100 from memory."
+    },
+    {
+      "id": "3",
+      "title": "Boom bap, swing and the first breaks",
+      "goal": "Two-bar hip hop beats with a moving kick and a little MPC swing, the first sampled breaks, and playing over a loop. About Melodics stage 3 to 4.",
+      "adds": "Two-bar memory, swing 54 to 58, sixteenth singles, playing over a sampled loop, the first chop.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "3.1",
+          "title": "Boom bap, first steps",
+          "href": "/music/pads?mode=groove&groove=boom-bap-a&bpm=80",
+          "setup": "Grooves: boom bap, first steps, 80 to 92.",
+          "done": "Pass at 92, on two days.",
+          "match": {
+            "groove": "boom-bap-a"
+          },
+          "threshold": 0.9,
+          "minBpm": 92,
+          "feeds": "Gangsta's Paradise, In Da Club"
+        },
+        {
+          "id": "3.2",
+          "title": "Two-bar boom bap",
+          "href": "/music/pads?mode=groove&groove=boom-bap-2bar&bpm=80",
+          "setup": "Grooves: two-bar boom bap, 80 to 92.",
+          "done": "1 omission at most, accents right on 6 of 8 snares.",
+          "match": {
+            "groove": "boom-bap-2bar"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "feeds": "Hypnotize"
+        },
+        {
+          "id": "3.3",
+          "title": "Boom bap",
+          "href": "/music/pads?mode=groove&groove=boom-bap-b&bpm=80",
+          "setup": "Grooves: boom bap.",
+          "done": "Pass at 92.",
+          "match": {
+            "groove": "boom-bap-b"
+          },
+          "threshold": 0.9,
+          "minBpm": 92,
+          "minDays": 1,
+          "feeds": "All hip hop"
+        },
+        {
+          "id": "3.4",
+          "title": "Sixteenth singles",
+          "href": "/music/pads?mode=rudiment&pattern=single-16ths&sub=4&bpm=70",
+          "setup": "Technique: sixteenth singles, 70 to 90.",
+          "done": "45 ms or less at 90.",
+          "match": {
+            "pattern": "single-16ths"
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "feeds": "Hats, fills"
+        },
+        {
+          "id": "3.5",
+          "title": "Swing by hand",
+          "href": "/music/pads?mode=groove&groove=swing-56&bpm=80",
+          "setup": "Grooves: boom bap, swing 56%, 80 to 92.",
+          "done": "Pass, with the results showing 54 to 58% swing.",
+          "match": {
+            "groove": "swing-56"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "feeds": "Every boom bap beat"
+        },
+        {
+          "id": "3.6",
+          "title": "Impeach the President",
+          "href": "/music/pads?mode=groove&groove=impeach&bpm=80",
+          "setup": "Grooves: Impeach the President, 80 to 95.",
+          "done": "Pass at 95.",
+          "match": {
+            "groove": "impeach"
+          },
+          "threshold": 0.9,
+          "minBpm": 95,
+          "minDays": 1,
+          "feeds": "Impeach the President"
+        },
+        {
+          "id": "3.7",
+          "title": "When the Levee Breaks",
+          "href": "/music/pads?mode=groove&groove=levee&bpm=62",
+          "setup": "Grooves: When the Levee Breaks, 62 to 72.",
+          "done": "Pass at 72, heavy and even velocity.",
+          "match": {
+            "groove": "levee"
+          },
+          "threshold": 0.9,
+          "minBpm": 72,
+          "minDays": 1,
+          "feeds": "When the Levee Breaks"
+        },
+        {
+          "id": "3.8",
+          "title": "Echo sixteenths",
+          "href": "/music/rhythm?mode=echo&earLevel=sixteenths",
+          "setup": "Rhythm, Echo: sixteenths (the ear path's rhythm echo).",
+          "done": "5 echoes averaging 75%.",
+          "match": {
+            "level": "sixteenths"
+          },
+          "threshold": 0.75,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "An ear for breaks"
+        },
+        {
+          "id": "3.9",
+          "title": "Play over a loop",
+          "setup": "A 2-bar break from the Library under Grooves; boom bap played over it. Until then, the band under the groove.",
+          "done": "16 bars of boom bap over the loop, pass, drift under 2 BPM.",
+          "needs": "Play over a loop: a 2-bar or 4-bar loop from the Library under Grooves, BPM typed, downbeat nudged.",
+          "links": [
+            {
+              "label": "Boom bap with the band",
+              "href": "/music/pads?mode=groove&groove=boom-bap-b&backing=1"
+            }
+          ],
+          "feeds": "Real-world practice"
+        },
+        {
+          "id": "3.10",
+          "title": "First chop: slices in order",
+          "setup": "A 1-bar loop on A01 to A16, replayed in order to the click.",
+          "done": "Pass at the loop's tempo.",
+          "needs": "A chop drill: a loop sliced onto pads A01 to A16, exercise 1: replay the slices in order.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "Sample-based beats"
+        },
+        {
+          "id": "3.11",
+          "title": "Grooves from memory",
+          "href": "/music/pads?mode=groove&groove=boom-bap-b",
+          "setup": "Grooves in Check mode (notes hidden): boom bap, then Impeach the President.",
+          "done": "Each passes with the notes hidden.",
+          "each": {
+            "param": "groove",
+            "values": ["boom-bap-b", "impeach"]
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Impeach the President",
+              "href": "/music/pads?mode=groove&groove=impeach"
+            }
+          ],
+          "feeds": "The level test"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "gangstas-paradise",
+          "title": "Gangsta's Paradise",
+          "artist": "Coolio",
+          "teaches": "Slow boom bap, space, claps",
+          "detail": "80 BPM",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Jeffrey31, solo drum, 4.6 (13)",
+              "url": "https://musescore.com/user/16986681/scores/6727285"
+            },
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/19449796",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "in-da-club",
+          "title": "In Da Club",
+          "artist": "50 Cent",
+          "teaches": "Sparse hip hop with claps on 2 and 4",
+          "detail": "90 BPM",
+          "bpm": 90,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official beginner, ArrangeMe drums",
+              "url": "https://musescore.com/user/97106398/scores/37782929",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=in%20da%20club%2050%20cent"
+          }
+        },
+        {
+          "id": "walk-this-way",
+          "title": "Walk This Way",
+          "artist": "Run-DMC and Aerosmith",
+          "teaches": "The break that opened rap to rock, kick-snare intro",
+          "detail": "108 BPM; also in the Breakbeat Bible",
+          "bpm": 108,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard drum chart",
+              "url": "https://musescore.com/user/39593079/scores/15733759",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "impeach-the-president",
+          "title": "Impeach the President",
+          "artist": "The Honey Drippers",
+          "teaches": "The sampled break: kick pushes, open hat",
+          "detail": "95 BPM",
+          "bpm": 95,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "autoenglish, Impeach drum break tab, solo",
+              "url": "https://musescore.com/user/27413747/scores/23330809"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Grooves, Impeach the President",
+            "url": "/music/pads?mode=groove&groove=impeach"
+          }
+        },
+        {
+          "id": "hypnotize",
+          "title": "Hypnotize",
+          "artist": "The Notorious B.I.G.",
+          "teaches": "Pop rap beat, sixteenth hats",
+          "detail": "96 BPM",
+          "bpm": 96,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Nicholas Bahamon, solo drum (new, unrated)",
+              "url": "https://musescore.com/user/83120983/scores/28830227"
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/notorious-big-hypnotize-tab-s513329"
+          }
+        },
+        {
+          "id": "feel-good-inc",
+          "title": "Feel Good Inc.",
+          "artist": "Gorillaz",
+          "teaches": "Hip hop beat at a brisk tempo, ghosted hats",
+          "detail": "139 BPM",
+          "bpm": 139,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "trommly, drumscore, 4.8 (82)",
+              "url": "https://musescore.com/user/28284369/scores/7128742"
+            },
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/19270438",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "the-real-slim-shady",
+          "title": "The Real Slim Shady",
+          "artist": "Eminem",
+          "teaches": "Bouncy pop rap, kick patterns",
+          "detail": "105 BPM",
+          "bpm": 105,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "eduardoguedesdrums, solo",
+              "url": "https://musescore.com/user/49012224/scores/13886890"
+            },
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/19327972",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "still-dre",
+          "title": "Still D.R.E.",
+          "artist": "Dr. Dre",
+          "teaches": "G-funk beat, sixteenth hats, sparse kick",
+          "detail": "93 BPM",
+          "bpm": 93,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "נוה כהן, drum group only, 32 views (short, check it)",
+              "url": "https://musescore.com/user/30724014/scores/8346212"
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=still%20dre"
+          }
+        },
+        {
+          "id": "when-the-levee-breaks",
+          "title": "When the Levee Breaks",
+          "artist": "Led Zeppelin",
+          "teaches": "Huge slow break, the most sampled rock beat",
+          "detail": "72 BPM; no MuseScore score; the app's groove levee",
+          "bpm": 72,
+          "diff": 2,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/led-zeppelin-when-the-levee-breaks-tab-s11512"
+          }
+        },
+        {
+          "id": "juicy",
+          "title": "Juicy",
+          "artist": "The Notorious B.I.G.",
+          "teaches": "Soft boom bap over a sample (Mtume)",
+          "detail": "96 BPM; no MuseScore score; an app groove is planned",
+          "bpm": 96,
+          "diff": 1,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/notorious-big-juicy-tab-s7460264"
+          }
+        }
+      ],
+      "test": "Two shelf songs at tempo, Impeach the President or When the Levee Breaks from memory over the loop (once loop backing ships), and a 1-bar chop replayed in order."
+    },
+    {
+      "id": "4",
+      "title": "Sixteenths and ghost notes: funk and R&B",
+      "goal": "Sixteenth hats and soft ghost snares between loud backbeats; the James Brown and Stevie Wonder grooves. About Melodics stage 4 to 5.",
+      "adds": "Accents and ghosts, moving accents, paradiddles, one-hand and two-hand sixteenths, Stick Control permutations.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "4.1",
+          "title": "Accents and ghosts",
+          "href": "/music/pads?mode=rudiment&pattern=accents-ghosts&bpm=80",
+          "setup": "Technique: accents and ghosts at 80.",
+          "done": "Ghosts under 40% of the accent velocity, 3 runs.",
+          "match": {
+            "pattern": "accents-ghosts"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minDays": 1,
+          "feeds": "Funky Drummer, Superstition"
+        },
+        {
+          "id": "4.2",
+          "title": "Moving accent",
+          "href": "/music/pads?mode=rudiment&pattern=moving-accent&sub=4&bpm=70",
+          "setup": "Technique: moving accent in sixteenths, 70 to 90.",
+          "done": "The accent on the right note 14 of 16, on two days.",
+          "match": {
+            "pattern": "moving-accent"
+          },
+          "threshold": 0.875,
+          "feeds": "Ghost grooves"
+        },
+        {
+          "id": "4.3",
+          "title": "Crescendo",
+          "href": "/music/pads?mode=dynamics&dyn=crescendo",
+          "setup": "Dynamics: crescendo, a bar of sixteenths soft to loud.",
+          "done": "Rising band order, 3 runs.",
+          "match": {
+            "setup": "crescendo"
+          },
+          "threshold": 0.8,
+          "minDays": 1,
+          "feeds": "Builds"
+        },
+        {
+          "id": "4.4",
+          "title": "Paradiddle",
+          "href": "/music/pads?mode=rudiment&pattern=paradiddle&sub=4&bpm=80",
+          "setup": "Technique: paradiddle in sixteenths, 80 to 100.",
+          "done": "40 ms or less at 100.",
+          "match": {
+            "pattern": "paradiddle"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
+          "feeds": "Hats, fills"
+        },
+        {
+          "id": "4.5",
+          "title": "Paradiddle split",
+          "href": "/music/pads?mode=groove&groove=paradiddle-split&bpm=70",
+          "setup": "Grooves: paradiddle split.",
+          "done": "Pass at 90.",
+          "match": {
+            "groove": "paradiddle-split"
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "feeds": "Treasure, funk hats"
+        },
+        {
+          "id": "4.6",
+          "title": "Ghosts in boom bap",
+          "href": "/music/pads?mode=groove&groove=ghost-boom-bap&bpm=80",
+          "setup": "Grooves: boom bap with ghosts, 80 to 92.",
+          "done": "Pass with ghosts under 40% of the accents.",
+          "match": {
+            "groove": "ghost-boom-bap"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "feeds": "Kiss"
+        },
+        {
+          "id": "4.7",
+          "title": "Funk sixteenths",
+          "href": "/music/pads?mode=groove&groove=funk-sixteenths&bpm=80",
+          "setup": "Grooves: funk sixteenths, 80 to 96.",
+          "done": "Pass at 96.",
+          "match": {
+            "groove": "funk-sixteenths"
+          },
+          "threshold": 0.9,
+          "minBpm": 96,
+          "minDays": 1,
+          "feeds": "Superstition, Uptown Funk"
+        },
+        {
+          "id": "4.8",
+          "title": "Funky Drummer",
+          "href": "/music/pads?mode=groove&groove=funky-drummer&bpm=80",
+          "setup": "Grooves: Funky Drummer, 80 to 100.",
+          "done": "Pass at 100, on two days.",
+          "match": {
+            "groove": "funky-drummer"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "feeds": "Funky Drummer"
+        },
+        {
+          "id": "4.9",
+          "title": "Think",
+          "href": "/music/pads?mode=groove&groove=think&bpm=95",
+          "setup": "Grooves: Think (Lyn Collins), 95 to 113.",
+          "done": "Pass at 113.",
+          "match": {
+            "groove": "think"
+          },
+          "threshold": 0.9,
+          "minBpm": 113,
+          "minDays": 1,
+          "feeds": "Think (About It)"
+        },
+        {
+          "id": "4.10",
+          "title": "Stick Control, page one",
+          "setup": "The 16 four-note R/L stickings on two pads, 20 reps each.",
+          "done": "All 16 stickings at 90, 90% on the right pad.",
+          "needs": "Stick Control permutations in Technique: the 16 four-note stickings on two pads.",
+          "feeds": "Fills, linear grooves"
+        },
+        {
+          "id": "4.11",
+          "title": "Write the groove down",
+          "href": "/music/rhythm?mode=groove&grooveLevel=sixteenths",
+          "setup": "Rhythm, Groove dictation: sixteenth kicks and ghost snares.",
+          "done": "5 dictations averaging 75%.",
+          "match": {
+            "level": "sixteenths"
+          },
+          "threshold": 0.75,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "Reading charts"
+        },
+        {
+          "id": "4.12",
+          "title": "Play it back: sixteenths and ghosts",
+          "href": "/music/pads?mode=echo&echo=sixteenths",
+          "setup": "Play it back: Sixteenths and ghosts.",
+          "done": "5 echoes averaging 75%.",
+          "match": {
+            "setup": "echo-sixteenths"
+          },
+          "threshold": 0.75,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "Ear"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "superstition",
+          "title": "Superstition",
+          "artist": "Stevie Wonder",
+          "teaches": "Sixteenth hats with ghosts, the clavinet groove",
+          "detail": "100 BPM",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "jricardocarri, solo, 673 views, 4.7 (109)",
+              "url": "https://musescore.com/user/33758879/scores/6001335"
+            },
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15903097",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "funky-drummer",
+          "title": "Funky Drummer",
+          "artist": "James Brown",
+          "teaches": "The most sampled break: ghosts, open hat",
+          "detail": "100 BPM",
+          "bpm": 100,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "autoenglish, break drum tab, 4.9 (11)",
+              "url": "https://musescore.com/user/27413747/scores/23031694"
+            },
+            {
+              "label": "musicfilesLTE, solo",
+              "url": "https://musescore.com/user/32783/scores/6767174"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Grooves, Funky Drummer",
+            "url": "/music/pads?mode=groove&groove=funky-drummer"
+          }
+        },
+        {
+          "id": "think-about-it",
+          "title": "Think (About It)",
+          "artist": "Lyn Collins",
+          "teaches": "The Yeah! Woo! break, ghosts, tambourine sixteenths",
+          "detail": "113 BPM; no MuseScore score; the app's groove think",
+          "bpm": 113,
+          "diff": 3,
+          "scores": [],
+          "fallback": {
+            "label": "Ethan Hein's transcription",
+            "url": "https://www.ethanhein.com/wp/2026/it-takes-two/"
+          }
+        },
+        {
+          "id": "uptown-funk",
+          "title": "Uptown Funk",
+          "artist": "Mark Ronson and Bruno Mars",
+          "teaches": "Modern funk with stops and hits",
+          "detail": "115 BPM",
+          "bpm": 115,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "carsonharrop1, drum cover, solo (few views)",
+              "url": "https://musescore.com/user/51517142/scores/8683977"
+            },
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15791431",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "kiss",
+          "title": "Kiss",
+          "artist": "Prince",
+          "teaches": "Sparse LinnDrum funk, space as groove",
+          "detail": "112 BPM",
+          "bpm": 112,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15899356",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=kiss%20prince"
+          }
+        },
+        {
+          "id": "september",
+          "title": "September",
+          "artist": "Earth, Wind and Fire",
+          "teaches": "Disco-funk sixteenths, open hats",
+          "detail": "126 BPM",
+          "bpm": 126,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15898255",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=september%20earth%20wind%20fire"
+          }
+        },
+        {
+          "id": "treasure",
+          "title": "Treasure",
+          "artist": "Bruno Mars",
+          "teaches": "Disco-funk, sixteenth hats, claps",
+          "detail": "116 BPM",
+          "bpm": 116,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "faydeereyes, solo (few views)",
+              "url": "https://musescore.com/user/43450223/scores/24634696"
+            }
+          ]
+        },
+        {
+          "id": "rock-with-you",
+          "title": "Rock with You",
+          "artist": "Michael Jackson",
+          "teaches": "Smooth sixteenth hats, light ghosts",
+          "detail": "114 BPM",
+          "bpm": 114,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "davidmacatang, drum group, 4.8 (48)",
+              "url": "https://musescore.com/user/48280362/scores/11379340"
+            }
+          ]
+        },
+        {
+          "id": "crazy-in-love",
+          "title": "Crazy in Love",
+          "artist": "Beyoncé",
+          "teaches": "Horn-hit funk beat, syncopated kick",
+          "detail": "99 BPM",
+          "bpm": 99,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/16088536",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=crazy%20in%20love%20beyonce"
+          }
+        },
+        {
+          "id": "use-me",
+          "title": "Use Me",
+          "artist": "Bill Withers",
+          "teaches": "Bill Withers' hi-hat funk, ghosted snare",
+          "detail": "76 BPM; MuseScore has only band arrangements",
+          "bpm": 76,
+          "diff": 3,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/bill-withers-use-me-tab-s843207"
+          }
+        }
+      ],
+      "test": "Funky Drummer at 100 and one shelf song with ghosts under 40% of the accents, plus the moving accent at 90."
+    },
+    {
+      "id": "5",
+      "title": "Four on the floor: disco, house, electro; loops and chops",
+      "goal": "Dance grooves at 110 to 128 with open hats, claps and builds; play over loops and arrange a chop. About Melodics stage 5 to 6.",
+      "adds": "Endurance at tempo, the build and drop, Note Repeat, reordering chops, 16 to 32 bar forms.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "5.1",
+          "title": "Four on the floor with open hats",
+          "href": "/music/pads?mode=groove&groove=four-on-floor&bpm=110",
+          "setup": "Grooves: four on the floor, then house, 110 to 124.",
+          "done": "Each passes at 124, on two days.",
+          "each": {
+            "param": "groove",
+            "values": ["four-on-floor", "house"]
+          },
+          "threshold": 0.9,
+          "minBpm": 124,
+          "links": [
+            {
+              "label": "House",
+              "href": "/music/pads?mode=groove&groove=house&bpm=110"
+            }
+          ],
+          "feeds": "All dance music"
+        },
+        {
+          "id": "5.2",
+          "title": "Disco hats",
+          "setup": "A disco groove: sixteenth hats with an open hat on each &, snare on 2 and 4.",
+          "done": "Pass at 120.",
+          "needs": "A groove disco in Grooves.",
+          "feeds": "Le Freak, Stayin' Alive"
+        },
+        {
+          "id": "5.3",
+          "title": "Endurance",
+          "href": "/music/pads?mode=steady&steady=house&bpm=124",
+          "setup": "Hold the tempo: house at 124.",
+          "done": "12 bars within 2 BPM (the app flags 3; aim for 2).",
+          "match": {
+            "groove": "house"
+          },
+          "threshold": 0.8,
+          "minBpm": 124,
+          "minDays": 1,
+          "feeds": "DJ-length songs"
+        },
+        {
+          "id": "5.4",
+          "title": "Snare build to the drop",
+          "href": "/music/pads?mode=groove&groove=snare-build&bpm=110",
+          "setup": "Grooves: snare build to the drop.",
+          "done": "Pass, the crash on the drop in the window.",
+          "match": {
+            "groove": "snare-build"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "feeds": "Titanium"
+        },
+        {
+          "id": "5.5",
+          "title": "Note repeat",
+          "setup": "Hold a pad with Note Repeat at 1/8, then 1/16; pressure (aftertouch) sets the velocity.",
+          "done": "A 4-bar build with rising velocity.",
+          "needs": "Note Repeat in Create: hold a pad at 1/8, 1/16, 1/32 or 1/16T, velocity from aftertouch.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "Builds, trap"
+        },
+        {
+          "id": "5.6",
+          "title": "Over a loop, house",
+          "setup": "A 4-bar house loop under the house groove.",
+          "done": "32 bars, drift under 2 BPM.",
+          "needs": "Play over a loop: a 2-bar or 4-bar loop from the Library under Grooves, BPM typed, downbeat nudged.",
+          "links": [
+            {
+              "label": "House with the band",
+              "href": "/music/pads?mode=groove&groove=house&backing=1"
+            }
+          ],
+          "feeds": "Real practice"
+        },
+        {
+          "id": "5.7",
+          "title": "Chop and reorder",
+          "setup": "Play a written reorder of a chopped loop.",
+          "done": "Pass at 110.",
+          "needs": "A chop drill: a loop sliced onto pads A01 to A16, exercise 2: play a written reorder.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "Sample flips"
+        },
+        {
+          "id": "5.8",
+          "title": "Song form",
+          "setup": "A 32-bar piece: intro, groove, build, drop, outro.",
+          "done": "Every section passed in one take.",
+          "needs": "Song-form pieces: sections (intro, groove, build, drop, outro) graded in one take.",
+          "feeds": "The level test"
+        },
+        {
+          "id": "5.9",
+          "title": "Hear the kit",
+          "href": "/music/listening?exercise=level&material=drums",
+          "setup": "Studio ears on the drum loop: Level, then Compression.",
+          "done": "8 of 10 right on each.",
+          "exerciseIds": ["studio.level", "studio.compression"],
+          "each": {
+            "param": "exercise",
+            "values": ["level", "compression"]
+          },
+          "match": {
+            "material": "drums"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Compression",
+              "href": "/music/listening?exercise=compression&material=drums"
+            }
+          ],
+          "feeds": "Mixing ears"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "stayin-alive",
+          "title": "Stayin' Alive",
+          "artist": "Bee Gees",
+          "teaches": "The disco beat, sixteenth hats",
+          "detail": "104 BPM",
+          "bpm": 104,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "cigatomas, solo, 4.8 (9)",
+              "url": "https://musescore.com/user/64989379/scores/12022000"
+            },
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/16088575",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "le-freak",
+          "title": "Le Freak",
+          "artist": "Chic",
+          "teaches": "Disco open hats, breakdown",
+          "detail": "120 BPM",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "225210, solo",
+              "url": "https://musescore.com/user/116028644/scores/37745813"
+            },
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/35177135",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "good-times",
+          "title": "Good Times",
+          "artist": "Chic",
+          "teaches": "The groove under Rapper's Delight",
+          "detail": "110 BPM",
+          "bpm": 110,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "eunhyeok0325, solo",
+              "url": "https://musescore.com/user/77568700/scores/33523772"
+            },
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15899089",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "get-lucky",
+          "title": "Get Lucky",
+          "artist": "Daft Punk",
+          "teaches": "Disco-house, light hats",
+          "detail": "116 BPM",
+          "bpm": 116,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15903091",
+              "official": true
+            },
+            {
+              "label": "jaimeagustinv, percussion part",
+              "url": "https://musescore.com/user/38646979/scores/7106098"
+            }
+          ]
+        },
+        {
+          "id": "one-more-time",
+          "title": "One More Time",
+          "artist": "Daft Punk",
+          "teaches": "Filter-house four on the floor, the breakdown",
+          "detail": "123 BPM",
+          "bpm": 123,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "mapextoto, solo",
+              "url": "https://musescore.com/user/9140556/scores/2023016"
+            }
+          ]
+        },
+        {
+          "id": "levitating",
+          "title": "Levitating",
+          "artist": "Dua Lipa",
+          "teaches": "Nu-disco, open hats, claps",
+          "detail": "103 BPM",
+          "bpm": 103,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Obedire, solo",
+              "url": "https://musescore.com/user/80114596/scores/15163561"
+            },
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/18796054",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "titanium",
+          "title": "Titanium",
+          "artist": "David Guetta and Sia",
+          "teaches": "EDM build, snare roll, drop",
+          "detail": "126 BPM",
+          "bpm": 126,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Costas1965, solo, 1K views",
+              "url": "https://musescore.com/user/1095166/scores/3181386"
+            },
+            {
+              "label": "Official, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/19247689",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "gypsy-woman",
+          "title": "Gypsy Woman",
+          "artist": "Crystal Waters",
+          "teaches": "The house classic: kick, clap, shaker",
+          "detail": "120 BPM",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "dudebub, drums and piano duet, 4.7 (275) (read the drum staff)",
+              "url": "https://musescore.com/user/30198370/scores/5464605"
+            }
+          ]
+        },
+        {
+          "id": "blue-monday",
+          "title": "Blue Monday",
+          "artist": "New Order",
+          "teaches": "Sixteenth kick intro, drum machine",
+          "detail": "130 BPM; MuseScore has only band arrangements",
+          "bpm": 130,
+          "diff": 3,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/new-order-blue-monday-tab-s48464t3"
+          }
+        }
+      ],
+      "test": "A 32-bar song-form piece over a loop in one take, plus two shelf songs at tempo."
+    },
+    {
+      "id": "6",
+      "title": "Fills, dynamics and song form",
+      "goal": "Whole rock songs with fills that land, verse and chorus dynamics, and rudiments spread over the kit. About Melodics stage 6 to 7.",
+      "adds": "One hand holds while the other fills, six-stroke roll, double paradiddle, orchestrations, reading a line over an ostinato.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "6.1",
+          "title": "Whole-bar fills",
+          "href": "/music/pads?mode=fills&fill=whole-bar&bpm=70",
+          "setup": "Fills: a bar of sixteenths around the kit, 70 to 100.",
+          "done": "5 landed at 100.",
+          "match": {
+            "setup": "fill-whole-bar"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "All shelf songs"
+        },
+        {
+          "id": "6.2",
+          "title": "Paradiddle around the kit",
+          "href": "/music/pads?mode=orchestrate&orch=toms-lead&bpm=90",
+          "setup": "Rudiments on the kit: toms lead, then hats and snare.",
+          "done": "Each passes at 90.",
+          "each": {
+            "param": "setup",
+            "values": ["orch-toms-lead", "orch-hats-snare"]
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Hats and snare",
+              "href": "/music/pads?mode=orchestrate&orch=hats-snare&bpm=90"
+            }
+          ],
+          "feeds": "Come Together, Wipe Out"
+        },
+        {
+          "id": "6.3",
+          "title": "Six-stroke roll",
+          "href": "/music/pads?mode=rudiment&pattern=six-stroke&bpm=70",
+          "setup": "Technique: six-stroke roll, 70 to 100.",
+          "done": "40 ms or less at 100.",
+          "match": {
+            "pattern": "six-stroke"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
+          "feeds": "Fills"
+        },
+        {
+          "id": "6.4",
+          "title": "Double paradiddle and paradiddle-diddle",
+          "href": "/music/pads?mode=rudiment&pattern=double-paradiddle&bpm=70",
+          "setup": "Technique: double paradiddle, then paradiddle-diddle.",
+          "done": "Each at 40 ms or less at 90.",
+          "each": {
+            "param": "pattern",
+            "values": ["double-paradiddle", "paradiddle-diddle"]
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Paradiddle-diddle",
+              "href": "/music/pads?mode=rudiment&pattern=paradiddle-diddle&bpm=70"
+            }
+          ],
+          "feeds": "Fills in sixes"
+        },
+        {
+          "id": "6.5",
+          "title": "Flams",
+          "href": "/music/pads?mode=rudiment&pattern=flam",
+          "setup": "Technique: flam.",
+          "done": "Flam gap under 30 ms, 3 runs.",
+          "match": {
+            "pattern": "flam"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "feeds": "Fills, Wipe Out"
+        },
+        {
+          "id": "6.6",
+          "title": "Ostinato and a line",
+          "href": "/music/pads?mode=ostinato&line=quarters",
+          "setup": "Ostinato and a line: all 4 lines.",
+          "done": "Hats held while the snare reads each line, pass.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "ostinato-quarters",
+              "ostinato-backbeat-push",
+              "ostinato-offbeats",
+              "ostinato-sixteenths"
+            ]
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Backbeat with pushes",
+              "href": "/music/pads?mode=ostinato&line=backbeat-push"
+            },
+            {
+              "label": "Off-beat eighths",
+              "href": "/music/pads?mode=ostinato&line=offbeats"
+            },
+            {
+              "label": "Sixteenth syncopations",
+              "href": "/music/pads?mode=ostinato&line=sixteenths"
+            }
+          ],
+          "feeds": "Reading charts"
+        },
+        {
+          "id": "6.7",
+          "title": "Reading interpretations",
+          "setup": "Syncopation-style lines read in two interpretations over the hats.",
+          "done": "8 lines read in 2 interpretations.",
+          "needs": "A Syncopation-style reading generator in Ostinato and a line.",
+          "feeds": "Sight-reading charts"
+        },
+        {
+          "id": "6.8",
+          "title": "Three-finger and triple strokes",
+          "href": "/music/pads?mode=rudiment&pattern=triple-strokes&bpm=70",
+          "setup": "Technique: triple strokes.",
+          "done": "40 ms or less at 90.",
+          "match": {
+            "pattern": "triple-strokes"
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "feeds": "Rolls"
+        },
+        {
+          "id": "6.9",
+          "title": "Dynamics in a song",
+          "setup": "A song-form piece with the verse in the soft band and the chorus in the loud band.",
+          "done": "Bands right in 4 of 4 sections.",
+          "needs": "Song-form pieces: sections (intro, groove, build, drop, outro) graded in one take, with a dynamics band per section.",
+          "feeds": "Every song"
+        },
+        {
+          "id": "6.10",
+          "title": "Two-beat fill, any fill",
+          "setup": "Improvise over the funk vamp with a fill every 4th bar, 32 bars.",
+          "done": "8 fills over 32 bars, all landed.",
+          "needs": "A fill every Nth bar option and 32 bars in Improvise, with Check runs that count.",
+          "links": [
+            {
+              "label": "Improvise",
+              "href": "/music/pads?mode=improvise"
+            }
+          ],
+          "feeds": "The level test"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "in-the-air-tonight",
+          "title": "In the Air Tonight",
+          "artist": "Phil Collins",
+          "teaches": "The fill, and holding back for 3 minutes",
+          "detail": "96 BPM",
+          "bpm": 96,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Costas1965, full score, 1.7K views, 4.8 (120)",
+              "url": "https://musescore.com/user/1095166/scores/4758156"
+            },
+            {
+              "label": "Midi Drum Scores",
+              "url": "https://musescore.com/user/11785381/scores/5250644"
+            }
+          ]
+        },
+        {
+          "id": "come-together",
+          "title": "Come Together",
+          "artist": "The Beatles",
+          "teaches": "Ringo's tom groove, hats lifted",
+          "detail": "82 BPM",
+          "bpm": 82,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard drum chart",
+              "url": "https://musescore.com/user/39593079/scores/15733867",
+              "official": true
+            },
+            {
+              "label": "Community, Gary Clark Jr. version",
+              "url": "https://musescore.com/user/38235231/scores/4881394"
+            }
+          ]
+        },
+        {
+          "id": "smells-like-teen-spirit",
+          "title": "Smells Like Teen Spirit",
+          "artist": "Nirvana",
+          "teaches": "Loud and soft, the snare fill intro",
+          "detail": "117 BPM",
+          "bpm": 117,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Alldrummer, solo, 2.5K views, 4.7 (453)",
+              "url": "https://musescore.com/user/9111646/scores/5151823"
+            }
+          ]
+        },
+        {
+          "id": "sunshine-of-your-love",
+          "title": "Sunshine of Your Love",
+          "artist": "Cream",
+          "teaches": "Ginger Baker's tom backbeat",
+          "detail": "116 BPM",
+          "bpm": 116,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "IMONMICH, solo",
+              "url": "https://musescore.com/user/59066206/scores/22200220"
+            },
+            {
+              "label": "Official, School of Rock",
+              "url": "https://musescore.com/user/39593079/scores/15854317",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "wipe-out",
+          "title": "Wipe Out",
+          "artist": "The Surfaris",
+          "teaches": "The tom solo: singles and accents",
+          "detail": "160 BPM",
+          "bpm": 160,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Midi Drum Scores, solo, 4.7 (26)",
+              "url": "https://musescore.com/user/11785381/scores/5251543"
+            },
+            {
+              "label": "MusicArteMx",
+              "url": "https://musescore.com/user/33601797/scores/6906752"
+            }
+          ]
+        },
+        {
+          "id": "everlong",
+          "title": "Everlong",
+          "artist": "Foo Fighters",
+          "teaches": "Fast, dense eighths, big fills",
+          "detail": "158 BPM",
+          "bpm": 158,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Lawrence Buter, solo, 649 views, 4.6 (156)",
+              "url": "https://musescore.com/user/33260248/scores/5852217"
+            },
+            {
+              "label": "franciscocida, simplified",
+              "url": "https://musescore.com/user/39228629/scores/12376852"
+            }
+          ]
+        },
+        {
+          "id": "basket-case",
+          "title": "Basket Case",
+          "artist": "Green Day",
+          "teaches": "Punk speed, fills between lines",
+          "detail": "170 BPM, cut time",
+          "bpm": 170,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15897715",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=basket%20case%20green%20day"
+          }
+        },
+        {
+          "id": "rock-and-roll",
+          "title": "Rock and Roll",
+          "artist": "Led Zeppelin",
+          "teaches": "Bonham's intro and fill-heavy ending",
+          "detail": "170 BPM",
+          "bpm": 170,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15898096",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=rock%20and%20roll%20led%20zeppelin"
+          }
+        },
+        {
+          "id": "dear-maria-count-me-in",
+          "title": "Dear Maria, Count Me In",
+          "artist": "All Time Low",
+          "teaches": "Pop punk: snare-heavy fills",
+          "detail": "182 BPM",
+          "bpm": 182,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Raypuff, drum score, 4.6 (17)",
+              "url": "https://musescore.com/user/20889476/scores/4024551"
+            }
+          ]
+        }
+      ],
+      "test": "Two shelf songs end to end with every fill landed, plus 32 bars of improvised fills from step 6.10."
+    },
+    {
+      "id": "7",
+      "title": "Trap, modern hip hop, note repeat and live beats",
+      "goal": "Half-time trap with 1/32 and triplet hat rolls, Dilla feel, and building a beat live on the pads. About Melodics stage 7 to 8.",
+      "adds": "1/32 rolls, triplet rolls, Note Repeat with velocity, live loop recording with overdub, swing 62 and Dilla feel, chopping a melody.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "7.1",
+          "title": "Two-finger roll",
+          "href": "/music/pads?mode=rudiment&pattern=finger-roll&bpm=90",
+          "setup": "Technique: finger roll, 90 to 120.",
+          "done": "40 ms or less at 120.",
+          "match": {
+            "pattern": "finger-roll"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "minDays": 1,
+          "feeds": "All rolls"
+        },
+        {
+          "id": "7.2",
+          "title": "1/32 roll",
+          "href": "/music/pads?mode=rudiment&pattern=roll-32&bpm=70",
+          "setup": "Technique: 1/32 roll, 70 to 100.",
+          "done": "35 ms or less at 100.",
+          "match": {
+            "pattern": "roll-32"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
+          "feeds": "Trap hats"
+        },
+        {
+          "id": "7.3",
+          "title": "Triplet roll",
+          "href": "/music/pads?mode=rudiment&pattern=roll-16t&bpm=80",
+          "setup": "Technique: 1/16 triplet roll, 80 to 120. The rudiment works today; inside a groove it needs the triplet grid.",
+          "done": "35 ms or less at 120.",
+          "match": {
+            "pattern": "roll-16t"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
+          "minDays": 1,
+          "feeds": "Trap hats"
+        },
+        {
+          "id": "7.4",
+          "title": "Trap with a 1/32 roll",
+          "href": "/music/pads?mode=groove&groove=trap-32&bpm=120",
+          "setup": "Grooves: trap with a 1/32 roll, 120 to 140.",
+          "done": "Pass at 140, on two days.",
+          "match": {
+            "groove": "trap-32"
+          },
+          "threshold": 0.9,
+          "minBpm": 140,
+          "feeds": "All trap"
+        },
+        {
+          "id": "7.5",
+          "title": "Trap with a triplet roll",
+          "href": "/music/pads?mode=groove&groove=trap-triplet&bpm=120",
+          "setup": "Grooves: trap with a triplet roll.",
+          "done": "Pass at 140.",
+          "match": {
+            "groove": "trap-triplet"
+          },
+          "threshold": 0.9,
+          "minBpm": 140,
+          "minDays": 1,
+          "feeds": "SICKO MODE, Lucid Dreams"
+        },
+        {
+          "id": "7.6",
+          "title": "Swing 62 and Dilla",
+          "href": "/music/pads?mode=groove&groove=swing-62&bpm=78",
+          "setup": "Grooves: boom bap at swing 62%, then Dilla feel, 78 to 88.",
+          "done": "Swing read within 3 points; the Dilla snare early.",
+          "each": {
+            "param": "groove",
+            "values": ["swing-62", "dilla"]
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Dilla feel",
+              "href": "/music/pads?mode=groove&groove=dilla&bpm=78"
+            }
+          ],
+          "feeds": "Neo-soul, lo-fi"
+        },
+        {
+          "id": "7.7",
+          "title": "Note repeat rolls",
+          "setup": "Note Repeat at 1/16, 1/32 and 1/16T on 4 written roll bars.",
+          "done": "4 written roll bars, pass.",
+          "needs": "Note Repeat in Create: hold a pad at 1/8, 1/16, 1/32 or 1/16T, velocity from aftertouch.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "Trap"
+        },
+        {
+          "id": "7.8",
+          "title": "Live beat, 2 bars",
+          "setup": "Record a loop in passes: kick, then snare, then hats.",
+          "done": "A 2-bar loop at 140 with no undo after the third pass.",
+          "needs": "Live beat making in Create: loop recording with overdub, played on the pads.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "The capstone"
+        },
+        {
+          "id": "7.9",
+          "title": "Chop a melody",
+          "setup": "Chop a melody freely and record the pattern.",
+          "done": "A 4-bar chop pattern repeated twice, in time.",
+          "needs": "A chop drill: a loop sliced onto pads A01 to A16, exercise 3: a free chop, recorded.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "Sample beats"
+        },
+        {
+          "id": "7.10",
+          "title": "Snare and 808 placement",
+          "setup": "Rhythm, Groove dictation on trap grooves.",
+          "done": "5 dictations averaging 75%.",
+          "needs": "A trap level in Rhythm, Groove dictation.",
+          "links": [
+            {
+              "label": "Groove dictation",
+              "href": "/music/rhythm?mode=groove&grooveLevel=sixteenths"
+            }
+          ],
+          "feeds": "Ear"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "humble",
+          "title": "HUMBLE.",
+          "artist": "Kendrick Lamar",
+          "teaches": "Sparse trap, hard snare on 3",
+          "detail": "76 BPM, half time",
+          "bpm": 76,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "lunahowell45, solo, 385 views",
+              "url": "https://musescore.com/user/192648/scores/1167771"
+            }
+          ]
+        },
+        {
+          "id": "old-town-road",
+          "title": "Old Town Road",
+          "artist": "Lil Nas X",
+          "teaches": "Country trap, hat rolls",
+          "detail": "68 BPM, half time",
+          "bpm": 68,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lu Cuong, solo, 4.8",
+              "url": "https://musescore.com/user/21617691/scores/6139524"
+            }
+          ]
+        },
+        {
+          "id": "bad-guy",
+          "title": "Bad Guy",
+          "artist": "Billie Eilish",
+          "teaches": "Minimal pop trap, finger snaps, the switch-up",
+          "detail": "135 BPM",
+          "bpm": 135,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/19246276",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "sunflower",
+          "title": "Sunflower",
+          "artist": "Post Malone and Swae Lee",
+          "teaches": "Light trap-pop, rolls",
+          "detail": "90 BPM",
+          "bpm": 90,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "MelinBlack, solo, 4.7 (14)",
+              "url": "https://musescore.com/user/33928508/scores/6030514"
+            },
+            {
+              "label": "Edgars Raila, drum set",
+              "url": "https://musescore.com/user/11829921/scores/22702909"
+            }
+          ]
+        },
+        {
+          "id": "gods-plan",
+          "title": "God's Plan",
+          "artist": "Drake",
+          "teaches": "Soft trap, rolls and space",
+          "detail": "77 BPM",
+          "bpm": 77,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/18774259",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "rockstar",
+          "title": "rockstar",
+          "artist": "Post Malone",
+          "teaches": "Dark trap, rolls and 808",
+          "detail": "80 BPM",
+          "bpm": 80,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "GaBz_, solo",
+              "url": "https://musescore.com/user/70358935/scores/21398761"
+            }
+          ]
+        },
+        {
+          "id": "lucid-dreams",
+          "title": "Lucid Dreams",
+          "artist": "Juice WRLD",
+          "teaches": "Triplet hat rolls",
+          "detail": "84 BPM; needs the triplet grid",
+          "bpm": 84,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/22395901",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "sicko-mode",
+          "title": "SICKO MODE",
+          "artist": "Travis Scott",
+          "teaches": "Beat switches, triplet hats",
+          "detail": "155 then 78 BPM; needs the triplet grid",
+          "bpm": 155,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "calin_marcu, solo",
+              "url": "https://musescore.com/user/111768338/scores/29508872"
+            }
+          ]
+        },
+        {
+          "id": "mask-off",
+          "title": "Mask Off",
+          "artist": "Future",
+          "teaches": "Flute-loop trap, rolls",
+          "detail": "75 BPM; MuseScore has only band arrangements",
+          "bpm": 75,
+          "diff": 2,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/future-mask-off-tab-s435835"
+          }
+        }
+      ],
+      "test": "Two shelf songs at tempo, trap with a 1/32 roll at 140 with the roll velocity rising, and a live 2-bar beat built from silence in under 5 minutes."
+    },
+    {
+      "id": "8",
+      "title": "Shuffles, triplets and swing",
+      "goal": "The shuffle family: blues shuffle, rock and roll swing, the 12/8 slow blues, the half-time shuffle. About Melodics stage 8; most of it waits for the triplet grid.",
+      "adds": "Triplet subdivision, swung eighths, ghosted triplet partials, MPC swing 66 as the bridge from straight to triplet.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "8.1",
+          "title": "Triplet singles",
+          "href": "/music/pads?mode=rudiment&pattern=single-strokes&sub=3&bpm=60",
+          "setup": "Technique: single strokes in triplets, 60 to 100 (works today).",
+          "done": "40 ms or less at 100.",
+          "match": {
+            "pattern": "single-strokes",
+            "sub": "3"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
+          "feeds": "All shuffles"
+        },
+        {
+          "id": "8.2",
+          "title": "Swing 66 as a bridge",
+          "setup": "Boom bap at swing 66 instead of 62.",
+          "done": "Swing read 64 to 68%.",
+          "needs": "A swing setting on any groove (50 to 75, 66 included).",
+          "links": [
+            {
+              "label": "Swing 62",
+              "href": "/music/pads?mode=groove&groove=swing-62"
+            }
+          ],
+          "feeds": "Rock and roll"
+        },
+        {
+          "id": "8.3",
+          "title": "Blues shuffle",
+          "setup": "Hats on 1 and 3 of each triplet, kick on 1 and 3, snare on 2 and 4.",
+          "done": "Pass at 120.",
+          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove blues-shuffle.",
+          "links": [
+            {
+              "label": "Warm-up study: Blues Shuffle drums, bf 23, 4.8 (59)",
+              "href": "https://musescore.com/user/28309738/scores/5899293"
+            }
+          ],
+          "feeds": "Pride and Joy, Tush"
+        },
+        {
+          "id": "8.4",
+          "title": "Swing ride",
+          "setup": "The jazz ride pattern on the triplet grid.",
+          "done": "Pass at 140.",
+          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove swing-ride.",
+          "feeds": "In the Mood, Sing, Sing, Sing"
+        },
+        {
+          "id": "8.5",
+          "title": "12/8 slow blues",
+          "setup": "A 12/8 grid and a slow blues groove.",
+          "done": "Pass at 60.",
+          "needs": "Meter support (12/8) and the triplet grid in Grooves.",
+          "feeds": "Red House, Everybody Wants to Rule the World"
+        },
+        {
+          "id": "8.6",
+          "title": "Shuffle with a ghost",
+          "setup": "A snare ghost on the third triplet partial.",
+          "done": "Ghosts under 40%, pass at 100.",
+          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove shuffle-ghosts.",
+          "feeds": "Purdie, Rosanna"
+        },
+        {
+          "id": "8.7",
+          "title": "Purdie shuffle",
+          "setup": "The Purdie half-time shuffle.",
+          "done": "Pass at 92.",
+          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove purdie.",
+          "feeds": "Home at Last"
+        },
+        {
+          "id": "8.8",
+          "title": "Rosanna shuffle",
+          "setup": "The Rosanna half-time shuffle.",
+          "done": "Pass at 86.",
+          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove rosanna.",
+          "feeds": "Rosanna"
+        },
+        {
+          "id": "8.9",
+          "title": "Fool in the Rain",
+          "setup": "Bonham's half-time shuffle.",
+          "done": "Pass at 130.",
+          "needs": "The triplet grid in Grooves (12 and 24 steps a bar) and a groove fool-in-the-rain.",
+          "feeds": "Fool in the Rain"
+        },
+        {
+          "id": "8.10",
+          "title": "Triplet fills",
+          "setup": "Fills in triplets.",
+          "done": "5 landed at 100.",
+          "needs": "The triplet grid and triplet fills in Fills.",
+          "feeds": "All shuffles"
+        },
+        {
+          "id": "8.11",
+          "title": "Hear straight against swung",
+          "setup": "A rhythm feel drill: straight, swung, shuffle, 12/8.",
+          "done": "8 of 10 right.",
+          "needs": "A feel item in the ear drills: straight, swung, shuffle, 12/8.",
+          "feeds": "The ear path"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "rock-around-the-clock",
+          "title": "Rock Around the Clock",
+          "artist": "Bill Haley",
+          "teaches": "Swung eighths, snare on 2 and 4",
+          "detail": "182 BPM; needs the triplet grid",
+          "bpm": 182,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15899128",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=rock%20around%20the%20clock"
+          }
+        },
+        {
+          "id": "pride-and-joy",
+          "title": "Pride and Joy",
+          "artist": "Stevie Ray Vaughan",
+          "teaches": "Texas blues shuffle",
+          "detail": "120 BPM; needs the triplet grid",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "impiastro, solo, 4.6 (12)",
+              "url": "https://musescore.com/user/35422780/scores/7705289"
+            },
+            {
+              "label": "Official, Hal Leonard transcription",
+              "url": "https://musescore.com/user/39593079/scores/15690379",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "tush",
+          "title": "Tush",
+          "artist": "ZZ Top",
+          "teaches": "Rock shuffle, crash accents",
+          "detail": "140 BPM; needs the triplet grid",
+          "bpm": 140,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Leprechaun74, drum sheet, 4.6 (14)",
+              "url": "https://musescore.com/user/27068250/scores/6926994"
+            }
+          ]
+        },
+        {
+          "id": "la-grange",
+          "title": "La Grange",
+          "artist": "ZZ Top",
+          "teaches": "Boogie shuffle on the toms, then the hats",
+          "detail": "160 BPM; needs the triplet grid",
+          "bpm": 160,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "laski89, solo, 4.7 (13)",
+              "url": "https://musescore.com/user/25923556/scores/4713881"
+            },
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15733879",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "everybody-wants-to-rule-the-world",
+          "title": "Everybody Wants to Rule the World",
+          "artist": "Tears for Fears",
+          "teaches": "12/8 pop shuffle",
+          "detail": "112 BPM; needs the triplet grid and meter support",
+          "bpm": 112,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "bhurst76, drums, 441 views, 4.7 (77)",
+              "url": "https://musescore.com/user/28844088/scores/7446251"
+            }
+          ]
+        },
+        {
+          "id": "hold-the-line",
+          "title": "Hold the Line",
+          "artist": "Toto",
+          "teaches": "Porcaro's piano-driving shuffle",
+          "detail": "96 BPM; needs the triplet grid",
+          "bpm": 96,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Leprechaun74, drum sheet, 426 views, 4.7 (66)",
+              "url": "https://musescore.com/user/27068250/scores/6996902"
+            }
+          ]
+        },
+        {
+          "id": "sing-sing-sing",
+          "title": "Sing, Sing, Sing",
+          "artist": "Benny Goodman",
+          "teaches": "Krupa's swing tom beat",
+          "detail": "210 BPM; needs the triplet grid",
+          "bpm": 210,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "vikavoronova1, drums, 4.8 (86)",
+              "url": "https://musescore.com/user/32604178/scores/5635517"
+            },
+            {
+              "label": "Official, Hal Leonard transcription",
+              "url": "https://musescore.com/user/39593079/scores/15827167",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "red-house",
+          "title": "Red House",
+          "artist": "Jimi Hendrix",
+          "teaches": "Slow 12/8 blues",
+          "detail": "60 BPM in 12/8; needs the triplet grid and meter support",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, School of Rock",
+              "url": "https://musescore.com/user/39593079/scores/15857410",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "rosanna",
+          "title": "Rosanna",
+          "artist": "Toto",
+          "teaches": "The half-time shuffle",
+          "detail": "86 BPM; needs the triplet grid",
+          "bpm": 86,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "nathanjenning1, solo, 434 views, 4.8 (60)",
+              "url": "https://musescore.com/user/31688293/scores/5810607"
+            },
+            {
+              "label": "Study: Rosanna shuffle, RobbertHendriks",
+              "url": "https://musescore.com/user/30983462/scores/6052991"
+            }
+          ],
+          "fallback": {
+            "label": "Wikipedia: Rosanna shuffle",
+            "url": "https://en.wikipedia.org/wiki/Rosanna_shuffle"
+          }
+        },
+        {
+          "id": "home-at-last",
+          "title": "Home at Last",
+          "artist": "Steely Dan",
+          "teaches": "The Purdie shuffle",
+          "detail": "92 BPM; the song itself is only in band arrangements; needs the triplet grid",
+          "bpm": 92,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Study: Purdie half time shuffle, jdmagby, 4.7 (31)",
+              "url": "https://musescore.com/user/34034864/scores/6725463"
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/steely-dan-home-at-last-tab-s1441329"
+          }
+        },
+        {
+          "id": "fool-in-the-rain",
+          "title": "Fool in the Rain",
+          "artist": "Led Zeppelin",
+          "teaches": "Bonham's half-time shuffle and the samba break",
+          "detail": "130 BPM; no MuseScore score; needs the triplet grid",
+          "bpm": 130,
+          "diff": 3,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr drum practice",
+            "url": "https://www.songsterr.com/a/wsa/led-zeppelin-fool-in-the-raindrum-practice-tab-s1789443"
+          }
+        }
+      ],
+      "test": "Pride and Joy or Tush at tempo, Rosanna or Home at Last at 80% of tempo with ghosts under 40%, plus triplet singles at 100."
+    },
+    {
+      "id": "9",
+      "title": "Latin, Caribbean, Brazilian and Afro grooves",
+      "goal": "The clave-based and dance-hall families, with the right hand on cowbell, rim or shaker and the left keeping the bass pattern. About Melodics stage 8 to 9.",
+      "adds": "Clave as an ostinato, 3+3+2, cross-stick, the one drop's half time, samba surdo, afrobeat kicks in double strokes.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "9.1",
+          "title": "Son clave and rumba clave",
+          "href": "/music/pads?mode=groove&groove=son-clave&bpm=80",
+          "setup": "Grooves: son clave, then rumba clave.",
+          "done": "Each passes at 100, then clapped while the app plays the kick.",
+          "each": {
+            "param": "groove",
+            "values": ["son-clave", "rumba-clave"]
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Rumba clave",
+              "href": "/music/pads?mode=groove&groove=rumba-clave&bpm=80"
+            }
+          ],
+          "feeds": "All Latin"
+        },
+        {
+          "id": "9.2",
+          "title": "Tresillo under a backbeat",
+          "href": "/music/pads?mode=groove&groove=tresillo-backbeat&bpm=85",
+          "setup": "Grooves: tresillo under a backbeat.",
+          "done": "Pass at 100.",
+          "match": {
+            "groove": "tresillo-backbeat"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minDays": 1,
+          "feeds": "Dembow, afrobeats"
+        },
+        {
+          "id": "9.3",
+          "title": "Dembow and reggaeton",
+          "href": "/music/pads?mode=groove&groove=dembow&bpm=85",
+          "setup": "Grooves: dembow, then reggaeton, 85 to 100.",
+          "done": "Each passes at 95.",
+          "each": {
+            "param": "groove",
+            "values": ["dembow", "reggaeton"]
+          },
+          "threshold": 0.9,
+          "minBpm": 95,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Reggaeton",
+              "href": "/music/pads?mode=groove&groove=reggaeton&bpm=85"
+            }
+          ],
+          "feeds": "Despacito, Gasolina"
+        },
+        {
+          "id": "9.4",
+          "title": "One drop and steppers",
+          "href": "/music/pads?mode=groove&groove=one-drop&bpm=65",
+          "setup": "Grooves: reggae one drop, then steppers.",
+          "done": "One drop passes at 75, steppers at 120.",
+          "each": {
+            "param": "groove",
+            "values": ["one-drop", "steppers"]
+          },
+          "threshold": 0.9,
+          "minBpm": 75,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Steppers",
+              "href": "/music/pads?mode=groove&groove=steppers&bpm=100"
+            }
+          ],
+          "feeds": "Bob Marley"
+        },
+        {
+          "id": "9.5",
+          "title": "Dancehall and soca",
+          "href": "/music/pads?mode=groove&groove=dancehall&bpm=85",
+          "setup": "Grooves: dancehall, then soca.",
+          "done": "Each passes at its target (95 and 125).",
+          "each": {
+            "param": "groove",
+            "values": ["dancehall", "soca"]
+          },
+          "threshold": 0.9,
+          "minBpm": 95,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Soca",
+              "href": "/music/pads?mode=groove&groove=soca&bpm=105"
+            },
+            {
+              "label": "Study: Soca Beat 1, chazonstylez",
+              "href": "https://musescore.com/user/72427750/scores/14802487"
+            }
+          ],
+          "feeds": "Soca, dancehall"
+        },
+        {
+          "id": "9.6",
+          "title": "Cumbia",
+          "href": "/music/pads?mode=groove&groove=cumbia&bpm=70",
+          "setup": "Grooves: cumbia.",
+          "done": "Pass at 95.",
+          "match": {
+            "groove": "cumbia"
+          },
+          "threshold": 0.9,
+          "minBpm": 95,
+          "minDays": 1,
+          "feeds": "Cumbia"
+        },
+        {
+          "id": "9.7",
+          "title": "Bossa nova",
+          "href": "/music/pads?mode=groove&groove=bossa-nova&bpm=110",
+          "setup": "Grooves: bossa nova, 110 to 130.",
+          "done": "Pass at 130.",
+          "match": {
+            "groove": "bossa-nova"
+          },
+          "threshold": 0.9,
+          "minBpm": 130,
+          "minDays": 1,
+          "feeds": "The Girl from Ipanema"
+        },
+        {
+          "id": "9.8",
+          "title": "Samba",
+          "href": "/music/pads?mode=groove&groove=samba&bpm=90",
+          "setup": "Grooves: samba.",
+          "done": "Pass at its target, 110.",
+          "match": {
+            "groove": "samba"
+          },
+          "threshold": 0.9,
+          "minBpm": 110,
+          "minDays": 1,
+          "feeds": "Mas que Nada"
+        },
+        {
+          "id": "9.9",
+          "title": "Tony Allen afrobeat",
+          "href": "/music/pads?mode=groove&groove=tony-allen&bpm=85",
+          "setup": "Grooves: afrobeat (Tony Allen), 85 to 110.",
+          "done": "Pass at 110, on two days.",
+          "match": {
+            "groove": "tony-allen"
+          },
+          "threshold": 0.9,
+          "minBpm": 110,
+          "feeds": "Zombie, Water No Get Enemy"
+        },
+        {
+          "id": "9.10",
+          "title": "Brazilian funk",
+          "href": "/music/pads?mode=groove&groove=tamborzao&bpm=110",
+          "setup": "Grooves: tamborzão, then funk at 150.",
+          "done": "Pass at 130 and 150.",
+          "each": {
+            "param": "groove",
+            "values": ["tamborzao", "funk-150"]
+          },
+          "threshold": 0.9,
+          "minBpm": 130,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Funk 150",
+              "href": "/music/pads?mode=groove&groove=funk-150&bpm=130"
+            }
+          ],
+          "feeds": "Baile funk"
+        },
+        {
+          "id": "9.11",
+          "title": "Clave over a groove",
+          "setup": "Ostinato and a line with the clave as the line.",
+          "done": "The clave held while the kick moves.",
+          "needs": "A clave line in Ostinato and a line.",
+          "links": [
+            {
+              "label": "Ostinato and a line",
+              "href": "/music/pads?mode=ostinato&line=quarters"
+            }
+          ],
+          "feeds": "Oye Como Va"
+        },
+        {
+          "id": "9.12",
+          "title": "Songo",
+          "setup": "A songo groove.",
+          "done": "Pass at 100.",
+          "needs": "A groove songo in Grooves.",
+          "links": [
+            {
+              "label": "Study: songo, cumbia, Latin, African, Musico_Mx, 4.9",
+              "href": "https://musescore.com/user/35830598/scores/6289032"
+            }
+          ],
+          "feeds": "Latin jazz"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "despacito",
+          "title": "Despacito",
+          "artist": "Luis Fonsi",
+          "teaches": "Pop reggaeton dembow",
+          "detail": "89 BPM",
+          "bpm": 89,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Çukurova, solo, 4.3 (7)",
+              "url": "https://musescore.com/user/4637911/scores/15466594"
+            },
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/19390291",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "gasolina",
+          "title": "Gasolina",
+          "artist": "Daddy Yankee",
+          "teaches": "Classic reggaeton",
+          "detail": "96 BPM; no MuseScore drum part; the app's groove reggaeton",
+          "bpm": 96,
+          "diff": 1,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr drum tab",
+            "url": "https://www.songsterr.com/a/wsa/daddy-yankee-gasolina-drum-tab-s2912676"
+          }
+        },
+        {
+          "id": "could-you-be-loved",
+          "title": "Could You Be Loved",
+          "artist": "Bob Marley",
+          "teaches": "Reggae rockers groove",
+          "detail": "103 BPM",
+          "bpm": 103,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard transcription",
+              "url": "https://musescore.com/user/39593079/scores/15720010",
+              "official": true
+            },
+            {
+              "label": "Study: Reggae drum exercise, lafogneul",
+              "url": "https://musescore.com/user/55518374/scores/11845969"
+            }
+          ]
+        },
+        {
+          "id": "roots-rock-reggae",
+          "title": "Roots, Rock, Reggae",
+          "artist": "Bob Marley",
+          "teaches": "One drop",
+          "detail": "75 BPM",
+          "bpm": 75,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/19461106",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Grooves, Reggae one drop",
+            "url": "/music/pads?mode=groove&groove=one-drop"
+          }
+        },
+        {
+          "id": "oye-como-va",
+          "title": "Oye Como Va",
+          "artist": "Santana",
+          "teaches": "Cha-cha with cowbell and a timbales feel",
+          "detail": "120 BPM",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard drums",
+              "url": "https://musescore.com/user/39593079/scores/15743404",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=oye%20como%20va%20santana"
+          }
+        },
+        {
+          "id": "smooth",
+          "title": "Smooth",
+          "artist": "Santana and Rob Thomas",
+          "teaches": "Latin rock: cowbell, clave pushes",
+          "detail": "116 BPM",
+          "bpm": 116,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/16088554",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "livin-la-vida-loca",
+          "title": "Livin' la Vida Loca",
+          "artist": "Ricky Martin",
+          "teaches": "Latin pop at speed, tom accents",
+          "detail": "178 BPM",
+          "bpm": 178,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/16087744",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "mas-que-nada",
+          "title": "Mas que Nada",
+          "artist": "Jorge Ben Jor",
+          "teaches": "Samba on the kit",
+          "detail": "110 BPM",
+          "bpm": 110,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "musica_ciedi, drum set",
+              "url": "https://musescore.com/user/44468687/scores/10167391"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Grooves, Samba",
+            "url": "/music/pads?mode=groove&groove=samba"
+          }
+        },
+        {
+          "id": "the-girl-from-ipanema",
+          "title": "The Girl from Ipanema",
+          "artist": "Jobim",
+          "teaches": "Bossa nova cross-stick and a brushes feel",
+          "detail": "130 BPM",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "noahjosephfer, drum part, 4.9 (7)",
+              "url": "https://musescore.com/user/36373264/scores/12882355"
+            },
+            {
+              "label": "Study: Bossa Nova Drum Practice, DaveTMusic, 1.8K views, 4.7 (161)",
+              "url": "https://musescore.com/user/29424620/scores/5214444"
+            }
+          ]
+        },
+        {
+          "id": "calm-down",
+          "title": "Calm Down",
+          "artist": "Rema",
+          "teaches": "Afrobeats: shaker sixteenths, 3-3-2 rim",
+          "detail": "107 BPM",
+          "bpm": 107,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "TheDrumLibrary, drum cover, solo",
+              "url": "https://musescore.com/user/74179057/scores/13124695"
+            }
+          ]
+        },
+        {
+          "id": "zombie",
+          "title": "Zombie",
+          "artist": "Fela Kuti",
+          "teaches": "Tony Allen's afrobeat",
+          "detail": "130 BPM",
+          "bpm": 130,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "kica67, band arrangement only, 4.8 (23)",
+              "url": "https://musescore.com/user/79422388/scores/12340369"
+            },
+            {
+              "label": "Study: Afrobeat Drumming, 30 patterns, Nicolas Dewey, 4.8 (42)",
+              "url": "https://musescore.com/user/5983971/scores/7660412"
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/fela-kuti-africa-70-zombie-tab-s5464728"
+          }
+        }
+      ],
+      "test": "One reggaeton or reggae song and one Brazilian or afrobeat item at tempo, plus son clave held on the rim for 16 bars while the other hand plays the Tony Allen kicks (a new combination the app does not grade yet)."
+    },
+    {
+      "id": "10",
+      "title": "Breaks at tempo, linear funk, drum and bass",
+      "goal": "The canonical breaks at record tempo, linear grooves, and drum and bass at 170 to 175 with chopped breaks. About Melodics stage 9 to 10.",
+      "adds": "Speed (sixteenths at 138), linear sticking, three over four, cutting the Amen into slices and resequencing it.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "10.1",
+          "title": "Linear three over four",
+          "href": "/music/pads?mode=groove&groove=linear-3-over-4&bpm=75",
+          "setup": "Grooves: linear three over four.",
+          "done": "Pass at 90.",
+          "match": {
+            "groove": "linear-3-over-4"
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "minDays": 1,
+          "feeds": "Linear funk"
+        },
+        {
+          "id": "10.2",
+          "title": "Linear grooves",
+          "setup": "Stick Control stickings orchestrated, no two voices together.",
+          "done": "4 grooves at 90.",
+          "needs": "A linear groove set in Grooves, built from Stick Control stickings.",
+          "feeds": "Cissy Strut, 50 Ways"
+        },
+        {
+          "id": "10.3",
+          "title": "Drum and bass two-step",
+          "href": "/music/pads?mode=groove&groove=dnb&bpm=140",
+          "setup": "Grooves: drum and bass two-step, 140 to 172.",
+          "done": "Pass at 172, on two days.",
+          "match": {
+            "groove": "dnb"
+          },
+          "threshold": 0.9,
+          "minBpm": 172,
+          "feeds": "Drum and bass"
+        },
+        {
+          "id": "10.4",
+          "title": "Amen, bar by bar",
+          "href": "/music/pads?mode=groove&groove=amen&bpm=110",
+          "setup": "Grooves: the Amen break, 110 to 138, a bar at a time in Practice, then all four.",
+          "done": "Each bar passed, then all four at 138.",
+          "match": {
+            "groove": "amen"
+          },
+          "threshold": 0.9,
+          "minBpm": 138,
+          "minDays": 1,
+          "feeds": "Amen, Brother"
+        },
+        {
+          "id": "10.5",
+          "title": "Apache",
+          "href": "/music/pads?mode=groove&groove=apache&bpm=95",
+          "setup": "Grooves: the Apache break, 95 to 112.",
+          "done": "Pass at 112.",
+          "match": {
+            "groove": "apache"
+          },
+          "threshold": 0.9,
+          "minBpm": 112,
+          "minDays": 1,
+          "feeds": "Apache"
+        },
+        {
+          "id": "10.6",
+          "title": "Cold Sweat",
+          "setup": "A Cold Sweat groove.",
+          "done": "Pass at 112.",
+          "needs": "A groove cold-sweat in Grooves.",
+          "feeds": "Cold Sweat"
+        },
+        {
+          "id": "10.7",
+          "title": "Chop the Amen",
+          "setup": "The Amen on 16 slices; play a written jungle edit at 170.",
+          "done": "Pass at 160.",
+          "needs": "A chop drill: a loop sliced onto pads A01 to A16: the Amen on 16 slices and a written jungle edit.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "Jungle, drum and bass"
+        },
+        {
+          "id": "10.8",
+          "title": "Hold the tempo at speed",
+          "href": "/music/pads?mode=steady&steady=dnb&bpm=172",
+          "setup": "Hold the tempo: drum and bass at 172.",
+          "done": "12 bars within 2 BPM (the app flags 3; aim for 2).",
+          "match": {
+            "groove": "dnb"
+          },
+          "threshold": 0.8,
+          "minBpm": 172,
+          "minDays": 1,
+          "feeds": "The capstone"
+        },
+        {
+          "id": "10.9",
+          "title": "Echo a break",
+          "href": "/music/pads?mode=echo&echo=sixteenths&bpm=110",
+          "setup": "Play it back: Sixteenths and ghosts at 110.",
+          "done": "5 echoes averaging 80%.",
+          "match": {
+            "setup": "echo-sixteenths"
+          },
+          "threshold": 0.8,
+          "minBpm": 110,
+          "minAttempts": 5,
+          "minDays": 1,
+          "feeds": "Ear"
+        },
+        {
+          "id": "10.10",
+          "title": "Tempo ladder",
+          "href": "/music/pads?mode=groove&groove=funky-drummer&bpm=100",
+          "setup": "Grooves: Funky Drummer, then the Amen; Next run raises the tempo after each clean pass.",
+          "done": "The record's tempo plus 10%: Funky Drummer at 110, the Amen at 150.",
+          "each": {
+            "param": "groove",
+            "values": ["funky-drummer", "amen"]
+          },
+          "threshold": 0.9,
+          "minBpm": 110,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Amen",
+              "href": "/music/pads?mode=groove&groove=amen&bpm=136"
+            }
+          ],
+          "feeds": "The level test"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "amen-brother",
+          "title": "Amen, Brother",
+          "artist": "The Winstons",
+          "teaches": "The Amen break, four bars",
+          "detail": "136 BPM",
+          "bpm": 136,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "urmel79, solo, 4.6 (9)",
+              "url": "https://musescore.com/user/78782002/scores/14636917"
+            },
+            {
+              "label": "Amen Break, donjezza, 421 views, 4.6 (42)",
+              "url": "https://musescore.com/user/928886/scores/530296"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Grooves, Amen break",
+            "url": "/music/pads?mode=groove&groove=amen"
+          }
+        },
+        {
+          "id": "apache",
+          "title": "Apache",
+          "artist": "Incredible Bongo Band",
+          "teaches": "The Apache break with bongos",
+          "detail": "118 BPM",
+          "bpm": 118,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "autoenglish, break drum tab, drums and bongo",
+              "url": "https://musescore.com/user/27413747/scores/22956508"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Grooves, Apache break",
+            "url": "/music/pads?mode=groove&groove=apache"
+          }
+        },
+        {
+          "id": "cold-sweat",
+          "title": "Cold Sweat",
+          "artist": "James Brown",
+          "teaches": "Clyde Stubblefield's ghosted funk",
+          "detail": "112 BPM",
+          "bpm": 112,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Dave Previ, solo, 4.7 (7)",
+              "url": "https://musescore.com/user/26793214/scores/5022160"
+            },
+            {
+              "label": "Official, Hal Leonard transcription",
+              "url": "https://musescore.com/user/39593079/scores/15709375",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "pick-up-the-pieces",
+          "title": "Pick Up the Pieces",
+          "artist": "Average White Band",
+          "teaches": "Sixteenth funk with open hats",
+          "detail": "108 BPM",
+          "bpm": 108,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard transcription",
+              "url": "https://musescore.com/user/39593079/scores/15709366",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=pick%20up%20the%20pieces%20average%20white%20band"
+          }
+        },
+        {
+          "id": "get-up-sex-machine",
+          "title": "Get Up (Sex Machine)",
+          "artist": "James Brown",
+          "teaches": "Jabo Starks' hat-led funk",
+          "detail": "108 BPM",
+          "bpm": 108,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard transcription (the page title reads Get Up Offa That Thing; check before buying)",
+              "url": "https://musescore.com/user/39593079/scores/15709000",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Songsterr search",
+            "url": "https://www.songsterr.com/?pattern=sex%20machine%20james%20brown"
+          }
+        },
+        {
+          "id": "cissy-strut",
+          "title": "Cissy Strut",
+          "artist": "The Meters",
+          "teaches": "Zigaboo's linear funk",
+          "detail": "88 BPM",
+          "bpm": 88,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard chart",
+              "url": "https://musescore.com/user/39593079/scores/15733885",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Drummer Cafe lesson (free)",
+            "url": "https://drummercafe.com/education/lessons/zigaboo-modeliste-cissy-strut-linear-drum-groove"
+          }
+        },
+        {
+          "id": "50-ways-to-leave-your-lover",
+          "title": "50 Ways to Leave Your Lover",
+          "artist": "Paul Simon",
+          "teaches": "Gadd's linear march",
+          "detail": "100 BPM",
+          "bpm": 100,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Ward De Moor, solo, 768 views, 4.6 (44)",
+              "url": "https://musescore.com/user/127942/scores/3213891"
+            }
+          ],
+          "fallback": {
+            "label": "Drummer Cafe, Gadd's sticking",
+            "url": "https://drummercafe.com/education/lessons/steve-gadd-50-ways-drum-groove"
+          }
+        },
+        {
+          "id": "self-vs-self",
+          "title": "Self vs Self",
+          "artist": "Pendulum ft. In Flames",
+          "teaches": "Drum and bass at 174 with metal fills",
+          "detail": "174 BPM",
+          "bpm": 174,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/37318631",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "tarantula",
+          "title": "Tarantula",
+          "artist": "Pendulum",
+          "teaches": "Drum and bass two-step",
+          "detail": "174 BPM; no MuseScore score; the app's groove dnb",
+          "bpm": 174,
+          "diff": 3,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr",
+            "url": "https://www.songsterr.com/a/wsa/pendulum-tarantula-tab-s4909703"
+          }
+        }
+      ],
+      "test": "The Amen at 138 from memory, one linear funk item at tempo, a jungle edit from Amen chops at 160, and drum and bass held for 12 bars at 172."
+    },
+    {
+      "id": "11",
+      "title": "Odd meters, live sets and improvising",
+      "goal": "Play in 5 and 7, build a beat live and perform a 3 to 5 minute set with improvisation. About Melodics stage 10, the capstone; most of it waits for meter support.",
+      "adds": "Counting groups of 2 and 3, metric modulation awareness, a set structure, soloing over a loop.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "11.1",
+          "title": "Count in 5 and 7",
+          "setup": "Single strokes accented 3+2 and 2+2+3.",
+          "done": "Accents right 14 of 16 at 100.",
+          "needs": "Meter in Technique: singles accented 3+2 and 2+2+3.",
+          "feeds": "All odd meters"
+        },
+        {
+          "id": "11.2",
+          "title": "5/4 groove",
+          "setup": "A 5/4 groove.",
+          "done": "Pass at 172.",
+          "needs": "Meter support in Grooves (5/4, 7/4, 7/8) and a groove five-four.",
+          "feeds": "Take Five, Mission: Impossible"
+        },
+        {
+          "id": "11.3",
+          "title": "7/4 groove",
+          "setup": "A 7/4 groove.",
+          "done": "Pass at 120.",
+          "needs": "Meter support in Grooves (5/4, 7/4, 7/8) and a groove seven-four.",
+          "feeds": "Money, Spoonman"
+        },
+        {
+          "id": "11.4",
+          "title": "7/8 groove",
+          "setup": "A 7/8 groove.",
+          "done": "Pass at 120.",
+          "needs": "Meter support in Grooves (5/4, 7/4, 7/8) and a groove seven-eight.",
+          "feeds": "Tom Sawyer's bridge, Schism"
+        },
+        {
+          "id": "11.5",
+          "title": "Improvise 16 bars",
+          "setup": "Improvise over the funk vamp, the results played back raw.",
+          "done": "16 bars, drift under 2 BPM, at least 3 different fills.",
+          "needs": "16 bars in Improvise (it offers 4 or 8), with Check runs that count.",
+          "links": [
+            {
+              "label": "Improvise",
+              "href": "/music/pads?mode=improvise&bars=8"
+            }
+          ],
+          "feeds": "The set"
+        },
+        {
+          "id": "11.6",
+          "title": "Improvise over a loop",
+          "setup": "A chosen loop under Improvise; raw and half-quantised playback reviewed.",
+          "done": "32 bars over the loop.",
+          "needs": "Loop backing in Improvise.",
+          "feeds": "The set"
+        },
+        {
+          "id": "11.7",
+          "title": "Live beat, 4 bars",
+          "setup": "Record 4 bars live with swing 56 and Note Repeat.",
+          "done": "Built in under 5 minutes, then 16 bars of fills over it.",
+          "needs": "Live beat making in Create: loop recording with overdub, played on the pads.",
+          "links": [
+            {
+              "label": "Create",
+              "href": "/music/create"
+            }
+          ],
+          "feeds": "The set"
+        },
+        {
+          "id": "11.8",
+          "title": "Faded feedback",
+          "setup": "Five known grooves with feedback only at the end.",
+          "done": "Pass with summary-only feedback.",
+          "needs": "A faded feedback mode in Grooves.",
+          "feeds": "Performance"
+        },
+        {
+          "id": "11.9",
+          "title": "The set",
+          "setup": "A piece the owner writes: intro, 3 grooves from 3 levels, a chop section, a solo, an ending.",
+          "done": "One take, 3 to 5 minutes, recorded.",
+          "needs": "Song-form pieces: sections (intro, groove, build, drop, outro) graded in one take, written by the player.",
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ],
+          "feeds": "The capstone"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "all-you-need-is-love",
+          "title": "All You Need Is Love",
+          "artist": "The Beatles",
+          "teaches": "7/4 bars inside 4/4",
+          "detail": "103 BPM; needs meter support",
+          "bpm": 103,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "evanchambersm, solo",
+              "url": "https://musescore.com/user/109889524/scores/28540921"
+            },
+            {
+              "label": "Official beginner, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/30451940",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "mission-impossible-theme",
+          "title": "Mission: Impossible theme",
+          "artist": "Lalo Schifrin",
+          "teaches": "5/4 groove",
+          "detail": "170 BPM; needs meter support",
+          "bpm": 170,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "bradley5, drumset, 493 views",
+              "url": "https://musescore.com/user/292676/scores/270546"
+            }
+          ]
+        },
+        {
+          "id": "take-five",
+          "title": "Take Five",
+          "artist": "Dave Brubeck",
+          "teaches": "5/4 jazz, ride and cross-stick",
+          "detail": "172 BPM, swung; needs the triplet grid and meter support",
+          "bpm": 172,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "ahache, take five drums, 616 views, 4.7 (97)",
+              "url": "https://musescore.com/user/33864696/scores/5944488"
+            },
+            {
+              "label": "Official, Hal Leonard drums",
+              "url": "https://musescore.com/user/39593079/scores/15743515",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "money",
+          "title": "Money",
+          "artist": "Pink Floyd",
+          "teaches": "7/4 rock, then a 4/4 solo",
+          "detail": "120 BPM, shuffle feel; needs the triplet grid and meter support",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "impiastro, solo, 4.7 (23)",
+              "url": "https://musescore.com/user/35422780/scores/12712912"
+            },
+            {
+              "label": "Official, Hal Leonard transcription",
+              "url": "https://musescore.com/user/39593079/scores/15719614",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "seven-days",
+          "title": "Seven Days",
+          "artist": "Sting",
+          "teaches": "5/4 pop groove (Vinnie Colaiuta)",
+          "detail": "120 BPM; needs meter support",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "oscarj08, solo, 552 views, 4.9 (108)",
+              "url": "https://musescore.com/user/6831511/scores/4151876"
+            }
+          ]
+        },
+        {
+          "id": "spoonman",
+          "title": "Spoonman",
+          "artist": "Soundgarden",
+          "teaches": "7/4 riff groove",
+          "detail": "110 BPM; needs meter support",
+          "bpm": 110,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "o.shaykina, solo, 4.5 (8)",
+              "url": "https://musescore.com/user/79422514/scores/11863915"
+            },
+            {
+              "label": "Official advanced, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/21367003",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "tom-sawyer",
+          "title": "Tom Sawyer",
+          "artist": "Rush",
+          "teaches": "Peart's 4/4 with a 7/8 bridge and tom fills",
+          "detail": "88 BPM; needs meter support",
+          "bpm": 88,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "xenophanes13, drums, 957 views, 4.7 (104)",
+              "url": "https://musescore.com/user/7398726/scores/2013226"
+            },
+            {
+              "label": "Official, Hal Leonard transcription",
+              "url": "https://musescore.com/user/39593079/scores/16109053",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "15-step",
+          "title": "15 Step",
+          "artist": "Radiohead",
+          "teaches": "5/4 electronic beat with claps",
+          "detail": "189 BPM; no MuseScore score; needs meter support",
+          "bpm": 189,
+          "diff": 3,
+          "scores": [],
+          "fallback": {
+            "label": "Songsterr drums",
+            "url": "https://www.songsterr.com/a/wsa/radiohead-15-step-drums-tab-s641174"
+          }
+        },
+        {
+          "id": "schism",
+          "title": "Schism",
+          "artist": "Tool",
+          "teaches": "Shifting odd meters (the stretch goal)",
+          "detail": "108 BPM; needs meter support",
+          "bpm": 108,
+          "diff": 4,
+          "scores": [
+            {
+              "label": "oscarj08, solo, 1K views, 4.8 (158)",
+              "url": "https://musescore.com/user/6831511/scores/4151846"
+            },
+            {
+              "label": "Official advanced, ArrangeMe",
+              "url": "https://musescore.com/user/97106398/scores/36973370",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "The recorded set from step 11.9, two shelf songs (one in an odd meter) at tempo, and three grooves drawn at random from levels 3 to 10 played from memory at the record's tempo with faded feedback."
+    }
+  ]
 }
