@@ -48,3 +48,6 @@ ds-bundle/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# Scores downloaded from your MuseScore account for the path shelves: licensed to you, never committed.
+/.music-scores/

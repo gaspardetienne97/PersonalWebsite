@@ -13,7 +13,7 @@
   import { practice } from "../practice.svelte";
   import { db, settings } from "../runtime";
   import type { Hue } from "../bench.svelte";
-  import type { Song } from "./library/songs";
+  import { importScoreFile, songFromScore, type Song } from "./library/songs";
 
   const ORDER: { id: PathId; hue: Hue }[] = [
     { id: "guitar", hue: "guitar" },
@@ -42,13 +42,39 @@
   const level = $derived(current.levels?.find((l) => l.level.id === levelId));
   const levelSteps = $derived(level ? current.steps.filter((s) => s.step.level === level.level.id) : current.steps);
 
-  // Library songs saved for a shelf entry, by shelf key.
+  // Library songs saved for a shelf entry, by shelf key, and the scores downloaded to the server.
   let shelved = $state<Record<string, Song>>({});
+  let downloaded = $state<Set<string>>(new Set());
+  let adding = $state("");
+  let shelfError = $state("");
   $effect(() => {
     void (db.songs.toArray() as unknown as Promise<Song[]>).then((songs) => {
       shelved = Object.fromEntries(songs.filter((s) => s.shelf).map((s) => [s.shelf!, s]));
     });
+    void fetch("/api/music/scores")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: { key: string }[]) => (downloaded = new Set(list.map((x) => x.key))))
+      .catch(() => {});
   });
+
+  /** Read the downloaded score into the library, tagged for its shelf entry. */
+  async function addToSongs(key: string, title: string, artist: string) {
+    adding = key;
+    shelfError = "";
+    try {
+      const res = await fetch(`/api/music/scores/${key}`);
+      if (!res.ok) throw new Error(`The score for ${title} is not on the server.`);
+      const name = res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? `${key.split("/")[1]}.mxl`;
+      const score = await importScoreFile(name, new Uint8Array(await res.arrayBuffer()));
+      const song = { ...songFromScore({ ...score, title }, { composer: artist, source: name }), shelf: key };
+      await db.songs.put(song);
+      shelved = { ...shelved, [key]: song };
+    } catch (e) {
+      shelfError = (e as Error).message;
+    } finally {
+      adding = "";
+    }
+  }
 
   const statusText: Record<StepStatus, string> = {
     done: "Done",
@@ -212,6 +238,7 @@
         <p class="text-sm text-ws-soft">
           Pick any {level.level.pick}. A song counts when you play it in Song Studio's Performance mode at 80% or better, near the record's tempo, on two days.
         </p>
+        {#if shelfError}<p class="mt-2 text-sm text-destructive" role="alert">{shelfError}</p>{/if}
         <ul class="mt-3 flex flex-col divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
           {#each level.songs as row (row.key)}
             {@const mine = shelved[row.key]}
@@ -234,6 +261,13 @@
               <div class="flex shrink-0 flex-col items-start gap-1 sm:items-end">
                 {#if mine}
                   <a href="/music/songs/{mine.id}" class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">Play in Song Studio</a>
+                {:else if downloaded.has(row.key)}
+                  <button
+                    type="button"
+                    class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised"
+                    disabled={adding === row.key}
+                    onclick={() => addToSongs(row.key, row.song.title, row.song.artist)}>{adding === row.key ? "Adding" : "Add to my songs"}</button
+                  >
                 {:else}
                   <a
                     href="/music/library?tab=import&shelf={encodeURIComponent(row.key)}&for={encodeURIComponent(row.song.title)}"
