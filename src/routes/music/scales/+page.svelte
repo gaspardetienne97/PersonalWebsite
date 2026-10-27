@@ -29,6 +29,7 @@
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { nearMiss } from "@repo/music-core/signal/pitch";
+  import { scaleFingerMap } from "@repo/music-core/content/piano-fingering";
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
@@ -143,18 +144,44 @@
 
   void readKeyed<LadderState>(LADDER_KEY).then((l) => (ladders = l));
 
+  // Piano scales carry the standard fingering for each hand, on the keys and the staff.
+  const fingerOf = $derived.by(() => {
+    const out = new Map<string, number>();
+    if (!onPiano || pattern !== "scale") return out;
+    for (const hand of ["right", "left"] as const) {
+      const ms = steps.flatMap((st) => st.notes.filter((n) => n.hand === hand).map((n) => n.midi));
+      if (!ms.length) continue;
+      const lo = Math.min(...ms);
+      const map = scaleFingerMap(s.kind, lo, hand === "right" ? "rh" : "lh", scaleSetup.span === "pentascale" ? "pentascale" : Math.max(1, Math.round((Math.max(...ms) - lo) / 12)));
+      map?.forEach((f, m) => out.set(`${hand}:${m}`, f));
+    }
+    return out;
+  });
+  const fingerFor = (n: { midi: number; hand: "left" | "right" }) => fingerOf.get(`${n.hand}:${n.midi}`);
+  /** The key's label: its finger, else L or R when both hands play. */
+  const keyLabel = (n: { midi: number; hand: "left" | "right" }) => fingerFor(n)?.toString() ?? (scaleSetup.hands === "both" ? (n.hand === "left" ? "L" : "R") : undefined);
+
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     const both = scaleSetup.hands === "both";
     // Before a run: every note of the line at once, by hand when both play.
     if (demoStep === null && phase === "ready" && mode === "practice") {
-      for (const st of steps) for (const n of st.notes) out[n.midi] = { target: true, label: both ? (n.hand === "left" ? "L" : "R") : undefined, role: both ? n.hand : "scale" };
+      for (const st of steps)
+        for (const n of st.notes) {
+          const prev = out[n.midi];
+          const mine = keyLabel(n);
+          // A key both hands play (the middle octave of two): both fingers, left then right.
+          out[n.midi] =
+            both && prev && prev.role !== n.hand && prev.label && mine && !prev.label.includes("/")
+              ? { target: true, label: n.hand === "left" ? `${mine}/${prev.label}` : `${prev.label}/${mine}` }
+              : { target: true, label: mine, role: both ? n.hand : "scale" };
+        }
       return out;
     }
     const show = demoStep ?? (mode === "practice" && phase !== "results" ? stepIndex : null);
     if (show === null || !steps[show]) return out;
     for (const n of steps[show].notes)
-      out[n.midi] = demoStep !== null ? { demo: true } : { target: true, label: scaleSetup.hands === "both" ? (n.hand === "left" ? "L" : "R") : undefined, role: scaleSetup.hands === "both" ? n.hand : undefined };
+      out[n.midi] = demoStep !== null ? { demo: true, label: fingerFor(n)?.toString() } : { target: true, label: keyLabel(n), role: scaleSetup.hands === "both" ? n.hand : undefined };
     return out;
   });
 
@@ -236,7 +263,7 @@
 
   // The line written out above the instrument (tab on guitar and ukulele, a staff otherwise), its cursor on the step.
   const frets = $derived(linePositions(inst, all));
-  const written = $derived(steps.flatMap((st) => st.notes.map((n) => ({ midi: n.midi, startBeat: st.atBeat * quartersPerClick, durationBeats: quartersPerClick / perBeat, hand: onPiano ? n.hand : undefined, ...frets.get(n.midi) }))));
+  const written = $derived(steps.flatMap((st) => st.notes.map((n) => ({ midi: n.midi, startBeat: st.atBeat * quartersPerClick, durationBeats: quartersPerClick / perBeat, hand: onPiano ? n.hand : undefined, finger: fingerFor(n), ...frets.get(n.midi) }))));
   const signature = $derived(pattern === "scale" ? signatureFor(s.tonic % 12, s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
   const cursorClick = $derived(demoStep !== null ? (steps[demoStep]?.atBeat ?? null) : phase === "running" ? (steps[Math.min(stepIndex, steps.length - 1)]?.atBeat ?? null) : null);
   const cursor = $derived(cursorClick === null ? null : cursorClick * quartersPerClick);
@@ -493,6 +520,10 @@
     <InstrumentStage line={all} {low} {high} {marks} {flashes} />
     {#if mode === "check" && phase !== "results"}
       <p class="mt-3 text-sm text-ws-stage-soft">Check mode: no targets. Held keys still light.</p>
+    {:else if onPiano && pattern === "scale" && phase === "ready"}
+      <p class="mt-3 text-sm text-ws-stage-soft">
+        {fingerOf.size ? "Numbers are fingers, 1 thumb to 5 little finger, as the scale books print them." : "No standard fingering for this scale here: keep the thumb off the black keys and cross it under after 3 or 4."}
+      </p>
     {/if}
   {/snippet}
 

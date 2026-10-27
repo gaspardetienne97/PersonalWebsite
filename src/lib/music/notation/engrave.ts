@@ -82,6 +82,8 @@ export interface Tick {
   group: number | null;
   /** The pitches continue into this line's next tick. */
   tieNext: boolean;
+  /** Fingering for an attack (a piano scale's finger numbers), printed by the note. */
+  fingers?: (number | string)[];
 }
 
 const EPS = 1e-6;
@@ -118,7 +120,13 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
       );
 
   const onsets = [...new Set(ns.map((n) => r4(n.startBeat)))].sort((a, b) => a - b);
-  type Span = { start: number; end: number; midis: number[]; attack: boolean };
+  type Span = {
+    start: number;
+    end: number;
+    midis: number[];
+    attack: boolean;
+    fingers?: (number | string)[];
+  };
   const spans: Span[] = [];
   let t = from;
   onsets.forEach((at, i) => {
@@ -135,6 +143,11 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
       end,
       midis: [...new Set(chord.map((n) => n.midi))].sort((a, b) => a - b),
       attack: at >= from - EPS,
+      fingers: chord.some((n) => n.finger !== undefined)
+        ? [...chord]
+            .sort((a, b) => a.midi - b.midi)
+            .flatMap((n) => (n.finger === undefined ? [] : [n.finger]))
+        : undefined,
     });
     t = end;
   });
@@ -159,6 +172,7 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
           attack,
           group: g < 0 ? null : g,
           tieNext: s.midis.length > 0 && pos + dur < s.end - EPS,
+          ...(attack && s.fingers?.length ? { fingers: s.fingers } : {}),
         });
         pos += dur;
       }
@@ -493,37 +507,52 @@ export function drawStaff(
   const groups = scoreGroups(score, voiceIds, range);
   const fifths = score.keyFifths ?? 0;
   const key = keySpec(fifths);
-  const rows: RowSpec[] = staffRows(score, voiceIds, grand).map((row) => ({
-    height: revealLabels ? 112 : 92,
-    keySpec: key,
-    beams: true,
-    ticks: lineTicks(row.notes, barList, groups),
-    stave(VF, x, y, w, first, time) {
-      const s = new VF.Stave(x, y, w);
-      if (first) s.addClef(row.clef).addKeySignature(key);
-      if (time && withTime) s.addTimeSignature(`${score.meter.beats}/${score.meter.beatUnit}`);
-      return s;
-    },
-    note(VF, t) {
-      const rest = t.midis.length === 0;
-      const n = new VF.StaveNote({
-        keys: rest ? [row.clef === "bass" ? "d/3" : "b/4"] : t.midis.map((m) => spell(m, fifths)),
-        duration: t.vf + (rest ? "r" : ""),
-        dots: t.dots,
-        clef: row.clef,
-        autoStem: true,
-      });
-      if (t.dots) VF.Dot.buildAndAttach([n], { all: true });
-      if (revealLabels && t.attack && !rest)
-        n.addModifier(
-          new VF.Annotation(
-            t.midis.map((m) => noteName(m, fifths < 0 ? "flat" : "sharp", false)).join(" "),
-          ).setVerticalJustification(VF.AnnotationVerticalJustify.BOTTOM),
-          0,
-        );
-      return n;
-    },
-  }));
+  const rows: RowSpec[] = staffRows(score, voiceIds, grand).map((row) => {
+    // Fingering needs room: above a treble staff (the staff moves down), below a bass staff.
+    const fingered = row.notes.some((n) => n.finger !== undefined);
+    const above = fingered && row.clef !== "bass" ? 22 : 0;
+    return {
+      height: (revealLabels ? 112 : 92) + (fingered ? 22 : 0),
+      keySpec: key,
+      beams: true,
+      ticks: lineTicks(row.notes, barList, groups),
+      stave(VF, x, y, w, first, time) {
+        const s = new VF.Stave(x, y + above, w);
+        if (first) s.addClef(row.clef).addKeySignature(key);
+        if (time && withTime) s.addTimeSignature(`${score.meter.beats}/${score.meter.beatUnit}`);
+        return s;
+      },
+      note(VF, t) {
+        const rest = t.midis.length === 0;
+        const n = new VF.StaveNote({
+          keys: rest ? [row.clef === "bass" ? "d/3" : "b/4"] : t.midis.map((m) => spell(m, fifths)),
+          duration: t.vf + (rest ? "r" : ""),
+          dots: t.dots,
+          clef: row.clef,
+          autoStem: true,
+        });
+        if (t.dots) VF.Dot.buildAndAttach([n], { all: true });
+        // Fingering as scale books print it: above the treble staff, below the bass.
+        if (t.fingers?.length && !rest)
+          n.addModifier(
+            new VF.Annotation(t.fingers.join(" ")).setVerticalJustification(
+              row.clef === "bass"
+                ? VF.AnnotationVerticalJustify.BOTTOM
+                : VF.AnnotationVerticalJustify.TOP,
+            ),
+            0,
+          );
+        if (revealLabels && t.attack && !rest)
+          n.addModifier(
+            new VF.Annotation(
+              t.midis.map((m) => noteName(m, fifths < 0 ? "flat" : "sharp", false)).join(" "),
+            ).setVerticalJustification(VF.AnnotationVerticalJustify.BOTTOM),
+            0,
+          );
+        return n;
+      },
+    };
+  });
   return engrave(VF, host, score, barList, groups, rows, width, fill);
 }
 

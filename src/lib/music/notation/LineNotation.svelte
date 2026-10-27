@@ -10,7 +10,7 @@
   import type { GroupState } from "./NotationFrame.svelte";
 
   interface Props {
-    notes: { midi: number; startBeat: number; durationBeats: number; string?: number; fret?: number; hand?: "left" | "right" }[];
+    notes: { midi: number; startBeat: number; durationBeats: number; string?: number; fret?: number; hand?: "left" | "right"; finger?: number }[];
     /** Tab for this tuning; a staff without one. */
     tuning?: { openStrings: number[]; fretCount: number; name?: string } | null;
     title: string;
@@ -56,7 +56,9 @@
   const zoom = $derived(width ? Math.min(1.6, Math.max(0.7, width / natural(Math.min(attacks, LONG)))) : 1);
   const minWidth = $derived(attacks > LONG ? natural(attacks) : 0);
   // The visible height is capped whatever the zoom (a grand staff at 20rem); taller scrolls.
-  const maxHeight = $derived(`${((voices.length > 1 ? 20 : 16) / zoom).toFixed(2)}rem`);
+  // Fingering adds a row of numbers above or below each staff.
+  const fingered = $derived(notes.some((n) => n.finger !== undefined));
+  const maxHeight = $derived(`${(((voices.length > 1 ? 20 : 16) + (fingered ? 5 : 0)) / zoom).toFixed(2)}rem`);
 </script>
 
 <div class="line-notation" data-testid={tuning ? "line-tab" : "line-staff"} bind:clientWidth={width}>
