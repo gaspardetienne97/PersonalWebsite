@@ -39,8 +39,11 @@ const data = JSON.parse(readFileSync(`packages/music-core/src/data/paths/${file}
 const dir = join(root, data.id);
 const manifestFile = join(root, "manifest.json");
 const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, "utf8")) : {};
-// Score pages whose Download is switched off ("not available due to established limitations").
-const blocked = new Set(manifest.blocked ?? []);
+// "Download and print options are not available due to established limitations" shows on a
+// score whose download is off, and on every score once MuseScore limits the account (seen after
+// about 45 downloads in a day), so several in a row stop the run rather than push on.
+let blockedInARow = 0;
+let stop = false;
 const EXT = /\.(mxl|musicxml|xml|mid)$/;
 const have = (song) =>
   existsSync(dir) && readdirSync(dir).some((f) => f.startsWith(`${song}.`) && EXT.test(f));
@@ -49,7 +52,7 @@ const wanted = data.levels
   .filter((l) => !levels || levels.includes(l.id))
   .flatMap((l) => l.shelf.map((s) => ({ level: l.id, ...s })))
   // Official scores need a purchase or PRO+ (not in plain Pro), so only community scores download.
-  .map((s) => ({ ...s, scores: s.scores.filter((sc) => !sc.official && !blocked.has(sc.url)) }))
+  .map((s) => ({ ...s, scores: s.scores.filter((sc) => !sc.official) }))
   .filter((s) => s.scores.length && !have(s.id));
 console.log(
   `${wanted.length} songs to fetch for ${data.id}${levels ? ` (levels ${levels})` : ""}.`,
@@ -92,12 +95,17 @@ try {
         `return /established limitations/.test(document.body.innerText) || !![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Download" && b.disabled);`,
       );
       if (off === "true") {
-        blocked.add(score.url);
-        manifest.blocked = [...blocked];
-        writeFileSync(manifestFile, JSON.stringify(manifest, null, 2));
-        console.log(`  blocked ${song.id} ${score.url}`);
+        console.log(`  download off ${song.id} ${score.url}`);
+        if (++blockedInARow >= 3) {
+          console.log(
+            "Three scores in a row will not download: MuseScore is likely limiting the account. Stopping; try again tomorrow.",
+          );
+          stop = true;
+          break;
+        }
         continue;
       }
+      blockedInARow = 0;
       if (!click("Download")) continue;
       await sleep(2500);
       const since = Date.now() - 1000;
@@ -118,6 +126,7 @@ try {
       ok++;
       break;
     }
+    if (stop) break;
     if (!saved) {
       failed.push(song.id);
       console.log(`  failed ${song.level} ${song.id}`);
