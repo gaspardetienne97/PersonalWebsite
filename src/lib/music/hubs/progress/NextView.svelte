@@ -1,20 +1,19 @@
 <script lang="ts">
   // What next: what to play in the next few minutes and why. It is a heuristic,
   // so it always links to the evidence (Skills, Sessions).
-  import { BUDGET_OPTIONS } from "@repo/music-core/progress/routine";
-  import { skillName } from "@repo/music-core/progress/graph";
+  import { BUDGET_OPTIONS, roleLabel } from "@repo/music-core/progress/routine";
   import { INSTRUMENT_LABEL } from "../../bench.svelte";
   import { hueForRoute, hueVar } from "../../hues";
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
-  import { todayPlan } from "../../today.svelte";
+  import { blockReason, todayPlan } from "../../today.svelte";
   import { fallingSentence, MIN_EVIDENCE, nextBuckets, pct, plural, relativeDay, skillRows, type SkillRow } from "./model";
 
   let { now = Date.now() }: { now?: number } = $props();
 
   const instrument = $derived(settings.value.activeInstrument);
-  const budget = $derived(settings.value.routineBudgetMinutes);
-  const plan = $derived(todayPlan(instrument, budget));
+  const plan = $derived(todayPlan(instrument, settings.value.routineBudgetMinutes));
+  const budget = $derived(plan.routine.budgetMinutes);
   const rows = $derived(skillRows({ stats: practice.stats, mastery: practice.mastery, instrument, now }));
   const buckets = $derived(nextBuckets(rows));
   const anything = $derived(buckets.falling.length + buckets.holding.length + buckets.unmeasured.length > 0);
@@ -69,10 +68,10 @@
           <span class="h-9 w-1.5 shrink-0 rounded-full bg-[color:var(--step-hue)]" aria-hidden="true"></span>
           <div class="min-w-0 flex-1">
             <p class="font-semibold">
-              <span class="sr-only">Step {step.n}: </span>{step.label}{#if done}<span class="font-normal text-success"> (done)</span>{/if}
+              <span class="sr-only">Step {step.n}: </span><span class="text-ws-soft">{roleLabel(step)}: </span>{step.label}{#if done}<span class="font-normal text-success"> (done)</span>{/if}
             </p>
             <p class="text-sm text-ws-soft">
-              {step.reason === "weak-spot" && step.skillId ? `Your weak spot, ${skillName(step.skillId)}.` : step.description}
+              {blockReason(step)}
               <span class="tnum">{step.minutes} min.</span>
             </p>
           </div>

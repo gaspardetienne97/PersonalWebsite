@@ -1,7 +1,7 @@
 <script lang="ts">
   // Each path is a trail: what each step adds, what done means, and where you are.
   import Check from "lucide-svelte/icons/check";
-  import { LEARNING_PATHS, pathProgress, type PathId, type StepStatus } from "@repo/music-core/progress/paths";
+  import { LEARNING_PATHS, PATH_FOR_INSTRUMENT, pathProgress, type PathId, type StepStatus } from "@repo/music-core/progress/paths";
   import { practice } from "../practice.svelte";
   import { settings } from "../runtime";
   import type { Hue } from "../bench.svelte";
@@ -15,11 +15,7 @@
     { id: "theory", hue: "reading" },
     { id: "studio", hue: "create" },
   ];
-  const preferred = $derived(
-    ({ piano: "piano", guitar: "guitar", ukulele: "guitar", mpc: "mpc", aerophone: "ear", voice: "ear" } as const)[
-      settings.value.activeInstrument
-    ],
-  );
+  const preferred = $derived(PATH_FOR_INSTRUMENT[settings.value.activeInstrument]);
   let open = $state<PathId | null>(null);
   const selected = $derived(open ?? preferred);
   const runs = $derived(practice.sessions.flatMap((s) => s.runs));

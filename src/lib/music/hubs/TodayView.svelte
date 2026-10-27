@@ -1,19 +1,18 @@
 <script lang="ts">
   import Play from "lucide-svelte/icons/play";
   import Check from "lucide-svelte/icons/check";
-  import { BUDGET_OPTIONS } from "@repo/music-core/progress/routine";
+  import { BUDGET_OPTIONS, roleLabel } from "@repo/music-core/progress/routine";
   import { levelFor } from "@repo/music-core/progress/rewards";
-  import { skillName } from "@repo/music-core/progress/graph";
   import { INSTRUMENT_LABEL } from "../bench.svelte";
   import { hueForRoute, hueVar } from "../hues";
   import { practice } from "../practice.svelte";
   import { settings } from "../runtime";
-  import { todayChallenges, todayPlan } from "../today.svelte";
+  import { blockReason, todayChallenges, todayPlan } from "../today.svelte";
   import { btnPrimary, panel } from "../components/ui";
 
   const instrument = $derived(settings.value.activeInstrument);
-  const budget = $derived(settings.value.routineBudgetMinutes);
-  const plan = $derived(todayPlan(instrument, budget));
+  const plan = $derived(todayPlan(instrument, settings.value.routineBudgetMinutes));
+  const budget = $derived(plan.routine.budgetMinutes);
   const challenges = $derived(todayChallenges(plan.advice));
   const nextStep = $derived(plan.routine.steps.find((s) => !plan.done.includes(s.n)));
   const allDone = $derived(plan.routine.steps.length > 0 && !nextStep);
@@ -86,12 +85,11 @@
             aria-hidden="true">{#if done}<Check class="size-4" />{:else}{step.n}{/if}</span
           >
           <div class="min-w-0 flex-1">
+            <p class="text-xs font-medium text-ws-soft">{roleLabel(step)}</p>
             <p class="font-semibold">
               <span class="sr-only">Step {step.n}{done ? ", done" : ""}: </span>{step.label}
             </p>
-            <p class="text-sm text-ws-soft">
-              {step.reason === "weak-spot" && step.skillId ? `Your weak spot: ${skillName(step.skillId)}.` : step.description}
-            </p>
+            <p class="text-sm text-ws-soft">{blockReason(step)}</p>
           </div>
           <span class="tnum hidden text-sm text-ws-soft sm:inline">{step.minutes} min</span>
           <a

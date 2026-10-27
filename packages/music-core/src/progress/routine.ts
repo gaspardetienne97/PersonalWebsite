@@ -1,6 +1,6 @@
 // The one daily routine builder (catalog 5.7). Nothing else defines routine steps.
-import type { Instrument, PracticeSession, RunRecord, ScoringEvent } from "../types";
-import { clamp } from "../theory/notes";
+import type { Instrument, PracticeSession, RunRecord, ScoringEvent, SkillMastery } from "../types";
+import { DAY_MS, decayMastery, isDueForReview } from "./mastery";
 import routineData from "../data/daily-routine.json";
 
 export type StepId =
@@ -16,7 +16,9 @@ export type StepId =
   | "aerophone"
   | "voicings"
   | "licks"
-  | "chord-scales";
+  | "chord-scales"
+  | "phrases"
+  | "jam";
 
 /** "none" marks steps allowed in the plan built without an instrument. */
 type Slot = Instrument | "none";
@@ -86,6 +88,18 @@ export const STEPS: Record<StepId, StepDef> = {
     route: "/music/chord-scales",
     for: ["none", ...PITCHED],
   },
+  phrases: {
+    label: "Play a tune",
+    description: "A famous tune or a stock lick, heard then played back.",
+    route: "/music/phrases",
+    for: [...PITCHED, "mpc"],
+  },
+  jam: {
+    label: "Jam",
+    description: "Improvise over a progression with the chord tones lit.",
+    route: "/music/jam",
+    for: ["none", ...PITCHED, "mpc", "voice"],
+  },
 };
 
 const DEFAULTS: Record<Slot, StepId[]> = {
@@ -121,16 +135,22 @@ export function stepForSkill(skillId: string): StepId | undefined {
 export const stepAllowed = (step: StepId, instrument?: Instrument) =>
   STEPS[step].for.includes(instrument ?? "none");
 
+export type Role = "review" | "focus" | "ear" | "variety" | "song" | "create";
+
 export interface RoutineStep {
   /** 1-based position, also the `step` query parameter. */
   n: number;
-  id: StepId;
+  /** "path" for a focus block from the learning path. */
+  id: StepId | "path";
+  role: Role;
   label: string;
   description: string;
   minutes: number;
   href: string;
-  reason: "weak-spot" | "default";
+  reason: "due" | "warm-up" | "path" | "weak-spot" | "default";
   skillId?: string;
+  /** A path block's skills, so an unlinked run on them still completes it. */
+  skillIds?: string[];
 }
 
 export interface Routine {
@@ -140,59 +160,210 @@ export interface Routine {
   steps: RoutineStep[];
 }
 
-export const MINUTES_PER_STEP = routineData.minutesPerStep;
-export const BUDGET_OPTIONS = [5, 10, 20, 30] as const;
-
-export function stepHref(step: StepId, n: number, routineId: string, instrument?: Instrument) {
-  const q = new URLSearchParams();
-  if (instrument) q.set("instrument", instrument);
-  if (step === "ear" && instrument === "voice") q.set("answer", "voice");
-  q.set("routine", routineId);
-  q.set("step", String(n));
-  return `${STEPS[step].route}?${q}`;
+/** The path's next step, as the focus block takes it. */
+export interface PathFocus {
+  pathTitle: string;
+  title: string;
+  summary: string;
+  href: string;
+  skillIds: string[];
 }
 
+export const BUDGET_OPTIONS = [10, 20, 30, 45, 60, 90] as const;
+export type Budget = (typeof BUDGET_OPTIONS)[number];
+
+/** Minutes per role, in set order. Each row sums to its budget. */
+export const BLOCKS: Record<Budget, [Role, number][]> = {
+  10: [
+    ["review", 4],
+    ["focus", 6],
+  ],
+  20: [
+    ["review", 5],
+    ["focus", 10],
+    ["ear", 5],
+  ],
+  30: [
+    ["review", 5],
+    ["focus", 12],
+    ["ear", 5],
+    ["song", 8],
+  ],
+  45: [
+    ["review", 8],
+    ["focus", 15],
+    ["ear", 7],
+    ["song", 10],
+    ["variety", 5],
+  ],
+  60: [
+    ["review", 10],
+    ["focus", 20],
+    ["ear", 8],
+    ["song", 12],
+    ["variety", 10],
+  ],
+  90: [
+    ["review", 10],
+    ["focus", 30],
+    ["ear", 10],
+    ["song", 20],
+    ["variety", 10],
+    ["create", 10],
+  ],
+};
+
+/** Any stored budget (an old 5, a 120) to the nearest option. */
+export function snapBudget(minutes: number | undefined): Budget {
+  const m = Number.isFinite(minutes) ? minutes! : routineData.defaultBudgetMinutes;
+  return BUDGET_OPTIONS.reduce((a, b) => (Math.abs(b - m) < Math.abs(a - m) ? b : a));
+}
+
+/** Short tag for a block's role. */
+export function roleLabel(step: Pick<RoutineStep, "role" | "reason" | "id">): string {
+  if (step.role === "review") return step.reason === "warm-up" ? "Warm-up" : "Review";
+  if (step.role === "focus") return step.reason === "path" ? "Path" : "Focus";
+  if (step.role === "ear") return step.id === "reading" ? "Reading" : "Ear";
+  return { song: "Song", variety: "Variety", create: "Create" }[step.role];
+}
+
+/** Sets the given params, keeping any query the href already has; `keep` ones only when absent. */
+function withParams(href: string, set: Record<string, string>, keep: Record<string, string> = {}) {
+  const u = new URL(href, "http://x");
+  for (const [k, v] of Object.entries(keep)) if (!u.searchParams.has(k)) u.searchParams.set(k, v);
+  for (const [k, v] of Object.entries(set)) u.searchParams.set(k, v);
+  return `${u.pathname}${u.search}${u.hash}`;
+}
+
+function linkHref(href: string, n: number, routineId: string, instrument?: Instrument) {
+  const keep: Record<string, string> = {};
+  if (instrument) keep.instrument = instrument;
+  if (href.startsWith(STEPS.ear.route) && instrument === "voice") keep.answer = "voice";
+  return withParams(href, { routine: routineId, step: String(n) }, keep);
+}
+
+export const stepHref = (step: StepId, n: number, routineId: string, instrument?: Instrument) =>
+  linkHref(STEPS[step].route, n, routineId, instrument);
+
+const routeOf = (href: string) => href.split(/[?#]/)[0];
+
+/** Skills due for review (a ten-point drop since last measured), most overdue first. */
+export function dueSkills(mastery: Record<string, SkillMastery>, now: number): string[] {
+  const drop = (m: SkillMastery) => (m.lastMeasured ?? 0) - decayMastery(m, now).mastery;
+  return Object.values(mastery)
+    .filter((m) => isDueForReview(m, now))
+    .sort((a, b) => drop(b) - drop(a))
+    .map((m) => m.skillId);
+}
+
+const DRILL_STEPS = (Object.keys(STEPS) as StepId[]).filter((s) => s !== "phrases" && s !== "jam");
+
 /**
- * Weak-skill steps first (deduped by step, so every ear drill shares one slot), then the
- * instrument's defaults, truncated to the budget. Each step is 5 minutes; a budget under 5
- * still gets one step of that length.
+ * A shaped session: each role from `BLOCKS` gets its block. Review takes the most overdue
+ * skill (else a warm-up from the defaults), focus the path's next step (else the weak spot,
+ * else a default), ear alternates ear and reading by day. Focus is filled first. Only review
+ * may repeat a route; any other role with no fresh route gives its minutes to focus.
  */
 export function buildRoutine(input: {
   id: string;
   instrument?: Instrument;
   budgetMinutes?: number;
   weakSkillIds?: string[];
+  dueSkillIds?: string[];
+  pathFocus?: PathFocus;
+  /** dayKey (YYYY-MM-DD); odd days put reading in the ear slot. */
+  day?: string;
 }): Routine {
   const { id, instrument } = input;
-  const budget = clamp(Math.round(input.budgetMinutes ?? routineData.defaultBudgetMinutes), 1, 120);
-  const count = Math.max(1, Math.floor(budget / MINUTES_PER_STEP));
-  const picks: { id: StepId; reason: RoutineStep["reason"]; skillId?: string }[] = [];
-  const add = (step: StepId | undefined, reason: RoutineStep["reason"], skillId?: string) => {
-    if (step && stepAllowed(step, instrument) && !picks.some((p) => p.id === step))
-      picks.push({ id: step, reason, skillId });
+  const budget = snapBudget(input.budgetMinutes);
+  const defaults = DEFAULTS[instrument ?? "none"];
+  // Ear and reading have their own slot, so focus and the warm-up reach for the rest first.
+  const playing = [...defaults.filter((s) => s !== "ear" && s !== "reading"), ...defaults];
+  const used = new Set<string>();
+  type Pick = Omit<RoutineStep, "n" | "role" | "minutes">;
+  const fromStep = (step: StepId, reason: RoutineStep["reason"], skillId?: string): Pick => ({
+    id: step,
+    label: STEPS[step].label,
+    description: STEPS[step].description,
+    href: STEPS[step].route,
+    reason,
+    skillId,
+  });
+  /** First allowed candidate on an unused route; with `repeat`, else the first allowed one. */
+  const choose = (
+    cands: { step?: StepId; skillId?: string }[],
+    reason: RoutineStep["reason"],
+    repeat = false,
+  ) => {
+    const ok = cands.filter((c) => c.step && stepAllowed(c.step, instrument));
+    const c = ok.find((c) => !used.has(STEPS[c.step!].route)) ?? (repeat ? ok[0] : undefined);
+    return c && fromStep(c.step!, reason, c.skillId);
   };
-  for (const skillId of input.weakSkillIds ?? []) add(stepForSkill(skillId), "weak-spot", skillId);
-  for (const step of DEFAULTS[instrument ?? "none"]) add(step, "default");
+  const steps = (xs: StepId[]) => xs.map((step) => ({ step }));
+  const odd = input.day ? Math.floor(Date.parse(input.day) / DAY_MS) % 2 === 1 : false;
+
+  const fill: Record<Role, () => Pick | undefined> = {
+    focus: () =>
+      input.pathFocus
+        ? {
+            id: "path",
+            label: input.pathFocus.title,
+            description: `Next on the ${input.pathFocus.pathTitle}. ${input.pathFocus.summary}`,
+            href: input.pathFocus.href,
+            reason: "path",
+            skillIds: input.pathFocus.skillIds,
+          }
+        : (choose(
+            (input.weakSkillIds ?? []).map((skillId) => ({ step: stepForSkill(skillId), skillId })),
+            "weak-spot",
+          ) ?? choose(steps(playing), "default", true)),
+    review: () =>
+      choose(
+        (input.dueSkillIds ?? []).map((skillId) => ({ step: stepForSkill(skillId), skillId })),
+        "due",
+      ) ?? choose(steps(playing), "warm-up", true),
+    ear: () => choose(steps(odd ? ["reading", "ear"] : ["ear", "reading"]), "default"),
+    song: () => choose(steps(["phrases"]), "default"),
+    variety: () => choose(steps([...defaults, ...DRILL_STEPS]), "default"),
+    create: () => choose(steps(["jam"]), "default"),
+  };
+
+  const rows = BLOCKS[budget];
+  const picks = new Map<Role, Pick>();
+  let spare = 0;
+  for (const role of ["focus", ...rows.map(([r]) => r).filter((r) => r !== "focus")] as Role[]) {
+    const p = fill[role]();
+    if (!p) {
+      spare += rows.find(([r]) => r === role)?.[1] ?? 0;
+      continue;
+    }
+    used.add(routeOf(p.href));
+    picks.set(role, p);
+  }
   return {
     id,
     instrument,
     budgetMinutes: budget,
-    steps: picks.slice(0, count).map((p, i) => ({
-      n: i + 1,
-      id: p.id,
-      label: STEPS[p.id].label,
-      description: STEPS[p.id].description,
-      minutes: Math.min(MINUTES_PER_STEP, budget),
-      href: stepHref(p.id, i + 1, id, instrument),
-      reason: p.reason,
-      skillId: p.skillId,
-    })),
+    steps: rows
+      .filter(([role]) => picks.has(role))
+      .map(([role, minutes], i) => {
+        const p = picks.get(role)!;
+        return {
+          ...p,
+          n: i + 1,
+          role,
+          minutes: role === "focus" ? minutes + spare : minutes,
+          href: linkHref(p.href, i + 1, id, instrument),
+        };
+      }),
   };
 }
 
 /** The step a finished run belongs to: its routine params, else the ear prefix, else its skills. */
 function runMatchesStep(run: RunRecord, routine: Routine, step: RoutineStep): boolean {
-  if (run.params.routine === routine.id && Number(run.params.step) === step.n) return true;
+  if (run.params.routine === routine.id) return Number(run.params.step) === step.n;
+  if (step.skillIds?.length)
+    return run.skillIds.some((s) => step.skillIds!.some((k) => s === k || s.startsWith(`${k}.`)));
   if (step.id === "ear") return run.exerciseId.startsWith("ear.");
   if (run.exerciseId.startsWith("ear.")) return false;
   return [run.exerciseId, ...run.skillIds].some((s) => stepForSkill(s) === step.id);

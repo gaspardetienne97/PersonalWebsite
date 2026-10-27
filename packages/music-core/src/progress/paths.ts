@@ -790,6 +790,16 @@ const path = (id: PathId, title: string, subtitle: string, steps: RawStep[]): Le
 const { guitar, piano, mpc } = pathData.paths;
 const ear = earData.learningPathDefinition;
 
+/** The path each instrument follows (the Paths tab's default and Today's focus block). */
+export const PATH_FOR_INSTRUMENT: Record<Instrument, PathId> = {
+  piano: "piano",
+  guitar: "guitar",
+  ukulele: "guitar",
+  mpc: "mpc",
+  aerophone: "ear",
+  voice: "ear",
+};
+
 export const LEARNING_PATHS: Record<PathId, LearningPath> = {
   ear: path("ear", ear.title, ear.subtitle, [
     ...(EAR_TABLE_STEPS as RawStep[]),

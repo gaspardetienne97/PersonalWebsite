@@ -660,6 +660,8 @@ test.describe("ear training", () => {
   });
 
   test("scale degrees by play-back over fake MIDI, in check", async ({ page }) => {
+    // Ten full questions after the key cadence.
+    test.setTimeout(60_000);
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(page, "/music/ear/scale-degrees?answer=play-back&level=major-diatonic");
     await page.getByRole("button", { name: "Check", exact: true }).click();
@@ -724,6 +726,8 @@ test.describe("ear training", () => {
   });
 
   test("scale degrees by voice through the synthetic mic", async ({ page }) => {
+    // Ten full questions after the key cadence.
+    test.setTimeout(60_000);
     await installSyntheticMic(page, 0);
     await page.goto("/music/ear/scale-degrees?answer=voice&level=anchor");
     await page.getByRole("button", { name: "Check", exact: true }).click();
