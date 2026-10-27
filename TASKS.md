@@ -4,7 +4,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## Needs the owner
 
-- **Deploy with the login on.** Set `MUSIC_LOGIN=required` where the site runs, with an account made beforehand (registration closes while it is on). Until then `/music` is open in this branch; how the deployed site's existing login works was not visible from here, so say if it is a proxy instead.
+(nothing yet)
 
 ## In progress
 
@@ -81,6 +81,10 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 - The site's own `Header.svelte` has a pre-existing type error on `DropdownMenu.Root modal`; it was not touched.
 
 - Scales drill, verified in the browser through on-screen input in Practice and Check (clean check: 100%, independent evidence, personal best, ladder)
+
+## At the end, before the first push
+
+- Turn the login on where the site is deployed (`MUSIC_LOGIN=required`, an account made first, since registration closes while it is on), or match the deployed site's own login if it is a proxy. Nothing is pushed yet, so nobody else can reach the app before then.
 
 ## Dropped
 
