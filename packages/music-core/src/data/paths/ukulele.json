@@ -2,5 +2,3703 @@
   "id": "ukulele",
   "title": "Ukulele Path",
   "subtitle": "High-G tenor ukulele from first chords to fingerstyle solos and chord melody.",
-  "levels": []
+  "benchmark": "RSL Ukulele Grade 5, LCM Ukulele Grade 5",
+  "instruments": ["ukulele"],
+  "levels": [
+    {
+      "id": "1",
+      "title": "First chords, first strums, first melodies",
+      "goal": "Strum four chords in time and pick a melody on the open strings.",
+      "adds": "C, Am, F, G7, G; down strums and down-up; thumb strokes; first-position reading.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "1.1",
+          "title": "Tune the ukulele",
+          "strand": "S",
+          "href": "/music/tuner?instrument=ukulele",
+          "setup": "The tuner, all four strings, high-G (re-entrant). The app does not yet ask high-G or low-G and keep it in settings.",
+          "done": "All four strings within 10 cents in under a minute.",
+          "feeds": "all"
+        },
+        {
+          "id": "1.2",
+          "title": "Build C, Am and F",
+          "strand": "S",
+          "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.c-major",
+          "setup": "Chords, Build: C, then Am and F.",
+          "done": "Each shape clean 5 times running (every string sounds), on two days.",
+          "each": {
+            "param": "shape",
+            "values": ["ukulele.c-major", "ukulele.a-minor", "ukulele.f-major"]
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Am",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.a-minor"
+            },
+            {
+              "label": "F",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.f-major"
+            }
+          ],
+          "feeds": "Let It Be, Stand By Me"
+        },
+        {
+          "id": "1.3",
+          "title": "Build G7, then G",
+          "strand": "S",
+          "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.g7",
+          "setup": "Chords, Build: G7, then G.",
+          "done": "Each shape clean 5 times running, on two days.",
+          "each": {
+            "param": "shape",
+            "values": ["ukulele.g7", "ukulele.g-major"]
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.g-major"
+            }
+          ],
+          "feeds": "La Bamba, Lava"
+        },
+        {
+          "id": "1.4",
+          "title": "Down strums on four chords",
+          "strand": "S",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.four-chords&bpm=60",
+          "setup": "Phrases: Four chords, 60 then 80.",
+          "done": "3 runs at 90% at 80, on two days.",
+          "match": {
+            "phrase": "ukulele.four-chords"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "feeds": "Let It Be, Stand By Me"
+        },
+        {
+          "id": "1.5",
+          "title": "One-minute changes",
+          "strand": "S",
+          "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.c-major,ukulele.a-minor&timed=true",
+          "setup": "Chords, Changes: timed, 60 seconds, one pair at a time: C-Am, Am-F, F-C, C-G7, F-G7.",
+          "done": "30 changes a minute on each pair (JustinGuitar's bar), on two days.",
+          "each": {
+            "param": "chords",
+            "values": [
+              "ukulele.c-major>ukulele.a-minor",
+              "ukulele.a-minor>ukulele.f-major",
+              "ukulele.f-major>ukulele.c-major",
+              "ukulele.c-major>ukulele.g7",
+              "ukulele.f-major>ukulele.g7"
+            ]
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Am-F",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.a-minor,ukulele.f-major&timed=true"
+            },
+            {
+              "label": "F-C",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.f-major,ukulele.c-major&timed=true"
+            },
+            {
+              "label": "C-G7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.c-major,ukulele.g7&timed=true"
+            },
+            {
+              "label": "F-G7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.f-major,ukulele.g7&timed=true"
+            }
+          ],
+          "feeds": "all strummed songs"
+        },
+        {
+          "id": "1.6",
+          "title": "Down, down-up",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: D DU D DU.",
+          "done": "5 runs at 80% at 80.",
+          "needs": "A ukulele-d-du pattern (D DU D DU) in the rhythm patterns.",
+          "feeds": "You Are My Sunshine"
+        },
+        {
+          "id": "1.7",
+          "title": "Thumb, then a pinch",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-two-strings&chords=ukulele.c-major,ukulele.f-major,ukulele.g7&bpm=60",
+          "setup": "Chords, Fingerpicking: thumb, then two strings together, over C F G7, 60.",
+          "done": "3 runs at 80% at 70, on two days.",
+          "match": {
+            "pattern": "uke-two-strings"
+          },
+          "threshold": 0.8,
+          "minBpm": 70,
+          "feeds": "Saints"
+        },
+        {
+          "id": "1.8",
+          "title": "Open-string melodies",
+          "strand": "T",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.twinkle",
+          "setup": "Phrases: Twinkle, Mary Had a Little Lamb, Ode to Joy.",
+          "done": "Each phrase 3 runs at 90% at the phrase tempo, on two days.",
+          "each": {
+            "param": "phrase",
+            "values": ["ukulele.twinkle", "ukulele.mary", "ukulele.ode-to-joy"]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Mary",
+              "href": "/music/phrases?instrument=ukulele&phrase=ukulele.mary"
+            },
+            {
+              "label": "Ode to Joy",
+              "href": "/music/phrases?instrument=ukulele&phrase=ukulele.ode-to-joy"
+            }
+          ],
+          "feeds": "Twinkle, Ode to Joy"
+        },
+        {
+          "id": "1.9",
+          "title": "Read the first notes",
+          "strand": "T",
+          "href": "/music/reading?mode=flashcards&activity=flashcards&instrument=ukulele&level=primer",
+          "setup": "Note reading, Flashcards: the Primer range, C4 to C5 (frets 0 to 3).",
+          "done": "20 notes at 90%, under 3 seconds each.",
+          "match": {
+            "high": "72"
+          },
+          "minAttempts": 2,
+          "threshold": 0.9,
+          "feeds": "Twinkle, Ode to Joy"
+        },
+        {
+          "id": "1.10",
+          "title": "Major or minor",
+          "strand": "T",
+          "href": "/music/ear/chord-qualities?answer=choice&qualities=major,minor&instrument=ukulele",
+          "setup": "Ear, Chord qualities: major and minor.",
+          "done": "20 answers at 80%.",
+          "minAttempts": 2,
+          "threshold": 0.8
+        },
+        {
+          "id": "1.11",
+          "title": "First whole song",
+          "strand": "S",
+          "setup": "Strum a progression with a shelf song's chords and strum pattern.",
+          "done": "One shelf song start to end, 3 runs at 80% (chords and timing), no stops.",
+          "needs": "Song presets and a strum pattern in Strum a progression, with runs that count (rec 2).",
+          "feeds": "shelf"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "you-are-my-sunshine",
+          "title": "You Are My Sunshine",
+          "artist": "Jimmie Davis, trad.",
+          "strand": "S",
+          "teaches": "A first I IV V7 song",
+          "detail": "C, about 100 BPM, C F G7 (C7), D DU",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "UkeTrek, solo ukulele, high-G",
+              "url": "https://musescore.com/user/12852721/scores/6689039"
+            }
+          ],
+          "fallback": {
+            "label": "LiveUkulele",
+            "url": "https://liveukulele.com/tabs/you-are-my-sunshine-ukulele-tab/"
+          }
+        },
+        {
+          "id": "la-bamba",
+          "title": "La Bamba",
+          "artist": "Ritchie Valens",
+          "strand": "S",
+          "teaches": "The three-chord loop",
+          "detail": "C, about 150 BPM (count it in half time, 75), C F G",
+          "bpm": 150,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard, solo ukulele",
+              "url": "https://musescore.com/user/39593079/scores/15787867",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/r/ritchie-valens/la-bamba/"
+          }
+        },
+        {
+          "id": "lava",
+          "title": "Lava",
+          "artist": "Pixar, James Ford Murphy",
+          "strand": "S",
+          "teaches": "Hawaiian lilt, G7",
+          "detail": "C, about 90 BPM, C G7 F",
+          "bpm": 90,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, arr. Dennis McCorkle, beginner",
+              "url": "https://musescore.com/user/97106398/scores/18630112",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Official, chords and lyrics",
+            "url": "https://musescore.com/user/39593079/scores/16013074",
+            "official": true
+          }
+        },
+        {
+          "id": "let-it-be",
+          "title": "Let It Be",
+          "artist": "The Beatles",
+          "strand": "S",
+          "teaches": "The four first chords",
+          "detail": "C, about 72 BPM, C G Am F",
+          "bpm": 72,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Winter Sparrow, beginner",
+              "url": "https://musescore.com/user/97106398/scores/18843655",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/t/the-beatles/let-it-be/"
+          }
+        },
+        {
+          "id": "stand-by-me",
+          "title": "Stand By Me",
+          "artist": "Ben E. King",
+          "strand": "S",
+          "teaches": "Am, steady downs, then island later",
+          "detail": "C, about 118 BPM, C Am F G",
+          "bpm": 118,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community duet with a ukulele part",
+              "url": "https://musescore.com/user/66925/scores/9059096"
+            },
+            {
+              "label": "Official, arr. Winter Sparrow, beginner",
+              "url": "https://musescore.com/user/97106398/scores/18822262",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/b/ben-e-king/stand-by-me/"
+          }
+        },
+        {
+          "id": "twinkle-twinkle",
+          "title": "Twinkle Twinkle Little Star",
+          "artist": "trad., Mozart's theme",
+          "strand": "F",
+          "teaches": "Open strings plus frets 2 and 3",
+          "detail": "C, 80 BPM, single notes",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Le Grave Musicien, ukulele tab",
+              "url": "https://musescore.com/user/30473545/scores/5469840"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Phrases, Twinkle",
+            "url": "/music/phrases?instrument=ukulele&phrase=ukulele.twinkle"
+          }
+        },
+        {
+          "id": "ode-to-joy",
+          "title": "Ode to Joy",
+          "artist": "Beethoven",
+          "strand": "F",
+          "teaches": "A stepwise melody, the C scale",
+          "detail": "C, 90 BPM, single notes",
+          "bpm": 90,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "taha_, ukulele tab, 4.7 from 82 ratings",
+              "url": "https://musescore.com/user/37578363/scores/6648635"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Phrases, Ode to Joy",
+            "url": "/music/phrases?instrument=ukulele&phrase=ukulele.ode-to-joy"
+          }
+        },
+        {
+          "id": "when-the-saints",
+          "title": "When the Saints Go Marching In",
+          "artist": "trad., New Orleans",
+          "strand": "F",
+          "teaches": "Melody with a thumb pinch",
+          "detail": "C, 100 BPM, melody then C G7 F",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Jose Manuel Acuna, fingerpicked",
+              "url": "https://musescore.com/user/30013820/scores/6077813"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Phrases, Saints",
+            "url": "/music/phrases?instrument=ukulele&phrase=ukulele.saints"
+          }
+        }
+      ],
+      "test": "Two shelf songs (one strummed, one picked) start to end at the listed tempo with no stops, recorded in Practice Lab; plus the C-Am-F-G7 cycle at 30 changes a minute."
+    },
+    {
+      "id": "2",
+      "title": "Island strum, chucks and the claw",
+      "goal": "The strums most pop ukulele songs use, and the first real fingerpicking patterns.",
+      "adds": "Island strum, chuck, reggae offbeat; Dm, C7, A7, D7, E7, Em, D; the claw and alternating thumb; the C major scale.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "2.1",
+          "title": "Island strum",
+          "strand": "S",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-island-strum&bpm=70",
+          "setup": "Rhythm, read and tap: ukulele island strum, 70 then 90.",
+          "done": "5 runs at 80% at 90, on two days.",
+          "minAttempts": 5,
+          "threshold": 0.8,
+          "minBpm": 90,
+          "feeds": "Riptide, Hey Soul Sister"
+        },
+        {
+          "id": "2.2",
+          "title": "Chuck on 2 and 4",
+          "strand": "S",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-chuck&bpm=70",
+          "setup": "Rhythm, read and tap: ukulele chuck, 70 then 90.",
+          "done": "5 runs at 75% at 90 (timing only; the chuck itself is not graded).",
+          "minAttempts": 5,
+          "threshold": 0.75,
+          "minBpm": 90,
+          "feeds": "I'm Yours"
+        },
+        {
+          "id": "2.3",
+          "title": "Reggae offbeat",
+          "strand": "S",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=off-beats&bpm=74",
+          "setup": "Rhythm, read and tap: off-beats. A ukulele reggae pattern (chucks on the \"and\") is coming.",
+          "done": "5 runs at 80% at 74.",
+          "minAttempts": 5,
+          "threshold": 0.8,
+          "minBpm": 74,
+          "feeds": "Three Little Birds"
+        },
+        {
+          "id": "2.4",
+          "title": "Second chord set",
+          "strand": "S",
+          "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.d-minor",
+          "setup": "Chords, Build: Dm, C7, A7, D, E7, then Em and D7. Em and D7 use the app's generated shapes until curated ones arrive.",
+          "done": "Each shape clean 5 times running, on two days.",
+          "each": {
+            "param": "shape",
+            "values": [
+              "ukulele.d-minor",
+              "ukulele.c7",
+              "ukulele.a7",
+              "ukulele.d-major",
+              "ukulele.e7",
+              "gen.ukulele.4.m",
+              "gen.ukulele.2.7"
+            ]
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "C7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.c7"
+            },
+            {
+              "label": "A7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.a7"
+            },
+            {
+              "label": "D",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.d-major"
+            },
+            {
+              "label": "E7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.e7"
+            },
+            {
+              "label": "Em",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.4.m"
+            },
+            {
+              "label": "D7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.2.7"
+            }
+          ],
+          "feeds": "Count on Me, Aloha 'Oe"
+        },
+        {
+          "id": "2.5",
+          "title": "Changes for the new chords",
+          "strand": "S",
+          "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.c-major,gen.ukulele.4.m&timed=true",
+          "setup": "Chords, Changes: timed, C-Em, Am-Dm, C-A7, A7-Dm, G7-C7, F-Em.",
+          "done": "30 changes a minute on each pair, on two days.",
+          "each": {
+            "param": "chords",
+            "values": [
+              "ukulele.c-major>gen.ukulele.4.m",
+              "ukulele.a-minor>ukulele.d-minor",
+              "ukulele.c-major>ukulele.a7",
+              "ukulele.a7>ukulele.d-minor",
+              "ukulele.g7>ukulele.c7",
+              "ukulele.f-major>gen.ukulele.4.m"
+            ]
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Am-Dm",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.a-minor,ukulele.d-minor&timed=true"
+            },
+            {
+              "label": "C-A7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.c-major,ukulele.a7&timed=true"
+            },
+            {
+              "label": "A7-Dm",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.a7,ukulele.d-minor&timed=true"
+            },
+            {
+              "label": "G7-C7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.g7,ukulele.c7&timed=true"
+            },
+            {
+              "label": "F-Em",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.f-major,gen.ukulele.4.m&timed=true"
+            }
+          ],
+          "feeds": "shelf"
+        },
+        {
+          "id": "2.6",
+          "title": "The claw",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-claw&chords=ukulele.c-major,ukulele.a-minor,ukulele.f-major,ukulele.g-major&bpm=60",
+          "setup": "Chords, Fingerpicking: the claw over C Am F G, 60 to 80.",
+          "done": "3 runs at 85% at 80, on two days.",
+          "match": {
+            "pattern": "uke-claw"
+          },
+          "threshold": 0.85,
+          "minBpm": 80,
+          "feeds": "You Are My Sunshine (fingerstyle)"
+        },
+        {
+          "id": "2.7",
+          "title": "Claw with alternating thumb",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-claw-alternating&chords=ukulele.c-major,gen.ukulele.2.7,ukulele.g7&bpm=70",
+          "setup": "Chords, Fingerpicking: claw with alternating thumb over C D7 G7 C.",
+          "done": "3 runs at 80% at 80, on two days.",
+          "match": {
+            "pattern": "uke-claw-alternating"
+          },
+          "threshold": 0.8,
+          "minBpm": 80,
+          "feeds": "Love Me Tender"
+        },
+        {
+          "id": "2.8",
+          "title": "Outside in",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-outside-in&chords=ukulele.a-minor,ukulele.f-major,ukulele.c-major,ukulele.g-major&bpm=70",
+          "setup": "Chords, Fingerpicking: outside in over Am F C G.",
+          "done": "3 runs at 80% at 80, on two days.",
+          "match": {
+            "pattern": "uke-outside-in"
+          },
+          "threshold": 0.8,
+          "minBpm": 80,
+          "feeds": "Riptide (picked verse)"
+        },
+        {
+          "id": "2.9",
+          "title": "A picked song",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-claw&chords=ukulele.c-major,ukulele.f-major,ukulele.g7&bpm=80",
+          "setup": "Chords, Fingerpicking: the claw over You Are My Sunshine's chords, C F G7. A song preset is coming.",
+          "done": "3 runs at 80% at the song's tempo, on two days.",
+          "match": {
+            "pattern": "uke-claw",
+            "shapes": "ukulele.c-major>ukulele.f-major>ukulele.g7"
+          },
+          "threshold": 0.8,
+          "feeds": "You Are My Sunshine"
+        },
+        {
+          "id": "2.10",
+          "title": "C major scale, first position",
+          "strand": "T",
+          "href": "/music/scales?instrument=ukulele&kind=major&tonic=60&span=one-octave&bpm=60",
+          "setup": "Scales: C major, one octave, 60 to 80.",
+          "done": "3 runs at 95% of the notes at 80, on two days.",
+          "match": {
+            "kind": "major",
+            "tonic": "60"
+          },
+          "threshold": 0.95,
+          "minBpm": 80,
+          "feeds": "Aloha 'Oe melody"
+        },
+        {
+          "id": "2.11",
+          "title": "Read first-position tunes",
+          "strand": "T",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.oh-susanna",
+          "setup": "Phrases: Oh! Susanna and Camptown Races; Sight-reading at level 2 alongside.",
+          "done": "Each phrase 3 runs at 90%, on two days; sight-reading at level 2.",
+          "each": {
+            "param": "phrase",
+            "values": ["ukulele.oh-susanna", "ukulele.camptown"]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Camptown Races",
+              "href": "/music/phrases?instrument=ukulele&phrase=ukulele.camptown"
+            },
+            {
+              "label": "Sight-reading, level 2",
+              "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-2"
+            }
+          ],
+          "feeds": "Aloha 'Oe"
+        },
+        {
+          "id": "2.12",
+          "title": "Strum a song with chucks",
+          "strand": "S",
+          "setup": "Strum a progression: I'm Yours or Three Little Birds.",
+          "done": "3 full runs at 80%.",
+          "needs": "Song presets and a strum pattern in Strum a progression, with runs that count (rec 2).",
+          "feeds": "I'm Yours, Three Little Birds"
+        },
+        {
+          "id": "2.13",
+          "title": "Hear I, IV and V",
+          "strand": "T",
+          "href": "/music/ear/progressions?answer=choice&functions=I,IV,V&instrument=ukulele",
+          "setup": "Ear, Progressions: I, IV and V.",
+          "done": "20 answers at 80%.",
+          "minAttempts": 2,
+          "threshold": 0.8
+        }
+      ],
+      "shelf": [
+        {
+          "id": "im-yours",
+          "title": "I'm Yours",
+          "artist": "Jason Mraz",
+          "strand": "S",
+          "teaches": "Chuck, swung 16ths",
+          "detail": "C, about 76 BPM, C G Am F",
+          "bpm": 76,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ukulele part",
+              "url": "https://musescore.com/user/4171401/scores/1223786"
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/j/jason-mraz/im-yours/"
+          }
+        },
+        {
+          "id": "three-little-birds",
+          "title": "Three Little Birds",
+          "artist": "Bob Marley",
+          "strand": "S",
+          "teaches": "Reggae offbeat",
+          "detail": "C, about 74 BPM, C F G",
+          "bpm": 74,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, The Daily Ukulele",
+              "url": "https://musescore.com/user/39593079/scores/15786154",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/b/bob-marley/three-little-birds/"
+          }
+        },
+        {
+          "id": "riptide",
+          "title": "Riptide",
+          "artist": "Vance Joy",
+          "strand": "S",
+          "teaches": "Island strum, a change every two beats",
+          "detail": "Am, about 102 BPM, Am G C F",
+          "bpm": 102,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, The Daily Ukulele",
+              "url": "https://musescore.com/user/39593079/scores/21386461",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/v/vance-joy/riptide/"
+          }
+        },
+        {
+          "id": "count-on-me",
+          "title": "Count on Me",
+          "artist": "Bruno Mars",
+          "strand": "S",
+          "teaches": "Six chords, Em and Dm",
+          "detail": "C, about 89 BPM, C Em Am G F Dm",
+          "bpm": 89,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, ukulele",
+              "url": "https://musescore.com/user/53375979/scores/11672089"
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/b/bruno-mars/count-on-me/"
+          }
+        },
+        {
+          "id": "hey-soul-sister",
+          "title": "Hey, Soul Sister",
+          "artist": "Train",
+          "strand": "S",
+          "teaches": "Island strum plus the intro riff",
+          "detail": "C, about 97 BPM, C G Am F",
+          "bpm": 97,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard, solo ukulele",
+              "url": "https://musescore.com/user/39593079/scores/15747361",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/t/train/hey-soul-sister/"
+          }
+        },
+        {
+          "id": "over-the-rainbow",
+          "title": "Over the Rainbow (strummed)",
+          "artist": "Israel Kamakawiwo'ole",
+          "strand": "S",
+          "teaches": "Em and E7 in a ballad",
+          "detail": "C, about 81 BPM, C Em Am F G E7",
+          "bpm": 81,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "For ukulele and cello",
+              "url": "https://musescore.com/user/17125406/scores/4821206"
+            }
+          ],
+          "fallback": {
+            "label": "LiveUkulele",
+            "url": "https://liveukulele.com/tabs/somewhere-over-the-rainbow-wonderful-world-iz/"
+          }
+        },
+        {
+          "id": "aloha-oe",
+          "title": "Aloha 'Oe",
+          "artist": "Lili'uokalani, 1878",
+          "strand": "S, F",
+          "teaches": "A Hawaiian melody, C7 and D7",
+          "detail": "C, about 70 BPM, C C7 F G7 D7",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "pat.anderson, solo ukulele with chords",
+              "url": "https://musescore.com/user/1630156/scores/1755726"
+            }
+          ],
+          "fallback": {
+            "label": "LiveUkulele",
+            "url": "https://liveukulele.com/tabs/aloha-oe-queen-liliuokalani/"
+          }
+        },
+        {
+          "id": "love-me-tender",
+          "title": "Love Me Tender",
+          "artist": "Elvis Presley (Aura Lee)",
+          "strand": "F",
+          "teaches": "Claw with alternating thumb",
+          "detail": "C, about 72 BPM, C D7 G7",
+          "bpm": 72,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Community, solo ukulele",
+              "url": "https://musescore.com/user/34976289/scores/6683555"
+            },
+            {
+              "label": "Official, easy",
+              "url": "https://musescore.com/user/39593079/scores/15936487",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "you-are-my-sunshine-fingerstyle",
+          "title": "You Are My Sunshine, fingerstyle",
+          "artist": "Jimmie Davis, trad.",
+          "strand": "F",
+          "teaches": "Claw and pinches under a melody",
+          "detail": "C, about 90 BPM",
+          "bpm": 90,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "amponin, 4.8 from 137 ratings",
+              "url": "https://musescore.com/user/36587406/scores/6583664"
+            }
+          ]
+        }
+      ],
+      "test": "One island-strum song and one chuck or reggae song at the shelf tempo; one fingerpicked song with the claw at 80% of its tempo; the C major scale at 80."
+    },
+    {
+      "id": "3",
+      "title": "Minor keys, three-time and p-i-m-a",
+      "goal": "Songs in 3/4 and 6/8, minor keys, and four-finger picking.",
+      "adds": "Waltz and 6/8 strums; p-i-m-a, rolls, Ohta-San, pinches; Gm and Bb (the first partial barre); A natural minor and A minor pentatonic.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "3.1",
+          "title": "Waltz strum",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: D DU DU in 3/4.",
+          "done": "5 runs at 80% at 100.",
+          "needs": "A ukulele-waltz pattern (D DU DU in 3/4) in the rhythm patterns.",
+          "feeds": "Edelweiss"
+        },
+        {
+          "id": "3.2",
+          "title": "6/8 strum",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: D du du, D du du.",
+          "done": "5 runs at 80% at 60 (dotted quarter).",
+          "needs": "A ukulele-six-eight pattern (D du du, D du du) in the rhythm patterns.",
+          "feeds": "Perfect"
+        },
+        {
+          "id": "3.3",
+          "title": "Thumb on 4, then i m a",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tima&chords=ukulele.a-minor,ukulele.c-major,ukulele.d-major,ukulele.f-major&bpm=60",
+          "setup": "Chords, Fingerpicking: thumb on 4, then i m a, over Am C D F, 60 to 80.",
+          "done": "3 runs at 85% at 80, on two days.",
+          "match": {
+            "pattern": "uke-tima"
+          },
+          "threshold": 0.85,
+          "minBpm": 80,
+          "feeds": "House of the Rising Sun"
+        },
+        {
+          "id": "3.4",
+          "title": "Up and down roll in 6/8",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.a-minor,ukulele.c-major,ukulele.d-major,ukulele.f-major,ukulele.a-minor,gen.ukulele.4.maj&bpm=58&perBeat=3",
+          "setup": "Chords, Fingerpicking: the up and down roll, then the House of the Rising Sun preset.",
+          "done": "The preset at its tempo (58), 3 runs at 80%, on two days.",
+          "match": {
+            "pattern": "uke-rolling",
+            "shapes": "ukulele.a-minor>ukulele.c-major>ukulele.d-major>ukulele.f-major>ukulele.a-minor>gen.ukulele.4.maj"
+          },
+          "threshold": 0.8,
+          "minBpm": 58,
+          "feeds": "House of the Rising Sun"
+        },
+        {
+          "id": "3.5",
+          "title": "Ohta-San 6/8",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.c-major,gen.ukulele.4.m,ukulele.a-minor,ukulele.f-major,ukulele.c-major,ukulele.g-major&bpm=66&perBeat=3",
+          "setup": "Chords, Fingerpicking: Ohta-San, then the Can't Help Falling in Love preset.",
+          "done": "The preset at its tempo (66), 3 runs at 80%, on two days.",
+          "match": {
+            "pattern": "uke-rolling",
+            "shapes": "ukulele.c-major>gen.ukulele.4.m>ukulele.a-minor>ukulele.f-major>ukulele.c-major>ukulele.g-major"
+          },
+          "threshold": 0.8,
+          "minBpm": 66,
+          "links": [
+            {
+              "label": "Ohta-San",
+              "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-ohta&chords=ukulele.c-major,gen.ukulele.4.m,ukulele.a-minor,ukulele.f-major&bpm=60&perBeat=3"
+            }
+          ],
+          "feeds": "Can't Help Falling in Love"
+        },
+        {
+          "id": "3.6",
+          "title": "Thumb, then a m i; pinches",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.c-major,ukulele.a-minor,ukulele.c-major,ukulele.a-minor,ukulele.f-major,ukulele.g-major&bpm=60&perBeat=3",
+          "setup": "Chords, Fingerpicking: thumb, then a m i, then the Hallelujah preset.",
+          "done": "The preset at its tempo (60), 3 runs at 80%, on two days.",
+          "match": {
+            "pattern": "uke-rolling",
+            "shapes": "ukulele.c-major>ukulele.a-minor>ukulele.c-major>ukulele.a-minor>ukulele.f-major>ukulele.g-major"
+          },
+          "threshold": 0.8,
+          "minBpm": 60,
+          "links": [
+            {
+              "label": "Thumb, then a m i",
+              "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tami&chords=ukulele.c-major,ukulele.a-minor,ukulele.f-major,ukulele.g-major&bpm=60"
+            }
+          ],
+          "feeds": "Hallelujah"
+        },
+        {
+          "id": "3.7",
+          "title": "An A minor song with the thumb",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.a-minor,ukulele.g-major,ukulele.a-minor,ukulele.c-major,ukulele.a-minor,ukulele.d-major&bpm=90&perBeat=2",
+          "setup": "Chords, Fingerpicking: the Scarborough Fair preset.",
+          "done": "3 runs at 80% at the preset tempo (90), on two days.",
+          "match": {
+            "pattern": "uke-rolling",
+            "shapes": "ukulele.a-minor>ukulele.g-major>ukulele.a-minor>ukulele.c-major>ukulele.a-minor>ukulele.d-major"
+          },
+          "threshold": 0.8,
+          "minBpm": 90,
+          "feeds": "Scarborough Fair"
+        },
+        {
+          "id": "3.8",
+          "title": "Gm and Bb",
+          "strand": "S",
+          "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.f-major,gen.ukulele.10.maj&timed=true",
+          "setup": "Chords, Build: Gm and Bb (Bb uses the app's generated shape until a curated one arrives); then Changes, timed: F-Bb, Bb-C7, Dm-Gm.",
+          "done": "20 changes a minute on each pair, on two days.",
+          "each": {
+            "param": "chords",
+            "values": [
+              "ukulele.f-major>gen.ukulele.10.maj",
+              "gen.ukulele.10.maj>ukulele.c7",
+              "ukulele.d-minor>ukulele.g-minor"
+            ]
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Bb-C7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=gen.ukulele.10.maj,ukulele.c7&timed=true"
+            },
+            {
+              "label": "Dm-Gm",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.d-minor,ukulele.g-minor&timed=true"
+            },
+            {
+              "label": "Build Gm",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.g-minor"
+            },
+            {
+              "label": "Build Bb",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.10.maj"
+            }
+          ],
+          "feeds": "Edelweiss variants, Mad World"
+        },
+        {
+          "id": "3.9",
+          "title": "A natural minor, A minor pentatonic",
+          "strand": "T",
+          "href": "/music/scales?instrument=ukulele&kind=natural-minor&tonic=69&span=one-octave&bpm=60",
+          "setup": "Scales: A natural minor, then A minor pentatonic, 60 to 80.",
+          "done": "Each 3 runs at 95% at 80, on two days.",
+          "match": {
+            "tonic": "69"
+          },
+          "each": {
+            "param": "kind",
+            "values": ["natural-minor", "minor-pentatonic"]
+          },
+          "threshold": 0.95,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "A minor pentatonic",
+              "href": "/music/scales?instrument=ukulele&kind=minor-pentatonic&tonic=69&span=one-octave&bpm=60"
+            }
+          ],
+          "feeds": "Greensleeves"
+        },
+        {
+          "id": "3.10",
+          "title": "A tune from a score",
+          "strand": "T",
+          "href": "/music/songs/shelf/ukulele/greensleeves",
+          "setup": "Song Studio: import a shelf melody (Greensleeves or Scarborough Fair), wait mode, then performance.",
+          "done": "Wait mode 90% of the notes, then performance 80% on two days.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Scarborough Fair",
+              "href": "/music/songs/shelf/ukulele/scarborough-fair"
+            }
+          ],
+          "feeds": "Greensleeves"
+        },
+        {
+          "id": "3.11",
+          "title": "Read in 3/4 and 6/8",
+          "strand": "T",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3&meter=compound",
+          "setup": "Sight-reading, level 3, compound meter (6/8). A 3/4 meter setting is coming.",
+          "done": "80% at level 3 in 6/8, 3 runs on two days.",
+          "match": {
+            "level": "level-3",
+            "meter": "compound"
+          },
+          "threshold": 0.8
+        },
+        {
+          "id": "3.12",
+          "title": "Hear three against four",
+          "strand": "T",
+          "href": "/music/rhythm?mode=echo&earLevel=compound&instrument=ukulele",
+          "setup": "Rhythm, Echo: 6/8. Then Ear, Chord qualities: major and minor.",
+          "done": "20 answers at 85%.",
+          "match": {
+            "level": "compound"
+          },
+          "minAttempts": 2,
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Chord qualities",
+              "href": "/music/ear/chord-qualities?answer=choice&qualities=major,minor&instrument=ukulele"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "cant-help-falling-in-love",
+          "title": "Can't Help Falling in Love",
+          "artist": "Elvis Presley",
+          "strand": "F",
+          "teaches": "6/8 picking, E7 and A7",
+          "detail": "C, the preset's 66 BPM, C Em Am F G E7 A7 Dm G7",
+          "bpm": 66,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "RoyBrown, solo ukulele",
+              "url": "https://musescore.com/user/35093617/scores/6506276"
+            },
+            {
+              "label": "Official, arr. Yuri Noronha, beginner",
+              "url": "https://musescore.com/user/97106398/scores/19443253",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Fingerpicking preset",
+            "url": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.c-major,gen.ukulele.4.m,ukulele.a-minor,ukulele.f-major,ukulele.c-major,ukulele.g-major&bpm=66&perBeat=3"
+          }
+        },
+        {
+          "id": "hallelujah",
+          "title": "Hallelujah",
+          "artist": "Leonard Cohen",
+          "strand": "F",
+          "teaches": "Slow 6/8 roll, pinches",
+          "detail": "C, the preset's 60 BPM, C Am F G E7",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "debr0316, solo ukulele, 4.8",
+              "url": "https://musescore.com/user/27686314/scores/5959807"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Fingerpicking preset",
+            "url": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.c-major,ukulele.a-minor,ukulele.c-major,ukulele.a-minor,ukulele.f-major,ukulele.g-major&bpm=60&perBeat=3"
+          }
+        },
+        {
+          "id": "house-of-the-rising-sun",
+          "title": "House of the Rising Sun",
+          "artist": "trad., The Animals",
+          "strand": "F",
+          "teaches": "p-i-m-a in 6/8, E major in A minor",
+          "detail": "Am, the preset's 58 BPM, Am C D F E",
+          "bpm": 58,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, easy ukulele with tab, beginner",
+              "url": "https://musescore.com/user/39593079/scores/15936460",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuleleGo lesson",
+            "url": "https://ukulelego.com/lessons/house-of-the-rising-sun-ukulele-lesson/"
+          }
+        },
+        {
+          "id": "edelweiss",
+          "title": "Edelweiss",
+          "artist": "Rodgers and Hammerstein",
+          "strand": "S, F",
+          "teaches": "Waltz strum, then the melody",
+          "detail": "C, about 100 BPM, C G7 F Dm",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "karissabee, instrumental, solo ukulele",
+              "url": "https://musescore.com/user/10633211/scores/6621255"
+            }
+          ]
+        },
+        {
+          "id": "scarborough-fair",
+          "title": "Scarborough Fair",
+          "artist": "trad. English",
+          "strand": "F",
+          "teaches": "A Dorian melody in 3/4",
+          "detail": "Dm or Am, about 100 BPM",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Jose Manuel Acuna, solo ukulele",
+              "url": "https://musescore.com/user/30013820/scores/6066764"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Fingerpicking preset",
+            "url": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.a-minor,ukulele.g-major,ukulele.a-minor,ukulele.c-major,ukulele.a-minor,ukulele.d-major&bpm=90&perBeat=2"
+          }
+        },
+        {
+          "id": "greensleeves",
+          "title": "Greensleeves",
+          "artist": "trad. English",
+          "strand": "F",
+          "teaches": "An A minor melody in 6/8, reading",
+          "detail": "Am, about 60 BPM (dotted quarter)",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "balpen, solo ukulele, 4.8 from 53 ratings",
+              "url": "https://musescore.com/user/83091/scores/3378551"
+            }
+          ]
+        },
+        {
+          "id": "mad-world",
+          "title": "Mad World",
+          "artist": "Tears for Fears, Gary Jules",
+          "strand": "F, S",
+          "teaches": "Minor arpeggios",
+          "detail": "Em, about 88 BPM, Em G D A",
+          "bpm": 88,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Uke of Carl, beginner",
+              "url": "https://musescore.com/user/97106398/scores/18176743",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/g/gary-jules/mad-world/"
+          }
+        },
+        {
+          "id": "perfect",
+          "title": "Perfect",
+          "artist": "Ed Sheeran",
+          "strand": "S",
+          "teaches": "A 6/8 strummed ballad",
+          "detail": "G, about 63 BPM, G Em C D",
+          "bpm": 63,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, easy ukulele with tab",
+              "url": "https://musescore.com/user/39593079/scores/15931543",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "amazing-grace",
+          "title": "Amazing Grace",
+          "artist": "John Newton",
+          "strand": "F",
+          "teaches": "A 3/4 melody, pickup notes",
+          "detail": "C, about 80 BPM",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Nancy Corgiat Ford, solo ukulele with chords",
+              "url": "https://musescore.com/user/28001497/scores/8856255"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Phrases, Amazing Grace",
+            "url": "/music/phrases?instrument=ukulele&phrase=ukulele.amazing-grace"
+          }
+        }
+      ],
+      "test": "One 6/8 fingerpicked song at the preset tempo; one strummed song in 3/4 or 6/8 at tempo; Greensleeves or Scarborough Fair at 80% in Song Studio performance mode."
+    },
+    {
+      "id": "4",
+      "title": "Swing, the Hawaiian vamp and Travis picking",
+      "goal": "The old-time and Hawaiian sound, and an independent thumb.",
+      "adds": "Swing strum, calypso strum; the ragtime circle of sevenths (E7 A7 D7 G7, B7); Cmaj7, Fmaj7, Am7, C6, dim; alternating thumb, Travis, the fancy eight; melody over a moving thumb; keys of G and F.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "4.1",
+          "title": "Swing strum",
+          "strand": "S",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=swing-eighths&bpm=90",
+          "setup": "Rhythm, read and tap: swing eighths. A ukulele swing pattern (D DU DU swung) is coming.",
+          "done": "5 runs at 80% at 120, on two days.",
+          "minAttempts": 5,
+          "threshold": 0.8,
+          "minBpm": 120,
+          "feeds": "Five Foot Two, Fly Me to the Moon"
+        },
+        {
+          "id": "4.2",
+          "title": "The ragtime circle",
+          "strand": "S",
+          "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.e7,ukulele.a7&timed=true",
+          "setup": "Chords, Changes: timed, E7-A7, A7-D7, D7-G7, G7-C. Build B7 too (the app's generated shape until a curated one arrives).",
+          "done": "30 changes a minute on each pair, on two days.",
+          "each": {
+            "param": "chords",
+            "values": [
+              "ukulele.e7>ukulele.a7",
+              "ukulele.a7>gen.ukulele.2.7",
+              "gen.ukulele.2.7>ukulele.g7",
+              "ukulele.g7>ukulele.c-major"
+            ]
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "A7-D7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.a7,gen.ukulele.2.7&timed=true"
+            },
+            {
+              "label": "D7-G7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=gen.ukulele.2.7,ukulele.g7&timed=true"
+            },
+            {
+              "label": "G7-C",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.g7,ukulele.c-major&timed=true"
+            },
+            {
+              "label": "Build B7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.11.7"
+            }
+          ],
+          "feeds": "Five Foot Two, Ain't She Sweet"
+        },
+        {
+          "id": "4.3",
+          "title": "The Hawaiian vamp",
+          "strand": "S",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.hawaiian-vamp",
+          "setup": "Phrases: the Hawaiian vamp in C. The same vamp in F and G is coming.",
+          "done": "3 runs at 85% in each key, on two days.",
+          "match": {
+            "phrase": "ukulele.hawaiian-vamp"
+          },
+          "threshold": 0.85,
+          "feeds": "Tiny Bubbles, Pearly Shells"
+        },
+        {
+          "id": "4.4",
+          "title": "Calypso strum",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: D D U U D U.",
+          "done": "5 runs at 80% at 100.",
+          "needs": "A ukulele-calypso pattern (D D U U D U) in the rhythm patterns.",
+          "feeds": "Jambalaya, Pearly Shells"
+        },
+        {
+          "id": "4.5",
+          "title": "Major sevenths and sixths",
+          "strand": "S",
+          "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.0.maj7",
+          "setup": "Chords, Build: Cmaj7, Fmaj7, Am7, C6, C#dim (the app's generated shapes until curated ones arrive).",
+          "done": "Each shape clean 5 times running, on two days.",
+          "each": {
+            "param": "shape",
+            "values": [
+              "gen.ukulele.0.maj7",
+              "gen.ukulele.5.maj7",
+              "gen.ukulele.9.m7",
+              "gen.ukulele.0.6",
+              "gen.ukulele.1.dim"
+            ]
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Fmaj7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.5.maj7"
+            },
+            {
+              "label": "Am7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.9.m7"
+            },
+            {
+              "label": "C6",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.0.6"
+            },
+            {
+              "label": "C#dim",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.1.dim"
+            }
+          ],
+          "feeds": "Fly Me to the Moon, Blue Hawaii"
+        },
+        {
+          "id": "4.6",
+          "title": "Alternating thumb on 3 and 4",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-alternating&chords=ukulele.c-major,ukulele.f-major,ukulele.g7&bpm=70",
+          "setup": "Chords, Fingerpicking: alternating thumb, 70 to 100.",
+          "done": "3 runs at 85% at 100, on two days.",
+          "match": {
+            "pattern": "uke-alternating"
+          },
+          "threshold": 0.85,
+          "minBpm": 100,
+          "feeds": "Freight Train"
+        },
+        {
+          "id": "4.7",
+          "title": "Travis",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-travis&chords=ukulele.c-major,ukulele.e7,ukulele.f-major,ukulele.g7&bpm=70",
+          "setup": "Chords, Fingerpicking: Travis over C E7 F G7.",
+          "done": "3 runs at 85% at 90, on two days.",
+          "match": {
+            "pattern": "uke-travis"
+          },
+          "threshold": 0.85,
+          "minBpm": 90,
+          "feeds": "Freight Train, Dust in the Wind"
+        },
+        {
+          "id": "4.8",
+          "title": "Fancy eight (3 3 2)",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-fancy-eight&chords=ukulele.c-major,ukulele.a-minor,ukulele.f-major,ukulele.g-major&bpm=60",
+          "setup": "Chords, Fingerpicking: the fancy eight over C Am F G.",
+          "done": "3 runs at 80% at 80, on two days.",
+          "match": {
+            "pattern": "uke-fancy-eight"
+          },
+          "threshold": 0.8,
+          "minBpm": 80,
+          "feeds": "Dust in the Wind"
+        },
+        {
+          "id": "4.9",
+          "title": "Melody over the thumb",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-travis&chords=ukulele.g-major,gen.ukulele.2.7,gen.ukulele.11.7,ukulele.c-major&bpm=80",
+          "setup": "Chords, Fingerpicking: Travis over Freight Train's chords, G D7 B7 C (a song preset is coming); then the shelf score in Song Studio.",
+          "done": "The pattern 3 runs at 80%, on two days; then Song Studio performance at 80%.",
+          "match": {
+            "pattern": "uke-travis",
+            "shapes": "ukulele.g-major>gen.ukulele.2.7>gen.ukulele.11.7>ukulele.c-major"
+          },
+          "threshold": 0.8,
+          "feeds": "Freight Train"
+        },
+        {
+          "id": "4.10",
+          "title": "Keys of G and F",
+          "strand": "T",
+          "href": "/music/scales?instrument=ukulele&kind=major&tonic=67&span=one-octave&bpm=70",
+          "setup": "Scales: G major, then F major, one octave.",
+          "done": "Each 3 runs at 95% at 90, on two days.",
+          "match": {
+            "kind": "major"
+          },
+          "each": {
+            "param": "tonic",
+            "values": ["67", "65"]
+          },
+          "threshold": 0.95,
+          "minBpm": 90,
+          "links": [
+            {
+              "label": "F major",
+              "href": "/music/scales?instrument=ukulele&kind=major&tonic=65&span=one-octave&bpm=70"
+            }
+          ],
+          "feeds": "Freight Train in G"
+        },
+        {
+          "id": "4.11",
+          "title": "Dotted and swung reading",
+          "strand": "T",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=dotted-quarters&bpm=70",
+          "setup": "Rhythm, read and tap: dotted quarters. Sight-reading, level 3, alongside (the app's levels stop at 3).",
+          "done": "Rhythm 5 runs at 80%, on two days; sight-reading at level 3 to 4.",
+          "minAttempts": 5,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Sight-reading, level 3",
+              "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3"
+            }
+          ]
+        },
+        {
+          "id": "4.12",
+          "title": "Dominant seventh by ear",
+          "strand": "T",
+          "href": "/music/ear/chord-qualities?answer=choice&qualities=major,minor,dominant-7&instrument=ukulele",
+          "setup": "Ear, Chord qualities: major, minor and dominant 7. Circle of fifths: the keys of G and F.",
+          "done": "20 answers at 80%.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Circle of fifths",
+              "href": "/music/circle?instrument=ukulele"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "five-foot-two",
+          "title": "Five Foot Two, Eyes of Blue",
+          "artist": "Ray Henderson, 1925",
+          "strand": "S",
+          "teaches": "Swing, the ragtime circle",
+          "detail": "C, about 150 BPM (feel in 2), C E7 A7 D7 G7",
+          "bpm": 150,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15566116",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "LiveUkulele solo arrangement",
+            "url": "https://liveukulele.com/tabs/five-foot-two-eyes-of-blue/"
+          }
+        },
+        {
+          "id": "aint-she-sweet",
+          "title": "Ain't She Sweet",
+          "artist": "Milton Ager, 1927",
+          "strand": "S",
+          "teaches": "Swing, a diminished passing chord",
+          "detail": "C, about 130 BPM, C C#dim G7 E7 A7 D7",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Nancy Corgiat Ford, ukulele and piano",
+              "url": "https://musescore.com/user/28001497/scores/8360028"
+            }
+          ]
+        },
+        {
+          "id": "tiny-bubbles",
+          "title": "Tiny Bubbles",
+          "artist": "Don Ho",
+          "strand": "S",
+          "teaches": "The Hawaiian vamp",
+          "detail": "C, about 100 BPM, C G7 F",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Nancy Corgiat Ford, lead sheet with ukulele chords",
+              "url": "https://musescore.com/user/28001497/scores/13499833"
+            },
+            {
+              "label": "Official, solo ukulele",
+              "url": "https://musescore.com/user/39593079/scores/15610603",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/d/don-ho/tiny-bubbles/"
+          }
+        },
+        {
+          "id": "pearly-shells",
+          "title": "Pearly Shells",
+          "artist": "Leon Pober, Webley Edwards",
+          "strand": "S",
+          "teaches": "Calypso feel, the vamp",
+          "detail": "C, about 110 BPM, C F G7 D7",
+          "bpm": 110,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard, solo ukulele",
+              "url": "https://musescore.com/user/39593079/scores/15610963",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "blue-hawaii",
+          "title": "Blue Hawaii",
+          "artist": "Leo Robin, Ralph Rainger",
+          "strand": "S",
+          "teaches": "A slow Hawaiian ballad, 6 and maj7",
+          "detail": "C, about 80 BPM, C Cmaj7 F Fm G7",
+          "bpm": 80,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Nancy Corgiat Ford, ukulele and piano",
+              "url": "https://musescore.com/user/28001497/scores/13501438"
+            }
+          ]
+        },
+        {
+          "id": "jambalaya",
+          "title": "Jambalaya",
+          "artist": "Hank Williams",
+          "strand": "S",
+          "teaches": "Two-chord country boom-chuck",
+          "detail": "C, about 120 BPM, C G7",
+          "bpm": 120,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, The Daily Ukulele",
+              "url": "https://musescore.com/user/39593079/scores/15787171",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/h/hank-williams/jambalaya-on-the-bayou/"
+          }
+        },
+        {
+          "id": "freight-train",
+          "title": "Freight Train",
+          "artist": "Elizabeth Cotten",
+          "strand": "F",
+          "teaches": "Travis with the melody on top",
+          "detail": "G, about 100 BPM, G D7 B7 C",
+          "bpm": 100,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "etbridges, in G for uke, solo ukulele",
+              "url": "https://musescore.com/user/11097446/scores/2946806"
+            },
+            {
+              "label": "Official, arr. Jim Schustedt",
+              "url": "https://musescore.com/user/39593079/scores/24592543",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "dust-in-the-wind",
+          "title": "Dust in the Wind",
+          "artist": "Kansas",
+          "strand": "F",
+          "teaches": "A Travis-style pattern with moving chords",
+          "detail": "C, about 100 BPM, C Cmaj7 Cadd9 Am Asus2 G",
+          "bpm": 100,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Johanne Ramirez, ukulele duet, 4.9",
+              "url": "https://musescore.com/user/29528599/scores/7049680"
+            },
+            {
+              "label": "Official, The Daily Ukulele",
+              "url": "https://musescore.com/user/39593079/scores/21213778",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "fly-me-to-the-moon",
+          "title": "Fly Me to the Moon",
+          "artist": "Bart Howard",
+          "strand": "S",
+          "teaches": "A first jazz progression, swing",
+          "detail": "C, about 120 BPM, Am7 Dm7 G7 Cmaj7 F E7",
+          "bpm": 120,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "svarah05, solo ukulele, 4.8 from 53 ratings",
+              "url": "https://musescore.com/user/33842534/scores/7027647"
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/f/frank-sinatra/fly-me-to-the-moon/"
+          }
+        }
+      ],
+      "test": "A swing song with the ragtime circle at 120; Freight Train or Dust in the Wind at 80% in Song Studio performance; the Hawaiian vamp in C, F and G."
+    },
+    {
+      "id": "5",
+      "title": "Closed shapes, the blues and the first solos",
+      "goal": "Play in any common key and start improvising.",
+      "adds": "Barre and closed shapes (Bb, Cm, D barre, Bm, movable 7th); triplet strum; the 12-bar shuffle; A minor pentatonic box 1, first licks and a first solo; backward rolls; notes to fret 7.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "5.1",
+          "title": "Barre and closed shapes",
+          "strand": "S",
+          "href": "/music/chords?mode=pick&instrument=ukulele&shape=gen.ukulele.10.maj",
+          "setup": "Chords, Pick (an arpeggio check): Bb, Cm, D, Bm. Cm and Bm use the app's generated shapes until curated ones arrive; D is the open shape until a barre position is added.",
+          "done": "5 of 5 clean arpeggios on each shape, on two days.",
+          "each": {
+            "param": "shape",
+            "values": [
+              "gen.ukulele.10.maj",
+              "gen.ukulele.0.m",
+              "ukulele.d-major",
+              "gen.ukulele.11.m"
+            ]
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Cm",
+              "href": "/music/chords?mode=pick&instrument=ukulele&shape=gen.ukulele.0.m"
+            },
+            {
+              "label": "D",
+              "href": "/music/chords?mode=pick&instrument=ukulele&shape=ukulele.d-major"
+            },
+            {
+              "label": "Bm",
+              "href": "/music/chords?mode=pick&instrument=ukulele&shape=gen.ukulele.11.m"
+            }
+          ],
+          "feeds": "Wonderwall, Viva la Vida"
+        },
+        {
+          "id": "5.2",
+          "title": "Barre changes",
+          "strand": "S",
+          "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.f-major,gen.ukulele.10.maj&timed=true",
+          "setup": "Chords, Changes: timed, F-Bb, Bb-C7, D-Bm, Bm-G.",
+          "done": "20 changes a minute on each pair, on two days.",
+          "each": {
+            "param": "chords",
+            "values": [
+              "ukulele.f-major>gen.ukulele.10.maj",
+              "gen.ukulele.10.maj>ukulele.c7",
+              "ukulele.d-major>gen.ukulele.11.m",
+              "gen.ukulele.11.m>ukulele.g-major"
+            ]
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Bb-C7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=gen.ukulele.10.maj,ukulele.c7&timed=true"
+            },
+            {
+              "label": "D-Bm",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.d-major,gen.ukulele.11.m&timed=true"
+            },
+            {
+              "label": "Bm-G",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=gen.ukulele.11.m,ukulele.g-major&timed=true"
+            }
+          ],
+          "feeds": "shelf"
+        },
+        {
+          "id": "5.3",
+          "title": "Triplet strum (i p i)",
+          "strand": "S",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=triplets&bpm=70",
+          "setup": "Rhythm, read and tap: triplets. A ukulele triplet strum pattern is coming.",
+          "done": "5 runs at 80% at 90 (eighth-note triplets), on two days.",
+          "minAttempts": 5,
+          "threshold": 0.8,
+          "minBpm": 90,
+          "feeds": "Hit the Road Jack fills"
+        },
+        {
+          "id": "5.4",
+          "title": "12-bar shuffle in A and C",
+          "strand": "S",
+          "setup": "Strum a progression: Jam's blues progression with a shuffle strum.",
+          "done": "3 choruses at 90, 80% on timing and chords.",
+          "needs": "A blues preset with a shuffle strum in Strum a progression, with runs that count (rec 2).",
+          "feeds": "Sweet Home Chicago"
+        },
+        {
+          "id": "5.5",
+          "title": "A minor pentatonic, box 1",
+          "strand": "L",
+          "href": "/music/scales?instrument=ukulele&kind=minor-pentatonic&tonic=69&span=one-octave&bpm=60",
+          "setup": "Scales: A minor pentatonic, one octave. Ukulele scale positions are coming.",
+          "done": "3 runs at 95% at 80, on two days.",
+          "match": {
+            "kind": "minor-pentatonic",
+            "tonic": "69"
+          },
+          "threshold": 0.95,
+          "minBpm": 80,
+          "feeds": "Blues for Ukulele"
+        },
+        {
+          "id": "5.6",
+          "title": "Three blues licks",
+          "strand": "L",
+          "setup": "Phrases: a turnaround in A, a pentatonic lick and a double-stop lick.",
+          "done": "Each 3 runs at 85% at the phrase tempo.",
+          "needs": "Ukulele blues phrases in Phrases: a turnaround in A, a pentatonic lick, a double-stop lick (rec 12).",
+          "feeds": "first solo"
+        },
+        {
+          "id": "5.7",
+          "title": "First solo",
+          "strand": "L",
+          "setup": "Jam: blues in A on ukulele, the minor pentatonic lit.",
+          "done": "3 choruses where the chorus report shows 80% scale tones and phrases ending on chord tones.",
+          "needs": "A pass rule on Jam's chorus report (rec 9).",
+          "feeds": "boss"
+        },
+        {
+          "id": "5.8",
+          "title": "Backward roll",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-backward-roll&chords=ukulele.c-major,ukulele.g-major,ukulele.a-minor,gen.ukulele.4.m,ukulele.f-major,ukulele.c-major,ukulele.f-major,ukulele.g-major&bpm=60",
+          "setup": "Chords, Fingerpicking: the backward roll over C G Am Em F C F G.",
+          "done": "3 runs at 85% at 80, on two days.",
+          "match": {
+            "pattern": "uke-backward-roll"
+          },
+          "threshold": 0.85,
+          "minBpm": 80,
+          "feeds": "Canon in C"
+        },
+        {
+          "id": "5.9",
+          "title": "A fingerstyle pop arrangement",
+          "strand": "F",
+          "href": "/music/songs/shelf/ukulele/canon-in-c",
+          "setup": "Song Studio: Canon in C or Perfect (fingerstyle), wait mode then performance.",
+          "done": "Performance 80% at 90% of the tempo, on two days.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "minBpm": 63,
+          "links": [
+            {
+              "label": "Perfect, fingerstyle",
+              "href": "/music/songs/shelf/ukulele/perfect-fingerstyle"
+            }
+          ],
+          "feeds": "Perfect, Canon"
+        },
+        {
+          "id": "5.10",
+          "title": "A fingerpicked blues",
+          "strand": "F",
+          "href": "/music/songs/shelf/ukulele/blues-for-ukulele-2",
+          "setup": "Song Studio: Blues for Ukulele #2 or Lillebjorn's Ukulele Blues.",
+          "done": "Performance 80%, on two days.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Lillebjorn's Ukulele Blues",
+              "href": "/music/songs/shelf/ukulele/lillebjorns-ukulele-blues"
+            }
+          ],
+          "feeds": "blues pieces"
+        },
+        {
+          "id": "5.11",
+          "title": "Notes to fret 7",
+          "strand": "T",
+          "href": "/music/fretboard?mode=note-finder&instrument=ukulele&region=0&questions=15",
+          "setup": "Fretboard, Note finder: frets 0 to 4, then 5 to 9, 15 questions each.",
+          "done": "30 notes at 90%, under 3 seconds each.",
+          "each": {
+            "param": "region",
+            "values": ["0", "1"]
+          },
+          "minAttempts": 1,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Frets 5 to 9",
+              "href": "/music/fretboard?mode=note-finder&instrument=ukulele&region=1&questions=15"
+            }
+          ],
+          "feeds": "reading"
+        },
+        {
+          "id": "5.12",
+          "title": "The blues form by ear",
+          "strand": "T",
+          "href": "/music/ear/progressions?answer=choice&functions=I,IV,V&chordSize=sevenths&instrument=ukulele",
+          "setup": "Ear, Progressions: I7, IV7 and V7. Then Ear, Scales: major pentatonic, minor pentatonic and blues.",
+          "done": "20 answers at 80%.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Pentatonics and blues",
+              "href": "/music/ear/scales?answer=choice&scales=major-pentatonic,minor-pentatonic,blues&instrument=ukulele"
+            }
+          ]
+        }
+      ],
+      "shelf": [
+        {
+          "id": "hit-the-road-jack",
+          "title": "Hit the Road Jack",
+          "artist": "Percy Mayfield, Ray Charles",
+          "strand": "S",
+          "teaches": "A descending minor line, the riff",
+          "detail": "Am, about 172 BPM (86 in half time), Am G F E7",
+          "bpm": 172,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard, solo ukulele",
+              "url": "https://musescore.com/user/39593079/scores/15746761",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/r/ray-charles/hit-the-road-jack/"
+          }
+        },
+        {
+          "id": "wonderwall",
+          "title": "Wonderwall",
+          "artist": "Oasis",
+          "strand": "S",
+          "teaches": "16th strum, sus chords",
+          "detail": "Em, about 87 BPM, Em7 G Dsus4 A7sus4 C",
+          "bpm": 87,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Cristian Hernandez Castellvi, beginner",
+              "url": "https://musescore.com/user/97106398/scores/18079276",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/o/oasis/wonderwall/"
+          }
+        },
+        {
+          "id": "viva-la-vida",
+          "title": "Viva la Vida",
+          "artist": "Coldplay",
+          "strand": "S, F",
+          "teaches": "Driving eighths; a fingerstyle version",
+          "detail": "C, about 138 BPM, C D G Em",
+          "bpm": 138,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Sthub, fingerstyle arrangement, 4.7",
+              "url": "https://musescore.com/user/30325176/scores/6151196"
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs (strum)",
+            "url": "https://ukutabs.com/c/coldplay/viva-la-vida/"
+          }
+        },
+        {
+          "id": "sweet-home-chicago",
+          "title": "Sweet Home Chicago",
+          "artist": "Robert Johnson",
+          "strand": "S",
+          "teaches": "12-bar shuffle",
+          "detail": "A or E, about 110 BPM swung, A7 D7 E7",
+          "bpm": 110,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard, ukulele with vocals",
+              "url": "https://musescore.com/user/39593079/scores/15597874",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Jam, blues",
+            "url": "/music/jam?progression=blues&instrument=ukulele"
+          }
+        },
+        {
+          "id": "dream-a-little-dream",
+          "title": "Dream a Little Dream of Me",
+          "artist": "Fabian Andre, Wilbur Schwandt",
+          "strand": "S",
+          "teaches": "A swing ballad, chromatic sevenths",
+          "detail": "C, about 75 BPM, C B7 Ab7 G7 Am F",
+          "bpm": 75,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, arr. Phil Kell, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/18047500",
+              "official": true
+            },
+            {
+              "label": "Low-G: Matt Funamura, 4.9",
+              "url": "https://musescore.com/user/1729791/scores/8515712"
+            }
+          ],
+          "fallback": {
+            "label": "UkuTabs",
+            "url": "https://ukutabs.com/t/the-mamas-and-the-papas/dream-a-little-dream-of-me/"
+          }
+        },
+        {
+          "id": "blues-for-ukulele-2",
+          "title": "Blues for Ukulele #2",
+          "artist": "Jack Lima",
+          "strand": "F",
+          "teaches": "A picked blues study",
+          "detail": "A, about 90 BPM",
+          "bpm": 90,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Prof. Jack Lima, ukulele tab",
+              "url": "https://musescore.com/user/15872026/scores/3482536"
+            }
+          ]
+        },
+        {
+          "id": "lillebjorns-ukulele-blues",
+          "title": "Lillebjorn's Ukulele Blues",
+          "artist": "Lillebjorn Nilsen",
+          "strand": "F",
+          "teaches": "Fingerstyle blues with a thumb bass",
+          "detail": "C, about 100 BPM",
+          "bpm": 100,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Posted under the composer's name, 4.8 from 73 ratings",
+              "url": "https://musescore.com/user/1950411/scores/6760630"
+            }
+          ]
+        },
+        {
+          "id": "canon-in-c",
+          "title": "Canon in C",
+          "artist": "Pachelbel",
+          "strand": "F",
+          "teaches": "Rolls over eight chords",
+          "detail": "C, about 70 BPM, C G Am Em F C F G",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "SilverArrow's Music, 4.7 from 435 ratings",
+              "url": "https://musescore.com/user/29535937/scores/5605059"
+            }
+          ],
+          "fallback": {
+            "label": "LiveUkulele (in D)",
+            "url": "https://liveukulele.com/tabs/canon-in-d-ukulele-tab/"
+          }
+        },
+        {
+          "id": "perfect-fingerstyle",
+          "title": "Perfect, fingerstyle",
+          "artist": "Ed Sheeran",
+          "strand": "F",
+          "teaches": "A 6/8 fingerstyle solo",
+          "detail": "G, about 63 BPM",
+          "bpm": 63,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "igcsecrashcou, 4.7 from 132 ratings",
+              "url": "https://musescore.com/user/36648450/scores/6463879"
+            }
+          ]
+        }
+      ],
+      "test": "12-bar blues in A: one chorus of shuffle comping, then two improvised choruses over Jam at 90; a barre-chord song at tempo; one fingerstyle piece (Canon in C, Perfect or a blues) at 80% in performance mode."
+    },
+    {
+      "id": "6",
+      "title": "Campanella and the first solo arrangements",
+      "goal": "The ringing re-entrant sound (high-G), and solo pieces that carry melody and harmony together.",
+      "adds": "Campanella scales and tunes; melody on top with the thumb under; first chord melody; major pentatonic soloing; notes to fret 10; playing from memory.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "6.1",
+          "title": "Campanella C major scale",
+          "strand": "T",
+          "setup": "Scales in campanella fingerings, ring-over checked as experimental.",
+          "done": "3 runs at 95% of the notes at 70.",
+          "needs": "Campanella fingerings in Scales, hidden on low-G (rec 5).",
+          "feeds": "all campanella pieces"
+        },
+        {
+          "id": "6.2",
+          "title": "Campanella C major pentatonic",
+          "strand": "T",
+          "setup": "The same drill: C major pentatonic in campanella.",
+          "done": "3 runs at 95% at 90 (RSL Grade 4 to 5 tempo).",
+          "needs": "Campanella fingerings in Scales, hidden on low-G (rec 5).",
+          "feeds": "Cripple Creek"
+        },
+        {
+          "id": "6.3",
+          "title": "Campanella tunes",
+          "strand": "T",
+          "setup": "Phrases: London Bridge and Twinkle in campanella.",
+          "done": "Each 3 runs at 85%.",
+          "needs": "London Bridge and Twinkle in campanella in Phrases (rec 12).",
+          "feeds": "London Bridge"
+        },
+        {
+          "id": "6.4",
+          "title": "Melody on top, thumb under",
+          "strand": "F",
+          "href": "/music/songs/shelf/ukulele/you-are-my-sunshine-fingerstyle",
+          "setup": "Song Studio: You Are My Sunshine (fingerstyle, from level 2) at full tempo, then Aloha 'Oe fingerstyle.",
+          "done": "Performance 85% at full tempo, on two days.",
+          "minAttempts": 2,
+          "threshold": 0.85,
+          "minBpm": 90,
+          "links": [
+            {
+              "label": "Aloha 'Oe, fingerstyle",
+              "href": "/music/songs/shelf/ukulele/aloha-oe-fingerstyle"
+            }
+          ],
+          "feeds": "Aloha 'Oe"
+        },
+        {
+          "id": "6.5",
+          "title": "First chord melody",
+          "strand": "F",
+          "setup": "Chord-melody phrases: Amazing Grace and Aloha 'Oe, chords under a melody note, graded on the top note.",
+          "done": "3 runs at 80%.",
+          "needs": "Chord-melody phrases graded on the top note: Amazing Grace and Aloha 'Oe (rec 6).",
+          "feeds": "Amazing Grace"
+        },
+        {
+          "id": "6.6",
+          "title": "Pinch the melody, hold the bass",
+          "strand": "F",
+          "href": "/music/songs/shelf/ukulele/the-lion-sleeps-tonight",
+          "setup": "Chords, Fingerpicking: thumb, then two strings together; then The Lion Sleeps Tonight in Song Studio.",
+          "done": "Performance 80%, on two days.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Thumb, then two strings",
+              "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-two-strings&chords=ukulele.f-major,gen.ukulele.10.maj,ukulele.f-major,ukulele.c-major&bpm=80"
+            }
+          ],
+          "feeds": "The Lion Sleeps Tonight"
+        },
+        {
+          "id": "6.7",
+          "title": "Read to fret 10",
+          "strand": "T",
+          "href": "/music/reading?mode=flashcards&activity=flashcards&instrument=ukulele&level=level-1",
+          "setup": "Note reading, Flashcards: level 1, C4 to G5 (frets 0 to 10). Sight-reading alongside.",
+          "done": "30 notes at 90%, under 3 seconds each; sight-reading at level 5 once the app has it.",
+          "match": {
+            "high": "79"
+          },
+          "minAttempts": 3,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Sight-reading, level 3",
+              "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3"
+            }
+          ]
+        },
+        {
+          "id": "6.8",
+          "title": "A campanella jig",
+          "strand": "T",
+          "href": "/music/songs/shelf/ukulele/cripple-creek",
+          "setup": "Song Studio: Cripple Creek or the Swallowtail Jig, 80 then 100.",
+          "done": "Performance 80% at 100, on two days.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "minBpm": 100,
+          "links": [
+            {
+              "label": "Swallowtail Jig",
+              "href": "/music/songs/shelf/ukulele/swallowtail-jig"
+            }
+          ],
+          "feeds": "Swallowtail, Cripple Creek"
+        },
+        {
+          "id": "6.9",
+          "title": "Major pentatonic over I IV V",
+          "strand": "L",
+          "setup": "Jam: a pop or Hawaiian I IV V, C major pentatonic lit.",
+          "done": "3 choruses at 80% scale tones.",
+          "needs": "A pass rule on Jam's chorus report (rec 9).",
+          "feeds": "Hawaiian solos"
+        },
+        {
+          "id": "6.10",
+          "title": "Play back what you hear",
+          "strand": "T",
+          "href": "/music/ear/melody-dictation?answer=play-back&level=major-pentachord&instrument=ukulele",
+          "setup": "Ear, Melody dictation: play back, the first five degrees.",
+          "done": "10 melodies at 80%.",
+          "match": {
+            "level": "major-pentachord"
+          },
+          "minAttempts": 1,
+          "threshold": 0.8
+        },
+        {
+          "id": "6.11",
+          "title": "Memorise a solo",
+          "strand": "F",
+          "href": "/music/lab?instrument=ukulele",
+          "setup": "Practice Lab: one shelf solo from memory.",
+          "done": "2 clean takes on two days.",
+          "exerciseIds": [],
+          "feeds": "boss"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "london-bridge",
+          "title": "London Bridge",
+          "artist": "trad.",
+          "strand": "F",
+          "teaches": "A first campanella tune",
+          "detail": "C, about 90 BPM",
+          "bpm": 90,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, fingerstyle, arr. Yuri Noronha, beginner (not campanella)",
+              "url": "https://musescore.com/user/97106398/scores/18829489",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuleleGo campanella lesson",
+            "url": "https://ukulelego.com/lessons/a-campanella-lesson/amp/"
+          }
+        },
+        {
+          "id": "cripple-creek",
+          "title": "Cripple Creek",
+          "artist": "trad. bluegrass",
+          "strand": "F",
+          "teaches": "Campanella at speed, high-G",
+          "detail": "C, 80 to 110 BPM",
+          "diff": 2,
+          "scores": [
+            {
+              "label": "doccoyoti, campanella style for high G",
+              "url": "https://musescore.com/user/54234609/scores/13352047"
+            }
+          ]
+        },
+        {
+          "id": "minuet-in-g",
+          "title": "Minuet in G",
+          "artist": "Petzold, once credited to Bach",
+          "strand": "F",
+          "teaches": "Classical reading, two voices",
+          "detail": "G, about 100 BPM, 3/4",
+          "bpm": 100,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "UkeTrek, solo ukulele, 4.8",
+              "url": "https://musescore.com/user/12852721/scores/7043531"
+            }
+          ]
+        },
+        {
+          "id": "swallowtail-jig",
+          "title": "Swallowtail Jig",
+          "artist": "trad. Irish",
+          "strand": "F",
+          "teaches": "A 6/8 jig; try campanella fingerings",
+          "detail": "Em, 80 to 110 BPM (dotted quarter 60 to 80)",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "dancramp, solo ukulele, 4.8",
+              "url": "https://musescore.com/user/2783316/scores/6984205"
+            }
+          ]
+        },
+        {
+          "id": "aloha-oe-fingerstyle",
+          "title": "Aloha 'Oe, fingerstyle",
+          "artist": "Lili'uokalani",
+          "strand": "F",
+          "teaches": "Melody with a thumb bass",
+          "detail": "C or F, about 70 BPM",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "lorenzopaolinelli, ukulele and piano",
+              "url": "https://musescore.com/user/31545341/scores/6774305"
+            }
+          ],
+          "fallback": {
+            "label": "LiveUkulele solo tab",
+            "url": "https://liveukulele.com/tabs/aloha-oe-queen-liliuokalani/"
+          }
+        },
+        {
+          "id": "amazing-grace-fingerstyle",
+          "title": "Amazing Grace, fingerstyle",
+          "artist": "John Newton",
+          "strand": "F",
+          "teaches": "A first chord melody in 3/4",
+          "detail": "C, about 80 BPM",
+          "bpm": 80,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Le Grave Musicien, 4.6 from 66 ratings",
+              "url": "https://musescore.com/user/30473545/scores/5469855"
+            },
+            {
+              "label": "Official, chord melody, arr. Christopher Bell",
+              "url": "https://musescore.com/user/97106398/scores/17594167",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "UkuleleGo chord melody",
+            "url": "https://ukulelego.com/tab/amazing-grace-chord-melody/"
+          }
+        },
+        {
+          "id": "the-lion-sleeps-tonight",
+          "title": "The Lion Sleeps Tonight",
+          "artist": "Solomon Linda",
+          "strand": "F",
+          "teaches": "Chord melody with pinches",
+          "detail": "F or C, about 120 BPM",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Cody Walton, chord melody, 4.8",
+              "url": "https://musescore.com/user/4367091/scores/7355297"
+            }
+          ]
+        },
+        {
+          "id": "mele-kalikimaka",
+          "title": "Mele Kalikimaka",
+          "artist": "R. Alex Anderson",
+          "strand": "S, F",
+          "teaches": "Swing strum, then the chord melody",
+          "detail": "C, about 120 BPM",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Cody Walton, chord melody, 4.8",
+              "url": "https://musescore.com/user/4367091/scores/6455822"
+            }
+          ]
+        },
+        {
+          "id": "lava-solo",
+          "title": "Lava, ukulele solo",
+          "artist": "James Ford Murphy",
+          "strand": "F",
+          "teaches": "A long Hawaiian-pop solo",
+          "detail": "C, about 90 BPM",
+          "bpm": 90,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Fiji Life, solo ukulele, 4.7",
+              "url": "https://musescore.com/user/37265061/scores/6782357"
+            }
+          ]
+        },
+        {
+          "id": "hawaii-aloha",
+          "title": "Hawaii Aloha",
+          "artist": "Lorenzo Lyons",
+          "strand": "F",
+          "teaches": "A Hawaiian hymn, chord melody",
+          "detail": "C or F, about 76 BPM",
+          "bpm": 76,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "RoyBrown, solo ukulele, 4.7",
+              "url": "https://musescore.com/user/35093617/scores/6525021"
+            }
+          ]
+        }
+      ],
+      "test": "One solo arrangement from memory at tempo; one campanella piece at 100; the C major pentatonic in campanella style at 90."
+    },
+    {
+      "id": "7",
+      "title": "Jazz chords, comping and chord melody",
+      "goal": "Play standards two ways: comping and as a chord melody.",
+      "adds": "maj7, m7, 7, m7b5, dim7 and 6 shapes in two inversions; ii-V-I in four keys; swing comping, bossa; guide tones; seventh-chord arpeggios; reading lead sheets.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "7.1",
+          "title": "Seventh-chord shapes",
+          "strand": "S",
+          "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.0.maj7",
+          "setup": "Chords, Build: Cmaj7, Dm7, G7, Em7, A7, Fmaj7, Bm7b5, E7, Ebdim7 (the app's generated shapes until curated movable ones arrive).",
+          "done": "Each shape clean 5 times running, on two days.",
+          "each": {
+            "param": "shape",
+            "values": [
+              "gen.ukulele.0.maj7",
+              "gen.ukulele.2.m7",
+              "ukulele.g7",
+              "gen.ukulele.4.m7",
+              "ukulele.a7",
+              "gen.ukulele.5.maj7",
+              "gen.ukulele.11.m7b5",
+              "ukulele.e7",
+              "gen.ukulele.3.dim7"
+            ]
+          },
+          "minAttempts": 5,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Dm7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.2.m7"
+            },
+            {
+              "label": "G7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.g7"
+            },
+            {
+              "label": "Em7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.4.m7"
+            },
+            {
+              "label": "A7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.a7"
+            },
+            {
+              "label": "Fmaj7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.5.maj7"
+            },
+            {
+              "label": "Bm7b5",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.11.m7b5"
+            },
+            {
+              "label": "E7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.e7"
+            },
+            {
+              "label": "Ebdim7",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.3.dim7"
+            }
+          ],
+          "feeds": "all standards"
+        },
+        {
+          "id": "7.2",
+          "title": "ii-V-I changes",
+          "strand": "S",
+          "href": "/music/chords?mode=changes&instrument=ukulele&chords=gen.ukulele.2.m7,ukulele.g7&timed=true",
+          "setup": "Chords, Changes: timed, Dm7-G7 and G7-Cmaj7. Then Jam's ii-V-I in C, F, G and Bb (not judged yet).",
+          "done": "25 changes a minute on each pair, on two days; Jam 4 choruses without a dropped change.",
+          "each": {
+            "param": "chords",
+            "values": ["gen.ukulele.2.m7>ukulele.g7", "ukulele.g7>gen.ukulele.0.maj7"]
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "G7-Cmaj7",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.g7,gen.ukulele.0.maj7&timed=true"
+            },
+            {
+              "label": "Jam, ii-V-I",
+              "href": "/music/jam?progression=ii-v-i&instrument=ukulele"
+            }
+          ],
+          "feeds": "Autumn Leaves, Satin Doll"
+        },
+        {
+          "id": "7.3",
+          "title": "Swing comping",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: four to the bar, chuck on 2 and 4, over Jam's ii-V-I.",
+          "done": "5 runs at 80% at 120.",
+          "needs": "A ukulele-swing-comp pattern (four to the bar, chuck on 2 and 4) in the rhythm patterns.",
+          "feeds": "All of Me, Bye Bye Blackbird"
+        },
+        {
+          "id": "7.4",
+          "title": "Bossa",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: thumb on 1 and 3, fingers syncopated.",
+          "done": "5 runs at 80% at 110.",
+          "needs": "A ukulele-bossa pattern (thumb on 1 and 3, fingers syncopated) in the rhythm patterns.",
+          "feeds": "Blue Bossa (level 9), Misty"
+        },
+        {
+          "id": "7.5",
+          "title": "Chord melody, 8 bars",
+          "strand": "F",
+          "setup": "Chord-melody phrases: Fly Me to the Moon and Autumn Leaves, bars 1 to 8.",
+          "done": "3 runs at 80%.",
+          "needs": "Chord-melody phrases graded on the top note: Fly Me to the Moon and Autumn Leaves, bars 1 to 8 (rec 6).",
+          "feeds": "Fly Me to the Moon"
+        },
+        {
+          "id": "7.6",
+          "title": "A full chord melody",
+          "strand": "F",
+          "href": "/music/songs/shelf/ukulele/moon-river",
+          "setup": "Song Studio: Moon River or La Vie en Rose, wait mode then performance.",
+          "done": "Performance 80% at tempo, on two days.",
+          "minAttempts": 2,
+          "threshold": 0.8,
+          "minBpm": 81,
+          "links": [
+            {
+              "label": "La Vie en Rose",
+              "href": "/music/songs/shelf/ukulele/la-vie-en-rose"
+            }
+          ],
+          "feeds": "Moon River"
+        },
+        {
+          "id": "7.7",
+          "title": "Read a lead sheet",
+          "strand": "T",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3",
+          "setup": "A lead sheet (melody with chord symbols) in Song Studio or on paper; Sight-reading, level 3 (the app's levels stop at 3).",
+          "done": "80% at sight-reading level 3, 3 runs on two days; level 5 once the app has it.",
+          "match": {
+            "level": "level-3"
+          },
+          "threshold": 0.8,
+          "feeds": "All of Me"
+        },
+        {
+          "id": "7.8",
+          "title": "Seventh-chord arpeggios",
+          "strand": "L",
+          "href": "/music/scales?instrument=ukulele&pattern=arpeggio&chord=dominant-7&tonic=67&span=one-octave&bpm=60",
+          "setup": "Scales, Arpeggio: dominant 7. Ukulele arpeggio fingerings for maj7 and m7 are coming.",
+          "done": "3 runs at 95% at 80, on two days.",
+          "match": {
+            "pattern": "arpeggio",
+            "chord": "dominant-7"
+          },
+          "threshold": 0.95,
+          "minBpm": 80
+        },
+        {
+          "id": "7.9",
+          "title": "Guide tones over ii-V-I",
+          "strand": "L",
+          "href": "/music/licks?mode=major-ii-V-I&category=major-ii-V-I&instrument=ukulele",
+          "setup": "Jazz licks: major ii-V-I, on ukulele. Chord scales: Dorian and Mixolydian over the ii-V-I.",
+          "done": "3 licks at 85% in two keys, on two days.",
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Chord scales",
+              "href": "/music/chord-scales?mode=major&changes=major&instrument=ukulele"
+            }
+          ],
+          "feeds": "soloing"
+        },
+        {
+          "id": "7.10",
+          "title": "Seventh chords by ear",
+          "strand": "T",
+          "href": "/music/ear/chord-qualities?answer=choice&qualities=major-7,dominant-7,minor-7&instrument=ukulele",
+          "setup": "Ear, Chord qualities: major 7, dominant 7 and minor 7.",
+          "done": "20 answers at 80%.",
+          "minAttempts": 2,
+          "threshold": 0.8
+        },
+        {
+          "id": "7.11",
+          "title": "ii-V-I by ear",
+          "strand": "T",
+          "href": "/music/ear/progressions?answer=choice&functions=ii,V,I&chordSize=sevenths&instrument=ukulele",
+          "setup": "Ear, Progressions: ii, V and I as sevenths.",
+          "done": "20 answers at 80%.",
+          "minAttempts": 2,
+          "threshold": 0.8
+        }
+      ],
+      "shelf": [
+        {
+          "id": "fly-me-to-the-moon-chord-melody",
+          "title": "Fly Me to the Moon, chord melody",
+          "artist": "Bart Howard",
+          "strand": "F",
+          "teaches": "Chord melody on a circle progression",
+          "detail": "C, about 110 BPM",
+          "bpm": 110,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Cody Walton, solo ukulele, 4.7",
+              "url": "https://musescore.com/user/4367091/scores/6055383"
+            }
+          ],
+          "fallback": {
+            "label": "The level 4 score",
+            "url": "https://musescore.com/user/33842534/scores/7027647"
+          }
+        },
+        {
+          "id": "moon-river",
+          "title": "Moon River",
+          "artist": "Henry Mancini",
+          "strand": "F",
+          "teaches": "Jazz chord melody in 3/4",
+          "detail": "C, about 90 BPM",
+          "bpm": 90,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Roy Genge, for jazz ukulele",
+              "url": "https://musescore.com/user/33445730/scores/6276010"
+            }
+          ]
+        },
+        {
+          "id": "la-vie-en-rose",
+          "title": "La Vie en Rose",
+          "artist": "Louiguy",
+          "strand": "F",
+          "teaches": "Chord melody, a French standard",
+          "detail": "C, about 80 BPM",
+          "bpm": 80,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "sleepytoddmusic, chord melody",
+              "url": "https://musescore.com/user/33403748/scores/6025714"
+            }
+          ]
+        },
+        {
+          "id": "all-of-me",
+          "title": "All of Me",
+          "artist": "Gerald Marks, Seymour Simons, 1931",
+          "strand": "L, F",
+          "teaches": "Comping a standard; secondary dominants",
+          "detail": "C, about 130 BPM, C E7 A7 Dm D7 G7",
+          "bpm": 130,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "doccoyoti, ukulele lead sheet",
+              "url": "https://musescore.com/user/54234609/scores/10068118"
+            },
+            {
+              "label": "Nancy Corgiat Ford lesson",
+              "url": "https://musescore.com/user/28001497/scores/8856282"
+            }
+          ]
+        },
+        {
+          "id": "bye-bye-blackbird",
+          "title": "Bye Bye Blackbird",
+          "artist": "Ray Henderson, Mort Dixon",
+          "strand": "S, L",
+          "teaches": "Swing comping with chucks",
+          "detail": "F or G, about 130 BPM",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Enea Acco, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/18559909",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "autumn-leaves",
+          "title": "Autumn Leaves",
+          "artist": "Joseph Kosma",
+          "strand": "L, F",
+          "teaches": "ii-V-I in major and minor",
+          "detail": "Em or Gm, about 120 BPM",
+          "bpm": 120,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, arr. Steve Chauvette, solo ukulele, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/19514317",
+              "official": true
+            },
+            {
+              "label": "RPMiller trio, ukulele comping part",
+              "url": "https://musescore.com/user/18595/scores/48378"
+            }
+          ]
+        },
+        {
+          "id": "satin-doll",
+          "title": "Satin Doll",
+          "artist": "Duke Ellington, Billy Strayhorn",
+          "strand": "L",
+          "teaches": "ii-V chains",
+          "detail": "C, about 120 BPM",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Susan Howell, beginner",
+              "url": "https://musescore.com/user/97106398/scores/18176902",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "blue-moon",
+          "title": "Blue Moon",
+          "artist": "Rodgers and Hart",
+          "strand": "S, F",
+          "teaches": "I vi ii V, the doo-wop turn",
+          "detail": "C, about 100 BPM",
+          "bpm": 100,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, arr. Leo Baeza, beginner",
+              "url": "https://musescore.com/user/97106398/scores/19890214",
+              "official": true
+            },
+            {
+              "label": "Nancy Corgiat Ford, ukulele and piano",
+              "url": "https://musescore.com/user/28001497/scores/8100774"
+            }
+          ]
+        },
+        {
+          "id": "misty",
+          "title": "Misty",
+          "artist": "Erroll Garner",
+          "strand": "F",
+          "teaches": "Ballad chord melody, maj7 and m7b5",
+          "detail": "Eb or C, about 66 BPM",
+          "bpm": 66,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, arr. Daniel Morriss, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/18088429",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "georgia-on-my-mind",
+          "title": "Georgia on My Mind",
+          "artist": "Hoagy Carmichael",
+          "strand": "F",
+          "teaches": "A ballad, chromatic bass",
+          "detail": "F, about 66 BPM",
+          "bpm": 66,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, arr. Larry Preece, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/18150721",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "when-the-saints-chord-melody",
+          "title": "When the Saints, chord melody",
+          "artist": "trad.",
+          "strand": "F",
+          "teaches": "A known tune as chord melody",
+          "detail": "C, about 110 BPM",
+          "bpm": 110,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Official, arr. Phil Kell, chord-melody solo",
+              "url": "https://musescore.com/user/97106398/scores/18047470",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "One standard as a chord melody from memory (at least 32 bars); comp the same tune in swing for two choruses over Jam; ii-V-I in C, F, G and Bb at 25 changes a minute."
+    },
+    {
+      "id": "8",
+      "title": "The advanced right hand and classical pieces",
+      "goal": "The strokes and textures that make a solo ukulele sound full.",
+      "adds": "Formby split stroke, triple stroke, fan strokes (rasgueado); tremolo; p-a-m-i arpeggio studies; slurs and slides; natural harmonics; classical reading in sharp and flat keys; campanella in a minor key.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "8.1",
+          "title": "Formby split stroke",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: the split stroke, accent off beat 2.",
+          "done": "5 runs at 80% at 120.",
+          "needs": "A ukulele-split-stroke pattern (accent off beat 2) in the rhythm patterns.",
+          "feeds": "Ain't She Sweet"
+        },
+        {
+          "id": "8.2",
+          "title": "Triple stroke",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: the RSL Grade 5 triple-stroke study.",
+          "done": "4 bars at 90, 80%.",
+          "needs": "A ukulele-triple-stroke pattern (the RSL Grade 5 study) in the rhythm patterns.",
+          "feeds": "Malagueña"
+        },
+        {
+          "id": "8.3",
+          "title": "Fan strokes (rasgueado)",
+          "strand": "S",
+          "setup": "Rhythm, read and tap: a four-finger roll pattern.",
+          "done": "5 runs at 80% at 80.",
+          "needs": "A ukulele-fan pattern (four-finger roll) in the rhythm patterns.",
+          "feeds": "Malagueña, Tico-Tico"
+        },
+        {
+          "id": "8.4",
+          "title": "Tremolo",
+          "strand": "F",
+          "setup": "One string, i m or p a m i, graded on note evenness.",
+          "done": "Even within your baseline at 4 notes a beat, 70.",
+          "needs": "A tremolo drill graded on note evenness (rec 11).",
+          "feeds": "Sakura, Recuerdos (aspiration)"
+        },
+        {
+          "id": "8.5",
+          "title": "p-a-m-i arpeggio triplets",
+          "strand": "F",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tami&chords=ukulele.a-minor,ukulele.e7,ukulele.a-minor,ukulele.d-minor&bpm=70&perBeat=3",
+          "setup": "Chords, Fingerpicking: thumb, then a m i, at 3 notes a click; then Spanish Romance in Song Studio.",
+          "done": "The pattern 3 runs at 85% at 90, on two days; the piece at 80%.",
+          "match": {
+            "pattern": "uke-tami",
+            "perBeat": "3"
+          },
+          "threshold": 0.85,
+          "minBpm": 90,
+          "feeds": "Spanish Romance"
+        },
+        {
+          "id": "8.6",
+          "title": "Slurs and slides",
+          "strand": "F",
+          "href": "/music/fretboard?mode=legato&instrument=ukulele",
+          "setup": "Fretboard, Hammer-ons and pull-offs.",
+          "done": "3 runs at 85%, on two days.",
+          "threshold": 0.85,
+          "feeds": "Tico-Tico, Lágrima"
+        },
+        {
+          "id": "8.7",
+          "title": "Natural harmonics at frets 12, 7 and 5",
+          "strand": "F",
+          "setup": "A harmonics check: the pitch an octave or more above the open string.",
+          "done": "12 harmonics at 90% pitch.",
+          "needs": "A natural harmonics check (rec 11).",
+          "feeds": "Gymnopédie, capstones"
+        },
+        {
+          "id": "8.8",
+          "title": "Classical piece one",
+          "strand": "F",
+          "href": "/music/songs/shelf/ukulele/lagrima",
+          "setup": "Song Studio: Lágrima or Spanish Romance, with fix-the-spot loops.",
+          "done": "Performance 85% at tempo, on two days.",
+          "minAttempts": 2,
+          "threshold": 0.85,
+          "minBpm": 59,
+          "links": [
+            {
+              "label": "Spanish Romance",
+              "href": "/music/songs/shelf/ukulele/spanish-romance"
+            }
+          ],
+          "feeds": "shelf"
+        },
+        {
+          "id": "8.9",
+          "title": "Classical piece two",
+          "strand": "F",
+          "href": "/music/songs/shelf/ukulele/gymnopedie-no-1",
+          "setup": "Song Studio: Gymnopédie, or Für Elise (low-G).",
+          "done": "Performance 85% at tempo, on two days.",
+          "minAttempts": 2,
+          "threshold": 0.85,
+          "minBpm": 59,
+          "links": [
+            {
+              "label": "Für Elise (low-G)",
+              "href": "/music/songs/shelf/ukulele/fur-elise"
+            }
+          ],
+          "feeds": "shelf"
+        },
+        {
+          "id": "8.10",
+          "title": "Classical reading",
+          "strand": "T",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3&key=D%20major",
+          "setup": "Sight-reading, level 3, in D major and Bb major (the app's levels stop at 3).",
+          "done": "80% in each key, 3 runs on two days; level 6 once the app has it.",
+          "match": {
+            "level": "level-3"
+          },
+          "each": {
+            "param": "key",
+            "values": ["D major", "Bb major"]
+          },
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Bb major",
+              "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3&key=Bb%20major"
+            }
+          ]
+        },
+        {
+          "id": "8.11",
+          "title": "Campanella in minor",
+          "strand": "T",
+          "setup": "Campanella D harmonic minor (RSL Grade 6 to 8, high-G) in the 6.1 drill.",
+          "done": "3 runs at 95% at 90.",
+          "needs": "Campanella fingerings in Scales, hidden on low-G (rec 5)."
+        },
+        {
+          "id": "8.12",
+          "title": "Cadences by ear",
+          "strand": "T",
+          "href": "/music/ear/cadences?answer=choice&cadences=authentic,plagal&instrument=ukulele",
+          "setup": "Ear, Cadences: authentic (V-I) and plagal (IV-I).",
+          "done": "20 answers at 80%.",
+          "minAttempts": 2,
+          "threshold": 0.8
+        }
+      ],
+      "shelf": [
+        {
+          "id": "spanish-romance",
+          "title": "Spanish Romance",
+          "artist": "anon.",
+          "strand": "F",
+          "teaches": "p-a-m-i triplet arpeggios",
+          "detail": "Am to A, about 90 BPM (triplets)",
+          "bpm": 90,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "RoyBrown, solo ukulele, 4.6",
+              "url": "https://musescore.com/user/35093617/scores/6570289"
+            },
+            {
+              "label": "Official, arr. Antonius Agung Setiawan, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/17497138",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "lagrima",
+          "title": "Lágrima",
+          "artist": "Francisco Tárrega",
+          "strand": "F",
+          "teaches": "Classical tone, slurs, E major to E minor",
+          "detail": "E or C, about 66 BPM",
+          "bpm": 66,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "r c oriel, solo ukulele, 4.7",
+              "url": "https://musescore.com/user/29441233/scores/6100803"
+            }
+          ]
+        },
+        {
+          "id": "gymnopedie-no-1",
+          "title": "Gymnopédie No. 1",
+          "artist": "Erik Satie",
+          "strand": "F",
+          "teaches": "Slow 3/4, voicing a melody, harmonics optional",
+          "detail": "D or C, about 66 BPM",
+          "bpm": 66,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "clearmatter, solo ukulele, 4.7",
+              "url": "https://musescore.com/user/36704440/scores/6645722"
+            }
+          ]
+        },
+        {
+          "id": "fur-elise",
+          "title": "Für Elise",
+          "artist": "Beethoven",
+          "strand": "F",
+          "teaches": "Fast semiquavers, position shifts",
+          "detail": "Am, about 60 BPM",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Low-G: flpages.com, 4.8 from 257 ratings",
+              "url": "https://musescore.com/user/35628773/scores/6266819"
+            }
+          ]
+        },
+        {
+          "id": "malaguena",
+          "title": "Malagueña",
+          "artist": "Ernesto Lecuona",
+          "strand": "S, F",
+          "teaches": "Triplet and fan strokes, Phrygian",
+          "detail": "E or A, about 100 BPM",
+          "bpm": 100,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "av8rpat, solo ukulele, 4.5",
+              "url": "https://musescore.com/user/9481/scores/5202717"
+            },
+            {
+              "label": "Official, arr. Leo Baeza, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/19581430",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "tico-tico",
+          "title": "Tico-Tico no Fubá",
+          "artist": "Zequinha de Abreu",
+          "strand": "F",
+          "teaches": "Choro speed, slurs",
+          "detail": "Am, about 120 BPM",
+          "bpm": 120,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "amiika, solo ukulele, 4.9",
+              "url": "https://musescore.com/user/7812211/scores/6253027"
+            },
+            {
+              "label": "Prof. Jack Lima",
+              "url": "https://musescore.com/user/15872026/scores/3462196"
+            }
+          ]
+        },
+        {
+          "id": "the-entertainer",
+          "title": "The Entertainer",
+          "artist": "Scott Joplin",
+          "strand": "F",
+          "teaches": "Ragtime syncopation",
+          "detail": "C, about 80 BPM",
+          "bpm": 80,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Fred Sokolow, easy ukulele, 4.5",
+              "url": "https://musescore.com/user/39593079/scores/15863008",
+              "official": true
+            },
+            {
+              "label": "Jose Manuel Acuna, rated 3.8",
+              "url": "https://musescore.com/user/30013820/scores/6115512"
+            }
+          ]
+        },
+        {
+          "id": "sakura-sakura",
+          "title": "Sakura Sakura",
+          "artist": "trad. Japanese",
+          "strand": "F",
+          "teaches": "Tremolo and campanella colour",
+          "detail": "Am, about 60 BPM",
+          "bpm": 60,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Roy Genge, solo ukulele",
+              "url": "https://musescore.com/user/33445730/scores/6056795"
+            }
+          ]
+        },
+        {
+          "id": "aint-she-sweet-split-stroke",
+          "title": "Ain't She Sweet, split stroke",
+          "artist": "Milton Ager",
+          "strand": "S",
+          "teaches": "Formby split and triple strokes",
+          "detail": "C, about 130 BPM",
+          "bpm": 130,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Phil Kell, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/22712452",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "Bruce Watson PDF (may not render in the browser)",
+            "url": "https://www.brucewatsonmusic.com/music/uke/Aint_she_sweet.pdf"
+          }
+        },
+        {
+          "id": "danny-boy",
+          "title": "Danny Boy",
+          "artist": "trad. Irish",
+          "strand": "F",
+          "teaches": "Expressive chord melody, rubato",
+          "detail": "C, about 60 BPM",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Brent Robitaille, beginner",
+              "url": "https://musescore.com/user/97106398/scores/16254355",
+              "official": true
+            },
+            {
+              "label": "Low-G: official, arr. Cindy Blevins",
+              "url": "https://musescore.com/user/97106398/scores/16402072",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "Two contrasting solos (one classical, one Latin or ragtime) at tempo at 85% in performance mode; the triple-stroke study at 90; Ain't She Sweet with split strokes at 120."
+    },
+    {
+      "id": "9",
+      "title": "Up the neck and improvising",
+      "goal": "Solo freely over blues, minor tunes and simple standards.",
+      "adds": "Minor pentatonic in five positions, the blues scale and major pentatonic mixed over dominant chords; slides, small bends, double stops; chord-tone soloing; minor ii-V; call and response; transcribing four bars.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "9.1",
+          "title": "Minor pentatonic, five positions",
+          "strand": "L",
+          "setup": "Ukulele positions 1 to 5 in A and C.",
+          "done": "Each position 3 runs at 95% at 90.",
+          "needs": "Ukulele scale positions: minor pentatonic in five positions (rec 4).",
+          "feeds": "blues"
+        },
+        {
+          "id": "9.2",
+          "title": "Blues scale and major pentatonic",
+          "strand": "L",
+          "href": "/music/scales?instrument=ukulele&kind=blues&tonic=69&span=one-octave&bpm=70",
+          "setup": "Scales: A blues, then A major pentatonic. A second position waits for ukulele scale positions.",
+          "done": "Each 3 runs at 95% at 90, on two days.",
+          "match": {
+            "tonic": "69"
+          },
+          "each": {
+            "param": "kind",
+            "values": ["blues", "major-pentatonic"]
+          },
+          "threshold": 0.95,
+          "minBpm": 90,
+          "links": [
+            {
+              "label": "A major pentatonic",
+              "href": "/music/scales?instrument=ukulele&kind=major-pentatonic&tonic=69&span=one-octave&bpm=70"
+            }
+          ],
+          "feeds": "St. Louis Blues"
+        },
+        {
+          "id": "9.3",
+          "title": "Slides, bends, double stops",
+          "strand": "L",
+          "href": "/music/fretboard?mode=bends&instrument=ukulele&exercise=half&reps=8",
+          "setup": "Fretboard, Bends and vibrato: half-step bends. Hammer-ons and pull-offs alongside.",
+          "done": "Bends within 30 cents of a semitone, 8 of 10, on two days.",
+          "match": {
+            "exercise": "half"
+          },
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Hammer-ons and pull-offs",
+              "href": "/music/fretboard?mode=legato&instrument=ukulele"
+            }
+          ],
+          "feeds": "Hula Girl"
+        },
+        {
+          "id": "9.4",
+          "title": "Call and response",
+          "strand": "L",
+          "href": "/music/ear/melody-dictation?answer=play-back&level=minor-diatonic&instrument=ukulele",
+          "setup": "Ear, Melody dictation: play back, minor degrees (no blues level yet). The ukulele blues phrases from 5.6, in other keys, are coming.",
+          "done": "10 phrases at 80%.",
+          "match": {
+            "level": "minor-diatonic"
+          },
+          "minAttempts": 1,
+          "threshold": 0.8,
+          "feeds": "soloing"
+        },
+        {
+          "id": "9.5",
+          "title": "Chord tones over I7 IV7 V7",
+          "strand": "L",
+          "setup": "Jazz licks on ukulele; Jam's blues with the chord tones lit.",
+          "done": "3 choruses where the chorus report shows chord tones on beats 1 and 3 at 60%.",
+          "needs": "A pass rule on Jam's chorus report (rec 9).",
+          "feeds": "St. Louis Blues"
+        },
+        {
+          "id": "9.6",
+          "title": "Minor ii-V and Dorian",
+          "strand": "L",
+          "setup": "Jam: minor ii-V-i and modal, on ukulele.",
+          "done": "4 choruses at 80% scale tones.",
+          "needs": "A pass rule on Jam's chorus report (rec 9).",
+          "feeds": "Summertime, Blue Bossa"
+        },
+        {
+          "id": "9.7",
+          "title": "Solo over a song's chords",
+          "strand": "L",
+          "setup": "Jam on a progression taken from a song's chord chart.",
+          "done": "2 choruses on Summertime at 80%.",
+          "needs": "A Jam progression from a song's chord chart, with a pass rule on the chorus report (rec 9).",
+          "feeds": "Summertime"
+        },
+        {
+          "id": "9.8",
+          "title": "Comp and trade",
+          "strand": "S",
+          "href": "/music/jam?progression=blues&instrument=ukulele",
+          "setup": "Jam: comp one chorus, solo one chorus, recorded in Practice Lab.",
+          "done": "4 alternating choruses without a stop.",
+          "exerciseIds": [],
+          "feeds": "all"
+        },
+        {
+          "id": "9.9",
+          "title": "Transcribe four bars",
+          "strand": "T",
+          "setup": "Song Studio transcription of one melody line from a recorded solo, corrected in the note editor.",
+          "done": "4 bars played back at 80% in performance mode.",
+          "needs": "Song Studio runs on your own transcription counted for a path step (rec 1)."
+        },
+        {
+          "id": "9.10",
+          "title": "Hear the changes in a blues",
+          "strand": "T",
+          "href": "/music/ear/progressions?answer=choice&functions=I,IV,V&chordSize=sevenths&instrument=ukulele",
+          "setup": "Ear, Progressions: I7, IV7 and V7, with the quick change.",
+          "done": "20 answers at 80%.",
+          "minAttempts": 2,
+          "threshold": 0.8
+        }
+      ],
+      "shelf": [
+        {
+          "id": "twelve-bar-blues",
+          "title": "12-bar blues in A and C",
+          "artist": "rock and roll riffs",
+          "strand": "L, S",
+          "teaches": "A shuffle riff plus your solo",
+          "detail": "A or C, 90 to 120 BPM",
+          "diff": 1,
+          "scores": [
+            {
+              "label": "drixydrixy, Ukulele rock 'n' roll riff no. 1",
+              "url": "https://musescore.com/user/73674625/scores/30998378"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Jam, blues",
+            "url": "/music/jam?progression=blues&instrument=ukulele"
+          }
+        },
+        {
+          "id": "st-louis-blues",
+          "title": "St. Louis Blues",
+          "artist": "W. C. Handy, 1914",
+          "strand": "S, L",
+          "teaches": "Blues with a minor tango section",
+          "detail": "G, about 110 BPM",
+          "bpm": 110,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Bettina Schipp, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/19243336",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "summertime",
+          "title": "Summertime",
+          "artist": "George Gershwin",
+          "strand": "L",
+          "teaches": "Minor blues feel, Dorian",
+          "detail": "Am, about 80 BPM",
+          "bpm": 80,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Leo Baeza, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/20582245",
+              "official": true
+            },
+            {
+              "label": "Official, arr. Castellvi, beginner",
+              "url": "https://musescore.com/user/97106398/scores/18079240",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Jam, minor ii-V-i",
+            "url": "/music/jam?progression=minor-ii-v-i&instrument=ukulele"
+          }
+        },
+        {
+          "id": "blue-bossa",
+          "title": "Blue Bossa",
+          "artist": "Kenny Dorham",
+          "strand": "L",
+          "teaches": "Bossa comping, minor ii-V, a key change",
+          "detail": "Cm, about 130 BPM",
+          "bpm": 130,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, arr. Morriss Music, lead sheet plus solo chord melody",
+              "url": "https://musescore.com/user/97106398/scores/18088444",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "take-five",
+          "title": "Take Five",
+          "artist": "Paul Desmond",
+          "strand": "L",
+          "teaches": "A 5/4 vamp, Eb minor or A minor",
+          "detail": "About 170 BPM, 5/4",
+          "bpm": 170,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, arr. Winter Sparrow, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/22603516",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "minor-swing",
+          "title": "Minor Swing",
+          "artist": "Django Reinhardt",
+          "strand": "S, L",
+          "teaches": "La pompe strum, arpeggio soloing",
+          "detail": "Am, about 180 BPM",
+          "bpm": 180,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "felyks24, ukulele, guitar and bass",
+              "url": "https://musescore.com/user/11203881/scores/10101985"
+            }
+          ]
+        },
+        {
+          "id": "hula-girl",
+          "title": "Hula Girl",
+          "artist": "Jake Shimabukuro",
+          "strand": "L",
+          "teaches": "Pentatonic rock soloing at speed",
+          "detail": "A, about 130 BPM",
+          "bpm": 130,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Roy Genge, solo ukulele, 4.6",
+              "url": "https://musescore.com/user/33445730/scores/6443477"
+            }
+          ]
+        },
+        {
+          "id": "autumn-leaves-solo",
+          "title": "Autumn Leaves, as a solo vehicle",
+          "artist": "Joseph Kosma",
+          "strand": "L",
+          "teaches": "Improvise over major and minor ii-V-I",
+          "detail": "Gm, about 120 BPM",
+          "bpm": 120,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. Steve Chauvette (level 7)",
+              "url": "https://musescore.com/user/97106398/scores/19514317",
+              "official": true
+            },
+            {
+              "label": "RPMiller trio, ukulele comping part (level 7)",
+              "url": "https://musescore.com/user/18595/scores/48378"
+            }
+          ],
+          "fallback": {
+            "label": "In the app: Jam, ii-V-I",
+            "url": "/music/jam?progression=ii-v-i&instrument=ukulele"
+          }
+        }
+      ],
+      "test": "Three choruses on a 12-bar blues in A and in C at 110 swung, comping one and soloing two; two improvised choruses on Summertime or Blue Bossa; a transcribed four-bar lick at tempo."
+    },
+    {
+      "id": "10",
+      "title": "A concert programme",
+      "goal": "Finish and perform.",
+      "adds": "Programme planning, fix-the-spot work at full length, dynamics, memory, a first arrangement of your own and a recorded performance.",
+      "pick": 2,
+      "steps": [
+        {
+          "id": "10.1",
+          "title": "Choose a programme",
+          "strand": "F",
+          "href": "/music/library?tab=songs",
+          "setup": "Three shelf pieces (pop, classical, jazz or Hawaiian), 10 to 12 minutes, from your songs.",
+          "done": "The list saved in the journal.",
+          "exerciseIds": [],
+          "feeds": "all"
+        },
+        {
+          "id": "10.2",
+          "title": "Fix the hard spots",
+          "strand": "F",
+          "setup": "Song Studio fix-the-spot loops on each piece's three hardest bars.",
+          "done": "3 clean loops at tempo per spot.",
+          "needs": "Song Studio fix-the-spot loops counted per spot for a path step (rec 1).",
+          "feeds": "all"
+        },
+        {
+          "id": "10.3",
+          "title": "Whole pieces at tempo",
+          "strand": "F",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, performance mode, each programme piece.",
+          "done": "Each piece at 90% on two days.",
+          "match": {
+            "mode": "performance"
+          },
+          "minAttempts": 3,
+          "threshold": 0.9,
+          "feeds": "all"
+        },
+        {
+          "id": "10.4",
+          "title": "Dynamics",
+          "strand": "F",
+          "setup": "A loudness contour on a take: louder or softer where the score says (experimental).",
+          "done": "Two marked contrasts heard in the take.",
+          "needs": "A loudness contour on a take (rec 15).",
+          "feeds": "all"
+        },
+        {
+          "id": "10.5",
+          "title": "Memory",
+          "strand": "F",
+          "href": "/music/lab?instrument=ukulele",
+          "setup": "Practice Lab: each piece from memory.",
+          "done": "2 takes per piece without a stop.",
+          "exerciseIds": [],
+          "feeds": "boss"
+        },
+        {
+          "id": "10.6",
+          "title": "Arrange your own",
+          "strand": "F",
+          "href": "/music/create",
+          "setup": "A chord melody of a song you choose, 16 bars, written in Create or MuseScore and imported.",
+          "done": "Plays at 80% in Song Studio.",
+          "feeds": "Writing path"
+        },
+        {
+          "id": "10.7",
+          "title": "Improvise an intro and a tag",
+          "strand": "L",
+          "href": "/music/jam?instrument=ukulele",
+          "setup": "Jam on the piece's chords: a 4-bar intro and a 4-bar ending.",
+          "done": "Recorded with the piece.",
+          "exerciseIds": []
+        },
+        {
+          "id": "10.8",
+          "title": "Unprepared reading",
+          "strand": "T",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3",
+          "setup": "Sight-reading, level 3, a new piece (the app's levels stop at 3).",
+          "done": "One pass at 80%; level 6 once the app has it.",
+          "match": {
+            "level": "level-3"
+          },
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.8
+        },
+        {
+          "id": "10.9",
+          "title": "Accompany at sight",
+          "strand": "S",
+          "setup": "Strum a progression with an unseen chart from Jam (LCM unprepared accompaniment).",
+          "done": "16 bars at 80% on the first try.",
+          "needs": "Song presets and a strum pattern in Strum a progression, with runs that count (rec 2)."
+        },
+        {
+          "id": "10.10",
+          "title": "Perform",
+          "strand": "F",
+          "href": "/music/lab?instrument=ukulele",
+          "setup": "Practice Lab: the whole programme in one take.",
+          "done": "One take, listened back, three notes written in the journal.",
+          "exerciseIds": [],
+          "feeds": "boss"
+        }
+      ],
+      "shelf": [
+        {
+          "id": "over-the-rainbow-wonderful-world",
+          "title": "Over the Rainbow / What a Wonderful World",
+          "artist": "Israel Kamakawiwo'ole",
+          "strand": "F",
+          "teaches": "The signature ukulele medley",
+          "detail": "C, about 81 BPM",
+          "bpm": 81,
+          "diff": 1,
+          "scores": [
+            {
+              "label": "Lucas Schwyter, IZ transcription, solo ukulele",
+              "url": "https://musescore.com/user/27061700/scores/4985026"
+            },
+            {
+              "label": "Jose Manuel Acuna, solo ukulele",
+              "url": "https://musescore.com/user/30013820/scores/7316969"
+            },
+            {
+              "label": "james831music, melody and chord diagrams",
+              "url": "https://musescore.com/user/21066206/scores/5496831"
+            },
+            {
+              "label": "Official, Jake Shimabukuro arr.",
+              "url": "https://musescore.com/user/39593079/scores/15793696",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "LiveUkulele",
+            "url": "https://liveukulele.com/tabs/somewhere-over-the-rainbow-wonderful-world-iz/"
+          }
+        },
+        {
+          "id": "hallelujah-shimabukuro",
+          "title": "Hallelujah (Jake Shimabukuro arr.)",
+          "artist": "Leonard Cohen",
+          "strand": "F",
+          "teaches": "Rolls, tremolo, dynamics",
+          "detail": "C, about 60 BPM",
+          "bpm": 60,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Fiji Life, 4.8 from 49 ratings",
+              "url": "https://musescore.com/user/37265061/scores/6770149"
+            },
+            {
+              "label": "Official, Hal Leonard tab",
+              "url": "https://musescore.com/user/39593079/scores/15869308",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "while-my-guitar-gently-weeps",
+          "title": "While My Guitar Gently Weeps",
+          "artist": "George Harrison, arr. Jake Shimabukuro",
+          "strand": "F, S",
+          "teaches": "Chord melody, strummed builds, tremolo",
+          "detail": "Am, about 116 BPM",
+          "bpm": 116,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "curtsheller, solo ukulele arrangement",
+              "url": "https://musescore.com/user/34514843/scores/6287233"
+            },
+            {
+              "label": "Official, Jake Shimabukuro arr.",
+              "url": "https://musescore.com/user/39593079/scores/15586861",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "blackbird",
+          "title": "Blackbird",
+          "artist": "The Beatles",
+          "strand": "F",
+          "teaches": "Pinches, moving tenths, 3/4 and 2/4 bars",
+          "detail": "G, about 94 BPM",
+          "bpm": 94,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "lkchemposer, solo ukulele",
+              "url": "https://musescore.com/user/37977307/scores/6892239"
+            },
+            {
+              "label": "Official, arr. Michael Butzen, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/22211296",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "here-comes-the-sun",
+          "title": "Here Comes the Sun",
+          "artist": "The Beatles",
+          "strand": "F, S",
+          "teaches": "Riff and strum, odd bars",
+          "detail": "G or C, about 128 BPM",
+          "bpm": 128,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Official, arr. The Sum of the Parts, intermediate",
+              "url": "https://musescore.com/user/97106398/scores/18196747",
+              "official": true
+            },
+            {
+              "label": "cmfreeze, ukulele and voice",
+              "url": "https://musescore.com/user/14112256/scores/14425543"
+            }
+          ]
+        },
+        {
+          "id": "cello-suite-1-prelude",
+          "title": "Cello Suite No. 1, Prelude",
+          "artist": "J. S. Bach",
+          "strand": "F",
+          "teaches": "An arpeggiated classical prelude",
+          "detail": "G or C, about 72 BPM",
+          "bpm": 72,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "schrectacular, solo ukulele, 4.8 from 71 ratings (check the tuning first)",
+              "url": "https://musescore.com/user/36974188/scores/6549087"
+            }
+          ]
+        },
+        {
+          "id": "canon-in-d",
+          "title": "Canon in D",
+          "artist": "Pachelbel",
+          "strand": "F",
+          "teaches": "Full variations, both hands",
+          "detail": "D, about 70 BPM",
+          "bpm": 70,
+          "diff": 2,
+          "scores": [
+            {
+              "label": "Roy Genge, solo ukulele, 4.8 from 63 ratings",
+              "url": "https://musescore.com/user/33445730/scores/6108714"
+            }
+          ],
+          "fallback": {
+            "label": "LiveUkulele",
+            "url": "https://liveukulele.com/tabs/canon-in-d-ukulele-tab/"
+          }
+        },
+        {
+          "id": "misty-shimabukuro",
+          "title": "Misty (Jake Shimabukuro arr.)",
+          "artist": "Erroll Garner",
+          "strand": "F",
+          "teaches": "A jazz ballad, Jake's voicings",
+          "detail": "Eb, about 60 BPM",
+          "bpm": 60,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard tab",
+              "url": "https://musescore.com/user/39593079/scores/15793798",
+              "official": true
+            }
+          ],
+          "fallback": {
+            "label": "The level 7 arrangement",
+            "url": "https://musescore.com/user/97106398/scores/18088429"
+          }
+        },
+        {
+          "id": "bohemian-rhapsody",
+          "title": "Bohemian Rhapsody (Jake Shimabukuro arr.)",
+          "artist": "Queen",
+          "strand": "F",
+          "teaches": "Aspiration: every technique in one piece",
+          "detail": "Bb, tempo varies",
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, Hal Leonard",
+              "url": "https://musescore.com/user/39593079/scores/15586849",
+              "official": true
+            }
+          ]
+        },
+        {
+          "id": "recuerdos-de-la-alhambra",
+          "title": "Recuerdos de la Alhambra",
+          "artist": "Francisco Tárrega",
+          "strand": "F",
+          "teaches": "Aspiration: sustained tremolo",
+          "detail": "Am, about 80 BPM",
+          "bpm": 80,
+          "diff": 3,
+          "scores": [
+            {
+              "label": "Official, arr. Juan Carlos Sanz, advanced",
+              "url": "https://musescore.com/user/97106398/scores/19455433",
+              "official": true
+            }
+          ]
+        }
+      ],
+      "test": "The path's end: the 10 to 12 minute programme from memory in one recorded take; one standard comped and soloed over Jam for three choruses; 16 bars of unseen accompaniment at 80%."
+    }
+  ]
 }
