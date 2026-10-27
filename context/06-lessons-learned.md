@@ -242,7 +242,7 @@ A design and correctness review of every page, then two weeks of the owner playi
 
 ### Timing
 
-- **The beat callback fires at or after the beat.** The shell flipped from count-in to running inside the downbeat's callback, and drills ignored input until it did. A first note played on the downbeat, or a hair early as players do, arrived while the phase still said count-in and was dropped, in every timed drill, on taps, MIDI and the microphone alike. Fix: running from half a beat before the downbeat, the window drills already listen from. When a state flip and an input window disagree, the input window wins.
+- **The beat callback fires at or after the beat.** The shell flipped from count-in to running inside the downbeat's callback, and drills ignored input until it did. A first note played on the downbeat, or a hair early as players do, arrived while the phase still said count-in and was dropped, in every timed drill, on taps, MIDI and the microphone alike. Fix: running from half a beat before the downbeat, the window drills already listen from. When a state flip and an input window disagree, the input window wins. But keep what the player sees on the beat: the first version also moved "Go." and the count-in overlay half a beat early, so a player (and a test that started on "Go.") came in early. Input timing and the visible cue are separate clocks.
 - **Opening the microphone takes time.** `getUserMedia` and the worklet are awaited, so a drill that started its capture after the microphone could start listening after the downbeat. Start the capture first.
 - **A setting read once is a setting ignored.** The metronome captured "audible" as a boolean when it started, so turning the click off mid-run did nothing. Read it on every beat.
 
