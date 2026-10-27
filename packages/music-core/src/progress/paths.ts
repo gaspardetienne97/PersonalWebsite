@@ -1,5 +1,5 @@
-// Learning paths (catalog 5.8): the five paths in one shape, on the new routes, with status
-// from independent evidence only. `guided-accepted` is gone: every drill has a Check mode now.
+// Learning paths (catalog 5.8): the levelled instrument, ear and reading paths (data/paths) and
+// the theory and studio-ears paths, with status from independent evidence only.
 import {
   isMasteryEligible,
   type Instrument,
@@ -7,10 +7,6 @@ import {
   type RunRecord,
   type ScoringEvent,
 } from "../types";
-import pathData from "../data/learning-paths.json";
-import earData from "../data/ear-training.json";
-import { EAR_ADDED_STEPS, EAR_TABLE_STEPS } from "../content/ear";
-import jazzData from "../data/jazz.json";
 import { SKILL_GRAPH, withDescendants, type SkillGraph } from "./graph";
 import { dayKey } from "./rewards";
 import {
@@ -96,67 +92,7 @@ export interface LearningPath {
   levels?: PathLevel[];
 }
 
-export const DONE_THRESHOLD = pathData.doneThreshold;
-
-// ---------------------------------------------------------------------------
-// Old hrefs onto the new routes. Query parameters (the setup) are kept.
-
-export const NEW_ROUTES = [
-  "/music/ear/",
-  "/music/reading",
-  "/music/rhythm",
-  "/music/scales",
-  "/music/fretboard",
-  "/music/chords",
-  "/music/two-hand",
-  "/music/pedal",
-  "/music/comping",
-  "/music/pads",
-  "/music/aerophone",
-  "/music/voicings",
-  "/music/licks",
-  "/music/phrases",
-  "/music/chord-scales",
-  "/music/jam",
-  "/music/library",
-  "/music/listening",
-  "/music/circle",
-] as const;
-
-const PATH_MAP: Record<string, string> = {
-  "/music/learn/reading": "/music/reading",
-  "/music/learn/rhythm": "/music/rhythm",
-  "/music/learn/aerophone": "/music/aerophone",
-  "/music/learn/jazz": "/music/library?tab=reference",
-  "/music/play/scales": "/music/scales",
-  "/music/play/spider": "/music/fretboard",
-  "/music/play/chord-perfect": "/music/chords",
-  "/music/play/two-hand": "/music/two-hand",
-  "/music/play/mpc": "/music/pads",
-  "/music/play/voicings": "/music/voicings",
-  "/music/play/licks": "/music/licks",
-  "/music/play/chord-scales": "/music/chord-scales",
-  "/music/jam": "/music/jam",
-  "/music/library": "/music/library",
-  "/music/listening": "/music/listening",
-  "/music/circle": "/music/circle",
-  "/music/scales": "/music/scales",
-  "/music/voicings": "/music/voicings",
-  "/music/pedal": "/music/pedal",
-};
-
-export function rewriteHref(href: string): string {
-  const [path, query = ""] = href.split("?");
-  const target = path.startsWith("/music/learn/ear/")
-    ? path.replace("/music/learn/ear/", "/music/ear/")
-    : PATH_MAP[path];
-  if (!target) throw new Error(`No new route for ${href}`);
-  const [newPath, newQuery = ""] = target.split("?");
-  const q = new URLSearchParams(newQuery);
-  for (const [k, v] of new URLSearchParams(query)) q.set(k, v);
-  const qs = q.toString();
-  return qs ? `${newPath}?${qs}` : newPath;
-}
+export const DONE_THRESHOLD = 0.66;
 
 // ---------------------------------------------------------------------------
 // Normalisation
@@ -184,32 +120,17 @@ interface RawStep {
   applies?: string | { only?: string[] };
 }
 
-/** P-I4 and P-A1 open the comping route (catalog weakness 3) instead of the two-hand stand-in. */
-const COMPING = (pattern: string) => `/music/comping?pattern=${pattern}&instrument=piano&bpm=90`;
-const REFERENCE = (section: string) => `/music/library?tab=reference&section=${section}`;
-const OVERRIDES: Record<string, Partial<PathStep>> = {
-  "chord-symbols": { href: REFERENCE("vocabulary") },
-  extensions: { href: REFERENCE("vocabulary") },
-  "shell-voicings": { href: REFERENCE("voicings") },
-  "P-I4": { kind: "drill", href: COMPING("blue-third-c7") },
-  "P-A1": {
-    kind: "drill",
-    href: COMPING("blue-third-f7"),
-    links: [{ label: "G7", href: COMPING("blue-third-g7") }],
-  },
-};
-
 function normaliseStep(raw: RawStep): PathStep {
   const applies = raw.applies;
-  const step: PathStep = {
+  return {
     id: raw.id,
     order: raw.order,
     title: raw.title,
     summary: raw.summary,
     detail: raw.detail,
     kind: raw.kind === "reference" || raw.kind === "review" ? raw.kind : "drill",
-    href: rewriteHref(raw.href),
-    links: (raw.links ?? []).map((l) => ({ label: l.label, href: rewriteHref(l.href) })),
+    href: raw.href,
+    links: raw.links ?? [],
     skillIds: raw.skillIds ?? (raw.skillId ? [raw.skillId] : []),
     exerciseIds: raw.exerciseIds,
     modalities: raw.modalities as Modality[] | undefined,
@@ -223,352 +144,7 @@ function normaliseStep(raw: RawStep): PathStep {
     instruments: typeof applies === "object" ? (applies.only as Instrument[]) : undefined,
     content: applies === "pitched" || applies === "polyphonic" ? applies : undefined,
   };
-  const merged = { ...step, ...OVERRIDES[raw.id] };
-  return ADDED_LINKS[raw.id]
-    ? {
-        ...merged,
-        links: [
-          ...merged.links,
-          ...ADDED_LINKS[raw.id].map((l) => ({ ...l, href: rewriteHref(l.href) })),
-        ],
-      }
-    : merged;
 }
-
-// ---------------------------------------------------------------------------
-// What the aural-skills research adds to the instrument paths: ear steps where a
-// skill is about to be needed, and ear links beside the steps they support.
-
-const PADS = (q: string) => `/music/play/mpc?${q}`;
-const EAR = (drill: string, q: string) => `/music/learn/ear/${drill}?answer=choice&${q}`;
-const ADDED_LINKS: Record<string, PathLink[]> = {
-  "G-B1": [
-    { label: "Major or minor by ear", href: EAR("chord-qualities", "qualities=major,minor") },
-  ],
-  "G-I3": [
-    {
-      label: "Pentatonics and blues by ear",
-      href: EAR("scales", "scales=major-pentatonic,minor-pentatonic,blues"),
-    },
-  ],
-  "G-A2": [
-    {
-      label: "Play a heard phrase back",
-      href: "/music/learn/ear/melody-dictation?answer=play-back&level=major-pentachord",
-    },
-  ],
-  "M-I3": [
-    { label: "Funky Drummer", href: PADS("mode=groove&groove=funky-drummer&bpm=80") },
-    { label: "Boom bap with ghosts", href: PADS("mode=groove&groove=ghost-boom-bap&bpm=80") },
-  ],
-  "P-I1": [{ label: "Inversions by ear", href: EAR("inversions", "inversions=root,first,second") }],
-  "P-B3": [{ label: "Key signatures", href: "/music/circle?mode=signature&band=two&clefs=both" }],
-  "P-I3": [
-    { label: "Scales round the circle", href: "/music/library?tab=reference&section=circle" },
-  ],
-  "G-B3": [{ label: "The chords of a key", href: "/music/circle?mode=chords&band=two" }],
-  "P-I2": [
-    { label: "Follow the bass", href: EAR("bass-lines", "bassLevel=roots-primary") },
-    { label: "I, IV, V progressions by ear", href: EAR("progressions", "functions=I,IV,V") },
-  ],
-  "P-I4": [
-    { label: "The blues scale by ear", href: EAR("scales", "scales=major,minor-pentatonic,blues") },
-    {
-      label: "Sevenths by ear",
-      href: EAR("chord-qualities", "qualities=major-7,dominant-7,minor-7"),
-    },
-  ],
-  "chord-symbols": [
-    {
-      label: "Seventh chords by ear",
-      href: EAR(
-        "chord-qualities",
-        "qualities=major-7,dominant-7,minor-7,half-diminished-7,diminished-7",
-      ),
-    },
-  ],
-  "chord-scales": [
-    { label: "Modes by ear", href: EAR("scales", "scales=mixolydian,dorian,lydian,locrian") },
-  ],
-  "rootless-voicings": [
-    {
-      label: "ii-V-I moves counter-clockwise",
-      href: "/music/library?tab=reference&section=circle",
-    },
-    {
-      label: "ii7, V7, Imaj7 by ear",
-      href: EAR("progressions", "functions=I,ii,V&chordSize=sevenths"),
-    },
-    {
-      label: "iiø7, V7, i by ear",
-      href: EAR("progressions", "functions=I,ii,V&chordSize=sevenths&keyMode=minor"),
-    },
-  ],
-  improv: [
-    {
-      label: "Sing a phrase back",
-      href: "/music/learn/ear/melody-dictation?answer=voice&level=major-pentachord",
-    },
-  ],
-};
-
-const ECHO = (level: string) => `/music/learn/rhythm?mode=echo&earLevel=${level}`;
-const ADDED_STEPS: Partial<Record<PathId, RawStep[]>> = {
-  mpc: [
-    // Finger drumming, from the research (docs/research/finger-drumming.md).
-    {
-      id: "M-T1",
-      order: 1.7,
-      title: "Hold the tempo",
-      summary: "Basic rock for four bars with the click, then eight bars on your own.",
-      detail: "Three runs over two days within 3 BPM of the tempo, averaging 80% or higher.",
-      href: PADS("mode=steady&steady=basic-rock&bpm=80"),
-      exerciseIds: ["technique.mpc.steadiness"],
-      skillIds: ["technique.mpc.steadiness"],
-      minAttempts: 3,
-      minSessions: 2,
-      threshold: 0.8,
-    },
-    {
-      id: "M-T2",
-      order: 2.6,
-      title: "Two-finger rolls",
-      summary:
-        "Index and middle alternating on one pad: sixteenths, then thirty-seconds and triplets for trap hats.",
-      detail: "Three runs averaging 80% or higher.",
-      href: PADS("mode=rudiment&pattern=finger-roll&hits=32&bpm=90"),
-      links: [
-        { label: "Thirty-seconds", href: PADS("mode=rudiment&pattern=roll-32&hits=32&bpm=70") },
-        { label: "Triplets, 1/16T", href: PADS("mode=rudiment&pattern=roll-16t&hits=32&bpm=80") },
-      ],
-      exerciseIds: ["technique.mpc.single-strokes"],
-      skillIds: ["technique.mpc.rolls"],
-      minAttempts: 3,
-      threshold: 0.8,
-    },
-    {
-      id: "M-T3",
-      order: 5.5,
-      title: "Accents and ghosts",
-      summary:
-        "A sixteenth stream with the beat loud and the rest soft; then the accent moving through.",
-      detail: "Three runs averaging 80% or higher, on velocity-sensitive pads (Full Level off).",
-      href: PADS("mode=rudiment&pattern=accents-ghosts&hits=32&bpm=80"),
-      links: [
-        {
-          label: "Moving accent",
-          href: PADS("mode=rudiment&pattern=moving-accent&sub=4&hits=16&bpm=80"),
-        },
-      ],
-      exerciseIds: ["technique.mpc.single-strokes"],
-      skillIds: ["technique.mpc.accents"],
-      minAttempts: 3,
-      threshold: 0.8,
-    },
-    {
-      id: "M-T4",
-      order: 6.5,
-      title: "Four kicks under one hat",
-      summary: "The hats never change while the kick takes a new pattern every bar.",
-      detail: "Three runs averaging 85% or higher.",
-      href: PADS("mode=groove&groove=independence&bpm=75"),
-      exerciseIds: ["technique.mpc.groove"],
-      skillIds: ["technique.mpc.independence"],
-      minAttempts: 3,
-      threshold: 0.85,
-    },
-    {
-      id: "M-T5",
-      order: 7.5,
-      title: "Swing by hand",
-      summary: "Boom bap with the off-sixteenths late: 56%, then 62%, then the Dilla feel.",
-      detail: "Three runs averaging 85% or higher; the results say the swing you played.",
-      href: PADS("mode=groove&groove=swing-56&bpm=80"),
-      links: [
-        { label: "Swing 62%", href: PADS("mode=groove&groove=swing-62&bpm=80") },
-        { label: "Dilla feel", href: PADS("mode=groove&groove=dilla&bpm=78") },
-      ],
-      exerciseIds: ["technique.mpc.groove"],
-      skillIds: ["technique.mpc.swing"],
-      minAttempts: 3,
-      threshold: 0.85,
-    },
-    {
-      id: "M-T6",
-      order: 8.2,
-      title: "House, trap and drum and bass",
-      summary: "Four on the floor at 124, trap at 140 with its rolls, two-step at 172.",
-      detail: "Three runs averaging 85% or higher.",
-      href: PADS("mode=groove&groove=house&bpm=110"),
-      links: [
-        { label: "Trap", href: PADS("mode=groove&groove=trap-32&bpm=120") },
-        { label: "Drum and bass", href: PADS("mode=groove&groove=dnb&bpm=140") },
-      ],
-      exerciseIds: ["technique.mpc.groove"],
-      skillIds: ["technique.mpc.dance"],
-      minAttempts: 3,
-      threshold: 0.85,
-    },
-    {
-      id: "M-T7",
-      order: 8.4,
-      title: "The breaks",
-      summary: "The Amen break, all four bars, then Apache.",
-      detail: "Three runs averaging 85% or higher.",
-      href: PADS("mode=groove&groove=amen&bpm=110"),
-      links: [{ label: "Apache", href: PADS("mode=groove&groove=apache&bpm=95") }],
-      exerciseIds: ["technique.mpc.groove"],
-      skillIds: ["technique.mpc.breaks"],
-      minAttempts: 3,
-      threshold: 0.85,
-    },
-    {
-      id: "M-E1",
-      order: 1.5,
-      title: "Echo a bar on the pads",
-      summary: "Hear a bar of quarters and eighths over the click, then play it back on a pad.",
-      detail: "Five unaided echoes averaging 75% or higher.",
-      href: ECHO("quarters-eighths"),
-      exerciseIds: ["rhythm.echo"],
-      skillIds: ["ear.rhythm-echo"],
-      minAttempts: 5,
-      threshold: 0.75,
-    },
-    {
-      id: "M-E2",
-      order: 2.5,
-      title: "Echo sixteenths",
-      summary: "Two bars with sixteenths in them: hear them, play them back.",
-      detail: "Five unaided echoes at the sixteenths level or harder, averaging 75% or higher.",
-      href: ECHO("sixteenths"),
-      exerciseIds: ["rhythm.echo"],
-      skillIds: ["ear.rhythm-echo"],
-      minAttempts: 5,
-      threshold: 0.75,
-      minDifficulty: 0.67,
-    },
-    {
-      id: "M-E3",
-      order: 4.5,
-      title: "Write a groove down",
-      summary: "Hear a drum groove, then put its kick, snare and hats on the grid.",
-      detail: "Five unaided groove dictations averaging 75% or higher.",
-      href: "/music/learn/rhythm?mode=groove&grooveLevel=rock",
-      links: [
-        {
-          label: "Kicks off the beat",
-          href: "/music/learn/rhythm?mode=groove&grooveLevel=offbeats",
-        },
-        {
-          label: "Sixteenths and ghost notes",
-          href: "/music/learn/rhythm?mode=groove&grooveLevel=sixteenths",
-        },
-      ],
-      exerciseIds: ["rhythm.groove-dictation"],
-      skillIds: ["ear.groove-dictation"],
-      minAttempts: 5,
-      threshold: 0.75,
-    },
-    {
-      id: "M-S1",
-      order: 8.5,
-      title: "Hear the kit in the mix",
-      summary: "A drum loop with one band boosted: find it. The Studio ears path goes further.",
-      detail: "Twenty unaided answers on five bands or more, averaging 70% or higher.",
-      href: "/music/listening?exercise=peak&bands=5&material=drums",
-      links: [
-        { label: "How many dB louder", href: "/music/listening?exercise=level&material=drums" },
-        { label: "How compressed", href: "/music/listening?exercise=compression&material=drums" },
-        { label: "Delay time", href: "/music/listening?exercise=delay&material=drums" },
-      ],
-      exerciseIds: ["studio.peak"],
-      skillIds: ["studio.eq-peak"],
-      minAttempts: 20,
-      threshold: 0.7,
-      minDifficulty: 0.45,
-    },
-  ],
-  guitar: [
-    {
-      id: "G-E1",
-      order: 3.5,
-      title: "Echo a strum rhythm",
-      summary: "Hear two bars with dotted quarters and rests, then strum them back.",
-      detail: "Five unaided echoes at the dotted level or harder, averaging 75% or higher.",
-      href: ECHO("dotted"),
-      exerciseIds: ["rhythm.echo"],
-      skillIds: ["ear.rhythm-echo"],
-      minAttempts: 5,
-      threshold: 0.75,
-      minDifficulty: 0.51,
-    },
-  ],
-  piano: [
-    {
-      id: "P-E1",
-      order: 8.5,
-      title: "Spot the wrong note",
-      summary:
-        "Follow a written melody by ear and find the note played wrong, before sight-reading one.",
-      detail: "Twenty unaided answers averaging 66% or higher.",
-      href: "/music/learn/ear/wrong-note?level=major-diatonic",
-      exerciseIds: ["ear.error-detection"],
-      skillIds: ["ear.error-detection"],
-      minAttempts: 20,
-    },
-    // The graded syllabi's other technique (ABRSM, RCM): chords through their
-    // inversions from the first grades, arpeggios soon after.
-    {
-      id: "P-T1",
-      order: 3.5,
-      title: "Broken chords through the inversions",
-      summary:
-        "C major broken through root position, first and second inversion and back, one hand.",
-      detail: "Three runs averaging 66% or higher.",
-      href: "/music/scales?pattern=broken&chord=major&tonic=60&span=one-octave&motion=up-down&hands=right&perBeat=1&grade=&bpm=60",
-      exerciseIds: ["technique.scale"],
-      skillIds: ["technique.chord-inversions"],
-      minAttempts: 3,
-    },
-    {
-      id: "P-T3",
-      order: 5.5,
-      title: "Cadences in every key",
-      summary:
-        "I IV I V7 I with the root in the left hand, the right hand moving the shortest way, through all twelve keys.",
-      detail: "Sixty chords (all twelve keys) averaging 80% or higher.",
-      href: "/music/voicings?variant=cadence&key=0&keys=12",
-      exerciseIds: ["voicing-drill"],
-      skillIds: ["harmony.keyboard-cadences"],
-      minAttempts: 60,
-      threshold: 0.8,
-    },
-    {
-      id: "P-T4",
-      order: 6.7,
-      title: "Legato pedal",
-      summary:
-        "I vi IV V twice: lift the sustain pedal just after each chord and press it straight back.",
-      detail: "Three runs averaging 75% or higher (a sustain pedal plugged into the keyboard).",
-      href: "/music/pedal?progression=I-vi-IV-V&key=0&rounds=2&bpm=60",
-      exerciseIds: ["technique.pedal"],
-      skillIds: ["technique.pedal"],
-      minAttempts: 3,
-      threshold: 0.75,
-    },
-    {
-      id: "P-T2",
-      order: 6.5,
-      title: "Arpeggios, two octaves",
-      summary: "The C major arpeggio over two octaves, up and down, each hand alone.",
-      detail: "Three runs averaging 66% or higher.",
-      href: "/music/scales?pattern=arpeggio&chord=major&tonic=60&span=two-octave&motion=up-down&hands=right&perBeat=1&grade=&bpm=72",
-      exerciseIds: ["technique.scale"],
-      skillIds: ["technique.arpeggios"],
-      minAttempts: 3,
-    },
-  ],
-};
 
 // Studio ears: its own path (timbre and frequency memory, not pitch), in the
 // research's order: 3 bands on noise, 5 then 9, loops, cuts, smaller gains,
@@ -826,9 +402,6 @@ const path = (id: PathId, title: string, subtitle: string, steps: RawStep[]): Le
     .map((s, i) => ({ ...s, order: i + 1 })),
 });
 
-const { guitar, piano, mpc } = pathData.paths;
-const ear = earData.learningPathDefinition;
-
 /** The path each instrument follows (the Paths tab's default and Today's focus block). */
 export const PATH_FOR_INSTRUMENT: Record<Instrument, PathId> = {
   piano: "piano",
@@ -839,42 +412,16 @@ export const PATH_FOR_INSTRUMENT: Record<Instrument, PathId> = {
   voice: "ear",
 };
 
-/** Round-2 paths (data/paths/*.json); a path whose file has no levels yet keeps its old steps. */
-const levelled = (raw: unknown, old?: LearningPath): LearningPath => {
-  const r = raw as RawLevelPath;
-  return r.levels.length || !old ? levelPath(r) : old;
-};
-
-const OLD = {
-  ear: path("ear", ear.title, ear.subtitle, [
-    ...(EAR_TABLE_STEPS as RawStep[]),
-    ...(EAR_ADDED_STEPS as RawStep[]),
-  ]),
-  jazz: path(
-    "jazz",
-    "Jazz Path",
-    "Ten lessons from intervals to a Real Book, built on the ii-V-I.",
-    jazzData.JAZZ_CURRICULUM as RawStep[],
-  ),
-  guitar: path("guitar", guitar.title, guitar.subtitle, [
-    ...(guitar.steps as RawStep[]),
-    ...ADDED_STEPS.guitar!,
-  ]),
-  piano: path("piano", piano.title, piano.subtitle, [
-    ...(piano.steps as RawStep[]),
-    ...ADDED_STEPS.piano!,
-  ]),
-  mpc: path("mpc", mpc.title, mpc.subtitle, [...(mpc.steps as RawStep[]), ...ADDED_STEPS.mpc!]),
-};
+const levelled = (raw: unknown) => levelPath(raw as RawLevelPath);
 
 export const LEARNING_PATHS: Record<PathId, LearningPath> = {
-  guitar: levelled(guitarLevels, OLD.guitar),
+  guitar: levelled(guitarLevels),
   ukulele: levelled(ukuleleLevels),
-  piano: levelled(pianoLevels, OLD.piano),
-  jazz: levelled(jazzLevels, OLD.jazz),
+  piano: levelled(pianoLevels),
+  jazz: levelled(jazzLevels),
   aerophone: levelled(aerophoneLevels),
-  mpc: levelled(padsLevels, OLD.mpc),
-  ear: levelled(earLevels, OLD.ear),
+  mpc: levelled(padsLevels),
+  ear: levelled(earLevels),
   reading: levelled(readingLevels),
   theory: path(
     "theory",

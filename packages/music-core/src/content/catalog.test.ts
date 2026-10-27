@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CHORD_SHAPES, LEARNING_PATHS, SCALE_DATA, SKILL_IDS, TWO_HAND } from "../data";
+import { CHORD_SHAPES, SCALE_DATA, SKILL_IDS, TWO_HAND } from "../data";
+import { LEARNING_PATHS } from "../progress/paths";
 import { tuningById } from "../theory/fretboard";
 import { CATALOG, exerciseIdFor, rhythmExerciseId } from "./catalog";
 import {
@@ -9,7 +10,6 @@ import {
   functionToken,
   chordQualityPrompt,
   EAR_DRILLS,
-  EAR_PATH,
   intervalPrompt,
   melodyDictationPrompt,
   progressionPrompt,
@@ -126,14 +126,17 @@ describe("drill catalog", () => {
     );
     for (const e of CATALOG.filter((x) => x.id.startsWith("ear-")))
       expect(e.exerciseId).toMatch(/^ear\./);
-    const pathIds = [
-      ...Object.values(LEARNING_PATHS.paths).flatMap((p) =>
-        p.steps.flatMap((s) => s.exerciseIds ?? []),
-      ),
-      ...EAR_PATH.steps.flatMap((s) => s.exerciseIds ?? []),
-    ];
+    const pathIds = Object.values(LEARNING_PATHS).flatMap((p) =>
+      p.steps.flatMap((s) => s.exerciseIds ?? []),
+    );
     for (const id of pathIds) {
-      const covered = ids.has(id) || RHYTHM_PATTERNS.some((p) => rhythmExerciseId(p.id) === id);
+      // Phrases record one exercise per instrument, fretted drills a ukulele variant, Song Studio its own.
+      const covered =
+        ids.has(id) ||
+        ids.has(id.replace(/^technique\.ukulele\./, "technique.guitar.")) ||
+        RHYTHM_PATTERNS.some((p) => rhythmExerciseId(p.id) === id) ||
+        /^repertoire\.phrases\.(piano|guitar|ukulele|aerophone)$/.test(id) ||
+        id === "song.studio";
       expect(covered, id).toBe(true);
     }
     expect(exerciseIdFor("technique.guitar.chord-perfect", "ukulele")).toBe(
@@ -149,7 +152,7 @@ describe("skill ids", () => {
     const emitted = [
       ...CATALOG.flatMap((e) => [...e.skillIds, ...e.modes.flatMap((m) => m.skillIds)]),
       ...EAR_DRILLS.flatMap((d) => d.skillIds),
-      ...EAR_PATH.steps.flatMap((s) => s.skillIds ?? []),
+      ...Object.values(LEARNING_PATHS).flatMap((p) => p.steps.flatMap((s) => s.skillIds)),
       ...INTERVALS.flatMap((i) => intervalPrompt(r, { difficulty: 0.5, token: i.token }).skillIds),
       ...CADENCES_AND_QUALITIES.chordQualities.flatMap(
         (q) => chordQualityPrompt(r, { difficulty: 1, token: q.token }).skillIds,

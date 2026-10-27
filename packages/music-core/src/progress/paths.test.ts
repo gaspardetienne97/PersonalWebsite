@@ -2,14 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ScoringEvent } from "../types";
 import { ev, run, T0 } from "./fixtures";
 import { DAY_MS } from "./mastery";
-import {
-  LEARNING_PATHS,
-  NEW_ROUTES,
-  pathProgress,
-  rewriteHref,
-  type LearningPath,
-  type PathStep,
-} from "./paths";
+import { LEARNING_PATHS, pathProgress, type LearningPath, type PathStep } from "./paths";
 
 // One attempt a day, in order, so every pass below is on more than one day.
 let n = 0;
@@ -74,67 +67,10 @@ describe("path content", () => {
     ]);
     expect(LEARNING_PATHS.theory.steps).toHaveLength(8);
     expect(LEARNING_PATHS.studio.steps).toHaveLength(7);
-    expect(LEARNING_PATHS.guitar.levels?.length).toBeGreaterThan(0);
-    if (!LEARNING_PATHS.mpc.levels) {
-      expect(LEARNING_PATHS.mpc.steps).toHaveLength(19);
-      expect(LEARNING_PATHS.mpc.steps.map((s) => s.id)).toEqual([
-        "M-B1",
-        "M-E1",
-        "M-T1",
-        "M-B2",
-        "M-E2",
-        "M-T2",
-        "M-B3",
-        "M-I1",
-        "M-E3",
-        "M-I2",
-        "M-T3",
-        "M-I3",
-        "M-T4",
-        "M-A1",
-        "M-T5",
-        "M-A2",
-        "M-T6",
-        "M-T7",
-        "M-S1",
-      ]);
-    }
-    // The table's six plus the eleven the app adds, numbered in order.
-    if (!LEARNING_PATHS.ear.levels) {
-      expect(LEARNING_PATHS.ear.steps).toHaveLength(17);
-      expect(LEARNING_PATHS.ear.steps.find((s) => s.id === "interval-names")).toMatchObject({
-        order: 10,
-        href: "/music/ear/intervals?answer=choice&intervals=M3%2CP5%2CP8&direction=ascending",
-        skillIds: ["pitch.interval.M3", "pitch.interval.P5", "pitch.interval.P8"],
-      });
-    }
-    for (const p of Object.values(LEARNING_PATHS))
+    for (const p of Object.values(LEARNING_PATHS)) {
       expect(p.steps.map((s) => s.order)).toEqual(p.steps.map((_, i) => i + 1));
-  });
-
-  it("rewrites every href onto a new route (the levelled paths are checked in levels.test)", () => {
-    const hrefs = Object.values(LEARNING_PATHS)
-      .filter((p) => !p.levels)
-      .flatMap((p) => p.steps.flatMap((s) => [s.href, ...s.links.map((l) => l.href)]));
-    for (const href of hrefs) {
-      expect(
-        NEW_ROUTES.some((r) => href.startsWith(r)),
-        href,
-      ).toBe(true);
-      expect(href).not.toMatch(/\/music\/(learn|play)\//);
+      if (!["theory", "studio"].includes(p.id)) expect(p.levels?.length, p.id).toBeGreaterThan(0);
     }
-  });
-
-  it("keeps the setup query and maps the old paths", () => {
-    expect(rewriteHref("/music/play/spider?mode=positions&rootFret=5")).toBe(
-      "/music/fretboard?mode=positions&rootFret=5",
-    );
-    expect(rewriteHref("/music/learn/ear/intervals")).toBe("/music/ear/intervals");
-    expect(rewriteHref("/music/learn/jazz")).toBe("/music/library?tab=reference");
-    expect(rewriteHref("/music/play/mpc?mode=groove")).toBe("/music/pads?mode=groove");
-    expect(() => rewriteHref("/music/nowhere")).toThrow();
-    const pi4 = LEARNING_PATHS.piano.steps.find((s) => s.id === "P-I4");
-    if (pi4) expect(pi4.href).toBe("/music/comping?pattern=blue-third-c7&instrument=piano&bpm=90");
   });
 });
 
@@ -283,7 +219,7 @@ describe("pathProgress", () => {
   });
 });
 
-describe("app-added steps", () => {
+describe("studio ears path", () => {
   const ev = (over: Partial<ScoringEvent>): ScoringEvent => ({
     id: Math.random().toString(36),
     sessionId: "s1",
@@ -312,16 +248,5 @@ describe("app-added steps", () => {
       ev({ difficulty: 0.4, partialCredit: i % 4 ? 1 : 0 }),
     );
     expect(statuses("studio", [...easy, ...five])["S-2"]).toBe("in-progress");
-  });
-
-  it("links ear drills beside the instrument steps they support", () => {
-    const link = (path: keyof typeof LEARNING_PATHS, id: string) =>
-      LEARNING_PATHS[path].steps.find((s) => s.id === id)!.links.map((l) => l.href);
-    if (!LEARNING_PATHS.piano.levels)
-      expect(link("piano", "P-I1")).toContain(
-        "/music/ear/inversions?answer=choice&inversions=root%2Cfirst%2Csecond",
-      );
-    if (!LEARNING_PATHS.jazz.levels)
-      expect(link("jazz", "chord-scales").at(-1)).toMatch(/^\/music\/ear\/scales\?/);
   });
 });

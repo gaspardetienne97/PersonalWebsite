@@ -23,7 +23,6 @@ import drumKitsJson from "./drum-kits.json";
 import earTrainingJson from "./ear-training.json";
 import fretboardPatternsJson from "./fretboard-patterns.json";
 import jazzJson from "./jazz.json";
-import learningPathsJson from "./learning-paths.json";
 import mpcGroovesJson from "./mpc-grooves.json";
 import mpcRudimentsJson from "./mpc-rudiments.json";
 import readingLevelsJson from "./reading-levels.json";
@@ -415,39 +414,6 @@ export const JAZZ = jazzJson as unknown as {
   GUITAR_BOX_ONE_LICK: number;
   GUITAR_BOX_ONE_LICK_A_MINOR: number;
   JAZZ_LICK_DRILL_DEFAULT_CONFIG: { category: string; lickNumber: number };
-};
-
-// ---------------------------------------------------------------------------
-// Learning paths
-
-export interface PathStepDef {
-  id: string;
-  order: number;
-  title: string;
-  summary: string;
-  detail?: string;
-  href: string;
-  links?: Link[];
-  requires?: string[];
-  evidence?: "guided-accepted";
-  skillIds?: string[];
-  exerciseIds?: string[];
-  minAttempts?: number;
-  minSessions?: number;
-  kind?: "drill" | "review" | "reference";
-  applies?: { only: Instrument[] };
-}
-export interface LearningPathDef {
-  id: string;
-  title: string;
-  subtitle: string;
-  href: string;
-  steps: PathStepDef[];
-}
-export const LEARNING_PATHS = learningPathsJson as {
-  pathIds: ("guitar" | "piano" | "mpc")[];
-  doneThreshold: number;
-  paths: Record<"guitar" | "piano" | "mpc", LearningPathDef>;
 };
 
 // ---------------------------------------------------------------------------
