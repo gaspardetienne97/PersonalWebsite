@@ -4,11 +4,11 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## Needs the owner
 
-(nothing yet)
+- **Official MuseScore scores.** Your Pro plan downloads community scores as MusicXML, but MuseScore's Official scores (Hal Leonard and similar) need PRO+ or a purchase each. About 176 of the 926 shelf songs had only an official link; an agent is finding community scores for them. Say whether you would rather buy or upgrade for the rest.
 
 ## In progress
 
-- **Curriculum plan, phase 2** (approved plan in the Claude doc "Woodshed curriculum research and plan"; paths in `context/research/curriculum-2026-10/paths/`): the eight new paths loaded into the app, Song Studio performances counting as path steps, MusicXML from the owner's MuseScore account through the Orca browser, drum import onto the pads, Aerophone alto and tenor transposition, strum a song, riff sets, copyrighted material served from `/api/music`.
+- **Curriculum plan, phase 2** (approved plan in the Claude doc "Woodshed curriculum research and plan"; paths in `context/research/curriculum-2026-10/paths/`). Done: the eight levelled paths, shelves, Song Studio and riffs as path steps, score downloads, strum a song. In progress: written pitch for guitar and the Aerophone as alto or tenor, community scores for official-only shelf songs. Next: drum import onto the pads, then downloading the shelves level by level.
 
 ## Done
 
@@ -66,6 +66,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
   - Timed drills: input is live from half a beat before the downbeat, so a first note on it is no longer dropped (taps, MIDI and microphone, every timed drill), while the count-in overlay and "Go." stay on the beat itself; rhythm listens before the microphone starts. The count-in is a semi-transparent overlay on the stage that fades out in 150 ms.
   - Piano scale fingering (research: pianoscales.org tables, the University of Miami chart, Wilder's melodic minor charts; the exam books themselves not read): every major, natural, harmonic and melodic minor in all 12 keys, both hands, with the two-octave join rule and a playability test (no thumb on a black key, no finger twice in a row). The scales drill prints it on the staff (above the treble, below the bass, as scale books do) and on the keys; a key both hands play shows both fingers. Pentascales are 1 to 5; other scales say there is no standard fingering here.
   - Follow-ups: finger colours on the small chord diagrams (a barre in its own finger's colour) and on hammer-ons; 1, 2, 3, 4 or 6 notes a click in the scales drill (3 and 6 written in 12/8; the ABRSM ladder stays on 1, 2 and 4); the tuning hint in the spider, positions, hammer-on and fingerpicking drills and in the note finder (which asks again rather than marking it wrong); every staff and tab printed on light paper in both themes.
+- Curriculum plan, phase 2 so far (2026-10-27): eight levelled paths from the round-2 research (guitar 10 levels and 121 steps, ukulele 10 and 114, piano 11 and 120 from a check-in that tests out what you know, jazz 10 and 125, Aerophone 11 and 109, finger drumming 11 and 115, ear and harmony 11 and 123, reading 36 levels and 242 steps; 926 shelf songs), written from the markdown by agents against a validator (`levels.test.ts`) and a guide (`data/paths/README.md`). Drill steps pass on checked runs (score, tempo and setup, per value with `each`); a song counts after Performance runs at 80% near the record's tempo on two days. `/music/songs/shelf/<path>/<song>?bars=` opens a shelf song or a riff's bars in Song Studio; `scripts/fetch-scores.mjs` downloads community scores through the Orca browser into `.music-scores/` (git ignores it) and `/api/music/scores` serves them to the shelf's Add to my songs. Strum a progression has nine songs' chord loops. The old guitar, piano, MPC, ear and jazz paths are removed. About 450 steps wait for drills the app lacks; each says what it waits for. Details in `context/01-feature-catalog.md` 8.16.
 - Curriculum plan, phase 1 (2026-10-27): path steps judged on their latest attempts, confirmed on a second day, optionally at a tempo, with review (tested out) and almost-there states; review gaps that widen as a skill holds; Today as a shaped set of 10 to 90 minutes (review, path, ear or reading, a tune, variety, a jam) whose review opens the due skill's own drill mode; ear drills that hold one key, set it with I-IV-V-I and resolve each answer home; an opt-in login gate for `/music` and `/api/music`. Checked in the Orca browser (Today at 10, 20 and 90 minutes, the Paths tab, a scale degree run, the gate redirecting to login and back). Details in `context/01-feature-catalog.md` 8.15.
 - Transcribe: runs in a worker with progress and Cancel (it froze the page before); a polyphonic engine (Basic Pitch) beside the melody one; tempo found from the notes; two hands split at middle C; a sensitivity that only redoes the note picking; MIDI takes from Record become songs; drafts fixed in the piano roll; any saved song's notes edited at `/music/songs/[id]/edit`
 
@@ -125,6 +126,7 @@ The owner's checks, grouped by instrument. Everything below passed in the browse
 - Fix the trouble spot: three clean in a row, 85% tempo to start, 5% slower after a slip.
 
 **Guitar and ukulele (microphone)**
+- Strum a progression and its song loops: chord following through the microphone has never run on a real guitar, so its runs stay practice and the paths' strum steps cannot pass yet. Strum a few songs; if the following is right, Check runs can start counting.
 - Tuner: low E2 and A2 read steadily with no octave flips, and the cents agree with a trusted tuner; the nearest-string highlight follows, including high-G ukulele.
 - Spider and Positions by microphone: one note per beat detected cleanly on low strings.
 - Build and Pick by microphone: each plucked string ticks its target; strings left ringing do not add extras.

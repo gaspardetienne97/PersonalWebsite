@@ -289,3 +289,10 @@ A design and correctness review of every page, then two weeks of the owner playi
 - **One route can hold several drills.** Today's no-repeat rule compared routes, so a due Note finder review was dropped because Spider (the same `/music/fretboard`) was already in the set, and the review opened Spider instead. Compare route and mode, and open the mode that practises the skill.
 - **Look at the page after the tests pass.** Every unit test passed while Today labelled a Note finder review "String Independence" and the Paths tab called one pass of three "almost there". Both showed at once in the browser.
 - **A longer prompt can push e2e runs past the limit.** The key cadence added a few seconds to ten-question ear runs that already sat near Playwright's 30 seconds; give long flows their own timeout rather than reading the failures as flakes.
+
+### Paths (phase 2, 2026-10-27)
+
+- **Judge a step in the unit its words use.** "Three clean runs at 72" counted scoring events at first, and one run records dozens, so the window was the last three notes. Drill steps now judge whole checked runs.
+- **One field, one job.** The piano check-in used `requires` to say what it tests out, so every check showed as locked until passed. `covers` tests out without locking.
+- **Write the format and its validator before handing out the content.** Eight agents wrote about a thousand steps in parallel against one README and one test; the mistakes left were judgement calls (which drill stands in) rather than broken links.
+- **Check what a plan really opens before planning around it.** MuseScore Pro was assumed to download Official scores; it does not (they need PRO+ or a purchase), which the first download run showed at once.

@@ -13,7 +13,6 @@ Each file here is one path from `context/research/curriculum-2026-10/paths/<path
 | ear-theory.json | ear | paths/ear-theory.md |
 | reading.json | reading | paths/reading.md |
 
-A file with `"levels": []` keeps the old path in the app; once it has levels it replaces it.
 
 ## Shape
 
