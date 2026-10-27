@@ -57,7 +57,14 @@
       });
   });
   /** The progressions from beginner to advanced, for the next run. */
-  const LADDER = $derived(DIFFICULTIES.flatMap((d) => playable.filter((p) => p.difficulty === d)));
+  const LADDER = $derived(DIFFICULTIES.flatMap((d) => playable.filter((p) => p.difficulty === d && !p.song)));
+  /** Songs' chord loops, apart from the ladder. */
+  const songs = $derived(playable.filter((p) => p.song));
+  const pick = (v: string) => {
+    cfg.set({ progression: v });
+    const p = PROGRESSIONS.find((x) => x.id === v);
+    if (p) settings.update({ bpm: p.bpm });
+  };
   const totalBeats = $derived(chart.reduce((n, c) => n + c.durationBeats, 0));
 
   let phase = $state<Phase>("ready");
@@ -244,20 +251,25 @@
       <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" role="group" aria-label="Progression" data-setup="progression">
         <p class="text-sm font-medium">Progression</p>
         {#each DIFFICULTIES as d (d)}
-          {@const list = playable.filter((p) => p.difficulty === d)}
+          {@const list = playable.filter((p) => p.difficulty === d && !p.song)}
           {#if list.length}
             <Choice
               label={d[0].toUpperCase() + d.slice(1)}
               options={list.map((p) => ({ value: p.id, label: `${p.name} in ${p.key}`, detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") }))}
               value={prog.id}
-              onchange={(v) => {
-                cfg.set({ progression: v });
-                const p = PROGRESSIONS.find((x) => x.id === v);
-                if (p) settings.update({ bpm: p.bpm });
-              }}
+              onchange={pick}
             />
           {/if}
         {/each}
+        {#if songs.length}
+          <Choice
+            label="Songs"
+            options={songs.map((p) => ({ value: p.id, label: `${p.name}, ${p.song!.artist}`, detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") + `, ${p.bpm} BPM` }))}
+            value={prog.id}
+            onchange={pick}
+          />
+          {#if prog.song?.note}<p class="text-sm text-ws-soft">{prog.song.note}</p>{/if}
+        {/if}
       </div>
       <Choice
         label="Timing window"

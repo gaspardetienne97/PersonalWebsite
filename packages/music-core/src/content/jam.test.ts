@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { chorusBars, jamToneRoles, PROGRESSIONS, transposeProgression } from "./jam";
+import { scaleSemitones } from "../theory/scales";
+import { parseChordSymbol } from "../theory/chords";
+import {
+  chorusBars,
+  jamToneRoles,
+  PROGRESSIONS,
+  SONG_PROGRESSIONS,
+  transposeProgression,
+} from "./jam";
 
 const byRole = (roles: string[], r: string) => roles.flatMap((x, p) => (x === r ? [p] : []));
 
 describe("jam progressions", () => {
   it("matches the catalog table", () => {
     expect(
-      PROGRESSIONS.map(
+      PROGRESSIONS.filter((p) => !p.song).map(
         (p) =>
           `${p.id}|${p.key}|${p.group}|${p.difficulty}|${p.bpm}|${p.chords.map((c) => `${c.symbol}/${c.scale.name}(${c.bars})`).join(" ")}`,
       ),
@@ -37,5 +45,20 @@ describe("jam progressions", () => {
     expect(byRole(jamToneRoles(up.chords[0]), "chord")).toEqual([2, 4, 7, 11]);
     expect(transposeProgression(PROGRESSIONS[0], 20).chords[0].symbol).toBe("Dm7");
     expect(transposeProgression(PROGRESSIONS[0], 0)).toBe(PROGRESSIONS[0]);
+  });
+});
+
+describe("song progressions", () => {
+  it("are whole-bar loops of real chords with an artist, in a scale the theory knows", () => {
+    for (const p of SONG_PROGRESSIONS) {
+      expect(p.group, p.id).toBe("songs");
+      expect(p.song?.artist, p.id).toBeTruthy();
+      for (const ch of p.chords) {
+        expect(Number.isInteger(ch.bars), `${p.id} ${ch.symbol}`).toBe(true);
+        expect(parseChordSymbol(ch.symbol), `${p.id} ${ch.symbol}`).toBeTruthy();
+        expect(scaleSemitones(ch.scale.name), `${p.id} ${ch.scale.name}`).toBeTruthy();
+      }
+    }
+    expect(PROGRESSIONS).toEqual(expect.arrayContaining(SONG_PROGRESSIONS));
   });
 });

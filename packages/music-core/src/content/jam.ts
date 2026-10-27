@@ -4,13 +4,14 @@ import { clamp, FLAT_NAMES, pc } from "../theory/notes";
 import { parseChordSymbol, toneRoles, transposeSymbol, type ToneRole } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
 
-export type JamGroup = "pop" | "guitar-uke" | "jazz" | "blues" | "modal";
+export type JamGroup = "pop" | "guitar-uke" | "jazz" | "blues" | "modal" | "songs";
 export const JAM_GROUPS: { id: JamGroup; label: string }[] = [
   { id: "pop", label: "Pop" },
   { id: "guitar-uke", label: "Guitar/Uke" },
   { id: "jazz", label: "Jazz" },
   { id: "blues", label: "Blues" },
   { id: "modal", label: "Modal" },
+  { id: "songs", label: "Songs" },
 ];
 export const JAM_TEMPO = { min: 40, max: 220 };
 export const JAM_TRANSPOSE = { min: -12, max: 12 };
@@ -29,6 +30,8 @@ export interface Progression {
   difficulty: "beginner" | "intermediate" | "advanced";
   bpm: number;
   chords: JamChord[];
+  /** A song's chords to strum along with the record (group "songs"); `note` says what is simplified. */
+  song?: { artist: string; note?: string };
 }
 
 /** "Dm7 D dorian 2" -> chord; a chord with no named scale takes the key's scale. */
@@ -38,7 +41,7 @@ const c = (symbol: string, bars: number, scale: string): JamChord => {
 };
 
 // ponytail: the table gives no scale for the pop and guitar progressions; they use the key's major scale.
-export const PROGRESSIONS: Progression[] = [
+const BASE_PROGRESSIONS: Progression[] = [
   {
     id: "ii-v-i",
     name: "ii-V-I",
@@ -121,6 +124,133 @@ export const PROGRESSIONS: Progression[] = [
     ],
   },
 ];
+
+/** A song's form as one loop of whole-bar chords, in the open-chord key the path teaches. */
+const song = (
+  id: string,
+  name: string,
+  artist: string,
+  key: string,
+  bpm: number,
+  chords: [string, number][],
+  note?: string,
+): Progression => ({
+  id: `song-${id}`,
+  name,
+  key,
+  keyPc: parseChordSymbol(key.split(" ")[0])!.rootPc,
+  group: "songs",
+  difficulty: "beginner",
+  bpm,
+  chords: chords.map(([symbol, bars]) => c(symbol, bars, key.replace(/ minor$/, " natural minor"))),
+  song: { artist, note },
+});
+
+// ponytail: chord loops only (no strum pattern or song form); the paths' shelves carry the scores.
+export const SONG_PROGRESSIONS: Progression[] = [
+  song("knockin-on-heavens-door", "Knockin' on Heaven's Door", "Bob Dylan", "G major", 69, [
+    ["G", 1],
+    ["D", 1],
+    ["Am", 2],
+    ["G", 1],
+    ["D", 1],
+    ["C", 2],
+  ]),
+  song(
+    "stand-by-me",
+    "Stand by Me",
+    "Ben E. King",
+    "G major",
+    118,
+    [
+      ["G", 2],
+      ["Em", 2],
+      ["C", 1],
+      ["D", 1],
+      ["G", 2],
+    ],
+    "The record is in A: capo 2.",
+  ),
+  song(
+    "horse-with-no-name",
+    "A Horse With No Name",
+    "America",
+    "E minor",
+    122,
+    [
+      ["Em", 1],
+      ["D", 1],
+      ["Em", 1],
+      ["D", 1],
+    ],
+    "The record's second chord is D6/9 over F#; plain D here.",
+  ),
+  song("brown-eyed-girl", "Brown Eyed Girl", "Van Morrison", "G major", 150, [
+    ["G", 1],
+    ["C", 1],
+    ["G", 1],
+    ["D", 1],
+  ]),
+  song(
+    "im-yours",
+    "I'm Yours",
+    "Jason Mraz",
+    "C major",
+    151,
+    [
+      ["C", 1],
+      ["G", 1],
+      ["Am", 1],
+      ["F", 1],
+    ],
+    "The record is in B: capo 4.",
+  ),
+  song("riptide", "Riptide", "Vance Joy", "C major", 102, [
+    ["Am", 1],
+    ["G", 1],
+    ["C", 2],
+  ]),
+  song(
+    "country-roads",
+    "Take Me Home, Country Roads (chorus)",
+    "John Denver",
+    "G major",
+    82,
+    [
+      ["G", 1],
+      ["D", 1],
+      ["Em", 1],
+      ["C", 1],
+      ["G", 1],
+      ["D", 1],
+      ["C", 1],
+      ["G", 1],
+    ],
+    "The record is in A: capo 2.",
+  ),
+  song(
+    "zombie",
+    "Zombie",
+    "The Cranberries",
+    "E minor",
+    84,
+    [
+      ["Em", 1],
+      ["C", 1],
+      ["G", 1],
+      ["D", 1],
+    ],
+    "The record has D over F#; plain D here.",
+  ),
+  song("with-or-without-you", "With or Without You", "U2", "D major", 110, [
+    ["D", 1],
+    ["A", 1],
+    ["Bm", 1],
+    ["G", 1],
+  ]),
+];
+
+export const PROGRESSIONS: Progression[] = [...BASE_PROGRESSIONS, ...SONG_PROGRESSIONS];
 
 /** Shift a progression by up to ±12 semitones (chord roots respelled with flats). */
 export function transposeProgression(p: Progression, semitones: number): Progression {
