@@ -75,6 +75,22 @@ const click = (label) =>
     `const b = [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(label)}); b?.click(); return !!b;`,
   ) === "true";
 
+const downloadOff = () =>
+  run(
+    `return /established limitations/.test(document.body.innerText) || !![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Download" && b.disabled);`,
+  ) === "true";
+// Three blocked in a row may be three scores with downloads off, so look at the last score that
+// downloaded: blocked too means the account is limited. With nothing downloaded yet, assume it is.
+function accountLimited() {
+  const last = Object.values(manifest)
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .at(-1);
+  if (!last) return true;
+  orca("goto", "--page", page, "--url", last.url);
+  execFileSync("sleep", ["5"]);
+  return downloadOff();
+}
+
 async function newDownload(since, ms = 30_000) {
   for (const end = Date.now() + ms; Date.now() < end; await sleep(1000)) {
     const hit = readdirSync(downloads).find(
@@ -94,12 +110,14 @@ try {
     for (const score of song.scores) {
       orca("goto", "--page", page, "--url", score.url);
       await sleep(5000);
-      const off = run(
-        `return /established limitations/.test(document.body.innerText) || !![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Download" && b.disabled);`,
-      );
-      if (off === "true") {
+      if (downloadOff()) {
         console.log(`  download off ${song.id} ${score.url}`);
-        if (++blockedInARow >= 3) {
+        if (++blockedInARow >= 3 && !accountLimited()) {
+          console.log(
+            "  a score that downloaded before still can: these scores are off, going on.",
+          );
+          blockedInARow = 0;
+        } else if (blockedInARow >= 3) {
           console.log(
             "Three scores in a row will not download: MuseScore is likely limiting the account. Stopping; try again tomorrow.",
           );
